@@ -43,7 +43,7 @@ public class SqlAdvisorHint {
     final List<String> names = id.getFullyQualifiedNames();
     this.names = names == null
       ? null
-      : names.toArray(new String[0]);
+      : names.toArray(new String[names.size()]);
     type = id.getType().name();
   }
 }

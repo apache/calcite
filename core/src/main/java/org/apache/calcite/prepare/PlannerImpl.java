@@ -23,7 +23,10 @@ import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptLattice;
+import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable.ViewExpander;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
@@ -141,12 +144,15 @@ public class PlannerImpl implements Planner {
     }
     ensure(State.STATE_1_RESET);
     Frameworks.withPlanner(
-        (cluster, relOptSchema, rootSchema) -> {
-          Util.discard(rootSchema); // use our own defaultSchema
-          typeFactory = (JavaTypeFactory) cluster.getTypeFactory();
-          planner = cluster.getPlanner();
-          planner.setExecutor(executor);
-          return null;
+        new Frameworks.PlannerAction<Void>() {
+          public Void apply(RelOptCluster cluster, RelOptSchema relOptSchema,
+              SchemaPlus rootSchema) {
+            Util.discard(rootSchema); // use our own defaultSchema
+            typeFactory = (JavaTypeFactory) cluster.getTypeFactory();
+            planner = cluster.getPlanner();
+            planner.setExecutor(executor);
+            return null;
+          }
         },
         config);
 
@@ -334,8 +340,9 @@ public class PlannerImpl implements Planner {
             rel.getCluster().getMetadataProvider(),
             rel.getCluster().getPlanner()));
     Program program = programs.get(ruleSetIndex);
-    return program.run(planner, rel, requiredOutputTraits, ImmutableList.of(),
-        ImmutableList.of());
+    return program.run(planner, rel, requiredOutputTraits,
+        ImmutableList.<RelOptMaterialization>of(),
+        ImmutableList.<RelOptLattice>of());
   }
 
   /** Stage of a statement in the query-preparation lifecycle. */

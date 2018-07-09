@@ -34,6 +34,7 @@ import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+
 /**
  * Planner rule that pushes a {@link org.apache.calcite.rel.core.Sort} past a
  * {@link org.apache.calcite.rel.core.Join}.

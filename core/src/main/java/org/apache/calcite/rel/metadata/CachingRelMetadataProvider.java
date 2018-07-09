@@ -19,6 +19,7 @@ package org.apache.calcite.rel.metadata;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.RelNode;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 
@@ -29,7 +30,6 @@ import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Implementation of the {@link RelMetadataProvider}
@@ -66,12 +66,14 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
 
     // TODO jvs 30-Mar-2006: Use meta-metadata to decide which metadata
     // query results can stay fresh until the next Ice Age.
-    return (rel, mq) -> {
-      final Metadata metadata = function.bind(rel, mq);
-      return metadataClass.cast(
-          Proxy.newProxyInstance(metadataClass.getClassLoader(),
-              new Class[]{metadataClass},
-              new CachingInvocationHandler(metadata)));
+    return new UnboundMetadata<M>() {
+      public M bind(RelNode rel, RelMetadataQuery mq) {
+        final Metadata metadata = function.bind(rel, mq);
+        return metadataClass.cast(
+            Proxy.newProxyInstance(metadataClass.getClassLoader(),
+                new Class[]{metadataClass},
+                new CachingInvocationHandler(metadata)));
+      }
     };
   }
 
@@ -100,7 +102,7 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
     private final Metadata metadata;
 
     CachingInvocationHandler(Metadata metadata) {
-      this.metadata = Objects.requireNonNull(metadata);
+      this.metadata = Preconditions.checkNotNull(metadata);
     }
 
     public Object invoke(Object proxy, Method method, Object[] args)

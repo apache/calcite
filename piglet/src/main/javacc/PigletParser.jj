@@ -35,10 +35,10 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import org.slf4j.Logger;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -161,7 +161,7 @@ JAVACODE SqlParseException convertException(Throwable ex) {
  */
 Program stmtListEof() :
 {
-  final List<Stmt> list = new ArrayList<Stmt>();
+  final List<Stmt> list = Lists.newArrayList();
   Stmt s;
 }
 {
@@ -326,7 +326,7 @@ Assignment foreachStmt(final Identifier target) :
 List<Stmt> nestedStmtList() :
 {
   Assignment s;
-  final List<Stmt> list = new ArrayList<Stmt>();
+  final List<Stmt> list = Lists.newArrayList();
 }
 {
   s = nestedStmt() {
@@ -388,8 +388,7 @@ OrderStmt orderStmt(final Identifier target) :
 
 List<Pair<Identifier, Direction>> orderFieldCommaList() :
 {
-  final List<Pair<Identifier, Direction>> list =
-      new ArrayList<Pair<Identifier, Direction>>();
+  final List<Pair<Identifier, Direction>> list = Lists.newArrayList();
   Pair<Identifier, Direction> field;
 }
 {
@@ -731,7 +730,7 @@ Node atom() :
 /** A non-empty list of expressions. */
 List<Node> expCommaList() :
 {
-  final List<Node> list = new ArrayList<Node>();
+  final List<Node> list = Lists.newArrayList();
   Node e;
 }
 {
@@ -1046,7 +1045,7 @@ String commonNonReservedKeyWord() :
  *****************************************/
 
 TOKEN_MGR_DECLS : {
-    List<Integer> lexicalStateStack = new ArrayList<Integer>();
+    List<Integer> lexicalStateStack = Lists.newArrayList();
 
     void pushState() {
       lexicalStateStack.add(curLexState);

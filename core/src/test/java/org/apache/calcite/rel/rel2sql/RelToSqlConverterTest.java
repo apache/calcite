@@ -17,6 +17,8 @@
 package org.apache.calcite.rel.rel2sql;
 
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.plan.RelOptLattice;
+import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
@@ -26,12 +28,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialect.Context;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
@@ -47,12 +46,14 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
 
 import java.util.List;
-import java.util.function.Function;
+
+import junit.framework.AssertionFailedError;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
@@ -80,7 +81,7 @@ public class RelToSqlConverterTest {
   private Sql sql(String sql) {
     return new Sql(CalciteAssert.SchemaSpec.JDBC_FOODMART, sql,
         CalciteSqlDialect.DEFAULT, DEFAULT_REL_CONFIG,
-        ImmutableList.of());
+        ImmutableList.<Function<RelNode, RelNode>>of());
   }
 
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
@@ -1286,33 +1287,6 @@ public class RelToSqlConverterTest {
         .ok(expected);
   }
 
-  @Test public void testFloorMysqlHour() {
-    String query = "SELECT floor(\"hire_date\" TO HOUR) FROM \"employee\"";
-    String expected = "SELECT DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:00:00')\n"
-        + "FROM `foodmart`.`employee`";
-    sql(query)
-        .withMysql()
-        .ok(expected);
-  }
-
-  @Test public void testFloorMysqlMinute() {
-    String query = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
-    String expected = "SELECT DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:00')\n"
-        + "FROM `foodmart`.`employee`";
-    sql(query)
-        .withMysql()
-        .ok(expected);
-  }
-
-  @Test public void testFloorMysqlSecond() {
-    String query = "SELECT floor(\"hire_date\" TO SECOND) FROM \"employee\"";
-    String expected = "SELECT DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:%s')\n"
-        + "FROM `foodmart`.`employee`";
-    sql(query)
-        .withMysql()
-        .ok(expected);
-  }
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1826">[CALCITE-1826]
    * JDBC dialect-specific FLOOR fails when in GROUP BY</a>. */
@@ -1330,9 +1304,9 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"\n"
         + "GROUP BY DATE_TRUNC('MINUTE', \"hire_date\")";
     final String expectedMysql = "SELECT"
-        + " DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:00')\n"
+        + " DATE_FORMAT(`hire_date`, '%Y-%m-%d %k:%i:00')\n"
         + "FROM `foodmart`.`employee`\n"
-        + "GROUP BY DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:00')";
+        + "GROUP BY DATE_FORMAT(`hire_date`, '%Y-%m-%d %k:%i:00')";
     sql(query)
         .withHsqldb()
         .ok(expected)
@@ -2544,27 +2518,6 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
-  @Test public void testUnparseSelectMustUseDialect() {
-    final String query = "select * from \"product\"";
-    final String expected = "SELECT *\n"
-        + "FROM foodmart.product";
-
-    final boolean[] callsUnparseCallOnSqlSelect = {false};
-    final SqlDialect dialect = new SqlDialect(SqlDialect.EMPTY_CONTEXT) {
-      @Override public void unparseCall(SqlWriter writer, SqlCall call,
-          int leftPrec, int rightPrec) {
-        if (call instanceof SqlSelect) {
-          callsUnparseCallOnSqlSelect[0] = true;
-        }
-        super.unparseCall(writer, call, leftPrec, rightPrec);
-      }
-    };
-    sql(query).dialect(dialect).ok(expected);
-
-    assertThat("Dialect must be able to customize unparseCall() for SqlSelect",
-        callsUnparseCallOnSqlSelect[0], is(true));
-  }
-
   /** Fluid interface to run tests. */
   private static class Sql {
     private CalciteAssert.SchemaSpec schemaSpec;
@@ -2625,10 +2578,13 @@ public class RelToSqlConverterTest {
 
     Sql optimize(final RuleSet ruleSet, final RelOptPlanner relOptPlanner) {
       return new Sql(schemaSpec, sql, dialect, config,
-          FlatLists.append(transforms, r -> {
-            Program program = Programs.of(ruleSet);
-            return program.run(relOptPlanner, r, r.getTraitSet(),
-                ImmutableList.of(), ImmutableList.of());
+          FlatLists.append(transforms, new Function<RelNode, RelNode>() {
+            public RelNode apply(RelNode r) {
+              Program program = Programs.of(ruleSet);
+              return program.run(relOptPlanner, r, r.getTraitSet(),
+                  ImmutableList.<RelOptMaterialization>of(),
+                  ImmutableList.<RelOptLattice>of());
+            }
           }));
     }
 
@@ -2640,7 +2596,7 @@ public class RelToSqlConverterTest {
     Sql throws_(String errorMessage) {
       try {
         final String s = exec();
-        throw new AssertionError("Expected exception with message `"
+        throw new AssertionFailedError("Expected exception with message `"
             + errorMessage + "` but nothing was thrown; got " + s);
       } catch (Exception e) {
         assertThat(e.getMessage(), is(errorMessage));

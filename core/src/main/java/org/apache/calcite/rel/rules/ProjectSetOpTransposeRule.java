@@ -40,8 +40,8 @@ import java.util.List;
  */
 public class ProjectSetOpTransposeRule extends RelOptRule {
   public static final ProjectSetOpTransposeRule INSTANCE =
-      new ProjectSetOpTransposeRule(expr -> false,
-          RelFactories.LOGICAL_BUILDER);
+      new ProjectSetOpTransposeRule(
+          PushProjector.ExprCondition.FALSE, RelFactories.LOGICAL_BUILDER);
 
   //~ Instance fields --------------------------------------------------------
 

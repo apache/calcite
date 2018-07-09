@@ -78,14 +78,19 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
     if (!SqlNode.class.isAssignableFrom(parameterType)) {
       return;
     }
-    map.put(parameterType, (SqlRexConvertlet) (cx, call) -> {
-      try {
-        return (RexNode) method.invoke(ReflectiveConvertletTable.this,
-            cx, call);
-      } catch (IllegalAccessException | InvocationTargetException e) {
-        throw new RuntimeException("while converting " + call, e);
-      }
-    });
+    map.put(parameterType,
+        new SqlRexConvertlet() {
+          public RexNode convertCall(
+              SqlRexContext cx,
+              SqlCall call) {
+            try {
+              return (RexNode) method.invoke(ReflectiveConvertletTable.this,
+                  cx, call);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+              throw new RuntimeException("while converting " + call, e);
+            }
+          }
+        });
   }
 
   /**
@@ -119,14 +124,17 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
     if (!SqlCall.class.isAssignableFrom(parameterType)) {
       return;
     }
-    map.put(opClass, (SqlRexConvertlet) (cx, call) -> {
-      try {
-        return (RexNode) method.invoke(ReflectiveConvertletTable.this,
-            cx, call.getOperator(), call);
-      } catch (IllegalAccessException | InvocationTargetException e) {
-        throw new RuntimeException("while converting " + call, e);
-      }
-    });
+    map.put(opClass,
+        new SqlRexConvertlet() {
+          public RexNode convertCall(SqlRexContext cx, SqlCall call) {
+            try {
+              return (RexNode) method.invoke(ReflectiveConvertletTable.this,
+                  cx, call.getOperator(), call);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+              throw new RuntimeException("while converting " + call, e);
+            }
+          }
+        });
   }
 
   public SqlRexConvertlet get(SqlCall call) {
@@ -183,12 +191,17 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
    */
   protected void addAlias(final SqlOperator alias, final SqlOperator target) {
     map.put(
-        alias, (SqlRexConvertlet) (cx, call) -> {
-          Preconditions.checkArgument(call.getOperator() == alias,
-              "call to wrong operator");
-          final SqlCall newCall =
-              target.createCall(SqlParserPos.ZERO, call.getOperandList());
-          return cx.convertExpression(newCall);
+        alias,
+        new SqlRexConvertlet() {
+          public RexNode convertCall(
+              SqlRexContext cx,
+              SqlCall call) {
+            Preconditions.checkArgument(call.getOperator() == alias,
+                "call to wrong operator");
+            final SqlCall newCall =
+                target.createCall(SqlParserPos.ZERO, call.getOperandList());
+            return cx.convertExpression(newCall);
+          }
         });
   }
 }

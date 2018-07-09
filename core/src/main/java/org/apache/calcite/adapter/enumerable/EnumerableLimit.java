@@ -22,7 +22,9 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
@@ -34,6 +36,8 @@ import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
+
+import com.google.common.base.Supplier;
 
 import java.util.List;
 
@@ -67,9 +71,17 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
         cluster.traitSetOf(EnumerableConvention.INSTANCE)
             .replaceIfs(
                 RelCollationTraitDef.INSTANCE,
-                () -> RelMdCollation.limit(mq, input))
+                new Supplier<List<RelCollation>>() {
+                  public List<RelCollation> get() {
+                    return RelMdCollation.limit(mq, input);
+                  }
+                })
             .replaceIf(RelDistributionTraitDef.INSTANCE,
-                () -> RelMdDistribution.limit(mq, input));
+                new Supplier<RelDistribution>() {
+                  public RelDistribution get() {
+                    return RelMdDistribution.limit(mq, input);
+                  }
+                });
     return new EnumerableLimit(cluster, traitSet, input, offset, fetch);
   }
 

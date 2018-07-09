@@ -745,26 +745,26 @@ public class DateRangeRulesTest {
           ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.DAY), d));
 
       floorYear = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.YEAR)));
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.YEAR)));
       floorMonth = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.MONTH)));
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.MONTH)));
       floorDay = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.DAY)));
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.DAY)));
       floorHour = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.HOUR)));
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.HOUR)));
       floorMinute = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.MINUTE)));
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.MINUTE)));
 
       ceilYear = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.YEAR)));
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.YEAR)));
       ceilMonth = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.MONTH)));
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.MONTH)));
       ceilDay = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.DAY)));
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.DAY)));
       ceilHour = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.HOUR)));
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.HOUR)));
       ceilMinute = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.MINUTE)));
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.MINUTE)));
     }
   }
 }

@@ -134,12 +134,17 @@ public class PrecedenceClimbingParserTest {
         .infix("and", 2, true)
         .atom("price")
         .special("between", 3, 3,
-            (parser, op) ->
-                new PrecedenceClimbingParser.Result(op.previous,
+            new PrecedenceClimbingParser.Special() {
+              public PrecedenceClimbingParser.Result apply(
+                  PrecedenceClimbingParser parser,
+                  PrecedenceClimbingParser.SpecialOp op) {
+                return new PrecedenceClimbingParser.Result(op.previous,
                     op.next.next.next,
                     parser.call(op,
                         ImmutableList.of(op.previous, op.next,
-                            op.next.next.next))))
+                            op.next.next.next)));
+              }
+            })
         .atom("1")
         .infix("+", 5, true)
         .atom("2")

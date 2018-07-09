@@ -77,7 +77,7 @@ public class MutableRelTest {
         "Calc",
         "select * from emp where ename = 'DUMMY'",
         false,
-        ImmutableList.of(FilterToCalcRule.INSTANCE));
+        ImmutableList.<RelOptRule>of(FilterToCalcRule.INSTANCE));
   }
 
   @Test public void testConvertWindow() {
@@ -85,7 +85,7 @@ public class MutableRelTest {
         "Window",
         "select sal, avg(sal) over (partition by deptno) from emp",
         false,
-        ImmutableList.of(ProjectToWindowRule.PROJECT));
+        ImmutableList.<RelOptRule>of(ProjectToWindowRule.PROJECT));
   }
 
   @Test public void testConvertCollect() {

@@ -32,8 +32,8 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -88,7 +88,7 @@ public class RelMdTableReferences
    * TableScan table reference.
    */
   public Set<RelTableRef> getTableReferences(TableScan rel, RelMetadataQuery mq) {
-    return ImmutableSet.of(RelTableRef.of(rel.getTable(), 0));
+    return Sets.newHashSet(RelTableRef.of(rel.getTable(), 0));
   }
 
   /**

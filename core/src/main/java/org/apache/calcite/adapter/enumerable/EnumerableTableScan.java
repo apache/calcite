@@ -31,6 +31,7 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
@@ -44,6 +45,7 @@ import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.util.BuiltInMethod;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Type;
@@ -74,12 +76,15 @@ public class EnumerableTableScan
     Class elementType = EnumerableTableScan.deduceElementType(table);
     final RelTraitSet traitSet =
         cluster.traitSetOf(EnumerableConvention.INSTANCE)
-            .replaceIfs(RelCollationTraitDef.INSTANCE, () -> {
-              if (table != null) {
-                return table.getStatistic().getCollations();
-              }
-              return ImmutableList.of();
-            });
+            .replaceIfs(RelCollationTraitDef.INSTANCE,
+                new Supplier<List<RelCollation>>() {
+                  public List<RelCollation> get() {
+                    if (table != null) {
+                      return table.getStatistic().getCollations();
+                    }
+                    return ImmutableList.of();
+                  }
+                });
     return new EnumerableTableScan(cluster, traitSet, relOptTable, elementType);
   }
 

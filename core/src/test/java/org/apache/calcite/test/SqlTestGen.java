@@ -80,7 +80,7 @@ public class SqlTestGen {
         list.add(method);
       }
     }
-    return list.toArray(new Method[0]);
+    return list.toArray(new Method[list.size()]);
   }
 
   //~ Inner Classes ----------------------------------------------------------

@@ -35,10 +35,10 @@ import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.List;
-import java.util.function.Predicate;
 
 /**
  * Relational expression that converts an enumerable input to interpretable
@@ -71,13 +71,15 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
   }
 
   public Node implement(final InterpreterImplementor implementor) {
-    return () -> {
-      final Sink sink =
-          implementor.relSinks.get(EnumerableBindable.this).get(0);
-      final Enumerable<Object[]> enumerable = bind(implementor.dataContext);
-      final Enumerator<Object[]> enumerator = enumerable.enumerator();
-      while (enumerator.moveNext()) {
-        sink.send(Row.asCopy(enumerator.current()));
+    return new Node() {
+      public void run() throws InterruptedException {
+        final Sink sink =
+            implementor.relSinks.get(EnumerableBindable.this).get(0);
+        final Enumerable<Object[]> enumerable = bind(implementor.dataContext);
+        final Enumerator<Object[]> enumerator = enumerable.enumerator();
+        while (enumerator.moveNext()) {
+          sink.send(Row.asCopy(enumerator.current()));
+        }
       }
     };
   }
@@ -96,7 +98,7 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
      */
     public EnumerableToBindableConverterRule(
         RelBuilderFactory relBuilderFactory) {
-      super(EnumerableRel.class, (Predicate<RelNode>) r -> true,
+      super(EnumerableRel.class, Predicates.<RelNode>alwaysTrue(),
           EnumerableConvention.INSTANCE, BindableConvention.INSTANCE,
           relBuilderFactory, "EnumerableToBindableConverterRule");
     }

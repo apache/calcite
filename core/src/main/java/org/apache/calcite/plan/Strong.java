@@ -24,6 +24,7 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
@@ -31,7 +32,6 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /** Utilities for strong predicates.
  *
@@ -87,7 +87,7 @@ public class Strong {
   /** Returns how to deduce whether a particular kind of expression is null,
    * given whether its arguments are null. */
   public static Policy policy(SqlKind kind) {
-    return Objects.requireNonNull(MAP.get(kind), kind.toString());
+    return Preconditions.checkNotNull(MAP.get(kind), kind);
   }
 
   /** Returns whether an expression is definitely not true. */

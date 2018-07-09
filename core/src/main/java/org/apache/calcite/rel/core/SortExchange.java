@@ -26,7 +26,7 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 
-import java.util.Objects;
+import com.google.common.base.Preconditions;
 
 /**
  * Relational expression that performs {@link Exchange} and {@link Sort}
@@ -57,7 +57,7 @@ public abstract class SortExchange extends Exchange {
   protected SortExchange(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RelDistribution distribution, RelCollation collation) {
     super(cluster, traitSet, input, distribution);
-    this.collation = Objects.requireNonNull(collation);
+    this.collation = Preconditions.checkNotNull(collation);
 
     assert traitSet.containsIfApplicable(collation)
         : "traits=" + traitSet + ", collation=" + collation;

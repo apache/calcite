@@ -1724,7 +1724,7 @@ public class RelBuilderTest {
     final RelBuilder builder = RelBuilder.create(config().build());
     final RelNode root =
         builder.scan("EMP")
-            .sortLimit(0, -1, ImmutableList.of())
+            .sortLimit(0, -1, ImmutableList.<RexNode>of())
             .build();
     final String expected = "LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));

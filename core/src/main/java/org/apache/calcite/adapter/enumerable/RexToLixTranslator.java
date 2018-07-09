@@ -75,7 +75,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
  */
 public class RexToLixTranslator {
   public static final Map<Method, SqlOperator> JAVA_TO_SQL_METHOD_MAP =
-      Util.mapOf(
+      Util.<Method, SqlOperator>mapOf(
           findMethod(String.class, "toUpperCase"), UPPER,
           findMethod(
               SqlFunctions.class, "substring", String.class, Integer.TYPE,
@@ -109,7 +109,7 @@ public class RexToLixTranslator {
   private RexToLixTranslator(RexProgram program, JavaTypeFactory typeFactory,
       Expression root, InputGetter inputGetter, BlockBuilder list) {
     this(program, typeFactory, root, inputGetter, list,
-        Collections.emptyMap(),
+        Collections.<RexNode, Boolean>emptyMap(),
         new RexBuilder(typeFactory));
   }
 
@@ -1223,7 +1223,7 @@ public class RexToLixTranslator {
       return this;
     }
     return new RexToLixTranslator(program, typeFactory, root, inputGetter,
-        block, ImmutableMap.of(), builder, this, correlates);
+        block, ImmutableMap.<RexNode, Boolean>of(), builder, this, correlates);
   }
 
   public RexToLixTranslator setCorrelates(
@@ -1232,7 +1232,7 @@ public class RexToLixTranslator {
       return this;
     }
     return new RexToLixTranslator(program, typeFactory, root, inputGetter, list,
-        Collections.emptyMap(), builder, this, correlates);
+        Collections.<RexNode, Boolean>emptyMap(), builder, this, correlates);
   }
 
   public RelDataType nullifyType(RelDataType type, boolean nullable) {

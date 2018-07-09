@@ -19,9 +19,9 @@ package org.apache.calcite.adapter.druid;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.google.common.base.Preconditions;
 
 import java.io.IOException;
-import java.util.Objects;
 import javax.annotation.Nonnull;
 
 import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
@@ -88,9 +88,9 @@ public class Granularities {
     private final String timeZone;
 
     private PeriodGranularity(Type type, String period, String timeZone) {
-      this.type = Objects.requireNonNull(type);
-      this.period = Objects.requireNonNull(period);
-      this.timeZone = Objects.requireNonNull(timeZone);
+      this.type = Preconditions.checkNotNull(type);
+      this.period = Preconditions.checkNotNull(period);
+      this.timeZone = Preconditions.checkNotNull(timeZone);
     }
 
     @Override public void write(JsonGenerator generator) throws IOException {

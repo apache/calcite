@@ -19,9 +19,12 @@ package org.apache.calcite.util;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.runtime.Utilities;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 
 import java.io.Serializable;
@@ -47,18 +50,21 @@ public class ImmutableBitSet
     implements Iterable<Integer>, Serializable, Comparable<ImmutableBitSet> {
   /** Compares bit sets topologically, so that enclosing bit sets come first,
    * using natural ordering to break ties. */
-  public static final Comparator<ImmutableBitSet> COMPARATOR = (o1, o2) -> {
-    if (o1.equals(o2)) {
-      return 0;
-    }
-    if (o1.contains(o2)) {
-      return -1;
-    }
-    if (o2.contains(o1)) {
-      return 1;
-    }
-    return o1.compareTo(o2);
-  };
+  public static final Comparator<ImmutableBitSet> COMPARATOR =
+      new Comparator<ImmutableBitSet>() {
+        public int compare(ImmutableBitSet o1, ImmutableBitSet o2) {
+          if (o1.equals(o2)) {
+            return 0;
+          }
+          if (o1.contains(o2)) {
+            return -1;
+          }
+          if (o2.contains(o1)) {
+            return 1;
+          }
+          return o1.compareTo(o2);
+        }
+      };
 
   public static final Ordering<ImmutableBitSet> ORDERING =
       Ordering.from(COMPARATOR);
@@ -77,11 +83,12 @@ public class ImmutableBitSet
   private static final ImmutableBitSet EMPTY =
       new ImmutableBitSet(EMPTY_LONGS);
 
-  @SuppressWarnings("Guava")
-  @Deprecated // to be removed before 2.0
-  public static final
-      com.google.common.base.Function<? super BitSet, ImmutableBitSet>
-      FROM_BIT_SET = ImmutableBitSet::fromBitSet;
+  public static final Function<? super BitSet, ImmutableBitSet> FROM_BIT_SET =
+      new Function<BitSet, ImmutableBitSet>() {
+        public ImmutableBitSet apply(BitSet input) {
+          return ImmutableBitSet.of(BitSets.toIter(input));
+        }
+      };
 
   private final long[] words;
 
@@ -196,14 +203,6 @@ public class ImmutableBitSet
   }
 
   /**
-   * Returns a new immutable bit set containing all the bits in the given
-   * {@link BitSet}.
-   */
-  public static ImmutableBitSet fromBitSet(BitSet input) {
-    return ImmutableBitSet.of(BitSets.toIter(input));
-  }
-
-  /**
    * Creates an ImmutableBitSet with bits from {@code fromIndex} (inclusive) to
    * specified {@code toIndex} (exclusive) set to {@code true}.
    *
@@ -258,13 +257,17 @@ public class ImmutableBitSet
 
   /** Computes the power set (set of all sets) of this bit set. */
   public Iterable<ImmutableBitSet> powerSet() {
-    List<List<ImmutableBitSet>> singletons = new ArrayList<>();
-    for (int bit : this) {
+    List<List<ImmutableBitSet>> singletons = Lists.newArrayList();
+    for (Integer bit : this) {
       singletons.add(
           ImmutableList.of(ImmutableBitSet.of(), ImmutableBitSet.of(bit)));
     }
     return Iterables.transform(Linq4j.product(singletons),
-        ImmutableBitSet::union);
+        new Function<List<ImmutableBitSet>, ImmutableBitSet>() {
+          public ImmutableBitSet apply(List<ImmutableBitSet> input) {
+            return ImmutableBitSet.union(input);
+          }
+        });
   }
 
   /**
@@ -462,7 +465,7 @@ public class ImmutableBitSet
    * <p>Bit sets {@code (), (0), (0, 1), (0, 1, 3), (1), (2, 3)} are in sorted
    * order.</p>
    */
-  public int compareTo(@Nonnull ImmutableBitSet o) {
+  public int compareTo(ImmutableBitSet o) {
     int i = 0;
     for (;;) {
       int n0 = nextSetBit(i);
@@ -885,7 +888,12 @@ public class ImmutableBitSet
   public static Iterable<ImmutableBitSet> permute(
       Iterable<ImmutableBitSet> bitSets,
       final Map<Integer, Integer> map) {
-    return Iterables.transform(bitSets, bitSet -> bitSet.permute(map));
+    return Iterables.transform(bitSets,
+        new Function<ImmutableBitSet, ImmutableBitSet>() {
+          public ImmutableBitSet apply(ImmutableBitSet bitSet) {
+            return bitSet.permute(map);
+          }
+        });
   }
 
   /** Returns a bit set with every bit moved up {@code offset} positions.
@@ -913,7 +921,7 @@ public class ImmutableBitSet
   private static class Closure {
     private SortedMap<Integer, ImmutableBitSet> equivalence;
     private final SortedMap<Integer, ImmutableBitSet> closure =
-        new TreeMap<>();
+        Maps.newTreeMap();
 
     Closure(SortedMap<Integer, ImmutableBitSet> equivalence) {
       this.equivalence = equivalence;

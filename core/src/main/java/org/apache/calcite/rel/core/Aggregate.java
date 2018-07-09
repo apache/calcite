@@ -31,6 +31,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlOperatorBinding;
@@ -44,12 +45,12 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import com.google.common.math.IntMath;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -72,24 +73,26 @@ public abstract class Aggregate extends SingleRel {
   /**
    * @see org.apache.calcite.util.Bug#CALCITE_461_FIXED
    */
-  public static boolean isSimple(Aggregate aggregate) {
-    return aggregate.getGroupType() == Group.SIMPLE;
-  }
+  public static final Predicate<Aggregate> IS_SIMPLE =
+      new PredicateImpl<Aggregate>() {
+        public boolean test(Aggregate input) {
+          return input.getGroupType() == Group.SIMPLE;
+        }
+      };
 
-  @SuppressWarnings("Guava")
-  @Deprecated // to be converted to Java Predicate before 2.0
-  public static final com.google.common.base.Predicate<Aggregate> IS_SIMPLE =
-      Aggregate::isSimple;
+  public static final Predicate<Aggregate> NO_INDICATOR =
+      new PredicateImpl<Aggregate>() {
+        public boolean test(Aggregate input) {
+          return !input.indicator;
+        }
+      };
 
-  @SuppressWarnings("Guava")
-  @Deprecated // to be converted to Java Predicate before 2.0
-  public static final com.google.common.base.Predicate<Aggregate> NO_INDICATOR =
-      Aggregate::noIndicator;
-
-  @SuppressWarnings("Guava")
-  @Deprecated // to be converted to Java Predicate before 2.0
-  public static final com.google.common.base.Predicate<Aggregate>
-      IS_NOT_GRAND_TOTAL = Aggregate::isNotGrandTotal;
+  public static final Predicate<Aggregate> IS_NOT_GRAND_TOTAL =
+      new PredicateImpl<Aggregate>() {
+        public boolean test(Aggregate input) {
+          return input.getGroupCount() > 0;
+        }
+      };
 
   //~ Instance fields --------------------------------------------------------
 
@@ -143,7 +146,7 @@ public abstract class Aggregate extends SingleRel {
     super(cluster, traits, child);
     this.indicator = indicator; // true is allowed, but discouraged
     this.aggCalls = ImmutableList.copyOf(aggCalls);
-    this.groupSet = Objects.requireNonNull(groupSet);
+    this.groupSet = Preconditions.checkNotNull(groupSet);
     if (groupSets == null) {
       this.groupSets = ImmutableList.of(groupSet);
     } else {
@@ -160,14 +163,6 @@ public abstract class Aggregate extends SingleRel {
           || isPredicate(child, aggCall.filterArg),
           "filter must be BOOLEAN NOT NULL");
     }
-  }
-
-  public static boolean isNotGrandTotal(Aggregate aggregate) {
-    return aggregate.getGroupCount() > 0;
-  }
-
-  public static boolean noIndicator(Aggregate aggregate) {
-    return !aggregate.indicator;
   }
 
   private boolean isPredicate(RelNode input, int index) {
@@ -357,7 +352,7 @@ public abstract class Aggregate extends SingleRel {
     assert groupList.size() == groupSet.cardinality();
     final RelDataTypeFactory.Builder builder = typeFactory.builder();
     final List<RelDataTypeField> fieldList = inputRowType.getFieldList();
-    final Set<String> containedNames = new HashSet<>();
+    final Set<String> containedNames = Sets.newHashSet();
     for (int groupKey : groupList) {
       final RelDataTypeField field = fieldList.get(groupKey);
       containedNames.add(field.getName());

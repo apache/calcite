@@ -22,7 +22,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-import java.util.function.Predicate;
+import com.google.common.base.Predicates;
 
 /**
  * Rule to convert a relational expression from
@@ -33,7 +33,7 @@ public class JdbcToSparkConverterRule extends ConverterRule {
   /** Creates a JdbcToSparkConverterRule. */
   public JdbcToSparkConverterRule(JdbcConvention out,
       RelBuilderFactory relBuilderFactory) {
-    super(RelNode.class, (Predicate<RelNode>) r -> true, out,
+    super(RelNode.class, Predicates.<RelNode>alwaysTrue(), out,
         SparkRel.CONVENTION, relBuilderFactory, "JdbcToSparkConverterRule");
   }
 

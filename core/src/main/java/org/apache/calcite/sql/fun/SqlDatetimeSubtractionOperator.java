@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.fun;
 
+
+
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;

@@ -21,9 +21,9 @@ import org.apache.calcite.rel.type.RelDataType;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,11 +35,11 @@ class MaterializationActor {
   // Not an actor yet -- TODO make members private and add request/response
   // queues
 
-  final Map<MaterializationKey, Materialization> keyMap = new HashMap<>();
+  final Map<MaterializationKey, Materialization> keyMap = Maps.newHashMap();
 
-  final Map<QueryKey, MaterializationKey> keyBySql = new HashMap<>();
+  final Map<QueryKey, MaterializationKey> keyBySql = Maps.newHashMap();
 
-  final Map<TileKey, MaterializationKey> keyByTile = new HashMap<>();
+  final Map<TileKey, MaterializationKey> keyByTile = Maps.newHashMap();
 
   /** Tiles grouped by dimensionality. We use a
    *  {@link TileKey} with no measures to represent a
@@ -75,7 +75,7 @@ class MaterializationActor {
         RelDataType rowType,
         List<String> viewSchemaPath) {
       this.key = key;
-      this.rootSchema = Objects.requireNonNull(rootSchema);
+      this.rootSchema = Preconditions.checkNotNull(rootSchema);
       Preconditions.checkArgument(rootSchema.isRoot(), "must be root schema");
       this.materializedTable = materializedTable; // may be null
       this.sql = sql;

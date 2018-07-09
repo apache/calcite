@@ -59,7 +59,12 @@ public abstract class RelTraitDef<T extends RelTrait> {
   private final LoadingCache<T, T> canonicalMap =
       CacheBuilder.newBuilder()
           .softValues()
-          .build(CacheLoader.from(key -> key));
+          .build(
+              new CacheLoader<T, T>() {
+                @Override public T load(@Nonnull T key) throws Exception {
+                  return key;
+                }
+              });
 
   /** Cache of composite traits.
    *

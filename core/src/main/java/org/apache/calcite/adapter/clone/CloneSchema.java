@@ -34,6 +34,7 @@ import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 
+import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 
@@ -84,7 +85,7 @@ public class CloneSchema extends AbstractSchema {
     final JavaTypeFactory typeFactory =
         ((CalciteConnection) queryProvider).getTypeFactory();
     return createCloneTable(typeFactory, Schemas.proto(sourceTable),
-        ImmutableList.of(), null, queryable);
+        ImmutableList.<RelCollation>of(), null, queryable);
   }
 
   @Deprecated // to be removed before 2.0
@@ -92,8 +93,8 @@ public class CloneSchema extends AbstractSchema {
       final RelProtoDataType protoRowType,
       final List<ColumnMetaData.Rep> repList,
       final Enumerable<T> source) {
-    return createCloneTable(typeFactory, protoRowType, ImmutableList.of(),
-        repList, source);
+    return createCloneTable(typeFactory, protoRowType,
+        ImmutableList.<RelCollation>of(), repList, source);
   }
 
   public static <T> Table createCloneTable(final JavaTypeFactory typeFactory,
@@ -114,18 +115,21 @@ public class CloneSchema extends AbstractSchema {
     return new ArrayTable(
         elementType,
         protoRowType,
-        Suppliers.memoize(() -> {
-          final ColumnLoader loader =
-              new ColumnLoader<>(typeFactory, source, protoRowType,
-                  repList);
-          final List<RelCollation> collation2 =
-              collations.isEmpty()
-                  && loader.sortField >= 0
-                  ? RelCollations.createSingleton(loader.sortField)
-                  : collations;
-          return new ArrayTable.Content(loader.representationValues,
-              loader.size(), collation2);
-        }));
+        Suppliers.memoize(
+            new Supplier<ArrayTable.Content>() {
+              public ArrayTable.Content get() {
+                final ColumnLoader loader =
+                    new ColumnLoader<>(typeFactory, source, protoRowType,
+                        repList);
+                final List<RelCollation> collation2 =
+                    collations.isEmpty()
+                        && loader.sortField >= 0
+                        ? RelCollations.createSingleton(loader.sortField)
+                        : collations;
+                return new ArrayTable.Content(loader.representationValues,
+                    loader.size(), collation2);
+              }
+            }));
   }
 
   /** Schema factory that creates a

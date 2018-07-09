@@ -19,7 +19,9 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.BitString;
-import org.apache.calcite.util.Util;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 import java.util.List;
 
@@ -30,6 +32,12 @@ import java.util.List;
  * {@link SqlTypeName#BINARY}.
  */
 public class SqlBinaryStringLiteral extends SqlAbstractStringLiteral {
+  private static final Function<SqlLiteral, BitString> F =
+      new Function<SqlLiteral, BitString>() {
+        public BitString apply(SqlLiteral literal) {
+          return ((SqlBinaryStringLiteral) literal).getBitString();
+        }
+      };
 
   //~ Constructors -----------------------------------------------------------
 
@@ -62,9 +70,7 @@ public class SqlBinaryStringLiteral extends SqlAbstractStringLiteral {
 
   protected SqlAbstractStringLiteral concat1(List<SqlLiteral> literals) {
     return new SqlBinaryStringLiteral(
-        BitString.concat(
-            Util.transform(literals,
-                literal -> ((SqlBinaryStringLiteral) literal).getBitString())),
+        BitString.concat(Lists.transform(literals, F)),
         literals.get(0).getParserPosition());
   }
 }

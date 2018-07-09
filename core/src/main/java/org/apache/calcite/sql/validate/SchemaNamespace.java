@@ -21,10 +21,10 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
-import java.util.Objects;
 
 /** Namespace based on a schema.
  *
@@ -37,7 +37,7 @@ class SchemaNamespace extends AbstractNamespace {
   /** Creates a SchemaNamespace. */
   SchemaNamespace(SqlValidatorImpl validator, ImmutableList<String> names) {
     super(validator, null);
-    this.names = Objects.requireNonNull(names);
+    this.names = Preconditions.checkNotNull(names);
   }
 
   protected RelDataType validateImpl(RelDataType targetRowType) {

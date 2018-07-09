@@ -18,11 +18,12 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.config.CalciteConnectionConfig;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Utilities for {@link Context}.
@@ -81,7 +82,7 @@ public class Contexts {
 
   private static Context chain(Iterable<? extends Context> contexts) {
     // Flatten any chain contexts in the list, and remove duplicates
-    final List<Context> list = new ArrayList<>();
+    final List<Context> list = Lists.newArrayList();
     for (Context context : contexts) {
       build(list, context);
     }
@@ -115,7 +116,7 @@ public class Contexts {
     final Object target;
 
     WrapContext(Object target) {
-      this.target = Objects.requireNonNull(target);
+      this.target = Preconditions.checkNotNull(target);
     }
 
     public <T> T unwrap(Class<T> clazz) {
@@ -138,7 +139,7 @@ public class Contexts {
     final ImmutableList<Context> contexts;
 
     ChainContext(ImmutableList<Context> contexts) {
-      this.contexts = Objects.requireNonNull(contexts);
+      this.contexts = Preconditions.checkNotNull(contexts);
       for (Context context : contexts) {
         assert !(context instanceof ChainContext) : "must be flat";
       }

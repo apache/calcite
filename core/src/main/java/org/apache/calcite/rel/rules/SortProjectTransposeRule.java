@@ -140,7 +140,7 @@ public class SortProjectTransposeRule extends RelOptRule {
     RelNode newProject =
         project.copy(
             sort.getTraitSet(),
-            ImmutableList.of(newSort));
+            ImmutableList.<RelNode>of(newSort));
     // Not only is newProject equivalent to sort;
     // newSort is equivalent to project's input
     // (but only if the sort is not also applying an offset/limit).

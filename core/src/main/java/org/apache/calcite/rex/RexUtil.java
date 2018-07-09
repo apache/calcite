@@ -30,6 +30,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
@@ -45,10 +46,15 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,13 +66,48 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Predicate;
 import javax.annotation.Nonnull;
 
 /**
  * Utility methods concerning row-expressions.
  */
 public class RexUtil {
+
+  private static final Function<? super RexNode, ? extends RexNode> ADD_NOT =
+      new Function<RexNode, RexNode>() {
+        public RexNode apply(RexNode input) {
+          return new RexCall(input.getType(), SqlStdOperatorTable.NOT,
+              ImmutableList.of(input));
+        }
+      };
+
+  private static final Predicate1<RexNode> IS_FLAT_PREDICATE =
+      new Predicate1<RexNode>() {
+        public boolean apply(RexNode v1) {
+          return isFlat(v1);
+        }
+      };
+
+  private static final Function<Object, String> TO_STRING =
+      new Function<Object, String>() {
+        public String apply(Object input) {
+          return input.toString();
+        }
+      };
+
+  private static final Function<RexNode, RelDataType> TYPE_FN =
+      new Function<RexNode, RelDataType>() {
+        public RelDataType apply(RexNode input) {
+          return input.getType();
+        }
+      };
+
+  private static final Function<RelDataType, RelDataTypeFamily> FAMILY_FN =
+      new Function<RelDataType, RelDataTypeFamily>() {
+        public RelDataTypeFamily apply(RelDataType input) {
+          return input.getFamily();
+        }
+      };
 
   /** Executor for a bit of constant reduction. The user can pass in another executor. */
   public static final RexExecutor EXECUTOR =
@@ -552,7 +593,7 @@ public class RexUtil {
   }
 
   public static List<RexNode> retainDeterministic(List<RexNode> list) {
-    List<RexNode> conjuctions = new ArrayList<>();
+    List<RexNode> conjuctions = Lists.newArrayList();
     for (RexNode x : list) {
       if (isDeterministic(x)) {
         conjuctions.add(x);
@@ -1042,7 +1083,7 @@ public class RexUtil {
       return ImmutableList.of();
     }
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
-    final Set<String> digests = new HashSet<>(); // to eliminate duplicates
+    final Set<String> digests = Sets.newHashSet(); // to eliminate duplicates
     for (RexNode node : nodes) {
       if (node != null) {
         addAnd(builder, digests, node);
@@ -1076,7 +1117,7 @@ public class RexUtil {
   @Nonnull public static RexNode composeDisjunction(RexBuilder rexBuilder,
       Iterable<? extends RexNode> nodes) {
     final RexNode e = composeDisjunction(rexBuilder, nodes, false);
-    return Objects.requireNonNull(e);
+    return Preconditions.checkNotNull(e);
   }
 
   /**
@@ -1106,7 +1147,7 @@ public class RexUtil {
       return ImmutableList.of();
     }
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
-    final Set<String> digests = new HashSet<>(); // to eliminate duplicates
+    final Set<String> digests = Sets.newHashSet(); // to eliminate duplicates
     for (RexNode node : nodes) {
       addOr(builder, digests, node);
     }
@@ -1238,7 +1279,12 @@ public class RexUtil {
   public static Iterable<RexNode> apply(Mappings.TargetMapping mapping,
       Iterable<? extends RexNode> nodes) {
     final RexPermuteInputsShuttle shuttle = RexPermuteInputsShuttle.of(mapping);
-    return Iterables.transform(nodes, e -> e.accept(shuttle));
+    return Iterables.transform(
+        nodes, new Function<RexNode, RexNode>() {
+          public RexNode apply(RexNode input) {
+            return input.accept(shuttle);
+          }
+        });
   }
 
   /**
@@ -1340,7 +1386,12 @@ public class RexUtil {
   private static boolean isFlat(
       List<? extends RexNode> exprs, final SqlOperator op) {
     return !isAssociative(op)
-        || !exists(exprs, (Predicate1<RexNode>) expr -> isCallTo(expr, op));
+        || !exists(exprs,
+            new Predicate1<RexNode>() {
+              public boolean apply(RexNode expr) {
+                return isCallTo(expr, op);
+              }
+            });
   }
 
   /**
@@ -1353,7 +1404,7 @@ public class RexUtil {
     }
     final RexCall call = (RexCall) expr;
     return isFlat(call.getOperands(), call.getOperator())
-        && all(call.getOperands(), RexUtil::isFlat);
+        && all(call.getOperands(), IS_FLAT_PREDICATE);
   }
 
   private static void flattenRecurse(
@@ -1607,11 +1658,11 @@ public class RexUtil {
 
   /** Transforms a list of expressions into a list of their types. */
   public static List<RelDataType> types(List<? extends RexNode> nodes) {
-    return Lists.transform(nodes, RexNode::getType);
+    return Lists.transform(nodes, TYPE_FN);
   }
 
   public static List<RelDataTypeFamily> families(List<RelDataType> types) {
-    return Lists.transform(types, RelDataType::getFamily);
+    return Lists.transform(types, FAMILY_FN);
   }
 
   /** Removes all expressions from a list that are equivalent to a given
@@ -1723,13 +1774,9 @@ public class RexUtil {
     case NOT:
       return ((RexCall) e).getOperands().get(0);
     default:
-      return addNot(e);
+      return new RexCall(e.getType(), SqlStdOperatorTable.NOT,
+          ImmutableList.of(e));
     }
-  }
-
-  private static RexNode addNot(RexNode e) {
-    return new RexCall(e.getType(), SqlStdOperatorTable.NOT,
-        ImmutableList.of(e));
   }
 
   static SqlOperator op(SqlKind kind) {
@@ -1856,23 +1903,25 @@ public class RexUtil {
       final RexCall call = (RexCall) e;
       if (call.getOperands().get(1) instanceof RexLiteral) {
         notTerms = Iterables.filter(notTerms,
-            e2 -> {
-              switch (e2.getKind()) {
-              case EQUALS:
-                RexCall call2 = (RexCall) e2;
-                if (call2.getOperands().get(0)
-                    .equals(call.getOperands().get(0))
-                    && call2.getOperands().get(1) instanceof RexLiteral) {
-                  return false;
+            new PredicateImpl<RexNode>() {
+              public boolean test(RexNode input) {
+                switch (input.getKind()) {
+                case EQUALS:
+                  RexCall call2 = (RexCall) input;
+                  if (call2.getOperands().get(0)
+                      .equals(call.getOperands().get(0))
+                      && call2.getOperands().get(1) instanceof RexLiteral) {
+                    return false;
+                  }
                 }
+                return true;
               }
-              return true;
             });
       }
     }
     return composeConjunction(rexBuilder,
         Iterables.concat(ImmutableList.of(e),
-            Iterables.transform(notTerms, e2 -> not(rexBuilder, e2))),
+            Iterables.transform(notTerms, notFn(rexBuilder))),
         false);
   }
 
@@ -1890,25 +1939,19 @@ public class RexUtil {
         && (call.operands.size() - i) % 2 == 1;
   }
 
-  /** Returns a function that applies NOT to its argument.
-   *
-   * @deprecated Use {@link #not} */
-  @SuppressWarnings("Guava")
-  @Deprecated // to be removed in 2.0
-  public static com.google.common.base.Function<RexNode, RexNode> notFn(
-      final RexBuilder rexBuilder) {
-    return e -> not(rexBuilder, e);
-  }
-
-  /** Applies NOT to an expression. */
-  static RexNode not(final RexBuilder rexBuilder, RexNode input) {
-    return input.isAlwaysTrue()
-        ? rexBuilder.makeLiteral(false)
-        : input.isAlwaysFalse()
-        ? rexBuilder.makeLiteral(true)
-        : input.getKind() == SqlKind.NOT
-        ? ((RexCall) input).operands.get(0)
-        : rexBuilder.makeCall(SqlStdOperatorTable.NOT, input);
+  /** Returns a function that applies NOT to its argument. */
+  public static Function<RexNode, RexNode> notFn(final RexBuilder rexBuilder) {
+    return new Function<RexNode, RexNode>() {
+      public RexNode apply(RexNode input) {
+        return input.isAlwaysTrue()
+            ? rexBuilder.makeLiteral(false)
+            : input.isAlwaysFalse()
+            ? rexBuilder.makeLiteral(true)
+            : input.getKind() == SqlKind.NOT
+            ? ((RexCall) input).operands.get(0)
+            : rexBuilder.makeCall(SqlStdOperatorTable.NOT, input);
+      }
+    };
   }
 
   /** Returns whether an expression contains a {@link RexCorrelVariable}. */
@@ -2207,7 +2250,7 @@ public class RexUtil {
       case AND:
         incrementAndCheck();
         operands = flattenAnd(((RexCall) rex).getOperands());
-        final List<RexNode> cnfOperands = new ArrayList<>();
+        final List<RexNode> cnfOperands = Lists.newArrayList();
         for (RexNode node : operands) {
           RexNode cnf = toCnf2(node);
           switch (cnf.getKind()) {
@@ -2230,7 +2273,7 @@ public class RexUtil {
         final RexNode tail = or(Util.skip(operands));
         final RexNode tailCnf = toCnf2(tail);
         final List<RexNode> tailCnfs = RelOptUtil.conjunctions(tailCnf);
-        final List<RexNode> list = new ArrayList<>();
+        final List<RexNode> list = Lists.newArrayList();
         for (RexNode h : headCnfs) {
           for (RexNode t : tailCnfs) {
             list.add(or(ImmutableList.of(h, t)));
@@ -2244,12 +2287,10 @@ public class RexUtil {
           return toCnf2(((RexCall) arg).getOperands().get(0));
         case OR:
           operands = ((RexCall) arg).getOperands();
-          return toCnf2(
-              and(Lists.transform(flattenOr(operands), RexUtil::addNot)));
+          return toCnf2(and(Lists.transform(flattenOr(operands), ADD_NOT)));
         case AND:
           operands = ((RexCall) arg).getOperands();
-          return toCnf2(
-              or(Lists.transform(flattenAnd(operands), RexUtil::addNot)));
+          return toCnf2(or(Lists.transform(flattenAnd(operands), ADD_NOT)));
         default:
           incrementAndCheck();
           return rex;
@@ -2287,7 +2328,7 @@ public class RexUtil {
         if (factors.isEmpty()) {
           return or(operands);
         }
-        final List<RexNode> list = new ArrayList<>();
+        final List<RexNode> list = Lists.newArrayList();
         for (RexNode operand : operands) {
           list.add(removeFactor(factors, operand));
         }
@@ -2298,7 +2339,7 @@ public class RexUtil {
     }
 
     private List<RexNode> pullList(List<RexNode> nodes) {
-      final List<RexNode> list = new ArrayList<>();
+      final List<RexNode> list = Lists.newArrayList();
       for (RexNode node : nodes) {
         RexNode pulled = pull(node);
         switch (pulled.getKind()) {
@@ -2313,7 +2354,7 @@ public class RexUtil {
     }
 
     private Map<String, RexNode> commonFactors(List<RexNode> nodes) {
-      final Map<String, RexNode> map = new HashMap<>();
+      final Map<String, RexNode> map = Maps.newHashMap();
       int i = 0;
       for (RexNode node : nodes) {
         if (i++ == 0) {
@@ -2328,7 +2369,7 @@ public class RexUtil {
     }
 
     private RexNode removeFactor(Map<String, RexNode> factors, RexNode node) {
-      List<RexNode> list = new ArrayList<>();
+      List<RexNode> list = Lists.newArrayList();
       for (RexNode operand : RelOptUtil.conjunctions(node)) {
         if (!factors.containsKey(operand.toString())) {
           list.add(operand);
@@ -2348,7 +2389,7 @@ public class RexUtil {
 
   /** Transforms a list of expressions to the list of digests. */
   public static List<String> strings(List<RexNode> list) {
-    return Lists.transform(list, Object::toString);
+    return Lists.transform(list, TO_STRING);
   }
 
   /** Helps {@link org.apache.calcite.rex.RexUtil#toDnf}. */
@@ -2370,7 +2411,7 @@ public class RexUtil {
         final RexNode tail = and(Util.skip(operands));
         final RexNode tailDnf = toDnf(tail);
         final List<RexNode> tailDnfs = RelOptUtil.disjunctions(tailDnf);
-        final List<RexNode> list = new ArrayList<>();
+        final List<RexNode> list = Lists.newArrayList();
         for (RexNode h : headDnfs) {
           for (RexNode t : tailDnfs) {
             list.add(and(ImmutableList.of(h, t)));
@@ -2387,12 +2428,10 @@ public class RexUtil {
           return toDnf(((RexCall) arg).getOperands().get(0));
         case OR:
           operands = ((RexCall) arg).getOperands();
-          return toDnf(
-              and(Lists.transform(flattenOr(operands), RexUtil::addNot)));
+          return toDnf(and(Lists.transform(flattenOr(operands), ADD_NOT)));
         case AND:
           operands = ((RexCall) arg).getOperands();
-          return toDnf(
-              or(Lists.transform(flattenAnd(operands), RexUtil::addNot)));
+          return toDnf(or(Lists.transform(flattenAnd(operands), ADD_NOT)));
         default:
           return rex;
         }
@@ -2402,7 +2441,7 @@ public class RexUtil {
     }
 
     private List<RexNode> toDnfs(List<RexNode> nodes) {
-      final List<RexNode> list = new ArrayList<>();
+      final List<RexNode> list = Lists.newArrayList();
       for (RexNode node : nodes) {
         RexNode dnf = toDnf(node);
         switch (dnf.getKind()) {
@@ -2487,55 +2526,49 @@ public class RexUtil {
   public static class SubQueryFinder extends RexVisitorImpl<Void> {
     public static final SubQueryFinder INSTANCE = new SubQueryFinder();
 
-    @SuppressWarnings("Guava")
-    @Deprecated // to be removed before 2.0
-    public static final com.google.common.base.Predicate<Project> PROJECT_PREDICATE =
-        SubQueryFinder::containsSubQuery;
+    /** Returns whether a {@link Project} contains a sub-query. */
+    public static final Predicate<Project> PROJECT_PREDICATE =
+        new PredicateImpl<Project>() {
+          public boolean test(Project project) {
+            for (RexNode node : project.getProjects()) {
+              try {
+                node.accept(INSTANCE);
+              } catch (Util.FoundOne e) {
+                return true;
+              }
+            }
+            return false;
+          }
+        };
 
-    @SuppressWarnings("Guava")
-    @Deprecated // to be removed before 2.0
+    /** Returns whether a {@link Filter} contains a sub-query. */
     public static final Predicate<Filter> FILTER_PREDICATE =
-        SubQueryFinder::containsSubQuery;
+        new PredicateImpl<Filter>() {
+          public boolean test(Filter filter) {
+            try {
+              filter.getCondition().accept(INSTANCE);
+              return false;
+            } catch (Util.FoundOne e) {
+              return true;
+            }
+          }
+        };
 
-    @SuppressWarnings("Guava")
-    @Deprecated // to be removed before 2.0
-    public static final com.google.common.base.Predicate<Join> JOIN_PREDICATE =
-        SubQueryFinder::containsSubQuery;
+    /** Returns whether a {@link Join} contains a sub-query. */
+    public static final Predicate<Join> JOIN_PREDICATE =
+        new PredicateImpl<Join>() {
+          public boolean test(Join join) {
+            try {
+              join.getCondition().accept(INSTANCE);
+              return false;
+            } catch (Util.FoundOne e) {
+              return true;
+            }
+          }
+        };
 
     private SubQueryFinder() {
       super(true);
-    }
-
-    /** Returns whether a {@link Project} contains a sub-query. */
-    public static boolean containsSubQuery(Project project) {
-      for (RexNode node : project.getProjects()) {
-        try {
-          node.accept(INSTANCE);
-        } catch (Util.FoundOne e) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    /** Returns whether a {@link Filter} contains a sub-query. */
-    public static boolean containsSubQuery(Filter filter) {
-      try {
-        filter.getCondition().accept(INSTANCE);
-        return false;
-      } catch (Util.FoundOne e) {
-        return true;
-      }
-    }
-
-    /** Returns whether a {@link Join} contains a sub-query. */
-    public static boolean containsSubQuery(Join join) {
-      try {
-        join.getCondition().accept(INSTANCE);
-        return false;
-      } catch (Util.FoundOne e) {
-        return true;
-      }
     }
 
     @Override public Void visitSubQuery(RexSubQuery subQuery) {

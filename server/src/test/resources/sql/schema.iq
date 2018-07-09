@@ -91,7 +91,7 @@ Encountered "library" at line 1, column 18.
 !error
 
 create foreign schema fs;
-Encountered "<EOF>" at line 1, column 24.
+Encountered "<EOF>" at line 1, column 25.
 Was expecting one of:
     "TYPE" ...
     "LIBRARY" ...

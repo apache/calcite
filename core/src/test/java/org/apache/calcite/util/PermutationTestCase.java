@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util;
 
+
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.type.RelDataType;

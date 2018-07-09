@@ -897,7 +897,7 @@ public abstract class QueryableDefaults {
       FunctionExpression<Predicate1<T>> predicate) {
     return skipWhileN(source,
         Expressions.lambda(
-            Functions.toPredicate2(predicate.getFunction())));
+            Functions.<T, Integer>toPredicate2(predicate.getFunction())));
   }
 
   /**
@@ -1033,7 +1033,7 @@ public abstract class QueryableDefaults {
       FunctionExpression<Predicate1<T>> predicate) {
     return takeWhileN(source,
         Expressions.lambda(
-            Functions.toPredicate2(predicate.getFunction())));
+            Functions.<T, Integer>toPredicate2(predicate.getFunction())));
   }
 
   /**

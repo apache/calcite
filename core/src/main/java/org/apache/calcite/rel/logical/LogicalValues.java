@@ -19,6 +19,7 @@ package org.apache.calcite.rel.logical;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
@@ -30,6 +31,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 
 import java.math.BigDecimal;
@@ -82,8 +84,12 @@ public class LogicalValues extends Values {
       final ImmutableList<ImmutableList<RexLiteral>> tuples) {
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE)
-        .replaceIfs(RelCollationTraitDef.INSTANCE,
-            () -> RelMdCollation.values(mq, rowType, tuples));
+        .replaceIfs(
+            RelCollationTraitDef.INSTANCE, new Supplier<List<RelCollation>>() {
+              public List<RelCollation> get() {
+                return RelMdCollation.values(mq, rowType, tuples);
+              }
+            });
     return new LogicalValues(cluster, traitSet, rowType, tuples);
   }
 
@@ -97,7 +103,7 @@ public class LogicalValues extends Values {
   public static LogicalValues createEmpty(RelOptCluster cluster,
       RelDataType rowType) {
     return create(cluster, rowType,
-        ImmutableList.of());
+        ImmutableList.<ImmutableList<RexLiteral>>of());
   }
 
   /** Creates a LogicalValues that outputs one row and one column. */

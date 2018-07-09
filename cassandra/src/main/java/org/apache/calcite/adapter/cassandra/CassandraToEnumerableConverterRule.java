@@ -23,7 +23,7 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-import java.util.function.Predicate;
+import com.google.common.base.Predicates;
 
 /**
  * Rule to convert a relational expression from
@@ -40,7 +40,7 @@ public class CassandraToEnumerableConverterRule extends ConverterRule {
    */
   public CassandraToEnumerableConverterRule(
       RelBuilderFactory relBuilderFactory) {
-    super(RelNode.class, (Predicate<RelNode>) r -> true,
+    super(RelNode.class, Predicates.<RelNode>alwaysTrue(),
         CassandraRel.CONVENTION, EnumerableConvention.INSTANCE,
         relBuilderFactory, "CassandraToEnumerableConverterRule");
   }

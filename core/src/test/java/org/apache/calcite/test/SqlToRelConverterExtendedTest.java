@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
@@ -23,7 +24,10 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.externalize.RelJsonReader;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.tools.Frameworks;
+
+import com.google.common.base.Function;
 
 import org.junit.After;
 import org.junit.Before;
@@ -37,8 +41,13 @@ public class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
   Hook.Closeable closeable;
 
   @Before public void before() {
-    this.closeable =
-        Hook.CONVERTED.addThread(SqlToRelConverterExtendedTest::foo);
+    this.closeable = Hook.CONVERTED.addThread(
+        new Function<RelNode, Void>() {
+          public Void apply(RelNode a0) {
+            foo(a0);
+            return null;
+          }
+        });
   }
 
   @After public void after() {
@@ -64,17 +73,21 @@ public class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
     });
 
     // Convert JSON back to rel tree.
-    Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
-      final RelJsonReader reader = new RelJsonReader(
-          cluster,
-          schemas[0], rootSchema);
-      try {
-        RelNode x = reader.read(json);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-      return null;
-    });
+    Frameworks.withPlanner(
+        new Frameworks.PlannerAction<Object>() {
+          public Object apply(RelOptCluster cluster,
+              RelOptSchema relOptSchema, SchemaPlus rootSchema) {
+            final RelJsonReader reader = new RelJsonReader(
+                cluster,
+                schemas[0], rootSchema);
+            try {
+              RelNode x = reader.read(json);
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            }
+            return null;
+          }
+        });
   }
 }
 

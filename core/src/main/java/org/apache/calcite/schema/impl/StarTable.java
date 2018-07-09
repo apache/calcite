@@ -34,11 +34,11 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Virtual table that is composed of two or more tables joined together.
@@ -63,7 +63,7 @@ public class StarTable extends AbstractTable implements TranslatableTable {
 
   /** Creates a StarTable. */
   private StarTable(Lattice lattice, ImmutableList<Table> tables) {
-    this.lattice = Objects.requireNonNull(lattice);
+    this.lattice = Preconditions.checkNotNull(lattice);
     this.tables = tables;
   }
 

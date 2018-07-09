@@ -66,7 +66,7 @@ public class RexPermuteInputsShuttle extends RexShuttle {
    * otherwise works OK. */
   public static RexPermuteInputsShuttle of(Mappings.TargetMapping mapping) {
     return new RexPermuteInputsShuttle(mapping,
-        ImmutableList.of());
+        ImmutableList.<RelDataTypeField>of());
   }
 
   //~ Methods ----------------------------------------------------------------

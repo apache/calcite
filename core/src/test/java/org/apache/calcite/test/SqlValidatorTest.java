@@ -43,6 +43,7 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
@@ -60,7 +61,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -3490,22 +3490,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + " INTERVAL SECOND\\(1, 0\\)");
   }
 
-  @Test public void testDatetimePlusNullInterval() {
-    expr("TIME '8:8:8' + cast(NULL AS interval hour)").columnType("TIME(0)");
-    expr("TIME '8:8:8' + cast(NULL AS interval YEAR)").columnType("TIME(0)");
-    expr("TIMESTAMP '1990-12-12 12:12:12' + cast(NULL AS interval hour)")
-        .columnType("TIMESTAMP(0)");
-    expr("TIMESTAMP '1990-12-12 12:12:12' + cast(NULL AS interval YEAR)")
-        .columnType("TIMESTAMP(0)");
-
-    expr("cast(NULL AS interval hour) + TIME '8:8:8'").columnType("TIME(0)");
-    expr("cast(NULL AS interval YEAR) + TIME '8:8:8'").columnType("TIME(0)");
-    expr("cast(NULL AS interval hour) + TIMESTAMP '1990-12-12 12:12:12'")
-        .columnType("TIMESTAMP(0)");
-    expr("cast(NULL AS interval YEAR) + TIMESTAMP '1990-12-12 12:12:12'")
-        .columnType("TIMESTAMP(0)");
-  }
-
   @Test public void testIntervalLiterals() {
     // First check that min, max, and defaults are what we expect
     // (values used in subtests depend on these being true to
@@ -3696,15 +3680,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "(?s).*Was expecting one of.*");
     checkWholeExpFails("timestampdiff(incorrect, current_timestamp, current_timestamp)",
         "(?s).*Was expecting one of.*");
-  }
-
-  @Test public void testTimestampAddNullInterval() {
-    expr("timestampadd(SQL_TSI_SECOND, cast(NULL AS INTEGER),"
-        + " current_timestamp)")
-        .columnType("TIMESTAMP(0)");
-    expr("timestampadd(SQL_TSI_DAY, cast(NULL AS INTEGER),"
-        + " current_timestamp)")
-        .columnType("TIMESTAMP(0)");
   }
 
   @Test public void testNumericOperators() {
@@ -3936,26 +3911,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1340">[CALCITE-1340]
    * Window aggregates give invalid errors</a>. */
   @Test public void testWindowFunctionsWithoutOver() {
-    winSql("select sum(empno)\n"
-        + "from emp\n"
-        + "group by deptno\n"
+    winSql(
+        "select sum(empno) \n"
+        + "from emp \n"
+        + "group by deptno \n"
         + "order by ^row_number()^")
         .fails("OVER clause is necessary for window functions");
 
-    winSql("select ^rank()^\n"
+    winSql(
+        "select ^rank()^ \n"
         + "from emp")
         .fails("OVER clause is necessary for window functions");
 
     // With [CALCITE-1340], the validator would see RANK without OVER,
     // mistakenly think this is an aggregating query, and wrongly complain
     // about the PARTITION BY: "Expression 'DEPTNO' is not being grouped"
-    winSql("select cume_dist() over w , ^rank()^\n"
+    winSql(
+        "select cume_dist() over w , ^rank()^\n"
         + "from emp \n"
         + "window w as (partition by deptno order by deptno)")
-        .fails("OVER clause is necessary for window functions");
-
-    winSql("select ^nth_value(sal, 2)^\n"
-        + "from emp")
         .fails("OVER clause is necessary for window functions");
   }
 
@@ -4097,7 +4071,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     winExp("rank() over (order by empno)").ok();
     winExp("percent_rank() over (order by empno)").ok();
     winExp("cume_dist() over (order by empno)").ok();
-    winExp("nth_value(sal, 2) over (order by empno)").ok();
 
     // rule 6a
     // ORDER BY required with RANK & DENSE_RANK
@@ -6015,10 +5988,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * lurking in the validation process.
    */
   @Test public void testLarge() {
-    checkLarge(700, this::check);
+    checkLarge(700,
+        new Function<String, Void>() {
+          public Void apply(String input) {
+            check(input);
+            return null;
+          }
+        });
   }
 
-  static void checkLarge(int x, Consumer<String> f) {
+  static void checkLarge(int x, Function<String, Void> f) {
     if (System.getProperty("os.name").startsWith("Windows")) {
       // NOTE jvs 1-Nov-2006:  Default thread stack size
       // on Windows is too small, so avoid stack overflow
@@ -6027,24 +6006,24 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     // E.g. large = "deptno * 1 + deptno * 2 + deptno * 3".
     String large = list(" + ", "deptno * ", x);
-    f.accept("select " + large + "from emp");
-    f.accept("select distinct " + large + "from emp");
-    f.accept("select " + large + " from emp " + "group by deptno");
-    f.accept("select * from emp where " + large + " > 5");
-    f.accept("select * from emp order by " + large + " desc");
-    f.accept("select " + large + " from emp order by 1");
-    f.accept("select distinct " + large + " from emp order by " + large);
+    f.apply("select " + large + "from emp");
+    f.apply("select distinct " + large + "from emp");
+    f.apply("select " + large + " from emp " + "group by deptno");
+    f.apply("select * from emp where " + large + " > 5");
+    f.apply("select * from emp order by " + large + " desc");
+    f.apply("select " + large + " from emp order by 1");
+    f.apply("select distinct " + large + " from emp order by " + large);
 
     // E.g. "in (0, 1, 2, ...)"
-    f.accept("select * from emp where deptno in (" + list(", ", "", x) + ")");
+    f.apply("select * from emp where deptno in (" + list(", ", "", x) + ")");
 
     // E.g. "where x = 1 or x = 2 or x = 3 ..."
-    f.accept("select * from emp where " + list(" or ", "deptno = ", x));
+    f.apply("select * from emp where " + list(" or ", "deptno = ", x));
 
     // E.g. "select x1, x2 ... from (
     // select 'a' as x1, 'a' as x2, ... from emp union
     // select 'bb' as x1, 'bb' as x2, ... from dept)"
-    f.accept("select " + list(", ", "x", x)
+    f.apply("select " + list(", ", "x", x)
         + " from (select " + list(", ", "'a' as x", x) + " from emp "
         + "union all select " + list(", ", "'bb' as x", x) + " from dept)");
   }
@@ -7682,9 +7661,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     check("select FIRST_VALUE(sal) over (order by empno) from emp");
     check("select FIRST_VALUE(ename) over (order by empno) from emp");
-
-    check("select NTH_VALUE(sal, 2) over (order by empno) from emp");
-    check("select NTH_VALUE(ename, 2) over (order by empno) from emp");
   }
 
   @Test public void testMinMaxFunctions() {
@@ -8568,17 +8544,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * the documentation</a>. */
   @Test public void testOperatorsSortedByPrecedence() {
     final StringBuilder b = new StringBuilder();
-    final Comparator<SqlOperator> comparator = (o1, o2) -> {
-      int c = Integer.compare(prec(o1), prec(o2));
-      if (c != 0) {
-        return -c;
-      }
-      c = o1.getName().compareTo(o2.getName());
-      if (c != 0) {
-        return c;
-      }
-      return o1.getSyntax().compareTo(o2.getSyntax());
-    };
+    final Comparator<SqlOperator> comparator =
+        new Comparator<SqlOperator>() {
+          public int compare(SqlOperator o1, SqlOperator o2) {
+            int c = Integer.compare(prec(o1), prec(o2));
+            if (c != 0) {
+              return -c;
+            }
+            c = o1.getName().compareTo(o2.getName());
+            if (c != 0) {
+              return c;
+            }
+            return o1.getSyntax().compareTo(o2.getSyntax());
+          }
+        };
     final List<SqlOperator> operators =
         SqlStdOperatorTable.instance().getOperatorList();
     int p = -1;

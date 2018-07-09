@@ -16,8 +16,9 @@
  */
 package org.apache.calcite.util;
 
+import com.google.common.base.Preconditions;
+
 import java.util.AbstractList;
-import java.util.Objects;
 import java.util.RandomAccess;
 
 /**
@@ -39,7 +40,7 @@ public class UnmodifiableArrayList<E>
   private final E[] elements;
 
   private UnmodifiableArrayList(E[] elements) {
-    this.elements = Objects.requireNonNull(elements);
+    this.elements = Preconditions.checkNotNull(elements);
   }
 
   public static <E> UnmodifiableArrayList<E> of(E... elements) {

@@ -20,10 +20,9 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
-import java.util.Objects;
 
 /**
  * Predicates that are known to hold in the output of a particular relational
@@ -68,7 +67,7 @@ public class RelOptPredicateList {
   private static final ImmutableList<RexNode> EMPTY_LIST = ImmutableList.of();
   public static final RelOptPredicateList EMPTY =
       new RelOptPredicateList(EMPTY_LIST, EMPTY_LIST, EMPTY_LIST,
-          ImmutableMap.of());
+          ImmutableMap.<RexNode, RexNode>of());
 
   /** Predicates that can be pulled up from the relational expression and its
    * inputs. */
@@ -90,12 +89,12 @@ public class RelOptPredicateList {
       ImmutableList<RexNode> leftInferredPredicates,
       ImmutableList<RexNode> rightInferredPredicates,
       ImmutableMap<RexNode, RexNode> constantMap) {
-    this.pulledUpPredicates = Objects.requireNonNull(pulledUpPredicates);
+    this.pulledUpPredicates = Preconditions.checkNotNull(pulledUpPredicates);
     this.leftInferredPredicates =
-        Objects.requireNonNull(leftInferredPredicates);
+        Preconditions.checkNotNull(leftInferredPredicates);
     this.rightInferredPredicates =
-        Objects.requireNonNull(rightInferredPredicates);
-    this.constantMap = Objects.requireNonNull(constantMap);
+        Preconditions.checkNotNull(rightInferredPredicates);
+    this.constantMap = Preconditions.checkNotNull(constantMap);
   }
 
   /** Creates a RelOptPredicateList with only pulled-up predicates, no inferred

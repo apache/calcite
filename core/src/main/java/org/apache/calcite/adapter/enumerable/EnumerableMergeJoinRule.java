@@ -30,7 +30,8 @@ import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalJoin;
 
-import java.util.ArrayList;
+import com.google.common.collect.Lists;
+
 import java.util.List;
 
 /** Planner rule that converts a
@@ -60,14 +61,14 @@ class EnumerableMergeJoinRule extends ConverterRule {
       // EnumerableMergeJoin CAN support cartesian join, but disable it for now.
       return null;
     }
-    final List<RelNode> newInputs = new ArrayList<>();
-    final List<RelCollation> collations = new ArrayList<>();
+    final List<RelNode> newInputs = Lists.newArrayList();
+    final List<RelCollation> collations = Lists.newArrayList();
     int offset = 0;
     for (Ord<RelNode> ord : Ord.zip(join.getInputs())) {
       RelTraitSet traits = ord.e.getTraitSet()
           .replace(EnumerableConvention.INSTANCE);
       if (!info.pairs().isEmpty()) {
-        final List<RelFieldCollation> fieldCollations = new ArrayList<>();
+        final List<RelFieldCollation> fieldCollations = Lists.newArrayList();
         for (int key : info.keys().get(ord.i)) {
           fieldCollations.add(
               new RelFieldCollation(key, RelFieldCollation.Direction.ASCENDING,

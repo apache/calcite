@@ -24,6 +24,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.PartiallyOrderedSet;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 
@@ -44,6 +45,12 @@ import javax.annotation.Nonnull;
  * Basic implementation of {@link Profiler}.
  */
 public class SimpleProfiler implements Profiler {
+  private static final Function<List<Comparable>, Comparable> ONLY =
+      new Function<List<Comparable>, Comparable>() {
+        public Comparable apply(List<Comparable> input) {
+          return Iterables.getOnlyElement(input);
+        }
+      };
 
   public Profile profile(Iterable<List<Comparable>> rows,
       final List<Column> columns, Collection<ImmutableBitSet> initialGroups) {
@@ -90,13 +97,23 @@ public class SimpleProfiler implements Profiler {
     final List<Space> singletonSpaces;
     final List<Statistic> statistics = new ArrayList<>();
     final PartiallyOrderedSet.Ordering<Space> ordering =
-        (e1, e2) -> e2.columnOrdinals.contains(e1.columnOrdinals);
+        new PartiallyOrderedSet.Ordering<Space>() {
+          public boolean lessThan(Space e1, Space e2) {
+            return e2.columnOrdinals.contains(e1.columnOrdinals);
+          }
+        };
     final PartiallyOrderedSet<Space> results =
         new PartiallyOrderedSet<>(ordering);
     final PartiallyOrderedSet<Space> keyResults =
         new PartiallyOrderedSet<>(ordering);
     private final List<ImmutableBitSet> keyOrdinalLists =
         new ArrayList<>();
+    final Function<Integer, Column> get =
+        new Function<Integer, Column>() {
+          public Column apply(Integer input) {
+            return columns.get(input);
+          }
+        };
 
     Run(final List<Column> columns) {
       for (Ord<Column> column : Ord.zip(columns)) {
@@ -106,7 +123,7 @@ public class SimpleProfiler implements Profiler {
       }
       this.columns = columns;
       this.singletonSpaces =
-          new ArrayList<>(Collections.nCopies(columns.size(), null));
+          new ArrayList<>(Collections.nCopies(columns.size(), (Space) null));
       for (ImmutableBitSet ordinals
           : ImmutableBitSet.range(columns.size()).powerSet()) {
         final Space space = new Space(ordinals, toColumns(ordinals));
@@ -200,7 +217,7 @@ public class SimpleProfiler implements Profiler {
         if (space.columns.size() == 1) {
           nullCount = space.nullCount;
           valueSet = ImmutableSortedSet.copyOf(
-              Iterables.transform(space.values, Iterables::getOnlyElement));
+              Iterables.transform(space.values, ONLY));
         } else {
           nullCount = -1;
           valueSet = null;
@@ -278,8 +295,7 @@ public class SimpleProfiler implements Profiler {
     }
 
     private ImmutableSortedSet<Column> toColumns(Iterable<Integer> ordinals) {
-      return ImmutableSortedSet.copyOf(
-          Iterables.transform(ordinals, columns::get));
+      return ImmutableSortedSet.copyOf(Iterables.transform(ordinals, get));
     }
   }
 

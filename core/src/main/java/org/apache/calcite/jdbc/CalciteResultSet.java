@@ -25,6 +25,7 @@ import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.util.Cursor;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.runtime.ArrayEnumeratorCursor;
 import org.apache.calcite.runtime.ObjectEnumeratorCursor;
 
@@ -56,7 +57,9 @@ public class CalciteResultSet extends AvaticaResultSet {
     final boolean autoTemp = connection.config().autoTemp();
     Handler.ResultSink resultSink = null;
     if (autoTemp) {
-      resultSink = () -> {
+      resultSink = new Handler.ResultSink() {
+        public void toBeCompleted() {
+        }
       };
     }
     connection.getDriver().handler.onStatementExecute(statement, resultSink);
@@ -80,7 +83,7 @@ public class CalciteResultSet extends AvaticaResultSet {
         new CalcitePrepare.CalciteSignature<>(signature.sql,
             signature.parameters, signature.internalParameters,
             signature.rowType, columnMetaDataList, Meta.CursorFactory.ARRAY,
-            signature.rootSchema, ImmutableList.of(), -1, null,
+            signature.rootSchema, ImmutableList.<RelCollation>of(), -1, null,
             statement.getStatementType());
     ResultSetMetaData subResultSetMetaData =
         new AvaticaResultSetMetaData(statement, null, newSignature);

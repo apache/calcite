@@ -19,6 +19,7 @@ package org.apache.calcite.util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -58,9 +59,6 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
         || elements == SINGLETON_NULL) {
       //noinspection unchecked
       return (List<E>) elements;
-    }
-    if (elements == Collections.EMPTY_LIST) {
-      return ImmutableList.of();
     }
     // If there are no nulls, ImmutableList is better.
     for (E object : elements) {
@@ -206,7 +204,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
    * @param <E> element type
    */
   public static final class Builder<E> {
-    private final List<E> contents = new ArrayList<>();
+    private final List<E> contents = Lists.newArrayList();
 
     /**
      * Creates a new builder. The returned builder is equivalent to the builder

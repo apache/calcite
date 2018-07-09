@@ -52,11 +52,6 @@ data: {
     nonReservedKeywords: [
     ]
 
-    # List of additional join types. Each is a method with no arguments.
-    # Example: LeftSemiJoin()
-    joinTypes: [
-    ]
-
     # List of methods for parsing custom SQL statements.
     # Return type of method implementation should be 'SqlNode'.
     # Example: SqlShowDatabases(), SqlShowTables().

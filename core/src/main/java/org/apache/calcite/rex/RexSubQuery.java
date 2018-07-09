@@ -86,7 +86,7 @@ public class RexSubQuery extends RexCall {
     final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
     final RelDataType type = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     return new RexSubQuery(type, SqlStdOperatorTable.EXISTS,
-        ImmutableList.of(), rel);
+        ImmutableList.<RexNode>of(), rel);
   }
 
   /** Creates a scalar sub-query. */
@@ -97,7 +97,7 @@ public class RexSubQuery extends RexCall {
     final RelDataType type =
         typeFactory.createTypeWithNullability(fieldList.get(0).getType(), true);
     return new RexSubQuery(type, SqlStdOperatorTable.SCALAR_QUERY,
-        ImmutableList.of(), rel);
+        ImmutableList.<RexNode>of(), rel);
   }
 
   public <R> R accept(RexVisitor<R> visitor) {

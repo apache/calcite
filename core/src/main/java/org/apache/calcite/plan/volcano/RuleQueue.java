@@ -37,6 +37,7 @@ import java.io.StringWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.EnumMap;
@@ -234,30 +235,32 @@ class RuleQueue {
       }
     }
 
-    boostRemovals.sort(new Comparator<RelSubset>() {
-      public int compare(RelSubset o1, RelSubset o2) {
-        int o1children = countChildren(o1);
-        int o2children = countChildren(o2);
-        int c = compare(o1children, o2children);
-        if (c == 0) {
-          // for determinism
-          c = compare(o1.getId(), o2.getId());
-        }
-        return c;
-      }
+    Collections.sort(
+        boostRemovals,
+        new Comparator<RelSubset>() {
+          public int compare(RelSubset o1, RelSubset o2) {
+            int o1children = countChildren(o1);
+            int o2children = countChildren(o2);
+            int c = compare(o1children, o2children);
+            if (c == 0) {
+              // for determinism
+              c = compare(o1.getId(), o2.getId());
+            }
+            return c;
+          }
 
-      private int compare(int i1, int i2) {
-        return (i1 < i2) ? -1 : ((i1 == i2) ? 0 : 1);
-      }
+          private int compare(int i1, int i2) {
+            return (i1 < i2) ? -1 : ((i1 == i2) ? 0 : 1);
+          }
 
-      private int countChildren(RelSubset subset) {
-        int count = 0;
-        for (RelNode rel : subset.getRels()) {
-          count += rel.getInputs().size();
-        }
-        return count;
-      }
-    });
+          private int countChildren(RelSubset subset) {
+            int count = 0;
+            for (RelNode rel : subset.getRels()) {
+              count += rel.getInputs().size();
+            }
+            return count;
+          }
+        });
 
     for (RelSubset subset : boostRemovals) {
       subset.propagateBoostRemoval(planner);
@@ -449,7 +452,7 @@ class RuleQueue {
         return null;
       }
       if (LOGGER.isTraceEnabled()) {
-        matchList.sort(MATCH_COMPARATOR);
+        Collections.sort(matchList, MATCH_COMPARATOR);
         match = matchList.remove(0);
 
         StringBuilder b = new StringBuilder();

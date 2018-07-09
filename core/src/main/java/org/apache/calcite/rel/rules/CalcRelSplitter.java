@@ -126,7 +126,7 @@ public abstract class CalcRelSplitter {
     // expressions to the left.
     assert program.isValid(Litmus.THROW, null);
     final List<RexNode> exprList = program.getExprList();
-    final RexNode[] exprs = exprList.toArray(new RexNode[0]);
+    final RexNode[] exprs = exprList.toArray(new RexNode[exprList.size()]);
     assert !RexUtil.containComplexExprs(exprList);
 
     // Figure out what level each expression belongs to.

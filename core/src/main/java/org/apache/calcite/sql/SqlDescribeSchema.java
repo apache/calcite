@@ -64,7 +64,7 @@ public class SqlDescribeSchema extends SqlCall {
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(schema);
+    return ImmutableNullableList.<SqlNode>of(schema);
   }
 
   public SqlIdentifier getSchema() {

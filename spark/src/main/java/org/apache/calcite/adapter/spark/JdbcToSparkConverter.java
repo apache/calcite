@@ -90,7 +90,7 @@ public class JdbcToSparkConverter
     final Expression primitivesLiteral =
         list.append("primitives",
             Expressions.constant(
-                primitives.toArray(new Primitive[0])));
+                primitives.toArray(new Primitive[primitives.size()])));
     final Expression enumerable =
         list.append(
             "enumerable",

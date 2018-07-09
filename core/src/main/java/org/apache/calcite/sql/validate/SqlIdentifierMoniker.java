@@ -18,8 +18,9 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.sql.SqlIdentifier;
 
+import com.google.common.base.Preconditions;
+
 import java.util.List;
-import java.util.Objects;
 
 /**
  * An implementation of {@link SqlMoniker} that encapsulates the normalized name
@@ -36,7 +37,7 @@ public class SqlIdentifierMoniker implements SqlMoniker {
    * Creates an SqlIdentifierMoniker.
    */
   public SqlIdentifierMoniker(SqlIdentifier id) {
-    this.id = Objects.requireNonNull(id);
+    this.id = Preconditions.checkNotNull(id);
   }
 
   //~ Methods ----------------------------------------------------------------

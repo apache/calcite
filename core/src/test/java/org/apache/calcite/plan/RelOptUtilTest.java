@@ -39,7 +39,6 @@ import com.google.common.collect.Lists;
 
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -190,9 +189,9 @@ public class RelOptUtilTest {
 
   private static void splitJoinConditionHelper(RexNode joinCond, List<Integer> expLeftKeys,
       List<Integer> expRightKeys, List<Boolean> expFilterNulls, RexNode expRemaining) {
-    List<Integer> actLeftKeys = new ArrayList<>();
-    List<Integer> actRightKeys = new ArrayList<>();
-    List<Boolean> actFilterNulls = new ArrayList<>();
+    List<Integer> actLeftKeys = Lists.newArrayList();
+    List<Integer> actRightKeys = Lists.newArrayList();
+    List<Boolean> actFilterNulls = Lists.newArrayList();
 
     RexNode actRemaining = RelOptUtil.splitJoinCondition(EMP_SCAN, DEPT_SCAN, joinCond, actLeftKeys,
         actRightKeys, actFilterNulls);

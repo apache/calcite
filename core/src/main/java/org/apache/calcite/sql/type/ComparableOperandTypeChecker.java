@@ -21,7 +21,7 @@ import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlOperatorBinding;
 
-import java.util.Objects;
+import com.google.common.base.Preconditions;
 
 /**
  * Type checking strategy which verifies that types have the required attributes
@@ -45,7 +45,7 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
       RelDataTypeComparability requiredComparability, Consistency consistency) {
     super(nOperands);
     this.requiredComparability = requiredComparability;
-    this.consistency = Objects.requireNonNull(consistency);
+    this.consistency = Preconditions.checkNotNull(consistency);
   }
 
   //~ Methods ----------------------------------------------------------------

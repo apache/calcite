@@ -23,6 +23,7 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
 
@@ -53,7 +54,6 @@ import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
-import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -194,14 +194,17 @@ public class CsvTest {
     final String sql = "select empno * 3 as e3\n"
         + "from long_emps where empno = 100";
 
-    sql("bug", sql).checking(resultSet -> {
-      try {
-        assertThat(resultSet.next(), is(true));
-        Long o = (Long) resultSet.getObject(1);
-        assertThat(o, is(300L));
-        assertThat(resultSet.next(), is(false));
-      } catch (SQLException e) {
-        throw new RuntimeException(e);
+    sql("bug", sql).checking(new Function<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          assertThat(resultSet.next(), is(true));
+          Long o = (Long) resultSet.getObject(1);
+          assertThat(o, is(300L));
+          assertThat(resultSet.next(), is(false));
+          return null;
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
       }
     }).ok();
   }
@@ -310,41 +313,60 @@ public class CsvTest {
   }
 
   private Fluent sql(String model, String sql) {
-    return new Fluent(model, sql, this::output);
+    return new Fluent(model, sql, output());
   }
 
-  /** Returns a function that checks the contents of a result set against an
-   * expected string. */
-  private static Consumer<ResultSet> expect(final String... expected) {
-    return resultSet -> {
-      try {
-        final List<String> lines = new ArrayList<>();
-        CsvTest.collect(lines, resultSet);
-        Assert.assertEquals(Arrays.asList(expected), lines);
-      } catch (SQLException e) {
-        throw new RuntimeException(e);
+  private Function<ResultSet, Void> output() {
+    return new Function<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          output(resultSet, System.out);
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+        return null;
       }
     };
   }
 
   /** Returns a function that checks the contents of a result set against an
    * expected string. */
-  private static Consumer<ResultSet> expectUnordered(String... expected) {
+  private static Function<ResultSet, Void> expect(final String... expected) {
+    return new Function<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          final List<String> lines = new ArrayList<>();
+          CsvTest.collect(lines, resultSet);
+          Assert.assertEquals(Arrays.asList(expected), lines);
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+        return null;
+      }
+    };
+  }
+
+  /** Returns a function that checks the contents of a result set against an
+   * expected string. */
+  private static Function<ResultSet, Void> expectUnordered(String... expected) {
     final List<String> expectedLines =
         Ordering.natural().immutableSortedCopy(Arrays.asList(expected));
-    return resultSet -> {
-      try {
-        final List<String> lines = new ArrayList<>();
-        CsvTest.collect(lines, resultSet);
-        Collections.sort(lines);
-        Assert.assertEquals(expectedLines, lines);
-      } catch (SQLException e) {
-        throw new RuntimeException(e);
+    return new Function<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          final List<String> lines = new ArrayList<>();
+          CsvTest.collect(lines, resultSet);
+          Collections.sort(lines);
+          Assert.assertEquals(expectedLines, lines);
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+        return null;
       }
     };
   }
 
-  private void checkSql(String sql, String model, Consumer<ResultSet> fn)
+  private void checkSql(String sql, String model, Function<ResultSet, Void> fn)
       throws SQLException {
     Connection connection = null;
     Statement statement = null;
@@ -356,7 +378,7 @@ public class CsvTest {
       final ResultSet resultSet =
           statement.executeQuery(
               sql);
-      fn.accept(resultSet);
+      fn.apply(resultSet);
     } finally {
       close(connection, statement);
     }
@@ -681,7 +703,7 @@ public class CsvTest {
       final Schema schema =
           CsvSchemaFactory.INSTANCE
               .create(calciteConnection.getRootSchema(), null,
-                  ImmutableMap.of("directory",
+                  ImmutableMap.<String, Object>of("directory",
                       resourcePath("sales"), "flavor", "scannable"));
       calciteConnection.getRootSchema().add("TEST", schema);
       final String sql = "select * from \"TEST\".\"DEPTS\" where \"NAME\" = ?";
@@ -690,8 +712,8 @@ public class CsvTest {
 
       statement2.setString(1, "Sales");
       final ResultSet resultSet1 = statement2.executeQuery();
-      Consumer<ResultSet> expect = expect("DEPTNO=10; NAME=Sales");
-      expect.accept(resultSet1);
+      Function<ResultSet, Void> expect = expect("DEPTNO=10; NAME=Sales");
+      expect.apply(resultSet1);
     }
   }
 
@@ -935,36 +957,33 @@ public class CsvTest {
 
   /** Creates a command that appends a line to the CSV file. */
   private Callable<Void> writeLine(final PrintWriter pw, final String line) {
-    return () -> {
-      pw.println(line);
-      pw.flush();
-      return null;
+    return new Callable<Void>() {
+      @Override public Void call() throws Exception {
+        pw.println(line);
+        pw.flush();
+        return null;
+      }
     };
   }
 
   /** Creates a command that sleeps. */
   private Callable<Void> sleep(final long millis) {
-    return () -> {
-      Thread.sleep(millis);
-      return null;
+    return new Callable<Void>() {
+      @Override public Void call() throws Exception {
+        Thread.sleep(millis);
+        return null;
+      }
     };
   }
 
   /** Creates a command that cancels a statement. */
   private Callable<Void> cancel(final Statement statement) {
-    return () -> {
-      statement.cancel();
-      return null;
+    return new Callable<Void>() {
+      @Override public Void call() throws Exception {
+        statement.cancel();
+        return null;
+      }
     };
-  }
-
-  private Void output(ResultSet resultSet) {
-    try {
-      output(resultSet, System.out);
-    } catch (SQLException e) {
-      throw new RuntimeException(e);
-    }
-    return null;
   }
 
   /** Receives commands on a queue and executes them on its own thread.
@@ -984,7 +1003,12 @@ public class CsvTest {
     private Exception e;
 
     /** The poison pill command. */
-    final Callable<E> end = () -> null;
+    final Callable<E> end =
+        new Callable<E>() {
+          public E call() {
+            return null;
+          }
+        };
 
     public void run() {
       try {
@@ -1013,9 +1037,9 @@ public class CsvTest {
   private class Fluent {
     private final String model;
     private final String sql;
-    private final Consumer<ResultSet> expect;
+    private final Function<ResultSet, Void> expect;
 
-    Fluent(String model, String sql, Consumer<ResultSet> expect) {
+    Fluent(String model, String sql, Function<ResultSet, Void> expect) {
       this.model = model;
       this.sql = sql;
       this.expect = expect;
@@ -1032,7 +1056,7 @@ public class CsvTest {
     }
 
     /** Assigns a function to call to test whether output is correct. */
-    Fluent checking(Consumer<ResultSet> expect) {
+    Fluent checking(Function<ResultSet, Void> expect) {
       return new Fluent(model, sql, expect);
     }
 

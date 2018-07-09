@@ -45,7 +45,7 @@ public class Statistics {
         }
 
         public List<RelReferentialConstraint> getReferentialConstraints() {
-          return ImmutableList.of();
+          return ImmutableList.<RelReferentialConstraint>of();
         }
 
         public List<RelCollation> getCollations() {
@@ -59,15 +59,15 @@ public class Statistics {
 
   /** Returns a statistic with a given set of referential constraints. */
   public static Statistic of(final List<RelReferentialConstraint> referentialConstraints) {
-    return of(null, ImmutableList.of(),
-        referentialConstraints, ImmutableList.of());
+    return of(null, ImmutableList.<ImmutableBitSet>of(),
+        referentialConstraints, ImmutableList.<RelCollation>of());
   }
 
   /** Returns a statistic with a given row count and set of unique keys. */
   public static Statistic of(final double rowCount,
       final List<ImmutableBitSet> keys) {
-    return of(rowCount, keys, ImmutableList.of(),
-        ImmutableList.of());
+    return of(rowCount, keys, ImmutableList.<RelReferentialConstraint>of(),
+        ImmutableList.<RelCollation>of());
   }
 
   /** Returns a statistic with a given row count, set of unique keys,
@@ -75,7 +75,7 @@ public class Statistics {
   public static Statistic of(final double rowCount,
       final List<ImmutableBitSet> keys,
       final List<RelCollation> collations) {
-    return of(rowCount, keys, ImmutableList.of(), collations);
+    return of(rowCount, keys, ImmutableList.<RelReferentialConstraint>of(), collations);
   }
 
   /** Returns a statistic with a given row count, set of unique keys,

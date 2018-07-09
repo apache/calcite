@@ -39,10 +39,10 @@ import org.apache.calcite.util.ImmutableIntList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -186,7 +186,7 @@ public class ModifiableViewTable extends ViewTable
 
     private ModifiableViewTableInitializerExpressionFactory() {
       super();
-      final Map<Integer, RexNode> projectMap = new HashMap<>();
+      final Map<Integer, RexNode> projectMap = Maps.newHashMap();
       final List<RexNode> filters = new ArrayList<>();
       RelOptUtil.inferViewPredicates(projectMap, filters, constraint);
       assert filters.isEmpty();

@@ -41,6 +41,7 @@ import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
 
 import static org.junit.Assert.assertTrue;
 
+
 /**
  * Unit test for {@link org.apache.calcite.rel.RelDistributionTraitDef}.
  */

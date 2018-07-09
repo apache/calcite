@@ -77,7 +77,7 @@ public class AggregateUnionAggregateRule extends RelOptRule {
       RelBuilderFactory relBuilderFactory,
       String desc) {
     super(
-        operandJ(aggregateClass, null, Aggregate::isSimple,
+        operand(aggregateClass, null, Aggregate.IS_SIMPLE,
             operand(unionClass,
                 operand(firstUnionInputClass, any()),
                 operand(secondUnionInputClass, any()))),

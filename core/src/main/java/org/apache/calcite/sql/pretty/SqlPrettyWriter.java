@@ -1142,7 +1142,7 @@ public class SqlPrettyWriter implements SqlWriter {
       final Set<String> names = new HashSet<>();
       names.addAll(getterMethods.keySet());
       names.addAll(setterMethods.keySet());
-      return names.toArray(new String[0]);
+      return names.toArray(new String[names.size()]);
     }
   }
 }

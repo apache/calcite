@@ -52,7 +52,7 @@ public class NestedBlockBuilderImpl implements NestedBlockBuilder {
    */
   public final BlockBuilder nestBlock() {
     BlockBuilder block = new BlockBuilder(true, currentBlock());
-    nestBlock(block, Collections.emptyMap());
+    nestBlock(block, Collections.<RexNode, Boolean>emptyMap());
     return block;
   }
 
@@ -63,7 +63,7 @@ public class NestedBlockBuilderImpl implements NestedBlockBuilder {
    * @see #exitBlock()
    */
   public final void nestBlock(BlockBuilder block) {
-    nestBlock(block, Collections.emptyMap());
+    nestBlock(block, Collections.<RexNode, Boolean>emptyMap());
   }
 
   /**
@@ -77,7 +77,7 @@ public class NestedBlockBuilderImpl implements NestedBlockBuilder {
       Map<RexNode, Boolean> nullables) {
     blocks.add(block);
     Map<RexNode, Boolean> prev = this.nullables.isEmpty()
-        ? Collections.emptyMap()
+        ? Collections.<RexNode, Boolean>emptyMap()
         : this.nullables.get(this.nullables.size() - 1);
     Map<RexNode, Boolean> next;
     if (nullables == null || nullables.isEmpty()) {

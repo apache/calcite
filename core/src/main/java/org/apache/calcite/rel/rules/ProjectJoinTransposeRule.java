@@ -38,7 +38,8 @@ import java.util.List;
  */
 public class ProjectJoinTransposeRule extends RelOptRule {
   public static final ProjectJoinTransposeRule INSTANCE =
-      new ProjectJoinTransposeRule(expr -> true,
+      new ProjectJoinTransposeRule(
+          PushProjector.ExprCondition.TRUE,
           RelFactories.LOGICAL_BUILDER);
 
   //~ Instance fields --------------------------------------------------------

@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -48,6 +49,7 @@ import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -60,7 +62,6 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Factory for row expressions.
@@ -76,6 +77,13 @@ public class RexBuilder {
    */
   public static final SqlSpecialOperator GET_OPERATOR =
       new SqlSpecialOperator("_get", SqlKind.OTHER_FUNCTION);
+
+  private static final Function<RelDataTypeField, RexInputRef> TO_INPUT_REF =
+      new Function<RelDataTypeField, RexInputRef>() {
+        public RexInputRef apply(RelDataTypeField input) {
+          return new RexInputRef(input.getIndex(), input.getType());
+        }
+      };
 
   //~ Instance fields --------------------------------------------------------
 
@@ -120,8 +128,7 @@ public class RexBuilder {
   /** Creates a list of {@link org.apache.calcite.rex.RexInputRef} expressions,
    * projecting the fields of a given record type. */
   public List<? extends RexNode> identityProjects(final RelDataType rowType) {
-    return Lists.transform(rowType.getFieldList(),
-        input -> new RexInputRef(input.getIndex(), input.getType()));
+    return Lists.transform(rowType.getFieldList(), TO_INPUT_REF);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -266,7 +273,7 @@ public class RexBuilder {
       List<? extends RexNode> exprs) {
     return op.inferReturnType(
         new RexCallBinding(typeFactory, op, exprs,
-            ImmutableList.of()));
+            ImmutableList.<RelCollation>of()));
   }
 
   /**
@@ -384,7 +391,7 @@ public class RexBuilder {
                   new RexOver(
                       bigintType,
                       SqlStdOperatorTable.COUNT,
-                      ImmutableList.of(),
+                      ImmutableList.<RexNode>of(),
                       window,
                       distinct),
                   makeLiteral(
@@ -1103,7 +1110,7 @@ public class RexBuilder {
    * Creates a Date literal.
    */
   public RexLiteral makeDateLiteral(DateString date) {
-    return makeLiteral(Objects.requireNonNull(date),
+    return makeLiteral(Preconditions.checkNotNull(date),
         typeFactory.createSqlType(SqlTypeName.DATE), SqlTypeName.DATE);
   }
 
@@ -1117,7 +1124,7 @@ public class RexBuilder {
    * Creates a Time literal.
    */
   public RexLiteral makeTimeLiteral(TimeString time, int precision) {
-    return makeLiteral(Objects.requireNonNull(time),
+    return makeLiteral(Preconditions.checkNotNull(time),
         typeFactory.createSqlType(SqlTypeName.TIME, precision),
         SqlTypeName.TIME);
   }
@@ -1128,7 +1135,7 @@ public class RexBuilder {
   public RexLiteral makeTimeWithLocalTimeZoneLiteral(
       TimeString time,
       int precision) {
-    return makeLiteral(Objects.requireNonNull(time),
+    return makeLiteral(Preconditions.checkNotNull(time),
         typeFactory.createSqlType(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE, precision),
         SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
   }
@@ -1145,7 +1152,7 @@ public class RexBuilder {
    */
   public RexLiteral makeTimestampLiteral(TimestampString timestamp,
       int precision) {
-    return makeLiteral(Objects.requireNonNull(timestamp),
+    return makeLiteral(Preconditions.checkNotNull(timestamp),
         typeFactory.createSqlType(SqlTypeName.TIMESTAMP, precision),
         SqlTypeName.TIMESTAMP);
   }
@@ -1156,7 +1163,7 @@ public class RexBuilder {
   public RexLiteral makeTimestampWithLocalTimeZoneLiteral(
       TimestampString timestamp,
       int precision) {
-    return makeLiteral(Objects.requireNonNull(timestamp),
+    return makeLiteral(Preconditions.checkNotNull(timestamp),
         typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, precision),
         SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
   }

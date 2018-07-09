@@ -44,6 +44,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
@@ -59,9 +60,13 @@ import org.apache.calcite.util.mapping.Mappings;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
@@ -73,7 +78,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -118,7 +122,7 @@ public class SubstitutionVisitor {
   private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   protected static final ImmutableList<UnifyRule> DEFAULT_RULES =
-      ImmutableList.of(
+      ImmutableList.<UnifyRule>of(
           TrivialRule.INSTANCE,
           ScanToProjectUnifyRule.INSTANCE,
           ProjectToProjectUnifyRule.INSTANCE,
@@ -468,7 +472,7 @@ public class SubstitutionVisitor {
     if (matches.isEmpty()) {
       return ImmutableList.of();
     }
-    List<RelNode> sub = new ArrayList<>();
+    List<RelNode> sub = Lists.newArrayList();
     sub.add(MutableRels.fromMutable(query.getInput(), relBuilder));
     reverseSubstitute(relBuilder, query, matches, sub, 0, matches.size());
     return sub;
@@ -489,7 +493,7 @@ public class SubstitutionVisitor {
 
     // Populate "equivalents" with (q, t) for each query descendant q and
     // target descendant t that are equal.
-    final Map<MutableRel, MutableRel> map = new HashMap<>();
+    final Map<MutableRel, MutableRel> map = Maps.newHashMap();
     for (MutableRel queryDescendant : queryDescendants) {
       map.put(queryDescendant, queryDescendant);
     }
@@ -502,8 +506,8 @@ public class SubstitutionVisitor {
     }
     map.clear();
 
-    final List<Replacement> attempted = new ArrayList<>();
-    List<List<Replacement>> substitutions = new ArrayList<>();
+    final List<Replacement> attempted = Lists.newArrayList();
+    List<List<Replacement>> substitutions = Lists.newArrayList();
 
     for (;;) {
       int count = 0;
@@ -859,10 +863,10 @@ public class SubstitutionVisitor {
 
     public UnifyRuleCall(UnifyRule rule, MutableRel query, MutableRel target,
         ImmutableList<MutableRel> slots) {
-      this.rule = Objects.requireNonNull(rule);
-      this.query = Objects.requireNonNull(query);
-      this.target = Objects.requireNonNull(target);
-      this.slots = Objects.requireNonNull(slots);
+      this.rule = Preconditions.checkNotNull(rule);
+      this.query = Preconditions.checkNotNull(query);
+      this.target = Preconditions.checkNotNull(target);
+      this.slots = Preconditions.checkNotNull(slots);
     }
 
     public UnifyResult result(MutableRel result) {
@@ -1253,8 +1257,12 @@ public class SubstitutionVisitor {
   private static List<AggregateCall> apply(final Mapping mapping,
       List<AggregateCall> aggCallList) {
     return Lists.transform(aggCallList,
-        call -> call.copy(Mappings.apply2(mapping, call.getArgList()),
-            Mappings.apply(mapping, call.filterArg)));
+        new Function<AggregateCall, AggregateCall>() {
+          public AggregateCall apply(AggregateCall call) {
+            return call.copy(Mappings.apply2(mapping, call.getArgList()),
+                Mappings.apply(mapping, call.filterArg));
+          }
+        });
   }
 
   public static MutableRel unifyAggregates(MutableAggregate query,
@@ -1266,7 +1274,7 @@ public class SubstitutionVisitor {
     MutableRel result;
     if (query.groupSet.equals(target.groupSet)) {
       // Same level of aggregation. Generate a project.
-      final List<Integer> projects = new ArrayList<>();
+      final List<Integer> projects = Lists.newArrayList();
       final int groupCount = query.groupSet.cardinality();
       for (int i = 0; i < groupCount; i++) {
         projects.add(i);
@@ -1290,7 +1298,7 @@ public class SubstitutionVisitor {
         }
         groupSet.set(c2);
       }
-      final List<AggregateCall> aggregateCalls = new ArrayList<>();
+      final List<AggregateCall> aggregateCalls = Lists.newArrayList();
       for (AggregateCall aggregateCall : query.aggCalls) {
         if (aggregateCall.isDistinct()) {
           return null;
@@ -1574,6 +1582,13 @@ public class SubstitutionVisitor {
    * trivial filter (on a boolean column).
    */
   public static class FilterOnProjectRule extends RelOptRule {
+    private static final Predicate<LogicalFilter> PREDICATE =
+        new PredicateImpl<LogicalFilter>() {
+          public boolean test(LogicalFilter input) {
+            return input.getCondition() instanceof RexInputRef;
+          }
+        };
+
     public static final FilterOnProjectRule INSTANCE =
         new FilterOnProjectRule(RelFactories.LOGICAL_BUILDER);
 
@@ -1584,8 +1599,7 @@ public class SubstitutionVisitor {
      */
     public FilterOnProjectRule(RelBuilderFactory relBuilderFactory) {
       super(
-          operandJ(LogicalFilter.class, null,
-              filter -> filter.getCondition() instanceof RexInputRef,
+          operand(LogicalFilter.class, null, PREDICATE,
               some(operand(LogicalProject.class, any()))),
           relBuilderFactory, null);
     }

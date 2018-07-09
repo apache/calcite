@@ -21,6 +21,7 @@ import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
@@ -102,7 +103,11 @@ public class MazeTable extends AbstractTable implements ScannableTable {
           solutionSet = null;
         }
         return Linq4j.transform(maze.enumerator(solutionSet),
-            s -> new Object[] {s});
+            new Function1<String, Object[]>() {
+              public Object[] apply(String s) {
+                return new Object[] {s};
+              }
+            });
       }
     };
   }

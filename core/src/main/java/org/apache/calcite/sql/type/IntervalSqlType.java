@@ -27,7 +27,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.util.SqlString;
 
-import java.util.Objects;
+import com.google.common.base.Preconditions;
 
 /**
  * IntervalSqlType represents a standard SQL datetime interval type.
@@ -48,8 +48,8 @@ public class IntervalSqlType extends AbstractSqlType {
       SqlIntervalQualifier intervalQualifier,
       boolean isNullable) {
     super(intervalQualifier.typeName(), isNullable, null);
-    this.typeSystem = Objects.requireNonNull(typeSystem);
-    this.intervalQualifier = Objects.requireNonNull(intervalQualifier);
+    this.typeSystem = Preconditions.checkNotNull(typeSystem);
+    this.intervalQualifier = Preconditions.checkNotNull(intervalQualifier);
     computeDigest();
   }
 
@@ -84,10 +84,10 @@ public class IntervalSqlType extends AbstractSqlType {
       IntervalSqlType that) {
     assert this.typeName.isYearMonth() == that.typeName.isYearMonth();
     boolean nullable = isNullable || that.isNullable;
-    TimeUnit thisStart = Objects.requireNonNull(typeName.getStartUnit());
+    TimeUnit thisStart = Preconditions.checkNotNull(typeName.getStartUnit());
     TimeUnit thisEnd = typeName.getEndUnit();
     final TimeUnit thatStart =
-        Objects.requireNonNull(that.typeName.getStartUnit());
+        Preconditions.checkNotNull(that.typeName.getStartUnit());
     final TimeUnit thatEnd = that.typeName.getEndUnit();
 
     int secondPrec =

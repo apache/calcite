@@ -25,12 +25,12 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import javax.annotation.Nullable;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -74,7 +74,7 @@ public class IdentifierNamespace extends AbstractNamespace {
     super(validator, enclosingNode);
     this.id = id;
     this.extendList = extendList;
-    this.parentScope = Objects.requireNonNull(parentScope);
+    this.parentScope = Preconditions.checkNotNull(parentScope);
   }
 
   IdentifierNamespace(SqlValidatorImpl validator, SqlNode node,
@@ -174,7 +174,7 @@ public class IdentifierNamespace extends AbstractNamespace {
   }
 
   public RelDataType validateImpl(RelDataType targetRowType) {
-    resolvedNamespace = Objects.requireNonNull(resolveImpl(id));
+    resolvedNamespace = Preconditions.checkNotNull(resolveImpl(id));
     if (resolvedNamespace instanceof TableNamespace) {
       SqlValidatorTable table = resolvedNamespace.getTable();
       if (validator.shouldExpandIdentifiers()) {

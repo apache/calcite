@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.os;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
@@ -43,9 +44,11 @@ public class DuTableFunction {
     return new ScannableTable() {
       public Enumerable<Object[]> scan(DataContext root) {
         return Processes.processLines("du", "-ak")
-            .select(a0 -> {
-              final String[] fields = a0.split("\t");
-              return new Object[] {Long.valueOf(fields[0]), fields[1]};
+            .select(new Function1<String, Object[]>() {
+              public Object[] apply(String a0) {
+                final String[] fields = a0.split("\t");
+                return new Object[] {Long.valueOf(fields[0]), fields[1]};
+              }
             });
       }
 

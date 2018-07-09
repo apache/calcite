@@ -42,11 +42,12 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -153,10 +154,10 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
     final int groupCount = oldAggRel.getGroupCount();
     final int indicatorCount = oldAggRel.getIndicatorCount();
 
-    final List<AggregateCall> newCalls = new ArrayList<>();
-    final Map<AggregateCall, RexNode> aggCallMapping = new HashMap<>();
+    final List<AggregateCall> newCalls = Lists.newArrayList();
+    final Map<AggregateCall, RexNode> aggCallMapping = Maps.newHashMap();
 
-    final List<RexNode> projList = new ArrayList<>();
+    final List<RexNode> projList = Lists.newArrayList();
 
     // pass through group key (+ indicators if present)
     for (int i = 0; i < groupCount + indicatorCount; ++i) {
@@ -186,7 +187,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
       relBuilder.project(inputExprs,
           CompositeList.of(
               relBuilder.peek().getRowType().getFieldNames(),
-              Collections.nCopies(extraArgCount, null)));
+              Collections.<String>nCopies(extraArgCount, null)));
     }
     newAggregateRel(relBuilder, oldAggRel, newCalls);
     newCalcRel(relBuilder, oldAggRel.getRowType(), projList);

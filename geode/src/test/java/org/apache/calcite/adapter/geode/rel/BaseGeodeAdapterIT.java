@@ -43,15 +43,17 @@ public class BaseGeodeAdapterIT {
    * expected string.
    */
   private static Function1<ResultSet, Void> expect(final String... expected) {
-    return resultSet -> {
-      try {
-        final List<String> lines = new ArrayList<>();
-        BaseGeodeAdapterIT.collect(lines, resultSet);
-        Assert.assertEquals(Arrays.asList(expected), lines);
-      } catch (SQLException e) {
-        throw new RuntimeException(e);
+    return new Function1<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          final List<String> lines = new ArrayList<>();
+          BaseGeodeAdapterIT.collect(lines, resultSet);
+          Assert.assertEquals(Arrays.asList(expected), lines);
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+        return null;
       }
-      return null;
     };
   }
 
@@ -82,13 +84,15 @@ public class BaseGeodeAdapterIT {
   }
 
   protected Function1<ResultSet, Void> output() {
-    return resultSet -> {
-      try {
-        output(resultSet, System.out);
-      } catch (SQLException e) {
-        throw new RuntimeException(e);
+    return new Function1<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          output(resultSet, System.out);
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+        return null;
       }
-      return null;
     };
   }
 

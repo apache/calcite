@@ -63,9 +63,18 @@ import java.util.Map;
  * API for a service that prepares statements for execution.
  */
 public interface CalcitePrepare {
-  Function0<CalcitePrepare> DEFAULT_FACTORY = CalcitePrepareImpl::new;
+  Function0<CalcitePrepare> DEFAULT_FACTORY =
+      new Function0<CalcitePrepare>() {
+        public CalcitePrepare apply() {
+          return new CalcitePrepareImpl();
+        }
+      };
   ThreadLocal<Deque<Context>> THREAD_CONTEXT_STACK =
-      ThreadLocal.withInitial(ArrayDeque::new);
+      new ThreadLocal<Deque<Context>>() {
+        @Override protected Deque<Context> initialValue() {
+          return new ArrayDeque<>();
+        }
+      };
 
   ParseResult parse(Context context, String sql);
 

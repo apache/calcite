@@ -19,14 +19,13 @@ package org.apache.calcite.linq4j.tree;
 import org.apache.calcite.linq4j.function.Function;
 import org.apache.calcite.linq4j.function.Functions;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -60,7 +59,8 @@ public final class FunctionExpression<F extends Function<?>>
   }
 
   public FunctionExpression(F function) {
-    this((Class) function.getClass(), function, null, ImmutableList.of());
+    this((Class) function.getClass(), function, null,
+        Collections.<ParameterExpression>emptyList());
   }
 
   public FunctionExpression(Class<F> type, BlockStatement body,
@@ -79,12 +79,14 @@ public final class FunctionExpression<F extends Function<?>>
   }
 
   public Invokable compile() {
-    return args -> {
-      final Evaluator evaluator = new Evaluator();
-      for (int i = 0; i < args.length; i++) {
-        evaluator.push(parameterList.get(i), args[i]);
+    return new Invokable() {
+      public Object dynamicInvoke(Object... args) {
+        final Evaluator evaluator = new Evaluator();
+        for (int i = 0; i < args.length; i++) {
+          evaluator.push(parameterList.get(i), args[i]);
+        }
+        return evaluator.evaluate(body);
       }
-      return evaluator.evaluate(body);
     };
   }
 
@@ -97,7 +99,13 @@ public final class FunctionExpression<F extends Function<?>>
 
       //noinspection unchecked
       dynamicFunction = (F) Proxy.newProxyInstance(getClass().getClassLoader(),
-          new Class[]{Types.toClass(type)}, (proxy, method, args) -> x.dynamicInvoke(args));
+          new Class[]{Types.toClass(type)},
+          new InvocationHandler() {
+            public Object invoke(Object proxy, Method method, Object[] args)
+                throws Throwable {
+              return x.dynamicInvoke(args);
+            }
+          });
     }
     return dynamicFunction;
   }
@@ -215,13 +223,9 @@ public final class FunctionExpression<F extends Function<?>>
 
   private Method getAbstractMethod() {
     if (type instanceof Class
-        && ((Class) type).isInterface()) {
-      final List<Method> declaredMethods =
-          Lists.newArrayList(((Class) type).getDeclaredMethods());
-      declaredMethods.removeIf(m -> (m.getModifiers() & 0x00001000) != 0);
-      if (declaredMethods.size() == 1) {
-        return declaredMethods.get(0);
-      }
+        && ((Class) type).isInterface()
+        && ((Class) type).getDeclaredMethods().length == 1) {
+      return ((Class) type).getDeclaredMethods()[0];
     }
     return null;
   }

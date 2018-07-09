@@ -34,9 +34,9 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * past a {@link org.apache.calcite.rel.core.Filter}.
  */
 public class ProjectFilterTransposeRule extends RelOptRule {
-  public static final ProjectFilterTransposeRule INSTANCE =
-      new ProjectFilterTransposeRule(LogicalProject.class, LogicalFilter.class,
-          RelFactories.LOGICAL_BUILDER, expr -> false);
+  public static final ProjectFilterTransposeRule INSTANCE = new ProjectFilterTransposeRule(
+      LogicalProject.class, LogicalFilter.class, RelFactories.LOGICAL_BUILDER,
+      PushProjector.ExprCondition.FALSE);
 
   //~ Instance fields --------------------------------------------------------
 

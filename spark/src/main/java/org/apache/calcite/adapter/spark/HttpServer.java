@@ -165,17 +165,21 @@ class HttpServer {
   }
 
   private static <E> Iterable<E> iterable(final Enumeration<E> enumeration) {
-    return () -> new Iterator<E>() {
-      public boolean hasNext() {
-        return enumeration.hasMoreElements();
-      }
+    return new Iterable<E>() {
+      public Iterator<E> iterator() {
+        return new Iterator<E>() {
+          public boolean hasNext() {
+            return enumeration.hasMoreElements();
+          }
 
-      public E next() {
-        return enumeration.nextElement();
-      }
+          public E next() {
+            return enumeration.nextElement();
+          }
 
-      public void remove() {
-        throw new UnsupportedOperationException();
+          public void remove() {
+            throw new UnsupportedOperationException();
+          }
+        };
       }
     };
   }

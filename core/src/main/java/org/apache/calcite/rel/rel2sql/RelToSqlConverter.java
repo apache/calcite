@@ -65,6 +65,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.ReflectiveVisitor;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -380,7 +381,7 @@ public class RelToSqlConverter extends SqlImplementor
           new SqlInsert(POS, SqlNodeList.EMPTY, sqlTargetTable, sqlSource,
               identifierList(modify.getInput().getRowType().getFieldNames()));
 
-      return result(sqlInsert, ImmutableList.of(), modify, null);
+      return result(sqlInsert, ImmutableList.<Clause>of(), modify, null);
     }
     case UPDATE: {
       final Result input = visitChild(0, modify.getInput());
@@ -414,14 +415,24 @@ public class RelToSqlConverter extends SqlImplementor
   private SqlNodeList exprList(final Context context,
       List<? extends RexNode> exprs) {
     return new SqlNodeList(
-        Lists.transform(exprs, e -> context.toSql(null, e)), POS);
+        Lists.transform(exprs,
+            new Function<RexNode, SqlNode>() {
+              public SqlNode apply(RexNode e) {
+                return context.toSql(null, e);
+              }
+            }), POS);
   }
 
   /** Converts a list of names expressions to a list of single-part
    * {@link SqlIdentifier}s. */
   private SqlNodeList identifierList(List<String> names) {
     return new SqlNodeList(
-        Lists.transform(names, name -> new SqlIdentifier(name, POS)), POS);
+        Lists.transform(names,
+            new Function<String, SqlNode>() {
+              public SqlNode apply(String name) {
+                return new SqlIdentifier(name, POS);
+              }
+            }), POS);
   }
 
   /** @see #dispatch */
@@ -489,7 +500,7 @@ public class RelToSqlConverter extends SqlImplementor
     final SqlNodeList subsetList = new SqlNodeList(POS);
     for (Map.Entry<String, SortedSet<String>> entry : e.getSubsets().entrySet()) {
       SqlNode left = new SqlIdentifier(entry.getKey(), POS);
-      List<SqlNode> rhl = new ArrayList<>();
+      List<SqlNode> rhl = Lists.newArrayList();
       for (String right : entry.getValue()) {
         rhl.add(new SqlIdentifier(right, POS));
       }

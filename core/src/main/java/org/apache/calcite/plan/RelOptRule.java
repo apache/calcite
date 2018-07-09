@@ -22,13 +22,15 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.function.Predicate;
 
 /**
  * A <code>RelOptRule</code> transforms an expression into another. It has a
@@ -95,8 +97,8 @@ public abstract class RelOptRule {
    */
   public RelOptRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory, String description) {
-    this.operand = Objects.requireNonNull(operand);
-    this.relBuilderFactory = Objects.requireNonNull(relBuilderFactory);
+    this.operand = Preconditions.checkNotNull(operand);
+    this.relBuilderFactory = Preconditions.checkNotNull(relBuilderFactory);
     if (description == null) {
       description = guessDescription(getClass().getName());
     }
@@ -124,7 +126,7 @@ public abstract class RelOptRule {
   public static <R extends RelNode> RelOptRuleOperand operand(
       Class<R> clazz,
       RelOptRuleOperandChildren operandList) {
-    return new RelOptRuleOperand(clazz, null, r -> true,
+    return new RelOptRuleOperand(clazz, null, Predicates.<R>alwaysTrue(),
         operandList.policy, operandList.operands);
   }
 
@@ -143,7 +145,7 @@ public abstract class RelOptRule {
       Class<R> clazz,
       RelTrait trait,
       RelOptRuleOperandChildren operandList) {
-    return new RelOptRuleOperand(clazz, trait, r -> true,
+    return new RelOptRuleOperand(clazz, trait, Predicates.<R>alwaysTrue(),
         operandList.policy, operandList.operands);
   }
 
@@ -159,25 +161,13 @@ public abstract class RelOptRule {
    * @return Operand that matches a relational expression that has a
    *   particular trait and predicate
    */
-  public static <R extends RelNode> RelOptRuleOperand operandJ(
+  public static <R extends RelNode> RelOptRuleOperand operand(
       Class<R> clazz,
       RelTrait trait,
       Predicate<? super R> predicate,
       RelOptRuleOperandChildren operandList) {
     return new RelOptRuleOperand(clazz, trait, predicate, operandList.policy,
         operandList.operands);
-  }
-
-  /** @deprecated Use {@link #operandJ} */
-  @SuppressWarnings("Guava")
-  @Deprecated // to be removed before 2.0
-  public static <R extends RelNode> RelOptRuleOperand operand(
-      Class<R> clazz,
-      RelTrait trait,
-      com.google.common.base.Predicate<? super R> predicate,
-      RelOptRuleOperandChildren operandList) {
-    return operandJ(clazz, trait, (Predicate<? super R>) predicate::apply,
-        operandList);
   }
 
   /**
@@ -192,25 +182,13 @@ public abstract class RelOptRule {
    * @param <R> Class of relational expression to match
    * @return Operand
    */
-  public static <R extends RelNode> RelOptRuleOperand operandJ(
+  public static <R extends RelNode> RelOptRuleOperand operand(
       Class<R> clazz,
       RelTrait trait,
       Predicate<? super R> predicate,
       RelOptRuleOperand first,
       RelOptRuleOperand... rest) {
-    return operandJ(clazz, trait, predicate, some(first, rest));
-  }
-
-  @SuppressWarnings("Guava")
-  @Deprecated // to be removed before 2.0
-  public static <R extends RelNode> RelOptRuleOperand operand(
-      Class<R> clazz,
-      RelTrait trait,
-      com.google.common.base.Predicate<? super R> predicate,
-      RelOptRuleOperand first,
-      RelOptRuleOperand... rest) {
-    return operandJ(clazz, trait, (Predicate<? super R>) predicate::apply,
-        first, rest);
+    return operand(clazz, trait, predicate, some(first, rest));
   }
 
   /**
@@ -250,16 +228,6 @@ public abstract class RelOptRule {
       convertOperand(Class<R> clazz, Predicate<? super R> predicate,
       RelTrait trait) {
     return new ConverterRelOptRuleOperand(clazz, trait, predicate);
-  }
-
-  /** @deprecated Use {@link #convertOperand(Class, Predicate, RelTrait)}. */
-  @SuppressWarnings("Guava")
-  @Deprecated // to be removed before 2.0
-  protected static <R extends RelNode> ConverterRelOptRuleOperand
-      convertOperand(Class<R> clazz,
-      com.google.common.base.Predicate<? super R> predicate,
-      RelTrait trait) {
-    return new ConverterRelOptRuleOperand(clazz, trait, predicate::apply);
   }
 
   //~ Methods for creating lists of child operands ---------------------------
@@ -604,7 +572,11 @@ public abstract class RelOptRule {
   protected static List<RelNode> convertList(List<RelNode> rels,
       final RelTrait trait) {
     return Lists.transform(rels,
-        rel -> convert(rel, rel.getTraitSet().replace(trait)));
+        new Function<RelNode, RelNode>() {
+          public RelNode apply(RelNode rel) {
+            return convert(rel, rel.getTraitSet().replace(trait));
+          }
+        });
   }
 
   /**
@@ -647,7 +619,7 @@ public abstract class RelOptRule {
     <R extends RelNode> ConverterRelOptRuleOperand(Class<R> clazz, RelTrait in,
         Predicate<? super R> predicate) {
       super(clazz, in, predicate, RelOptRuleOperandChildPolicy.ANY,
-          ImmutableList.of());
+          ImmutableList.<RelOptRuleOperand>of());
     }
 
     public boolean matches(RelNode rel) {

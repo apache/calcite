@@ -21,8 +21,8 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -42,7 +42,7 @@ public class ValuesNode implements Node {
 
   private ImmutableList<Row> createRows(Compiler compiler,
       ImmutableList<ImmutableList<RexLiteral>> tuples) {
-    final List<RexNode> nodes = new ArrayList<>();
+    final List<RexNode> nodes = Lists.newArrayList();
     for (ImmutableList<RexLiteral> tuple : tuples) {
       nodes.addAll(tuple);
     }

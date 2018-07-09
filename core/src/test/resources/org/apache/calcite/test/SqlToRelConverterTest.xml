@@ -1608,20 +1608,6 @@ LogicalSort(offset=[?0])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testJoinUsingDynamicTable">
-        <Resource name="sql">
-            <![CDATA[select * from SALES.NATION t1
-join SALES.NATION t2 using (n_nationkey)]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalProject(**=[$1], **0=[$3])
-  LogicalJoin(condition=[=($0, $2)], joinType=[inner])
-    LogicalTableScan(table=[[CATALOG, SALES, NATION]])
-    LogicalTableScan(table=[[CATALOG, SALES, NATION]])
-]]>
-        </Resource>
-    </TestCase>
     <TestCase name="testMultiAnd">
         <Resource name="sql">
             <![CDATA[select * from emp

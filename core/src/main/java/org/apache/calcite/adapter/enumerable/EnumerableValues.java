@@ -23,7 +23,9 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Values;
@@ -36,6 +38,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Type;
@@ -59,9 +62,17 @@ public class EnumerableValues extends Values implements EnumerableRel {
     final RelTraitSet traitSet =
         cluster.traitSetOf(EnumerableConvention.INSTANCE)
             .replaceIfs(RelCollationTraitDef.INSTANCE,
-                () -> RelMdCollation.values(mq, rowType, tuples))
+                new Supplier<List<RelCollation>>() {
+                  public List<RelCollation> get() {
+                    return RelMdCollation.values(mq, rowType, tuples);
+                  }
+                })
             .replaceIf(RelDistributionTraitDef.INSTANCE,
-                () -> RelMdDistribution.values(rowType, tuples));
+                new Supplier<RelDistribution>() {
+                  public RelDistribution get() {
+                    return RelMdDistribution.values(rowType, tuples);
+                  }
+                });
     return new EnumerableValues(cluster, rowType, tuples, traitSet);
   }
 

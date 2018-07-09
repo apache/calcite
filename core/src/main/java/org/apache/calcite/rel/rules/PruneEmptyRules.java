@@ -37,14 +37,15 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 
 import static org.apache.calcite.plan.RelOptRule.any;
 import static org.apache.calcite.plan.RelOptRule.none;
 import static org.apache.calcite.plan.RelOptRule.operand;
-import static org.apache.calcite.plan.RelOptRule.operandJ;
 import static org.apache.calcite.plan.RelOptRule.some;
 import static org.apache.calcite.plan.RelOptRule.unordered;
 
@@ -75,7 +76,7 @@ public abstract class PruneEmptyRules {
   public static final RelOptRule UNION_INSTANCE =
       new RelOptRule(
           operand(LogicalUnion.class,
-              unordered(operandJ(Values.class, null, Values::isEmpty, none()))),
+              unordered(operand(Values.class, null, Values.IS_EMPTY, none()))),
           "Union") {
         public void onMatch(RelOptRuleCall call) {
           final LogicalUnion union = call.rel(0);
@@ -123,8 +124,7 @@ public abstract class PruneEmptyRules {
   public static final RelOptRule MINUS_INSTANCE =
       new RelOptRule(
           operand(LogicalMinus.class,
-              unordered(
-                  operandJ(Values.class, null, Values::isEmpty, none()))),
+              unordered(operand(Values.class, null, Values.IS_EMPTY, none()))),
           "Minus") {
         public void onMatch(RelOptRuleCall call) {
           final LogicalMinus minus = call.rel(0);
@@ -177,8 +177,7 @@ public abstract class PruneEmptyRules {
   public static final RelOptRule INTERSECT_INSTANCE =
       new RelOptRule(
           operand(LogicalIntersect.class,
-              unordered(
-                  operandJ(Values.class, null, Values::isEmpty, none()))),
+              unordered(operand(Values.class, null, Values.IS_EMPTY, none()))),
           "Intersect") {
         public void onMatch(RelOptRuleCall call) {
           LogicalIntersect intersect = call.rel(0);
@@ -204,9 +203,8 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule PROJECT_INSTANCE =
-      new RemoveEmptySingleRule(Project.class,
-          (Predicate<Project>) project -> true, RelFactories.LOGICAL_BUILDER,
-          "PruneEmptyProject");
+      new RemoveEmptySingleRule(Project.class, Predicates.<Project>alwaysTrue(),
+          RelFactories.LOGICAL_BUILDER, "PruneEmptyProject");
 
   /**
    * Rule that converts a {@link org.apache.calcite.rel.logical.LogicalFilter}
@@ -273,8 +271,7 @@ public abstract class PruneEmptyRules {
    * @see AggregateValuesRule
    */
   public static final RelOptRule AGGREGATE_INSTANCE =
-      new RemoveEmptySingleRule(Aggregate.class,
-          (Predicate<Aggregate>) Aggregate::isNotGrandTotal,
+      new RemoveEmptySingleRule(Aggregate.class, Aggregate.IS_NOT_GRAND_TOTAL,
           RelFactories.LOGICAL_BUILDER, "PruneEmptyAggregate");
 
   /**
@@ -291,7 +288,7 @@ public abstract class PruneEmptyRules {
       new RelOptRule(
           operand(Join.class,
               some(
-                  operandJ(Values.class, null, Values::isEmpty, none()),
+                  operand(Values.class, null, Values.IS_EMPTY, none()),
                   operand(RelNode.class, any()))),
               "PruneEmptyJoin(left)") {
         @Override public void onMatch(RelOptRuleCall call) {
@@ -320,7 +317,7 @@ public abstract class PruneEmptyRules {
           operand(Join.class,
               some(
                   operand(RelNode.class, any()),
-                  operandJ(Values.class, null, Values::isEmpty, none()))),
+                  operand(Values.class, null, Values.IS_EMPTY, none()))),
               "PruneEmptyJoin(right)") {
         @Override public void onMatch(RelOptRuleCall call) {
           Join join = call.rel(0);
@@ -336,10 +333,10 @@ public abstract class PruneEmptyRules {
   /** Planner rule that converts a single-rel (e.g. project, sort, aggregate or
    * filter) on top of the empty relational expression into empty. */
   public static class RemoveEmptySingleRule extends RelOptRule {
-    /** Creates a simple RemoveEmptySingleRule. */
+    /** Creatse a simple RemoveEmptySingleRule. */
     public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
         String description) {
-      this(clazz, (Predicate<R>) project -> true, RelFactories.LOGICAL_BUILDER,
+      this(clazz, Predicates.<R>alwaysTrue(), RelFactories.LOGICAL_BUILDER,
           description);
     }
 
@@ -348,18 +345,9 @@ public abstract class PruneEmptyRules {
         Predicate<R> predicate, RelBuilderFactory relBuilderFactory,
         String description) {
       super(
-          operandJ(clazz, null, predicate,
-              operandJ(Values.class, null, Values::isEmpty, none())),
+          operand(clazz, null, predicate,
+              operand(Values.class, null, Values.IS_EMPTY, none())),
           relBuilderFactory, description);
-    }
-
-    @SuppressWarnings("Guava")
-    @Deprecated // to be removed before 2.0
-    public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
-        com.google.common.base.Predicate<R> predicate,
-        RelBuilderFactory relBuilderFactory, String description) {
-      this(clazz, (Predicate<R>) predicate::apply, relBuilderFactory,
-          description);
     }
 
     public void onMatch(RelOptRuleCall call) {

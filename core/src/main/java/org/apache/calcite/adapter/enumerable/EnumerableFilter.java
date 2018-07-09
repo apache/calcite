@@ -18,7 +18,9 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
@@ -26,6 +28,10 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
+
+import com.google.common.base.Supplier;
+
+import java.util.List;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Filter} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -53,9 +59,17 @@ public class EnumerableFilter
         cluster.traitSetOf(EnumerableConvention.INSTANCE)
             .replaceIfs(
                 RelCollationTraitDef.INSTANCE,
-                () -> RelMdCollation.filter(mq, input))
+                new Supplier<List<RelCollation>>() {
+                  public List<RelCollation> get() {
+                    return RelMdCollation.filter(mq, input);
+                  }
+                })
             .replaceIf(RelDistributionTraitDef.INSTANCE,
-                () -> RelMdDistribution.filter(mq, input));
+                new Supplier<RelDistribution>() {
+                  public RelDistribution get() {
+                    return RelMdDistribution.filter(mq, input);
+                  }
+                });
     return new EnumerableFilter(cluster, traitSet, input, condition);
   }
 

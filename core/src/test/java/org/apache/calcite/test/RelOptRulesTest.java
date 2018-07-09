@@ -35,6 +35,7 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Intersect;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
@@ -109,6 +110,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -118,23 +120,23 @@ import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import static org.apache.calcite.plan.RelOptRule.none;
+import static org.apache.calcite.plan.RelOptRule.operand;
+
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
-import java.util.function.Predicate;
 
-import static org.apache.calcite.plan.RelOptRule.none;
-import static org.apache.calcite.plan.RelOptRule.operand;
-import static org.apache.calcite.plan.RelOptRule.operandJ;
+import javax.annotation.Nullable;
 
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit test for rules in {@code org.apache.calcite.rel} and subpackages.
@@ -179,9 +181,19 @@ import static org.junit.Assert.assertThat;
 public class RelOptRulesTest extends RelOptTestBase {
   //~ Methods ----------------------------------------------------------------
 
-  private final PushProjector.ExprCondition skipItem = expr ->
-      expr instanceof RexCall
-          && "item".equalsIgnoreCase(((RexCall) expr).getOperator().getName());
+  private final PushProjector.ExprCondition skipItem = new PushProjector.ExprCondition() {
+
+    @Override public boolean apply(RexNode rexNode) {
+      return false;
+    }
+    @Override public boolean test(RexNode expr) {
+      if (expr instanceof RexCall) {
+        RexCall call = (RexCall) expr;
+        return "item".equalsIgnoreCase(call.getOperator().getName());
+      }
+      return false;
+    }
+  };
 
   protected DiffRepository getDiffRepos() {
     return DiffRepository.lookup(RelOptRulesTest.class);
@@ -454,7 +466,11 @@ public class RelOptRulesTest extends RelOptTestBase {
             .addRuleInstance(ProjectMergeRule.INSTANCE)
             .build();
     final FilterJoinRule.Predicate predicate =
-        (join, joinType, exp) -> joinType != JoinRelType.INNER;
+        new FilterJoinRule.Predicate() {
+          public boolean apply(Join join, JoinRelType joinType, RexNode exp) {
+            return joinType != JoinRelType.INNER;
+          }
+        };
     final FilterJoinRule join =
         new FilterJoinRule.JoinConditionPushRule(RelBuilder.proto(), predicate);
     final FilterJoinRule filterOnJoin =
@@ -1179,7 +1195,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   @Test public void testProjectCorrelateTranspose() {
     ProjectCorrelateTransposeRule customPCTrans =
-        new ProjectCorrelateTransposeRule(expr -> true,
+        new ProjectCorrelateTransposeRule(PushProjector.ExprCondition.TRUE,
             RelFactories.LOGICAL_BUILDER);
 
     checkPlanning(customPCTrans,
@@ -1977,26 +1993,30 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   private void checkPlanning(String query) throws Exception {
     final Tester tester1 = tester.withCatalogReaderFactory(
-        typeFactory -> new MockCatalogReader(typeFactory, true) {
-          @Override public MockCatalogReader init() {
-            // CREATE SCHEMA abc;
-            // CREATE TABLE a(a INT);
-            // ...
-            // CREATE TABLE j(j INT);
-            MockSchema schema = new MockSchema("SALES");
-            registerSchema(schema);
-            final RelDataType intType =
-                typeFactory.createSqlType(SqlTypeName.INTEGER);
-            for (int i = 0; i < 10; i++) {
-              String t = String.valueOf((char) ('A' + i));
-              MockTable table = MockTable.create(this, schema, t, false, 100);
-              table.addColumn(t, intType);
-              registerTable(table);
-            }
-            return this;
+        new Function<RelDataTypeFactory, Prepare.CatalogReader>() {
+          public Prepare.CatalogReader apply(RelDataTypeFactory typeFactory) {
+            return new MockCatalogReader(typeFactory, true) {
+              @Override public MockCatalogReader init() {
+                // CREATE SCHEMA abc;
+                // CREATE TABLE a(a INT);
+                // ...
+                // CREATE TABLE j(j INT);
+                MockSchema schema = new MockSchema("SALES");
+                registerSchema(schema);
+                final RelDataType intType =
+                    typeFactory.createSqlType(SqlTypeName.INTEGER);
+                for (int i = 0; i < 10; i++) {
+                  String t = String.valueOf((char) ('A' + i));
+                  MockTable table = MockTable.create(this, schema, t, false, 100);
+                  table.addColumn(t, intType);
+                  registerTable(table);
+                }
+                return this;
+              }
+              // CHECKSTYLE: IGNORE 1
+            }.init();
           }
-          // CHECKSTYLE: IGNORE 1
-        }.init());
+        });
     HepProgram program = new HepProgramBuilder()
         .addMatchOrder(HepMatchOrder.BOTTOM_UP)
         .addRuleInstance(ProjectRemoveRule.INSTANCE)
@@ -2784,11 +2804,11 @@ public class RelOptRulesTest extends RelOptTestBase {
     final AggregateExtractProjectRule rule =
         new AggregateExtractProjectRule(
             operand(Aggregate.class,
-                operandJ(Project.class, null,
-                    new Predicate<Project>() {
+                operand(Project.class, null,
+                    new PredicateImpl<Project>() {
                       int matchCount = 0;
 
-                      public boolean test(Project project) {
+                      public boolean test(@Nullable Project project) {
                         return matchCount++ == 0;
                       }
                     },
@@ -2843,9 +2863,9 @@ public class RelOptRulesTest extends RelOptTestBase {
     final RelRoot root = tester.convertSqlToRel(sql);
     final RelNode relInitial = root.rel;
 
-    assertThat(relInitial, notNullValue());
+    assertTrue(relInitial != null);
 
-    List<RelMetadataProvider> list = new ArrayList<>();
+    List<RelMetadataProvider> list = Lists.newArrayList();
     list.add(DefaultRelMetadataProvider.INSTANCE);
     planner.registerMetadataProviders(list);
     RelMetadataProvider plannerChain = ChainedRelMetadataProvider.of(list);
@@ -3479,7 +3499,7 @@ public class RelOptRulesTest extends RelOptTestBase {
       @Override public RelOptPlanner createPlanner() {
         return new MockRelOptPlanner(Contexts.empty()) {
           @Override public List<RelTraitDef> getRelTraitDefs() {
-            return ImmutableList.of(RelCollationTraitDef.INSTANCE);
+            return ImmutableList.<RelTraitDef>of(RelCollationTraitDef.INSTANCE);
           }
           @Override public RelTraitSet emptyTraitSet() {
             return RelTraitSet.createEmpty().plus(

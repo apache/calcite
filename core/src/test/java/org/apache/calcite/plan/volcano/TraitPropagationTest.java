@@ -71,6 +71,7 @@ import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
@@ -139,7 +140,7 @@ public class TraitPropagationTest {
         }
 
         @Override public Statistic getStatistic() {
-          return Statistics.of(100d, ImmutableList.of(),
+          return Statistics.of(100d, ImmutableList.<ImmutableBitSet>of(),
               ImmutableList.of(COLLATION));
         }
       };
@@ -328,7 +329,11 @@ public class TraitPropagationTest {
           cluster.traitSet().replace(PHYSICAL)
               .replaceIfs(
                   RelCollationTraitDef.INSTANCE,
-                  () -> RelMdCollation.project(mq, input, projects));
+                  new Supplier<List<RelCollation>>() {
+                    public List<RelCollation> get() {
+                      return RelMdCollation.project(mq, input, projects);
+                    }
+                  });
       return new PhysProj(cluster, traitSet, input, projects, rowType);
     }
 

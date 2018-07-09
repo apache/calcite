@@ -49,10 +49,12 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -106,7 +108,7 @@ public class SqlValidatorUtil {
         final SqlValidatorTable validatorTable = tableNamespace.getTable();
         final RelDataTypeFactory typeFactory = catalogReader.getTypeFactory();
         final List<RelDataTypeField> extendedFields = dmlNamespace.extendList == null
-            ? ImmutableList.of()
+            ? ImmutableList.<RelDataTypeField>of()
             : getExtendedColumns(typeFactory, validatorTable, dmlNamespace.extendList);
         return getRelOptTable(
             tableNamespace, catalogReader, datasetName, usedDataset, extendedFields);
@@ -216,8 +218,9 @@ public class SqlValidatorUtil {
       RelDataType sourceRowType,
       Map<Integer, RelDataTypeField> indexToField) {
     ImmutableBitSet source = ImmutableBitSet.of(
-        Lists.transform(sourceRowType.getFieldList(),
-            RelDataTypeField::getIndex));
+        Lists.transform(
+            sourceRowType.getFieldList(),
+            new RelDataTypeField.ToFieldIndex()));
     ImmutableBitSet target =
         ImmutableBitSet.of(indexToField.keySet());
     return source.intersect(target);
@@ -265,7 +268,11 @@ public class SqlValidatorUtil {
   static void checkIdentifierListForDuplicates(List<SqlNode> columnList,
       SqlValidatorImpl.ValidationErrorFunction validationErrorFunction) {
     final List<List<String>> names = Lists.transform(columnList,
-        o -> ((SqlIdentifier) o).names);
+        new Function<SqlNode, List<String>>() {
+          public List<String> apply(SqlNode o) {
+            return ((SqlIdentifier) o).names;
+          }
+        });
     final int i = Util.firstDuplicate(names);
     if (i >= 0) {
       throw validationErrorFunction.apply(columnList.get(i),
@@ -437,7 +444,7 @@ public class SqlValidatorUtil {
       Suggester suggester,
       boolean caseSensitive) {
     final Set<String> used = caseSensitive
-        ? new LinkedHashSet<>()
+        ? new LinkedHashSet<String>()
         : new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
     int changeCount = 0;
     final List<String> newNameList = new ArrayList<>();
@@ -532,7 +539,7 @@ public class SqlValidatorUtil {
     // doing a contains() on a list can be expensive.
     final Set<String> uniqueNameList =
         typeFactory.getTypeSystem().isSchemaCaseSensitive()
-            ? new HashSet<>()
+            ? new HashSet<String>()
             : new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
     addFields(systemFieldList, typeList, nameList, uniqueNameList);
     addFields(leftType.getFieldList(), typeList, nameList, uniqueNameList);
@@ -710,7 +717,7 @@ public class SqlValidatorUtil {
    * {@code topBuilder}. To find the grouping sets of the query, we will take
    * the cartesian product of the group sets. */
   public static void analyzeGroupItem(SqlValidatorScope scope,
-      GroupAnalyzer groupAnalyzer,
+                                      GroupAnalyzer groupAnalyzer,
       ImmutableList.Builder<ImmutableList<ImmutableBitSet>> topBuilder,
       SqlNode groupExpr) {
     final ImmutableList.Builder<ImmutableBitSet> builder;
@@ -804,7 +811,7 @@ public class SqlValidatorUtil {
    * is grouping. */
   private static List<ImmutableBitSet> analyzeGroupTuple(SqlValidatorScope scope,
        GroupAnalyzer groupAnalyzer, List<SqlNode> operandList) {
-    List<ImmutableBitSet> list = new ArrayList<>();
+    List<ImmutableBitSet> list = Lists.newArrayList();
     for (SqlNode operand : operandList) {
       list.add(
           analyzeGroupExpr(scope, groupAnalyzer, operand));
@@ -908,7 +915,7 @@ public class SqlValidatorUtil {
   @VisibleForTesting
   public static ImmutableList<ImmutableBitSet> rollup(
       List<ImmutableBitSet> bitSets) {
-    Set<ImmutableBitSet> builder = new LinkedHashSet<>();
+    Set<ImmutableBitSet> builder = Sets.newLinkedHashSet();
     for (;;) {
       final ImmutableBitSet union = ImmutableBitSet.union(bitSets);
       builder.add(union);
@@ -933,11 +940,11 @@ public class SqlValidatorUtil {
       List<ImmutableBitSet> bitSets) {
     // Given the bit sets [{1}, {2, 3}, {5}],
     // form the lists [[{1}, {}], [{2, 3}, {}], [{5}, {}]].
-    final Set<List<ImmutableBitSet>> builder = new LinkedHashSet<>();
+    final Set<List<ImmutableBitSet>> builder = Sets.newLinkedHashSet();
     for (ImmutableBitSet bitSet : bitSets) {
       builder.add(Arrays.asList(bitSet, ImmutableBitSet.of()));
     }
-    Set<ImmutableBitSet> flattenedBitSets = new LinkedHashSet<>();
+    Set<ImmutableBitSet> flattenedBitSets = Sets.newLinkedHashSet();
     for (List<ImmutableBitSet> o : Linq4j.product(builder)) {
       flattenedBitSets.add(ImmutableBitSet.union(o));
     }
@@ -1073,7 +1080,7 @@ public class SqlValidatorUtil {
   private static List<SqlValidatorNamespace> children(SqlValidatorScope scope) {
     return scope instanceof ListScope
         ? ((ListScope) scope).getChildren()
-        : ImmutableList.of();
+        : ImmutableList.<SqlValidatorNamespace>of();
   }
 
   /**
@@ -1161,11 +1168,18 @@ public class SqlValidatorUtil {
   }
 
   public static final Suggester EXPR_SUGGESTER =
-      (original, attempt, size) -> Util.first(original, "EXPR$") + attempt;
+      new Suggester() {
+        public String apply(String original, int attempt, int size) {
+          return Util.first(original, "EXPR$") + attempt;
+        }
+      };
 
   public static final Suggester F_SUGGESTER =
-      (original, attempt, size) -> Util.first(original, "$f")
-          + Math.max(size, attempt);
+      new Suggester() {
+        public String apply(String original, int attempt, int size) {
+          return Util.first(original, "$f") + Math.max(size, attempt);
+        }
+      };
 
   /** Builds a list of GROUP BY expressions. */
   static class GroupAnalyzer {

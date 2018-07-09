@@ -19,8 +19,8 @@ package org.apache.calcite.interpreter;
 import org.apache.calcite.rel.core.Join;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -56,7 +56,7 @@ public class JoinNode implements Node {
     while ((left = leftSource.receive()) != null) {
       System.arraycopy(left.getValues(), 0, context.values, 0, leftCount);
       if (rightList == null) {
-        rightList = new ArrayList<>();
+        rightList = Lists.newArrayList();
         while ((right = rightSource.receive()) != null) {
           rightList.add(right);
         }

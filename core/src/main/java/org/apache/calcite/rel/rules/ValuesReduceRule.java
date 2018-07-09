@@ -75,7 +75,7 @@ public abstract class ValuesReduceRule extends RelOptRule {
   public static final ValuesReduceRule FILTER_INSTANCE =
       new ValuesReduceRule(
           operand(LogicalFilter.class,
-              operandJ(LogicalValues.class, null, Values::isNotEmpty, none())),
+              operand(LogicalValues.class, null, Values.IS_NOT_EMPTY, none())),
           RelFactories.LOGICAL_BUILDER,
           "ValuesReduceRule(Filter)") {
         public void onMatch(RelOptRuleCall call) {
@@ -92,7 +92,7 @@ public abstract class ValuesReduceRule extends RelOptRule {
   public static final ValuesReduceRule PROJECT_INSTANCE =
       new ValuesReduceRule(
           operand(LogicalProject.class,
-              operandJ(LogicalValues.class, null, Values::isNotEmpty, none())),
+              operand(LogicalValues.class, null, Values.IS_NOT_EMPTY, none())),
           RelFactories.LOGICAL_BUILDER,
           "ValuesReduceRule(Project)") {
         public void onMatch(RelOptRuleCall call) {
@@ -110,7 +110,7 @@ public abstract class ValuesReduceRule extends RelOptRule {
       new ValuesReduceRule(
           operand(LogicalProject.class,
               operand(LogicalFilter.class,
-                  operandJ(LogicalValues.class, null, Values::isNotEmpty,
+                  operand(LogicalValues.class, null, Values.IS_NOT_EMPTY,
                       none()))),
           RelFactories.LOGICAL_BUILDER,
           "ValuesReduceRule(Project-Filter)") {

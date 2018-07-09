@@ -32,7 +32,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.sql.DataSource;
@@ -160,7 +159,7 @@ public class MultiJdbcSchemaJoinTest {
 
       // Run the actual query
       rs = stmt.executeQuery(query);
-      Set<Integer> ids = new HashSet<>();
+      Set<Integer> ids = Sets.newHashSet();
       while (rs.next()) {
         ids.add(rs.getInt(1));
       }

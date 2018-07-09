@@ -20,8 +20,7 @@ import org.apache.calcite.sql.type.SqlTypeExplicitPrecedenceList;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.collect.ImmutableList;
-
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -70,7 +69,7 @@ public class DynamicRecordTypeImpl extends DynamicRecordType {
   }
 
   @Override public RelDataTypePrecedenceList getPrecedenceList() {
-    return new SqlTypeExplicitPrecedenceList(ImmutableList.of());
+    return new SqlTypeExplicitPrecedenceList(Collections.<SqlTypeName>emptyList());
   }
 
   protected void generateTypeString(StringBuilder sb, boolean withDetail) {

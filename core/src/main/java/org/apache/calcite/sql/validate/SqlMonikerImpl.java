@@ -20,6 +20,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
@@ -41,7 +42,7 @@ public class SqlMonikerImpl implements SqlMoniker {
    */
   public SqlMonikerImpl(List<String> names, SqlMonikerType type) {
     this.names = ImmutableList.copyOf(names);
-    this.type = Objects.requireNonNull(type);
+    this.type = Preconditions.checkNotNull(type);
   }
 
   /**

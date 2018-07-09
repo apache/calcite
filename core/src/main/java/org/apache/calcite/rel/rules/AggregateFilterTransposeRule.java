@@ -35,9 +35,10 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -96,7 +97,11 @@ public class AggregateFilterTransposeRule extends RelOptRule {
         aggregate.copy(aggregate.getTraitSet(), input,
                 false, newGroupSet, null, aggregate.getAggCallList());
     final Mappings.TargetMapping mapping = Mappings.target(
-        newGroupSet::indexOf,
+        new Function<Integer, Integer>() {
+          public Integer apply(Integer a0) {
+            return newGroupSet.indexOf(a0);
+          }
+        },
         input.getRowType().getFieldCount(),
         newGroupSet.cardinality());
     final RexNode newCondition =
@@ -129,7 +134,7 @@ public class AggregateFilterTransposeRule extends RelOptRule {
         }
         newGroupingSets = newGroupingSetsBuilder.build();
       }
-      final List<AggregateCall> topAggCallList = new ArrayList<>();
+      final List<AggregateCall> topAggCallList = Lists.newArrayList();
       int i = newGroupSet.cardinality();
       for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
         final SqlAggFunction rollup =

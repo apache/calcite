@@ -69,6 +69,7 @@ import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.trace.CalciteTimingTracer;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.slf4j.Logger;
@@ -77,7 +78,6 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Abstract base for classes that implement
@@ -532,7 +532,7 @@ public abstract class Prepare {
 
     public List<List<String>> getFieldOrigins() {
       return Collections.singletonList(
-          Collections.nCopies(4, null));
+          Collections.<String>nCopies(4, null));
     }
   }
 
@@ -599,11 +599,11 @@ public abstract class Prepare {
         RelNode rootRel,
         LogicalTableModify.Operation tableModOp,
         boolean isDml) {
-      this.rowType = Objects.requireNonNull(rowType);
-      this.parameterRowType = Objects.requireNonNull(parameterRowType);
-      this.fieldOrigins = Objects.requireNonNull(fieldOrigins);
+      this.rowType = Preconditions.checkNotNull(rowType);
+      this.parameterRowType = Preconditions.checkNotNull(parameterRowType);
+      this.fieldOrigins = Preconditions.checkNotNull(fieldOrigins);
       this.collations = ImmutableList.copyOf(collations);
-      this.rootRel = Objects.requireNonNull(rootRel);
+      this.rootRel = Preconditions.checkNotNull(rootRel);
       this.tableModOp = tableModOp;
       this.isDml = isDml;
     }

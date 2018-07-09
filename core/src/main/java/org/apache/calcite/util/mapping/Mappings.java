@@ -21,6 +21,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Permutation;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
@@ -32,7 +33,6 @@ import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.IntFunction;
 
 /**
  * Utility functions related to mappings.
@@ -219,7 +219,12 @@ public abstract class Mappings {
   public static ImmutableList<ImmutableBitSet> apply2(final Mapping mapping,
       Iterable<ImmutableBitSet> bitSets) {
     return ImmutableList.copyOf(
-        Iterables.transform(bitSets, input1 -> apply(mapping, input1)));
+        Iterables.transform(bitSets,
+            new Function<ImmutableBitSet, ImmutableBitSet>() {
+              public ImmutableBitSet apply(ImmutableBitSet input1) {
+                return Mappings.apply(mapping, input1);
+              }
+            }));
   }
 
   /**
@@ -341,7 +346,7 @@ public abstract class Mappings {
   }
 
   public static TargetMapping target(
-      IntFunction<Integer> function,
+      Function<Integer, Integer> function,
       int sourceCount,
       int targetCount) {
     final PartialFunctionImpl mapping =
@@ -601,11 +606,13 @@ public abstract class Mappings {
       throw new IllegalArgumentException("new source count too low");
     }
     return target(
-        (IntFunction<Integer>) source -> {
-          int source2 = source - offset;
-          return source2 < 0 || source2 >= mapping.getSourceCount()
-              ? null
-              : mapping.getTargetOpt(source2);
+        new Function<Integer, Integer>() {
+          public Integer apply(Integer source) {
+            int source2 = source - offset;
+            return source2 < 0 || source2 >= mapping.getSourceCount()
+                ? null
+                : mapping.getTargetOpt(source2);
+          }
         },
         sourceCount,
         mapping.getTargetCount());
@@ -645,11 +652,12 @@ public abstract class Mappings {
       throw new IllegalArgumentException("new target count too low");
     }
     return target(
-        (IntFunction<Integer>) source -> {
-          int target = mapping.getTargetOpt(source);
-          return target < 0 ? null : target + offset;
-        },
-        mapping.getSourceCount(), targetCount);
+        new Function<Integer, Integer>() {
+          public Integer apply(Integer source) {
+            int target = mapping.getTargetOpt(source);
+            return target < 0 ? null : target + offset;
+          }
+        }, mapping.getSourceCount(), targetCount);
   }
 
   /**
@@ -673,16 +681,18 @@ public abstract class Mappings {
       throw new IllegalArgumentException("new source count too low");
     }
     return target(
-        (IntFunction<Integer>) source -> {
-          final int source2 = source - offset;
-          if (source2 < 0 || source2 >= mapping.getSourceCount()) {
-            return null;
+        new Function<Integer, Integer>() {
+          public Integer apply(Integer source) {
+            final int source2 = source - offset;
+            if (source2 < 0 || source2 >= mapping.getSourceCount()) {
+              return null;
+            }
+            int target = mapping.getTargetOpt(source2);
+            if (target < 0) {
+              return null;
+            }
+            return target + offset;
           }
-          int target = mapping.getTargetOpt(source2);
-          if (target < 0) {
-            return null;
-          }
-          return target + offset;
         },
         sourceCount,
         mapping.getTargetCount() + offset);
@@ -706,7 +716,11 @@ public abstract class Mappings {
   /** Inverts an {@link java.lang.Iterable} over
    * {@link org.apache.calcite.util.mapping.IntPair}s. */
   public static Iterable<IntPair> invert(final Iterable<IntPair> pairs) {
-    return () -> invert(pairs.iterator());
+    return new Iterable<IntPair>() {
+      public Iterator<IntPair> iterator() {
+        return invert(pairs.iterator());
+      }
+    };
   }
 
   /** Inverts an {@link java.util.Iterator} over

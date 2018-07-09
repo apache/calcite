@@ -16,9 +16,10 @@
  */
 package org.apache.calcite.linq4j;
 
+import com.google.common.base.Preconditions;
+
 import java.util.Collection;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Implementation of {@link Grouping}.
@@ -32,8 +33,8 @@ class GroupingImpl<K, V> extends AbstractEnumerable<V>
   private final Collection<V> values;
 
   GroupingImpl(K key, Collection<V> values) {
-    this.key = Objects.requireNonNull(key);
-    this.values = Objects.requireNonNull(values);
+    this.key = Preconditions.checkNotNull(key);
+    this.values = Preconditions.checkNotNull(values);
   }
 
   @Override public String toString() {

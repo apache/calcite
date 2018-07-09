@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
@@ -25,7 +28,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * Represents an expression that has a constant value.
@@ -152,14 +154,14 @@ public class ConstantExpression extends Expression {
         }
         return writer.append(")");
       } catch (ArithmeticException e) {
-        return writer.append("new java.math.BigDecimal(\"")
-            .append(bigDecimal.toString()).append("\")");
+        return writer.append("new java.math.BigDecimal(\"").append(
+            bigDecimal.toString()).append("\")");
       }
     }
     if (value instanceof BigInteger) {
       BigInteger bigInteger = (BigInteger) value;
-      return writer.append("new java.math.BigInteger(\"")
-          .append(bigInteger.toString()).append("\")");
+      return writer.append("new java.math.BigInteger(\"").append(
+          bigInteger.toString()).append("\")");
     }
     if (value instanceof Class) {
       Class clazz = (Class) value;
@@ -189,15 +191,16 @@ public class ConstantExpression extends Expression {
     if (constructor != null) {
       writer.append("new ").append(value.getClass());
       list(writer,
-          Arrays.stream(value.getClass().getFields())
-              .map(field -> {
-                try {
-                  return field.get(value);
-                } catch (IllegalAccessException e) {
-                  throw new RuntimeException(e);
+          Lists.transform(Arrays.asList(value.getClass().getFields()),
+              new Function<Field, Object>() {
+                public Object apply(Field field) {
+                  try {
+                    return field.get(value);
+                  } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                  }
                 }
-              })
-              .collect(Collectors.toList()),
+              }),
           "(\n", ",\n", ")");
       return writer;
     }
