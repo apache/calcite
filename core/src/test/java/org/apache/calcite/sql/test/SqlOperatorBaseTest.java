@@ -6493,7 +6493,19 @@ public abstract class SqlOperatorBaseTest {
   @Test public void testTimestampAdd() {
     tester.setFor(SqlStdOperatorTable.TIMESTAMP_ADD);
     tester.checkScalar(
+        "timestampadd(MICROSECOND, 2000000, timestamp '2016-02-24 12:42:25')",
+        "2016-02-24 12:42:27",
+        "TIMESTAMP(3) NOT NULL");
+    tester.checkScalar(
         "timestampadd(SQL_TSI_SECOND, 2, timestamp '2016-02-24 12:42:25')",
+        "2016-02-24 12:42:27",
+        "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar(
+        "timestampadd(NANOSECOND, 3000000000, timestamp '2016-02-24 12:42:25')",
+        "2016-02-24 12:42:28",
+        "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar(
+        "timestampadd(SQL_TSI_FRAC_SECOND, 2000000000, timestamp '2016-02-24 12:42:25')",
         "2016-02-24 12:42:27",
         "TIMESTAMP(0) NOT NULL");
     tester.checkScalar(
@@ -6572,7 +6584,11 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar("timestampdiff(SQL_TSI_FRAC_SECOND, "
         + "timestamp '2016-02-24 12:42:25', "
         + "timestamp '2016-02-24 12:42:20')",
-        "-5000000", "INTEGER NOT NULL");
+        "-5000000000", "BIGINT NOT NULL");
+    tester.checkScalar("timestampdiff(NANOSECOND, "
+        + "timestamp '2016-02-24 12:42:25', "
+        + "timestamp '2016-02-24 12:42:20')",
+        "-5000000000", "BIGINT NOT NULL");
     tester.checkScalar("timestampdiff(YEAR, "
         + "timestamp '2014-02-24 12:42:25', "
         + "timestamp '2016-02-24 12:42:25')",
