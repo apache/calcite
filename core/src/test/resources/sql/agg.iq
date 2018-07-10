@@ -2240,4 +2240,48 @@ EnumerableAggregate(group=[{1}], EXPR$1=[COUNT($2, $0) FILTER $5], EXPR$2=[MIN($
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+# [CALCITE-2366] Add support for ANY_VALUE function
+# Without GROUP BY clause
+SELECT any_value(empno) as anyempno from "scott".emp;
++----------+
+| ANYEMPNO |
++----------+
+|     7934 |
++----------+
+(1 row)
+
+!ok
+
+EnumerableAggregate(group=[{}], ANYEMPNO=[ANY_VALUE($0)])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# [CALCITE-2366] Add support for ANY_VALUE function
+# With GROUP BY clause
+SELECT any_value(empno) as anyempno from "scott".emp group by sal;
++----------+
+| ANYEMPNO |
++----------+
+|     7369 |
+|     7499 |
+|     7566 |
+|     7654 |
+|     7698 |
+|     7782 |
+|     7839 |
+|     7844 |
+|     7876 |
+|     7900 |
+|     7902 |
+|     7934 |
++----------+
+(12 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], ANYEMPNO=[$t1])
+  EnumerableAggregate(group=[{5}], ANYEMPNO=[ANY_VALUE($0)])
+    EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End agg.iq
