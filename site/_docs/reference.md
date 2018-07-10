@@ -1503,6 +1503,7 @@ passed to the aggregate function.
 | SUM( [ ALL &#124; DISTINCT ] numeric)         | Returns the sum of *numeric* across all input values
 | MAX( [ ALL &#124; DISTINCT ] value)           | Returns the maximum value of *value* across all input values
 | MIN( [ ALL &#124; DISTINCT ] value)           | Returns the minimum value of *value* across all input values
+| ANY_VALUE( [ ALL &#124; DISTINCT ] value)     | Returns one of the values of *value* across all input values; this is NOT specified in the SQL standard
 | STDDEV_POP( [ ALL &#124; DISTINCT ] numeric)  | Returns the population standard deviation of *numeric* across all input values
 | STDDEV_SAMP( [ ALL &#124; DISTINCT ] numeric) | Returns the sample standard deviation of *numeric* across all input values
 | VAR_POP( [ ALL &#124; DISTINCT ] value)       | Returns the population variance (square of the population standard deviation) of *numeric* across all input values
