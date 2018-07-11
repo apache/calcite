@@ -17,6 +17,7 @@ limitations under the License.
 {% endcomment %}
 -->
 [![Build Status](https://travis-ci.org/apache/calcite-avatica.svg?branch=master)](https://travis-ci.org/apache/calcite-avatica)
+[![Build Status: Windows](https://ci.appveyor.com/api/projects/status/gjd9n5gjbldt0gg8/branch/master?svg=true)](https://ci.appveyor.com/project/ApacheSoftwareFoundation/calcite-avatica)
 
 # Apache Calcite -- Avatica
 
