@@ -29,9 +29,7 @@ import org.apache.calcite.util.javac.JaninoCompiler;
 import org.apache.spark.api.java.JavaSparkContext;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.Serializable;
-import java.io.Writer;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Calendar;
@@ -49,7 +47,6 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
       new JavaSparkContext("local[1]", "calcite");
 
   private static SparkHandlerImpl instance;
-  private static final File SRC_DIR = new File("/tmp");
   private static final File CLASS_DIR = new File("target/classes");
 
   /** Creates a SparkHandlerImpl. */
@@ -106,32 +103,30 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
 
   public ArrayBindable compile(ClassDeclaration expr, String s) {
     final String className = "CalciteProgram" + classId.getAndIncrement();
-    final File file = new File(SRC_DIR, className + ".java");
-    try (Writer w = Util.printWriter(file)) {
-      String source = "public class " + className + "\n"
-          + "    implements " + ArrayBindable.class.getName()
-          + ", " + Serializable.class.getName()
-          + " {\n"
-          + s + "\n"
-          + "}\n";
+    final String classFileName = className + ".java";
+    String source = "public class " + className + "\n"
+        + "    implements " + ArrayBindable.class.getName()
+        + ", " + Serializable.class.getName()
+        + " {\n"
+        + s + "\n"
+        + "}\n";
 
-      System.out.println("======================");
-      System.out.println(source);
-      System.out.println("======================");
+    System.out.println("======================");
+    System.out.println(source);
+    System.out.println("======================");
 
-      w.write(source);
-      w.close();
-      JaninoCompiler compiler = new JaninoCompiler();
-      compiler.getArgs().setDestdir(CLASS_DIR.getAbsolutePath());
-      compiler.getArgs().setSource(source, file.getAbsolutePath());
-      compiler.getArgs().setFullClassName(className);
-      compiler.compile();
+    JaninoCompiler compiler = new JaninoCompiler();
+    compiler.getArgs().setDestdir(CLASS_DIR.getAbsolutePath());
+    compiler.getArgs().setSource(source, classFileName);
+    compiler.getArgs().setFullClassName(className);
+    compiler.compile();
+    try {
       @SuppressWarnings("unchecked")
       final Class<ArrayBindable> clazz =
           (Class<ArrayBindable>) Class.forName(className);
       final Constructor<ArrayBindable> constructor = clazz.getConstructor();
       return constructor.newInstance();
-    } catch (IOException | ClassNotFoundException | InstantiationException
+    } catch (ClassNotFoundException | InstantiationException
         | IllegalAccessException | NoSuchMethodException
         | InvocationTargetException e) {
       throw new RuntimeException(e);
