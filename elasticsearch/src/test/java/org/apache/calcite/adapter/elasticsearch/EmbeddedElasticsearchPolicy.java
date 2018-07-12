@@ -32,7 +32,7 @@ import java.util.Objects;
  * Used to initialize a single elastic node. For performance reasons (node startup costs),
  * same instance is usually shared across multiple tests.
  *
- * This rule should be used as follows:
+ * <p>This rule should be used as follows:
  * <pre>
  *  public class MyTest {
  *    &#64;ClassRule
@@ -45,7 +45,7 @@ import java.util.Objects;
  *
  *    &#64;Test
  *    public void myTest() {
- *      TransportAddress address = RULE.httpAddress();
+ *      RestClient client = RULE.restClient();
  *      // ....
  *    }
  *  }
@@ -91,8 +91,8 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
   }
 
   /**
-   * Low-level http rest client to elastic search
-   * @return current ES rest client
+   * Low-level http rest client connected to current embedded elastic search instance.
+   * @return http client connected to ES cluster
    */
   RestClient restClient() {
     if (client != null) {
@@ -110,7 +110,7 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
    * HTTP address for rest clients (can be ES native or any other).
    * @return http address to connect to
    */
-  TransportAddress httpAddress() {
+  private TransportAddress httpAddress() {
     return node.httpAddress();
   }
 
