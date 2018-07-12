@@ -38,7 +38,8 @@ import java.util.Objects;
 
 /**
  * Represents a single elastic search node which can run embedded in a java application.
- * Intended for unit and integration tests. Settings and plugins are crafted for Calcite.
+ *
+ * <p>Intended for unit and integration tests. Settings and plugins are crafted for Calcite.
  */
 class EmbeddedElasticsearchNode implements AutoCloseable {
 
@@ -48,7 +49,6 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
   private EmbeddedElasticsearchNode(Node node) {
     this.node = Objects.requireNonNull(node, "node");
   }
-
 
   /**
    * Creates an instance with existing settings
@@ -116,8 +116,8 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
   /**
    * Exposes elastic
    * <a href="https://www.elastic.co/guide/en/elasticsearch/client/java-api/current/transport-client.html">transport client</a>
-   *
    * (use of HTTP client is preferred).
+   *
    * @return current elastic search client
    */
   public Client client() {
