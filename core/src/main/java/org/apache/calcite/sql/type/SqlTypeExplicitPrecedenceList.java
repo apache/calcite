@@ -22,14 +22,13 @@ import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * SqlTypeExplicitPrecedenceList implements the
@@ -60,8 +59,7 @@ public class SqlTypeExplicitPrecedenceList
           SqlTypeName.DOUBLE);
 
   private static final List<SqlTypeName> COMPACT_NUMERIC_TYPES =
-      ImmutableList.copyOf(
-          Iterables.filter(NUMERIC_TYPES, Predicates.notNull()));
+      ImmutableList.copyOf(Util.filter(NUMERIC_TYPES, Objects::nonNull));
 
   /**
    * Map from SqlTypeName to corresponding precedence list.

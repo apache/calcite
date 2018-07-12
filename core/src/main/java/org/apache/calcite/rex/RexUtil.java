@@ -1855,7 +1855,7 @@ public class RexUtil {
     case EQUALS:
       final RexCall call = (RexCall) e;
       if (call.getOperands().get(1) instanceof RexLiteral) {
-        notTerms = Iterables.filter(notTerms,
+        notTerms = Util.filter(notTerms,
             e2 -> {
               switch (e2.getKind()) {
               case EQUALS:

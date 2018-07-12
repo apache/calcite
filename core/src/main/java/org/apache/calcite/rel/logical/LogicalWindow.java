@@ -37,8 +37,8 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -345,7 +345,7 @@ public final class LogicalWindow extends Window {
     // Look up or create a window.
     RelCollation orderKeys = getCollation(
         Lists.newArrayList(
-            Iterables.filter(aggWindow.orderKeys,
+            Util.filter(aggWindow.orderKeys,
                 rexFieldCollation ->
                     // If ORDER BY references constant (i.e. RexInputRef),
                     // then we can ignore such ORDER BY key.
