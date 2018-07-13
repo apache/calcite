@@ -110,6 +110,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CONCAT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COUNT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CUME_DIST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_CATALOG;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_PATH;
@@ -183,6 +184,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTH_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTILE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OVERLAY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PERCENT_RANK;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PI;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.POSITION;
@@ -457,6 +459,8 @@ public class RexImpTable {
     aggMap.put(GROUPING_ID, grouping);
     winAggMap.put(RANK, constructorSupplier(RankImplementor.class));
     winAggMap.put(DENSE_RANK, constructorSupplier(DenseRankImplementor.class));
+    winAggMap.put(CUME_DIST, constructorSupplier(CumeDistImplementor.class));
+    winAggMap.put(PERCENT_RANK, constructorSupplier(PercentRankImplementor.class));
     winAggMap.put(ROW_NUMBER, constructorSupplier(RowNumberImplementor.class));
     winAggMap.put(FIRST_VALUE,
         constructorSupplier(FirstValueImplementor.class));
@@ -1470,6 +1474,47 @@ public class RexImpTable {
     @Override protected Expression computeNewRank(Expression acc,
         WinAggAddContext add) {
       return Expressions.add(acc, Expressions.constant(1));
+    }
+  }
+
+  /** Implementor for the {@code PERCENT_RANK} windowed aggregate function. */
+  static class PercentRankImplementor extends StrictWinAggImplementor {
+    @Override protected void implementNotNullAdd(WinAggContext info,
+        WinAggAddContext add) {
+      Expression acc = add.accumulator().get(0);
+      Expression partitionRowCount =
+          Expressions.subtract(add.getPartitionRowCount(), Expressions.constant(1));
+      Expression zero = Expressions.constant(0);
+      add.currentBlock().add(
+          Expressions.ifThenElse(
+              Expressions.lessThanOrEqual(partitionRowCount, zero),
+              Expressions.statement(
+                  Expressions.assign(acc, zero)
+              ),
+              Expressions.statement(
+                  Expressions.assign(acc,
+                      Expressions.divide(
+                          Expressions.multiply(Expressions.constant(1.0), add.index()),
+                          partitionRowCount)))));
+      add.exitBlock();
+    }
+  }
+
+  /** Implementor for the {@code CUME_DIST} windowed aggregate function. */
+  static class CumeDistImplementor extends StrictWinAggImplementor {
+    @Override protected void implementNotNullAdd(WinAggContext info,
+        WinAggAddContext add) {
+      Expression acc = add.accumulator().get(0);
+      Expression partitionRowCount = add.getPartitionRowCount();
+      add.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(acc,
+                  Expressions.divide(
+                      Expressions.multiply(
+                          Expressions.constant(1.0),
+                          Expressions.add(add.endIndex(), Expressions.constant(1))),
+                          partitionRowCount))));
+      add.exitBlock();
     }
   }
 

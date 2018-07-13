@@ -1535,6 +1535,8 @@ Not implemented:
 | MIN(value) OVER window                    | Returns the minimum value of *value* across all values in *window*
 | RANK() OVER window                        | Returns the rank of the current row with gaps; same as ROW_NUMBER of its first peer
 | DENSE_RANK() OVER window                  | Returns the rank of the current row without gaps; this function counts peer groups
+| PERCENT_RANK() OVER window                | Returns the relative rank of a row R is defined as (RK–1)/(NR–1), where RK is defined to be the RANK of R and NR is defined to be the number of rows in the window partition of R. 
+| CUME_DIST() OVER window                   | Returns the relative rank of a row R is defined as NP/NR, where NP is defined to be the number of rows preceding or peer with R in the window ordering of the window partition of R and NR is defined to be the number of rows in the window partition of R. 
 | ROW_NUMBER() OVER window                  | Returns the number of the current row within its partition, counting from 1
 | FIRST_VALUE(value) OVER window            | Returns *value* evaluated at the row that is the first row of the window frame
 | LAST_VALUE(value) OVER window             | Returns *value* evaluated at the row that is the last row of the window frame
@@ -1549,8 +1551,6 @@ Not implemented:
 * APPROX_COUNT_DISTINCT(value [, value ]*) OVER window
 * FIRST_VALUE(value) IGNORE NULLS OVER window
 * LAST_VALUE(value) IGNORE NULLS OVER window
-* PERCENT_RANK(value) OVER window
-* CUME_DIST(value) OVER window
 * NTH_VALUE(value, nth) [ FROM { FIRST | LAST } ] IGNORE NULLS OVER window
 
 ### Grouping functions

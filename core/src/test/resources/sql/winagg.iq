@@ -657,4 +657,57 @@ from emps order by emps."GENDER";
 
 !ok
 
+# PERCENT_RANK
+select emp."DEPTNO", emp."GENDER", emp."ENAME",
+ percent_rank() over w1 as "percent_rank_w1",
+ percent_rank() over w2 as "percent_rank_w2",
+ percent_rank() over w3 as "percent_rank_w3"
+from emp
+  window w1 as (order by emp."DEPTNO"),
+  w2 as (partition by emp."DEPTNO" order by emp."ENAME"),
+  w3 as (partition by emp."GENDER" order by emp."DEPTNO")
+order by emp."DEPTNO", emp."GENDER";
++--------+--------+-------+-----------------+-----------------+-----------------+
+| DEPTNO | GENDER | ENAME | percent_rank_w1 | percent_rank_w2 | percent_rank_w3 |
++--------+--------+-------+-----------------+-----------------+-----------------+
+|     10 | F      | Jane  |             0.0 |             1.0 |             0.0 |
+|     10 | M      | Bob   |             0.0 |             0.0 |             0.0 |
+|     20 | M      | Eric  |            0.25 |             0.0 |             0.5 |
+|     30 | F      | Alice |           0.375 |             0.0 |             0.2 |
+|     30 | F      | Susan |           0.375 |             1.0 |             0.2 |
+|     50 | F      | Eve   |           0.625 |             1.0 |             0.6 |
+|     50 | M      | Adam  |           0.625 |             0.0 |             1.0 |
+|     60 | F      | Grace |           0.875 |             0.0 |             0.8 |
+|        | F      | Wilma |             1.0 |             0.0 |             1.0 |
++--------+--------+-------+-----------------+-----------------+-----------------+
+(9 rows)
+
+!ok
+
+# CUME_DIST
+select emp."DEPTNO", emp."GENDER", emp."ENAME",
+ cume_dist() over w1 as "cume_dist_w1",
+ cume_dist() over w2 as "cume_dist_w2",
+ cume_dist() over w3 as "cume_dist_w3"
+from emp
+  window w1 as (order by emp."DEPTNO"),
+  w2 as (partition by emp."DEPTNO" order by emp."ENAME"),
+  w3 as (partition by emp."GENDER" order by emp."DEPTNO")
+order by emp."DEPTNO", emp."GENDER";
++--------+--------+-------+--------------------+--------------+---------------------+
+| DEPTNO | GENDER | ENAME | cume_dist_w1       | cume_dist_w2 | cume_dist_w3        |
++--------+--------+-------+--------------------+--------------+---------------------+
+|     10 | F      | Jane  | 0.2222222222222222 |          1.0 | 0.16666666666666666 |
+|     10 | M      | Bob   | 0.2222222222222222 |          0.5 |  0.3333333333333333 |
+|     20 | M      | Eric  | 0.3333333333333333 |          1.0 |  0.6666666666666666 |
+|     30 | F      | Alice | 0.5555555555555556 |          0.5 |                 0.5 |
+|     30 | F      | Susan | 0.5555555555555556 |          1.0 |                 0.5 |
+|     50 | F      | Eve   | 0.7777777777777778 |          1.0 |  0.6666666666666666 |
+|     50 | M      | Adam  | 0.7777777777777778 |          0.5 |                 1.0 |
+|     60 | F      | Grace | 0.8888888888888888 |          1.0 |  0.8333333333333334 |
+|        | F      | Wilma |                1.0 |          1.0 |                 1.0 |
++--------+--------+-------+--------------------+--------------+---------------------+
+(9 rows)
+
+!ok
 # End winagg.iq
