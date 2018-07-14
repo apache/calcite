@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -26,17 +27,19 @@ public class ElasticsearchChecker {
 
   private ElasticsearchChecker() {}
 
+
   /** Returns a function that checks that a particular Elasticsearch pipeline is
    * generated to implement a query.
    * @param strings expected expressions
    * @return validation function
    */
   public static Consumer<List> elasticsearchChecker(final String... strings) {
+    Objects.requireNonNull(strings, "strings");
     return actual -> {
       Object[] actualArray = actual == null || actual.isEmpty() ? null
-          : ((List) actual.get(0)).toArray();
+            : ((List) actual.get(0)).toArray();
       CalciteAssert.assertArrayEqual("expected Elasticsearch query not found", strings,
-          actualArray);
+            actualArray);
     };
   }
 }

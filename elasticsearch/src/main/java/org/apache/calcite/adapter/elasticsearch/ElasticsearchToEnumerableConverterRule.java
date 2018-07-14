@@ -38,7 +38,7 @@ public class ElasticsearchToEnumerableConverterRule extends ConverterRule {
    *
    * @param relBuilderFactory Builder for relational expressions
    */
-  ElasticsearchToEnumerableConverterRule(
+  private ElasticsearchToEnumerableConverterRule(
       RelBuilderFactory relBuilderFactory) {
     super(RelNode.class, (Predicate<RelNode>) r -> true,
         ElasticsearchRel.CONVENTION, EnumerableConvention.INSTANCE,
