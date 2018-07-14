@@ -68,6 +68,12 @@ limitations under the License.
       <groupId>com.teradata.tpcds</groupId>
       <artifactId>tpcds</artifactId>
       <type>jar</type>
+      <exclusions>
+        <exclusion>
+          <artifactId>airline</artifactId>
+          <groupId>io.airlift</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -87,6 +93,12 @@ limitations under the License.
       <groupId>net.hydromatic</groupId>
       <artifactId>tpcds</artifactId>
       <type>jar</type>
+      <exclusions>
+        <exclusion>
+          <artifactId>airline</artifactId>
+          <groupId>io.airlift</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
