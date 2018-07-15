@@ -1046,7 +1046,9 @@ limitations under the License.
                 <configuration>
                   <runOnlyAtExecutionRoot>true</runOnlyAtExecutionRoot>
                   <appendAssemblyId>false</appendAssemblyId>
-                  <descriptor>src/main/config/assemblies/source-assembly.xml</descriptor>
+                  <descriptors>
+                    <descriptor>src/main/config/assemblies/source-assembly.xml</descriptor>
+                  </descriptors>
                   <finalName>apache-calcite-${project.version}-src</finalName>
                   <tarLongFileMode>gnu</tarLongFileMode>
                 </configuration>
