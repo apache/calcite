@@ -17,6 +17,8 @@
 package org.apache.calcite.test.enumerable;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.JdbcTest;
 
@@ -64,8 +66,8 @@ public class EnumerableCorrelateTest {
   private CalciteAssert.AssertThat tester(boolean forceDecorrelate,
       Object schema) {
     return CalciteAssert.that()
-        .with("lex", "JAVA")
-        .with("forceDecorrelate", Boolean.toString(forceDecorrelate))
+        .with(CalciteConnectionProperty.LEX, Lex.JAVA)
+        .with(CalciteConnectionProperty.FORCE_DECORRELATE, forceDecorrelate)
         .withSchema("s", new ReflectiveSchema(schema));
   }
 }

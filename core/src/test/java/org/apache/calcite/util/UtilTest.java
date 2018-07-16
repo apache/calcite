@@ -23,7 +23,6 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.runtime.ConsList;
 import org.apache.calcite.runtime.FlatLists;
@@ -37,7 +36,6 @@ import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.test.DiffTestCase;
 import org.apache.calcite.test.Matchers;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSortedSet;
@@ -45,8 +43,10 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
 
+import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -70,17 +70,20 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NavigableSet;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Random;
+import java.util.RandomAccess;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TimeZone;
 import java.util.TreeSet;
-import javax.annotation.Nullable;
+import java.util.function.Function;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
@@ -455,7 +458,7 @@ public class UtilTest {
       // ok
     }
 
-    final List<String> a = ConsList.of("a", ImmutableList.<String>of());
+    final List<String> a = ConsList.of("a", ImmutableList.of());
     assertThat(a.size(), is(1));
     assertThat(a, is(Collections.singletonList("a")));
   }
@@ -843,6 +846,7 @@ public class UtilTest {
         Locale.getDefault(),
         Locale.US,
         Locale.TRADITIONAL_CHINESE,
+        Locale.ROOT,
     };
     for (Locale locale : locales) {
       assertEquals(locale, Util.parseLocale(locale.toString()));
@@ -1418,11 +1422,11 @@ public class UtilTest {
     checkCompositeMap(beatles, map);
 
     map = CompositeMap.of(
-        beatleMap, Collections.<String, Integer>emptyMap());
+        beatleMap, Collections.emptyMap());
     checkCompositeMap(beatles, map);
 
     map = CompositeMap.of(
-        Collections.<String, Integer>emptyMap(), beatleMap);
+        Collections.emptyMap(), beatleMap);
     checkCompositeMap(beatles, map);
 
     map = CompositeMap.of(beatleMap, beatleMap);
@@ -1470,7 +1474,7 @@ public class UtilTest {
     } catch (NullPointerException e) {
       // ok
     }
-    assertThat(Util.commaList(ImmutableList.<Object>of()), equalTo(""));
+    assertThat(Util.commaList(ImmutableList.of()), equalTo(""));
     assertThat(Util.commaList(ImmutableList.of(1)), equalTo("1"));
     assertThat(Util.commaList(ImmutableList.of(2, 3)), equalTo("2, 3"));
     assertThat(Util.commaList(Arrays.asList(2, null, 3)),
@@ -1502,28 +1506,25 @@ public class UtilTest {
     final int zMax = 100;
     for (int i = 0; i < 30; i++) {
       final int size = i;
-      new Benchmark("isDistinct " + i + " (set)",
-          new Function1<Benchmark.Statistician, Void>() {
-            public Void apply(Benchmark.Statistician statistician) {
-              final Random random = new Random(0);
-              final List<List<Integer>> lists = new ArrayList<List<Integer>>();
-              for (int z = 0; z < zMax; z++) {
-                final List<Integer> list = new ArrayList<Integer>();
-                for (int k = 0; k < size; k++) {
-                  list.add(random.nextInt(size * size));
-                }
-                lists.add(list);
-              }
-              long nanos = System.nanoTime();
-              int n = 0;
-              for (int j = 0; j < limit; j++) {
-                n += Util.firstDuplicate(lists.get(j % zMax));
-              }
-              statistician.record(nanos);
-              Util.discard(n);
-              return null;
-            }
-          },
+      new Benchmark("isDistinct " + i + " (set)", statistician -> {
+        final Random random = new Random(0);
+        final List<List<Integer>> lists = new ArrayList<List<Integer>>();
+        for (int z = 0; z < zMax; z++) {
+          final List<Integer> list = new ArrayList<Integer>();
+          for (int k = 0; k < size; k++) {
+            list.add(random.nextInt(size * size));
+          }
+          lists.add(list);
+        }
+        long nanos = System.nanoTime();
+        int n = 0;
+        for (int j = 0; j < limit; j++) {
+          n += Util.firstDuplicate(lists.get(j % zMax));
+        }
+        statistician.record(nanos);
+        Util.discard(n);
+        return null;
+      },
           5).run();
     }
   }
@@ -1621,16 +1622,14 @@ public class UtilTest {
     treeSet2.addAll(treeSet);
     assertThat(treeSet2.size(), equalTo(3));
 
-    final Comparator<String> comparator = new Comparator<String>() {
-      public int compare(String o1, String o2) {
-        String u1 = o1.toUpperCase(Locale.ROOT);
-        String u2 = o2.toUpperCase(Locale.ROOT);
-        int c = u1.compareTo(u2);
-        if (c == 0) {
-          c = o1.compareTo(o2);
-        }
-        return c;
+    final Comparator<String> comparator = (o1, o2) -> {
+      String u1 = o1.toUpperCase(Locale.ROOT);
+      String u2 = o2.toUpperCase(Locale.ROOT);
+      int c = u1.compareTo(u2);
+      if (c == 0) {
+        c = o1.compareTo(o2);
       }
+      return c;
     };
     final TreeSet<String> treeSet3 = new TreeSet<String>(comparator);
     treeSet3.addAll(treeSet);
@@ -1701,24 +1700,14 @@ public class UtilTest {
         isA((Class) ImmutableList.class));
 
     // list with no nulls uses ImmutableList
-    final Iterable<String> abc =
-        new Iterable<String>() {
-          public Iterator<String> iterator() {
-            return abcList.iterator();
-          }
-        };
+    final Iterable<String> abc = abcList::iterator;
     assertThat(ImmutableNullableList.copyOf(abc),
         isA((Class) ImmutableList.class));
     assertThat(ImmutableNullableList.copyOf(abc), equalTo(abcList));
 
     // list with no nulls uses ImmutableList
     final List<String> ab0cList = Arrays.asList("a", "b", null, "c");
-    final Iterable<String> ab0c =
-        new Iterable<String>() {
-          public Iterator<String> iterator() {
-            return ab0cList.iterator();
-          }
-        };
+    final Iterable<String> ab0c = ab0cList::iterator;
     assertThat(ImmutableNullableList.copyOf(ab0c),
         not(isA((Class) ImmutableList.class)));
     assertThat(ImmutableNullableList.copyOf(ab0c), equalTo(ab0cList));
@@ -1849,12 +1838,8 @@ public class UtilTest {
 
   @Test public void testAsIndexView() {
     final List<String> values  = Lists.newArrayList("abCde", "X", "y");
-    final Map<String, String> map = Util.asIndexMap(values,
-        new Function<String, String>() {
-          public String apply(@Nullable String input) {
-            return input.toUpperCase(Locale.ROOT);
-          }
-        });
+    final Map<String, String> map =
+        Util.asIndexMapJ(values, input -> input.toUpperCase(Locale.ROOT));
     assertThat(map.size(), equalTo(values.size()));
     assertThat(map.get("X"), equalTo("X"));
     assertThat(map.get("Y"), equalTo("y"));
@@ -2148,12 +2133,7 @@ public class UtilTest {
     assertThat("x", is("x"));
     assertThat(is("x").matches("x"), is(true));
     assertThat(is("X").matches("x"), is(false));
-    final Function<String, String> toUpper =
-        new Function<String, String>() {
-          public String apply(String input) {
-            return input.toUpperCase(Locale.ROOT);
-          }
-        };
+    final Function<String, String> toUpper = s -> s.toUpperCase(Locale.ROOT);
     assertThat(Matchers.compose(is("A"), toUpper).matches("a"), is(true));
     assertThat(Matchers.compose(is("A"), toUpper).matches("A"), is(true));
     assertThat(Matchers.compose(is("a"), toUpper).matches("A"), is(false));
@@ -2179,6 +2159,66 @@ public class UtilTest {
     // left-hand side must be linux or will never match
     assertThat(isLinux("x\r\ny").matches("x\r\ny"), is(false));
     assertThat(isLinux("x\r\ny").matches("x\ny"), is(false));
+  }
+
+  /** Tests {@link Util#transform(List, java.util.function.Function)}. */
+  @Test public void testTransform() {
+    final List<String> beatles =
+        Arrays.asList("John", "Paul", "George", "Ringo");
+    final List<String> empty = Collections.emptyList();
+    assertThat(Util.transform(beatles, s -> s.toUpperCase(Locale.ROOT)),
+        is(Arrays.asList("JOHN", "PAUL", "GEORGE", "RINGO")));
+    assertThat(Util.transform(empty, s -> s.toUpperCase(Locale.ROOT)), is(empty));
+    assertThat(Util.transform(beatles, String::length),
+        is(Arrays.asList(4, 4, 6, 5)));
+    assertThat(Util.transform(beatles, String::length),
+        instanceOf(RandomAccess.class));
+    final List<String> beatles2 = new LinkedList<>(beatles);
+    assertThat(Util.transform(beatles2, String::length),
+        not(instanceOf(RandomAccess.class)));
+  }
+
+  /** Tests {@link Util#filter(Iterable, java.util.function.Predicate)}. */
+  @Test public void testFilter() {
+    final List<String> beatles =
+        Arrays.asList("John", "Paul", "George", "Ringo");
+    final List<String> empty = Collections.emptyList();
+    final List<String> nullBeatles =
+        Arrays.asList("John", "Paul", null, "Ringo");
+    assertThat(Util.filter(beatles, s -> s.length() == 4),
+        isIterable(Arrays.asList("John", "Paul")));
+    assertThat(Util.filter(empty, s -> s.length() == 4), isIterable(empty));
+    assertThat(Util.filter(empty, s -> false), isIterable(empty));
+    assertThat(Util.filter(empty, s -> true), isIterable(empty));
+    assertThat(Util.filter(beatles, s -> false), isIterable(empty));
+    assertThat(Util.filter(beatles, s -> true), isIterable(beatles));
+    assertThat(Util.filter(nullBeatles, s -> false), isIterable(empty));
+    assertThat(Util.filter(nullBeatles, s -> true), isIterable(nullBeatles));
+    assertThat(Util.filter(nullBeatles, Objects::isNull),
+        isIterable(Collections.singletonList(null)));
+    assertThat(Util.filter(nullBeatles, Objects::nonNull),
+        isIterable(Arrays.asList("John", "Paul", "Ringo")));
+  }
+
+  private static <E> Matcher<Iterable<E>> isIterable(final Iterable<E> iterable) {
+    final List<E> list = toList(iterable);
+    return new TypeSafeMatcher<Iterable<E>>() {
+      protected boolean matchesSafely(Iterable<E> iterable) {
+        return list.equals(toList(iterable));
+      }
+
+      public void describeTo(Description description) {
+        description.appendText("is iterable ").appendValue(list);
+      }
+    };
+  }
+
+  private static <E> List<E> toList(Iterable<E> iterable) {
+    final List<E> list = new ArrayList<>();
+    for (E e : iterable) {
+      list.add(e);
+    }
+    return list;
   }
 
   static String mismatchDescription(Matcher m, Object item) {

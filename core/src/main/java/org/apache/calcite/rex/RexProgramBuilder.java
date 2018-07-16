@@ -24,12 +24,11 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Preconditions;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Workspace for constructing a {@link RexProgram}.
@@ -67,8 +66,8 @@ public class RexProgramBuilder {
    */
   private RexProgramBuilder(RelDataType inputRowType, RexBuilder rexBuilder,
       RexSimplify simplify) {
-    this.inputRowType = Preconditions.checkNotNull(inputRowType);
-    this.rexBuilder = Preconditions.checkNotNull(rexBuilder);
+    this.inputRowType = Objects.requireNonNull(inputRowType);
+    this.rexBuilder = Objects.requireNonNull(rexBuilder);
     this.simplify = simplify; // may be null
     this.validating = assertionsAreEnabled();
 

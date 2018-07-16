@@ -40,7 +40,7 @@ public interface Glossary {
    * Craig's refinement of the type of problems they apply to and a refinement
    * of the original three pattern categories.</p>
    *
-   * <table cellSpacing="0" cellPadding="3" border="1">
+   * <table style="border-spacing:0px;padding:3px;border:1px">
    * <caption>
    *   <a href="http://www.onr.com/user/loeffler/java/references.html#gof">
    *   <b>Gang of Four Patterns</b></a>
@@ -49,18 +49,18 @@ public interface Glossary {
    * <!-- Headers for each column -->
    *
    * <th>Pattern Name</th>
-   * <th align="middle"><a href="#category">GOF Category</a></th>
-   * <th align="middle">Problem</th>
-   * <th align="middle">Pattern</th>
-   * <th align="middle">Often Uses</th>
-   * <th align="middle">Related To</th>
+   * <th style="text-align:middle"><a href="#category">GOF Category</a></th>
+   * <th style="text-align:middle">Problem</th>
+   * <th style="text-align:middle">Pattern</th>
+   * <th style="text-align:middle">Often Uses</th>
+   * <th style="text-align:middle">Related To</th>
    * </tr>
    *
    * <!-- Frequently used patterns have a lime background -->
    * <tr>
-   * <td bgColor="lime"><a href="#AbstractFactoryPattern">Abstract Factory</a>
+   * <td style="background-color:lime"><a href="#AbstractFactoryPattern">Abstract Factory</a>
    * </td>
-   * <td bgColor="teal"><font color="white">Creational</font></td>
+   * <td style="background-color:teal;color:white">Creational</td>
    * <td>Creating Instances</td>
    * <td>Class/Interface Definition plus Inheritance</td>
    * <td><a href="#FactoryMethodPattern">Factory Method</a><br>
@@ -73,19 +73,19 @@ public interface Glossary {
    * </tr>
    *
    * <tr>
-   * <td bgColor="lime"><a href="#ObjectAdapterPattern">Object Adapter</a>
+   * <td style="background-color:lime"><a href="#ObjectAdapterPattern">Object Adapter</a>
    * </td>
-   * <td bgColor="silver">Structural</td>
+   * <td style="background-color:silver">Structural</td>
    * <td>Interface</td>
    * <td>Wrap One</td>
-   * <td align="middle">-</td>
+   * <td style="text-align:middle">-</td>
    * <td><a href="#BridgePattern">Bridge</a><br>
    * <a href="#DecoratorPattern">Decorator</a><br>
    * <a href="#ProxyPattern">Proxy</a></td>
    * </tr>
    * <tr>
-   * <td bgColor="lime"><a href="#CommandPattern">Command</a></td>
-   * <td bgColor="maroon"><font color="white">Behavioral</font></td>
+   * <td style="background-color:lime"><a href="#CommandPattern">Command</a></td>
+   * <td style="background-color:maroon;color:white">Behavioral</td>
    * <td>Organization or Communication of Work<br>
    * Action/Response</td>
    * <td>Behavior Objects</td>
@@ -95,28 +95,28 @@ public interface Glossary {
    * <a href="#PrototypePattern">Prototype</a></td>
    * </tr>
    * <tr>
-   * <td bgColor="lime"><a href="#CompositePattern">Composite</a></td>
-   * <td bgColor="silver">Structural</td>
+   * <td style="background-color:lime"><a href="#CompositePattern">Composite</a></td>
+   * <td style="background-color:silver">Structural</td>
    * <td>Structural Decomposition of Objects or Subsystems</td>
    * <td>Wrap Many</td>
-   * <td align="middle">-</td>
+   * <td style="text-align:middle">-</td>
    * <td><a href="#DecoratorPattern">Decorator</a><br>
    * <a href="#IteratorPattern">Iterator</a><br>
    * <a href="#VisitorPattern">Visitor</a></td>
    * </tr>
    * <tr>
-   * <td bgColor="lime"><a href="#DecoratorPattern">Decorator</a></td>
-   * <td bgColor="silver">Structural</td>
+   * <td style="background-color:lime"><a href="#DecoratorPattern">Decorator</a></td>
+   * <td style="background-color:silver">Structural</td>
    * <td>Instance Behavior</td>
    * <td>Wrap One</td>
-   * <td align="middle">-</td>
+   * <td style="text-align:middle">-</td>
    * <td><a href="#ObjectAdapterPattern">Object Adapter</a><br>
    * <a href="#CompositePattern">Composite</a><br>
    * <a href="#StrategyPattern">Strategy</a></td>
    * </tr>
    * <tr>
-   * <td bgColor="lime"><a href="#FacadePattern">Facade</a></td>
-   * <td bgColor="silver">Structural</td>
+   * <td style="background-color:lime"><a href="#FacadePattern">Facade</a></td>
+   * <td style="background-color:silver">Structural</td>
    * <td>Access Control<br>
    * &nbsp;
    * <hr>
@@ -128,63 +128,63 @@ public interface Glossary {
    * <a href="#MediatorPattern">Mediator</a></td>
    * </tr>
    * <tr>
-   * <td bgColor="lime"><a href="#FlyweightPattern">Flyweight</a></td>
-   * <td bgColor="silver">Structural</td>
+   * <td style="background-color:lime"><a href="#FlyweightPattern">Flyweight</a></td>
+   * <td style="background-color:silver">Structural</td>
    * <td>Shared Resource Handling</td>
    * <td>Object State or Values</td>
-   * <td align="middle">-</td>
+   * <td style="text-align:middle">-</td>
    * <td><a href="#SingletonPattern">Singleton</a><br>
    * <a href="#StatePattern">State</a><br>
    * <a href="#StrategyPattern">Strategy</a><br>
    * Shareable</td>
    * </tr>
    * <tr>
-   * <td bgColor="lime"><a href="#IteratorPattern">Iterator</a></td>
-   * <td bgColor="maroon"><font color="white">Behavioral</font></td>
+   * <td style="background-color:lime"><a href="#IteratorPattern">Iterator</a></td>
+   * <td style="background-color:maroon;color:white">Behavioral</td>
    * <td>Traversal Algorithm<br>
    * &nbsp;
    * <hr>
    * <p>Access Control</td>
    * <td>Low Coupling</td>
-   * <td align="middle">-</td>
+   * <td style="text-align:middle">-</td>
    * <td><a href="#CompositePattern">Composite</a><br>
    * <a href="#FactoryMethodPattern">Factory Method</a><br>
    * <a href="#MementoPattern">Memento</a></td>
    * </tr>
    * <tr>
-   * <td bgColor="lime"><a href="#ObserverPattern">Observer</a></td>
-   * <td bgColor="maroon"><font color="white">Behavioral</font></td>
+   * <td style="background-color:lime"><a href="#ObserverPattern">Observer</a></td>
+   * <td style="background-color:maroon;color:white">Behavioral</td>
    * <td>Event Response<br>
    * &nbsp;
    * <hr>
    * <p>Organization or Communication of Work</td>
    * <td>Low Coupling</td>
-   * <td align="middle">-</td>
+   * <td style="text-align:middle">-</td>
    * <td><a href="#MediatorPattern">Mediator</a><br>
    * <a href="#SingletonPattern">Singleton</a></td>
    * </tr>
    * <tr>
-   * <td bgColor="lime"><a href="#ProxyPattern">Proxy</a></td>
-   * <td bgColor="silver">Structural</td>
+   * <td style="background-color:lime"><a href="#ProxyPattern">Proxy</a></td>
+   * <td style="background-color:silver">Structural</td>
    * <td>Access Control</td>
    * <td>Wrap One</td>
-   * <td align="middle">-</td>
+   * <td style="text-align:middle">-</td>
    * <td><a href="#ObjectAdapterPattern">Adapter</a><br>
    * <a href="#DecoratorPattern">Decorator</a></td>
    * </tr>
    * <tr>
-   * <td bgColor="lime"><a href="#SingletonPattern">Singleton</a></td>
-   * <td bgColor="teal"><font color="white">Creational</font></td>
+   * <td style="background-color:lime"><a href="#SingletonPattern">Singleton</a></td>
+   * <td style="background-color:teal;color:white">Creational</td>
    * <td>Access Control</td>
    * <td>Other</td>
-   * <td align="middle">-</td>
+   * <td style="text-align:middle">-</td>
    * <td><a href="#AbstractFactoryPattern">Abstract Factory</a><br>
    * <a href="#BuilderPattern">Builder</a><br>
    * <a href="#PrototypePattern">Prototype</a></td>
    * </tr>
    * <tr>
-   * <td bgColor="lime"><a href="#StatePattern">State</a></td>
-   * <td bgColor="maroon"><font color="white">Behavioral</font></td>
+   * <td style="background-color:lime"><a href="#StatePattern">State</a></td>
+   * <td style="background-color:maroon;color:white">Behavioral</td>
    * <td>Instance Behavior</td>
    * <td>Object State or Values</td>
    * <td><a href="#FlyweightPattern">Flyweight</a></td>
@@ -192,70 +192,70 @@ public interface Glossary {
    * <a href="#SingletonPattern">Singleton</a></td>
    * </tr>
    * <tr>
-   * <td bgColor="lime"><a href="#StrategyPattern">Strategy</a></td>
-   * <td bgColor="maroon"><font color="white">Behavioral</font></td>
+   * <td style="background-color:lime"><a href="#StrategyPattern">Strategy</a></td>
+   * <td style="background-color:maroon;color:white">Behavioral</td>
    * <td>Single Algorithm</td>
    * <td>Behavior Objects</td>
-   * <td align="middle">-</td>
+   * <td style="text-align:middle">-</td>
    * <td><a href="#FlyweightPattern">Flyweight</a><br>
    * <a href="#StatePattern">State</a><br>
    * <a href="#TemplateMethodPattern">Template Method</a></td>
    * </tr>
    * <tr>
-   * <td bgColor="lime"><a href="#TemplateMethodPattern">Template Method</a>
+   * <td style="background-color:lime"><a href="#TemplateMethodPattern">Template Method</a>
    * </td>
-   * <td bgColor="maroon"><font color="white">Behavioral</font></td>
+   * <td style="background-color:maroon;color:white">Behavioral</td>
    * <td>Single Algorithm</td>
    * <td>Class or Interface Definition plus Inheritance</td>
-   * <td align="middle">-</td>
+   * <td style="text-align:middle">-</td>
    * <td><a href="#StrategyPattern">Strategy</a></td>
    * </tr>
    * <!-- Moderately use patterns have a yellow background -->
    * <tr>
-   * <td bgColor="yellow"><a href="#ClassAdapterPattern">Class Adapter</a>
+   * <td style="background-color:yellow"><a href="#ClassAdapterPattern">Class Adapter</a>
    * </td>
-   * <td bgColor="silver">Structural</td>
+   * <td style="background-color:silver">Structural</td>
    * <td>Interface</td>
    * <td>Class or Interface Definition plus Inheritance</td>
-   * <td align="middle">-</td>
+   * <td style="text-align:middle">-</td>
    * <td><a href="#BridgePattern">Bridge</a><br>
    * <a href="#DecoratorPattern">Decorator</a><br>
    * <a href="#ProxyPattern">Proxy</a></td>
    * </tr>
    * <tr>
-   * <td bgColor="yellow"><a href="#BridgePattern">Bridge</a></td>
-   * <td bgColor="silver">Structural</td>
+   * <td style="background-color:yellow"><a href="#BridgePattern">Bridge</a></td>
+   * <td style="background-color:silver">Structural</td>
    * <td>Implementation</td>
    * <td>Wrap One</td>
-   * <td align="middle">-</td>
+   * <td style="text-align:middle">-</td>
    * <td><a href="#AbstractFactoryPattern">Abstract Factory</a><br>
    * <a href="#ClassAdapterPattern">Class Adaptor</a></td>
    * </tr>
    * <tr>
-   * <td bgColor="yellow"><a href="#BuilderPattern">Builder</a></td>
-   * <td bgColor="teal"><font color="white">Creational</font></td>
+   * <td style="background-color:yellow"><a href="#BuilderPattern">Builder</a></td>
+   * <td style="background-color:teal;color:white">Creational</td>
    * <td>Creating Structures</td>
    * <td>Class or Interface Definition plus Inheritance</td>
-   * <td align="middle">-</td>
+   * <td style="text-align:middle">-</td>
    * <td><a href="#AbstractFactoryPattern">Abstract Factory</a><br>
    * <a href="#CompositePattern">Composite</a></td>
    * </tr>
    * <tr>
-   * <td bgColor="yellow"><a href="#ChainOfResponsibilityPattern">Chain of
+   * <td style="background-color:yellow"><a href="#ChainOfResponsibilityPattern">Chain of
    * Responsibility</a></td>
-   * <td bgColor="maroon"><font color="white">Behavioral</font></td>
+   * <td style="background-color:maroon;color:white">Behavioral</td>
    * <td>Single Algorithm<br>
    * &nbsp;
    * <hr>
    * <p>Organization or Communication of Work</td>
    * <td>Low Coupling</td>
-   * <td align="middle">-</td>
+   * <td style="text-align:middle">-</td>
    * <td><a href="#CompositePattern">Composite</a></td>
    * </tr>
    * <tr>
-   * <td bgColor="yellow"><a href="#FactoryMethodPattern">Factory Method</a>
+   * <td style="background-color:yellow"><a href="#FactoryMethodPattern">Factory Method</a>
    * </td>
-   * <td bgColor="teal"><font color="white">Creational</font></td>
+   * <td style="background-color:teal;color:white">Creational</td>
    * <td>Creating Instances</td>
    * <td>Class or Interface Definition plus Inheritance</td>
    * <td><a href="#TemplateMethodPattern">Template Method</a></td>
@@ -264,56 +264,56 @@ public interface Glossary {
    * <a href="#PrototypePattern">Prototype</a></td>
    * </tr>
    * <tr>
-   * <td bgColor="yellow"><a href="#MediatorPattern">Mediator</a></td>
-   * <td bgColor="maroon"><font color="white">Behavioral</font></td>
+   * <td style="background-color:yellow"><a href="#MediatorPattern">Mediator</a></td>
+   * <td style="background-color:maroon;color:white">Behavioral</td>
    * <td>Interaction between Objects<br>
    * &nbsp;
    * <hr>
    * <p>Organization or Communication of Work</td>
    * <td>Low Coupling</td>
-   * <td align="middle">-</td>
+   * <td style="text-align:middle">-</td>
    * <td><a href="#FacadePattern">Facade</a><br>
    * <a href="#ObserverPattern">Observer</a></td>
    * </tr>
    * <tr>
-   * <td bgColor="yellow"><a href="#PrototypePattern">Prototype</a></td>
-   * <td bgColor="teal"><font color="white">Creational</font></td>
+   * <td style="background-color:yellow"><a href="#PrototypePattern">Prototype</a></td>
+   * <td style="background-color:teal;color:white">Creational</td>
    * <td>Creating Instances</td>
    * <td>Other</td>
-   * <td align="middle">-</td>
+   * <td style="text-align:middle">-</td>
    * <td><a href="#PrototypePattern">Prototype</a><br>
    * <a href="#CompositePattern">Composite</a><br>
    * <a href="#DecoratorPattern">Decorator</a></td>
    * </tr>
    * <tr>
-   * <td bgColor="yellow"><a href="#VisitorPattern">Visitor</a></td>
-   * <td bgColor="maroon"><font color="white">Behavioral</font></td>
+   * <td style="background-color:yellow"><a href="#VisitorPattern">Visitor</a></td>
+   * <td style="background-color:maroon;color:white">Behavioral</td>
    * <td>Single Algorithm</td>
    * <td>Behavior Objects</td>
-   * <td align="middle">-</td>
+   * <td style="text-align:middle">-</td>
    * <td><a href="#CompositePattern">Composite</a><br>
    * <a href="#VisitorPattern">Visitor</a></td>
    * </tr>
    * <!-- Seldom used patterns have a red background -->
    * <tr>
-   * <td bgColor="red"><a href="#InterpreterPattern"><font color="white">
-   * Interpreter</font></a></td>
-   * <td bgColor="maroon"><font color="white">Behavioral</font></td>
+   * <td style="background-color:red;color:white"><a href="#InterpreterPattern">
+   * Interpreter</a></td>
+   * <td style="background-color:maroon;color:white">Behavioral</td>
    * <td>Organization or Communication of Work</td>
    * <td>Other</td>
-   * <td align="middle">-</td>
+   * <td style="text-align:middle">-</td>
    * <td><a href="#CompositePattern">Composite</a><br>
    * <a href="#FlyweightPattern">Flyweight</a><br>
    * <a href="#IteratorPattern">Iterator</a><br>
    * <a href="#VisitorPattern">Visitor</a></td>
    * </tr>
    * <tr>
-   * <td bgColor="red"><a href="#MementoPattern"><font color="white">
-   * Memento</font></a></td>
-   * <td bgColor="maroon"><font color="white">Behavioral</font></td>
+   * <td style="background-color:red;color:white"><a href="#MementoPattern">
+   * Memento</a></td>
+   * <td style="background-color:maroon;color:white">Behavioral</td>
    * <td>Instance Management</td>
    * <td>Object State or Values</td>
-   * <td align="middle">-</td>
+   * <td style="text-align:middle">-</td>
    * <td><a href="#CommandPattern">Command</a><br>
    * <a href="#IteratorPattern">Iterator</a></td>
    * </tr>

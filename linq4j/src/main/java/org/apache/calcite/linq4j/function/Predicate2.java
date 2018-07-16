@@ -28,22 +28,14 @@ public interface Predicate2<T0, T1> extends Function<Boolean> {
    *
    * @see org.apache.calcite.linq4j.function.Functions#truePredicate1()
    */
-  Predicate2<Object, Object> TRUE = new Predicate2<Object, Object>() {
-    public boolean apply(Object v0, Object v1) {
-      return true;
-    }
-  };
+  Predicate2<Object, Object> TRUE = (v0, v1) -> true;
 
   /**
    * Predicate that always evaluates to {@code false}.
    *
    * @see org.apache.calcite.linq4j.function.Functions#falsePredicate1()
    */
-  Predicate2<Object, Object> FALSE = new Predicate2<Object, Object>() {
-    public boolean apply(Object v0, Object v1) {
-      return false;
-    }
-  };
+  Predicate2<Object, Object> FALSE = (v0, v1) -> false;
 
   boolean apply(T0 v0, T1 v1);
 }

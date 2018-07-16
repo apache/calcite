@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCall;
@@ -28,7 +29,6 @@ import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.IntervalSqlType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 /**
@@ -49,20 +49,10 @@ public class SqlDatetimePlusOperator extends SqlSpecialOperator {
     final RelDataType leftType = opBinding.getOperandType(0);
     final IntervalSqlType unitType =
         (IntervalSqlType) opBinding.getOperandType(1);
-    switch (unitType.getIntervalQualifier().getStartUnit()) {
-    case HOUR:
-    case MINUTE:
-    case SECOND:
-    case MILLISECOND:
-    case MICROSECOND:
-      return typeFactory.createTypeWithNullability(
-          typeFactory.createSqlType(SqlTypeName.TIMESTAMP),
-          leftType.isNullable() || unitType.isNullable());
-    default:
-      return leftType;
-    }
+    final TimeUnit timeUnit = unitType.getIntervalQualifier().getStartUnit();
+    return SqlTimestampAddFunction.deduceType(typeFactory, timeUnit,
+        unitType, leftType);
   }
-
 
   public SqlSyntax getSyntax() {
     return SqlSyntax.SPECIAL;

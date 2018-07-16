@@ -296,7 +296,7 @@ public abstract class SqlOperator {
     return createCall(
         null,
         pos,
-        operandList.toArray(new SqlNode[operandList.size()]));
+        operandList.toArray(new SqlNode[0]));
   }
 
   /**

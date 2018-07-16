@@ -43,7 +43,6 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
@@ -61,6 +60,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -3490,6 +3490,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + " INTERVAL SECOND\\(1, 0\\)");
   }
 
+  @Test public void testDatetimePlusNullInterval() {
+    expr("TIME '8:8:8' + cast(NULL AS interval hour)").columnType("TIME(0)");
+    expr("TIME '8:8:8' + cast(NULL AS interval YEAR)").columnType("TIME(0)");
+    expr("TIMESTAMP '1990-12-12 12:12:12' + cast(NULL AS interval hour)")
+        .columnType("TIMESTAMP(0)");
+    expr("TIMESTAMP '1990-12-12 12:12:12' + cast(NULL AS interval YEAR)")
+        .columnType("TIMESTAMP(0)");
+
+    expr("cast(NULL AS interval hour) + TIME '8:8:8'").columnType("TIME(0)");
+    expr("cast(NULL AS interval YEAR) + TIME '8:8:8'").columnType("TIME(0)");
+    expr("cast(NULL AS interval hour) + TIMESTAMP '1990-12-12 12:12:12'")
+        .columnType("TIMESTAMP(0)");
+    expr("cast(NULL AS interval YEAR) + TIMESTAMP '1990-12-12 12:12:12'")
+        .columnType("TIMESTAMP(0)");
+  }
+
   @Test public void testIntervalLiterals() {
     // First check that min, max, and defaults are what we expect
     // (values used in subtests depend on these being true to
@@ -3680,6 +3696,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "(?s).*Was expecting one of.*");
     checkWholeExpFails("timestampdiff(incorrect, current_timestamp, current_timestamp)",
         "(?s).*Was expecting one of.*");
+  }
+
+  @Test public void testTimestampAddNullInterval() {
+    expr("timestampadd(SQL_TSI_SECOND, cast(NULL AS INTEGER),"
+        + " current_timestamp)")
+        .columnType("TIMESTAMP(0)");
+    expr("timestampadd(SQL_TSI_DAY, cast(NULL AS INTEGER),"
+        + " current_timestamp)")
+        .columnType("TIMESTAMP(0)");
   }
 
   @Test public void testNumericOperators() {
@@ -3911,25 +3936,26 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1340">[CALCITE-1340]
    * Window aggregates give invalid errors</a>. */
   @Test public void testWindowFunctionsWithoutOver() {
-    winSql(
-        "select sum(empno) \n"
-        + "from emp \n"
-        + "group by deptno \n"
+    winSql("select sum(empno)\n"
+        + "from emp\n"
+        + "group by deptno\n"
         + "order by ^row_number()^")
         .fails("OVER clause is necessary for window functions");
 
-    winSql(
-        "select ^rank()^ \n"
+    winSql("select ^rank()^\n"
         + "from emp")
         .fails("OVER clause is necessary for window functions");
 
     // With [CALCITE-1340], the validator would see RANK without OVER,
     // mistakenly think this is an aggregating query, and wrongly complain
     // about the PARTITION BY: "Expression 'DEPTNO' is not being grouped"
-    winSql(
-        "select cume_dist() over w , ^rank()^\n"
+    winSql("select cume_dist() over w , ^rank()^\n"
         + "from emp \n"
         + "window w as (partition by deptno order by deptno)")
+        .fails("OVER clause is necessary for window functions");
+
+    winSql("select ^nth_value(sal, 2)^\n"
+        + "from emp")
         .fails("OVER clause is necessary for window functions");
   }
 
@@ -4071,6 +4097,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     winExp("rank() over (order by empno)").ok();
     winExp("percent_rank() over (order by empno)").ok();
     winExp("cume_dist() over (order by empno)").ok();
+    winExp("nth_value(sal, 2) over (order by empno)").ok();
 
     // rule 6a
     // ORDER BY required with RANK & DENSE_RANK
@@ -4812,8 +4839,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "RecordType(CHAR(2) NOT NULL A, INTEGER NOT NULL B) NOT NULL");
   }
 
-  // todo: implement IN
-  public void _testAmbiguousColumnInIn() {
+  @Test public void testAmbiguousColumnInIn() {
     // ok: cyclic reference
     check("select * from emp as e\n"
         + "where e.deptno in (\n"
@@ -5989,16 +6015,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * lurking in the validation process.
    */
   @Test public void testLarge() {
-    checkLarge(700,
-        new Function<String, Void>() {
-          public Void apply(String input) {
-            check(input);
-            return null;
-          }
-        });
+    checkLarge(700, this::check);
   }
 
-  static void checkLarge(int x, Function<String, Void> f) {
+  static void checkLarge(int x, Consumer<String> f) {
     if (System.getProperty("os.name").startsWith("Windows")) {
       // NOTE jvs 1-Nov-2006:  Default thread stack size
       // on Windows is too small, so avoid stack overflow
@@ -6007,24 +6027,24 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     // E.g. large = "deptno * 1 + deptno * 2 + deptno * 3".
     String large = list(" + ", "deptno * ", x);
-    f.apply("select " + large + "from emp");
-    f.apply("select distinct " + large + "from emp");
-    f.apply("select " + large + " from emp " + "group by deptno");
-    f.apply("select * from emp where " + large + " > 5");
-    f.apply("select * from emp order by " + large + " desc");
-    f.apply("select " + large + " from emp order by 1");
-    f.apply("select distinct " + large + " from emp order by " + large);
+    f.accept("select " + large + "from emp");
+    f.accept("select distinct " + large + "from emp");
+    f.accept("select " + large + " from emp " + "group by deptno");
+    f.accept("select * from emp where " + large + " > 5");
+    f.accept("select * from emp order by " + large + " desc");
+    f.accept("select " + large + " from emp order by 1");
+    f.accept("select distinct " + large + " from emp order by " + large);
 
     // E.g. "in (0, 1, 2, ...)"
-    f.apply("select * from emp where deptno in (" + list(", ", "", x) + ")");
+    f.accept("select * from emp where deptno in (" + list(", ", "", x) + ")");
 
     // E.g. "where x = 1 or x = 2 or x = 3 ..."
-    f.apply("select * from emp where " + list(" or ", "deptno = ", x));
+    f.accept("select * from emp where " + list(" or ", "deptno = ", x));
 
     // E.g. "select x1, x2 ... from (
     // select 'a' as x1, 'a' as x2, ... from emp union
     // select 'bb' as x1, 'bb' as x2, ... from dept)"
-    f.apply("select " + list(", ", "x", x)
+    f.accept("select " + list(", ", "x", x)
         + " from (select " + list(", ", "'a' as x", x) + " from emp "
         + "union all select " + list(", ", "'bb' as x", x) + " from dept)");
   }
@@ -7506,7 +7526,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testUnnestArrayColumn() {
-    final String sql = "select d.deptno, e.*\n"
+    final String sql1 = "select d.deptno, e.*\n"
         + "from dept_nested as d,\n"
         + " UNNEST(d.employees) as e";
     final String type = "RecordType(INTEGER NOT NULL DEPTNO,"
@@ -7515,13 +7535,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " RecordType(RecordType(VARCHAR(10) NOT NULL TYPE, VARCHAR(20) NOT NULL DESC,"
         + " RecordType(VARCHAR(10) NOT NULL A, VARCHAR(10) NOT NULL B) NOT NULL OTHERS)"
         + " NOT NULL ARRAY NOT NULL SKILLS) NOT NULL DETAIL) NOT NULL";
-    sql(sql).type(type);
+    sql(sql1).type(type);
+
+    // equivalent query without table alias
+    final String sql1b = "select d.deptno, e.*\n"
+        + "from dept_nested as d,\n"
+        + " UNNEST(employees) as e";
+    sql(sql1b).type(type);
 
     // equivalent query using CROSS JOIN
     final String sql2 = "select d.deptno, e.*\n"
         + "from dept_nested as d CROSS JOIN\n"
         + " UNNEST(d.employees) as e";
     sql(sql2).type(type);
+
+    // equivalent query using CROSS JOIN, without table alias
+    final String sql2b = "select d.deptno, e.*\n"
+        + "from dept_nested as d CROSS JOIN\n"
+        + " UNNEST(employees) as e";
+    sql(sql2b).type(type);
 
     // LATERAL works left-to-right
     final String sql3 = "select d.deptno, e.*\n"
@@ -7650,6 +7682,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     check("select FIRST_VALUE(sal) over (order by empno) from emp");
     check("select FIRST_VALUE(ename) over (order by empno) from emp");
+
+    check("select NTH_VALUE(sal, 2) over (order by empno) from emp");
+    check("select NTH_VALUE(ename, 2) over (order by empno) from emp");
   }
 
   @Test public void testMinMaxFunctions() {
@@ -7660,6 +7695,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     check("SELECT MAX(ename) FROM emp");
     check("SELECT MIN(5.5) FROM emp");
     check("SELECT MAX(5) FROM emp");
+  }
+
+  @Test public void testAnyValueFunction() {
+    check("SELECT any_value(ename) from emp");
   }
 
   @Test public void testFunctionalDistinct() {
@@ -8533,20 +8572,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * the documentation</a>. */
   @Test public void testOperatorsSortedByPrecedence() {
     final StringBuilder b = new StringBuilder();
-    final Comparator<SqlOperator> comparator =
-        new Comparator<SqlOperator>() {
-          public int compare(SqlOperator o1, SqlOperator o2) {
-            int c = Integer.compare(prec(o1), prec(o2));
-            if (c != 0) {
-              return -c;
-            }
-            c = o1.getName().compareTo(o2.getName());
-            if (c != 0) {
-              return c;
-            }
-            return o1.getSyntax().compareTo(o2.getSyntax());
-          }
-        };
+    final Comparator<SqlOperator> comparator = (o1, o2) -> {
+      int c = Integer.compare(prec(o1), prec(o2));
+      if (c != 0) {
+        return -c;
+      }
+      c = o1.getName().compareTo(o2.getName());
+      if (c != 0) {
+        return c;
+      }
+      return o1.getSyntax().compareTo(o2.getSyntax());
+    };
     final List<SqlOperator> operators =
         SqlStdOperatorTable.instance().getOperatorList();
     int p = -1;
@@ -8669,13 +8705,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "IS DISTINCT FROM left\n"
         + "IS NOT DISTINCT FROM left\n"
         + "MEMBER OF left\n"
+        + "NOT SUBMULTISET OF left\n"
         + "OVERLAPS left\n"
         + "PRECEDES left\n"
         + "SUBMULTISET OF left\n"
         + "SUCCEEDS left\n"
         + "\n"
         + "IS A SET post\n"
+        + "IS EMPTY post\n"
         + "IS FALSE post\n"
+        + "IS NOT A SET post\n"
+        + "IS NOT EMPTY post\n"
         + "IS NOT FALSE post\n"
         + "IS NOT NULL post\n"
         + "IS NOT TRUE post\n"
@@ -8698,17 +8738,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "\n"
         + "INTERSECT left\n"
         + "INTERSECT ALL left\n"
-        + "MULTISET INTERSECT left\n"
         + "MULTISET INTERSECT ALL left\n"
+        + "MULTISET INTERSECT DISTINCT left\n"
         + "NULLS FIRST post\n"
         + "NULLS LAST post\n"
         + "\n"
         + "EXCEPT left\n"
         + "EXCEPT ALL left\n"
-        + "MULTISET EXCEPT left\n"
         + "MULTISET EXCEPT ALL left\n"
-        + "MULTISET UNION left\n"
+        + "MULTISET EXCEPT DISTINCT left\n"
         + "MULTISET UNION ALL left\n"
+        + "MULTISET UNION DISTINCT left\n"
         + "UNION left\n"
         + "UNION ALL left\n"
         + "\n"

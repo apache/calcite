@@ -52,16 +52,15 @@ import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.graph.TopologicalOrderIterator;
 import org.apache.calcite.util.mapping.IntPair;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.Sets;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -72,20 +71,6 @@ import java.util.Set;
  * recognized and recommended.
  */
 public class Lattice {
-  private static final Function<Column, String> GET_ALIAS =
-      new Function<Column, String>() {
-        public String apply(Column input) {
-          return input.alias;
-        }
-      };
-
-  private static final Function<Column, Integer> GET_ORDINAL =
-      new Function<Column, Integer>() {
-        public Integer apply(Column input) {
-          return input.ordinal;
-        }
-      };
-
   public final CalciteSchema rootSchema;
   public final ImmutableList<Node> nodes;
   public final ImmutableList<Column> columns;
@@ -98,33 +83,19 @@ public class Lattice {
   public final ImmutableList<String> uniqueColumnNames;
   public final LatticeStatisticProvider statisticProvider;
 
-  private final Function<Integer, Column> toColumnFunction =
-      new Function<Integer, Column>() {
-        public Column apply(Integer input) {
-          return columns.get(input);
-        }
-      };
-  private final Function<AggregateCall, Measure> toMeasureFunction =
-      new Function<AggregateCall, Measure>() {
-        public Measure apply(AggregateCall input) {
-          return new Measure(input.getAggregation(),
-              Lists.transform(input.getArgList(), toColumnFunction));
-        }
-      };
-
   private Lattice(CalciteSchema rootSchema, ImmutableList<Node> nodes,
       boolean auto, boolean algorithm, long algorithmMaxMillis,
       LatticeStatisticProvider.Factory statisticProviderFactory,
       Double rowCountEstimate, ImmutableList<Column> columns,
       ImmutableList<Measure> defaultMeasures, ImmutableList<Tile> tiles) {
     this.rootSchema = rootSchema;
-    this.nodes = Preconditions.checkNotNull(nodes);
-    this.columns = Preconditions.checkNotNull(columns);
+    this.nodes = Objects.requireNonNull(nodes);
+    this.columns = Objects.requireNonNull(columns);
     this.auto = auto;
     this.algorithm = algorithm;
     this.algorithmMaxMillis = algorithmMaxMillis;
-    this.defaultMeasures = Preconditions.checkNotNull(defaultMeasures);
-    this.tiles = Preconditions.checkNotNull(tiles);
+    this.defaultMeasures = Objects.requireNonNull(defaultMeasures);
+    this.tiles = Objects.requireNonNull(tiles);
 
     // Validate that nodes form a tree; each node except the first references
     // a predecessor.
@@ -137,13 +108,14 @@ public class Lattice {
       }
     }
 
-    List<String> nameList = Lists.newArrayList();
+    List<String> nameList = new ArrayList<>();
     for (Column column : columns) {
       nameList.add(column.alias);
     }
     uniqueColumnNames =
         ImmutableList.copyOf(
-            SqlValidatorUtil.uniquify(Lists.transform(columns, GET_ALIAS), true));
+            SqlValidatorUtil.uniquify(
+                Lists.transform(columns, input -> input.alias), true));
     if (rowCountEstimate == null) {
       // We could improve this when we fix
       // [CALCITE-429] Add statistics SPI for lattice optimization algorithm
@@ -152,7 +124,7 @@ public class Lattice {
     Preconditions.checkArgument(rowCountEstimate > 0d);
     this.rowCountEstimate = rowCountEstimate;
     this.statisticProvider =
-        Preconditions.checkNotNull(statisticProviderFactory.apply(this));
+        Objects.requireNonNull(statisticProviderFactory.apply(this));
   }
 
   /** Creates a Lattice. */
@@ -274,7 +246,7 @@ public class Lattice {
     final StringBuilder buf = new StringBuilder("SELECT ");
     final StringBuilder groupBuf = new StringBuilder("\nGROUP BY ");
     int k = 0;
-    final Set<String> columnNames = Sets.newHashSet();
+    final Set<String> columnNames = new HashSet<>();
     if (groupSet != null) {
       for (int i : groupSet) {
         if (k++ > 0) {
@@ -359,7 +331,7 @@ public class Lattice {
    * attributes given in {@code groupSet}. */
   public String countSql(ImmutableBitSet groupSet) {
     return "select count(*) as c from ("
-        + sql(groupSet, ImmutableList.<Measure>of())
+        + sql(groupSet, ImmutableList.of())
         + ")";
   }
 
@@ -373,7 +345,7 @@ public class Lattice {
   }
 
   public StarTable createStarTable() {
-    final List<Table> tables = Lists.newArrayList();
+    final List<Table> tables = new ArrayList<>();
     for (Node node : nodes) {
       tables.add(node.scan.getTable().unwrap(Table.class));
     }
@@ -385,7 +357,9 @@ public class Lattice {
   }
 
   public List<Measure> toMeasures(List<AggregateCall> aggCallList) {
-    return Lists.transform(aggCallList, toMeasureFunction);
+    return Lists.transform(aggCallList,
+        call -> new Measure(call.getAggregation(),
+        Lists.transform(call.getArgList(), columns::get)));
   }
 
   public Iterable<? extends Tile> computeTiles() {
@@ -454,7 +428,7 @@ public class Lattice {
 
     public Node(TableScan scan, Node parent, List<IntPair> link,
         int startCol, int endCol, String alias) {
-      this.scan = Preconditions.checkNotNull(scan);
+      this.scan = Objects.requireNonNull(scan);
       this.parent = parent;
       this.link = link == null ? null : ImmutableList.copyOf(link);
       assert (parent == null) == (link == null);
@@ -469,13 +443,9 @@ public class Lattice {
   /** Edge in the temporary graph. */
   private static class Edge extends DefaultEdge {
     public static final DirectedGraph.EdgeFactory<RelNode, Edge> FACTORY =
-        new DirectedGraph.EdgeFactory<RelNode, Edge>() {
-          public Edge createEdge(RelNode source, RelNode target) {
-            return new Edge(source, target);
-          }
-        };
+        Edge::new;
 
-    final List<IntPair> pairs = Lists.newArrayList();
+    final List<IntPair> pairs = new ArrayList<>();
 
     Edge(RelNode source, RelNode target) {
       super(source, target);
@@ -496,7 +466,7 @@ public class Lattice {
     public final ImmutableList<Column> args;
 
     public Measure(SqlAggFunction agg, Iterable<Column> args) {
-      this.agg = Preconditions.checkNotNull(agg);
+      this.agg = Objects.requireNonNull(agg);
       this.args = ImmutableList.copyOf(args);
     }
 
@@ -534,7 +504,7 @@ public class Lattice {
 
     /** Returns a list of argument ordinals. */
     public List<Integer> argOrdinals() {
-      return Lists.transform(args, GET_ORDINAL);
+      return Lists.transform(args, input -> input.ordinal);
     }
 
     private static int compare(List<Column> list0, List<Column> list1) {
@@ -562,9 +532,9 @@ public class Lattice {
 
     private Column(int ordinal, String table, String column, String alias) {
       this.ordinal = ordinal;
-      this.table = Preconditions.checkNotNull(table);
-      this.column = Preconditions.checkNotNull(column);
-      this.alias = Preconditions.checkNotNull(alias);
+      this.table = Objects.requireNonNull(table);
+      this.column = Objects.requireNonNull(column);
+      this.alias = Objects.requireNonNull(alias);
     }
 
     /** Converts a list of columns to a bit set of their ordinals. */
@@ -601,7 +571,7 @@ public class Lattice {
 
   /** Lattice builder. */
   public static class Builder {
-    private final List<Node> nodes = Lists.newArrayList();
+    private final List<Node> nodes = new ArrayList<>();
     private final ImmutableList<Column> columns;
     private final ImmutableListMultimap<String, Column> columnsByAlias;
     private final ImmutableList.Builder<Measure> defaultMeasureListBuilder =
@@ -616,19 +586,19 @@ public class Lattice {
     private String statisticProvider;
 
     public Builder(CalciteSchema schema, String sql) {
-      this.rootSchema = Preconditions.checkNotNull(schema.root());
+      this.rootSchema = Objects.requireNonNull(schema.root());
       Preconditions.checkArgument(rootSchema.isRoot(), "must be root schema");
       CalcitePrepare.ConvertResult parsed =
           Schemas.convert(MaterializedViewTable.MATERIALIZATION_CONNECTION,
               schema, schema.path(null), sql);
 
       // Walk the join tree.
-      List<RelNode> relNodes = Lists.newArrayList();
-      List<int[][]> tempLinks = Lists.newArrayList();
+      List<RelNode> relNodes = new ArrayList<>();
+      List<int[][]> tempLinks = new ArrayList<>();
       populate(relNodes, tempLinks, parsed.root.rel);
 
       // Get aliases.
-      List<String> aliases = Lists.newArrayList();
+      List<String> aliases = new ArrayList<>();
       populateAliases(((SqlSelect) parsed.sqlNode).getFrom(), aliases, null);
 
       // Build a graph.
@@ -650,7 +620,7 @@ public class Lattice {
       // Convert the graph into a tree of nodes, each connected to a parent and
       // with a join condition to that parent.
       Node previous = null;
-      final Map<RelNode, Node> map = Maps.newIdentityHashMap();
+      final Map<RelNode, Node> map = new IdentityHashMap<>();
       int previousColumn = 0;
       for (RelNode relNode : TopologicalOrderIterator.of(graph)) {
         final List<Edge> edges = graph.getInwardEdges(relNode);
@@ -857,8 +827,8 @@ public class Lattice {
 
     public Tile(ImmutableList<Measure> measures,
         ImmutableList<Column> dimensions) {
-      this.measures = Preconditions.checkNotNull(measures);
-      this.dimensions = Preconditions.checkNotNull(dimensions);
+      this.measures = Objects.requireNonNull(measures);
+      this.dimensions = Objects.requireNonNull(dimensions);
       assert Ordering.natural().isStrictlyOrdered(dimensions);
       assert Ordering.natural().isStrictlyOrdered(measures);
       bitSet = Column.toBitSet(dimensions);
@@ -875,8 +845,8 @@ public class Lattice {
 
   /** Tile builder. */
   public static class TileBuilder {
-    private final List<Measure> measureBuilder = Lists.newArrayList();
-    private final List<Column> dimensionListBuilder = Lists.newArrayList();
+    private final List<Measure> measureBuilder = new ArrayList<>();
+    private final List<Column> dimensionListBuilder = new ArrayList<>();
 
     public Tile build() {
       return new Tile(

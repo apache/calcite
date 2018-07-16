@@ -57,7 +57,7 @@ public class GeodeSchemaFactory implements SchemaFactory {
     }
 
     if (allowSpatialFunctions) {
-      ModelHandler.addFunctions(parentSchema, null, ImmutableList.<String>of(),
+      ModelHandler.addFunctions(parentSchema, null, ImmutableList.of(),
           GeoFunctions.class.getName(), "*", true);
     }
 

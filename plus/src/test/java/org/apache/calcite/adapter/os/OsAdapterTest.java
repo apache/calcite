@@ -24,23 +24,20 @@ import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
-
 import org.hamcrest.CoreMatchers;
 import org.junit.Assume;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
-import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -76,12 +73,7 @@ public class OsAdapterTest {
         return false; // abandon hope
       }
       File[] files =
-          f.listFiles(
-              new FilenameFilter() {
-                public boolean accept(File dir, String name) {
-                  return name.equals(".git");
-                }
-              });
+          f.listFiles((dir, name) -> name.equals(".git"));
       if (files != null && files.length == 1) {
         return true; // there is a ".git" subdirectory
       }
@@ -90,42 +82,38 @@ public class OsAdapterTest {
   }
 
   @Test public void testDu() {
+    Assume.assumeFalse("Skip: the 'du' table does not work on Windows",
+        isWindows());
     sql("select * from du")
-        .returns(
-            new Function<ResultSet, Void>() {
-              public Void apply(ResultSet r) {
-                try {
-                  assertThat(r.next(), is(true));
-                  assertThat(r.getInt(1), notNullValue());
-                  assertThat(r.getString(2), CoreMatchers.startsWith("./"));
-                  assertThat(r.wasNull(), is(false));
-                  return null;
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                }
-              }
-            });
+        .returns(r -> {
+          try {
+            assertThat(r.next(), is(true));
+            assertThat(r.getInt(1), notNullValue());
+            assertThat(r.getString(2), CoreMatchers.startsWith("./"));
+            assertThat(r.wasNull(), is(false));
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   @Test public void testDuFilterSortLimit() {
+    Assume.assumeFalse("Skip: the 'du' table does not work on Windows",
+        isWindows());
     sql("select * from du where path like '%/src/test/java/%'\n"
         + "order by 1 limit 2")
-        .returns(
-            new Function<ResultSet, Void>() {
-              public Void apply(ResultSet r) {
-                try {
-                  assertThat(r.next(), is(true));
-                  assertThat(r.getInt(1), notNullValue());
-                  assertThat(r.getString(2), CoreMatchers.startsWith("./"));
-                  assertThat(r.wasNull(), is(false));
-                  assertThat(r.next(), is(true));
-                  assertThat(r.next(), is(false)); // because of "limit 2"
-                  return null;
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                }
-              }
-            });
+        .returns(r -> {
+          try {
+            assertThat(r.next(), is(true));
+            assertThat(r.getInt(1), notNullValue());
+            assertThat(r.getString(2), CoreMatchers.startsWith("./"));
+            assertThat(r.wasNull(), is(false));
+            assertThat(r.next(), is(true));
+            assertThat(r.next(), is(false)); // because of "limit 2"
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   @Test public void testFiles() {
@@ -140,61 +128,49 @@ public class OsAdapterTest {
     Assume.assumeFalse("Skip: the 'ps' table does not work on Windows",
         isWindows());
     sql("select * from ps")
-        .returns(
-            new Function<ResultSet, Void>() {
-              public Void apply(ResultSet r) {
-                try {
-                  assertThat(r.next(), is(true));
-                  final StringBuilder b = new StringBuilder();
-                  final int c = r.getMetaData().getColumnCount();
-                  for (int i = 0; i < c; i++) {
-                    b.append(r.getString(i + 1)).append(';');
-                    assertThat(r.wasNull(), is(false));
-                  }
-                  assertThat(b.toString(), notNullValue());
-                  return null;
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                }
-              }
-            });
+        .returns(r -> {
+          try {
+            assertThat(r.next(), is(true));
+            final StringBuilder b = new StringBuilder();
+            final int c = r.getMetaData().getColumnCount();
+            for (int i = 0; i < c; i++) {
+              b.append(r.getString(i + 1)).append(';');
+              assertThat(r.wasNull(), is(false));
+            }
+            assertThat(b.toString(), notNullValue());
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   @Test public void testPsDistinct() {
     Assume.assumeFalse("Skip: the 'ps' table does not work on Windows",
         isWindows());
     sql("select distinct `user` from ps")
-        .returns(
-            new Function<ResultSet, Void>() {
-              public Void apply(ResultSet r) {
-                try {
-                  assertThat(r.next(), is(true));
-                  assertThat(r.getString(1), notNullValue());
-                  assertThat(r.wasNull(), is(false));
-                  return null;
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                }
-              }
-            });
+        .returns(r -> {
+          try {
+            assertThat(r.next(), is(true));
+            assertThat(r.getString(1), notNullValue());
+            assertThat(r.wasNull(), is(false));
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   @Test public void testGitCommits() {
     Assume.assumeTrue("no git", hasGit());
     sql("select count(*) from git_commits")
-        .returns(
-            new Function<ResultSet, Void>() {
-              public Void apply(ResultSet r) {
-                try {
-                  assertThat(r.next(), is(true));
-                  assertThat(r.getString(1), notNullValue());
-                  assertThat(r.wasNull(), is(false));
-                  return null;
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                }
-              }
-            });
+        .returns(r -> {
+          try {
+            assertThat(r.next(), is(true));
+            assertThat(r.getString(1), notNullValue());
+            assertThat(r.wasNull(), is(false));
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   @Test public void testGitCommitsTop() {
@@ -209,39 +185,32 @@ public class OsAdapterTest {
     Assume.assumeFalse("Skip: the 'files' table does not work on Windows",
         isWindows());
     sql("select * from vmstat")
-        .returns(
-            new Function<ResultSet, Void>() {
-              public Void apply(ResultSet r) {
-                try {
-                  assertThat(r.next(), is(true));
-                  final int c = r.getMetaData().getColumnCount();
-                  for (int i = 0; i < c; i++) {
-                    assertThat(r.getLong(i + 1), notNullValue());
-                    assertThat(r.wasNull(), is(false));
-                  }
-                  return null;
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                }
-              }
-            });
+        .returns(r -> {
+          try {
+            assertThat(r.next(), is(true));
+            final int c = r.getMetaData().getColumnCount();
+            for (int i = 0; i < c; i++) {
+              assertThat(r.getLong(i + 1), notNullValue());
+              assertThat(r.wasNull(), is(false));
+            }
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   @Test public void testStdin() throws SQLException {
     try (Hook.Closeable ignore = Hook.STANDARD_STREAMS.addThread(
-        new Function<Holder<Object[]>, Void>() {
-          public Void apply(Holder<Object[]> o) {
-            final Object[] values = o.get();
-            final InputStream in = (InputStream) values[0];
-            final String s = "First line\n"
-                + "Second line";
-            final ByteArrayInputStream in2 =
-                new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8));
-            final OutputStream out = (OutputStream) values[1];
-            final OutputStream err = (OutputStream) values[2];
-            o.set(new Object[] {in2, out, err});
-            return null;
-          }
+        (Consumer<Holder<Object[]>>) o -> {
+          final Object[] values = o.get();
+          final InputStream in = (InputStream) values[0];
+          final String s = "First line\n"
+              + "Second line";
+          final ByteArrayInputStream in2 =
+              new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8));
+          final OutputStream out = (OutputStream) values[1];
+          final OutputStream err = (OutputStream) values[2];
+          o.set(new Object[] {in2, out, err});
         })) {
       assertThat(foo("select count(*) as c from stdin"), is("2\n"));
     }
@@ -374,9 +343,8 @@ public class OsAdapterTest {
   static CalciteAssert.AssertQuery sql(String sql) {
     return CalciteAssert.that()
         .withModel(SqlShell.MODEL)
-        .with(CalciteConnectionProperty.LEX.camelName(), Lex.JAVA)
-        .with(CalciteConnectionProperty.CONFORMANCE.camelName(),
-            SqlConformanceEnum.LENIENT)
+        .with(CalciteConnectionProperty.LEX, Lex.JAVA)
+        .with(CalciteConnectionProperty.CONFORMANCE, SqlConformanceEnum.LENIENT)
         .query(sql);
   }
 }

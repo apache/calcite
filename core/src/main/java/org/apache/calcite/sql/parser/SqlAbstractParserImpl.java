@@ -32,12 +32,12 @@ import org.apache.calcite.util.Glossary;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 import java.io.Reader;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -391,7 +391,7 @@ public abstract class SqlAbstractParserImpl {
     // preserve the correct syntax (i.e. don't quote builtin function
     /// name when regenerating SQL).
     if (funName.isSimple()) {
-      final List<SqlOperator> list = Lists.newArrayList();
+      final List<SqlOperator> list = new ArrayList<>();
       opTab.lookupOperatorOverloads(funName, funcType, SqlSyntax.FUNCTION, list);
       if (list.size() == 1) {
         fun = list.get(0);

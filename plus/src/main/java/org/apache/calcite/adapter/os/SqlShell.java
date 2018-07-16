@@ -20,8 +20,6 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.util.JsonBuilder;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
@@ -41,6 +39,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -58,9 +57,9 @@ public class SqlShell {
   SqlShell(InputStreamReader in, PrintWriter out,
       PrintWriter err, String... args) {
     this.args = ImmutableList.copyOf(args);
-    this.in = Preconditions.checkNotNull(in);
-    this.out = Preconditions.checkNotNull(out);
-    this.err = Preconditions.checkNotNull(err);
+    this.in = Objects.requireNonNull(in);
+    this.out = Objects.requireNonNull(out);
+    this.err = Objects.requireNonNull(err);
   }
 
   private static String model() {
@@ -286,32 +285,30 @@ public class SqlShell {
             out.println(",");
           }
           json.append(b, 0,
-              Maps.asMap(fields, new Function<String, Object>() {
-                public Object apply(String columnLabel) {
-                  try {
-                    final int i = fieldOrdinals.get(columnLabel);
-                    switch (m.getColumnType(i)) {
-                    case Types.BOOLEAN:
-                      final boolean b = r.getBoolean(i);
-                      return !b && r.wasNull() ? null : b;
-                    case Types.DECIMAL:
-                    case Types.FLOAT:
-                    case Types.REAL:
-                    case Types.DOUBLE:
-                      final double d = r.getDouble(i);
-                      return d == 0D && r.wasNull() ? null : d;
-                    case Types.BIGINT:
-                    case Types.INTEGER:
-                    case Types.SMALLINT:
-                    case Types.TINYINT:
-                      final long v = r.getLong(i);
-                      return v == 0L && r.wasNull() ? null : v;
-                    default:
-                      return r.getString(i);
-                    }
-                  } catch (SQLException e) {
-                    throw new RuntimeException(e);
+              Maps.asMap(fields, columnLabel -> {
+                try {
+                  final int i1 = fieldOrdinals.get(columnLabel);
+                  switch (m.getColumnType(i1)) {
+                  case Types.BOOLEAN:
+                    final boolean b1 = r.getBoolean(i1);
+                    return !b1 && r.wasNull() ? null : b1;
+                  case Types.DECIMAL:
+                  case Types.FLOAT:
+                  case Types.REAL:
+                  case Types.DOUBLE:
+                    final double d = r.getDouble(i1);
+                    return d == 0D && r.wasNull() ? null : d;
+                  case Types.BIGINT:
+                  case Types.INTEGER:
+                  case Types.SMALLINT:
+                  case Types.TINYINT:
+                    final long v = r.getLong(i1);
+                    return v == 0L && r.wasNull() ? null : v;
+                  default:
+                    return r.getString(i1);
                   }
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
                 }
               }));
           out.append(b);

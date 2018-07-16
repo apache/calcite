@@ -48,7 +48,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -368,7 +367,7 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
     }
     resultBlock.add(physType.record(results));
     if (getGroupType() != Group.SIMPLE) {
-      final List<Expression> list = Lists.newArrayList();
+      final List<Expression> list = new ArrayList<>();
       for (ImmutableBitSet set : groupSets) {
         list.add(
             inputPhysType.generateSelector(parameter, groupSet.asList(),

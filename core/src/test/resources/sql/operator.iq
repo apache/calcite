@@ -66,4 +66,103 @@ select * from "scott".emp where not sal > 1300 and not sal < 1200;
 
 !ok
 
+# MULTISET EXCEPT
+values multiset ['a', 'c', 'a'] multiset except multiset ['a'];
++--------+
+| EXPR$0 |
++--------+
+| [c, a] |
++--------+
+(1 row)
+
+!ok
+
+# MULTISET EXCEPT ALL
+values multiset ['a', 'c', 'a'] multiset except all multiset ['a'];
++--------+
+| EXPR$0 |
++--------+
+| [c, a] |
++--------+
+(1 row)
+
+!ok
+
+# MULTISET EXCEPT DISTINCT
+values multiset ['a', 'c', 'a'] multiset except distinct multiset ['a'];
++--------+
+| EXPR$0 |
++--------+
+| [c]    |
++--------+
+(1 row)
+
+!ok
+
+# MULTISET UNION
+values multiset ['a', 'c', 'b'] multiset union multiset ['a'];
++--------------+
+| EXPR$0       |
++--------------+
+| [a, c, b, a] |
++--------------+
+(1 row)
+
+!ok
+
+# MULTISET UNION ALL
+values multiset ['a', 'c', 'b'] multiset union all multiset ['a'];
++--------------+
+| EXPR$0       |
++--------------+
+| [a, c, b, a] |
++--------------+
+(1 row)
+
+!ok
+
+# MULTISET UNION DISTINCT
+values multiset ['a', 'c', 'b'] multiset union distinct multiset ['a'];
++-----------+
+| EXPR$0    |
++-----------+
+| [a, b, c] |
++-----------+
+(1 row)
+
+!ok
+
+# MULTISET INTERSECT
+values multiset ['a', 'c', 'a', 'a'] multiset intersect multiset ['a', 'a'];
++--------+
+| EXPR$0 |
++--------+
+| [a, a] |
++--------+
+(1 row)
+
+!ok
+
+# MULTISET INTERSECT ALL
+values multiset ['a', 'c', 'a', 'a'] multiset intersect all multiset ['a', 'a'];
++--------+
+| EXPR$0 |
++--------+
+| [a, a] |
++--------+
+(1 row)
+
+!ok
+
+# MULTISET INTERSECT DISTINCT
+values multiset ['a', 'c', 'a', 'a'] multiset intersect distinct multiset ['a', 'a'];
++--------+
+| EXPR$0 |
++--------+
+| [a]    |
++--------+
+(1 row)
+
+!ok
+
 # End operator.iq

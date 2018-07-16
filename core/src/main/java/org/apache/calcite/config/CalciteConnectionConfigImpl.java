@@ -63,6 +63,10 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean();
   }
 
+  @Override public boolean nullEqualToEmpty() {
+    return CalciteConnectionProperty.NULL_EQUAL_TO_EMPTY.wrap(properties).getBoolean();
+  }
+
   public boolean autoTemp() {
     return CalciteConnectionProperty.AUTO_TEMP.wrap(properties).getBoolean();
   }
@@ -95,7 +99,7 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     tables.add(SqlStdOperatorTable.instance());
     return operatorTableClass.cast(
         ChainedSqlOperatorTable.of(
-            tables.toArray(new SqlOperatorTable[tables.size()])));
+            tables.toArray(new SqlOperatorTable[0])));
   }
 
   private static void operatorTable(String s,

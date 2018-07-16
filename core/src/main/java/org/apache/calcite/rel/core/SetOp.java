@@ -28,7 +28,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -102,12 +101,8 @@ public abstract class SetOp extends AbstractRelNode {
   }
 
   @Override protected RelDataType deriveRowType() {
-    final List<RelDataType> inputRowTypes = Lists.transform(inputs,
-        new Function<RelNode, RelDataType>() {
-          public RelDataType apply(RelNode input) {
-            return input.getRowType();
-          }
-        });
+    final List<RelDataType> inputRowTypes =
+        Lists.transform(inputs, RelNode::getRowType);
     final RelDataType rowType =
         getCluster().getTypeFactory().leastRestrictive(inputRowTypes);
     if (rowType == null) {

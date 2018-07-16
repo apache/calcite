@@ -45,12 +45,16 @@ import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
@@ -75,31 +79,20 @@ public class SqlFunctions {
   private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
   private static final Function1<List<Object>, Enumerable<Object>> LIST_AS_ENUMERABLE =
-      new Function1<List<Object>, Enumerable<Object>>() {
-        public Enumerable<Object> apply(List<Object> list) {
-          return Linq4j.asEnumerable(list);
-        }
-      };
+      Linq4j::asEnumerable;
 
   private static final Function1<Object[], Enumerable<Object[]>> ARRAY_CARTESIAN_PRODUCT =
-      new Function1<Object[], Enumerable<Object[]>>() {
-        public Enumerable<Object[]> apply(Object[] lists) {
-          final List<Enumerator<Object>> enumerators = new ArrayList<>();
-          for (Object list : lists) {
-            enumerators.add(Linq4j.enumerator((List) list));
-          }
-          final Enumerator<List<Object>> product = Linq4j.product(enumerators);
-          return new AbstractEnumerable<Object[]>() {
-            public Enumerator<Object[]> enumerator() {
-              return Linq4j.transform(product,
-                  new Function1<List<Object>, Object[]>() {
-                    public Object[] apply(List<Object> list) {
-                      return list.toArray();
-                    }
-                  });
-            }
-          };
+      lists -> {
+        final List<Enumerator<Object>> enumerators = new ArrayList<>();
+        for (Object list : lists) {
+          enumerators.add(Linq4j.enumerator((List) list));
         }
+        final Enumerator<List<Object>> product = Linq4j.product(enumerators);
+        return new AbstractEnumerable<Object[]>() {
+          public Enumerator<Object[]> enumerator() {
+            return Linq4j.transform(product, List::toArray);
+          }
+        };
       };
 
   /** Holds, for each thread, a map from sequence name to sequence current
@@ -109,11 +102,7 @@ public class SqlFunctions {
    * that sequences can be parsed, validated and planned. A real application
    * will want persistent values for sequences, shared among threads. */
   private static final ThreadLocal<Map<String, AtomicLong>> THREAD_SEQUENCES =
-      new ThreadLocal<Map<String, AtomicLong>>() {
-        @Override protected Map<String, AtomicLong> initialValue() {
-          return new HashMap<String, AtomicLong>();
-        }
-      };
+      ThreadLocal.withInitial(HashMap::new);
 
   private SqlFunctions() {
   }
@@ -2105,6 +2094,101 @@ public class SqlFunctions {
     }
   }
 
+  /** Support the MEMBER OF function. */
+  public static boolean memberOf(Object object, Collection collection) {
+    return collection.contains(object);
+  }
+
+  /** Support the MULTISET INTERSECT DISTINCT function. */
+  public static <E> Collection<E> multisetIntersectDistinct(Collection<E> c1,
+      Collection<E> c2) {
+    final Set<E> result = new HashSet<E>(c1);
+    result.retainAll(c2);
+    return new ArrayList<E>(result);
+  }
+
+  /** Support the MULTISET INTERSECT ALL function. */
+  public static <E> Collection<E> multisetIntersectAll(Collection<E> c1,
+      Collection<E> c2) {
+    final List<E> result = new ArrayList<>(c1.size());
+    final List<E> c2Copy = new ArrayList<>(c2);
+    for (E e : c1) {
+      if (c2Copy.remove(e)) {
+        result.add(e);
+      }
+    }
+    return result;
+  }
+
+  /** Support the MULTISET EXCEPT ALL function. */
+  public static <E> Collection<E> multisetExceptAll(Collection<E> c1,
+      Collection<E> c2) {
+    final List<E> result = new LinkedList<>(c1);
+    for (E e : c2) {
+      result.remove(e);
+    }
+    return result;
+  }
+
+  /** Support the MULTISET EXCEPT DISTINCT function. */
+  public static <E> Collection<E> multisetExceptDistinct(Collection<E> c1,
+      Collection<E> c2) {
+    final Set<E> result = new HashSet<>(c1);
+    result.removeAll(c2);
+    return new ArrayList<>(result);
+  }
+
+  /** Support the IS A SET function. */
+  public static boolean isASet(Collection collection) {
+    if (collection instanceof Set) {
+      return true;
+    }
+    // capacity calculation is in the same way like for new HashSet(Collection)
+    // however return immediately in case of duplicates
+    Set set = new HashSet(Math.max((int) (collection.size() / .75f) + 1, 16));
+    for (Object e : collection) {
+      if (!set.add(e)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Support the SUBMULTISET OF function. */
+  public static boolean submultisetOf(Collection possibleSubMultiset,
+      Collection multiset) {
+    if (possibleSubMultiset.size() > multiset.size()) {
+      return false;
+    }
+    Collection multisetLocal = new LinkedList(multiset);
+    for (Object e : possibleSubMultiset) {
+      if (!multisetLocal.remove(e)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Support the MULTISET UNION function. */
+  public static Collection multisetUnionDistinct(Collection collection1,
+      Collection collection2) {
+    // capacity calculation is in the same way like for new HashSet(Collection)
+    Set resultCollection =
+        new HashSet(Math.max((int) ((collection1.size() + collection2.size()) / .75f) + 1, 16));
+    resultCollection.addAll(collection1);
+    resultCollection.addAll(collection2);
+    return new ArrayList(resultCollection);
+  }
+
+  /** Support the MULTISET UNION ALL function. */
+  public static Collection multisetUnionAll(Collection collection1,
+      Collection collection2) {
+    List resultCollection = new ArrayList(collection1.size() + collection2.size());
+    resultCollection.addAll(collection1);
+    resultCollection.addAll(collection2);
+    return resultCollection;
+  }
+
   public static Function1<Object, Enumerable<ComparableList<Comparable>>> flatProduct(
       final int[] fieldCounts, final boolean withOrdinality,
       final FlatProductInputType[] inputTypes) {
@@ -2113,20 +2197,12 @@ public class SqlFunctions {
         //noinspection unchecked
         return (Function1) LIST_AS_ENUMERABLE;
       } else {
-        return new Function1<Object, Enumerable<ComparableList<Comparable>>>() {
-          public Enumerable<ComparableList<Comparable>> apply(Object row) {
-            return p2(new Object[] { row }, fieldCounts, withOrdinality,
-                  inputTypes);
-          }
-        };
+        return row -> p2(new Object[] { row }, fieldCounts, withOrdinality,
+              inputTypes);
       }
     }
-    return new Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>>() {
-      public Enumerable<FlatLists.ComparableList<Comparable>> apply(Object lists) {
-        return p2((Object[]) lists, fieldCounts, withOrdinality,
-            inputTypes);
-      }
-    };
+    return lists -> p2((Object[]) lists, fieldCounts, withOrdinality,
+        inputTypes);
   }
 
   private static Enumerable<FlatLists.ComparableList<Comparable>> p2(
@@ -2144,12 +2220,7 @@ public class SqlFunctions {
             (List<Comparable>) inputObject;
         enumerators.add(
             Linq4j.transform(
-                Linq4j.enumerator(list),
-                new Function1<Comparable, List<Comparable>>() {
-                  public List<Comparable> apply(Comparable a0) {
-                    return FlatLists.of(a0);
-                  }
-                }));
+                Linq4j.enumerator(list), FlatLists::of));
         break;
       case LIST:
         @SuppressWarnings("unchecked") List<List<Comparable>> listList =
@@ -2163,11 +2234,7 @@ public class SqlFunctions {
             Linq4j.enumerator(map.entrySet());
 
         Enumerator<List<Comparable>> transformed = Linq4j.transform(enumerator,
-            new Function1<Entry<Comparable, Comparable>, List<Comparable>>() {
-              public List<Comparable> apply(Entry<Comparable, Comparable> e) {
-                return FlatLists.of(e.getKey(), e.getValue());
-              }
-            });
+            e -> FlatLists.of(e.getKey(), e.getValue()));
         enumerators.add(transformed);
         break;
       default:

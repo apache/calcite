@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
@@ -24,28 +25,27 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.TimestampString;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.TimeZone;
-
+import java.util.Objects;
 import javax.annotation.Nullable;
-
 
 /**
  * Filter element of a Druid "groupBy" or "topN" query.
  */
 abstract class DruidJsonFilter implements DruidJson {
+
+  private static final SimpleDateFormat DATE_FORMATTER = getDateFormatter();
+
 
   /**
    * @param rexNode    rexNode to translate to Druid Json Filter
@@ -206,30 +206,22 @@ abstract class DruidJsonFilter implements DruidJson {
   @Nullable
   private static String toDruidLiteral(RexNode rexNode, RelDataType rowType,
       DruidQuery druidQuery) {
-    final SimpleDateFormat dateFormatter = new SimpleDateFormat(
-        TimeExtractionFunction.ISO_TIME_FORMAT,
-        Locale.ROOT);
-    final String timeZone = druidQuery.getConnectionConfig().timeZone();
-    if (timeZone != null) {
-      dateFormatter.setTimeZone(TimeZone.getTimeZone(timeZone));
-    }
     final String val;
     final RexLiteral rhsLiteral = (RexLiteral) rexNode;
     if (SqlTypeName.NUMERIC_TYPES.contains(rhsLiteral.getTypeName())) {
       val = String.valueOf(RexLiteral.value(rhsLiteral));
     } else if (SqlTypeName.CHAR_TYPES.contains(rhsLiteral.getTypeName())) {
       val = String.valueOf(RexLiteral.stringValue(rhsLiteral));
-    } else if (SqlTypeName.TIMESTAMP == rhsLiteral.getTypeName() || SqlTypeName.DATE == rhsLiteral
-        .getTypeName() || SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE == rhsLiteral.getTypeName()) {
-      TimestampString timestampString = DruidDateTimeUtils
-          .literalValue(rexNode, TimeZone.getTimeZone(timeZone));
-      if (timestampString == null) {
+    } else if (SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE == rhsLiteral.getTypeName()
+        || SqlTypeName.TIMESTAMP == rhsLiteral.getTypeName()
+        || SqlTypeName.DATE == rhsLiteral.getTypeName()) {
+      Long millisSinceEpoch = DruidDateTimeUtils.literalValue(rexNode);
+      if (millisSinceEpoch == null) {
         throw new AssertionError(
             "Cannot translate Literal" + rexNode + " of type "
                 + rhsLiteral.getTypeName() + " to TimestampString");
       }
-      //@TODO this is unnecessary we can send time as Long (eg millis since epoch) to druid
-      val = dateFormatter.format(timestampString.getMillisSinceEpoch());
+      val = DATE_FORMATTER.format(millisSinceEpoch);
     } else {
       // Don't know how to filter on this kind of literal.
       val = null;
@@ -392,7 +384,7 @@ abstract class DruidJsonFilter implements DruidJson {
     case OR:
     case NOT:
       final RexCall call = (RexCall) rexNode;
-      final List<DruidJsonFilter> jsonFilters = Lists.newArrayList();
+      final List<DruidJsonFilter> jsonFilters = new ArrayList<>();
       for (final RexNode e : call.getOperands()) {
         final DruidJsonFilter druidFilter = toDruidFilters(e, rowType, druidQuery);
         if (druidFilter == null) {
@@ -448,7 +440,7 @@ abstract class DruidJsonFilter implements DruidJson {
 
     JsonExpressionFilter(String expression) {
       super(Type.EXPRESSION);
-      this.expression = Preconditions.checkNotNull(expression);
+      this.expression = Objects.requireNonNull(expression);
     }
 
     @Override public void write(JsonGenerator generator) throws IOException {
@@ -615,7 +607,7 @@ abstract class DruidJsonFilter implements DruidJson {
 
   public static DruidJsonFilter getSelectorFilter(String column, String value,
       ExtractionFunction extractionFunction) {
-    Preconditions.checkNotNull(column);
+    Objects.requireNonNull(column);
     return new JsonSelector(column, value, extractionFunction);
   }
 
@@ -636,6 +628,14 @@ abstract class DruidJsonFilter implements DruidJson {
       DruidQuery.writeField(generator, "filter", filter);
       generator.writeEndObject();
     }
+  }
+
+  private static SimpleDateFormat getDateFormatter() {
+    final SimpleDateFormat dateFormatter = new SimpleDateFormat(
+        TimeExtractionFunction.ISO_TIME_FORMAT,
+        Locale.ROOT);
+    dateFormatter.setTimeZone(DateTimeUtils.UTC_ZONE);
+    return dateFormatter;
   }
 }
 

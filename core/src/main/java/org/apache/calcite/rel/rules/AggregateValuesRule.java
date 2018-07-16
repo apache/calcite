@@ -28,7 +28,6 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 
 import java.math.BigDecimal;
@@ -64,8 +63,10 @@ public class AggregateValuesRule extends RelOptRule {
    */
   public AggregateValuesRule(RelBuilderFactory relBuilderFactory) {
     super(
-        operand(Aggregate.class, null, Predicates.not(Aggregate.IS_NOT_GRAND_TOTAL),
-            operand(Values.class, null, Values.IS_EMPTY, none())),
+        operandJ(Aggregate.class, null,
+            aggregate -> aggregate.getGroupCount() == 0,
+            operandJ(Values.class, null,
+                values -> values.getTuples().isEmpty(), none())),
         relBuilderFactory, null);
   }
 

@@ -25,7 +25,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableIntList;
@@ -73,7 +72,7 @@ public class SemiJoin extends EquiJoin {
         condition,
         leftKeys,
         rightKeys,
-        ImmutableSet.<CorrelationId>of(),
+        ImmutableSet.of(),
         JoinRelType.INNER);
   }
 
@@ -121,7 +120,7 @@ public class SemiJoin extends EquiJoin {
         JoinRelType.INNER,
         getCluster().getTypeFactory(),
         null,
-        ImmutableList.<RelDataTypeField>of());
+        ImmutableList.of());
   }
 }
 

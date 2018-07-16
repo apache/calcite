@@ -24,7 +24,6 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Ordering;
 
 import java.util.Collection;
@@ -89,7 +88,7 @@ public class RelDistributions {
     private final ImmutableIntList keys;
 
     private RelDistributionImpl(Type type, ImmutableIntList keys) {
-      this.type = Preconditions.checkNotNull(type);
+      this.type = Objects.requireNonNull(type);
       this.keys = ImmutableIntList.copyOf(keys);
       assert type != Type.HASH_DISTRIBUTED
           || keys.size() < 2

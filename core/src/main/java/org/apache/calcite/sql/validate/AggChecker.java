@@ -209,7 +209,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
 
     // Visit the operands (only expressions).
     call.getOperator()
-        .acceptCall(this, call, true, ArgHandlerImpl.<Void>instance());
+        .acceptCall(this, call, true, ArgHandlerImpl.instance());
 
     // Restore scope.
     scopes.pop();

@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.rel.type.DynamicRecordType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.ArraySqlType;
@@ -65,13 +64,13 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
     for (Integer operand : Util.range(opBinding.getOperandCount())) {
       RelDataType type = opBinding.getOperandType(operand);
       if (type.getSqlTypeName() == SqlTypeName.ANY) {
-        // When there is one operand with unknown type (ANY), the return type
-        // is dynamic star
+        // Unnest Operator in schema less systems returns one column as the output
+        // $unnest is a place holder to specify that one column with type ANY is output.
         return builder
-            .add(DynamicRecordType.DYNAMIC_STAR_PREFIX,
-                SqlTypeName.DYNAMIC_STAR)
+            .add("$unnest",
+                SqlTypeName.ANY)
             .nullable(true)
-            .buildDynamic();
+            .build();
       }
 
       if (type.isStruct()) {

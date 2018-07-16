@@ -19,7 +19,6 @@ package org.apache.calcite.adapter.cassandra;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.rel.RelFieldCollation;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -50,7 +49,6 @@ import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.MaterializedViewMetadata;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TableMetadata;
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -113,11 +111,8 @@ public class CassandraSchema extends AbstractSchema {
     this.parentSchema = parentSchema;
     this.name = name;
 
-    this.hook = Hook.TRIMMED.add(new Function<RelNode, Void>() {
-      public Void apply(RelNode node) {
-        CassandraSchema.this.addMaterializedViews();
-        return null;
-      }
+    this.hook = Hook.TRIMMED.add(node -> {
+      CassandraSchema.this.addMaterializedViews();
     });
   }
 
@@ -177,19 +172,19 @@ public class CassandraSchema extends AbstractSchema {
     }
 
     List<ColumnMetadata> partitionKey = table.getPartitionKey();
-    List<String> pKeyFields = new ArrayList<String>();
+    List<String> pKeyFields = new ArrayList<>();
     for (ColumnMetadata column : partitionKey) {
       pKeyFields.add(column.getName());
     }
 
     List<ColumnMetadata> clusteringKey = table.getClusteringColumns();
-    List<String> cKeyFields = new ArrayList<String>();
+    List<String> cKeyFields = new ArrayList<>();
     for (ColumnMetadata column : clusteringKey) {
       cKeyFields.add(column.getName());
     }
 
-    return Pair.of((List<String>) ImmutableList.copyOf(pKeyFields),
-        (List<String>) ImmutableList.copyOf(cKeyFields));
+    return Pair.of(ImmutableList.copyOf(pKeyFields),
+        ImmutableList.copyOf(cKeyFields));
   }
 
   /** Get the collation of all clustering key columns.
@@ -205,7 +200,7 @@ public class CassandraSchema extends AbstractSchema {
     }
 
     List<ClusteringOrder> clusteringOrder = table.getClusteringOrder();
-    List<RelFieldCollation> keyCollations = new ArrayList<RelFieldCollation>();
+    List<RelFieldCollation> keyCollations = new ArrayList<>();
 
     int i = 0;
     for (ClusteringOrder order : clusteringOrder) {
@@ -237,7 +232,7 @@ public class CassandraSchema extends AbstractSchema {
       StringBuilder queryBuilder = new StringBuilder("SELECT ");
 
       // Add all the selected columns to the query
-      List<String> columnNames = new ArrayList<String>();
+      List<String> columnNames = new ArrayList<>();
       for (ColumnMetadata column : view.getColumns()) {
         columnNames.add("\"" + column.getName() + "\"");
       }

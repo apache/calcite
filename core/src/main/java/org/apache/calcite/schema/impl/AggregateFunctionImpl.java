@@ -25,12 +25,12 @@ import org.apache.calcite.schema.FunctionParameter;
 import org.apache.calcite.schema.ImplementableAggFunction;
 import org.apache.calcite.util.ReflectUtil;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.List;
+import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -70,8 +70,8 @@ public class AggregateFunctionImpl implements AggregateFunction,
     this.parameters = params;
     this.accumulatorType = accumulatorType;
     this.resultType = resultType;
-    this.initMethod = Preconditions.checkNotNull(initMethod);
-    this.addMethod = Preconditions.checkNotNull(addMethod);
+    this.initMethod = Objects.requireNonNull(initMethod);
+    this.addMethod = Objects.requireNonNull(addMethod);
     this.mergeMethod = mergeMethod;
     this.resultMethod = resultMethod;
     this.isStatic = Modifier.isStatic(initMethod.getModifiers());

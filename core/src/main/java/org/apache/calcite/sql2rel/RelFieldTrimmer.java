@@ -65,7 +65,6 @@ import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
@@ -613,7 +612,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       // on-demand fields.
       Set<RelDataTypeField> inputExtraFields =
           RelDataTypeImpl.extra(inputRowType) == null
-              ? Collections.<RelDataTypeField>emptySet()
+              ? Collections.emptySet()
               : combinedInputExtraFields;
       inputExtraFieldCounts.add(inputExtraFields.size());
       TrimResult trimResult =
@@ -848,11 +847,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final ImmutableList<ImmutableBitSet> newGroupSets =
         ImmutableList.copyOf(
             Iterables.transform(aggregate.getGroupSets(),
-                new Function<ImmutableBitSet, ImmutableBitSet>() {
-                  public ImmutableBitSet apply(ImmutableBitSet input) {
-                    return Mappings.apply(inputMapping, input);
-                  }
-                }));
+                input1 -> Mappings.apply(inputMapping, input1)));
 
     // Populate mapping of where to find the fields. System, group key and
     // indicator fields first.

@@ -37,7 +37,6 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -56,6 +55,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -84,8 +84,8 @@ class DruidConnectionImpl implements DruidConnection {
   }
 
   DruidConnectionImpl(String url, String coordinatorUrl) {
-    this.url = Preconditions.checkNotNull(url);
-    this.coordinatorUrl = Preconditions.checkNotNull(coordinatorUrl);
+    this.url = Objects.requireNonNull(url);
+    this.coordinatorUrl = Objects.requireNonNull(coordinatorUrl);
   }
 
   /** Executes a query request.

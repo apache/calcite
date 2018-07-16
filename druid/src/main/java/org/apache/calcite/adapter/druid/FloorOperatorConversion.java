@@ -16,16 +16,17 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.util.TimeZone;
 
 import javax.annotation.Nullable;
-
 
 /**
  * DruidSqlOperatorConverter implementation that handles Floor operations conversions
@@ -51,8 +52,14 @@ public class FloorOperatorConversion implements DruidSqlOperatorConverter {
       return  DruidQuery.format("floor(%s)", druidExpression);
     } else if (call.getOperands().size() == 2) {
       // FLOOR(expr TO timeUnit)
+      final TimeZone tz;
+      if (arg.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+        tz = TimeZone.getTimeZone(druidQuery.getConnectionConfig().timeZone());
+      } else {
+        tz = DateTimeUtils.UTC_ZONE;
+      }
       final Granularity granularity = DruidDateTimeUtils
-          .extractGranularity(call, druidQuery.getConnectionConfig().timeZone());
+          .extractGranularity(call, tz.getID());
       if (granularity == null) {
         return null;
       }
@@ -64,7 +71,7 @@ public class FloorOperatorConversion implements DruidSqlOperatorConverter {
           druidExpression,
           isoPeriodFormat,
           "",
-          TimeZone.getTimeZone(druidQuery.getConnectionConfig().timeZone()));
+          tz);
     } else {
       return null;
     }

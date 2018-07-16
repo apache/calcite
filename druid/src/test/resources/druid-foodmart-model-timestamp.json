@@ -1,0 +1,153 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+{
+  "version": "1.0",
+  "defaultSchema": "foodmart",
+  "schemas": [
+    {
+      "type": "custom",
+      "name": "foodmart",
+      "factory": "org.apache.calcite.adapter.druid.DruidSchemaFactory",
+      "operand": {
+        "url": "http://localhost:8082",
+        "coordinatorUrl": "http://localhost:8081"
+      },
+      "tables": [
+        {
+          "name": "foodmart",
+          "factory": "org.apache.calcite.adapter.druid.DruidTableFactory",
+          "operand": {
+            "interval": "1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z",
+            "timestampColumn": {
+              "name": "timestamp",
+              "type": "timestamp"
+            },
+            "dimensions": [
+              "product_id",
+              "brand_name",
+              "product_name",
+              "SKU",
+              "SRP",
+              "gross_weight",
+              "net_weight",
+              "recyclable_package",
+              "low_fat",
+              "units_per_case",
+              "cases_per_pallet",
+              "shelf_width",
+              "shelf_height",
+              "shelf_depth",
+              "product_class_id",
+              "product_subcategory",
+              "product_category",
+              "product_department",
+              "product_family",
+              "customer_id",
+              "account_num",
+              "lname",
+              "fname",
+              "mi",
+              "address1",
+              "address2",
+              "address3",
+              "address4",
+              "city",
+              "state_province",
+              "postal_code",
+              "country",
+              "customer_region_id",
+              "phone1",
+              "phone2",
+              "birthdate",
+              "marital_status",
+              "yearly_income",
+              "gender",
+              "total_children",
+              "num_children_at_home",
+              "education",
+              "date_accnt_opened",
+              "member_card",
+              "occupation",
+              "houseowner",
+              "num_cars_owned",
+              "fullname",
+              "promotion_id",
+              "promotion_district_id",
+              "promotion_name",
+              "media_type",
+              "cost",
+              "start_date",
+              "end_date",
+              "store_id",
+              "store_type",
+              "region_id",
+              "store_name",
+              "store_number",
+              "store_street_address",
+              "store_city",
+              "store_state",
+              "store_postal_code",
+              "store_country",
+              "store_manager",
+              "store_phone",
+              "store_fax",
+              "first_opened_date",
+              "last_remodel_date",
+              "store_sqft",
+              "grocery_sqft",
+              "frozen_sqft",
+              "meat_sqft",
+              "coffee_bar",
+              "video_store",
+              "salad_bar",
+              "prepared_food",
+              "florist",
+              "time_id",
+              "the_day",
+              "the_month",
+              "the_year",
+              "day_of_month",
+              "week_of_year",
+              "month_of_year",
+              "quarter",
+              "fiscal_period"
+            ],
+            "metrics": [
+              "unit_sales",
+              {
+                "name": "store_sales",
+                "type": "double"
+              },
+              {
+                "name": "store_cost",
+                "type": "double"
+              },
+              {
+                "name" : "customer_id_ts",
+                "type" : "thetaSketch",
+                "fieldName" : "customer_id"
+              }
+            ],
+            "complexMetrics" : [
+              "customer_id"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

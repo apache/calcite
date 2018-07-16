@@ -47,6 +47,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -82,17 +83,17 @@ public abstract class CalciteSchema {
     if (tableMap == null) {
       this.tableMap = new NameMap<>();
     } else {
-      this.tableMap = Preconditions.checkNotNull(tableMap);
+      this.tableMap = Objects.requireNonNull(tableMap);
     }
     if (latticeMap == null) {
       this.latticeMap = new NameMap<>();
     } else {
-      this.latticeMap = Preconditions.checkNotNull(latticeMap);
+      this.latticeMap = Objects.requireNonNull(latticeMap);
     }
     if (subSchemaMap == null) {
       this.subSchemaMap = new NameMap<>();
     } else {
-      this.subSchemaMap = Preconditions.checkNotNull(subSchemaMap);
+      this.subSchemaMap = Objects.requireNonNull(subSchemaMap);
     }
     if (functionMap == null) {
       this.functionMap = new NameMultimap<>();
@@ -101,14 +102,14 @@ public abstract class CalciteSchema {
     } else {
       // If you specify functionMap, you must also specify functionNames and
       // nullaryFunctionMap.
-      this.functionMap = Preconditions.checkNotNull(functionMap);
-      this.functionNames = Preconditions.checkNotNull(functionNames);
-      this.nullaryFunctionMap = Preconditions.checkNotNull(nullaryFunctionMap);
+      this.functionMap = Objects.requireNonNull(functionMap);
+      this.functionNames = Objects.requireNonNull(functionNames);
+      this.nullaryFunctionMap = Objects.requireNonNull(nullaryFunctionMap);
     }
     if (typeMap == null) {
       this.typeMap = new NameMap<>();
     } else {
-      this.typeMap = Preconditions.checkNotNull(typeMap);
+      this.typeMap = Objects.requireNonNull(typeMap);
     }
     this.path = path;
   }
@@ -172,7 +173,7 @@ public abstract class CalciteSchema {
 
   /** Creates a TableEntryImpl with no SQLs. */
   protected TableEntryImpl tableEntry(String name, Table table) {
-    return new TableEntryImpl(this, name, table, ImmutableList.<String>of());
+    return new TableEntryImpl(this, name, table, ImmutableList.of());
   }
 
   /** Creates a TableEntryImpl with no SQLs. */
@@ -182,7 +183,7 @@ public abstract class CalciteSchema {
 
   /** Defines a table within this schema. */
   public TableEntry add(String tableName, Table table) {
-    return add(tableName, table, ImmutableList.<String>of());
+    return add(tableName, table, ImmutableList.of());
   }
 
   /** Defines a table within this schema. */
@@ -552,8 +553,8 @@ public abstract class CalciteSchema {
     public final String name;
 
     public Entry(CalciteSchema schema, String name) {
-      this.schema = Preconditions.checkNotNull(schema);
-      this.name = Preconditions.checkNotNull(name);
+      this.schema = Objects.requireNonNull(schema);
+      this.name = Objects.requireNonNull(name);
     }
 
     /** Returns this object's path. For example ["hr", "emps"]. */
@@ -569,7 +570,7 @@ public abstract class CalciteSchema {
     public TableEntry(CalciteSchema schema, String name,
         ImmutableList<String> sqls) {
       super(schema, name);
-      this.sqls = Preconditions.checkNotNull(sqls);
+      this.sqls = Objects.requireNonNull(sqls);
     }
 
     public abstract Table getTable();
@@ -730,7 +731,7 @@ public abstract class CalciteSchema {
         ImmutableList<String> sqls) {
       super(schema, name, sqls);
       assert table != null;
-      this.table = Preconditions.checkNotNull(table);
+      this.table = Objects.requireNonNull(table);
     }
 
     public Table getTable() {

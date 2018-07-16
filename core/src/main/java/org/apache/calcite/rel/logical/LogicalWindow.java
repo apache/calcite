@@ -24,7 +24,6 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
@@ -34,13 +33,12 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
-import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -181,8 +179,7 @@ public final class LogicalWindow extends Window {
     // each window.
     final List<Window.RexWinAggCall> flattenedAggCallList = new ArrayList<>();
     final List<Map.Entry<String, RelDataType>> fieldList =
-        new ArrayList<Map.Entry<String, RelDataType>>(
-            child.getRowType().getFieldList());
+        new ArrayList<>(child.getRowType().getFieldList());
     final int offset = fieldList.size();
 
     // Use better field names for agg calls that are projected.
@@ -348,14 +345,11 @@ public final class LogicalWindow extends Window {
     // Look up or create a window.
     RelCollation orderKeys = getCollation(
         Lists.newArrayList(
-            Iterables.filter(aggWindow.orderKeys,
-              new PredicateImpl<RexFieldCollation>() {
-                public boolean test(RexFieldCollation rexFieldCollation) {
-                  // If ORDER BY references constant (i.e. RexInputRef),
-                  // then we can ignore such ORDER BY key.
-                  return rexFieldCollation.left instanceof RexLocalRef;
-                }
-              })));
+            Util.filter(aggWindow.orderKeys,
+                rexFieldCollation ->
+                    // If ORDER BY references constant (i.e. RexInputRef),
+                    // then we can ignore such ORDER BY key.
+                    rexFieldCollation.left instanceof RexLocalRef)));
     ImmutableBitSet groupSet =
         ImmutableBitSet.of(getProjectOrdinals(aggWindow.partitionKeys));
     final int groupLength = groupSet.length();

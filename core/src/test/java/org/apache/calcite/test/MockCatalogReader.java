@@ -99,9 +99,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -110,12 +107,10 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -149,7 +144,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
       boolean caseSensitive) {
     super(CalciteSchema.createRootSchema(false, true, DEFAULT_CATALOG),
         SqlNameMatchers.withCaseSensitive(caseSensitive),
-        ImmutableList.of(PREFIX, ImmutableList.<String>of()),
+        ImmutableList.of(PREFIX, ImmutableList.of()),
         typeFactory, null);
   }
 
@@ -677,7 +672,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
 
   private static List<RelCollation> deduceMonotonicity(
       Prepare.PreparingTable table) {
-    final List<RelCollation> collationList = Lists.newArrayList();
+    final List<RelCollation> collationList = new ArrayList<>();
 
     // Deduce which fields the table is sorted on.
     int i = -1;
@@ -708,7 +703,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
 
   /** Mock schema. */
   public static class MockSchema {
-    private final List<String> tableNames = Lists.newArrayList();
+    private final List<String> tableNames = new ArrayList<>();
     private String name;
 
     public MockSchema(String name) {
@@ -744,7 +739,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
     protected RelDataType rowType;
     protected List<RelCollation> collationList;
     protected final List<String> names;
-    protected final Set<String> monotonicColumnSet = Sets.newHashSet();
+    protected final Set<String> monotonicColumnSet = new HashSet<>();
     protected StructKind kind = StructKind.FULLY_QUALIFIED;
     protected final ColumnResolver resolver;
     protected final InitializerExpressionFactory initializerFactory;
@@ -1149,7 +1144,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
         final ImmutableList.Builder<Pair<String, Schema>> builder =
             ImmutableList.builder();
         for (String name : fromTable.names) {
-          builder.add(Pair.<String, Schema>of(name, null));
+          builder.add(Pair.of(name, null));
         }
         return Schemas.path(builder.build());
       }
@@ -1404,8 +1399,8 @@ public class MockCatalogReader extends CalciteCatalogReader {
   /** ColumnResolver implementation that resolves CompoundNameColumn by simulating
    *  Phoenix behaviors. */
   private static final class CompoundNameColumnResolver implements ColumnResolver {
-    private final Map<String, Integer> nameMap = Maps.newHashMap();
-    private final Map<String, Map<String, Integer>> groupMap = Maps.newHashMap();
+    private final Map<String, Integer> nameMap = new HashMap<>();
+    private final Map<String, Map<String, Integer>> groupMap = new HashMap<>();
     private final String defaultColumnGroup;
 
     CompoundNameColumnResolver(
@@ -1415,7 +1410,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
         nameMap.put(column.e.getName(), column.i);
         Map<String, Integer> subMap = groupMap.get(column.e.first);
         if (subMap == null) {
-          subMap = Maps.newHashMap();
+          subMap = new HashMap<>();
           groupMap.put(column.e.first, subMap);
         }
         subMap.put(column.e.second, column.i);
@@ -1478,14 +1473,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
         if (subMap != null) {
           List<Map.Entry<String, Integer>> entries =
               new ArrayList<>(subMap.entrySet());
-          Collections.sort(
-              entries,
-              new Comparator<Map.Entry<String, Integer>>() {
-                @Override public int compare(
-                    Entry<String, Integer> o1, Entry<String, Integer> o2) {
-                  return o1.getValue() - o2.getValue();
-                }
-              });
+          entries.sort((o1, o2) -> o1.getValue() - o2.getValue());
           ret.add(
               new Pair<RelDataTypeField, List<String>>(
                   new RelDataTypeFieldImpl(
@@ -1575,8 +1563,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
     }
 
     @Override public boolean rolledUpColumnValidInsideAgg(String column,
-                                                          SqlCall call, SqlNode parent,
-                                                          CalciteConnectionConfig config) {
+        SqlCall call, SqlNode parent, CalciteConnectionConfig config) {
       // For testing
       return call.getKind() != SqlKind.MAX
               && (parent.getKind() == SqlKind.SELECT || parent.getKind() == SqlKind.FILTER);
@@ -1723,11 +1710,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
    * value. */
   public static class CountingFactory extends NullInitializerExpressionFactory {
     static final ThreadLocal<AtomicInteger> THREAD_CALL_COUNT =
-        new ThreadLocal<AtomicInteger>() {
-          protected AtomicInteger initialValue() {
-            return new AtomicInteger();
-          }
-        };
+        ThreadLocal.withInitial(AtomicInteger::new);
 
     private final List<String> defaultColumns;
 

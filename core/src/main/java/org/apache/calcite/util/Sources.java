@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.util;
 
-import com.google.common.base.Preconditions;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -27,6 +25,7 @@ import java.io.Reader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -76,7 +75,7 @@ public abstract class Sources {
     private final URL url;
 
     private FileSource(URL url) {
-      this.url = Preconditions.checkNotNull(url);
+      this.url = Objects.requireNonNull(url);
       if (url.getProtocol().equals("file")) {
         this.file = new File(url.getFile());
       } else {
@@ -85,7 +84,7 @@ public abstract class Sources {
     }
 
     private FileSource(File file) {
-      this.file = Preconditions.checkNotNull(file);
+      this.file = Objects.requireNonNull(file);
       this.url = null;
     }
 

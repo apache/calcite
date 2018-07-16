@@ -21,9 +21,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
-import com.google.common.base.Preconditions;
-
 import java.util.List;
+import java.util.Objects;
 import javax.annotation.Nonnull;
 
 /**
@@ -65,14 +64,14 @@ public class SqlSelect extends SqlCall {
       SqlNode offset,
       SqlNode fetch) {
     super(pos);
-    this.keywordList = Preconditions.checkNotNull(keywordList != null
+    this.keywordList = Objects.requireNonNull(keywordList != null
         ? keywordList : new SqlNodeList(pos));
     this.selectList = selectList;
     this.from = from;
     this.where = where;
     this.groupBy = groupBy;
     this.having = having;
-    this.windowDecls = Preconditions.checkNotNull(windowDecls != null
+    this.windowDecls = Objects.requireNonNull(windowDecls != null
         ? windowDecls : new SqlNodeList(pos));
     this.orderBy = orderBy;
     this.offset = offset;
@@ -97,7 +96,7 @@ public class SqlSelect extends SqlCall {
   @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
-      keywordList = Preconditions.checkNotNull((SqlNodeList) operand);
+      keywordList = Objects.requireNonNull((SqlNodeList) operand);
       break;
     case 1:
       selectList = (SqlNodeList) operand;
@@ -115,7 +114,7 @@ public class SqlSelect extends SqlCall {
       having = operand;
       break;
     case 6:
-      windowDecls = Preconditions.checkNotNull((SqlNodeList) operand);
+      windowDecls = Objects.requireNonNull((SqlNodeList) operand);
       break;
     case 7:
       orderBy = (SqlNodeList) operand;
@@ -234,10 +233,10 @@ public class SqlSelect extends SqlCall {
       // ORDER. In this case, we don't need a wrapper frame.)
       final SqlWriter.Frame frame =
           writer.startList(SqlWriter.FrameTypeEnum.SUB_QUERY, "(", ")");
-      getOperator().unparse(writer, this, 0, 0);
+      writer.getDialect().unparseCall(writer, this, 0, 0);
       writer.endList(frame);
     } else {
-      getOperator().unparse(writer, this, leftPrec, rightPrec);
+      writer.getDialect().unparseCall(writer, this, leftPrec, rightPrec);
     }
   }
 

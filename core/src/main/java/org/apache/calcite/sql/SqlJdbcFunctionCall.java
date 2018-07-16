@@ -25,10 +25,10 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
+import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -601,7 +601,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
      */
     PermutingMakeCall(SqlOperator operator, int[] order) {
       super(operator);
-      this.order = Preconditions.checkNotNull(order);
+      this.order = Objects.requireNonNull(order);
     }
 
     @Override public SqlCall createCall(SqlParserPos pos,

@@ -70,7 +70,7 @@ SqlCreate SqlCreateForeignSchema(Span s, boolean replace) :
 SqlNodeList Options() :
 {
     final Span s;
-    final List<SqlNode> list = Lists.newArrayList();
+    final List<SqlNode> list = new ArrayList<SqlNode>();
 }
 {
     <OPTIONS> { s = span(); } <LPAREN>
@@ -102,7 +102,7 @@ void Option(List<SqlNode> list) :
 SqlNodeList TableElementList() :
 {
     final Span s;
-    final List<SqlNode> list = Lists.newArrayList();
+    final List<SqlNode> list = new ArrayList<SqlNode>();
 }
 {
     <LPAREN> { s = span(); }
@@ -194,7 +194,7 @@ void TableElement(List<SqlNode> list) :
 SqlNodeList AttributeDefList() :
 {
     final Span s;
-    final List<SqlNode> list = Lists.newArrayList();
+    final List<SqlNode> list = new ArrayList<SqlNode>();
 }
 {
     <LPAREN> { s = span(); }

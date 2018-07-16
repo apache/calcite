@@ -849,6 +849,9 @@ public enum SqlKind {
   /** The {@code LAST_VALUE} aggregate function. */
   LAST_VALUE,
 
+  /** The {@code ANY_VALUE} aggregate function. */
+  ANY_VALUE,
+
   /** The {@code COVAR_POP} aggregate function. */
   COVAR_POP,
 
@@ -878,6 +881,9 @@ public enum SqlKind {
 
   /** The {@code NTILE} aggregate function. */
   NTILE,
+
+  /** The {@code NTH_VALUE} aggregate function. */
+  NTH_VALUE,
 
   /** The {@code COLLECT} aggregate function. */
   COLLECT,

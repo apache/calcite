@@ -73,7 +73,7 @@ insert into table2 values (NULL, 1), (2, 1);
 # Checked on Oracle
 !set lateDecorrelate true
 select i, j from table1 where table1.j NOT IN (select i from table2 where table1.i=table2.j);
-EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0], expr#9=[=($t3, $t8)], expr#10=[false], expr#11=[IS NOT NULL($t7)], expr#12=[true], expr#13=[IS NULL($t1)], expr#14=[null], expr#15=[<($t4, $t3)], expr#16=[CASE($t9, $t10, $t11, $t12, $t13, $t14, $t15, $t12, $t10)], expr#17=[NOT($t16)], proj#0..1=[{exprs}], $condition=[$t17])
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0], expr#9=[=($t3, $t8)], expr#10=[false], expr#11=[IS NULL($t1)], expr#12=[null], expr#13=[IS NOT NULL($t7)], expr#14=[true], expr#15=[<($t4, $t3)], expr#16=[CASE($t9, $t10, $t11, $t12, $t13, $t14, $t15, $t14, $t10)], expr#17=[NOT($t16)], proj#0..1=[{exprs}], $condition=[$t17])
   EnumerableJoin(condition=[AND(=($0, $6), =($1, $5))], joinType=[left])
     EnumerableJoin(condition=[=($0, $2)], joinType=[left])
       EnumerableTableScan(table=[[BLANK, TABLE1]])

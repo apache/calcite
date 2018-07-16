@@ -93,12 +93,12 @@ drop materialized view if exists v;
 
 # Create materialized view without AS - fails
 create materialized view d;
-Encountered "<EOF>" at line 1, column 27.
+Encountered "<EOF>" at line 1, column 26.
 !error
 
 # Create materialized view without AS - fails
 create materialized view d (x, y);
-Encountered "<EOF>" at line 1, column 34.
+Encountered "<EOF>" at line 1, column 33.
 !error
 
 # Create materialized view without AS - fails

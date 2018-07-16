@@ -118,7 +118,7 @@ public class UnionPullUpConstantsRule extends RelOptRule {
       List<Pair<RexNode, String>> newChildExprs = new ArrayList<>();
       for (int j : refsIndex) {
         newChildExprs.add(
-            Pair.<RexNode, String>of(rexBuilder.makeInputRef(input, j),
+            Pair.of(rexBuilder.makeInputRef(input, j),
                 input.getRowType().getFieldList().get(j).getName()));
       }
       if (newChildExprs.isEmpty()) {

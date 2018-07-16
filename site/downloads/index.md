@@ -49,6 +49,7 @@ Release          | Date       | Commit   | Download
 {% endcomment %}{% endif %}{% comment %}
 {% endcomment %}{% capture d1 %}{{ post.date | date: "%F"}}{% endcapture %}{% comment %}
 {% endcomment %}{% capture d2 %}2017-08-31{% endcapture %}{% comment %}
+{% endcomment %}{% capture d3 %}2018-06-01{% endcapture %}{% comment %}
 {% endcomment %}{% if d1 > d2 %}{% comment %}
 {% endcomment %}{% assign digest = "sha256" %}{% comment %}
 {% endcomment %}{% else %}{% comment %}
@@ -60,10 +61,12 @@ Release          | Date       | Commit   | Download
 {% endcomment %} | <a href="{{ p }}/{{ v }}-src.tar.gz{{ q }}">tar</a>{% comment %}
 {% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.tar.gz.{{ digest }}">digest</a>{% comment %}
 {% endcomment %} <a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.tar.gz.asc">pgp</a>){% comment %}
+{% endcomment %}{% if d1 < d3 %}{% comment %}
 {% endcomment %} {% raw %}<br>{% endraw %}{% comment %}
 {% endcomment %} <a href="{{ p }}/{{ v }}-src.zip{{ q }}">zip</a>{% comment %}
 {% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.zip.{{ digest }}">digest</a>{% comment %}
 {% endcomment %} <a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.zip.asc">pgp</a>){% comment %}
+{% endcomment %}{% endif %}{% comment %}
 {% endcomment %}
 {% endfor %}
 

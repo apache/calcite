@@ -17,6 +17,9 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSelect;
+
+import java.util.Objects;
 
 /**
  * The name-resolution scope of a LATERAL TABLE clause.
@@ -29,39 +32,30 @@ class TableScope extends ListScope {
 
   private final SqlNode node;
 
-  // The expression inside the LATERAL can only see tables before it in the FROM clause.
-  // We use this flag to indicate whether current table is before LATERAL.
-  private boolean beforeLateral;
-
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a scope corresponding to a LATERAL TABLE clause.
    *
-   * @param parent   Parent scope, or null
+   * @param parent  Parent scope
    */
   TableScope(SqlValidatorScope parent, SqlNode node) {
-    super(parent);
-    this.node = node;
-    this.beforeLateral = true;
+    super(Objects.requireNonNull(parent));
+    this.node = Objects.requireNonNull(node);
   }
 
   //~ Methods ----------------------------------------------------------------
-
-
-  @Override public void addChild(SqlValidatorNamespace ns, String alias,
-      boolean nullable) {
-    if (beforeLateral) {
-      super.addChild(ns, alias, nullable);
-    }
-  }
 
   public SqlNode getNode() {
     return node;
   }
 
-  public void meetLateral() {
-    this.beforeLateral = false;
+  @Override public boolean isWithin(SqlValidatorScope scope2) {
+    if (this == scope2) {
+      return true;
+    }
+    SqlValidatorScope s = getValidator().getSelectScope((SqlSelect) node);
+    return s.isWithin(scope2);
   }
 }
 

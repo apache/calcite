@@ -34,7 +34,7 @@ adapters.
 Prerequisites are maven (3.5.2 or later)
 and Java (JDK 8, 9 or 10) on your path.
 
-Unpack the source distribution `.tar.gz` or `.zip` file,
+Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
 then build using maven:
 
@@ -472,6 +472,10 @@ file by following instructions in the `KEYS` file.
 ball because that would be
 [redundant](https://issues.apache.org/jira/browse/CALCITE-1746).)
 
+## Set up Maven repository credentials (for Calcite committers)
+
+Follow the instructions [here](http://www.apache.org/dev/publishing-maven-artifacts.html#dev-env) to add your credentials to your maven configuration.
+
 ## Making a snapshot (for Calcite committers)
 
 Before you start:
@@ -507,7 +511,8 @@ Before you start:
   (i.e. gives no errors; warnings are OK)
 * Generate a report of vulnerabilities that occur among dependencies,
   using `-Ppedantic`; if you like, run again with `-DfailBuildOnCVSS=8` to see
-  whether serious vulnerabilities exist.
+  whether serious vulnerabilities exist. Report to [private@calcite.apache.org](mailto:private@calcite.apache.org)
+  if new critical vulnerabilities are found among dependencies.
 * Make sure that `mvn apache-rat:check` succeeds. (It will be run as part of
   the release, but it's better to trouble-shoot early.)
 * Decide the supported configurations of JDK, operating system and
@@ -580,7 +585,12 @@ mvn clean
 
 # Do a dry run of the release:prepare step, which sets version numbers
 # (accept the default tag name of calcite-X.Y.Z)
+# Note X.Y.Z is the current version we're trying to release, and X.Y+1.Z is the next development version.
+# For example, if I am currently building a release for 1.16.0, X.Y.Z would be 1.16.0 and X.Y+1.Z would be 1.17.0.
 mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
+
+# If you have multiple GPG keys, you can select the key used to sign the release by adding `-Dgpg.keyname=${GPG_KEY_ID}` to `-Darguments`:
+mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE} -Dgpg.keyname=${GPG_KEY_ID}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
 {% endhighlight %}
 
 Check the artifacts.
@@ -591,11 +601,8 @@ The version will be automatically changed when performing the release for real.
   * apache-calcite-X.Y.Z-src.tar.gz
   * apache-calcite-X.Y.Z-src.tar.gz.asc
   * apache-calcite-X.Y.Z-src.tar.gz.sha256
-  * apache-calcite-X.Y.Z-src.zip
-  * apache-calcite-X.Y.Z-src.zip.asc
-  * apache-calcite-X.Y.Z-src.zip.sha256
 * Note that the file names start `apache-calcite-`.
-* In the two source distros `.tar.gz` and `.zip` (currently there is
+* In the source distro `.tar.gz` (currently there is
   no binary distro), check that all files belong to a directory called
   `apache-calcite-X.Y.Z-src`.
 * That directory must contain files `NOTICE`, `LICENSE`,
@@ -618,7 +625,12 @@ For this step you'll have to add the [Apache servers](https://maven.apache.org/d
 
 {% highlight bash %}
 # Prepare sets the version numbers, creates a tag, and pushes it to git
+# Note X.Y.Z is the current version we're trying to release, and X.Y+1.Z is the next development version.
+# For example, if I am currently building a release for 1.16.0, X.Y.Z would be 1.16.0 and X.Y+1.Z would be 1.17.0.
 mvn -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare.log
+
+# If you have multiple GPG keys, you can select the key used to sign the release by adding `-Dgpg.keyname=${GPG_KEY_ID}` to `-Darguments`:
+mvn -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE} -Dgpg.keyname=${GPG_KEY_ID}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
 
 # Perform checks out the tagged version, builds, and deploys to the staging repository
 mvn -DskipTests -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:perform 2>&1 | tee /tmp/perform.log
@@ -688,7 +700,7 @@ curl -O https://dist.apache.org/repos/dist/release/calcite/KEYS
 # (Assumes your O/S has a 'shasum' command.)
 function checkHash() {
   cd "$1"
-  for i in *.{zip,pom,gz}; do
+  for i in *.{pom,gz}; do
     if [ ! -f $i ]; then
       continue
     fi
@@ -733,7 +745,6 @@ https://dist.apache.org/repos/dist/dev/calcite/apache-calcite-X.Y.Z-rcN/
 
 The hashes of the artifacts are as follows:
 src.tar.gz.sha256 XXXX
-src.zip.sha256 XXXX
 
 A staged Maven repository is available for review at:
 https://repository.apache.org/content/repositories/orgapachecalcite-NNNN

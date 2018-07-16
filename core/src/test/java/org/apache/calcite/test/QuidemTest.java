@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.avatica.AvaticaUtils;
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.type.RelDataType;
@@ -31,10 +32,10 @@ import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Closer;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.io.PatternFilenameFilter;
 
+import net.hydromatic.quidem.CommandHandler;
 import net.hydromatic.quidem.Quidem;
 
 import org.junit.Test;
@@ -52,6 +53,7 @@ import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Function;
 
 import static org.junit.Assert.fail;
 
@@ -69,10 +71,31 @@ public abstract class QuidemTest {
     this.method = findMethod(path);
   }
 
+  private static Object getEnv(String varName) {
+    switch (varName) {
+    case "jdk18":
+      return System.getProperty("java.version").startsWith("1.8");
+    case "fixed":
+      // Quidem requires a Guava function
+      return (com.google.common.base.Function<String, Object>) v -> {
+        switch (v) {
+        case "calcite1045":
+          return Bug.CALCITE_1045_FIXED;
+        case "calcite1048":
+          return Bug.CALCITE_1048_FIXED;
+        }
+        return null;
+      };
+    default:
+      return null;
+    }
+  }
+
   private Method findMethod(String path) {
     // E.g. path "sql/agg.iq" gives method "testSqlAgg"
     String methodName =
-        AvaticaUtils.toCamelCase("test_" + path.replace('/', '_').replaceAll("\\.iq$", ""));
+        AvaticaUtils.toCamelCase(
+            "test_" + path.replace(File.separatorChar, '_').replaceAll("\\.iq$", ""));
     Method m;
     try {
       m = getClass().getMethod(methodName);
@@ -101,11 +124,7 @@ public abstract class QuidemTest {
           : "f: " + f.getAbsolutePath() + "; base: " + base;
       paths.add(f.getAbsolutePath().substring(base.length()));
     }
-    return Lists.transform(paths, new Function<String, Object[]>() {
-      public Object[] apply(String path) {
-        return new Object[] {path};
-      }
-    });
+    return Lists.transform(paths, path -> new Object[] {path});
   }
 
   protected void checkRun(String path) throws Exception {
@@ -134,28 +153,37 @@ public abstract class QuidemTest {
     try (final Reader reader = Util.reader(inFile);
          final Writer writer = Util.printWriter(outFile);
          final Closer closer = new Closer()) {
-      new Quidem(reader, writer, env(), createConnectionFactory())
-          .withPropertyHandler(new Quidem.PropertyHandler() {
-            public void onSet(String propertyName, Object value) {
-              if (propertyName.equals("bindable")) {
-                final boolean b = value instanceof Boolean
-                    && (Boolean) value;
-                closer.add(Hook.ENABLE_BINDABLE.addThread(Hook.property(b)));
-              }
-              if (propertyName.equals("expand")) {
-                final boolean b = value instanceof Boolean
-                    && (Boolean) value;
-                closer.add(Prepare.THREAD_EXPAND.push(b));
-              }
+      final Quidem.Config config = Quidem.configBuilder()
+          .withReader(reader)
+          .withWriter(writer)
+          .withConnectionFactory(createConnectionFactory())
+          .withCommandHandler(createCommandHandler())
+          .withPropertyHandler((propertyName, value) -> {
+            if (propertyName.equals("bindable")) {
+              final boolean b = value instanceof Boolean
+                  && (Boolean) value;
+              closer.add(Hook.ENABLE_BINDABLE.addThread(Hook.propertyJ(b)));
+            }
+            if (propertyName.equals("expand")) {
+              final boolean b = value instanceof Boolean
+                  && (Boolean) value;
+              closer.add(Prepare.THREAD_EXPAND.push(b));
             }
           })
-          .execute();
+          .withEnv(QuidemTest::getEnv)
+          .build();
+      new Quidem(config).execute();
     }
     final String diff = DiffTestCase.diff(inFile, outFile);
     if (!diff.isEmpty()) {
       fail("Files differ: " + outFile + " " + inFile + "\n"
           + diff);
     }
+  }
+
+  /** Creates a command handler. */
+  protected CommandHandler createCommandHandler() {
+    return Quidem.EMPTY_COMMAND_HANDLER;
   }
 
   /** Creates a connection factory. */
@@ -175,31 +203,6 @@ public abstract class QuidemTest {
     return File.separatorChar == '\\'
         ? s.replace('\\', '/')
         : s;
-  }
-
-  private Function<String, Object> env() {
-    return new Function<String, Object>() {
-      public Object apply(String varName) {
-        switch (varName) {
-        case "jdk18":
-          return System.getProperty("java.version").startsWith("1.8");
-        case "fixed":
-          return new Function<String, Object>() {
-            public Object apply(String v) {
-              switch (v) {
-              case "calcite1045":
-                return Bug.CALCITE_1045_FIXED;
-              case "calcite1048":
-                return Bug.CALCITE_1048_FIXED;
-              }
-              return null;
-            }
-          };
-        default:
-          return null;
-        }
-      }
-    };
   }
 
   @Test public void test() throws Exception {
@@ -255,7 +258,6 @@ public abstract class QuidemTest {
         return CalciteAssert.that()
             .with(CalciteAssert.Config.REGULAR)
             .with(CalciteAssert.SchemaSpec.POST)
-            .withDefaultSchema("POST")
             .connect();
       case "catchall":
         return CalciteAssert.that()
@@ -266,15 +268,13 @@ public abstract class QuidemTest {
       case "orinoco":
         return CalciteAssert.that()
             .with(CalciteAssert.SchemaSpec.ORINOCO)
-            .withDefaultSchema("ORINOCO")
             .connect();
       case "blank":
         return CalciteAssert.that()
-            .with("parserFactory",
+            .with(CalciteConnectionProperty.PARSER_FACTORY,
                 "org.apache.calcite.sql.parser.parserextensiontesting"
                     + ".ExtensionSqlParserImpl#FACTORY")
             .with(CalciteAssert.SchemaSpec.BLANK)
-            .withDefaultSchema("BLANK")
             .connect();
       case "seq":
         final Connection connection = CalciteAssert.that()

@@ -197,6 +197,11 @@ public class MongoTable extends AbstractQueryableTable
 
     /** Called via code-generation.
      *
+     * @param filterJson Filter document
+     * @param projectJson Projection document
+     * @param fields List of expected fields (and their types)
+     * @return result of mongo query
+     *
      * @see org.apache.calcite.adapter.mongodb.MongoMethod#MONGO_QUERYABLE_FIND
      */
     @SuppressWarnings("UnusedDeclaration")

@@ -18,7 +18,6 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlNode;
 
 import com.google.common.collect.ImmutableList;
@@ -39,30 +38,25 @@ public abstract class InferTypes {
    * from the first operand with a known type.
    */
   public static final SqlOperandTypeInference FIRST_KNOWN =
-      new SqlOperandTypeInference() {
-        public void inferOperandTypes(
-            SqlCallBinding callBinding,
-            RelDataType returnType,
-            RelDataType[] operandTypes) {
-          final RelDataType unknownType =
-              callBinding.getValidator().getUnknownType();
-          RelDataType knownType = unknownType;
-          for (SqlNode operand : callBinding.operands()) {
-            knownType = callBinding.getValidator().deriveType(
-                callBinding.getScope(), operand);
-            if (!knownType.equals(unknownType)) {
-              break;
-            }
+      (callBinding, returnType, operandTypes) -> {
+        final RelDataType unknownType =
+            callBinding.getValidator().getUnknownType();
+        RelDataType knownType = unknownType;
+        for (SqlNode operand : callBinding.operands()) {
+          knownType = callBinding.getValidator().deriveType(
+              callBinding.getScope(), operand);
+          if (!knownType.equals(unknownType)) {
+            break;
           }
+        }
 
-          // REVIEW jvs 11-Nov-2008:  We can't assert this
-          // because SqlAdvisorValidator produces
-          // unknown types for incomplete expressions.
-          // Maybe we need to distinguish the two kinds of unknown.
-          //assert !knownType.equals(unknownType);
-          for (int i = 0; i < operandTypes.length; ++i) {
-            operandTypes[i] = knownType;
-          }
+        // REVIEW jvs 11-Nov-2008:  We can't assert this
+        // because SqlAdvisorValidator produces
+        // unknown types for incomplete expressions.
+        // Maybe we need to distinguish the two kinds of unknown.
+        //assert !knownType.equals(unknownType);
+        for (int i = 0; i < operandTypes.length; ++i) {
+          operandTypes[i] = knownType;
         }
       };
 
@@ -72,17 +66,12 @@ public abstract class InferTypes {
    * the same number of fields as the number of operands.
    */
   public static final SqlOperandTypeInference RETURN_TYPE =
-      new SqlOperandTypeInference() {
-        public void inferOperandTypes(
-            SqlCallBinding callBinding,
-            RelDataType returnType,
-            RelDataType[] operandTypes) {
-          for (int i = 0; i < operandTypes.length; ++i) {
-            operandTypes[i] =
-                returnType.isStruct()
-                    ? returnType.getFieldList().get(i).getType()
-                    : returnType;
-          }
+      (callBinding, returnType, operandTypes) -> {
+        for (int i = 0; i < operandTypes.length; ++i) {
+          operandTypes[i] =
+              returnType.isStruct()
+                  ? returnType.getFieldList().get(i).getType()
+                  : returnType;
         }
       };
 
@@ -91,16 +80,11 @@ public abstract class InferTypes {
    * to be boolean.
    */
   public static final SqlOperandTypeInference BOOLEAN =
-      new SqlOperandTypeInference() {
-        public void inferOperandTypes(
-            SqlCallBinding callBinding,
-            RelDataType returnType,
-            RelDataType[] operandTypes) {
-          RelDataTypeFactory typeFactory = callBinding.getTypeFactory();
-          for (int i = 0; i < operandTypes.length; ++i) {
-            operandTypes[i] =
-                typeFactory.createSqlType(SqlTypeName.BOOLEAN);
-          }
+      (callBinding, returnType, operandTypes) -> {
+        RelDataTypeFactory typeFactory = callBinding.getTypeFactory();
+        for (int i = 0; i < operandTypes.length; ++i) {
+          operandTypes[i] =
+              typeFactory.createSqlType(SqlTypeName.BOOLEAN);
         }
       };
 
@@ -112,16 +96,11 @@ public abstract class InferTypes {
    * use something that every other type can be cast to.
    */
   public static final SqlOperandTypeInference VARCHAR_1024 =
-      new SqlOperandTypeInference() {
-        public void inferOperandTypes(
-            SqlCallBinding callBinding,
-            RelDataType returnType,
-            RelDataType[] operandTypes) {
-          RelDataTypeFactory typeFactory = callBinding.getTypeFactory();
-          for (int i = 0; i < operandTypes.length; ++i) {
-            operandTypes[i] =
-                typeFactory.createSqlType(SqlTypeName.VARCHAR, 1024);
-          }
+      (callBinding, returnType, operandTypes) -> {
+        RelDataTypeFactory typeFactory = callBinding.getTypeFactory();
+        for (int i = 0; i < operandTypes.length; ++i) {
+          operandTypes[i] =
+              typeFactory.createSqlType(SqlTypeName.VARCHAR, 1024);
         }
       };
 

@@ -430,4 +430,29 @@ limit 5;
 
 !ok
 
+# NTH_VALUE
+select emp."ENAME", emp."DEPTNO",
+ nth_value(emp."DEPTNO", 1) over() as "first_value",
+ nth_value(emp."DEPTNO", 2) over() as "second_value",
+ nth_value(emp."DEPTNO", 5) over() as "fifth_value",
+ nth_value(emp."DEPTNO", 8) over() as "eighth_value",
+ nth_value(emp."DEPTNO", 10) over() as "tenth_value"
+from emp order by emp."ENAME";
++-------+--------+-------------+--------------+-------------+--------------+-------------+
+| ENAME | DEPTNO | first_value | second_value | fifth_value | eighth_value | tenth_value |
++-------+--------+-------------+--------------+-------------+--------------+-------------+
+| Adam  |     50 |          10 |           10 |          30 |           60 |             |
+| Alice |     30 |          10 |           10 |          30 |           60 |             |
+| Bob   |     10 |          10 |           10 |          30 |           60 |             |
+| Eric  |     20 |          10 |           10 |          30 |           60 |             |
+| Eve   |     50 |          10 |           10 |          30 |           60 |             |
+| Grace |     60 |          10 |           10 |          30 |           60 |             |
+| Jane  |     10 |          10 |           10 |          30 |           60 |             |
+| Susan |     30 |          10 |           10 |          30 |           60 |             |
+| Wilma |        |          10 |           10 |          30 |           60 |             |
++-------+--------+-------------+--------------+-------------+--------------+-------------+
+(9 rows)
+
+!ok
+
 # End winagg.iq

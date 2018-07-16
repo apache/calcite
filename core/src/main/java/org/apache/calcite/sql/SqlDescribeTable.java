@@ -75,7 +75,7 @@ public class SqlDescribeTable extends SqlCall {
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.<SqlNode>of(table, column);
+    return ImmutableNullableList.of(table, column);
   }
 
   public SqlIdentifier getTable() {

@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 
-import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -209,17 +209,37 @@ public class TimeExtractionFunction implements ExtractionFunction {
       // unknown format
       return null;
     }
-    if (rexCall.getType().getFamily() == SqlTypeFamily.DATE) {
+    SqlTypeName fromType = rexCall.getOperands().get(0).getType().getSqlTypeName();
+    SqlTypeName toType = rexCall.getType().getSqlTypeName();
+    String granularityTZId;
+    switch (fromType) {
+    case DATE:
+    case TIMESTAMP:
+      granularityTZId = DateTimeUtils.UTC_ZONE.getID();
+      break;
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      granularityTZId = timeZoneId;
+      break;
+    default:
+      return null;
+    }
+    switch (toType) {
+    case DATE:
       return new TimeExtractionFunction(castFormat,
-          Granularities.createGranularity(TimeUnitRange.DAY, timeZoneId), timeZoneId,
-          Locale.ENGLISH.toString());
+          Granularities.createGranularity(TimeUnitRange.DAY, granularityTZId),
+          DateTimeUtils.UTC_ZONE.getID(), Locale.ENGLISH.toString());
+    case TIMESTAMP:
+      // date -> timestamp: UTC
+      // timestamp -> timestamp: UTC
+      // timestamp with local time zone -> granularityTZId
+      return new TimeExtractionFunction(
+          castFormat, null, granularityTZId, Locale.ENGLISH.toString());
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      return new TimeExtractionFunction(
+          castFormat, null, DateTimeUtils.UTC_ZONE.getID(), Locale.ENGLISH.toString());
+    default:
+      return null;
     }
-    if (rexCall.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP
-        || rexCall.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
-      return new TimeExtractionFunction(castFormat, null, timeZoneId, Locale.ENGLISH.toString());
-    }
-
-    return null;
   }
 
 }

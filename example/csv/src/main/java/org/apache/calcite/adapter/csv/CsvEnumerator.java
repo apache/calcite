@@ -331,13 +331,13 @@ class CsvEnumerator<E> implements Enumerator<E> {
     private final boolean stream;
 
     ArrayRowConverter(List<CsvFieldType> fieldTypes, int[] fields) {
-      this.fieldTypes = fieldTypes.toArray(new CsvFieldType[fieldTypes.size()]);
+      this.fieldTypes = fieldTypes.toArray(new CsvFieldType[0]);
       this.fields = fields;
       this.stream = false;
     }
 
     ArrayRowConverter(List<CsvFieldType> fieldTypes, int[] fields, boolean stream) {
-      this.fieldTypes = fieldTypes.toArray(new CsvFieldType[fieldTypes.size()]);
+      this.fieldTypes = fieldTypes.toArray(new CsvFieldType[0]);
       this.fields = fields;
       this.stream = stream;
     }

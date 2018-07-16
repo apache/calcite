@@ -750,7 +750,7 @@ lateral (select t2.fake_col2 as fake_col3
 LogicalProject(C_NATIONKEY=[$1], FAKE_COL3=[$2])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
     LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
-    LogicalProject(FAKE_COL3=[ITEM($0, 'FAKE_COL2')])
+    LogicalProject(FAKE_COL3=[$0])
       Uncollect
         LogicalProject(FAKE_COL=[$cor0.FAKE_COL])
           LogicalValues(tuples=[[{ 0 }]])
@@ -1605,6 +1605,20 @@ LogicalSort(offset=[10])
 LogicalSort(offset=[?0])
   LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinUsingDynamicTable">
+        <Resource name="sql">
+            <![CDATA[select * from SALES.NATION t1
+join SALES.NATION t2 using (n_nationkey)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(**=[$1], **0=[$3])
+  LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, NATION]])
+    LogicalTableScan(table=[[CATALOG, SALES, NATION]])
 ]]>
         </Resource>
     </TestCase>
@@ -4543,9 +4557,10 @@ LogicalProject(DEPTNO=[$0], EMPNO=[$7])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{6}])
     LogicalProject(DEPTNO=[$0], NAME=[$1], TYPE=[$2.TYPE], DESC=[$2.DESC], A=[$2.OTHERS.A], B=[$2.OTHERS.B], EMPLOYEES=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
-    Uncollect
-      LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES_6])
-        LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(EMPNO=[$0], Y=[$1], Z=[$2])
+      Uncollect
+        LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES_6])
+          LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -5192,6 +5207,22 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testUserDefinedOrderByOver">
+        <Resource name="sql">
+            <![CDATA[select deptno,
+  rank() over(partition by empno order by deptno)
+from emp
+order by row_number() over(partition by empno order by deptno)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
+  LogicalSort(sort0=[$2], dir0=[ASC-nulls-first])
+    LogicalProject(DEPTNO=[$7], EXPR$1=[RANK() OVER (PARTITION BY $0 ORDER BY $7 NULLS FIRST RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$2=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $7 NULLS FIRST ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testWindowOnDynamicStar">
         <Resource name="sql">
             <![CDATA[SELECT SUM(n_nationkey) OVER w
@@ -5225,6 +5256,64 @@ LogicalProject(A=[$0], B=[$1])
             LogicalProject(EXPR$0=[1])
               LogicalFilter(condition=[=($7, $cor0.A)])
                 LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testStarDynamicSchemaUnnest">
+        <Resource name="sql">
+            <![CDATA[select t3.fake_q1['fake_col2'] as fake2
+            from (select t2.fake_col as fake_q1 from SALES.CUSTOMER as t2) as t3]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(**=[$1], FAKE_COL3=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+    LogicalProject(FAKE_COL3=[$0])
+      Uncollect
+        LogicalProject(FAKE_COL=[$cor0.FAKE_COL])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testStarDynamicSchemaUnnest2">
+        <Resource name="sql">
+            <![CDATA[select t3.fake_q1['fake_col2'] as fake2
+            from (select t2.fake_col as fake_q1 from SALES.CUSTOMER as t2) as t3]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(**=[$1], $unnest=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+    Uncollect
+      LogicalProject(FAKE_COL=[$cor0.FAKE_COL])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAnyValueAggregateFunctionNoGroupBy">
+        <Resource name="sql">
+            <![CDATA[SELECT any_value(empno) as anyempno FROM emp AS e]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{}], ANYEMPNO=[ANY_VALUE($0)])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAnyValueAggregateFunctionGroupBy">
+        <Resource name="sql">
+            <![CDATA[SELECT any_value(empno) as anyempno FROM emp AS e group by e.sal]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(ANYEMPNO=[$1])
+  LogicalAggregate(group=[{0}], ANYEMPNO=[ANY_VALUE($1)])
+    LogicalProject(SAL=[$5], EMPNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>

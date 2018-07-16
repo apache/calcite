@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.adapter.druid;
 
-import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
@@ -27,11 +26,9 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
-import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
-import com.google.common.base.Function;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -45,7 +42,6 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.TimeZone;
 
 import javax.annotation.Nullable;
 
@@ -66,9 +62,9 @@ public class DruidDateTimeUtils {
    * reference a single column: the timestamp column.
    */
   @Nullable
-  public static List<Interval> createInterval(RexNode e, String timeZone) {
-    final List<Range<TimestampString>> ranges =
-        extractRanges(e, TimeZone.getTimeZone(timeZone), false);
+  public static List<Interval> createInterval(RexNode e) {
+    final List<Range<Long>> ranges =
+        extractRanges(e, false);
     if (ranges == null) {
       // We did not succeed, bail out
       return null;
@@ -85,30 +81,27 @@ public class DruidDateTimeUtils {
   }
 
   protected static List<Interval> toInterval(
-      List<Range<TimestampString>> ranges) {
-    List<Interval> intervals = Lists.transform(ranges,
-        new Function<Range<TimestampString>, Interval>() {
-          public Interval apply(Range<TimestampString> range) {
-            if (!range.hasLowerBound() && !range.hasUpperBound()) {
-              return DruidTable.DEFAULT_INTERVAL;
-            }
-            long start = range.hasLowerBound()
-                ? range.lowerEndpoint().getMillisSinceEpoch()
-                : DruidTable.DEFAULT_INTERVAL.getStartMillis();
-            long end = range.hasUpperBound()
-                ? range.upperEndpoint().getMillisSinceEpoch()
-                : DruidTable.DEFAULT_INTERVAL.getEndMillis();
-            if (range.hasLowerBound()
-                && range.lowerBoundType() == BoundType.OPEN) {
-              start++;
-            }
-            if (range.hasUpperBound()
-                && range.upperBoundType() == BoundType.CLOSED) {
-              end++;
-            }
-            return new Interval(start, end, ISOChronology.getInstanceUTC());
-          }
-        });
+      List<Range<Long>> ranges) {
+    List<Interval> intervals = Lists.transform(ranges, range -> {
+      if (!range.hasLowerBound() && !range.hasUpperBound()) {
+        return DruidTable.DEFAULT_INTERVAL;
+      }
+      long start = range.hasLowerBound()
+          ? range.lowerEndpoint().longValue()
+          : DruidTable.DEFAULT_INTERVAL.getStartMillis();
+      long end = range.hasUpperBound()
+          ? range.upperEndpoint().longValue()
+          : DruidTable.DEFAULT_INTERVAL.getEndMillis();
+      if (range.hasLowerBound()
+          && range.lowerBoundType() == BoundType.OPEN) {
+        start++;
+      }
+      if (range.hasUpperBound()
+          && range.upperBoundType() == BoundType.CLOSED) {
+        end++;
+      }
+      return new Interval(start, end, ISOChronology.getInstanceUTC());
+    });
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Converted time ranges " + ranges + " to interval " + intervals);
     }
@@ -116,8 +109,7 @@ public class DruidDateTimeUtils {
   }
 
   @Nullable
-  protected static List<Range<TimestampString>> extractRanges(RexNode node,
-      TimeZone timeZone, boolean withNot) {
+  protected static List<Range<Long>> extractRanges(RexNode node, boolean withNot) {
     switch (node.getKind()) {
     case EQUALS:
     case LESS_THAN:
@@ -126,17 +118,17 @@ public class DruidDateTimeUtils {
     case GREATER_THAN_OR_EQUAL:
     case BETWEEN:
     case IN:
-      return leafToRanges((RexCall) node, timeZone, withNot);
+      return leafToRanges((RexCall) node, withNot);
 
     case NOT:
-      return extractRanges(((RexCall) node).getOperands().get(0), timeZone, !withNot);
+      return extractRanges(((RexCall) node).getOperands().get(0), !withNot);
 
     case OR: {
       RexCall call = (RexCall) node;
-      List<Range<TimestampString>> intervals = Lists.newArrayList();
+      List<Range<Long>> intervals = new ArrayList<>();
       for (RexNode child : call.getOperands()) {
-        List<Range<TimestampString>> extracted =
-            extractRanges(child, timeZone, withNot);
+        List<Range<Long>> extracted =
+            extractRanges(child, withNot);
         if (extracted != null) {
           intervals.addAll(extracted);
         }
@@ -146,10 +138,10 @@ public class DruidDateTimeUtils {
 
     case AND: {
       RexCall call = (RexCall) node;
-      List<Range<TimestampString>> ranges = new ArrayList<>();
+      List<Range<Long>> ranges = new ArrayList<>();
       for (RexNode child : call.getOperands()) {
-        List<Range<TimestampString>> extractedRanges =
-            extractRanges(child, timeZone, false);
+        List<Range<Long>> extractedRanges =
+            extractRanges(child, false);
         if (extractedRanges == null || extractedRanges.isEmpty()) {
           // We could not extract, we bail out
           return null;
@@ -158,7 +150,7 @@ public class DruidDateTimeUtils {
           ranges.addAll(extractedRanges);
           continue;
         }
-        List<Range<TimestampString>> overlapped = new ArrayList<>();
+        List<Range<Long>> overlapped = new ArrayList<>();
         for (Range current : ranges) {
           for (Range interval : extractedRanges) {
             if (current.isConnected(interval)) {
@@ -177,8 +169,7 @@ public class DruidDateTimeUtils {
   }
 
   @Nullable
-  protected static List<Range<TimestampString>> leafToRanges(RexCall call,
-      TimeZone timeZone, boolean withNot) {
+  protected static List<Range<Long>> leafToRanges(RexCall call, boolean withNot) {
     switch (call.getKind()) {
     case EQUALS:
     case LESS_THAN:
@@ -186,13 +177,13 @@ public class DruidDateTimeUtils {
     case GREATER_THAN:
     case GREATER_THAN_OR_EQUAL:
     {
-      final TimestampString value;
+      final Long value;
       if (call.getOperands().get(0) instanceof RexInputRef
-          && literalValue(call.getOperands().get(1), timeZone) != null) {
-        value = literalValue(call.getOperands().get(1), timeZone);
+          && literalValue(call.getOperands().get(1)) != null) {
+        value = literalValue(call.getOperands().get(1));
       } else if (call.getOperands().get(1) instanceof RexInputRef
-          && literalValue(call.getOperands().get(0), timeZone) != null) {
-        value = literalValue(call.getOperands().get(0), timeZone);
+          && literalValue(call.getOperands().get(0)) != null) {
+        value = literalValue(call.getOperands().get(0));
       } else {
         return null;
       }
@@ -214,12 +205,12 @@ public class DruidDateTimeUtils {
     }
     case BETWEEN:
     {
-      final TimestampString value1;
-      final TimestampString value2;
-      if (literalValue(call.getOperands().get(2), timeZone) != null
-          && literalValue(call.getOperands().get(3), timeZone) != null) {
-        value1 = literalValue(call.getOperands().get(2), timeZone);
-        value2 = literalValue(call.getOperands().get(3), timeZone);
+      final Long value1;
+      final Long value2;
+      if (literalValue(call.getOperands().get(2)) != null
+          && literalValue(call.getOperands().get(3)) != null) {
+        value1 = literalValue(call.getOperands().get(2));
+        value2 = literalValue(call.getOperands().get(3));
       } else {
         return null;
       }
@@ -234,10 +225,10 @@ public class DruidDateTimeUtils {
     }
     case IN:
     {
-      ImmutableList.Builder<Range<TimestampString>> ranges =
+      ImmutableList.Builder<Range<Long>> ranges =
           ImmutableList.builder();
       for (RexNode operand : Util.skip(call.operands)) {
-        final TimestampString element = literalValue(operand, timeZone);
+        final Long element = literalValue(operand);
         if (element == null) {
           return null;
         }
@@ -255,25 +246,29 @@ public class DruidDateTimeUtils {
     }
   }
 
+  /**
+   * Returns the literal value for the given node, assuming it is a literal with
+   * datetime type, or a cast that only alters nullability on top of a literal with
+   * datetime type.
+   */
   @Nullable
-  protected static TimestampString literalValue(RexNode node, TimeZone timeZone) {
+  protected static Long literalValue(RexNode node) {
     switch (node.getKind()) {
     case LITERAL:
       switch (((RexLiteral) node).getTypeName()) {
-      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-        return ((RexLiteral) node).getValueAs(TimestampString.class);
       case TIMESTAMP:
-        // Cast timestamp to timestamp with local time zone
-        final TimestampString t = ((RexLiteral) node).getValueAs(TimestampString.class);
-        return new TimestampWithTimeZoneString(t.toString() + " " + timeZone.getID())
-            .withTimeZone(DateTimeUtils.UTC_ZONE).getLocalTimestampString();
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+        TimestampString tsVal = ((RexLiteral) node).getValueAs(TimestampString.class);
+        if (tsVal == null) {
+          return null;
+        }
+        return tsVal.getMillisSinceEpoch();
       case DATE:
-        // Cast date to timestamp with local time zone
-        final DateString d = ((RexLiteral) node).getValueAs(DateString.class);
-        return new TimestampWithTimeZoneString(
-            TimestampString.fromMillisSinceEpoch(
-                d.getMillisSinceEpoch()).toString() + " " + timeZone.getID())
-            .withTimeZone(DateTimeUtils.UTC_ZONE).getLocalTimestampString();
+        DateString dateVal = ((RexLiteral) node).getValueAs(DateString.class);
+        if (dateVal == null) {
+          return null;
+        }
+        return dateVal.getMillisSinceEpoch();
       }
       break;
     case CAST:
@@ -293,7 +288,7 @@ public class DruidDateTimeUtils {
               || callType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
           && callType.isNullable()
           && !operandType.isNullable()) {
-        return literalValue(operand, timeZone);
+        return literalValue(operand);
       }
     }
     return null;
@@ -308,21 +303,36 @@ public class DruidDateTimeUtils {
    * @param node the Rex node
    * @return the granularity, or null if it cannot be inferred
    */
+  @Nullable
   public static Granularity extractGranularity(RexNode node, String timeZone) {
+    final int valueIndex;
     final int flagIndex;
 
     if (TimeExtractionFunction.isValidTimeExtract(node)) {
       flagIndex = 0;
+      valueIndex = 1;
     } else if (TimeExtractionFunction.isValidTimeFloor(node)) {
+      valueIndex = 0;
       flagIndex = 1;
     } else {
       // We can only infer granularity from floor and extract.
       return null;
     }
     final RexCall call = (RexCall) node;
+    final RexNode value = call.operands.get(valueIndex);
     final RexLiteral flag = (RexLiteral) call.operands.get(flagIndex);
     final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
-    return Granularities.createGranularity(timeUnit, timeZone);
+
+    final RelDataType valueType = value.getType();
+    if (valueType.getSqlTypeName() == SqlTypeName.DATE
+        || valueType.getSqlTypeName() == SqlTypeName.TIMESTAMP) {
+      // We use 'UTC' for date/timestamp type as Druid needs timezone information
+      return Granularities.createGranularity(timeUnit, "UTC");
+    } else if (valueType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+      return Granularities.createGranularity(timeUnit, timeZone);
+    }
+    // Type not recognized
+    return null;
   }
 
   /**

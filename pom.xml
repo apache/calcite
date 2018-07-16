@@ -58,16 +58,16 @@ limitations under the License.
 
     <!-- This list is in alphabetical order. -->
     <airlift-tpch.version>0.1</airlift-tpch.version>
-    <avatica.version>1.11.0</avatica.version>
+    <avatica.version>1.12.0</avatica.version>
     <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
     <cassandra-driver-core.version>3.4.0</cassandra-driver-core.version>
     <checksum-maven-plugin.version>1.2</checksum-maven-plugin.version>
     <chinook-data-hsqldb.version>0.1</chinook-data-hsqldb.version>
-    <commons-dbcp.version>1.4</commons-dbcp.version>
+    <commons-dbcp2.version>2.4.0</commons-dbcp2.version>
     <commons-lang3.version>3.2</commons-lang3.version>
     <commons-logging.version>1.1.3</commons-logging.version>
-    <elasticsearch-java-driver.version>2.3.2</elasticsearch-java-driver.version>
-    <elasticsearch5-java-driver.version>5.5.2</elasticsearch5-java-driver.version>
+    <commons-pool2.version>2.5.0</commons-pool2.version>
+    <elasticsearch.version>6.2.4</elasticsearch.version>
     <esri-geometry-api.version>2.0.0</esri-geometry-api.version>
     <findbugs.version>3.0.1</findbugs.version>
     <fmpp-maven-plugin.version>1.0</fmpp-maven-plugin.version>
@@ -77,6 +77,8 @@ limitations under the License.
     <freemarker.version>2.3.25-incubating</freemarker.version>
     <git-commit-id-plugin.version>2.1.9</git-commit-id-plugin.version>
     <geode.version>1.3.0</geode.version>
+    <fongo.version>2.1.1</fongo.version>
+    <foodmart-data-json.version>0.4</foodmart-data-json.version>
 
     <!-- We support (and test against) Guava versions between
          19.0 and 23.0. Default is 19.0 due to Cassandra adapter. -->
@@ -86,7 +88,6 @@ limitations under the License.
     <!-- Require Hadoop 2.7.4+ due to HADOOP-14586 -->
     <hadoop.version>2.7.5</hadoop.version>
     <hamcrest.version>1.3</hamcrest.version>
-    <hppc.version>0.7.1</hppc.version>
     <hsqldb.version>2.4.0</hsqldb.version>
     <httpclient.version>4.5.2</httpclient.version>
     <httpcore.version>4.4.4</httpcore.version>
@@ -105,8 +106,8 @@ limitations under the License.
     <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
     <maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
     <maven-enforcer-plugin.version>3.0.0-M1</maven-enforcer-plugin.version>
-    <!-- Apache 19 has 2.10.4, but need 3.0.0 for [LANG-1365]. -->
-    <maven-javadoc-plugin.version>3.0.0</maven-javadoc-plugin.version>
+    <!-- Apache 19 has 2.10.4, but need 3.0.1 for [LANG-1365] and [MJAVADOC-517]. -->
+    <maven-javadoc-plugin.version>3.0.1</maven-javadoc-plugin.version>
     <maven-scm-provider.version>1.9.4</maven-scm-provider.version>
     <maven-shade-plugin.version>2.1</maven-shade-plugin.version>
     <!-- Apache 19 has 2.20.1, but need 2.21.0+ for [MPOM-184] -->
@@ -121,16 +122,31 @@ limitations under the License.
     <pig.version>0.16.0</pig.version>
     <aggdesigner.version>6.0</aggdesigner.version>
     <postgresql.version>9.3-1102-jdbc3</postgresql.version>
-    <quidem.version>0.8</quidem.version>
+    <quidem.version>0.9</quidem.version>
     <scala.version>2.10.3</scala.version>
     <scott-data-hsqldb.version>0.1</scott-data-hsqldb.version>
     <servlet.version>3.0.1</servlet.version>
     <slf4j.version>1.7.13</slf4j.version>
+    <log4j2.version>2.11.0</log4j2.version>
     <spark.version>2.2.0</spark.version>
-    <sqlline.version>1.3.0</sqlline.version>
+    <sqlline.version>1.4.0</sqlline.version>
+    <tpcds.version>1.2</tpcds.version>
     <xalan.version>2.7.1</xalan.version>
     <xerces.version>2.9.1</xerces.version>
     <sketches.version>0.9.0</sketches.version>
+    <fmpp.version>0.9.14</fmpp.version>
+
+    <!-- Other properties (not version numbers) -->
+    <maven-javadoc-plugin.excludePackageNames>
+      org.apache.calcite.benchmarks.generated,
+      org.apache.calcite.sql.parser.babel,
+      org.apache.calcite.sql.parser.ddl,
+      org.apache.calcite.sql.parser.impl,
+      org.apache.calcite.sql.parser.parserextensiontesting,
+      org.apache.calcite.piglet.parser,
+      org.openjdk.jmh
+    </maven-javadoc-plugin.excludePackageNames>
+    <maven-javadoc-plugin.link>https://docs.oracle.com/javase/9/docs/api/</maven-javadoc-plugin.link>
   </properties>
 
   <issueManagement>
@@ -146,11 +162,11 @@ limitations under the License.
   </scm>
 
   <modules>
+    <module>babel</module>
     <module>cassandra</module>
     <module>core</module>
     <module>druid</module>
-    <module>elasticsearch2</module>
-    <module>elasticsearch5</module>
+    <module>elasticsearch</module>
     <module>example</module>
     <module>file</module>
     <module>geode</module>
@@ -212,14 +228,14 @@ limitations under the License.
 
       <!-- Now third-party dependencies, sorted by groupId and artifactId. -->
       <dependency>
-        <groupId>commons-dbcp</groupId>
-        <artifactId>commons-dbcp</artifactId>
-        <version>${commons-dbcp.version}</version>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-dbcp2</artifactId>
+        <version>${commons-dbcp2.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.carrotsearch</groupId>
-        <artifactId>hppc</artifactId>
-        <version>${hppc.version}</version>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-pool2</artifactId>
+        <version>${commons-pool2.version}</version>
       </dependency>
       <dependency>
         <groupId>com.datastax.cassandra</groupId>
@@ -280,6 +296,11 @@ limitations under the License.
         <groupId>com.yahoo.datasketches</groupId>
         <artifactId>sketches-core</artifactId>
         <version>${sketches.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.teradata.tpcds</groupId>
+        <artifactId>tpcds</artifactId>
+        <version>${tpcds.version}</version>
       </dependency>
       <dependency>
         <groupId>javax.servlet</groupId>
@@ -451,12 +472,22 @@ limitations under the License.
       <dependency>
         <groupId>org.elasticsearch</groupId>
         <artifactId>elasticsearch</artifactId>
-        <version>${elasticsearch-java-driver.version}</version>
+        <version>${elasticsearch.version}</version>
       </dependency>
       <dependency>
         <groupId>org.mongodb</groupId>
         <artifactId>mongo-java-driver</artifactId>
         <version>${mongo-java-driver.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.fakemongo</groupId>
+        <artifactId>fongo</artifactId>
+        <version>${fongo.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>net.hydromatic</groupId>
+        <artifactId>foodmart-data-json</artifactId>
+        <version>${foodmart-data-json.version}</version>
       </dependency>
       <dependency>
         <groupId>org.openjdk.jmh</groupId>
@@ -477,6 +508,16 @@ limitations under the License.
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-log4j12</artifactId>
         <version>${slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-api</artifactId>
+        <version>${log4j2.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-core</artifactId>
+        <version>${log4j2.version}</version>
       </dependency>
       <dependency>
         <groupId>sqlline</groupId>
@@ -557,6 +598,7 @@ limitations under the License.
             <exclude>**/src/test/resources/**/*.txt</exclude>
             <exclude>**/src/test/resources/bug/archers.json</exclude>
             <exclude>**/src/test/resources/foodmart-schema.spec</exclude>
+            <exclude>**/src/test/resources/zips-mini.json</exclude>
             <exclude>**/data.txt</exclude>
             <exclude>**/data2.txt</exclude>
 
@@ -684,9 +726,9 @@ limitations under the License.
         <configuration>
           <additionalparam>-html5</additionalparam>
           <links>
-            <link>https://docs.oracle.com/javase/9/docs/api/</link>
+            <link>${maven-javadoc-plugin.link}</link>
           </links>
-          <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.ddl,org.apache.calcite.sql.parser.impl,org.apache.calcite.sql.parser.parserextensiontesting,org.apache.calcite.piglet.parser,org.openjdk.jmh</excludePackageNames>
+          <excludePackageNames>${maven-javadoc-plugin.excludePackageNames}</excludePackageNames>
           <show>private</show>
         </configuration>
       </plugin>
@@ -766,6 +808,17 @@ limitations under the License.
               <artifactId>freemarker</artifactId>
               <version>${freemarker.version}</version>
             </dependency>
+            <dependency>
+              <groupId>net.sourceforge.fmpp</groupId>
+              <artifactId>fmpp</artifactId>
+              <version>${fmpp.version}</version>
+              <exclusions>
+                <exclusion>
+                  <groupId>org.freemarker</groupId>
+                  <artifactId>freemarker</artifactId>
+                </exclusion>
+              </exclusions>
+            </dependency>
           </dependencies>
         </plugin>
         <plugin>
@@ -822,6 +875,9 @@ limitations under the License.
                 <threadCount>6</threadCount>
                 <parallel>both</parallel>
                 <argLine>-Xmx1024m</argLine>
+                <systemPropertyVariables>
+                  <calcite.integrationTest>true</calcite.integrationTest>
+                </systemPropertyVariables>
               </configuration>
             </execution>
             <execution>
@@ -910,9 +966,9 @@ limitations under the License.
         <version>${maven-javadoc-plugin.version}</version>
         <configuration>
           <links>
-            <link>https://docs.oracle.com/javase/8/docs/api/</link>
+            <link>${maven-javadoc-plugin.link}</link>
           </links>
-          <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.ddl,org.apache.calcite.sql.parser.impl,org.apache.calcite.sql.parser.parserextensiontesting,org.apache.calcite.piglet.parser,org.openjdk.jmh</excludePackageNames>
+          <excludePackageNames>${maven-javadoc-plugin.excludePackageNames}</excludePackageNames>
           <notimestamp>true</notimestamp>
           <windowtitle>Apache Calcite API</windowtitle>
         </configuration>
@@ -990,7 +1046,9 @@ limitations under the License.
                 <configuration>
                   <runOnlyAtExecutionRoot>true</runOnlyAtExecutionRoot>
                   <appendAssemblyId>false</appendAssemblyId>
-                  <descriptor>src/main/config/assemblies/source-assembly.xml</descriptor>
+                  <descriptors>
+                    <descriptor>src/main/config/assemblies/source-assembly.xml</descriptor>
+                  </descriptors>
                   <finalName>apache-calcite-${project.version}-src</finalName>
                   <tarLongFileMode>gnu</tarLongFileMode>
                 </configuration>

@@ -22,7 +22,6 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -40,8 +39,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
  * </blockquote>
  *
  * <p>The interval time unit can one of the following literals:<ul>
- * <li>MICROSECOND (and synonyms SQL_TSI_MICROSECOND, FRAC_SECOND,
- *     SQL_TSI_FRAC_SECOND)
+ * <li>NANOSECOND (and synonym SQL_TSI_FRAC_SECOND)
+ * <li>MICROSECOND (and synonyms SQL_TSI_MICROSECOND, FRAC_SECOND)
  * <li>SECOND (and synonym SQL_TSI_SECOND)
  * <li>MINUTE (and synonym  SQL_TSI_MINUTE)
  * <li>HOUR (and synonym  SQL_TSI_HOUR)
@@ -54,27 +53,48 @@ import org.apache.calcite.sql.type.SqlTypeName;
  *
  * <p>Returns modified timestamp.
  */
-class SqlTimestampAddFunction extends SqlFunction {
+public class SqlTimestampAddFunction extends SqlFunction {
+
+  private static final int MILLISECOND_PRECISION = 3;
+  private static final int MICROSECOND_PRECISION = 6;
 
   private static final SqlReturnTypeInference RETURN_TYPE_INFERENCE =
-      new SqlReturnTypeInference() {
-        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-          switch (opBinding.getOperandLiteralValue(0, TimeUnit.class)) {
-          case HOUR:
-          case MINUTE:
-          case SECOND:
-          case MILLISECOND:
-          case MICROSECOND:
-            return typeFactory.createTypeWithNullability(
-                typeFactory.createSqlType(SqlTypeName.TIMESTAMP),
-                opBinding.getOperandType(1).isNullable()
-                    || opBinding.getOperandType(2).isNullable());
-          default:
-            return opBinding.getOperandType(2);
-          }
-        }
+      opBinding -> {
+        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+        return deduceType(typeFactory,
+            opBinding.getOperandLiteralValue(0, TimeUnit.class),
+            opBinding.getOperandType(1), opBinding.getOperandType(2));
       };
+
+  public static RelDataType deduceType(RelDataTypeFactory typeFactory,
+      TimeUnit timeUnit, RelDataType operandType1, RelDataType operandType2) {
+    final RelDataType type;
+    switch (timeUnit) {
+    case HOUR:
+    case MINUTE:
+    case SECOND:
+    case MILLISECOND:
+    case MICROSECOND:
+      switch (timeUnit) {
+      case MILLISECOND:
+        type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP,
+            MILLISECOND_PRECISION);
+        break;
+      case MICROSECOND:
+        type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP,
+            MICROSECOND_PRECISION);
+        break;
+      default:
+        type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
+      }
+      break;
+    default:
+      type = operandType2;
+    }
+    return typeFactory.createTypeWithNullability(type,
+        operandType1.isNullable()
+            || operandType2.isNullable());
+  }
 
   /** Creates a SqlTimestampAddFunction. */
   SqlTimestampAddFunction() {

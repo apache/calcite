@@ -550,11 +550,7 @@ public class SqlParserTest {
   private static final String ANY = "(?s).*";
 
   private static final ThreadLocal<boolean[]> LINUXIFY =
-      new ThreadLocal<boolean[]>() {
-        @Override protected boolean[] initialValue() {
-          return new boolean[] {true};
-        }
-      };
+      ThreadLocal.withInitial(() -> new boolean[] {true});
 
   Quoting quoting = Quoting.DOUBLE_QUOTE;
   Casing unquotedCasing = Casing.TO_UPPER;
@@ -4296,34 +4292,34 @@ public class SqlParserTest {
   }
 
   @Test public void testMultisetUnion() {
-    checkExp("a multiset union b", "(`A` MULTISET UNION `B`)");
+    checkExp("a multiset union b", "(`A` MULTISET UNION ALL `B`)");
     checkExp("a multiset union all b", "(`A` MULTISET UNION ALL `B`)");
-    checkExp("a multiset union distinct b", "(`A` MULTISET UNION `B`)");
+    checkExp("a multiset union distinct b", "(`A` MULTISET UNION DISTINCT `B`)");
   }
 
   @Test public void testMultisetExcept() {
-    checkExp("a multiset EXCEPT b", "(`A` MULTISET EXCEPT `B`)");
+    checkExp("a multiset EXCEPT b", "(`A` MULTISET EXCEPT ALL `B`)");
     checkExp("a multiset EXCEPT all b", "(`A` MULTISET EXCEPT ALL `B`)");
-    checkExp("a multiset EXCEPT distinct b", "(`A` MULTISET EXCEPT `B`)");
+    checkExp("a multiset EXCEPT distinct b", "(`A` MULTISET EXCEPT DISTINCT `B`)");
   }
 
   @Test public void testMultisetIntersect() {
-    checkExp("a multiset INTERSECT b", "(`A` MULTISET INTERSECT `B`)");
+    checkExp("a multiset INTERSECT b", "(`A` MULTISET INTERSECT ALL `B`)");
     checkExp(
         "a multiset INTERSECT all b",
         "(`A` MULTISET INTERSECT ALL `B`)");
     checkExp(
         "a multiset INTERSECT distinct b",
-        "(`A` MULTISET INTERSECT `B`)");
+        "(`A` MULTISET INTERSECT DISTINCT `B`)");
   }
 
   @Test public void testMultisetMixed() {
     checkExp(
         "multiset[1] MULTISET union b",
-        "((MULTISET[1]) MULTISET UNION `B`)");
+        "((MULTISET[1]) MULTISET UNION ALL `B`)");
     checkExp(
         "a MULTISET union b multiset intersect c multiset except d multiset union e",
-        "(((`A` MULTISET UNION (`B` MULTISET INTERSECT `C`)) MULTISET EXCEPT `D`) MULTISET UNION `E`)");
+        "(((`A` MULTISET UNION ALL (`B` MULTISET INTERSECT ALL `C`)) MULTISET EXCEPT ALL `D`) MULTISET UNION ALL `E`)");
   }
 
   @Test public void testMapItem() {
@@ -6919,8 +6915,8 @@ public class SqlParserTest {
   @Test public void testTimestampAddAndDiff() {
     Map<String, List<String>> tsi = ImmutableMap.<String, List<String>>builder()
         .put("MICROSECOND",
-            Arrays.asList("FRAC_SECOND", "MICROSECOND",
-                "SQL_TSI_FRAC_SECOND", "SQL_TSI_MICROSECOND"))
+            Arrays.asList("FRAC_SECOND", "MICROSECOND", "SQL_TSI_MICROSECOND"))
+        .put("NANOSECOND", Arrays.asList("NANOSECOND", "SQL_TSI_FRAC_SECOND"))
         .put("SECOND", Arrays.asList("SECOND", "SQL_TSI_SECOND"))
         .put("MINUTE", Arrays.asList("MINUTE", "SQL_TSI_MINUTE"))
         .put("HOUR", Arrays.asList("HOUR", "SQL_TSI_HOUR"))

@@ -77,9 +77,9 @@ public interface Table {
    * @param parent Parent node of {@code call} in the {@link SqlNode} tree
    * @param config Config settings. May be null
    * @return true iff the given aggregate call is valid
-   * */
-  boolean rolledUpColumnValidInsideAgg(String column, SqlCall call, SqlNode parent,
-                                       CalciteConnectionConfig config);
+   */
+  boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+      SqlNode parent, CalciteConnectionConfig config);
 }
 
 // End Table.java

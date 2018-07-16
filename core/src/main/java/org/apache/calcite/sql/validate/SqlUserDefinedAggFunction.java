@@ -33,7 +33,6 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
@@ -76,12 +75,7 @@ public class SqlUserDefinedAggFunction extends SqlAggFunction {
   }
 
   private List<RelDataType> toSql(List<RelDataType> types) {
-    return Lists.transform(types,
-        new com.google.common.base.Function<RelDataType, RelDataType>() {
-          public RelDataType apply(RelDataType type) {
-            return toSql(type);
-          }
-        });
+    return Lists.transform(types, this::toSql);
   }
 
   private RelDataType toSql(RelDataType type) {
@@ -98,11 +92,7 @@ public class SqlUserDefinedAggFunction extends SqlAggFunction {
   public List<RelDataType> getParameterTypes(
       final RelDataTypeFactory typeFactory) {
     return Lists.transform(function.getParameters(),
-        new Function<FunctionParameter, RelDataType>() {
-          public RelDataType apply(FunctionParameter input) {
-            return input.getType(typeFactory);
-          }
-        });
+        parameter -> parameter.getType(typeFactory));
   }
 
   @SuppressWarnings("deprecation")

@@ -48,7 +48,7 @@ abstract class CalcitePreparedStatement extends AvaticaPreparedStatement {
         resultSetHoldability);
   }
 
-  @Override public CalciteConnectionImpl getConnection() {
+  @Override public CalciteConnectionImpl getConnection() throws SQLException {
     return (CalciteConnectionImpl) super.getConnection();
   }
 }

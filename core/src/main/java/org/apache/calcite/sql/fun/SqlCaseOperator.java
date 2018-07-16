@@ -245,9 +245,7 @@ public class SqlCaseOperator extends SqlOperator {
       nullList.add(elseOp);
     }
 
-    RelDataType ret =
-        callBinding.getTypeFactory().leastRestrictive(
-            argTypes);
+    RelDataType ret = callBinding.getTypeFactory().leastRestrictive(argTypes);
     if (null == ret) {
       throw callBinding.newValidationError(RESOURCE.illegalMixingOfTypes());
     }

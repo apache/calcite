@@ -65,6 +65,17 @@ limitations under the License.
       <type>jar</type>
     </dependency>
     <dependency>
+      <groupId>com.teradata.tpcds</groupId>
+      <artifactId>tpcds</artifactId>
+      <type>jar</type>
+      <exclusions>
+        <exclusion>
+          <artifactId>airline</artifactId>
+          <groupId>io.airlift</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
@@ -82,6 +93,12 @@ limitations under the License.
       <groupId>net.hydromatic</groupId>
       <artifactId>tpcds</artifactId>
       <type>jar</type>
+      <exclusions>
+        <exclusion>
+          <artifactId>airline</artifactId>
+          <groupId>io.airlift</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
@@ -102,6 +119,17 @@ limitations under the License.
     <plugins>
       <!-- Sorted by groupId, artifactId. Put versions in
            pluginManagement in the root POM, not here. -->
+
+      <!-- Base is 1.7, but we require 1.8 for com.teradata.tpcds. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.8</source>
+          <target>1.8</target>
+          <compilerArgument>-Xlint:deprecation</compilerArgument>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>

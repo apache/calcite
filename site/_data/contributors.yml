@@ -17,6 +17,7 @@
 # Pages such as developer.md use this data.
 #
 - name: Alan Gates
+  emeritus: 2018/05/04
   apacheId: gates
   githubId: alanfgates
   org: Hortonworks
@@ -106,7 +107,7 @@
   apacheId: krisden
   githubId: risdenk
   org:
-  role: Committer
+  role: PMC
 - name: Laurent Goujon
   apacheId: laurent
   githubId: laurentgo
@@ -175,7 +176,7 @@
   apacheId: volodymyr
   githubId: vvysotskyi
   org:
-  role: Committer
+  role: PMC
 - name: Zhen Wang
   apacheId: zhenw
   githubId: zinking

@@ -28,7 +28,6 @@ import org.apache.calcite.sql.test.DelegatingSqlTestFactory;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.test.SqlTesterImpl;
-import org.apache.calcite.sql.test.SqlTests;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -108,7 +107,11 @@ public class SqlValidatorTestCase {
   }
 
   public final Sql sql(String sql) {
-    return new Sql(tester, sql);
+    return new Sql(tester, sql, true);
+  }
+
+  public final Sql expr(String sql) {
+    return new Sql(tester, sql, false);
   }
 
   public final Sql winSql(String sql) {
@@ -335,7 +338,8 @@ public class SqlValidatorTestCase {
             actualLine = Integer.parseInt(matcher.group(1));
             actualColumn = Integer.parseInt(matcher.group(2));
           } else {
-            if (actualMessage.toString().matches(expectedMsgPattern)) {
+            if (expectedMsgPattern != null
+                && actualMessage.matches(expectedMsgPattern)) {
               return;
             }
           }
@@ -559,17 +563,23 @@ public class SqlValidatorTestCase {
     private final SqlTester tester;
     private final String sql;
 
-    Sql(SqlTester tester, String sql) {
+    /** Creates a Sql.
+     *
+     * @param tester Tester
+     * @param sql SQL query or expression
+     * @param query True if {@code sql} is a query, false if it is an expression
+     */
+    Sql(SqlTester tester, String sql, boolean query) {
       this.tester = tester;
-      this.sql = sql;
+      this.sql = query ? sql : SqlTesterImpl.buildQuery(sql);
     }
 
     Sql tester(SqlTester tester) {
-      return new Sql(tester, sql);
+      return new Sql(tester, sql, true);
     }
 
     public Sql sql(String sql) {
-      return new Sql(tester, sql);
+      return new Sql(tester, sql, true);
     }
 
     Sql withExtendedCatalog() {
@@ -619,13 +629,9 @@ public class SqlValidatorTestCase {
     }
 
     public Sql bindType(final String bindType) {
-      tester.check(sql, null,
-          new SqlTester.ParameterChecker() {
-            public void checkParameters(RelDataType parameterRowType) {
-              assertThat(parameterRowType.toString(), is(bindType));
-            }
-          },
-          SqlTests.ANY_RESULT_CHECKER);
+      tester.check(sql, null, parameterRowType ->
+          assertThat(parameterRowType.toString(), is(bindType)),
+          result -> { });
       return this;
     }
 
@@ -633,7 +639,7 @@ public class SqlValidatorTestCase {
      * a test once at a conformance level where it fails, then run it again
      * at a conformance level where it succeeds. */
     public Sql sansCarets() {
-      return new Sql(tester, sql.replace("^", ""));
+      return new Sql(tester, sql.replace("^", ""), true);
     }
   }
 }

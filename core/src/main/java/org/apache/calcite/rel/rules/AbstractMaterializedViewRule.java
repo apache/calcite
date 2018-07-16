@@ -214,7 +214,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
     final List<RelOptMaterialization> materializations =
         (planner instanceof VolcanoPlanner)
             ? ((VolcanoPlanner) planner).getMaterializations()
-            : ImmutableList.<RelOptMaterialization>of();
+            : ImmutableList.of();
 
     if (!materializations.isEmpty()) {
       // 1. Explore query plan to recognize whether preconditions to
@@ -1365,7 +1365,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       // if not present
       if (topViewProject == null) {
         topViewProject = (Project) relBuilder.push(viewNode)
-            .project(relBuilder.fields(), ImmutableList.<String>of(), true).build();
+            .project(relBuilder.fields(), ImmutableList.of(), true).build();
       }
 
       // Generate result rewriting
@@ -1714,7 +1714,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       if (aggregation == SqlStdOperatorTable.SUM
           || aggregation == SqlStdOperatorTable.MIN
           || aggregation == SqlStdOperatorTable.MAX
-          || aggregation == SqlStdOperatorTable.SUM0) {
+          || aggregation == SqlStdOperatorTable.SUM0
+          || aggregation == SqlStdOperatorTable.ANY_VALUE) {
         return aggregation;
       } else if (aggregation == SqlStdOperatorTable.COUNT) {
         return SqlStdOperatorTable.SUM0;
@@ -1836,8 +1837,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       return ImmutableList.of();
     }
     List<BiMap<RelTableRef, RelTableRef>> result =
-        ImmutableList.<BiMap<RelTableRef, RelTableRef>>of(
-            HashBiMap.<RelTableRef, RelTableRef>create());
+        ImmutableList.of(
+            HashBiMap.create());
     for (Entry<RelTableRef, Collection<RelTableRef>> e : multiMapTables.asMap().entrySet()) {
       if (e.getValue().size() == 1) {
         // Only one reference, we can just add it to every map
@@ -1854,7 +1855,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         for (BiMap<RelTableRef, RelTableRef> m : result) {
           if (!m.containsValue(target)) {
             final BiMap<RelTableRef, RelTableRef> newM =
-                HashBiMap.<RelTableRef, RelTableRef>create(m);
+                HashBiMap.create(m);
             newM.put(e.getKey(), target);
             newResult.add(newM);
           }
@@ -1937,7 +1938,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         residualPreds.add(e);
       }
     }
-    return ImmutableTriple.<RexNode, RexNode, RexNode>of(
+    return ImmutableTriple.of(
         RexUtil.composeConjunction(rexBuilder, equiColumnsPreds, false),
         RexUtil.composeConjunction(rexBuilder, rangePreds, false),
         RexUtil.composeConjunction(rexBuilder, residualPreds, false));
@@ -1968,7 +1969,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       Multimap<RexTableInputRef, RexTableInputRef> compensationEquiColumns) {
     // Create UK-FK graph with view tables
     final DirectedGraph<RelTableRef, Edge> graph =
-        DefaultDirectedGraph.create(Edge.FACTORY);
+        DefaultDirectedGraph.create(Edge::new);
     final Multimap<List<String>, RelTableRef> tableVNameToTableRefs =
         ArrayListMultimap.create();
     final Set<RelTableRef> extraTableRefs = new HashSet<>();
@@ -2117,8 +2118,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       return null;
     }
 
-    return ImmutableTriple.<RexNode, RexNode, RexNode>of(
-        compensationColumnsEquiPred, compensationRangePred, compensationResidualPred);
+    return ImmutableTriple.of(compensationColumnsEquiPred,
+        compensationRangePred, compensationResidualPred);
   }
 
   /**
@@ -2625,12 +2626,6 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
 
   /** Edge for graph */
   private static class Edge extends DefaultEdge {
-    public static final DirectedGraph.EdgeFactory<RelTableRef, Edge> FACTORY =
-        new DirectedGraph.EdgeFactory<RelTableRef, Edge>() {
-          public Edge createEdge(RelTableRef source, RelTableRef target) {
-            return new Edge(source, target);
-          }
-        };
 
     final Multimap<RexTableInputRef, RexTableInputRef> equiColumns =
         ArrayListMultimap.create();

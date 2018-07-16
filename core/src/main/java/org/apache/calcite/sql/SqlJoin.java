@@ -24,6 +24,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Parse tree node representing a {@code JOIN} clause.
@@ -60,15 +61,15 @@ public class SqlJoin extends SqlCall {
       SqlNode condition) {
     super(pos);
     this.left = left;
-    this.natural = Preconditions.checkNotNull(natural);
-    this.joinType = Preconditions.checkNotNull(joinType);
+    this.natural = Objects.requireNonNull(natural);
+    this.joinType = Objects.requireNonNull(joinType);
     this.right = right;
-    this.conditionType = Preconditions.checkNotNull(conditionType);
+    this.conditionType = Objects.requireNonNull(conditionType);
     this.condition = condition;
 
     Preconditions.checkArgument(natural.getTypeName() == SqlTypeName.BOOLEAN);
-    Preconditions.checkNotNull(conditionType.symbolValue(JoinConditionType.class));
-    Preconditions.checkNotNull(joinType.symbolValue(JoinType.class));
+    Objects.requireNonNull(conditionType.symbolValue(JoinConditionType.class));
+    Objects.requireNonNull(joinType.symbolValue(JoinType.class));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -220,6 +221,9 @@ public class SqlJoin extends SqlCall {
         break;
       case LEFT:
         writer.sep(natural + "LEFT JOIN");
+        break;
+      case LEFT_SEMI_JOIN:
+        writer.sep(natural + "LEFT SEMI JOIN");
         break;
       case RIGHT:
         writer.sep(natural + "RIGHT JOIN");

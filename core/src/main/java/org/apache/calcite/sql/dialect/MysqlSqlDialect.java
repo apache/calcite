@@ -193,13 +193,13 @@ public class MysqlSqlDialect extends SqlDialect {
       format = "%Y-%m-%d";
       break;
     case HOUR:
-      format = "%Y-%m-%d %k:00:00";
+      format = "%Y-%m-%d %H:00:00";
       break;
     case MINUTE:
-      format = "%Y-%m-%d %k:%i:00";
+      format = "%Y-%m-%d %H:%i:00";
       break;
     case SECOND:
-      format = "%Y-%m-%d %k:%i:%s";
+      format = "%Y-%m-%d %H:%i:%s";
       break;
     default:
       throw new AssertionError("MYSQL does not support FLOOR for time unit: "

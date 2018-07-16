@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
@@ -47,6 +48,7 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -60,13 +62,13 @@ import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -100,6 +102,51 @@ public abstract class SqlToRelTestBase {
     return new TesterImpl(getDiffRepos(), false, false, true, false,
         null, null, SqlToRelConverter.Config.DEFAULT,
         SqlConformanceEnum.DEFAULT, Contexts.empty());
+  }
+
+  protected Tester createTester(SqlConformance conformance) {
+    return new TesterImpl(getDiffRepos(), false, false, true, false,
+        null, null, SqlToRelConverter.Config.DEFAULT, conformance, Contexts.empty());
+  }
+
+  protected Tester getTesterWithDynamicTable() {
+    return tester.withCatalogReaderFactory(
+        typeFactory -> new MockCatalogReader(typeFactory, true) {
+            @Override public MockCatalogReader init() {
+              // CREATE SCHEMA "SALES;
+              // CREATE DYNAMIC TABLE "NATION"
+              // CREATE DYNAMIC TABLE "CUSTOMER"
+
+              MockSchema schema = new MockSchema("SALES");
+              registerSchema(schema);
+
+              MockTable nationTable =
+                  new MockDynamicTable(this, schema.getCatalogName(),
+                      schema.getName(), "NATION", false, 100);
+              registerTable(nationTable);
+
+              MockTable customerTable =
+                  new MockDynamicTable(this, schema.getCatalogName(),
+                      schema.getName(), "CUSTOMER", false, 100);
+              registerTable(customerTable);
+
+              // CREATE TABLE "REGION" - static table with known schema.
+              final RelDataType intType =
+                  typeFactory.createSqlType(SqlTypeName.INTEGER);
+              final RelDataType varcharType =
+                  typeFactory.createSqlType(SqlTypeName.VARCHAR);
+
+              MockTable regionTable =
+                  MockTable.create(this, schema, "REGION", false, 100);
+              regionTable.addColumn("R_REGIONKEY", intType);
+              regionTable.addColumn("R_NAME", varcharType);
+              regionTable.addColumn("R_COMMENT", varcharType);
+              registerTable(regionTable);
+
+              return this;
+            }
+            // CHECKSTYLE: IGNORE 1
+          }.init());
   }
 
   /**
@@ -557,7 +604,7 @@ public abstract class SqlToRelTestBase {
     }
 
     public RelRoot convertSqlToRel(String sql) {
-      Preconditions.checkNotNull(sql);
+      Objects.requireNonNull(sql);
       final SqlNode sqlQuery;
       final SqlToRelConverter.Config localConfig;
       try {
@@ -573,6 +620,10 @@ public abstract class SqlToRelTestBase {
       final SqlValidator validator =
           createValidator(
               catalogReader, typeFactory);
+      final CalciteConnectionConfig calciteConfig = context.unwrap(CalciteConnectionConfig.class);
+      if (calciteConfig != null) {
+        validator.setDefaultNullCollation(calciteConfig.defaultNullCollation());
+      }
       if (config == SqlToRelConverter.Config.DEFAULT) {
         localConfig = SqlToRelConverter.configBuilder()
             .withTrimUnusedFields(true).withExpand(enableExpand).build();

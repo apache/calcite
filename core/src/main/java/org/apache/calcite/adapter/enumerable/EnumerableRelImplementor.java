@@ -42,11 +42,9 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.util.BuiltInMethod;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
@@ -56,7 +54,9 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -69,17 +69,13 @@ import java.util.Set;
 public class EnumerableRelImplementor extends JavaRelImplementor {
   public final Map<String, Object> map;
   private final Map<String, RexToLixTranslator.InputGetter> corrVars =
-      Maps.newHashMap();
+      new HashMap<>();
   private final Map<Object, ParameterExpression> stashedParameters =
-      Maps.newIdentityHashMap();
+      new IdentityHashMap<>();
   int windowCount = 0;
 
   protected final Function1<String, RexToLixTranslator.InputGetter> allCorrelateVariables =
-      new Function1<String, RexToLixTranslator.InputGetter>() {
-        public RexToLixTranslator.InputGetter apply(String name) {
-          return getCorrelVariableGetter(name);
-        }
-      };
+      this::getCorrelVariableGetter;
 
   public EnumerableRelImplementor(RexBuilder rexBuilder,
       Map<String, Object> internalParameters) {
@@ -139,16 +135,12 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     // It is convenient for passing non-literal "compile-time" constants
     final Collection<Statement> stashed =
         Collections2.transform(stashedParameters.values(),
-            new Function<ParameterExpression, Statement>() {
-              public Statement apply(ParameterExpression input) {
-                return Expressions.declare(Modifier.FINAL, input,
-                    Expressions.convert_(
-                        Expressions.call(DataContext.ROOT,
-                            BuiltInMethod.DATA_CONTEXT_GET.method,
-                            Expressions.constant(input.name)),
-                        input.type));
-              }
-            });
+            input -> Expressions.declare(Modifier.FINAL, input,
+                Expressions.convert_(
+                    Expressions.call(DataContext.ROOT,
+                        BuiltInMethod.DATA_CONTEXT_GET.method,
+                        Expressions.constant(input.name)),
+                    input.type)));
 
     final BlockStatement block = Expressions.block(
         Iterables.concat(
@@ -170,14 +162,14 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     memberDeclarations.add(
         Expressions.methodDecl(Modifier.PUBLIC, Class.class,
             BuiltInMethod.TYPED_GET_ELEMENT_TYPE.method.getName(),
-            Collections.<ParameterExpression>emptyList(),
+            ImmutableList.of(),
             Blocks.toFunctionBlock(
                 Expressions.return_(null,
                     Expressions.constant(result.physType.getJavaRowType())))));
     return Expressions.classDecl(Modifier.PUBLIC,
         "Baz",
         null,
-        Collections.<Type>singletonList(Bindable.class),
+        Collections.singletonList(Bindable.class),
         memberDeclarations);
   }
 
@@ -188,7 +180,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
             Modifier.PUBLIC | Modifier.STATIC,
             type.getName(),
             null,
-            ImmutableList.<Type>of(Serializable.class),
+            ImmutableList.of(Serializable.class),
             new ArrayList<MemberDeclaration>());
 
     // For each field:
@@ -302,7 +294,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
             Modifier.PUBLIC,
             int.class,
             "hashCode",
-            Collections.<ParameterExpression>emptyList(),
+            Collections.emptyList(),
             blockBuilder3.toBlock()));
 
     // compareTo method:
@@ -400,7 +392,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
             Modifier.PUBLIC,
             String.class,
             "toString",
-            Collections.<ParameterExpression>emptyList(),
+            Collections.emptyList(),
             blockBuilder5.toBlock()));
 
     return classDeclaration;
@@ -455,12 +447,10 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
   public void registerCorrelVariable(final String name,
       final ParameterExpression pe,
       final BlockBuilder corrBlock, final PhysType physType) {
-    corrVars.put(name, new RexToLixTranslator.InputGetter() {
-      public Expression field(BlockBuilder list, int index, Type storageType) {
-        Expression fieldReference =
-            physType.fieldReference(pe, index, storageType);
-        return corrBlock.append(name + "_" + index, fieldReference);
-      }
+    corrVars.put(name, (list, index, storageType) -> {
+      Expression fieldReference =
+          physType.fieldReference(pe, index, storageType);
+      return corrBlock.append(name + "_" + index, fieldReference);
     });
   }
 

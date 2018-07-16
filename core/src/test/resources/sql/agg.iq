@@ -1075,6 +1075,69 @@ FROM "scott".emp;
 !ok
 !}
 
+# FUSION rolled up using CARDINALITY
+select cardinality(fusion(empnos)) as f_empnos_length
+from (
+  select deptno, collect(empno) as empnos
+  from "scott".emp
+  group by deptno);
++-----------------+
+| F_EMPNOS_LENGTH |
++-----------------+
+|              14 |
++-----------------+
+(1 row)
+
+!ok
+
+# FUSION
+select cardinality(fusion(empnos)) as f_empnos_length from (select deptno, collect(empno) as empnos
+from "scott".emp
+group by deptno);
++-----------------+
+| F_EMPNOS_LENGTH |
++-----------------+
+|              14 |
++-----------------+
+(1 row)
+
+!ok
+
+# FUSION on sub-total
+select job, fusion(empnos) as empnos
+from (
+  select job, collect(empno) as empnos
+  from "scott".emp
+  group by deptno, job)
+group by job;
++-----------+--------------------------+
+| JOB       | EMPNOS                   |
++-----------+--------------------------+
+| ANALYST   | [7788, 7902]             |
+| CLERK     | [7934, 7369, 7876, 7900] |
+| MANAGER   | [7782, 7566, 7698]       |
+| PRESIDENT | [7839]                   |
+| SALESMAN  | [7499, 7521, 7654, 7844] |
++-----------+--------------------------+
+(5 rows)
+
+!ok
+
+# FUSION grand total
+select fusion(deptnos) as deptnos
+from (
+  select collect(distinct deptno) as deptnos
+  from "scott".emp
+  group by deptno);
++--------------+
+| DEPTNOS      |
++--------------+
+| [20, 10, 30] |
++--------------+
+(1 row)
+
+!ok
+
 # COLLECT
 select deptno, collect(empno) as empnos
 from "scott".emp
@@ -2175,6 +2238,50 @@ EnumerableAggregate(group=[{1}], EXPR$1=[COUNT($2, $0) FILTER $5], EXPR$2=[MIN($
   EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=($t5, $t6)], expr#8=[5], expr#9=[=($t5, $t8)], proj#0..4=[{exprs}], $g_0=[$t7], $g_5=[$t9])
     EnumerableAggregate(group=[{2, 3, 7}], groups=[[{2, 3, 7}, {3}]], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)], $g=[GROUPING($2, $3, $7)])
       EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# [CALCITE-2366] Add support for ANY_VALUE function
+# Without GROUP BY clause
+SELECT any_value(empno) as anyempno from "scott".emp;
++----------+
+| ANYEMPNO |
++----------+
+|     7934 |
++----------+
+(1 row)
+
+!ok
+
+EnumerableAggregate(group=[{}], ANYEMPNO=[ANY_VALUE($0)])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# [CALCITE-2366] Add support for ANY_VALUE function
+# With GROUP BY clause
+SELECT any_value(empno) as anyempno from "scott".emp group by sal;
++----------+
+| ANYEMPNO |
++----------+
+|     7369 |
+|     7499 |
+|     7566 |
+|     7654 |
+|     7698 |
+|     7782 |
+|     7839 |
+|     7844 |
+|     7876 |
+|     7900 |
+|     7902 |
+|     7934 |
++----------+
+(12 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], ANYEMPNO=[$t1])
+  EnumerableAggregate(group=[{5}], ANYEMPNO=[ANY_VALUE($0)])
+    EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
 # End agg.iq

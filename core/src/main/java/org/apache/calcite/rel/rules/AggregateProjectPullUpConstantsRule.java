@@ -87,7 +87,7 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
       Class<? extends RelNode> inputClass,
       RelBuilderFactory relBuilderFactory, String description) {
     super(
-        operand(aggregateClass, null, Aggregate.IS_SIMPLE,
+        operandJ(aggregateClass, null, Aggregate::isSimple,
             operand(inputClass, any())),
         relBuilderFactory, description);
   }

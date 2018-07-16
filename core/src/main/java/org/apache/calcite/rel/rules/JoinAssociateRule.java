@@ -32,8 +32,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.collect.Lists;
-
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -119,8 +118,8 @@ public class JoinAssociateRule extends RelOptRule {
 
     // Split the condition of topJoin and bottomJoin into a conjunctions. A
     // condition can be pushed down if it does not use columns from A.
-    final List<RexNode> top = Lists.newArrayList();
-    final List<RexNode> bottom = Lists.newArrayList();
+    final List<RexNode> top = new ArrayList<>();
+    final List<RexNode> bottom = new ArrayList<>();
     JoinPushThroughJoinRule.split(topJoin.getCondition(), aBitSet, top, bottom);
     JoinPushThroughJoinRule.split(bottomJoin.getCondition(), aBitSet, top,
         bottom);
@@ -134,7 +133,7 @@ public class JoinAssociateRule extends RelOptRule {
             aCount + bCount + cCount,
             0, aCount, bCount,
             bCount, aCount + bCount, cCount);
-    final List<RexNode> newBottomList = Lists.newArrayList();
+    final List<RexNode> newBottomList = new ArrayList<>();
     new RexPermuteInputsShuttle(bottomMapping, relB, relC)
         .visitList(bottom, newBottomList);
     RexNode newBottomCondition =

@@ -14,8 +14,12 @@
 # limitations under the License.
 #
 source 'https://rubygems.org'
-gem 'github-pages', '150'
+gem 'github-pages', '182'
 gem 'rouge'
-gem 'jekyll_oembed'
 gem 'jekyll-redirect-from'
+
+group :jekyll_plugins do
+  gem 'jekyll_oembed'
+end
+
 # End Gemfile

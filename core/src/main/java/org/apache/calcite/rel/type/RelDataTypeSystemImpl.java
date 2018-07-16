@@ -244,6 +244,10 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     return true;
   }
 
+  public boolean shouldConvertRaggedUnionTypesToVarying() {
+    return false;
+  }
+
 }
 
 // End RelDataTypeSystemImpl.java
