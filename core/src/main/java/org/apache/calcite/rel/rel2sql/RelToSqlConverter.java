@@ -304,7 +304,7 @@ public class RelToSqlConverter extends SqlImplementor
             new SqlSelect(POS, null,
                 new SqlNodeList(values2, POS),
                 new SqlIdentifier("DUAL", POS), null, null,
-                null, null, null, null, null));
+                null, null, null, null, null, null));
       }
       if (list.size() == 1) {
         query = list.get(0);

@@ -136,7 +136,7 @@ public class JdbcTable extends AbstractQueryableTable
             SqlParserPos.ZERO);
     SqlSelect node =
         new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY, selectList,
-            tableName(), null, null, null, null, null, null, null);
+            tableName(), null, null, null, null, null, null, null, null);
     final SqlPrettyWriter writer = new SqlPrettyWriter(jdbcSchema.dialect);
     node.unparse(writer, 0, 0);
     return writer.toSqlString();

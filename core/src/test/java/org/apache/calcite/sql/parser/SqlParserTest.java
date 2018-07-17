@@ -702,6 +702,26 @@ public class SqlParserTest {
             + "FROM `EMP`");
   }
 
+  @Test public void testUpdatabilityClauseWithoutTables() {
+    check("select * from emp as e (empno, gender) where true"
+            + " for update",
+        "SELECT *\n"
+            + "FROM `EMP` AS `E` (`EMPNO`, `GENDER`)\n"
+            + "WHERE TRUE\n"
+            + "FOR UPDATE");
+  }
+
+  @Test public void testUpdatabilityClauseWithTables() {
+    check("select * from emp as e (empno, gender) where true"
+            + " for update of emp",
+        "SELECT *\n"
+            + "FROM `EMP` AS `E` (`EMPNO`, `GENDER`)\n"
+            + "WHERE TRUE\n"
+            + "FOR UPDATE\n"
+            + "OF `EMP`");
+  }
+
+
   @Test public void testDerivedColumnList() {
     check("select * from emp as e (empno, gender) where true",
         "SELECT *\n"

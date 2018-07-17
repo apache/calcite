@@ -83,6 +83,7 @@ import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.SqlUpdate;
+import org.apache.calcite.sql.SqlUpdatabilityClause;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
@@ -1017,6 +1018,7 @@ SqlSelect SqlSelect() :
     final SqlNode having;
     final SqlNodeList windowDecls;
     final Span s;
+    final SqlNode updatabilityClause;
 }
 {
     <SELECT>
@@ -1047,6 +1049,7 @@ SqlSelect SqlSelect() :
         groupBy = GroupByOpt()
         having = HavingOpt()
         windowDecls = WindowOpt()
+        updatabilityClause = UpdatabilityClauseOpt()
     |
         E() {
             fromClause = null;
@@ -1054,12 +1057,13 @@ SqlSelect SqlSelect() :
             groupBy = null;
             having = null;
             windowDecls = null;
+            updatabilityClause = null;
         }
     )
     {
         return new SqlSelect(s.end(this), keywordList,
             new SqlNodeList(selectList, Span.of(selectList).pos()),
-            fromClause, where, groupBy, having, windowDecls, null, null, null);
+            fromClause, where, groupBy, having, windowDecls, null, null, null, updatabilityClause);
     }
 }
 
@@ -1786,6 +1790,32 @@ SqlNode FromClause() :
     )*
     {
         return e;
+    }
+}
+
+/**
+ * Parses the optional updatability clause.
+ *
+ * <p>SELECT ... FOR UPDATE OF table [, table].
+ */
+SqlNode UpdatabilityClauseOpt() :
+{
+    SqlNodeList list = null;
+}
+{    
+    (
+        <FOR> <UPDATE> 
+        [
+            <OF>
+            list = NonParenthesizedSimpleIdentifierList()
+        ]
+    )
+    {
+        return new SqlUpdatabilityClause(list, getPos());
+    }
+|
+    {
+        return null;
     }
 }
 
@@ -4243,6 +4273,22 @@ SqlNodeList ParenthesizedSimpleIdentifierList() :
     <LPAREN> { s = span(); }
     SimpleIdentifierCommaList(list)
     <RPAREN> {
+        return new SqlNodeList(list, s.end(this));
+    }
+}
+
+/**
+  * List of simple identifiers without parentheses.
+  */
+SqlNodeList NonParenthesizedSimpleIdentifierList() :
+{
+    final Span s;
+    final List<SqlNode> list = new ArrayList<SqlNode>();
+}
+{
+    { s = span(); }
+    SimpleIdentifierCommaList(list)
+    {
         return new SqlNodeList(list, s.end(this));
     }
 }
