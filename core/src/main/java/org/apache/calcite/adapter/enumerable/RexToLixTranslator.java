@@ -45,12 +45,14 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import java.lang.reflect.Method;
@@ -682,18 +684,26 @@ public class RexToLixTranslator {
     case FIELD_ACCESS:
       RexFieldAccess fieldAccess = (RexFieldAccess) expr;
       RexNode target = deref(fieldAccess.getReferenceExpr());
-      // only $cor.field access is supported
-      if (!(target instanceof RexCorrelVariable)) {
-        throw new RuntimeException(
-            "cannot translate expression " + expr);
+      int fieldIndex = fieldAccess.getField().getIndex();
+      String fieldName = fieldAccess.getField().getName();
+      switch (target.getKind()) {
+      case CORREL_VARIABLE:
+        if (correlates == null) {
+          throw new RuntimeException("Cannot translate " + expr + " since "
+              + "correlate variables resolver is not defined");
+        }
+        InputGetter getter =
+            correlates.apply(((RexCorrelVariable) target).getName());
+        return getter.field(list, fieldIndex, storageType);
+      default:
+        RexNode rxIndex = builder.makeLiteral(fieldIndex, typeFactory.createType(int.class), true);
+        RexNode rxName = builder.makeLiteral(fieldName, typeFactory.createType(String.class), true);
+        RexCall accessCall = (RexCall) builder.makeCall(
+            fieldAccess.getType(),
+            SqlStdOperatorTable.STRUCT_ACCESS,
+            ImmutableList.of(target, rxIndex, rxName));
+        return translateCall(accessCall, nullAs);
       }
-      if (correlates == null) {
-        throw new RuntimeException("Cannot translate " + expr + " since "
-            + "correlate variables resolver is not defined");
-      }
-      InputGetter getter =
-          correlates.apply(((RexCorrelVariable) target).getName());
-      return getter.field(list, fieldAccess.getField().getIndex(), storageType);
     default:
       if (expr instanceof RexCall) {
         return translateCall((RexCall) expr, nullAs);

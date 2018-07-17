@@ -318,6 +318,92 @@ public class ReflectiveSchemaTest {
             "value=true");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2404">[CALCITE-2404]
+   * Accessing structured-types is not implemented by the runtime</a>. */
+  @Test public void testSelectWithFieldAccessOnFirstLevelRecordType() {
+    CalciteAssert.that()
+        .with(CalciteAssert.SchemaSpec.BOOKSTORE)
+        .query("select au.\"birthPlace\".\"city\" as city from \"bookstore\".\"authors\" au\n")
+        .returnsUnordered("CITY=Heraklion", "CITY=Besançon", "CITY=Ionia");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2404">[CALCITE-2404]
+   * Accessing structured-types is not implemented by the runtime</a>. */
+  @Test public void testSelectWithFieldAccessOnSecondLevelRecordType() {
+    CalciteAssert.that()
+        .with(CalciteAssert.SchemaSpec.BOOKSTORE)
+        .query("select au.\"birthPlace\".\"coords\".\"latitude\" as lat\n"
+            + "from \"bookstore\".\"authors\" au\n")
+        .returnsUnordered("LAT=47.24", "LAT=35.3387", "LAT=null");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2404">[CALCITE-2404]
+   * Accessing structured-types is not implemented by the runtime</a>. */
+  @Test public void testWhereWithFieldAccessOnFirstLevelRecordType() {
+    CalciteAssert.that()
+        .with(CalciteAssert.SchemaSpec.BOOKSTORE)
+        .query("select au.\"aid\" as aid from \"bookstore\".\"authors\" au\n"
+            + "where au.\"birthPlace\".\"city\"='Heraklion'")
+        .returnsUnordered("AID=2");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2404">[CALCITE-2404]
+   * Accessing structured-types is not implemented by the runtime</a>. */
+  @Test public void testWhereWithFieldAccessOnSecondLevelRecordType() {
+    CalciteAssert.that()
+        .with(CalciteAssert.SchemaSpec.BOOKSTORE)
+        .query("select au.\"aid\" as aid from \"bookstore\".\"authors\" au\n"
+            + "where au.\"birthPlace\".\"coords\".\"latitude\"=35.3387")
+        .returnsUnordered("AID=2");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2404">[CALCITE-2404]
+   * Accessing structured-types is not implemented by the runtime</a>. */
+  @Test public void testSelectWithFieldAccessOnFirstLevelRecordTypeArray() {
+    CalciteAssert.that()
+        .with(CalciteAssert.SchemaSpec.BOOKSTORE)
+        .query("select au.\"books\"[1].\"title\" as title from \"bookstore\".\"authors\" au\n")
+        .returnsUnordered("TITLE=Les Misérables", "TITLE=Zorba the Greek", "TITLE=null");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2404">[CALCITE-2404]
+   * Accessing structured-types is not implemented by the runtime</a>. */
+  @Test public void testSelectWithFieldAccessOnSecondLevelRecordTypeArray() {
+    CalciteAssert.that()
+        .with(CalciteAssert.SchemaSpec.BOOKSTORE)
+        .query("select au.\"books\"[1].\"pages\"[1].\"pageNo\" as pno\n"
+            + "from \"bookstore\".\"authors\" au\n")
+        .returnsUnordered("PNO=1", "PNO=1", "PNO=null");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2404">[CALCITE-2404]
+   * Accessing structured-types is not implemented by the runtime</a>. */
+  @Test public void testWhereWithFieldAccessOnFirstLevelRecordTypeArray() {
+    CalciteAssert.that()
+        .with(CalciteAssert.SchemaSpec.BOOKSTORE)
+        .query("select au.\"aid\" as aid from \"bookstore\".\"authors\" au\n"
+            + "where au.\"books\"[1].\"title\"='Les Misérables'")
+        .returnsUnordered("AID=1");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2404">[CALCITE-2404]
+   * Accessing structured-types is not implemented by the runtime</a>. */
+  @Test public void testWhereWithFieldAccessOnSecondLevelRecordTypeArray() {
+    CalciteAssert.that()
+        .with(CalciteAssert.SchemaSpec.BOOKSTORE)
+        .query("select au.\"aid\" as aid from \"bookstore\".\"authors\" au\n"
+            + "where au.\"books\"[1].\"pages\"[2].\"contentType\"='Acknowledgements'")
+        .returnsUnordered("AID=2");
+  }
+
   /** Tests columns based on types such as java.sql.Date and java.util.Date.
    *
    * @see CatchallSchema#everyTypes */

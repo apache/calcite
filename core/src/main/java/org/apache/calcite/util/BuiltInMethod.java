@@ -433,7 +433,8 @@ public enum BuiltInMethod {
   CONTEXT_VALUES(Context.class, "values", true),
   CONTEXT_ROOT(Context.class, "root", true),
   DATA_CONTEXT_GET_QUERY_PROVIDER(DataContext.class, "getQueryProvider"),
-  METADATA_REL(Metadata.class, "rel");
+  METADATA_REL(Metadata.class, "rel"),
+  STRUCT_ACCESS(SqlFunctions.class, "structAccess", Object.class, int.class, String.class);
 
   public final Method method;
   public final Constructor constructor;

@@ -78,8 +78,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SortedSetMultimap;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -782,15 +784,19 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
       // the desired input number
       int iInput = 0;
       RelDataType fieldType = removeDistinct(fieldAccess.getType());
-
+      Deque<Integer> accessOrdinals = new ArrayDeque<>();
       for (;;) {
         RexNode refExp = fieldAccess.getReferenceExpr();
         int ordinal = fieldAccess.getField().getIndex();
+        accessOrdinals.push(ordinal);
         iInput +=
             calculateFlattenedOffset(
                 refExp.getType(),
                 ordinal);
         if (refExp instanceof RexInputRef) {
+          // Consecutive field accesses over some input can be removed since by now the input
+          // is flattened (no struct types). We just have to create a new RexInputRef with the
+          // correct ordinal and type.
           RexInputRef inputRef = (RexInputRef) refExp;
           iInput += getNewForOldInput(inputRef.getIndex());
           return new RexInputRef(iInput, fieldType);
@@ -800,20 +806,20 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
                   rexBuilder.getTypeFactory(), refExp.getType(), null);
           refExp = rexBuilder.makeCorrel(refType, ((RexCorrelVariable) refExp).id);
           return rexBuilder.makeFieldAccess(refExp, iInput);
-        } else if (refExp.isA(SqlKind.CAST)) {
-          // REVIEW jvs 27-Feb-2005:  what about a cast between
-          // different user-defined types (once supported)?
-          RexCall cast = (RexCall) refExp;
-          refExp = cast.getOperands().get(0);
-        }
-        if (refExp.isA(SqlKind.NEW_SPECIFICATION)) {
-          return ((RexCall) refExp).operands
-              .get(fieldAccess.getField().getIndex());
-        }
-        if (!(refExp instanceof RexFieldAccess)) {
+        } else if (refExp instanceof RexCall) {
+          // Field accesses over calls cannot be simplified since the result of the call may be
+          // a struct type.
+          RexCall call = (RexCall) refExp;
+          RexNode newRefExp = visitCall(call);
+          for (Integer ord : accessOrdinals) {
+            newRefExp = rexBuilder.makeFieldAccess(newRefExp, ord);
+          }
+          return newRefExp;
+        } else if (refExp instanceof RexFieldAccess) {
+          fieldAccess = (RexFieldAccess) refExp;
+        } else {
           throw Util.needToImplement(refExp);
         }
-        fieldAccess = (RexFieldAccess) refExp;
       }
     }
 

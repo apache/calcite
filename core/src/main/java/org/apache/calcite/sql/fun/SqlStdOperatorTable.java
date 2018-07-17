@@ -1947,6 +1947,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       };
 
   /**
+   * The internal "$STRUCT_ACCESS" operator is used to access a field of a record.
+   *
+   * In contrast with {@link #DOT} operator it never appears in an {@link SqlNode} tree and allows
+   * to access fields by position and not by name.
+   */
+  public static final SqlInternalOperator STRUCT_ACCESS =
+      new SqlInternalOperator("$STRUCT_ACCESS", SqlKind.OTHER);
+
+  /**
    * The CARDINALITY operator, used to retrieve the number of elements in a
    * MULTISET, ARRAY or MAP.
    */
