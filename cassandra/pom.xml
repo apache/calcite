@@ -70,12 +70,22 @@ limitations under the License.
       <artifactId>cassandra-driver-core</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.cassandraunit</groupId>
+      <artifactId>cassandra-unit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.cassandra</groupId>
+      <artifactId>cassandra-all</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
+      <groupId>com.github.stephenc.jcip</groupId>
+      <artifactId>jcip-annotations</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

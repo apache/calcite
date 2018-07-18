@@ -56,6 +56,7 @@ import org.slf4j.Logger;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +73,8 @@ public class CassandraSchema extends AbstractSchema {
 
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
+  private static final int DEFAULT_CASSANDRA_PORT = 9042;
+
   /**
    * Creates a Cassandra schema.
    *
@@ -79,7 +82,19 @@ public class CassandraSchema extends AbstractSchema {
    * @param keyspace Cassandra keyspace name, e.g. "twissandra"
    */
   public CassandraSchema(String host, String keyspace, SchemaPlus parentSchema, String name) {
-    this(host, keyspace, null, null, parentSchema, name);
+    this(host, DEFAULT_CASSANDRA_PORT, keyspace, null, null, parentSchema, name);
+  }
+
+  /**
+   * Creates a Cassandra schema.
+   *
+   * @param host Cassandra host, e.g. "localhost"
+   * @param port Cassandra port, e.g. 9042
+   * @param keyspace Cassandra keyspace name, e.g. "twissandra"
+   */
+  public CassandraSchema(String host, int port, String keyspace,
+          SchemaPlus parentSchema, String name) {
+    this(host, port, keyspace, null, null, parentSchema, name);
   }
 
   /**
@@ -92,16 +107,32 @@ public class CassandraSchema extends AbstractSchema {
    */
   public CassandraSchema(String host, String keyspace, String username, String password,
         SchemaPlus parentSchema, String name) {
+    this(host, DEFAULT_CASSANDRA_PORT, keyspace, null, null, parentSchema, name);
+  }
+
+  /**
+   * Creates a Cassandra schema.
+   *
+   * @param host Cassandra host, e.g. "localhost"
+   * @param port Cassandra port, e.g. 9042
+   * @param keyspace Cassandra keyspace name, e.g. "twissandra"
+   * @param username Cassandra username
+   * @param password Cassandra password
+   */
+  public CassandraSchema(String host, int port, String keyspace, String username, String password,
+        SchemaPlus parentSchema, String name) {
     super();
 
     this.keyspace = keyspace;
     try {
       Cluster cluster;
+      List<InetSocketAddress> contactPoints = new ArrayList<>(1);
+      contactPoints.add(new InetSocketAddress(host, port));
       if (username != null && password != null) {
-        cluster = Cluster.builder().addContactPoint(host)
+        cluster = Cluster.builder().addContactPointsWithPorts(contactPoints)
             .withCredentials(username, password).build();
       } else {
-        cluster = Cluster.builder().addContactPoint(host).build();
+        cluster = Cluster.builder().addContactPointsWithPorts(contactPoints).build();
       }
 
       this.session = cluster.connect(keyspace);
