@@ -24,6 +24,7 @@
       "factory": "org.apache.calcite.adapter.cassandra.CassandraSchemaFactory",
       "operand": {
         "host": "localhost",
+        "port": 9142,
         "keyspace": "twissandra"
       }
     }
