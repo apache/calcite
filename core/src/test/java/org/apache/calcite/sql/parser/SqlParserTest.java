@@ -702,7 +702,7 @@ public class SqlParserTest {
             + "FROM `EMP`");
   }
 
-  @Test public void testUpdatabilityClauseWithoutTables() {
+  @Test public void testUpdatabilityWithoutTables() {
     check("select * from emp as e (empno, gender) where true"
             + " for update",
         "SELECT *\n"
@@ -711,7 +711,7 @@ public class SqlParserTest {
             + "FOR UPDATE");
   }
 
-  @Test public void testUpdatabilityClauseWithTables() {
+  @Test public void testUpdatabilityWithTables() {
     check("select * from emp as e (empno, gender) where true"
             + " for update of emp",
         "SELECT *\n"

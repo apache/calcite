@@ -231,6 +231,12 @@ public enum SqlKind {
    * MATCH_RECOGNIZE clause
    */
   MATCH_RECOGNIZE,
+
+  /**
+   * UPDATABILITY  clause
+   */
+  UPDATABILITY,
+
   // binary operators
 
   /**

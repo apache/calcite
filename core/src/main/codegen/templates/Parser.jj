@@ -83,7 +83,7 @@ import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.SqlUpdate;
-import org.apache.calcite.sql.SqlUpdatabilityClause;
+import org.apache.calcite.sql.SqlUpdatability;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
@@ -1018,7 +1018,7 @@ SqlSelect SqlSelect() :
     final SqlNode having;
     final SqlNodeList windowDecls;
     final Span s;
-    final SqlNode updatabilityClause;
+    final SqlNode updatability;
 }
 {
     <SELECT>
@@ -1049,7 +1049,7 @@ SqlSelect SqlSelect() :
         groupBy = GroupByOpt()
         having = HavingOpt()
         windowDecls = WindowOpt()
-        updatabilityClause = UpdatabilityClauseOpt()
+        updatability = UpdatabilityOpt()
     |
         E() {
             fromClause = null;
@@ -1057,13 +1057,13 @@ SqlSelect SqlSelect() :
             groupBy = null;
             having = null;
             windowDecls = null;
-            updatabilityClause = null;
+            updatability = null;
         }
     )
     {
         return new SqlSelect(s.end(this), keywordList,
             new SqlNodeList(selectList, Span.of(selectList).pos()),
-            fromClause, where, groupBy, having, windowDecls, null, null, null, updatabilityClause);
+            fromClause, where, groupBy, having, windowDecls, null, null, null, updatability);
     }
 }
 
@@ -1798,7 +1798,7 @@ SqlNode FromClause() :
  *
  * <p>SELECT ... FOR UPDATE OF table [, table].
  */
-SqlNode UpdatabilityClauseOpt() :
+SqlNode UpdatabilityOpt() :
 {
     SqlNodeList list = null;
 }
@@ -1811,7 +1811,7 @@ SqlNode UpdatabilityClauseOpt() :
         ]
     )
     {
-        return new SqlUpdatabilityClause(list, getPos());
+        return new SqlUpdatability(list, getPos());
     }
 |
     {

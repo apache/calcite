@@ -17,23 +17,28 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.util.SqlVisitor;
-import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorScope;
-import org.apache.calcite.util.Litmus;
+import org.apache.calcite.util.ImmutableNullableList;
 
+import java.util.List;
 import java.util.Objects;
-
 
 /**
  * Represents the updatability clause.
  * SELECT .. FROM ... FOR UPDATE [OF table,table...]
  */
-public class SqlUpdatabilityClause extends SqlNode {
+public class SqlUpdatability extends SqlCall {
+
+  public static final SqlSpecialOperator OPERATOR =
+      new SqlSpecialOperator("UPDATABILITY", SqlKind.UPDATABILITY) {
+      @Override public SqlCall createCall(SqlLiteral functionQualifier,
+            SqlParserPos pos, SqlNode... operands) {
+          return new SqlUpdatability((SqlNodeList) operands[0], pos);
+        }
+  };
 
   final SqlNodeList tables;
 
-  public SqlUpdatabilityClause(SqlNodeList tables, SqlParserPos pos) {
+  public SqlUpdatability(SqlNodeList tables, SqlParserPos pos) {
     super(pos);
     this.tables = Objects.requireNonNull(tables != null
               ? tables : new SqlNodeList(pos));
@@ -50,22 +55,18 @@ public class SqlUpdatabilityClause extends SqlNode {
     }
   }
 
-  @Override public SqlNode clone(SqlParserPos pos) {
-    throw new UnsupportedOperationException();
+  @Override public SqlOperator getOperator() {
+    return OPERATOR;
   }
 
-  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
-    throw new UnsupportedOperationException();
+  @Override public SqlKind getKind() {
+    return SqlKind.UPDATABILITY;
   }
 
-  @Override public <R> R accept(SqlVisitor<R> visitor) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override public boolean equalsDeep(SqlNode node, Litmus litmus) {
-    throw new UnsupportedOperationException();
+  @Override public List<SqlNode> getOperandList() {
+    return ImmutableNullableList.of(tables);
   }
 
 }
 
-// End SqlUpdatabilityClause.java
+// End SqlUpdatability.java

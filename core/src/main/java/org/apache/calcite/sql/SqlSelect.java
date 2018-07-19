@@ -48,7 +48,7 @@ public class SqlSelect extends SqlCall {
   SqlNodeList orderBy;
   SqlNode offset;
   SqlNode fetch;
-  SqlNode updatabilityClause;
+  SqlNode updatability;
   SqlMatchRecognize matchRecognize;
 
   //~ Constructors -----------------------------------------------------------
@@ -64,7 +64,7 @@ public class SqlSelect extends SqlCall {
       SqlNodeList orderBy,
       SqlNode offset,
       SqlNode fetch,
-      SqlNode updatabilityClause) {
+      SqlNode updatability) {
     super(pos);
     this.keywordList = Objects.requireNonNull(keywordList != null
         ? keywordList : new SqlNodeList(pos));
@@ -78,7 +78,7 @@ public class SqlSelect extends SqlCall {
     this.orderBy = orderBy;
     this.offset = offset;
     this.fetch = fetch;
-    this.updatabilityClause = updatabilityClause;
+    this.updatability = updatability;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -93,7 +93,7 @@ public class SqlSelect extends SqlCall {
 
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(keywordList, selectList, from, where,
-        groupBy, having, windowDecls, orderBy, offset, fetch, updatabilityClause);
+        groupBy, having, windowDecls, orderBy, offset, fetch, updatability);
   }
 
   @Override public void setOperand(int i, SqlNode operand) {
@@ -129,7 +129,7 @@ public class SqlSelect extends SqlCall {
       fetch = operand;
       break;
     case 10:
-      updatabilityClause = operand;
+      updatability = operand;
       break;
     default:
       throw new AssertionError(i);
@@ -175,12 +175,12 @@ public class SqlSelect extends SqlCall {
     this.having = having;
   }
 
-  public SqlNode getUpdatabilityClause() {
-    return updatabilityClause;
+  public SqlNode getUpdatability() {
+    return updatability;
   }
 
-  public void setUpdatabilityClause(SqlNode updatabilityClause) {
-    this.updatabilityClause = updatabilityClause;
+  public void setUpdatability(SqlNode updatability) {
+    this.updatability = updatability;
   }
 
   public final SqlNodeList getSelectList() {
