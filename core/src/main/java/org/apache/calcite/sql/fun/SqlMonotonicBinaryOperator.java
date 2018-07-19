@@ -73,7 +73,8 @@ public class SqlMonotonicBinaryOperator extends SqlBinaryOperator {
         return mono0;
       }
       assert getName().equals("*");
-      switch (call.getOperandLiteralValue(1, BigDecimal.class).signum()) {
+      BigDecimal value = call.getOperandLiteralValue(1, BigDecimal.class);
+      switch (value == null ? 1 : value.signum()) {
       case -1:
         // mono0 * negative constant --> reverse mono0
         return mono0.reverse();
@@ -100,7 +101,8 @@ public class SqlMonotonicBinaryOperator extends SqlBinaryOperator {
       }
       assert getName().equals("*");
       if (!call.isOperandNull(0, true)) {
-        switch (call.getOperandLiteralValue(0, BigDecimal.class).signum()) {
+        BigDecimal value = call.getOperandLiteralValue(0, BigDecimal.class);
+        switch (value == null ? 1 : value.signum()) {
         case -1:
           // negative constant * mono1 --> reverse mono1
           return mono1.reverse();

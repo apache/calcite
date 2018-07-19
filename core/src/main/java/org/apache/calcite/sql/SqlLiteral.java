@@ -481,6 +481,8 @@ public class SqlLiteral extends SqlNode {
   /**
    * Converts a chained string literals into regular literals; returns regular
    * literals unchanged.
+   * @throws IllegalArgumentException if {@code node} is not a string literal
+   * and cannot be unchained.
    */
   public static SqlLiteral unchain(SqlNode node) {
     if (node instanceof SqlLiteral) {
@@ -493,7 +495,7 @@ public class SqlLiteral extends SqlNode {
           new SqlIntervalLiteral.IntervalValue(q, 1, q.toString()),
           q.typeName(), q.pos);
     } else {
-      throw new AssertionError("invalid literal: " + node);
+      throw new IllegalArgumentException("invalid literal: " + node);
     }
   }
 
