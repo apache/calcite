@@ -87,6 +87,7 @@ import java.util.SortedSet;
 import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
@@ -2519,6 +2520,114 @@ public class UtilTest {
     final StringDescription d = new StringDescription();
     m.describeTo(d);
     return d.toString();
+  }
+
+  @SuppressWarnings("ConstantConditions")
+  @Test public void testCircularArrayList() {
+    List<Integer> list = new CircularArrayList<>();
+    assertThat(list.size(), is(0));
+    assertThrowsIoobe(() -> list.get(1));
+    assertThrowsIoobe(() -> list.get(0));
+    assertThrowsIoobe(() -> list.get(1024));
+
+    list.add(2);
+    assertThat(list.size(), is(1));
+    assertThat(list.get(0), is(2));
+    assertThrowsIoobe(() -> list.get(-1));
+    assertThrowsIoobe(() -> list.get(1));
+    assertThat(list.toString(), is("[2]"));
+    assertThat(list.subList(1, 1).size(), is(0));
+    assertThat(list.subList(1, 1).toString(), is("[]"));
+
+    list.add(3);
+    assertThat(list.size(), is(2));
+    assertThat(list.toString(), is("[2, 3]"));
+    assertThrowsIoobe(() -> list.get(-1));
+    assertThrowsIoobe(() -> list.get(2));
+
+    list.remove(0);
+    assertThat(list.size(), is(1));
+    assertThat(list.toString(), is("[3]"));
+    assertThrowsIoobe(() -> list.get(-1));
+    assertThrowsIoobe(() -> list.get(1));
+
+    list.clear();
+    assertThat(list.size(), is(0));
+
+    final Random r = new Random(0);
+    for (int i = 0; i < 1000; i++) {
+      System.out.println(i);
+      checkArrayList(10000, r);
+    }
+  }
+
+  protected void checkArrayList(int iterationCount, Random r) {
+    final CircularArrayList<Integer> list = new CircularArrayList<>();
+    final List<Integer> list2 = new ArrayList<>();
+    for (int i = 0; i < iterationCount; i++) {
+      // Of the 9 possibilities, 4 remove and 5 add, so the list grows over
+      // time.
+      // Of the 4 removes, 2 remove from the start and 1 from the end, so the
+      // list tends to become "wrapped"
+      final int k;
+      switch (r.nextInt(9)) {
+      case 0:
+      case 1:
+        if (list.size() > 0) {
+          if (r.nextBoolean()) {
+            list.remove(0);
+          } else {
+            list.removeFirst();
+          }
+          list2.remove(0);
+        }
+        break;
+      case 2:
+        if (list.size() > 0) {
+          if (r.nextBoolean()) {
+            list.remove(list.size() - 1);
+          } else {
+            list.removeLast();
+          }
+          list2.remove(list2.size() - 1);
+        }
+        break;
+      case 3:
+        if (list.size() > 0) {
+          int j = r.nextInt(list.size());
+          list.remove(j);
+          list2.remove(j);
+        }
+        break;
+      case 4:
+        k = r.nextInt((list.size() + 5) * 10);
+        if (r.nextBoolean()) {
+          list.add(0, k);
+        } else {
+          list.addFirst(k);
+        }
+        list2.add(0, k);
+        break;
+      case 5:
+      case 6:
+      case 7:
+      case 8:
+        k = r.nextInt((list.size() + 5) * 10);
+        list.add(k);
+        list2.add(k);
+      }
+      assertThat(list.size(), is(list2.size()));
+      assertThat(list.toString(), is(list2.toString()));
+    }
+  }
+
+  protected <E> void assertThrowsIoobe(Supplier<E> supplier) {
+    try {
+      final E e = supplier.get();
+      fail("expected error, got " + e);
+    } catch (IndexOutOfBoundsException e) {
+      // ok
+    }
   }
 }
 
