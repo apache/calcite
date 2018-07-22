@@ -1807,7 +1807,7 @@ SqlNode UpdatabilityOpt() :
         <FOR> <UPDATE> 
         [
             <OF>
-            list = NonParenthesizedSimpleIdentifierList()
+            list = NonParenthesizedSimpleExpressionList(ExprContext.ACCEPT_NON_QUERY)
         ]
     )
     {
@@ -4261,6 +4261,22 @@ void SimpleIdentifierCommaList(List<SqlNode> list) :
 }
 
 /**
+ * Parses a comma-separated list of expressions.
+ */
+void SimpleExpressionCommaList(List<SqlNode> list, ExprContext exprContext) :
+{
+    SqlNode expr;
+}
+{
+    expr = Expression(exprContext) {list.add(expr);}
+    (
+        <COMMA> expr = Expression(exprContext) {
+            list.add(expr);
+        }
+    )*
+}
+
+/**
   * List of simple identifiers in parentheses. The position extends from the
   * open parenthesis to the close parenthesis.
   */
@@ -4278,16 +4294,16 @@ SqlNodeList ParenthesizedSimpleIdentifierList() :
 }
 
 /**
-  * List of simple identifiers without parentheses.
+  * List of expressions without parentheses.
   */
-SqlNodeList NonParenthesizedSimpleIdentifierList() :
+SqlNodeList NonParenthesizedSimpleExpressionList(ExprContext exprContext) :
 {
     final Span s;
     final List<SqlNode> list = new ArrayList<SqlNode>();
 }
 {
     { s = span(); }
-    SimpleIdentifierCommaList(list)
+    SimpleExpressionCommaList(list, exprContext)
     {
         return new SqlNodeList(list, s.end(this));
     }

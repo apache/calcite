@@ -721,6 +721,15 @@ public class SqlParserTest {
             + "OF `EMP`");
   }
 
+  @Test public void testUpdatabilityWithColumNames() {
+    check("select * from emp as e (empno, gender) where true"
+            + " for update of emp.empno, emp.gender",
+        "SELECT *\n"
+            + "FROM `EMP` AS `E` (`EMPNO`, `GENDER`)\n"
+            + "WHERE TRUE\n"
+            + "FOR UPDATE\n"
+            + "OF `EMP`.`EMPNO`, `EMP`.`GENDER`");
+  }
 
   @Test public void testDerivedColumnList() {
     check("select * from emp as e (empno, gender) where true",
