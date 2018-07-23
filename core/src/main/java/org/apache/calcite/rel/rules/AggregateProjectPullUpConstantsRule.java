@@ -156,6 +156,11 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
     }
     relBuilder.aggregate(relBuilder.groupKey(newGroupSet, null), newAggCalls);
 
+    // if the new aggregate rel node has not generated,nothing to do.
+    if (relBuilder.peek() == input) {
+      return;
+    }
+
     // Create a projection back again.
     List<Pair<RexNode, String>> projects = new ArrayList<>();
     int source = 0;

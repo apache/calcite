@@ -2617,13 +2617,21 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
-  private void basePullConstantTroughAggregate() throws Exception {
+  private void basePullConstantTroughAggregate(boolean unChanged) throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ProjectMergeRule.INSTANCE)
         .addRuleInstance(AggregateProjectPullUpConstantsRule.INSTANCE)
         .addRuleInstance(ProjectMergeRule.INSTANCE)
         .build();
-    checkPlanning(program, "${sql}");
+    if (unChanged) {
+      checkPlanUnchanged(new HepPlanner(program), "${sql}");
+    } else {
+      checkPlanning(program, "${sql}");
+    }
+  }
+
+  private void basePullConstantTroughAggregate() throws Exception {
+    basePullConstantTroughAggregate(false);
   }
 
   @Test public void testPullConstantThroughConstLast() throws
@@ -2664,6 +2672,11 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testPullConstantThroughAggregateAllLiterals()
       throws Exception {
     basePullConstantTroughAggregate();
+  }
+
+  @Test public void testPullConstantThroughAggregateWhereFalse()
+      throws Exception {
+    basePullConstantTroughAggregate(true);
   }
 
   @Test public void testPullConstantThroughUnion()
