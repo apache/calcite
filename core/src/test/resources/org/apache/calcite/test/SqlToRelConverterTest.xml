@@ -5207,6 +5207,20 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+<TestCase name="testUUpdatability">
+        <Resource name="sql">
+            <![CDATA[SELECT *
+FROM emp
+FOR UPDATE]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[LOCK], flattened=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testUserDefinedOrderByOver">
         <Resource name="sql">
             <![CDATA[select deptno,

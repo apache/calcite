@@ -58,7 +58,7 @@ public abstract class TableModify extends SingleRel {
    * Enumeration of supported modification operations.
    */
   public enum Operation {
-    INSERT, UPDATE, DELETE, MERGE
+    INSERT, UPDATE, DELETE, MERGE, LOCK
   }
 
   //~ Instance fields --------------------------------------------------------
