@@ -36,21 +36,26 @@ public class SqlUpdatability extends SqlCall {
         }
   };
 
-  final SqlNodeList tables;
+  final SqlNodeList columnNames;
 
   public SqlUpdatability(SqlNodeList tables, SqlParserPos pos) {
     super(pos);
-    this.tables = Objects.requireNonNull(tables != null
+    this.columnNames = Objects.requireNonNull(tables != null
               ? tables : new SqlNodeList(pos));
   }
 
+  public SqlNodeList getColumnNames() {
+    return columnNames;
+  }
+
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-    writer.sep("FOR UPDATE");
-    if (this.tables.size() > 0) {
-      writer.sep("OF");
+    writer.keyword("FOR");
+    writer.keyword("UPDATE");
+    if (this.columnNames.size() > 0) {
+      writer.keyword("OF");
       final SqlWriter.Frame tablesFrame =
           writer.startList(SqlWriter.FrameTypeEnum.SELECT_LIST);
-      tables.commaList(writer);
+      columnNames.commaList(writer);
       writer.endList(tablesFrame);
     }
   }
@@ -64,7 +69,7 @@ public class SqlUpdatability extends SqlCall {
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(tables);
+    return ImmutableNullableList.of(columnNames);
   }
 
 }
