@@ -2519,6 +2519,14 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         + "unnest(t1.fake_col) as t2";
     sql(sql3).with(getTesterWithDynamicTable()).ok();
   }
+
+  @Test public void testStarDynamicSchemaUnnestNestedSubquery() {
+    String sql3 = "select t2.c1\n"
+        + "from (select * from SALES.CUSTOMER) as t1,\n"
+        + "unnest(t1.fake_col) as t2(c1)";
+    sql(sql3).with(getTesterWithDynamicTable()).ok();
+  }
+
   /**
    * Test case for Dynamic Table / Dynamic Star support
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
