@@ -20,6 +20,11 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
 
+import net.jcip.annotations.NotThreadSafe;
+
+import org.cassandraunit.CassandraCQLUnit;
+import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 /**
@@ -36,11 +41,16 @@ import org.junit.Test;
  * <p>This will create a virtual machine with Cassandra and the "twissandra"
  * test data set.
  */
-public class CassandraAdapterIT {
+@NotThreadSafe
+public class CassandraAdapterTest {
+  @ClassRule
+  public static CassandraCQLUnit cassandraUnit = new CassandraCQLUnit(
+          new ClassPathCQLDataSet("twissandra.cql"));
+
   /** Connection factory based on the "mongo-zips" model. */
   public static final ImmutableMap<String, String> TWISSANDRA =
       ImmutableMap.of("model",
-          CassandraAdapterIT.class.getResource("/model.json")
+          CassandraAdapterTest.class.getResource("/model.json")
               .getPath());
 
   /** Whether to run Cassandra tests. Enabled by default, however test is only
@@ -168,4 +178,4 @@ public class CassandraAdapterIT {
   }
 }
 
-// End CassandraAdapterIT.java
+// End CassandraAdapterTest.java
