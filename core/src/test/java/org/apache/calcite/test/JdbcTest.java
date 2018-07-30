@@ -421,6 +421,14 @@ public class JdbcTest {
             "id=; names=null; type=MATCH"));
   }
 
+  @Test public void testSqlAdvisorNonStructColumn()
+      throws SQLException, ClassNotFoundException {
+    adviseSql("select e.\"empid\".^ from \"hr\".\"emps\" e",
+        CalciteAssert.checkResultUnordered(
+            "id=*; names=[*]; type=KEYWORD",
+            "id=; names=null; type=MATCH"));
+  }
+
   @Test public void testSqlAdvisorTableInSchema()
       throws SQLException, ClassNotFoundException {
     adviseSql("select * from \"hr\".^",
