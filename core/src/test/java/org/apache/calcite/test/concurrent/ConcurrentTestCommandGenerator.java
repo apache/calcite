@@ -347,11 +347,7 @@ public class ConcurrentTestCommandGenerator {
     assert order > 0;
 
     TreeMap<Integer, ConcurrentTestCommand> commandMap =
-        threadMap.get(threadId);
-    if (commandMap == null) {
-      commandMap = new TreeMap<Integer, ConcurrentTestCommand>();
-      threadMap.put(threadId, commandMap);
-    }
+        threadMap.computeIfAbsent(threadId, k -> new TreeMap<>());
 
     // check for duplicate order numbers
     assert !commandMap.containsKey(order);

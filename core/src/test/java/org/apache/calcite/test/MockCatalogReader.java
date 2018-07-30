@@ -1408,11 +1408,8 @@ public class MockCatalogReader extends CalciteCatalogReader {
       this.defaultColumnGroup = defaultColumnGroup;
       for (Ord<CompoundNameColumn> column : Ord.zip(columns)) {
         nameMap.put(column.e.getName(), column.i);
-        Map<String, Integer> subMap = groupMap.get(column.e.first);
-        if (subMap == null) {
-          subMap = new HashMap<>();
-          groupMap.put(column.e.first, subMap);
-        }
+        Map<String, Integer> subMap =
+            groupMap.computeIfAbsent(column.e.first, k -> new HashMap<>());
         subMap.put(column.e.second, column.i);
       }
     }
