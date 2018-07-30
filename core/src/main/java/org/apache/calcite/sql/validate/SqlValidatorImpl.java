@@ -4831,6 +4831,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   SqlValidatorNamespace lookupFieldNamespace(RelDataType rowType, String name) {
     final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
     final RelDataTypeField field = nameMatcher.field(rowType, name);
+    if (field == null) {
+      return null;
+    }
     return new FieldNamespace(this, field.getType());
   }
 
