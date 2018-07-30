@@ -429,6 +429,18 @@ public class JdbcTest {
             "id=; names=null; type=MATCH"));
   }
 
+  @Test public void testSqlAdvisorSubSchema()
+      throws SQLException, ClassNotFoundException {
+    adviseSql("select * from \"hr\".^.test_test_test",
+        CalciteAssert.checkResultUnordered(
+            "id=; names=null; type=MATCH",
+            "id=hr.dependents; names=[hr, dependents]; type=TABLE",
+            "id=hr.depts; names=[hr, depts]; type=TABLE",
+            "id=hr.emps; names=[hr, emps]; type=TABLE",
+            "id=hr.locations; names=[hr, locations]; type=TABLE",
+            "id=hr; names=[hr]; type=SCHEMA"));
+  }
+
   @Test public void testSqlAdvisorTableInSchema()
       throws SQLException, ClassNotFoundException {
     adviseSql("select * from \"hr\".^",

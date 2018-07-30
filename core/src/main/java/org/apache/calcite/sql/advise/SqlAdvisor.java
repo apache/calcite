@@ -241,8 +241,7 @@ public class SqlAdvisor {
       final SqlParserPos pos) {
     List<SqlNode> nodes = SqlUtil.getAncestry(root,
         input -> input instanceof SqlIdentifier
-            && Util.last(((SqlIdentifier) input).names)
-                .equals(UPPER_HINT_TOKEN),
+            && ((SqlIdentifier) input).names.contains(UPPER_HINT_TOKEN),
         input -> Objects.requireNonNull(input).getParserPosition()
             .startsAt(pos));
     assert nodes.get(0) == root;
