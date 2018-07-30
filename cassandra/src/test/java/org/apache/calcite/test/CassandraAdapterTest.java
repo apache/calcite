@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import org.apache.cassandra.config.DatabaseDescriptor;
@@ -69,7 +71,6 @@ public class CassandraAdapterTest {
    *
    * <p>As of this wiring Cassandra 4.x is not yet released and we're using 3.x
    * (which fails on JDK11). All cassandra tests will be skipped if running on JDK11.
-   * TODO: remove JDK check once current adapter supports Cassandra 4.x
    *
    * @see <a href="https://issues.apache.org/jira/browse/CASSANDRA-9608">CASSANDRA-9608</a>
    * @return {@code true} if test is compatible with current environment,
@@ -78,9 +79,8 @@ public class CassandraAdapterTest {
   private static boolean enabled() {
     final boolean enabled =
         Util.getBooleanProperty("calcite.test.cassandra", true);
-    final int major = Integer.parseInt(System.getProperty("java.version").split("\\.")[0]);
-    final boolean compatibleJdk = major != 11;
-
+    Bug.upgrade("remove JDK version check once current adapter supports Cassandra 4.x");
+    final boolean compatibleJdk = TestUtil.getJavaMajorVersion() != 11;
     return enabled && compatibleJdk;
   }
 
