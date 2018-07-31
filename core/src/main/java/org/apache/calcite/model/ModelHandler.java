@@ -46,6 +46,7 @@ import org.apache.calcite.util.Util;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -77,15 +78,17 @@ public class ModelHandler {
     super();
     this.connection = connection;
     this.modelUri = uri;
-    final ObjectMapper mapper = new ObjectMapper();
-    mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
-    mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
-    mapper.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+
     JsonRoot root;
+    ObjectMapper mapper;
     if (uri.startsWith("inline:")) {
-      root = mapper.readValue(
-          uri.substring("inline:".length()), JsonRoot.class);
+      String inline = uri.substring("inline:".length()).trim();
+      mapper = (inline.startsWith("/*") || inline.startsWith("{"))
+          ? getJsonObjectMapper()
+          : getYamlObjectMapper();
+      root = mapper.readValue(inline, JsonRoot.class);
     } else {
+      mapper = uri.endsWith(".yaml") ? getYamlObjectMapper() : getJsonObjectMapper();
       root = mapper.readValue(new File(uri), JsonRoot.class);
     }
     visit(root);
@@ -171,6 +174,18 @@ public class ModelHandler {
         + ". Scalar functions and table macros have an 'eval' method; "
         + "aggregate functions have 'init' and 'add' methods, and optionally "
         + "'initAdd', 'merge' and 'result' methods.");
+  }
+
+  private ObjectMapper getJsonObjectMapper() {
+    final ObjectMapper jsonMapper = new ObjectMapper();
+    jsonMapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
+    jsonMapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
+    jsonMapper.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+    return jsonMapper;
+  }
+
+  private ObjectMapper getYamlObjectMapper() {
+    return new ObjectMapper(new YAMLFactory());
   }
 
   private void checkRequiredAttributes(Object json, String... attributeNames) {

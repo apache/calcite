@@ -27,7 +27,6 @@ import org.apache.calcite.model.JsonTable;
 import org.apache.calcite.model.JsonTypeAttribute;
 import org.apache.calcite.model.JsonView;
 
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.junit.Test;
@@ -45,56 +44,30 @@ import static org.junit.Assert.fail;
 /**
  * Unit test for data models.
  */
-public class ModelTest {
-  private ObjectMapper mapper() {
-    final ObjectMapper mapper = new ObjectMapper();
-    mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
-    mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
-    return mapper;
-  }
+public abstract class ModelTest {
+
+  protected abstract ObjectMapper getMapper();
+
+  protected abstract String getSimpleSchema();
+
+  protected abstract String getSimpleSchemaWithSubtype();
+
+  protected abstract String getCustomSchemaWithSubtype();
+
+  protected abstract String getImmutableSchemaWithMaterialization();
+
+  protected abstract String getSchemaWithoutName();
+
+  protected abstract String getCustomSchemaWithoutFactory();
+
+  protected abstract String getLattice();
+
+  protected abstract String getBadMultilineSql();
 
   /** Reads a simple schema from a string into objects. */
   @Test public void testRead() throws IOException {
-    final ObjectMapper mapper = mapper();
-    JsonRoot root = mapper.readValue(
-        "{\n"
-        + "  version: '1.0',\n"
-        + "   schemas: [\n"
-        + "     {\n"
-        + "       name: 'FoodMart',\n"
-        + "       types: [\n"
-        + "         {\n"
-        + "           name: 'mytype1',\n"
-        + "           attributes: [\n"
-        + "             {\n"
-        + "               name: 'f1',\n"
-        + "               type: 'BIGINT'\n"
-        + "             }\n"
-        + "           ]\n"
-        + "         }\n"
-        + "       ],\n"
-        + "       tables: [\n"
-        + "         {\n"
-        + "           name: 'time_by_day',\n"
-        + "           columns: [\n"
-        + "             {\n"
-        + "               name: 'time_id'\n"
-        + "             }\n"
-        + "           ]\n"
-        + "         },\n"
-        + "         {\n"
-        + "           name: 'sales_fact_1997',\n"
-        + "           columns: [\n"
-        + "             {\n"
-        + "               name: 'time_id'\n"
-        + "             }\n"
-        + "           ]\n"
-        + "         }\n"
-        + "       ]\n"
-        + "     }\n"
-        + "   ]\n"
-        + "}",
-        JsonRoot.class);
+    final ObjectMapper mapper = getMapper();
+    JsonRoot root = mapper.readValue(getSimpleSchema(), JsonRoot.class);
     assertEquals("1.0", root.version);
     assertEquals(1, root.schemas.size());
     final JsonMapSchema schema = (JsonMapSchema) root.schemas.get(0);
@@ -115,22 +88,8 @@ public class ModelTest {
 
   /** Reads a simple schema containing JdbcSchema, a sub-type of Schema. */
   @Test public void testSubtype() throws IOException {
-    final ObjectMapper mapper = mapper();
-    JsonRoot root = mapper.readValue(
-        "{\n"
-        + "  version: '1.0',\n"
-        + "   schemas: [\n"
-        + "     {\n"
-        + "       type: 'jdbc',\n"
-        + "       name: 'FoodMart',\n"
-        + "       jdbcUser: 'u_baz',\n"
-        + "       jdbcPassword: 'p_baz',\n"
-        + "       jdbcUrl: 'jdbc:baz',\n"
-        + "       jdbcCatalog: 'cat_baz',\n"
-        + "       jdbcSchema: ''\n"
-        + "     }\n"
-        + "   ]\n"
-        + "}",
+    final ObjectMapper mapper = getMapper();
+    JsonRoot root = mapper.readValue(getSimpleSchemaWithSubtype(),
         JsonRoot.class);
     assertEquals("1.0", root.version);
     assertEquals(1, root.schemas.size());
@@ -140,27 +99,8 @@ public class ModelTest {
 
   /** Reads a custom schema. */
   @Test public void testCustomSchema() throws IOException {
-    final ObjectMapper mapper = mapper();
-    JsonRoot root = mapper.readValue("{\n"
-            + "  version: '1.0',\n"
-            + "   schemas: [\n"
-            + "     {\n"
-            + "       type: 'custom',\n"
-            + "       name: 'My Custom Schema',\n"
-            + "       factory: 'com.acme.MySchemaFactory',\n"
-            + "       operand: {a: 'foo', b: [1, 3.5] },\n"
-            + "       tables: [\n"
-            + "         { type: 'custom', name: 'T1' },\n"
-            + "         { type: 'custom', name: 'T2', operand: {} },\n"
-            + "         { type: 'custom', name: 'T3', operand: {a: 'foo'} }\n"
-            + "       ]\n"
-            + "     },\n"
-            + "     {\n"
-            + "       type: 'custom',\n"
-            + "       name: 'has-no-operand'\n"
-            + "     }\n"
-            + "   ]\n"
-            + "}",
+    final ObjectMapper mapper = getMapper();
+    JsonRoot root = mapper.readValue(getCustomSchemaWithSubtype(),
         JsonRoot.class);
     assertEquals("1.0", root.version);
     assertEquals(2, root.schemas.size());
@@ -184,32 +124,7 @@ public class ModelTest {
    * materialization. */
   @Test public void testModelImmutableSchemaCannotContainMaterialization()
       throws Exception {
-    CalciteAssert.model("{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'adhoc',\n"
-        + "  schemas: [\n"
-        + "    {\n"
-        + "      name: 'empty'\n"
-        + "    },\n"
-        + "    {\n"
-        + "      name: 'adhoc',\n"
-        + "      type: 'custom',\n"
-        + "      factory: '"
-        + JdbcTest.MySchemaFactory.class.getName()
-        + "',\n"
-        + "      operand: {\n"
-        + "           'tableName': 'ELVIS',\n"
-        + "           'mutable': false\n"
-        + "      },\n"
-        + "      materializations: [\n"
-        + "        {\n"
-        + "          table: 'v',\n"
-        + "          sql: 'values (1)'\n"
-        + "        }\n"
-        + "      ]\n"
-        + "    }\n"
-        + "  ]\n"
-        + "}")
+    CalciteAssert.model(getImmutableSchemaWithMaterialization())
         .connectThrows("Cannot define materialization; parent schema 'adhoc' "
             + "is not a SemiMutableSchema");
   }
@@ -222,79 +137,21 @@ public class ModelTest {
    * <p>Schema without name should give useful error, not
    * NullPointerException. */
   @Test public void testSchemaWithoutName() throws Exception {
-    final String model = "{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'adhoc',\n"
-        + "  schemas: [ {\n"
-        + "  } ]\n"
-        + "}";
+    final String model = getSchemaWithoutName();
     CalciteAssert.model(model)
         .connectThrows("Field 'name' is required in JsonMapSchema");
   }
 
   @Test public void testCustomSchemaWithoutFactory() throws Exception {
-    final String model = "{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'adhoc',\n"
-        + "  schemas: [ {\n"
-        + "    type: 'custom',\n"
-        + "    name: 'my_custom_schema'\n"
-        + "  } ]\n"
-        + "}";
+    final String model = getCustomSchemaWithoutFactory();
     CalciteAssert.model(model)
         .connectThrows("Field 'factory' is required in JsonCustomSchema");
   }
 
   /** Tests a model containing a lattice and some views. */
   @Test public void testReadLattice() throws IOException {
-    final ObjectMapper mapper = mapper();
-    JsonRoot root = mapper.readValue("{\n"
-            + "  version: '1.0',\n"
-            + "   schemas: [\n"
-            + "     {\n"
-            + "       name: 'FoodMart',\n"
-            + "       tables: [\n"
-            + "         {\n"
-            + "           name: 'time_by_day',\n"
-            + "           columns: [\n"
-            + "             {\n"
-            + "               name: 'time_id'\n"
-            + "             }\n"
-            + "           ]\n"
-            + "         },\n"
-            + "         {\n"
-            + "           name: 'sales_fact_1997',\n"
-            + "           columns: [\n"
-            + "             {\n"
-            + "               name: 'time_id'\n"
-            + "             }\n"
-            + "           ]\n"
-            + "         },\n"
-            + "         {\n"
-            + "           name: 'V',\n"
-            + "           type: 'view',\n"
-            + "           sql: 'values (1)'\n"
-            + "         },\n"
-            + "         {\n"
-            + "           name: 'V2',\n"
-            + "           type: 'view',\n"
-            + "           sql: [ 'values (1)', '(2)' ]\n"
-            + "         }\n"
-            + "       ],\n"
-            + "       lattices: [\n"
-            + "         {\n"
-            + "           name: 'SalesStar',\n"
-            + "           sql: 'select * from sales_fact_1997'\n"
-            + "         },\n"
-            + "         {\n"
-            + "           name: 'SalesStar2',\n"
-            + "           sql: [ 'select *', 'from sales_fact_1997' ]\n"
-            + "         }\n"
-            + "       ]\n"
-            + "     }\n"
-            + "   ]\n"
-            + "}",
-        JsonRoot.class);
+    final ObjectMapper mapper = getMapper();
+    JsonRoot root = mapper.readValue(getLattice(), JsonRoot.class);
     assertEquals("1.0", root.version);
     assertEquals(1, root.schemas.size());
     final JsonMapSchema schema = (JsonMapSchema) root.schemas.get(0);
@@ -319,30 +176,15 @@ public class ModelTest {
 
   /** Tests a model with bad multi-line SQL. */
   @Test public void testReadBadMultiLineSql() throws IOException {
-    final ObjectMapper mapper = mapper();
-    JsonRoot root = mapper.readValue("{\n"
-            + "  version: '1.0',\n"
-            + "   schemas: [\n"
-            + "     {\n"
-            + "       name: 'FoodMart',\n"
-            + "       tables: [\n"
-            + "         {\n"
-            + "           name: 'V',\n"
-            + "           type: 'view',\n"
-            + "           sql: [ 'values (1)', 2 ]\n"
-            + "         }\n"
-            + "       ]\n"
-            + "     }\n"
-            + "   ]\n"
-            + "}",
-        JsonRoot.class);
+    final ObjectMapper mapper = getMapper();
+    JsonRoot root = mapper.readValue(getBadMultilineSql(), JsonRoot.class);
     assertEquals(1, root.schemas.size());
     final JsonMapSchema schema = (JsonMapSchema) root.schemas.get(0);
     assertEquals(1, schema.tables.size());
     final JsonView table1 = (JsonView) schema.tables.get(0);
     try {
       String s = table1.getSql();
-      fail("exprcted error, got " + s);
+      fail("expected error, got " + s);
     } catch (RuntimeException e) {
       assertThat(e.getMessage(),
           equalTo("each element of a string list must be a string; found: 2"));
