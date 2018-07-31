@@ -46,6 +46,7 @@ import org.apache.calcite.util.Util;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -66,6 +67,12 @@ import javax.sql.DataSource;
  * Reads a model and creates schema objects accordingly.
  */
 public class ModelHandler {
+  private static final ObjectMapper JSON_MAPPER = new ObjectMapper()
+      .configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
+      .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true)
+      .configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+  private static final ObjectMapper YAML_MAPPER = new YAMLMapper();
+
   private final CalciteConnection connection;
   private final Deque<Pair<String, SchemaPlus>> schemaStack = new ArrayDeque<>();
   private final String modelUri;
@@ -77,15 +84,18 @@ public class ModelHandler {
     super();
     this.connection = connection;
     this.modelUri = uri;
-    final ObjectMapper mapper = new ObjectMapper();
-    mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
-    mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
-    mapper.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+
     JsonRoot root;
+    ObjectMapper mapper;
     if (uri.startsWith("inline:")) {
-      root = mapper.readValue(
-          uri.substring("inline:".length()), JsonRoot.class);
+      // trim here is to correctly autodetect if it is json or not in case of leading spaces
+      String inline = uri.substring("inline:".length()).trim();
+      mapper = (inline.startsWith("/*") || inline.startsWith("{"))
+          ? JSON_MAPPER
+          : YAML_MAPPER;
+      root = mapper.readValue(inline, JsonRoot.class);
     } else {
+      mapper = uri.endsWith(".yaml") || uri.endsWith(".yml") ? YAML_MAPPER : JSON_MAPPER;
       root = mapper.readValue(new File(uri), JsonRoot.class);
     }
     visit(root);
@@ -547,7 +557,10 @@ public class ModelHandler {
    * {@link JsonCustomSchema#operand}, as extra context for the adapter. */
   public enum ExtraOperand {
     /** URI of model, e.g. "target/test-classes/model.json",
-     * "http://localhost/foo/bar.json", "inline:{...}". */
+     * "http://localhost/foo/bar.json", "inline:{...}",
+     * "target/test-classes/model.yaml",
+     * "http://localhost/foo/bar.yaml", "inline:..."
+     * */
     MODEL_URI("modelUri"),
 
     /** Base directory from which to read files. */
