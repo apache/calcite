@@ -16,15 +16,12 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserUtil;
-import org.apache.calcite.sql.test.DefaultSqlTestFactory;
-import org.apache.calcite.sql.test.DelegatingSqlTestFactory;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.test.SqlTesterImpl;
@@ -32,6 +29,7 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -65,12 +63,7 @@ public class SqlValidatorTestCase {
           "(?s)From line ([0-9]+), column ([0-9]+) to line ([0-9]+), column ([0-9]+): (.*)");
 
   private static final SqlTestFactory EXTENDED_TEST_FACTORY =
-      new DelegatingSqlTestFactory(DefaultSqlTestFactory.INSTANCE) {
-        @Override public MockCatalogReader createCatalogReader(
-            SqlTestFactory factory, JavaTypeFactory typeFactory) {
-          return super.createCatalogReader(this, typeFactory).init2();
-        }
-      };
+      SqlTestFactory.INSTANCE.withCatalogReader(MockCatalogReaderExtended.class);
 
   static final SqlTesterImpl EXTENDED_CATALOG_TESTER =
       new SqlTesterImpl(EXTENDED_TEST_FACTORY);
@@ -103,7 +96,7 @@ public class SqlValidatorTestCase {
    * same set of tests in a different testing environment.
    */
   public SqlTester getTester() {
-    return new SqlTesterImpl(DefaultSqlTestFactory.INSTANCE);
+    return new SqlTesterImpl(SqlTestFactory.INSTANCE);
   }
 
   public final Sql sql(String sql) {
