@@ -2003,6 +2003,21 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("x''\n'ab' = x'ab'", Boolean.TRUE);
   }
 
+  @Test public void testComplexLiteral() {
+    tester.check("select 2 * 2 * x from (select 2 as x)",
+        new SqlTests.StringTypeChecker("INTEGER NOT NULL"),
+        "8",
+        0);
+    tester.check("select 1 * 2 * 3 * x from (select 2 as x)",
+        new SqlTests.StringTypeChecker("INTEGER NOT NULL"),
+        "12",
+        0);
+    tester.check("select 1 + 2 + 3 + 4 + x from (select 2 as x)",
+        new SqlTests.StringTypeChecker("INTEGER NOT NULL"),
+        "12",
+        0);
+  }
+
   @Test public void testRow() {
     tester.setFor(SqlStdOperatorTable.ROW, VM_FENNEL);
   }
