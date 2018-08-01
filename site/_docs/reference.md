@@ -1551,7 +1551,7 @@ Not implemented:
 * LAST_VALUE(value) IGNORE NULLS OVER window
 * PERCENT_RANK(value) OVER window
 * CUME_DIST(value) OVER window
-* NTH_VALUE(value, nth) [ FROM { FIRST | LAST } ] IGNORE NULLS OVER window
+* NTH_VALUE(value, nth) [ FROM { FIRST &#124; LAST } ] IGNORE NULLS OVER window
 
 ### Grouping functions
 
