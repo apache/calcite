@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql.advise;
 
+import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.sql.parser.SqlParser;
+
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -88,6 +91,7 @@ public class SqlSimpleParser {
   //~ Instance fields --------------------------------------------------------
 
   private final String hintToken;
+  private final SqlParser.Config parserConfig;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -95,9 +99,23 @@ public class SqlSimpleParser {
    * Creates a SqlSimpleParser
    *
    * @param hintToken Hint token
+   * @deprecated
    */
+  @Deprecated
   public SqlSimpleParser(String hintToken) {
+    this(hintToken, SqlParser.Config.DEFAULT);
+  }
+
+  /**
+   * Creates a SqlSimpleParser
+   *
+   * @param hintToken Hint token
+   * @param parserConfig parser configuration
+   */
+  public SqlSimpleParser(String hintToken,
+      SqlParser.Config parserConfig) {
     this.hintToken = hintToken;
+    this.parserConfig = parserConfig;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -131,7 +149,7 @@ public class SqlSimpleParser {
    * @return a completed, valid (and possibly simplified) SQL statement
    */
   public String simplifySql(String sql) {
-    Tokenizer tokenizer = new Tokenizer(sql, hintToken);
+    Tokenizer tokenizer = new Tokenizer(sql, hintToken, parserConfig.quoting());
     List<Token> list = new ArrayList<Token>();
     while (true) {
       Token token = tokenizer.nextToken();
@@ -249,13 +267,44 @@ public class SqlSimpleParser {
 
     final String sql;
     private final String hintToken;
+    private final char openQuote;
     private int pos;
     int start = 0;
 
+    @Deprecated
     public Tokenizer(String sql, String hintToken) {
+      this(sql, hintToken, Quoting.DOUBLE_QUOTE);
+    }
+
+    public Tokenizer(String sql, String hintToken, Quoting quoting) {
       this.sql = sql;
       this.hintToken = hintToken;
+      this.openQuote = quoting.string.charAt(0);
       this.pos = 0;
+    }
+
+    private Token parseQuotedIdentifier() {
+      // Parse double-quoted identifier.
+      start = pos;
+      ++pos;
+      char closeQuote = openQuote == '[' ? ']' : openQuote;
+      while (pos < sql.length()) {
+        char c = sql.charAt(pos);
+        ++pos;
+        if (c == closeQuote) {
+          if (pos < sql.length() && sql.charAt(pos) == closeQuote) {
+            // Double close means escaped closing quote is a part of identifer
+            ++pos;
+            continue;
+          }
+          break;
+        }
+      }
+      String match = sql.substring(start, pos);
+      if (match.startsWith(openQuote + " " + hintToken + " ")) {
+        return new Token(TokenType.ID, hintToken);
+      }
+      return new Token(TokenType.DQID, match);
     }
 
     public Token nextToken() {
@@ -274,35 +323,6 @@ public class SqlSimpleParser {
         case ')':
           ++pos;
           return new Token(TokenType.RPAREN);
-
-        case '"':
-
-          // Parse double-quoted identifier.
-          start = pos;
-          ++pos;
-          while (pos < sql.length()) {
-            c = sql.charAt(pos);
-            ++pos;
-            if (c == '"') {
-              if (pos < sql.length()) {
-                char c1 = sql.charAt(pos);
-                if (c1 == '"') {
-                  // encountered consecutive
-                  // double-quotes; still in identifier
-                  ++pos;
-                } else {
-                  break;
-                }
-              } else {
-                break;
-              }
-            }
-          }
-          match = sql.substring(start, pos);
-          if (match.startsWith("\" " + hintToken + " ")) {
-            return new Token(TokenType.ID, hintToken);
-          }
-          return new Token(TokenType.DQID, match);
 
         case '\'':
 
@@ -353,6 +373,9 @@ public class SqlSimpleParser {
           }
 
         default:
+          if (c == openQuote) {
+            return parseQuotedIdentifier();
+          }
           if (Character.isWhitespace(c)) {
             ++pos;
             break;

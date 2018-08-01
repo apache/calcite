@@ -107,6 +107,10 @@ public class SqlTestFactory {
     return opTab;
   }
 
+  public SqlParser.Config getParserConfig() {
+    return parserConfig.get();
+  }
+
   public SqlParser createParser(String sql) {
     return SqlParser.create(sql, parserConfig.get());
   }
@@ -130,7 +134,7 @@ public class SqlTestFactory {
   public SqlAdvisor createAdvisor() {
     SqlValidator validator = getValidator();
     if (validator instanceof SqlValidatorWithHints) {
-      return new SqlAdvisor((SqlValidatorWithHints) validator);
+      return new SqlAdvisor((SqlValidatorWithHints) validator, parserConfig.get());
     }
     throw new UnsupportedOperationException(
         "Validator should implement SqlValidatorWithHints, actual validator is " + validator);

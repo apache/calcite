@@ -33,6 +33,10 @@ import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
+import org.junit.rules.MethodRule;
+import org.junit.runners.model.FrameworkMethod;
+import org.junit.runners.model.Statement;
+
 import java.nio.charset.Charset;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -75,6 +79,8 @@ public class SqlValidatorTestCase {
   static final SqlTesterImpl EXTENDED_CATALOG_TESTER_LENIENT =
       new SqlTesterImpl(EXTENDED_TEST_FACTORY)
           .withConformance(SqlConformanceEnum.LENIENT);
+
+  public static final MethodRule TESTER_CONFIGURATION_RULE = new TesterConfigurationRule();
 
   //~ Instance fields --------------------------------------------------------
 
@@ -633,6 +639,30 @@ public class SqlValidatorTestCase {
      * at a conformance level where it succeeds. */
     public Sql sansCarets() {
       return new Sql(tester, sql.replace("^", ""), true);
+    }
+  }
+
+  /**
+   * Enables to configure {@link #tester} behavior on a per-test basis.
+   * {@code tester} object is created in the test object constructor, and there's no
+   * trivial way to override its features.
+   * <p>This JUnit rule enables post-process test object on a per test method basis</p>
+   */
+  private static class TesterConfigurationRule implements MethodRule {
+    @Override public Statement apply(Statement statement, FrameworkMethod frameworkMethod,
+        Object o) {
+      return new Statement() {
+        @Override public void evaluate() throws Throwable {
+          SqlValidatorTestCase tc = (SqlValidatorTestCase) o;
+          SqlTester tester = tc.tester;
+          WithLex lex = frameworkMethod.getAnnotation(WithLex.class);
+          if (lex != null) {
+            tester = tester.withLex(lex.value());
+          }
+          tc.tester = tester;
+          statement.evaluate();
+        }
+      };
     }
   }
 }
