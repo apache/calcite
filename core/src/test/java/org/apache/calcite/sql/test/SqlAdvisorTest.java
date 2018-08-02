@@ -27,6 +27,8 @@ import org.apache.calcite.sql.validate.SqlMonikerType;
 import org.apache.calcite.test.SqlValidatorTestCase;
 import org.apache.calcite.test.WithLex;
 
+import com.google.common.collect.ImmutableMap;
+
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,8 +39,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 
 import static org.junit.Assert.assertNotNull;
@@ -250,6 +254,11 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "COLUMN(DEPTNO)",
           "COLUMN(SLACKER)");
 
+  private static final List<String> EMP_COLUMNS_E =
+      Arrays.asList(
+          "COLUMN(EMPNO)",
+          "COLUMN(ENAME)");
+
   private static final List<String> DEPT_COLUMNS =
       Arrays.asList(
           "COLUMN(DEPTNO)",
@@ -448,11 +457,24 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
   protected void assertComplete(
       String sql,
       List<String>... expectedResults) {
-    List<String> expectedList = plus(expectedResults);
-    String expected = toString(new TreeSet<>(expectedList));
-    assertComplete(sql, expected, null);
+    assertComplete(sql, null, expectedResults);
   }
 
+  protected void assertComplete(
+      String sql,
+      Map<String, String> replacements,
+      List<String>... expectedResults) {
+    List<String> expectedList = plus(expectedResults);
+    String expected = toString(new TreeSet<>(expectedList));
+    assertComplete(sql, expected, null, replacements);
+  }
+
+  protected void assertComplete(
+      String sql,
+      String expectedResults,
+      String expectedWord) {
+    assertComplete(sql, expectedResults, expectedWord, null);
+  }
   /**
    * Tests that a given SQL which may be invalid or incomplete simplifies
    * itself and yields the salesTables set of completion hints. This is an
@@ -466,20 +488,46 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
   protected void assertComplete(
       String sql,
       String expectedResults,
-      String expectedWord) {
+      String expectedWord,
+      Map<String, String> replacements) {
     SqlAdvisor advisor = tester.getFactory().createAdvisor();
 
     SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
     final String[] replaced = {null};
     List<SqlMoniker> results =
         advisor.getCompletionHints(sap.sql, sap.cursor, replaced);
-    assertNotNull(replaced[0]);
-    assertNotNull(results);
-    Assert.assertEquals(
+    Assert.assertEquals("Completion hints for " + sql,
         expectedResults, convertCompletionHints(results));
     if (expectedWord != null) {
-      Assert.assertEquals(expectedWord, replaced[0]);
+      Assert.assertEquals("replaced[0] for " + sql, expectedWord, replaced[0]);
+    } else {
+      assertNotNull(replaced[0]);
     }
+    assertReplacements(sql, replacements, advisor, replaced[0], results);
+  }
+
+  private void assertReplacements(String sql, Map<String, String> replacements, SqlAdvisor advisor,
+      String word, List<SqlMoniker> results) {
+    if (replacements == null) {
+      return;
+    }
+    Set<String> missingReplacemenets = new HashSet<>(replacements.keySet());
+    for (SqlMoniker result : results) {
+      String id = result.id();
+      String expectedReplacement = replacements.get(id);
+      if (expectedReplacement == null) {
+        continue;
+      }
+      missingReplacemenets.remove(id);
+      String actualReplacement = advisor.getReplacement(result, word);
+      Assert.assertEquals(sql + ", replacement of " + word + " with " + id,
+          expectedReplacement, actualReplacement);
+    }
+    if (missingReplacemenets.isEmpty()) {
+      return;
+    }
+    Assert.fail("Sql " + sql + " did not produce replacement hints " + missingReplacemenets);
+
   }
 
   protected void assertEquals(
@@ -500,6 +548,9 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
   }
 
   private String convertCompletionHints(List<SqlMoniker> hints) {
+    if (hints == null) {
+      return "<<NULL>>";
+    }
     List<String> list = new ArrayList<String>();
     for (SqlMoniker hint : hints) {
       if (hint.getType() != SqlMonikerType.FUNCTION) {
@@ -650,14 +701,22 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     sql =
         "select a.empno, b.deptno from sales.emp a, sales.dept b "
             + "where b.deptno=a.^";
-    assertComplete(sql, EMP_COLUMNS); // where list
+    assertComplete(sql, ImmutableMap.of("COLUMN(COMM)", "COMM"),
+        EMP_COLUMNS); // where list
+
+    sql =
+        "select a.empno, b.deptno from sales.emp a, sales.dept b "
+            + "where b.deptno=a.e^";
+    assertComplete(sql, ImmutableMap.of("COLUMN(ENAME)", "ename"),
+        EMP_COLUMNS_E); // where list
 
     // hints contain no columns, only table aliases, because there are >1
     // aliases
     sql =
         "select a.empno, b.deptno from sales.emp a, sales.dept b "
             + "where ^dummy=1";
-    assertHint(sql, AB_TABLES, EXPR_KEYWORDS); // where list
+    assertComplete(sql, ImmutableMap.of("KEYWORD(CURRENT_TIMESTAMP)", "CURRENT_TIMESTAMP"),
+        AB_TABLES, EXPR_KEYWORDS); // where list
 
     sql =
         "select a.empno, b.deptno from sales.emp a, sales.dept b "
@@ -1173,7 +1232,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
   @Test public void testPartialIdentifier() {
     String sql = "select * from emp where e^ and emp.deptno = 10";
-    final String expected =
+    String expected =
         "COLUMN(EMPNO)\n"
             + "COLUMN(ENAME)\n"
             + "KEYWORD(ELEMENT)\n"
@@ -1181,7 +1240,35 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
             + "KEYWORD(EXP)\n"
             + "KEYWORD(EXTRACT)\n"
             + "TABLE(EMP)\n";
-    assertComplete(sql, expected, "e");
+    assertComplete(sql, expected, "e",
+        ImmutableMap.of("KEYWORD(EXISTS)", "exists",
+            "TABLE(EMP)", "emp"));
+
+    sql = "select * from emp where \"e^ and emp.deptno = 10";
+    expected =
+        "COLUMN(EMPNO)\n"
+            + "COLUMN(ENAME)\n"
+            + "KEYWORD(ELEMENT)\n"
+            + "KEYWORD(EXISTS)\n"
+            + "KEYWORD(EXP)\n"
+            + "KEYWORD(EXTRACT)\n"
+            + "TABLE(EMP)\n";
+    assertComplete(sql, expected, "\"e",
+        ImmutableMap.of("KEYWORD(EXISTS)", "exists",
+            "TABLE(EMP)", "\"EMP\""));
+
+    sql = "select * from emp where E^ and emp.deptno = 10";
+    expected =
+        "COLUMN(EMPNO)\n"
+            + "COLUMN(ENAME)\n"
+            + "KEYWORD(ELEMENT)\n"
+            + "KEYWORD(EXISTS)\n"
+            + "KEYWORD(EXP)\n"
+            + "KEYWORD(EXTRACT)\n"
+            + "TABLE(EMP)\n";
+    assertComplete(sql, expected, "E",
+        ImmutableMap.of("KEYWORD(EXISTS)", "EXISTS",
+            "TABLE(EMP)", "EMP"));
 
     // cursor in middle of word and at end
     sql = "select * from emp where e^";
@@ -1189,33 +1276,55 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
     // longer completion
     sql = "select * from emp where em^";
-    assertComplete(sql, EMPNO_EMP, null);
+    assertComplete(sql, EMPNO_EMP, null, ImmutableMap.of("COLUMN(EMPNO)", "empno"));
 
     // word after punctuation
     sql = "select deptno,em^ from emp where 1+2<3+4";
-    assertComplete(sql, EMPNO_EMP, null);
+    assertComplete(sql, EMPNO_EMP, null, ImmutableMap.of("COLUMN(EMPNO)", "empno"));
 
     // inside double-quotes, no terminating double-quote.
     // Only identifiers should be suggested (no keywords),
     // and suggestion should include double-quotes
     sql = "select deptno,\"EM^ from emp where 1+2<3+4";
-    assertComplete(sql, EMPNO_EMP, "\"EM");
+    assertComplete(sql, EMPNO_EMP, "\"EM", ImmutableMap.of("COLUMN(EMPNO)", "\"EMPNO\""));
 
-    // inside double-quotes, match is case-sensitive
+    // inside double-quotes, match is case-insensitive as well
     sql = "select deptno,\"em^ from emp where 1+2<3+4";
-    assertComplete(sql, "", "\"em");
+    assertComplete(sql, EMPNO_EMP, "\"em", ImmutableMap.of("COLUMN(EMPNO)", "\"EMPNO\""));
+
+    // when input strings has mixed casing, match should be case-sensitive
+    sql = "select deptno,eM^ from emp where 1+2<3+4";
+    assertComplete(sql, "", "eM");
+
+    // when input strings has mixed casing, match should be case-sensitive
+    sql = "select deptno,\"eM^ from emp where 1+2<3+4";
+    assertComplete(sql, "", "\"eM");
 
     // eat up following double-quote
     sql = "select deptno,\"EM^ps\" from emp where 1+2<3+4";
-    assertComplete(sql, EMPNO_EMP, "\"EM");
+    assertComplete(sql, EMPNO_EMP, "\"EM", ImmutableMap.of("COLUMN(EMPNO)", "\"EMPNO\""));
 
     // closing double-quote is at very end of string
     sql = "select * from emp where 5 = \"EM^xxx\"";
-    assertComplete(sql, EMPNO_EMP, "\"EM");
+    assertComplete(sql, EMPNO_EMP, "\"EM", ImmutableMap.of("COLUMN(EMPNO)", "\"EMPNO\""));
 
     // just before dot
     sql = "select emp.^name from emp";
     assertComplete(sql, EMP_COLUMNS, STAR_KEYWORD);
+  }
+
+  @Test @WithLex(Lex.JAVA) public void testAdviceKeywordsJava() {
+    String sql;
+    sql = "select deptno, exi^ from emp where 1+2<3+4";
+    assertComplete(sql, "KEYWORD(EXISTS)\n", "exi",
+        ImmutableMap.of("KEYWORD(EXISTS)", "exists"));
+  }
+
+  @Test @WithLex(Lex.JAVA) public void testAdviceMixedCase() {
+    String sql;
+    sql = "select is^ from (select 1 isOne from emp)";
+    assertComplete(sql, "COLUMN(isOne)\n", "is",
+        ImmutableMap.of("COLUMN(isOne)", "isOne"));
   }
 
   @Test public void testInsert() throws Exception {
@@ -1245,20 +1354,122 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     sql = "select * from sales.n^";
     assertComplete(
         sql,
-        Collections.singletonList("SCHEMA(CATALOG.SALES.NEST)"));
+        "SCHEMA(CATALOG.SALES.NEST)\n",
+        "n",
+        ImmutableMap.of("SCHEMA(CATALOG.SALES.NEST)", "nest"));
 
-    sql = "select * from sales.n^asfasdf";
+    sql = "select * from sales.\"n^asfasdf";
     assertComplete(
         sql,
-        Collections.singletonList("SCHEMA(CATALOG.SALES.NEST)"));
+        "SCHEMA(CATALOG.SALES.NEST)\n",
+        "\"n",
+        ImmutableMap.of("SCHEMA(CATALOG.SALES.NEST)", "\"NEST\""));
 
     sql = "select * from sales.n^est";
     assertComplete(
         sql,
-        Collections.singletonList("SCHEMA(CATALOG.SALES.NEST)"));
+        "SCHEMA(CATALOG.SALES.NEST)\n",
+        "n",
+        ImmutableMap.of("SCHEMA(CATALOG.SALES.NEST)", "nest"));
 
     sql = "select * from sales.nu^";
-    assertComplete(sql, "", null);
+    assertComplete(sql, "", "nu");
+  }
+
+  @Ignore("The set of completion results is empty")
+  @Test public void testNestTable1() throws Exception {
+    String sql;
+    // select scott.emp.deptno from scott.emp; # valid
+    sql = "select catalog.sales.emp.em^ from catalog.sales.emp";
+    assertComplete(
+        sql,
+        "COLUMN(EMPNO)\n",
+        "em",
+        ImmutableMap.of("COLUMN(EMPNO)", "empno"));
+
+    sql = "select catalog.sales.em^ from catalog.sales.emp";
+    assertComplete(
+        sql,
+        "TABLE(EMP)\n",
+        "em",
+        ImmutableMap.of("TABLE(EMP)", "emp"));
+  }
+
+  @Test public void testNestTable2() throws Exception {
+    String sql;
+    // select scott.emp.deptno from scott.emp as e; # not valid
+    sql = "select catalog.sales.emp.em^ from catalog.sales.emp as e";
+    assertComplete(
+        sql,
+        "",
+        "em");
+  }
+
+
+  @Ignore("The set of completion results is empty")
+  @Test public void testNestTable3() throws Exception {
+    String sql;
+    // select scott.emp.deptno from emp; # valid
+    sql = "select catalog.sales.emp.em^ from emp";
+    assertComplete(
+        sql,
+        "COLUMN(EMPNO)\n",
+        "em",
+        ImmutableMap.of("COLUMN(EMP)", "empno"));
+
+    sql = "select catalog.sales.em^ from emp";
+    assertComplete(
+        sql,
+        "TABLE(EMP)\n",
+        "em",
+        ImmutableMap.of("TABLE(EMP)", "emp"));
+  }
+
+  @Test public void testNestTable4() throws Exception {
+    String sql;
+    // select scott.emp.deptno from emp as emp; # not valid
+    sql = "select catalog.sales.emp.em^ from catalog.sales.emp as emp";
+    assertComplete(
+        sql,
+        "",
+        "em");
+  }
+
+  @Test public void testNestTableSchemaMustMatch() throws Exception {
+    String sql;
+    // select foo.emp.deptno from emp; # not valid
+    sql = "select sales.nest.em^ from catalog.sales.emp_r";
+    assertComplete(
+        sql,
+        "",
+        "em");
+  }
+
+  @WithLex(Lex.SQL_SERVER) @Test public void testNestSchemaSqlServer() throws Exception {
+    String sql;
+    sql = "select * from SALES.N^";
+    assertComplete(
+        sql,
+        "SCHEMA(CATALOG.SALES.NEST)\n",
+        "N",
+        ImmutableMap.of("SCHEMA(CATALOG.SALES.NEST)", "NEST"));
+
+    sql = "select * from SALES.[n^asfasdf";
+    assertComplete(
+        sql,
+        "SCHEMA(CATALOG.SALES.NEST)\n",
+        "[n",
+        ImmutableMap.of("SCHEMA(CATALOG.SALES.NEST)", "[NEST]"));
+
+    sql = "select * from SALES.[N^est";
+    assertComplete(
+        sql,
+        "SCHEMA(CATALOG.SALES.NEST)\n",
+        "[N",
+        ImmutableMap.of("SCHEMA(CATALOG.SALES.NEST)", "[NEST]"));
+
+    sql = "select * from SALES.NU^";
+    assertComplete(sql, "", "NU");
   }
 
   @Test public void testUnion() throws Exception {

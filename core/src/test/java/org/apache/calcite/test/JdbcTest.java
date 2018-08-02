@@ -69,7 +69,6 @@ import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFactory;
-import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractSchema;
@@ -84,10 +83,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSpecialOperator;
-import org.apache.calcite.sql.advise.SqlAdvisorGetHintsFunction;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.JsonBuilder;
@@ -398,107 +395,6 @@ public class JdbcTest {
           .query("select \"name\" from \"adhoc\".V order by \"name\"")
           .runs();
     }
-  }
-
-
-
-  /**
-   * Tests {@link org.apache.calcite.sql.advise.SqlAdvisorGetHintsFunction}.
-   */
-  @Test public void testSqlAdvisorGetHintsFunction()
-      throws SQLException, ClassNotFoundException {
-    adviseSql("select e.e^ from \"emps\" e",
-        CalciteAssert.checkResultUnordered(
-            "id=e; names=null; type=MATCH",
-            "id=empid; names=[empid]; type=COLUMN"));
-  }
-
-  @Test public void testSqlAdvisorNonExistingColumn()
-      throws SQLException, ClassNotFoundException {
-    adviseSql("select e.empdid_wrong_name.^ from \"hr\".\"emps\" e",
-        CalciteAssert.checkResultUnordered(
-            "id=*; names=[*]; type=KEYWORD",
-            "id=; names=null; type=MATCH"));
-  }
-
-  @Test public void testSqlAdvisorNonStructColumn()
-      throws SQLException, ClassNotFoundException {
-    adviseSql("select e.\"empid\".^ from \"hr\".\"emps\" e",
-        CalciteAssert.checkResultUnordered(
-            "id=*; names=[*]; type=KEYWORD",
-            "id=; names=null; type=MATCH"));
-  }
-
-  @Test public void testSqlAdvisorSubSchema()
-      throws SQLException, ClassNotFoundException {
-    adviseSql("select * from \"hr\".^.test_test_test",
-        CalciteAssert.checkResultUnordered(
-            "id=; names=null; type=MATCH",
-            "id=hr.dependents; names=[hr, dependents]; type=TABLE",
-            "id=hr.depts; names=[hr, depts]; type=TABLE",
-            "id=hr.emps; names=[hr, emps]; type=TABLE",
-            "id=hr.locations; names=[hr, locations]; type=TABLE",
-            "id=hr; names=[hr]; type=SCHEMA"));
-  }
-
-  @Test public void testSqlAdvisorTableInSchema()
-      throws SQLException, ClassNotFoundException {
-    adviseSql("select * from \"hr\".^",
-        CalciteAssert.checkResultUnordered(
-            "id=; names=null; type=MATCH",
-            "id=hr.dependents; names=[hr, dependents]; type=TABLE",
-            "id=hr.depts; names=[hr, depts]; type=TABLE",
-            "id=hr.emps; names=[hr, emps]; type=TABLE",
-            "id=hr.locations; names=[hr, locations]; type=TABLE",
-            "id=hr; names=[hr]; type=SCHEMA"));
-  }
-
-  /**
-   * Tests {@link org.apache.calcite.sql.advise.SqlAdvisorGetHintsFunction}.
-   */
-  @Test public void testSqlAdvisorSchemaNames()
-      throws SQLException, ClassNotFoundException {
-    adviseSql("select empid from \"emps\" e, ^",
-        CalciteAssert.checkResultUnordered(
-            "id=; names=null; type=MATCH",
-            "id=(; names=[(]; type=KEYWORD",
-            "id=LATERAL; names=[LATERAL]; type=KEYWORD",
-            "id=TABLE; names=[TABLE]; type=KEYWORD",
-            "id=UNNEST; names=[UNNEST]; type=KEYWORD",
-            "id=hr; names=[hr]; type=SCHEMA",
-            "id=metadata; names=[metadata]; type=SCHEMA",
-            "id=s; names=[s]; type=SCHEMA",
-            "id=hr.dependents; names=[hr, dependents]; type=TABLE",
-            "id=hr.depts; names=[hr, depts]; type=TABLE",
-            "id=hr.emps; names=[hr, emps]; type=TABLE",
-            "id=hr.locations; names=[hr, locations]; type=TABLE"));
-  }
-
-  private void adviseSql(String sql, Consumer<ResultSet> checker)
-      throws ClassNotFoundException, SQLException {
-    Properties info = new Properties();
-    info.put("lex", "JAVA");
-    info.put("quoting", "DOUBLE_QUOTE");
-    Connection connection =
-        DriverManager.getConnection("jdbc:calcite:", info);
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
-    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    calciteConnection.setSchema("hr");
-    final TableFunction table =
-        new SqlAdvisorGetHintsFunction();
-    schema.add("get_hints", table);
-    PreparedStatement ps = connection.prepareStatement("select *\n"
-        + "from table(\"s\".\"get_hints\"(?, ?)) as t(id, names, type)");
-    SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
-    ps.setString(1, sap.sql);
-    ps.setInt(2, sap.cursor);
-    final ResultSet resultSet = ps.executeQuery();
-    checker.accept(resultSet);
-    resultSet.close();
-    connection.close();
   }
 
   /**

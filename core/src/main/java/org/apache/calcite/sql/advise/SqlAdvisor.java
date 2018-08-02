@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.advise;
 
+import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -26,6 +27,7 @@ import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.validate.SqlMoniker;
 import org.apache.calcite.sql.validate.SqlMonikerImpl;
 import org.apache.calcite.sql.validate.SqlMonikerType;
@@ -64,13 +66,19 @@ public class SqlAdvisor {
   private final SqlValidatorWithHints validator;
   private final SqlParser.Config parserConfig;
 
+  // Cache for getPreferredCasing
+  private String prevWord;
+  private Casing prevPreferredCasing;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a SqlAdvisor with a validator instance
    *
    * @param validator Validator
+   * @deprecated use {@link #SqlAdvisor(SqlValidatorWithHints, SqlParser.Config)}
    */
+  @Deprecated
   public SqlAdvisor(
       SqlValidatorWithHints validator) {
     this(validator, SqlParser.Config.DEFAULT);
@@ -164,32 +172,28 @@ public class SqlAdvisor {
     final List<SqlMoniker> completionHints =
         getCompletionHints0(sql, wordStart);
 
+    if (quoted) {
+      word = word.substring(1);
+    }
+
+    if (word.isEmpty()) {
+      return completionHints;
+    }
+
     // If cursor was part of the way through a word, only include hints
     // which start with that word in the result.
-    final List<SqlMoniker> result;
-    if (word.length() > 0) {
-      result = new ArrayList<SqlMoniker>();
-      if (quoted) {
-        // Quoted identifier. Case-sensitive match.
-        word = word.substring(1);
-        for (SqlMoniker hint : completionHints) {
-          String cname = hint.toString();
-          if (cname.startsWith(word)) {
-            result.add(hint);
-          }
-        }
-      } else {
-        // Regular identifier. Case-insensitive match.
-        for (SqlMoniker hint : completionHints) {
-          String cname = hint.toString();
-          if ((cname.length() >= word.length())
-              && cname.substring(0, word.length()).equalsIgnoreCase(word)) {
-            result.add(hint);
-          }
-        }
+    final List<SqlMoniker> result = new ArrayList<>();
+    Casing preferredCasing = getPreferredCasing(word);
+
+    boolean ignoreCase = preferredCasing != Casing.UNCHANGED;
+    for (SqlMoniker hint : completionHints) {
+      List<String> names = hint.getFullyQualifiedNames();
+      // For now we treat only simple cases where the added name is the last
+      // See [CALCITE-2439] Smart complete for SqlAdvisor
+      String cname = Util.last(names);
+      if (cname.regionMatches(ignoreCase, 0, word, 0, word.length())) {
+        result.add(hint);
       }
-    } else {
-      result = completionHints;
     }
 
     return result;
@@ -203,6 +207,91 @@ public class SqlAdvisor {
     }
     SqlParserPos pos = new SqlParserPos(1, idx + 1);
     return getCompletionHints(simpleSql, pos);
+  }
+
+  /**
+   * Returns casing which is preferred for replacement.
+   * For instance, {@code en => ename, EN => ENAME}.
+   * When input has mixed case, {@code Casing.UNCHANGED} is returned.
+   * @param word input word
+   * @return preferred casing when replacing input word
+   */
+  private Casing getPreferredCasing(String word) {
+    if (word == prevWord) {
+      return prevPreferredCasing;
+    }
+    boolean hasLower = false;
+    boolean hasUpper = false;
+    int i = 0;
+    while (i < word.length() && !(hasLower && hasUpper)) {
+      int codePoint = word.codePointAt(i);
+      hasLower |= Character.isLowerCase(codePoint);
+      hasUpper |= Character.isUpperCase(codePoint);
+      i += Character.charCount(codePoint);
+    }
+    Casing preferredCasing;
+    if (hasUpper && !hasLower) {
+      preferredCasing = Casing.TO_UPPER;
+    } else if (!hasUpper && hasLower) {
+      preferredCasing = Casing.TO_LOWER;
+    } else {
+      preferredCasing = Casing.UNCHANGED;
+    }
+    prevWord = word;
+    prevPreferredCasing = preferredCasing;
+    return preferredCasing;
+  }
+
+  public String getReplacement(SqlMoniker hint, String word) {
+    Casing preferredCasing = getPreferredCasing(word);
+    return getReplacement(hint, !word.isEmpty() && word.charAt(0) == quoteStart(), preferredCasing);
+  }
+
+  public String getReplacement(SqlMoniker hint, boolean quoted, Casing preferredCasing) {
+    String name = Util.last(hint.getFullyQualifiedNames());
+    boolean isKeyword = hint.getType() == SqlMonikerType.KEYWORD;
+    // If replacement has mixed case, we need to quote it (or not depending
+    // on quotedCasing/unquotedCasing
+    quoted &= !isKeyword;
+
+    StringBuilder sb =
+        new StringBuilder(name.length() + (quoted ? 2 : 0));
+
+    if (!isKeyword && !Util.isValidJavaIdentifier(name)) {
+      // needs quotes ==> quoted
+      quoted = true;
+    }
+    String idToAppend = name;
+
+    if (!quoted) {
+      // id ==preferredCasing==> preferredId ==unquotedCasing==> recasedId
+      // if recasedId matches id, then use preferredId
+      String preferredId = applyCasing(name, preferredCasing);
+      if (isKeyword || matchesUnquoted(name, preferredId)) {
+        idToAppend = preferredId;
+      } else {
+        // Check if we can use unquoted identifier as is: for instance, unquotedCasing==UNCHANGED
+        quoted = !matchesUnquoted(name, idToAppend);
+      }
+    }
+    if (quoted) {
+      sb.append(quoteStart());
+    }
+    sb.append(idToAppend);
+    if (quoted) {
+      sb.append(quoteEnd());
+    }
+
+    return sb.toString();
+  }
+
+  private boolean matchesUnquoted(String name, String idToAppend) {
+    String recasedId = applyCasing(idToAppend, parserConfig.unquotedCasing());
+    return recasedId.regionMatches(!parserConfig.caseSensitive(), 0, name, 0, name.length());
+  }
+
+  private String applyCasing(String value, Casing casing) {
+    return SqlParserUtil.strip(value, null, null, null, casing);
   }
 
   /**
@@ -240,7 +329,9 @@ public class SqlAdvisor {
 
     final SqlMoniker star =
         new SqlMonikerImpl(ImmutableList.of("*"), SqlMonikerType.KEYWORD);
-    if (hintList.contains(star) && !isSelectListItem(sqlNode, pos)) {
+    String hintToken =
+        parserConfig.unquotedCasing() == Casing.TO_UPPER ? UPPER_HINT_TOKEN : HINT_TOKEN;
+    if (hintList.contains(star) && !isSelectListItem(sqlNode, pos, hintToken)) {
       hintList.remove(star);
     }
 
@@ -261,10 +352,10 @@ public class SqlAdvisor {
   }
 
   private static boolean isSelectListItem(SqlNode root,
-      final SqlParserPos pos) {
+      final SqlParserPos pos, String hintToken) {
     List<SqlNode> nodes = SqlUtil.getAncestry(root,
         input -> input instanceof SqlIdentifier
-            && ((SqlIdentifier) input).names.contains(UPPER_HINT_TOKEN),
+            && ((SqlIdentifier) input).names.contains(hintToken),
         input -> Objects.requireNonNull(input).getParserPosition()
             .startsAt(pos));
     assert nodes.get(0) == root;

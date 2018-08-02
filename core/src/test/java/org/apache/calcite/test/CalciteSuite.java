@@ -165,6 +165,7 @@ import org.junit.runners.Suite;
     ProfilerTest.class,
     LatticeTest.class,
     ReflectiveSchemaTest.class,
+    SqlAdvisorJdbcTest.class,
     JdbcTest.class,
     CoreQuidemTest.class,
     CalciteRemoteDriverTest.class,

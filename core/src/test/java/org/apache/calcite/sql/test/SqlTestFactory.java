@@ -121,6 +121,7 @@ public class SqlTestFactory {
         .setUnquotedCasing((Casing) options.get("unquotedCasing"))
         .setQuotedCasing((Casing) options.get("quotedCasing"))
         .setConformance((SqlConformance) options.get("conformance"))
+        .setCaseSensitive((boolean) options.get("caseSensitive"))
         .build();
   }
 
