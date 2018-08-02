@@ -69,7 +69,7 @@ public class SqlTestFactory {
       new SqlTestFactory();
 
   private final ImmutableMap<String, Object> options;
-  private final Class<? extends MockCatalogReader> catalogReaderClass;
+  private final MockCatalogReaderFactory catalogReaderFactory;
   private final ValidatorFactory validatorFactory;
 
   private final RelDataTypeFactory typeFactory;
@@ -78,19 +78,19 @@ public class SqlTestFactory {
   private final SqlParser.Config parserConfig;
 
   protected SqlTestFactory() {
-    this(DEFAULT_OPTIONS, MockCatalogReaderSimple.class, SqlValidatorUtil::newValidator);
+    this(DEFAULT_OPTIONS, MockCatalogReaderSimple::new, SqlValidatorUtil::newValidator);
   }
 
   protected SqlTestFactory(ImmutableMap<String, Object> options,
-      Class<? extends MockCatalogReader> catalogReaderClass,
+      MockCatalogReaderFactory catalogReaderFactory,
       ValidatorFactory validatorFactory) {
     this.options = options;
-    this.catalogReaderClass = catalogReaderClass;
+    this.catalogReaderFactory = catalogReaderFactory;
     this.validatorFactory = validatorFactory;
     this.operatorTable = createOperatorTable((SqlOperatorTable) options.get("operatorTable"));
     this.typeFactory = createTypeFactory((SqlConformance) options.get("conformance"));
     Boolean caseSensitive = (Boolean) options.get("caseSensitive");
-    this.catalogReader = MockCatalogReader.create(catalogReaderClass, typeFactory, caseSensitive);
+    this.catalogReader = catalogReaderFactory.create(typeFactory, caseSensitive).init();
     this.parserConfig = createParserConfig(options);
   }
 
@@ -144,16 +144,15 @@ public class SqlTestFactory {
       builder.put(entry);
     }
     builder.put(name, value);
-    return new SqlTestFactory(builder.build(), catalogReaderClass, validatorFactory);
+    return new SqlTestFactory(builder.build(), catalogReaderFactory, validatorFactory);
   }
 
-  public SqlTestFactory withCatalogReader(
-      Class<? extends MockCatalogReader> newCatalogReaderClass) {
-    return new SqlTestFactory(options, newCatalogReaderClass, validatorFactory);
+  public SqlTestFactory withCatalogReader(MockCatalogReaderFactory newCatalogReaderFactory) {
+    return new SqlTestFactory(options, newCatalogReaderFactory, validatorFactory);
   }
 
   public SqlTestFactory withValidator(ValidatorFactory newValidatorFactory) {
-    return new SqlTestFactory(options, catalogReaderClass, newValidatorFactory);
+    return new SqlTestFactory(options, catalogReaderFactory, newValidatorFactory);
   }
 
   public final Object get(String name) {

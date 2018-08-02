@@ -86,14 +86,9 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.AbstractList;
@@ -117,31 +112,6 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
   static final String DEFAULT_SCHEMA = "SALES";
   static final List<String> PREFIX = ImmutableList.of(DEFAULT_SCHEMA);
 
-  private static final LoadingCache<Class<? extends MockCatalogReader>,
-      LoadingCache<Pair<RelDataTypeFactory, Boolean>, Prepare.CatalogReader>> CACHE =
-      CacheBuilder.newBuilder().build(
-          CacheLoader.from((clazz) -> {
-            Constructor<? extends MockCatalogReader> constructor;
-            try {
-              constructor = clazz.getConstructor(RelDataTypeFactory.class, boolean.class);
-            } catch (NoSuchMethodException e) {
-              throw new IllegalArgumentException(
-                  "There should be (RelDataTypeFactory, boolean) constructor", e);
-            }
-
-            return CacheBuilder.newBuilder().build(
-                CacheLoader.from((key) -> createCatalogReader(constructor, key.left, key.right)));
-
-          })
-      );
-
-  public static Prepare.CatalogReader create(
-      Class<? extends MockCatalogReader> clazz,
-      RelDataTypeFactory typeFactory,
-      boolean caseSensitive) {
-    return CACHE.getUnchecked(clazz).getUnchecked(new Pair<>(typeFactory, caseSensitive));
-  }
-
   //~ Instance fields --------------------------------------------------------
 
   //~ Constructors -----------------------------------------------------------
@@ -159,17 +129,6 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
         SqlNameMatchers.withCaseSensitive(caseSensitive),
         ImmutableList.of(PREFIX, ImmutableList.of()),
         typeFactory, null);
-  }
-
-  private static Prepare.CatalogReader createCatalogReader(
-      Constructor<? extends MockCatalogReader> constructor,
-      RelDataTypeFactory typeFactory,
-      boolean caseSensitive) {
-    try {
-      return constructor.newInstance(typeFactory, caseSensitive).init();
-    } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-      throw new IllegalStateException("Unable to instantiate " + constructor, e);
-    }
   }
 
   @Override public boolean isCaseSensitive() {

@@ -63,7 +63,7 @@ public class SqlValidatorTestCase {
           "(?s)From line ([0-9]+), column ([0-9]+) to line ([0-9]+), column ([0-9]+): (.*)");
 
   private static final SqlTestFactory EXTENDED_TEST_FACTORY =
-      SqlTestFactory.INSTANCE.withCatalogReader(MockCatalogReaderExtended.class);
+      SqlTestFactory.INSTANCE.withCatalogReader(MockCatalogReaderExtended::new);
 
   static final SqlTesterImpl EXTENDED_CATALOG_TESTER =
       new SqlTesterImpl(EXTENDED_TEST_FACTORY);
