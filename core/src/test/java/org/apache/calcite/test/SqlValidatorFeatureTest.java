@@ -17,20 +17,15 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Feature;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.test.DefaultSqlTestFactory;
-import org.apache.calcite.sql.test.DelegatingSqlTestFactory;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.test.SqlTesterImpl;
-import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.validate.SqlConformance;
-import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
@@ -60,7 +55,7 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
   //~ Methods ----------------------------------------------------------------
 
   @Override public SqlTester getTester() {
-    return new SqlTesterImpl(new FeatureTesterFactory());
+    return new SqlTesterImpl(SqlTestFactory.INSTANCE.withValidator(FeatureValidator::new));
   }
 
   @Test public void testDistinct() {
@@ -125,27 +120,8 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
 
   //~ Inner Classes ----------------------------------------------------------
 
-  /** Factory for tester objects. */
-  private class FeatureTesterFactory extends DelegatingSqlTestFactory {
-    FeatureTesterFactory() {
-      super(DefaultSqlTestFactory.INSTANCE);
-    }
-
-    @Override public SqlValidator getValidator(SqlTestFactory factory) {
-      final RelDataTypeFactory typeFactory =
-          new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-      SqlConformance conformance = (SqlConformance) get("conformance");
-      final boolean caseSensitive = (Boolean) get("caseSensitive");
-      return new FeatureValidator(
-          factory.createOperatorTable(factory),
-          new MockCatalogReader(typeFactory, caseSensitive).init(),
-          typeFactory,
-          conformance);
-    }
-  }
-
   /** Extension to {@link SqlValidatorImpl} that validates features. */
-  private class FeatureValidator extends SqlValidatorImpl {
+  public class FeatureValidator extends SqlValidatorImpl {
     protected FeatureValidator(
         SqlOperatorTable opTab,
         SqlValidatorCatalogReader catalogReader,

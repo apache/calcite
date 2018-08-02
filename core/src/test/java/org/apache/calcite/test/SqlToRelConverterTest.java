@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.TestUtil;
@@ -2637,7 +2638,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   private Tester getExtendedTester() {
     return tester.withCatalogReaderFactory(typeFactory ->
-        new MockCatalogReader(typeFactory, true).init().init2());
+        new MockCatalogReaderExtended(typeFactory, true).init());
   }
 
   @Test public void testLarge() {
