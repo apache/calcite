@@ -45,8 +45,7 @@ import static org.junit.Assert.fail;
  */
 public class SqlAdvisorTest extends SqlValidatorTestCase {
   public static final SqlTestFactory ADVISOR_TEST_FACTORY = SqlTestFactory.INSTANCE.withValidator(
-      SqlAdvisorValidator::new
-  );
+      SqlAdvisorValidator::new);
 
   //~ Static fields/initializers ---------------------------------------------
 

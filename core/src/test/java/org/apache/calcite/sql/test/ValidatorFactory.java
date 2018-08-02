@@ -30,8 +30,7 @@ public interface ValidatorFactory {
       SqlOperatorTable opTab,
       SqlValidatorCatalogReader catalogReader,
       RelDataTypeFactory typeFactory,
-      SqlConformance conformance
-      );
+      SqlConformance conformance);
 }
 
 // End ValidatorFactory.java
