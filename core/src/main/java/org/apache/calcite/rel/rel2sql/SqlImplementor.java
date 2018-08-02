@@ -79,8 +79,10 @@ import com.google.common.collect.Iterables;
 
 import java.math.BigDecimal;
 import java.util.AbstractList;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -441,11 +443,32 @@ public abstract class SqlImplementor {
         return field(((RexInputRef) rex).getIndex());
 
       case FIELD_ACCESS:
-        RexFieldAccess access = (RexFieldAccess) rex;
-        final RexCorrelVariable variable =
-            (RexCorrelVariable) access.getReferenceExpr();
-        final Context aliasContext = correlTableMap.get(variable.id);
-        return aliasContext.field(access.getField().getIndex());
+        final Deque<RexFieldAccess> accesses = new ArrayDeque<>();
+        RexNode referencedExpr = rex;
+        while (referencedExpr.getKind() == SqlKind.FIELD_ACCESS) {
+          accesses.offerLast((RexFieldAccess) referencedExpr);
+          referencedExpr = ((RexFieldAccess) referencedExpr).getReferenceExpr();
+        }
+        SqlIdentifier sqlIdentifier;
+        switch (referencedExpr.getKind()) {
+        case CORREL_VARIABLE:
+          final RexCorrelVariable variable = (RexCorrelVariable) referencedExpr;
+          final Context correlAliasContext = correlTableMap.get(variable.id);
+          final RexFieldAccess lastAccess = accesses.pollLast();
+          assert lastAccess != null;
+          sqlIdentifier = (SqlIdentifier) correlAliasContext
+              .field(lastAccess.getField().getIndex());
+          break;
+        default:
+          sqlIdentifier = (SqlIdentifier) toSql(program, referencedExpr);
+        }
+
+        int nameIndex = sqlIdentifier.names.size();
+        RexFieldAccess access;
+        while ((access = accesses.pollLast()) != null) {
+          sqlIdentifier = sqlIdentifier.add(nameIndex++, access.getField().getName(), POS);
+        }
+        return sqlIdentifier;
 
       case PATTERN_INPUT_REF:
         final RexPatternFieldRef ref = (RexPatternFieldRef) rex;

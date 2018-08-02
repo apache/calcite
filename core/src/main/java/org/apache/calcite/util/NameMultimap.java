@@ -50,11 +50,7 @@ public class NameMultimap<V> {
 
   /** Adds an entry to this multimap. */
   public void put(String name, V v) {
-    List<V> list = map.get(name);
-    if (list == null) {
-      list = new ArrayList<>();
-      map.put(name, list);
-    }
+    List<V> list = map.computeIfAbsent(name, k -> new ArrayList<>());
     list.add(v);
   }
 

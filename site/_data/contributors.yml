@@ -146,6 +146,11 @@
   githubId: nishantmonu51
   org: Hortonworks
   role: Committer
+- name: Sergey Nuyanzin
+  apacheId: snuyanzin
+  githubId: snuyanzin
+  org: EPAM
+  role: Committer
 - name: Shuyi Chen
   apacheId: shuyichen
   githubId: suez1224

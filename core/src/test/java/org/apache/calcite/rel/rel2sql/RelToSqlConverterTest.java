@@ -84,12 +84,12 @@ public class RelToSqlConverterTest {
   }
 
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
-      SqlParser.Config parserConfig, CalciteAssert.SchemaSpec schemaSpec,
+      SqlParser.Config parserConfig, SchemaPlus schema,
       SqlToRelConverter.Config sqlToRelConf, Program... programs) {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
-        .defaultSchema(CalciteAssert.addSchema(rootSchema, schemaSpec))
+        .defaultSchema(schema)
         .traitDefs(traitDefs)
         .sqlToRelConverterConfig(sqlToRelConf)
         .programs(programs)
@@ -2566,8 +2566,8 @@ public class RelToSqlConverterTest {
   }
 
   /** Fluid interface to run tests. */
-  private static class Sql {
-    private CalciteAssert.SchemaSpec schemaSpec;
+  static class Sql {
+    private final SchemaPlus schema;
     private final String sql;
     private final SqlDialect dialect;
     private final List<Function<RelNode, RelNode>> transforms;
@@ -2576,7 +2576,18 @@ public class RelToSqlConverterTest {
     Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect,
         SqlToRelConverter.Config config,
         List<Function<RelNode, RelNode>> transforms) {
-      this.schemaSpec = schemaSpec;
+      final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+      this.schema = CalciteAssert.addSchema(rootSchema, schemaSpec);
+      this.sql = sql;
+      this.dialect = dialect;
+      this.transforms = ImmutableList.copyOf(transforms);
+      this.config = config;
+    }
+
+    Sql(SchemaPlus schema, String sql, SqlDialect dialect,
+        SqlToRelConverter.Config config,
+        List<Function<RelNode, RelNode>> transforms) {
+      this.schema = schema;
       this.sql = sql;
       this.dialect = dialect;
       this.transforms = ImmutableList.copyOf(transforms);
@@ -2584,7 +2595,7 @@ public class RelToSqlConverterTest {
     }
 
     Sql dialect(SqlDialect dialect) {
-      return new Sql(schemaSpec, sql, dialect, config, transforms);
+      return new Sql(schema, sql, dialect, config, transforms);
     }
 
     Sql withDb2() {
@@ -2620,11 +2631,11 @@ public class RelToSqlConverterTest {
     }
 
     Sql config(SqlToRelConverter.Config config) {
-      return new Sql(schemaSpec, sql, dialect, config, transforms);
+      return new Sql(schema, sql, dialect, config, transforms);
     }
 
     Sql optimize(final RuleSet ruleSet, final RelOptPlanner relOptPlanner) {
-      return new Sql(schemaSpec, sql, dialect, config,
+      return new Sql(schema, sql, dialect, config,
           FlatLists.append(transforms, r -> {
             Program program = Programs.of(ruleSet);
             return program.run(relOptPlanner, r, r.getTraitSet(),
@@ -2650,7 +2661,7 @@ public class RelToSqlConverterTest {
 
     String exec() {
       final Planner planner =
-          getPlanner(null, SqlParser.Config.DEFAULT, schemaSpec, config);
+          getPlanner(null, SqlParser.Config.DEFAULT, schema, config);
       try {
         SqlNode parse = planner.parse(sql);
         SqlNode validate = planner.validate(parse);

@@ -5292,6 +5292,24 @@ LogicalProject(**=[$1], $unnest=[$2])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testStarDynamicSchemaUnnestNestedSubquery">
+        <Resource name="sql">
+            <![CDATA[select t2.c1
+            from (select * from SALES.CUSTOMER) as t1, unnest(t1.fake_col) as t2(c1)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(C1=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalProject(**=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+    LogicalProject(C1=[$0])
+      Uncollect
+        LogicalProject(EXPR$0=[ITEM($cor0.**, 'FAKE_COL')])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testAnyValueAggregateFunctionNoGroupBy">
         <Resource name="sql">
             <![CDATA[SELECT any_value(empno) as anyempno FROM emp AS e]]>

@@ -16,47 +16,106 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
+
+import org.apache.cassandra.config.DatabaseDescriptor;
 
 import com.google.common.collect.ImmutableMap;
 
+import net.jcip.annotations.NotThreadSafe;
+
+import org.cassandraunit.CassandraCQLUnit;
+import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
+
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.ExternalResource;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
+
+import static org.junit.Assume.assumeTrue;
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.cassandra} package.
  *
- * <p>Before calling this test, you need to populate Cassandra, as follows:
+ * <p>Will start embedded cassandra cluster and populate it from local {@code twissandra.cql} file.
+ * All configuration files are located in test classpath.
  *
- * <blockquote><code>
- * git clone https://github.com/vlsi/calcite-test-dataset<br>
- * cd calcite-test-dataset<br>
- * mvn install
- * </code></blockquote>
+ * <p>Note that tests will be skipped if running on JDK11 (which is not yet supported by cassandra)
+ * see <a href="https://issues.apache.org/jira/browse/CASSANDRA-9608">CASSANDRA-9608</a>.
  *
- * <p>This will create a virtual machine with Cassandra and the "twissandra"
- * test data set.
  */
-public class CassandraAdapterIT {
+// force tests to run sequentially (maven surefire and failsafe are running them in parallel)
+// seems like some of our code is sharing static variables (like Hooks) which causes tests
+// to fail non-deterministically (flaky tests).
+@NotThreadSafe
+public class CassandraAdapterTest {
+
+  @ClassRule
+  public static final ExternalResource RULE = initCassandraIfEnabled();
+
   /** Connection factory based on the "mongo-zips" model. */
-  public static final ImmutableMap<String, String> TWISSANDRA =
+  private static final ImmutableMap<String, String> TWISSANDRA =
       ImmutableMap.of("model",
-          CassandraAdapterIT.class.getResource("/model.json")
+          CassandraAdapterTest.class.getResource("/model.json")
               .getPath());
 
-  /** Whether to run Cassandra tests. Enabled by default, however test is only
-   * included if "it" profile is activated ({@code -Pit}). To disable,
-   * specify {@code -Dcalcite.test.cassandra=false} on the Java command line. */
-  public static final boolean ENABLED =
-      Util.getBooleanProperty("calcite.test.cassandra", true);
+  /**
+   * Whether to run this test.
+   * <p>Enabled by default, unless explicitly disabled
+   * from command line ({@code -Dcalcite.test.cassandra=false}) or running on incompatible JDK
+   * version (see below).
+   *
+   * <p>As of this wiring Cassandra 4.x is not yet released and we're using 3.x
+   * (which fails on JDK11). All cassandra tests will be skipped if running on JDK11.
+   *
+   * @see <a href="https://issues.apache.org/jira/browse/CASSANDRA-9608">CASSANDRA-9608</a>
+   * @return {@code true} if test is compatible with current environment,
+   *         {@code false} otherwise
+   */
+  private static boolean enabled() {
+    final boolean enabled =
+        Util.getBooleanProperty("calcite.test.cassandra", true);
+    Bug.upgrade("remove JDK version check once current adapter supports Cassandra 4.x");
+    final boolean compatibleJdk = TestUtil.getJavaMajorVersion() != 11;
+    return enabled && compatibleJdk;
+  }
 
-  /** Whether to run this test. */
-  protected boolean enabled() {
-    return ENABLED;
+  private static ExternalResource initCassandraIfEnabled() {
+    if (!enabled()) {
+      // Return NOP resource (to avoid nulls)
+      return new ExternalResource() {
+        @Override public Statement apply(final Statement base, final Description description) {
+          return super.apply(base, description);
+        }
+      };
+    }
+
+    CassandraCQLUnit rule = new CassandraCQLUnit(
+        new ClassPathCQLDataSet("twissandra.cql"));
+
+    // This static init is necessary otherwise tests fail with CassandraUnit in IntelliJ (jdk10)
+    // should be called right after constructor
+    // NullPointerException for DatabaseDescriptor.getDiskFailurePolicy
+    // for more info see
+    // https://github.com/jsevellec/cassandra-unit/issues/249
+    // https://github.com/jsevellec/cassandra-unit/issues/221
+    DatabaseDescriptor.daemonInitialization();
+
+    return rule;
+  }
+
+  @BeforeClass
+  public static void setUp() {
+    // run tests only if explicitly enabled
+    assumeTrue("test explicitly disabled", enabled());
   }
 
   @Test public void testSelect() {
     CalciteAssert.that()
-        .enable(enabled())
         .with(TWISSANDRA)
         .query("select * from \"users\"")
         .returnsCount(10);
@@ -64,7 +123,6 @@ public class CassandraAdapterIT {
 
   @Test public void testFilter() {
     CalciteAssert.that()
-        .enable(enabled())
         .with(TWISSANDRA)
         .query("select * from \"userline\" where \"username\"='!PUBLIC!'")
         .limit(1)
@@ -77,7 +135,6 @@ public class CassandraAdapterIT {
 
   @Test public void testFilterUUID() {
     CalciteAssert.that()
-        .enable(enabled())
         .with(TWISSANDRA)
         .query("select * from \"tweets\" where \"tweet_id\"='f3cd759c-d05b-11e5-b58b-90e2ba530b12'")
         .limit(1)
@@ -90,7 +147,6 @@ public class CassandraAdapterIT {
 
   @Test public void testSort() {
     CalciteAssert.that()
-        .enable(enabled())
         .with(TWISSANDRA)
         .query("select * from \"userline\" where \"username\" = '!PUBLIC!' order by \"time\" desc")
         .returnsCount(146)
@@ -101,7 +157,6 @@ public class CassandraAdapterIT {
 
   @Test public void testProject() {
     CalciteAssert.that()
-        .enable(enabled())
         .with(TWISSANDRA)
         .query("select \"tweet_id\" from \"userline\" where \"username\" = '!PUBLIC!' limit 2")
         .returns("tweet_id=f3c329de-d05b-11e5-b58b-90e2ba530b12\n"
@@ -114,7 +169,6 @@ public class CassandraAdapterIT {
 
   @Test public void testProjectAlias() {
     CalciteAssert.that()
-        .enable(enabled())
         .with(TWISSANDRA)
         .query("select \"tweet_id\" as \"foo\" from \"userline\" "
                 + "where \"username\" = '!PUBLIC!' limit 1")
@@ -123,7 +177,6 @@ public class CassandraAdapterIT {
 
   @Test public void testProjectConstant() {
     CalciteAssert.that()
-        .enable(enabled())
         .with(TWISSANDRA)
         .query("select 'foo' as \"bar\" from \"userline\" limit 1")
         .returns("bar=foo\n");
@@ -131,7 +184,6 @@ public class CassandraAdapterIT {
 
   @Test public void testLimit() {
     CalciteAssert.that()
-        .enable(enabled())
         .with(TWISSANDRA)
         .query("select \"tweet_id\" from \"userline\" where \"username\" = '!PUBLIC!' limit 8")
         .explainContains("CassandraLimit(fetch=[8])\n");
@@ -139,7 +191,6 @@ public class CassandraAdapterIT {
 
   @Test public void testSortLimit() {
     CalciteAssert.that()
-        .enable(enabled())
         .with(TWISSANDRA)
         .query("select * from \"userline\" where \"username\"='!PUBLIC!' "
              + "order by \"time\" desc limit 10")
@@ -149,7 +200,6 @@ public class CassandraAdapterIT {
 
   @Test public void testSortOffset() {
     CalciteAssert.that()
-        .enable(enabled())
         .with(TWISSANDRA)
         .query("select \"tweet_id\" from \"userline\" where "
              + "\"username\"='!PUBLIC!' limit 2 offset 1")
@@ -160,7 +210,6 @@ public class CassandraAdapterIT {
 
   @Test public void testMaterializedView() {
     CalciteAssert.that()
-        .enable(enabled())
         .with(TWISSANDRA)
         .query("select \"tweet_id\" from \"tweets\" where \"username\"='JmuhsAaMdw'")
         .enableMaterializations(true)
@@ -168,4 +217,4 @@ public class CassandraAdapterIT {
   }
 }
 
-// End CassandraAdapterIT.java
+// End CassandraAdapterTest.java

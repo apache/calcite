@@ -27,7 +27,7 @@ limitations under the License.
   <groupId>org.apache.calcite</groupId>
   <artifactId>calcite</artifactId>
   <packaging>pom</packaging>
-  <version>1.17.0-SNAPSHOT</version>
+  <version>1.18.0-SNAPSHOT</version>
 
   <!-- More project information. -->
   <name>Calcite</name>
@@ -51,7 +51,7 @@ limitations under the License.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <top.dir>${project.basedir}</top.dir>
     <version.major>1</version.major>
-    <version.minor>16</version.minor>
+    <version.minor>17</version.minor>
 
     <!-- Don't fail the build for vulnerabilities below this threshold. -->
     <failBuildOnCVSS>8</failBuildOnCVSS>
@@ -61,6 +61,8 @@ limitations under the License.
     <avatica.version>1.12.0</avatica.version>
     <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
     <cassandra-driver-core.version>3.4.0</cassandra-driver-core.version>
+    <cassandra-unit.version>3.5.0.1</cassandra-unit.version>
+    <cassandra.version>3.11.2</cassandra.version>
     <checksum-maven-plugin.version>1.2</checksum-maven-plugin.version>
     <chinook-data-hsqldb.version>0.1</chinook-data-hsqldb.version>
     <commons-dbcp2.version>2.4.0</commons-dbcp2.version>
@@ -243,6 +245,11 @@ limitations under the License.
         <version>${cassandra-driver-core.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.apache.cassandra</groupId>
+        <artifactId>cassandra-all</artifactId>
+        <version>${cassandra.version}</version>
+      </dependency>
+      <dependency>
         <groupId>com.esri.geometry</groupId>
         <artifactId>esri-geometry-api</artifactId>
         <version>${esri-geometry-api.version}</version>
@@ -402,6 +409,12 @@ limitations under the License.
         <groupId>org.apache.pig</groupId>
         <artifactId>pigunit</artifactId>
         <version>${pig.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.cassandraunit</groupId>
+        <artifactId>cassandra-unit</artifactId>
+        <version>${cassandra-unit.version}</version>
         <scope>test</scope>
       </dependency>
       <dependency>

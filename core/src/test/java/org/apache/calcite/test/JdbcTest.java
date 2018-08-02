@@ -413,6 +413,46 @@ public class JdbcTest {
             "id=empid; names=[empid]; type=COLUMN"));
   }
 
+  @Test public void testSqlAdvisorNonExistingColumn()
+      throws SQLException, ClassNotFoundException {
+    adviseSql("select e.empdid_wrong_name.^ from \"hr\".\"emps\" e",
+        CalciteAssert.checkResultUnordered(
+            "id=*; names=[*]; type=KEYWORD",
+            "id=; names=null; type=MATCH"));
+  }
+
+  @Test public void testSqlAdvisorNonStructColumn()
+      throws SQLException, ClassNotFoundException {
+    adviseSql("select e.\"empid\".^ from \"hr\".\"emps\" e",
+        CalciteAssert.checkResultUnordered(
+            "id=*; names=[*]; type=KEYWORD",
+            "id=; names=null; type=MATCH"));
+  }
+
+  @Test public void testSqlAdvisorSubSchema()
+      throws SQLException, ClassNotFoundException {
+    adviseSql("select * from \"hr\".^.test_test_test",
+        CalciteAssert.checkResultUnordered(
+            "id=; names=null; type=MATCH",
+            "id=hr.dependents; names=[hr, dependents]; type=TABLE",
+            "id=hr.depts; names=[hr, depts]; type=TABLE",
+            "id=hr.emps; names=[hr, emps]; type=TABLE",
+            "id=hr.locations; names=[hr, locations]; type=TABLE",
+            "id=hr; names=[hr]; type=SCHEMA"));
+  }
+
+  @Test public void testSqlAdvisorTableInSchema()
+      throws SQLException, ClassNotFoundException {
+    adviseSql("select * from \"hr\".^",
+        CalciteAssert.checkResultUnordered(
+            "id=; names=null; type=MATCH",
+            "id=hr.dependents; names=[hr, dependents]; type=TABLE",
+            "id=hr.depts; names=[hr, depts]; type=TABLE",
+            "id=hr.emps; names=[hr, emps]; type=TABLE",
+            "id=hr.locations; names=[hr, locations]; type=TABLE",
+            "id=hr; names=[hr]; type=SCHEMA"));
+  }
+
   /**
    * Tests {@link org.apache.calcite.sql.advise.SqlAdvisorGetHintsFunction}.
    */

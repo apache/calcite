@@ -14,19 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-{
-  "version": "1.0",
-  "defaultSchema": "twissandra",
-  "schemas": [
-    {
-      "name": "twissandra",
-      "type": "custom",
-      "factory": "org.apache.calcite.adapter.cassandra.CassandraSchemaFactory",
-      "operand": {
-        "host": "localhost",
-        "port": 9142,
-        "keyspace": "twissandra"
-      }
-    }
-  ]
+package org.apache.calcite.test.catalog;
+
+import org.apache.calcite.rel.type.RelDataType;
+
+/** Column having names with multiple parts. */
+final class CompoundNameColumn {
+  final String first;
+  final String second;
+  final RelDataType type;
+
+  CompoundNameColumn(String first, String second, RelDataType type) {
+    this.first = first;
+    this.second = second;
+    this.type = type;
+  }
+
+  String getName() {
+    return (first.isEmpty() ? "" : ("\"" + first + "\"."))
+        + ("\"" + second + "\"");
+  }
 }
+
+// End CompoundNameColumn.java

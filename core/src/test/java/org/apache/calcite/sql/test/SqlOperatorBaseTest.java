@@ -2003,6 +2003,21 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("x''\n'ab' = x'ab'", Boolean.TRUE);
   }
 
+  @Test public void testComplexLiteral() {
+    tester.check("select 2 * 2 * x from (select 2 as x)",
+        new SqlTests.StringTypeChecker("INTEGER NOT NULL"),
+        "8",
+        0);
+    tester.check("select 1 * 2 * 3 * x from (select 2 as x)",
+        new SqlTests.StringTypeChecker("INTEGER NOT NULL"),
+        "12",
+        0);
+    tester.check("select 1 + 2 + 3 + 4 + x from (select 2 as x)",
+        new SqlTests.StringTypeChecker("INTEGER NOT NULL"),
+        "12",
+        0);
+  }
+
   @Test public void testRow() {
     tester.setFor(SqlStdOperatorTable.ROW, VM_FENNEL);
   }
@@ -7626,7 +7641,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   public static SqlTester tester() {
-    return new TesterImpl(DefaultSqlTestFactory.INSTANCE);
+    return new TesterImpl(SqlTestFactory.INSTANCE);
   }
 
   /**
@@ -7657,16 +7672,8 @@ public abstract class SqlOperatorBaseTest {
       }
     }
 
-    @Override protected TesterImpl with(final String name2, final Object value) {
-      return new TesterImpl(
-          new DelegatingSqlTestFactory(factory) {
-            @Override public Object get(String name) {
-              if (name.equals(name2)) {
-                return value;
-              }
-              return super.get(name);
-            }
-          });
+    @Override protected TesterImpl with(final String name, final Object value) {
+      return new TesterImpl(factory.with(name, value));
     }
   }
 
