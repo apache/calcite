@@ -170,6 +170,26 @@ public class SqlTestFactory {
     }
     return new JavaTypeFactoryImpl(typeSystem);
   }
+
+  /**
+   * Creates {@link SqlValidator} for tests.
+   */
+  public interface ValidatorFactory {
+    SqlValidator create(
+        SqlOperatorTable opTab,
+        SqlValidatorCatalogReader catalogReader,
+        RelDataTypeFactory typeFactory,
+        SqlConformance conformance);
+  }
+
+  /**
+   * Creates {@link MockCatalogReader} for tests.
+   * Note: {@link MockCatalogReader#init()} is to be invoked later, so a typical implementation
+   * should be via constructor reference like {@code MockCatalogReaderSimple::new}.
+   */
+  public interface MockCatalogReaderFactory {
+    MockCatalogReader create(RelDataTypeFactory typeFactory, boolean caseSensitive);
+  }
 }
 
 // End SqlTestFactory.java
