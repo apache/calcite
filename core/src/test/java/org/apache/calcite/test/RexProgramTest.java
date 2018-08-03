@@ -1786,22 +1786,26 @@ public class RexProgramTest {
 
   @Test public void testFuzzy() {
     Random r = new Random();
-    long seed = 8435481211433446856L; // r.nextLong();
-    System.out.println("seed = " + seed);
-//    r.setSeed(seed);
-    long deadline = System.currentTimeMillis() + 20000;
+    long deadline = System.currentTimeMillis() + 40000;
     List<Throwable> exceptions = new ArrayList<>();
     Set<String> duplicates = new HashSet<>();
-    while (System.currentTimeMillis() < deadline && exceptions.size() < 2000) {
+    int total = 0;
+    int dup = 0;
+    int fail = 0;
+    while (System.currentTimeMillis() < deadline && exceptions.size() < 6000) {
       for (int i = 0; i < 100; i++) {
+        long seed = r.nextLong();
+        r.setSeed(seed);
         try {
-          RexNode expression = getExpression(r);
-          checkTrueFalse(expression);
+          performFuzzyTest(r);
+          total++;
         } catch (Throwable e) {
           if (!duplicates.add(e.getMessage())) {
+            dup++;
             // known exception, nothing to see here
             continue;
           }
+          fail++;
           StackTraceElement[] stackTrace = e.getStackTrace();
           for (int j = 0; j < stackTrace.length; j++) {
             if (stackTrace[j].getClassName().endsWith("RexProgramTest")) {
@@ -1809,6 +1813,11 @@ public class RexProgramTest {
               break;
             }
           }
+          e.addSuppressed(new Throwable("seed " + seed) {
+            @Override public synchronized Throwable fillInStackTrace() {
+              return this;
+            }
+          });
           exceptions.add(e);
         }
       }
@@ -1816,8 +1825,11 @@ public class RexProgramTest {
     if (exceptions.isEmpty()) {
       return;
     }
+    System.out.println("total = " + total);
+    System.out.println("fail = " + fail);
+    System.out.println("dup = " + dup);
 
-    // Print the smallest fails first
+    // Print the shortest fails first
     exceptions.sort(Comparator.<Throwable>comparingInt(t -> t.getMessage().length())
         .thenComparing(Throwable::getMessage));
 
@@ -1830,6 +1842,17 @@ public class RexProgramTest {
       throw (Error) ex;
     }
     throw new RuntimeException("Exception in testFuzzy", ex);
+  }
+
+  @Test public void singleFuzzyTest() {
+    Random r = new Random();
+    r.setSeed(2644069610573723792L);
+    performFuzzyTest(r);
+  }
+
+  private void performFuzzyTest(Random r) {
+    RexNode expression = getExpression(r, r.nextInt(10));
+    checkTrueFalse(expression);
   }
 
   private static final SqlOperator[] ONE_ARG_OPERATORS = new SqlOperator[]{
@@ -1846,11 +1869,10 @@ public class RexProgramTest {
       SqlStdOperatorTable.IS_UNKNOWN,
       SqlStdOperatorTable.IS_NOT_UNKNOWN
   };
+
   private static final SqlOperator[] TWO_ARG_OPERATORS = new SqlOperator[] {
       // type is null for COALESCE([$0, null]) in RexCall.<init>(RexCall.java:60)
       // SqlStdOperatorTable.COALESCE,
-      SqlStdOperatorTable.OR,
-      SqlStdOperatorTable.AND,
       SqlStdOperatorTable.EQUALS,
       SqlStdOperatorTable.NOT_EQUALS,
       // lots of exceptions like >($0, $0) optimizes to FALSE, isAlwaysFalse MUST be true
@@ -1862,8 +1884,13 @@ public class RexProgramTest {
       SqlStdOperatorTable.IS_NOT_DISTINCT_FROM
   };
 
-  private RexNode getExpression(Random r) {
-    int v = r.nextInt(5);
+  private static final SqlOperator[] MULTI_ARG_OPERATORS = new SqlOperator[] {
+      SqlStdOperatorTable.OR,
+      SqlStdOperatorTable.AND
+  };
+
+  private RexNode getExpression(Random r, int depth) {
+    int v = r.nextInt(depth > 0 ? 6 : 3);
     switch (v) {
     case 0:
       boolean nullable = r.nextBoolean();
@@ -1877,11 +1904,20 @@ public class RexProgramTest {
       return nullLiteral;
     case 3:
       SqlOperator[] operators = ONE_ARG_OPERATORS;
-      return rexBuilder.makeCall(operators[r.nextInt(operators.length)], getExpression(r));
+      return rexBuilder.makeCall(operators[r.nextInt(operators.length)], getExpression(r, depth - 1));
     case 4:
       SqlOperator[] operators2 = TWO_ARG_OPERATORS;
       return rexBuilder
-          .makeCall(operators2[r.nextInt(operators2.length)], getExpression(r), getExpression(r));
+          .makeCall(operators2[r.nextInt(operators2.length)], getExpression(r, depth - 1), getExpression(r, depth - 1));
+    case 5:
+      SqlOperator[] operators3 = MULTI_ARG_OPERATORS;
+      int len = r.nextInt(3) + 2;
+      List<RexNode> args = new ArrayList<>(len);
+      for (int i = 0; i < len; i++) {
+        args.add(getExpression(r, depth - 1));
+      }
+      return rexBuilder
+          .makeCall(operators3[r.nextInt(operators3.length)], args);
     }
     return null;
   }
