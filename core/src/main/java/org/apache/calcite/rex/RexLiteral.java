@@ -540,7 +540,7 @@ public class RexLiteral extends RexNode {
       pw.print(
           new AbstractList<String>() {
             public String get(int index) {
-              return list.get(index).digest;
+              return list.get(index).toString();
             }
 
             public int size() {
