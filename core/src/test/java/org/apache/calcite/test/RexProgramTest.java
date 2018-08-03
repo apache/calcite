@@ -1754,6 +1754,8 @@ public class RexProgramTest {
         throw a;
       }
       throw new IllegalStateException("Unable to simplify " + node, a);
+    } catch (Throwable t) {
+      throw new IllegalStateException("Unable to simplify " + node, t);
     }
     if (trueLiteral.equals(opt)) {
       assertFalse(node.toString() + " optimizes to TRUE, isAlwaysFalse MUST not be true",
@@ -1782,39 +1784,68 @@ public class RexProgramTest {
     long seed = 8435481211433446856L; // r.nextLong();
     System.out.println("seed = " + seed);
     r.setSeed(seed);
-    long deadline = System.currentTimeMillis() + 1000;
-    Throwable ex = null;
-    int exceptions = 0;
-    while (System.currentTimeMillis() < deadline && exceptions < 100) {
-      for (int i = 0; i < 100 && exceptions < 100; i++) {
-        RexNode expression = getExpression(r);
+    long deadline = System.currentTimeMillis() + 5000;
+    List<Throwable> exceptions = new ArrayList<>();
+    while (System.currentTimeMillis() < deadline && exceptions.size() < 200) {
+      for (int i = 0; i < 100; i++) {
         try {
+          RexNode expression = getExpression(r);
           checkTrueFalse(expression);
         } catch (Throwable e) {
-          if (ex == null) {
-            ex = e;
-          } else {
-            StackTraceElement[] stackTrace = e.getStackTrace();
-            for (int j = 0; j < stackTrace.length; j++) {
-              if (stackTrace[j].getClassName().endsWith("RexProgramTest")) {
-                e.setStackTrace(Arrays.copyOf(stackTrace, j + 1));
-                break;
-              }
+          StackTraceElement[] stackTrace = e.getStackTrace();
+          for (int j = 0; j < stackTrace.length; j++) {
+            if (stackTrace[j].getClassName().endsWith("RexProgramTest")) {
+              e.setStackTrace(Arrays.copyOf(stackTrace, j + 1));
+              break;
             }
-            e.printStackTrace();
           }
-          exceptions++;
+          exceptions.add(e);
         }
       }
     }
-    if (ex == null) {
+    if (exceptions.isEmpty()) {
       return;
     }
+
+    // Print the smallest fails first
+    exceptions.sort(Comparator.<Throwable>comparingInt(t -> t.getMessage().length())
+        .thenComparing(Throwable::getMessage));
+
+    for (Throwable exception : exceptions) {
+      exception.printStackTrace();
+    }
+
+    Throwable ex = exceptions.get(0);
     if (ex instanceof Error) {
       throw (Error) ex;
     }
     throw new RuntimeException("Exception in testFuzzy", ex);
   }
+
+  private static final SqlOperator[] ONE_ARG_OPERATORS = new SqlOperator[]{
+      // produces COALESCE(true) optimizes to TRUE, isAlwaysTrue MUST be true
+      // SqlStdOperatorTable.COALESCE,
+      SqlStdOperatorTable.MAX,
+      SqlStdOperatorTable.NOT,
+      SqlStdOperatorTable.IS_FALSE,
+      SqlStdOperatorTable.IS_NOT_FALSE,
+      SqlStdOperatorTable.IS_TRUE,
+      SqlStdOperatorTable.IS_NOT_TRUE,
+      SqlStdOperatorTable.IS_NULL,
+      SqlStdOperatorTable.IS_NOT_NULL,
+      SqlStdOperatorTable.IS_UNKNOWN,
+      SqlStdOperatorTable.IS_NOT_UNKNOWN
+  };
+  private static final SqlOperator[] TWO_ARG_OPERATORS = new SqlOperator[] {
+      // type is null for COALESCE([$0, null]) in RexCall.<init>(RexCall.java:60)
+      // SqlStdOperatorTable.COALESCE,
+      SqlStdOperatorTable.OR,
+      SqlStdOperatorTable.AND,
+      SqlStdOperatorTable.EQUALS,
+      SqlStdOperatorTable.NOT_EQUALS,
+      SqlStdOperatorTable.IS_DISTINCT_FROM,
+      SqlStdOperatorTable.IS_NOT_DISTINCT_FROM
+  };
 
   private RexNode getExpression(Random r) {
     int v = r.nextInt(5);
@@ -1823,34 +1854,16 @@ public class RexProgramTest {
       return rexBuilder.makeInputRef(
           typeFactory.createTypeWithNullability(
               typeFactory.createSqlType(SqlTypeName.BOOLEAN), r.nextBoolean()),
-          r.nextInt(2));
+          r.nextInt(5));
     case 1:
       return r.nextBoolean() ? trueLiteral : falseLiteral;
     case 2:
       return nullLiteral;
     case 3:
-      SqlOperator[] operators = new SqlOperator[]{
-          SqlStdOperatorTable.MAX,
-          SqlStdOperatorTable.NOT,
-          SqlStdOperatorTable.IS_FALSE,
-          SqlStdOperatorTable.IS_NOT_FALSE,
-          SqlStdOperatorTable.IS_TRUE,
-          SqlStdOperatorTable.IS_NOT_TRUE,
-          SqlStdOperatorTable.IS_NULL,
-          SqlStdOperatorTable.IS_NOT_NULL,
-          SqlStdOperatorTable.IS_UNKNOWN,
-          SqlStdOperatorTable.IS_NOT_UNKNOWN
-      };
+      SqlOperator[] operators = ONE_ARG_OPERATORS;
       return rexBuilder.makeCall(operators[r.nextInt(operators.length)], getExpression(r));
     case 4:
-      SqlOperator[] operators2 = new SqlOperator[]{
-          SqlStdOperatorTable.OR,
-          SqlStdOperatorTable.AND,
-          SqlStdOperatorTable.EQUALS,
-          SqlStdOperatorTable.NOT_EQUALS,
-          SqlStdOperatorTable.IS_DISTINCT_FROM,
-          SqlStdOperatorTable.IS_NOT_DISTINCT_FROM
-      };
+      SqlOperator[] operators2 = TWO_ARG_OPERATORS;
       return rexBuilder
           .makeCall(operators2[r.nextInt(operators2.length)], getExpression(r), getExpression(r));
     }
