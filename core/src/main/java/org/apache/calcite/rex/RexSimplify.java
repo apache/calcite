@@ -719,6 +719,10 @@ public class RexSimplify {
     // Example #2. x AND y AND NOT (x AND y)        - not satisfiable
     // Example #3. x AND y AND NOT (x AND y AND z)  - may be satisfiable
     for (RexNode notDisjunction : notTerms) {
+      if (notDisjunction.getType().isNullable()) {
+        // AND(null, NOT(null)) must NOT be simplified to FALSE so we skip the term
+        continue;
+      }
       final List<RexNode> terms2 = RelOptUtil.conjunctions(notDisjunction);
       if (terms.containsAll(terms2)) {
         return rexBuilder.makeLiteral(false);
