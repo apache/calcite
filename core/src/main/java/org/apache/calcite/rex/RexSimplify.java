@@ -214,6 +214,12 @@ public class RexSimplify {
 
   // e must be a comparison (=, >, >=, <, <=, !=)
   private RexNode simplifyComparison(RexCall e) {
+    if (e.isAlwaysNull()) {
+      // Simplify cases like GREATER_THAN(..., NULL) to NULL
+      return unknownAsFalse
+          ? rexBuilder.makeLiteral(false)
+          : rexBuilder.makeNullLiteral(e.getType());
+    }
     //noinspection unchecked
     return simplifyComparison(e, Comparable.class);
   }
