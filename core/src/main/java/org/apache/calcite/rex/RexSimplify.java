@@ -430,9 +430,12 @@ public class RexSimplify {
       }
       if (kind == pred.kind) {
         return rexBuilder.makeLiteral(true);
-      } else {
+      } else if (kind.negate() == pred.kind) {
         return rexBuilder.makeLiteral(false);
       }
+      // Optimizations for other cases might be helpful as well
+      // For instance kind == IS_TRUE and pred == IS_NULL
+      // When we know input is null, then IS_TRUE is just false.
     }
     return null;
   }
