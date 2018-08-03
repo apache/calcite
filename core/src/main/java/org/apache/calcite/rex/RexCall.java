@@ -267,9 +267,11 @@ public class RexCall extends RexNode {
       }
       return true; // coalesce(null, null) => null
     case AND:
+      // AND(false, null) => false, so the value is NOT always null
+      // So simplify AND(true, true, null) to NULL
+      // AND( ..., null) can be non-null
       for (RexNode operand : operands) {
-        // AND(false, null) => false, so the value is NOT always null
-        if (operand.isAlwaysFalse()) {
+        if (!operand.isAlwaysTrue()) {
           return false;
         }
         if (!hasNull) {
@@ -278,9 +280,9 @@ public class RexCall extends RexNode {
       }
       return hasNull;
     case OR:
+      // OR(true, null) => true
       for (RexNode operand : operands) {
-        // OR(true, null) => true, so the value is NOT always null
-        if (operand.isAlwaysTrue()) {
+        if (!operand.isAlwaysFalse()) {
           return false;
         }
         if (!hasNull) {
