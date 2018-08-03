@@ -1,0 +1,55 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use CALCITE_AS_ADMIN
+!set outputformat mysql
+
+# Checks whether CROSS JOIN LATERAL works
+SELECT SC.email EMAIL, TF.TYPE, TF.CODEVALUE
+FROM ENHANCED.SIMPLE_CUSTOMER SC
+CROSS JOIN LATERAL TABLE(AUX.CODES(SC.email)) TF limit 6;
++-----------------------+----------+------------------------------+
+| EMAIL                 | TYPE     | CODEVALUE                    |
++-----------------------+----------+------------------------------+
+| ftremblay@gmail.com   | BASE64   | ZnRyZW1ibGF5QGdtYWlsLmNvbQ== |
+| ftremblay@gmail.com   | HASHCODE | 1248316799                   |
+| leonekohler@surfeu.de | BASE64   | bGVvbmVrb2hsZXJAc3VyZmV1LmRl |
+| leonekohler@surfeu.de | HASHCODE | -1984160245                  |
+| luisg@embraer.com.br  | BASE64   | bHVpc2dAZW1icmFlci5jb20uYnI= |
+| luisg@embraer.com.br  | HASHCODE | 934160737                    |
++-----------------------+----------+------------------------------+
+(6 rows)
+
+!ok
+
+# [CALCITE-2446] Lateral joins not work when saved as custom views
+#
+# Checks whether CROSS JOIN LATERAL WORK WITH VIEW EXPANSION
+SELECT * FROM EXAMPLES.CODED_EMAILS;
++-----------------------+----------+------------------------------+
+| EMAIL                 | TYPE     | CODEVALUE                    |
++-----------------------+----------+------------------------------+
+| ftremblay@gmail.com   | BASE64   | ZnRyZW1ibGF5QGdtYWlsLmNvbQ== |
+| ftremblay@gmail.com   | HASHCODE | 1248316799                   |
+| leonekohler@surfeu.de | BASE64   | bGVvbmVrb2hsZXJAc3VyZmV1LmRl |
+| leonekohler@surfeu.de | HASHCODE | -1984160245                  |
+| luisg@embraer.com.br  | BASE64   | bHVpc2dAZW1icmFlci5jb20uYnI= |
+| luisg@embraer.com.br  | HASHCODE | 934160737                    |
++-----------------------+----------+------------------------------+
+(6 rows)
+
+!ok
+
+# End cross-join-lateral.iq
