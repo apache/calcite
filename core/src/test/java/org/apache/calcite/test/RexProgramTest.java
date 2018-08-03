@@ -73,6 +73,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.TimeZone;
 import java.util.TreeMap;
 
@@ -82,6 +83,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit tests for {@link RexProgram} and
@@ -1701,6 +1703,148 @@ public class RexProgramTest {
     assertThat(result.getOperands().get(0), is(condition));
     assertThat(result.getOperands().get(1), is((RexNode) trueLiteral));
     assertThat(result.getOperands().get(2), is((RexNode) falseLiteral));
+  }
+
+  @Test public void testAlwaysTrueFalse() {
+    RelDataType in = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+
+    SqlOperator[] operators = new SqlOperator[]{
+        SqlStdOperatorTable.NOT,
+        SqlStdOperatorTable.MAX,
+        SqlStdOperatorTable.IS_FALSE,
+        SqlStdOperatorTable.IS_NOT_FALSE,
+        SqlStdOperatorTable.IS_TRUE,
+        SqlStdOperatorTable.IS_NOT_TRUE,
+        SqlStdOperatorTable.IS_NULL,
+        SqlStdOperatorTable.IS_NOT_NULL,
+        SqlStdOperatorTable.IS_UNKNOWN,
+        SqlStdOperatorTable.IS_NOT_UNKNOWN
+    };
+    for (boolean argNullability : new boolean[]{true, false}) {
+      RexInputRef arg = rexBuilder.makeInputRef(
+          typeFactory.createTypeWithNullability(
+              in, argNullability),
+          0);
+      for (SqlOperator op1 : operators) {
+        RexNode n1 = rexBuilder.makeCall(op1, arg);
+        checkTrueFalse(n1);
+        for (SqlOperator op2 : operators) {
+          RexNode n2 = rexBuilder.makeCall(op2, n1);
+          checkTrueFalse(n2);
+          for (SqlOperator op3 : operators) {
+            RexNode n3 = rexBuilder.makeCall(op3, n2);
+            checkTrueFalse(n3);
+            for (SqlOperator op4 : operators) {
+              RexNode n4 = rexBuilder.makeCall(op4, n3);
+              checkTrueFalse(n4);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private void checkTrueFalse(RexNode node) {
+    RexNode opt;
+    try {
+      opt = this.simplify.simplify(node);
+    } catch (AssertionError a) {
+      throw new IllegalStateException("Unable to simplify " + node, a);
+    }
+    if (trueLiteral.equals(opt)) {
+      assertFalse(node.toString() + " optimizes to TRUE, isAlwaysFalse MUST not be true",
+          node.isAlwaysFalse());
+      assertTrue(node.toString() + " optimizes to TRUE, isAlwaysTrue MUST be true",
+          node.isAlwaysTrue());
+    }
+    if (falseLiteral.equals(opt)) {
+      assertFalse(node.toString() + " optimizes to FALSE, isAlwaysTrue MUST not be true",
+          node.isAlwaysTrue());
+      if (!node.isAlwaysFalse()) {
+        assertTrue(node.toString() + " optimizes to FALSE, isAlwaysFalse MUST be true",
+            node.isAlwaysFalse());
+      }
+    }
+    if (nullLiteral.equals(opt)) {
+      assertFalse(node.toString() + " optimizes to NULL, isAlwaysTrue MUST be FALSE",
+          node.isAlwaysTrue());
+      assertFalse(node.toString() + " optimizes to NULL, isAlwaysFalse MUST be FALSE",
+          node.isAlwaysFalse());
+    }
+  }
+
+  @Test public void testFuzzy() {
+    Random r = new Random();
+    long seed = r.nextLong();
+    System.out.println("seed = " + seed);
+    r.setSeed(seed);
+    r.setSeed(8435481211433446856L);
+    long deadline = System.currentTimeMillis() + 1000;
+    Throwable ex = null;
+    int exceptions = 0;
+    while (System.currentTimeMillis() < deadline && exceptions < 100) {
+      for (int i = 0; i < 100 && exceptions < 100; i++) {
+        RexNode expression = getExpression(r);
+        try {
+          checkTrueFalse(expression);
+        } catch (Throwable e) {
+          if (ex == null) {
+            ex = e;
+          } else {
+            e.printStackTrace();
+          }
+          exceptions++;
+        }
+      }
+    }
+    if (ex == null) {
+      return;
+    }
+    if (ex instanceof Error) {
+      throw (Error) ex;
+    }
+    throw new RuntimeException("Exception in testFuzzy", ex);
+  }
+
+  private RexNode getExpression(Random r) {
+    int v = r.nextInt(5);
+    switch (v) {
+    case 0:
+      return rexBuilder.makeInputRef(
+          typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(SqlTypeName.BOOLEAN), r.nextBoolean()),
+          r.nextInt(2));
+    case 1:
+      return r.nextBoolean() ? trueLiteral : falseLiteral;
+    case 2:
+      return nullLiteral;
+    case 3:
+      SqlOperator[] operators = new SqlOperator[]{
+          SqlStdOperatorTable.MAX,
+          SqlStdOperatorTable.NOT,
+          SqlStdOperatorTable.IS_FALSE,
+          SqlStdOperatorTable.IS_NOT_FALSE,
+          SqlStdOperatorTable.IS_TRUE,
+          SqlStdOperatorTable.IS_NOT_TRUE,
+          SqlStdOperatorTable.IS_NULL,
+          SqlStdOperatorTable.IS_NOT_NULL,
+          SqlStdOperatorTable.IS_UNKNOWN,
+          SqlStdOperatorTable.IS_NOT_UNKNOWN
+      };
+      return rexBuilder.makeCall(operators[r.nextInt(operators.length)], getExpression(r));
+    case 4:
+      SqlOperator[] operators2 = new SqlOperator[]{
+          SqlStdOperatorTable.OR,
+          SqlStdOperatorTable.AND,
+          SqlStdOperatorTable.EQUALS,
+          SqlStdOperatorTable.NOT_EQUALS,
+          SqlStdOperatorTable.IS_DISTINCT_FROM,
+          SqlStdOperatorTable.IS_NOT_DISTINCT_FROM
+      };
+      return rexBuilder
+          .makeCall(operators2[r.nextInt(operators2.length)], getExpression(r), getExpression(r));
+    }
+    return null;
   }
 
   @Test public void testSimplifyCaseNullableBoolean() {

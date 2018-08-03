@@ -129,8 +129,18 @@ public class RexInterpreter implements RexVisitor<Comparable> {
       values.add(operand.accept(this));
     }
     switch (call.getKind()) {
+    case IS_DISTINCT_FROM:
+      if (containsNull(values)) {
+        return !values.get(0).equals(values.get(1));
+      }
+      // fall through
     case EQUALS:
       return compare(values, c -> c == 0);
+    case IS_NOT_DISTINCT_FROM:
+      if (containsNull(values)) {
+        return values.get(0).equals(values.get(1));
+      }
+      // fall through
     case NOT_EQUALS:
       return compare(values, c -> c != 0);
     case GREATER_THAN:
@@ -175,6 +185,8 @@ public class RexInterpreter implements RexVisitor<Comparable> {
       return ceil(call, values);
     case EXTRACT:
       return extract(call, values);
+    case MAX:
+      return values.get(0);
     default:
       throw unbound(call);
     }

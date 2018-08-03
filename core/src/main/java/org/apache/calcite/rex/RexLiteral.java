@@ -944,6 +944,10 @@ public class RexLiteral extends RexNode {
     return !booleanValue(this);
   }
 
+  @Override public boolean isAlwaysNull() {
+    return isNullLiteral(this);
+  }
+
   public boolean equals(Object obj) {
     return (obj instanceof RexLiteral)
         && equals(((RexLiteral) obj).value, value)

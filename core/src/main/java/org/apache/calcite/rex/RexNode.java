@@ -61,6 +61,14 @@ public abstract class RexNode {
     return false;
   }
 
+  /**
+   * Returns whether this expression always returns NULL. (Such as if this
+   * expression is equal to the literal <code>NULL</code>.)
+   */
+  public boolean isAlwaysNull() {
+    return false;
+  }
+
   public boolean isA(SqlKind kind) {
     return getKind() == kind;
   }
