@@ -21,6 +21,8 @@ import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import org.apache.cassandra.config.DatabaseDescriptor;
+import org.apache.cassandra.db.WindowsFailedSnapshotTracker;
+import org.apache.cassandra.utils.FBUtilities;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -29,6 +31,8 @@ import net.jcip.annotations.NotThreadSafe;
 import org.cassandraunit.CassandraCQLUnit;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
 
+import org.cassandraunit.utils.EmbeddedCassandraServerHelper;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -95,7 +99,11 @@ public class CassandraAdapterTest {
     }
 
     CassandraCQLUnit rule = new CassandraCQLUnit(
-        new ClassPathCQLDataSet("twissandra.cql"));
+        new ClassPathCQLDataSet("twissandra.cql"),
+        EmbeddedCassandraServerHelper.DEFAULT_CASSANDRA_YML_FILE,
+        30_000, // (startup) timeout to make build server work
+        1_000 // (read timeout)
+    );
 
     // This static init is necessary otherwise tests fail with CassandraUnit in IntelliJ (jdk10)
     // should be called right after constructor
@@ -112,6 +120,25 @@ public class CassandraAdapterTest {
   public static void setUp() {
     // run tests only if explicitly enabled
     assumeTrue("test explicitly disabled", enabled());
+  }
+
+  /**
+   * Explicitly close cluster. CassandraCQLUnit doesn't do it (doesn't implement {@code after()}
+   * method of {@link ExternalResource}.
+   */
+  @AfterClass
+  public static void tearDown() {
+    if (RULE instanceof CassandraCQLUnit) {
+      CassandraCQLUnit rule = (CassandraCQLUnit) RULE;
+      rule.getSession().close();
+      rule.getCluster().close();
+      // see https://issues.apache.org/jira/browse/CALCITE-2442
+      // see https://issues.apache.org/jira/browse/CASSANDRA-13085
+      // Is it done by cluster.close() already ?
+      if (FBUtilities.isWindows) {
+        WindowsFailedSnapshotTracker.deleteOldSnapshots();
+      }
+    }
   }
 
   @Test public void testSelect() {
