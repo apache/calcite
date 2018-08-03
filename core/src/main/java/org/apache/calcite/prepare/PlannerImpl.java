@@ -262,7 +262,6 @@ public class PlannerImpl implements Planner {
           new CalciteSqlValidator(operatorTable, catalogReader, typeFactory,
               conformance);
       validator.setIdentifierExpansion(true);
-      final SqlNode validatedSqlNode = validator.validate(sqlNode);
 
       final RexBuilder rexBuilder = createRexBuilder();
       final RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
@@ -276,7 +275,7 @@ public class PlannerImpl implements Planner {
           new SqlToRelConverter(new ViewExpanderImpl(), validator,
               catalogReader, cluster, convertletTable, config);
 
-      root = sqlToRelConverter.convertQuery(validatedSqlNode, true, false);
+      root = sqlToRelConverter.convertQuery(sqlNode, true, false);
       root = root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));
       final RelBuilder relBuilder =
           config.getRelBuilderFactory().create(cluster, null);

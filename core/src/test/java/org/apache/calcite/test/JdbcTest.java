@@ -6230,6 +6230,34 @@ public class JdbcTest {
         .throws_("No match found for function signature NVL(<NUMERIC>, <NUMERIC>)");
   }
 
+  /** Check if LATERAL JOIN works */
+  @Test public void testLateralJoin() {
+    CalciteAssert.that(CalciteAssert.Config.AUX)
+        .query("SELECT * FROM AUX.SIMPLETABLE ST CROSS JOIN LATERAL TABLE(AUX.TBLFUN(ST.INTCOL))")
+        .returnsUnordered(
+            "STRCOL=ABC; INTCOL=1; n=0; s=",
+            "STRCOL=DEF; INTCOL=2; n=0; s=",
+            "STRCOL=DEF; INTCOL=2; n=1; s=a",
+            "STRCOL=GHI; INTCOL=3; n=0; s=",
+            "STRCOL=GHI; INTCOL=3; n=1; s=a",
+            "STRCOL=GHI; INTCOL=3; n=2; s=ab"
+      );
+  }
+
+  /** Check if view expansion with lateral join works */
+  @Test public void testExpandViewWithLateralJoin() {
+    CalciteAssert.that(CalciteAssert.Config.AUX)
+        .query("SELECT * FROM AUX.VIEWLATERAL")
+        .returnsUnordered(
+            "STRCOL=ABC; INTCOL=1; n=0; s=",
+            "STRCOL=DEF; INTCOL=2; n=0; s=",
+            "STRCOL=DEF; INTCOL=2; n=1; s=a",
+            "STRCOL=GHI; INTCOL=3; n=0; s=",
+            "STRCOL=GHI; INTCOL=3; n=1; s=a",
+            "STRCOL=GHI; INTCOL=3; n=2; s=ab"
+      );
+  }
+
   /** Tests that {@link Hook#PARSE_TREE} works. */
   @Test public void testHook() {
     final int[] callCount = {0};
