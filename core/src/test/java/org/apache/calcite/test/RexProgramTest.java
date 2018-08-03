@@ -1749,6 +1749,10 @@ public class RexProgramTest {
     try {
       opt = this.simplify.simplify(node);
     } catch (AssertionError a) {
+      String message = a.getMessage();
+      if (message != null && message.startsWith("result mismatch")) {
+        throw a;
+      }
       throw new IllegalStateException("Unable to simplify " + node, a);
     }
     if (trueLiteral.equals(opt)) {
@@ -1775,10 +1779,9 @@ public class RexProgramTest {
 
   @Test public void testFuzzy() {
     Random r = new Random();
-    long seed = r.nextLong();
+    long seed = 8435481211433446856L; // r.nextLong();
     System.out.println("seed = " + seed);
     r.setSeed(seed);
-    r.setSeed(8435481211433446856L);
     long deadline = System.currentTimeMillis() + 1000;
     Throwable ex = null;
     int exceptions = 0;

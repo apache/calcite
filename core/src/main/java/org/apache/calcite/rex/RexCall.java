@@ -158,9 +158,9 @@ public class RexCall extends RexNode {
       if (!getType().isNullable() && o0.equals(o1)) {
         return getKind() == SqlKind.EQUALS;
       }
-      int k0 = o0.isAlwaysTrue() ? 1 : (o0.isAlwaysFalse() ? 2 : (o0.isAlwaysNull() ? 3 : 0));
+      int k0 = o0.isAlwaysTrue() ? 1 : (o0.isAlwaysFalse() ? 2 : 0);
       if (k0 != 0) {
-        int k1 = o1.isAlwaysTrue() ? 1 : (o1.isAlwaysFalse() ? 2 : (o1.isAlwaysNull() ? 3 : 0));
+        int k1 = o1.isAlwaysTrue() ? 1 : (o1.isAlwaysFalse() ? 2 : 0);
         return k1 != 0 && k0 == k1 ^ (getKind() != SqlKind.EQUALS);
       }
       return false;
@@ -210,9 +210,9 @@ public class RexCall extends RexNode {
       if (!getType().isNullable() && o0.equals(o1)) {
         return getKind() == SqlKind.NOT_EQUALS;
       }
-      int k0 = o0.isAlwaysTrue() ? 1 : (o0.isAlwaysFalse() ? 2 : (o0.isAlwaysNull() ? 3 : 0));
+      int k0 = o0.isAlwaysTrue() ? 1 : (o0.isAlwaysFalse() ? 2 : 0);
       if (k0 != 0) {
-        int k1 = o1.isAlwaysTrue() ? 1 : (o1.isAlwaysFalse() ? 2 : (o1.isAlwaysNull() ? 3 : 0));
+        int k1 = o1.isAlwaysTrue() ? 1 : (o1.isAlwaysFalse() ? 2 : 0);
         return k1 != 0 && k0 != k1 ^ (getKind() != SqlKind.EQUALS);
       }
       return false;
@@ -241,6 +241,7 @@ public class RexCall extends RexNode {
     case MINUS:
     case TIMES:
     case DIVIDE:
+    case COALESCE:
       for (RexNode operand : operands) {
         // AND(false, null) => false, so the value is NOT always null
         if (operand.isAlwaysNull()) {
