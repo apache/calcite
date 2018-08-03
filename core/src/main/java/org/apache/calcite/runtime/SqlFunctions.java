@@ -830,6 +830,10 @@ public class SqlFunctions {
     return Math.pow(b0, b1.doubleValue());
   }
 
+  public static double power(BigDecimal b0, long b1) {
+    return Math.pow(b0.doubleValue(), b1);
+  }
+
   // LN
 
   /** SQL {@code LN(number)} function applied to double values. */
@@ -1113,6 +1117,11 @@ public class SqlFunctions {
   /** SQL <code>ATAN2</code> operator applied to long/BigDecimal values. */
   public static double atan2(long b0, BigDecimal b1) {
     return Math.atan2(b0, b1.doubleValue());
+  }
+
+  /** SQL <code>ATAN2</code> operator applied to BigDecimal/long values. */
+  public static double atan2(BigDecimal b0, long b1) {
+    return Math.atan2(b0.doubleValue(), b1);
   }
 
   /** SQL <code>ATAN2</code> operator applied to BigDecimal values. */
