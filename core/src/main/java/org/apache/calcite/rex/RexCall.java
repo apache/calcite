@@ -245,9 +245,10 @@ public class RexCall extends RexNode {
     case MINUS:
     case TIMES:
     case DIVIDE:
-    case COALESCE:
     case MAX:
     case MIN:
+    case GREATEST:
+    case LEAST:
       for (RexNode operand : operands) {
         // AND(false, null) => false, so the value is NOT always null
         if (operand.isAlwaysNull()) {
@@ -255,6 +256,13 @@ public class RexCall extends RexNode {
         }
       }
       return false;
+    case COALESCE:
+      for (RexNode operand : operands) {
+        if (!operand.isAlwaysNull()) {
+          return false;
+        }
+      }
+      return true; // coalesce(null, null) => null
     case AND:
       for (RexNode operand : operands) {
         // AND(false, null) => false, so the value is NOT always null
