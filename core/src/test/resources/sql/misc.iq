@@ -2158,6 +2158,28 @@ where false;
 
 !ok
 
+# [CALCITE-2447] POWER, ATAN2 functions fail with NoSuchMethodException
+values power(0.5, 2);
++--------+
+| EXPR$0 |
++--------+
+|   0.25 |
++--------+
+(1 row)
+
+!ok
+
+# [CALCITE-2447] POWER, ATAN2 functions fail with NoSuchMethodException
+values atan2(0.5, 2);
++---------------------+
+| EXPR$0              |
++---------------------+
+| 0.24497866312686414 |
++---------------------+
+(1 row)
+
+!ok
+
 !set outputformat csv
 
 # [CALCITE-1167] OVERLAPS should match even if operands are in (high, low) order
