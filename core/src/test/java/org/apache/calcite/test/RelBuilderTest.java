@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -33,13 +34,17 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.tools.RelRunners;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -50,11 +55,17 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.TreeSet;
 
 import static org.apache.calcite.test.Matchers.hasTree;
@@ -62,6 +73,7 @@ import static org.apache.calcite.test.Matchers.hasTree;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -2085,6 +2097,41 @@ public class RelBuilderTest {
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }
+
+  /**
+   * Ensure that relational algebra ({@link RelBuilder}) works with SQL views.
+   * <p>This test currently fails (thus ignored).
+   */
+  @Ignore("https://issues.apache.org/jira/browse/CALCITE-2441")
+  @Test public void testExpandViewInRelBuilder() throws Exception {
+    final Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    final SchemaPlus root = connection.unwrap(CalciteConnection.class).getRootSchema();
+    CalciteAssert.SchemaSpec spec = CalciteAssert.SchemaSpec.SCOTT;
+    CalciteAssert.addSchema(root, spec);
+    String viewSql = String.format(Locale.ROOT, "select * from \"%s\".\"%s\" where 1=1",
+        spec.schemaName, "EMP");
+
+    // create view
+    ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
+        Collections.singletonList("test"), Arrays.asList("test", "view"), false);
+
+    // register view (in root schema)
+    root.add("MYVIEW", macro);
+
+    FrameworkConfig config = Frameworks.newConfigBuilder().defaultSchema(root).build();
+    RelNode node = RelBuilder.create(config).scan("MYVIEW").build();
+
+    int count = 0;
+    try (PreparedStatement stm = connection.unwrap(RelRunner.class).prepare(node);
+        ResultSet rset = stm.executeQuery()) {
+      while (rset.next()) {
+        count++;
+      }
+    }
+
+    assertTrue(count > 1);
+  }
+
 }
 
 // End RelBuilderTest.java
