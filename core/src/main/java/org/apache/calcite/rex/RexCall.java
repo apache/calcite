@@ -127,6 +127,8 @@ public class RexCall extends RexNode {
       return !operands.get(0).getType().isNullable();
     case IS_TRUE:
     case IS_NOT_FALSE:
+    case MAX:
+    case MIN:
       return operands.get(0).isAlwaysTrue();
     case NOT:
       return operands.get(0).isAlwaysFalse();
@@ -185,6 +187,8 @@ public class RexCall extends RexNode {
     case IS_NOT_FALSE:
     case IS_TRUE:
     case CAST:
+    case MAX:
+    case MIN:
       return operands.get(0).isAlwaysFalse();
     case OR:
       for (RexNode operand : operands) {
@@ -242,6 +246,8 @@ public class RexCall extends RexNode {
     case TIMES:
     case DIVIDE:
     case COALESCE:
+    case MAX:
+    case MIN:
       for (RexNode operand : operands) {
         // AND(false, null) => false, so the value is NOT always null
         if (operand.isAlwaysNull()) {
