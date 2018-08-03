@@ -1856,8 +1856,7 @@ public class RexProgramTest {
   }
 
   private static final SqlOperator[] ONE_ARG_OPERATORS = new SqlOperator[]{
-      // produces COALESCE(true) optimizes to TRUE, isAlwaysTrue MUST be true
-      // SqlStdOperatorTable.COALESCE,
+      SqlStdOperatorTable.COALESCE,
       SqlStdOperatorTable.MAX,
       SqlStdOperatorTable.NOT,
       SqlStdOperatorTable.IS_FALSE,
@@ -1867,12 +1866,10 @@ public class RexProgramTest {
       SqlStdOperatorTable.IS_NULL,
       SqlStdOperatorTable.IS_NOT_NULL,
       SqlStdOperatorTable.IS_UNKNOWN,
-      SqlStdOperatorTable.IS_NOT_UNKNOWN
+      SqlStdOperatorTable.IS_NOT_UNKNOWN,
   };
 
   private static final SqlOperator[] TWO_ARG_OPERATORS = new SqlOperator[] {
-      // type is null for COALESCE([$0, null]) in RexCall.<init>(RexCall.java:60)
-      // SqlStdOperatorTable.COALESCE,
       SqlStdOperatorTable.EQUALS,
       SqlStdOperatorTable.NOT_EQUALS,
       // lots of exceptions like >($0, $0) optimizes to FALSE, isAlwaysFalse MUST be true
@@ -1881,12 +1878,13 @@ public class RexProgramTest {
       SqlStdOperatorTable.LESS_THAN,
       SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
       SqlStdOperatorTable.IS_DISTINCT_FROM,
-      SqlStdOperatorTable.IS_NOT_DISTINCT_FROM
+      SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
   };
 
   private static final SqlOperator[] MULTI_ARG_OPERATORS = new SqlOperator[] {
       SqlStdOperatorTable.OR,
-      SqlStdOperatorTable.AND
+      SqlStdOperatorTable.AND,
+      SqlStdOperatorTable.COALESCE,
   };
 
   private RexNode getExpression(Random r, int depth) {
@@ -1901,7 +1899,9 @@ public class RexProgramTest {
     case 1:
       return r.nextBoolean() ? trueLiteral : falseLiteral;
     case 2:
-      return nullLiteral;
+      return rexBuilder.makeNullLiteral(
+          typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(SqlTypeName.BOOLEAN), true));
     case 3:
       SqlOperator[] operators = ONE_ARG_OPERATORS;
       return rexBuilder.makeCall(operators[r.nextInt(operators.length)], getExpression(r, depth - 1));
