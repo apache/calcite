@@ -1794,6 +1794,13 @@ public class RexProgramTest {
           if (ex == null) {
             ex = e;
           } else {
+            StackTraceElement[] stackTrace = e.getStackTrace();
+            for (int j = 0; j < stackTrace.length; j++) {
+              if (stackTrace[j].getClassName().endsWith("RexProgramTest")) {
+                e.setStackTrace(Arrays.copyOf(stackTrace, j + 1));
+                break;
+              }
+            }
             e.printStackTrace();
           }
           exceptions++;
