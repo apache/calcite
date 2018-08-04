@@ -4002,27 +4002,6 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[+(2, 3)], EXPR$2=[$1])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testPullConstantThroughAggregateWhereFalse">
-        <Resource name="sql">
-            <![CDATA[select 'a', -emp.deptno  from emp where 'a' is null group by 'a',-emp.deptno]]>
-        </Resource>
-        <Resource name="planBefore">
-            <![CDATA[
-LogicalAggregate(group=[{0, 1}])
-  LogicalProject(EXPR$0=['a'], EXPR$1=[-($7)])
-    LogicalFilter(condition=[IS NULL('a')])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-        </Resource>
-        <Resource name="planAfter">
-            <![CDATA[
-LogicalAggregate(group=[{0, 1}])
-  LogicalProject(EXPR$0=['a'], EXPR$1=[-($7)])
-    LogicalFilter(condition=[IS NULL('a')])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-        </Resource>
-    </TestCase>
     <TestCase name="testPullConstantThroughUnion">
         <Resource name="sql">
             <![CDATA[select 2, deptno, job from emp as e1
