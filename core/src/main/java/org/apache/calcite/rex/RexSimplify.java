@@ -61,6 +61,7 @@ public class RexSimplify {
   final boolean unknownAsFalse;
   final boolean predicateElimination;
   private final RexExecutor executor;
+  private Strong strong;
 
   /**
    * Creates a RexSimplify.
@@ -85,6 +86,7 @@ public class RexSimplify {
     this.predicateElimination = predicateElimination;
     this.paranoid = paranoid;
     this.executor = Objects.requireNonNull(executor);
+    this.strong = new Strong(); // TODO: ignore "definitely null" inputs
   }
 
   @Deprecated // to be removed before 2.0
@@ -176,6 +178,7 @@ public class RexSimplify {
   }
 
   private RexNode simplify_(RexNode e) {
+    e = simplifyCall(e);
     switch (e.getKind()) {
     case AND:
       return simplifyAnd((RexCall) e);
@@ -212,14 +215,39 @@ public class RexSimplify {
     }
   }
 
+  /**
+   * Simplifies given call: simplifies arguments and applies NULL argument policy
+   *
+   * @param e input node
+   * @return simplified node or input node when no optimizations can be made
+   */
+  private RexNode simplifyCall(final RexNode e) {
+    if (!(e instanceof RexCall)) {
+      return e;
+    }
+    final RexCall call = (RexCall) e;
+    ImmutableList<RexNode> operands = call.operands;
+    boolean optimized = false;
+    List<RexNode> simplifiedArgs = new ArrayList<>(operands.size());
+    for (RexNode operand : operands) {
+      RexNode newArg = simplify_(operand);
+      simplifiedArgs.add(newArg);
+      optimized |= newArg != operand;
+    }
+    RexNode result;
+    if (!optimized) {
+      result = e;
+    } else {
+      result = rexBuilder.makeCall(call.getType(), call.getOperator(), simplifiedArgs);
+    }
+    if (!(result instanceof RexLiteral) && strong.isNull(result)) {
+      return rexBuilder.makeNullLiteral(result.getType());
+    }
+    return result;
+  }
+
   // e must be a comparison (=, >, >=, <, <=, !=)
   private RexNode simplifyComparison(RexCall e) {
-    if (e.isAlwaysNull()) {
-      // Simplify cases like GREATER_THAN(..., NULL) to NULL
-      return unknownAsFalse
-          ? rexBuilder.makeLiteral(false)
-          : rexBuilder.makeNullLiteral(e.getType());
-    }
     //noinspection unchecked
     return simplifyComparison(e, Comparable.class);
   }
@@ -351,23 +379,28 @@ public class RexSimplify {
       }
       final RexNode t2 = simplify.simplify(t);
       terms.set(i, t2);
+      if (t2 instanceof RexLiteral) {
+        // t2 is
+        continue;
+      }
       final RexNode inverse =
           simplify.simplify(rexBuilder.makeCall(SqlStdOperatorTable.NOT, t2));
       final RelOptPredicateList newPredicates = simplify.predicates.union(rexBuilder,
           RelOptPredicateList.of(rexBuilder, ImmutableList.of(inverse)));
       simplify = simplify.withPredicates(newPredicates);
     }
-    for (int i = 0; i < terms.size(); i++) {
-      final RexNode t = terms.get(i);
-      if (Predicate.of(t) != null) {
-        continue;
-      }
-      terms.set(i, simplify.simplify(t));
-    }
   }
 
   private RexNode simplifyNot(RexCall call) {
     final RexNode a = call.getOperands().get(0);
+    if (a instanceof RexLiteral) {
+      if (RexLiteral.isNullLiteral(a)) {
+        // NOT null ==> NULL
+        return a;
+      }
+      // NOT false ==> true
+      return rexBuilder.makeLiteral(!RexLiteral.booleanValue(a));
+    }
     switch (a.getKind()) {
     case NOT:
       // NOT NOT x ==> x
@@ -447,6 +480,7 @@ public class RexSimplify {
   }
 
   private RexNode simplifyIs2(SqlKind kind, RexNode a) {
+    boolean isBoolean = a.getType().getSqlTypeName() == SqlTypeName.BOOLEAN;
     switch (kind) {
     case IS_NULL:
       // x IS NULL ==> FALSE (if x is not nullable)
@@ -465,7 +499,8 @@ public class RexSimplify {
     case IS_NOT_FALSE:
       // x IS TRUE ==> x (if x is not nullable)
       // x IS NOT FALSE ==> x (if x is not nullable)
-      if (!a.getType().isNullable()) {
+      // IS_TRUE(42) must not be converted to NOT(42)
+      if (!a.getType().isNullable() && isBoolean) {
         return simplify_(a);
       }
       break;
@@ -473,7 +508,8 @@ public class RexSimplify {
     case IS_NOT_TRUE:
       // x IS NOT TRUE ==> NOT x (if x is not nullable)
       // x IS FALSE ==> NOT x (if x is not nullable)
-      if (!a.getType().isNullable()) {
+      // IS_FALSE(42) must not be converted to NOT(42)
+      if (!a.getType().isNullable() && isBoolean) {
         return simplify_(rexBuilder.makeCall(SqlStdOperatorTable.NOT, a));
       }
       break;
@@ -491,6 +527,39 @@ public class RexSimplify {
       return simplify_(rexBuilder.makeCall(notKind, arg));
     }
     RexNode a2 = simplify_(a);
+    // Constant-fold literals
+    RexInterpreter.Truthy val = null;
+    if (RexLiteral.isNullLiteral(a2)) {
+      val = RexInterpreter.Truthy.UNKNOWN;
+    } else if (isBoolean && a2 instanceof RexLiteral) { // literal boolean
+      val = RexInterpreter.Truthy.of(RexLiteral.value(a2));
+    }
+    if (val != null) {
+      switch (kind) {
+      case IS_NULL:
+      case IS_UNKNOWN:
+        return rexBuilder.makeLiteral(val == RexInterpreter.Truthy.UNKNOWN);
+      case IS_NOT_NULL:
+        return rexBuilder.makeLiteral(val != RexInterpreter.Truthy.UNKNOWN);
+      }
+    }
+    if (!isBoolean) {
+      // IS_FALSE(42) => false, so we treat any non-boolean as UNKNOWN for IS_TRUE/FALSE
+      val = RexInterpreter.Truthy.UNKNOWN;
+    }
+    if (val != null) {
+      switch (kind) {
+      case IS_TRUE:
+        return rexBuilder.makeLiteral(val == RexInterpreter.Truthy.TRUE);
+      case IS_NOT_TRUE:
+        return rexBuilder.makeLiteral(val != RexInterpreter.Truthy.TRUE);
+      case IS_FALSE:
+        return rexBuilder.makeLiteral(val == RexInterpreter.Truthy.FALSE);
+      case IS_NOT_FALSE:
+        return rexBuilder.makeLiteral(val != RexInterpreter.Truthy.FALSE);
+      }
+    }
+
     if (a != a2) {
       return rexBuilder.makeCall(RexUtil.op(kind), ImmutableList.of(a2));
     }
@@ -538,6 +607,10 @@ public class RexSimplify {
     final List<RexNode> operands = new ArrayList<>();
     for (RexNode operand : call.getOperands()) {
       operand = simplify_(operand);
+      if (RexLiteral.isNullLiteral(operand)) {
+        // ignore NULL arguments for COALESCE
+        continue;
+      }
       if (digests.add(operand.toString())) { // RexCall.digest is not set in constructor
         operands.add(operand);
       }

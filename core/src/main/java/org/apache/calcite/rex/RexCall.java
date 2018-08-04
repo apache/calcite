@@ -130,8 +130,6 @@ public class RexCall extends RexNode {
       return !operands.get(0).getType().isNullable();
     case IS_TRUE:
     case IS_NOT_FALSE:
-    case MAX:
-    case MIN:
       return operands.get(0).isAlwaysTrue();
     case NOT:
       return operands.get(0).isAlwaysFalse();
@@ -140,36 +138,6 @@ public class RexCall extends RexNode {
       return operands.get(0).isAlwaysFalse();
     case CAST:
       return operands.get(0).isAlwaysTrue();
-    case AND:
-      for (RexNode operand : operands) {
-        if (!operand.isAlwaysTrue()) {
-          return false;
-        }
-      }
-      return true; // all operands are always true => AND is always true
-    case OR:
-      for (RexNode operand : operands) {
-        // OR(true, null) => true
-        if (operand.isAlwaysTrue()) {
-          return true;
-        }
-      }
-      return false;
-    case EQUALS:
-    case NOT_EQUALS:
-    {
-      RexNode o0 = operands.get(0);
-      RexNode o1 = operands.get(1);
-      if (!getType().isNullable() && o0.equals(o1)) {
-        return getKind() == SqlKind.EQUALS;
-      }
-      int k0 = o0.isAlwaysTrue() ? 1 : (o0.isAlwaysFalse() ? 2 : 0);
-      if (k0 != 0) {
-        int k1 = o1.isAlwaysTrue() ? 1 : (o1.isAlwaysFalse() ? 2 : 0);
-        return k1 != 0 && k0 == k1 ^ (getKind() != SqlKind.EQUALS);
-      }
-      return false;
-    }
     default:
       return false;
     }
@@ -190,106 +158,17 @@ public class RexCall extends RexNode {
     case IS_NOT_FALSE:
     case IS_TRUE:
     case CAST:
-    case MAX:
-    case MIN:
       return operands.get(0).isAlwaysFalse();
-    case OR:
-      for (RexNode operand : operands) {
-        if (!operand.isAlwaysFalse()) {
-          return false;
-        }
-      }
-      return true; // all operands are always FALSE => OR is always false
-    case AND:
-      for (RexNode operand : operands) {
-        // AND(false, null) => false
-        if (operand.isAlwaysFalse()) {
-          return true;
-        }
-      }
-      return false;
-    case EQUALS:
-    case NOT_EQUALS:
-    {
-
-      RexNode o0 = operands.get(0);
-      RexNode o1 = operands.get(1);
-      if (!getType().isNullable() && o0.equals(o1)) {
-        return getKind() == SqlKind.NOT_EQUALS;
-      }
-      int k0 = o0.isAlwaysTrue() ? 1 : (o0.isAlwaysFalse() ? 2 : 0);
-      if (k0 != 0) {
-        int k1 = o1.isAlwaysTrue() ? 1 : (o1.isAlwaysFalse() ? 2 : 0);
-        return k1 != 0 && k0 != k1 ^ (getKind() != SqlKind.EQUALS);
-      }
-      return false;
-    }
     default:
       return false;
     }
   }
 
   @Override public boolean isAlwaysNull() {
-    if (!getType().isNullable()) {
-      return false;
-    }
-    boolean hasNull = false;
     switch (getKind()) {
     case NOT:
     case CAST:
       return operands.get(0).isAlwaysNull();
-    case EQUALS:
-    case NOT_EQUALS:
-    case GREATER_THAN:
-    case GREATER_THAN_OR_EQUAL:
-    case LESS_THAN:
-    case LESS_THAN_OR_EQUAL:
-    case PLUS:
-    case MINUS:
-    case TIMES:
-    case DIVIDE:
-    case MAX:
-    case MIN:
-    case GREATEST:
-    case LEAST:
-      for (RexNode operand : operands) {
-        // AND(false, null) => false, so the value is NOT always null
-        if (operand.isAlwaysNull()) {
-          return true;
-        }
-      }
-      return false;
-    case COALESCE:
-      for (RexNode operand : operands) {
-        if (!operand.isAlwaysNull()) {
-          return false;
-        }
-      }
-      return true; // coalesce(null, null) => null
-    case AND:
-      // AND(false, null) => false, so the value is NOT always null
-      // So simplify AND(true, true, null) to NULL
-      // AND( ..., null) can be non-null
-      for (RexNode operand : operands) {
-        if (!operand.isAlwaysTrue()) {
-          return false;
-        }
-        if (!hasNull) {
-          hasNull = operand.isAlwaysNull();
-        }
-      }
-      return hasNull;
-    case OR:
-      // OR(true, null) => true
-      for (RexNode operand : operands) {
-        if (!operand.isAlwaysFalse()) {
-          return false;
-        }
-        if (!hasNull) {
-          hasNull = operand.isAlwaysNull();
-        }
-      }
-      return hasNull;
     }
     return false;
   }

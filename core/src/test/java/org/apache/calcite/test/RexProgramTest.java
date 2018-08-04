@@ -16,23 +16,15 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.DataContext;
-import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.ByteString;
-import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
-import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeSystem;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexDynamicParam;
-import org.apache.calcite.rex.RexExecutor;
-import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexInterpreter;
 import org.apache.calcite.rex.RexLiteral;
@@ -42,7 +34,6 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
@@ -71,13 +62,8 @@ import org.junit.Test;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.TimeZone;
 import java.util.TreeMap;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -91,18 +77,7 @@ import static org.junit.Assert.assertThat;
  * Unit tests for {@link RexProgram} and
  * {@link org.apache.calcite.rex.RexProgramBuilder}.
  */
-public class RexProgramTest {
-  //~ Instance fields --------------------------------------------------------
-  private JavaTypeFactory typeFactory;
-  private RexBuilder rexBuilder;
-  private RexLiteral trueLiteral;
-  private RexLiteral falseLiteral;
-  private RexNode nullLiteral;
-  private RexNode unknownLiteral;
-  private RexSimplify simplify;
-
-  //~ Methods ----------------------------------------------------------------
-
+public class RexProgramTest extends RexProgramBuilderBase {
   /**
    * Creates a RexProgramTest.
    */
@@ -110,48 +85,8 @@ public class RexProgramTest {
     super();
   }
 
-  @Before
-  public void setUp() {
-    typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    rexBuilder = new RexBuilder(typeFactory);
-    RexExecutor executor =
-        new RexExecutorImpl(new DummyTestDataContext());
-    simplify =
-        new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false, executor)
-            .withParanoid(true);
-    trueLiteral = rexBuilder.makeLiteral(true);
-    falseLiteral = rexBuilder.makeLiteral(false);
-    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
-    nullLiteral = rexBuilder.makeNullLiteral(intType);
-    unknownLiteral = rexBuilder.makeNullLiteral(trueLiteral.getType());
-  }
-
-  /** Dummy data context for test. */
-  private static class DummyTestDataContext implements DataContext {
-    private final ImmutableMap<String, Object> map;
-
-    DummyTestDataContext() {
-      this.map =
-          ImmutableMap.of(
-              Variable.TIME_ZONE.camelName, TimeZone.getTimeZone("America/Los_Angeles"),
-              Variable.CURRENT_TIMESTAMP.camelName, 1311120000000L);
-    }
-
-    public SchemaPlus getRootSchema() {
-      return null;
-    }
-
-    public JavaTypeFactory getTypeFactory() {
-      return null;
-    }
-
-    public QueryProvider getQueryProvider() {
-      return null;
-    }
-
-    public Object get(String name) {
-      return map.get(name);
-    }
+  @Before public void setUp() {
+    super.setUp();
   }
 
   private void checkCnf(RexNode node, String expected) {
@@ -222,82 +157,6 @@ public class RexProgramTest {
       }
     }
     return n;
-  }
-
-  private RexNode isNull(RexNode node) {
-    return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, node);
-  }
-
-  private RexNode isNotNull(RexNode node) {
-    return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, node);
-  }
-
-  private RexNode nullIf(RexNode node1, RexNode node2) {
-    return rexBuilder.makeCall(SqlStdOperatorTable.NULLIF, node1, node2);
-  }
-
-  private RexNode not(RexNode node) {
-    return rexBuilder.makeCall(SqlStdOperatorTable.NOT, node);
-  }
-
-  private RexNode and(RexNode... nodes) {
-    return and(ImmutableList.copyOf(nodes));
-  }
-
-  private RexNode and(Iterable<? extends RexNode> nodes) {
-    // Does not flatten nested ANDs. We want test input to contain nested ANDs.
-    return rexBuilder.makeCall(SqlStdOperatorTable.AND,
-        ImmutableList.copyOf(nodes));
-  }
-
-  private RexNode or(RexNode... nodes) {
-    return or(ImmutableList.copyOf(nodes));
-  }
-
-  private RexNode or(Iterable<? extends RexNode> nodes) {
-    // Does not flatten nested ORs. We want test input to contain nested ORs.
-    return rexBuilder.makeCall(SqlStdOperatorTable.OR,
-        ImmutableList.copyOf(nodes));
-  }
-
-  private RexNode case_(RexNode... nodes) {
-    return rexBuilder.makeCall(SqlStdOperatorTable.CASE, nodes);
-  }
-
-  private RexNode cast(RexNode e, RelDataType type) {
-    return rexBuilder.makeCast(type, e);
-  }
-
-  private RexNode eq(RexNode n1, RexNode n2) {
-    return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, n1, n2);
-  }
-
-  private RexNode ne(RexNode n1, RexNode n2) {
-    return rexBuilder.makeCall(SqlStdOperatorTable.NOT_EQUALS, n1, n2);
-  }
-
-  private RexNode le(RexNode n1, RexNode n2) {
-    return rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, n1, n2);
-  }
-
-  private RexNode lt(RexNode n1, RexNode n2) {
-    return rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, n1, n2);
-  }
-
-  private RexNode ge(RexNode n1, RexNode n2) {
-    return rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, n1, n2);
-  }
-
-  private RexNode gt(RexNode n1, RexNode n2) {
-    return rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN, n1, n2);
-  }
-
-  private RexNode plus(RexNode n1, RexNode n2) {
-    return rexBuilder.makeCall(SqlStdOperatorTable.PLUS, n1, n2);
-  }
-
-  private RexNode coalesce(RexNode... nodes) {
-    return rexBuilder.makeCall(SqlStdOperatorTable.COALESCE, nodes);
   }
 
   /**
@@ -1705,221 +1564,6 @@ public class RexProgramTest {
     assertThat(result.getOperands().get(0), is(condition));
     assertThat(result.getOperands().get(1), is((RexNode) trueLiteral));
     assertThat(result.getOperands().get(2), is((RexNode) falseLiteral));
-  }
-
-  @Test public void testAlwaysTrueFalse() {
-    RelDataType in = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
-
-    SqlOperator[] operators = new SqlOperator[]{
-        SqlStdOperatorTable.NOT,
-        SqlStdOperatorTable.MAX,
-        SqlStdOperatorTable.IS_FALSE,
-        SqlStdOperatorTable.IS_NOT_FALSE,
-        SqlStdOperatorTable.IS_TRUE,
-        SqlStdOperatorTable.IS_NOT_TRUE,
-        SqlStdOperatorTable.IS_NULL,
-        SqlStdOperatorTable.IS_NOT_NULL,
-        SqlStdOperatorTable.IS_UNKNOWN,
-        SqlStdOperatorTable.IS_NOT_UNKNOWN
-    };
-    for (boolean argNullability : new boolean[]{true, false}) {
-      RexInputRef arg = rexBuilder.makeInputRef(
-          typeFactory.createTypeWithNullability(
-              in, argNullability),
-          0 + (argNullability ? 10 : 0));
-      for (SqlOperator op1 : operators) {
-        RexNode n1 = rexBuilder.makeCall(op1, arg);
-        checkTrueFalse(n1);
-        for (SqlOperator op2 : operators) {
-          RexNode n2 = rexBuilder.makeCall(op2, n1);
-          checkTrueFalse(n2);
-          for (SqlOperator op3 : operators) {
-            RexNode n3 = rexBuilder.makeCall(op3, n2);
-            checkTrueFalse(n3);
-            for (SqlOperator op4 : operators) {
-              RexNode n4 = rexBuilder.makeCall(op4, n3);
-              checkTrueFalse(n4);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  private void checkTrueFalse(RexNode node) {
-    RexNode opt;
-    try {
-      opt = this.simplify.simplify(node);
-    } catch (AssertionError a) {
-      String message = a.getMessage();
-      if (message != null && message.startsWith("result mismatch")) {
-        throw a;
-      }
-      throw new IllegalStateException("Unable to simplify " + node, a);
-    } catch (Throwable t) {
-      throw new IllegalStateException("Unable to simplify " + node, t);
-    }
-    if (trueLiteral.equals(opt)) {
-      String msg = node.toString();
-      assertFalse(msg + " optimizes to TRUE, isAlwaysFalse MUST not be true",
-          node.isAlwaysFalse());
-//      This is a missing optimization, not a bug actually
-//      assertTrue(msg + " optimizes to TRUE, isAlwaysTrue MUST be true",
-//          node.isAlwaysTrue());
-    }
-    if (falseLiteral.equals(opt)) {
-      String msg = node.toString();
-      assertFalse(msg + " optimizes to FALSE, isAlwaysTrue MUST not be true",
-          node.isAlwaysTrue());
-//      This is a missing optimization, not a bug actually
-//      assertTrue(msg + " optimizes to FALSE, isAlwaysFalse MUST be true",
-//          node.isAlwaysFalse());
-    }
-    if (nullLiteral.equals(opt)) {
-      String msg = node.toString();
-      assertFalse(msg + " optimizes to NULL, isAlwaysTrue MUST be FALSE",
-          node.isAlwaysTrue());
-      assertFalse(msg + " optimizes to NULL, isAlwaysFalse MUST be FALSE",
-          node.isAlwaysFalse());
-    }
-  }
-
-  @Test public void testFuzzy() {
-    Random r = new Random();
-    long deadline = System.currentTimeMillis() + 40000;
-    List<Throwable> exceptions = new ArrayList<>();
-    Set<String> duplicates = new HashSet<>();
-    int total = 0;
-    int dup = 0;
-    int fail = 0;
-    while (System.currentTimeMillis() < deadline && exceptions.size() < 6000) {
-      for (int i = 0; i < 100; i++) {
-        long seed = r.nextLong();
-        r.setSeed(seed);
-        try {
-          performFuzzyTest(r);
-          total++;
-        } catch (Throwable e) {
-          if (!duplicates.add(e.getMessage())) {
-            dup++;
-            // known exception, nothing to see here
-            continue;
-          }
-          fail++;
-          StackTraceElement[] stackTrace = e.getStackTrace();
-          for (int j = 0; j < stackTrace.length; j++) {
-            if (stackTrace[j].getClassName().endsWith("RexProgramTest")) {
-              e.setStackTrace(Arrays.copyOf(stackTrace, j + 1));
-              break;
-            }
-          }
-          e.addSuppressed(new Throwable("seed " + seed) {
-            @Override public synchronized Throwable fillInStackTrace() {
-              return this;
-            }
-          });
-          exceptions.add(e);
-        }
-      }
-    }
-    if (exceptions.isEmpty()) {
-      return;
-    }
-    System.out.println("total = " + total);
-    System.out.println("fail = " + fail);
-    System.out.println("dup = " + dup);
-
-    // Print the shortest fails first
-    exceptions.sort(Comparator.<Throwable>comparingInt(t -> t.getMessage().length())
-        .thenComparing(Throwable::getMessage));
-
-    for (Throwable exception : exceptions) {
-      exception.printStackTrace();
-    }
-
-    Throwable ex = exceptions.get(0);
-    if (ex instanceof Error) {
-      throw (Error) ex;
-    }
-    throw new RuntimeException("Exception in testFuzzy", ex);
-  }
-
-  @Test public void singleFuzzyTest() {
-    Random r = new Random();
-    r.setSeed(2644069610573723792L);
-    performFuzzyTest(r);
-  }
-
-  private void performFuzzyTest(Random r) {
-    RexNode expression = getExpression(r, r.nextInt(10));
-    checkTrueFalse(expression);
-  }
-
-  private static final SqlOperator[] ONE_ARG_OPERATORS = new SqlOperator[]{
-      SqlStdOperatorTable.COALESCE,
-      SqlStdOperatorTable.MAX,
-      SqlStdOperatorTable.NOT,
-      SqlStdOperatorTable.IS_FALSE,
-      SqlStdOperatorTable.IS_NOT_FALSE,
-      SqlStdOperatorTable.IS_TRUE,
-      SqlStdOperatorTable.IS_NOT_TRUE,
-      SqlStdOperatorTable.IS_NULL,
-      SqlStdOperatorTable.IS_NOT_NULL,
-      SqlStdOperatorTable.IS_UNKNOWN,
-      SqlStdOperatorTable.IS_NOT_UNKNOWN,
-  };
-
-  private static final SqlOperator[] TWO_ARG_OPERATORS = new SqlOperator[] {
-      SqlStdOperatorTable.EQUALS,
-      SqlStdOperatorTable.NOT_EQUALS,
-      // lots of exceptions like >($0, $0) optimizes to FALSE, isAlwaysFalse MUST be true
-      SqlStdOperatorTable.GREATER_THAN,
-      SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
-      SqlStdOperatorTable.LESS_THAN,
-      SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
-      SqlStdOperatorTable.IS_DISTINCT_FROM,
-      SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
-  };
-
-  private static final SqlOperator[] MULTI_ARG_OPERATORS = new SqlOperator[] {
-      SqlStdOperatorTable.OR,
-      SqlStdOperatorTable.AND,
-      SqlStdOperatorTable.COALESCE,
-  };
-
-  private RexNode getExpression(Random r, int depth) {
-    int v = r.nextInt(depth > 0 ? 6 : 3);
-    switch (v) {
-    case 0:
-      boolean nullable = r.nextBoolean();
-      return rexBuilder.makeInputRef(
-          typeFactory.createTypeWithNullability(
-              typeFactory.createSqlType(SqlTypeName.BOOLEAN), nullable),
-          r.nextInt(5) + (nullable ? 10 : 0));
-    case 1:
-      return r.nextBoolean() ? trueLiteral : falseLiteral;
-    case 2:
-      return rexBuilder.makeNullLiteral(
-          typeFactory.createTypeWithNullability(
-              typeFactory.createSqlType(SqlTypeName.BOOLEAN), true));
-    case 3:
-      SqlOperator[] operators = ONE_ARG_OPERATORS;
-      return rexBuilder.makeCall(operators[r.nextInt(operators.length)], getExpression(r, depth - 1));
-    case 4:
-      SqlOperator[] operators2 = TWO_ARG_OPERATORS;
-      return rexBuilder
-          .makeCall(operators2[r.nextInt(operators2.length)], getExpression(r, depth - 1), getExpression(r, depth - 1));
-    case 5:
-      SqlOperator[] operators3 = MULTI_ARG_OPERATORS;
-      int len = r.nextInt(3) + 2;
-      List<RexNode> args = new ArrayList<>(len);
-      for (int i = 0; i < len; i++) {
-        args.add(getExpression(r, depth - 1));
-      }
-      return rexBuilder
-          .makeCall(operators3[r.nextInt(operators3.length)], args);
-    }
-    return null;
   }
 
   @Test public void testSimplifyCaseNullableBoolean() {

@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -176,6 +177,18 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     case PLUS:
       return containsNull(values) ? N
           : number(values.get(0)).add(number(values.get(1)));
+    case MINUS:
+      return containsNull(values) ? N
+          : number(values.get(0)).subtract(number(values.get(1)));
+    case MINUS_PREFIX:
+      return containsNull(values) ? N
+          : number(values.get(0)).negate();
+    case DIVIDE:
+      return containsNull(values) ? N
+          : number(values.get(0)).divide(number(values.get(1)), RoundingMode.HALF_UP);
+    case TIMES:
+      return containsNull(values) ? N
+          : number(values.get(0)).multiply(number(values.get(1)));
     case CAST:
       return cast(call, values);
     case COALESCE:
@@ -185,6 +198,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
       return ceil(call, values);
     case EXTRACT:
       return extract(call, values);
+    case PLUS_PREFIX:
     case MAX:
       return values.get(0);
     default:
@@ -348,7 +362,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     FALSE, UNKNOWN, TRUE;
 
     static Truthy of(Comparable c) {
-      return c.equals(true) ? TRUE : c.equals(false) ? FALSE : UNKNOWN;
+      return Boolean.TRUE.equals(c) ? TRUE : Boolean.FALSE.equals(c) ? FALSE : UNKNOWN;
     }
 
     Comparable toComparable() {
