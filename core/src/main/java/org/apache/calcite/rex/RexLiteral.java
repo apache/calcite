@@ -540,7 +540,7 @@ public class RexLiteral extends RexNode {
       pw.print(
           new AbstractList<String>() {
             public String get(int index) {
-              return list.get(index).digest;
+              return list.get(index).toString();
             }
 
             public int size() {
@@ -942,6 +942,10 @@ public class RexLiteral extends RexNode {
       return false;
     }
     return !booleanValue(this);
+  }
+
+  @Override public boolean isAlwaysNull() {
+    return isNullLiteral(this);
   }
 
   public boolean equals(Object obj) {

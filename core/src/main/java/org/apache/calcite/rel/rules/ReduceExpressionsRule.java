@@ -537,7 +537,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         new RexSimplify(rexBuilder, predicates, unknownAsFalse, executor);
 
     // Simplify predicates in place
-    boolean reduced = reduceExpressionsInternal(rel, simplify, expList,
+    boolean reduced = reduceExpressionsInternal(rel, simplify, executor, expList,
         predicates);
 
     final ExprSimplifier simplifier =
@@ -546,8 +546,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     for (int i = 0; i < expList.size(); i++) {
       RexNode expr2 = simplifier.apply(expList.get(i));
       if (!expr2.toString().equals(expList.get(i).toString())) {
-        expList.remove(i);
-        expList.add(i, expr2);
+        expList.set(i, expr2);
         simplified = true;
       }
     }
@@ -556,7 +555,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
   }
 
   protected static boolean reduceExpressionsInternal(RelNode rel,
-      RexSimplify simplify, List<RexNode> expList,
+      RexSimplify simplify, RexExecutor executor, List<RexNode> expList,
       RelOptPredicateList predicates) {
     boolean changed = false;
     // Replace predicates on CASE to CASE on predicates.
@@ -601,19 +600,6 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           new RexReplacer(simplify, Pair.left(pairs), Pair.right(pairs),
               Collections.nCopies(pairs.size(), false));
       replacer.mutate(constExps2);
-    }
-
-    // Compute the values they reduce to.
-    RexExecutor executor = rel.getCluster().getPlanner().getExecutor();
-    if (executor == null) {
-      // Cannot reduce expressions: caller has not set an executor in their
-      // environment. Caller should execute something like the following before
-      // invoking the planner:
-      //
-      // final RexExecutorImpl executor =
-      //   new RexExecutorImpl(Schemas.createDataContext(null));
-      // rootRel.getCluster().getPlanner().setExecutor(executor);
-      return changed;
     }
 
     final List<RexNode> reducedValues = new ArrayList<>();

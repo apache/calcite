@@ -5842,8 +5842,7 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
-  LogicalFilter(condition=[>(+(1, 2), +(3, null))])
-    LogicalValues(tuples=[[{ 1, 2 }]])
+  LogicalValues(tuples=[[]])
 ]]>
         </Resource>
     </TestCase>

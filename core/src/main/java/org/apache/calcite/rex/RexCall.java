@@ -56,6 +56,9 @@ public class RexCall extends RexNode {
       RelDataType type,
       SqlOperator op,
       List<? extends RexNode> operands) {
+    if (type == null) {
+      throw new NullPointerException("type is null for " + op + "(" + operands + ")");
+    }
     this.type = Objects.requireNonNull(type);
     this.op = Objects.requireNonNull(op);
     this.operands = ImmutableList.copyOf(operands);
@@ -119,13 +122,20 @@ public class RexCall extends RexNode {
     // "c IS NOT NULL" occurs when we expand EXISTS.
     // This reduction allows us to convert it to a semi-join.
     switch (getKind()) {
+    case IS_NULL:
+    case IS_UNKNOWN:
+      return operands.get(0).isAlwaysNull();
     case IS_NOT_NULL:
+      // IS_NOT_UNKNOWN does not exist yet
       return !operands.get(0).getType().isNullable();
+    case IS_TRUE:
     case IS_NOT_FALSE:
+      return operands.get(0).isAlwaysTrue();
     case NOT:
       return operands.get(0).isAlwaysFalse();
     case IS_NOT_TRUE:
     case IS_FALSE:
+      return operands.get(0).isAlwaysFalse();
     case CAST:
       return operands.get(0).isAlwaysTrue();
     default:
@@ -135,8 +145,13 @@ public class RexCall extends RexNode {
 
   @Override public boolean isAlwaysFalse() {
     switch (getKind()) {
+    case IS_NOT_NULL:
+      // IS_NOT_UNKNOWN does not exist yet
+      return operands.get(0).isAlwaysNull();
     case IS_NULL:
+    case IS_UNKNOWN:
       return !operands.get(0).getType().isNullable();
+    case IS_FALSE:
     case IS_NOT_TRUE:
     case NOT:
       return operands.get(0).isAlwaysTrue();
@@ -147,6 +162,15 @@ public class RexCall extends RexNode {
     default:
       return false;
     }
+  }
+
+  @Override public boolean isAlwaysNull() {
+    switch (getKind()) {
+    case NOT:
+    case CAST:
+      return operands.get(0).isAlwaysNull();
+    }
+    return false;
   }
 
   public SqlKind getKind() {

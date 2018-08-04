@@ -107,6 +107,12 @@ public class Strong {
    * "if {@code x} is null, is {@code x + y} null? */
   public boolean isNull(RexNode node) {
     final Policy policy = MAP.get(node.getKind());
+    if (policy == null) {
+      // Well, we have no idea what is the Strong policy for a given node,
+      // so we return "false" for "definitely null".
+      // Such node might be AS(.., ...) or other nodes
+      return false;
+    }
     switch (policy) {
     case NOT_NULL:
       return false;
