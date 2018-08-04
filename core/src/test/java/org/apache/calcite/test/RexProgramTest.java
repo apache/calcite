@@ -2170,6 +2170,22 @@ public class RexProgramTest {
         is(false));
   }
 
+  @Test public void testIsAlwaysTrueAndFalse() {
+    final RelDataType booleanNullableType =
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.BOOLEAN), true);
+    RexNode node = rexBuilder.makeInputRef(booleanNullableType, 0);
+
+    RexNode exp1 = rexBuilder.makeCall(SqlStdOperatorTable.IS_FALSE, isNotNull(isNull(node)));
+    assertEquals(exp1.isAlwaysTrue(), false);
+    assertEquals(exp1.isAlwaysFalse(), true);
+
+    RexNode exp2 = rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE, isNotNull(isNull(node)));
+
+    assertEquals(exp2.isAlwaysTrue(), true);
+    assertEquals(exp2.isAlwaysFalse(), false);
+  }
+
   private Comparable eval(RexNode e) {
     return RexInterpreter.evaluate(e, ImmutableMap.of());
   }
