@@ -2627,7 +2627,6 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(program, "${sql}");
   }
 
-
   @Test public void testPullConstantThroughConstLast() throws
       Exception {
     basePullConstantTroughAggregate();
@@ -2667,8 +2666,7 @@ public class RelOptRulesTest extends RelOptTestBase {
       throws Exception {
     basePullConstantTroughAggregate();
   }
-
-
+  
   @Test public void testPullConstantThroughUnion()
       throws Exception {
     HepProgram program = HepProgram.builder()
