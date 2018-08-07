@@ -449,7 +449,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
         // $t15 = $14 is true
         final RexLocalRef t15 =
             builder.addExpr(
-                rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE, t14));
+                isTrue(t14));
         builder.addCondition(t15);
       }
     }
@@ -2252,6 +2252,66 @@ public class RexProgramTest extends RexProgramBuilderBase {
         is(NullSentinel.INSTANCE));
     assertThat(eval(and(this.trueLiteral, falseLiteral)),
         is(false));
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2438">[CALCITE-2438]
+   * RexCall#isAlwaysTrue returns incorrect result</a>. */
+  @Test public void testIsAlwaysTrueAndFalse() {
+    final RelDataType type =
+        typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+    final RexNode x = rexBuilder.makeInputRef(type, 0);
+
+    // "((x IS NULL) IS NOT NULL) IS FALSE" -> false
+    checkIs(isFalse(isNotNull(isNull(x))), false);
+
+    // "(NOT ((x IS NULL) IS NOT NULL)) IS FALSE" -> true
+    checkIs(isFalse(not(isNotNull(isNull(x)))), true);
+
+    // "((x IS NULL) IS NOT NULL) IS TRUE" -> true
+    checkIs(isTrue(isNotNull(isNull(x))), true);
+
+    // "(NOT ((x IS NULL) IS NOT NULL)) IS TRUE" -> false
+    checkIs(isTrue(not(isNotNull(isNull(x)))), false);
+
+    // "((x IS NULL) IS NOT NULL) IS FALSE" -> false
+    checkIs(isNotTrue(isNotNull(isNull(x))), false);
+
+    // "(NOT ((x IS NULL) IS NOT NULL)) IS NOT TRUE" -> true
+    checkIs(isNotTrue(not(isNotNull(isNull(x)))), true);
+
+    // "(x IS NULL) IS NOT NULL" -> true
+    checkIs(isNotNull(isNull(x)), true);
+
+    // "(x IS NOT NULL) IS NOT NULL" -> true
+    checkIs(isNotNull(isNotNull(x)), true);
+
+    // "(x IS NULL) IS NULL" -> false
+    checkIs(isNull(isNull(x)), false);
+
+    // "(x IS NOT NULL) IS NULL" -> false
+    checkIs(isNull(isNotNull(x)), false);
+
+    // "((x IS NULL) IS NOT NULL) IS TRUE" -> true
+    checkIs(isTrue(isNotNull(isNull(x))), true);
+
+    // "((x IS NULL) IS NOT NULL) IS NOT TRUE" -> false
+    checkIs(isNotTrue(isNotNull(isNull(x))), false);
+
+    // "((x IS NULL) IS NOT NULL) IS FALSE" -> false
+    checkIs(isFalse(isNotNull(isNull(x))), false);
+
+    // "((x IS NULL) IS NOT NULL) IS NOT FALSE" -> true
+    checkIs(isNotFalse(isNotNull(isNull(x))), true);
+  }
+
+  /** Checks that {@link RexNode#isAlwaysTrue()},
+   * {@link RexNode#isAlwaysTrue()} and {@link RexSimplify} agree that
+   * an expression reduces to true or false. */
+  private void checkIs(RexNode e, boolean expected) {
+    assertThat(e.isAlwaysTrue(), is(expected));
+    assertThat(e.isAlwaysFalse(), is(!expected));
+    assertThat(simplify(e).toString(), is(expected ? "true" : "false"));
   }
 
   private Comparable eval(RexNode e) {
