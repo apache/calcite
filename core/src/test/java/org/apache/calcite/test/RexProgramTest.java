@@ -228,6 +228,18 @@ public class RexProgramTest {
     return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, node);
   }
 
+  private RexNode isFalse(RexNode node) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.IS_FALSE, node);
+  }
+
+  private RexNode isTrue(RexNode node) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE, node);
+  }
+
+  private RexNode isNotTrue(RexNode node) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_TRUE, node);
+  }
+
   private RexNode nullIf(RexNode node1, RexNode node2) {
     return rexBuilder.makeCall(SqlStdOperatorTable.NULLIF, node1, node2);
   }
@@ -568,7 +580,7 @@ public class RexProgramTest {
         // $t15 = $14 is true
         final RexLocalRef t15 =
             builder.addExpr(
-                rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE, t14));
+                isTrue(t14));
         builder.addCondition(t15);
       }
     }
@@ -2128,7 +2140,7 @@ public class RexProgramTest {
         typeFactory.createTypeWithNullability(
             typeFactory.createSqlType(SqlTypeName.BOOLEAN), true);
     final RexNode booleanInput = rexBuilder.makeInputRef(booleanNullableType, 0);
-    final RexNode isFalse = rexBuilder.makeCall(SqlStdOperatorTable.IS_FALSE, booleanInput);
+    final RexNode isFalse = isFalse(booleanInput);
     final RexCall result = (RexCall) simplify(isFalse);
     assertThat(result.getType().isNullable(), is(false));
     assertThat(result.getOperator(), is((SqlOperator) SqlStdOperatorTable.IS_FALSE));
@@ -2138,7 +2150,7 @@ public class RexProgramTest {
     // Make sure that IS_FALSE(IS_FALSE(nullable boolean)) != IS_TRUE(nullable boolean)
     // IS_FALSE(IS_FALSE(null)) = IS_FALSE(false) = true
     // IS_TRUE(null) = false
-    final RexNode isFalseIsFalse = rexBuilder.makeCall(SqlStdOperatorTable.IS_FALSE, isFalse);
+    final RexNode isFalseIsFalse = isFalse(isFalse);
     final RexCall result2 = (RexCall) simplify(isFalseIsFalse);
     assertThat(result2.getType().isNullable(), is(false));
     assertThat(result2.getOperator(), is((SqlOperator) SqlStdOperatorTable.IS_NOT_FALSE));
@@ -2171,19 +2183,46 @@ public class RexProgramTest {
   }
 
   @Test public void testIsAlwaysTrueAndFalse() {
-    final RelDataType booleanNullableType =
-        typeFactory.createTypeWithNullability(
-            typeFactory.createSqlType(SqlTypeName.BOOLEAN), true);
-    RexNode node = rexBuilder.makeInputRef(booleanNullableType, 0);
+    final RelDataType type =
+        typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+    RexNode inputRef = rexBuilder.makeInputRef(type, 0);
 
-    RexNode exp1 = rexBuilder.makeCall(SqlStdOperatorTable.IS_FALSE, isNotNull(isNull(node)));
-    assertEquals(exp1.isAlwaysTrue(), false);
-    assertEquals(exp1.isAlwaysFalse(), true);
+    RexNode isFalseExp = isFalse(isNotNull(isNull(inputRef)));
+    assertEquals("isAlwaysTrue should return false,but get true",
+        isFalseExp.isAlwaysTrue(), false);
+    assertEquals("isAlwaysFalse should return true,but get false",
+        isFalseExp.isAlwaysFalse(), true);
 
-    RexNode exp2 = rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE, isNotNull(isNull(node)));
+    RexNode isFalseExp2 = isFalse(not(isNotNull(isNull(inputRef))));
+    assertEquals("isAlwaysTrue should return true,but get false",
+        isFalseExp2.isAlwaysTrue(), true);
+    assertEquals("isAlwaysFalse should return false,but get true",
+        isFalseExp2.isAlwaysFalse(), false);
 
-    assertEquals(exp2.isAlwaysTrue(), true);
-    assertEquals(exp2.isAlwaysFalse(), false);
+    RexNode isTrueExp = isTrue(isNotNull(isNull(inputRef)));
+    assertEquals("isAlwaysTrue should return true,but get false",
+        isTrueExp.isAlwaysTrue(), true);
+    assertEquals("isAlwaysFalse should return false,but get true",
+        isTrueExp.isAlwaysFalse(), false);
+
+    RexNode isTrueExp2 = isTrue(not(isNotNull(isNull(inputRef))));
+    assertEquals("isAlwaysTrue should return false,but get true",
+        isTrueExp2.isAlwaysTrue(), false);
+    assertEquals("isAlwaysFalse should return true,but get false",
+        isTrueExp2.isAlwaysFalse(), true);
+
+    RexNode isNotTrueExp = isNotTrue(isNotNull(isNull(inputRef)));
+    assertEquals("isAlwaysTrue should return false,but get true",
+        isNotTrueExp.isAlwaysTrue(), false);
+    assertEquals("isAlwaysFalse should return true,but get false",
+        isNotTrueExp.isAlwaysFalse(), true);
+
+    RexNode isNotTrueExp2 = isNotTrue(not(isNotNull(isNull(inputRef))));
+    assertEquals("isAlwaysTrue should return true,but get false",
+        isNotTrueExp2.isAlwaysTrue(), true);
+    assertEquals("isAlwaysFalse should return false,but get true",
+        isNotTrueExp2.isAlwaysFalse(), false);
+
   }
 
   private Comparable eval(RexNode e) {
