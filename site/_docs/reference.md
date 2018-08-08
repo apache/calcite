@@ -96,6 +96,9 @@ statement:
   |   delete
   |   query
 
+statementList:
+      statement [ ';' statement ]* [ ';' ]
+
 setStatement:
       [ ALTER ( SYSTEM | SESSION ) ] SET identifier '=' expression
 

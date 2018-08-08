@@ -166,8 +166,7 @@ public class ${parser.class} extends SqlAbstractParserImpl
         }
     };
 
-    public SqlParseException normalizeException(Throwable ex)
-    {
+    public SqlParseException normalizeException(Throwable ex) {
         try {
             if (ex instanceof ParseException) {
                 ex = cleanupParseException((ParseException) ex);
@@ -178,8 +177,7 @@ public class ${parser.class} extends SqlAbstractParserImpl
         }
     }
 
-    public Metadata getMetadata()
-    {
+    public Metadata getMetadata() {
         synchronized (${parser.class}.class) {
             if (metadata == null) {
                 metadata = new MetadataImpl(
@@ -189,46 +187,42 @@ public class ${parser.class} extends SqlAbstractParserImpl
         }
     }
 
-    public void setTabSize(int tabSize)
-    {
+    public void setTabSize(int tabSize) {
         jj_input_stream.setTabSize(tabSize);
     }
 
-    public void switchTo(String stateName)
-    {
+    public void switchTo(String stateName) {
         int state = Arrays.asList(${parser.class}TokenManager.lexStateNames)
             .indexOf(stateName);
         token_source.SwitchTo(state);
     }
 
-    public void setQuotedCasing(Casing quotedCasing)
-    {
+    public void setQuotedCasing(Casing quotedCasing) {
         this.quotedCasing = quotedCasing;
     }
 
-    public void setUnquotedCasing(Casing unquotedCasing)
-    {
+    public void setUnquotedCasing(Casing unquotedCasing) {
         this.unquotedCasing = unquotedCasing;
     }
 
-    public void setIdentifierMaxLength(int identifierMaxLength)
-    {
+    public void setIdentifierMaxLength(int identifierMaxLength) {
         this.identifierMaxLength = identifierMaxLength;
     }
 
-    public void setConformance(SqlConformance conformance)
-    {
+    public void setConformance(SqlConformance conformance) {
         this.conformance = conformance;
     }
 
-    public SqlNode parseSqlExpressionEof() throws Exception
-    {
+    public SqlNode parseSqlExpressionEof() throws Exception {
         return SqlExpressionEof();
     }
 
-    public SqlNode parseSqlStmtEof() throws Exception
-    {
+    public SqlNode parseSqlStmtEof() throws Exception {
         return SqlStmtEof();
+    }
+
+    public SqlNodeList parseSqlStmtList() throws Exception {
+        return SqlStmtList();
     }
 
     private SqlNode extend(SqlNode table, SqlNodeList extendList) {
@@ -940,6 +934,34 @@ SqlNode SqlQueryEof() :
     query = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
     <EOF>
     { return query; }
+}
+
+/**
+ * Parses a list of SQL statements separated by semicolon.
+ * The semicolon is required between statements, but is
+ * optional at the end.
+ */
+SqlNodeList SqlStmtList() :
+{
+    final List<SqlNode> stmtList = new ArrayList<SqlNode>();
+    SqlNode stmt;
+}
+{
+    stmt = SqlStmt() {
+        stmtList.add(stmt);
+    }
+    (
+        <SEMICOLON>
+        [
+            stmt = SqlStmt() {
+                stmtList.add(stmt);
+            }
+        ]
+    )*
+    <EOF>
+    {
+        return new SqlNodeList(stmtList, Span.of(stmtList).pos());
+    }
 }
 
 /**
