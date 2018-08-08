@@ -21,6 +21,7 @@ import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -117,6 +118,15 @@ public class SqlParser {
     }
   }
 
+  private SqlParseException handleException(Throwable ex) throws SqlParseException {
+    if ((ex instanceof CalciteContextException)
+        && (originalInput != null)) {
+      ((CalciteContextException) ex).setOriginalStatement(
+          originalInput);
+    }
+    return parser.normalizeException(ex);
+  }
+
   /**
    * Parses a <code>SELECT</code> statement.
    *
@@ -129,12 +139,8 @@ public class SqlParser {
     try {
       return parser.parseSqlStmtEof();
     } catch (Throwable ex) {
-      if ((ex instanceof CalciteContextException)
-          && (originalInput != null)) {
-        ((CalciteContextException) ex).setOriginalStatement(
-            originalInput);
-      }
-      throw parser.normalizeException(ex);
+      SqlParseException sqlException = handleException(ex);
+      throw sqlException;
     }
   }
 
@@ -160,6 +166,23 @@ public class SqlParser {
    */
   public SqlNode parseStmt() throws SqlParseException {
     return parseQuery();
+  }
+
+  /**
+   * Parses a list of SQL statements separated by semicolon.
+   * The semicolon is required between statements, but is
+   * optional at the end.
+   *
+   * @return list of SqlNodeList representing the list of SQL statements
+   * @throws SqlParseException if there is a parse error
+   */
+  public SqlNodeList parseStmtList() throws SqlParseException {
+    try {
+      return parser.parseSqlStmtList();
+    } catch (Throwable ex) {
+      SqlParseException sqlException = handleException(ex);
+      throw sqlException;
+    }
   }
 
   /**

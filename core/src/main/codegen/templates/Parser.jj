@@ -216,6 +216,11 @@ public class ${parser.class} extends SqlAbstractParserImpl
         return SqlStmtEof();
     }
 
+    public SqlNodeList parseSqlStmtList() throws Exception
+    {
+        return SqlStmtList();
+    }
+
     private SqlNode extend(SqlNode table, SqlNodeList extendList) {
         return SqlStdOperatorTable.EXTEND.createCall(
             Span.of(table, extendList).pos(), table, extendList);
@@ -935,6 +940,45 @@ SqlNode SqlQueryEof() :
     query = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
     <EOF>
     { return query; }
+}
+
+/**
+ * Parses a list of SQL statements separated by semicolon.
+ * The semicolon is required between statements, but is
+ * optional at the end.
+ */
+SqlNodeList SqlStmtList() :
+{
+    final List<SqlNode> stmtList = new ArrayList<SqlNode>();
+    SqlNode stmt;
+}
+{
+    stmt = SqlStmtWithSemiColon() {
+        stmtList.add(stmt);
+    }
+    (
+        stmt = SqlStmtWithSemiColon() {
+           stmtList.add(stmt);
+        }
+    )*
+    {
+        return new SqlNodeList(stmtList, Span.of(stmtList).pos());
+    }
+}
+
+/**
+ * Parses an SQL statement, optionally followed by a semicolon
+ */
+SqlNode SqlStmtWithSemiColon() :
+{
+    SqlNode stmt;
+}
+{
+    stmt = SqlStmt()
+	[<SEMICOLON>]
+    {
+        return stmt;
+    }
 }
 
 /**
