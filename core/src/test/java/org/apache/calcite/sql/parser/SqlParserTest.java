@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
@@ -40,11 +41,13 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Lists;
 
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -62,6 +65,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -591,6 +595,10 @@ public class SqlParserTest {
 
   protected Sql sql(String sql) {
     return new Sql(sql);
+  }
+
+  protected SqlList sqlList(String sql) {
+    return new SqlList(sql);
   }
 
   /**
@@ -1165,6 +1173,72 @@ public class SqlParserTest {
       checker.checkExpFails("$p(x,xx^,^xxx) $op $p(y,yy) or false",
           "(?s).*Encountered \",\" at .*");
     }
+  }
+
+  @Test public void testStmtListWithSelect() {
+    sqlList("select * from emp, dept")
+         .ok("SELECT *\n"
+             + "FROM `EMP`,\n"
+             + "`DEPT`");
+  }
+
+  @Test public void testStmtListWithSelectAndSemicolon() {
+    sqlList("select * from emp, dept;")
+         .ok("SELECT *\n"
+             + "FROM `EMP`,\n"
+             + "`DEPT`");
+  }
+
+  @Test public void testStmtListWithTwoSelect() {
+    sqlList("select * from emp, dept ; select * from emp, dept")
+        .ok("SELECT *\n"
+            + "FROM `EMP`,\n"
+            + "`DEPT`",
+            "SELECT *\n"
+            + "FROM `EMP`,\n"
+            + "`DEPT`");
+  }
+
+  @Test public void testStmtListWithTwoSelectSemicolon() {
+    sqlList("select * from emp, dept ; select * from emp, dept;")
+        .ok("SELECT *\n"
+            + "FROM `EMP`,\n"
+            + "`DEPT`",
+            "SELECT *\n"
+            + "FROM `EMP`,\n"
+            + "`DEPT`");
+  }
+
+  @Test public void testStmtListWithSelectDelete() {
+    sqlList("select * from emp, dept; delete from emp")
+         .ok("SELECT *\n"
+             + "FROM `EMP`,\n"
+             + "`DEPT`",
+             "DELETE FROM `EMP`");
+  }
+
+  @Test public void testStmtListWithSelectDeleteUpdate() {
+    sqlList("select * from emp, dept; delete from emp; update emps set empno = empno + 1")
+         .ok("SELECT *\n"
+             + "FROM `EMP`,\n"
+             + "`DEPT`",
+             "DELETE FROM `EMP`",
+             "UPDATE `EMPS` SET `EMPNO` = (`EMPNO` + 1)");
+  }
+
+  @Test public void testStmtListWithSemiColonInComment() {
+    sqlList("select * from emp, dept; // comment with semicolon ;")
+         .ok("SELECT *\n"
+             + "FROM `EMP`,\n"
+             + "`DEPT`");
+  }
+
+  @Test public void testStmtListWithSemiColonInWhere() {
+    sqlList("select * from emp where name like 'toto;'; delete from emp")
+         .ok("SELECT *\n"
+             + "FROM `EMP`\n"
+             + "WHERE (`NAME` LIKE 'toto;')",
+             "DELETE FROM `EMP`");
   }
 
   @Test public void testIsDistinctFrom() {
@@ -8569,6 +8643,8 @@ public class SqlParserTest {
    * Callback to control how test actions are performed.
    */
   protected interface Tester {
+    void checkList(String sql, List<String> expected);
+
     void check(String sql, String expected);
 
     void checkExp(String sql, String expected);
@@ -8586,17 +8662,34 @@ public class SqlParserTest {
    * Default implementation of {@link Tester}.
    */
   protected class TesterImpl implements Tester {
-    public void check(
-        String sql,
+    private void check(
+        SqlNode sqlNode,
         String expected) {
-      final SqlNode sqlNode = parseStmtAndHandleEx(sql);
-
       // no dialect, always parenthesize
       String actual = sqlNode.toSqlString(null, true).getSql();
       if (LINUXIFY.get()[0]) {
         actual = Util.toLinux(actual);
       }
       TestUtil.assertEqualsVerbose(expected, actual);
+    }
+
+    @Override public void checkList(
+        String sql,
+        List<String> expected) {
+      final SqlNodeList sqlNodeList = parseStmtsAndHandleEx(sql);
+      Assert.assertEquals(expected.size(), sqlNodeList.size());
+
+      for (int i = 0; i < sqlNodeList.size(); i++) {
+        SqlNode sqlNode = sqlNodeList.get(i);
+        check(sqlNode, expected.get(i));
+      }
+    }
+
+    public void check(
+        String sql,
+        String expected) {
+      final SqlNode sqlNode = parseStmtAndHandleEx(sql);
+      check(sqlNode, expected);
     }
 
     protected SqlNode parseStmtAndHandleEx(String sql) {
@@ -8607,6 +8700,16 @@ public class SqlParserTest {
         throw new RuntimeException("Error while parsing SQL: " + sql, e);
       }
       return sqlNode;
+    }
+
+    protected SqlNodeList parseStmtsAndHandleEx(String sql) {
+      final SqlNodeList sqlNodeList;
+      try {
+        sqlNodeList = getSqlParser(sql).parseStmtList();
+      } catch (SqlParseException e) {
+        throw new RuntimeException("Error while parsing SQL: " + sql, e);
+      }
+      return sqlNodeList;
     }
 
     public void checkExp(
@@ -8689,6 +8792,54 @@ public class SqlParserTest {
    * unparsing a query are consistent with the original query.
    */
   public class UnparsingTesterImpl extends TesterImpl {
+
+    private String toSqlString(SqlNodeList sqlNodeList) {
+      List<String> sqls = sqlNodeList.getList().stream()
+          .map(it -> it.toSqlString(CalciteSqlDialect.DEFAULT, false).getSql())
+          .collect(Collectors.toList());
+      return String.join(";", sqls);
+    }
+
+    private void checkList(SqlNodeList sqlNodeList, List<String> expected) {
+      Assert.assertEquals(expected.size(), sqlNodeList.size());
+
+      for (int i = 0; i < sqlNodeList.size(); i++) {
+        SqlNode sqlNode = sqlNodeList.get(i);
+        // Unparse with no dialect, always parenthesize.
+        final String actual = sqlNode.toSqlString(null, true).getSql();
+        assertEquals(expected.get(i), linux(actual));
+      }
+    }
+
+    @Override public void checkList(String sql, List<String> expected) {
+      SqlNodeList sqlNodeList = parseStmtsAndHandleEx(sql);
+
+      checkList(sqlNodeList, expected);
+
+      // Unparse again in Calcite dialect (which we can parse), and
+      // minimal parentheses.
+      final String sql1 = toSqlString(sqlNodeList);
+
+      // Parse and unparse again.
+      SqlNodeList sqlNodeList2;
+      final Quoting q = quoting;
+      try {
+        quoting = Quoting.DOUBLE_QUOTE;
+        sqlNodeList2 = parseStmtsAndHandleEx(sql1);
+      } finally {
+        quoting = q;
+      }
+      final String sql2 = toSqlString(sqlNodeList2);
+
+      // Should be the same as we started with.
+      assertEquals(sql1, sql2);
+
+      // Now unparse again in the null dialect.
+      // If the unparser is not including sufficient parens to override
+      // precedence, the problem will show up here.
+      checkList(sqlNodeList2, expected);
+    }
+
     @Override public void check(String sql, String expected) {
       SqlNode sqlNode = parseStmtAndHandleEx(sql);
 
@@ -8821,6 +8972,23 @@ public class SqlParserTest {
      * at a conformance level where it succeeds. */
     public Sql sansCarets() {
       return new Sql(sql.replace("^", ""), expression);
+    }
+  }
+
+  /** Helper class for building fluent code,
+   * equivalent to @{Sql}, used to manipulate
+   * a list of statements, such as
+   * {@code sqlList("select * from a;").ok();}. */
+  protected class SqlList {
+    private final String sql;
+
+    SqlList(String sql) {
+      this.sql = sql;
+    }
+
+    public SqlList ok(String... expected) {
+      getTester().checkList(sql, Lists.newArrayList(expected));
+      return this;
     }
   }
 
