@@ -540,6 +540,10 @@ public class RexSimplify {
     case 0:
       return rexBuilder.makeNullLiteral(call.type);
     case 1:
+      // ensure type consistency, especially nullability.
+      if (!call.getType().equals(operands.get(0).getType())) {
+        return rexBuilder.makeAbstractCast(call.getType(), operands.get(0));
+      }
       return operands.get(0);
     default:
       if (operands.equals(call.operands)) {

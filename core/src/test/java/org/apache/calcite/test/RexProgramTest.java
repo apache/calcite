@@ -1703,6 +1703,36 @@ public class RexProgramTest {
     assertThat(result.getOperands().get(2), is((RexNode) falseLiteral));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2455">[CALCITE-2455]
+   * simplifyCoalesce of constant should match nullability</a>. */
+  @Test public void testSimplifyCoalesceWithConstant() {
+    RexNode inputRef1 = rexBuilder.makeInputRef(
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.VARCHAR), true), 0);
+    RexNode inputRef2 = rexBuilder.makeInputRef(
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.VARCHAR), true), 1);
+    RexCall coalesceNode = (RexCall) coalesce(inputRef2, inputRef1);
+
+    ImmutableList.Builder<RexNode> newOperands = ImmutableList.builder();
+    newOperands.add(rexBuilder.makeLiteral("S")).add(coalesceNode.operands.get(1));
+    // Clone for cases when Coalesce's operand is replaced with a constant by
+    // some rule.
+    coalesceNode = coalesceNode.clone(coalesceNode.getType(), newOperands.build());
+    RexNode result = simplify.simplify(coalesceNode);
+    assertThat("simplify of " + coalesceNode + " is Nullable",
+        result.getType().isNullable(), is(true));
+    assertThat("simplify of " + coalesceNode + " is VARCHAR type",
+        result.getType().getSqlTypeName(), is(SqlTypeName.VARCHAR));
+
+    RexNode result1 = simplify.simplifyPreservingType(coalesceNode);
+    assertThat("simplify of " + coalesceNode + " is Nullable",
+        result1.getType().isNullable(), is(true));
+    assertThat("simplify of " + coalesceNode + " is VARCHAR type",
+        result1.getType().getSqlTypeName(), is(SqlTypeName.VARCHAR));
+  }
+
   @Test public void testSimplifyCaseNullableBoolean() {
     RexNode condition = eq(
         rexBuilder.makeInputRef(
