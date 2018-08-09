@@ -60,6 +60,7 @@ import org.apache.calcite.util.PermutationTestCase;
 import org.apache.calcite.util.PrecedenceClimbingParserTest;
 import org.apache.calcite.util.ReflectVisitorTest;
 import org.apache.calcite.util.SourceTest;
+import org.apache.calcite.util.TestUtilTest;
 import org.apache.calcite.util.UtilTest;
 import org.apache.calcite.util.graph.DirectedGraphTest;
 import org.apache.calcite.util.mapping.MappingTest;
@@ -99,6 +100,7 @@ import org.junit.runners.Suite;
     SqlValidatorFeatureTest.class,
     VolcanoPlannerTraitTest.class,
     InterpreterTest.class,
+    TestUtilTest.class,
     VolcanoPlannerTest.class,
     HepPlannerTest.class,
     TraitPropagationTest.class,
