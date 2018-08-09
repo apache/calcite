@@ -139,6 +139,7 @@ public class RexCall extends RexNode {
     case IS_NULL:
       return !operands.get(0).getType().isNullable();
     case IS_NOT_TRUE:
+      return false; // false is not true
     case IS_FALSE:
     case NOT:
       return operands.get(0).isAlwaysTrue();
