@@ -56,6 +56,7 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -138,14 +139,34 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.INITCAP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_A_SET;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_EMPTY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_FALSE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_JSON_ARRAY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_JSON_OBJECT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_JSON_SCALAR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_JSON_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_A_SET;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_EMPTY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_FALSE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_JSON_ARRAY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_JSON_OBJECT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_JSON_SCALAR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_JSON_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_NULL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_TRUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NULL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_TRUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ITEM;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_API_COMMON_SYNTAX;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_ARRAY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_ARRAYAGG_ABSENT_ON_NULL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_ARRAYAGG_NULL_ON_NULL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_EXISTS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECTAGG_ABSENT_ON_NULL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECTAGG_NULL_ON_NULL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_QUERY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_STRUCTURED_VALUE_EXPRESSION;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_VALUE_ANY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_VALUE_EXPRESSION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAG;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LEAD;
@@ -415,6 +436,59 @@ public class RexImpTable {
     // Sequences
     defineMethod(CURRENT_VALUE, BuiltInMethod.SEQUENCE_CURRENT_VALUE.method, NullPolicy.STRICT);
     defineMethod(NEXT_VALUE, BuiltInMethod.SEQUENCE_NEXT_VALUE.method, NullPolicy.STRICT);
+
+    // Json Operators
+    defineMethod(JSON_VALUE_EXPRESSION,
+        BuiltInMethod.JSON_VALUE_EXPRESSION.method, NullPolicy.STRICT);
+    defineMethod(JSON_STRUCTURED_VALUE_EXPRESSION,
+        BuiltInMethod.JSON_STRUCTURED_VALUE_EXPRESSION.method, NullPolicy.STRICT);
+    defineMethod(JSON_API_COMMON_SYNTAX, BuiltInMethod.JSON_API_COMMON_SYNTAX.method,
+        NullPolicy.NONE);
+    defineMethod(JSON_EXISTS, BuiltInMethod.JSON_EXISTS.method, NullPolicy.NONE);
+    defineMethod(JSON_VALUE_ANY, BuiltInMethod.JSON_VALUE_ANY.method, NullPolicy.NONE);
+    defineMethod(JSON_QUERY, BuiltInMethod.JSON_QUERY.method, NullPolicy.NONE);
+    defineMethod(JSON_OBJECT, BuiltInMethod.JSON_OBJECT.method, NullPolicy.NONE);
+    aggMap.put(JSON_OBJECTAGG_NULL_ON_NULL, new Supplier<AggImplementor>() {
+      @Override public AggImplementor get() {
+        return new JsonObjectAggImplementor(BuiltInMethod.JSON_OBJECTAGG_ADD_NULL_ON_NULL.method);
+      }
+    });
+    aggMap.put(JSON_OBJECTAGG_ABSENT_ON_NULL, new Supplier<AggImplementor>() {
+      @Override public AggImplementor get() {
+        return new JsonObjectAggImplementor(BuiltInMethod.JSON_OBJECTAGG_ADD_ABSENT_ON_NULL.method);
+      }
+    });
+    defineMethod(JSON_ARRAY, BuiltInMethod.JSON_ARRAY.method, NullPolicy.NONE);
+    aggMap.put(JSON_ARRAYAGG_NULL_ON_NULL, new Supplier<AggImplementor>() {
+      @Override public AggImplementor get() {
+        return new JsonArrayAggImplementor(BuiltInMethod.JSON_ARRAYAGG_ADD_NULL_ON_NULL.method);
+      }
+    });
+    aggMap.put(JSON_ARRAYAGG_ABSENT_ON_NULL, new Supplier<AggImplementor>() {
+      @Override public AggImplementor get() {
+        return new JsonArrayAggImplementor(BuiltInMethod.JSON_ARRAYAGG_ADD_ABSENT_ON_NULL.method);
+      }
+    });
+    defineImplementor(IS_JSON_VALUE, NullPolicy.NONE,
+            new MethodImplementor(BuiltInMethod.IS_JSON_VALUE.method), false);
+    defineImplementor(IS_JSON_OBJECT, NullPolicy.NONE,
+            new MethodImplementor(BuiltInMethod.IS_JSON_OBJECT.method), false);
+    defineImplementor(IS_JSON_ARRAY, NullPolicy.NONE,
+            new MethodImplementor(BuiltInMethod.IS_JSON_ARRAY.method), false);
+    defineImplementor(IS_JSON_SCALAR, NullPolicy.NONE,
+            new MethodImplementor(BuiltInMethod.IS_JSON_SCALAR.method), false);
+    defineImplementor(IS_NOT_JSON_VALUE, NullPolicy.NONE,
+        NotImplementor.of(
+            new MethodImplementor(BuiltInMethod.IS_JSON_VALUE.method)), false);
+    defineImplementor(IS_NOT_JSON_OBJECT, NullPolicy.NONE,
+        NotImplementor.of(
+            new MethodImplementor(BuiltInMethod.IS_JSON_OBJECT.method)), false);
+    defineImplementor(IS_NOT_JSON_ARRAY, NullPolicy.NONE,
+        NotImplementor.of(
+            new MethodImplementor(BuiltInMethod.IS_JSON_ARRAY.method)), false);
+    defineImplementor(IS_NOT_JSON_SCALAR, NullPolicy.NONE,
+        NotImplementor.of(
+            new MethodImplementor(BuiltInMethod.IS_JSON_SCALAR.method)), false);
 
     // System functions
     final SystemFunctionImplementor systemFunctionImplementor =
@@ -1719,6 +1793,90 @@ public class RexImpTable {
       return Expressions.add(
           Expressions.subtract(result.index(), result.startIndex()),
           Expressions.constant(1));
+    }
+  }
+
+  /** Implementor for the {@code JSON_OBJECTAGG} windowed aggregate function. */
+  static class JsonObjectAggImplementor implements AggImplementor {
+
+    private final Method m;
+
+    JsonObjectAggImplementor(Method m) {
+      this.m = m;
+    }
+
+    @Override public List<Type> getStateType(AggContext info) {
+      return Collections.singletonList(HashMap.class);
+    }
+
+    @Override public void implementReset(AggContext info,
+                                                   AggResetContext reset) {
+      // acc[0] = new HashMap();
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(0),
+                  Expressions.new_(HashMap.class))));
+    }
+
+    @Override public void implementAdd(AggContext info,
+                                              AggAddContext add) {
+      // acc[0].put(arg0, arg1);
+      add.currentBlock().add(
+          Expressions.statement(
+              Expressions.call(
+                  m,
+                  Iterables.concat(
+                      Collections.singletonList(
+                          add.accumulator().get(0)),
+                      add.arguments()))));
+    }
+
+    @Override public Expression implementResult(AggContext info,
+                                                       AggResultContext result) {
+      return Expressions.call(BuiltInMethod.JSONIZE.method,
+          result.accumulator().get(0));
+    }
+  }
+
+  /** Implementor for the {@code JSON_ARRAYAGG} windowed aggregate function. */
+  static class JsonArrayAggImplementor implements AggImplementor {
+
+    private final Method m;
+
+    JsonArrayAggImplementor(Method m) {
+      this.m = m;
+    }
+
+    @Override public List<Type> getStateType(AggContext info) {
+      return Collections.singletonList(ArrayList.class);
+    }
+
+    @Override public void implementReset(AggContext info,
+                                         AggResetContext reset) {
+      // acc[0] = new HashMap();
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(0),
+                  Expressions.new_(ArrayList.class))));
+    }
+
+    @Override public void implementAdd(AggContext info,
+                                       AggAddContext add) {
+      // acc[0].put(arg0, arg1);
+      add.currentBlock().add(
+          Expressions.statement(
+              Expressions.call(
+                  m,
+                  Iterables.concat(
+                      Collections.singletonList(
+                          add.accumulator().get(0)),
+                      add.arguments()))));
+    }
+
+    @Override public Expression implementResult(AggContext info,
+                                                AggResultContext result) {
+      return Expressions.call(BuiltInMethod.JSONIZE.method,
+          result.accumulator().get(0));
     }
   }
 

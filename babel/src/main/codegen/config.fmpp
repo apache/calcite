@@ -31,6 +31,7 @@ data: {
       # List of keywords from "keywords" section that are not reserved.
       nonReservedKeywords: [
         "A"
+        "ABSENT"
         "ABSOLUTE"
         "ACTION"
         "ADA"
@@ -69,6 +70,7 @@ data: {
         "COMMAND_FUNCTION_CODE"
         "COMMITTED"
         "CONDITION_NUMBER"
+        "CONDITIONAL"
         "CONNECTION"
         "CONNECTION_NAME"
         "CONSTRAINT_CATALOG"
@@ -101,13 +103,16 @@ data: {
         "DOY"
         "DYNAMIC_FUNCTION"
         "DYNAMIC_FUNCTION_CODE"
+        "ENCODING"
         "EPOCH"
+        "ERROR"
         "EXCEPTION"
         "EXCLUDE"
         "EXCLUDING"
         "FINAL"
         "FIRST"
         "FOLLOWING"
+        "FORMAT"
         "FORTRAN"
         "FOUND"
         "FRAC_SECOND"
@@ -183,6 +188,7 @@ data: {
         "PARAMETER_SPECIFIC_SCHEMA"
         "PARTIAL"
         "PASCAL"
+        "PASSING"
         "PASSTHROUGH"
         "PAST"
         "PATH"
@@ -205,12 +211,14 @@ data: {
         "RETURNED_LENGTH"
         "RETURNED_OCTET_LENGTH"
         "RETURNED_SQLSTATE"
+        "RETURNING"
         "ROLE"
         "ROUTINE"
         "ROUTINE_CATALOG"
         "ROUTINE_NAME"
         "ROUTINE_SCHEMA"
         "ROW_COUNT"
+        "SCALAR"
         "SCALE"
         "SCHEMA"
         "SCHEMA_NAME"
@@ -304,6 +312,7 @@ data: {
         "TYPE"
         "UNBOUNDED"
         "UNCOMMITTED"
+        "UNCONDITIONAL"
         "UNDER"
         "UNNAMED"
         "USAGE"
@@ -311,6 +320,9 @@ data: {
         "USER_DEFINED_TYPE_CODE"
         "USER_DEFINED_TYPE_NAME"
         "USER_DEFINED_TYPE_SCHEMA"
+        "UTF8"
+        "UTF16"
+        "UTF32"
         "VERSION"
         "VIEW"
         "WEEK"
@@ -537,6 +549,13 @@ data: {
         "ISOLATION",
 #       # "ITERATE", # not a keyword in Calcite
 #       "JOIN",
+        "JSON_ARRAY",
+        "JSON_ARRAYAGG",
+        "JSON_EXISTS",
+        "JSON_VALUE",
+        "JSON_OBJECT",
+        "JSON_OBJECTAGG",
+        "JSON_QUERY",
 #       # "KEEP", # not a keyword in Calcite
         "KEY",
         "LAG",

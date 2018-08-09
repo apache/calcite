@@ -89,6 +89,9 @@ public interface CalciteResource {
   @BaseMessage("ROW expression encountered in illegal context")
   ExInst<CalciteException> illegalRowExpression();
 
+  @BaseMessage("Illegal identifier '':''. Was expecting ''VALUE''")
+  ExInst<CalciteException> illegalColon();
+
   @BaseMessage("TABLESAMPLE percentage must be between 0 and 100, inclusive")
   @Property(name = "SQLSTATE", value = "2202H")
   ExInst<CalciteException> invalidSampleSize();
@@ -223,6 +226,9 @@ public interface CalciteResource {
 
   @BaseMessage("Expected a boolean type")
   ExInst<SqlValidatorException> expectedBoolean();
+
+  @BaseMessage("Expected a character type")
+  ExInst<SqlValidatorException> expectedCharacter();
 
   @BaseMessage("ELSE clause or at least one THEN clause must be non-NULL")
   ExInst<SqlValidatorException> mustNotNullInElse();

@@ -4254,6 +4254,307 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("upper(cast(null as varchar(1)))");
   }
 
+
+  @Test public void testJsonExists() {
+    tester.checkBoolean("json_exists('{\"foo\":\"bar\"}', "
+        + "'strict $.foo' false on error)", Boolean.TRUE);
+    tester.checkBoolean("json_exists('{\"foo\":\"bar\"}', "
+        + "'strict $.foo' true on error)", Boolean.TRUE);
+    tester.checkBoolean("json_exists('{\"foo\":\"bar\"}', "
+        + "'strict $.foo' unknown on error)", Boolean.TRUE);
+    tester.checkBoolean("json_exists('{\"foo\":\"bar\"}', "
+        + "'lax $.foo' false on error)", Boolean.TRUE);
+    tester.checkBoolean("json_exists('{\"foo\":\"bar\"}', "
+        + "'lax $.foo' true on error)", Boolean.TRUE);
+    tester.checkBoolean("json_exists('{\"foo\":\"bar\"}', "
+        + "'lax $.foo' unknown on error)", Boolean.TRUE);
+    tester.checkBoolean("json_exists('{}', "
+        + "'invalid $.foo' false on error)", Boolean.FALSE);
+    tester.checkBoolean("json_exists('{}', "
+        + "'invalid $.foo' true on error)", Boolean.TRUE);
+    tester.checkBoolean("json_exists('{}', "
+        + "'invalid $.foo' unknown on error)", null);
+
+    // not exists
+    tester.checkBoolean("json_exists('{\"foo\":\"bar\"}', "
+        + "'strict $.foo1' false on error)", Boolean.FALSE);
+    tester.checkBoolean("json_exists('{\"foo\":\"bar\"}', "
+        + "'strict $.foo1' true on error)", Boolean.TRUE);
+    tester.checkBoolean("json_exists('{\"foo\":\"bar\"}', "
+        + "'strict $.foo1' unknown on error)", null);
+    tester.checkBoolean("json_exists('{\"foo\":\"bar\"}', "
+        + "'lax $.foo1' true on error)", Boolean.FALSE);
+    tester.checkBoolean("json_exists('{\"foo\":\"bar\"}', "
+        + "'lax $.foo1' false on error)", Boolean.FALSE);
+    tester.checkBoolean("json_exists('{\"foo\":\"bar\"}', "
+        + "'lax $.foo1' error on error)", Boolean.FALSE);
+    tester.checkBoolean("json_exists('{\"foo\":\"bar\"}', "
+        + "'lax $.foo1' unknown on error)", Boolean.FALSE);
+  }
+
+  @Test public void testJsonValue() {
+    // type casting test
+    tester.checkString("json_value('{\"foo\":100}', 'strict $.foo')",
+        "100", "VARCHAR(2000)");
+    tester.checkScalar("json_value('{\"foo\":100}', 'strict $.foo' returning integer)",
+        100, "INTEGER");
+    tester.checkFails("json_value('{\"foo\":\"100\"}', 'strict $.foo' returning boolean)",
+        INVALID_CHAR_MESSAGE, true);
+    tester.checkScalar("json_value('{\"foo\":100}', 'lax $.foo1' returning integer "
+            + "null on empty)", null, "INTEGER");
+    tester.checkScalar("json_value('{\"foo\":\"100\"}', 'strict $.foo1' returning boolean "
+        + "null on error)", null, "BOOLEAN");
+
+    // lax test
+    tester.checkString("json_value('{\"foo\":100}', 'lax $.foo' null on empty)",
+        "100", "VARCHAR(2000)");
+    tester.checkString("json_value('{\"foo\":100}', 'lax $.foo' error on empty)",
+        "100", "VARCHAR(2000)");
+    tester.checkString("json_value('{\"foo\":100}', 'lax $.foo' default 'empty' on empty)",
+        "100", "VARCHAR(2000)");
+    tester.checkString("json_value('{\"foo\":100}', 'lax $.foo1' null on empty)",
+        null, "VARCHAR(2000)");
+    tester.checkFails("json_value('{\"foo\":100}', 'lax $.foo1' error on empty)",
+        null, true);
+    tester.checkString("json_value('{\"foo\":100}', 'lax $.foo1' default 'empty' on empty)",
+        "empty", "VARCHAR(2000)");
+    tester.checkString("json_value('{\"foo\":{}}', 'lax $.foo' null on empty)",
+        null, "VARCHAR(2000)");
+    tester.checkFails("json_value('{\"foo\":{}}', 'lax $.foo' error on empty)",
+        null, true);
+    tester.checkString("json_value('{\"foo\":{}}', 'lax $.foo' default 'empty' on empty)",
+        "empty", "VARCHAR(2000)");
+    tester.checkString("json_value('{\"foo\":100}', 'lax $.foo' null on error)",
+        "100", "VARCHAR(2000)");
+    tester.checkString("json_value('{\"foo\":100}', 'lax $.foo' error on error)",
+        "100", "VARCHAR(2000)");
+    tester.checkString("json_value('{\"foo\":100}', 'lax $.foo' default 'empty' on error)",
+        "100", "VARCHAR(2000)");
+
+    // path error test
+    tester.checkString("json_value('{\"foo\":100}', 'invalid $.foo' null on error)",
+        null, "VARCHAR(2000)");
+    tester.checkFails("json_value('{\"foo\":100}', 'invalid $.foo' error on error)",
+        null, true);
+    tester.checkString("json_value('{\"foo\":100}', "
+            + "'invalid $.foo' default 'empty' on error)",
+        "empty", "VARCHAR(2000)");
+
+    // strict test
+    tester.checkString("json_value('{\"foo\":100}', 'strict $.foo' null on empty)",
+        "100", "VARCHAR(2000)");
+    tester.checkString("json_value('{\"foo\":100}', 'strict $.foo' error on empty)",
+        "100", "VARCHAR(2000)");
+    tester.checkString("json_value('{\"foo\":100}', "
+            + "'strict $.foo' default 'empty' on empty)",
+        "100", "VARCHAR(2000)");
+    tester.checkString("json_value('{\"foo\":100}', 'strict $.foo1' null on error)",
+        null, "VARCHAR(2000)");
+    tester.checkFails("json_value('{\"foo\":100}', 'strict $.foo1' error on error)",
+        null, true);
+    tester.checkString("json_value('{\"foo\":100}', "
+            + "'strict $.foo1' default 'empty' on error)",
+        "empty", "VARCHAR(2000)");
+    tester.checkString("json_value('{\"foo\":{}}', 'strict $.foo' null on error)",
+        null, "VARCHAR(2000)");
+    tester.checkFails("json_value('{\"foo\":{}}', 'strict $.foo' error on error)",
+        null, true);
+    tester.checkString("json_value('{\"foo\":{}}', "
+            + "'strict $.foo' default 'empty' on error)",
+        "empty", "VARCHAR(2000)");
+  }
+
+  @Test public void testJsonQuery() {
+    // lax test
+    tester.checkString("json_query('{\"foo\":100}', 'lax $' null on empty)",
+        "{\"foo\":100}", "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":100}', 'lax $' error on empty)",
+        "{\"foo\":100}", "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":100}', 'lax $' empty array on empty)",
+        "{\"foo\":100}", "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":100}', 'lax $' empty object on empty)",
+        "{\"foo\":100}", "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":100}', 'lax $.foo' null on empty)",
+        null, "VARCHAR(2000)");
+    tester.checkFails("json_query('{\"foo\":100}', 'lax $.foo' error on empty)",
+        null, true);
+    tester.checkString("json_query('{\"foo\":100}', 'lax $.foo' empty array on empty)",
+        "[]", "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":100}', 'lax $.foo' empty object on empty)",
+        "{}", "VARCHAR(2000)");
+
+    // path error test
+    tester.checkString("json_query('{\"foo\":100}', 'invalid $.foo' null on error)",
+        null, "VARCHAR(2000)");
+    tester.checkFails("json_query('{\"foo\":100}', 'invalid $.foo' error on error)",
+        null, true);
+    tester.checkString("json_query('{\"foo\":100}', "
+            + "'invalid $.foo' empty array on error)",
+        "[]", "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":100}', "
+            + "'invalid $.foo' empty object on error)",
+        "{}", "VARCHAR(2000)");
+
+    // strict test
+    tester.checkString("json_query('{\"foo\":100}', 'strict $' null on empty)",
+        "{\"foo\":100}", "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":100}', 'strict $' error on empty)",
+        "{\"foo\":100}", "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":100}', 'strict $' empty array on error)",
+        "{\"foo\":100}", "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":100}', 'strict $' empty object on error)",
+        "{\"foo\":100}", "VARCHAR(2000)");
+
+    tester.checkString("json_query('{\"foo\":100}', 'strict $.foo1' null on error)",
+        null, "VARCHAR(2000)");
+    tester.checkFails("json_query('{\"foo\":100}', 'strict $.foo1' error on error)",
+        null, true);
+    tester.checkString("json_query('{\"foo\":100}', 'strict $.foo1' empty array on error)",
+        "[]", "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":100}', 'strict $.foo1' empty object on error)",
+        "{}", "VARCHAR(2000)");
+
+    tester.checkString("json_query('{\"foo\":100}', 'strict $.foo' null on error)",
+        null, "VARCHAR(2000)");
+    tester.checkFails("json_query('{\"foo\":100}', 'strict $.foo' error on error)",
+        null, true);
+    tester.checkString("json_query('{\"foo\":100}', 'strict $.foo' empty array on error)",
+        "[]", "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":100}', 'strict $.foo' empty object on error)",
+        "{}", "VARCHAR(2000)");
+
+    // array wrapper test
+    tester.checkString("json_query('{\"foo\":100}', 'strict $.foo' without wrapper)",
+        null, "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":100}', 'strict $.foo' without array wrapper)",
+        null, "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":100}', 'strict $.foo' with wrapper)",
+        "[100]", "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":100}', 'strict $.foo' "
+            + "with unconditional wrapper)",
+        "[100]", "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":100}', 'strict $.foo' "
+            + "with conditional wrapper)",
+        "[100]", "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":[100]}', 'strict $.foo' without wrapper)",
+        "[100]", "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":[100]}', 'strict $.foo' without array wrapper)",
+        "[100]", "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":[100]}', 'strict $.foo' with wrapper)",
+        "[[100]]", "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":[100]}', 'strict $.foo' "
+            + "with unconditional wrapper)",
+        "[[100]]", "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":[100]}', 'strict $.foo' "
+            + "with conditional wrapper)",
+        "[100]", "VARCHAR(2000)");
+
+
+  }
+
+  @Test public void testJsonObject() {
+    tester.checkString("json_object()", "{}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': 'bar')",
+        "{\"foo\":\"bar\"}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': 'bar', 'foo2': 'bar2')",
+        "{\"foo\":\"bar\",\"foo2\":\"bar2\"}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': null)",
+        "{\"foo\":null}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': null null on null)",
+        "{\"foo\":null}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': null absent on null)",
+        "{}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': 100)",
+        "{\"foo\":100}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': json_object('foo': 'bar'))",
+        "{\"foo\":\"{\\\"foo\\\":\\\"bar\\\"}\"}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': json_object('foo': 'bar') format json)",
+        "{\"foo\":{\"foo\":\"bar\"}}", "VARCHAR(2000) NOT NULL");
+  }
+
+  @Test public void testJsonObjectAgg() {
+    checkAggType(tester, "json_objectagg('foo': 'bar')", "VARCHAR(2000) NOT NULL");
+    tester.checkFails("^json_objectagg(100: 'bar')^",
+        "(?s).*Cannot apply.*", false);
+    final String[][] values = {
+        {"'foo'", "'bar'"},
+        {"'foo2'", "cast(null as varchar(2000))"},
+        {"'foo3'", "'bar3'"}
+    };
+    tester.checkAggWithMultipleArgs("json_objectagg(x: x2)",
+        values,
+        "{\"foo\":\"bar\",\"foo2\":null,\"foo3\":\"bar3\"}",
+        0.0D);
+    tester.checkAggWithMultipleArgs("json_objectagg(x: x2 null on null)",
+        values,
+        "{\"foo\":\"bar\",\"foo2\":null,\"foo3\":\"bar3\"}",
+        0.0D);
+    tester.checkAggWithMultipleArgs("json_objectagg(x: x2 absent on null)",
+        values,
+        "{\"foo\":\"bar\",\"foo3\":\"bar3\"}",
+        0.0D);
+  }
+
+  @Test public void testJsonArray() {
+    tester.checkString("json_array()", "[]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_array('foo')",
+        "[\"foo\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_array('foo', 'bar')",
+        "[\"foo\",\"bar\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_array(null)",
+        "[]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_array(null null on null)",
+        "[null]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_array(null absent on null)",
+        "[]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_array(100)",
+        "[100]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_array(json_array('foo'))",
+        "[\"[\\\"foo\\\"]\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_array(json_array('foo') format json)",
+        "[[\"foo\"]]", "VARCHAR(2000) NOT NULL");
+  }
+
+  @Test public void testJsonArrayAgg() {
+    checkAggType(tester, "json_arrayagg('foo')", "VARCHAR(2000) NOT NULL");
+    final String[] values = {
+        "'foo'",
+        "cast(null as varchar(2000))",
+        "'foo3'"
+    };
+    tester.checkAgg("json_arrayagg(x)",
+        values,
+        "[\"foo\",\"foo3\"]",
+        0.0D);
+    tester.checkAgg("json_arrayagg(x null on null)",
+        values,
+        "[\"foo\",null,\"foo3\"]",
+        0.0D);
+    tester.checkAgg("json_arrayagg(x absent on null)",
+        values,
+        "[\"foo\",\"foo3\"]",
+        0.0D);
+  }
+
+  @Test public void testJsonPredicate() {
+    tester.checkBoolean("'{}' is json value", true);
+    tester.checkBoolean("'{]' is json value", false);
+    tester.checkBoolean("'{}' is json object", true);
+    tester.checkBoolean("'[]' is json object", false);
+    tester.checkBoolean("'{}' is json array", false);
+    tester.checkBoolean("'[]' is json array", true);
+    tester.checkBoolean("'100' is json scalar", true);
+    tester.checkBoolean("'[]' is json scalar", false);
+    tester.checkBoolean("'{}' is not json value", false);
+    tester.checkBoolean("'{]' is not json value", true);
+    tester.checkBoolean("'{}' is not json object", false);
+    tester.checkBoolean("'[]' is not json object", true);
+    tester.checkBoolean("'{}' is not json array", true);
+    tester.checkBoolean("'[]' is not json array", false);
+    tester.checkBoolean("'100' is not json scalar", false);
+    tester.checkBoolean("'[]' is not json scalar", true);
+  }
+
   @Test public void testLowerFunc() {
     tester.setFor(SqlStdOperatorTable.LOWER);
 

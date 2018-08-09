@@ -727,6 +727,26 @@ public enum SqlKind {
   MULTISET_QUERY_CONSTRUCTOR,
 
   /**
+   * The JSON value expression.
+   */
+  JSON_VALUE_EXPRESSION,
+
+  /**
+   * The JSON API common syntax.
+   */
+  JSON_API_COMMON_SYNTAX,
+
+  /**
+   *
+   */
+  JSON_ARRAYAGG,
+
+  /**
+   *
+   */
+  JSON_OBJECTAGG,
+
+  /**
    * The "UNNEST" operator.
    */
   UNNEST,
@@ -1072,7 +1092,7 @@ public enum SqlKind {
           LAST_VALUE, COVAR_POP, COVAR_SAMP, REGR_COUNT, REGR_SXX, REGR_SYY,
           AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
           FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
-          CUME_DIST);
+          CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG);
 
   /**
    * Category consisting of all DML operators.
@@ -1156,7 +1176,8 @@ public enum SqlKind {
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, EXTRACT,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
-                  VALUES, WITH, WITH_ITEM, SKIP_TO_FIRST, SKIP_TO_LAST),
+                  VALUES, WITH, WITH_ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
+                  JSON_VALUE_EXPRESSION, JSON_API_COMMON_SYNTAX),
               AGGREGATE, DML, DDL));
 
   /**

@@ -33,10 +33,24 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.runtime.FlatLists.ComparableList;
+import org.apache.calcite.sql.SqlJsonConstructorNullClause;
+import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;
+import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
+import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
+import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.Option;
+
+import net.minidev.json.JSONValue;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
@@ -49,6 +63,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -57,9 +72,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -106,6 +123,12 @@ public class SqlFunctions {
    * will want persistent values for sequences, shared among threads. */
   private static final ThreadLocal<Map<String, AtomicLong>> THREAD_SEQUENCES =
       ThreadLocal.withInitial(HashMap::new);
+
+  private static final Pattern JSON_PATH_BASE =
+      Pattern.compile("^\\s*(?<mode>strict|lax)\\s+(?<spec>.+)$",
+          Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);
+
+  private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
   private SqlFunctions() {
   }
@@ -2423,6 +2446,369 @@ public class SqlFunctions {
             + "' of object of type " + beanClass.getName(), ex);
       }
     }
+  }
+
+
+  private static boolean isScalarObject(Object obj) {
+    if (obj instanceof Collection) {
+      return false;
+    }
+    if (obj instanceof Map) {
+      return false;
+    }
+    return true;
+  }
+
+  public static Object jsonValueExpression(String input) {
+    try {
+      return JSONValue.parseWithException(input);
+    } catch (Exception e) {
+      return e;
+    }
+  }
+
+  public static Object jsonStructuredValueExpression(Object input) {
+    return input;
+  }
+
+  public static PathContext jsonApiCommonSyntax(Object input, String pathSpec) {
+    try {
+      Matcher matcher = JSON_PATH_BASE.matcher(pathSpec);
+      if (!matcher.matches()) {
+        throw new RuntimeException("illegal patch spec, missing mode declaration");
+      }
+      PathMode mode = PathMode.valueOf(matcher.group(1).toUpperCase(Locale.ENGLISH));
+      String pathWff = matcher.group(2);
+      DocumentContext ctx;
+      switch (mode) {
+      case STRICT:
+        if (input instanceof Exception) {
+          return PathContext.withStrictException((Exception) input);
+        }
+        ctx = JsonPath.parse(input,
+            Configuration
+                .builder()
+                .build()
+        );
+        break;
+      case LAX:
+        if (input instanceof Exception) {
+          return PathContext.withReturned(PathMode.LAX, null);
+        }
+        ctx = JsonPath.parse(input,
+            Configuration
+                .builder()
+                .options(Option.SUPPRESS_EXCEPTIONS)
+                .build()
+        );
+        break;
+      default:
+        throw new RuntimeException("illegal mode: " + mode);
+      }
+      try {
+        return PathContext.withReturned(mode, ctx.read(pathWff));
+      } catch (Exception e) {
+        return PathContext.withStrictException(e);
+      }
+    } catch (Exception e) {
+      return PathContext.withUnknownException(e);
+    }
+  }
+
+  public static Boolean jsonExists(Object input) {
+    return jsonExists(input, SqlJsonExistsErrorBehavior.FALSE);
+  }
+
+  public static Boolean jsonExists(Object input, SqlJsonExistsErrorBehavior errorBehavior) {
+    PathContext context = (PathContext) input;
+    if (context.exc != null) {
+      switch (errorBehavior) {
+      case TRUE:
+        return Boolean.TRUE;
+      case FALSE:
+        return Boolean.FALSE;
+      case ERROR:
+        throw new RuntimeException(context.exc);
+      case UNKNOWN:
+        return null;
+      default:
+        throw new RuntimeException("illegal error behavior: " + errorBehavior);
+      }
+    } else {
+      return !Objects.isNull(context.pathReturned);
+    }
+  }
+
+  public static Object jsonValueAny(Object input,
+                                 SqlJsonValueEmptyOrErrorBehavior emptyBehavior,
+                                 Object defaultValueOnEmpty,
+                                 SqlJsonValueEmptyOrErrorBehavior errorBehavior,
+                                 Object defaultValueOnError) {
+    PathContext context = (PathContext) input;
+    Exception exc;
+    if (context.exc != null) {
+      exc = context.exc;
+    } else {
+      Object value = context.pathReturned;
+      if (value == null || context.mode == PathMode.LAX
+          && !isScalarObject(value)) {
+        switch (emptyBehavior) {
+        case ERROR:
+          throw new RuntimeException("empty json value");
+        case NULL:
+          return null;
+        case DEFAULT:
+          return defaultValueOnEmpty;
+        default:
+          throw new RuntimeException("illegal empty behavior: " + emptyBehavior);
+        }
+      } else if (context.mode == PathMode.STRICT && !isScalarObject(value)) {
+        exc = new RuntimeException("not a json value: " + value);
+      } else {
+        return value;
+      }
+    }
+    switch (errorBehavior) {
+    case ERROR:
+      throw new RuntimeException(exc);
+    case NULL:
+      return null;
+    case DEFAULT:
+      return defaultValueOnError;
+    default:
+      throw new RuntimeException("illegal error behavior: " + errorBehavior);
+    }
+  }
+
+  public static String jsonQuery(Object input,
+                                 SqlJsonQueryWrapperBehavior wrapperBehavior,
+                                 SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
+                                 SqlJsonQueryEmptyOrErrorBehavior errorBehavior) {
+    PathContext context = (PathContext) input;
+    Exception exc;
+    if (context.exc != null) {
+      exc = context.exc;
+    } else {
+      Object value;
+      if (context.pathReturned == null) {
+        value = null;
+      } else {
+        switch (wrapperBehavior) {
+        case WITHOUT_ARRAY:
+          value = context.pathReturned;
+          break;
+        case WITH_UNCONDITIONAL_ARRAY:
+          value = Collections.singletonList(context.pathReturned);
+          break;
+        case WITH_CONDITIONAL_ARRAY:
+          if (context.pathReturned instanceof Collection) {
+            value = context.pathReturned;
+          } else {
+            value = Collections.singletonList(context.pathReturned);
+          }
+          break;
+        default:
+          throw new RuntimeException("illegal wrapper behavior: " + wrapperBehavior);
+        }
+      }
+      if (value == null || context.mode == PathMode.LAX
+          && isScalarObject(value)) {
+        switch (emptyBehavior) {
+        case ERROR:
+          throw new IllegalArgumentException("empty json query");
+        case NULL:
+          return null;
+        case EMPTY_ARRAY:
+          return "[]";
+        case EMPTY_OBJECT:
+          return "{}";
+        default:
+          throw new RuntimeException("illegal empty behavior: " + emptyBehavior);
+        }
+      } else if (context.mode == PathMode.STRICT && isScalarObject(value)) {
+        exc = new RuntimeException("not a json array or a json object: " + value);
+      } else {
+        try {
+          return jsonize(value);
+        } catch (Exception e) {
+          exc = e;
+        }
+      }
+    }
+    switch (errorBehavior) {
+    case ERROR:
+      throw new RuntimeException(exc);
+    case NULL:
+      return null;
+    case EMPTY_ARRAY:
+      return "[]";
+    case EMPTY_OBJECT:
+      return "{}";
+    default:
+      throw new RuntimeException("illegal error behavior: " + errorBehavior);
+    }
+  }
+
+  public static String jsonize(Object input) {
+    try {
+      return JSON_MAPPER.writeValueAsString(input);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("error serializing object to json", e);
+    }
+  }
+
+  public static String jsonObject(SqlJsonConstructorNullClause nullClause, Object... kvs) {
+    assert kvs.length % 2 == 0;
+    Map<String, Object> map = new HashMap<>();
+    for (int i = 0; i < kvs.length; i += 2) {
+      String k = (String) kvs[i];
+      Object v = kvs[i + 1];
+      if (k == null) {
+        throw new RuntimeException("illegal null key input in json object");
+      }
+      if (v == null) {
+        if (nullClause == SqlJsonConstructorNullClause.NULL_ON_NULL) {
+          map.put(k, null);
+        }
+      } else {
+        map.put(k, v);
+      }
+    }
+    return jsonize(map);
+  }
+
+  public static void jsonObjectAggAdd(Map map, String k, Object v,
+                                        SqlJsonConstructorNullClause nullClause) {
+    if (k == null) {
+      throw new RuntimeException("illegal null key input in json object");
+    }
+    if (v == null) {
+      if (nullClause == SqlJsonConstructorNullClause.NULL_ON_NULL) {
+        map.put(k, null);
+      }
+    } else {
+      map.put(k, v);
+    }
+  }
+
+  public static void jsonObjectAggAddNullOnNull(Map map, String k, Object v) {
+    jsonObjectAggAdd(map, k, v, SqlJsonConstructorNullClause.NULL_ON_NULL);
+  }
+
+  public static void jsonObjectAggAddAbsentOnNull(Map map, String k, Object v) {
+    jsonObjectAggAdd(map, k, v, SqlJsonConstructorNullClause.ABSENT_ON_NULL);
+  }
+
+  public static String jsonArray(SqlJsonConstructorNullClause nullClause, Object... elements) {
+    List<Object> list = new ArrayList<>();
+    for (Object element : elements) {
+      if (element == null) {
+        if (nullClause == SqlJsonConstructorNullClause.NULL_ON_NULL) {
+          list.add(null);
+        }
+      } else {
+        list.add(element);
+      }
+    }
+    return jsonize(list);
+  }
+
+  public static void jsonArrayAggAdd(List list, Object element,
+                                      SqlJsonConstructorNullClause nullClause) {
+    if (element == null) {
+      if (nullClause == SqlJsonConstructorNullClause.NULL_ON_NULL) {
+        list.add(null);
+      }
+    } else {
+      list.add(element);
+    }
+  }
+
+  public static void jsonArrayAggAddNullOnNull(List list, Object element) {
+    jsonArrayAggAdd(list, element, SqlJsonConstructorNullClause.NULL_ON_NULL);
+  }
+
+  public static void jsonArrayAggAddAbsentOnNull(List list, Object element) {
+    jsonArrayAggAdd(list, element, SqlJsonConstructorNullClause.ABSENT_ON_NULL);
+  }
+
+  public static boolean isJsonValue(String input) {
+    try {
+      JSONValue.parseWithException(input);
+      return true;
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  public static boolean isJsonObject(String input) {
+    try {
+      Object o = JSONValue.parseWithException(input);
+      return o instanceof Map;
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  public static boolean isJsonArray(String input) {
+    try {
+      Object o = JSONValue.parseWithException(input);
+      return o instanceof Collection;
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  public static boolean isJsonScalar(String input) {
+    try {
+      Object o = JSONValue.parseWithException(input);
+      return !(o instanceof Map) && !(o instanceof Collection);
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  /**
+   * Returned path context of JsonApiCommonSyntax, public for testing.
+   */
+  public static class PathContext {
+    public final PathMode mode;
+    public final Object pathReturned;
+    public final Exception exc;
+
+    private PathContext(PathMode mode, Object pathReturned, Exception exc) {
+      this.mode = mode;
+      this.pathReturned = pathReturned;
+      this.exc = exc;
+    }
+
+    public static PathContext withUnknownException(Exception exc) {
+      return new PathContext(PathMode.UNKNOWN, null, exc);
+    }
+
+    public static PathContext withStrictException(Exception exc) {
+      return new PathContext(PathMode.STRICT, null, exc);
+    }
+
+    public static PathContext withReturned(PathMode mode, Object pathReturned) {
+      if (mode == PathMode.UNKNOWN) {
+        throw new IllegalArgumentException("unknown path mode");
+      }
+      if (mode == PathMode.STRICT && pathReturned == null) {
+        throw new IllegalArgumentException("null path returned value in strict mode");
+      }
+      return new PathContext(mode, pathReturned, null);
+    }
+  }
+
+  /**
+   * Path spec has two different modes: lax mode and strict mode. Lax mode suppress any thrown
+   * exception and return null; where strict mode throws exceptions.
+   */
+  public enum PathMode {
+    LAX,
+    STRICT,
+    UNKNOWN
   }
 
   /** Enumerates over the cartesian product of the given lists, returning

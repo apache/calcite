@@ -8676,6 +8676,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "DEFAULT -\n"
         + "DOT -\n"
         + "ITEM -\n"
+        + "JSON_API_COMMON_SYNTAX -\n"
+        + "JSON_STRUCTURED_VALUE_EXPRESSION -\n"
+        + "JSON_VALUE_EXPRESSION -\n"
         + "NEXT_VALUE -\n"
         + "PATTERN_EXCLUDE -\n"
         + "PATTERN_PERMUTE -\n"
@@ -8750,9 +8753,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "IS A SET post\n"
         + "IS EMPTY post\n"
         + "IS FALSE post\n"
+        + "IS JSON ARRAY post\n"
+        + "IS JSON OBJECT post\n"
+        + "IS JSON SCALAR post\n"
+        + "IS JSON VALUE post\n"
         + "IS NOT A SET post\n"
         + "IS NOT EMPTY post\n"
         + "IS NOT FALSE post\n"
+        + "IS NOT JSON ARRAY post\n"
+        + "IS NOT JSON OBJECT post\n"
+        + "IS NOT JSON SCALAR post\n"
+        + "IS NOT JSON VALUE post\n"
         + "IS NOT NULL post\n"
         + "IS NOT TRUE post\n"
         + "IS NOT UNKNOWN post\n"
@@ -10664,6 +10675,71 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // The error should say it happened in 'ON' instead
     sql("select * from emp_r join dept_r on (^emp_r.slackingmin^ = dept_r.slackingmin)")
             .fails(onError);
+  }
+
+  @Test public void testJsonExists() {
+    checkExp("json_exists('{}', 'lax $')");
+    checkExpType("json_exists('{}', 'lax $')", "BOOLEAN");
+  }
+
+  @Test public void testJsonValue() {
+    checkExp("json_value('{\"foo\":\"bar\"}', 'lax $.foo')");
+    checkExpType("json_value('{\"foo\":\"bar\"}', 'lax $.foo')", "VARCHAR(2000)");
+    checkExpType("json_value('{\"foo\":100}', 'lax $.foo')", "VARCHAR(2000)");
+    checkExpType("json_value('{\"foo\":100}', 'lax $.foo'"
+        + "returning integer)", "INTEGER");
+    checkExpType("json_value('{\"foo\":100}', 'lax $.foo'"
+        + "returning integer default 0 on empty default 0 on error)", "INTEGER");
+    checkExpType("json_value('{\"foo\":100}', 'lax $.foo'"
+        + "returning integer default null on empty default null on error)", "INTEGER");
+
+    checkExpFails("^json_value('{\"foo\":true}', 'lax $.foo'"
+            + "returning boolean default 100 on empty default 100 on error)^",
+        "(?s).*cannot convert value of type INTEGER to type BOOLEAN*");
+  }
+
+  @Test public void testJsonObject() {
+    checkExp("json_object()");
+    checkExp("json_object('foo': 'bar')");
+    checkExpType("json_object('foo': 'bar')", "VARCHAR(2000) NOT NULL");
+    checkExpFails("^json_object(100: 'bar')^",
+        "(?s).*Expected a character type*");
+  }
+
+  @Test public void testJsonQuery() {
+    checkExp("json_query('{\"foo\":\"bar\"}', 'lax $')");
+    checkExpType("json_query('{\"foo\":\"bar\"}', 'lax $')", "VARCHAR(2000)");
+    checkExpType("json_query('{\"foo\":\"bar\"}', 'strict $')", "VARCHAR(2000)");
+    checkExpType("json_query('{\"foo\":\"bar\"}', 'strict $' WITH WRAPPER)",
+        "VARCHAR(2000)");
+    checkExpType("json_query('{\"foo\":\"bar\"}', 'strict $' EMPTY OBJECT ON EMPTY)",
+        "VARCHAR(2000)");
+    checkExpType("json_query('{\"foo\":\"bar\"}', 'strict $' EMPTY ARRAY ON ERROR)",
+        "VARCHAR(2000)");
+    checkExpType("json_query('{\"foo\":\"bar\"}', 'strict $' EMPTY OBJECT ON EMPTY "
+            + "EMPTY ARRAY ON ERROR EMPTY ARRAY ON EMPTY NULL ON ERROR)",
+        "VARCHAR(2000)");
+  }
+
+  @Test public void testJsonObjectAgg() {
+    check("select json_objectagg(ename: empno) from emp");
+    checkFails("select ^json_objectagg(empno: ename)^ from emp",
+        "(?s).*Cannot apply.*");
+    checkExpType("json_objectagg('foo': 'bar')", "VARCHAR(2000) NOT NULL");
+  }
+
+  @Test public void testJsonPredicate() {
+    checkExpType("'{}' is json", "BOOLEAN NOT NULL");
+    checkExpType("'{}' is json value", "BOOLEAN NOT NULL");
+    checkExpType("'{}' is json object", "BOOLEAN NOT NULL");
+    checkExpType("'[]' is json array", "BOOLEAN NOT NULL");
+    checkExpType("'100' is json scalar", "BOOLEAN NOT NULL");
+    checkExpType("'{}' is not json", "BOOLEAN NOT NULL");
+    checkExpType("'{}' is not json value", "BOOLEAN NOT NULL");
+    checkExpType("'{}' is not json object", "BOOLEAN NOT NULL");
+    checkExpType("'[]' is not json array", "BOOLEAN NOT NULL");
+    checkExpType("'100' is not json scalar", "BOOLEAN NOT NULL");
+    checkExpFails("^100 is json value^", "(?s).*Cannot apply.*");
   }
 }
 
