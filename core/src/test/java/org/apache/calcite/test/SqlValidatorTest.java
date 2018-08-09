@@ -5374,7 +5374,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testSumTooManyArgs() {
     checkFails(
-        "select ^sum(empno, deptno, empno)^, deptno from emp group by deptno",
+        "select ^sum(empno, deptno)^, deptno from emp group by deptno",
         "Invalid number of arguments to function 'SUM'. Was expecting 1 arguments");
   }
 

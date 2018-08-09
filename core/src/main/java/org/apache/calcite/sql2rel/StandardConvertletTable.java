@@ -1104,10 +1104,10 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
           cx.getValidator().getValidatedNodeType(call);
       switch (kind) {
       case COVAR_POP:
-        expr = expandCovariance(arg1, arg2, null, type, cx, true, false);
+        expr = expandCovariance(arg1, arg2, null, type, cx, true);
         break;
       case COVAR_SAMP:
-        expr = expandCovariance(arg1, arg2, null, type, cx, false, false);
+        expr = expandCovariance(arg1, arg2, null, type, cx, false);
         break;
       case REGR_SXX:
         expr = expandRegrSzz(arg2, arg1, type, cx, true);
@@ -1129,7 +1129,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       final SqlNode count =
           SqlStdOperatorTable.REGR_COUNT.createCall(pos, arg1, arg2);
       final SqlNode varPop =
-          expandCovariance(arg1, variance ? arg1 : arg2, arg2, avgType, cx, true, false);
+          expandCovariance(arg1, variance ? arg1 : arg2, arg2, avgType, cx, true);
       final RexNode varPopRex = cx.convertExpression(varPop);
       final SqlNode varPopCast;
       varPopCast = getCastedSqlNode(varPop, avgType, pos, varPopRex);
@@ -1142,8 +1142,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         final SqlNode dependent,
         final RelDataType varType,
         final SqlRexContext cx,
-        boolean biased,
-        boolean sqrt) {
+        boolean biased) {
       // covar_pop(x1, x2) ==>
       //     (sum(x1 * x2) - sum(x2) * sum(x1) / count(x1, x2))
       //     / count(x1, x2)
@@ -1196,14 +1195,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             SqlNodeList.of(getCastedSqlNode(nullLiteral, varType, pos, null)),
             SqlStdOperatorTable.MINUS.createCall(pos, countCasted, one));
       }
-      final SqlNode div = SqlStdOperatorTable.DIVIDE.createCall(pos, diff, denominator);
 
-      SqlNode result = div;
-      if (sqrt) {
-        final SqlNumericLiteral half = SqlLiteral.createExactNumeric("0.5", pos);
-        result = SqlStdOperatorTable.POWER.createCall(pos, div, half);
-      }
-      return result;
+      return SqlStdOperatorTable.DIVIDE.createCall(pos, diff, denominator);
     }
 
     private SqlNode getCastedSqlNode(

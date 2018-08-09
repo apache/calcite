@@ -918,7 +918,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>REGR_COUNT</code> aggregate function.
    */
   public static final SqlAggFunction REGR_COUNT =
-      new SqlCountAggFunction("REGR_COUNT");
+      new SqlRegrCountAggFunction(SqlKind.REGR_COUNT);
 
   /**
    * <code>REGR_SXX</code> aggregate function.

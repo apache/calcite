@@ -460,20 +460,18 @@ from emp order by emp."ENAME";
 # COVAR_POP(x, y) = (SUM(x * y) - SUM(x, y) * SUM(y, x) / REGR_COUNT(x, y)) / REGR_COUNT(x, y)
 select emps."AGE", emps."DEPTNO",
  sum(emps."AGE" * emps."DEPTNO") over() as "sum(age * deptno)",
- sum(emps."DEPTNO", emps."AGE") over() as "sum(deptno, age)",
- sum(emps."AGE", emps."DEPTNO") over() as "sum(age, deptno)",
  regr_count(emps."AGE", emps."DEPTNO") over() as "regr_count(age, deptno)",
  covar_pop(emps."DEPTNO", emps."AGE") over() as "covar_pop"
 from emps order by emps."AGE";
-+-----+--------+-------------------+------------------+------------------+-------------------------+-----------+
-| AGE | DEPTNO | sum(age * deptno) | sum(deptno, age) | sum(age, deptno) | regr_count(age, deptno) | covar_pop |
-+-----+--------+-------------------+------------------+------------------+-------------------------+-----------+
-|   5 |     20 |              1950 |               50 |              110 |                       3 |        39 |
-|  25 |     10 |              1950 |               50 |              110 |                       3 |        39 |
-|  80 |     20 |              1950 |               50 |              110 |                       3 |        39 |
-|     |     40 |              1950 |               50 |              110 |                       3 |        39 |
-|     |     40 |              1950 |               50 |              110 |                       3 |        39 |
-+-----+--------+-------------------+------------------+------------------+-------------------------+-----------+
++-----+--------+-------------------+-------------------------+-----------+
+| AGE | DEPTNO | sum(age * deptno) | regr_count(age, deptno) | covar_pop |
++-----+--------+-------------------+-------------------------+-----------+
+|   5 |     20 |              1950 |                       3 |        39 |
+|  25 |     10 |              1950 |                       3 |        39 |
+|  80 |     20 |              1950 |                       3 |        39 |
+|     |     40 |              1950 |                       3 |        39 |
+|     |     40 |              1950 |                       3 |        39 |
++-----+--------+-------------------+-------------------------+-----------+
 (5 rows)
 
 !ok
@@ -483,20 +481,18 @@ from emps order by emps."AGE";
 # COVAR_POP(x, y) = (SUM(x * y) - SUM(x, y) * SUM(y, x) / REGR_COUNT(x, y)) / REGR_COUNT(x, y)
 select emps."AGE", emps."DEPTNO", emps."GENDER",
  sum(emps."AGE" * emps."DEPTNO") over(partition by emps."GENDER") as "sum(age * deptno)",
- sum(emps."DEPTNO", emps."AGE") over(partition by emps."GENDER") as "sum(deptno, age)",
- sum(emps."AGE", emps."DEPTNO") over(partition by emps."GENDER") as "sum(age, deptno)",
  regr_count(emps."AGE", emps."DEPTNO") over(partition by emps."GENDER") as "regr_count(age, deptno)",
  covar_pop(emps."DEPTNO", emps."AGE") over(partition by emps."GENDER") as "covar_pop"
 from emps order by emps."GENDER";
-+-----+--------+--------+-------------------+------------------+------------------+-------------------------+-----------+
-| AGE | DEPTNO | GENDER | sum(age * deptno) | sum(deptno, age) | sum(age, deptno) | regr_count(age, deptno) | covar_pop |
-+-----+--------+--------+-------------------+------------------+------------------+-------------------------+-----------+
-|   5 |     20 | F      |               100 |               20 |                5 |                       1 |         0 |
-|     |     40 | F      |               100 |               20 |                5 |                       1 |         0 |
-|  80 |     20 | M      |              1600 |               20 |               80 |                       1 |         0 |
-|     |     40 | M      |              1600 |               20 |               80 |                       1 |         0 |
-|  25 |     10 |        |               250 |               10 |               25 |                       1 |         0 |
-+-----+--------+--------+-------------------+------------------+------------------+-------------------------+-----------+
++-----+--------+--------+-------------------+-------------------------+-----------+
+| AGE | DEPTNO | GENDER | sum(age * deptno) | regr_count(age, deptno) | covar_pop |
++-----+--------+--------+-------------------+-------------------------+-----------+
+|   5 |     20 | F      |               100 |                       1 |         0 |
+|     |     40 | F      |               100 |                       1 |         0 |
+|  80 |     20 | M      |              1600 |                       1 |         0 |
+|     |     40 | M      |              1600 |                       1 |         0 |
+|  25 |     10 |        |               250 |                       1 |         0 |
++-----+--------+--------+-------------------+-------------------------+-----------+
 (5 rows)
 
 !ok
