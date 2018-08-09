@@ -97,6 +97,7 @@ limitations under the License.
     <hydromatic-toolbox.version>0.3</hydromatic-toolbox.version>
     <hydromatic-tpcds.version>0.4</hydromatic-tpcds.version>
     <jackson.version>2.9.4</jackson.version>
+    <jamm.version>0.3.2</jamm.version>
     <janino.version>2.7.6</janino.version>
     <java-diff.version>1.1.1</java-diff.version>
     <javacc-maven-plugin.version>2.4</javacc-maven-plugin.version>
@@ -441,6 +442,15 @@ limitations under the License.
         <groupId>org.codehaus.janino</groupId>
         <artifactId>janino</artifactId>
         <version>${janino.version}</version>
+      </dependency>
+      <!--
+        Only required to specify updated version,
+        should be removed when cassandra-all is updated
+      -->
+      <dependency>
+        <groupId>com.github.jbellis</groupId>
+        <artifactId>jamm</artifactId>
+        <version>${jamm.version}</version>
       </dependency>
       <dependency>
         <groupId>org.codehaus.janino</groupId>
