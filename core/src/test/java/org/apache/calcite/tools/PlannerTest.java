@@ -49,9 +49,12 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
+import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.rules.SortJoinTransposeRule;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.SortRemoveRule;
+import org.apache.calcite.rel.rules.UnionMergeRule;
+import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.SchemaPlus;
@@ -75,6 +78,7 @@ import org.apache.calcite.sql.util.ListSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Util;
 
@@ -82,6 +86,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
 import org.hamcrest.Matcher;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -370,6 +375,148 @@ public class PlannerTest {
         equalTo(
             "EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
             + "  EnumerableTableScan(table=[[hr, emps]])\n"));
+  }
+
+  /** Unit test that parses, validates, converts and plans. */
+  @Test public void trimEmptyUnion2() throws Exception {
+    checkUnionPruning("values(1) union all select * from (values(2)) where false",
+        "EnumerableValues(type=[RecordType(INTEGER EXPR$0)], tuples=[[{ 1 }]])\n");
+
+    checkUnionPruning("select * from (values(2)) where false union all values(1)",
+        "EnumerableValues(type=[RecordType(INTEGER EXPR$0)], tuples=[[{ 1 }]])\n");
+  }
+
+  @Test public void trimEmptyUnion31() throws Exception {
+    emptyUnions31();
+  }
+
+  @Test public void trimEmptyUnion31withUnionMerge() throws Exception {
+    emptyUnions31(UnionMergeRule.INSTANCE);
+  }
+
+  private void emptyUnions31(UnionMergeRule... extraRules)
+      throws SqlParseException, ValidationException, RelConversionException {
+    String plan = "EnumerableValues(type=[RecordType(INTEGER EXPR$0)], tuples=[[{ 1 }]])\n";
+    checkUnionPruning("values(1)"
+            + " union all select * from (values(2)) where false"
+            + " union all select * from (values(3)) where false",
+        plan, extraRules);
+
+    checkUnionPruning("select * from (values(2)) where false"
+            + " union all values(1)"
+            + " union all select * from (values(3)) where false",
+        plan, extraRules);
+
+    checkUnionPruning("select * from (values(2)) where false"
+            + " union all select * from (values(3)) where false"
+            + " union all values(1)",
+        plan, extraRules);
+  }
+
+  @Ignore("[CALCITE-2773] java.lang.AssertionError: rel"
+      + " [rel#69:EnumerableUnion.ENUMERABLE.[](input#0=RelSubset#78,input#1=RelSubset#71,all=true)]"
+      + " has lower cost {4.0 rows, 4.0 cpu, 0.0 io} than best cost {5.0 rows, 5.0 cpu, 0.0 io}"
+      + " of subset [rel#67:Subset#6.ENUMERABLE.[]]")
+  @Test public void trimEmptyUnion32() throws Exception {
+    emptyUnions32();
+  }
+
+  @Test public void trimEmptyUnion32withUnionMerge() throws Exception {
+    emptyUnions32(UnionMergeRule.INSTANCE);
+  }
+
+  private void emptyUnions32(UnionMergeRule... extraRules)
+      throws SqlParseException, ValidationException, RelConversionException {
+    String plan = "EnumerableUnion(all=[true])\n"
+        + "  EnumerableValues(type=[RecordType(INTEGER EXPR$0)], tuples=[[{ 1 }]])\n"
+        + "  EnumerableValues(type=[RecordType(INTEGER EXPR$0)], tuples=[[{ 2 }]])\n";
+
+    checkUnionPruning("values(1)"
+            + " union all values(2)"
+            + " union all select * from (values(3)) where false",
+        plan, extraRules);
+
+    checkUnionPruning("values(1)"
+            + " union all select * from (values(3)) where false"
+            + " union all values(2)",
+        plan, extraRules);
+
+    checkUnionPruning("select * from (values(2)) where false"
+            + " union all values(1)"
+            + " union all values(2)",
+        plan, extraRules);
+  }
+
+  private void checkUnionPruning(String sql, String plan, RelOptRule... extraRules)
+      throws SqlParseException, ValidationException, RelConversionException {
+    ImmutableList.Builder<RelOptRule> rules = ImmutableList.<RelOptRule>builder().add(
+        PruneEmptyRules.UNION_INSTANCE,
+        ValuesReduceRule.PROJECT_FILTER_INSTANCE,
+        EnumerableRules.ENUMERABLE_PROJECT_RULE,
+        EnumerableRules.ENUMERABLE_FILTER_RULE,
+        EnumerableRules.ENUMERABLE_VALUES_RULE,
+        EnumerableRules.ENUMERABLE_UNION_RULE
+    );
+    rules.add(extraRules);
+    Program program = Programs.ofRules(rules.build());
+    Planner planner = getPlanner(null, program);
+    SqlNode parse = planner.parse(sql);
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.rel(validate).project();
+    RelTraitSet traitSet = convert.getTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    RelNode transform = planner.transform(0, traitSet, convert);
+    assertThat("Empty values should be removed from " + sql,
+        toString(transform), equalTo(plan));
+  }
+
+  @Ignore("[CALCITE-2773] java.lang.AssertionError: rel"
+      + " [rel#17:EnumerableUnion.ENUMERABLE.[](input#0=RelSubset#26,input#1=RelSubset#19,all=true)]"
+      + " has lower cost {4.0 rows, 4.0 cpu, 0.0 io}"
+      + " than best cost {5.0 rows, 5.0 cpu, 0.0 io} of subset [rel#15:Subset#5.ENUMERABLE.[]]")
+  @Test public void trimEmptyUnion32viaRelBuidler() throws Exception {
+    RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+
+    // This somehow blows up (see trimEmptyUnion32, the second case)
+    // (values(1) union all select * from (values(3)) where false)
+    // union all values(2)
+
+    // Non-trivial filter is important for the test to fail
+    RelNode relNode = relBuilder
+        .values(new String[]{"x"}, "1")
+        .values(new String[]{"x"}, "3")
+        .filter(relBuilder.equals(relBuilder.field("x"), relBuilder.literal("30")))
+        .union(true)
+        .values(new String[]{"x"}, "2")
+        .union(true)
+        .build();
+
+    RelOptPlanner planner = relNode.getCluster().getPlanner();
+    RuleSet ruleSet =
+        RuleSets.ofList(
+            PruneEmptyRules.UNION_INSTANCE,
+            ValuesReduceRule.FILTER_INSTANCE,
+            EnumerableRules.ENUMERABLE_PROJECT_RULE,
+            EnumerableRules.ENUMERABLE_FILTER_RULE,
+            EnumerableRules.ENUMERABLE_VALUES_RULE,
+            EnumerableRules.ENUMERABLE_UNION_RULE);
+    Program program = Programs.of(ruleSet);
+
+    RelTraitSet toTraits = relNode.getTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+
+    RelNode output = program.run(planner, relNode, toTraits,
+        ImmutableList.of(), ImmutableList.of());
+
+    // Expected outcomes are:
+    // 1) relation is optimized to simple VALUES
+    // 2) the number of rule invocations is reasonable
+    // 3) planner does not throw OutOfMemoryError
+    assertThat("empty union should be pruned out of " + toString(relNode),
+        Util.toLinux(toString(output)),
+        equalTo("EnumerableUnion(all=[true])\n"
+            + "  EnumerableValues(type=[RecordType(INTEGER EXPR$0)], tuples=[[{ 1 }]])\n"
+            + "  EnumerableValues(type=[RecordType(INTEGER EXPR$0)], tuples=[[{ 2 }]])\n"));
   }
 
   /** Unit test that parses, validates, converts and

@@ -155,7 +155,6 @@ public class VolcanoPlannerTest {
         equalTo(
             sort(
                 "NoneSingleRel:Subset#0.NONE",
-                "PhysSingleRel:Subset#0.NONE",
                 "PhysSingleRel:Subset#0.PHYS")));
   }
 
