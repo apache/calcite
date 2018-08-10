@@ -1567,7 +1567,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
   }
 
   @Test public void testSimplifyCaseNullableBoolean() {
-    RexNode condition = eq(input(tBoolean(), 0), literal("S"));
+    RexNode condition = eq(input(tVarchar(), 0), literal("S"));
     RexNode caseNode = case_(condition, trueLiteral, falseLiteral);
 
     RexCall result = (RexCall) simplify.simplify(caseNode);
