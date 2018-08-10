@@ -272,6 +272,17 @@ public abstract class RexProgramBuilderBase {
     return rexBuilder.makeCall(SqlStdOperatorTable.PLUS, n1, n2);
   }
 
+  /**
+   * Generates {@code x IN (y, z)} expression when called as {@code in(x, y, z)}.
+   * @param node left side of the IN expression
+   * @param nodes nodes in the right side of IN expression
+   * @return IN expression
+   */
+  protected RexNode in(RexNode node, RexNode... nodes) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.IN,
+        ImmutableList.<RexNode>builder().add(node).add(nodes).build());
+  }
+
   // Types
   protected RelDataType nullable(RelDataType type) {
     if (type.isNullable()) {
@@ -363,6 +374,11 @@ public abstract class RexProgramBuilderBase {
     return rexBuilder.makeInputRef(type, arg);
   }
 
+  private void assertArgValue(int arg) {
+    assert arg >= 0 && arg < MAX_FIELDS
+        : "arg should be in 0.." + (MAX_FIELDS-1) + " range. Actual value was " + arg;
+  }
+
   /**
    * Creates {@code nullable boolean variable} with index of 0.
    * If you need several distinct variables, use {@link #vBool(int)}
@@ -379,6 +395,7 @@ public abstract class RexProgramBuilderBase {
    * @return nullable boolean variable with given index (0-based)
    */
   protected RexNode vBool(int arg) {
+    assertArgValue(arg);
     return rexBuilder.makeFieldAccess(getDynamicParam(nonNullableBool, "bool"), arg);
   }
 
@@ -400,7 +417,10 @@ public abstract class RexProgramBuilderBase {
    * @return non-nullable boolean variable with given index (0-based)
    */
   protected RexNode vBoolNotNull(int arg) {
-    return vBool(arg + MAX_FIELDS);
+    assertArgValue(arg);
+    return rexBuilder.makeFieldAccess(
+        getDynamicParam(nonNullableBool, "bool"),
+        arg + MAX_FIELDS);
   }
 
   /**
@@ -421,6 +441,7 @@ public abstract class RexProgramBuilderBase {
    * @return nullable int variable with given index (0-based)
    */
   protected RexNode vInt(int arg) {
+    assertArgValue(arg);
     return rexBuilder.makeFieldAccess(getDynamicParam(nonNullableInt, "int"), arg);
   }
 
@@ -442,18 +463,57 @@ public abstract class RexProgramBuilderBase {
    * @return non-nullable int variable with given index (0-based)
    */
   protected RexNode vIntNotNull(int arg) {
-    return vInt(arg + MAX_FIELDS);
+    assertArgValue(arg);
+    return rexBuilder.makeFieldAccess(
+        getDynamicParam(nonNullableInt, "int"),
+        arg + MAX_FIELDS);
   }
 
   /**
-   * Generates {@code x IN (y, z)} expression when called as {@code in(x, y, z)}.
-   * @param node left side of the IN expression
-   * @param nodes nodes in the right side of IN expression
-   * @return IN expression
+   * Creates {@code nullable varchar variable} with index of 0.
+   * If you need several distinct variables, use {@link #vVarchar(int)}.
+   * The resulting node would look like {@code ?0.notNullVarchar0}
+   *
+   * @return nullable varchar variable with index of 0
    */
-  protected RexNode in(RexNode node, RexNode... nodes) {
-    return rexBuilder.makeCall(SqlStdOperatorTable.IN,
-        ImmutableList.<RexNode>builder().add(node).add(nodes).build());
+  protected RexNode vVarchar() {
+    return vVarchar(0);
+  }
+
+  /**
+   * Creates {@code nullable varchar variable} with index of {@code arg} (0-based).
+   * The resulting node would look like {@code ?0.varchar3} if {@code arg} is {@code 3}.
+   *
+   * @return nullable varchar variable with given index (0-based)
+   */
+  protected RexNode vVarchar(int arg) {
+    assertArgValue(arg);
+    return rexBuilder.makeFieldAccess(
+        getDynamicParam(nonNullableVarchar, "varchar"), arg);
+  }
+
+  /**
+   * Creates {@code non-nullable varchar variable} with index of 0.
+   * If you need several distinct variables, use {@link #vVarcharNotNull(int)}.
+   * The resulting node would look like {@code ?0.notNullVarchar0}
+   *
+   * @return non-nullable varchar variable with index of 0
+   */
+  protected RexNode vVarcharNotNull() {
+    return vVarcharNotNull(0);
+  }
+
+  /**
+   * Creates {@code non-nullable varchar variable} with index of {@code arg} (0-based).
+   * The resulting node would look like {@code ?0.notNullVarchar3} if {@code arg} is {@code 3}.
+   *
+   * @return non-nullable varchar variable with given index (0-based)
+   */
+  protected RexNode vVarcharNotNull(int arg) {
+    assertArgValue(arg);
+    return rexBuilder.makeFieldAccess(
+        getDynamicParam(nonNullableVarchar, "varchar"),
+        arg + MAX_FIELDS);
   }
 }
 

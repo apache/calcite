@@ -1900,6 +1900,30 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplifyUnchanged(le(literalAbc, literalZero));
   }
 
+  @Test public void testSimpleDynamicVars() {
+    assertTypeAndToString(
+        vBool(2), "?0.bool2", "BOOLEAN");
+    assertTypeAndToString(
+        vBoolNotNull(0), "?0.notNullBool0", "BOOLEAN NOT NULL");
+
+    assertTypeAndToString(
+        vInt(2), "?0.int2", "INTEGER");
+    assertTypeAndToString(
+        vIntNotNull(0), "?0.notNullInt0", "INTEGER NOT NULL");
+
+    assertTypeAndToString(
+        vVarchar(), "?0.varchar0", "VARCHAR");
+    assertTypeAndToString(
+        vVarcharNotNull(9), "?0.notNullVarchar9", "VARCHAR NOT NULL");
+  }
+
+  private void assertTypeAndToString(
+      RexNode rexNode, String representation, String type) {
+    assertEquals(representation, rexNode.toString());
+    assertEquals("type of " + rexNode, type, rexNode.getType().toString()
+        + (rexNode.getType().isNullable() ? "" : " NOT NULL"));
+  }
+
   @Test public void testIsDeterministic() {
     SqlOperator ndc = new SqlSpecialOperator(
             "NDC",
