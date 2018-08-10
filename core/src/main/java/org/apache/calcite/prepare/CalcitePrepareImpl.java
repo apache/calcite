@@ -1179,13 +1179,12 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       final CatalogReader catalogReader =
           this.catalogReader.withSchemaPath(schemaPath);
       SqlValidator validator = createSqlValidator(catalogReader);
-      SqlNode sqlNode1 = validator.validate(sqlNode);
       final SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
               .withTrimUnusedFields(true).build();
       SqlToRelConverter sqlToRelConverter =
           getSqlToRelConverter(validator, catalogReader, config);
       RelRoot root =
-          sqlToRelConverter.convertQuery(sqlNode1, true, false);
+          sqlToRelConverter.convertQuery(sqlNode, true, false);
 
       --expansionDepth;
       return root;
