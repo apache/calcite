@@ -41,8 +41,6 @@ if [ "$cygwin" ]; then
   VM_OPTS=-Djline.terminal=jline.UnixTerminal
 fi
 
-export TERM=xterm-color
-
 exec java $VM_OPTS -cp "${CP}" sqlline.SqlLine "$@"
 
 # End sqlline

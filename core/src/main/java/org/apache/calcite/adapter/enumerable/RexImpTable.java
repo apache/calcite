@@ -448,27 +448,19 @@ public class RexImpTable {
     defineMethod(JSON_VALUE_ANY, BuiltInMethod.JSON_VALUE_ANY.method, NullPolicy.NONE);
     defineMethod(JSON_QUERY, BuiltInMethod.JSON_QUERY.method, NullPolicy.NONE);
     defineMethod(JSON_OBJECT, BuiltInMethod.JSON_OBJECT.method, NullPolicy.NONE);
-    aggMap.put(JSON_OBJECTAGG_NULL_ON_NULL, new Supplier<AggImplementor>() {
-      @Override public AggImplementor get() {
-        return new JsonObjectAggImplementor(BuiltInMethod.JSON_OBJECTAGG_ADD_NULL_ON_NULL.method);
-      }
-    });
-    aggMap.put(JSON_OBJECTAGG_ABSENT_ON_NULL, new Supplier<AggImplementor>() {
-      @Override public AggImplementor get() {
-        return new JsonObjectAggImplementor(BuiltInMethod.JSON_OBJECTAGG_ADD_ABSENT_ON_NULL.method);
-      }
-    });
+    aggMap.put(JSON_OBJECTAGG_NULL_ON_NULL,
+        JsonObjectAggImplementor
+            .supplierFor(BuiltInMethod.JSON_OBJECTAGG_ADD_NULL_ON_NULL.method));
+    aggMap.put(JSON_OBJECTAGG_ABSENT_ON_NULL,
+        JsonObjectAggImplementor
+            .supplierFor(BuiltInMethod.JSON_OBJECTAGG_ADD_ABSENT_ON_NULL.method));
     defineMethod(JSON_ARRAY, BuiltInMethod.JSON_ARRAY.method, NullPolicy.NONE);
-    aggMap.put(JSON_ARRAYAGG_NULL_ON_NULL, new Supplier<AggImplementor>() {
-      @Override public AggImplementor get() {
-        return new JsonArrayAggImplementor(BuiltInMethod.JSON_ARRAYAGG_ADD_NULL_ON_NULL.method);
-      }
-    });
-    aggMap.put(JSON_ARRAYAGG_ABSENT_ON_NULL, new Supplier<AggImplementor>() {
-      @Override public AggImplementor get() {
-        return new JsonArrayAggImplementor(BuiltInMethod.JSON_ARRAYAGG_ADD_ABSENT_ON_NULL.method);
-      }
-    });
+    aggMap.put(JSON_ARRAYAGG_NULL_ON_NULL,
+        JsonArrayAggImplementor
+            .supplierFor(BuiltInMethod.JSON_ARRAYAGG_ADD_NULL_ON_NULL.method));
+    aggMap.put(JSON_ARRAYAGG_ABSENT_ON_NULL,
+        JsonArrayAggImplementor
+            .supplierFor(BuiltInMethod.JSON_ARRAYAGG_ADD_ABSENT_ON_NULL.method));
     defineImplementor(IS_JSON_VALUE, NullPolicy.NONE,
             new MethodImplementor(BuiltInMethod.IS_JSON_VALUE.method), false);
     defineImplementor(IS_JSON_OBJECT, NullPolicy.NONE,
@@ -1805,6 +1797,10 @@ public class RexImpTable {
       this.m = m;
     }
 
+    static Supplier<JsonObjectAggImplementor> supplierFor(Method m) {
+      return () -> new JsonObjectAggImplementor(m);
+    }
+
     @Override public List<Type> getStateType(AggContext info) {
       return Collections.singletonList(HashMap.class);
     }
@@ -1847,6 +1843,9 @@ public class RexImpTable {
       this.m = m;
     }
 
+    static Supplier<JsonArrayAggImplementor> supplierFor(Method m) {
+      return () -> new JsonArrayAggImplementor(m);
+    }
     @Override public List<Type> getStateType(AggContext info) {
       return Collections.singletonList(ArrayList.class);
     }

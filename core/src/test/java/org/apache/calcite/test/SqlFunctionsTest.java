@@ -29,6 +29,9 @@ import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 import com.google.common.collect.ImmutableMap;
 import com.jayway.jsonpath.PathNotFoundException;
 
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -38,6 +41,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.addMonths;
@@ -836,31 +840,81 @@ public class SqlFunctionsTest {
         is(100));
   }
 
+  private <O, F> void assertObjectProperty(O o,
+                                           Matcher<? extends F> matcher,
+                                           Function<O, F> propertyGetter,
+                                           String propertyDesc) {
+
+    assertThat(o, new BaseMatcher<O>() {
+
+      @Override public boolean matches(Object item) {
+        if (!o.getClass().isInstance(o)) {
+          return false;
+        }
+        return matcher.matches(propertyGetter.apply((O) item));
+      }
+
+      @Override public void describeTo(Description description) {
+        description
+            .appendText("a instance of ")
+            .appendText(o.getClass().getSimpleName())
+            .appendText(", and the property [")
+            .appendText(propertyDesc)
+            .appendText("] ")
+            .appendDescriptionOf(matcher);
+      }
+    });
+  }
+
+  private void assertJsonApiCommonSyntaxPathReturned(SqlFunctions.PathContext context,
+                                                     Matcher<Object> matcher) {
+    assertObjectProperty(context, matcher, c -> c.pathReturned, "pathReturned");
+  }
+
+  private void assertJsonApiCommonSyntaxExc(SqlFunctions.PathContext context,
+                                            Matcher<? extends Exception> matcher) {
+    assertObjectProperty(context, matcher, c -> c.exc, "exc");
+  }
+
+  private void assertJsonApiCommonSyntaxMode(SqlFunctions.PathContext context,
+                                             Matcher<SqlFunctions.PathMode> matcher) {
+    assertObjectProperty(context, matcher, c -> c.mode, "mode");
+  }
+
   @Test public void testJsonApiCommonSyntax() {
-    assertThat(
+    assertJsonApiCommonSyntaxMode(
         SqlFunctions.
             jsonApiCommonSyntax(ImmutableMap.of("foo", "bar"),
-                "lax $.foo").pathReturned,
+                "lax $.foo"),
+        is(SqlFunctions.PathMode.LAX));
+    assertJsonApiCommonSyntaxMode(
+        SqlFunctions.
+            jsonApiCommonSyntax(ImmutableMap.of("foo", "bar"),
+                "strict $.foo"),
+        is(SqlFunctions.PathMode.STRICT));
+    assertJsonApiCommonSyntaxPathReturned(
+        SqlFunctions.
+            jsonApiCommonSyntax(ImmutableMap.of("foo", "bar"),
+                "lax $.foo"),
         is("bar"));
-    assertThat(
+    assertJsonApiCommonSyntaxPathReturned(
         SqlFunctions.
             jsonApiCommonSyntax(ImmutableMap.of("foo", "bar"),
-                "strict $.foo").pathReturned,
+                "strict $.foo"),
         is("bar"));
-    assertThat(
+    assertJsonApiCommonSyntaxPathReturned(
         SqlFunctions.
             jsonApiCommonSyntax(ImmutableMap.of("foo", "bar"),
-                "lax $.foo1").pathReturned,
+                "lax $.foo1"),
         nullValue());
-    assertThat(
-        (PathNotFoundException) SqlFunctions.
+    assertJsonApiCommonSyntaxExc(SqlFunctions.
             jsonApiCommonSyntax(ImmutableMap.of("foo", "bar"),
-                "strict $.foo1").exc,
+                "strict $.foo1"),
         isA(PathNotFoundException.class));
-    assertThat(
+    assertJsonApiCommonSyntaxPathReturned(
         SqlFunctions.
             jsonApiCommonSyntax(ImmutableMap.of("foo", 100),
-                "lax $.foo").pathReturned,
+                "lax $.foo"),
         is(100));
   }
 
@@ -937,7 +991,7 @@ public class SqlFunctionsTest {
           jsonExists(SqlFunctions.PathContext
                   .withStrictException(new Exception("test message")),
               SqlJsonExistsErrorBehavior.ERROR);
-      fail("should be failed yet");
+      fail("expect exception, but not");
     } catch (RuntimeException e) {
       assertThat(e.getMessage(), is("java.lang.Exception: test message"));
     }
@@ -986,7 +1040,7 @@ public class SqlFunctionsTest {
               null,
               SqlJsonValueEmptyOrErrorBehavior.NULL,
               null);
-      fail("should be failed yet");
+      fail("expect exception, but not");
     } catch (Exception e) {
       assertThat(e.getMessage(), is("empty json value"));
     }
@@ -1021,7 +1075,7 @@ public class SqlFunctionsTest {
               null,
               SqlJsonValueEmptyOrErrorBehavior.NULL,
               null);
-      fail("should be failed yet");
+      fail("expect exception, but not");
     } catch (Exception e) {
       assertThat(e.getMessage(), is("empty json value"));
     }
@@ -1056,7 +1110,7 @@ public class SqlFunctionsTest {
               null,
               SqlJsonValueEmptyOrErrorBehavior.ERROR,
               null);
-      fail("should be failed yet");
+      fail("expect exception, but not");
     } catch (Exception e) {
       assertThat(e.getMessage(), is("java.lang.Exception: test message"));
     }
@@ -1091,7 +1145,7 @@ public class SqlFunctionsTest {
               null,
               SqlJsonValueEmptyOrErrorBehavior.ERROR,
               null);
-      fail("should be failed yet");
+      fail("expect exception, but not");
     } catch (Exception e) {
       assertThat(e.getMessage(), is("java.lang.RuntimeException: not a json value: []"));
     }
@@ -1146,7 +1200,7 @@ public class SqlFunctionsTest {
               SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
               SqlJsonQueryEmptyOrErrorBehavior.ERROR,
               SqlJsonQueryEmptyOrErrorBehavior.NULL);
-      fail("should be failed yet");
+      fail("expect exception, but not");
     } catch (Exception e) {
       assertThat(e.getMessage(), is("empty json query"));
     }
@@ -1189,7 +1243,7 @@ public class SqlFunctionsTest {
               SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
               SqlJsonQueryEmptyOrErrorBehavior.ERROR,
               SqlJsonQueryEmptyOrErrorBehavior.NULL);
-      fail("should be failed yet");
+      fail("expect exception, but not");
     } catch (Exception e) {
       assertThat(e.getMessage(), is("empty json query"));
     }
@@ -1223,7 +1277,7 @@ public class SqlFunctionsTest {
               SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
               SqlJsonQueryEmptyOrErrorBehavior.NULL,
               SqlJsonQueryEmptyOrErrorBehavior.ERROR);
-      fail("should be failed yet");
+      fail("expect exception, but not");
     } catch (Exception e) {
       assertThat(e.getMessage(), is("java.lang.Exception: test message"));
     }
@@ -1256,7 +1310,7 @@ public class SqlFunctionsTest {
               SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
               SqlJsonQueryEmptyOrErrorBehavior.NULL,
               SqlJsonQueryEmptyOrErrorBehavior.ERROR);
-      fail("should be failed yet");
+      fail("expect exception, but not");
     } catch (Exception e) {
       assertThat(
           e.getMessage(), is("java.lang.RuntimeException: "
@@ -1315,6 +1369,25 @@ public class SqlFunctionsTest {
         SqlFunctions.jsonize(new HashMap<>()),
         is("{}")
     );
+  }
+
+  @Test public void testDejsonize() {
+    assertThat(
+        SqlFunctions.dejsonize("{}"),
+        is(Collections.emptyMap())
+    );
+    assertThat(
+        SqlFunctions.dejsonize("[]"),
+        is(Collections.emptyList())
+    );
+
+    // expect exception thrown
+    try {
+      SqlFunctions.dejsonize("[}");
+      fail("expect exception, but not");
+    } catch (Exception ignored) {
+      // ignored
+    }
   }
 
   @Test public void testJsonObject() {

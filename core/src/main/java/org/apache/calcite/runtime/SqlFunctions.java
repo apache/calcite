@@ -43,14 +43,14 @@ import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
-
-import net.minidev.json.JSONValue;
+import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
+import com.jayway.jsonpath.spi.json.JsonProvider;
+import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
+import com.jayway.jsonpath.spi.mapper.MappingProvider;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
@@ -128,7 +128,8 @@ public class SqlFunctions {
       Pattern.compile("^\\s*(?<mode>strict|lax)\\s+(?<spec>.+)$",
           Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);
 
-  private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
+  private static final JsonProvider JSON_PATH_JSON_PROVIDER = new JacksonJsonProvider();
+  private static final MappingProvider JSON_PATH_MAPPING_PROVIDER = new JacksonMappingProvider();
 
   private SqlFunctions() {
   }
@@ -2461,7 +2462,7 @@ public class SqlFunctions {
 
   public static Object jsonValueExpression(String input) {
     try {
-      return JSONValue.parseWithException(input);
+      return dejsonize(input);
     } catch (Exception e) {
       return e;
     }
@@ -2488,6 +2489,8 @@ public class SqlFunctions {
         ctx = JsonPath.parse(input,
             Configuration
                 .builder()
+                .jsonProvider(JSON_PATH_JSON_PROVIDER)
+                .mappingProvider(JSON_PATH_MAPPING_PROVIDER)
                 .build()
         );
         break;
@@ -2499,6 +2502,8 @@ public class SqlFunctions {
             Configuration
                 .builder()
                 .options(Option.SUPPRESS_EXCEPTIONS)
+                .jsonProvider(JSON_PATH_JSON_PROVIDER)
+                .mappingProvider(JSON_PATH_MAPPING_PROVIDER)
                 .build()
         );
         break;
@@ -2650,11 +2655,11 @@ public class SqlFunctions {
   }
 
   public static String jsonize(Object input) {
-    try {
-      return JSON_MAPPER.writeValueAsString(input);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException("error serializing object to json", e);
-    }
+    return JSON_PATH_JSON_PROVIDER.toJson(input);
+  }
+
+  public static Object dejsonize(String input) {
+    return JSON_PATH_JSON_PROVIDER.parse(input);
   }
 
   public static String jsonObject(SqlJsonConstructorNullClause nullClause, Object... kvs) {
@@ -2734,7 +2739,7 @@ public class SqlFunctions {
 
   public static boolean isJsonValue(String input) {
     try {
-      JSONValue.parseWithException(input);
+      dejsonize(input);
       return true;
     } catch (Exception e) {
       return false;
@@ -2743,7 +2748,7 @@ public class SqlFunctions {
 
   public static boolean isJsonObject(String input) {
     try {
-      Object o = JSONValue.parseWithException(input);
+      Object o = dejsonize(input);
       return o instanceof Map;
     } catch (Exception e) {
       return false;
@@ -2752,7 +2757,7 @@ public class SqlFunctions {
 
   public static boolean isJsonArray(String input) {
     try {
-      Object o = JSONValue.parseWithException(input);
+      Object o = dejsonize(input);
       return o instanceof Collection;
     } catch (Exception e) {
       return false;
@@ -2761,7 +2766,7 @@ public class SqlFunctions {
 
   public static boolean isJsonScalar(String input) {
     try {
-      Object o = JSONValue.parseWithException(input);
+      Object o = dejsonize(input);
       return !(o instanceof Map) && !(o instanceof Collection);
     } catch (Exception e) {
       return false;
@@ -2798,6 +2803,14 @@ public class SqlFunctions {
         throw new IllegalArgumentException("null path returned value in strict mode");
       }
       return new PathContext(mode, pathReturned, null);
+    }
+
+    @Override public String toString() {
+      return "PathContext{"
+          + "mode=" + mode
+          + ", pathReturned=" + pathReturned
+          + ", exc=" + exc
+          + '}';
     }
   }
 
