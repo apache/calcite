@@ -376,7 +376,7 @@ public abstract class RexProgramBuilderBase {
 
   private void assertArgValue(int arg) {
     assert arg >= 0 && arg < MAX_FIELDS
-        : "arg should be in 0.." + (MAX_FIELDS-1) + " range. Actual value was " + arg;
+        : "arg should be in 0.." + (MAX_FIELDS - 1) + " range. Actual value was " + arg;
   }
 
   /**
