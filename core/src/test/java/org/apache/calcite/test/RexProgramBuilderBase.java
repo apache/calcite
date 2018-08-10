@@ -38,6 +38,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
@@ -341,6 +342,14 @@ public abstract class RexProgramBuilderBase {
 
   protected RexNode literal(int value) {
     return rexBuilder.makeLiteral(value, nonNullableInt, false);
+  }
+
+  protected RexNode literal(BigDecimal value) {
+    return rexBuilder.makeExactLiteral(value);
+  }
+
+  protected RexNode literal(BigDecimal value, RelDataType type) {
+    return rexBuilder.makeExactLiteral(value, type);
   }
 
   protected RexNode literal(Integer value) {

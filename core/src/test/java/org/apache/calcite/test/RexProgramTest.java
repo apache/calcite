@@ -1623,6 +1623,17 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplify(isNotNull(lt(i0, null_)), "false");
   }
 
+  @Test public void checkSimplifyDynamicParam() {
+    checkSimplify(isNotNull(lt(vInt(0), vInt(1))),
+        "AND(IS NOT NULL(?0.int0), IS NOT NULL(?0.int1))");
+    checkSimplify(isNotNull(lt(vInt(0), vIntNotNull(2))),
+        "IS NOT NULL(?0.int0)");
+    checkSimplify(isNotNull(lt(vIntNotNull(2), vIntNotNull(3))), "true");
+    checkSimplify(isNotNull(lt(vInt(0), literal(BigDecimal.ONE))),
+        "IS NOT NULL(?0.int0)");
+    checkSimplify(isNotNull(lt(vInt(0), null_(tInt()))), "false");
+  }
+
   @Test public void testSimplifyCastLiteral() {
     final List<RexLiteral> literals = new ArrayList<>();
     literals.add(
