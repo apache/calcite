@@ -10696,6 +10696,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpFails("^json_value('{\"foo\":true}', 'lax $.foo'"
             + "returning boolean default 100 on empty default 100 on error)^",
         "(?s).*cannot convert value of type INTEGER to type BOOLEAN*");
+
+    // test type inference of default value
+    checkExpType("json_value('{\"foo\":100}', 'lax $.foo' default 'empty' on empty)",
+        "VARCHAR(2000)");
+    checkExpFails("^json_value('{\"foo\":100}', 'lax $.foo' returning boolean"
+        + " default 100 on empty)^", "(?s).*Cast function cannot convert value.*");
   }
 
   @Test public void testJsonObject() {

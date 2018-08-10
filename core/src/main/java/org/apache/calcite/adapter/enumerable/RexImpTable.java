@@ -1802,7 +1802,7 @@ public class RexImpTable {
     }
 
     @Override public List<Type> getStateType(AggContext info) {
-      return Collections.singletonList(HashMap.class);
+      return Collections.singletonList(Map.class);
     }
 
     @Override public void implementReset(AggContext info,
@@ -1847,7 +1847,7 @@ public class RexImpTable {
       return () -> new JsonArrayAggImplementor(m);
     }
     @Override public List<Type> getStateType(AggContext info) {
-      return Collections.singletonList(ArrayList.class);
+      return Collections.singletonList(List.class);
     }
 
     @Override public void implementReset(AggContext info,

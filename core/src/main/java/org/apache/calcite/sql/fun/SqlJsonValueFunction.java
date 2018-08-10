@@ -117,10 +117,10 @@ public class SqlJsonValueFunction extends SqlFunction {
         callBinding.getValidator().getValidatedNodeType(callBinding.operand(4));
     RelDataType returnType = callBinding.getValidator().deriveType(
         callBinding.getScope(), callBinding.operand(5));
-    if (canCastFrom(callBinding, throwOnFailure, defaultValueOnEmptyType, returnType)) {
+    if (!canCastFrom(callBinding, throwOnFailure, defaultValueOnEmptyType, returnType)) {
       return false;
     }
-    if (canCastFrom(callBinding, throwOnFailure, defaultValueOnErrorType, returnType)) {
+    if (!canCastFrom(callBinding, throwOnFailure, defaultValueOnErrorType, returnType)) {
       return false;
     }
     return true;
@@ -181,15 +181,15 @@ public class SqlJsonValueFunction extends SqlFunction {
 
   private boolean canCastFrom(SqlCallBinding callBinding, boolean throwOnFailure,
                               RelDataType inType, RelDataType outType) {
-    if (!SqlTypeUtil.canCastFrom(outType, inType, true)) {
-      if (throwOnFailure) {
-        throw callBinding.newError(
-            RESOURCE.cannotCastValue(inType.toString(),
-                outType.toString()));
-      }
-      return false;
+    if (SqlTypeUtil.canCastFrom(outType, inType, true)) {
+      return true;
     }
-    return true;
+    if (throwOnFailure) {
+      throw callBinding.newError(
+          RESOURCE.cannotCastValue(inType.toString(),
+              outType.toString()));
+    }
+    return false;
   }
 }
 
