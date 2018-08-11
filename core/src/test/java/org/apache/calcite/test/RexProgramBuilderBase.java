@@ -25,6 +25,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexExecutorImpl;
@@ -225,6 +226,31 @@ public abstract class RexProgramBuilderBase {
     return rexBuilder.makeCall(SqlStdOperatorTable.CASE, nodes);
   }
 
+  /**
+   * Creates a call to the CAST operator.
+   *
+   * <p>This method enables to create {@code CAST(42 nullable int)} expressions.</p>
+   *
+   * @param e input node
+   * @param type type to cast to
+   * @return call to CAST operator
+   */
+  protected RexNode abstractCast(RexNode e, RelDataType type) {
+    return rexBuilder.makeAbstractCast(type, e);
+  }
+
+  /**
+   * Creates a call to the CAST operator, expanding if possible, and not
+   * preserving nullability.
+   *
+   * <p>Tries to expand the cast, and therefore the result may be something
+   * other than a {@link RexCall} to the CAST operator, such as a
+   * {@link RexLiteral}.</p>
+
+   * @param e input node
+   * @param type type to cast to
+   * @return input node converted to given type
+   */
   protected RexNode cast(RexNode e, RelDataType type) {
     return rexBuilder.makeCast(type, e);
   }

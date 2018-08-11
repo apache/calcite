@@ -107,6 +107,23 @@ public class RexProgramTest extends RexProgramBuilderBase {
         equalTo(expected));
   }
 
+  /**
+   * Asserts that given node has expected string representation with account of node type
+   * @param message extra message that clarifies where the node came from
+   * @param expected expected string representation of the node
+   * @param node node to check
+   */
+  private void assertNode(String message, String expected, RexNode node) {
+    String actual;
+    if (node.isA(SqlKind.CAST) || node.isA(SqlKind.NEW_SPECIFICATION)) {
+      // toString contains type (see RexCall.toString)
+      actual = node.toString();
+    } else {
+      actual = node + ":" + node.getType() + (node.getType().isNullable() ? "" : " NOT NULL");
+    }
+    assertEquals(message, expected, actual);
+  }
+
   /** Simplifies an expression and checks that the result is as expected. */
   private void checkSimplify(RexNode node, String expected) {
     checkSimplify2(node, expected, expected);
@@ -1729,6 +1746,18 @@ public class RexProgramTest extends RexProgramBuilderBase {
         }
       }
     }
+  }
+
+  @Test public void testCastLiteral() {
+    assertNode("cast(literal int not null)",
+        "42:INTEGER NOT NULL", cast(literal(42), tInt()));
+    assertNode("cast(literal int)",
+        "42:INTEGER NOT NULL", cast(literal(42), nullable(tInt())));
+
+    assertNode("abstractCast(literal int not null)",
+        "CAST(42):INTEGER NOT NULL", abstractCast(literal(42), tInt()));
+    assertNode("abstractCast(literal int)",
+        "CAST(42):INTEGER", abstractCast(literal(42), nullable(tInt())));
   }
 
   @Test public void testSimplifyCastLiteral2() {
