@@ -88,6 +88,14 @@ your branch to the calcite master branch. Update the JIRA case
 to reference your pull request, and a committer will review your
 changes.
 
+The pull request may need to be updated (after its submission) for three main reasons: (i) you identified a problem after the submission of the pull request; (ii) the reviewer requested further changes; (iii) the Travis CI failed and the failure is not caused by your changes.
+
+In order to update the pull request you need to commit the changes in your branch and then push the commit(s) to github. Your are encouraged to use regular (non-rebase) commits on top of previously existing ones.
+
+When pushing the changes to github you should refrain from using the `--force` parameter and its alternatives. You are allowed to force push your changes under certain conditions: (i) the pull request has been submitted less than 10 minutes ago and there is no pending discussion (in the PR and/or in JIRA) concerning it; (ii) a reviewer has explicitly asked you to perform some modifications that require the use of the `--force` option.
+
+In the special case, that the Travis CI failed and the failure is not caused by your changes create an empty commit (`git commit --allow-empty`) and push it.
+
 ## Continuous Integration Testing
 
 Calcite has a collection of Jenkins jobs on ASF-hosted infrastructure.
@@ -115,4 +123,3 @@ We value all contributions that help to build a vibrant community, not just code
 You can contribute by testing the code, helping verify a release,
 writing documentation or the web site,
 or just by answering questions on the list.
-
