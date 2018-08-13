@@ -19,12 +19,12 @@
 version: 1.0
 defaultSchema: SALES
 schemas:
-  - name: SALES
-    type: custom
-    factor: org.apache.calcite.adapter.csv.CsvSchemaFactory
-    operand:
-      directory: sales
-    tables:
-      - name: FEMALE_EMPS
-        type: view
-        sql: SELECT * FROM emps WHERE gender = 'F'
+- name: SALES
+  type: custom
+  factory: org.apache.calcite.adapter.csv.CsvSchemaFactory
+  operand:
+    directory: sales
+  tables:
+  - name: FEMALE_EMPS
+    type: view
+    sql: SELECT * FROM emps WHERE gender = 'F'

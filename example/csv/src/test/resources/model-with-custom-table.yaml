@@ -17,11 +17,11 @@
 version: 1.0
 defaultSchema: CUSTOM_TABLE
 schemas:
-  - name: CUSTOM_TABLE
-    tables:
-      - name: EMPS
-        type: custom
-        factory: org.apache.calcite.adapter.csv.CsvTableFactory
-        operand:
-          file: sales/EMPS.csv.gz
-          flavor: scannable
+- name: CUSTOM_TABLE
+  tables:
+  - name: EMPS
+    type: custom
+    factory: org.apache.calcite.adapter.csv.CsvTableFactory
+    operand:
+      file: sales/EMPS.csv.gz
+      flavor: scannable

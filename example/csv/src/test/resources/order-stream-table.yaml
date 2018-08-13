@@ -17,17 +17,17 @@
 version: 1.0
 defaultSchema: foodmart
 schemas:
-  - name: STREAMS
-    tables:
-      - type: custom
-        name: ORDERS
-        stream:
-          stream: true
-        factory: org.apache.calcite.test.StreamTest$OrdersStreamTableFactory
-  - name: INFINITE_STREAMS
-    tables:
-      - type: custom
-        name: ORDERS
-        stream:
-          stream: true
-        factory: org.apache.calcite.test.StreamTest$InfiniteOrdersStreamTableFactory
+- name: STREAMS
+  tables:
+  - type: custom
+    name: ORDERS
+    stream:
+      stream: true
+    factory: org.apache.calcite.test.StreamTest$OrdersStreamTableFactory
+- name: INFINITE_STREAMS
+  tables:
+  - type: custom
+    name: ORDERS
+    stream:
+      stream: true
+    factory: org.apache.calcite.test.StreamTest$InfiniteOrdersStreamTableFactory

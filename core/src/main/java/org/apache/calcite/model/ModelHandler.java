@@ -88,6 +88,7 @@ public class ModelHandler {
     JsonRoot root;
     ObjectMapper mapper;
     if (uri.startsWith("inline:")) {
+      // trim here is to correctly autodetect if it is json or not in case of leading spaces
       String inline = uri.substring("inline:".length()).trim();
       mapper = (inline.startsWith("/*") || inline.startsWith("{"))
           ? JSON_MAPPER

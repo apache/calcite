@@ -19,8 +19,8 @@
 version: 1.0
 defaultSchema: SALES
 schemas:
-  - name: SALES
-    type: custom
-    factory: org.apache.calcite.adapter.csv.CsvSchemaFactory
-    operand:
-      directory: sales
+- name: SALES
+  type: custom
+  factory: org.apache.calcite.adapter.csv.CsvSchemaFactory
+  operand:
+    directory: sales

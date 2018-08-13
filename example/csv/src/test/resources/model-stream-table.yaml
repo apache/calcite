@@ -17,13 +17,13 @@
 version: 1.0
 defaultSchema: STREAM
 schemas:
-  - name: SS
-    tables:
-      name: DEPTS
-      type: custom
-      factory: org.apache.calcite.adapter.csv.CsvStreamTableFactory
-      stream:
-        stream: true
-      operand:
-        file: sales/SDEPTS.csv
-        flavor: scannable
+- name: SS
+  tables:
+  - name: DEPTS
+    type: custom
+    factory: org.apache.calcite.adapter.csv.CsvStreamTableFactory
+    stream:
+      stream: true
+    operand:
+      file: sales/SDEPTS.csv
+      flavor: scannable
