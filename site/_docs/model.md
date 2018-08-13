@@ -568,19 +568,19 @@ Occurs within `root.schemas.lattices`.
 #### YAML
 {% highlight yaml %}
 name: star
-sql: 
-  select 1 from "foodmart"."sales_fact_1997" as "s"
-  join "foodmart"."product" as "p" using ("product_id")
-  join "foodmart"."time_by_day" as "t" using ("time_id")
+sql: >
+  select 1 from "foodmart"."sales_fact_1997" as "s"',
+  join "foodmart"."product" as "p" using ("product_id")',
+  join "foodmart"."time_by_day" as "t" using ("time_id")',
   join "foodmart"."product_class" as "pc" on "p"."product_class_id" = "pc"."product_class_id"
 auto: false
 algorithm: true
 algorithmMaxMillis: 10000
 rowCountEstimate: 86837
 defaultMeasures: 
-  agg: count
+- agg: count
 tiles: 
-  dimensions: [ 'the_year', ['t', 'quarter'] ] 
+- dimensions: [ 'the_year', ['t', 'quarter'] ] 
   measures: 
   - agg: sum
     args: unit_sales
@@ -663,10 +663,7 @@ Occurs within `root.schemas.lattices.tiles`.
 
 #### YAML
 {% highlight yaml %}
-dimensions: 
-  the_year
-    t
-    quarter
+dimensions: [ 'the_year', ['t', 'quarter'] ] 
 measures: 
 - agg: sum
   args: unit_sales
@@ -702,8 +699,7 @@ and `root.schemas.lattices.tiles.measures`.
 #### YAML
 {% highlight yaml %}
 agg: sum
-args: 
-  unit_sales
+args: unit_sales
 {% endhighlight %}
 
 `agg` is the name of an aggregate function (usually 'count', 'sum', 'min',

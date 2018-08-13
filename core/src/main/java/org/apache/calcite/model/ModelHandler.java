@@ -46,7 +46,7 @@ import org.apache.calcite.util.Util;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -67,6 +67,12 @@ import javax.sql.DataSource;
  * Reads a model and creates schema objects accordingly.
  */
 public class ModelHandler {
+  private static final ObjectMapper JSON_MAPPER = new ObjectMapper()
+      .configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
+      .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true)
+      .configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+  private static final ObjectMapper YAML_MAPPER = new YAMLMapper();
+
   private final CalciteConnection connection;
   private final Deque<Pair<String, SchemaPlus>> schemaStack = new ArrayDeque<>();
   private final String modelUri;
@@ -84,11 +90,11 @@ public class ModelHandler {
     if (uri.startsWith("inline:")) {
       String inline = uri.substring("inline:".length()).trim();
       mapper = (inline.startsWith("/*") || inline.startsWith("{"))
-          ? getJsonObjectMapper()
-          : getYamlObjectMapper();
+          ? JSON_MAPPER
+          : YAML_MAPPER;
       root = mapper.readValue(inline, JsonRoot.class);
     } else {
-      mapper = uri.endsWith(".yaml") ? getYamlObjectMapper() : getJsonObjectMapper();
+      mapper = uri.endsWith(".yaml") ? YAML_MAPPER : JSON_MAPPER;
       root = mapper.readValue(new File(uri), JsonRoot.class);
     }
     visit(root);
@@ -174,18 +180,6 @@ public class ModelHandler {
         + ". Scalar functions and table macros have an 'eval' method; "
         + "aggregate functions have 'init' and 'add' methods, and optionally "
         + "'initAdd', 'merge' and 'result' methods.");
-  }
-
-  private ObjectMapper getJsonObjectMapper() {
-    final ObjectMapper jsonMapper = new ObjectMapper();
-    jsonMapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
-    jsonMapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
-    jsonMapper.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
-    return jsonMapper;
-  }
-
-  private ObjectMapper getYamlObjectMapper() {
-    return new ObjectMapper(new YAMLFactory());
   }
 
   private void checkRequiredAttributes(Object json, String... attributeNames) {

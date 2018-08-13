@@ -24,11 +24,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * Unit test for JSON data models.
  */
 public class JsonModelTest extends ModelTest {
+  private static final ObjectMapper JSON_MAPPER = new ObjectMapper()
+      .configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
+      .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true)
+      .configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+
   @Override protected ObjectMapper getMapper() {
-    final ObjectMapper mapper = new ObjectMapper();
-    mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
-    mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
-    return mapper;
+    return JSON_MAPPER;
   }
 
   @Override protected String getSimpleSchema() {

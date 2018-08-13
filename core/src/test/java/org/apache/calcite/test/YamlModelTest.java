@@ -24,8 +24,10 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
  * Unit test for YAML data models.
  */
 public class YamlModelTest extends ModelTest {
+  private static final YAMLMapper YAML_MAPPER = new YAMLMapper();
+
   @Override protected ObjectMapper getMapper() {
-    return new YAMLMapper();
+    return YAML_MAPPER;
   }
 
   @Override protected String getSimpleSchema() {
