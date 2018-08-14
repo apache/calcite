@@ -92,22 +92,23 @@ The pull request may need to be updated (after its submission) for three main
 reasons:
 1. you identified a problem after the submission of the pull request;
 2. the reviewer requested further changes;
-3. the Travis CI failed and the failure is not caused by your changes.
+3. the Travis CI build failed and the failure is not caused by your changes.
 
-In order to update the pull request you need to commit the changes in your
-branch and then push the commit(s) to GitHub. Your are encouraged to use regular
- (non-rebase) commits on top of previously existing ones.
+In order to update the pull request, you need to commit the changes in your
+branch and then push the commit(s) to GitHub. You are encouraged to use regular
+ (non-rebased) commits on top of previously existing ones.
 
-When pushing the changes to GitHub you should refrain from using the `--force`
-parameter and its alternatives. You are allowed to force push your changes under
+When pushing the changes to GitHub, you should refrain from using the `--force`
+parameter and its alternatives. You may choose to force push your changes under
  certain conditions:
  * the pull request has been submitted less than 10 minutes ago and there is no
  pending discussion (in the PR and/or in JIRA) concerning it;
  * a reviewer has explicitly asked you to perform some modifications that
  require the use of the `--force` option.
 
-In the special case, that the Travis CI failed and the failure is not caused by
-your changes create an empty commit (`git commit --allow-empty`) and push it.
+In the special case, that the Travis CI build failed and the failure is not
+caused by your changes create an empty commit (`git commit --allow-empty`) and
+push it.
 
 ## Continuous Integration Testing
 
