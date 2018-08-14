@@ -24,6 +24,7 @@ import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptCostImpl;
+import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -95,6 +96,9 @@ public class HepPlanner extends AbstractRelOptPlanner {
   private DirectedGraph<HepRelVertex, DefaultEdge> graph;
 
   private final Function2<RelNode, RelNode, Void> onCopyHook;
+
+  private final List<RelOptMaterialization> materializations =
+      new ArrayList<>();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -174,6 +178,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     for (RelOptRule rule : ImmutableList.copyOf(allRules)) {
       removeRule(rule);
     }
+    this.materializations.clear();
   }
 
   public boolean removeRule(RelOptRule rule) {
@@ -794,7 +799,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       RelNode rel) {
     // Check if a transformation already produced a reference
     // to an existing vertex.
-    if (rel instanceof HepRelVertex) {
+    if (graph.vertexSet().contains(rel)) {
       return (HepRelVertex) rel;
     }
 
@@ -1023,6 +1028,14 @@ public class HepPlanner extends AbstractRelOptPlanner {
     // to keep a timestamp per HepRelVertex, and update only affected
     // vertices and all ancestors on each transformation.
     return nTransformations;
+  }
+
+  @Override public ImmutableList<RelOptMaterialization> getMaterializations() {
+    return ImmutableList.copyOf(materializations);
+  }
+
+  @Override public void addMaterialization(RelOptMaterialization materialization) {
+    materializations.add(materialization);
   }
 }
 
