@@ -825,9 +825,12 @@ public class RexSimplify {
         }
         final Comparison comparison = Comparison.of(term);
         // Check for comparison with null values
-        if (comparison != null
-            && comparison.literal.getValue() == null) {
-          return rexBuilder.makeLiteral(false);
+        if (comparison != null && comparison.literal.getValue() == null) {
+          if (term.getKind() == SqlKind.EQUALS) {
+            if (!comparison.ref.getType().isNullable()) {
+              return rexBuilder.makeLiteral(false);
+            }
+          }
         }
         // Check for equality on different constants. If the same ref or CAST(ref)
         // is equal to different constants, this condition cannot be satisfied,
