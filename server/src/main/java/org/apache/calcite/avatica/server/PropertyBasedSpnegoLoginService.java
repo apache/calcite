@@ -33,6 +33,7 @@ import java.lang.reflect.Field;
 import java.util.Objects;
 
 import javax.security.auth.Subject;
+import javax.servlet.ServletRequest;
 
 /**
  * A customization of {@link SpnegoLoginService} which directly specifies the server's
@@ -60,7 +61,8 @@ public class PropertyBasedSpnegoLoginService extends SpnegoLoginService {
     targetNameField.set(this, serverPrincipal);
   }
 
-  @Override public UserIdentity login(String username, Object credentials) {
+  @Override public UserIdentity login(String username, Object credentials,
+      ServletRequest request) {
     String encodedAuthToken = (String) credentials;
     byte[] authToken = B64Code.decode(encodedAuthToken);
 

@@ -55,6 +55,7 @@ limitations under the License.
     <avatica.release.version>${project.version}</avatica.release.version>
     <version.major>1</version.major>
     <version.minor>12</version.minor>
+
     <!-- This list is in alphabetical order. -->
     <bouncycastle.version>1.59</bouncycastle.version>
     <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
@@ -72,13 +73,13 @@ limitations under the License.
     <httpclient.version>4.5.2</httpclient.version>
     <httpcore.version>4.4.4</httpcore.version>
     <hydromatic-toolbox.version>0.3</hydromatic-toolbox.version>
-    <jackson.version>2.9.4</jackson.version>
+    <jackson.version>2.9.6</jackson.version>
     <!-- Default to html4 for JDK 8 but html5 on jdk9+ -->
     <javadoc-additionalOptions />
     <javadoc-link>https://docs.oracle.com/javase/8/docs/api/</javadoc-link>
     <jcip-annotations.version>1.0-1</jcip-annotations.version>
     <jcommander.version>1.48</jcommander.version>
-    <jetty.version>9.2.19.v20160908</jetty.version>
+    <jetty.version>9.4.11.v20180605</jetty.version>
     <junit.version>4.12</junit.version>
     <kerby.version>1.0.0-RC2</kerby.version>
     <maven-assembly-plugin.version>3.0.0</maven-assembly-plugin.version>
@@ -92,7 +93,8 @@ limitations under the License.
     <!-- Apache 19 has 2.20.1, but need 2.21.0+ for [MPOM-184] -->
     <maven-surefire-plugin.version>2.21.0</maven-surefire-plugin.version>
     <mockito.version>2.5.5</mockito.version>
-    <protobuf.version>3.3.0</protobuf.version>
+    <owasp-dependency-check.version>3.3.1</owasp-dependency-check.version>
+    <protobuf.version>3.5.1</protobuf.version>
     <scott-data-hsqldb.version>0.1</scott-data-hsqldb.version>
     <servlet.version>3.0.1</servlet.version>
     <slf4j.version>1.7.13</slf4j.version>
@@ -639,6 +641,11 @@ limitations under the License.
           </configuration>
         </plugin>
         <plugin>
+          <groupId>org.owasp</groupId>
+          <artifactId>dependency-check-maven</artifactId>
+          <version>${owasp-dependency-check.version}</version>
+        </plugin>
+        <plugin>
           <groupId>org.xolstice.maven.plugins</groupId>
           <artifactId>protobuf-maven-plugin</artifactId>
           <version>0.5.0</version>
@@ -775,6 +782,31 @@ limitations under the License.
         <javadoc-additionalOptions>-html5</javadoc-additionalOptions>
         <javadoc-link>https://docs.oracle.com/javase/9/docs/api/</javadoc-link>
       </properties>
+    </profile>
+    <profile>
+      <!-- Extra checks that are disabled in the regular build, enabled for
+      releases and on demand. -->
+      <id>pedantic</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.owasp</groupId>
+            <artifactId>dependency-check-maven</artifactId>
+            <configuration>
+              <suppressionFiles>
+                <suppressionFile>${top.dir}/src/main/config/dependency-check/suppressions.xml</suppressionFile>
+              </suppressionFiles>
+            </configuration>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 </project>

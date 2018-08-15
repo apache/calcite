@@ -202,6 +202,8 @@ Before you start:
 * Add release notes to `site/_docs/history.md`. Include the commit history,
   and say which versions of Java, Guava and operating systems the release is
   tested against.
+* Generate a report of vulnerabilities that occur among dependencies,
+  using `mvn verify -Ppedantic`.
 * Make sure that
   <a href="https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20AND%20status%20%3D%20Resolved%20and%20fixVersion%20is%20null">
   every "resolved" JIRA case</a> (including duplicates) has
