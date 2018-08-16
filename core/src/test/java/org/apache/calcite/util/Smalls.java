@@ -812,6 +812,13 @@ public class Smalls {
   }
 
   /** A table function that returns a {@link QueryableTable}. */
+  public static class SimpleTableFunction {
+    public QueryableTable eval(Integer s) {
+      return generateStrings(s);
+    }
+  }
+
+  /** A table function that returns a {@link QueryableTable}. */
   public static class MyTableFunction {
     public QueryableTable eval(String s) {
       return oneThreePlus(s);

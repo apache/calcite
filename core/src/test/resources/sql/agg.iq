@@ -2284,4 +2284,101 @@ EnumerableCalc(expr#0..1=[{inputs}], ANYEMPNO=[$t1])
     EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+# [CALCITE-1776, CALCITE-2402] REGR_COUNT
+SELECT regr_count(COMM, SAL) as "REGR_COUNT(COMM, SAL)",
+   regr_count(EMPNO, SAL) as "REGR_COUNT(EMPNO, SAL)"
+from "scott".emp;
++-----------------------+------------------------+
+| REGR_COUNT(COMM, SAL) | REGR_COUNT(EMPNO, SAL) |
++-----------------------+------------------------+
+|                     4 |                     14 |
++-----------------------+------------------------+
+(1 row)
+
+!ok
+
+EnumerableAggregate(group=[{}], REGR_COUNT(COMM, SAL)=[REGR_COUNT($6, $5)], REGR_COUNT(EMPNO, SAL)=[REGR_COUNT($5)])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# [CALCITE-1776, CALCITE-2402] REGR_SXX, REGR_SXY, REGR_SYY
+SELECT
+  regr_sxx(COMM, SAL) as "REGR_SXX(COMM, SAL)",
+  regr_syy(COMM, SAL) as "REGR_SYY(COMM, SAL)",
+  regr_sxx(SAL, COMM) as "REGR_SXX(SAL, COMM)",
+  regr_syy(SAL, COMM) as "REGR_SYY(SAL, COMM)"
+from "scott".emp;
++---------------------+---------------------+---------------------+---------------------+
+| REGR_SXX(COMM, SAL) | REGR_SYY(COMM, SAL) | REGR_SXX(SAL, COMM) | REGR_SYY(SAL, COMM) |
++---------------------+---------------------+---------------------+---------------------+
+|          95000.0000 |        1090000.0000 |        1090000.0000 |          95000.0000 |
++---------------------+---------------------+---------------------+---------------------+
+(1 row)
+
+!ok
+
+# [CALCITE-1776, CALCITE-2402] COVAR_POP, COVAR_SAMP, VAR_SAMP, VAR_POP
+SELECT
+  covar_pop(COMM, COMM) as "COVAR_POP(COMM, COMM)",
+  covar_samp(SAL, SAL) as "COVAR_SAMP(SAL, SAL)",
+  var_pop(COMM) as "VAR_POP(COMM)",
+  var_samp(SAL) as "VAR_SAMP(SAL)"
+from "scott".emp;
++-----------------------+----------------------+---------------+-------------------+
+| COVAR_POP(COMM, COMM) | COVAR_SAMP(SAL, SAL) | VAR_POP(COMM) | VAR_SAMP(SAL)     |
++-----------------------+----------------------+---------------+-------------------+
+|           272500.0000 |    1398313.873626374 |   272500.0000 | 1398313.873626374 |
++-----------------------+----------------------+---------------+-------------------+
+(1 row)
+
+!ok
+
+# [CALCITE-1776, CALCITE-2402] REGR_COUNT with group by
+SELECT SAL, regr_count(COMM, SAL) as "REGR_COUNT(COMM, SAL)",
+   regr_count(EMPNO, SAL) as "REGR_COUNT(EMPNO, SAL)"
+from "scott".emp group by SAL;
++---------+-----------------------+------------------------+
+| SAL     | REGR_COUNT(COMM, SAL) | REGR_COUNT(EMPNO, SAL) |
++---------+-----------------------+------------------------+
+| 1100.00 |                     0 |                      1 |
+| 1250.00 |                     2 |                      2 |
+| 1300.00 |                     0 |                      1 |
+| 1500.00 |                     1 |                      1 |
+| 1600.00 |                     1 |                      1 |
+| 2450.00 |                     0 |                      1 |
+| 2850.00 |                     0 |                      1 |
+| 2975.00 |                     0 |                      1 |
+| 3000.00 |                     0 |                      2 |
+| 5000.00 |                     0 |                      1 |
+|  800.00 |                     0 |                      1 |
+|  950.00 |                     0 |                      1 |
++---------+-----------------------+------------------------+
+(12 rows)
+
+!ok
+
+# [CALCITE-1776, CALCITE-2402] COVAR_POP, COVAR_SAMP, VAR_SAMP, VAR_POP with group by
+SELECT
+  MONTH(HIREDATE) as "MONTH",
+  covar_samp(SAL, COMM) as "COVAR_SAMP(SAL, COMM)",
+  var_pop(COMM) as "VAR_POP(COMM)",
+  var_samp(SAL) as "VAR_SAMP(SAL)"
+from "scott".emp
+group by MONTH(HIREDATE);
++-------+-----------------------+---------------+-------------------+
+| MONTH | COVAR_SAMP(SAL, COMM) | VAR_POP(COMM) | VAR_SAMP(SAL)     |
++-------+-----------------------+---------------+-------------------+
+|     1 |                       |               |      1201250.0000 |
+|    11 |                       |               |                   |
+|    12 |                       |               | 1510833.333333334 |
+|     2 |           -35000.0000 |    10000.0000 |  831458.333333335 |
+|     4 |                       |               |                   |
+|     5 |                       |               |                   |
+|     6 |                       |               |                   |
+|     9 |          -175000.0000 |   490000.0000 |        31250.0000 |
++-------+-----------------------+---------------+-------------------+
+(8 rows)
+
+!ok
+
 # End agg.iq

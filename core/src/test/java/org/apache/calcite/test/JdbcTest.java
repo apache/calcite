@@ -6230,6 +6230,36 @@ public class JdbcTest {
         .throws_("No match found for function signature NVL(<NUMERIC>, <NUMERIC>)");
   }
 
+  /** Unit test for LATERAL CROSS JOIN to table function. */
+  @Test public void testLateralJoin() {
+    final String sql = "SELECT *\n"
+        + "FROM AUX.SIMPLETABLE ST\n"
+        + "CROSS JOIN LATERAL TABLE(AUX.TBLFUN(ST.INTCOL))";
+    CalciteAssert.that(CalciteAssert.Config.AUX)
+        .query(sql)
+        .returnsUnordered(
+            "STRCOL=ABC; INTCOL=1; n=0; s=",
+            "STRCOL=DEF; INTCOL=2; n=0; s=",
+            "STRCOL=DEF; INTCOL=2; n=1; s=a",
+            "STRCOL=GHI; INTCOL=3; n=0; s=",
+            "STRCOL=GHI; INTCOL=3; n=1; s=a",
+            "STRCOL=GHI; INTCOL=3; n=2; s=ab");
+  }
+
+  /** Unit test for view expansion with lateral join. */
+  @Test public void testExpandViewWithLateralJoin() {
+    final String sql = "SELECT * FROM AUX.VIEWLATERAL";
+    CalciteAssert.that(CalciteAssert.Config.AUX)
+        .query(sql)
+        .returnsUnordered(
+            "STRCOL=ABC; INTCOL=1; n=0; s=",
+            "STRCOL=DEF; INTCOL=2; n=0; s=",
+            "STRCOL=DEF; INTCOL=2; n=1; s=a",
+            "STRCOL=GHI; INTCOL=3; n=0; s=",
+            "STRCOL=GHI; INTCOL=3; n=1; s=a",
+            "STRCOL=GHI; INTCOL=3; n=2; s=ab");
+  }
+
   /** Tests that {@link Hook#PARSE_TREE} works. */
   @Test public void testHook() {
     final int[] callCount = {0};

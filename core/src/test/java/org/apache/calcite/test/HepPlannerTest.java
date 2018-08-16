@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.plan.RelOptListener;
+import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.hep.HepMatchOrder;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
@@ -33,10 +34,14 @@ import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule;
 import org.apache.calcite.rel.rules.UnionToDistinctRule;
 
+import com.google.common.collect.ImmutableList;
+
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+
 
 /**
  * HepPlannerTest is a unit test for {@link HepPlanner}. See
@@ -334,6 +339,19 @@ public class HepPlannerTest extends RelOptTestBase {
 
     // DEPTH_FIRST has 10x fewer matches than ARBITRARY
     assertThat(applyTimes1 > applyTimes2 * 10, is(true));
+  }
+
+  @Test public void testMaterialization() throws Exception {
+    HepPlanner planner = new HepPlanner(HepProgram.builder().build());
+    RelNode tableRel = tester.convertSqlToRel("select * from dept").rel;
+    RelNode queryRel = tableRel;
+    RelOptMaterialization mat1 = new RelOptMaterialization(
+        tableRel, queryRel, null, ImmutableList.of("default", "mv"));
+    planner.addMaterialization(mat1);
+    assertEquals(planner.getMaterializations().size(), 1);
+    assertEquals(planner.getMaterializations().get(0), mat1);
+    planner.clear();
+    assertEquals(planner.getMaterializations().size(), 0);
   }
 
   private long checkRuleApplyCount(HepMatchOrder matchOrder) {

@@ -37,6 +37,8 @@ import org.apache.calcite.test.MockSqlOperatorTable;
 import org.apache.calcite.test.catalog.MockCatalogReader;
 import org.apache.calcite.test.catalog.MockCatalogReaderSimple;
 
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 
@@ -73,10 +75,10 @@ public class SqlTestFactory {
   private final MockCatalogReaderFactory catalogReaderFactory;
   private final ValidatorFactory validatorFactory;
 
-  private final RelDataTypeFactory typeFactory;
-  private final SqlOperatorTable operatorTable;
-  private final SqlValidatorCatalogReader catalogReader;
-  private final SqlParser.Config parserConfig;
+  private final Supplier<RelDataTypeFactory> typeFactory;
+  private final Supplier<SqlOperatorTable> operatorTable;
+  private final Supplier<SqlValidatorCatalogReader> catalogReader;
+  private final Supplier<SqlParser.Config> parserConfig;
 
   protected SqlTestFactory() {
     this(DEFAULT_OPTIONS, MockCatalogReaderSimple::new, SqlValidatorUtil::newValidator);
@@ -88,17 +90,15 @@ public class SqlTestFactory {
     this.options = options;
     this.catalogReaderFactory = catalogReaderFactory;
     this.validatorFactory = validatorFactory;
-    this.operatorTable = createOperatorTable((SqlOperatorTable) options.get("operatorTable"));
-    this.typeFactory = createTypeFactory((SqlConformance) options.get("conformance"));
+    this.operatorTable = Suppliers.memoize(
+        () -> createOperatorTable((SqlOperatorTable) options.get("operatorTable")));
+    this.typeFactory = Suppliers.memoize(
+        () -> createTypeFactory((SqlConformance) options.get("conformance")));
     Boolean caseSensitive = (Boolean) options.get("caseSensitive");
-    this.catalogReader = catalogReaderFactory.create(typeFactory, caseSensitive).init();
-    this.parserConfig = createParserConfig(options);
-  }
-
-  public static MockCatalogReader createCatalogReader(
-      RelDataTypeFactory typeFactory,
-      boolean caseSensitive) {
-    return new MockCatalogReaderSimple(typeFactory, caseSensitive).init();
+    this.catalogReader = Suppliers.memoize(
+        () -> catalogReaderFactory.create(typeFactory.get(), caseSensitive).init());
+    this.parserConfig = Suppliers.memoize(
+        () -> createParserConfig(options));
   }
 
   private static SqlOperatorTable createOperatorTable(SqlOperatorTable opTab0) {
@@ -108,7 +108,7 @@ public class SqlTestFactory {
   }
 
   public SqlParser createParser(String sql) {
-    return SqlParser.create(sql, parserConfig);
+    return SqlParser.create(sql, parserConfig.get());
   }
 
   public static SqlParser.Config createParserConfig(ImmutableMap<String, Object> options) {
@@ -123,7 +123,8 @@ public class SqlTestFactory {
   public SqlValidator getValidator() {
     final SqlConformance conformance =
         (SqlConformance) options.get("conformance");
-    return validatorFactory.create(operatorTable, catalogReader, typeFactory, conformance);
+    return validatorFactory.create(operatorTable.get(), catalogReader.get(), typeFactory.get(),
+        conformance);
   }
 
   public SqlAdvisor createAdvisor() {

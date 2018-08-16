@@ -198,6 +198,10 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     // ignore - this planner does not support materializations
   }
 
+  public List<RelOptMaterialization> getMaterializations() {
+    return ImmutableList.of();
+  }
+
   public void addLattice(RelOptLattice lattice) {
     // ignore - this planner does not support lattices
   }

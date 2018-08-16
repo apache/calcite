@@ -27,9 +27,11 @@ import static org.junit.Assert.assertTrue;
 public class TestUtilTest {
 
   @Test
-  public void current() {
+  public void javaMajorVersionExceeds6() {
     // shouldn't throw any exceptions (for current JDK)
-    assertTrue(TestUtil.getJavaMajorVersion() > 6);
+    int majorVersion = TestUtil.getJavaMajorVersion();
+    assertTrue("current JavaMajorVersion == " + majorVersion + " is expected to exceed 6",
+        majorVersion > 6);
   }
 
   @Test
