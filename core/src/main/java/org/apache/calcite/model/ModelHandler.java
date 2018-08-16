@@ -557,7 +557,10 @@ public class ModelHandler {
    * {@link JsonCustomSchema#operand}, as extra context for the adapter. */
   public enum ExtraOperand {
     /** URI of model, e.g. "target/test-classes/model.json",
-     * "http://localhost/foo/bar.json", "inline:{...}". */
+     * "http://localhost/foo/bar.json", "inline:{...}",
+     * "target/test-classes/model.yaml",
+     * "http://localhost/foo/bar.yaml", "inline:..."
+     * */
     MODEL_URI("modelUri"),
 
     /** Base directory from which to read files. */
