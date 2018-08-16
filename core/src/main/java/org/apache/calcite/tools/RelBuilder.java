@@ -17,6 +17,7 @@
 package org.apache.calcite.tools;
 
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
@@ -95,7 +96,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -941,6 +941,12 @@ public class RelBuilder {
     return this;
   }
 
+  /** Creates a {@link Project} of the given
+   * expressions. */
+  public RelBuilder project(RexNode... nodes) {
+    return project(ImmutableList.copyOf(nodes));
+  }
+
   /** Creates a {@link Project} of the given list
    * of expressions.
    *
@@ -962,6 +968,19 @@ public class RelBuilder {
   public RelBuilder project(Iterable<? extends RexNode> nodes,
       Iterable<String> fieldNames) {
     return project(nodes, fieldNames, false);
+  }
+
+  /** Creates a {@link Project} of all original fields, plus the given
+   * expressions. */
+  public RelBuilder projectPlus(RexNode... nodes) {
+    return projectPlus(ImmutableList.copyOf(nodes));
+  }
+
+  /** Creates a {@link Project} of all original fields, plus the given list of
+   * expressions. */
+  public RelBuilder projectPlus(Iterable<RexNode> nodes) {
+    final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
+    return project(builder.addAll(fields()).addAll(nodes).build());
   }
 
   /** Creates a {@link Project} of the given list
@@ -991,27 +1010,86 @@ public class RelBuilder {
       Iterable<? extends RexNode> nodes,
       Iterable<String> fieldNames,
       boolean force) {
-    final List<String> names = new ArrayList<>();
-    final List<RexNode> exprList = new ArrayList<>();
-    final Iterator<String> nameIterator = fieldNames.iterator();
-    for (RexNode node : nodes) {
-      if (simplify) {
-        node = simplifier.simplifyPreservingType(node);
-      }
-      exprList.add(node);
-      String name = nameIterator.hasNext() ? nameIterator.next() : null;
-      names.add(name != null ? name : inferAlias(exprList, node));
-    }
     final Frame frame = stack.peek();
+    final RelDataType inputRowType = frame.rel.getRowType();
+    final List<RexNode> nodeList = Lists.newArrayList(nodes);
+
+    // Perform a quick check for identity. We'll do a deeper check
+    // later when we've derived column names.
+    if (!force && Iterables.isEmpty(fieldNames)
+        && RexUtil.isIdentity(nodeList, inputRowType)) {
+      return this;
+    }
+
+    final List<String> fieldNameList = Lists.newArrayList(fieldNames);
+    while (fieldNameList.size() < nodeList.size()) {
+      fieldNameList.add(null);
+    }
+
+    if (frame.rel instanceof Project
+        && shouldMergeProject()) {
+      final Project project = (Project) frame.rel;
+      // Populate field names. If the upper expression is an input ref and does
+      // not have a recommended name, use the name of the underlying field.
+      for (int i = 0; i < fieldNameList.size(); i++) {
+        if (fieldNameList.get(i) == null) {
+          final RexNode node = nodeList.get(i);
+          if (node instanceof RexInputRef) {
+            final RexInputRef ref = (RexInputRef) node;
+            fieldNameList.set(i,
+                project.getRowType().getFieldNames().get(ref.getIndex()));
+          }
+        }
+      }
+      final List<RexNode> newNodes =
+          RelOptUtil.pushPastProject(nodeList, project);
+
+      // Carefully build a list of fields, so that table aliases from the input
+      // can be seen for fields that are based on a RexInputRef.
+      final Frame frame1 = stack.pop();
+      final List<Field> fields = new ArrayList<>();
+      for (RelDataTypeField f
+          : project.getInput().getRowType().getFieldList()) {
+        fields.add(new Field(ImmutableSet.of(), f));
+      }
+      for (Pair<RexNode, Field> pair
+          : Pair.zip(project.getProjects(), frame1.fields)) {
+        switch (pair.left.getKind()) {
+        case INPUT_REF:
+          final int i = ((RexInputRef) pair.left).getIndex();
+          final Field field = fields.get(i);
+          final ImmutableSet<String> aliases = pair.right.left;
+          fields.set(i, new Field(aliases, field.right));
+          break;
+        }
+      }
+      stack.push(new Frame(project.getInput(), ImmutableList.copyOf(fields)));
+      return project(newNodes, fieldNameList, force);
+    }
+
+    // Simplify expressions.
+    if (simplify) {
+      for (int i = 0; i < nodeList.size(); i++) {
+        nodeList.set(i, simplifier.simplifyPreservingType(nodeList.get(i)));
+      }
+    }
+
+    // Replace null names with generated aliases.
+    for (int i = 0; i < fieldNameList.size(); i++) {
+      if (fieldNameList.get(i) == null) {
+        fieldNameList.set(i, inferAlias(nodeList, nodeList.get(i), i));
+      }
+    }
+
     final ImmutableList.Builder<Field> fields = ImmutableList.builder();
     final Set<String> uniqueNameList =
         getTypeFactory().getTypeSystem().isSchemaCaseSensitive()
-        ? new HashSet<String>()
+        ? new HashSet<>()
         : new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
     // calculate final names and build field list
-    for (int i = 0; i < names.size(); ++i) {
-      RexNode node = exprList.get(i);
-      String name = names.get(i);
+    for (int i = 0; i < fieldNameList.size(); ++i) {
+      final RexNode node = nodeList.get(i);
+      String name = fieldNameList.get(i);
       Field field;
       if (name == null || uniqueNameList.contains(name)) {
         int j = 0;
@@ -1021,7 +1099,7 @@ public class RelBuilder {
         do {
           name = SqlValidatorUtil.F_SUGGESTER.apply(name, j, j++);
         } while (uniqueNameList.contains(name));
-        names.set(i, name);
+        fieldNameList.set(i, name);
       }
       RelDataTypeField fieldType =
           new RelDataTypeFieldImpl(name, i, node.getType());
@@ -1038,9 +1116,8 @@ public class RelBuilder {
       uniqueNameList.add(name);
       fields.add(field);
     }
-    final RelDataType inputRowType = peek().getRowType();
-    if (!force && RexUtil.isIdentity(exprList, inputRowType)) {
-      if (names.equals(inputRowType.getFieldNames())) {
+    if (!force && RexUtil.isIdentity(nodeList, inputRowType)) {
+      if (fieldNameList.equals(inputRowType.getFieldNames())) {
         // Do not create an identity project if it does not rename any fields
         return this;
       } else {
@@ -1051,17 +1128,20 @@ public class RelBuilder {
       }
     }
     final RelNode project =
-        projectFactory.createProject(frame.rel, ImmutableList.copyOf(exprList),
-            names);
+        projectFactory.createProject(frame.rel, ImmutableList.copyOf(nodeList),
+            fieldNameList);
     stack.pop();
     stack.push(new Frame(project, fields.build()));
     return this;
   }
 
-  /** Creates a {@link Project} of the given
-   * expressions. */
-  public RelBuilder project(RexNode... nodes) {
-    return project(ImmutableList.copyOf(nodes));
+  /** Whether to attempt to merge consecutive {@link Project} operators.
+   *
+   * <p>The default implementation returns {@code true};
+   * sub-classes may disable merge by overriding to return {@code false}. */
+  @Experimental
+  protected boolean shouldMergeProject() {
+    return true;
   }
 
   /** Creates a {@link Project} of the given
@@ -1146,18 +1226,7 @@ public class RelBuilder {
       return values(v.tuples, b.build());
     }
 
-    project(fields(), newFieldNames, true);
-
-    // If, after de-duplication, the field names are unchanged, discard the
-    // identity project we just created.
-    if (peek().getRowType().getFieldNames().equals(oldFieldNames)) {
-      final RelNode r = peek();
-      if (r instanceof Project) {
-        stack.pop();
-        push(((Project) r).getInput());
-      }
-    }
-    return this;
+    return project(fields(), newFieldNames, true);
   }
 
   /** Infers the alias of an expression.
@@ -1165,20 +1234,16 @@ public class RelBuilder {
    * <p>If the expression was created by {@link #alias}, replaces the expression
    * in the project list.
    */
-  private String inferAlias(List<RexNode> exprList, RexNode expr) {
+  private String inferAlias(List<RexNode> exprList, RexNode expr, int i) {
     switch (expr.getKind()) {
     case INPUT_REF:
       final RexInputRef ref = (RexInputRef) expr;
       return stack.peek().fields.get(ref.getIndex()).getValue().getName();
     case CAST:
-      return inferAlias(exprList, ((RexCall) expr).getOperands().get(0));
+      return inferAlias(exprList, ((RexCall) expr).getOperands().get(0), -1);
     case AS:
       final RexCall call = (RexCall) expr;
-      for (;;) {
-        final int i = exprList.indexOf(expr);
-        if (i < 0) {
-          break;
-        }
+      if (i >= 0) {
         exprList.set(i, call.getOperands().get(0));
       }
       return ((NlsString) ((RexLiteral) call.getOperands().get(1)).getValue())
@@ -1526,9 +1591,7 @@ public class RelBuilder {
   public RelBuilder as(final String alias) {
     final Frame pair = stack.pop();
     List<Field> newFields =
-        Lists.transform(pair.fields, field ->
-            new Field(ImmutableSet.<String>builder().addAll(field.left)
-                .add(alias).build(), field.right));
+        Util.transform(pair.fields, field -> field.addAlias(alias));
     stack.push(new Frame(pair.rel, ImmutableList.copyOf(newFields)));
     return this;
   }
@@ -2089,6 +2152,15 @@ public class RelBuilder {
       extends Pair<ImmutableSet<String>, RelDataTypeField> {
     Field(ImmutableSet<String> left, RelDataTypeField right) {
       super(left, right);
+    }
+
+    Field addAlias(String alias) {
+      if (left.contains(alias)) {
+        return this;
+      }
+      final ImmutableSet<String> aliasList =
+          ImmutableSet.<String>builder().addAll(left).add(alias).build();
+      return new Field(aliasList, right);
     }
   }
 

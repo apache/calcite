@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql2rel;
 
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelCollation;
@@ -285,34 +286,50 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
   /**
    * Maps the ordinal of a field pre-flattening to the ordinal of the
-   * corresponding field post-flattening, and optionally returns its type.
+   * corresponding field post-flattening.
    *
    * @param oldOrdinal Pre-flattening ordinal
    * @return Post-flattening ordinal
    */
   protected int getNewForOldInput(int oldOrdinal) {
+    return getNewFieldForOldInput(oldOrdinal).i;
+  }
+
+  /**
+   * Maps the ordinal of a field pre-flattening to the ordinal of the
+   * corresponding field post-flattening, and also returns its type.
+   *
+   * @param oldOrdinal Pre-flattening ordinal
+   * @return Post-flattening ordinal and type
+   */
+  protected Ord<RelDataType> getNewFieldForOldInput(int oldOrdinal) {
     assert currentRel != null;
     int newOrdinal = 0;
 
     // determine which input rel oldOrdinal references, and adjust
     // oldOrdinal to be relative to that input rel
     RelNode oldInput = null;
+    RelNode newInput = null;
     for (RelNode oldInput1 : currentRel.getInputs()) {
+      newInput = getNewForOldRel(oldInput1);
       RelDataType oldInputType = oldInput1.getRowType();
       int n = oldInputType.getFieldCount();
       if (oldOrdinal < n) {
         oldInput = oldInput1;
         break;
       }
-      RelNode newInput = getNewForOldRel(oldInput1);
       newOrdinal += newInput.getRowType().getFieldCount();
       oldOrdinal -= n;
     }
     assert oldInput != null;
+    assert newInput != null;
 
     RelDataType oldInputType = oldInput.getRowType();
-    newOrdinal += calculateFlattenedOffset(oldInputType, oldOrdinal);
-    return newOrdinal;
+    final int newOffset = calculateFlattenedOffset(oldInputType, oldOrdinal);
+    newOrdinal += newOffset;
+    final RelDataTypeField field =
+        newInput.getRowType().getFieldList().get(newOffset);
+    return Ord.of(newOrdinal, field.getType());
   }
 
   /**
@@ -523,10 +540,9 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     // Translate the condition.
     final RexLocalRef conditionRef = program.getCondition();
     if (conditionRef != null) {
-      programBuilder.addCondition(
-          new RexLocalRef(
-              getNewForOldInput(conditionRef.getIndex()),
-              conditionRef.getType()));
+      final Ord<RelDataType> newField =
+          getNewFieldForOldInput(conditionRef.getIndex());
+      programBuilder.addCondition(new RexLocalRef(newField.i, newField.e));
     }
 
     RexProgram newProgram = programBuilder.getProgram();
@@ -576,7 +592,6 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     if (exp.getType().isStruct()) {
       if (exp instanceof RexInputRef) {
         RexInputRef inputRef = (RexInputRef) exp;
-        int newOffset = getNewForOldInput(inputRef.getIndex());
 
         // expand to range
         RelDataType flattenedType =
@@ -587,10 +602,10 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
         List<RelDataTypeField> fieldList = flattenedType.getFieldList();
         int n = fieldList.size();
         for (int j = 0; j < n; ++j) {
-          RelDataTypeField field = fieldList.get(j);
+          final Ord<RelDataType> newField =
+              getNewFieldForOldInput(inputRef.getIndex());
           flattenedExps.add(
-              Pair.of(
-                  new RexInputRef(newOffset + j, field.getType()),
+              Pair.of(new RexInputRef(newField.i + j, newField.e),
                   fieldName));
         }
       } else if (isConstructor(exp) || exp.isA(SqlKind.CAST)) {
@@ -627,11 +642,13 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
         RexNode newExp = exp;
         List<RexNode> oldOperands = ((RexCall) exp).getOperands();
         if (oldOperands.get(0) instanceof RexInputRef) {
-          RexInputRef inputRef = (RexInputRef) oldOperands.get(0);
-          int newOffset = getNewForOldInput(inputRef.getIndex());
-          newExp = rexBuilder.makeCall(exp.getType(), ((RexCall) exp).getOperator(),
-              ImmutableList.of(
-                  rexBuilder.makeInputRef(inputRef.getType(), newOffset), oldOperands.get(1)));
+          final RexInputRef inputRef = (RexInputRef) oldOperands.get(0);
+          final Ord<RelDataType> newField =
+              getNewFieldForOldInput(inputRef.getIndex());
+          newExp = rexBuilder.makeCall(exp.getType(),
+              ((RexCall) exp).getOperator(),
+              ImmutableList.of(rexBuilder.makeInputRef(newField.e, newField.i),
+                  oldOperands.get(1)));
         }
         for (RelDataTypeField field : newExp.getType().getFieldList()) {
           flattenedExps.add(
@@ -759,15 +776,12 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   private class RewriteRexShuttle extends RexShuttle {
     @Override public RexNode visitInputRef(RexInputRef input) {
       final int oldIndex = input.getIndex();
-      final int newIndex = getNewForOldInput(oldIndex);
+      final Ord<RelDataType> field = getNewFieldForOldInput(oldIndex);
 
-      // FIXME: jhyde, 2005/12/3: Once indicator fields have been
-      //  introduced, the new field type may be very different to the
-      //  old field type. We should look at the actual flattened types,
-      //  rather than trying to deduce the type from the current type.
-      RelDataType fieldType = removeDistinct(input.getType());
-      RexInputRef newInput = new RexInputRef(newIndex, fieldType);
-      return newInput;
+      // Use the actual flattened type, which may be different from the current
+      // type.
+      RelDataType fieldType = removeDistinct(field.e);
+      return new RexInputRef(field.i, fieldType);
     }
 
     private RelDataType removeDistinct(RelDataType type) {
@@ -781,7 +795,6 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
       // walk down the field access path expression, calculating
       // the desired input number
       int iInput = 0;
-      RelDataType fieldType = removeDistinct(fieldAccess.getType());
 
       for (;;) {
         RexNode refExp = fieldAccess.getReferenceExpr();
@@ -792,8 +805,10 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
                 ordinal);
         if (refExp instanceof RexInputRef) {
           RexInputRef inputRef = (RexInputRef) refExp;
-          iInput += getNewForOldInput(inputRef.getIndex());
-          return new RexInputRef(iInput, fieldType);
+          final Ord<RelDataType> newField =
+              getNewFieldForOldInput(inputRef.getIndex());
+          iInput += newField.i;
+          return new RexInputRef(iInput, removeDistinct(newField.e));
         } else if (refExp instanceof RexCorrelVariable) {
           RelDataType refType =
               SqlTypeUtil.flattenRecordType(

@@ -453,7 +453,7 @@ public class MongoAdapterTest implements SchemaFactory {
         .returns("STATE=AK; A=26856\nSTATE=AL; A=43383\n")
         .queryContains(
             mongoChecker(
-                "{$project: {POP: '$pop', STATE: '$state'}}",
+                "{$project: {STATE: '$state', POP: '$pop'}}",
                 "{$group: {_id: '$STATE', A: {$avg: '$POP'}}}",
                 "{$project: {STATE: '$_id', A: '$A'}}",
                 "{$sort: {STATE: 1}}"));
@@ -531,7 +531,7 @@ public class MongoAdapterTest implements SchemaFactory {
             + "C=3; STATE=AL; MIN_POP=42124; MAX_POP=44165; SUM_POP=130151\n")
         .queryContains(
             mongoChecker(
-                "{$project: {POP: '$pop', STATE: '$state'}}",
+                "{$project: {STATE: '$state', POP: '$pop'}}",
                 "{$group: {_id: '$STATE', C: {$sum: 1}, MIN_POP: {$min: '$POP'}, MAX_POP: {$max: '$POP'}, SUM_POP: {$sum: '$POP'}}}",
                 "{$project: {STATE: '$_id', C: '$C', MIN_POP: '$MIN_POP', MAX_POP: '$MAX_POP', SUM_POP: '$SUM_POP'}}",
                 "{$project: {C: 1, STATE: 1, MIN_POP: 1, MAX_POP: 1, SUM_POP: 1}}",
@@ -548,9 +548,9 @@ public class MongoAdapterTest implements SchemaFactory {
             + "C=1; STATE=SC; CITY=AIKEN\n")
         .queryContains(
             mongoChecker(
-                "{$project: {CITY: '$city', STATE: '$state'}}",
-                "{$group: {_id: {CITY: '$CITY', STATE: '$STATE'}, C: {$sum: 1}}}",
-                "{$project: {_id: 0, CITY: '$_id.CITY', STATE: '$_id.STATE', C: '$C'}}",
+                "{$project: {STATE: '$state', CITY: '$city'}}",
+                "{$group: {_id: {STATE: '$STATE', CITY: '$CITY'}, C: {$sum: 1}}}",
+                "{$project: {_id: 0, STATE: '$_id.STATE', CITY: '$_id.CITY', C: '$C'}}",
                 "{$sort: {C: -1, CITY: 1}}",
                 "{$limit: 2}",
                 "{$project: {C: 1, STATE: 1, CITY: 1}}"));

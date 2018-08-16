@@ -2507,7 +2507,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testStarDynamicSchemaUnnest() {
-    final String sql3 = "select * \n"
+    final String sql3 = "select *\n"
         + "from SALES.CUSTOMER as t1,\n"
         + "lateral (select t2.\"$unnest\" as fake_col3\n"
         + "         from unnest(t1.fake_col) as t2) as t3";
@@ -2515,7 +2515,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testStarDynamicSchemaUnnest2() {
-    final String sql3 = "select * \n"
+    final String sql3 = "select *\n"
         + "from SALES.CUSTOMER as t1,\n"
         + "unnest(t1.fake_col) as t2";
     sql(sql3).with(getTesterWithDynamicTable()).ok();

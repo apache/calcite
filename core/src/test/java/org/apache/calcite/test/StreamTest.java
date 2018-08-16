@@ -277,12 +277,11 @@ public class StreamTest {
             + "orders.rowtime as rowtime, orders.id as orderId, products.supplier as supplierId "
             + "from orders join products on orders.product = products.id")
         .convertContains("LogicalDelta\n"
-            + "  LogicalProject(ROWTIME=[$0], ORDERID=[$1], SUPPLIERID=[$5])\n"
-            + "    LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], ID0=[$5], SUPPLIER=[$6])\n"
-            + "      LogicalJoin(condition=[=($4, $5)], joinType=[inner])\n"
-            + "        LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], PRODUCT0=[CAST($2):VARCHAR(32) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL])\n"
-            + "          LogicalTableScan(table=[[STREAM_JOINS, ORDERS]])\n"
-            + "        LogicalTableScan(table=[[STREAM_JOINS, PRODUCTS]])\n")
+            + "  LogicalProject(ROWTIME=[$0], ORDERID=[$1], SUPPLIERID=[$6])\n"
+            + "    LogicalJoin(condition=[=($4, $5)], joinType=[inner])\n"
+            + "      LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], PRODUCT0=[CAST($2):VARCHAR(32) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL])\n"
+            + "        LogicalTableScan(table=[[STREAM_JOINS, ORDERS]])\n"
+            + "      LogicalTableScan(table=[[STREAM_JOINS, PRODUCTS]])\n")
         .explainContains(""
             + "EnumerableCalc(expr#0..6=[{inputs}], proj#0..1=[{exprs}], SUPPLIERID=[$t6])\n"
             + "  EnumerableJoin(condition=[=($4, $5)], joinType=[inner])\n"
