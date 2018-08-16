@@ -978,8 +978,6 @@ public class RexProgramTest extends RexProgramBuilderBase {
   @Test public void testSimplify() {
     final RelDataType booleanType =
         typeFactory.createSqlType(SqlTypeName.BOOLEAN);
-    final RelDataType booleanNullableType =
-        typeFactory.createTypeWithNullability(booleanType, true);
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType intNullableType =
         typeFactory.createTypeWithNullability(intType, true);
