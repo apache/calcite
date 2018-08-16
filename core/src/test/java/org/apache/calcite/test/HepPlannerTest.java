@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.plan.RelOptListener;
 import org.apache.calcite.plan.RelOptMaterialization;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepMatchOrder;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
@@ -186,6 +187,21 @@ public class HepPlannerTest extends RelOptTestBase {
     checkPlanning(planner,
         "(select name from dept union select ename from emp)"
             + " intersect (select fname from customer.contact)");
+  }
+
+  @Test public void testFilterReduction() throws Exception {
+    HepProgramBuilder programBuilder = HepProgram.builder();
+    programBuilder.addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE);
+    HepPlanner planner = new HepPlanner(programBuilder.build());
+    final String sql = "select deptno from dept_nested where NAME <> '' AND employees <> null";
+    planner.setRoot(tester.convertSqlToRel(sql).rel);
+    RelNode bestRel = planner.findBestExp();
+
+    assertEquals(
+        "LogicalProject(DEPTNO=[$0])\n"
+            + "  LogicalFilter(condition=[AND(<>($1, ''), <>($3, null))])\n"
+            + "    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])\n",
+        RelOptUtil.toString(bestRel));
   }
 
   @Test public void testRuleDescription() throws Exception {

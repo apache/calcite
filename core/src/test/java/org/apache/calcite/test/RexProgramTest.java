@@ -1252,7 +1252,12 @@ public class RexProgramTest extends RexProgramBuilderBase {
             falseLiteral, unknownLiteral), "CAST(OR(?0.c, ?0.d)):BOOLEAN");
 
     // condition with null value for range
-    checkSimplifyFilter(and(gt(aRef, unknownLiteral), ge(bRef, literal1)), "false");
+    checkSimplifyFilter(and(ne(aRef, unknownLiteral), ge(bRef, literal1)),
+        "AND(<>(?0.a, null), >=(?0.b, 1))");
+
+    // aRef is not nullable, equal statement always evaluated to false.
+    checkSimplifyFilter(and(eq(aRef, unknownLiteral), ge(bRef, literal1)),
+        "false");
 
     // condition "1 < a && 5 < x" yields "5 < x"
     checkSimplifyFilter(
