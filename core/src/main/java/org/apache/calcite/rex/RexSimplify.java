@@ -471,6 +471,12 @@ public class RexSimplify {
     }
     switch (a.getKind()) {
     case NOT:
+      // NOT(x) IS NULL !=> x IS NOT NULL
+      // Similarly NOT(x) IS NOT NULL !=> x IS NULL
+      if (kind == SqlKind.IS_NULL
+          || kind == SqlKind.IS_NOT_NULL) {
+        break;
+      }
       // (NOT x) IS TRUE ==> x IS FALSE
       // Similarly for IS NOT TRUE, IS FALSE, etc.
       //

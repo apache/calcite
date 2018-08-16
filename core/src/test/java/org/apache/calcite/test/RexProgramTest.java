@@ -1098,6 +1098,8 @@ public class RexProgramTest {
   @Test public void testSimplify() {
     final RelDataType booleanType =
         typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+    final RelDataType booleanNullableType =
+        typeFactory.createTypeWithNullability(booleanType, true);
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType intNullableType =
         typeFactory.createTypeWithNullability(intType, true);
@@ -1107,7 +1109,7 @@ public class RexProgramTest {
         .add("c", booleanType)
         .add("d", booleanType)
         .add("e", booleanType)
-        .add("f", booleanType)
+        .add("f", booleanNullableType)
         .add("g", booleanType)
         .add("h", intType)
         .add("i", intNullableType)
@@ -1121,6 +1123,7 @@ public class RexProgramTest {
     final RexNode cRef = rexBuilder.makeFieldAccess(range, 2);
     final RexNode dRef = rexBuilder.makeFieldAccess(range, 3);
     final RexNode eRef = rexBuilder.makeFieldAccess(range, 4);
+    final RexNode fRef = rexBuilder.makeFieldAccess(range, 5);
     final RexNode hRef = rexBuilder.makeFieldAccess(range, 7);
     final RexNode iRef = rexBuilder.makeFieldAccess(range, 8);
     final RexNode jRef = rexBuilder.makeFieldAccess(range, 9);
@@ -1289,6 +1292,11 @@ public class RexProgramTest {
     checkSimplify(coalesce(iRef, literal1), "COALESCE(?0.i, 1)");
     checkSimplify(coalesce(iRef, plus(iRef, hRef), literal1, hRef),
         "COALESCE(?0.i, +(?0.i, ?0.h), 1)");
+
+    // not(x) is null should not optimized to x is not null
+    checkSimplify(isNull(not(fRef)), "IS NULL(NOT(?0.f))");
+    checkSimplify(isNotNull(not(fRef)), "IS NOT NULL(?0.f)");
+
   }
 
   @Test public void testSimplifyFilter() {
