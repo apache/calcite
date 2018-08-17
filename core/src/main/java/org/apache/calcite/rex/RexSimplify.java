@@ -438,16 +438,18 @@ public class RexSimplify {
   }
 
   private RexNode simplifyIs2(SqlKind kind, RexNode a) {
+    final RexNode simplified;
     switch (kind) {
     case IS_NULL:
       // x IS NULL ==> FALSE (if x is not nullable)
-      if (!a.getType().isNullable()) {
-        return rexBuilder.makeLiteral(false);
+      simplified = simplifyIsNull(a);
+      if (simplified != null) {
+        return simplified;
       }
       break;
     case IS_NOT_NULL:
       // x IS NOT NULL ==> TRUE (if x is not nullable)
-      RexNode simplified = simplifyIsNotNull(a);
+      simplified = simplifyIsNotNull(a);
       if (simplified != null) {
         return simplified;
       }
@@ -496,7 +498,11 @@ public class RexSimplify {
       return rexBuilder.makeLiteral(true);
     }
     switch (Strong.policy(a.getKind())) {
+    case NOT_NULL:
+      return rexBuilder.makeLiteral(true);
     case ANY:
+      // "f" is a strong operator, so "f(operand) IS NOT NULL" simplifies to
+      // "operand IS NOT NULL"
       final List<RexNode> operands = new ArrayList<>();
       for (RexNode operand : ((RexCall) a).getOperands()) {
         final RexNode simplified = simplifyIsNotNull(operand);
@@ -518,6 +524,35 @@ public class RexSimplify {
         throw new AssertionError("every CUSTOM policy needs a handler, "
             + a.getKind());
       }
+    case AS_IS:
+    default:
+      return null;
+    }
+  }
+
+  private RexNode simplifyIsNull(RexNode a) {
+    if (!a.getType().isNullable()) {
+      return rexBuilder.makeLiteral(false);
+    }
+    switch (Strong.policy(a.getKind())) {
+    case NOT_NULL:
+      return rexBuilder.makeLiteral(false);
+    case ANY:
+      // "f" is a strong operator, so "f(operand) IS NULL" simplifies to
+      // "operand IS NULL"
+      final List<RexNode> operands = new ArrayList<>();
+      for (RexNode operand : ((RexCall) a).getOperands()) {
+        final RexNode simplified = simplifyIsNull(operand);
+        if (simplified == null) {
+          operands.add(
+              rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, operand));
+        } else if (simplified.isAlwaysFalse()) {
+          return rexBuilder.makeLiteral(false);
+        } else {
+          operands.add(simplified);
+        }
+      }
+      return RexUtil.composeConjunction(rexBuilder, operands, false);
     case AS_IS:
     default:
       return null;
