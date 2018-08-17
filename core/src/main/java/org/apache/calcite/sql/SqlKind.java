@@ -1311,6 +1311,11 @@ public enum SqlKind {
       return IS_NOT_FALSE;
     case IS_NOT_FALSE:
       return IS_NOT_TRUE;
+     // (NOT x) IS NULL => x IS NULL
+     // Similarly (NOT x) IS NOT NULL => x IS NOT NULL
+    case IS_NOT_NULL:
+    case IS_NULL:
+      return this;
     default:
       return this.negate();
     }

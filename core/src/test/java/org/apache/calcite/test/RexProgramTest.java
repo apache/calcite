@@ -1169,6 +1169,14 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplify(coalesce(iRef, literal1), "COALESCE(?0.i, 1)");
     checkSimplify(coalesce(iRef, plus(iRef, hRef), literal1, hRef),
         "COALESCE(?0.i, +(?0.i, ?0.h), 1)");
+
+    // "(not x) is null" to "x is null"
+    checkSimplify(isNull(not(vBool())), "IS NULL(?0.bool0)");
+    checkSimplify(isNull(not(vBoolNotNull())), "false");
+
+    // "(not x) is not null" to "x is not null"
+    checkSimplify(isNotNull(not(vBool())), "IS NOT NULL(?0.bool0)");
+    checkSimplify(isNotNull(not(vBoolNotNull())), "true");
   }
 
   @Test public void testSimplifyFilter() {
