@@ -434,7 +434,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
           builder.addExpr(falseLiteral);
       // $t12 = unknown
       final RexLocalRef t12 =
-          builder.addExpr(unknownLiteral);
+          builder.addExpr(nullBool);
       // $t13 = case when $t8 then $t9 when $t10 then $t11 else $t12 end
       final RexLocalRef t13 =
           builder.addExpr(case_(t8, t9, t10, t11, t12));
@@ -478,13 +478,13 @@ public class RexProgramTest extends RexProgramBuilderBase {
     assertThat(Strong.isNull(trueLiteral, c), is(false));
     assertThat(Strong.isNull(trueLiteral, c13), is(false));
     assertThat(Strong.isNull(falseLiteral, c13), is(false));
-    assertThat(Strong.isNull(nullLiteral, c), is(true));
-    assertThat(Strong.isNull(nullLiteral, c13), is(true));
-    assertThat(Strong.isNull(unknownLiteral, c13), is(true));
+    assertThat(Strong.isNull(nullInt, c), is(true));
+    assertThat(Strong.isNull(nullInt, c13), is(true));
+    assertThat(Strong.isNull(nullBool, c13), is(true));
 
     // AND is strong if one of its arguments is strong
-    final RexNode andUnknownTrue = and(unknownLiteral, trueLiteral);
-    final RexNode andTrueUnknown = and(trueLiteral, unknownLiteral);
+    final RexNode andUnknownTrue = and(nullBool, trueLiteral);
+    final RexNode andTrueUnknown = and(trueLiteral, nullBool);
     final RexNode andFalseTrue = and(falseLiteral, trueLiteral);
 
     assertThat(Strong.isNull(andUnknownTrue, c), is(false));
@@ -521,45 +521,45 @@ public class RexProgramTest extends RexProgramBuilderBase {
     // NULLIF(null, X): null
     // NULLIF(X, X/Y): null or X
     // NULLIF(X, null): X
-    assertThat(Strong.isNull(nullIf(nullLiteral, nullLiteral), c), is(true));
-    assertThat(Strong.isNull(nullIf(nullLiteral, trueLiteral), c), is(true));
+    assertThat(Strong.isNull(nullIf(nullInt, nullInt), c), is(true));
+    assertThat(Strong.isNull(nullIf(nullInt, trueLiteral), c), is(true));
     assertThat(Strong.isNull(nullIf(trueLiteral, trueLiteral), c), is(false));
     assertThat(Strong.isNull(nullIf(trueLiteral, falseLiteral), c), is(false));
-    assertThat(Strong.isNull(nullIf(trueLiteral, nullLiteral), c), is(false));
+    assertThat(Strong.isNull(nullIf(trueLiteral, nullInt), c), is(false));
 
     // ISNULL(null) is true, ISNULL(not null value) is false
-    assertThat(Strong.isNull(isNull(nullLiteral), c01), is(false));
+    assertThat(Strong.isNull(isNull(nullInt), c01), is(false));
     assertThat(Strong.isNull(isNull(trueLiteral), c01), is(false));
 
     // CASE ( <predicate1> <value1> <predicate2> <value2> <predicate3> <value3> ...)
     // only definitely null if all values are null.
     assertThat(
         Strong.isNull(
-            case_(eq(i0, i1), nullLiteral, ge(i0, i1), nullLiteral, nullLiteral), c01),
+            case_(eq(i0, i1), nullInt, ge(i0, i1), nullInt, nullInt), c01),
         is(true));
     assertThat(
         Strong.isNull(
-            case_(eq(i0, i1), i0, ge(i0, i1), nullLiteral, nullLiteral), c01),
+            case_(eq(i0, i1), i0, ge(i0, i1), nullInt, nullInt), c01),
         is(true));
     assertThat(
         Strong.isNull(
-            case_(eq(i0, i1), i0, ge(i0, i1), nullLiteral, nullLiteral), c1),
+            case_(eq(i0, i1), i0, ge(i0, i1), nullInt, nullInt), c1),
         is(false));
     assertThat(
         Strong.isNull(
-            case_(eq(i0, i1), nullLiteral, ge(i0, i1), i0, nullLiteral), c01),
+            case_(eq(i0, i1), nullInt, ge(i0, i1), i0, nullInt), c01),
         is(true));
     assertThat(
         Strong.isNull(
-            case_(eq(i0, i1), nullLiteral, ge(i0, i1), i0, nullLiteral), c1),
+            case_(eq(i0, i1), nullInt, ge(i0, i1), i0, nullInt), c1),
         is(false));
     assertThat(
         Strong.isNull(
-            case_(eq(i0, i1), nullLiteral, ge(i0, i1), nullLiteral, i0), c01),
+            case_(eq(i0, i1), nullInt, ge(i0, i1), nullInt, i0), c01),
         is(true));
     assertThat(
         Strong.isNull(
-            case_(eq(i0, i1), nullLiteral, ge(i0, i1), nullLiteral, i0), c1),
+            case_(eq(i0, i1), nullInt, ge(i0, i1), nullInt, i0), c1),
         is(false));
     assertThat(
         Strong.isNull(
@@ -712,7 +712,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkCnf(aRef, "?0.a");
     checkCnf(trueLiteral, "true");
     checkCnf(falseLiteral, "false");
-    checkCnf(unknownLiteral, "null");
+    checkCnf(nullBool, "null");
     checkCnf(and(aRef, bRef), "AND(?0.a, ?0.b)");
     checkCnf(and(aRef, bRef, cRef), "AND(?0.a, ?0.b, ?0.c)");
 
@@ -943,7 +943,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkPullFactors(aRef, "?0.a");
     checkPullFactors(trueLiteral, "true");
     checkPullFactors(falseLiteral, "false");
-    checkPullFactors(unknownLiteral, "null");
+    checkPullFactors(nullBool, "null");
     checkPullFactors(and(aRef, bRef), "AND(?0.a, ?0.b)");
     checkPullFactors(and(aRef, bRef, cRef), "AND(?0.a, ?0.b, ?0.c)");
 
@@ -1066,7 +1066,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
 
     // case: trailing false and null, no simplification
     checkSimplify2(
-        case_(aRef, trueLiteral, bRef, trueLiteral, cRef, falseLiteral, unknownLiteral),
+        case_(aRef, trueLiteral, bRef, trueLiteral, cRef, falseLiteral, nullBool),
         "CASE(?0.a, true, ?0.b, true, ?0.c, false, null)",
         "CAST(OR(?0.a, ?0.b)):BOOLEAN");
 
@@ -1249,10 +1249,10 @@ public class RexProgramTest extends RexProgramBuilderBase {
     // case: trailing false and null, remove
     checkSimplifyFilter(
         case_(cRef, trueLiteral, dRef, trueLiteral, eRef, falseLiteral, fRef,
-            falseLiteral, unknownLiteral), "CAST(OR(?0.c, ?0.d)):BOOLEAN");
+            falseLiteral, nullBool), "CAST(OR(?0.c, ?0.d)):BOOLEAN");
 
     // condition with null value for range
-    checkSimplifyFilter(and(gt(aRef, unknownLiteral), ge(bRef, literal1)), "false");
+    checkSimplifyFilter(and(gt(aRef, nullBool), ge(bRef, literal1)), "false");
 
     // condition "1 < a && 5 < x" yields "5 < x"
     checkSimplifyFilter(
@@ -1506,39 +1506,39 @@ public class RexProgramTest extends RexProgramBuilderBase {
 
     checkSimplify2(
         and(eq(aRef, literal1),
-            nullLiteral),
+            nullInt),
         "AND(=(?0.a, 1), null)",
         "false");
     checkSimplify2(
         and(trueLiteral,
-            nullLiteral),
+            nullInt),
         "null",
         "false");
     checkSimplify2(
         and(falseLiteral,
-            nullLiteral),
+            nullInt),
         "false",
         "false");
 
     checkSimplify2(
-        and(nullLiteral,
+        and(nullInt,
             eq(aRef, literal1)),
         "AND(null, =(?0.a, 1))",
         "false");
 
     checkSimplify2(
         or(eq(aRef, literal1),
-            nullLiteral),
+            nullInt),
         "OR(=(?0.a, 1), null)",
         "=(?0.a, 1)");
     checkSimplify2(
         or(trueLiteral,
-            nullLiteral),
+            nullInt),
         "true",
         "true");
     checkSimplify2(
         or(falseLiteral,
-            nullLiteral),
+            nullInt),
         "null",
         "false");
   }
@@ -2069,16 +2069,16 @@ public class RexProgramTest extends RexProgramBuilderBase {
 
   @Test public void testInterpreter() {
     assertThat(eval(trueLiteral), is(true));
-    assertThat(eval(nullLiteral), is(NullSentinel.INSTANCE));
-    assertThat(eval(eq(nullLiteral, nullLiteral)),
+    assertThat(eval(nullInt), is(NullSentinel.INSTANCE));
+    assertThat(eval(eq(nullInt, nullInt)),
         is(NullSentinel.INSTANCE));
-    assertThat(eval(eq(this.trueLiteral, nullLiteral)),
+    assertThat(eval(eq(this.trueLiteral, nullInt)),
         is(NullSentinel.INSTANCE));
     assertThat(eval(eq(falseLiteral, trueLiteral)),
         is(false));
     assertThat(eval(ne(falseLiteral, trueLiteral)),
         is(true));
-    assertThat(eval(ne(falseLiteral, nullLiteral)),
+    assertThat(eval(ne(falseLiteral, nullInt)),
         is(NullSentinel.INSTANCE));
     assertThat(eval(and(this.trueLiteral, falseLiteral)),
         is(false));

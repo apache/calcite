@@ -62,18 +62,6 @@ public abstract class RexProgramBuilderBase {
 
   protected RexLiteral trueLiteral;
   protected RexLiteral falseLiteral;
-  /**
-   * Nullable int literal.
-   * @deprecated since its name does not give a clue on type. Prefer {@code null_(tInt())}
-   */
-  @Deprecated
-  protected RexNode nullLiteral;
-  /**
-   * Nullable boolean literal.
-   * @deprecated prefer {@code null_(tBoolean())} or {@code nullBool}
-   */
-  @Deprecated
-  protected RexNode unknownLiteral;
   protected RexLiteral nullBool;
   protected RexLiteral nullInt;
   protected RexLiteral nullVarchar;
@@ -136,9 +124,6 @@ public abstract class RexProgramBuilderBase {
     nonNullableInt = typeFactory.createSqlType(SqlTypeName.INTEGER);
     nullableInt = typeFactory.createTypeWithNullability(nonNullableInt, true);
     nullInt = rexBuilder.makeNullLiteral(nullableInt);
-
-    nullLiteral = rexBuilder.makeNullLiteral(nonNullableInt);
-    unknownLiteral = rexBuilder.makeNullLiteral(trueLiteral.getType());
 
     nonNullableBool = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     nullableBool = typeFactory.createTypeWithNullability(nonNullableBool, true);
