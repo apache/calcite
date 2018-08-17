@@ -4600,7 +4600,11 @@ public abstract class SqlOperatorBaseTest {
     tester.setFor(
         SqlStdOperatorTable.ATAN2);
     tester.checkType("atan2(2, -2)", "DOUBLE NOT NULL");
-    tester.checkType("atan2(cast(1 as float), -1)", "DOUBLE NOT NULL");
+    tester.checkScalarApprox(
+        "atan2(cast(1 as float), -1)",
+        "DOUBLE NOT NULL",
+        2.3562d,
+        0.0001d);
     tester.checkType(
         "atan2(case when false then 0.5 else null end, -1)", "DOUBLE");
     tester.checkFails(
