@@ -1180,6 +1180,18 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         "select // here is from clause\n 'cat' as foobar, 1 as x from t group by t.^ order by 123";
     expected = "SELECT * FROM t GROUP BY t. _suggest_";
     assertSimplify(sql, expected);
+
+    // skip comments
+    sql =
+        "select -- here is from clause\n 'cat' as foobar, 1 as x from t group by t.^ order by 123";
+    expected = "SELECT * FROM t GROUP BY t. _suggest_";
+    assertSimplify(sql, expected);
+
+    // skip comments
+    sql =
+        "-- test test \nselect -- here is from \n 'cat' as foobar, 1 as x from t group by t.^ order by 123";
+    expected = "SELECT * FROM t GROUP BY t. _suggest_";
+    assertSimplify(sql, expected);
   }
 
   @WithLex(Lex.SQL_SERVER) @Test public void testSimpleParserQuotedIdSqlServer() {

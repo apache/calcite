@@ -156,6 +156,10 @@ public class SqlSimpleParser {
       if (token == null) {
         break;
       }
+      if (token.type == TokenType.COMMENT) {
+        // ignore comments
+        continue;
+      }
       list.add(token);
     }
 
@@ -353,7 +357,7 @@ public class SqlSimpleParser {
         case '/':
 
           // possible start of '/*' or '//' comment
-          if (pos < sql.length()) {
+          if (pos + 1 < sql.length()) {
             char c1 = sql.charAt(pos + 1);
             if (c1 == '*') {
               int end = sql.indexOf("*/", pos + 2);
@@ -371,6 +375,14 @@ public class SqlSimpleParser {
             }
             // fall through
           }
+
+        case '-':
+          // possible start of '--' comment
+          if (c == '-' && pos + 1 < sql.length() && sql.charAt(pos + 1) == '-') {
+            pos = indexOfLineEnd(sql, pos + 2);
+            return new Token(TokenType.COMMENT);
+          }
+          // fall through
 
         default:
           if (c == openQuote) {
