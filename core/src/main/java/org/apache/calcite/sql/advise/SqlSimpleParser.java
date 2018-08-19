@@ -606,7 +606,9 @@ public class SqlSimpleParser {
           // Indicates that the expression to be simplified is
           // outside this sub-query. Preserve a simplified SELECT
           // clause.
-          purgeSelectExprsKeepAliases();
+          // It might be a good idea to purge select expressions, however
+          // purgeSelectExprsKeepAliases might end up with <<0 as "*">> which is not valid.
+          // purgeSelectExprsKeepAliases();
           purgeWhere();
           purgeGroupByHaving();
           break;
@@ -690,6 +692,7 @@ public class SqlSimpleParser {
         if (((i + 1) == sublist.size())
             || (sublist.get(i + 1).type == TokenType.COMMA)) {
           if (token.type == TokenType.ID) {
+            // This might produce <<0 as "a.x+b.y">>, or <<0 as "*">>, or even <<0 as "a.*">>
             newSelectClause.add(new Token(TokenType.ID, "0"));
             newSelectClause.add(new Token(TokenType.ID, "AS"));
             newSelectClause.add(token);

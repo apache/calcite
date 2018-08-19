@@ -661,6 +661,12 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertComplete(sql, list);
   }
 
+  @Test public void testSimplifyStarAlias() {
+    String sql;
+    sql = "select ax^ from (select * from dummy a)";
+    assertSimplify(sql, "SELECT ax _suggest_ FROM ( SELECT * FROM dummy a )");
+  }
+
   @Test public void testSimlifyMinus() {
     String sql;
     sql = "select ^ from dummy a minus select * from dummy b";
@@ -909,7 +915,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     sql =
         "select t. from (select 1 as x, 2 as y from (select x from sales.emp)) as t where ^";
     String simplified =
-        "SELECT * FROM ( SELECT 0 AS x , 0 AS y FROM ( SELECT 0 AS x FROM sales.emp ) ) as t WHERE _suggest_";
+        "SELECT * FROM ( SELECT 1 as x , 2 as y FROM ( SELECT x FROM sales.emp ) ) as t WHERE _suggest_";
     assertSimplify(sql, simplified);
     assertComplete(sql, EXPR_KEYWORDS, tTable, xyColumns);
 
@@ -1098,15 +1104,15 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
             + "where t.dummy=1";
     expected =
         "SELECT t. _suggest_ "
-            + "FROM ( SELECT 0 AS x , 0 AS y FROM sales.emp ) as t";
+            + "FROM ( SELECT 1 as x , 2 as y FROM sales.emp ) as t";
     assertSimplify(sql, expected);
 
     sql =
         "select t. from (select 1 as x, 2 as y from "
             + "(select x from sales.emp)) as t where ^";
     expected =
-        "SELECT * FROM ( SELECT 0 AS x , 0 AS y FROM "
-            + "( SELECT 0 AS x FROM sales.emp ) ) as t WHERE _suggest_";
+        "SELECT * FROM ( SELECT 1 as x , 2 as y FROM "
+            + "( SELECT x FROM sales.emp ) ) as t WHERE _suggest_";
     assertSimplify(sql, expected);
 
     sql =
@@ -1114,8 +1120,8 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
             + "(select 2 as y from (select m from n where)) as t "
             + "where t.dummy=1";
     expected =
-        "SELECT _suggest_ FROM ( SELECT 0 AS x , 0 AS y FROM sales.emp ) "
-            + ", ( SELECT 0 AS y FROM ( SELECT 0 AS m FROM n ) ) as t";
+        "SELECT _suggest_ FROM ( SELECT 1 as x , 2 as y FROM sales.emp ) "
+            + ", ( SELECT 2 as y FROM ( SELECT m FROM n ) ) as t";
     assertSimplify(sql, expected);
 
     // Note: completes the missing close paren; wipes out select clause of
@@ -1126,7 +1132,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
     sql = "select t.^ from (select 1 as x, 2 as y from sales)";
     expected =
-        "SELECT t. _suggest_ FROM ( SELECT 0 AS x , 0 AS y FROM sales )";
+        "SELECT t. _suggest_ FROM ( SELECT 1 as x , 2 as y FROM sales )";
     assertSimplify(sql, expected);
 
     // sub-query in where; note that:
@@ -1139,7 +1145,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
             + "(select 1 as x, 2 as y from sales group by invalid stuff) as t "
             + "where x in (select deptno from emp where foo + t.^ < 10)";
     expected =
-        "SELECT * FROM ( SELECT 0 AS x , 0 AS y FROM sales ) as t "
+        "SELECT * FROM ( SELECT 1 as x , 2 as y FROM sales ) as t "
             + "WHERE x in ( SELECT * FROM emp WHERE foo + t. _suggest_ < 10 )";
     assertSimplify(sql, expected);
 
