@@ -38,7 +38,7 @@ public class SqlSimpleParser {
     // keywords
     SELECT, FROM, JOIN, ON, USING, WHERE, GROUP, HAVING, ORDER, BY,
 
-    UNION, INTERSECT, EXCEPT,
+    UNION, INTERSECT, EXCEPT, MINUS,
 
     /**
      * left parenthesis
@@ -191,6 +191,7 @@ public class SqlSimpleParser {
         case UNION:
         case INTERSECT:
         case EXCEPT:
+        case MINUS:
           outList.add(token);
           if (iter.hasNext()) {
             token = iter.next();
@@ -236,6 +237,7 @@ public class SqlSimpleParser {
       case UNION:
       case INTERSECT:
       case EXCEPT:
+      case MINUS:
         subQueryList.remove(subQueryList.size() - 1);
         iter.previous();
         break loop;

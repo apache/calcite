@@ -661,6 +661,15 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertComplete(sql, list);
   }
 
+  @Test public void testSimlifyMinus() {
+    String sql;
+    sql = "select ^ from dummy a minus select * from dummy b";
+    assertSimplify(sql, "SELECT _suggest_ FROM dummy a");
+
+    sql = "select * from dummy a minus select ^ from dummy b";
+    assertSimplify(sql, "SELECT _suggest_ FROM dummy b");
+  }
+
   @Test public void testOnCondition() throws Exception {
     String sql;
 
