@@ -718,6 +718,11 @@ public class SqlSimpleParser {
       for (int i = 0; i < sublist.size(); i++) {
         Token token = sublist.get(i);
         switch (token.type) {
+        case QUERY:
+          if (((Query)token).contains(hintToken)) {
+            found = true;
+          }
+          break;
         case JOIN:
           ++joinCount;
           // fall through

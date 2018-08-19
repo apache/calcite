@@ -691,6 +691,20 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     sql = "select ^ from (select a.x + b.y from dummy a, dummy b)";
     assertSimplify(sql, "SELECT _suggest_ FROM ( SELECT a.x + b.y FROM dummy a , dummy b )");
   }
+
+  @Test public void testSimlifySubqueryMultipleFrom() {
+    String sql;
+    // "dummy b" should be removed
+    sql = "select axc from (select (select ^ from dummy) axc from dummy a), dummy b";
+    assertSimplify(sql,
+        "SELECT * FROM ( SELECT ( SELECT _suggest_ FROM dummy ) axc FROM dummy a )");
+
+    // "dummy b" should be removed
+    sql = "select axc from dummy b, (select (select ^ from dummy) axc from dummy a)";
+    assertSimplify(sql,
+        "SELECT * FROM ( SELECT ( SELECT _suggest_ FROM dummy ) axc FROM dummy a )");
+  }
+
   @Test public void testSimlifyMinus() {
     String sql;
     sql = "select ^ from dummy a minus select * from dummy b";
