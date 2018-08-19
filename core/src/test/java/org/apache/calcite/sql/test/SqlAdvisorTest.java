@@ -30,6 +30,7 @@ import org.apache.calcite.test.WithLex;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.MethodRule;
@@ -667,6 +668,29 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertSimplify(sql, "SELECT ax _suggest_ FROM ( SELECT * FROM dummy a )");
   }
 
+  @Test public void testSimlifySubqueryStar() {
+    String sql;
+    sql = "select ax^ from (select (select * from dummy) axc from dummy a)";
+    assertSimplify(sql,
+        "SELECT ax _suggest_ FROM ( SELECT ( SELECT * FROM dummy ) axc FROM dummy a )");
+    assertComplete(sql, "COLUMN(AXC)\n", "ax");
+
+    sql =
+        "select ax^ from (select a.x+0 axa, b.x axb, (select * from dummy) axbc from dummy a, dummy b)";
+    assertSimplify(sql,
+        "SELECT ax _suggest_ FROM ( SELECT a.x+0 axa , b.x axb , ( SELECT * FROM dummy ) axbc FROM dummy a , dummy b )");
+    assertComplete(sql,
+        "COLUMN(AXA)\nCOLUMN(AXB)\nCOLUMN(AXBC)\n", "ax");
+
+    sql = "select ^ from (select * from dummy)";
+    assertSimplify(sql, "SELECT _suggest_ FROM ( SELECT * FROM dummy )");
+
+    sql = "select ^ from (select x.* from dummy x)";
+    assertSimplify(sql, "SELECT _suggest_ FROM ( SELECT x.* FROM dummy x )");
+
+    sql = "select ^ from (select a.x + b.y from dummy a, dummy b)";
+    assertSimplify(sql, "SELECT _suggest_ FROM ( SELECT a.x + b.y FROM dummy a , dummy b )");
+  }
   @Test public void testSimlifyMinus() {
     String sql;
     sql = "select ^ from dummy a minus select * from dummy b";
@@ -1361,6 +1385,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         ImmutableMap.of("KEYWORD(FROM)", "from"));
   }
 
+  @Ignore("Inserts are not supported by SimpleParser yet")
   @Test public void testInsert() throws Exception {
     String sql;
     sql = "insert into emp(empno, mgr) select ^ from dept a";

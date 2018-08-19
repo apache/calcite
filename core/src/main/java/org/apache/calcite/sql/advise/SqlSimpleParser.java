@@ -202,13 +202,12 @@ public class SqlSimpleParser {
               iter.previous();
             }
           }
+          // Combine SELECT ... UNION SELECT..., so keep trying consumeSelect
           break;
-        case RPAREN:
+        default:
+          // Unknown token detected => end of query detected
           iter.previous();
           return;
-        default:
-          iter.previous();
-          break;
         }
       }
     }
