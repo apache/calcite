@@ -1339,6 +1339,13 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         ImmutableMap.of("COLUMN(isOne)", "isOne"));
   }
 
+  @Test @WithLex(Lex.JAVA) public void testAdviceEmptyFrom() {
+    String sql;
+    sql = "select * from^";
+    assertComplete(sql, "KEYWORD(FROM)\n", "from",
+        ImmutableMap.of("KEYWORD(FROM)", "from"));
+  }
+
   @Test public void testInsert() throws Exception {
     String sql;
     sql = "insert into emp(empno, mgr) select ^ from dept a";
