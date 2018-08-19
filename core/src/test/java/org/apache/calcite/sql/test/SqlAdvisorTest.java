@@ -1392,6 +1392,13 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         ImmutableMap.of("COLUMN(isOne)", "isOne"));
   }
 
+  @Test @WithLex(Lex.JAVA) public void testAdviceExpression() {
+    String sql;
+    sql = "select s.`count`+s.co^ from (select 1 `count` from emp) s";
+    assertComplete(sql, "COLUMN(count)\n", "co",
+        ImmutableMap.of("COLUMN(count)", "`count`"));
+  }
+
   @Test @WithLex(Lex.JAVA) public void testAdviceEmptyFrom() {
     String sql;
     sql = "select * from^";
