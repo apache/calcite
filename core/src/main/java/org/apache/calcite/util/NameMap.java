@@ -45,6 +45,20 @@ public class NameMap<V> {
     this(new TreeMap<String, V>(COMPARATOR));
   }
 
+  @Override public String toString() {
+    return map.toString();
+  }
+
+  @Override public int hashCode() {
+    return map.hashCode();
+  }
+
+  @Override public boolean equals(Object obj) {
+    return this == obj
+        || obj instanceof NameMap
+        && map.equals(((NameMap) obj).map);
+  }
+
   /** Creates a NameMap that is an immutable copy of a given map. */
   public static <V> NameMap immutableCopyOf(Map<String, V> names) {
     return new NameMap<>(ImmutableSortedMap.copyOf(names, COMPARATOR));

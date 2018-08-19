@@ -42,7 +42,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-
 /**
  * HepPlannerTest is a unit test for {@link HepPlanner}. See
  * {@link RelOptRulesTest} for an explanation of how to add tests; the tests in

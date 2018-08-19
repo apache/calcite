@@ -2521,7 +2521,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql3).with(getTesterWithDynamicTable()).ok();
   }
 
-  @Test public void testStarDynamicSchemaUnnestNestedSubquery() {
+  @Test public void testStarDynamicSchemaUnnestNestedSubQuery() {
     String sql3 = "select t2.c1\n"
         + "from (select * from SALES.CUSTOMER) as t1,\n"
         + "unnest(t1.fake_col) as t2(c1)";

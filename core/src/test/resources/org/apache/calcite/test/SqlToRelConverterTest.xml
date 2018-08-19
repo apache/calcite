@@ -5292,10 +5292,10 @@ LogicalProject(**=[$1], $unnest=[$2])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testStarDynamicSchemaUnnestNestedSubquery">
+    <TestCase name="testStarDynamicSchemaUnnestNestedSubQuery">
         <Resource name="sql">
-            <![CDATA[select t2.c1
-            from (select * from SALES.CUSTOMER) as t1, unnest(t1.fake_col) as t2(c1)]]>
+            <![CDATA[select t2.c1 from (select * from SALES.CUSTOMER)
+            as t1, unnest(t1.fake_col) as t2(c1)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
