@@ -30,9 +30,11 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
+
 import static org.apache.calcite.runtime.SqlFunctions.addMonths;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
+import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
 import static org.apache.calcite.runtime.SqlFunctions.initcap;
 import static org.apache.calcite.runtime.SqlFunctions.lesser;
@@ -87,6 +89,11 @@ public class SqlFunctionsTest {
     assertEquals("Won'T It?No", initcap("won't it?no"));
     assertEquals("1a", initcap("1A"));
     assertEquals(" B0123b", initcap(" b0123B"));
+  }
+
+  @Test public void testFromBase64() {
+    assertEquals("This is a test String.",
+            fromBase64("VGhpcyBpcyBhIHRlc3QgU3RyaW5nLg=="));
   }
 
   @Test public void testLesser() {

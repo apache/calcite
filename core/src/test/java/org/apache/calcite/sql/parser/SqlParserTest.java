@@ -1450,6 +1450,10 @@ public class SqlParserTest {
     checkExp("substring('a' , 1)", "SUBSTRING('a' FROM 1)");
   }
 
+  @Test public void testFromBase64() {
+    checkExp("from_base64('JWJj')", "FROM_BASE64('JWJj')");
+  }
+
   @Test public void testFunction() {
     check("select substring('Eggs and ham', 1, 3 + 2) || ' benedict' from emp",
         "SELECT (SUBSTRING('Eggs and ham' FROM 1 FOR (3 + 2)) || ' benedict')\n"

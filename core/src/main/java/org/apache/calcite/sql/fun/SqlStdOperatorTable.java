@@ -52,6 +52,7 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlModality;
@@ -1350,6 +1351,16 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.ARG0_NULLABLE,
           null,
           OperandTypes.CHARACTER,
+          SqlFunctionCategory.STRING);
+
+  public static final SqlFunction FROM_BASE64 =
+      new SqlFunction(
+          "FROM_BASE64",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
+                  SqlTypeTransforms.TO_NULLABLE),
+          null,
+          OperandTypes.STRING,
           SqlFunctionCategory.STRING);
 
   /**

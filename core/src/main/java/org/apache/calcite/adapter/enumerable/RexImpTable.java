@@ -130,6 +130,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FIRST_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FROM_BASE64;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FUSION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
@@ -253,6 +254,7 @@ public class RexImpTable {
         NullPolicy.STRICT);
     defineMethod(OVERLAY, BuiltInMethod.OVERLAY.method, NullPolicy.STRICT);
     defineMethod(POSITION, BuiltInMethod.POSITION.method, NullPolicy.STRICT);
+    defineMethod(FROM_BASE64, BuiltInMethod.FROM_BASE64.method, NullPolicy.STRICT);
 
     final TrimImplementor trimImplementor = new TrimImplementor();
     defineImplementor(TRIM, NullPolicy.STRICT, trimImplementor, false);

@@ -856,6 +856,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         Charset.forName("UTF-16LE"));
   }
 
+  @Test public void testFromBase64() {
+    checkExp("from_base64('JWJj')");
+    checkExpType("from_base64('JWJj')", "VARCHAR NOT NULL");
+  }
+
   @Test public void testSubstringFails() {
     checkWholeExpFails("substring('a' from 1 for 'b')",
         "(?s).*Cannot apply 'SUBSTRING' to arguments of type.*");

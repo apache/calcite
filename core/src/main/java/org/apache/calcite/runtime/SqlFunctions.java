@@ -45,6 +45,7 @@ import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -105,6 +106,18 @@ public class SqlFunctions {
       ThreadLocal.withInitial(HashMap::new);
 
   private SqlFunctions() {
+  }
+
+  /** SQL FROM_BASE64(string) function*/
+  public static  String fromBase64(String s) {
+    if (s == null) {
+      return null;
+    }
+    try {
+      return new String(Base64.getDecoder().decode(s), "UTF-8");
+    } catch (Exception e) {
+      return null;
+    }
   }
 
   /** SQL SUBSTRING(string FROM ... FOR ...) function. */
