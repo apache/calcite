@@ -1459,6 +1459,18 @@ LogicalProject(A=[$0], B=[$1], C=[$2], DEPTNO=[$3], NAME=[$4])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testStructTypeAlias">
+        <Resource name="sql">
+            <![CDATA[select t.r AS myRow
+from (select row(row(1)) r from dept) t]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(MYROW$$0$$0=[1])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testJoinWithUnion">
         <Resource name="sql">
             <![CDATA[select grade

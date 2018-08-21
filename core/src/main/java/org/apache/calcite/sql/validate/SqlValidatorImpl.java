@@ -131,6 +131,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
+import javax.annotation.Nonnull;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -454,7 +455,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     selectItems.add(expanded);
     aliases.add(alias);
 
-    inferUnknownTypes(targetType, scope, expanded);
+    if (expanded != null) {
+      inferUnknownTypes(targetType, scope, expanded);
+    }
     final RelDataType type = deriveType(selectScope, expanded);
     setValidatedNodeType(expanded, type);
     fields.add(Pair.of(alias, type));
@@ -1720,9 +1723,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   protected void inferUnknownTypes(
-      RelDataType inferredType,
-      SqlValidatorScope scope,
-      SqlNode node) {
+      @Nonnull RelDataType inferredType,
+      @Nonnull SqlValidatorScope scope,
+      @Nonnull SqlNode node) {
+    Objects.requireNonNull(inferredType);
+    Objects.requireNonNull(scope);
+    Objects.requireNonNull(node);
     final SqlValidatorScope newScope = scopes.get(node);
     if (newScope != null) {
       scope = newScope;
@@ -1790,6 +1796,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       } else {
         setValidatedNodeType(caseCall.getElseOperand(), returnType);
       }
+    } else if (node.getKind()  == SqlKind.AS) {
+      // For AS operator, only infer the operand not the alias
+      inferUnknownTypes(inferredType, scope, ((SqlCall) node).operand(0));
     } else if (node instanceof SqlCall) {
       final SqlCall call = (SqlCall) node;
       final SqlOperandTypeInference operandTypeInference =
@@ -1797,18 +1806,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlCallBinding callBinding = new SqlCallBinding(this, scope, call);
       final List<SqlNode> operands = callBinding.operands();
       final RelDataType[] operandTypes = new RelDataType[operands.size()];
-      if (operandTypeInference == null) {
-        // TODO:  eventually should assert(operandTypeInference != null)
-        // instead; for now just eat it
-        Arrays.fill(operandTypes, unknownType);
-      } else {
+      Arrays.fill(operandTypes, unknownType);
+      // TODO:  eventually should assert(operandTypeInference != null)
+      // instead; for now just eat it
+      if (operandTypeInference != null) {
         operandTypeInference.inferOperandTypes(
             callBinding,
             inferredType,
             operandTypes);
       }
       for (int i = 0; i < operands.size(); ++i) {
-        inferUnknownTypes(operandTypes[i], scope, operands.get(i));
+        final SqlNode operand = operands.get(i);
+        if (operand != null) {
+          inferUnknownTypes(operandTypes[i], scope, operand);
+        }
       }
     }
   }

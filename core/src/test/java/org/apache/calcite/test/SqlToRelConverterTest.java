@@ -123,6 +123,16 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for:
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2468">[CALCITE-2468]
+   * struct type alias should not cause IOOBE.</a>.
+   */
+  @Test public void testStructTypeAlias() {
+    final String sql = "select t.r AS myRow \n"
+        + "from (select row(row(1)) r from dept) t";
+    sql(sql).ok();
+  }
+
   @Test
   public void testJoinUsingDynamicTable() {
     final String sql = "select * from SALES.NATION t1\n"
