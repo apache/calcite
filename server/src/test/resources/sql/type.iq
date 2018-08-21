@@ -49,7 +49,25 @@ select * from t;
 
 !ok
 
+# Create a complex struct type
+create type mytype1 as (ii int not null);
+(0 rows modified)
+
+!update
+
+# Create a complex table
+create table v (i int not null, j mytype1 not null);
+(0 rows modified)
+
+!update
+
+select i AS myInt, j AS myStruct from v;
+MYINT INTEGER(10) NOT NULL
+MYSTRUCT STRUCT NOT NULL
+!type
+
 drop table t;
+drop table v;
 (0 rows modified)
 
 !update
