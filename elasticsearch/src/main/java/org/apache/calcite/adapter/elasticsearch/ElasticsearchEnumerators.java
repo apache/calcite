@@ -46,7 +46,7 @@ class ElasticsearchEnumerators {
       final Class fieldClass) {
     return new Function1<ElasticsearchSearchResult.SearchHit, Object>() {
       public Object apply(ElasticsearchSearchResult.SearchHit hits) {
-        return convert(hits.sourceOrFields(), fieldClass);
+        return convert(hits.valueOrNull(fieldName), fieldClass);
       }
     };
   }
@@ -68,7 +68,7 @@ class ElasticsearchEnumerators {
           final Map.Entry<String, Class> field = fields.get(i);
           final String name = field.getKey();
           final Class type = field.getValue();
-          objects[i] = convert(hit.value(name), type);
+          objects[i] = convert(hit.valueOrNull(name), type);
         }
         return objects;
       }

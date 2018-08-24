@@ -84,12 +84,66 @@ public class ProjectionTest {
     };
   }
 
+  /**
+   * Select all columns
+   */
   @Test
-  public void projection() {
+  public void selectStar() {
     CalciteAssert.that()
             .with(newConnectionFactory())
             .query("select * from view")
             .returns("a=aa; b=bb; c=cc; d=dd\n");
+  }
+
+  /**
+   * Select one column
+   */
+  @Test
+  public void selectOne() {
+    String sql = String.format(Locale.ROOT, "select cast(_MAP['A'] AS varchar(2)) from "
+        + "\"elastic\".\"%s\"", NAME);
+
+    // without view
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query(sql)
+        .returns("EXPR$0=aa\n");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select \"a\" from view")
+        .returns("a=aa\n");
+  }
+
+  @Test
+  public void selectTwo() {
+    String sql = String.format(Locale.ROOT, "select cast(_MAP['A'] AS varchar(2)) "
+        + ", cast(_MAP['b'] as varchar(2))"
+        + " from \"elastic\".\"%s\"", NAME);
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query(sql)
+        .returns("EXPR$0=aa; EXPR$1=bb\n");
+  }
+
+  @Test
+  public void missingFieldsShouldBeNulls() {
+    String sql1 = String.format(Locale.ROOT, "select cast(_MAP['missing'] AS varchar(2)) "
+        + " from \"elastic\".\"%s\"", NAME);
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query(sql1)
+        .returns("EXPR$0=null\n");
+
+    String sql2 = String.format(Locale.ROOT, "select cast(_MAP['missing1'] AS varchar(2)), "
+        + " _MAP['missing2'] from \"elastic\".\"%s\"", NAME);
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query(sql2)
+        .returns("EXPR$0=null; EXPR$1=null\n");
   }
 }
 

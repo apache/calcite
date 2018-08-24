@@ -125,9 +125,21 @@ public class ElasticsearchSearchResult {
     }
 
     /**
+     * Find specific attribute from ES result or {@code null} if such
+     * attribute doesn't exist.
+     * @param name attribute name
+     * @return value from result or {@code null} if absent
+     */
+    Object valueOrNull(String name) {
+      Objects.requireNonNull(name, "name");
+      return sourceOrFields().containsKey(name) ? value(name) : null;
+    }
+
+    /**
      * Finds specific attribute from ES search result
      * @param name attribute name
      * @return value from result (_source or fields)
+     * @throws IllegalArgumentException if such attribute doesn't exist
      */
     Object value(String name) {
       Objects.requireNonNull(name, "name");
