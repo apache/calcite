@@ -20,7 +20,6 @@ import org.apache.calcite.linq4j.function.Experimental;
 
 import com.google.common.collect.ImmutableSortedMap;
 
-import java.util.Locale;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
@@ -33,6 +32,7 @@ import static org.apache.calcite.util.NameSet.COMPARATOR;
  * @param <V> Value type */
 public class NameMap<V> {
   private final NavigableMap<String, V> map;
+  private final NameHelper helper = new NameHelper();
 
   /** Creates a NameSet based on an existing set. */
   private NameMap(NavigableMap<String, V> map) {
@@ -79,8 +79,7 @@ public class NameMap<V> {
         return ImmutableSortedMap.of();
       }
     } else {
-      return map.subMap(name.toUpperCase(Locale.ROOT), true,
-          name.toLowerCase(Locale.ROOT), true);
+      return helper.map(map, name);
     }
   }
 

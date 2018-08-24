@@ -43,6 +43,7 @@ public class NameSet {
   };
 
   private final NavigableSet<String> names;
+  private final NameHelper helper = new NameHelper();
 
   /** Creates a NameSet based on an existing set. */
   private NameSet(NavigableSet<String> names) {
@@ -89,8 +90,7 @@ public class NameSet {
         return ImmutableList.of();
       }
     } else {
-      return names.subSet(name.toUpperCase(Locale.ROOT), true,
-          name.toLowerCase(Locale.ROOT), true);
+      return helper.set(names, name);
     }
   }
 

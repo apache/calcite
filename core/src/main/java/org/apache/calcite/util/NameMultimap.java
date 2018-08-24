@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
@@ -36,6 +35,7 @@ import static org.apache.calcite.util.NameSet.COMPARATOR;
  * @param <V> Value type */
 public class NameMultimap<V> {
   private final NavigableMap<String, List<V>> map;
+  private final NameHelper helper = new NameHelper();
 
   /** Creates a NameMultimap based on an existing map. */
   private NameMultimap(NavigableMap<String, List<V>> map) {
@@ -97,17 +97,7 @@ public class NameMultimap<V> {
         return ImmutableList.of();
       }
     } else {
-      final ImmutableList.Builder<Map.Entry<String, V>> builder =
-          ImmutableList.builder();
-      NavigableMap<String, List<V>> m =
-          map.subMap(name.toUpperCase(Locale.ROOT), true,
-              name.toLowerCase(Locale.ROOT), true);
-      for (Map.Entry<String, List<V>> entry : m.entrySet()) {
-        for (V v : entry.getValue()) {
-          builder.add(Pair.of(entry.getKey(), v));
-        }
-      }
-      return builder.build();
+      return helper.multimap(map, name);
     }
   }
 
