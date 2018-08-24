@@ -68,9 +68,6 @@ public class SqlTestFactory {
                           CalciteAssert.SchemaSpec.HR)))
           .build();
 
-  public static final SqlTestFactory INSTANCE =
-      new SqlTestFactory();
-
   private final ImmutableMap<String, Object> options;
   private final MockCatalogReaderFactory catalogReaderFactory;
   private final ValidatorFactory validatorFactory;
@@ -80,7 +77,7 @@ public class SqlTestFactory {
   private final Supplier<SqlValidatorCatalogReader> catalogReader;
   private final Supplier<SqlParser.Config> parserConfig;
 
-  protected SqlTestFactory() {
+  public SqlTestFactory() {
     this(DEFAULT_OPTIONS, MockCatalogReaderSimple::new, SqlValidatorUtil::newValidator);
   }
 

@@ -44,9 +44,6 @@ import static org.junit.Assert.fail;
  * for SqlAdvisor.
  */
 public class SqlAdvisorTest extends SqlValidatorTestCase {
-  public static final SqlTestFactory ADVISOR_TEST_FACTORY = SqlTestFactory.INSTANCE.withValidator(
-      SqlAdvisorValidator::new);
-
   //~ Static fields/initializers ---------------------------------------------
 
   private static final List<String> STAR_KEYWORD =
@@ -517,7 +514,8 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
   }
 
   @Override public SqlTester getTester() {
-    return new SqlTesterImpl(ADVISOR_TEST_FACTORY);
+    return new SqlTesterImpl(
+        new SqlTestFactory().withValidator(SqlAdvisorValidator::new));
   }
 
   /**

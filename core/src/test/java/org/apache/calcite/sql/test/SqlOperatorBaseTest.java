@@ -7641,7 +7641,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   public static SqlTester tester() {
-    return new TesterImpl(SqlTestFactory.INSTANCE);
+    return new TesterImpl(new SqlTestFactory());
   }
 
   /**
