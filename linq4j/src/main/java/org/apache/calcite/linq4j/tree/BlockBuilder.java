@@ -570,7 +570,6 @@ public class BlockBuilder {
     }
   }
 
-
   /** Use counter. */
   private static class UseCounter extends VisitorImpl<Void> {
     private final Map<ParameterExpression, Slot> map = new IdentityHashMap<>();
