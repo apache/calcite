@@ -22,6 +22,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.OptimizeShuttle;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Shuttle;
 
 import org.junit.Before;
@@ -78,6 +79,51 @@ public class BlockBuilderTest {
     b.add(Expressions.return_(null, Expressions.add(ONE, TWO)));
     assertEquals("{\n  return 4;\n}\n", b.toBlock().toString());
   }
+
+  private BlockBuilder appendBlockWithSameVariable(
+      Expression initializer1, Expression initializer2) {
+    BlockBuilder outer = new BlockBuilder();
+    ParameterExpression outerX = Expressions.parameter(int.class, "x");
+    outer.add(Expressions.declare(0, outerX, initializer1));
+    outer.add(Expressions.statement(Expressions.assign(outerX, Expressions.constant(1))));
+
+    BlockBuilder inner = new BlockBuilder();
+    ParameterExpression innerX = Expressions.parameter(int.class, "x");
+    inner.add(Expressions.declare(0, innerX, initializer2));
+    inner.add(Expressions.statement(Expressions.assign(innerX, Expressions.constant(42))));
+    inner.add(Expressions.return_(null, innerX));
+    outer.append("x", inner.toBlock());
+    return outer;
+  }
+
+  @Test public void testRenameVariablesWithEmptyInitializer() {
+    BlockBuilder outer = appendBlockWithSameVariable(null, null);
+
+    assertEquals("x in the second block should be renamed to avoid name clash",
+        "{\n"
+            + "  int x;\n"
+            + "  x = 1;\n"
+            + "  int x0;\n"
+            + "  x0 = 42;\n"
+            + "}\n",
+        Expressions.toString(outer.toBlock()));
+  }
+
+  @Test public void testRenameVariablesWithInitializer() {
+    BlockBuilder outer = appendBlockWithSameVariable(
+        Expressions.constant(7), Expressions.constant(8));
+
+    assertEquals("x in the second block should be renamed to avoid name clash",
+        "{\n"
+            + "  int x = 7;\n"
+            + "  x = 1;\n"
+            + "  int x0 = 8;\n"
+            + "  x0 = 42;\n"
+            + "}\n",
+        Expressions.toString(outer.toBlock()));
+  }
+
+
 }
 
 // End BlockBuilderTest.java

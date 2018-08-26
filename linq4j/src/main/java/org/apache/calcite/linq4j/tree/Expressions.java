@@ -2940,6 +2940,9 @@ public abstract class Expressions {
    */
   public static DeclarationStatement declare(int modifiers, String name,
       Expression initializer) {
+    assert initializer != null
+        : "empty initializer for variable declaration with name '" + name + "', modifiers "
+        + modifiers + ". Please use declare(int, ParameterExpression, initializer) instead";
     return declare(modifiers, parameter(initializer.getType(), name),
         initializer);
   }
