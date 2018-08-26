@@ -995,7 +995,8 @@ public class ExpressionTest {
             + "  final int _b = 1 + 2;\n"
             + "  final int _c = 1 + 3;\n"
             + "  final int _d = 1 + 4;\n"
-            + "  org.apache.calcite.linq4j.test.ExpressionTest.bar(1, _b, _c, _d, org.apache.calcite.linq4j.test.ExpressionTest.foo(_c));\n"
+            + "  final int _b0 = 1 + 3;\n"
+            + "  org.apache.calcite.linq4j.test.ExpressionTest.bar(1, _b, _c, _d, org.apache.calcite.linq4j.test.ExpressionTest.foo(_b0));\n"
             + "}\n",
         Expressions.toString(expression));
     expression.accept(new Shuttle());

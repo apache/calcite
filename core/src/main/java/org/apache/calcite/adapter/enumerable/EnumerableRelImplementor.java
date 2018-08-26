@@ -72,7 +72,6 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
       new HashMap<>();
   private final Map<Object, ParameterExpression> stashedParameters =
       new IdentityHashMap<>();
-  int windowCount = 0;
 
   protected final Function1<String, RexToLixTranslator.InputGetter> allCorrelateVariables =
       this::getCorrelVariableGetter;

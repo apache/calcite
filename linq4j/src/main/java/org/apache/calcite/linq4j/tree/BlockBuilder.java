@@ -121,10 +121,23 @@ public class BlockBuilder {
       }
       if (statement instanceof DeclarationStatement) {
         DeclarationStatement declaration = (DeclarationStatement) statement;
-        if (variables.contains(declaration.parameter.name)) {
-          Expression x = append(
-              newName(declaration.parameter.name, optimize),
-              declaration.initializer);
+        if (!variables.contains(declaration.parameter.name)) {
+          add(statement);
+        } else {
+          String newName = newName(declaration.parameter.name, optimize);
+          Expression x;
+          // When initializer is null, append(name, initializer) can't deduce expression type
+          if (declaration.initializer != null && isSafeForReuse(declaration)) {
+            x = append(newName, declaration.initializer);
+          } else {
+            ParameterExpression pe = Expressions.parameter(
+                declaration.parameter.type, newName);
+            DeclarationStatement newDeclaration = Expressions.declare(
+                declaration.modifiers, pe, declaration.initializer
+            );
+            x = pe;
+            add(newDeclaration);
+          }
           statement = null;
           result = x;
           if (declaration.parameter != x) {
@@ -132,8 +145,6 @@ public class BlockBuilder {
             // declaration was present in BlockBuilder
             replacements.put(declaration.parameter, x);
           }
-        } else {
-          add(statement);
         }
       } else {
         add(statement);
@@ -237,7 +248,7 @@ public class BlockBuilder {
   }
 
   protected boolean isSafeForReuse(DeclarationStatement decl) {
-    return (decl.modifiers & Modifier.FINAL) != 0;
+    return (decl.modifiers & Modifier.FINAL) != 0 && !decl.parameter.name.startsWith("_");
   }
 
   protected void addExpressionForReuse(DeclarationStatement decl) {
@@ -340,7 +351,7 @@ public class BlockBuilder {
     }
     final Map<ParameterExpression, Expression> subMap =
         new IdentityHashMap<>(useCounter.map.size());
-    final SubstituteVariableVisitor visitor = new SubstituteVariableVisitor(
+    final Shuttle visitor = new InlineVariableVisitor(
         subMap);
     final ArrayList<Statement> oldStatements = new ArrayList<>(statements);
     statements.clear();
@@ -493,7 +504,7 @@ public class BlockBuilder {
 
   /** Substitute Variable Visitor. */
   private static class SubstituteVariableVisitor extends Shuttle {
-    private final Map<ParameterExpression, Expression> map;
+    protected final Map<ParameterExpression, Expression> map;
     private final Map<ParameterExpression, Boolean> actives =
         new IdentityHashMap<>();
 
@@ -518,6 +529,14 @@ public class BlockBuilder {
         }
       }
       return super.visit(parameterExpression);
+    }
+  }
+
+  /** Inline Variable Visitor. */
+  private static class InlineVariableVisitor extends SubstituteVariableVisitor {
+    InlineVariableVisitor(
+        Map<ParameterExpression, Expression> map) {
+      super(map);
     }
 
     @Override public Expression visit(UnaryExpression unaryExpression,
