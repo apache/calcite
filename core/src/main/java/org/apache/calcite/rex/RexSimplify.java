@@ -718,11 +718,31 @@ public class RexSimplify {
     // Example #1. x AND y AND z AND NOT (x AND y)  - not satisfiable
     // Example #2. x AND y AND NOT (x AND y)        - not satisfiable
     // Example #3. x AND y AND NOT (x AND y AND z)  - may be satisfiable
+    RexNode bestNotDisjunction = null;
     for (RexNode notDisjunction : notTerms) {
       final List<RexNode> terms2 = RelOptUtil.conjunctions(notDisjunction);
-      if (terms.containsAll(terms2)) {
+      if (!terms.containsAll(terms2)) {
+        // may be satisfiable ==> check other terms
+        continue;
+      }
+      if (!notDisjunction.getType().isNullable()) {
+        // x is NOT nullable, then x AND NOT(x) ==> FALSE
         return rexBuilder.makeLiteral(false);
       }
+      // x AND NOT(x) is UNKNOWN for NULL input
+      // So we search for the shortest notDisjunction then convert
+      // original expression to NULL and x IS NULL
+      if (bestNotDisjunction == null
+          || bestNotDisjunction.toString().length() > notDisjunction.toString().length()) {
+        bestNotDisjunction = notDisjunction;
+      }
+    }
+    if (bestNotDisjunction != null) {
+      // NULL AND (x IS NULL)
+      return rexBuilder.makeCall(SqlStdOperatorTable.AND,
+          rexBuilder.makeNullLiteral(bestNotDisjunction.getType()),
+          simplifyIs(
+              (RexCall) rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, bestNotDisjunction)));
     }
     // Add the NOT disjunctions back in.
     for (RexNode notDisjunction : notTerms) {
