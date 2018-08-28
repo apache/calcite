@@ -97,7 +97,7 @@ limitations under the License.
     <hydromatic-toolbox.version>0.3</hydromatic-toolbox.version>
     <hydromatic-tpcds.version>0.4</hydromatic-tpcds.version>
     <jackson.version>2.9.6</jackson.version>
-    <janino.version>2.7.6</janino.version>
+    <janino.version>3.0.9</janino.version>
     <java-diff.version>1.1.1</java-diff.version>
     <javacc-maven-plugin.version>2.4</javacc-maven-plugin.version>
     <jcip-annotations.version>1.0-1</jcip-annotations.version>
