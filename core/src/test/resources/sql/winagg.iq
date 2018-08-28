@@ -404,6 +404,22 @@ order by gender, r;
 
 !ok
 
+# [CALCITE-311] Wrong results when filtering the results of windowed aggregation
+
+select * from (
+  select "empid", count(*) over () c
+    from "hr"."emps"
+) where "empid"=100;
+
++-------+---+
+| empid | C |
++-------+---+
+|   100 | 4 |
++-------+---+
+(1 row)
+
+!ok
+
 # [CALCITE-2081] Two windows under a JOIN
 select a."deptno", a.r as ar, b.r as br
 from (
