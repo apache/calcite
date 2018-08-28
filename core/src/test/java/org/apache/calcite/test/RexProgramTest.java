@@ -70,6 +70,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -1557,6 +1559,17 @@ public class RexProgramTest extends RexProgramBuilderBase {
             not(aRef)),
         "AND(null, IS NULL(?0.a))",
         "false");
+  }
+
+  @Test public void fieldAccessEqualsHashCode() {
+    assertEquals("vBool() instances should be equal", vBool(), vBool());
+    assertEquals("vBool().hashCode()", vBool().hashCode(), vBool().hashCode());
+    assertNotSame("vBool() is expected to produce new RexFieldAccess", vBool(), vBool());
+    assertNotEquals("vBool(0) != vBool(1)", vBool(0), vBool(1));
+  }
+
+  @Test public void testSimplifyDynamicParam() {
+    checkSimplify2(or(vBool(), vBool()), "?0.bool0", "?0.bool0");
   }
 
   /** Unit test for
