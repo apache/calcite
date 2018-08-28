@@ -2068,13 +2068,15 @@ public class RexImpTable {
         }
         break;
       case MILLISECOND:
-        return Expressions.modulo(
-              operand, Expressions.constant(TimeUnit.MINUTE.multiplier.longValue()));
       case MICROSECOND:
+      case NANOSECOND:
+        if (sqlTypeName == SqlTypeName.DATE) {
+          return Expressions.constant(0L);
+        }
         operand = Expressions.modulo(
-              operand, Expressions.constant(TimeUnit.MINUTE.multiplier.longValue()));
+            operand, Expressions.constant(TimeUnit.MINUTE.multiplier.longValue()));
         return Expressions.multiply(
-              operand, Expressions.constant(TimeUnit.SECOND.multiplier.longValue()));
+            operand, Expressions.constant((long) (1 / unit.multiplier.doubleValue())));
       case EPOCH:
         switch (sqlTypeName) {
         case DATE:

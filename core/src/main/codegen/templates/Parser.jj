@@ -4082,7 +4082,8 @@ SqlIntervalQualifier IntervalQualifier() :
 TimeUnit TimeUnit() :
 {}
 {
-    <MICROSECOND> { return TimeUnit.MICROSECOND; }
+    <NANOSECOND> { return TimeUnit.NANOSECOND; }
+|   <MICROSECOND> { return TimeUnit.MICROSECOND; }
 |   <MILLISECOND> { return TimeUnit.MILLISECOND; }
 |   <SECOND> { return TimeUnit.SECOND; }
 |   <MINUTE> { return TimeUnit.MINUTE; }
