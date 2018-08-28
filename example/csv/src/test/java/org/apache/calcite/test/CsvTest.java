@@ -21,6 +21,7 @@ import org.apache.calcite.adapter.csv.CsvStreamTableFactory;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
@@ -33,9 +34,6 @@ import org.junit.Test;
 import java.io.File;
 import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.URL;
-import java.net.URLDecoder;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -367,17 +365,7 @@ public class CsvTest {
   }
 
   private String resourcePath(String path) {
-    final URL url = CsvTest.class.getResource("/" + path);
-    // URL converts a space to %20, undo that.
-    try {
-      String s = URLDecoder.decode(url.toString(), "UTF-8");
-      if (s.startsWith("file:")) {
-        s = s.substring("file:".length());
-      }
-      return s;
-    } catch (UnsupportedEncodingException e) {
-      throw new RuntimeException(e);
-    }
+    return Sources.of(CsvTest.class.getResource("/" + path)).file().getAbsolutePath();
   }
 
   private static void collect(List<String> result, ResultSet resultSet)

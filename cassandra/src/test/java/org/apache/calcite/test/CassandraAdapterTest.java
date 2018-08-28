@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -60,8 +61,9 @@ public class CassandraAdapterTest {
   /** Connection factory based on the "mongo-zips" model. */
   private static final ImmutableMap<String, String> TWISSANDRA =
       ImmutableMap.of("model",
-          CassandraAdapterTest.class.getResource("/model.json")
-              .getPath());
+          Sources.of(
+              CassandraAdapterTest.class.getResource("/model.json"))
+              .file().getAbsolutePath());
 
   /**
    * Whether to run this test.

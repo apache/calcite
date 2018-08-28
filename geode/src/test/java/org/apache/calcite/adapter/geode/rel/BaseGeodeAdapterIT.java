@@ -17,11 +17,11 @@
 package org.apache.calcite.adapter.geode.rel;
 
 import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.util.Sources;
 
 import org.junit.Assert;
 
 import java.io.PrintStream;
-import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -118,12 +118,7 @@ public class BaseGeodeAdapterIT {
   }
 
   private String resourcePath(String path) {
-    final URL url = GeodeAdapterIT.class.getResource("/" + path);
-    String s = url.toString();
-    if (s.startsWith("file:")) {
-      s = s.substring("file:".length());
-    }
-    return s;
+    return Sources.of(GeodeAdapterIT.class.getResource("/" + path)).file().getAbsolutePath();
   }
 
   private void output(ResultSet resultSet, PrintStream out)

@@ -30,6 +30,7 @@ import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Closer;
+import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.Lists;
@@ -53,7 +54,6 @@ import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.function.Function;
 
 import static org.junit.Assert.fail;
 
@@ -107,22 +107,14 @@ public abstract class QuidemTest {
 
   protected static Collection<Object[]> data(String first) {
     // inUrl = "file:/home/fred/calcite/core/target/test-classes/sql/agg.iq"
-    final URL inUrl = JdbcTest.class.getResource("/" + first);
-    String x = inUrl.getFile();
-    assert x.endsWith(first);
-    final String base =
-        File.separatorChar == '\\'
-            ? x.substring(1, x.length() - first.length())
-                .replace('/', File.separatorChar)
-            : x.substring(0, x.length() - first.length());
-    final File firstFile = new File(x);
+    final URL inUrl = JdbcTest.class.getResource("/" + n2u(first));
+    final File firstFile = Sources.of(inUrl).file();
+    final int commonPrefixLength = firstFile.getAbsolutePath().length() - first.length();
     final File dir = firstFile.getParentFile();
     final List<String> paths = new ArrayList<>();
     final FilenameFilter filter = new PatternFilenameFilter(".*\\.iq$");
     for (File f : Util.first(dir.listFiles(filter), new File[0])) {
-      assert f.getAbsolutePath().startsWith(base)
-          : "f: " + f.getAbsolutePath() + "; base: " + base;
-      paths.add(f.getAbsolutePath().substring(base.length()));
+      paths.add(f.getAbsolutePath().substring(commonPrefixLength));
     }
     return Lists.transform(paths, path -> new Object[] {path});
   }
@@ -139,15 +131,8 @@ public abstract class QuidemTest {
       // e.g. path = "sql/outer.iq"
       // inUrl = "file:/home/fred/calcite/core/target/test-classes/sql/outer.iq"
       final URL inUrl = JdbcTest.class.getResource("/" + n2u(path));
-      String x = u2n(inUrl.getFile());
-      assert x.endsWith(path)
-          : "x: " + x + "; path: " + path;
-      x = x.substring(0, x.length() - path.length());
-      assert x.endsWith(u2n("/test-classes/"));
-      x = x.substring(0, x.length() - u2n("/test-classes/").length());
-      final File base = new File(x);
-      inFile = new File(base, u2n("/test-classes/") + path);
-      outFile = new File(base, u2n("/surefire/") + path);
+      inFile = Sources.of(inUrl).file();
+      outFile = new File(inFile.getAbsoluteFile().getParent(), u2n("surefire/") + path);
     }
     Util.discard(outFile.getParentFile().mkdirs());
     try (final Reader reader = Util.reader(inFile);

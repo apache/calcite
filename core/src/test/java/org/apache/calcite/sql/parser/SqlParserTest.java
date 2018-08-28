@@ -30,6 +30,7 @@ import org.apache.calcite.test.DiffTestCase;
 import org.apache.calcite.test.SqlValidatorTestCase;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ConversionUtil;
+import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -48,8 +49,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.URL;
-import java.net.URLDecoder;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -7152,14 +7152,15 @@ public class SqlParserTest {
     assumeTrue("don't run this test for sub-classes", isNotSubclass());
     // inUrl = "file:/home/x/calcite/core/target/test-classes/hsqldb-model.json"
     String path = "hsqldb-model.json";
-    final URL inUrl = SqlParserTest.class.getResource("/" + path);
-    // URL will convert spaces to %20, undo that
-    String x = URLDecoder.decode(inUrl.getFile(), "UTF-8");
-    assert x.endsWith(path);
-    x = x.substring(0, x.length() - path.length());
-    assert x.endsWith("core/target/test-classes/");
-    x = x.substring(0, x.length() - "core/target/test-classes/".length());
-    final File base = new File(x);
+    File hsqlDbModel = Sources.of(SqlParserTest.class.getResource("/" + path)).file();
+    assert hsqlDbModel.getAbsolutePath().endsWith(
+        Paths.get("core", "target", "test-classes", "hsqldb-model.json").toString())
+        : hsqlDbModel.getAbsolutePath()
+        + " should end with core/target/test-classes/hsqldb-model.json";
+    // skip hsqldb-model.json, test-classes, target, core
+    // The assertion above protects us from walking over unrelated paths
+    final File base = hsqlDbModel.getAbsoluteFile()
+        .getParentFile().getParentFile().getParentFile().getParentFile();
     final File inFile = new File(base, "site/_docs/reference.md");
     final File outFile = new File(base, "core/target/surefire/reference.md");
     outFile.getParentFile().mkdirs();

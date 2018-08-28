@@ -23,8 +23,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.zip.GZIPInputStream;
 
@@ -38,6 +41,10 @@ public abstract class Sources {
     return new FileSource(file);
   }
 
+  public static Source of(URL url) {
+    return new FileSource(url);
+  }
+
   public static Source file(File baseDirectory, String fileName) {
     final File file = new File(fileName);
     if (baseDirectory != null && !file.isAbsolute()) {
@@ -49,9 +56,8 @@ public abstract class Sources {
 
   public static Source url(String url) {
     try {
-      URL url_ = new URL(url);
-      return new FileSource(url_);
-    } catch (MalformedURLException e) {
+      return of(new URL(url));
+    } catch (MalformedURLException | IllegalArgumentException e) {
       throw new RuntimeException("Malformed URL: '" + url + "'", e);
     }
   }
@@ -76,16 +82,31 @@ public abstract class Sources {
 
     private FileSource(URL url) {
       this.url = Objects.requireNonNull(url);
-      if (url.getProtocol().equals("file")) {
-        this.file = new File(url.getFile());
-      } else {
-        this.file = null;
-      }
+      this.file = urlToFile(url);
     }
 
     private FileSource(File file) {
       this.file = Objects.requireNonNull(file);
       this.url = null;
+    }
+
+    private File urlToFile(URL url) {
+      if (!"file".equals(url.getProtocol())) {
+        return null;
+      }
+      URI uri;
+      try {
+        uri = url.toURI();
+      } catch (URISyntaxException e) {
+        throw new IllegalArgumentException("Unable to convert URL " + url + " to URI", e);
+      }
+      if (uri.isOpaque()) {
+        // It is like file:test%20file.c++
+        // getSchemeSpecificPart would return "test file.c++"
+        return new File(uri.getSchemeSpecificPart());
+      }
+      // See https://stackoverflow.com/a/17870390/1261287
+      return Paths.get(uri).toFile();
     }
 
     @Override public String toString() {
@@ -111,7 +132,15 @@ public abstract class Sources {
     }
 
     public String path() {
-      return file != null ? file.getPath() : url.toExternalForm();
+      if (file != null) {
+        return file.getPath();
+      }
+      try {
+        // Decode %20 and friends
+        return url.toURI().getSchemeSpecificPart();
+      } catch (URISyntaxException e) {
+        throw new IllegalArgumentException("Unable to convert URL " + url + " to URI", e);
+      }
     }
 
     public Reader reader() throws IOException {
@@ -149,20 +178,26 @@ public abstract class Sources {
     }
 
     public Source append(Source child) {
-      String path;
       if (isFile(child)) {
-        path = child.file().getPath();
         if (child.file().isAbsolute()) {
           return child;
         }
       } else {
-        path = child.url().getPath();
-        if (path.startsWith("/")) {
-          return child;
+        try {
+          URI uri = child.url().toURI();
+          if (!uri.isOpaque()) {
+            // The URL is "absolute" (it starts with a slash)
+            return child;
+          }
+        } catch (URISyntaxException e) {
+          throw new IllegalArgumentException("Unable to convert URL " + child.url() + " to URI", e);
         }
       }
+      String path = child.path();
       if (url != null) {
-        return Sources.url(url + "/" + path);
+        String encodedPath = new File(".").toURI().relativize(new File(path).toURI())
+            .getRawSchemeSpecificPart();
+        return Sources.url(url + "/" + encodedPath);
       } else {
         return Sources.file(file, path);
       }

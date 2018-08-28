@@ -51,6 +51,9 @@ java.lang.Runtime#exec(java.lang.String[], java.lang.String[], java.io.File)
 @defaultMessage For an enum, use == rather than equals
 java.lang.Enum#equals(java.lang.Object)
 
+@defaultMessage It does not handle encoded URLs, use Sources.of(URL).file() instead
+java.net.URL#getPath()
+
 # Preconditions.checkArgument,
 # Preconditions.checkPositionIndex, and
 # Preconditions.checkState are still OK

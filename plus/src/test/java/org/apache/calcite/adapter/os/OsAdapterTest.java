@@ -22,6 +22,7 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 
 import org.hamcrest.CoreMatchers;
@@ -66,7 +67,8 @@ public class OsAdapterTest {
   /** Returns whether there is a ".git" directory in this directory or in a
    * directory between this directory and root. */
   private static boolean hasGit() {
-    final String path = OsAdapterTest.class.getResource("/").getPath();
+    final String path = Sources.of(OsAdapterTest.class.getResource("/"))
+        .file().getAbsolutePath();
     File f = new File(path);
     for (;;) {
       if (f == null || !f.exists()) {

@@ -35,7 +35,6 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -66,9 +65,7 @@ public class FileReaderTest {
   }
 
   private static String resourcePath(String path) throws Exception {
-    final URL url = FileReaderTest.class.getResource("/" + path);
-    final File file = new File(url.toURI());
-    return file.getAbsolutePath();
+    return Sources.of(FileReaderTest.class.getResource("/" + path)).file().getAbsolutePath();
   }
 
   /** Tests {@link FileReader} URL instantiation - no path. */
@@ -81,7 +78,11 @@ public class FileReaderTest {
     //   sun.security.provider.certpath.SunCertPathBuilderException:
     //   unable to find valid certification path to requested target
     final String r = System.getProperty("java.runtime.name");
-    Assume.assumeTrue(!r.equals("OpenJDK Runtime Environment"));
+    // http://openjdk.java.net/jeps/319 => root certificates are bundled with JEP 10
+    Assume.assumeTrue("Java 10+ should have root certificates (JEP 319). Runtime is "
+            + r + ", Jave major version is " + TestUtil.getJavaMajorVersion(),
+        !r.equals("OpenJDK Runtime Environment")
+            || TestUtil.getJavaMajorVersion() > 10);
 
     FileReader t = new FileReader(STATES_SOURCE);
     t.refresh();
@@ -114,7 +115,7 @@ public class FileReaderTest {
   /** Tests failed {@link FileReader} instantiation - malformed URL. */
   @Test public void testFileReaderMalUrl() throws FileReaderException {
     try {
-      final Source badSource = Sources.url("bad" + CITIES_SOURCE.path());
+      final Source badSource = Sources.url("bad" + CITIES_SOURCE.url());
       fail("expected exception, got " + badSource);
     } catch (RuntimeException e) {
       assertThat(e.getCause(), instanceOf(MalformedURLException.class));

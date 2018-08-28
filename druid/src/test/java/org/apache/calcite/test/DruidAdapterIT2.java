@@ -29,7 +29,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 
 import org.junit.Test;
@@ -115,7 +114,7 @@ public class DruidAdapterIT2 {
   private CalciteAssert.AssertQuery approxQuery(URL url, String sql) {
     return CalciteAssert.that()
         .enable(enabled())
-        .with(ImmutableMap.of("model", url.getPath()))
+        .withModel(url)
         .with(CalciteConnectionProperty.APPROXIMATE_DISTINCT_COUNT.camelName(), true)
         .with(CalciteConnectionProperty.APPROXIMATE_TOP_N.camelName(), true)
         .with(CalciteConnectionProperty.APPROXIMATE_DECIMAL.camelName(), true)
@@ -126,7 +125,7 @@ public class DruidAdapterIT2 {
   private CalciteAssert.AssertQuery sql(String sql, URL url) {
     return CalciteAssert.that()
         .enable(enabled())
-        .with(ImmutableMap.of("model", url.getPath()))
+        .withModel(url)
         .query(sql);
   }
 
@@ -426,7 +425,7 @@ public class DruidAdapterIT2 {
         + "aggs=[[SUM($1)]], sort0=[1], dir0=[DESC], fetch=[3])";
     CalciteAssert.that()
         .enable(enabled())
-        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .withModel(FOODMART)
         .with(CalciteConnectionProperty.APPROXIMATE_TOP_N.name(), approx)
         .query(sql)
         .runs()
@@ -2664,7 +2663,7 @@ public class DruidAdapterIT2 {
                                            String expectedDruidQuery) {
     CalciteAssert.that()
         .enable(enabled())
-        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .withModel(FOODMART)
         .with(CalciteConnectionProperty.APPROXIMATE_DISTINCT_COUNT.camelName(), approx)
         .query(sql)
         .runs()
@@ -2851,7 +2850,7 @@ public class DruidAdapterIT2 {
         + "\"expression\",\"name\":\"vc\",\"expression\":\"timestamp_floor(\\\"__time\\\"";
     CalciteAssert.that()
         .enable(enabled())
-        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .withModel(FOODMART)
         .query(sql)
         .runs()
         .queryContains(druidChecker(druidQuery))
@@ -3119,7 +3118,7 @@ public class DruidAdapterIT2 {
         + "'((timestamp_extract(\\'__time\\'";
     CalciteAssert.that()
         .enable(enabled())
-        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .withModel(FOODMART)
         .query(sql)
         .runs()
         .returnsOrdered("EXPR$0=86829")
@@ -3134,7 +3133,7 @@ public class DruidAdapterIT2 {
         + "'((timestamp_extract(\\'__time\\'";
     CalciteAssert.that()
         .enable(enabled())
-        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .withModel(FOODMART)
         .query(sql)
         .runs()
         .returnsOrdered("EXPR$0=7033")

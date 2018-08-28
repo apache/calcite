@@ -52,6 +52,7 @@ import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Smalls;
+import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 
 import org.apache.commons.dbcp2.PoolableConnectionFactory;
@@ -75,6 +76,7 @@ import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -948,6 +950,11 @@ public class CalciteAssert {
 
     public final AssertThat withModel(String model) {
       return with(CalciteConnectionProperty.MODEL, "inline:" + model);
+    }
+
+    public final AssertThat withModel(URL model) {
+      return with(CalciteConnectionProperty.MODEL,
+          Sources.of(model).file().getAbsolutePath());
     }
 
     public final AssertThat withMaterializations(String model,

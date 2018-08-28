@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.geode.rel;
 
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
@@ -42,8 +43,8 @@ public class GeodeZipsIT {
    */
   public static final ImmutableMap<String, String> GEODE_ZIPS =
       ImmutableMap.of("CONFORMANCE", "LENIENT", "model",
-          GeodeZipsIT.class.getResource("/model-zips.json")
-              .getPath());
+          Sources.of(GeodeZipsIT.class.getResource("/model-zips.json"))
+              .file().getAbsolutePath());
 
 
   /**

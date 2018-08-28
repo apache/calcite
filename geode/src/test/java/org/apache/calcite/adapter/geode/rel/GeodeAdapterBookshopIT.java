@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.geode.rel;
 
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
@@ -43,8 +44,8 @@ public class GeodeAdapterBookshopIT {
    */
   public static final ImmutableMap<String, String> GEODE =
       ImmutableMap.of("model",
-          GeodeAdapterBookshopIT.class.getResource("/model-bookshop.json")
-              .getPath());
+          Sources.of(GeodeAdapterBookshopIT.class.getResource("/model-bookshop.json"))
+              .file().getAbsolutePath());
 
 
   /**
