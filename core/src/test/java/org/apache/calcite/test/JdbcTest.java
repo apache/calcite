@@ -3589,24 +3589,24 @@ public class JdbcTest {
             "deptno=10; empid=150; S=18760.0; FIVE=5; M=7000.0; C=2",
             "deptno=20; empid=200; S=8200.0; FIVE=5; M=8000.0; C=1")
         .planContains(CalcitePrepareImpl.DEBUG
-            ? "_list.add(new Object[] {\n"
+            ? "_list_w0.add(new Object[] {\n"
             + "        row[0],\n" // box-unbox is optimized
             + "        row[1],\n"
             + "        row[2],\n"
             + "        row[3],\n"
-            + "        COUNTa0w0,\n"
-            + "        $SUM0a1w0,\n"
-            + "        MINa2w0,\n"
-            + "        COUNTa3w0});"
-            : "_list.add(new Object[] {\n"
+            + "        COUNTa0w0n0,\n"
+            + "        $SUM0a1w0n0,\n"
+            + "        MINa2w0n0,\n"
+            + "        COUNTa3w0n0});"
+            : "_list_w0.add(new Object[] {\n"
                 + "        row[0],\n" // box-unbox is optimized
                 + "        row[1],\n"
                 + "        row[2],\n"
                 + "        row[3],\n"
-                + "        a0w0,\n"
-                + "        a1w0,\n"
-                + "        a2w0,\n"
-                + "        a3w0});")
+                + "        a0w0n0,\n"
+                + "        a1w0n0,\n"
+                + "        a2w0n0,\n"
+                + "        a3w0n0});")
         .planContains("return new Object[] {\n"
             + "                  current[1],\n"
             + "                  current[0],\n"
@@ -3656,9 +3656,9 @@ public class JdbcTest {
    */
   @Test public void testWinAggScalarNonNullPhysType() {
     String planLine =
-        "a0s0w0 = org.apache.calcite.runtime.SqlFunctions.lesser(a0s0w0, org.apache.calcite.runtime.SqlFunctions.toFloat(_rows[j]));";
+        "a0s0w0n0 = org.apache.calcite.runtime.SqlFunctions.lesser(a0s0w0n0, org.apache.calcite.runtime.SqlFunctions.toFloat(_rows[j]));";
     if (CalcitePrepareImpl.DEBUG) {
-      planLine = planLine.replaceAll("a0s0w0", "MINa0s0w0");
+      planLine = planLine.replaceAll("a0s0w0n0", "MINa0s0w0n0");
     }
     CalciteAssert.hr()
         .query("select min(\"salary\"+1) over w as m\n"
@@ -3681,9 +3681,9 @@ public class JdbcTest {
    */
   @Test public void testWinAggScalarNonNullPhysTypePlusOne() {
     String planLine =
-        "a0s0w0 = org.apache.calcite.runtime.SqlFunctions.lesser(a0s0w0, org.apache.calcite.runtime.SqlFunctions.toFloat(_rows[j]));";
+        "a0s0w0n0 = org.apache.calcite.runtime.SqlFunctions.lesser(a0s0w0n0, org.apache.calcite.runtime.SqlFunctions.toFloat(_rows[j]));";
     if (CalcitePrepareImpl.DEBUG) {
-      planLine = planLine.replaceAll("a0s0w0", "MINa0s0w0");
+      planLine = planLine.replaceAll("a0s0w0n0", "MINa0s0w0n0");
     }
     CalciteAssert.hr()
         .query("select 1+min(\"salary\"+1) over w as m\n"

@@ -175,11 +175,11 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
     PhysType inputPhysType = result.physType;
 
-    final int w = implementor.windowCount++;
+    final int globalWindowIdx = implementor.windowCount++;
     ParameterExpression prevStart =
-        Expressions.parameter(int.class, builder.newName("prevStart" + w));
+        Expressions.parameter(int.class, builder.newName("prevStart_w" + globalWindowIdx));
     ParameterExpression prevEnd =
-        Expressions.parameter(int.class, builder.newName("prevEnd" + w));
+        Expressions.parameter(int.class, builder.newName("prevEnd_w" + globalWindowIdx));
 
     builder.add(Expressions.declare(0, prevStart, null));
     builder.add(Expressions.declare(0, prevEnd, null));
@@ -226,7 +226,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
       final Expression list_ =
           builder.append(
-              "list",
+              "list_w" + globalWindowIdx,
               Expressions.new_(
                   ArrayList.class,
                   Expressions.call(
@@ -286,7 +286,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
                 outputPhysType.getJavaFieldType(i)));
       }
 
-      declareAndResetState(typeFactory, builder, result, windowIdx, aggs,
+      declareAndResetState(typeFactory, builder, result, globalWindowIdx, windowIdx, aggs,
           outputPhysType, outputRow);
 
       // There are assumptions that minX==0. If ever change this, look for
@@ -754,7 +754,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
   }
 
   private void declareAndResetState(final JavaTypeFactory typeFactory,
-      BlockBuilder builder, final Result result, int windowIdx,
+      BlockBuilder builder, final Result result, int globalWindowIdx, int windowIdx,
       List<AggImpState> aggs, PhysType outputPhysType,
       List<Expression> outputRow) {
     for (final AggImpState agg : aggs) {
@@ -811,7 +811,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
         ParameterExpression pe =
             Expressions.parameter(type,
                 builder.newName(aggName
-                    + "s" + i + "w" + windowIdx));
+                    + "s" + i + "w" + globalWindowIdx + "n" + windowIdx));
         builder.add(Expressions.declare(0, pe, null));
         decls.add(pe);
       }
@@ -824,7 +824,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       }
       ParameterExpression aggRes = Expressions.parameter(0,
           aggHolderType,
-          builder.newName(aggName + "w" + windowIdx));
+          builder.newName(aggName + "w" + globalWindowIdx + "n" + windowIdx));
 
       builder.add(
           Expressions.declare(0, aggRes,
