@@ -10668,6 +10668,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from emp_r join dept_r on (^emp_r.slackingmin^ = dept_r.slackingmin)")
             .fails(onError);
   }
+  @Test public void testChr() {
+    checkExp("chr(97)");
+    checkExp("chr(97)||chr(97)");
+    checkExpType("chr(97)",
+            "CHAR(1) NOT NULL");
+    checkExpType("chr(97)||chr(97)",
+            "CHAR(2) NOT NULL");
+  }
 }
 
 // End SqlValidatorTest.java

@@ -1307,6 +1307,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlFunction POSITION = new SqlPositionFunction();
 
+  public static final SqlFunction CHR =
+      new SqlFunction(
+          "CHR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.CHAR,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.STRING);
+
   public static final SqlFunction CHAR_LENGTH =
       new SqlFunction(
           "CHAR_LENGTH",

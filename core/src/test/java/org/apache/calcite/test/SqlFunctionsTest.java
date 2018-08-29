@@ -32,6 +32,7 @@ import java.util.List;
 import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.addMonths;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
+import static org.apache.calcite.runtime.SqlFunctions.chr;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
 import static org.apache.calcite.runtime.SqlFunctions.initcap;
@@ -809,6 +810,16 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.multisetUnionDistinct(z, z), is(z));
     assertThat(SqlFunctions.multisetUnionDistinct(z, addc),
         is(Arrays.asList("a", "c", "d")));
+  }
+
+    /**
+     * testing CHR function
+     */
+  @Test public void testChr() {
+    assertEquals("a", chr(97L));
+    assertEquals("a", chr(BigDecimal.valueOf(97L)));
+    assertEquals("a", chr(97.0));
+    assertEquals("a", chr((byte) 97));
   }
 }
 

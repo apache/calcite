@@ -2565,6 +2565,24 @@ public class RelToSqlConverterTest {
         callsUnparseCallOnSqlSelect[0], is(true));
   }
 
+  @Test public void testChr() {
+    final String query = "select chr(97) "
+        + "from \"reserve_employee\"\n";
+    final String expectedOracle = "SELECT CHR(97)\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
+    final String expectedPostgresql = "SELECT CHR(97)\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
+    final String expectedMysql = "SELECT CHR(97)\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    sql(query)
+        .withOracle()
+        .ok(expectedOracle)
+        .withPostgresql()
+        .ok(expectedPostgresql)
+        .withMysql()
+        .ok(expectedMysql);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;

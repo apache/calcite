@@ -8151,6 +8151,10 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testChr() {
+    checkExp("chr(97)",
+        "CHR(97)");
+  }
   //~ Inner Interfaces -------------------------------------------------------
 
   /**

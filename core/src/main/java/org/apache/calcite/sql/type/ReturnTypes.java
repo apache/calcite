@@ -267,6 +267,9 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference BIGINT_NULLABLE =
       cascade(BIGINT, SqlTypeTransforms.TO_NULLABLE);
 
+
+  public static final SqlReturnTypeInference CHAR =
+      explicit(SqlTypeName.CHAR);
   /**
    * Type-inference strategy that always returns "VARCHAR(2000)".
    */

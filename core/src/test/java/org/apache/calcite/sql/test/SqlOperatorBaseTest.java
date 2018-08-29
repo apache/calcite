@@ -5638,6 +5638,16 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("month(cast(null as date))");
   }
 
+  @Test public void testChr() {
+    tester.setFor(SqlStdOperatorTable.CHR, VM_FENNEL, VM_JAVA);
+    tester.checkScalar("chr(97)",
+        "a", "CHAR(1) NOT NULL");
+    tester.checkScalar("chr(97)||chr(97)",
+        "aa", "CHAR(2) NOT NULL");
+    tester.checkScalar("chr(97.0)",
+        "a", "CHAR(1) NOT NULL");
+  }
+
   @Test public void testWeek() {
     tester.setFor(
         SqlStdOperatorTable.WEEK,

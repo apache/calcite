@@ -174,6 +174,19 @@ public class SqlFunctions {
     return newS.toString();
   }
 
+  /** SQL CHR(numeric) function. */
+  public static String chr(BigDecimal b) {
+    return Character.toString((char) b.intValue());
+  }
+
+  public static String chr(long l) {
+    return Character.toString((char) l);
+  }
+
+  public static String chr(double d) {
+    return Character.toString((char) d);
+  }
+
   /** SQL CHARACTER_LENGTH(string) function. */
   public static int charLength(String s) {
     return s.length();

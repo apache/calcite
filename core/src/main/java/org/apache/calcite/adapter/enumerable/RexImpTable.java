@@ -104,6 +104,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COALESCE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COLLECT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CONCAT;
@@ -280,6 +281,7 @@ public class RexImpTable {
     defineUnary(UNARY_MINUS, Negate, NullPolicy.STRICT);
     defineUnary(UNARY_PLUS, UnaryPlus, NullPolicy.STRICT);
 
+    defineMethod(CHR, "chr", NullPolicy.STRICT);
     defineMethod(MOD, "mod", NullPolicy.STRICT);
     defineMethod(EXP, "exp", NullPolicy.STRICT);
     defineMethod(POWER, "power", NullPolicy.STRICT);
