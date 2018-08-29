@@ -125,7 +125,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
    */
   public MockCatalogReader(RelDataTypeFactory typeFactory,
       boolean caseSensitive) {
-    super(CalciteSchema.createRootSchema(false, true, DEFAULT_CATALOG),
+    super(CalciteSchema.createRootSchema(false, false, DEFAULT_CATALOG),
         SqlNameMatchers.withCaseSensitive(caseSensitive),
         ImmutableList.of(PREFIX, ImmutableList.of()),
         typeFactory, null);
