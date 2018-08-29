@@ -199,6 +199,14 @@ public abstract class RexProgramBuilderBase {
     return rexBuilder.makeCall(SqlStdOperatorTable.NOT, node);
   }
 
+  protected RexNode unaryMinus(RexNode node) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.UNARY_MINUS, node);
+  }
+
+  protected RexNode unaryPlus(RexNode node) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.UNARY_PLUS, node);
+  }
+
   protected RexNode and(RexNode... nodes) {
     return and(ImmutableList.copyOf(nodes));
   }

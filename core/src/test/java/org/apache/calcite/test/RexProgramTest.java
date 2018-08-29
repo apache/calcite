@@ -2066,6 +2066,16 @@ public class RexProgramTest extends RexProgramBuilderBase {
         "...", "...");
   }
 
+  @Ignore("[CALCITE-2505] java.lang.AssertionError: result mismatch")
+  @Test public void coalescePlusNull() {
+    // when applied to {?0.int0=-1},
+    // COALESCE(+(null), +(?0.int0)) yielded -1,
+    // and +(null) yielded NULL
+    checkSimplify2(
+        coalesce(unaryPlus(nullInt), unaryPlus(vInt())),
+        "...", "...");
+  }
+
   /** Converts a map to a string, sorting on the string representation of its
    * keys. */
   private static String getString(ImmutableMap<RexNode, RexNode> map) {
