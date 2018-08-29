@@ -1748,6 +1748,10 @@ public class RexUtil {
       return SqlStdOperatorTable.IS_NOT_TRUE;
     case IS_NOT_NULL:
       return SqlStdOperatorTable.IS_NOT_NULL;
+    case IS_DISTINCT_FROM:
+      return SqlStdOperatorTable.IS_DISTINCT_FROM;
+    case IS_NOT_DISTINCT_FROM:
+      return SqlStdOperatorTable.IS_NOT_DISTINCT_FROM;
     case EQUALS:
       return SqlStdOperatorTable.EQUALS;
     case NOT_EQUALS:
@@ -1760,6 +1764,12 @@ public class RexUtil {
       return SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
     case GREATER_THAN_OR_EQUAL:
       return SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
+    case AND:
+      return SqlStdOperatorTable.AND;
+    case OR:
+      return SqlStdOperatorTable.OR;
+    case COALESCE:
+      return SqlStdOperatorTable.COALESCE;
     default:
       throw new AssertionError(kind);
     }
