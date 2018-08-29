@@ -159,6 +159,10 @@ public abstract class RexProgramBuilderBase {
     return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, node);
   }
 
+  protected RexNode isUnknown(RexNode node) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.IS_UNKNOWN, node);
+  }
+
   protected RexNode isNotNull(RexNode node) {
     return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, node);
   }
@@ -177,6 +181,14 @@ public abstract class RexProgramBuilderBase {
 
   protected RexNode isNotTrue(RexNode node) {
     return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_TRUE, node);
+  }
+
+  protected RexNode isDistinctFrom(RexNode a, RexNode b) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.IS_DISTINCT_FROM, a, b);
+  }
+
+  protected RexNode isNotDistinctFrom(RexNode a, RexNode b) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM, a, b);
   }
 
   protected RexNode nullIf(RexNode node1, RexNode node2) {

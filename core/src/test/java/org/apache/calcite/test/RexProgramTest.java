@@ -56,6 +56,7 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -2056,6 +2057,13 @@ public class RexProgramTest extends RexProgramBuilderBase {
             ImmutableList.of(eq(aRef, literal1),
                 eq(aRef, literal2)));
     assertThat(getString(map3), is("{1=?0.a, 2=?0.a}"));
+  }
+
+  @Ignore("[CALCITE-2505] java.lang.AssertionError: wrong operand count 1 for IS DISTINCT FROM")
+  @Test public void notDistinct() {
+    checkSimplify2(
+        isFalse(isNotDistinctFrom(vBool(0), vBool(1))),
+        "...", "...");
   }
 
   /** Converts a map to a string, sorting on the string representation of its
