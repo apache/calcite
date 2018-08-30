@@ -17,6 +17,8 @@ limitations under the License.
 {% endcomment %}
 -->
 [![Build Status](https://travis-ci.org/julianhyde/calcite.svg?branch=master)](https://travis-ci.org/julianhyde/calcite)
+[![Code Quality: Java](https://img.shields.io/lgtm/grade/java/g/apache/calcite.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/apache/calcite/context:java)
+[![Total Alerts](https://img.shields.io/lgtm/alerts/g/apache/calcite.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/apache/calcite/alerts)
 
 # Apache Calcite
 
