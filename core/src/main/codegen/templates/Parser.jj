@@ -5528,6 +5528,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < CHARACTERISTICS: "CHARACTERISTICS" >
 |   < CHARACTERS: "CHARACTERS" >
 |   < CHECK: "CHECK" >
+|   < CHR: "CHR" >
 |   < CLASSIFIER: "CLASSIFIER" >
 |   < CLASS_ORIGIN: "CLASS_ORIGIN" >
 |   < CLOB: "CLOB" >
@@ -6163,6 +6164,7 @@ String CommonNonReservedKeyWord() :
     |   <CHARACTER_SET_SCHEMA>
     |   <CHARACTERISTICS>
     |   <CHARACTERS>
+    |   <CHR>
     |   <CLASS_ORIGIN>
     |   <COBOL>
     |   <COLLATION>
