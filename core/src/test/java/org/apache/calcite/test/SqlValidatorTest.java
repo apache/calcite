@@ -4788,8 +4788,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testStarAliasFails() {
-    sql("select emp.^*^ AS x from emp")
-        .fails("Unknown field '\\*'");
+    checkFails("select emp.^*^ AS x from emp", "(?s).*Encountered \"AS\" at line 1, column 14.*");
   }
 
   @Test public void testNonLocalStar() {
