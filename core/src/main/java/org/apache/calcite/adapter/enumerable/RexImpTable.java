@@ -1807,7 +1807,6 @@ public class RexImpTable {
 
     @Override public void implementReset(AggContext info,
                                                    AggResetContext reset) {
-      // acc[0] = new HashMap();
       reset.currentBlock().add(
           Expressions.statement(
               Expressions.assign(reset.accumulator().get(0),
@@ -1816,7 +1815,6 @@ public class RexImpTable {
 
     @Override public void implementAdd(AggContext info,
                                               AggAddContext add) {
-      // acc[0].put(arg0, arg1);
       add.currentBlock().add(
           Expressions.statement(
               Expressions.call(
@@ -1852,7 +1850,6 @@ public class RexImpTable {
 
     @Override public void implementReset(AggContext info,
                                          AggResetContext reset) {
-      // acc[0] = new HashMap();
       reset.currentBlock().add(
           Expressions.statement(
               Expressions.assign(reset.accumulator().get(0),
@@ -1861,7 +1858,6 @@ public class RexImpTable {
 
     @Override public void implementAdd(AggContext info,
                                        AggAddContext add) {
-      // acc[0].put(arg0, arg1);
       add.currentBlock().add(
           Expressions.statement(
               Expressions.call(

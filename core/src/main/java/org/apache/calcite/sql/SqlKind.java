@@ -737,12 +737,12 @@ public enum SqlKind {
   JSON_API_COMMON_SYNTAX,
 
   /**
-   *
+   * The {@code JSON_ARRAYAGG} aggregate function.
    */
   JSON_ARRAYAGG,
 
   /**
-   *
+   * The {@code JSON_OBJECTAGG} aggregate function.
    */
   JSON_OBJECTAGG,
 
