@@ -1788,7 +1788,7 @@ public class RexImpTable {
     }
   }
 
-  /** Implementor for the {@code JSON_OBJECTAGG} windowed aggregate function. */
+  /** Implementor for the {@code JSON_OBJECTAGG} aggregate function. */
   static class JsonObjectAggImplementor implements AggImplementor {
 
     private final Method m;
@@ -1832,7 +1832,7 @@ public class RexImpTable {
     }
   }
 
-  /** Implementor for the {@code JSON_ARRAYAGG} windowed aggregate function. */
+  /** Implementor for the {@code JSON_ARRAYAGG} aggregate function. */
   static class JsonArrayAggImplementor implements AggImplementor {
 
     private final Method m;
