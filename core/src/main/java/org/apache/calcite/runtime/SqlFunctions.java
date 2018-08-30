@@ -176,15 +176,15 @@ public class SqlFunctions {
 
   /** SQL CHR(numeric) function. */
   public static String chr(BigDecimal b) {
-    return Character.toString(b.intValue());
+    return String.valueOf(Character.toChars(b.intValue()));
   }
 
   public static String chr(long l) {
-    return Character.toString((int) l);
+    return String.valueOf(Character.toChars((int) l));
   }
 
   public static String chr(double d) {
-    return Character.toString((int) d);
+    return String.valueOf(Character.toChars((int) d));
   }
 
   /** SQL CHARACTER_LENGTH(string) function. */

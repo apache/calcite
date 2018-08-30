@@ -820,6 +820,7 @@ public class SqlFunctionsTest {
     assertEquals("a", chr(BigDecimal.valueOf(97L)));
     assertEquals("a", chr(97.0));
     assertEquals("a", chr((byte) 97));
+    assertEquals("b", chr(98));
   }
 }
 
