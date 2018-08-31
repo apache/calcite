@@ -6212,6 +6212,21 @@ public class JdbcTest {
         .throws_("No match found for function signature NVL(<NUMERIC>, <NUMERIC>)");
   }
 
+  @Test public void testChr() {
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+            .with(CalciteConnectionProperty.FUN, "oracle")
+            .query("select chr(97) as c from \"hr\".\"emps\"")
+            .returnsUnordered("C=a",
+                    "C=a",
+                    "C=a",
+                    "C=a");
+
+    // CHR is not present in the default operator table
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+            .query("select chr(97) as c from \"hr\".\"emps\"")
+            .throws_("No match found for function signature CHR(<NUMERIC>)");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2072">[CALCITE-2072]
    * Enable spatial operator table by adding 'fun=spatial'to JDBC URL</a>. */

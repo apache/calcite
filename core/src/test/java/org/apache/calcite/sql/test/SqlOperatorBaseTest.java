@@ -5639,13 +5639,18 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testChr() {
-    tester.setFor(SqlStdOperatorTable.CHR, VM_FENNEL, VM_JAVA);
-    tester.checkScalar("chr(97)",
+    tester.setFor(OracleSqlOperatorTable.CHR, VM_FENNEL, VM_JAVA);
+    final SqlTester tester1 = oracleTester();
+    tester1.checkScalar("chr(97)",
         "a", "CHAR(1) NOT NULL");
-    tester.checkScalar("chr(97)||chr(97)",
+    tester1.checkScalar("chr(97)||chr(97)",
         "aa", "CHAR(2) NOT NULL");
-    tester.checkScalar("chr(97.0)",
+    tester1.checkScalar("chr(97.0)",
         "a", "CHAR(1) NOT NULL");
+    tester.checkFails("^chr(97)^",
+            "No match found for function signature CHR\\(<NUMERIC>\\)", false);
+    tester.checkFails("^chr(97)^||chr(97)",
+            "No match found for function signature CHR\\(<NUMERIC>\\)", false);
   }
 
   @Test public void testWeek() {

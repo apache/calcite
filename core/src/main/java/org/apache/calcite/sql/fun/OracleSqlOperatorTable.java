@@ -108,6 +108,15 @@ public class OracleSqlOperatorTable extends ReflectiveSqlOperatorTable {
               SqlTypeTransforms.TO_NULLABLE), null,
           OperandTypes.SAME_VARIADIC, SqlFunctionCategory.SYSTEM);
 
+  /** The "CHR(value)" function. */
+  public static final SqlFunction CHR =
+      new SqlFunction(
+          "CHR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.CHAR,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.STRING);
   /**
    * The <code>TRANSLATE(<i>string_expr</i>, <i>search_chars</i>, <i>replacement_chars</i>)</code>
    * function returns <i>string_expr</i> with all occurrences of each character in

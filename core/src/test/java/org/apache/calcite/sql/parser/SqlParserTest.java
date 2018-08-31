@@ -8153,7 +8153,7 @@ public class SqlParserTest {
 
   @Test public void testChr() {
     checkExp("chr(97)",
-        "CHR(97)");
+        "`CHR`(97)");
   }
   //~ Inner Interfaces -------------------------------------------------------
 

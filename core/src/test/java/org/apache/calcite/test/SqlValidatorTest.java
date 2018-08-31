@@ -10668,7 +10668,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from emp_r join dept_r on (^emp_r.slackingmin^ = dept_r.slackingmin)")
             .fails(onError);
   }
+
   @Test public void testChr() {
+    tester = tester.withOperatorTable(
+            ChainedSqlOperatorTable.of(OracleSqlOperatorTable.instance(),
+                    SqlStdOperatorTable.instance()));
     checkExp("chr(97)");
     checkExp("chr(97)||chr(97)");
     checkExpType("chr(97)",
