@@ -374,7 +374,7 @@ public class ModelTest {
   @Test public void testYamlFileDetection() throws Exception {
     final URL inUrl = ModelTest.class.getResource("/empty-model.yaml");
     CalciteAssert.that()
-        .with(CalciteConnectionProperty.MODEL, inUrl.getFile())
+        .withModel(inUrl)
         .doWithConnection(calciteConnection -> null);
   }
 }
