@@ -39,7 +39,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -450,17 +449,6 @@ public class StreamTest {
     }
   }
 
-  public static final Function0<Object[]> ROW_GENERATOR =
-      new Function0<Object[]>() {
-        private int counter = 0;
-        private Iterator<String> items =
-            Iterables.cycle("paint", "paper", "brush").iterator();
-
-        @Override public Object[] apply() {
-          return new Object[]{System.currentTimeMillis(), counter++, items.next(), 10};
-        }
-      };
-
   /**
    * Table representing an infinitely larger ORDERS stream.
    */
@@ -468,12 +456,24 @@ public class StreamTest {
       implements StreamableTable {
     public Enumerable<Object[]> scan(DataContext root) {
       return Linq4j.asEnumerable(() -> new Iterator<Object[]>() {
+        private final Function0<Object[]> rowGenerator =
+            new Function0<Object[]>() {
+              private int counter = 0;
+              private final String[] items = new String[]{"paint", "paper", "brush"};
+
+              @Override public Object[] apply() {
+                final int index = counter++;
+                return new Object[]{
+                    System.currentTimeMillis(), index, items[index % items.length], 10};
+              }
+            };
+
         public boolean hasNext() {
           return true;
         }
 
         public Object[] next() {
-          return ROW_GENERATOR.apply();
+          return rowGenerator.apply();
         }
 
         public void remove() {
