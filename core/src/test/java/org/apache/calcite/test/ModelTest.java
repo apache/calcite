@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.model.JsonColumn;
 import org.apache.calcite.model.JsonCustomSchema;
 import org.apache.calcite.model.JsonCustomTable;
