@@ -1199,6 +1199,22 @@ public class RexProgramTest extends RexProgramBuilderBase {
     // "(not x) is not null" to "x is not null"
     checkSimplify(isNotNull(not(vBool())), "IS NOT NULL(?0.bool0)");
     checkSimplify(isNotNull(not(vBoolNotNull())), "true");
+
+    // "(x + y) is null" simplifies to "x is null or y is null"
+    checkSimplify(isNull(plus(vInt(0), vInt(1))),
+        "OR(IS NULL(?0.int0), IS NULL(?0.int1))");
+    checkSimplify(isNull(plus(vInt(0), vIntNotNull(1))), "IS NULL(?0.int0)");
+    checkSimplify(isNull(plus(vIntNotNull(0), vIntNotNull(1))), "false");
+    checkSimplify(isNull(plus(vIntNotNull(0), vInt(1))), "IS NULL(?0.int1)");
+
+    // "(x + y) is not null" simplifies to "x is not null and y is not null"
+    checkSimplify(isNotNull(plus(vInt(0), vInt(1))),
+        "AND(IS NOT NULL(?0.int0), IS NOT NULL(?0.int1))");
+    checkSimplify(isNotNull(plus(vInt(0), vIntNotNull(1))),
+        "IS NOT NULL(?0.int0)");
+    checkSimplify(isNotNull(plus(vIntNotNull(0), vIntNotNull(1))), "true");
+    checkSimplify(isNotNull(plus(vIntNotNull(0), vInt(1))),
+        "IS NOT NULL(?0.int1)");
   }
 
   @Test public void testSimplifyFilter() {

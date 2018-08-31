@@ -501,8 +501,8 @@ public class RexSimplify {
     case NOT_NULL:
       return rexBuilder.makeLiteral(true);
     case ANY:
-      // "f" is a strong operator, so "f(operand) IS NOT NULL" simplifies to
-      // "operand IS NOT NULL"
+      // "f" is a strong operator, so "f(operand0, operand1) IS NOT NULL"
+      // simplifies to "operand0 IS NOT NULL AND operand1 IS NOT NULL"
       final List<RexNode> operands = new ArrayList<>();
       for (RexNode operand : ((RexCall) a).getOperands()) {
         final RexNode simplified = simplifyIsNotNull(operand);
@@ -538,21 +538,19 @@ public class RexSimplify {
     case NOT_NULL:
       return rexBuilder.makeLiteral(false);
     case ANY:
-      // "f" is a strong operator, so "f(operand) IS NULL" simplifies to
-      // "operand IS NULL"
+      // "f" is a strong operator, so "f(operand0, operand1) IS NULL" simplifies
+      // to "operand0 IS NULL OR operand1 IS NULL"
       final List<RexNode> operands = new ArrayList<>();
       for (RexNode operand : ((RexCall) a).getOperands()) {
         final RexNode simplified = simplifyIsNull(operand);
         if (simplified == null) {
           operands.add(
               rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, operand));
-        } else if (simplified.isAlwaysFalse()) {
-          return rexBuilder.makeLiteral(false);
         } else {
           operands.add(simplified);
         }
       }
-      return RexUtil.composeConjunction(rexBuilder, operands, false);
+      return RexUtil.composeDisjunction(rexBuilder, operands, false);
     case AS_IS:
     default:
       return null;
