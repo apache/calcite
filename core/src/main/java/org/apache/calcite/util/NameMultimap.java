@@ -18,34 +18,32 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.linq4j.function.Experimental;
 
-import com.google.common.collect.ImmutableList;
-
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.TreeMap;
+import java.util.stream.Collectors;
 
-import static org.apache.calcite.util.NameSet.COMPARATOR;
+import static org.apache.calcite.util.CaseInsensitiveComparator.COMPARATOR;
 
 /** Multimap whose keys are names and can be accessed with and without case
  * sensitivity.
  *
  * @param <V> Value type */
 public class NameMultimap<V> {
-  private final NavigableMap<String, List<V>> map;
-  private final NameHelper helper = new NameHelper();
+  private final NameMap<List<V>> map;
 
   /** Creates a NameMultimap based on an existing map. */
-  private NameMultimap(NavigableMap<String, List<V>> map) {
+  private NameMultimap(NameMap<List<V>> map) {
     this.map = map;
-    assert this.map.comparator() == COMPARATOR;
+    assert map.map().comparator() == COMPARATOR;
   }
 
   /** Creates a NameMultimap, initially empty. */
   public NameMultimap() {
-    this(new TreeMap<String, List<V>>(COMPARATOR));
+    this(new NameMap<>());
   }
 
   @Override public String toString() {
@@ -64,7 +62,7 @@ public class NameMultimap<V> {
 
   /** Adds an entry to this multimap. */
   public void put(String name, V v) {
-    List<V> list = map.computeIfAbsent(name, k -> new ArrayList<>());
+    List<V> list = map().computeIfAbsent(name, k -> new ArrayList<>());
     list.add(v);
   }
 
@@ -73,7 +71,7 @@ public class NameMultimap<V> {
    * @return Whether a value was removed */
   @Experimental
   public boolean remove(String key, V value) {
-    final List<V> list = map.get(key);
+    final List<V> list = map().get(key);
     if (list == null) {
       return false;
     }
@@ -84,33 +82,23 @@ public class NameMultimap<V> {
    * given name. */
   public Collection<Map.Entry<String, V>> range(String name,
       boolean caseSensitive) {
-    if (caseSensitive) {
-      final List<V> list = map.get(name);
-      if (list != null && !list.isEmpty()) {
-        final ImmutableList.Builder<Map.Entry<String, V>> builder =
-            ImmutableList.builder();
-        for (V v : list) {
-          builder.add(Pair.of(name, v));
-        }
-        return builder.build();
-      } else {
-        return ImmutableList.of();
-      }
-    } else {
-      return helper.multimap(map, name);
-    }
+    NavigableMap<String, List<V>> range = map.range(name, caseSensitive);
+    List<Pair<String, V>> result = range.entrySet().stream()
+        .flatMap(e -> e.getValue().stream().map(v -> Pair.of(e.getKey(), v)))
+        .collect(Collectors.toList());
+    return Collections.unmodifiableList(result);
   }
 
   /** Returns whether this map contains a given key, with a given
    * case-sensitivity. */
   public boolean containsKey(String name, boolean caseSensitive) {
-    return !range(name, caseSensitive).isEmpty();
+    return map.containsKey(name, caseSensitive);
   }
 
   /** Returns the underlying map.
    * Its size is the number of keys, not the number of values. */
   public NavigableMap<String, List<V>> map() {
-    return map;
+    return map.map();
   }
 }
 
