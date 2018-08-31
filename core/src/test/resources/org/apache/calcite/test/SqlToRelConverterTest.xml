@@ -5142,6 +5142,21 @@ LogicalProject(EXPR$0=[CASE(>(COUNT(ITEM($0, 'N_NATIONKEY')) OVER (PARTITION BY 
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testWindowAndGroupByWithDynamicStar">
+        <Resource name="sql">
+            <![CDATA[SELECT
+n_regionkey, MAX(MIN(n_nationkey)) OVER (PARTITION BY n_regionkey)
+FROM (SELECT * FROM SALES.NATION) GROUP BY n_regionkey)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(N_REGIONKEY=[$0], EXPR$1=[MAX($1) OVER (PARTITION BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+  LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+    LogicalProject(N_REGIONKEY=[ITEM($0, 'N_REGIONKEY')], $f1=[ITEM($0, 'N_NATIONKEY')])
+      LogicalTableScan(table=[[CATALOG, SALES, NATION]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testWithExists">
         <Resource name="sql">
             <![CDATA[with t (a, b) as (select * from (values (1, 2)))
