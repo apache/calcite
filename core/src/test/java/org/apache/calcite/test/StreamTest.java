@@ -21,7 +21,6 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -456,24 +455,17 @@ public class StreamTest {
       implements StreamableTable {
     public Enumerable<Object[]> scan(DataContext root) {
       return Linq4j.asEnumerable(() -> new Iterator<Object[]>() {
-        private final Function0<Object[]> rowGenerator =
-            new Function0<Object[]>() {
-              private int counter = 0;
-              private final String[] items = new String[]{"paint", "paper", "brush"};
-
-              @Override public Object[] apply() {
-                final int index = counter++;
-                return new Object[]{
-                    System.currentTimeMillis(), index, items[index % items.length], 10};
-              }
-            };
+        private final String[] items = new String[]{"paint", "paper", "brush"};
+        private int counter = 0;
 
         public boolean hasNext() {
           return true;
         }
 
         public Object[] next() {
-          return rowGenerator.apply();
+          final int index = counter++;
+          return new Object[]{
+              System.currentTimeMillis(), index, items[index % items.length], 10};
         }
 
         public void remove() {
