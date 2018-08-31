@@ -1656,6 +1656,8 @@ public class UtilTest {
   }
 
   private NavigableSet<String> checkNav(NavigableSet<String> set, String s) {
+    // Note this does not support some unicode characters
+    // however it is fine for testing purposes
     return set.subSet(s.toUpperCase(Locale.ROOT), true,
         s.toLowerCase(Locale.ROOT), true);
   }
