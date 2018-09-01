@@ -47,6 +47,8 @@ limitations under the License.
 
   <properties>
     <surefire.parallel>both</surefire.parallel>
+    <surefire.threadCount>1</surefire.threadCount>
+    <surefire.perCoreThreadCount>true</surefire.perCoreThreadCount>
 
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <top.dir>${project.basedir}</top.dir>
@@ -925,8 +927,8 @@ limitations under the License.
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
-            <threadCount>1</threadCount>
-            <perCoreThreadCount>true</perCoreThreadCount>
+            <threadCount>${surefire.threadCount}</threadCount>
+            <perCoreThreadCount>${surefire.perCoreThreadCount}</perCoreThreadCount>
             <parallel>${surefire.parallel}</parallel>
             <forkMode>once</forkMode>
             <systemProperties>
