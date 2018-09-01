@@ -44,7 +44,7 @@ install:
 script:
   # Print surefire output to the console instead of files
   - unset _JAVA_OPTIONS
-  - $DOCKERRUN $IMAGE mvn -Dsurefire.useFile=false -Dsurefire.threadCount=1 -Dsurefire.perCoreThreadCount=false -Djavax.net.ssl.trustStorePassword=changeit test
+  - $DOCKERRUN $IMAGE mvn -Dcheckstyle.skip -Dsurefire.useFile=false -Dsurefire.threadCount=1 -Dsurefire.perCoreThreadCount=false -Djavax.net.ssl.trustStorePassword=changeit test
 git:
   depth: 10000
 sudo: required
