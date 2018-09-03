@@ -10668,6 +10668,33 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from emp_r join dept_r on (^emp_r.slackingmin^ = dept_r.slackingmin)")
             .fails(onError);
   }
+
+  @Test public void testSelectForUpdate() {
+    sql("select empno from emp\n"
+        + "for update")
+        .ok();
+
+    sql("select empno from emp\n"
+        + "for update of ^badref^")
+        .fails("Column 'BADREF' not found in any table");
+
+    sql("select empno from emp\n"
+        + "for update of emp.empno")
+        .ok();
+
+    sql("select empno from emp\n"
+        + "for update of empno")
+        .ok();
+
+    sql("select empno from emp\n"
+        + "for update of emp.^badref^")
+        .fails("Column 'BADREF' not found in table 'EMP'");
+
+//    sql("select empno from emp\n"
+//        + "for update of emp")
+//        .ok();
+
+  }
 }
 
 // End SqlValidatorTest.java

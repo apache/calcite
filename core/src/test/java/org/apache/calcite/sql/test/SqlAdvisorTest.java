@@ -289,6 +289,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(EXCEPT)",
           "KEYWORD(MINUS)",
           "KEYWORD(FETCH)",
+          "KEYWORD(FOR)",
           "KEYWORD(OFFSET)",
           "KEYWORD(LIMIT)",
           "KEYWORD(GROUP)",

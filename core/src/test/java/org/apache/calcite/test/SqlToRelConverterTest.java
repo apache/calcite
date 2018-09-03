@@ -2808,6 +2808,13 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         + ") AS T";
     sql(sql).ok();
   }
+  
+  @Test public void testUpdatability() {
+    final String sql = "SELECT *\n"
+        + "FROM emp\n"
+        + "FOR UPDATE";
+    sql(sql).ok();
+  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2323">[CALCITE-2323]

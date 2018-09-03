@@ -71,7 +71,8 @@ public class SqlSelectOperator extends SqlOperator {
         (SqlNodeList) operands[6],
         (SqlNodeList) operands[7],
         operands[8],
-        operands[9]);
+        operands[9],
+        operands[10]);
   }
 
   /**
@@ -104,6 +105,7 @@ public class SqlSelectOperator extends SqlOperator {
       SqlNodeList orderBy,
       SqlNode offset,
       SqlNode fetch,
+      SqlNode updatability,
       SqlParserPos pos) {
     return new SqlSelect(
         pos,
@@ -116,7 +118,8 @@ public class SqlSelectOperator extends SqlOperator {
         windowDecls,
         orderBy,
         offset,
-        fetch);
+        fetch,
+        updatability);
   }
 
   public <R> void acceptCall(
@@ -240,6 +243,9 @@ public class SqlSelectOperator extends SqlOperator {
       writer.endList(orderFrame);
     }
     writer.fetchOffset(select.fetch, select.offset);
+    if (select.updatability != null) {
+      select.updatability.unparse(writer, leftPrec, rightPrec);
+    }
     writer.endList(selectFrame);
   }
 

@@ -197,6 +197,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Supplier;
+import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.sql.SqlUpdatability;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 
@@ -619,7 +621,11 @@ public class SqlToRelConverter {
     final SqlValidatorScope selectScope = validator.getWhereScope(select);
     final Blackboard bb = createBlackboard(selectScope, null, top);
     convertSelectImpl(bb, select);
-    return bb.root;
+    if (select.getUpdatability() == null) { 
+        return bb.root;
+    }
+    // wrap this SELECT with a TableModify of type 'LOCK'
+    return convertToLockTable(bb, select);
   }
 
   /**
@@ -674,6 +680,14 @@ public class SqlToRelConverter {
         select, bb, collation, orderExprList, select.getOffset(),
         select.getFetch());
     bb.setRoot(bb.root, true);
+  }
+  
+  private RelNode convertToLockTable(Blackboard bb, SqlSelect select) {
+      SqlValidatorScope whereScope = validator.getWhereScope(select);      
+      RelOptTable targetTable = getTargetTable(select);
+      return LogicalTableModify.create(targetTable,
+              catalogReader, bb.root, TableModify.Operation.LOCK,
+              Collections.emptyList(), Collections.emptyList(), true);
   }
 
   /**

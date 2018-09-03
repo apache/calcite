@@ -73,6 +73,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
+import org.apache.calcite.sql.SqlUpdatability;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
@@ -1189,7 +1190,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             new SqlNodeList(SqlParserPos.ZERO);
         selectList.add(SqlIdentifier.star(SqlParserPos.ZERO));
         return new SqlSelect(node.getParserPosition(), null, selectList, node,
-            null, null, null, null, null, null, null);
+            null, null, null, null, null, null, null, null);
       }
 
     case ORDER_BY: {
@@ -1246,7 +1247,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       return new SqlSelect(SqlParserPos.ZERO, null, selectList, orderBy.query,
           null, null, null, null, orderList, orderBy.offset,
-          orderBy.fetch);
+          orderBy.fetch, null);
     }
 
     case EXPLICIT_TABLE: {
@@ -1255,7 +1256,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlNodeList selectList = new SqlNodeList(SqlParserPos.ZERO);
       selectList.add(SqlIdentifier.star(SqlParserPos.ZERO));
       return new SqlSelect(SqlParserPos.ZERO, null, selectList, call.operand(0),
-          null, null, null, null, null, null, null);
+          null, null, null, null, null, null, null, null);
     }
 
     case DELETE: {
@@ -1349,7 +1350,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             call.getCondition());
     SqlSelect select =
         new SqlSelect(SqlParserPos.ZERO, null, selectList, outerJoin, null,
-            null, null, null, null, null, null);
+            null, null, null, null, null, null, null);
     call.setSourceSelect(select);
 
     // Source for the insert call is a select of the source table
@@ -1367,7 +1368,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlNode insertSource = SqlNode.clone(sourceTableRef);
       select =
           new SqlSelect(SqlParserPos.ZERO, null, selectList, insertSource, null,
-              null, null, null, null, null, null);
+              null, null, null, null, null, null, null);
       insertCall.setSource(select);
     }
   }
@@ -1432,7 +1433,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     source =
         new SqlSelect(SqlParserPos.ZERO, null, selectList, source, null, null,
-            null, null, null, null, null);
+            null, null, null, null, null, null);
     source = SqlValidatorUtil.addAlias(source, UPDATE_SRC_ALIAS);
     SqlMerge mergeCall =
         new SqlMerge(updateCall.getParserPosition(), target, condition, source,
@@ -1487,7 +1488,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               call.getAlias().getSimple());
     }
     return new SqlSelect(SqlParserPos.ZERO, null, selectList, sourceTable,
-        call.getCondition(), null, null, null, null, null, null);
+        call.getCondition(), null, null, null, null, null, null, null);
   }
 
   /**
@@ -1508,7 +1509,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               call.getAlias().getSimple());
     }
     return new SqlSelect(SqlParserPos.ZERO, null, selectList, sourceTable,
-        call.getCondition(), null, null, null, null, null, null);
+        call.getCondition(), null, null, null, null, null, null, null);
   }
 
   /**
@@ -3290,6 +3291,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     validateGroupClause(select);
     validateHavingClause(select);
     validateWindowClause(select);
+    validateUpdatabilityClause(select);
     handleOffsetFetch(select.getOffset(), select.getFetch());
 
     // Validate the SELECT clause late, because a select item might
@@ -3675,6 +3677,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
+  protected void validateUpdatabilityClause(SqlSelect select) {
+    final SqlUpdatability updatability = (SqlUpdatability) select.getUpdatability();
+    if (updatability == null || updatability.getColumnNames().getList().isEmpty()) {
+      return;
+    }
+    SqlValidatorScope selectScope = getSelectScope(select);
+    for (SqlNode node : updatability.getColumnNames().getList()) {
+      node.validateExpr(this, selectScope);
+    }
+  }
   protected void validateWindowClause(SqlSelect select) {
     final SqlNodeList windowList = select.getWindowList();
     @SuppressWarnings("unchecked") final List<SqlWindow> windows =

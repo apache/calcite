@@ -48,6 +48,7 @@ public class SqlSelect extends SqlCall {
   SqlNodeList orderBy;
   SqlNode offset;
   SqlNode fetch;
+  SqlNode updatability;
   SqlMatchRecognize matchRecognize;
 
   //~ Constructors -----------------------------------------------------------
@@ -62,7 +63,8 @@ public class SqlSelect extends SqlCall {
       SqlNodeList windowDecls,
       SqlNodeList orderBy,
       SqlNode offset,
-      SqlNode fetch) {
+      SqlNode fetch,
+      SqlNode updatability) {
     super(pos);
     this.keywordList = Objects.requireNonNull(keywordList != null
         ? keywordList : new SqlNodeList(pos));
@@ -76,6 +78,7 @@ public class SqlSelect extends SqlCall {
     this.orderBy = orderBy;
     this.offset = offset;
     this.fetch = fetch;
+    this.updatability = updatability;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -90,7 +93,7 @@ public class SqlSelect extends SqlCall {
 
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(keywordList, selectList, from, where,
-        groupBy, having, windowDecls, orderBy, offset, fetch);
+        groupBy, having, windowDecls, orderBy, offset, fetch, updatability);
   }
 
   @Override public void setOperand(int i, SqlNode operand) {
@@ -124,6 +127,9 @@ public class SqlSelect extends SqlCall {
       break;
     case 9:
       fetch = operand;
+      break;
+    case 10:
+      updatability = operand;
       break;
     default:
       throw new AssertionError(i);
@@ -167,6 +173,14 @@ public class SqlSelect extends SqlCall {
 
   public void setHaving(SqlNode having) {
     this.having = having;
+  }
+
+  public SqlNode getUpdatability() {
+    return updatability;
+  }
+
+  public void setUpdatability(SqlNode updatability) {
+    this.updatability = updatability;
   }
 
   public final SqlNodeList getSelectList() {
