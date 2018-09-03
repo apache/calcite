@@ -125,7 +125,7 @@ public class SqlValidatorUtilTest {
     newList.add(new SqlIdentifier(Arrays.asList("f0", "c0"), SqlParserPos.ZERO));
     newList.add(new SqlIdentifier(Arrays.asList("f0", "c0"), SqlParserPos.ZERO));
     final SqlTesterImpl tester =
-        new SqlTesterImpl(SqlTestFactory.INSTANCE);
+        new SqlTesterImpl(new SqlTestFactory());
     final SqlValidatorImpl validator =
         (SqlValidatorImpl) tester.getValidator();
     try {

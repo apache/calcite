@@ -55,7 +55,7 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
   //~ Methods ----------------------------------------------------------------
 
   @Override public SqlTester getTester() {
-    return new SqlTesterImpl(SqlTestFactory.INSTANCE.withValidator(FeatureValidator::new));
+    return new SqlTesterImpl(new SqlTestFactory().withValidator(FeatureValidator::new));
   }
 
   @Test public void testDistinct() {
