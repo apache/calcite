@@ -23,10 +23,12 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
@@ -53,7 +55,8 @@ class ElasticsearchRules {
   static final RelOptRule[] RULES = {
       ElasticsearchSortRule.INSTANCE,
       ElasticsearchFilterRule.INSTANCE,
-      ElasticsearchProjectRule.INSTANCE
+      ElasticsearchProjectRule.INSTANCE,
+      ElasticsearchAggregateRule.INSTANCE
   };
 
   private ElasticsearchRules() {}
@@ -147,7 +150,7 @@ class ElasticsearchRules {
         }
       }
       throw new IllegalArgumentException("Translation of " + call.toString()
-        + "is not supported by ElasticsearchProject");
+        + " is not supported by ElasticsearchProject");
     }
 
     List<String> visitList(List<RexNode> list) {
@@ -215,6 +218,37 @@ class ElasticsearchRules {
         filter.getCondition());
     }
   }
+
+  /**
+   * Rule to convert an {@link org.apache.calcite.rel.logical.LogicalAggregate}
+   * to an {@link ElasticsearchAggregate}.
+   */
+  private static class ElasticsearchAggregateRule extends ElasticsearchConverterRule {
+    static final RelOptRule INSTANCE = new ElasticsearchAggregateRule();
+
+    private ElasticsearchAggregateRule() {
+      super(LogicalAggregate.class, Convention.NONE, ElasticsearchRel.CONVENTION,
+          "ElasticsearchAggregateRule");
+    }
+
+    public RelNode convert(RelNode rel) {
+      final LogicalAggregate agg = (LogicalAggregate) rel;
+      final RelTraitSet traitSet = agg.getTraitSet().replace(out);
+      try {
+        return new ElasticsearchAggregate(
+            rel.getCluster(),
+            traitSet,
+            convert(agg.getInput(), traitSet.simplify()),
+            agg.indicator,
+            agg.getGroupSet(),
+            agg.getGroupSets(),
+            agg.getAggCallList());
+      } catch (InvalidRelException e) {
+        return null;
+      }
+    }
+  }
+
 
   /**
    * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalProject}

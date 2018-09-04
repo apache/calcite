@@ -40,22 +40,22 @@ import java.util.Map;
 /**
  * Checks renaming of fields (also upper, lower cases) during projections
  */
-public class ProjectionTest {
+public class Projection2Test {
 
   @ClassRule
   public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
 
-  private static final String NAME = "docs";
+  private static final String NAME = "nested";
 
   @BeforeClass
   public static void setupInstance() throws Exception {
 
-    final Map<String, String> mappings = ImmutableMap.of("A", "keyword",
-        "b", "keyword", "cCC", "keyword", "DDd", "keyword");
+    final Map<String, String> mappings = ImmutableMap.of("a", "long",
+        "b.a", "long", "b.b", "long", "b.c.a", "keyword");
 
     NODE.createIndex(NAME, mappings);
 
-    String doc = "{'A': 'aa', 'b': 'bb', 'cCC': 'cc', 'DDd': 'dd'}".replace('\'', '"');
+    String doc = "{'a': 1, 'b':{'a': 2, 'b':'3', 'c':{'a': 'foo'}}}".replace('\'', '"');
     NODE.insertDocument(NAME, (ObjectNode) NODE.mapper().readTree(doc));
   }
 
@@ -69,16 +69,15 @@ public class ProjectionTest {
 
         // add calcite view programmatically
         final String viewSql = String.format(Locale.ROOT,
-            "select cast(_MAP['A'] AS varchar(2)) AS a,"
-                + " cast(_MAP['b'] AS varchar(2)) AS b, "
-                +  " cast(_MAP['cCC'] AS varchar(2)) AS c, "
-                +  " cast(_MAP['DDd'] AS varchar(2)) AS d "
+            "select _MAP['a'] AS \"a\", "
+                + " _MAP['b.a']  AS \"b.a\", "
+                +  " _MAP['b.b'] AS \"b.b\", "
+                +  " _MAP['b.c.a'] AS \"b.c.a\" "
                 +  " from \"elastic\".\"%s\"", NAME);
 
         ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
-                Collections.singletonList("elastic"), Arrays.asList("elastic", "view"), false);
+            Collections.singletonList("elastic"), Arrays.asList("elastic", "view"), false);
         root.add("VIEW", macro);
-
         return connection;
       }
     };
@@ -88,36 +87,21 @@ public class ProjectionTest {
   public void projection() {
     CalciteAssert.that()
             .with(newConnectionFactory())
-            .query("select * from view")
-            .returns("A=aa; B=bb; C=cc; D=dd\n");
+            .query("select \"a\", \"b.a\", \"b.b\", \"b.c.a\" from view")
+            .returns("a=1; b.a=2; b.b=3; b.c.a=foo\n");
+  }
+
+  @Test
+  public void projection2() {
+    String sql = String.format(Locale.ROOT, "select _MAP['a'], _MAP['b.a'], _MAP['b.b'], "
+        + "_MAP['b.c.a'], _MAP['missing'], _MAP['b.missing'] from \"elastic\".\"%s\"", NAME);
 
     CalciteAssert.that()
             .with(newConnectionFactory())
-            .query("select a, b, c, d from view")
-            .returns("A=aa; B=bb; C=cc; D=dd\n");
-
-    CalciteAssert.that()
-            .with(newConnectionFactory())
-            .query("select d, c, b, a from view")
-            .returns("D=dd; C=cc; B=bb; A=aa\n");
-
-    CalciteAssert.that()
-            .with(newConnectionFactory())
-            .query("select a from view")
-            .returns("A=aa\n");
-
-    CalciteAssert.that()
-            .with(newConnectionFactory())
-            .query("select a, b from view")
-            .returns("A=aa; B=bb\n");
-
-    CalciteAssert.that()
-            .with(newConnectionFactory())
-            .query("select b, a from view")
-            .returns("B=bb; A=aa\n");
-
+            .query(sql)
+            .returns("EXPR$0=1; EXPR$1=2; EXPR$2=3; EXPR$3=foo; EXPR$4=null; EXPR$5=null\n");
   }
 
 }
 
-// End ProjectionTest.java
+// End Projection2Test.java
