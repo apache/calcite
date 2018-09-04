@@ -82,7 +82,7 @@ limitations under the License.
     <foodmart-data-hsqldb.version>0.3</foodmart-data-hsqldb.version>
     <foodmart-queries.version>0.4.1</foodmart-queries.version>
     <forbiddenapis.version>2.6</forbiddenapis.version>
-    <freemarker.version>2.3.25-incubating</freemarker.version>
+    <freemarker.version>2.3.28</freemarker.version>
     <git-commit-id-plugin.version>2.1.9</git-commit-id-plugin.version>
     <geode.version>1.6.0</geode.version>
     <fongo.version>2.1.1</fongo.version>

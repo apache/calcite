@@ -61,9 +61,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 /**
@@ -644,7 +642,15 @@ public class SqlParserTest {
     return keywords("c");
   }
 
-  private static SortedSet<String> keywords(String dialect) {
+  /** Returns whether a word is reserved in this parser. This method can be
+   * used to disable tests that behave differently with different collections
+   * of reserved words. */
+  protected boolean isReserved(String word) {
+    SqlAbstractParserImpl.Metadata metadata = getSqlParser("").getMetadata();
+    return metadata.isReservedWord(word.toUpperCase(Locale.ROOT));
+  }
+
+  protected static SortedSet<String> keywords(String dialect) {
     final ImmutableSortedSet.Builder<String> builder =
         ImmutableSortedSet.naturalOrder();
     String r = null;
@@ -1330,10 +1336,12 @@ public class SqlParserTest {
         "values a similar to b like c similar to d escape e escape f",
         "VALUES (ROW((`A` SIMILAR TO (`B` LIKE (`C` SIMILAR TO `D` ESCAPE `E`) ESCAPE `F`))))");
 
-    // FIXME should fail at "escape"
-    checkFails(
-        "select * from t ^where^ escape 'e'",
-        "(?s).*Encountered \"where escape\" at .*");
+    if (isReserved("ESCAPE")) {
+      // FIXME should fail at "escape"
+      checkFails(
+          "select * from t ^where^ escape 'e'",
+          "(?s).*Encountered \"where escape\" at .*");
+    }
 
     // LIKE with +
     check(
@@ -1346,15 +1354,19 @@ public class SqlParserTest {
         "VALUES (ROW((`A` LIKE (`B` || `C`) ESCAPE `D`)))");
 
     // ESCAPE with no expression
-    // FIXME should fail at "escape"
-    checkFails(
-        "values a ^like^ escape d",
-        "(?s).*Encountered \"like escape\" at .*");
+    if (isReserved("ESCAPE")) {
+      // FIXME should fail at "escape"
+      checkFails(
+          "values a ^like^ escape d",
+          "(?s).*Encountered \"like escape\" at .*");
+    }
 
     // ESCAPE with no expression
-    checkFails(
-        "values a like b || c ^escape^ and false",
-        "(?s).*Encountered \"escape and\" at line 1, column 22.*");
+    if (isReserved("ESCAPE")) {
+      checkFails(
+          "values a like b || c ^escape^ and false",
+          "(?s).*Encountered \"escape and\" at line 1, column 22.*");
+    }
 
     // basic SIMILAR TO
     check(
@@ -3519,23 +3531,33 @@ public class SqlParserTest {
   @Test public void testUpsertValues() {
     final String expected = "UPSERT INTO `EMPS`\n"
         + "VALUES (ROW(1, 'Fredkin'))";
-    sql("upsert into emps values (1,'Fredkin')")
-        .ok(expected)
-        .node(not(isDdl()));
+    final String sql = "upsert into emps values (1,'Fredkin')";
+    if (isReserved("UPSERT")) {
+      sql(sql)
+          .ok(expected)
+          .node(not(isDdl()));
+    }
   }
 
   @Test public void testUpsertSelect() {
-    sql("upsert into emps select * from emp as e")
-        .ok("UPSERT INTO `EMPS`\n"
-                + "(SELECT *\n"
-                + "FROM `EMP` AS `E`)");
+    final String sql = "upsert into emps select * from emp as e";
+    final String expected = "UPSERT INTO `EMPS`\n"
+        + "(SELECT *\n"
+        + "FROM `EMP` AS `E`)";
+    if (isReserved("UPSERT")) {
+      sql(sql).ok(expected);
+    }
   }
 
   @Test public void testExplainUpsert() {
-    sql("explain plan for upsert into emps1 values (1, 2)")
-        .ok("EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
-            + "UPSERT INTO `EMPS1`\n"
-            + "VALUES (ROW(1, 2))");
+    final String sql = "explain plan for upsert into emps1 values (1, 2)";
+    final String expected = "EXPLAIN PLAN INCLUDING ATTRIBUTES"
+        + " WITH IMPLEMENTATION FOR\n"
+        + "UPSERT INTO `EMPS1`\n"
+        + "VALUES (ROW(1, 2))";
+    if (isReserved("UPSERT")) {
+      sql(sql).ok(expected);
+    }
   }
 
   @Test public void testDelete() {
@@ -3781,9 +3803,11 @@ public class SqlParserTest {
     checkExp(
         "nullif(v1,v2)",
         "(NULLIF(`V1`, `V2`))");
-    checkExpFails(
-        "1 + ^nullif^ + 3",
-        "(?s)Encountered \"nullif \\+\" at line 1, column 5.*");
+    if (isReserved("NULLIF")) {
+      checkExpFails(
+          "1 + ^nullif^ + 3",
+          "(?s)Encountered \"nullif \\+\" at line 1, column 5.*");
+    }
   }
 
   @Test public void testCoalesce() {
@@ -3839,6 +3863,24 @@ public class SqlParserTest {
 
   @Test public void testReplace() {
     checkExp("replace('x', 'y', 'z')", "REPLACE('x', 'y', 'z')");
+  }
+
+  @Test public void testDateLiteral() {
+    final String expected = "SELECT DATE '1980-01-01'\n"
+        + "FROM `T`";
+    sql("select date '1980-01-01' from t").ok(expected);
+    final String expected1 = "SELECT TIME '00:00:00'\n"
+        + "FROM `T`";
+    sql("select time '00:00:00' from t").ok(expected1);
+    final String expected2 = "SELECT TIMESTAMP '1980-01-01 00:00:00'\n"
+        + "FROM `T`";
+    sql("select timestamp '1980-01-01 00:00:00' from t").ok(expected2);
+    final String expected3 = "SELECT INTERVAL '3' DAY\n"
+        + "FROM `T`";
+    sql("select interval '3' day from t").ok(expected3);
+    final String expected4 = "SELECT INTERVAL '5:6' HOUR TO MINUTE\n"
+        + "FROM `T`";
+    sql("select interval '5:6' hour to minute from t").ok(expected4);
   }
 
   // check date/time functions.
@@ -7076,39 +7118,39 @@ public class SqlParserTest {
 
   @Test public void testMetadata() {
     SqlAbstractParserImpl.Metadata metadata = getSqlParser("").getMetadata();
-    assertTrue(metadata.isReservedFunctionName("ABS"));
-    assertFalse(metadata.isReservedFunctionName("FOO"));
+    assertThat(metadata.isReservedFunctionName("ABS"), is(true));
+    assertThat(metadata.isReservedFunctionName("FOO"), is(false));
 
-    assertTrue(metadata.isContextVariableName("CURRENT_USER"));
-    assertTrue(metadata.isContextVariableName("CURRENT_CATALOG"));
-    assertTrue(metadata.isContextVariableName("CURRENT_SCHEMA"));
-    assertFalse(metadata.isContextVariableName("ABS"));
-    assertFalse(metadata.isContextVariableName("FOO"));
+    assertThat(metadata.isContextVariableName("CURRENT_USER"), is(true));
+    assertThat(metadata.isContextVariableName("CURRENT_CATALOG"), is(true));
+    assertThat(metadata.isContextVariableName("CURRENT_SCHEMA"), is(true));
+    assertThat(metadata.isContextVariableName("ABS"), is(false));
+    assertThat(metadata.isContextVariableName("FOO"), is(false));
 
-    assertTrue(metadata.isNonReservedKeyword("A"));
-    assertTrue(metadata.isNonReservedKeyword("KEY"));
-    assertFalse(metadata.isNonReservedKeyword("SELECT"));
-    assertFalse(metadata.isNonReservedKeyword("FOO"));
-    assertFalse(metadata.isNonReservedKeyword("ABS"));
+    assertThat(metadata.isNonReservedKeyword("A"), is(true));
+    assertThat(metadata.isNonReservedKeyword("KEY"), is(true));
+    assertThat(metadata.isNonReservedKeyword("SELECT"), is(false));
+    assertThat(metadata.isNonReservedKeyword("FOO"), is(false));
+    assertThat(metadata.isNonReservedKeyword("ABS"), is(false));
 
-    assertTrue(metadata.isKeyword("ABS"));
-    assertTrue(metadata.isKeyword("CURRENT_USER"));
-    assertTrue(metadata.isKeyword("CURRENT_CATALOG"));
-    assertTrue(metadata.isKeyword("CURRENT_SCHEMA"));
-    assertTrue(metadata.isKeyword("KEY"));
-    assertTrue(metadata.isKeyword("SELECT"));
-    assertTrue(metadata.isKeyword("HAVING"));
-    assertTrue(metadata.isKeyword("A"));
-    assertFalse(metadata.isKeyword("BAR"));
+    assertThat(metadata.isKeyword("ABS"), is(true));
+    assertThat(metadata.isKeyword("CURRENT_USER"), is(true));
+    assertThat(metadata.isKeyword("CURRENT_CATALOG"), is(true));
+    assertThat(metadata.isKeyword("CURRENT_SCHEMA"), is(true));
+    assertThat(metadata.isKeyword("KEY"), is(true));
+    assertThat(metadata.isKeyword("SELECT"), is(true));
+    assertThat(metadata.isKeyword("HAVING"), is(true));
+    assertThat(metadata.isKeyword("A"), is(true));
+    assertThat(metadata.isKeyword("BAR"), is(false));
 
-    assertTrue(metadata.isReservedWord("SELECT"));
-    assertTrue(metadata.isReservedWord("CURRENT_CATALOG"));
-    assertTrue(metadata.isReservedWord("CURRENT_SCHEMA"));
-    assertFalse(metadata.isReservedWord("KEY"));
+    assertThat(metadata.isReservedWord("SELECT"), is(true));
+    assertThat(metadata.isReservedWord("CURRENT_CATALOG"), is(true));
+    assertThat(metadata.isReservedWord("CURRENT_SCHEMA"), is(true));
+    assertThat(metadata.isReservedWord("KEY"), is(false));
 
     String jdbcKeywords = metadata.getJdbcKeywords();
-    assertTrue(jdbcKeywords.contains(",COLLECT,"));
-    assertTrue(!jdbcKeywords.contains(",SELECT,"));
+    assertThat(jdbcKeywords.contains(",COLLECT,"), is(true));
+    assertThat(!jdbcKeywords.contains(",SELECT,"), is(true));
   }
 
   /**
