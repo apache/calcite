@@ -790,6 +790,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
    * JaninoRelMetadataProvider loading cache might cause
    * OutOfMemoryError</a>. */
   @Test public void testMetadataHandlerCacheLimit() {
+    Assume.assumeTrue("too slow to run every day, and it does not reproduce the issue",
+        CalciteAssert.ENABLE_SLOW);
     Assume.assumeTrue("If cache size is too large, this test may fail and the "
             + "test won't be to blame",
         SaffronProperties.INSTANCE.metadataHandlerCacheMaximumSize().get()
