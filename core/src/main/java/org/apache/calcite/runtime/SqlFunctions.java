@@ -202,6 +202,9 @@ public class SqlFunctions {
   /** SQL {@code TRIM(... seek FROM s)} function. */
   public static String trim(boolean leading, boolean trailing, String seek,
       String s) {
+    if (seek.length() != 1) {
+      throw new RuntimeException("Invalid argument for 'TRIM' function: '" + seek + "'");
+    }
     return trim_(s, leading, trailing, seek.charAt(0));
   }
 
