@@ -1978,7 +1978,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   private void checkPlanning(String query) throws Exception {
     final Tester tester1 = tester.withCatalogReaderFactory(
-        typeFactory -> new MockCatalogReader(typeFactory, true) {
+        (typeFactory, caseSensitive) -> new MockCatalogReader(typeFactory, caseSensitive) {
           @Override public MockCatalogReader init() {
             // CREATE SCHEMA abc;
             // CREATE TABLE a(a INT);
@@ -1997,7 +1997,7 @@ public class RelOptRulesTest extends RelOptTestBase {
             return this;
           }
           // CHECKSTYLE: IGNORE 1
-        }.init());
+        });
     HepProgram program = new HepProgramBuilder()
         .addMatchOrder(HepMatchOrder.BOTTOM_UP)
         .addRuleInstance(ProjectRemoveRule.INSTANCE)

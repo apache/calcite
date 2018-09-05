@@ -2652,8 +2652,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   private Tester getExtendedTester() {
-    return tester.withCatalogReaderFactory(typeFactory ->
-        new MockCatalogReaderExtended(typeFactory, true).init());
+    return tester.withCatalogReaderFactory(MockCatalogReaderExtended::new);
   }
 
   @Test public void testLarge() {

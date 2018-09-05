@@ -9859,44 +9859,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Column 'F0\\.C1\\.NOTFOUND' not found in table '" + table + "'");
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]
-   * Dynamic Table / Dynamic Star support</a>. */
-  @Test public void testAmbiguousDynamicStar() throws Exception {
-    final String sql = "select ^n_nation^\n"
-        + "from (select * from \"DYNAMIC\".NATION),\n"
-        + " (select * from \"DYNAMIC\".CUSTOMER)";
-    sql(sql).fails("Column 'N_NATION' is ambiguous");
-  }
-
-  @Test public void testAmbiguousDynamicStar2() throws Exception {
-    final String sql = "select ^n_nation^\n"
-        + "from (select * from \"DYNAMIC\".NATION, \"DYNAMIC\".CUSTOMER)";
-    sql(sql).fails("Column 'N_NATION' is ambiguous");
-  }
-
-  @Test public void testAmbiguousDynamicStar3() throws Exception {
-    final String sql = "select ^nc.n_nation^\n"
-        + "from (select * from \"DYNAMIC\".NATION, \"DYNAMIC\".CUSTOMER) as nc";
-    sql(sql).fails("Column 'N_NATION' is ambiguous");
-  }
-
-  @Test public void testAmbiguousDynamicStar4() throws Exception {
-    final String sql = "select n.n_nation\n"
-        + "from (select * from \"DYNAMIC\".NATION) as n,\n"
-        + " (select * from \"DYNAMIC\".CUSTOMER)";
-    sql(sql).type("RecordType(ANY N_NATION) NOT NULL");
-  }
-
-  /** When resolve column reference, regular field has higher priority than
-   * dynamic star columns. */
-  @Test public void testDynamicStar2() throws Exception {
-    final String sql = "select newid from (\n"
-        + "  select *, NATION.N_NATION + 100 as newid\n"
-        + "  from \"DYNAMIC\".NATION, \"DYNAMIC\".CUSTOMER)";
-    sql(sql).type("RecordType(ANY NEWID) NOT NULL");
-  }
-
   @Test public void testStreamTumble() {
     // TUMBLE
     sql("select stream tumble_end(rowtime, interval '2' hour) as rowtime\n"
