@@ -19,7 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
-import org.apache.calcite.sql.test.SqlTesterImpl;
+import org.apache.calcite.sql.test.SqlValidatorTester;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.BarfingInvocationHandler;
 import org.apache.calcite.util.Util;
@@ -102,7 +102,7 @@ public class SqlTestGen {
     }
 
     public SqlTester getTester() {
-      return new SqlTesterImpl(SPOOLER_VALIDATOR) {
+      return new SqlValidatorTester(SPOOLER_VALIDATOR) {
         public void assertExceptionIsThrown(
             String sql,
             String expectedMsgPattern) {
