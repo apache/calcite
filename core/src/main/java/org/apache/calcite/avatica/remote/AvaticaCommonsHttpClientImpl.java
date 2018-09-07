@@ -87,6 +87,7 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
   protected UsernamePasswordCredentials credentials = null;
   protected CredentialsProvider credentialsProvider = null;
   protected Lookup<AuthSchemeProvider> authRegistry = null;
+  protected Object userToken;
 
   protected File truststore = null;
   protected File keystore = null;
@@ -205,6 +206,10 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
         context.setAuthCache(authCache);
       }
 
+      if (null != userToken) {
+        context.setUserToken(userToken);
+      }
+
       ByteArrayEntity entity = new ByteArrayEntity(request, ContentType.APPLICATION_OCTET_STREAM);
 
       // Create the client with the AuthSchemeRegistry and manager
@@ -215,6 +220,7 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
         final int statusCode = response.getStatusLine().getStatusCode();
         if (HttpURLConnection.HTTP_OK == statusCode
             || HttpURLConnection.HTTP_INTERNAL_ERROR == statusCode) {
+          userToken = context.getUserToken();
           return EntityUtils.toByteArray(response.getEntity());
         } else if (HttpURLConnection.HTTP_UNAVAILABLE == statusCode) {
           LOG.debug("Failed to connect to server (HTTP/503), retrying");
