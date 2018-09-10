@@ -56,10 +56,10 @@ limitations under the License.
     {{ post.content }}
     {% if post.categories contains 'release' %}
         {% if post.component == 'avatica-go' %}
-        <p>See the <a href="{{ site.baseurl }}/docs/go_history.html#{{ page.tag }}">release notes</a>;
+        <p>See the <a href="{{ site.baseurl }}/docs/go_history.html#{{ post.tag }}">release notes</a>;
             <a href="{{ site.baseurl }}/downloads/avatica-go.html#source-releases">download</a> the release.</p>
         {% else %}
-        <p>See the <a href="{{ site.baseurl }}/docs/history.html#{{ page.tag }}">release notes</a>;
+        <p>See the <a href="{{ site.baseurl }}/docs/history.html#{{ post.tag }}">release notes</a>;
             <a href="{{ site.baseurl }}/downloads/avatica.html#source-releases">download</a> the release.</p>
         {% endif %}
     {% endif %}
