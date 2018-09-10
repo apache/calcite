@@ -27,7 +27,7 @@ public class SqlValidatorTester extends AbstractSqlTester {
     super(factory);
   }
 
-  @Override protected SqlTester createImpl(SqlTestFactory factory) {
+  @Override protected SqlTester with(SqlTestFactory factory) {
     return new SqlValidatorTester(factory);
   }
 }

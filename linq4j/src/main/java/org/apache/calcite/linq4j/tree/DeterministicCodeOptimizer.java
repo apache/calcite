@@ -57,13 +57,13 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    * The map that de-duplicates expressions, so the same expressions may reuse
    * the same final static fields.
    */
-  protected final Map<Expression, ParameterExpression> dedup = new HashMap<>();
+  protected final Map<Expression, Expression> dedup = new HashMap<>();
 
   /**
    * The map of all the added final static fields. Allows to identify if the
    * name is occupied or not.
    */
-  protected final Map<String, ParameterExpression> fieldsByName =
+  protected final Map<String, Expression> fieldsByName =
       new HashMap<>();
 
   // Pre-compiled patterns for generation names for the final static fields
@@ -228,9 +228,9 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    * @param expression input expression
    * @return parameter of the already existing declaration, or null
    */
-  protected ParameterExpression findDeclaredExpression(Expression expression) {
+  protected Expression findDeclaredExpression(Expression expression) {
     if (!dedup.isEmpty()) {
-      ParameterExpression pe = dedup.get(expression);
+      Expression pe = dedup.get(expression);
       if (pe != null) {
         return pe;
       }
@@ -246,22 +246,13 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    * @return expression for the given input expression
    */
   protected Expression createField(Expression expression) {
-    ParameterExpression pe = findDeclaredExpression(expression);
+    Expression expr = findDeclaredExpression(expression);
     Type expressionType = expression.getType();
     Type boxedExpressionType = Types.box(expressionType);
-    if (pe != null) {
+    if (expr != null) {
 
       // this is for avoiding possible failures such as (Long) -> (int), (Integer) ->(double), etc.
-      return Expressions.convert_(
-          Expressions.convert_(
-              Expressions.call(
-                  pe,
-                  Types.lookupMethod(Supplier.class, "get")
-              ),
-              boxedExpressionType
-          ),
-          expressionType
-      );
+      return expr;
     }
 
     String name = inventFieldName(expression);
@@ -282,14 +273,22 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
             )
         )
     );
-    pe = Expressions.parameter(supplierType, name);
+    ParameterExpression pe = Expressions.parameter(supplierType, name);
+    expr = getFromSupplier(expressionType, boxedExpressionType, pe);
     FieldDeclaration decl =
-        Expressions.fieldDecl(Modifier.FINAL | Modifier.STATIC, pe, supplier);
-    dedup.put(expression, pe);
+        Expressions.fieldDecl(Modifier.FINAL | Modifier.STATIC,
+            pe, supplier);
+    dedup.put(expression, expr);
     addedDeclarations.add(decl);
-    constants.put(pe, true);
-    fieldsByName.put(name, pe);
+    constants.put(expr, true);
+    fieldsByName.put(name, expr);
 
+    return expr;
+  }
+
+  private Expression getFromSupplier(Type expressionType,
+                                     Type boxedExpressionType,
+                                     ParameterExpression pe) {
     return Expressions.convert_(
         Expressions.convert_(
             Expressions.call(

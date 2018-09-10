@@ -1410,7 +1410,8 @@ public class CalciteAssert {
       }
     }
 
-    private Consumer<ResultSet> checkExceptionAtRuntime(Class<? extends Throwable> type, String message) {
+    private Consumer<ResultSet> checkExceptionAtRuntime(Class<? extends Throwable> type,
+                                                        String message) {
       return rs -> {
         Throwable throwable = null;
         while (true) {

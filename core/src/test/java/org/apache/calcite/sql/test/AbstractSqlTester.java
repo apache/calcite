@@ -323,10 +323,10 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
   }
 
   protected SqlTester with(final String name, final Object value) {
-    return createImpl(factory.with(name, value));
+    return with(factory.with(name, value));
   }
 
-  protected abstract SqlTester createImpl(SqlTestFactory factory);
+  protected abstract SqlTester with(SqlTestFactory factory);
 
   // SqlTester methods
 
