@@ -101,6 +101,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
@@ -110,6 +111,7 @@ import static org.apache.calcite.test.Matchers.isLinux;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.isA;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -1389,6 +1391,45 @@ public class CalciteAssert {
         throw new RuntimeException(
             "exception while executing [" + sql + "]", e);
       }
+    }
+
+    /**
+     * Used to check whether a sql statement fails at the runtime execution.
+     *
+     * @param type the expected type of thrown exception
+     * @param message An message to check for in the output stacktrace
+     * */
+    public AssertQuery failsAtRuntime(Class<? extends Throwable> type, String message) {
+      try (final Connection connection = createConnection()) {
+        assertQuery(connection, sql, limit, materializationsEnabled,
+            hooks, checkExceptionAtRuntime(type, message), null, null);
+        return this;
+      } catch (Exception e) {
+        throw new RuntimeException("exception while executing [" + sql + "]",
+            e);
+      }
+    }
+
+    private Consumer<ResultSet> checkExceptionAtRuntime(Class<? extends Throwable> type, String message) {
+      return rs -> {
+        Throwable throwable = null;
+        while (true) {
+          try {
+            if (!rs.next()) {
+              break;
+            }
+          } catch (SQLException e) {
+            throw new RuntimeException("SQL execution failed", e);
+          } catch (Throwable t) {
+            throwable = t;
+            break;
+          }
+        }
+        assertNotNull("Expected to fail at execution runtime, but did not", throwable);
+        //noinspection unchecked
+        assertThat(throwable, isA((Class) type));
+        checkException(message).accept(throwable);
+      };
     }
 
     /**

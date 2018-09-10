@@ -6676,6 +6676,23 @@ public class JdbcTest {
     connection.close();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2535">[CALCITE-2535]
+   * Runtime failure check not working in SqlTesterImpl.java</a>. */
+  @Test public void testFunctionThrowsException() {
+    CalciteAssert.that()
+        .query(
+            "select cast('foo' as boolean) as bool")
+        .planContains("static final com.google.common.base.Supplier "
+            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_toBoolean_foo_ = "
+            + "com.google.common.base.Suppliers.memoize(new com.google.common.base.Supplier(){\n"
+            + "              public Boolean get() {\n"
+            + "                return org.apache.calcite.runtime.SqlFunctions.toBoolean(\"foo\");\n"
+            + "              }")
+        .planContains("return (boolean) (Boolean) $L4J$C$org_apache_calcite_runtime_SqlFunctions_toBoolean_foo_.get();")
+        .failsAtRuntime(RuntimeException.class, "Invalid character for cast");
+  }
+
   private static String sums(int n, boolean c) {
     final StringBuilder b = new StringBuilder();
     for (int i = 0; i < n; i++) {
