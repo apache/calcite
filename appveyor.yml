@@ -18,6 +18,8 @@
 version: '{build}'
 image: Visual Studio 2017
 clone_depth: 10000
+# Space and plus are here to catch unit tests that fail to support folders with spaces
+clone_folder: C:\projects\calcite +
 # branches to build
 branches:
   # whitelist
@@ -37,4 +39,4 @@ environment:
 build_script:
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Djavax.net.ssl.trustStorePassword=changeit -B -V -Djna.nosys=true
 test_script:
-  - mvn -Dcheckstyle.skip -Dsurefire.useFile=false -Dsurefire.threadCount=1 -Dsurefire.perCoreThreadCount=false -Djavax.net.ssl.trustStorePassword=changeit test
+  - mvn -Dcheckstyle.skip -Dsurefire.useFile=false -Dsurefire.threadCount=1 -Dsurefire.perCoreThreadCount=false -Djavax.net.ssl.trustStorePassword=changeit test -Djna.nosys=true
