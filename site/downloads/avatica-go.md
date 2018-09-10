@@ -34,7 +34,8 @@ Release          | Date       | Commit   | Download
 {% endcomment %}{% if post.fullVersion %}{% comment %}
 {% endcomment %}{% assign v = post.fullVersion %}{% comment %}
 {% endcomment %}{% else %}{% comment %}
-{% endcomment %}{% capture v %}apache-calcite-avatica-go{{ post.version }}{% endcapture %}{% comment %}
+{% endcomment %}{% capture v %}apache-calcite-avatica-go-{{ post.version }}{% endcapture %}{% comment %}
+{% endcomment %}{% capture f %}apache-calcite-avatica-go-src-{{ post.version }}{% endcapture %}{% comment %}
 {% endcomment %}{% endif %}{% comment %}
 {% endcomment %}{% if forloop.index0 < 1 %}{% comment %}
 {% endcomment %}{% capture p %}http://www.apache.org/dyn/closer.lua?filename=calcite/{{ v }}{% endcapture %}{% comment %}
@@ -59,14 +60,14 @@ Release          | Date       | Commit   | Download
 {% endcomment %}<a href="{{ site.baseurl }}/docs/history.html#{{ post.tag }}">{{ post.version }}</a>{% comment %}
 {% endcomment %} | {{ post.date | date_to_string }}{% comment %}
 {% endcomment %} | <a href="https://github.com/apache/calcite-avatica-go/commit/{{ post.sha }}">{{ post.sha }}</a>{% comment %}
-{% endcomment %} | <a href="{{ p }}/{{ v }}-src.tar.gz{{ q }}">tar</a>{% comment %}
-{% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.tar.gz.{{ digest }}">{{ digest }}</a>{% comment %}
-{% endcomment %} <a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.tar.gz.asc">pgp</a>){% comment %}
+{% endcomment %} | <a href="{{ p }}/{{ f }}.tar.gz{{ q }}">tar</a>{% comment %}
+{% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ f }}.tar.gz.{{ digest }}">{{ digest }}</a>{% comment %}
+{% endcomment %} <a href="{{ d }}/calcite/{{ v }}/{{ f }}.tar.gz.asc">pgp</a>){% comment %}
 {% endcomment %}{% if d1 < d4 %}{% comment %}
 {% endcomment %} {% raw %}<br>{% endraw %}{% comment %}
-{% endcomment %} <a href="{{ p }}/{{ v }}-src.zip{{ q }}">zip</a>{% comment %}
-{% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.zip.{{ digest }}">{{ digest }}</a>{% comment %}
-{% endcomment %} <a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.zip.asc">pgp</a>){% comment %}
+{% endcomment %} <a href="{{ p }}/{{ f }}.zip{{ q }}">zip</a>{% comment %}
+{% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ f }}.zip.{{ digest }}">{{ digest }}</a>{% comment %}
+{% endcomment %} <a href="{{ d }}/calcite/{{ v }}/{{ f }}.zip.asc">pgp</a>){% comment %}
 {% endcomment %}{% endif %}{% comment %}
 {% endcomment %}
 {% endfor %}
