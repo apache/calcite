@@ -33,7 +33,7 @@ branches:
     - /^[0-9]+-.*$/
 env:
   global:
-  - DOCKERRUN="docker run -it --rm -v $PWD:/src -v $HOME/.m2:/root/.m2 -w /src"
+  - DOCKERRUN="docker run -it --rm -v $PWD:/src\ + -v $HOME/.m2:/root/.m2 -w /src\ +"
 services:
   - docker
 before_install:
