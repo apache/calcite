@@ -4398,6 +4398,45 @@ LogicalProject(DEPTNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testNotCaseInThreeClause">
+        <Resource name="sql">
+            <![CDATA[select empno from emp where not case when
+            true then deptno in (10,20) else false end]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[CASE(true, NOT(OR(=($7, 10), =($7, 20))), NOT(true))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testNotCaseInMoreClause">
+        <Resource name="sql">
+            <![CDATA[select empno from emp where not case when
+             true then deptno in (10,20) when false then false else deptno in (30,40) end]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[CASE(true, NOT(OR(=($7, 10), =($7, 20))), false, NOT(false), NOT(OR(=($7, 30), =($7, 40))))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testNotCaseInWithoutElse">
+        <Resource name="sql">
+            <![CDATA[select empno from emp where not case when
+            true then deptno in (10,20) end]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[CASE(true, CAST(NOT(OR(=($7, 10), =($7, 20)))):BOOLEAN, null)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testNotInUncorrelatedSubQueryInSelectRex">
         <Resource name="sql">
             <![CDATA[select empno, deptno not in (
