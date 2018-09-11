@@ -70,13 +70,15 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 /**
- * Implementation of {@link org.apache.calcite.test.SqlValidatorTestCase.Tester}
+ * Abstract implementation of {@link org.apache.calcite.test.SqlValidatorTestCase.Tester}
  * that talks to a mock catalog.
+ *
+ * This is to implement the default behavior: testing is only against {@link SqlValidator}.
  */
-public class SqlTesterImpl implements SqlTester, AutoCloseable {
+public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
   protected final SqlTestFactory factory;
 
-  public SqlTesterImpl(SqlTestFactory factory) {
+  public AbstractSqlTester(SqlTestFactory factory) {
     this.factory = factory;
   }
 
@@ -110,19 +112,9 @@ public class SqlTesterImpl implements SqlTester, AutoCloseable {
     try {
       sqlNode = parseQuery(sap.sql);
       validator = getValidator();
-    } catch (SqlParseException e) {
-      String errMessage = e.getMessage();
-      if (expectedMsgPattern == null) {
-        throw new RuntimeException("Error while parsing query:" + sap.sql, e);
-      } else if (errMessage == null
-          || !errMessage.matches(expectedMsgPattern)) {
-        throw new RuntimeException("Error did not match expected ["
-            + expectedMsgPattern + "] while parsing query ["
-            + sap.sql + "]", e);
-      }
-      return;
     } catch (Throwable e) {
-      throw new RuntimeException("Error while parsing query: " + sap.sql, e);
+      checkParseEx(e, expectedMsgPattern, sap.sql);
+      return;
     }
 
     Throwable thrown = null;
@@ -133,6 +125,24 @@ public class SqlTesterImpl implements SqlTester, AutoCloseable {
     }
 
     SqlValidatorTestCase.checkEx(thrown, expectedMsgPattern, sap);
+  }
+
+  protected void checkParseEx(Throwable e, String expectedMsgPattern, String sql) {
+    try {
+      throw e;
+    } catch (SqlParseException spe) {
+      String errMessage = spe.getMessage();
+      if (expectedMsgPattern == null) {
+        throw new RuntimeException("Error while parsing query:" + sql, spe);
+      } else if (errMessage == null
+          || !errMessage.matches(expectedMsgPattern)) {
+        throw new RuntimeException("Error did not match expected ["
+            + expectedMsgPattern + "] while parsing query ["
+            + sql + "]", spe);
+      }
+    } catch (Throwable t) {
+      throw new RuntimeException("Error while parsing query: " + sql, t);
+    }
   }
 
   public RelDataType getColumnType(String sql) {
@@ -265,7 +275,7 @@ public class SqlTesterImpl implements SqlTester, AutoCloseable {
     }
   }
 
-  public SqlTesterImpl withQuoting(Quoting quoting) {
+  public SqlTester withQuoting(Quoting quoting) {
     return with("quoting", quoting);
   }
 
@@ -288,11 +298,11 @@ public class SqlTesterImpl implements SqlTester, AutoCloseable {
         .withUnquotedCasing(lex.unquotedCasing);
   }
 
-  public SqlTesterImpl withConformance(SqlConformance conformance) {
+  public SqlTester withConformance(SqlConformance conformance) {
     if (conformance == null) {
       conformance = SqlConformanceEnum.DEFAULT;
     }
-    final SqlTesterImpl tester = with("conformance", conformance);
+    final SqlTester tester = with("conformance", conformance);
     if (conformance instanceof SqlConformanceEnum) {
       return tester
           .withConnectionFactory(
@@ -307,14 +317,16 @@ public class SqlTesterImpl implements SqlTester, AutoCloseable {
     return with("operatorTable", operatorTable);
   }
 
-  public SqlTesterImpl withConnectionFactory(
+  public SqlTester withConnectionFactory(
       CalciteAssert.ConnectionFactory connectionFactory) {
     return with("connectionFactory", connectionFactory);
   }
 
-  protected SqlTesterImpl with(final String name, final Object value) {
-    return new SqlTesterImpl(factory.with(name, value));
+  protected SqlTester with(final String name, final Object value) {
+    return with(factory.with(name, value));
   }
+
+  protected abstract SqlTester with(SqlTestFactory factory);
 
   // SqlTester methods
 
@@ -665,4 +677,4 @@ public class SqlTesterImpl implements SqlTester, AutoCloseable {
 
 }
 
-// End SqlTesterImpl.java
+// End AbstractSqlTester.java

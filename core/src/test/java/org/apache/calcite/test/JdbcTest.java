@@ -2355,12 +2355,17 @@ public class JdbcTest {
     CalciteAssert.hr()
         .query(
             "select upper((case when \"empid\">\"deptno\"*10 then 'y' else null end)) T from \"hr\".\"emps\"")
-        .planContains("static final String "
+        .planContains("static final com.google.common.base.Supplier "
             + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_upper_y_ = "
-            + "org.apache.calcite.runtime.SqlFunctions.upper(\"y\");")
+            + "com.google.common.base.Suppliers.memoize(new com.google.common.base.Supplier(){\n"
+            + "              public String get() {\n"
+            + "                return org.apache.calcite.runtime.SqlFunctions.upper(\"y\");\n"
+            + "              }\n"
+            + "\n"
+            + "            });")
         .planContains("return current.empid <= current.deptno * 10 "
             + "? (String) null "
-            + ": $L4J$C$org_apache_calcite_runtime_SqlFunctions_upper_y_;")
+            + ": (String) (String) $L4J$C$org_apache_calcite_runtime_SqlFunctions_upper_y_.get();")
         .returns("T=null\n"
             + "T=null\n"
             + "T=Y\n"
@@ -2389,16 +2394,25 @@ public class JdbcTest {
             "select substring(\"name\", \"deptno\"+case when user <> 'sa' then 1 end) from \"hr\".\"emps\"")
         .planContains(
             "final String inp2_ = current.name;")
-        .planContains("static final boolean "
+        .planContains("static final com.google.common.base.Supplier "
             + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_ne_sa_sa_ = "
-            + "org.apache.calcite.runtime.SqlFunctions.ne(\"sa\", \"sa\");")
-        .planContains("static final boolean "
-            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_ne_sa_sa_ = "
-            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_ne_sa_sa_;")
-        .planContains("return inp2_ == null "
-            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_ne_sa_sa_ ? (String) null"
-            + " : org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
-            + "current.deptno + 1);");
+            + "com.google.common.base.Suppliers.memoize(new com.google.common.base.Supplier(){\n"
+            + "              public Boolean get() {\n"
+            + "                return org.apache.calcite.runtime.SqlFunctions.ne(\"sa\", \"sa\");\n"
+            + "              }\n"
+            + "\n"
+            + "            });")
+        .planContains("static final com.google.common.base.Supplier "
+            + "$L4J$C$_boolean_Boolean_org_apache_calcite_runtime_SqlFunctions_ne_sa_3d16eef0 = "
+            + "com.google.common.base.Suppliers.memoize(new com.google.common.base.Supplier(){\n"
+            + "              public Boolean get() {\n"
+            + "                return !((boolean) (Boolean) $L4J$C$org_apache_calcite_runtime_SqlFunctions_ne_sa_sa_.get());\n"
+            + "              }\n"
+            + "\n"
+            + "            });")
+        .planContains("return inp2_ == null || (boolean) (Boolean) "
+            + "$L4J$C$_boolean_Boolean_org_apache_calcite_runtime_SqlFunctions_ne_sa_3d16eef0.get() ? "
+            + "(String) null : org.apache.calcite.runtime.SqlFunctions.substring(inp2_, current.deptno + 1);");
   }
 
   @Test public void testReuseExpressionWhenNullChecking4() {
@@ -2416,20 +2430,29 @@ public class JdbcTest {
             "final String inp2_ = current.name;")
         .planContains(
             "final int inp1_ = current.deptno;")
-        .planContains("static final boolean "
+        .planContains("static final com.google.common.base.Supplier "
             + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ = "
-            + "org.apache.calcite.runtime.SqlFunctions.eq(\"sa\", \"sa\");")
-        .planContains("static final boolean "
-            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ = "
-            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_;")
+            + "com.google.common.base.Suppliers.memoize(new com.google.common.base.Supplier(){\n"
+            + "              public Boolean get() {\n"
+            + "                return org.apache.calcite.runtime.SqlFunctions.eq(\"sa\", \"sa\");\n"
+            + "              }\n"
+            + "\n"
+            + "            });")
+        .planContains("static final com.google.common.base.Supplier "
+            + "$L4J$C$_boolean_Boolean_org_apache_calcite_runtime_SqlFunctions_eq_sa_36cf74db = "
+            + "com.google.common.base.Suppliers.memoize(new com.google.common.base.Supplier(){\n"
+            + "              public Boolean get() {\n"
+            + "                return !((boolean) (Boolean) $L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_.get());\n"
+            + "              }\n"
+            + "\n"
+            + "            });")
         .planContains("return inp2_ == null "
-            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ "
-            + "|| !v5 && inp1_ * 8 <= 8 "
-            + "? (String) null "
-            + ": org.apache.calcite.runtime.SqlFunctions.substring("
-            + "org.apache.calcite.runtime.SqlFunctions.trim(true, true, \" \", "
-            + "org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
-            + "inp1_ * 0 + 1)), (v5 ? 4 : 5) - 2);")
+            + "|| (boolean) (Boolean) $L4J$C$_boolean_Boolean_org_apache_calcite_runtime_SqlFunctions_eq_sa_36cf74db.get() "
+            + "|| !v5 && inp1_ * 8 <= 8 ? (String) null : "
+            + "org.apache.calcite.runtime.SqlFunctions.substring("
+            + "org.apache.calcite.runtime.SqlFunctions.trim("
+            + "true, true, \" \", org.apache.calcite.runtime.SqlFunctions.substring(inp2_, inp1_ * 0 + 1)), "
+            + "(v5 ? 4 : 5) - 2);")
         .returns("T=ill\n"
             + "T=ric\n"
             + "T=ebastian\n"
@@ -2452,21 +2475,36 @@ public class JdbcTest {
         .planContains(
             "final int inp1_ = current.deptno;")
         .planContains(
-            "static final int $L4J$C$5_2 = 5 - 2;")
-        .planContains("static final boolean "
-            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ = "
-            + "org.apache.calcite.runtime.SqlFunctions.eq(\"sa\", \"sa\");")
-        .planContains("static final boolean "
-            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ = "
-            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_;")
+            "static final com.google.common.base.Supplier "
+                + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ = "
+                + "com.google.common.base.Suppliers.memoize(new com.google.common.base.Supplier(){\n"
+                + "              public Boolean get() {\n"
+                + "                return org.apache.calcite.runtime.SqlFunctions.eq(\"sa\", \"sa\");\n"
+                + "              }\n"
+                + "\n"
+                + "            });")
+        .planContains("static final com.google.common.base.Supplier "
+            + "$L4J$C$_boolean_Boolean_org_apache_calcite_runtime_SqlFunctions_eq_sa_36cf74db = "
+            + "com.google.common.base.Suppliers.memoize(new com.google.common.base.Supplier(){\n"
+            + "              public Boolean get() {\n"
+            + "                return !((boolean) (Boolean) $L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_.get());\n"
+            + "              }\n"
+            + "\n"
+            + "            });")
+        .planContains("static final com.google.common.base.Supplier $L4J$C$5_2 = "
+            + "com.google.common.base.Suppliers.memoize(new com.google.common.base.Supplier(){\n"
+            + "              public Integer get() {\n"
+            + "                return 5 - 2;\n"
+            + "              }\n"
+            + "\n"
+            + "            });")
         .planContains("return inp2_ == null "
-            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ "
-            + "|| current.empid <= inp1_ && inp1_ * 8 <= 8 "
-            + "? (String) null "
-            + ": org.apache.calcite.runtime.SqlFunctions.substring("
-            + "org.apache.calcite.runtime.SqlFunctions.trim(true, true, \" \", "
-            + "org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
-            + "inp1_ * 0 + 1)), $L4J$C$5_2);")
+            + "|| (boolean) (Boolean) $L4J$C$_boolean_Boolean_org_apache_calcite_runtime_SqlFunctions_eq_sa_36cf74db.get() "
+            + "|| current.empid <= inp1_ && inp1_ * 8 <= 8 ? (String) null : "
+            + "org.apache.calcite.runtime.SqlFunctions.substring("
+            + "org.apache.calcite.runtime.SqlFunctions.trim("
+            + "true, true, \" \", org.apache.calcite.runtime.SqlFunctions.substring(inp2_, inp1_ * 0 + 1)), "
+            + "(int) (Integer) $L4J$C$5_2.get());")
         .returns("T=ll\n"
             + "T=ic\n"
             + "T=bastian\n"
@@ -6658,6 +6696,24 @@ public class JdbcTest {
     assertThat(resultSet.next(), is(false));
 
     connection.close();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2535">[CALCITE-2535]
+   * Runtime failure check not working in SqlTesterImpl.java</a>. */
+  @Test public void testFunctionThrowsException() {
+    CalciteAssert.that()
+        .query(
+            "select cast('foo' as boolean) as bool")
+        .planContains("static final com.google.common.base.Supplier "
+            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_toBoolean_foo_ = "
+            + "com.google.common.base.Suppliers.memoize(new com.google.common.base.Supplier(){\n"
+            + "              public Boolean get() {\n"
+            + "                return org.apache.calcite.runtime.SqlFunctions.toBoolean(\"foo\");\n"
+            + "              }")
+        .planContains("return (boolean) (Boolean) "
+            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_toBoolean_foo_.get();")
+        .failsAtRuntime(RuntimeException.class, "Invalid character for cast");
   }
 
   private static String sums(int n, boolean c) {

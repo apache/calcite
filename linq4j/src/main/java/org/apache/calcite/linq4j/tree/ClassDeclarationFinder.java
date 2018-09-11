@@ -261,7 +261,7 @@ public class ClassDeclarationFinder extends Shuttle {
    * @param expression input expression
    * @return always returns null
    */
-  protected ParameterExpression findDeclaredExpression(Expression expression) {
+  protected Expression findDeclaredExpression(Expression expression) {
     return null;
   }
 

@@ -19,13 +19,17 @@ package org.apache.calcite.linq4j.tree;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -53,13 +57,13 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    * The map that de-duplicates expressions, so the same expressions may reuse
    * the same final static fields.
    */
-  protected final Map<Expression, ParameterExpression> dedup = new HashMap<>();
+  protected final Map<Expression, Expression> dedup = new HashMap<>();
 
   /**
    * The map of all the added final static fields. Allows to identify if the
    * name is occupied or not.
    */
-  protected final Map<String, ParameterExpression> fieldsByName =
+  protected final Map<String, Expression> fieldsByName =
       new HashMap<>();
 
   // Pre-compiled patterns for generation names for the final static fields
@@ -224,9 +228,9 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    * @param expression input expression
    * @return parameter of the already existing declaration, or null
    */
-  protected ParameterExpression findDeclaredExpression(Expression expression) {
+  protected Expression findDeclaredExpression(Expression expression) {
     if (!dedup.isEmpty()) {
-      ParameterExpression pe = dedup.get(expression);
+      Expression pe = dedup.get(expression);
       if (pe != null) {
         return pe;
       }
@@ -242,20 +246,59 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    * @return expression for the given input expression
    */
   protected Expression createField(Expression expression) {
-    ParameterExpression pe = findDeclaredExpression(expression);
-    if (pe != null) {
-      return pe;
+    Expression expr = findDeclaredExpression(expression);
+    Type expressionType = expression.getType();
+    Type boxedExpressionType = Types.box(expressionType);
+    if (expr != null) {
+
+      // this is for avoiding possible failures such as (Long) -> (int), (Integer) ->(double), etc.
+      return expr;
     }
 
     String name = inventFieldName(expression);
-    pe = Expressions.parameter(expression.getType(), name);
+    Type supplierType = Types.of(Supplier.class, boxedExpressionType);
+    MethodCallExpression supplier = Expressions.call(
+        Types.lookupMethod(Suppliers.class, "memoize", Supplier.class),
+        Expressions.new_(
+            supplierType,
+            Collections.emptyList(),
+            Collections.singletonList(
+                Expressions.methodDecl(
+                    Modifier.PUBLIC,
+                    boxedExpressionType,
+                    "get",
+                    Collections.emptyList(),
+                    Blocks.toFunctionBlock(expression)
+                )
+            )
+        )
+    );
+    ParameterExpression pe = Expressions.parameter(supplierType, name);
+    expr = getFromSupplier(expressionType, boxedExpressionType, pe);
     FieldDeclaration decl =
-        Expressions.fieldDecl(Modifier.FINAL | Modifier.STATIC, pe, expression);
-    dedup.put(expression, pe);
+        Expressions.fieldDecl(Modifier.FINAL | Modifier.STATIC,
+            pe, supplier);
+    dedup.put(expression, expr);
     addedDeclarations.add(decl);
-    constants.put(pe, true);
-    fieldsByName.put(name, pe);
-    return pe;
+    constants.put(expr, true);
+    fieldsByName.put(name, expr);
+
+    return expr;
+  }
+
+  private Expression getFromSupplier(Type expressionType,
+                                     Type boxedExpressionType,
+                                     ParameterExpression pe) {
+    return Expressions.convert_(
+        Expressions.convert_(
+            Expressions.call(
+                pe,
+                Types.lookupMethod(Supplier.class, "get")
+            ),
+            boxedExpressionType
+        ),
+        expressionType
+    );
   }
 
   /**
