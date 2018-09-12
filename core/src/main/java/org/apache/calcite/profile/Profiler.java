@@ -208,8 +208,9 @@ public interface Profiler {
       if (nullCount > 0) {
         map.put("nullCount", nullCount);
       }
-      map.put("expectedCardinality", expectedCardinality);
-      map.put("surprise", surprise());
+      map.put("expectedCardinality", Math.floor(expectedCardinality * Math.pow(10, 3))
+          / Math.pow(10, 3));
+      map.put("surprise", Math.floor(surprise() * Math.pow(10, 3)) / Math.pow(10, 3));
       return map;
     }
 
