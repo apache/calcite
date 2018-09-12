@@ -18,7 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
-import org.apache.calcite.sql.test.SqlTesterImpl;
+import org.apache.calcite.sql.test.SqlValidatorTester;
 import org.apache.calcite.test.catalog.MockCatalogReaderDynamic;
 
 import org.junit.BeforeClass;
@@ -96,7 +96,7 @@ public class SqlValidatorDynamicTest extends SqlValidatorTestCase {
   @Override public SqlTester getTester() {
     // Dymamic schema should not be reused since it is mutable, so
     // we create new SqlTestFactory for each test
-    return new SqlTesterImpl(SqlTestFactory.INSTANCE
+    return new SqlValidatorTester(SqlTestFactory.INSTANCE
         .withCatalogReader(MockCatalogReaderDynamic::new));
   }
 //~ Methods ----------------------------------------------------------------

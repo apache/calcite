@@ -62,6 +62,17 @@ public abstract class SqlTests {
   };
 
   /**
+   * Checker that allows any result.
+   */
+  public static final ResultChecker ANY_RESULT_CHECKER = result -> {
+    while (true) {
+      if (!result.next()) {
+        break;
+      }
+    }
+  };
+
+  /**
    * Helper function to get the string representation of a RelDataType
    * (include precision/scale but no charset or collation)
    *
