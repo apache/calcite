@@ -1762,6 +1762,8 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=['TR'], expr#2=['UE'], expr#3=[||($t1, 
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
+!if (fixed.calcite2539) {
+
 # In the following, that we get an error at run time,
 # and that the plan shows that the expression has not been reduced.
 values cast('null' as boolean);
@@ -1824,6 +1826,7 @@ Caused by: java.lang.NumberFormatException: For input string: "4567891234"
 values cast('12345678901234567890' as bigint);
 Caused by: java.lang.NumberFormatException: For input string: "12345678901234567890"
 !error
+!}
 
 # Out of REAL range
 # (Should give an error, not infinity.)
