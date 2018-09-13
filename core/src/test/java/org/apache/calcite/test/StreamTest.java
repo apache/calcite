@@ -454,7 +454,7 @@ public class StreamTest {
       implements StreamableTable {
     public Enumerable<Object[]> scan(DataContext root) {
       return Linq4j.asEnumerable(() -> new Iterator<Object[]>() {
-        private final String[] items = new String[]{"paint", "paper", "brush"};
+        private final String[] items = {"paint", "paper", "brush"};
         private int counter = 0;
 
         public boolean hasNext() {

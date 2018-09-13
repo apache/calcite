@@ -1681,7 +1681,7 @@ public class Linq4jTest {
   }
 
   @Test public void testSelectManyWithIndexableSelector() {
-    final int[] indexRef = new int[]{0};
+    final int[] indexRef = {0};
     final List<String> nameSeqs =
         Linq4j.asEnumerable(depts)
             .selectMany((element, index) -> {
@@ -1708,7 +1708,7 @@ public class Linq4jTest {
   }
 
   @Test public void testSelectManyWithIndexableSelectorAndResultSelector() {
-    final int[] indexRef = new int[]{0};
+    final int[] indexRef = {0};
     final List<String> nameSeqs =
         Linq4j.asEnumerable(depts)
             .selectMany((element, index) -> {
