@@ -15,6 +15,7 @@
 #
 # Database of contributors to Apache Calcite.
 # Pages such as developer.md use this data.
+# List must be sorted by first name, last name.
 #
 - name: Alan Gates
   emeritus: 2018/05/04
@@ -27,6 +28,11 @@
   githubId: amansinha100
   org: MapR
   role: PMC
+- name: Andrei Sereda
+  apacheId: sereda
+  githubId: asereda-gs
+  org: 
+  role: Committer
 - name: Ashutosh Chauhan
   apacheId: hashutosh
   githubId: ashutoshc
