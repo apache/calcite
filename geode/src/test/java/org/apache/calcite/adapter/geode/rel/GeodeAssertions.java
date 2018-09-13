@@ -13,23 +13,32 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * A JSON model of a simple Calcite schema.
  */
-{
-  "version": "1.0",
-  "defaultSchema": "TEST",
-  "schemas": [
-    {
-      "name": "TEST",
-      "type": "custom",
-      "factory": "org.apache.calcite.adapter.geode.rel.GeodeSchemaFactory",
-      "operand": {
-        "locatorHost": "localhost",
-        "locatorPort": "10334",
-        "regions": "BookMaster,BookCustomer,BookOrder,BookInventory",
-        "pdxSerializablePackagePath": "org.apache.calcite.adapter.geode.domain.bookshop.*"
-      }
-    }
-  ]
+package org.apache.calcite.adapter.geode.rel;
+
+import java.util.List;
+import java.util.function.Consumer;
+
+import static org.junit.Assert.assertEquals;
+
+/**
+ * Various validations for geode tests.
+ */
+class GeodeAssertions {
+
+  private GeodeAssertions() {}
+
+  static Consumer<List> query(final String query) {
+    return actual -> {
+      String actualString =
+          actual == null || actual.isEmpty()
+              ? null
+              : ((String) actual.get(0));
+
+      assertEquals(query, actualString);
+    };
+  }
+
 }
+
+// End GeodeAssertions.java

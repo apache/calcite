@@ -48,7 +48,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
 
   private final String match;
 
-  public GeodeFilter(RelOptCluster cluster, RelTraitSet traitSet,
+  GeodeFilter(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RexNode condition) {
 
     super(cluster, traitSet, input, condition);
@@ -70,7 +70,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
 
   @Override public void implement(GeodeImplementContext geodeImplementContext) {
     // first call the input down the tree.
-    ((GeodeRel) getInput()).implement(geodeImplementContext);
+    geodeImplementContext.visitChild(getInput());
     geodeImplementContext.addPredicates(Collections.singletonList(match));
   }
 
