@@ -129,6 +129,7 @@ import org.apache.calcite.sql.SqlValuesOperator;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlInOperator;
 import org.apache.calcite.sql.fun.SqlQuantifyOperator;
@@ -879,9 +880,39 @@ public class SqlToRelConverter {
       } else if (sqlCall.getOperator() == SqlStdOperatorTable.NOT) {
         SqlNode childNode = sqlCall.operand(0);
         assert childNode instanceof SqlCall;
-        SqlBasicCall childSqlCall = (SqlBasicCall) childNode;
-        if (childSqlCall.getOperator() == SqlStdOperatorTable.AND) {
-          SqlNode[] andOperands = childSqlCall.getOperands();
+
+        SqlKind sqlKind = childNode.getKind();
+        switch (sqlKind) {
+        case CASE:
+          SqlCase sqlCase = (SqlCase) childNode;
+          SqlNodeList newThenOperands = new SqlNodeList(SqlParserPos.ZERO);
+          SqlNodeList thenOperands = sqlCase.getThenOperands();
+
+          for (int i = 0; i < thenOperands.size(); i++) {
+            SqlNode newThenOperand = reg(scope,
+                SqlStdOperatorTable.NOT.createCall(SqlParserPos.ZERO, thenOperands.get(i)));
+            newThenOperand = pushDownNotForIn(scope, newThenOperand);
+            newThenOperands.add(newThenOperand);
+          }
+          SqlNode elseNode = sqlCase.getElseOperand();
+          SqlNode newElseOperand;
+          if (SqlUtil.isNull(elseNode)) { // not(null) is null
+            newElseOperand = elseNode;
+          } else {
+            newElseOperand = reg(scope,
+                SqlStdOperatorTable.NOT.createCall(SqlParserPos.ZERO, elseNode));
+            newElseOperand = pushDownNotForIn(scope, newElseOperand);
+          }
+
+          return reg(scope,
+              SqlStdOperatorTable.CASE.createCall(SqlParserPos.ZERO,
+                  sqlCase.getValueOperand(),
+                  sqlCase.getWhenOperands(),
+                  newThenOperands,
+                  newElseOperand));
+        case AND:
+          SqlBasicCall andCall = (SqlBasicCall) childNode;
+          SqlNode[] andOperands = andCall.getOperands();
           SqlNode[] orOperands = new SqlNode[andOperands.length];
           for (int i = 0; i < orOperands.length; i++) {
             orOperands[i] = reg(scope,
@@ -894,51 +925,43 @@ public class SqlToRelConverter {
           return reg(scope,
               SqlStdOperatorTable.OR.createCall(SqlParserPos.ZERO,
                   orOperands[0], orOperands[1]));
-        } else if (childSqlCall.getOperator() == SqlStdOperatorTable.OR) {
-          SqlNode[] orOperands = childSqlCall.getOperands();
-          SqlNode[] andOperands = new SqlNode[orOperands.length];
-          for (int i = 0; i < andOperands.length; i++) {
-            andOperands[i] = reg(scope,
+        case OR:
+          SqlBasicCall orCall = (SqlBasicCall) childNode;
+          SqlNode[] orOperands1 = orCall.getOperands();
+          SqlNode[] andOperands1 = new SqlNode[orOperands1.length];
+          for (int i = 0; i < andOperands1.length; i++) {
+            andOperands1[i] = reg(scope,
                 SqlStdOperatorTable.NOT.createCall(SqlParserPos.ZERO,
-                    orOperands[i]));
+                    orOperands1[i]));
           }
-          for (int i = 0; i < andOperands.length; i++) {
-            andOperands[i] = pushDownNotForIn(scope, andOperands[i]);
+          for (int i = 0; i < andOperands1.length; i++) {
+            andOperands1[i] = pushDownNotForIn(scope, andOperands1[i]);
           }
           return reg(scope,
               SqlStdOperatorTable.AND.createCall(SqlParserPos.ZERO,
-                  andOperands[0], andOperands[1]));
-        } else if (childSqlCall.getOperator() == SqlStdOperatorTable.NOT) {
-          SqlNode[] notOperands = childSqlCall.getOperands();
+                  andOperands1[0], andOperands1[1]));
+        case NOT:
+          SqlBasicCall notCall = (SqlBasicCall) childNode;
+          SqlNode[] notOperands = notCall.getOperands();
           assert notOperands.length == 1;
           return pushDownNotForIn(scope, notOperands[0]);
-        } else if (childSqlCall.getOperator() instanceof SqlInOperator) {
-          SqlNode[] inOperands = childSqlCall.getOperands();
-          SqlInOperator inOp =
-              (SqlInOperator) childSqlCall.getOperator();
-          if (inOp.kind == SqlKind.NOT_IN) {
-            return reg(scope,
-                SqlStdOperatorTable.IN.createCall(SqlParserPos.ZERO,
-                    inOperands[0], inOperands[1]));
-          } else {
-            return reg(scope,
-                SqlStdOperatorTable.NOT_IN.createCall(SqlParserPos.ZERO,
-                    inOperands[0], inOperands[1]));
-          }
-        } else {
-          // childSqlCall is "leaf" node in a logical expression tree
-          // (only considering AND, OR, NOT)
-          return sqlNode;
+        case NOT_IN:
+          SqlBasicCall notInCall = (SqlBasicCall) childNode;
+          SqlNode[] notInOperands = notInCall.getOperands();
+
+          return reg(scope,
+             SqlStdOperatorTable.IN.createCall(SqlParserPos.ZERO,
+                 notInOperands[0], notInOperands[1]));
+        case IN:
+          SqlBasicCall inCall = (SqlBasicCall) childNode;
+          SqlNode[] inOperands = inCall.getOperands();
+          return reg(scope,
+              SqlStdOperatorTable.NOT_IN.createCall(SqlParserPos.ZERO,
+                  inOperands[0], inOperands[1]));
         }
-      } else {
-        // sqlNode is "leaf" node in a logical expression tree
-        // (only considering AND, OR, NOT)
-        return sqlNode;
       }
-    } else {
-      // tree rooted at sqlNode does not contain inOperator
-      return sqlNode;
     }
+    return sqlNode;
   }
 
   /** Registers with the validator a {@link SqlNode} that has been created
