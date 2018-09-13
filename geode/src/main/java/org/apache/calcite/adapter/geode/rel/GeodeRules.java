@@ -49,12 +49,13 @@ import java.util.function.Predicate;
  */
 public class GeodeRules {
 
-  public static final RelOptRule[] RULES = {
+  static final RelOptRule[] RULES = {
+      GeodeSortLimitRule.INSTANCE,
       GeodeFilterRule.INSTANCE,
       GeodeProjectRule.INSTANCE,
-      GeodeSortLimitRule.INSTANCE,
-      GeodeAggregateRule.INSTANCE
+      GeodeAggregateRule.INSTANCE,
   };
+
 
   private GeodeRules() {
   }

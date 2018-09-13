@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
+import org.apache.calcite.adapter.geode.util.GeodeUtils;
 import org.apache.calcite.adapter.geode.util.JavaTypeFactoryExtImpl;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.linq4j.AbstractEnumerable;
@@ -30,13 +31,15 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
-import org.apache.geode.cache.client.ClientCache;
+import org.apache.geode.cache.GemFireCache;
+import org.apache.geode.cache.Region;
 import org.apache.geode.cache.query.QueryService;
 import org.apache.geode.cache.query.SelectResults;
 
@@ -48,6 +51,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -55,25 +59,15 @@ import java.util.Map;
  */
 public class GeodeTable extends AbstractQueryableTable implements TranslatableTable {
 
-  protected static final Logger LOGGER = LoggerFactory.getLogger(GeodeTable.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(GeodeTable.class.getName());
 
-  private GeodeSchema schema;
+  private final String regionName;
+  private final RelDataType rowType;
 
-  private String regionName;
-
-  private RelDataType relDataType;
-
-  private ClientCache clientCache;
-
-  public GeodeTable(GeodeSchema schema,
-      String regionName,
-      RelDataType relDataType,
-      ClientCache clientCache) {
+  GeodeTable(Region<?, ?> region) {
     super(Object[].class);
-    this.schema = schema;
-    this.regionName = regionName;
-    this.relDataType = relDataType;
-    this.clientCache = clientCache;
+    this.regionName = region.getName();
+    this.rowType = GeodeUtils.autodetectRelTypeFromRegion(region);
   }
 
   public String toString() {
@@ -91,14 +85,14 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
    * @param predicates  A list of predicates which should be used in the query
    * @return Enumerator of results
    */
-  public Enumerable<Object> query(final ClientCache clientCache,
+  public Enumerable<Object> query(final GemFireCache clientCache,
       final List<Map.Entry<String, Class>> fields,
       final List<Map.Entry<String, String>> selectFields,
       final List<Map.Entry<String, String>> aggregateFunctions,
       final List<String> groupByFields,
       List<String> predicates,
       List<String> orderByFields,
-      String limit) {
+      Long limit) {
 
     final RelDataTypeFactory typeFactory = new JavaTypeFactoryExtImpl();
     final RelDataTypeFactory.Builder fieldInfo = typeFactory.builder();
@@ -122,9 +116,11 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
     // Construct the list of fields to project
     Builder<String> selectBuilder = ImmutableList.builder();
     if (!groupByFields.isEmpty()) {
+      // manually add GROUP BY to select clause (GeodeProjection was not visited)
       for (String groupByField : groupByFields) {
         selectBuilder.add(groupByField + " AS " + groupByField);
       }
+
       if (!aggFuncMap.isEmpty()) {
         for (Map.Entry<String, String> e : aggFuncMap.entrySet()) {
           selectBuilder.add(e.getValue() + " AS " + e.getKey());
@@ -140,13 +136,19 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
           selectBuilder.add("*");
         }
       } else {
-        for (Map.Entry<String, String> field : selectFields) {
-          selectBuilder.add(field.getKey() + " AS " + field.getValue());
+        if (!aggFuncMap.isEmpty()) {
+          for (Map.Entry<String, String> e : aggFuncMap.entrySet()) {
+            selectBuilder.add(e.getValue() + " AS " + e.getKey());
+          }
+        } else {
+          for (Map.Entry<String, String> field : selectFields) {
+            selectBuilder.add(field.getKey() + " AS " + field.getValue());
+          }
         }
       }
     }
 
-    final String oqlSelectStatement = Util.toString(selectBuilder.build(), " ", ", ", "");
+    final String oqlSelectStatement = Util.toString(selectBuilder.build(), "", ", ", "");
 
     // Combine all predicates conjunctively
     String whereClause = "";
@@ -174,20 +176,20 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
 
     final String oqlQuery = queryBuilder.toString();
 
+    Hook.QUERY_PLAN.run(oqlQuery);
     LOGGER.info("OQL: " + oqlQuery);
 
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
-        SelectResults results = null;
-        QueryService queryService = clientCache.getQueryService();
-
+        final QueryService queryService = clientCache.getQueryService();
         try {
-          results = (SelectResults) queryService.newQuery(oqlQuery).execute();
+          SelectResults results = (SelectResults) queryService.newQuery(oqlQuery).execute();
+          return new GeodeEnumerator(results, resultRowType);
         } catch (Exception e) {
-          e.printStackTrace();
+          String message = String.format(Locale.ROOT, "Failed to execute query [%s] on %s",
+              oqlQuery, clientCache.getName());
+          throw new RuntimeException(message, e);
         }
-
-        return new GeodeEnumerator(results, resultRowType);
       }
     };
   }
@@ -207,7 +209,7 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-    return relDataType;
+    return rowType;
   }
 
   /**
@@ -231,8 +233,8 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
       return (GeodeTable) table;
     }
 
-    private ClientCache getClientCache() {
-      return schema.unwrap(GeodeSchema.class).clientCache;
+    private GemFireCache getClientCache() {
+      return schema.unwrap(GeodeSchema.class).cache;
     }
 
     /**
@@ -246,7 +248,7 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
         List<String> groupByFields,
         List<String> predicates,
         List<String> order,
-        String limit) {
+        Long limit) {
       return getTable().query(getClientCache(), fields, selectFields,
           aggregateFunctions, groupByFields, predicates, order, limit);
     }
