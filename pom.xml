@@ -73,7 +73,7 @@ limitations under the License.
     <elasticsearch.version>6.2.4</elasticsearch.version>
     <esri-geometry-api.version>2.2.0</esri-geometry-api.version>
     <findbugs.version>3.0.1</findbugs.version>
-    <fmpp-maven-plugin.version>1.0</fmpp-maven-plugin.version>
+    <drill-fmpp-maven-plugin.version>1.14.0</drill-fmpp-maven-plugin.version>
     <foodmart-data-hsqldb.version>0.3</foodmart-data-hsqldb.version>
     <foodmart-queries.version>0.4.1</foodmart-queries.version>
     <forbiddenapis.version>2.5</forbiddenapis.version>
@@ -132,7 +132,7 @@ limitations under the License.
     <xalan.version>2.7.1</xalan.version>
     <xerces.version>2.9.1</xerces.version>
     <sketches.version>0.9.0</sketches.version>
-    <fmpp.version>0.9.14</fmpp.version>
+    <fmpp.version>0.9.16</fmpp.version>
 
     <!-- Other properties (not version numbers) -->
     <maven-javadoc-plugin.excludePackageNames>
@@ -813,9 +813,9 @@ limitations under the License.
       <plugins>
         <!-- Sorted by groupId, artifactId. -->
         <plugin>
-          <groupId>com.googlecode.fmpp-maven-plugin</groupId>
-          <artifactId>fmpp-maven-plugin</artifactId>
-          <version>${fmpp-maven-plugin.version}</version>
+          <groupId>org.apache.drill.tools</groupId>
+          <artifactId>drill-fmpp-maven-plugin</artifactId>
+          <version>${drill-fmpp-maven-plugin.version}</version>
           <dependencies>
             <dependency>
               <groupId>org.freemarker</groupId>

@@ -102,6 +102,24 @@ limitations under the License.
       <!-- Sorted by groupId, artifactId. Put versions in
            pluginManagement in the root POM, not here. -->
       <plugin>
+        <groupId>org.apache.drill.tools</groupId>
+        <artifactId>drill-fmpp-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <configuration>
+              <config>src/main/codegen/config.fmpp</config>
+              <output>${project.build.directory}/generated-sources/fmpp</output>
+              <templates>${top.dir}/core/src/main/codegen/templates</templates>
+            </configuration>
+            <id>generate-fmpp-sources</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <version>${maven-dependency-plugin.version}</version>
         <executions>
@@ -201,41 +219,4 @@ limitations under the License.
       </plugin>
     </plugins>
   </build>
-
-  <profiles>
-    <profile>
-      <!-- CALCITE-538: workaround for https://github.com/freemarker/fmpp/issues/11
-        FMPP always overwrites destination file, however we do not want
-        recompile the whole module every time.
-      -->
-      <id>generate-parser</id>
-      <activation>
-        <property>
-          <name>!skipGenerate</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>com.googlecode.fmpp-maven-plugin</groupId>
-            <artifactId>fmpp-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <configuration>
-                  <cfgFile>src/main/codegen/config.fmpp</cfgFile>
-                  <outputDirectory>${project.build.directory}/generated-sources/fmpp</outputDirectory>
-                  <templateDirectory>${top.dir}/core/src/main/codegen/templates</templateDirectory>
-                </configuration>
-                <id>generate-fmpp-sources</id>
-                <phase>validate</phase>
-                <goals>
-                  <goal>generate</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 </project>
