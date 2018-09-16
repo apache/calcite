@@ -2541,8 +2541,9 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         // Both present, we need to merge
         if (c1.size() < c2.size()) {
           // We swap them to merge
-          c1 = c2;
-          p1 = p2;
+          Set<RexTableInputRef> c2Temp = c2;
+          c2 = c1;
+          c1 = c2Temp;
         }
         for (RexTableInputRef newRef : c2) {
           c1.add(newRef);
