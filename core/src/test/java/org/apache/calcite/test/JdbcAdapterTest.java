@@ -21,7 +21,6 @@ import org.apache.calcite.test.CalciteAssert.AssertThat;
 import org.apache.calcite.test.CalciteAssert.DatabaseInstance;
 
 import org.hsqldb.jdbcDriver;
-
 import org.junit.Test;
 
 import java.sql.Connection;

@@ -39,7 +39,6 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 
 import com.example.Linq4jExample;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 

@@ -473,7 +473,7 @@ public abstract class DiffTestCase {
    */
   protected static String fileContents(File file) {
     byte[] buf = new byte[2048];
-    try (final FileInputStream reader = new FileInputStream(file)) {
+    try (FileInputStream reader = new FileInputStream(file)) {
       int readCount;
       final ByteArrayOutputStream writer = new ByteArrayOutputStream();
       while ((readCount = reader.read(buf)) >= 0) {

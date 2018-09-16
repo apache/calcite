@@ -131,6 +131,13 @@ class VolcanoCost implements RelOptCost {
         && (this.io == ((VolcanoCost) other).io);
   }
 
+  @Override public boolean equals(Object obj) {
+    if (obj instanceof VolcanoCost) {
+      return equals((VolcanoCost) obj);
+    }
+    return false;
+  }
+
   public boolean isEqWithEpsilon(RelOptCost other) {
     if (!(other instanceof VolcanoCost)) {
       return false;

@@ -657,7 +657,7 @@ public class DruidRules {
      * the given {@link Filter}, and any extra nodes.
      */
     private static List<RelNode> constructNewNodes(List<RelNode> oldNodes,
-        boolean addFilter, int startIndex, RelNode filter, RelNode ... trailingNodes) {
+        boolean addFilter, int startIndex, RelNode filter, RelNode... trailingNodes) {
       List<RelNode> newNodes = new ArrayList<>();
 
       // The first item should always be the Table scan, so any filter would go after that

@@ -348,7 +348,7 @@ public class ScannableTableTest {
   @Test public void testPrepared2() throws SQLException {
     final Properties properties = new Properties();
     properties.setProperty("caseSensitive", "true");
-    try (final Connection connection =
+    try (Connection connection =
              DriverManager.getConnection("jdbc:calcite:", properties)) {
       final CalciteConnection calciteConnection = connection.unwrap(
           CalciteConnection.class);

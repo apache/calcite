@@ -106,6 +106,7 @@ limitations under the License.
     <jmh.version>1.12</jmh.version>
     <jsoup.version>1.11.3</jsoup.version>
     <junit.version>4.12</junit.version>
+    <checkstyle.version>7.8.2</checkstyle.version>
     <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
     <maven-dependency-plugin.version>3.1.1</maven-dependency-plugin.version>
     <maven-enforcer-plugin.version>3.0.0-M2</maven-enforcer-plugin.version>
@@ -698,6 +699,11 @@ limitations under the License.
           </execution>
         </executions>
         <dependencies>
+          <dependency>
+            <groupId>com.puppycrawl.tools</groupId>
+            <artifactId>checkstyle</artifactId>
+            <version>${checkstyle.version}</version>
+          </dependency>
           <dependency>
             <groupId>net.hydromatic</groupId>
             <artifactId>toolbox</artifactId>

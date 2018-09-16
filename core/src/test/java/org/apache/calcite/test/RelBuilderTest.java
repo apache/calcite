@@ -1982,7 +1982,7 @@ public class RelBuilderTest {
     RelNode root =
         builder.values(new String[]{"a", "b"}, true, 1, false, -50)
             .build();
-    try (final PreparedStatement preparedStatement = RelRunners.run(root)) {
+    try (PreparedStatement preparedStatement = RelRunners.run(root)) {
       String s = CalciteAssert.toString(preparedStatement.executeQuery());
       final String result = "a=true; b=1\n"
           + "a=false; b=-50\n";
@@ -2004,7 +2004,7 @@ public class RelBuilderTest {
 
     // Note that because the table has been resolved in the RelNode tree
     // we do not need to supply a "schema" as context to the runner.
-    try (final PreparedStatement preparedStatement = RelRunners.run(root)) {
+    try (PreparedStatement preparedStatement = RelRunners.run(root)) {
       String s = CalciteAssert.toString(preparedStatement.executeQuery());
       final String result = ""
           + "EMPNO=7369; ENAME=SMITH; JOB=CLERK; MGR=7902; HIREDATE=1980-12-17; SAL=800.00; COMM=null; DEPTNO=20\n"

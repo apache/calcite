@@ -213,10 +213,9 @@ class ExpressionWriter {
       }
       char[] chars = new char[2 * targetSize];
       Arrays.fill(chars, ' ');
-      String bigString = new String(chars);
       clear();
       for (int i = 0; i < targetSize; i++) {
-        add(bigString.substring(0, i * 2));
+        add(String.valueOf(chars, 0, i * 2));
       }
     }
   }

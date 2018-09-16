@@ -1526,7 +1526,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "  and a.deptno=b.deptno and a.job=b.job and a.ename=b.ename\n"
         + "  and a.mgr=b.deptno and a.slacker=b.slacker";
     // Lock to ensure that only one test is using this method at a time.
-    try (final JdbcAdapterTest.LockWrapper ignore =
+    try (JdbcAdapterTest.LockWrapper ignore =
              JdbcAdapterTest.LockWrapper.lock(LOCK)) {
       final RelNode rel = convertSql(sql);
       final RelMetadataQuery mq = RelMetadataQuery.instance();

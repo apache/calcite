@@ -165,7 +165,7 @@ public class MaterializationTest {
   }
 
   @Test public void testFilterQueryOnProjectView() {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
           .withMaterializations(
@@ -213,7 +213,7 @@ public class MaterializationTest {
   private CalciteAssert.AssertQuery checkThatMaterialize(String materialize,
       String query, String name, boolean existing, String model,
       Consumer<ResultSet> explainChecker, final RuleSet rules) {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.AssertQuery that = CalciteAssert.that()
           .withMaterializations(model, existing, name, materialize)
@@ -237,7 +237,7 @@ public class MaterializationTest {
    * definition. */
   private void checkNoMaterialize(String materialize, String query,
       String model) {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
           .withMaterializations(model, "m0", materialize)
@@ -323,7 +323,7 @@ public class MaterializationTest {
    * FilterToProjectUnifyRule.invert(MutableRel, MutableRel, MutableProject)
    * works incorrectly</a>. */
   @Test public void testFilterQueryOnProjectView8() {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       final String m = "select \"salary\", \"commission\",\n"
           + "\"deptno\", \"empid\", \"name\" from \"emps\"";
@@ -1975,7 +1975,7 @@ public class MaterializationTest {
         + "from \"emps\" where \"deptno\" = 10";
 
     final List<List<List<String>>> substitutedNames = new ArrayList<>();
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
           .withMaterializations(HR_FKUK_MODEL,
@@ -1996,7 +1996,7 @@ public class MaterializationTest {
    * Pre-populated materializations</a>. */
   @Test public void testPrePopulated() {
     String q = "select \"deptno\" from \"emps\"";
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
           .withMaterializations(
@@ -2017,7 +2017,7 @@ public class MaterializationTest {
   }
 
   @Test public void testViewSchemaPath() {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       final String m = "select empno, deptno from emp";
       final String q = "select deptno from scott.emp";
@@ -2070,7 +2070,7 @@ public class MaterializationTest {
     String q = "select *\n"
         + "from (select * from \"emps\" where \"empid\" < 300)\n"
         + "join (select \"deptno\", count(*) as c from \"emps\" group by \"deptno\") using (\"deptno\")";
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
           .withMaterializations(HR_FKUK_MODEL,
@@ -2088,7 +2088,7 @@ public class MaterializationTest {
     final String q = "select *\n"
         + "from \"emps\"\n"
         + "join \"depts\" using (\"deptno\") where \"empid\" < 300 ";
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
           .withMaterializations(HR_FKUK_MODEL,
@@ -2106,7 +2106,7 @@ public class MaterializationTest {
         + "from \"emps\"\n"
         + "join \"depts\" using (\"deptno\") where \"empid\" < 300 "
         + "and \"depts\".\"deptno\" > 200";
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
           .withMaterializations(HR_FKUK_MODEL,
@@ -2209,7 +2209,7 @@ public class MaterializationTest {
         {{"hr", "m1"}, {"hr", "m0"}},
         {{"hr", "m1"}, {"hr", "m1"}}};
 
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       final List<List<List<String>>> substitutedNames = new ArrayList<>();
       CalciteAssert.that()
@@ -2248,7 +2248,7 @@ public class MaterializationTest {
         {{"hr", "m2"}, {"hr", "m1"}},
         {{"hr", "m2"}, {"hr", "m2"}}};
 
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       final List<List<List<String>>> substitutedNames = new ArrayList<>();
       CalciteAssert.that()

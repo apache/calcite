@@ -2074,7 +2074,7 @@ public class ConcurrentTestCommandScript
 
     // returns 0 on success, 1 on error, 2 on bad invocation.
     public int run(String[] args) {
-      try (final PrintWriter w = Util.printWriter(System.out)) {
+      try (PrintWriter w = Util.printWriter(System.out)) {
         if (!parseCommand(args)) {
           usage();
           return 2;
