@@ -64,7 +64,7 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
   }
 
   private Map<String, String> getArgs() {
-    Map<String, String> args = new HashMap<String, String>();
+    Map<String, String> args = new HashMap<>();
     if (fieldList != null) {
       String fields =
           StringUtils.encodeList(fieldList, ',').toString();

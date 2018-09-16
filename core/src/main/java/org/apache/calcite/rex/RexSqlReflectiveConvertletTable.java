@@ -27,7 +27,7 @@ import java.util.Map;
 public class RexSqlReflectiveConvertletTable implements RexSqlConvertletTable {
   //~ Instance fields --------------------------------------------------------
 
-  private final Map<Object, Object> map = new HashMap<Object, Object>();
+  private final Map<Object, Object> map = new HashMap<>();
 
   //~ Constructors -----------------------------------------------------------
 

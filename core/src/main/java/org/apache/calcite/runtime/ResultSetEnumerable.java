@@ -72,7 +72,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
           //noinspection unchecked
           return (Function0) () -> {
             try {
-              final List<Object> list = new ArrayList<Object>();
+              final List<Object> list = new ArrayList<>();
               for (int i = 0; i < columnCount; i++) {
                 if (metaData.getColumnType(i + 1) == Types.TIMESTAMP) {
                   long v = resultSet.getLong(i + 1);
@@ -120,7 +120,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
       DataSource dataSource,
       String sql,
       Function1<ResultSet, Function0<T>> rowBuilderFactory) {
-    return new ResultSetEnumerable<T>(dataSource, sql, rowBuilderFactory);
+    return new ResultSetEnumerable<>(dataSource, sql, rowBuilderFactory);
   }
 
   public Enumerator<T> enumerator() {
@@ -138,7 +138,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
         final ResultSet resultSet = statement.getResultSet();
         statement = null;
         connection = null;
-        return new ResultSetEnumerator<T>(resultSet, rowBuilderFactory);
+        return new ResultSetEnumerator<>(resultSet, rowBuilderFactory);
       } else {
         Integer updateCount = statement.getUpdateCount();
         return Linq4j.singletonEnumerator((T) updateCount);
@@ -243,7 +243,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
       //noinspection unchecked
       return (Function0) () -> {
         try {
-          final List<Object> list = new ArrayList<Object>();
+          final List<Object> list = new ArrayList<>();
           for (int i = 0; i < columnCount; i++) {
             list.add(primitives[i].jdbcGet(resultSet, i + 1));
           }

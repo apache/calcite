@@ -547,7 +547,7 @@ public class XmlOutput {
      * Identity transform
      */
     StringEscaper() {
-      translationVector = new ArrayList<String>();
+      translationVector = new ArrayList<>();
     }
 
     /**
@@ -597,7 +597,7 @@ public class XmlOutput {
         } else {
           if (sb == null) {
             sb = new StringBuilder(n * 2);
-            sb.append(s.substring(0, i));
+            sb.append(s, 0, i);
           }
           sb.append(escape);
         }
@@ -613,7 +613,7 @@ public class XmlOutput {
     protected StringEscaper clone() {
       StringEscaper clone = new StringEscaper();
       if (translationVector != null) {
-        clone.translationVector = new ArrayList<String>(translationVector);
+        clone.translationVector = new ArrayList<>(translationVector);
       }
       if (translationTable != null) {
         clone.translationTable = translationTable.clone();

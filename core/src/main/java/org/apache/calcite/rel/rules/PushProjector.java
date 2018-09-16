@@ -503,7 +503,7 @@ public class PushProjector {
     }
     int refIdx = offset - 1;
     List<Pair<RexNode, String>> newProjects =
-        new ArrayList<Pair<RexNode, String>>();
+        new ArrayList<>();
     List<RelDataTypeField> destFields =
         projChild.getRowType().getFieldList();
 

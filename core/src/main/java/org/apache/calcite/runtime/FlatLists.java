@@ -49,32 +49,32 @@ public class FlatLists {
 
   /** Creates a flat list with 1 element. */
   public static <T> List<T> of(T t0) {
-    return new Flat1List<T>(t0);
+    return new Flat1List<>(t0);
   }
 
   /** Creates a flat list with 2 elements. */
   public static <T> List<T> of(T t0, T t1) {
-    return new Flat2List<T>(t0, t1);
+    return new Flat2List<>(t0, t1);
   }
 
   /** Creates a flat list with 3 elements. */
   public static <T> List<T> of(T t0, T t1, T t2) {
-    return new Flat3List<T>(t0, t1, t2);
+    return new Flat3List<>(t0, t1, t2);
   }
 
   /** Creates a flat list with 4 elements. */
   public static <T> List<T> of(T t0, T t1, T t2, T t3) {
-    return new Flat4List<T>(t0, t1, t2, t3);
+    return new Flat4List<>(t0, t1, t2, t3);
   }
 
   /** Creates a flat list with 6 elements. */
   public static <T> List<T> of(T t0, T t1, T t2, T t3, T t4) {
-    return new Flat5List<T>(t0, t1, t2, t3, t4);
+    return new Flat5List<>(t0, t1, t2, t3, t4);
   }
 
   /** Creates a flat list with 6 elements. */
   public static <T> List<T> of(T t0, T t1, T t2, T t3, T t4, T t5) {
-    return new Flat6List<T>(t0, t1, t2, t3, t4, t5);
+    return new Flat6List<>(t0, t1, t2, t3, t4, t5);
   }
 
   /**
@@ -389,7 +389,7 @@ public class FlatLists {
     }
 
     public List<T> append(T e) {
-      return new Flat2List<T>(t0, e);
+      return new Flat2List<>(t0, e);
     }
   }
 
@@ -522,7 +522,7 @@ public class FlatLists {
     }
 
     public List<T> append(T e) {
-      return new Flat3List<T>(t0, t1, e);
+      return new Flat3List<>(t0, t1, e);
     }
   }
 
@@ -672,7 +672,7 @@ public class FlatLists {
     }
 
     public List<T> append(T e) {
-      return new Flat4List<T>(t0, t1, t2, e);
+      return new Flat4List<>(t0, t1, t2, e);
     }
   }
 
@@ -841,7 +841,7 @@ public class FlatLists {
     }
 
     public List<T> append(T e) {
-      return new Flat5List<T>(t0, t1, t2, t3, e);
+      return new Flat5List<>(t0, t1, t2, t3, e);
     }
   }
 
@@ -1029,7 +1029,7 @@ public class FlatLists {
     }
 
     public List<T> append(T e) {
-      return new Flat6List<T>(t0, t1, t2, t3, t4, e);
+      return new Flat6List<>(t0, t1, t2, t3, t4, e);
     }
   }
 

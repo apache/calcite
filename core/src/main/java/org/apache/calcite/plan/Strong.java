@@ -204,8 +204,6 @@ public class Strong {
     map.put(SqlKind.IS_NOT_TRUE, Policy.NOT_NULL);
     map.put(SqlKind.IS_FALSE, Policy.NOT_NULL);
     map.put(SqlKind.IS_NOT_FALSE, Policy.NOT_NULL);
-    map.put(SqlKind.IS_DISTINCT_FROM, Policy.NOT_NULL);
-    map.put(SqlKind.IS_NOT_DISTINCT_FROM, Policy.NOT_NULL);
 
     map.put(SqlKind.NOT, Policy.ANY);
     map.put(SqlKind.EQUALS, Policy.ANY);
@@ -216,8 +214,6 @@ public class Strong {
     map.put(SqlKind.GREATER_THAN_OR_EQUAL, Policy.ANY);
     map.put(SqlKind.LIKE, Policy.ANY);
     map.put(SqlKind.SIMILAR, Policy.ANY);
-    map.put(SqlKind.PLUS_PREFIX, Policy.ANY);
-    map.put(SqlKind.MINUS_PREFIX, Policy.ANY);
     map.put(SqlKind.PLUS, Policy.ANY);
     map.put(SqlKind.PLUS_PREFIX, Policy.ANY);
     map.put(SqlKind.MINUS, Policy.ANY);

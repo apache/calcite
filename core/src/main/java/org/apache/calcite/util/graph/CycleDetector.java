@@ -32,7 +32,7 @@ public class CycleDetector<V, E extends DefaultEdge> {
   }
 
   public Set<V> findCycles() {
-    return new TopologicalOrderIterator<V, E>(graph).findCycles();
+    return new TopologicalOrderIterator<>(graph).findCycles();
   }
 }
 

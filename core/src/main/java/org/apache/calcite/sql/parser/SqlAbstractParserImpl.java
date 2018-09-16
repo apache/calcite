@@ -570,20 +570,20 @@ public abstract class SqlAbstractParserImpl {
    * Default implementation of the {@link Metadata} interface.
    */
   public static class MetadataImpl implements Metadata {
-    private final Set<String> reservedFunctionNames = new HashSet<String>();
-    private final Set<String> contextVariableNames = new HashSet<String>();
-    private final Set<String> nonReservedKeyWordSet = new HashSet<String>();
+    private final Set<String> reservedFunctionNames = new HashSet<>();
+    private final Set<String> contextVariableNames = new HashSet<>();
+    private final Set<String> nonReservedKeyWordSet = new HashSet<>();
 
     /**
      * Set of all tokens.
      */
-    private final SortedSet<String> tokenSet = new TreeSet<String>();
+    private final SortedSet<String> tokenSet = new TreeSet<>();
 
     /**
      * Immutable list of all tokens, in alphabetical order.
      */
     private final List<String> tokenList;
-    private final Set<String> reservedWords = new HashSet<String>();
+    private final Set<String> reservedWords = new HashSet<>();
     private final String sql92ReservedWords;
 
     /**
@@ -597,7 +597,7 @@ public abstract class SqlAbstractParserImpl {
       initList(sqlParser, nonReservedKeyWordSet, "NonReservedKeyWord");
       tokenList = ImmutableList.copyOf(tokenSet);
       sql92ReservedWords = constructSql92ReservedWordList();
-      Set<String> reservedWordSet = new TreeSet<String>();
+      Set<String> reservedWordSet = new TreeSet<>();
       reservedWordSet.addAll(tokenSet);
       reservedWordSet.removeAll(nonReservedKeyWordSet);
       reservedWords.addAll(reservedWordSet);
@@ -670,7 +670,7 @@ public abstract class SqlAbstractParserImpl {
      */
     private String constructSql92ReservedWordList() {
       StringBuilder sb = new StringBuilder();
-      TreeSet<String> jdbcReservedSet = new TreeSet<String>();
+      TreeSet<String> jdbcReservedSet = new TreeSet<>();
       jdbcReservedSet.addAll(tokenSet);
       jdbcReservedSet.removeAll(SQL_92_RESERVED_WORD_SET);
       jdbcReservedSet.removeAll(nonReservedKeyWordSet);

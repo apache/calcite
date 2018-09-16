@@ -26,7 +26,7 @@ public class Demo {
   }
 
   public static void main(String[] args) {
-    ArrayList<String> names = new ArrayList<String>();
+    ArrayList<String> names = new ArrayList<>();
     names.add("John");
     names.add("Paul");
     names.add("George");

@@ -546,8 +546,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     for (int i = 0; i < expList.size(); i++) {
       RexNode expr2 = simplifier.apply(expList.get(i));
       if (!expr2.toString().equals(expList.get(i).toString())) {
-        expList.remove(i);
-        expList.add(i, expr2);
+        expList.set(i, expr2);
         simplified = true;
       }
     }

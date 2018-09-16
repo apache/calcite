@@ -127,8 +127,8 @@ public class ReduceDecimalsRule extends RelOptRule {
     private final ExpanderMap expanderMap;
 
     public DecimalShuttle(RexBuilder rexBuilder) {
-      irreducible = new HashMap<Pair<String, String>, RexNode>();
-      results = new HashMap<Pair<String, String>, RexNode>();
+      irreducible = new HashMap<>();
+      results = new HashMap<>();
       expanderMap = new ExpanderMap(rexBuilder);
     }
 
@@ -224,7 +224,7 @@ public class ReduceDecimalsRule extends RelOptRule {
     private RexExpander defaultExpander;
 
     private ExpanderMap(RexBuilder rexBuilder) {
-      map = new HashMap<SqlOperator, RexExpander>();
+      map = new HashMap<>();
       registerExpanders(rexBuilder);
     }
 

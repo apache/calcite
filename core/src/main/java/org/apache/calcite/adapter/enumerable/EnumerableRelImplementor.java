@@ -180,7 +180,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
             type.getName(),
             null,
             ImmutableList.of(Serializable.class),
-            new ArrayList<MemberDeclaration>());
+            new ArrayList<>());
 
     // For each field:
     //   public T0 f0;

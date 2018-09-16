@@ -471,6 +471,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
         assert !fail : "target " + target + " occurs more than once";
         return false;
       }
+      occurCount[target]++;
     }
     return true;
   }

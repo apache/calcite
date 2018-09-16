@@ -64,7 +64,7 @@ public class AliasNamespace extends AbstractNamespace {
   //~ Methods ----------------------------------------------------------------
 
   protected RelDataType validateImpl(RelDataType targetRowType) {
-    final List<String> nameList = new ArrayList<String>();
+    final List<String> nameList = new ArrayList<>();
     final List<SqlNode> operands = call.getOperandList();
     final SqlValidatorNamespace childNs =
         validator.getNamespace(operands.get(0));
@@ -87,7 +87,7 @@ public class AliasNamespace extends AbstractNamespace {
           RESOURCE.aliasListDegree(rowType.getFieldCount(), getString(rowType),
               nameList.size()));
     }
-    final List<RelDataType> typeList = new ArrayList<RelDataType>();
+    final List<RelDataType> typeList = new ArrayList<>();
     for (RelDataTypeField field : rowType.getFieldList()) {
       typeList.add(field.getType());
     }

@@ -388,7 +388,7 @@ public class RelMdExpressionLineage
     }
 
     return createAllPossibleExpressions(rexBuilder, expr, predFieldsUsed, mapping,
-        new HashMap<RexInputRef, RexNode>());
+        new HashMap<>());
   }
 
   private static Set<RexNode> createAllPossibleExpressions(RexBuilder rexBuilder,

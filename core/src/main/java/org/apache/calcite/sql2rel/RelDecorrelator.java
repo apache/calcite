@@ -1121,6 +1121,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     int oldLeftFieldCount = oldLeft.getRowType().getFieldCount();
 
     int oldRightFieldCount = oldRight.getRowType().getFieldCount();
+    //noinspection AssertWithSideEffects
     assert rel.getRowType().getFieldCount()
         == oldLeftFieldCount + oldRightFieldCount;
 
@@ -1180,6 +1181,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     int newLeftFieldCount = leftFrame.r.getRowType().getFieldCount();
 
     int oldRightFieldCount = oldRight.getRowType().getFieldCount();
+    //noinspection AssertWithSideEffects
     assert rel.getRowType().getFieldCount()
         == oldLeftFieldCount + oldRightFieldCount;
 
