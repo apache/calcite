@@ -45,7 +45,6 @@ public class JaninoCompiler implements JavaCompiler {
   //~ Constructors -----------------------------------------------------------
 
   public JaninoCompiler() {
-    args = new JaninoCompilerArgs();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -67,7 +66,7 @@ public class JaninoCompiler implements JavaCompiler {
       parentClassLoader = classLoader;
     }
 
-    Map<String, byte[]> sourceMap = new HashMap<String, byte[]>();
+    Map<String, byte[]> sourceMap = new HashMap<>();
     sourceMap.put(
         ClassFile.getSourceResourceName(args.fullClassName),
         args.source.getBytes(StandardCharsets.UTF_8));

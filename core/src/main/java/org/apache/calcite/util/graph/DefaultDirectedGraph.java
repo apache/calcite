@@ -19,7 +19,6 @@ package org.apache.calcite.util.graph;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -34,9 +33,9 @@ import java.util.Set;
  */
 public class DefaultDirectedGraph<V, E extends DefaultEdge>
     implements DirectedGraph<V, E> {
-  final Set<E> edges = new LinkedHashSet<E>();
+  final Set<E> edges = new LinkedHashSet<>();
   final Map<V, VertexInfo<V, E>> vertexMap =
-      new LinkedHashMap<V, VertexInfo<V, E>>();
+      new LinkedHashMap<>();
   final EdgeFactory<V, E> edgeFactory;
 
   /** Creates a graph. */
@@ -50,7 +49,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
 
   public static <V, E extends DefaultEdge> DefaultDirectedGraph<V, E> create(
       EdgeFactory<V, E> edgeFactory) {
-    return new DefaultDirectedGraph<V, E>(edgeFactory);
+    return new DefaultDirectedGraph<>(edgeFactory);
   }
 
   @Override public String toString() {
@@ -68,7 +67,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     if (vertexMap.containsKey(vertex)) {
       return false;
     } else {
-      vertexMap.put(vertex, new VertexInfo<V, E>());
+      vertexMap.put(vertex, new VertexInfo<>());
       return true;
     }
   }
@@ -127,14 +126,8 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
   public void removeAllVertices(Collection<V> collection) {
     vertexMap.keySet().removeAll(collection);
     for (VertexInfo<V, E> info : vertexMap.values()) {
-      for (Iterator<E> iterator = info.outEdges.iterator();
-           iterator.hasNext();) {
-        E next = iterator.next();
-        //noinspection SuspiciousMethodCalls
-        if (collection.contains(next.target)) {
-          iterator.remove();
-        }
-      }
+      //noinspection SuspiciousMethodCalls
+      info.outEdges.removeIf(next -> collection.contains(next.target));
     }
   }
 
@@ -143,7 +136,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
   }
 
   public List<E> getInwardEdges(V target) {
-    final ArrayList<E> list = new ArrayList<E>();
+    final ArrayList<E> list = new ArrayList<>();
     for (VertexInfo<V, E> info : vertexMap.values()) {
       for (E edge : info.outEdges) {
         if (edge.target.equals(target)) {
@@ -171,7 +164,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
    * @param <E> Edge type
    */
   static class VertexInfo<V, E> {
-    public List<E> outEdges = new ArrayList<E>();
+    public List<E> outEdges = new ArrayList<>();
   }
 }
 

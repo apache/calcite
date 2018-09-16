@@ -40,10 +40,9 @@ public class CompositeMap<K, V> implements Map<K, V> {
 
   /** Creates a CompositeMap. */
   // Would like to use '@SafeVarargs' but JDK 1.6 doesn't support it.
-  @SuppressWarnings("varargs")
-  public static <K, V> CompositeMap<K, V> of(Map<K, V> map0,
+  @SafeVarargs public static <K, V> CompositeMap<K, V> of(Map<K, V> map0,
       Map<K, V>... maps) {
-    return new CompositeMap<K, V>(list(map0, maps));
+    return new CompositeMap<>(list(map0, maps));
   }
 
   private static <E> ImmutableList<E> list(E e, E[] es) {
@@ -118,7 +117,7 @@ public class CompositeMap<K, V> implements Map<K, V> {
   }
 
   public Set<K> keySet() {
-    final Set<K> keys = new LinkedHashSet<K>();
+    final Set<K> keys = new LinkedHashSet<>();
     for (Map<K, V> map : maps) {
       keys.addAll(map.keySet());
     }
@@ -127,7 +126,7 @@ public class CompositeMap<K, V> implements Map<K, V> {
 
   private Map<K, V> combinedMap() {
     ImmutableMap.Builder<K, V> builder = ImmutableMap.builder();
-    final Set<K> keys = new LinkedHashSet<K>();
+    final Set<K> keys = new LinkedHashSet<>();
     for (Map<K, V> map : maps) {
       for (Entry<K, V> entry : map.entrySet()) {
         if (keys.add(entry.getKey())) {

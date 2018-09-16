@@ -84,7 +84,7 @@ public class MongoAggregate
 
   public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
-    List<String> list = new ArrayList<String>();
+    List<String> list = new ArrayList<>();
     final List<String> inNames =
         MongoRules.mongoFieldNames(getInput().getRowType());
     final List<String> outNames = MongoRules.mongoFieldNames(getRowType());
@@ -94,7 +94,7 @@ public class MongoAggregate
       list.add("_id: " + MongoRules.maybeQuote("$" + inName));
       ++i;
     } else {
-      List<String> keys = new ArrayList<String>();
+      List<String> keys = new ArrayList<>();
       for (int group : groupSet) {
         final String inName = inNames.get(group);
         keys.add(inName + ": " + MongoRules.quote("$" + inName));
@@ -123,7 +123,7 @@ public class MongoAggregate
         }
       };
     } else {
-      fixups = new ArrayList<String>();
+      fixups = new ArrayList<>();
       fixups.add("_id: 0");
       i = 0;
       for (int group : groupSet) {

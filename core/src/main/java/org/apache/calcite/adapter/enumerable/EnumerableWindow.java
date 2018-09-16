@@ -166,7 +166,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     Expression source_ = builder.append("source", result.block);
 
     final List<Expression> translatedConstants =
-        new ArrayList<Expression>(constants.size());
+        new ArrayList<>(constants.size());
     for (RexLiteral constant : constants) {
       translatedConstants.add(
           RexToLixTranslator.translateLiteral(constant, constant.getType(),
@@ -205,7 +205,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       final Expression collectionExpr = partitionIterator.left;
       final Expression iterator_ = partitionIterator.right;
 
-      List<AggImpState> aggs = new ArrayList<AggImpState>();
+      List<AggImpState> aggs = new ArrayList<>();
       List<AggregateCall> aggregateCalls = group.getAggregateCalls(this);
       for (int aggIdx = 0; aggIdx < aggregateCalls.size(); aggIdx++) {
         AggregateCall call = aggregateCalls.get(aggIdx);
@@ -275,7 +275,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
           RexToLixTranslator.forAggregation(typeFactory, builder4,
               inputGetter);
 
-      final List<Expression> outputRow = new ArrayList<Expression>();
+      final List<Expression> outputRow = new ArrayList<>();
       int fieldCountWithAggResults =
           inputPhysType.getRowType().getFieldCount();
       for (int i = 0; i < fieldCountWithAggResults; i++) {
@@ -435,8 +435,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
                 result.physType.getRowType(),
                 constants,
                 argList);
-        List<RexNode> args = new ArrayList<RexNode>(
-            inputTypes.size());
+        List<RexNode> args = new ArrayList<>(inputTypes.size());
         for (int i = 0; i < argList.size(); i++) {
           Integer idx = argList.get(i);
           args.add(new RexInputRef(idx, inputTypes.get(i)));
@@ -803,8 +802,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
             .substring("ID$0$".length()) + aggName;
       }
       List<Type> state = agg.implementor.getStateType(agg.context);
-      final List<Expression> decls =
-          new ArrayList<Expression>(state.size());
+      final List<Expression> decls = new ArrayList<>(state.size());
       for (int i = 0; i < state.size(); i++) {
         Type type = state.get(i);
         ParameterExpression pe =

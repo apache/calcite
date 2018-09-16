@@ -127,11 +127,11 @@ public final class FunctionExpression<F extends Function<?>>
     //    public Object apply(Object p1, Object p2) {
     //      return apply((Double) p1, (Integer) p2);
     //    }
-    List<String> params = new ArrayList<String>();
-    List<String> bridgeParams = new ArrayList<String>();
-    List<String> bridgeArgs = new ArrayList<String>();
-    List<String> boxBridgeParams = new ArrayList<String>();
-    List<String> boxBridgeArgs = new ArrayList<String>();
+    List<String> params = new ArrayList<>();
+    List<String> bridgeParams = new ArrayList<>();
+    List<String> bridgeArgs = new ArrayList<>();
+    List<String> boxBridgeParams = new ArrayList<>();
+    List<String> boxBridgeArgs = new ArrayList<>();
     for (ParameterExpression parameterExpression : parameterList) {
       final Type parameterType = parameterExpression.getType();
       final Type parameterBoxType = Types.box(parameterType);

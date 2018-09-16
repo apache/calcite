@@ -57,7 +57,7 @@ public class DepthFirstIterator<V, E extends DefaultEdge>
   /** Populates a collection with the nodes reachable from a given node. */
   public static <V, E extends DefaultEdge> void reachable(Collection<V> list,
       final DirectedGraph<V, E> graph, final V start) {
-    buildListRecurse(list, new HashSet<V>(), graph, start);
+    buildListRecurse(list, new HashSet<>(), graph, start);
   }
 
   private static <V, E extends DefaultEdge> void buildListRecurse(

@@ -196,7 +196,7 @@ public class RexSqlStandardConvertletTable
             return null;
           }
           List<SqlNode> operandList =
-              new ArrayList<SqlNode>(Arrays.asList(operands));
+              new ArrayList<>(Arrays.asList(operands));
           SqlDataTypeSpec typeSpec =
               SqlTypeUtil.convertTypeToSpec(call.getType());
           operandList.add(typeSpec);

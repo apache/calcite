@@ -32,8 +32,8 @@ import java.util.StringTokenizer;
 public class JavaCompilerArgs {
   //~ Instance fields --------------------------------------------------------
 
-  List<String> argsList = new ArrayList<String>();
-  List<String> fileNameList = new ArrayList<String>();
+  List<String> argsList = new ArrayList<>();
+  List<String> fileNameList = new ArrayList<>();
 
   ClassLoader classLoader;
 
@@ -56,7 +56,7 @@ public class JavaCompilerArgs {
    * dir</i> -verbose [<i>file</i>...]"</code>
    */
   public void setString(String args) {
-    List<String> list = new ArrayList<String>();
+    List<String> list = new ArrayList<>();
     StringTokenizer tok = new StringTokenizer(args);
     while (tok.hasMoreTokens()) {
       list.add(tok.nextToken());

@@ -2137,9 +2137,9 @@ public class SqlFunctions {
   /** Support the MULTISET INTERSECT DISTINCT function. */
   public static <E> Collection<E> multisetIntersectDistinct(Collection<E> c1,
       Collection<E> c2) {
-    final Set<E> result = new HashSet<E>(c1);
+    final Set<E> result = new HashSet<>(c1);
     result.retainAll(c2);
-    return new ArrayList<E>(result);
+    return new ArrayList<>(result);
   }
 
   /** Support the MULTISET INTERSECT ALL function. */

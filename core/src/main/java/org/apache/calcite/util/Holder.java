@@ -48,7 +48,7 @@ public class Holder<E> {
 
   /** Creates a holder containing a given value. */
   public static <E> Holder<E> of(E e) {
-    return new Holder<E>(e);
+    return new Holder<>(e);
   }
 }
 

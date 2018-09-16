@@ -36,8 +36,7 @@ public interface MongoRel extends RelNode {
   /** Callback for the implementation process that converts a tree of
    * {@link MongoRel} nodes into a MongoDB query. */
   class Implementor {
-    final List<Pair<String, String>> list =
-        new ArrayList<Pair<String, String>>();
+    final List<Pair<String, String>> list = new ArrayList<>();
 
     RelOptTable table;
     MongoTable mongoTable;

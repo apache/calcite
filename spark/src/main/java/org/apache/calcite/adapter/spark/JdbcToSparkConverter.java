@@ -82,7 +82,7 @@ public class JdbcToSparkConverter
     }
     final Expression sqlLiteral =
         list.append("sql", Expressions.constant(sql));
-    final List<Primitive> primitives = new ArrayList<Primitive>();
+    final List<Primitive> primitives = new ArrayList<>();
     for (int i = 0; i < getRowType().getFieldCount(); i++) {
       final Primitive primitive = Primitive.ofBoxOr(physType.fieldClass(i));
       primitives.add(primitive != null ? primitive : Primitive.OTHER);

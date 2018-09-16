@@ -112,16 +112,14 @@ class CsvEnumerator<E> implements Enumerator<E> {
       List<CsvFieldType> fieldTypes, Boolean stream) {
     final List<RelDataType> types = new ArrayList<>();
     final List<String> names = new ArrayList<>();
-    CSVReader reader = null;
     if (stream) {
       names.add(CsvSchemaFactory.ROWTIME_COLUMN_NAME);
       types.add(typeFactory.createSqlType(SqlTypeName.TIMESTAMP));
     }
-    try {
-      reader = openCsv(source);
+    try (CSVReader reader = openCsv(source)) {
       String[] strings = reader.readNext();
       if (strings == null) {
-        strings = new String[] {"EmptyFileHasNoColumns:boolean"};
+        strings = new String[]{"EmptyFileHasNoColumns:boolean"};
       }
       for (String string : strings) {
         final String name;
@@ -155,14 +153,6 @@ class CsvEnumerator<E> implements Enumerator<E> {
       }
     } catch (IOException e) {
       // ignore
-    } finally {
-      if (reader != null) {
-        try {
-          reader.close();
-        } catch (IOException e) {
-          // ignore
-        }
-      }
     }
     if (names.isEmpty()) {
       names.add("line");

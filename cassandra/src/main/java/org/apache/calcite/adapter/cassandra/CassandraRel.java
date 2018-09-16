@@ -37,11 +37,11 @@ public interface CassandraRel extends RelNode {
   /** Callback for the implementation process that converts a tree of
    * {@link CassandraRel} nodes into a CQL query. */
   class Implementor {
-    final Map<String, String> selectFields = new LinkedHashMap<String, String>();
-    final List<String> whereClause = new ArrayList<String>();
+    final Map<String, String> selectFields = new LinkedHashMap<>();
+    final List<String> whereClause = new ArrayList<>();
     int offset = 0;
     int fetch = -1;
-    final List<String> order = new ArrayList<String>();
+    final List<String> order = new ArrayList<>();
 
     RelOptTable table;
     CassandraTable cassandraTable;

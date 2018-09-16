@@ -39,8 +39,7 @@ public class RexTransformer {
   private RexNode root;
   private final RexBuilder rexBuilder;
   private int isParentsCount;
-  private final Set<SqlOperator> transformableOperators =
-      new HashSet<SqlOperator>();
+  private final Set<SqlOperator> transformableOperators = new HashSet<>();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -159,7 +158,7 @@ public class RexTransformer {
       RexCall call = (RexCall) node;
 
       // Transform children (if any) before transforming node itself.
-      final ArrayList<RexNode> operands = new ArrayList<RexNode>();
+      final ArrayList<RexNode> operands = new ArrayList<>();
       for (RexNode operand : call.operands) {
         operands.add(transformNullSemantics(operand));
       }

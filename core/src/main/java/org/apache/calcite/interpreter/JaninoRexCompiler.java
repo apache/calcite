@@ -147,9 +147,7 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     }
     try {
       return getScalar(classDeclaration, s);
-    } catch (CompileException e) {
-      throw new RuntimeException(e);
-    } catch (IOException e) {
+    } catch (CompileException | IOException e) {
       throw new RuntimeException(e);
     }
   }

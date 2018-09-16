@@ -238,7 +238,7 @@ public abstract class Mappings {
           + " does not match list size " + list.size());
     }
     final int targetCount = mapping.getTargetCount();
-    final List<T> list2 = new ArrayList<T>(targetCount);
+    final List<T> list2 = new ArrayList<>(targetCount);
     for (int target = 0; target < targetCount; ++target) {
       final int source = mapping.getSource(target);
       list2.add(list.get(source));
@@ -1175,8 +1175,8 @@ public abstract class Mappings {
     public int size() {
       int size = 0;
       int[] a = sources.length < targets.length ? sources : targets;
-      for (int i = 0; i < a.length; i++) {
-        if (a[i] >= 0) {
+      for (int i1 : a) {
+        if (i1 >= 0) {
           ++size;
         }
       }
@@ -1568,8 +1568,8 @@ public abstract class Mappings {
 
     public int size() {
       int size = 0;
-      for (int i = 0; i < targets.length; i++) {
-        if (targets[i] >= 0) {
+      for (int target : targets) {
+        if (target >= 0) {
           ++size;
         }
       }

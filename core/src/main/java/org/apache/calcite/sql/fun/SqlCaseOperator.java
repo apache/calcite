@@ -227,8 +227,8 @@ public class SqlCaseOperator extends SqlOperator {
       SqlCallBinding callBinding) {
     SqlCase caseCall = (SqlCase) callBinding.getCall();
     SqlNodeList thenList = caseCall.getThenOperands();
-    ArrayList<SqlNode> nullList = new ArrayList<SqlNode>();
-    List<RelDataType> argTypes = new ArrayList<RelDataType>();
+    ArrayList<SqlNode> nullList = new ArrayList<>();
+    List<RelDataType> argTypes = new ArrayList<>();
     for (SqlNode node : thenList) {
       argTypes.add(
           callBinding.getValidator().deriveType(
@@ -263,7 +263,7 @@ public class SqlCaseOperator extends SqlOperator {
     assert (argTypes.size() % 2) == 1 : "odd number of arguments expected: "
         + argTypes.size();
     assert argTypes.size() > 1 : argTypes.size();
-    List<RelDataType> thenTypes = new ArrayList<RelDataType>();
+    List<RelDataType> thenTypes = new ArrayList<>();
     for (int j = 1; j < (argTypes.size() - 1); j += 2) {
       thenTypes.add(argTypes.get(j));
     }

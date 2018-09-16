@@ -134,7 +134,7 @@ public class SqlNameMatchers {
 
     public Set<String> createSet() {
       return isCaseSensitive()
-          ? new LinkedHashSet<String>()
+          ? new LinkedHashSet<>()
           : new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
     }
   }

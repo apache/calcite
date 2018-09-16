@@ -80,7 +80,7 @@ public class SemiJoinJoinTransposeRule extends RelOptRule {
     int nFieldsY = join.getRight().getRowType().getFieldList().size();
     int nFieldsZ = semiJoin.getRight().getRowType().getFieldList().size();
     int nTotalFields = nFieldsX + nFieldsY + nFieldsZ;
-    List<RelDataTypeField> fields = new ArrayList<RelDataTypeField>();
+    List<RelDataTypeField> fields = new ArrayList<>();
 
     // create a list of fields for the full join result; note that
     // we can't simply use the fields from the semi-join because the
