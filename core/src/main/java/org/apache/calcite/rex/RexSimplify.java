@@ -28,6 +28,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -176,6 +177,8 @@ public class RexSimplify {
   }
 
   private RexNode simplify_(RexNode e) {
+    //firstly simplify for strong
+    e = simplifyStrong(e);
     switch (e.getKind()) {
     case AND:
       return simplifyAnd((RexCall) e);
@@ -251,7 +254,8 @@ public class RexSimplify {
     // "1 != '1'" is unchanged because the types are not the same.
     if (o0.isA(SqlKind.LITERAL)
         && o1.isA(SqlKind.LITERAL)
-        && o0.getType().equals(o1.getType())) {
+        && SqlTypeUtil.equalSansNullability(rexBuilder.getTypeFactory(),
+              o0.getType(), o1.getType())) {
       final C v0 = ((RexLiteral) o0).getValueAs(clazz);
       final C v1 = ((RexLiteral) o1).getValueAs(clazz);
       if (v0 == null || v1 == null) {
@@ -555,6 +559,30 @@ public class RexSimplify {
     default:
       return null;
     }
+  }
+
+  /**
+   * Simplifies "f(x0,x1,...)" to "null" only if f's strong policy is ANY
+   * and any of the operands is null.
+   * e.g. "(1+null)" will simplify to "null".
+   * @param a expression to simplify.
+   * @return simplified expression.
+   */
+  private RexNode simplifyStrong(RexNode a) {
+    Strong.Policy policy = Strong.policy(a.getKind());
+    switch (policy) {
+    case ANY:
+      for (RexNode operand: ((RexCall) a).getOperands()) {
+        RexNode simplifyOperand = simplifyStrong(operand);
+        if (RexUtil.isNull(simplifyOperand)) {
+          if (unknownAsFalse) {
+            return rexBuilder.makeLiteral(false);
+          }
+          return rexBuilder.makeNullLiteral(a.getType());
+        }
+      }
+    }
+    return a;
   }
 
   private RexNode simplifyCoalesce(RexCall call) {

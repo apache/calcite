@@ -1217,6 +1217,24 @@ public class RexProgramTest extends RexProgramBuilderBase {
         "IS NOT NULL(?0.int1)");
   }
 
+  @Test public void simplifyStrong() {
+    checkSimplify2(ge(trueLiteral, falseLiteral), "true", "true");
+    checkSimplify2(ge(trueLiteral, nullBool), "null", "false");
+    checkSimplify2(ge(nullBool, nullBool), "null", "false");
+    checkSimplify2(gt(trueLiteral, nullBool), "null", "false");
+    checkSimplify2(le(trueLiteral, nullBool), "null", "false");
+    checkSimplify2(lt(trueLiteral, nullBool), "null", "false");
+
+    checkSimplify2(not(nullBool), "null", "false");
+    checkSimplify2(ne(vInt(), nullBool), "null", "false");
+    checkSimplify2(eq(vInt(), nullBool), "null", "false");
+
+    checkSimplify2(plus(vInt(), nullInt), "null", "false");
+    checkSimplify2(sub(vInt(), nullInt), "null", "false");
+    checkSimplify2(mul(vInt(), nullInt), "null", "false");
+    checkSimplify2(div(vInt(), nullInt), "null", "false");
+  }
+
   @Test public void testSimplifyFilter() {
     final RelDataType booleanType =
         typeFactory.createSqlType(SqlTypeName.BOOLEAN);
