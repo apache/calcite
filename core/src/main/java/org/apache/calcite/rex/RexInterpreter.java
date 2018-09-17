@@ -185,6 +185,8 @@ public class RexInterpreter implements RexVisitor<Comparable> {
       return ceil(call, values);
     case EXTRACT:
       return extract(call, values);
+    case PLUS_PREFIX:
+      return containsNull(values) ? N : values.get(0);
     default:
       throw unbound(call);
     }

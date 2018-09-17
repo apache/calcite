@@ -56,7 +56,6 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -2090,14 +2089,40 @@ public class RexProgramTest extends RexProgramBuilderBase {
         "IS DISTINCT FROM(?0.bool0, ?0.bool1)");
   }
 
-  @Ignore("[CALCITE-2505] java.lang.AssertionError: result mismatch")
-  @Test public void coalescePlusNull() {
-    // when applied to {?0.int0=-1},
-    // COALESCE(+(null), +(?0.int0)) yielded -1,
-    // and +(null) yielded NULL
+  @Test public void coalesceUnaryPlus() {
     checkSimplify2(
         coalesce(unaryPlus(nullInt), unaryPlus(vInt())),
-        "...", "...");
+        "?0.int0", "?0.int0");
+
+    checkSimplify2(
+        coalesce(unaryPlus(nullInt), unaryPlus(nullInt)),
+        "null", "null");
+
+    checkSimplify2(
+        coalesce(unaryPlus(nullInt), unaryPlus(nullInt), unaryPlus(vInt())),
+        "?0.int0", "?0.int0");
+
+    checkSimplify2(
+        coalesce(unaryPlus(nullInt), unaryPlus(nullInt),
+            unaryPlus(vInt()), unaryPlus(vInt(1))),
+        "COALESCE(?0.int0, ?0.int1)", "COALESCE(?0.int0, ?0.int1)");
+
+    checkSimplify2(
+        coalesce(unaryPlus(nullInt), unaryPlus(nullInt),
+            unaryPlus(vIntNotNull()), unaryPlus(vInt(1))),
+        "?0.notNullInt0", "?0.notNullInt0");
+
+    checkSimplify2(
+        coalesce(unaryPlus(vInt(0)), unaryPlus(vInt(1))),
+        "COALESCE(?0.int0, ?0.int1)", "COALESCE(?0.int0, ?0.int1)");
+
+    checkSimplify2(
+        coalesce(unaryPlus(vInt(0)), unaryPlus(nullInt), unaryPlus(vInt(1))),
+        "COALESCE(?0.int0, null, ?0.int1)", "COALESCE(?0.int0, null, ?0.int1)");
+
+    checkSimplify2(
+        coalesce(unaryPlus(vIntNotNull()), unaryPlus(nullInt), unaryPlus(vInt(1))),
+        "?0.notNullInt0", "?0.notNullInt0");
   }
 
   /** Converts a map to a string, sorting on the string representation of its
