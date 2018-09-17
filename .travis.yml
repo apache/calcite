@@ -44,8 +44,9 @@ install:
   - $DOCKERRUN $IMAGE mvn -V install -DskipTests -Dmaven.javadoc.skip=true -Djavax.net.ssl.trustStorePassword=changeit
 script:
   # Print surefire output to the console instead of files
+  # Ensure that IBM JDK and Jetty work together - -Dcom.ibm.jsse2.overrideDefaultTLS=true
   - unset _JAVA_OPTIONS
-  - $DOCKERRUN $IMAGE mvn -Dsurefire.useFile=false -Djavax.net.ssl.trustStorePassword=changeit verify javadoc:javadoc javadoc:test-javadoc
+  - $DOCKERRUN $IMAGE mvn -Dsurefire.useFile=false -Djavax.net.ssl.trustStorePassword=changeit -Dcom.ibm.jsse2.overrideDefaultTLS=true verify javadoc:javadoc javadoc:test-javadoc
 git:
   depth: 10000
 sudo: required
