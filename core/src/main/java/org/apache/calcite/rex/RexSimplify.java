@@ -207,6 +207,8 @@ public class RexSimplify {
     case LESS_THAN_OR_EQUAL:
     case NOT_EQUALS:
       return simplifyComparison((RexCall) e);
+    case PLUS_PREFIX:
+      return simplify_(((RexCall) e).getOperands().get(0));
     default:
       return e;
     }
@@ -562,7 +564,9 @@ public class RexSimplify {
     final List<RexNode> operands = new ArrayList<>();
     for (RexNode operand : call.getOperands()) {
       operand = simplify_(operand);
-      if (digests.add(operand.digest)) {
+      // Discard the first few NULL operands
+      if ((!operands.isEmpty() || !RexUtil.isNull(operand))
+          && digests.add(operand.digest)) {
         operands.add(operand);
       }
       if (!operand.getType().isNullable()) {

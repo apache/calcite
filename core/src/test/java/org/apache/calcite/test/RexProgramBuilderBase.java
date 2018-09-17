@@ -468,7 +468,7 @@ public abstract class RexProgramBuilderBase {
   /**
    * Creates {@code nullable int variable} with index of 0.
    * If you need several distinct variables, use {@link #vInt(int)}.
-   * The resulting node would look like {@code ?0.notNullInt0}
+   * The resulting node would look like {@code ?0.int0}
    *
    * @return nullable int variable with index of 0
    */
