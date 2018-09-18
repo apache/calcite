@@ -846,6 +846,7 @@ public class CsvTest {
     }
   }
 
+  @Ignore("CALCITE-1894: there's a bug in the test code, so it does not test what it should")
   @Test(timeout = 10000) public void testCsvStream() throws Exception {
     final File file = File.createTempFile("stream", "csv");
     final String model = "{\n"
