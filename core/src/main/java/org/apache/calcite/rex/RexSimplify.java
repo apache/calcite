@@ -544,6 +544,9 @@ public class RexSimplify {
     if (!a.getType().isNullable()) {
       return rexBuilder.makeLiteral(false);
     }
+    if (RexUtil.isNull(a)) {
+      return rexBuilder.makeLiteral(true);
+    }
     switch (Strong.policy(a.getKind())) {
     case NOT_NULL:
       return rexBuilder.makeLiteral(false);

@@ -1200,6 +1200,8 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplify(isNotNull(not(vBool())), "IS NOT NULL(?0.bool0)");
     checkSimplify(isNotNull(not(vBoolNotNull())), "true");
 
+    // "null is null" to "true"
+    checkSimplify(isNull(nullBool), "true");
     // "(x + y) is null" simplifies to "x is null or y is null"
     checkSimplify(isNull(plus(vInt(0), vInt(1))),
         "OR(IS NULL(?0.int0), IS NULL(?0.int1))");
