@@ -38,7 +38,6 @@ import org.apache.calcite.test.Matchers;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
-import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
@@ -1641,18 +1640,6 @@ public class UtilTest {
     assertThat(checkNav(treeSet3, "FOO").size(), equalTo(3));
     assertThat(checkNav(treeSet3, "FoO").size(), equalTo(3));
     assertThat(checkNav(treeSet3, "BAR").size(), equalTo(1));
-
-    final ImmutableSortedSet<String> treeSet4 =
-        ImmutableSortedSet.copyOf(comparator, treeSet);
-    final NavigableSet<String> navigableSet4 =
-        Compatible.INSTANCE.navigableSet(treeSet4);
-    assertThat(treeSet4.size(), equalTo(5));
-    assertThat(navigableSet4.size(), equalTo(5));
-    assertThat(navigableSet4, equalTo((SortedSet<String>) treeSet4));
-    assertThat(checkNav(navigableSet4, "foo").size(), equalTo(3));
-    assertThat(checkNav(navigableSet4, "FOO").size(), equalTo(3));
-    assertThat(checkNav(navigableSet4, "FoO").size(), equalTo(3));
-    assertThat(checkNav(navigableSet4, "BAR").size(), equalTo(1));
   }
 
   private NavigableSet<String> checkNav(NavigableSet<String> set, String s) {
