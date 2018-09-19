@@ -62,7 +62,7 @@ public class RexSimplify {
   final boolean unknownAsFalse;
   final boolean predicateElimination;
   private final RexExecutor executor;
-
+  private final Strong strong;
   /**
    * Creates a RexSimplify.
    *
@@ -86,6 +86,7 @@ public class RexSimplify {
     this.predicateElimination = predicateElimination;
     this.paranoid = paranoid;
     this.executor = Objects.requireNonNull(executor);
+    this.strong = new Strong();
   }
 
   @Deprecated // to be removed before 2.0
@@ -177,8 +178,12 @@ public class RexSimplify {
   }
 
   private RexNode simplify_(RexNode e) {
-    //firstly simplify for strong
-    e = simplifyStrong(e);
+    if (strong.isNull(e)) {
+      if (unknownAsFalse) {
+        return rexBuilder.makeLiteral(false);
+      }
+      return rexBuilder.makeNullLiteral(e.getType());
+    }
     switch (e.getKind()) {
     case AND:
       return simplifyAnd((RexCall) e);
@@ -487,7 +492,7 @@ public class RexSimplify {
       final RexNode arg = ((RexCall) a).operands.get(0);
       return simplify_(rexBuilder.makeCall(notKind, arg));
     }
-    RexNode a2 = simplify_(a);
+    RexNode a2 = withUnknownAsFalse(false).simplify_(a);
     if (a != a2) {
       return rexBuilder.makeCall(RexUtil.op(kind), ImmutableList.of(a2));
     }
@@ -559,30 +564,6 @@ public class RexSimplify {
     default:
       return null;
     }
-  }
-
-  /**
-   * Simplifies "f(x0,x1,...)" to "null" only if f's strong policy is ANY
-   * and any of the operands is null.
-   * e.g. "(1+null)" will simplify to "null".
-   * @param a expression to simplify.
-   * @return simplified expression.
-   */
-  private RexNode simplifyStrong(RexNode a) {
-    Strong.Policy policy = Strong.policy(a.getKind());
-    switch (policy) {
-    case ANY:
-      for (RexNode operand: ((RexCall) a).getOperands()) {
-        RexNode simplifyOperand = simplifyStrong(operand);
-        if (RexUtil.isNull(simplifyOperand)) {
-          if (unknownAsFalse) {
-            return rexBuilder.makeLiteral(false);
-          }
-          return rexBuilder.makeNullLiteral(a.getType());
-        }
-      }
-    }
-    return a;
   }
 
   private RexNode simplifyCoalesce(RexCall call) {
