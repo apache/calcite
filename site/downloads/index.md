@@ -70,22 +70,46 @@ Release          | Date       | Commit   | Download
 {% endcomment %}
 {% endfor %}
 
-Choose a source distribution in either *tar* or *zip* format,
-and [verify](http://www.apache.org/dyn/closer.cgi#verify)
-using the corresponding *pgp* signature (using the committer file in
-[KEYS](http://www.apache.org/dist/calcite/KEYS)).
-If you cannot do that, use the *digest* file
-to check that the download has completed OK.
+Choose a source distribution in either *tar* or *zip* format.
 
 For fast downloads, current source distributions are hosted on mirror servers;
 older source distributions are in the
-[archive](http://archive.apache.org/dist/calcite/)
+[archive](http://archive.apache.org/dist/calcite/) 
 or [incubator archive](http://archive.apache.org/dist/incubator/calcite/).
 If a download from a mirror fails, retry, and the second download will likely
 succeed.
 
 For security, hash and signature files are always hosted at
 [Apache](https://www.apache.org/dist).
+
+# Verify the integrity of the files
+
+You must verify the integrity of the downloaded file using the PGP signature (.asc file) or a hash (.sha256, .md5 for older
+releases). For more information why this must be done, please read [Verifying Apache Software Foundation Releases](https://www.apache.org/info/verification.html).
+
+To verify the signature using GPG or PGP, please do the following:
+
+1. Download the release artifact and the corresponding PGP signature from the table above.
+2. Download the [Apache Calcite KEYS](http://www.apache.org/dist/calcite/KEYS) file.
+3. Import the KEYS file and verify the downloaded artifact using one of the following methods:
+{% highlight shell %}
+% gpg --import KEYS
+% gpg --verify downloaded_file.asc downloaded_file
+{% endhighlight %}
+
+or
+
+{% highlight shell %}
+% pgpk -a KEYS
+% pgpv downloaded_file.asc
+{% endhighlight %}
+
+or
+
+{% highlight shell %}
+% pgp -ka KEYS
+% pgp downloaded_file.asc
+{% endhighlight %}
 
 # Maven artifacts
 
