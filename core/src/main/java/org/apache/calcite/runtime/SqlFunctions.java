@@ -28,6 +28,7 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Deterministic;
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.tree.Primitive;
@@ -2370,6 +2371,7 @@ public class SqlFunctions {
    * A struct object can be represented in various ways by the runtime and depends on the
    * {@link org.apache.calcite.adapter.enumerable.JavaRowFormat}.
    */
+  @Experimental
   public static Object structAccess(Object structObject, int index, String fieldName) {
     if (structObject == null) {
       return null;
