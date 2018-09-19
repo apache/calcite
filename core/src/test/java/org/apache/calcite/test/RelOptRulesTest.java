@@ -1875,7 +1875,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     // Rule should not fire, but there should be no NPE
     final String sql =
         "select * from (values (1,2)) where 1 + 2 > 3 + CAST(NULL AS INTEGER)";
-    checkPlanUnchanged(new HepPlanner(program), sql);
+    checkPlanning(new HepPlanner(program), sql);
   }
 
   @Test public void testAlreadyFalseEliminatesFilter() throws Exception {
