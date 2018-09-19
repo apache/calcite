@@ -2428,7 +2428,7 @@ public class JdbcTest {
             + ": org.apache.calcite.runtime.SqlFunctions.substring("
             + "org.apache.calcite.runtime.SqlFunctions.trim(true, true, \" \", "
             + "org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
-            + "inp1_ * 0 + 1)), (v5 ? 4 : 5) - 2);")
+            + "inp1_ * 0 + 1), true), (v5 ? 4 : 5) - 2);")
         .returns("T=ill\n"
             + "T=ric\n"
             + "T=ebastian\n"
@@ -2465,7 +2465,7 @@ public class JdbcTest {
             + ": org.apache.calcite.runtime.SqlFunctions.substring("
             + "org.apache.calcite.runtime.SqlFunctions.trim(true, true, \" \", "
             + "org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
-            + "inp1_ * 0 + 1)), $L4J$C$5_2);")
+            + "inp1_ * 0 + 1), true), $L4J$C$5_2);")
         .returns("T=ll\n"
             + "T=ic\n"
             + "T=bastian\n"

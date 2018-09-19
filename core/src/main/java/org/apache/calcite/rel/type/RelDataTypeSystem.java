@@ -100,6 +100,9 @@ public interface RelDataTypeSystem {
   /** Whether the least restrictive type of a number of CHAR types of different
    * lengths should be a VARCHAR type. And similarly BINARY to VARBINARY. */
   boolean shouldConvertRaggedUnionTypesToVarying();
+
+  /** Whether TRIM will accept trim character with a length other than 1. */
+  boolean allowExtendedTrim();
 }
 
 // End RelDataTypeSystem.java

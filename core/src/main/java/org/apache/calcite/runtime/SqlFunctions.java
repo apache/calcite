@@ -217,29 +217,32 @@ public class SqlFunctions {
 
   /** SQL {@code RTRIM} function applied to string. */
   public static String rtrim(String s) {
-    return trim_(s, false, true, ' ');
+    return trim(false, true, " ", s);
   }
 
   /** SQL {@code LTRIM} function. */
   public static String ltrim(String s) {
-    return trim_(s, true, false, ' ');
+    return trim(true, false, " ", s);
   }
 
   /** SQL {@code TRIM(... seek FROM s)} function. */
-  public static String trim(boolean leading, boolean trailing, String seek,
+  public static String trim(boolean left, boolean right, String seek,
       String s) {
-    return trim_(s, leading, trailing, seek.charAt(0));
+    return trim(left, right, seek, s, true);
   }
 
-  /** SQL {@code TRIM} function. */
-  private static String trim_(String s, boolean left, boolean right, char c) {
+  public static String trim(boolean left, boolean right, String seek,
+      String s, boolean strict) {
+    if (strict && seek.length() != 1) {
+      throw new IllegalArgumentException("trim error: trim character must be exactly 1 character");
+    }
     int j = s.length();
     if (right) {
       for (;;) {
         if (j == 0) {
           return "";
         }
-        if (s.charAt(j - 1) != c) {
+        if (seek.indexOf(s.charAt(j - 1)) < 0) {
           break;
         }
         --j;
@@ -251,7 +254,7 @@ public class SqlFunctions {
         if (i == j) {
           return "";
         }
-        if (s.charAt(i) != c) {
+        if (seek.indexOf(s.charAt(i)) < 0) {
           break;
         }
         ++i;
@@ -1497,7 +1500,7 @@ public class SqlFunctions {
 
   /** CAST(VARCHAR AS BOOLEAN). */
   public static boolean toBoolean(String s) {
-    s = trim_(s, true, true, ' ');
+    s = trim(true, true, " ", s);
     if (s.equalsIgnoreCase("TRUE")) {
       return true;
     } else if (s.equalsIgnoreCase("FALSE")) {

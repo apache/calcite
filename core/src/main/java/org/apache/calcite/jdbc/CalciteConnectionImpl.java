@@ -131,7 +131,15 @@ abstract class CalciteConnectionImpl
                 return true;
               }
             };
-        cfg.typeSystem(RelDataTypeSystem.class, RelDataTypeSystem.DEFAULT);
+      }
+      if (cfg.conformance().allowExtendedTrim()) {
+        typeSystem =
+            new DelegatingTypeSystem(typeSystem) {
+              @Override public boolean
+              allowExtendedTrim() {
+                return true;
+              }
+            };
       }
       this.typeFactory = new JavaTypeFactoryImpl(typeSystem);
     }
