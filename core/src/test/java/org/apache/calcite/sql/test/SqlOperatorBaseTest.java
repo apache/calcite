@@ -5209,14 +5209,66 @@ public abstract class SqlOperatorBaseTest {
         "ab",
         "VARCHAR(3) NOT NULL");
     tester.checkString(
+        "substring('abc' from 2 for 8)",
+        "bc",
+        "VARCHAR(3) NOT NULL");
+    tester.checkString(
+        "substring('abc' from 0 for 2)",
+        "a",
+        "VARCHAR(3) NOT NULL");
+    tester.checkString(
+        "substring('abc' from 0 for 0)",
+        "",
+        "VARCHAR(3) NOT NULL");
+    tester.checkString(
+        "substring('abc' from 8 for 2)",
+        "",
+        "VARCHAR(3) NOT NULL");
+    tester.checkFails(
+        "substring('abc' from 1 for -1)",
+        "substring error: negative substring length not allowed",
+        true);
+    tester.checkString(
         "substring('abc' from 2)", "bc", "VARCHAR(3) NOT NULL");
+    tester.checkString(
+        "substring('abc' from 0)", "abc", "VARCHAR(3) NOT NULL");
+    tester.checkString(
+        "substring('abc' from 8)", "", "VARCHAR(3) NOT NULL");
+    tester.checkString(
+        "substring('abc' from -2)", "bc", "VARCHAR(3) NOT NULL");
 
     tester.checkString(
         "substring(x'aabbcc' from 1 for 2)",
         "aabb",
         "VARBINARY(3) NOT NULL");
     tester.checkString(
+        "substring(x'aabbcc' from 2 for 8)",
+        "bbcc",
+        "VARBINARY(3) NOT NULL");
+    tester.checkString(
+        "substring(x'aabbcc' from 0 for 2)",
+        "aa",
+        "VARBINARY(3) NOT NULL");
+    tester.checkString(
+        "substring(x'aabbcc' from 0 for 0)",
+        "",
+        "VARBINARY(3) NOT NULL");
+    tester.checkString(
+        "substring(x'aabbcc' from 8 for 2)",
+        "",
+        "VARBINARY(3) NOT NULL");
+    tester.checkFails(
+        "substring(x'aabbcc' from 1 for -1)",
+        "substring error: negative substring length not allowed",
+        true);
+    tester.checkString(
         "substring(x'aabbcc' from 2)", "bbcc", "VARBINARY(3) NOT NULL");
+    tester.checkString(
+        "substring(x'aabbcc' from 0)", "aabbcc", "VARBINARY(3) NOT NULL");
+    tester.checkString(
+        "substring(x'aabbcc' from 8)", "", "VARBINARY(3) NOT NULL");
+    tester.checkString(
+        "substring(x'aabbcc' from -2)", "bbcc", "VARBINARY(3) NOT NULL");
 
     if (Bug.FRG296_FIXED) {
       // substring regexp not supported yet

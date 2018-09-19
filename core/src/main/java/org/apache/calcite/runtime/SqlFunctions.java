@@ -108,23 +108,49 @@ public class SqlFunctions {
   }
 
   /** SQL SUBSTRING(string FROM ... FOR ...) function. */
-  public static String substring(String s, int from, int for_) {
-    return s.substring(from - 1, Math.min(from - 1 + for_, s.length()));
+  public static String substring(String c, int s, int l) {
+    int lc = c.length();
+    if (s < 0) {
+      s += lc + 1;
+    }
+    int e = s + l;
+    if (e < s) {
+      throw new IllegalArgumentException("substring error: negative substring length not allowed");
+    }
+    if (s > lc || e < 1) {
+      return "";
+    }
+    int s1 = Math.max(s, 1);
+    int e1 = Math.min(e, lc + 1);
+    return c.substring(s1 - 1, e1 - 1);
   }
 
   /** SQL SUBSTRING(string FROM ...) function. */
-  public static String substring(String s, int from) {
-    return s.substring(from - 1);
+  public static String substring(String c, int s) {
+    return substring(c, s, c.length() + 1);
   }
 
   /** SQL SUBSTRING(binary FROM ... FOR ...) function. */
-  public static ByteString substring(ByteString b, int from, int for_) {
-    return b.substring(from - 1, Math.min(from - 1 + for_, b.length()));
+  public static ByteString substring(ByteString c, int s, int l) {
+    int lc = c.length();
+    if (s < 0) {
+      s += lc + 1;
+    }
+    int e = s + l;
+    if (e < s) {
+      throw new IllegalArgumentException("substring error: negative substring length not allowed");
+    }
+    if (s > lc || e < 1) {
+      return ByteString.EMPTY;
+    }
+    int s1 = Math.max(s, 1);
+    int e1 = Math.min(e, lc + 1);
+    return c.substring(s1 - 1, e1 - 1);
   }
 
   /** SQL SUBSTRING(binary FROM ...) function. */
-  public static ByteString substring(ByteString b, int from) {
-    return b.substring(from - 1);
+  public static ByteString substring(ByteString c, int s) {
+    return substring(c, s, c.length() + 1);
   }
 
   /** SQL UPPER(string) function. */
