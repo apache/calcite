@@ -82,7 +82,7 @@ public abstract class SetOp extends AbstractRelNode {
   }
 
   @Override public void replaceInput(int ordinalInParent, RelNode p) {
-    final List<RelNode> newInputs = new ArrayList<RelNode>(inputs);
+    final List<RelNode> newInputs = new ArrayList<>(inputs);
     newInputs.set(ordinalInParent, p);
     inputs = ImmutableList.copyOf(newInputs);
     recomputeDigest();

@@ -736,7 +736,7 @@ public abstract class EnumerableDefaults {
       Function0<TAccumulate> accumulatorInitializer,
       Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
       final Function2<TKey, TAccumulate, TResult> resultSelector) {
-    return groupBy_(new HashMap<TKey, TAccumulate>(), enumerable, keySelector,
+    return groupBy_(new HashMap<>(), enumerable, keySelector,
         accumulatorInitializer, accumulatorAdder, resultSelector);
   }
 
@@ -756,7 +756,7 @@ public abstract class EnumerableDefaults {
       Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
       final Function2<TKey, TAccumulate, TResult> resultSelector) {
     return groupByMultiple_(
-        new HashMap<TKey, TAccumulate>(),
+        new HashMap<>(),
         enumerable,
         keySelectors,
         accumulatorInitializer,
@@ -780,11 +780,8 @@ public abstract class EnumerableDefaults {
       EqualityComparer<TKey> comparer) {
     return groupBy_(
         new WrapMap<>(
-          new Function0<Map<Wrapped<TKey>, TAccumulate>>() {
-            public Map<Wrapped<TKey>, TAccumulate> apply() {
-              return new HashMap<>();
-            }
-          },
+            // Java 8 cannot infer return type with HashMap::new is used
+            () -> new HashMap<Wrapped<TKey>, TAccumulate>(),
           comparer),
         enumerable,
         keySelector,
@@ -2589,11 +2586,8 @@ public abstract class EnumerableDefaults {
     // Use LinkedHashMap because groupJoin requires order of keys to be
     // preserved.
     final Map<TKey, TElement> map = new WrapMap<>(
-        new Function0<Map<Wrapped<TKey>, TElement>>() {
-          public Map<Wrapped<TKey>, TElement> apply() {
-            return new LinkedHashMap<>();
-          }
-        }, comparer);
+        // Java 8 cannot infer return type with LinkedHashMap::new is used
+        () -> new LinkedHashMap<Wrapped<TKey>, TElement>(), comparer);
     try (Enumerator<TSource> os = source.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
@@ -2613,8 +2607,8 @@ public abstract class EnumerableDefaults {
     } else {
       return source.into(
           source instanceof Collection
-              ? new ArrayList<TSource>(((Collection) source).size())
-              : new ArrayList<TSource>());
+              ? new ArrayList<>(((Collection) source).size())
+              : new ArrayList<>());
     }
   }
 
@@ -2690,11 +2684,8 @@ public abstract class EnumerableDefaults {
       EqualityComparer<TKey> comparer) {
     return toLookup_(
         new WrapMap<>(
-          new Function0<Map<Wrapped<TKey>, List<TElement>>>() {
-            public Map<Wrapped<TKey>, List<TElement>> apply() {
-              return new HashMap<>();
-            }
-          },
+            // Java 8 cannot infer return type with HashMap::new is used
+            () -> new HashMap<Wrapped<TKey>, List<TElement>>(),
           comparer),
         source,
         keySelector,

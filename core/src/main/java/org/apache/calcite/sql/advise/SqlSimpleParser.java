@@ -150,7 +150,7 @@ public class SqlSimpleParser {
    */
   public String simplifySql(String sql) {
     Tokenizer tokenizer = new Tokenizer(sql, hintToken, parserConfig.quoting());
-    List<Token> list = new ArrayList<Token>();
+    List<Token> list = new ArrayList<>();
     while (true) {
       Token token = tokenizer.nextToken();
       if (token == null) {
@@ -164,7 +164,7 @@ public class SqlSimpleParser {
     }
 
     // Gather consecutive sub-sequences of tokens into sub-queries.
-    List<Token> outList = new ArrayList<Token>();
+    List<Token> outList = new ArrayList<>();
     consumeQuery(list.listIterator(), outList);
 
     // Simplify.
@@ -216,7 +216,7 @@ public class SqlSimpleParser {
   private void consumeSelect(ListIterator<Token> iter, List<Token> outList) {
     boolean isQuery = false;
     int start = outList.size();
-    List<Token> subQueryList = new ArrayList<Token>();
+    List<Token> subQueryList = new ArrayList<>();
   loop:
     while (iter.hasNext()) {
       Token token = iter.next();
@@ -261,8 +261,7 @@ public class SqlSimpleParser {
   //~ Inner Classes ----------------------------------------------------------
 
   public static class Tokenizer {
-    private static final Map<String, TokenType> map =
-        new HashMap<String, TokenType>();
+    private static final Map<String, TokenType> map = new HashMap<>();
 
     static {
       for (TokenType type : TokenType.values()) {
@@ -483,7 +482,7 @@ public class SqlSimpleParser {
 
     public Query(List<Token> tokenList) {
       super(TokenType.QUERY);
-      this.tokenList = new ArrayList<Token>(tokenList);
+      this.tokenList = new ArrayList<>(tokenList);
     }
 
     public void unparse(StringBuilder buf) {
@@ -664,7 +663,7 @@ public class SqlSimpleParser {
         }
 
         List<Token> selectItem =
-            new ArrayList<Token>(
+            new ArrayList<>(
                 sublist.subList(itemStart, itemEnd));
         Token select = sublist.get(0);
         sublist.clear();
@@ -683,7 +682,7 @@ public class SqlSimpleParser {
 
     private void purgeSelectExprsKeepAliases() {
       List<Token> sublist = findClause(TokenType.SELECT);
-      List<Token> newSelectClause = new ArrayList<Token>();
+      List<Token> newSelectClause = new ArrayList<>();
       newSelectClause.add(sublist.get(0));
       int itemStart = 1;
       for (int i = 1; i < sublist.size(); i++) {
@@ -749,7 +748,7 @@ public class SqlSimpleParser {
           itemEnd = sublist.size();
         }
         List<Token> fromItem =
-            new ArrayList<Token>(
+            new ArrayList<>(
                 sublist.subList(itemStart, itemEnd));
         Token from = sublist.get(0);
         sublist.clear();

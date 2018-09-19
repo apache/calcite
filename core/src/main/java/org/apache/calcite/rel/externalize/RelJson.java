@@ -62,8 +62,7 @@ import java.util.Map;
  * into JSON format.
  */
 public class RelJson {
-  private final Map<String, Constructor> constructorMap =
-      new HashMap<String, Constructor>();
+  private final Map<String, Constructor> constructorMap = new HashMap<>();
   private final JsonBuilder jsonBuilder;
 
   public static final List<String> PACKAGES =
@@ -83,16 +82,8 @@ public class RelJson {
     Constructor constructor = getConstructor(type);
     try {
       return (RelNode) constructor.newInstance(map);
-    } catch (InstantiationException e) {
-      throw new RuntimeException(
-          "while invoking constructor for type '" + type + "'", e);
-    } catch (IllegalAccessException e) {
-      throw new RuntimeException(
-          "while invoking constructor for type '" + type + "'", e);
-    } catch (InvocationTargetException e) {
-      throw new RuntimeException(
-          "while invoking constructor for type '" + type + "'", e);
-    } catch (ClassCastException e) {
+    } catch (InstantiationException | ClassCastException | InvocationTargetException
+        | IllegalAccessException e) {
       throw new RuntimeException(
           "while invoking constructor for type '" + type + "'", e);
     }
@@ -152,7 +143,7 @@ public class RelJson {
   }
 
   public Object toJson(RelCollationImpl node) {
-    final List<Object> list = new ArrayList<Object>();
+    final List<Object> list = new ArrayList<>();
     for (RelFieldCollation fieldCollation : node.getFieldCollations()) {
       final Map<String, Object> map = jsonBuilder.map();
       map.put("field", fieldCollation.getFieldIndex());
@@ -165,8 +156,7 @@ public class RelJson {
 
   public RelCollation toCollation(
       List<Map<String, Object>> jsonFieldCollations) {
-    final List<RelFieldCollation> fieldCollations =
-        new ArrayList<RelFieldCollation>();
+    final List<RelFieldCollation> fieldCollations = new ArrayList<>();
     for (Map<String, Object> map : jsonFieldCollations) {
       fieldCollations.add(toFieldCollation(map));
     }
@@ -429,7 +419,7 @@ public class RelJson {
   }
 
   private List<RexNode> toRexList(RelInput relInput, List operands) {
-    final List<RexNode> list = new ArrayList<RexNode>();
+    final List<RexNode> list = new ArrayList<>();
     for (Object operand : operands) {
       list.add(toRex(relInput, operand));
     }

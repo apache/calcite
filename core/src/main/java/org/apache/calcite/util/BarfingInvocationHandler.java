@@ -44,15 +44,13 @@ public class BarfingInvocationHandler implements InvocationHandler {
       Method method,
       Object[] args) throws Throwable {
     Class clazz = getClass();
-    Method matchingMethod = null;
+    Method matchingMethod;
     try {
       matchingMethod =
           clazz.getMethod(
               method.getName(),
               method.getParameterTypes());
-    } catch (NoSuchMethodException e) {
-      throw noMethod(method);
-    } catch (SecurityException e) {
+    } catch (NoSuchMethodException | SecurityException e) {
       throw noMethod(method);
     }
     if (matchingMethod.getReturnType() != method.getReturnType()) {

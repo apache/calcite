@@ -34,21 +34,13 @@ class ElasticsearchEnumerators {
   private ElasticsearchEnumerators() {}
 
   private static Function1<ElasticsearchJson.SearchHit, Map> mapGetter() {
-    return new Function1<ElasticsearchJson.SearchHit, Map>() {
-      public Map apply(ElasticsearchJson.SearchHit hits) {
-        return hits.sourceOrFields();
-      }
-    };
+    return ElasticsearchJson.SearchHit::sourceOrFields;
   }
 
   private static Function1<ElasticsearchJson.SearchHit, Object> singletonGetter(
       final String fieldName,
       final Class fieldClass) {
-    return new Function1<ElasticsearchJson.SearchHit, Object>() {
-      public Object apply(ElasticsearchJson.SearchHit hits) {
-        return convert(hits.valueOrNull(fieldName), fieldClass);
-      }
-    };
+    return hits -> convert(hits.valueOrNull(fieldName), fieldClass);
   }
 
   /**
@@ -61,17 +53,15 @@ class ElasticsearchEnumerators {
    */
   private static Function1<ElasticsearchJson.SearchHit, Object[]> listGetter(
       final List<Map.Entry<String, Class>> fields) {
-    return new Function1<ElasticsearchJson.SearchHit, Object[]>() {
-      public Object[] apply(ElasticsearchJson.SearchHit hit) {
-        Object[] objects = new Object[fields.size()];
-        for (int i = 0; i < fields.size(); i++) {
-          final Map.Entry<String, Class> field = fields.get(i);
-          final String name = field.getKey();
-          final Class type = field.getValue();
-          objects[i] = convert(hit.valueOrNull(name), type);
-        }
-        return objects;
+    return hit -> {
+      Object[] objects = new Object[fields.size()];
+      for (int i = 0; i < fields.size(); i++) {
+        final Map.Entry<String, Class> field = fields.get(i);
+        final String name = field.getKey();
+        final Class type = field.getValue();
+        objects[i] = convert(hit.valueOrNull(name), type);
       }
+      return objects;
     };
   }
 

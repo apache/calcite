@@ -48,7 +48,7 @@ class CompatibleGuava11 {
 
   public static <K, V> Map<K, V> asMap(
       Set<K> set, Function<? super K, V> function) {
-    return new AsMapView<K, V>(set, function);
+    return new AsMapView<>(set, function);
   }
 
   /**
@@ -479,7 +479,7 @@ class CompatibleGuava11 {
       return (NavigableSet) set;
     } else {
       // In Guava 11, we have to make a copy.
-      return new TreeSet<E>(set);
+      return new TreeSet<>(set);
     }
   }
 
@@ -491,7 +491,7 @@ class CompatibleGuava11 {
       return (NavigableMap) map;
     } else {
       // In Guava 11, we have to make a copy.
-      return new TreeMap<K, V>(map);
+      return new TreeMap<>(map);
     }
   }
 }

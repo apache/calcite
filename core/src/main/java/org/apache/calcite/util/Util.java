@@ -1571,7 +1571,7 @@ public class Util {
    * @return A list whose members are of the desired type.
    */
   public static <E> List<E> cast(List<? super E> list, Class<E> clazz) {
-    return new CastingList<E>(list, clazz);
+    return new CastingList<>(list, clazz);
   }
 
   /**

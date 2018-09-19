@@ -207,8 +207,7 @@ public class SplunkPushDownRule
 
     // handle bottom projection (ie choose a subset of the table fields)
     if (bottomProj != null) {
-      List<RelDataTypeField> tmp  =
-          new ArrayList<RelDataTypeField>();
+      List<RelDataTypeField> tmp  = new ArrayList<>();
       List<RelDataTypeField> dRow = bottomProj.getRowType().getFieldList();
       for (RexNode rn : bottomProj.getProjects()) {
         RelDataTypeField rdtf;
@@ -224,14 +223,13 @@ public class SplunkPushDownRule
     }
 
     // field renaming: to -> from
-    List<Pair<String, String>> renames =
-        new LinkedList<Pair<String, String>>();
+    List<Pair<String, String>> renames = new LinkedList<>();
 
     // handle top projection (ie reordering and renaming)
     List<RelDataTypeField> newFields = bottomFields;
     if (topProj != null) {
       LOGGER.debug("topProj: {}", String.valueOf(topProj.getPermutation()));
-      newFields = new ArrayList<RelDataTypeField>();
+      newFields = new ArrayList<>();
       int i = 0;
       for (RexNode rn : topProj.getProjects()) {
         RexInputRef rif = (RexInputRef) rn;

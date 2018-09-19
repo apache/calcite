@@ -534,7 +534,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
         nodeInfo = new NodeInfo(rel, null);
         nodes.put(rel, nodeInfo);
         for (Edge edge : edges2) {
-          nodeInfo.sinks.put(edge, new ListSink(new ArrayDeque<Row>()));
+          nodeInfo.sinks.put(edge, new ListSink(new ArrayDeque<>()));
         }
       }
       if (edges.size() == 1) {

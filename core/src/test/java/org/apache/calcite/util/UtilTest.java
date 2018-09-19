@@ -1572,6 +1572,7 @@ public class UtilTest {
     checkHash(Double.MIN_VALUE);
   }
 
+  @SuppressWarnings("deprecation")
   public void checkHash(double v) {
     assertThat(Double.valueOf(v).hashCode(), is(Utilities.hashCode(v)));
     final long long_ = (long) v;

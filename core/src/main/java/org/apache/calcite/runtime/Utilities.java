@@ -18,6 +18,7 @@ package org.apache.calcite.runtime;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Utility methods called by generated code.
@@ -34,7 +35,7 @@ public class Utilities {
   public static boolean equal(Object o0, Object o1) {
     // Same as java.lang.Objects.equals (JDK 1.7 and later)
     // and com.google.common.base.Objects.equal
-    return o0 == o1 || o0 != null && o0.equals(o1);
+    return Objects.equals(o0, o1);
   }
 
   public static int hash(Object v) {
@@ -47,10 +48,11 @@ public class Utilities {
    *
    * @param v Value
    * @return Hash code
+   * @deprecated Use {@link Double#hashCode(double)}
    */
+  @Deprecated // to be removed before 2.0
   public static int hashCode(double v) {
-    long bits = Double.doubleToLongBits(v);
-    return hashCode(bits);
+    return Double.hashCode(v);
   }
 
   /** Computes the hash code of a {@code float} value. Equivalent to
@@ -59,9 +61,11 @@ public class Utilities {
    *
    * @param v Value
    * @return Hash code
+   * @deprecated Use {@link Float#hashCode(float)}
    */
+  @Deprecated // to be removed before 2.0
   public static int hashCode(float v) {
-    return Float.floatToIntBits(v);
+    return Float.hashCode(v);
   }
 
   /** Computes the hash code of a {@code long} value. Equivalent to
@@ -70,9 +74,11 @@ public class Utilities {
    *
    * @param v Value
    * @return Hash code
+   * @deprecated Use {@link Long#hashCode(long)}
    */
+  @Deprecated // to be removed before 2.0
   public static int hashCode(long v) {
-    return (int) (v ^ (v >>> 32));
+    return Long.hashCode(v);
   }
 
   /** Computes the hash code of a {@code boolean} value. Equivalent to
@@ -81,9 +87,11 @@ public class Utilities {
    *
    * @param v Value
    * @return Hash code
+   * @deprecated Use {@link Boolean#hashCode(boolean)}
    */
+  @Deprecated // to be removed before 2.0
   public static int hashCode(boolean v) {
-    return v ? 1231 : 1237;
+    return Boolean.hashCode(v);
   }
 
   public static int hash(int h, boolean v) {
@@ -107,15 +115,15 @@ public class Utilities {
   }
 
   public static int hash(int h, long v) {
-    return h * 31 + hashCode(v);
+    return h * 31 + Long.hashCode(v);
   }
 
   public static int hash(int h, float v) {
-    return hash(h, hashCode(v));
+    return hash(h, Float.hashCode(v));
   }
 
   public static int hash(int h, double v) {
-    return hash(h, hashCode(v));
+    return hash(h, Double.hashCode(v));
   }
 
   public static int hash(int h, Object v) {
@@ -123,33 +131,27 @@ public class Utilities {
   }
 
   public static int compare(boolean v0, boolean v1) {
-    // Same as Boolean.compare (introduced in JDK 1.7)
-    return (v0 == v1) ? 0 : (v0 ? 1 : -1);
+    return Boolean.compare(v0, v1);
   }
 
   public static int compare(byte v0, byte v1) {
-    // Same as Byte.compare (introduced in JDK 1.7)
-    return v0 - v1;
+    return Byte.compare(v0, v1);
   }
 
   public static int compare(char v0, char v1) {
-    // Same as Character.compare (introduced in JDK 1.7)
-    return v0 - v1;
+    return Character.compare(v0, v1);
   }
 
   public static int compare(short v0, short v1) {
-    // Same as Short.compare (introduced in JDK 1.7)
-    return v0 - v1;
+    return Short.compare(v0, v1);
   }
 
   public static int compare(int v0, int v1) {
-    // Same as Integer.compare (introduced in JDK 1.7)
-    return (v0 < v1) ? -1 : ((v0 == v1) ? 0 : 1);
+    return Integer.compare(v0, v1);
   }
 
   public static int compare(long v0, long v1) {
-    // Same as Long.compare (introduced in JDK 1.7)
-    return (v0 < v1) ? -1 : ((v0 == v1) ? 0 : 1);
+    return Long.compare(v0, v1);
   }
 
   public static int compare(float v0, float v1) {

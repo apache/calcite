@@ -99,7 +99,7 @@ public class DruidTableFactory implements TableFactory {
       // noinspection unchecked
       final List<String> complexMetricList = (List<String>) complexMetricsRaw;
       for (String metric : complexMetricList) {
-        complexMetrics.put(metric, new ArrayList<ComplexMetric>());
+        complexMetrics.put(metric, new ArrayList<>());
       }
     }
 

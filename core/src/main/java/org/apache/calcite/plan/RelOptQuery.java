@@ -58,7 +58,7 @@ public class RelOptQuery {
    */
   @Deprecated // to be removed before 2.0
   public RelOptQuery(RelOptPlanner planner) {
-    this(planner, new AtomicInteger(0), new HashMap<String, RelNode>());
+    this(planner, new AtomicInteger(0), new HashMap<>());
   }
 
   /** For use by RelOptCluster only. */

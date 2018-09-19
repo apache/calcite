@@ -158,6 +158,7 @@ public class RexProgramBuilder {
    */
   private static boolean assertionsAreEnabled() {
     boolean assertionsEnabled = false;
+    //noinspection AssertWithSideEffects
     assert assertionsEnabled = true;
     return assertionsEnabled;
   }

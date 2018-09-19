@@ -53,9 +53,9 @@ public abstract class JoinInfo {
 
   /** Creates a {@code JoinInfo} by analyzing a condition. */
   public static JoinInfo of(RelNode left, RelNode right, RexNode condition) {
-    final List<Integer> leftKeys = new ArrayList<Integer>();
-    final List<Integer> rightKeys = new ArrayList<Integer>();
-    final List<Boolean> filterNulls = new ArrayList<Boolean>();
+    final List<Integer> leftKeys = new ArrayList<>();
+    final List<Integer> rightKeys = new ArrayList<>();
+    final List<Boolean> filterNulls = new ArrayList<>();
     RexNode remaining =
         RelOptUtil.splitJoinCondition(left, right, condition, leftKeys,
             rightKeys, filterNulls);

@@ -76,7 +76,7 @@ public class GeodeSort extends Sort implements GeodeRel {
 
     if (!sortCollations.isEmpty()) {
 
-      List<String> orderByFields = new ArrayList<String>();
+      List<String> orderByFields = new ArrayList<>();
 
       for (RelFieldCollation fieldCollation : sortCollations) {
         final String name = fieldName(fieldCollation.getFieldIndex());

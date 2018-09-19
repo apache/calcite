@@ -36,7 +36,7 @@ public class CompoundClosableAllocation implements ClosableAllocationOwner {
   //~ Constructors -----------------------------------------------------------
 
   public CompoundClosableAllocation() {
-    allocations = new LinkedList<ClosableAllocation>();
+    allocations = new LinkedList<>();
   }
 
   //~ Methods ----------------------------------------------------------------

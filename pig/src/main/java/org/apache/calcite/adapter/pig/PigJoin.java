@@ -21,7 +21,6 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexCall;
@@ -39,7 +38,7 @@ public class PigJoin extends Join implements PigRel {
   /** Creates a PigJoin. */
   public PigJoin(RelOptCluster cluster, RelTraitSet traitSet, RelNode left, RelNode right,
       RexNode condition, JoinRelType joinType) {
-    super(cluster, traitSet, left, right, condition, new HashSet<CorrelationId>(0), joinType);
+    super(cluster, traitSet, left, right, condition, new HashSet<>(0), joinType);
     assert getConvention() == PigRel.CONVENTION;
   }
 

@@ -184,7 +184,7 @@ public class JdbcToEnumerableConverter
     final Primitive primitive = Primitive.ofBoxOr(physType.fieldClass(i));
     final RelDataType fieldType =
         physType.getRowType().getFieldList().get(i).getType();
-    final List<Expression> dateTimeArgs = new ArrayList<Expression>();
+    final List<Expression> dateTimeArgs = new ArrayList<>();
     dateTimeArgs.add(Expressions.constant(i + 1));
     SqlTypeName sqlTypeName = fieldType.getSqlTypeName();
     boolean offset = false;

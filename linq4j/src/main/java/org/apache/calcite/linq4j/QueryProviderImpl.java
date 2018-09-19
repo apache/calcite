@@ -34,11 +34,11 @@ public abstract class QueryProviderImpl implements QueryProvider {
   }
 
   public <T> Queryable<T> createQuery(Expression expression, Class<T> rowType) {
-    return new QueryableImpl<T>(this, rowType, expression);
+    return new QueryableImpl<>(this, rowType, expression);
   }
 
   public <T> Queryable<T> createQuery(Expression expression, Type rowType) {
-    return new QueryableImpl<T>(this, rowType, expression);
+    return new QueryableImpl<>(this, rowType, expression);
   }
 
   public <T> T execute(Expression expression, Class<T> type) {

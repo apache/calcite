@@ -277,9 +277,9 @@ public class RelSubset extends AbstractRelNode {
           "rowtype of set", getRowType(), Litmus.THROW);
     }
     set.addInternal(rel);
-    Set<CorrelationId> variablesSet = RelOptUtil.getVariablesSet(rel);
-    Set<CorrelationId> variablesStopped = rel.getVariablesSet();
     if (false) {
+      Set<CorrelationId> variablesSet = RelOptUtil.getVariablesSet(rel);
+      Set<CorrelationId> variablesStopped = rel.getVariablesSet();
       Set<CorrelationId> variablesPropagated =
           Util.minus(variablesSet, variablesStopped);
       assert set.variablesPropagated.containsAll(variablesPropagated);

@@ -220,7 +220,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
   public List<ComplexMetric> getComplexMetricsFrom(String alias) {
     return complexMetrics.containsKey(alias)
             ? complexMetrics.get(alias)
-            : new ArrayList<ComplexMetric>();
+            : new ArrayList<>();
   }
 
   /**

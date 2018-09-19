@@ -123,7 +123,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
      * @return OQL string for the predicate
      */
     private String translateAnd(RexNode condition) {
-      List<String> predicates = new ArrayList<String>();
+      List<String> predicates = new ArrayList<>();
       for (RexNode node : RelOptUtil.conjunctions(condition)) {
         predicates.add(translateMatch2(node));
       }
@@ -132,7 +132,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
     }
 
     private String translateOr(List<RexNode> disjunctions) {
-      List<String> predicates = new ArrayList<String>();
+      List<String> predicates = new ArrayList<>();
       for (RexNode node : disjunctions) {
         if (RelOptUtil.conjunctions(node).size() > 1) {
           predicates.add("(" + translateMatch(node) + ")");

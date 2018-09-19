@@ -539,8 +539,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
 
   /** Cache of trait sets. */
   private static class Cache {
-    final Map<List<RelTrait>, RelTraitSet> map =
-        new HashMap<List<RelTrait>, RelTraitSet>();
+    final Map<List<RelTrait>, RelTraitSet> map = new HashMap<>();
 
     Cache() {
     }

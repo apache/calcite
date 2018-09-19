@@ -56,14 +56,14 @@ class RelCompositeTrait<T extends RelMultipleTrait> implements RelTrait {
       List<T> traitList) {
     final RelCompositeTrait<T> compositeTrait;
     if (traitList.isEmpty()) {
-      compositeTrait = new EmptyCompositeTrait<T>(def);
+      compositeTrait = new EmptyCompositeTrait<>(def);
     } else {
       final RelMultipleTrait[] traits =
           traitList.toArray(new RelMultipleTrait[0]);
       for (int i = 0; i < traits.length; i++) {
         traits[i] = (T) def.canonize(traits[i]);
       }
-      compositeTrait = new RelCompositeTrait<T>(def, (T[]) traits);
+      compositeTrait = new RelCompositeTrait<>(def, (T[]) traits);
     }
     return def.canonizeComposite(compositeTrait);
   }
@@ -120,7 +120,7 @@ class RelCompositeTrait<T extends RelMultipleTrait> implements RelTrait {
     }
     assert false;
     // TODO: cache duplicate composites
-    return new RelCompositeTrait<T>(traitDef, newTraits);
+    return new RelCompositeTrait<>(traitDef, newTraits);
   }
 
   public T trait(int i) {

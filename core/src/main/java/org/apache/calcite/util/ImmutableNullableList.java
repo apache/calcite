@@ -67,7 +67,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
       if (object == null) {
         final Object[] objects = elements.toArray();
         //noinspection unchecked
-        return new ImmutableNullableList<E>((E[]) objects);
+        return new ImmutableNullableList<>((E[]) objects);
       }
     }
     return ImmutableList.copyOf(elements);
@@ -112,7 +112,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
     for (E object : elements) {
       if (object == null) {
         //noinspection unchecked
-        return new ImmutableNullableList<E>(elements.clone());
+        return new ImmutableNullableList<>(elements.clone());
       }
     }
     // There are no nulls. ImmutableList is better.
@@ -181,7 +181,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
     array[7] = e8;
     System.arraycopy(others, 0, array, 8, others.length);
     //noinspection unchecked
-    return new ImmutableNullableList<E>((E[]) array);
+    return new ImmutableNullableList<>((E[]) array);
   }
 
   @Override public E get(int index) {
@@ -197,7 +197,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
    * created by the {@link Builder} constructor.
    */
   public static <E> Builder<E> builder() {
-    return new Builder<E>();
+    return new Builder<>();
   }
 
   /**
