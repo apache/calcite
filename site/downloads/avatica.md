@@ -39,11 +39,11 @@ Release          | Date       | Commit   | Download
 {% endcomment %}{% capture v %}apache-calcite-avatica-{{ post.version }}{% endcapture %}{% comment %}
 {% endcomment %}{% endif %}{% comment %}
 {% endcomment %}{% if forloop.index0 < 1 %}{% comment %}
-{% endcomment %}{% capture p %}http://www.apache.org/dyn/closer.lua?filename=calcite/{{ v }}{% endcapture %}{% comment %}
+{% endcomment %}{% capture p %}https://www.apache.org/dyn/closer.lua?filename=calcite/{{ v }}{% endcapture %}{% comment %}
 {% endcomment %}{% assign q = "&action=download" %}{% comment %}
 {% endcomment %}{% assign d = "https://www.apache.org/dist" %}{% comment %}
 {% endcomment %}{% else %}{% comment %}
-{% endcomment %}{% capture p %}http://archive.apache.org/dist/calcite/{{ v }}{% endcapture %}{% comment %}
+{% endcomment %}{% capture p %}https://archive.apache.org/dist/calcite/{{ v }}{% endcapture %}{% comment %}
 {% endcomment %}{% assign q = "" %}{% comment %}
 {% endcomment %}{% assign d = "https://archive.apache.org/dist" %}{% comment %}
 {% endcomment %}{% endif %}{% comment %}
@@ -77,7 +77,7 @@ Choose a source distribution in either *tar* or *zip* format.
 
 For fast downloads, current source distributions are hosted on mirror servers;
 older source distributions are in the
-[archive](http://archive.apache.org/dist/calcite/).
+[archive](https://archive.apache.org/dist/calcite/).
 If a download from a mirror fails, retry, and the second download will likely
 succeed.
 
@@ -92,7 +92,7 @@ releases). For more information why this must be done, please read [Verifying Ap
 To verify the signature using GPG or PGP, please do the following:
 
 1. Download the release artifact and the corresponding PGP signature from the table above.
-2. Download the [Apache Calcite KEYS](http://www.apache.org/dist/calcite/KEYS) file.
+2. Download the [Apache Calcite KEYS](https://www.apache.org/dist/calcite/KEYS) file.
 3. Import the KEYS file and verify the downloaded artifact using one of the following methods:
 {% highlight shell %}
 % gpg --import KEYS
