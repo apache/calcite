@@ -32,8 +32,6 @@ import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
-import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
@@ -413,12 +411,8 @@ public class RexImpTable {
     map.put(DEFAULT, (translator, call, nullAs) -> Expressions.constant(null));
 
     // Sequences
-    defineImplementor(CURRENT_VALUE, NullPolicy.STRICT,
-        new SequenceImplementor(BuiltInMethod.SEQUENCE_CURRENT_VALUE.method),
-        false);
-    defineImplementor(NEXT_VALUE, NullPolicy.STRICT,
-        new SequenceImplementor(BuiltInMethod.SEQUENCE_NEXT_VALUE.method),
-        false);
+    defineMethod(CURRENT_VALUE, BuiltInMethod.SEQUENCE_CURRENT_VALUE.method, NullPolicy.STRICT);
+    defineMethod(NEXT_VALUE, BuiltInMethod.SEQUENCE_NEXT_VALUE.method, NullPolicy.STRICT);
 
     // System functions
     final SystemFunctionImplementor systemFunctionImplementor =
@@ -1837,27 +1831,6 @@ public class RexImpTable {
       final Type returnType =
           translator.typeFactory.getJavaClass(call.getType());
       return Types.castIfNecessary(returnType, expression);
-    }
-  }
-
-  /** Implementor for a function that generates calls to a given method. */
-  private static class SequenceImplementor extends MethodImplementor {
-    SequenceImplementor(Method method) {
-      super(method);
-    }
-
-    public Expression implement(
-        RexToLixTranslator translator,
-        RexCall call,
-        List<Expression> translatedOperands) {
-      assert translatedOperands.size() == 1;
-      ConstantExpression x = (ConstantExpression) translatedOperands.get(0);
-      List<String> names = Util.stringToList((String) x.value);
-      final Prepare.CatalogReader catalogReader =
-          Prepare.CatalogReader.THREAD_LOCAL.get();
-      RelOptTable table = catalogReader.getTable(names);
-      System.out.println("Now, do something with table " + table);
-      return super.implement(translator, call, translatedOperands);
     }
   }
 
