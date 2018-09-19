@@ -33,6 +33,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -42,7 +44,6 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -60,8 +61,9 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
   protected static final Logger LOGGER =
       LoggerFactory.getLogger(RexProgramFuzzyTest.class);
 
-  private static final int TEST_DURATION = Integer.getInteger("rex.fuzzing.duration", 5);
-  private static final long TEST_ITERATIONS = Long.getLong("rex.fuzzing.iterations", 5);
+  private static final Duration TEST_DURATION =
+      Duration.of(Integer.getInteger("rex.fuzzing.duration", 5), ChronoUnit.SECONDS);
+  private static final long TEST_ITERATIONS = Long.getLong("rex.fuzzing.iterations", 20);
   // Stop fuzzing after detecting MAX_FAILURES errors
   private static final int MAX_FAILURES =
       Integer.getInteger("rex.fuzzing.max.failures", 1);
@@ -259,26 +261,51 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
         + node.accept(new RexToTestCodeShuttle());
   }
 
+  private static void trimStackTrace(Throwable t, int maxStackLines) {
+    StackTraceElement[] stackTrace = t.getStackTrace();
+    if (stackTrace == null || stackTrace.length <= maxStackLines) {
+      return;
+    }
+    stackTrace = Arrays.copyOf(stackTrace, maxStackLines);
+    t.setStackTrace(stackTrace);
+  }
+
+  @Test public void defaultFuzzTest() {
+    try {
+      runRexFuzzer(0, Duration.of(5, ChronoUnit.SECONDS), 1, 0, 0);
+    } catch (Throwable e) {
+      for (Throwable t = e; t != null; t = t.getCause()) {
+        trimStackTrace(t, 4);
+      }
+      LOGGER.info("Randomized test identified a potential defect. Feel free to fix that issue", e);
+    }
+  }
+
   @Test public void testFuzzy() {
-    if (TEST_DURATION == 0) {
+    runRexFuzzer(SEED, TEST_DURATION, MAX_FAILURES, TEST_ITERATIONS, TOPN_SLOWEST);
+  }
+
+  private void runRexFuzzer(long startSeed, Duration testDuration, int maxFailures,
+      long testIterations, int topnSlowest) {
+    if (testDuration.toMillis() == 0) {
       return;
     }
     slowestTasks = new TopN<>(TOPN_SLOWEST);
     Random r = new Random();
-    if (SEED != 0) {
-      LOGGER.info("Using seed {} for rex fuzzing", SEED);
-      r.setSeed(SEED);
+    if (startSeed != 0) {
+      LOGGER.info("Using seed {} for rex fuzzing", startSeed);
+      r.setSeed(startSeed);
     }
     long start = System.currentTimeMillis();
-    long deadline = start + TimeUnit.SECONDS.toMillis(TEST_DURATION);
+    long deadline = start + testDuration.toMillis();
     List<Throwable> exceptions = new ArrayList<>();
     Set<String> duplicates = new HashSet<>();
     long total = 0;
     int dup = 0;
     int fail = 0;
     RexFuzzer fuzzer = new RexFuzzer(rexBuilder, typeFactory);
-    while (System.currentTimeMillis() < deadline && exceptions.size() < MAX_FAILURES
-        && (TEST_ITERATIONS == 0 || total < TEST_ITERATIONS)) {
+    while (System.currentTimeMillis() < deadline && exceptions.size() < maxFailures
+        && (testIterations == 0 || total < testIterations)) {
       long seed = r.nextLong();
       this.currentSeed = seed;
       r.setSeed(seed);
@@ -312,7 +339,7 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
         "Rex fuzzing results: number of cases tested={}, failed cases={}, duplicate failures={}, fuzz rate={} per second",
         total, fail, dup, rate);
 
-    if (TOPN_SLOWEST > 0) {
+    if (topnSlowest > 0) {
       LOGGER.info("The 5 slowest to simplify nodes were");
       SimplifyTask task;
       RexToTestCodeShuttle v = new RexToTestCodeShuttle();
@@ -334,7 +361,8 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
             <Throwable>comparingInt(t -> t.getMessage() == null ? -1 : t.getMessage().length())
             .thenComparing(Throwable::getMessage));
 
-    for (int i = 0; i < exceptions.size() && i < 100; i++) {
+    // The first exception will be thrown, so the others go to printStackTrace
+    for (int i = 1; i < exceptions.size() && i < 100; i++) {
       Throwable exception = exceptions.get(i);
       exception.printStackTrace();
     }
@@ -343,7 +371,10 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
     if (ex instanceof Error) {
       throw (Error) ex;
     }
-    throw new RuntimeException("Exception in testFuzzy", ex);
+    if (ex instanceof RuntimeException) {
+      throw (RuntimeException) ex;
+    }
+    throw new RuntimeException("Exception in runRexFuzzer", ex);
   }
 
   private void generateRexAndCheckTrueFalse(RexFuzzer fuzzer, Random r) {
