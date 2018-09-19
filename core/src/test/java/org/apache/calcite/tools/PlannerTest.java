@@ -88,7 +88,6 @@ import static org.apache.calcite.plan.RelOptRule.operand;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
-
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -1117,10 +1116,9 @@ public class PlannerTest {
     assertThat(plan,
         equalTo("LogicalSort(sort0=[$0], dir0=[ASC])\n"
         + "  LogicalProject(psPartkey=[$0])\n"
-        + "    LogicalProject(psPartkey=[$0])\n"
-        + "      LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
-        + "        LogicalProject(psPartkey=[$0], psSupplyCost=[$1])\n"
-        + "          EnumerableTableScan(table=[[tpch, partsupp]])\n"));
+        + "    LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
+        + "      LogicalProject(psPartkey=[$0], psSupplyCost=[$1])\n"
+        + "        EnumerableTableScan(table=[[tpch, partsupp]])\n"));
   }
 
   /** Test case for

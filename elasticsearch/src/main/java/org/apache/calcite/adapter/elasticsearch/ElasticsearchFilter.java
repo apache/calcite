@@ -23,7 +23,6 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -70,24 +69,13 @@ public class ElasticsearchFilter extends Filter implements ElasticsearchRel {
 
   @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
-    List<String> fieldNames;
-    if (input instanceof Project) {
-      final List<RexNode> projects = ((Project) input).getProjects();
-      fieldNames = new ArrayList<>(projects.size());
-      for (RexNode project : projects) {
-        String name = project.accept(MapProjectionFieldVisitor.INSTANCE);
-        fieldNames.add(name);
-      }
-    } else {
-      fieldNames = ElasticsearchRules.elasticsearchFieldNames(getRowType());
-    }
     ObjectMapper mapper = implementor.elasticsearchTable.mapper;
     PredicateAnalyzerTranslator translator = new PredicateAnalyzerTranslator(mapper);
     try {
       implementor.add(translator.translateMatch(condition));
     } catch (IOException e) {
       throw new UncheckedIOException(e);
-    } catch (ExpressionNotAnalyzableException e) {
+    } catch (PredicateAnalyzer.ExpressionNotAnalyzableException e) {
       throw new RuntimeException(e);
     }
   }
@@ -103,7 +91,8 @@ public class ElasticsearchFilter extends Filter implements ElasticsearchRel {
       this.mapper = Objects.requireNonNull(mapper, "mapper");
     }
 
-    String translateMatch(RexNode condition) throws IOException, ExpressionNotAnalyzableException {
+    String translateMatch(RexNode condition) throws IOException,
+        PredicateAnalyzer.ExpressionNotAnalyzableException {
 
       StringWriter writer = new StringWriter();
       JsonGenerator generator = mapper.getFactory().createGenerator(writer);

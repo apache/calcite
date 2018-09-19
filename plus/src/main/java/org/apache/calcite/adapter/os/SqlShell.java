@@ -100,7 +100,7 @@ public class SqlShell {
                  new OutputStreamWriter(System.err, StandardCharsets.UTF_8));
          InputStreamReader in =
              new InputStreamReader(System.in, StandardCharsets.UTF_8);
-         final PrintWriter out =
+         PrintWriter out =
              new PrintWriter(
                  new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
       new SqlShell(in, out, err, args).run();

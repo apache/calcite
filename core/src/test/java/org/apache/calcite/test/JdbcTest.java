@@ -69,7 +69,6 @@ import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFactory;
-import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractSchema;
@@ -84,10 +83,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSpecialOperator;
-import org.apache.calcite.sql.advise.SqlAdvisorGetHintsFunction;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.JsonBuilder;
@@ -102,7 +99,6 @@ import com.google.common.collect.Multimap;
 
 import org.hamcrest.Matcher;
 import org.hsqldb.jdbcDriver;
-
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -250,7 +246,7 @@ public class JdbcTest {
   @Test public void testModelWithModifiableView() throws Exception {
     final List<Employee> employees = new ArrayList<>();
     employees.add(new Employee(135, 10, "Simon", 56.7f, null));
-    try (final TryThreadLocal.Memo ignore =
+    try (TryThreadLocal.Memo ignore =
              EmpDeptTableFactory.THREAD_COLLECTION.push(employees)) {
       final CalciteAssert.AssertThat with = modelWithView(
           "select \"name\", \"empid\" as e, \"salary\" "
@@ -322,7 +318,7 @@ public class JdbcTest {
   @Test public void testModelWithInvalidModifiableView() throws Exception {
     final List<Employee> employees = new ArrayList<>();
     employees.add(new Employee(135, 10, "Simon", 56.7f, null));
-    try (final TryThreadLocal.Memo ignore =
+    try (TryThreadLocal.Memo ignore =
              EmpDeptTableFactory.THREAD_COLLECTION.push(employees)) {
       Util.discard(RESOURCE.noValueSuppliedForViewColumn(null, null));
       modelWithView("select \"name\", \"empid\" as e, \"salary\" "
@@ -398,107 +394,6 @@ public class JdbcTest {
           .query("select \"name\" from \"adhoc\".V order by \"name\"")
           .runs();
     }
-  }
-
-
-
-  /**
-   * Tests {@link org.apache.calcite.sql.advise.SqlAdvisorGetHintsFunction}.
-   */
-  @Test public void testSqlAdvisorGetHintsFunction()
-      throws SQLException, ClassNotFoundException {
-    adviseSql("select e.e^ from \"emps\" e",
-        CalciteAssert.checkResultUnordered(
-            "id=e; names=null; type=MATCH",
-            "id=empid; names=[empid]; type=COLUMN"));
-  }
-
-  @Test public void testSqlAdvisorNonExistingColumn()
-      throws SQLException, ClassNotFoundException {
-    adviseSql("select e.empdid_wrong_name.^ from \"hr\".\"emps\" e",
-        CalciteAssert.checkResultUnordered(
-            "id=*; names=[*]; type=KEYWORD",
-            "id=; names=null; type=MATCH"));
-  }
-
-  @Test public void testSqlAdvisorNonStructColumn()
-      throws SQLException, ClassNotFoundException {
-    adviseSql("select e.\"empid\".^ from \"hr\".\"emps\" e",
-        CalciteAssert.checkResultUnordered(
-            "id=*; names=[*]; type=KEYWORD",
-            "id=; names=null; type=MATCH"));
-  }
-
-  @Test public void testSqlAdvisorSubSchema()
-      throws SQLException, ClassNotFoundException {
-    adviseSql("select * from \"hr\".^.test_test_test",
-        CalciteAssert.checkResultUnordered(
-            "id=; names=null; type=MATCH",
-            "id=hr.dependents; names=[hr, dependents]; type=TABLE",
-            "id=hr.depts; names=[hr, depts]; type=TABLE",
-            "id=hr.emps; names=[hr, emps]; type=TABLE",
-            "id=hr.locations; names=[hr, locations]; type=TABLE",
-            "id=hr; names=[hr]; type=SCHEMA"));
-  }
-
-  @Test public void testSqlAdvisorTableInSchema()
-      throws SQLException, ClassNotFoundException {
-    adviseSql("select * from \"hr\".^",
-        CalciteAssert.checkResultUnordered(
-            "id=; names=null; type=MATCH",
-            "id=hr.dependents; names=[hr, dependents]; type=TABLE",
-            "id=hr.depts; names=[hr, depts]; type=TABLE",
-            "id=hr.emps; names=[hr, emps]; type=TABLE",
-            "id=hr.locations; names=[hr, locations]; type=TABLE",
-            "id=hr; names=[hr]; type=SCHEMA"));
-  }
-
-  /**
-   * Tests {@link org.apache.calcite.sql.advise.SqlAdvisorGetHintsFunction}.
-   */
-  @Test public void testSqlAdvisorSchemaNames()
-      throws SQLException, ClassNotFoundException {
-    adviseSql("select empid from \"emps\" e, ^",
-        CalciteAssert.checkResultUnordered(
-            "id=; names=null; type=MATCH",
-            "id=(; names=[(]; type=KEYWORD",
-            "id=LATERAL; names=[LATERAL]; type=KEYWORD",
-            "id=TABLE; names=[TABLE]; type=KEYWORD",
-            "id=UNNEST; names=[UNNEST]; type=KEYWORD",
-            "id=hr; names=[hr]; type=SCHEMA",
-            "id=metadata; names=[metadata]; type=SCHEMA",
-            "id=s; names=[s]; type=SCHEMA",
-            "id=hr.dependents; names=[hr, dependents]; type=TABLE",
-            "id=hr.depts; names=[hr, depts]; type=TABLE",
-            "id=hr.emps; names=[hr, emps]; type=TABLE",
-            "id=hr.locations; names=[hr, locations]; type=TABLE"));
-  }
-
-  private void adviseSql(String sql, Consumer<ResultSet> checker)
-      throws ClassNotFoundException, SQLException {
-    Properties info = new Properties();
-    info.put("lex", "JAVA");
-    info.put("quoting", "DOUBLE_QUOTE");
-    Connection connection =
-        DriverManager.getConnection("jdbc:calcite:", info);
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
-    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    calciteConnection.setSchema("hr");
-    final TableFunction table =
-        new SqlAdvisorGetHintsFunction();
-    schema.add("get_hints", table);
-    PreparedStatement ps = connection.prepareStatement("select *\n"
-        + "from table(\"s\".\"get_hints\"(?, ?)) as t(id, names, type)");
-    SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
-    ps.setString(1, sap.sql);
-    ps.setInt(2, sap.cursor);
-    final ResultSet resultSet = ps.executeQuery();
-    checker.accept(resultSet);
-    resultSet.close();
-    connection.close();
   }
 
   /**
@@ -673,7 +568,7 @@ public class JdbcTest {
         throw new RuntimeException();
       }
     };
-    try (final TryThreadLocal.Memo ignore =
+    try (TryThreadLocal.Memo ignore =
              HandlerDriver.HANDLERS.push(h)) {
       final HandlerDriver driver = new HandlerDriver();
       CalciteConnection connection = (CalciteConnection)
@@ -3387,7 +3282,7 @@ public class JdbcTest {
 
   /** Query that reads no columns from either underlying table. */
   @Test public void testCountStar() {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       CalciteAssert.hr()
           .query("select count(*) c from \"hr\".\"emps\", \"hr\".\"depts\"")
           .convertContains("LogicalAggregate(group=[{}], C=[COUNT()])\n"
@@ -4281,7 +4176,7 @@ public class JdbcTest {
 
   /** Tests that field-trimming creates a project near the table scan. */
   @Test public void testTrimFields() throws Exception {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       CalciteAssert.hr()
           .query("select \"name\", count(\"commission\") + 1\n"
               + "from \"hr\".\"emps\"\n"
@@ -4296,7 +4191,7 @@ public class JdbcTest {
   /** Tests that field-trimming creates a project near the table scan, in a
    * query with windowed-aggregation. */
   @Test public void testTrimFieldsOver() throws Exception {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       // The correct plan has a project on a filter on a project on a scan.
       CalciteAssert.hr()
           .query("select \"name\",\n"
@@ -4690,7 +4585,7 @@ public class JdbcTest {
    * <p>Note that there should be an extra row "empid=200; deptno=20;
    * DNAME=null" but left join doesn't work.</p> */
   @Test public void testScalarSubQuery() {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
       CalciteAssert.hr()
           .query("select \"empid\", \"deptno\",\n"
               + " (select \"name\" from \"hr\".\"depts\"\n"
@@ -4852,7 +4747,7 @@ public class JdbcTest {
   }
 
   @Test public void testScalarSubQueryInCase() {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
       CalciteAssert.hr()
           .query("select e.\"name\",\n"
               + " (CASE e.\"deptno\"\n"
@@ -5011,7 +4906,7 @@ public class JdbcTest {
           final String sql = "select \"name\"\n"
               + "from \"hr\".\"emps\"\n"
               + "order by \"empid\" offset ? fetch next ? rows only";
-          try (final PreparedStatement p =
+          try (PreparedStatement p =
                    connection.prepareStatement(sql)) {
             final ParameterMetaData pmd = p.getParameterMetaData();
             assertThat(pmd.getParameterCount(), is(2));
@@ -5019,7 +4914,7 @@ public class JdbcTest {
             assertThat(pmd.getParameterType(2), is(Types.INTEGER));
             p.setInt(1, offset);
             p.setInt(2, fetch);
-            try (final ResultSet r = p.executeQuery()) {
+            try (ResultSet r = p.executeQuery()) {
               assertThat(r, matcher);
             }
           } catch (SQLException e) {
@@ -5200,7 +5095,7 @@ public class JdbcTest {
   private void checkCustomSchemaInFileInPwd(String fileName)
       throws SQLException {
     final File file = new File(fileName);
-    try (final PrintWriter pw = Util.printWriter(file)) {
+    try (PrintWriter pw = Util.printWriter(file)) {
       file.deleteOnExit();
       pw.println("{\n"
           + "  version: '1.0',\n"

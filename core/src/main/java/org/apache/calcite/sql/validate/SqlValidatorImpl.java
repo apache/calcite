@@ -704,6 +704,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlValidatorScope scope,
       SqlParserPos pos,
       Collection<SqlMoniker> hintList) {
+    if (node == null) {
+      // This can happen in cases like "select * _suggest_", so from clause is absent
+      return;
+    }
     final SqlValidatorNamespace ns = getNamespace(node);
     if (ns.isWrapperFor(IdentifierNamespace.class)) {
       IdentifierNamespace idNs = ns.unwrap(IdentifierNamespace.class);
@@ -5631,24 +5635,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         return call.accept(this);
       }
       final SqlIdentifier fqId = getScope().fullyQualify(id).identifier;
-      SqlNode expandedExpr = fqId;
-      // Convert a column ref into ITEM(*, 'col_name').
-      // select col_name from (select * from dynTable)
-      // SqlIdentifier "col_name" would be resolved to a dynamic star field in dynTable's rowType.
-      // Expand such SqlIdentifier to ITEM operator.
-      if (DynamicRecordType.isDynamicStarColName(Util.last(fqId.names))
-          && !DynamicRecordType.isDynamicStarColName(Util.last(id.names))) {
-        SqlNode[] inputs = new SqlNode[2];
-        inputs[0] = fqId;
-        inputs[1] = SqlLiteral.createCharString(
-          Util.last(id.names),
-          id.getParserPosition());
-        SqlBasicCall item_call = new SqlBasicCall(
-            SqlStdOperatorTable.ITEM,
-            inputs,
-            id.getParserPosition());
-        expandedExpr = item_call;
-      }
+      SqlNode expandedExpr = expandDynamicStar(id, fqId);
       validator.setOriginal(expandedExpr, id);
       return expandedExpr;
     }
@@ -5669,6 +5656,24 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlNode result = argHandler.result();
       validator.setOriginal(result, call);
       return result;
+    }
+
+    protected SqlNode expandDynamicStar(SqlIdentifier id, SqlIdentifier fqId) {
+      if (DynamicRecordType.isDynamicStarColName(Util.last(fqId.names))
+          && !DynamicRecordType.isDynamicStarColName(Util.last(id.names))) {
+        // Convert a column ref into ITEM(*, 'col_name')
+        // for a dynamic star field in dynTable's rowType.
+        SqlNode[] inputs = new SqlNode[2];
+        inputs[0] = fqId;
+        inputs[1] = SqlLiteral.createCharString(
+            Util.last(id.names),
+            id.getParserPosition());
+        return new SqlBasicCall(
+            SqlStdOperatorTable.ITEM,
+            inputs,
+            id.getParserPosition());
+      }
+      return fqId;
     }
   }
 
@@ -5819,7 +5824,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
         expr = stripAs(expr);
         if (expr instanceof SqlIdentifier) {
-          expr = getScope().fullyQualify((SqlIdentifier) expr).identifier;
+          SqlIdentifier sid = (SqlIdentifier) expr;
+          final SqlIdentifier fqId = getScope().fullyQualify(sid).identifier;
+          expr = expandDynamicStar(sid, fqId);
         }
         return expr;
       }

@@ -242,7 +242,7 @@ public class PrimitiveTest {
     int[] sources = {1, 2, 3, 4, 5, 6, 0};
     final Object permute = Primitive.CHAR.permute(chars, sources);
     assertTrue(permute instanceof char[]);
-    assertEquals("bcdefga", new String((char[]) permute));
+    assertEquals("bcdefga", String.valueOf((char[]) permute));
   }
 
   /** Test for {@link Primitive#arrayToString(Object)}. */

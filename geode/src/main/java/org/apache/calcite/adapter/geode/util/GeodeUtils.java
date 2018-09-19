@@ -23,7 +23,6 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.Util;
 
 import org.apache.commons.lang3.StringUtils;
-
 import org.apache.geode.cache.CacheClosedException;
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.client.ClientCache;

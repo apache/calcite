@@ -17,29 +17,29 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.test.AbstractSqlTester;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
-import org.apache.calcite.sql.test.SqlTesterImpl;
+import org.apache.calcite.sql.test.SqlTests;
+import org.apache.calcite.sql.test.SqlValidatorTester;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
-import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
+
+import org.junit.rules.MethodRule;
+import org.junit.runners.model.FrameworkMethod;
+import org.junit.runners.model.Statement;
 
 import java.nio.charset.Charset;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 /**
  * An abstract base class for implementing tests against {@link SqlValidator}.
@@ -55,26 +55,21 @@ import static org.junit.Assert.fail;
 public class SqlValidatorTestCase {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final Pattern LINE_COL_PATTERN =
-      Pattern.compile("At line ([0-9]+), column ([0-9]+)");
-
-  private static final Pattern LINE_COL_TWICE_PATTERN =
-      Pattern.compile(
-          "(?s)From line ([0-9]+), column ([0-9]+) to line ([0-9]+), column ([0-9]+): (.*)");
-
   private static final SqlTestFactory EXTENDED_TEST_FACTORY =
       SqlTestFactory.INSTANCE.withCatalogReader(MockCatalogReaderExtended::new);
 
-  static final SqlTesterImpl EXTENDED_CATALOG_TESTER =
-      new SqlTesterImpl(EXTENDED_TEST_FACTORY);
+  static final SqlTester EXTENDED_CATALOG_TESTER =
+      new SqlValidatorTester(EXTENDED_TEST_FACTORY);
 
-  static final SqlTesterImpl EXTENDED_CATALOG_TESTER_2003 =
-      new SqlTesterImpl(EXTENDED_TEST_FACTORY)
+  static final SqlTester EXTENDED_CATALOG_TESTER_2003 =
+      new SqlValidatorTester(EXTENDED_TEST_FACTORY)
           .withConformance(SqlConformanceEnum.PRAGMATIC_2003);
 
-  static final SqlTesterImpl EXTENDED_CATALOG_TESTER_LENIENT =
-      new SqlTesterImpl(EXTENDED_TEST_FACTORY)
+  static final SqlTester EXTENDED_CATALOG_TESTER_LENIENT =
+      new SqlValidatorTester(EXTENDED_TEST_FACTORY)
           .withConformance(SqlConformanceEnum.LENIENT);
+
+  public static final MethodRule TESTER_CONFIGURATION_RULE = new TesterConfigurationRule();
 
   //~ Instance fields --------------------------------------------------------
 
@@ -96,7 +91,7 @@ public class SqlValidatorTestCase {
    * same set of tests in a different testing environment.
    */
   public SqlTester getTester() {
-    return new SqlTesterImpl(SqlTestFactory.INSTANCE);
+    return new SqlValidatorTester(SqlTestFactory.INSTANCE);
   }
 
   public final Sql sql(String sql) {
@@ -129,7 +124,7 @@ public class SqlValidatorTestCase {
 
   public void checkExp(String sql) {
     tester.assertExceptionIsThrown(
-        SqlTesterImpl.buildQuery(sql),
+        AbstractSqlTester.buildQuery(sql),
         null);
   }
 
@@ -150,7 +145,7 @@ public class SqlValidatorTestCase {
       String sql,
       String expected) {
     tester.assertExceptionIsThrown(
-        SqlTesterImpl.buildQuery(sql),
+        AbstractSqlTester.buildQuery(sql),
         expected);
   }
 
@@ -169,7 +164,7 @@ public class SqlValidatorTestCase {
       String sql,
       String expected) {
     checkColumnType(
-        SqlTesterImpl.buildQuery(sql),
+        AbstractSqlTester.buildQuery(sql),
         expected);
   }
 
@@ -218,7 +213,7 @@ public class SqlValidatorTestCase {
       String sql,
       String expected) {
     tester.checkIntervalConv(
-        SqlTesterImpl.buildQuery(sql),
+        AbstractSqlTester.buildQuery(sql),
         expected);
   }
 
@@ -254,174 +249,7 @@ public class SqlValidatorTestCase {
       Throwable ex,
       String expectedMsgPattern,
       SqlParserUtil.StringAndPos sap) {
-    if (null == ex) {
-      if (expectedMsgPattern == null) {
-        // No error expected, and no error happened.
-        return;
-      } else {
-        throw new AssertionError("Expected query to throw exception, "
-            + "but it did not; query [" + sap.sql
-            + "]; expected [" + expectedMsgPattern + "]");
-      }
-    }
-    Throwable actualException = ex;
-    String actualMessage = actualException.getMessage();
-    int actualLine = -1;
-    int actualColumn = -1;
-    int actualEndLine = 100;
-    int actualEndColumn = 99;
-
-    // Search for an CalciteContextException somewhere in the stack.
-    CalciteContextException ece = null;
-    for (Throwable x = ex; x != null; x = x.getCause()) {
-      if (x instanceof CalciteContextException) {
-        ece = (CalciteContextException) x;
-        break;
-      }
-      if (x.getCause() == x) {
-        break;
-      }
-    }
-
-    // Search for a SqlParseException -- with its position set -- somewhere
-    // in the stack.
-    SqlParseException spe = null;
-    for (Throwable x = ex; x != null; x = x.getCause()) {
-      if ((x instanceof SqlParseException)
-          && (((SqlParseException) x).getPos() != null)) {
-        spe = (SqlParseException) x;
-        break;
-      }
-      if (x.getCause() == x) {
-        break;
-      }
-    }
-
-    if (ece != null) {
-      actualLine = ece.getPosLine();
-      actualColumn = ece.getPosColumn();
-      actualEndLine = ece.getEndPosLine();
-      actualEndColumn = ece.getEndPosColumn();
-      if (ece.getCause() != null) {
-        actualException = ece.getCause();
-        actualMessage = actualException.getMessage();
-      }
-    } else if (spe != null) {
-      actualLine = spe.getPos().getLineNum();
-      actualColumn = spe.getPos().getColumnNum();
-      actualEndLine = spe.getPos().getEndLineNum();
-      actualEndColumn = spe.getPos().getEndColumnNum();
-      if (spe.getCause() != null) {
-        actualException = spe.getCause();
-        actualMessage = actualException.getMessage();
-      }
-    } else {
-      final String message = ex.getMessage();
-      if (message != null) {
-        Matcher matcher = LINE_COL_TWICE_PATTERN.matcher(message);
-        if (matcher.matches()) {
-          actualLine = Integer.parseInt(matcher.group(1));
-          actualColumn = Integer.parseInt(matcher.group(2));
-          actualEndLine = Integer.parseInt(matcher.group(3));
-          actualEndColumn = Integer.parseInt(matcher.group(4));
-          actualMessage = matcher.group(5);
-        } else {
-          matcher = LINE_COL_PATTERN.matcher(message);
-          if (matcher.matches()) {
-            actualLine = Integer.parseInt(matcher.group(1));
-            actualColumn = Integer.parseInt(matcher.group(2));
-          } else {
-            if (expectedMsgPattern != null
-                && actualMessage.matches(expectedMsgPattern)) {
-              return;
-            }
-          }
-        }
-      }
-    }
-
-    if (null == expectedMsgPattern) {
-      actualException.printStackTrace();
-      fail("Validator threw unexpected exception"
-          + "; query [" + sap.sql
-          + "]; exception [" + actualMessage
-          + "]; class [" + actualException.getClass()
-          + "]; pos [line " + actualLine
-          + " col " + actualColumn
-          + " thru line " + actualLine
-          + " col " + actualColumn + "]");
-    }
-
-    String sqlWithCarets;
-    if (actualColumn <= 0
-        || actualLine <= 0
-        || actualEndColumn <= 0
-        || actualEndLine <= 0) {
-      if (sap.pos != null) {
-        AssertionError e =
-            new AssertionError("Expected error to have position,"
-                + " but actual error did not: "
-                + " actual pos [line " + actualLine
-                + " col " + actualColumn
-                + " thru line " + actualEndLine + " col "
-                + actualEndColumn + "]");
-        e.initCause(actualException);
-        throw e;
-      }
-      sqlWithCarets = sap.sql;
-    } else {
-      sqlWithCarets =
-          SqlParserUtil.addCarets(
-              sap.sql,
-              actualLine,
-              actualColumn,
-              actualEndLine,
-              actualEndColumn + 1);
-      if (sap.pos == null) {
-        throw new AssertionError("Actual error had a position, but expected "
-            + "error did not. Add error position carets to sql:\n"
-            + sqlWithCarets);
-      }
-    }
-
-    if (actualMessage != null) {
-      actualMessage = Util.toLinux(actualMessage);
-    }
-
-    if (actualMessage == null
-        || !actualMessage.matches(expectedMsgPattern)) {
-      actualException.printStackTrace();
-      final String actualJavaRegexp =
-          (actualMessage == null)
-              ? "null"
-              : TestUtil.quoteForJava(
-                  TestUtil.quotePattern(actualMessage));
-      fail("Validator threw different "
-          + "exception than expected; query [" + sap.sql
-          + "];\n"
-          + " expected pattern [" + expectedMsgPattern
-          + "];\n"
-          + " actual [" + actualMessage
-          + "];\n"
-          + " actual as java regexp [" + actualJavaRegexp
-          + "]; pos [" + actualLine
-          + " col " + actualColumn
-          + " thru line " + actualEndLine
-          + " col " + actualEndColumn
-          + "]; sql [" + sqlWithCarets + "]");
-    } else if (sap.pos != null
-        && (actualLine != sap.pos.getLineNum()
-            || actualColumn != sap.pos.getColumnNum()
-            || actualEndLine != sap.pos.getEndLineNum()
-            || actualEndColumn != sap.pos.getEndColumnNum())) {
-      fail("Validator threw expected "
-          + "exception [" + actualMessage
-          + "];\nbut at pos [line " + actualLine
-          + " col " + actualColumn
-          + " thru line " + actualEndLine
-          + " col " + actualEndColumn
-          + "];\nsql [" + sqlWithCarets + "]");
-    }
+    SqlTests.checkEx(ex, expectedMsgPattern, sap, SqlTests.Stage.VALIDATE);
   }
 
   //~ Inner Interfaces -------------------------------------------------------
@@ -564,7 +392,7 @@ public class SqlValidatorTestCase {
      */
     Sql(SqlTester tester, String sql, boolean query) {
       this.tester = tester;
-      this.sql = query ? sql : SqlTesterImpl.buildQuery(sql);
+      this.sql = query ? sql : AbstractSqlTester.buildQuery(sql);
     }
 
     Sql tester(SqlTester tester) {
@@ -633,6 +461,30 @@ public class SqlValidatorTestCase {
      * at a conformance level where it succeeds. */
     public Sql sansCarets() {
       return new Sql(tester, sql.replace("^", ""), true);
+    }
+  }
+
+  /**
+   * Enables to configure {@link #tester} behavior on a per-test basis.
+   * {@code tester} object is created in the test object constructor, and there's no
+   * trivial way to override its features.
+   * <p>This JUnit rule enables post-process test object on a per test method basis</p>
+   */
+  private static class TesterConfigurationRule implements MethodRule {
+    @Override public Statement apply(Statement statement, FrameworkMethod frameworkMethod,
+        Object o) {
+      return new Statement() {
+        @Override public void evaluate() throws Throwable {
+          SqlValidatorTestCase tc = (SqlValidatorTestCase) o;
+          SqlTester tester = tc.tester;
+          WithLex lex = frameworkMethod.getAnnotation(WithLex.class);
+          if (lex != null) {
+            tester = tester.withLex(lex.value());
+          }
+          tc.tester = tester;
+          statement.evaluate();
+        }
+      };
     }
   }
 }

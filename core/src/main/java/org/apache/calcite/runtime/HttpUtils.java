@@ -71,7 +71,7 @@ public class HttpUtils {
   }
 
   public static void appendURLEncodedArgs(
-      StringBuilder out, CharSequence ... args) {
+      StringBuilder out, CharSequence... args) {
     if (args.length % 2 != 0) {
       throw new IllegalArgumentException(
           "args should contain an even number of items");

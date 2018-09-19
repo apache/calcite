@@ -323,7 +323,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
 
     @SuppressWarnings("unchecked")
     private void check(boolean unchanged) {
-      try (final Closer closer = new Closer()) {
+      try (Closer closer = new Closer()) {
         for (Map.Entry<Hook, Consumer> entry : hooks.entrySet()) {
           closer.add(entry.getKey().addThread(entry.getValue()));
         }

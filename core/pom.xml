@@ -80,6 +80,10 @@ limitations under the License.
       <artifactId>jackson-databind</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.google.code.findbugs</groupId>
       <artifactId>jsr305</artifactId>
     </dependency>
@@ -176,6 +180,36 @@ limitations under the License.
 
   <build>
     <plugins>
+      <plugin>
+        <groupId>org.apache.drill.tools</groupId>
+        <artifactId>drill-fmpp-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <configuration>
+              <config>src/main/codegen/config.fmpp</config>
+              <templates>src/main/codegen/templates</templates>
+            </configuration>
+            <id>generate-fmpp-sources</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+          <execution>
+            <configuration>
+              <config>src/test/codegen/config.fmpp</config>
+              <templates>src/main/codegen/templates</templates>
+              <output>${project.build.directory}/generated-test-sources/fmpp</output>
+              <scope>test</scope>
+            </configuration>
+            <id>generate-fmpp-test-sources</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -462,51 +496,6 @@ limitations under the License.
             <filtering>true</filtering>
           </resource>
         </resources>
-      </build>
-    </profile>
-    <profile>
-      <!-- CALCITE-538: workaround for https://github.com/freemarker/fmpp/issues/11
-        FMPP always overwrites destination file, however we do not want
-        recompile the whole module every time.
-      -->
-      <id>generate-parser</id>
-      <activation>
-        <property>
-          <name>!skipGenerate</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>com.googlecode.fmpp-maven-plugin</groupId>
-            <artifactId>fmpp-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <configuration>
-                  <cfgFile>src/main/codegen/config.fmpp</cfgFile>
-                  <templateDirectory>src/main/codegen/templates</templateDirectory>
-                </configuration>
-                <id>generate-fmpp-sources</id>
-                <phase>validate</phase>
-                <goals>
-                  <goal>generate</goal>
-                </goals>
-              </execution>
-              <execution>
-                <configuration>
-                  <cfgFile>src/test/codegen/config.fmpp</cfgFile>
-                  <templateDirectory>src/main/codegen/templates</templateDirectory>
-                  <outputDirectory>${project.build.directory}/generated-test-sources/fmpp</outputDirectory>
-                </configuration>
-                <id>generate-fmpp-test-sources</id>
-                <phase>validate</phase>
-                <goals>
-                  <goal>generate</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
       </build>
     </profile>
   </profiles>

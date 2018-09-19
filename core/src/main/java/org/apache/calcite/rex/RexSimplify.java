@@ -28,6 +28,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -61,6 +62,7 @@ public class RexSimplify {
   final boolean unknownAsFalse;
   final boolean predicateElimination;
   private final RexExecutor executor;
+  private final Strong strong;
 
   /**
    * Creates a RexSimplify.
@@ -85,6 +87,7 @@ public class RexSimplify {
     this.predicateElimination = predicateElimination;
     this.paranoid = paranoid;
     this.executor = Objects.requireNonNull(executor);
+    this.strong = new Strong();
   }
 
   @Deprecated // to be removed before 2.0
@@ -176,6 +179,12 @@ public class RexSimplify {
   }
 
   private RexNode simplify_(RexNode e) {
+    if (strong.isNull(e)) {
+      if (unknownAsFalse) {
+        return rexBuilder.makeLiteral(false);
+      }
+      return rexBuilder.makeNullLiteral(e.getType());
+    }
     switch (e.getKind()) {
     case AND:
       return simplifyAnd((RexCall) e);
@@ -251,7 +260,8 @@ public class RexSimplify {
     // "1 != '1'" is unchanged because the types are not the same.
     if (o0.isA(SqlKind.LITERAL)
         && o1.isA(SqlKind.LITERAL)
-        && o0.getType().equals(o1.getType())) {
+        && SqlTypeUtil.equalSansNullability(rexBuilder.getTypeFactory(),
+              o0.getType(), o1.getType())) {
       final C v0 = ((RexLiteral) o0).getValueAs(clazz);
       final C v1 = ((RexLiteral) o1).getValueAs(clazz);
       if (v0 == null || v1 == null) {
@@ -371,7 +381,7 @@ public class RexSimplify {
     if (a.getKind() != negateKind) {
       return simplify_(
           rexBuilder.makeCall(RexUtil.op(negateKind),
-              ImmutableList.of(((RexCall) a).getOperands().get(0))));
+              ((RexCall) a).getOperands()));
     }
     final SqlKind negateKind2 = a.getKind().negateNullSafe();
     if (a.getKind() != negateKind2) {
@@ -483,7 +493,7 @@ public class RexSimplify {
       final RexNode arg = ((RexCall) a).operands.get(0);
       return simplify_(rexBuilder.makeCall(notKind, arg));
     }
-    RexNode a2 = simplify_(a);
+    RexNode a2 = withUnknownAsFalse(false).simplify_(a);
     if (a != a2) {
       return rexBuilder.makeCall(RexUtil.op(kind), ImmutableList.of(a2));
     }
@@ -501,8 +511,8 @@ public class RexSimplify {
     case NOT_NULL:
       return rexBuilder.makeLiteral(true);
     case ANY:
-      // "f" is a strong operator, so "f(operand) IS NOT NULL" simplifies to
-      // "operand IS NOT NULL"
+      // "f" is a strong operator, so "f(operand0, operand1) IS NOT NULL"
+      // simplifies to "operand0 IS NOT NULL AND operand1 IS NOT NULL"
       final List<RexNode> operands = new ArrayList<>();
       for (RexNode operand : ((RexCall) a).getOperands()) {
         final RexNode simplified = simplifyIsNotNull(operand);
@@ -534,25 +544,26 @@ public class RexSimplify {
     if (!a.getType().isNullable()) {
       return rexBuilder.makeLiteral(false);
     }
+    if (RexUtil.isNull(a)) {
+      return rexBuilder.makeLiteral(true);
+    }
     switch (Strong.policy(a.getKind())) {
     case NOT_NULL:
       return rexBuilder.makeLiteral(false);
     case ANY:
-      // "f" is a strong operator, so "f(operand) IS NULL" simplifies to
-      // "operand IS NULL"
+      // "f" is a strong operator, so "f(operand0, operand1) IS NULL" simplifies
+      // to "operand0 IS NULL OR operand1 IS NULL"
       final List<RexNode> operands = new ArrayList<>();
       for (RexNode operand : ((RexCall) a).getOperands()) {
         final RexNode simplified = simplifyIsNull(operand);
         if (simplified == null) {
           operands.add(
               rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, operand));
-        } else if (simplified.isAlwaysFalse()) {
-          return rexBuilder.makeLiteral(false);
         } else {
           operands.add(simplified);
         }
       }
-      return RexUtil.composeConjunction(rexBuilder, operands, false);
+      return RexUtil.composeDisjunction(rexBuilder, operands, false);
     case AS_IS:
     default:
       return null;

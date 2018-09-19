@@ -707,6 +707,29 @@ public class Util {
     return buf.toString();
   }
 
+  /**
+   * Returns true when input string is a valid Java identifier.
+   * @param s input string
+   * @return true when input string is a valid Java identifier
+   */
+  public static boolean isValidJavaIdentifier(String s) {
+    if (s.isEmpty()) {
+      return false;
+    }
+    if (!Character.isJavaIdentifierStart(s.codePointAt(0))) {
+      return false;
+    }
+    int i = 0;
+    while (i < s.length()) {
+      int codePoint = s.codePointAt(i);
+      if (!Character.isJavaIdentifierPart(codePoint)) {
+        return false;
+      }
+      i += Character.charCount(codePoint);
+    }
+    return true;
+  }
+
   public static String toLinux(String s) {
     return s.replaceAll("\r\n", "\n");
   }

@@ -78,6 +78,16 @@ class PredicateAnalyzer {
     }
   }
 
+  /**
+   * Thrown when {@link org.apache.calcite.rel.RelNode} expression can't be processed
+   * (or converted into ES query)
+   */
+  static class ExpressionNotAnalyzableException extends Exception {
+    ExpressionNotAnalyzableException(String message, Throwable cause) {
+      super(message, cause);
+    }
+  }
+
   private PredicateAnalyzer() {}
 
   /**

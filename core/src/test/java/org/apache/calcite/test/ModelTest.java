@@ -33,6 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -342,11 +343,38 @@ public class ModelTest {
     final JsonView table1 = (JsonView) schema.tables.get(0);
     try {
       String s = table1.getSql();
-      fail("exprcted error, got " + s);
+      fail("expected error, got " + s);
     } catch (RuntimeException e) {
       assertThat(e.getMessage(),
           equalTo("each element of a string list must be a string; found: 2"));
     }
+  }
+
+  @Test public void testYamlInlineDetection() throws Exception {
+    // yaml model with different line endings
+    final String yamlModel = "version: 1.0\r\n"
+        + "schemas: \n"
+        + "- type: custom\r\n"
+        + "  name: 'MyCustomSchema'\n"
+        + "  factory: " + JdbcTest.MySchemaFactory.class.getName() + "\r\n";
+    CalciteAssert.model(yamlModel).doWithConnection(calciteConnection -> null);
+    // with a comment
+    CalciteAssert.model("\n  \r\n# comment\n " + yamlModel)
+        .doWithConnection(calciteConnection -> null);
+    // if starts with { => treated as json
+    CalciteAssert.model("  { " + yamlModel + " }")
+        .connectThrows("Unexpected character ('s' (code 115)): "
+            + "was expecting comma to separate Object entries");
+    // if starts with /* => treated as json
+    CalciteAssert.model("  /* " + yamlModel)
+        .connectThrows("Unexpected end-of-input in a comment");
+  }
+
+  @Test public void testYamlFileDetection() throws Exception {
+    final URL inUrl = ModelTest.class.getResource("/empty-model.yaml");
+    CalciteAssert.that()
+        .withModel(inUrl)
+        .doWithConnection(calciteConnection -> null);
   }
 }
 

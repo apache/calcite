@@ -21,7 +21,6 @@ import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
 
 import org.jsoup.select.Elements;
-
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;

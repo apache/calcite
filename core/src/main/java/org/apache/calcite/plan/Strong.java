@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /** Utilities for strong predicates.
  *
@@ -87,7 +86,7 @@ public class Strong {
   /** Returns how to deduce whether a particular kind of expression is null,
    * given whether its arguments are null. */
   public static Policy policy(SqlKind kind) {
-    return Objects.requireNonNull(MAP.get(kind), kind.toString());
+    return MAP.getOrDefault(kind, Policy.AS_IS);
   }
 
   /** Returns whether an expression is definitely not true. */
@@ -106,7 +105,7 @@ public class Strong {
    * expressions, and you may override methods to test hypotheses such as
    * "if {@code x} is null, is {@code x + y} null? */
   public boolean isNull(RexNode node) {
-    final Policy policy = MAP.get(node.getKind());
+    final Policy policy = policy(node.getKind());
     switch (policy) {
     case NOT_NULL:
       return false;

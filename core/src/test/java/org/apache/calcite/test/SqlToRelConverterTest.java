@@ -29,6 +29,7 @@ import org.apache.calcite.rel.externalize.RelXmlWriter;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
 import org.apache.calcite.util.Bug;
@@ -1308,6 +1309,24 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).expand(false).ok();
   }
 
+  @Test public void testNotCaseInThreeClause() {
+    final String sql = "select empno from emp where not case when "
+        + "true then deptno in (10,20) else true end";
+    sql(sql).expand(false).ok();
+  }
+
+  @Test public void testNotCaseInMoreClause() {
+    final String sql = "select empno from emp where not case when "
+        + "true then deptno in (10,20) when false then false else deptno in (30,40) end";
+    sql(sql).expand(false).ok();
+  }
+
+  @Test public void testNotCaseInWithoutElse() {
+    final String sql = "select empno from emp where not case when "
+        + "true then deptno in (10,20)  end";
+    sql(sql).expand(false).ok();
+  }
+
   @Test public void testWhereInCorrelated() {
     final String sql = "select empno from emp as e\n"
         + "join dept as d using (deptno)\n"
@@ -2507,7 +2526,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testStarDynamicSchemaUnnest() {
-    final String sql3 = "select * \n"
+    final String sql3 = "select *\n"
         + "from SALES.CUSTOMER as t1,\n"
         + "lateral (select t2.\"$unnest\" as fake_col3\n"
         + "         from unnest(t1.fake_col) as t2) as t3";
@@ -2515,7 +2534,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testStarDynamicSchemaUnnest2() {
-    final String sql3 = "select * \n"
+    final String sql3 = "select *\n"
         + "from SALES.CUSTOMER as t1,\n"
         + "unnest(t1.fake_col) as t2";
     sql(sql3).with(getTesterWithDynamicTable()).ok();
@@ -2623,6 +2642,20 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
 
+  @Test public void testWindowAndGroupByWithDynamicStar() {
+    final String sql = "SELECT\n"
+        + "n_regionkey,\n"
+        + "MAX(MIN(n_nationkey)) OVER (PARTITION BY n_regionkey)\n"
+        + "FROM (SELECT * FROM SALES.NATION)\n"
+        + "GROUP BY n_regionkey";
+
+    sql(sql).conformance(new SqlDelegatingConformance(SqlConformanceEnum.DEFAULT) {
+      @Override public boolean isGroupByAlias() {
+        return true;
+      }
+    }).with(getTesterWithDynamicTable()).ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2366">[CALCITE-2366]
    * Add support for ANY_VALUE aggregate function</a>. */
@@ -2637,8 +2670,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   private Tester getExtendedTester() {
-    return tester.withCatalogReaderFactory(typeFactory ->
-        new MockCatalogReaderExtended(typeFactory, true).init());
+    return tester.withCatalogReaderFactory(MockCatalogReaderExtended::new);
   }
 
   @Test public void testLarge() {

@@ -182,20 +182,6 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     contactAddressTable.addColumn("MAILING_ADDRESS", addressType);
     registerTable(contactAddressTable);
 
-    // Register "DYNAMIC" schema.
-    MockSchema dynamicSchema = new MockSchema("DYNAMIC");
-    registerSchema(dynamicSchema);
-
-    MockTable nationTable =
-        new MockDynamicTable(this, dynamicSchema.getCatalogName(),
-            dynamicSchema.getName(), "NATION", false, 100);
-    registerTable(nationTable);
-
-    MockTable customerTable =
-        new MockDynamicTable(this, dynamicSchema.getCatalogName(),
-            dynamicSchema.getName(), "CUSTOMER", false, 100);
-    registerTable(customerTable);
-
     // Register "CUSTOMER" schema.
     MockSchema customerSchema = new MockSchema("CUSTOMER");
     registerSchema(customerSchema);

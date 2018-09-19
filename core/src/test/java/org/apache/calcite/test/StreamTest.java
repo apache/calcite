@@ -21,7 +21,6 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -39,7 +38,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -277,12 +275,11 @@ public class StreamTest {
             + "orders.rowtime as rowtime, orders.id as orderId, products.supplier as supplierId "
             + "from orders join products on orders.product = products.id")
         .convertContains("LogicalDelta\n"
-            + "  LogicalProject(ROWTIME=[$0], ORDERID=[$1], SUPPLIERID=[$5])\n"
-            + "    LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], ID0=[$5], SUPPLIER=[$6])\n"
-            + "      LogicalJoin(condition=[=($4, $5)], joinType=[inner])\n"
-            + "        LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], PRODUCT0=[CAST($2):VARCHAR(32) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL])\n"
-            + "          LogicalTableScan(table=[[STREAM_JOINS, ORDERS]])\n"
-            + "        LogicalTableScan(table=[[STREAM_JOINS, PRODUCTS]])\n")
+            + "  LogicalProject(ROWTIME=[$0], ORDERID=[$1], SUPPLIERID=[$6])\n"
+            + "    LogicalJoin(condition=[=($4, $5)], joinType=[inner])\n"
+            + "      LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], PRODUCT0=[CAST($2):VARCHAR(32) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL])\n"
+            + "        LogicalTableScan(table=[[STREAM_JOINS, ORDERS]])\n"
+            + "      LogicalTableScan(table=[[STREAM_JOINS, PRODUCTS]])\n")
         .explainContains(""
             + "EnumerableCalc(expr#0..6=[{inputs}], proj#0..1=[{exprs}], SUPPLIERID=[$t6])\n"
             + "  EnumerableJoin(condition=[=($4, $5)], joinType=[inner])\n"
@@ -450,17 +447,6 @@ public class StreamTest {
     }
   }
 
-  public static final Function0<Object[]> ROW_GENERATOR =
-      new Function0<Object[]>() {
-        private int counter = 0;
-        private Iterator<String> items =
-            Iterables.cycle("paint", "paper", "brush").iterator();
-
-        @Override public Object[] apply() {
-          return new Object[]{System.currentTimeMillis(), counter++, items.next(), 10};
-        }
-      };
-
   /**
    * Table representing an infinitely larger ORDERS stream.
    */
@@ -468,12 +454,17 @@ public class StreamTest {
       implements StreamableTable {
     public Enumerable<Object[]> scan(DataContext root) {
       return Linq4j.asEnumerable(() -> new Iterator<Object[]>() {
+        private final String[] items = {"paint", "paper", "brush"};
+        private int counter = 0;
+
         public boolean hasNext() {
           return true;
         }
 
         public Object[] next() {
-          return ROW_GENERATOR.apply();
+          final int index = counter++;
+          return new Object[]{
+              System.currentTimeMillis(), index, items[index % items.length], 10};
         }
 
         public void remove() {

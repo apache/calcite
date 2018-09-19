@@ -17,7 +17,6 @@
 package org.apache.calcite.util;
 
 import org.apache.calcite.runtime.CalciteResource;
-
 import org.apache.calcite.runtime.ConsList;
 import org.apache.calcite.runtime.Resources;
 

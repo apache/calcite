@@ -29,13 +29,14 @@ import net.jcip.annotations.NotThreadSafe;
 
 import org.cassandraunit.CassandraCQLUnit;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
-
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assume.assumeTrue;
 
@@ -96,8 +97,15 @@ public class CassandraAdapterTest {
       };
     }
 
+    String configurationFileName = null; // use default one
+    // Apache Jenkins often fails with
+    // CassandraAdapterTest Cassandra daemon did not start within timeout (20 sec by default)
+    long startUpTimeoutMillis = TimeUnit.SECONDS.toMillis(60);
+
     CassandraCQLUnit rule = new CassandraCQLUnit(
-        new ClassPathCQLDataSet("twissandra.cql"));
+        new ClassPathCQLDataSet("twissandra.cql"),
+        configurationFileName,
+        startUpTimeoutMillis);
 
     // This static init is necessary otherwise tests fail with CassandraUnit in IntelliJ (jdk10)
     // should be called right after constructor

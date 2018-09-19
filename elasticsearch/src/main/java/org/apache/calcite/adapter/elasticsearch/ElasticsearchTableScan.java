@@ -37,7 +37,7 @@ import java.util.Objects;
  * using the "find" method.</p>
  */
 public class ElasticsearchTableScan extends TableScan implements ElasticsearchRel {
-  private final AbstractElasticsearchTable elasticsearchTable;
+  private final ElasticsearchTable elasticsearchTable;
   private final RelDataType projectRowType;
 
   /**
@@ -50,10 +50,10 @@ public class ElasticsearchTableScan extends TableScan implements ElasticsearchRe
    * @param projectRowType Fields and types to project; null to project raw row
    */
   ElasticsearchTableScan(RelOptCluster cluster, RelTraitSet traitSet,
-       RelOptTable table, AbstractElasticsearchTable elasticsearchTable,
+       RelOptTable table, ElasticsearchTable elasticsearchTable,
        RelDataType projectRowType) {
     super(cluster, traitSet, table);
-    this.elasticsearchTable = Objects.requireNonNull(elasticsearchTable);
+    this.elasticsearchTable = Objects.requireNonNull(elasticsearchTable, "elasticsearchTable");
     this.projectRowType = projectRowType;
 
     assert getConvention() == ElasticsearchRel.CONVENTION;

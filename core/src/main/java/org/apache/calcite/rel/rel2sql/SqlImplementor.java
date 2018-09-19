@@ -560,17 +560,25 @@ public abstract class SqlImplementor {
         return new SqlDynamicParam(caseParam.getIndex(), POS);
 
       case IN:
-        subQuery = (RexSubQuery) rex;
-        sqlSubQuery = visitChild(0, subQuery.rel).asQueryOrValues();
-        List<RexNode> operands = subQuery.operands;
-        SqlNode op0;
-        if (operands.size() == 1) {
-          op0 = toSql(program, operands.get(0));
+        if (rex instanceof RexSubQuery) {
+          subQuery = (RexSubQuery) rex;
+          sqlSubQuery =
+              visitChild(0, subQuery.rel).asQueryOrValues();
+          final List<RexNode> operands = subQuery.operands;
+          SqlNode op0;
+          if (operands.size() == 1) {
+            op0 = toSql(program, operands.get(0));
+          } else {
+            final List<SqlNode> cols = toSql(program, operands);
+            op0 = new SqlNodeList(cols, POS);
+          }
+          return subQuery.getOperator().createCall(POS, op0, sqlSubQuery);
         } else {
-          final List<SqlNode> cols = toSql(program, operands);
-          op0 = new SqlNodeList(cols, POS);
+          final RexCall call = (RexCall) rex;
+          final List<SqlNode> cols = toSql(program, call.operands);
+          return call.getOperator().createCall(POS, cols.get(0),
+              new SqlNodeList(cols.subList(1, cols.size()), POS));
         }
-        return subQuery.getOperator().createCall(POS, op0, sqlSubQuery);
 
       case EXISTS:
       case SCALAR_QUERY:

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util.javac;
 
+import org.apache.calcite.prepare.CalcitePrepareImpl;
+
 import org.codehaus.janino.JavaSourceClassLoader;
 import org.codehaus.janino.util.ClassFile;
 import org.codehaus.janino.util.resource.MapResourceFinder;
@@ -77,6 +79,10 @@ public class JaninoCompiler implements JavaCompiler {
             sourceFinder,
             null,
             args.destdir == null ? null : new File(args.destdir));
+    if (CalcitePrepareImpl.DEBUG) {
+      // Add line numbers to the generated janino class
+      classLoader.setDebuggingInfo(true, true, true);
+    }
     try {
       classLoader.loadClass(args.fullClassName);
     } catch (ClassNotFoundException ex) {

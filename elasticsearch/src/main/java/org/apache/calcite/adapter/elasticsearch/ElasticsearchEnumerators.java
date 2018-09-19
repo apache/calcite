@@ -26,27 +26,27 @@ import java.util.Map;
 
 /**
  * Util functions which convert
- * {@link org.apache.calcite.adapter.elasticsearch.ElasticsearchSearchResult.SearchHit}
+ * {@link ElasticsearchJson.SearchHit}
  * into calcite specific return type (map, object[], list etc.)
  */
 class ElasticsearchEnumerators {
 
   private ElasticsearchEnumerators() {}
 
-  private static Function1<ElasticsearchSearchResult.SearchHit, Map> mapGetter() {
-    return new Function1<ElasticsearchSearchResult.SearchHit, Map>() {
-      public Map apply(ElasticsearchSearchResult.SearchHit hits) {
+  private static Function1<ElasticsearchJson.SearchHit, Map> mapGetter() {
+    return new Function1<ElasticsearchJson.SearchHit, Map>() {
+      public Map apply(ElasticsearchJson.SearchHit hits) {
         return hits.sourceOrFields();
       }
     };
   }
 
-  private static Function1<ElasticsearchSearchResult.SearchHit, Object> singletonGetter(
+  private static Function1<ElasticsearchJson.SearchHit, Object> singletonGetter(
       final String fieldName,
       final Class fieldClass) {
-    return new Function1<ElasticsearchSearchResult.SearchHit, Object>() {
-      public Object apply(ElasticsearchSearchResult.SearchHit hits) {
-        return convert(hits.sourceOrFields(), fieldClass);
+    return new Function1<ElasticsearchJson.SearchHit, Object>() {
+      public Object apply(ElasticsearchJson.SearchHit hits) {
+        return convert(hits.valueOrNull(fieldName), fieldClass);
       }
     };
   }
@@ -59,30 +59,38 @@ class ElasticsearchEnumerators {
    *
    * @return function that converts the search result into a generic array
    */
-  private static Function1<ElasticsearchSearchResult.SearchHit, Object[]> listGetter(
+  private static Function1<ElasticsearchJson.SearchHit, Object[]> listGetter(
       final List<Map.Entry<String, Class>> fields) {
-    return new Function1<ElasticsearchSearchResult.SearchHit, Object[]>() {
-      public Object[] apply(ElasticsearchSearchResult.SearchHit hit) {
+    return new Function1<ElasticsearchJson.SearchHit, Object[]>() {
+      public Object[] apply(ElasticsearchJson.SearchHit hit) {
         Object[] objects = new Object[fields.size()];
         for (int i = 0; i < fields.size(); i++) {
           final Map.Entry<String, Class> field = fields.get(i);
           final String name = field.getKey();
           final Class type = field.getValue();
-          objects[i] = convert(hit.value(name), type);
+          objects[i] = convert(hit.valueOrNull(name), type);
         }
         return objects;
       }
     };
   }
 
-  static Function1<ElasticsearchSearchResult.SearchHit, Object> getter(
+  static Function1<ElasticsearchJson.SearchHit, Object> getter(
       List<Map.Entry<String, Class>> fields) {
     //noinspection unchecked
-    return fields == null
-      ? (Function1) mapGetter()
-      : fields.size() == 1
-      ? singletonGetter(fields.get(0).getKey(), fields.get(0).getValue())
-      : (Function1) listGetter(fields);
+    final Function1 getter;
+    if (fields == null || fields.size() == 1 && "_MAP".equals(fields.get(0).getKey())) {
+      // select * from table
+      getter = mapGetter();
+    } else if (fields.size() == 1) {
+      // select foo from table
+      getter = singletonGetter(fields.get(0).getKey(), fields.get(0).getValue());
+    } else {
+      // select a, b, c from table
+      getter = listGetter(fields);
+    }
+
+    return getter;
   }
 
   private static Object convert(Object o, Class clazz) {

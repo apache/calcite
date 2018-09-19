@@ -101,11 +101,7 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
       query.append("\"script_fields\": {" + String.join(", ", scriptFields) + "}");
     }
 
-    for (String opfield : implementor.list) {
-      if (opfield.startsWith("\"_source\"")) {
-        implementor.list.remove(opfield);
-      }
-    }
+    implementor.list.removeIf(l -> l.startsWith("\"_source\""));
     implementor.add(query.toString());
   }
 }

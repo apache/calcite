@@ -973,18 +973,18 @@ public class ReflectiveSchemaTest {
         new Employee(4, 10, "Abd", 0f, null),
     };
 
-    public final Integer[] primesBoxed = new Integer[]{1, 3, 5};
+    public final Integer[] primesBoxed = {1, 3, 5};
 
-    public final int[] primes = new int[]{1, 3, 5};
+    public final int[] primes = {1, 3, 5};
 
     public final IntHolder[] primesCustomBoxed =
-        new IntHolder[]{new IntHolder(1), new IntHolder(3), new IntHolder(5)};
+        {new IntHolder(1), new IntHolder(3), new IntHolder(5)};
 
-    public final IntAndString[] nullables = new IntAndString[] {
+    public final IntAndString[] nullables = {
         new IntAndString(1, "A"), new IntAndString(2, "B"), new IntAndString(2, "C"),
         new IntAndString(3, null)};
 
-    public final IntAndString[] bools = new IntAndString[] {
+    public final IntAndString[] bools = {
         new IntAndString(1, "T"), new IntAndString(2, "F"), new IntAndString(3, null)};
   }
 

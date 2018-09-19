@@ -31,17 +31,16 @@ adapters.
 
 ## Building from a source distribution
 
-Prerequisites are maven (3.5.2 or later)
-and Java (JDK 8, 9 or 10) on your path.
+Prerequisite is Java (JDK 8, 9 or 10) on your path.
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
-then build using maven:
+then build using the included maven wrapper:
 
 {% highlight bash %}
 $ tar xvfz calcite-1.17.0-source.tar.gz
 $ cd calcite-1.17.0
-$ mvn install
+$ ./mvnw install
 {% endhighlight %}
 
 [Running tests](#running-tests) describes how to run more or fewer
@@ -49,17 +48,17 @@ tests.
 
 ## Building from git
 
-Prerequisites are git, maven (3.5.2 or later)
-and Java (JDK 8 or later, 9 preferred) on your path.
+Prerequisites are git
+and Java (JDK 8, 9 or 10) on your path.
 
 Create a local copy of the github repository,
 `cd` to its root directory,
-then build using maven:
+then build using the included maven wrapper:
 
 {% highlight bash %}
 $ git clone git://github.com/apache/calcite.git
 $ cd calcite
-$ mvn install
+$ ./mvnw install
 {% endhighlight %}
 
 Calcite includes a number of machine-generated codes. By default, these are
@@ -81,14 +80,20 @@ $ mvn package -DskipGenerate
 [Running tests](#running-tests) describes how to run more or fewer
 tests.
 
+## If you already have Apache Maven
+
+If you have already installed Maven and it is on your path, then you
+can use `mvn` rather than `./mvnw` in commands. You need Maven version
+3.5.2 or later.
+
 ## Running tests
 
 The test suite will run by default when you build, unless you specify
 `-DskipTests`:
 
 {% highlight bash %}
-$ mvn -DskipTests clean install
-$ mvn test
+$ ./mvnw -DskipTests clean install
+$ ./mvnw test
 {% endhighlight %}
 
 There are other options that control which tests are run, and in what
@@ -205,7 +210,7 @@ For example, navigate to the method `JdbcTest.testWinAgg` with
 
 If you encounter an error while running the `JdbcTest.testWinAgg` , run the following Maven command from the command line:
 
-`$ mvn -DskipTests clean install`
+`$ ./mvnw -DskipTests clean install`
 
 You should see `"BUILD SUCCESS"`.
 
@@ -490,9 +495,9 @@ read -s GPG_PASSPHRASE
 
 # Make sure that there are no junk files in the sandbox
 git clean -xn
-mvn clean
+./mvnw clean
 
-mvn -Papache-release -Dgpg.passphrase=${GPG_PASSPHRASE} install
+./mvnw -Papache-release -Dgpg.passphrase=${GPG_PASSPHRASE} install
 {% endhighlight %}
 
 When the dry-run has succeeded, change `install` to `deploy`.
@@ -507,13 +512,13 @@ Before you start:
 * Check that `NOTICE` has the current copyright year.
 * Set `version.major` and `version.minor` in `pom.xml`.
 * Make sure build and tests succeed, including with `-P it,it-oracle`.
-* Make sure that `mvn javadoc:javadoc javadoc:test-javadoc` succeeds
+* Make sure that `./mvnw javadoc:javadoc javadoc:test-javadoc` succeeds
   (i.e. gives no errors; warnings are OK)
 * Generate a report of vulnerabilities that occur among dependencies,
   using `-Ppedantic`; if you like, run again with `-DfailBuildOnCVSS=8` to see
   whether serious vulnerabilities exist. Report to [private@calcite.apache.org](mailto:private@calcite.apache.org)
   if new critical vulnerabilities are found among dependencies.
-* Make sure that `mvn apache-rat:check` succeeds. (It will be run as part of
+* Make sure that `./mvnw apache-rat:check` succeeds. (It will be run as part of
   the release, but it's better to trouble-shoot early.)
 * Decide the supported configurations of JDK, operating system and
   Guava.  These will probably be the same as those described in the
@@ -581,16 +586,16 @@ read -s GPG_PASSPHRASE
 
 # Make sure that there are no junk files in the sandbox
 git clean -xn
-mvn clean
+./mvnw clean
 
 # Do a dry run of the release:prepare step, which sets version numbers
 # (accept the default tag name of calcite-X.Y.Z)
 # Note X.Y.Z is the current version we're trying to release, and X.Y+1.Z is the next development version.
 # For example, if I am currently building a release for 1.16.0, X.Y.Z would be 1.16.0 and X.Y+1.Z would be 1.17.0.
-mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
+./mvnw -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
 
 # If you have multiple GPG keys, you can select the key used to sign the release by adding `-Dgpg.keyname=${GPG_KEY_ID}` to `-Darguments`:
-mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE} -Dgpg.keyname=${GPG_KEY_ID}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
+./mvnw -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE} -Dgpg.keyname=${GPG_KEY_ID}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
 {% endhighlight %}
 
 Check the artifacts.
@@ -627,13 +632,13 @@ For this step you'll have to add the [Apache servers](https://maven.apache.org/d
 # Prepare sets the version numbers, creates a tag, and pushes it to git
 # Note X.Y.Z is the current version we're trying to release, and X.Y+1.Z is the next development version.
 # For example, if I am currently building a release for 1.16.0, X.Y.Z would be 1.16.0 and X.Y+1.Z would be 1.17.0.
-mvn -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare.log
+./mvnw -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare.log
 
 # If you have multiple GPG keys, you can select the key used to sign the release by adding `-Dgpg.keyname=${GPG_KEY_ID}` to `-Darguments`:
-mvn -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE} -Dgpg.keyname=${GPG_KEY_ID}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
+./mvnw -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE} -Dgpg.keyname=${GPG_KEY_ID}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
 
 # Perform checks out the tagged version, builds, and deploys to the staging repository
-mvn -DskipTests -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:perform 2>&1 | tee /tmp/perform.log
+./mvnw -DskipTests -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:perform 2>&1 | tee /tmp/perform.log
 {% endhighlight %}
 
 Verify the staged artifacts in the Nexus repository:
@@ -679,7 +684,7 @@ git tag -d calcite-X.Y.Z
 git push origin :refs/tags/calcite-X.Y.Z
 
 # Remove modified files
-mvn release:clean
+./mvnw release:clean
 
 # Check whether there are modified files and if so, go back to the
 # original git commit
@@ -871,7 +876,7 @@ Make sure to add the version number and date of the latest release at the site l
 
 Add a release note by copying
 [site/_posts/2016-10-12-release-1.10.0.md]({{ site.sourceRoot }}/site/_posts/2016-10-12-release-1.10.0.md),
-generate the javadoc using `mvn site`, [publish the site](#publish-the-web-site),
+generate the javadoc using `./mvnw site`, [publish the site](#publish-the-web-site),
 and check that it appears in the contents in [news](http://localhost:4000/news/).
 
 Merge the release branch back into `master` (e.g. `git merge --ff-only branch-X.Y`).

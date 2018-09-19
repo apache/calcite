@@ -211,6 +211,9 @@ public class PartiallyOrderedSetTest {
   }
 
   @Test public void testPosetBitsLarge() {
+    Assume.assumeTrue(
+        "it takes 80 seconds, and the computations are exactly the same every time",
+        CalciteAssert.ENABLE_SLOW);
     final PartiallyOrderedSet<Integer> poset =
         new PartiallyOrderedSet<>(PartiallyOrderedSetTest::isBitSuperset);
     checkPosetBitsLarge(poset, 30000, 2921, 164782);

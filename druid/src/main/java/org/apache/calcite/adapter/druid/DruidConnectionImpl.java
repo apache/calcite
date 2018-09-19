@@ -126,7 +126,7 @@ class DruidConnectionImpl implements DruidConnection {
       try {
         final byte[] bytes = AvaticaUtils.readFullyToBytes(in);
         System.out.println("Response: "
-            + new String(bytes, StandardCharsets.UTF_8));
+            + new String(bytes, StandardCharsets.UTF_8)); // CHECKSTYLE: IGNORE 0
         in = new ByteArrayInputStream(bytes);
       } catch (IOException e) {
         throw new RuntimeException(e);
@@ -145,7 +145,7 @@ class DruidConnectionImpl implements DruidConnection {
       }
     }
 
-    try (final JsonParser parser = factory.createParser(in)) {
+    try (JsonParser parser = factory.createParser(in)) {
       switch (queryType) {
       case TIMESERIES:
         if (parser.nextToken() == JsonToken.START_ARRAY) {
@@ -646,7 +646,7 @@ class DruidConnectionImpl implements DruidConnection {
         final byte[] bytes = AvaticaUtils.readFullyToBytes(in);
         in.close();
         System.out.println("Response: "
-            + new String(bytes, StandardCharsets.UTF_8));
+            + new String(bytes, StandardCharsets.UTF_8)); // CHECKSTYLE: IGNORE 0
         in = new ByteArrayInputStream(bytes);
       } catch (IOException e) {
         throw new RuntimeException(e);

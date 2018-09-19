@@ -42,7 +42,6 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.annotation.Nullable;
 
 /**

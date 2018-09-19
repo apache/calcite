@@ -21,7 +21,6 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -29,6 +28,10 @@ import java.util.Objects;
  * been copied from ES distribution. The reason we have separate definition is
  * high-level client dependency on core modules (like lucene, netty, XContent etc.) which
  * is not compatible between different major versions.
+ *
+ * <p>The goal of ES adapter is to
+ * be compatible with any elastic version or even to connect to clusters with different
+ * versions simultaneously.
  *
  * <p>Jackson API is used to generate ES query as JSON document.
  */
@@ -53,6 +56,16 @@ class QueryBuilders {
    * @param value The value of the term
    */
   static TermQueryBuilder termQuery(String name, int value) {
+    return new TermQueryBuilder(name, value);
+  }
+
+  /**
+   * A Query that matches documents containing a single character term.
+   *
+   * @param name  The name of the field
+   * @param value The value of the term
+   */
+  static TermQueryBuilder termQuery(String name, char value) {
     return new TermQueryBuilder(name, value);
   }
 
@@ -107,6 +120,16 @@ class QueryBuilders {
   }
 
   /**
+   * A filer for a field based on several terms matching on any of them.
+   *
+   * @param name   The field name
+   * @param values The terms
+   */
+  static TermsQueryBuilder termsQuery(String name, Iterable<?> values) {
+    return new TermsQueryBuilder(name, values);
+  }
+
+  /**
    * A Query that matches documents within an range of terms.
    *
    * @param name The field name
@@ -150,6 +173,13 @@ class QueryBuilders {
    */
   static ExistsQueryBuilder existsQuery(String name) {
     return new ExistsQueryBuilder(name);
+  }
+
+  /**
+   * A query that matches on all documents.
+   */
+  static MatchAllQueryBuilder matchAll() {
+    return new MatchAllQueryBuilder();
   }
 
   /**
@@ -246,34 +276,49 @@ class QueryBuilders {
       generator.writeFieldName("term");
       generator.writeStartObject();
       generator.writeFieldName(fieldName);
-      writeScalar(generator, value);
+      writeObject(generator, value);
       generator.writeEndObject();
       generator.writeEndObject();
     }
   }
 
   /**
-   * Write single simple (scalar) value (string, number, boolean or null) to json output.
+   * A filter for a field based on several terms matching on any of them.
+   */
+  private static class TermsQueryBuilder extends QueryBuilder {
+    private final String fieldName;
+    private final Iterable<?> values;
+
+    private TermsQueryBuilder(final String fieldName, final Iterable<?> values) {
+      this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
+      this.values = Objects.requireNonNull(values, "values");
+    }
+
+    @Override void writeJson(final JsonGenerator generator) throws IOException {
+      generator.writeStartObject();
+      generator.writeFieldName("terms");
+      generator.writeStartObject();
+      generator.writeFieldName(fieldName);
+      generator.writeStartArray();
+      for (Object value: values) {
+        writeObject(generator, value);
+      }
+      generator.writeEndArray();
+      generator.writeEndObject();
+      generator.writeEndObject();
+    }
+  }
+
+  /**
+   * Write usually simple (scalar) value (string, number, boolean or null) to json output.
+   * In case of complex objects delegates to jackson serialization.
    *
    * @param generator api to generate JSON document
    * @param value JSON value to write
    * @throws IOException if can't write to output
    */
-  private static void writeScalar(JsonGenerator generator, Object value) throws IOException {
-    if (value == null) {
-      generator.writeNull();
-    } else if (value instanceof CharSequence) {
-      generator.writeString(Objects.toString(value));
-    } else if (value instanceof Number) {
-      // write numbers as string
-      generator.writeNumber(value.toString());
-    } else if (value instanceof Boolean) {
-      generator.writeBoolean((Boolean) value);
-    } else {
-      final String message = String.format(Locale.ROOT, "Unsupported type %s : %s",
-          value.getClass(), value);
-      throw new IllegalArgumentException(message);
-    }
+  private static void writeObject(JsonGenerator generator, Object value) throws IOException {
+    generator.writeObject(value);
   }
 
   /**
@@ -340,13 +385,13 @@ class QueryBuilders {
       if (gt != null) {
         final String op = gte ? "gte" : "gt";
         generator.writeFieldName(op);
-        writeScalar(generator, gt);
+        writeObject(generator, gt);
       }
 
       if (lt != null) {
         final String op = lte ? "lte" : "lt";
         generator.writeFieldName(op);
-        writeScalar(generator, lt);
+        writeObject(generator, lt);
       }
 
       if (format != null) {
@@ -414,6 +459,27 @@ class QueryBuilders {
       generator.writeStartObject();
       generator.writeFieldName("filter");
       builder.writeJson(generator);
+      generator.writeEndObject();
+      generator.writeEndObject();
+    }
+  }
+
+  /**
+   * A query that matches on all documents.
+   * <pre>
+   *   {
+   *     "match_all": {}
+   *   }
+   * </pre>
+   */
+  static class MatchAllQueryBuilder extends QueryBuilder {
+
+    private MatchAllQueryBuilder() {}
+
+    @Override void writeJson(final JsonGenerator generator) throws IOException {
+      generator.writeStartObject();
+      generator.writeFieldName("match_all");
+      generator.writeStartObject();
       generator.writeEndObject();
       generator.writeEndObject();
     }

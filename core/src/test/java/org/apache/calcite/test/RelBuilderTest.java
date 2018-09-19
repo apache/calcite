@@ -48,6 +48,7 @@ import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.tools.RelRunners;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
@@ -808,9 +809,8 @@ public class RelBuilderTest {
             .build();
     final String expected = ""
         + "LogicalAggregate(group=[{0}])\n"
-        + "  LogicalProject(departmentNo=[$0])\n"
-        + "    LogicalProject(DEPTNO=[$7])\n"
-        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        + "  LogicalProject(departmentNo=[$7])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }
 
@@ -828,10 +828,8 @@ public class RelBuilderTest {
             .build();
     final String expected = ""
         + "LogicalAggregate(group=[{1}])\n"
-        + "  LogicalProject(DEPTNO=[$0], d3=[$1])\n"
-        + "    LogicalProject(DEPTNO=[$0], $f1=[+($0, 3)])\n"
-        + "      LogicalProject(DEPTNO=[$7])\n"
-        + "        LogicalTableScan(table=[[scott, EMP]])\n";
+        + "  LogicalProject(DEPTNO=[$7], d3=[+($7, 3)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }
 
@@ -1397,8 +1395,53 @@ public class RelBuilderTest {
             .project(builder.field("EMP_alias", "DEPTNO"))
             .build();
     final String expected = ""
-        + "LogicalProject(DEPTNO=[$0])\n"
-        + "  LogicalProject(DEPTNO=[$7], $f1=[20])\n"
+        + "LogicalProject(DEPTNO=[$7])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Tests that table aliases are propagated even when there is a project on
+   * top of a project. (Aliases tend to get lost when projects are merged). */
+  @Test public void testAliasProjectProject() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .as("EMP_alias")
+            .project(builder.field("DEPTNO"),
+                builder.literal(20))
+            .project(builder.field(1),
+                builder.literal(10),
+                builder.field(0))
+            .project(builder.alias(builder.field(1), "sum"),
+                builder.field("EMP_alias", "DEPTNO"))
+            .build();
+    final String expected = ""
+        + "LogicalProject(sum=[10], DEPTNO=[$7])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Tests that table aliases are propagated and are available to a filter,
+   * even when there is a project on top of a project. (Aliases tend to get lost
+   * when projects are merged). */
+  @Test public void testAliasFilter() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .as("EMP_alias")
+            .project(builder.field("DEPTNO"),
+                builder.literal(20))
+            .project(builder.field(1), // literal 20
+                builder.literal(10),
+                builder.field(0)) // DEPTNO
+            .filter(
+                builder.call(SqlStdOperatorTable.GREATER_THAN,
+                    builder.field(1),
+                    builder.field("EMP_alias", "DEPTNO")))
+            .build();
+    final String expected = ""
+        + "LogicalFilter(condition=[>($1, $2)])\n"
+        + "  LogicalProject($f1=[20], $f12=[10], DEPTNO=[$7])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }
@@ -1446,6 +1489,27 @@ public class RelBuilderTest {
         + "  LogicalJoin(condition=[true], joinType=[inner])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
         + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Tests that a projection after a projection. */
+  @Test public void testProjectProject() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .as("e")
+            .projectPlus(
+                builder.alias(
+                    builder.call(SqlStdOperatorTable.PLUS, builder.field(0),
+                        builder.field(3)), "x"))
+            .project(builder.field("e", "DEPTNO"),
+                builder.field(0),
+                builder.field("e", "MGR"),
+                Util.last(builder.fields()))
+            .build();
+    final String expected = ""
+        + "LogicalProject(DEPTNO=[$7], EMPNO=[$0], MGR=[$3], x=[+($0, $3)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }
 
@@ -1918,7 +1982,7 @@ public class RelBuilderTest {
     RelNode root =
         builder.values(new String[]{"a", "b"}, true, 1, false, -50)
             .build();
-    try (final PreparedStatement preparedStatement = RelRunners.run(root)) {
+    try (PreparedStatement preparedStatement = RelRunners.run(root)) {
       String s = CalciteAssert.toString(preparedStatement.executeQuery());
       final String result = "a=true; b=1\n"
           + "a=false; b=-50\n";
@@ -1940,7 +2004,7 @@ public class RelBuilderTest {
 
     // Note that because the table has been resolved in the RelNode tree
     // we do not need to supply a "schema" as context to the runner.
-    try (final PreparedStatement preparedStatement = RelRunners.run(root)) {
+    try (PreparedStatement preparedStatement = RelRunners.run(root)) {
       String s = CalciteAssert.toString(preparedStatement.executeQuery());
       final String result = ""
           + "EMPNO=7369; ENAME=SMITH; JOB=CLERK; MGR=7902; HIREDATE=1980-12-17; SAL=800.00; COMM=null; DEPTNO=20\n"

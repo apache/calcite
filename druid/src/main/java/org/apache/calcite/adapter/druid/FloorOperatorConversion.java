@@ -25,7 +25,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.util.TimeZone;
-
 import javax.annotation.Nullable;
 
 /**

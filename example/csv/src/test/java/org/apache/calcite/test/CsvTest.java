@@ -661,7 +661,7 @@ public class CsvTest {
   @Test public void testPrepared() throws SQLException {
     final Properties properties = new Properties();
     properties.setProperty("caseSensitive", "true");
-    try (final Connection connection =
+    try (Connection connection =
         DriverManager.getConnection("jdbc:calcite:", properties)) {
       final CalciteConnection calciteConnection = connection.unwrap(
           CalciteConnection.class);
@@ -846,6 +846,7 @@ public class CsvTest {
     }
   }
 
+  @Ignore("CALCITE-1894: there's a bug in the test code, so it does not test what it should")
   @Test(timeout = 10000) public void testCsvStream() throws Exception {
     final File file = File.createTempFile("stream", "csv");
     final String model = "{\n"
@@ -879,10 +880,10 @@ public class CsvTest {
         "30,\"Engineering\""
     };
 
-    try (final Connection connection =
+    try (Connection connection =
              DriverManager.getConnection("jdbc:calcite:model=inline:" + model);
-         final PrintWriter pw = Util.printWriter(file);
-         final Worker<Void> worker = new Worker<>()) {
+         PrintWriter pw = Util.printWriter(file);
+         Worker<Void> worker = new Worker<>()) {
       final Thread thread = new Thread(worker);
       thread.start();
 

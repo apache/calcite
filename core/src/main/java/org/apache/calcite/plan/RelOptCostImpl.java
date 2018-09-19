@@ -78,6 +78,13 @@ public class RelOptCostImpl implements RelOptCost {
     return getRows() == other.getRows();
   }
 
+  @Override public boolean equals(Object obj) {
+    if (obj instanceof RelOptCostImpl) {
+      return equals((RelOptCost) obj);
+    }
+    return false;
+  }
+
   // implement RelOptCost
   public boolean isEqWithEpsilon(RelOptCost other) {
     return Math.abs(getRows() - other.getRows()) < RelOptUtil.EPSILON;

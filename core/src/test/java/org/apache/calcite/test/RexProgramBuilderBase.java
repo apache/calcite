@@ -288,12 +288,20 @@ public abstract class RexProgramBuilderBase {
     return rexBuilder.makeCall(SqlStdOperatorTable.PLUS, n1, n2);
   }
 
+  protected RexNode mul(RexNode n1, RexNode n2) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, n1, n2);
+  }
+
   protected RexNode coalesce(RexNode... nodes) {
     return rexBuilder.makeCall(SqlStdOperatorTable.COALESCE, nodes);
   }
 
   protected RexNode divInt(RexNode n1, RexNode n2) {
     return rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE_INTEGER, n1, n2);
+  }
+
+  protected RexNode div(RexNode n1, RexNode n2) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE, n1, n2);
   }
 
   protected RexNode sub(RexNode n1, RexNode n2) {

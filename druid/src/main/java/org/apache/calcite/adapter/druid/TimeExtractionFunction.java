@@ -22,7 +22,6 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
-
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -32,7 +31,6 @@ import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.TimeZone;
-
 import javax.annotation.Nullable;
 
 import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;

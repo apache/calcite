@@ -225,7 +225,7 @@ public class UtilTest {
     assertEquals(
         "ID$0$_3__c_6_17__21__17__2d__15__7f__6cd9__fffd_",
         Util.toJavaId(
-            new String(bytes1, "EUC-JP"),
+            new String(bytes1, "EUC-JP"), // CHECKSTYLE: IGNORE 0
             0));
     byte[] bytes2 = {
         64, 32, 43, -45, -23, 0, 43, 54, 119, -32, -56, -34
@@ -233,7 +233,7 @@ public class UtilTest {
     assertEquals(
         "ID$0$_30c__3617__2117__2d15__7fde__a48f_",
         Util.toJavaId(
-            new String(bytes1, "UTF-16"),
+            new String(bytes1, "UTF-16"), // CHECKSTYLE: IGNORE 0
             0));
   }
 
@@ -1656,6 +1656,8 @@ public class UtilTest {
   }
 
   private NavigableSet<String> checkNav(NavigableSet<String> set, String s) {
+    // Note this does not support some unicode characters
+    // however it is fine for testing purposes
     return set.subSet(s.toUpperCase(Locale.ROOT), true,
         s.toLowerCase(Locale.ROOT), true);
   }

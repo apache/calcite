@@ -25,6 +25,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -162,6 +165,12 @@ public interface Profiler {
    * column or set of columns. If the set of columns is empty, it describes
    * the number of rows in the entire data set. */
   class Distribution implements Statistic {
+    static final MathContext ROUND5 =
+        new MathContext(5, RoundingMode.HALF_EVEN);
+
+    static final MathContext ROUND3 =
+        new MathContext(3, RoundingMode.HALF_EVEN);
+
     final NavigableSet<Column> columns;
     final NavigableSet<Comparable> values;
     final double cardinality;
@@ -204,12 +213,13 @@ public interface Profiler {
         }
         map.put("values", list);
       }
-      map.put("cardinality", cardinality);
+      map.put("cardinality", new BigDecimal(cardinality, ROUND5));
       if (nullCount > 0) {
         map.put("nullCount", nullCount);
       }
-      map.put("expectedCardinality", expectedCardinality);
-      map.put("surprise", surprise());
+      map.put("expectedCardinality",
+          new BigDecimal(expectedCardinality, ROUND5));
+      map.put("surprise", new BigDecimal(surprise(), ROUND3));
       return map;
     }
 

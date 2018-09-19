@@ -47,7 +47,6 @@ import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.ImmutableIntList;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
