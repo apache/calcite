@@ -63,7 +63,7 @@ limitations under the License.
     <!-- Needed for JDK 10 javadoc for [LANG-1365] -->
     <commons-lang3.version>3.7</commons-lang3.version>
     <dropwizard-metrics3.version>3.1.2</dropwizard-metrics3.version>
-    <forbiddenapis.version>2.3</forbiddenapis.version>
+    <forbiddenapis.version>2.6</forbiddenapis.version>
     <!-- We support guava versions as old as 14.0.1 (the version used by Hive)
          but prefer more recent versions. -->
     <guava.version>14.0.1</guava.version>
