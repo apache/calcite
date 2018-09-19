@@ -327,7 +327,7 @@ public abstract class CalciteSchema {
         new ImmutableSortedMap.Builder<>(NameSet.COMPARATOR);
     builder.putAll(subSchemaMap.map());
     addImplicitSubSchemaToBuilder(builder);
-    return Compatible.INSTANCE.navigableMap(builder.build());
+    return builder.build();
   }
 
   /** Returns a collection of lattices.
@@ -346,7 +346,7 @@ public abstract class CalciteSchema {
     builder.addAll(tableMap.map().keySet());
     // Add implicit tables, case-sensitive.
     addImplicitTableToBuilder(builder);
-    return Compatible.INSTANCE.navigableSet(builder.build());
+    return builder.build();
   }
 
   /** Returns the set of all types names. */
@@ -357,7 +357,7 @@ public abstract class CalciteSchema {
     builder.addAll(typeMap.map().keySet());
     // Add implicit types.
     addImplicitTypeNamesToBuilder(builder);
-    return Compatible.INSTANCE.navigableSet(builder.build());
+    return builder.build();
   }
 
   /** Returns a type, explicit and implicit, with a given
@@ -393,7 +393,7 @@ public abstract class CalciteSchema {
     builder.addAll(functionMap.map().keySet());
     // Add implicit functions, case-sensitive.
     addImplicitFuncNamesToBuilder(builder);
-    return Compatible.INSTANCE.navigableSet(builder.build());
+    return builder.build();
   }
 
   /** Returns tables derived from explicit and implicit functions
@@ -412,7 +412,7 @@ public abstract class CalciteSchema {
     }
     // add tables derived from implicit functions
     addImplicitTablesBasedOnNullaryFunctionsToBuilder(builder);
-    return Compatible.INSTANCE.navigableMap(builder.build());
+    return builder.build();
   }
 
   /** Returns a tables derived from explicit and implicit functions
