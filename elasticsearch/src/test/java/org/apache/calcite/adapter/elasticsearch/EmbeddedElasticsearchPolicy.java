@@ -93,7 +93,16 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
   }
 
   /**
-   * Creates index in elastic search given mapping.
+   * Creates index in elastic search given a mapping. Mapping can contain nested fields expressed
+   * as dots({@code .}).
+   *
+   * <p>Example
+   * <pre>
+   *  {@code
+   *     b.a: long
+   *     b.b: keyword
+   *  }
+   * </pre>
    *
    * @param index index of the index
    * @param mapping field and field type mapping
@@ -103,19 +112,35 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
     Objects.requireNonNull(index, "index");
     Objects.requireNonNull(mapping, "mapping");
 
-    ObjectNode json = mapper().createObjectNode();
+    ObjectNode mappings = mapper().createObjectNode();
+
+    ObjectNode properties = mappings.with("mappings").with(index).with("properties");
     for (Map.Entry<String, String> entry: mapping.entrySet()) {
-      json.set(entry.getKey(), json.objectNode().put("type", entry.getValue()));
+      applyMapping(properties, entry.getKey(), entry.getValue());
     }
 
-    json = (ObjectNode) json.objectNode().set("properties", json);
-    json = (ObjectNode) json.objectNode().set(index, json);
-    json = (ObjectNode) json.objectNode().set("mappings", json);
-
     // create index and mapping
-    final HttpEntity entity = new StringEntity(mapper().writeValueAsString(json),
+    final HttpEntity entity = new StringEntity(mapper().writeValueAsString(mappings),
         ContentType.APPLICATION_JSON);
     restClient().performRequest("PUT", "/" + index, Collections.emptyMap(), entity);
+  }
+
+  /**
+   * Creates nested mappings for an index. This function is called recursively for each level.
+   *
+   * @param parent current parent
+   * @param key field name
+   * @param type ES mapping type ({@code keyword}, {@code long} etc.)
+   */
+  private static void applyMapping(ObjectNode parent, String key, String type) {
+    final int index = key.indexOf('.');
+    if (index > -1) {
+      String prefix  = key.substring(0, index);
+      String suffix = key.substring(index + 1, key.length());
+      applyMapping(parent.with(prefix).with("properties"), suffix, type);
+    } else {
+      parent.with(key).put("type", type);
+    }
   }
 
   void insertDocument(String index, ObjectNode document) throws IOException {

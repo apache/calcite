@@ -30,17 +30,8 @@ interface ElasticsearchConstants {
   String FIELDS = "fields";
   String SOURCE_PAINLESS = "params._source";
   String SOURCE_GROOVY = "_source";
-  String SOURCE = SOURCE_GROOVY;
   String ID = "_id";
   String UID = "_uid";
-
-  /* Aggregation pushdown operations supported */
-  String AGG_SUM = "SUM";
-  String AGG_SUM0 = "$SUM0";
-  String AGG_COUNT = "COUNT";
-  String AGG_MIN = "MIN";
-  String AGG_MAX = "MAX";
-  String AGG_AVG = "AVG";
 
   Set<String> META_COLUMNS = ImmutableSet.of(UID, ID, TYPE, INDEX);
 

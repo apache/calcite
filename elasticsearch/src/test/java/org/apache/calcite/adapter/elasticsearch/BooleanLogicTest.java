@@ -128,6 +128,7 @@ public class BooleanLogicTest {
     assertSingle("select * from view where num > 41");
     assertSingle("select * from view where num > 0");
     assertSingle("select * from view where (a = 'a' and b = 'b') or (num = 42 and c = 'c')");
+    assertSingle("select * from view where c = 'c' and (a in ('a', 'b') or num in (41, 42))");
     assertSingle("select * from view where (a = 'a' or b = 'b') or (num = 42 and c = 'c')");
     assertSingle("select * from view where a = 'a' and (b = '0' or (b = 'b' and "
             +  "(c = '0' or (c = 'c' and num = 42))))");
