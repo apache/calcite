@@ -76,7 +76,7 @@ limitations under the License.
     <drill-fmpp-maven-plugin.version>1.14.0</drill-fmpp-maven-plugin.version>
     <foodmart-data-hsqldb.version>0.3</foodmart-data-hsqldb.version>
     <foodmart-queries.version>0.4.1</foodmart-queries.version>
-    <forbiddenapis.version>2.5</forbiddenapis.version>
+    <forbiddenapis.version>2.6</forbiddenapis.version>
     <freemarker.version>2.3.25-incubating</freemarker.version>
     <git-commit-id-plugin.version>2.1.9</git-commit-id-plugin.version>
     <geode.version>1.6.0</geode.version>
