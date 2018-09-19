@@ -26,10 +26,12 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgramBuilder;
@@ -71,6 +73,23 @@ public class EnumerableThetaJoin extends Join implements EnumerableRel {
       // internal error.
       throw new AssertionError(e);
     }
+  }
+
+  /** Creates an EnumerableThetaJoin. */
+  public static EnumerableThetaJoin create(
+      RelNode left,
+      RelNode right,
+      RexNode condition,
+      Set<CorrelationId> variablesSet,
+      JoinRelType joinType) throws InvalidRelException {
+    final RelOptCluster cluster = left.getCluster();
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
+    final RelTraitSet traitSet =
+        cluster.traitSetOf(EnumerableConvention.INSTANCE)
+            .replaceIfs(RelCollationTraitDef.INSTANCE,
+                () -> RelMdCollation.enumerableThetaJoin(mq, left, right, joinType));
+    return new EnumerableThetaJoin(cluster, traitSet, left, right, condition,
+        variablesSet, joinType);
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,

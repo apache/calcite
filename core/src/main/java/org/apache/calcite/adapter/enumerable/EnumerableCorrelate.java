@@ -23,9 +23,12 @@ import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.metadata.RelMdCollation;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -45,6 +48,29 @@ public class EnumerableCorrelate extends Correlate
       CorrelationId correlationId,
       ImmutableBitSet requiredColumns, SemiJoinType joinType) {
     super(cluster, traits, left, right, correlationId, requiredColumns,
+        joinType);
+  }
+
+  /** Creates an EnumerableCorrelate. */
+  public static EnumerableCorrelate create(
+      RelNode left,
+      RelNode right,
+      CorrelationId correlationId,
+      ImmutableBitSet requiredColumns,
+      SemiJoinType joinType) {
+    final RelOptCluster cluster = left.getCluster();
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
+    final RelTraitSet traitSet =
+        cluster.traitSetOf(EnumerableConvention.INSTANCE)
+            .replaceIfs(RelCollationTraitDef.INSTANCE,
+                () -> RelMdCollation.enumerableCorrelate(mq, left, right, joinType));
+    return new EnumerableCorrelate(
+        cluster,
+        traitSet,
+        left,
+        right,
+        correlationId,
+        requiredColumns,
         joinType);
   }
 
