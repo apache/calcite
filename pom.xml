@@ -745,10 +745,14 @@ limitations under the License.
         <artifactId>maven-javadoc-plugin</artifactId>
         <configuration>
           <additionalparam>-html5</additionalparam>
+          <doclint>all,-missing</doclint>
+          <failOnWarnings>true</failOnWarnings>
           <links>
             <link>${maven-javadoc-plugin.link}</link>
           </links>
+          <notimestamp>true</notimestamp>
           <excludePackageNames>${maven-javadoc-plugin.excludePackageNames}</excludePackageNames>
+          <quiet>true</quiet>
           <show>private</show>
         </configuration>
       </plugin>

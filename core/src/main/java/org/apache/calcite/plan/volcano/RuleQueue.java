@@ -372,7 +372,7 @@ class RuleQueue {
    * <p>where W<sub>n, p</sub>, the weight of n within its parent p, is
    *
    * <blockquote>W<sub>n, p</sub> = Cost<sub>n</sub> / (SelfCost<sub>p</sub> +
-   * Cost<sub>n<sub>0</sub></sub> + ... + Cost<sub>n<sub>k</sub></sub>)
+   * Cost<sub>n0</sub> + ... + Cost<sub>nk</sub>)
    * </blockquote>
    */
   double computeImportance(RelSubset subset) {
