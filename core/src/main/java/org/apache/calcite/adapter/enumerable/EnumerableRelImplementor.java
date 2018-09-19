@@ -40,6 +40,8 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.VisitorImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.Collections2;
@@ -468,6 +470,11 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
   public EnumerableRel.Result result(PhysType physType, BlockStatement block) {
     return new EnumerableRel.Result(
         block, physType, ((PhysTypeImpl) physType).format);
+  }
+
+  public SqlConformance getConformance() {
+    return (SqlConformance) map.getOrDefault("_conformance",
+        SqlConformanceEnum.DEFAULT);
   }
 
   /** Visitor that finds types in an {@link Expression} tree. */

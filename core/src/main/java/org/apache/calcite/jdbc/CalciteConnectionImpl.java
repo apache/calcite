@@ -131,7 +131,6 @@ abstract class CalciteConnectionImpl
                 return true;
               }
             };
-        cfg.typeSystem(RelDataTypeSystem.class, RelDataTypeSystem.DEFAULT);
       }
       this.typeFactory = new JavaTypeFactoryImpl(typeSystem);
     }

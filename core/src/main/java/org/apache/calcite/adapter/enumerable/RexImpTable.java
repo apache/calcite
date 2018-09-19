@@ -1724,6 +1724,7 @@ public class RexImpTable {
   private static class TrimImplementor implements NotNullImplementor {
     public Expression implement(RexToLixTranslator translator, RexCall call,
         List<Expression> translatedOperands) {
+      final boolean strict = !translator.conformance.allowExtendedTrim();
       final Object value =
           ((ConstantExpression) translatedOperands.get(0)).value;
       SqlTrimFunction.Flag flag = (SqlTrimFunction.Flag) value;
@@ -1736,7 +1737,8 @@ public class RexImpTable {
               flag == SqlTrimFunction.Flag.BOTH
               || flag == SqlTrimFunction.Flag.TRAILING),
           translatedOperands.get(1),
-          translatedOperands.get(2));
+          translatedOperands.get(2),
+          Expressions.constant(strict));
     }
   }
 

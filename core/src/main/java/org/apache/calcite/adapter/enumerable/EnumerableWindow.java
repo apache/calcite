@@ -48,6 +48,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
@@ -273,7 +274,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
       final RexToLixTranslator translator =
           RexToLixTranslator.forAggregation(typeFactory, builder4,
-              inputGetter);
+              inputGetter, implementor.getConformance());
 
       final List<Expression> outputRow = new ArrayList<>();
       int fieldCountWithAggResults =
@@ -422,9 +423,9 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       final PhysType inputPhysTypeFinal = inputPhysType;
       final Function<BlockBuilder, WinAggFrameResultContext>
           resultContextBuilder =
-          getBlockBuilderWinAggFrameResultContextFunction(typeFactory, result,
-              translatedConstants, comparator_, rows_, i_, startX, endX,
-              minX, maxX,
+          getBlockBuilderWinAggFrameResultContextFunction(typeFactory,
+              implementor.getConformance(), result, translatedConstants,
+              comparator_, rows_, i_, startX, endX, minX, maxX,
               hasRows, frameRowCount, partitionRowCount,
               jDecl, inputPhysTypeFinal);
 
@@ -518,8 +519,8 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
   private Function<BlockBuilder, WinAggFrameResultContext>
       getBlockBuilderWinAggFrameResultContextFunction(
-      final JavaTypeFactory typeFactory, final Result result,
-      final List<Expression> translatedConstants,
+      final JavaTypeFactory typeFactory, final SqlConformance conformance,
+      final Result result, final List<Expression> translatedConstants,
       final Expression comparator_,
       final Expression rows_, final ParameterExpression i_,
       final Expression startX, final Expression endX,
@@ -538,7 +539,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
                 translatedConstants);
 
         return RexToLixTranslator.forAggregation(typeFactory,
-            block, inputGetter);
+            block, inputGetter, conformance);
       }
 
       public Expression computeIndex(Expression offset,

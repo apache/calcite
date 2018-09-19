@@ -5301,29 +5301,29 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("trim(cast(null as varchar(1)) from 'a')");
     tester.checkNull("trim('a' from cast(null as varchar(1)))");
 
-    if (Bug.FNL3_FIXED) {
-      // SQL:2003 6.29.9: trim string must have length=1. Failure occurs
-      // at runtime.
-      //
-      // TODO: Change message to "Invalid argument\(s\) for
-      // 'TRIM' function".
-      // The message should come from a resource file, and should still
-      // have the SQL error code 22027.
-      tester.checkFails(
-          "trim('xy' from 'abcde')",
-          "could not calculate results for the following row:\n"
-              + "\\[ 0 \\]\n"
-              + "Messages:\n"
-              + "\\[0\\]:PC=0 Code=22027 ",
-          true);
-      tester.checkFails(
-          "trim('' from 'abcde')",
-          "could not calculate results for the following row:\n"
-              + "\\[ 0 \\]\n"
-              + "Messages:\n"
-              + "\\[0\\]:PC=0 Code=22027 ",
-          true);
-    }
+    // SQL:2003 6.29.9: trim string must have length=1. Failure occurs
+    // at runtime.
+    //
+    // TODO: Change message to "Invalid argument\(s\) for
+    // 'TRIM' function".
+    // The message should come from a resource file, and should still
+    // have the SQL error code 22027.
+    tester.checkFails(
+        "trim('xy' from 'abcde')",
+        "trim error: trim character must be exactly 1 character",
+        true);
+    tester.checkFails(
+        "trim('' from 'abcde')",
+        "trim error: trim character must be exactly 1 character",
+        true);
+
+    final SqlTester tester1 = tester.withConformance(SqlConformanceEnum.MYSQL_5);
+    tester1.checkString(
+        "trim(leading 'eh' from 'hehe__hehe')", "__hehe", "VARCHAR(10) NOT NULL");
+    tester1.checkString(
+        "trim(trailing 'eh' from 'hehe__hehe')", "hehe__", "VARCHAR(10) NOT NULL");
+    tester1.checkString(
+        "trim('eh' from 'hehe__hehe')", "__", "VARCHAR(10) NOT NULL");
   }
 
   @Test public void testRtrimFunc() {
