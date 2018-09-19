@@ -37,7 +37,8 @@ import org.junit.runners.Suite;
     BlockBuilderTest.class,
     FunctionTest.class,
     TypeTest.class,
-    CorrelateJoinTest.class
+    CorrelateJoinTest.class,
+    JoinPreserveOrderTest.class
     })
 public class Linq4jSuite {
 }
