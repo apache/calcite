@@ -2389,7 +2389,8 @@ public class SqlFunctions {
         Field structField = beanClass.getDeclaredField(fieldName);
         return structField.get(structObject);
       } catch (NoSuchFieldException | IllegalAccessException ex) {
-        throw new IllegalStateException(ex);
+        throw new IllegalStateException("Failed to access field '" + fieldName
+            + "' of object of type " + beanClass.getName(), ex);
       }
     }
   }
