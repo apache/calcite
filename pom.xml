@@ -665,7 +665,7 @@ limitations under the License.
           <configuration>
             <threshold>High</threshold>
             <failOnError>true</failOnError>
-            <excludeFilterFile>spotbugs-filter.xml</excludeFilterFile>
+            <excludeFilterFile>${top.dir}/src/main/config/spotbugs/spotbugs-filter.xml</excludeFilterFile>
           </configuration>
           <executions>
             <execution>
