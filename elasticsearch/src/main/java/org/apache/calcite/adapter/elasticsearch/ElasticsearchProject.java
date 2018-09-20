@@ -102,7 +102,7 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
     }
 
     implementor.list.removeIf(l -> l.startsWith("\"_source\""));
-    implementor.add(query.toString());
+    implementor.add("{" + query.toString() + "}");
   }
 }
 
