@@ -7094,6 +7094,7 @@ public class JdbcTest {
     public MyTable[] mytable = { new MyTable() };
     public MyTable2[] mytable2 = { new MyTable2() };
   }
+
 }
 
 // End JdbcTest.java
