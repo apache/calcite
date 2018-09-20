@@ -58,7 +58,7 @@ Release          | Date       | Commit   | Download
 {% endcomment %}{% else %}{% comment %}
 {% endcomment %}{% assign digest = "md5" %}{% comment %}
 {% endcomment %}{% endif %}{% comment %}
-{% endcomment %}<a href="{{ site.baseurl }}/docs/history.html#{{ post.tag }}">{{ post.version }}</a>{% comment %}
+{% endcomment %}<a href="{{ site.baseurl }}/docs/go_history.html#{{ post.tag }}">{{ post.version }}</a>{% comment %}
 {% endcomment %} | {{ post.date | date_to_string }}{% comment %}
 {% endcomment %} | <a href="https://github.com/apache/calcite-avatica-go/commit/{{ post.sha }}">{{ post.sha }}</a>{% comment %}
 {% endcomment %}{% if d1 < d5 %}{% comment %}
