@@ -441,8 +441,6 @@ public class RexSimplify {
       }
       if (kind == pred.kind) {
         return rexBuilder.makeLiteral(true);
-      } else {
-        return rexBuilder.makeLiteral(false);
       }
     }
     return null;
