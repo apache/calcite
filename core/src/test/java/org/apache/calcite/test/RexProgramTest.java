@@ -1547,6 +1547,13 @@ public class RexProgramTest extends RexProgramBuilderBase {
             isNull(cRef)),
         "OR(IS NOT NULL(?0.b), IS NULL(?0.c))");
 
+    // "b is null or b is not false" unchanged
+    checkSimplifyFilter(
+        or(isNull(bRef),
+            isNotFalse(bRef)),
+        "OR(IS NULL(?0.b), IS NOT FALSE(?0.b))"
+    );
+
     // multiple predicates are handled correctly
     checkSimplifyFilter(
         and(
