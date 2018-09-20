@@ -44,7 +44,8 @@ import java.util.Set;
 public class ElasticsearchAggregate extends Aggregate implements ElasticsearchRel {
 
   private static final Set<SqlKind> SUPPORTED_AGGREGATIONS =
-      EnumSet.of(SqlKind.COUNT, SqlKind.MAX, SqlKind.MIN, SqlKind.AVG, SqlKind.SUM);
+      EnumSet.of(SqlKind.COUNT, SqlKind.MAX, SqlKind.MIN, SqlKind.AVG,
+          SqlKind.SUM, SqlKind.ANY_VALUE);
 
   /** Creates a ElasticsearchAggregate */
   ElasticsearchAggregate(RelOptCluster cluster,
@@ -106,7 +107,6 @@ public class ElasticsearchAggregate extends Aggregate implements ElasticsearchRe
   @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
     List<String> inputFields = fieldNames(getInput().getRowType());
-
     for (int group : groupSet) {
       implementor.addGroupBy(inputFields.get(group));
     }
@@ -118,10 +118,13 @@ public class ElasticsearchAggregate extends Aggregate implements ElasticsearchRe
       }
 
       final String name = names.isEmpty() ? ElasticsearchConstants.ID : names.get(0);
+      // for ANY_VALUE return just a single result
+      final String size = aggCall.getAggregation().getKind() == SqlKind.ANY_VALUE ? ", \"size\": 1"
+           : "";
 
-      String op = String.format(Locale.ROOT, "\"%s\":{\"field\": \"%s\"}",
+      final String op = String.format(Locale.ROOT, "{\"%s\":{\"field\": \"%s\" %s}}",
           toElasticAggregate(aggCall),
-          name);
+          name, size);
 
       implementor.addAggregation(aggCall.getName(), op);
     }
@@ -146,6 +149,8 @@ public class ElasticsearchAggregate extends Aggregate implements ElasticsearchRe
       return "max";
     case AVG:
       return "avg";
+    case ANY_VALUE:
+      return "terms";
     default:
       throw new IllegalArgumentException("Unknown aggregation kind " + kind + " for " + call);
     }
