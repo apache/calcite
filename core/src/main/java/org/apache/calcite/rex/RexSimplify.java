@@ -180,7 +180,8 @@ public class RexSimplify {
 
   private RexNode simplify_(RexNode e) {
     if (strong.isNull(e)) {
-      if (unknownAsFalse) {
+      // NULL integer must not be converted to FALSE even in unknownAsFalse mode
+      if (unknownAsFalse && e.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
         return rexBuilder.makeLiteral(false);
       }
       return rexBuilder.makeNullLiteral(e.getType());

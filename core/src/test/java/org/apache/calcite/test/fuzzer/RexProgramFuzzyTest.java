@@ -17,10 +17,13 @@
 package org.apache.calcite.test.fuzzer;
 
 import org.apache.calcite.plan.Strong;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.test.RexProgramBuilderBase;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -218,10 +221,18 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
     }
     if (STRONG.isNull(node)) {
       if (unknownAsFalse) {
-        if (!falseLiteral.equals(opt)) {
-          assertEquals(nodeToString(node)
-                  + " is always null, so it should simplify to FALSE " + uaf,
-              falseLiteral, opt);
+        if (node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
+          if (!falseLiteral.equals(opt)) {
+            assertEquals(nodeToString(node)
+                    + " is always null boolean, so it should simplify to FALSE " + uaf,
+                falseLiteral, opt);
+          }
+        } else {
+          if (!RexLiteral.isNullLiteral(opt)) {
+            assertEquals(nodeToString(node)
+                    + " is always null (non boolean), so it should simplify to NULL " + uaf,
+                rexBuilder.makeNullLiteral(node.getType()), opt);
+          }
         }
       } else {
         if (!RexUtil.isNull(opt)) {
@@ -230,6 +241,16 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
               nullBool, opt);
         }
       }
+    }
+    if (opt.getType().isNullable() && !node.getType().isNullable()) {
+      fail(nodeToString(node) + " had non-nullable type " + opt.getType()
+          + ", and it was optimized to " + nodeToString(opt)
+          + " that has nullable type " + opt.getType()
+          + ", " + uaf);
+    }
+    if (!SqlTypeUtil.equalSansNullability(typeFactory, node.getType(), opt.getType())) {
+      assertEquals(nodeToString(node) + " has different type after simplification to "
+          + nodeToString(opt), node.getType(), opt.getType());
     }
   }
 

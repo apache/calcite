@@ -2120,6 +2120,13 @@ public class RexProgramTest extends RexProgramBuilderBase {
         "...", "...");
   }
 
+  @Test
+  public void simplifyNull() {
+    checkSimplify2(nullBool, "null", "false");
+    // null int must not be simplified to false
+    checkSimplify2(nullInt, "null", "null");
+  }
+
   /** Converts a map to a string, sorting on the string representation of its
    * keys. */
   private static String getString(ImmutableMap<RexNode, RexNode> map) {
