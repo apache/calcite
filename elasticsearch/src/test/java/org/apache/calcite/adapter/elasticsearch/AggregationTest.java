@@ -220,6 +220,32 @@ public class AggregationTest {
             "cat1=b; cat3=z; EXPR$2=7.0; EXPR$3=42.0");
   }
 
+  /**
+   * Testing {@link org.apache.calcite.sql.SqlKind#ANY_VALUE} aggregate function
+   */
+  @Test
+  public void anyValue() throws Exception {
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select cat1, any_value(cat2) from view group by cat1")
+        .returnsUnordered("cat1=a; EXPR$1=g",
+            "cat1=null; EXPR$1=g",
+            "cat1=b; EXPR$1=h");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select cat2, any_value(cat1) from view group by cat2")
+        .returnsUnordered("cat2=g; EXPR$1=a", // EXPR$1=null is also valid
+            "cat2=h; EXPR$1=b");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select cat2, any_value(cat3) from view group by cat2")
+        .returnsUnordered("cat2=g; EXPR$1=y", // EXPR$1=null is also valid
+            "cat2=h; EXPR$1=z");
+
+  }
+
   @Test
   public void cat1Cat2Cat3() throws Exception {
     CalciteAssert.that()

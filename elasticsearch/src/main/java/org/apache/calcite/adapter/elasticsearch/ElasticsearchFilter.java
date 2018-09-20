@@ -99,7 +99,7 @@ public class ElasticsearchFilter extends Filter implements ElasticsearchRel {
       QueryBuilders.constantScoreQuery(PredicateAnalyzer.analyze(condition)).writeJson(generator);
       generator.flush();
       generator.close();
-      return "\"query\" : " + writer.toString();
+      return "{\"query\" : " + writer.toString() + "}";
     }
   }
 
