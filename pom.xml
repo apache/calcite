@@ -62,7 +62,7 @@ limitations under the License.
     <!-- Needed for JDK 10 javadoc for [LANG-1365] -->
     <commons-lang3.version>3.8</commons-lang3.version>
     <docker-maven-plugin.version>1.1.1</docker-maven-plugin.version>
-    <dropwizard-metrics3.version>3.1.2</dropwizard-metrics3.version>
+    <dropwizard-metrics.version>4.0.3</dropwizard-metrics.version>
     <forbiddenapis.version>2.6</forbiddenapis.version>
     <groovy-maven-plugin.version>2.1</groovy-maven-plugin.version>
     <!-- We support guava versions as old as 14.0.1 (the version used by Hive)
@@ -114,7 +114,7 @@ limitations under the License.
     <module>core</module>
     <module>docker</module>
     <module>metrics</module>
-    <module>metrics-dropwizardmetrics3</module>
+    <module>metrics-dropwizardmetrics</module>
     <module>noop-driver</module>
     <module>server</module>
     <module>tck</module>
