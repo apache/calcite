@@ -20,7 +20,7 @@ limitations under the License.
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>19</version>
+    <version>21</version>
   </parent>
   <groupId>org.apache.calcite.avatica</groupId>
   <artifactId>avatica-parent</artifactId>
@@ -57,47 +57,44 @@ limitations under the License.
     <version.minor>12</version.minor>
 
     <!-- This list is in alphabetical order. -->
-    <bouncycastle.version>1.59</bouncycastle.version>
+    <bouncycastle.version>1.60</bouncycastle.version>
     <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
-    <checksum-maven-plugin.version>1.2</checksum-maven-plugin.version>
     <!-- Needed for JDK 10 javadoc for [LANG-1365] -->
-    <commons-lang3.version>3.7</commons-lang3.version>
+    <commons-lang3.version>3.8</commons-lang3.version>
+    <docker-maven-plugin.version>1.1.1</docker-maven-plugin.version>
     <dropwizard-metrics3.version>3.1.2</dropwizard-metrics3.version>
     <forbiddenapis.version>2.6</forbiddenapis.version>
+    <groovy-maven-plugin.version>2.1</groovy-maven-plugin.version>
     <!-- We support guava versions as old as 14.0.1 (the version used by Hive)
          but prefer more recent versions. -->
     <guava.version>14.0.1</guava.version>
-    <h2.version>1.4.185</h2.version>
+    <h2.version>1.4.197</h2.version>
     <hamcrest.version>1.3</hamcrest.version>
     <hsqldb.version>2.4.1</hsqldb.version>
-    <httpclient.version>4.5.2</httpclient.version>
-    <httpcore.version>4.4.4</httpcore.version>
+    <httpclient.version>4.5.6</httpclient.version>
+    <httpcore.version>4.4.10</httpcore.version>
     <hydromatic-toolbox.version>0.3</hydromatic-toolbox.version>
     <jackson.version>2.9.6</jackson.version>
     <!-- Default to html4 for JDK 8 but html5 on jdk9+ -->
     <javadoc-additionalOptions />
     <javadoc-link>https://docs.oracle.com/javase/8/docs/api/</javadoc-link>
     <jcip-annotations.version>1.0-1</jcip-annotations.version>
-    <jcommander.version>1.48</jcommander.version>
+    <jcommander.version>1.72</jcommander.version>
     <jetty.version>9.4.11.v20180605</jetty.version>
     <junit.version>4.12</junit.version>
     <kerby.version>1.1.1</kerby.version>
-    <maven-assembly-plugin.version>3.0.0</maven-assembly-plugin.version>
+    <maven-assembly-plugin.version>3.1.0</maven-assembly-plugin.version>
     <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
-    <maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
-    <maven-enforcer-plugin.version>3.0.0-M1</maven-enforcer-plugin.version>
-    <!-- Apache 19 has 2.10.4, but need 3.0.1 for [MJAVADOC-517]. -->
-    <maven-javadoc-plugin.version>3.0.1</maven-javadoc-plugin.version>
-    <maven-scm-provider.version>1.9.4</maven-scm-provider.version>
-    <maven-shade-plugin.version>3.1.1</maven-shade-plugin.version>
-    <!-- Apache 19 has 2.20.1, but need 2.21.0+ for [MPOM-184] -->
-    <maven-surefire-plugin.version>2.21.0</maven-surefire-plugin.version>
-    <mockito.version>2.5.5</mockito.version>
-    <owasp-dependency-check.version>3.3.1</owasp-dependency-check.version>
-    <protobuf.version>3.5.1</protobuf.version>
+    <maven-enforcer-plugin.version>3.0.0-M2</maven-enforcer-plugin.version>
+    <maven-scm-provider.version>1.11.1</maven-scm-provider.version>
+    <mockito.version>2.22.0</mockito.version>
+    <os-maven-plugin.version>1.6.0</os-maven-plugin.version>
+    <owasp-dependency-check.version>3.3.2</owasp-dependency-check.version>
+    <protobuf.version>3.6.1</protobuf.version>
+    <protobuf-maven-plugin.version>0.5.1</protobuf-maven-plugin.version>
     <scott-data-hsqldb.version>0.1</scott-data-hsqldb.version>
-    <servlet.version>3.0.1</servlet.version>
-    <slf4j.version>1.7.13</slf4j.version>
+    <servlet.version>4.0.1</servlet.version>
+    <slf4j.version>1.7.25</slf4j.version>
   </properties>
   <issueManagement>
     <system>Jira</system>
@@ -316,7 +313,7 @@ limitations under the License.
       <extension>
         <groupId>kr.motd.maven</groupId>
         <artifactId>os-maven-plugin</artifactId>
-        <version>1.5.0.Final</version>
+        <version>${os-maven-plugin.version}</version>
       </extension>
     </extensions>
     <plugins>
@@ -506,7 +503,7 @@ limitations under the License.
         <plugin>
           <groupId>com.spotify</groupId>
           <artifactId>docker-maven-plugin</artifactId>
-          <version>0.4.13</version>
+          <version>${docker-maven-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>de.thetaphi</groupId>
@@ -514,9 +511,8 @@ limitations under the License.
           <version>${forbiddenapis.version}</version>
         </plugin>
         <plugin>
-          <groupId>net.ju-n.maven.plugins</groupId>
+          <groupId>net.nicoulaj.maven.plugins</groupId>
           <artifactId>checksum-maven-plugin</artifactId>
-          <version>${checksum-maven-plugin.version}</version>
         </plugin>
         <plugin>
           <artifactId>maven-assembly-plugin</artifactId>
@@ -527,9 +523,7 @@ limitations under the License.
           <version>${maven-checkstyle-plugin.version}</version>
         </plugin>
         <plugin>
-          <!-- override default version 2.8 for access to additional config settings -->
           <artifactId>maven-dependency-plugin</artifactId>
-          <version>${maven-dependency-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -577,18 +571,15 @@ limitations under the License.
         </plugin>
         <plugin>
           <artifactId>maven-javadoc-plugin</artifactId>
-          <version>${maven-javadoc-plugin.version}</version>
         </plugin>
         <plugin>
           <artifactId>maven-shade-plugin</artifactId>
-          <version>${maven-shade-plugin.version}</version>
         </plugin>
         <plugin>
           <artifactId>maven-source-plugin</artifactId>
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>${maven-surefire-plugin.version}</version>
           <configuration>
             <argLine>-Xmx1536m -XX:MaxPermSize=256m -Duser.timezone=${user.timezone}</argLine>
           </configuration>
@@ -601,7 +592,7 @@ limitations under the License.
         <plugin>
           <groupId>org.codehaus.gmaven</groupId>
           <artifactId>groovy-maven-plugin</artifactId>
-          <version>2.0</version>
+          <version>${groovy-maven-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>org.eclipse.m2e</groupId>
@@ -648,7 +639,7 @@ limitations under the License.
         <plugin>
           <groupId>org.xolstice.maven.plugins</groupId>
           <artifactId>protobuf-maven-plugin</artifactId>
-          <version>0.5.0</version>
+          <version>${protobuf-maven-plugin.version}</version>
           <configuration>
             <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
             <protoSourceRoot>${basedir}/src/main/protobuf/</protoSourceRoot>
@@ -709,23 +700,6 @@ limitations under the License.
               </execution>
             </executions>
           </plugin>
-          <plugin>
-            <groupId>net.ju-n.maven.plugins</groupId>
-            <artifactId>checksum-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>artifacts</goal>
-                </goals>
-              </execution>
-            </executions>
-            <configuration>
-              <algorithms>
-                <algorithm>SHA-256</algorithm>
-              </algorithms>
-              <failOnError>false</failOnError>
-            </configuration>
-          </plugin>
           <!-- Override the parent assembly execution to customize the assembly
                descriptor and final name. -->
           <plugin>
@@ -769,6 +743,24 @@ limitations under the License.
                 </configuration>
               </execution>
             </executions>
+          </plugin>
+          <plugin>
+            <groupId>net.nicoulaj.maven.plugins</groupId>
+            <artifactId>checksum-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>source-release-checksum</id>
+                <goals>
+                  <goal>artifacts</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <algorithms>
+                <algorithm>SHA-512</algorithm>
+              </algorithms>
+              <csvSummary>false</csvSummary>
+            </configuration>
           </plugin>
         </plugins>
       </build>
