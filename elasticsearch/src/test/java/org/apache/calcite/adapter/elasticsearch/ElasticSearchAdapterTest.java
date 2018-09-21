@@ -494,6 +494,34 @@ public class ElasticSearchAdapterTest {
   }
 
   /**
+   * Testing {@code NOT} operator
+   */
+  @Test
+  public void notOperator() {
+    // largest zips (states) in mini-zip by pop (sorted) : IL, NY, CA, MI
+    calciteAssert()
+        .query("select count(*), max(pop) from zips where state not in ('IL')")
+        .returns("EXPR$0=146; EXPR$1=111396\n");
+
+    calciteAssert()
+        .query("select count(*), max(pop) from zips where not state in ('IL')")
+        .returns("EXPR$0=146; EXPR$1=111396\n");
+
+    calciteAssert()
+        .query("select count(*), max(pop) from zips where not state not in ('IL')")
+        .returns("EXPR$0=3; EXPR$1=112047\n");
+
+    calciteAssert()
+        .query("select count(*), max(pop) from zips where state not in ('IL', 'NY')")
+        .returns("EXPR$0=143; EXPR$1=99568\n");
+
+    calciteAssert()
+        .query("select count(*), max(pop) from zips where state not in ('IL', 'NY', 'CA')")
+        .returns("EXPR$0=140; EXPR$1=84712\n");
+
+  }
+
+  /**
    * Checks
    * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html">Cardinality</a>
    * aggregation {@code approx_count_distinct}

@@ -134,6 +134,37 @@ public class BooleanLogicTest {
             +  "(c = '0' or (c = 'c' and num = 42))))");
   }
 
+  /**
+   * Tests negations ({@code NOT} operator).
+   */
+  @Test
+  public void notExpression() {
+    assertEmpty("select * from view where not a = 'a'");
+    assertSingle("select * from view where not not a = 'a'");
+    assertEmpty("select * from view where not not not a = 'a'");
+    assertSingle("select * from view where not a <> 'a'");
+    assertSingle("select * from view where not not not a <> 'a'");
+    assertEmpty("select * from view where not 'a' = a");
+    assertSingle("select * from view where not 'a' <> a");
+    assertSingle("select * from view where not a = 'b'");
+    assertSingle("select * from view where not 'b' = a");
+    assertEmpty("select * from view where not a in ('a')");
+    assertEmpty("select * from view where a not in ('a')");
+    assertSingle("select * from view where not a not in ('a')");
+    assertEmpty("select * from view where not a not in ('b')");
+    assertEmpty("select * from view where not not a not in ('a')");
+    assertSingle("select * from view where not not a not in ('b')");
+    assertEmpty("select * from view where not a in ('a', 'b')");
+    assertEmpty("select * from view where a not in ('a', 'b')");
+    assertEmpty("select * from view where not a not in ('z')");
+    assertEmpty("select * from view where not a not in ('z')");
+    assertSingle("select * from view where not a in ('z')");
+    assertSingle("select * from view where not (not num = 42 or not a in ('a', 'c'))");
+    assertEmpty("select * from view where not num > 0");
+    assertEmpty("select * from view where num = 42 and a not in ('a', 'c')");
+    assertSingle("select * from view where not (num > 42 or num < 42 and num = 42)");
+  }
+
   private void assertSingle(String query) {
     CalciteAssert.that()
             .with(newConnectionFactory())
