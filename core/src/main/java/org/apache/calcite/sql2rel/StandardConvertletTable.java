@@ -620,21 +620,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     final List<RexNode> exprs = convertExpressionList(cx, operands,
         SqlOperandTypeChecker.Consistency.NONE);
 
-    RelDataType int8Type =
-        cx.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-    final RexNode[] casts = new RexNode[2];
-    casts[0] =
-        rexBuilder.makeCast(
-            cx.getTypeFactory().createTypeWithNullability(
-                int8Type,
-                exprs.get(0).getType().isNullable()),
-            exprs.get(0));
-    casts[1] =
-        rexBuilder.makeCast(
-            cx.getTypeFactory().createTypeWithNullability(
-                int8Type,
-                exprs.get(1).getType().isNullable()),
-            exprs.get(1));
     final RelDataType resType =
         cx.getValidator().getValidatedNodeType(call);
     return rexBuilder.makeCall(resType, op, exprs.subList(0, 2));
