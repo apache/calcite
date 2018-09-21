@@ -228,7 +228,11 @@ public abstract class RexProgramBuilderBase {
   }
 
   protected RexNode case_(RexNode... nodes) {
-    return rexBuilder.makeCall(SqlStdOperatorTable.CASE, nodes);
+    return case_(ImmutableList.copyOf(nodes));
+  }
+
+  protected RexNode case_(Iterable<? extends RexNode> nodes) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.CASE, ImmutableList.copyOf(nodes));
   }
 
   /**

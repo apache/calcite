@@ -42,6 +42,7 @@ public class RexToTestCodeShuttle extends RexVisitorImpl<String> {
       ImmutableMap.<SqlOperator, String>builder()
           .put(SqlStdOperatorTable.AND, "and")
           .put(SqlStdOperatorTable.OR, "or")
+          .put(SqlStdOperatorTable.CASE, "case_")
           .put(SqlStdOperatorTable.COALESCE, "coalesce")
           .put(SqlStdOperatorTable.IS_NULL, "isNull")
           .put(SqlStdOperatorTable.IS_NOT_NULL, "isNotNull")

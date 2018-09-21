@@ -63,7 +63,7 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
 
   private static final Duration TEST_DURATION =
       Duration.of(Integer.getInteger("rex.fuzzing.duration", 5), ChronoUnit.SECONDS);
-  private static final long TEST_ITERATIONS = Long.getLong("rex.fuzzing.iterations", 20);
+  private static final long TEST_ITERATIONS = Long.getLong("rex.fuzzing.iterations", 18);
   // Stop fuzzing after detecting MAX_FAILURES errors
   private static final int MAX_FAILURES =
       Integer.getInteger("rex.fuzzing.max.failures", 1);
@@ -73,7 +73,7 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
   // 0 means use random seed
   // 42 is used to make sure tests pass in CI
   private static final long SEED =
-      Long.getLong("rex.fuzzing.seed", 43);
+      Long.getLong("rex.fuzzing.seed", 44);
 
   private PriorityQueue<SimplifyTask> slowestTasks;
 
@@ -290,7 +290,7 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
     if (testDuration.toMillis() == 0) {
       return;
     }
-    slowestTasks = new TopN<>(TOPN_SLOWEST);
+    slowestTasks = new TopN<>(topnSlowest > 0 ? topnSlowest : 1);
     Random r = new Random();
     if (startSeed != 0) {
       LOGGER.info("Using seed {} for rex fuzzing", startSeed);
