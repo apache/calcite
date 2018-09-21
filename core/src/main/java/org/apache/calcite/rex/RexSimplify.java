@@ -782,16 +782,22 @@ public class RexSimplify {
       }
       notSatisfiableNullables.add(notDisjunction);
     }
+
     if (notSatisfiableNullables != null) {
+      // Remove the intersection of "terms" and "notTerms"
       terms.removeAll(notSatisfiableNullables);
-      terms.add(rexBuilder.makeNullLiteral(notSatisfiableNullables.get(0).getType()));
+      notTerms.removeAll(notSatisfiableNullables);
+
+      // The intersection simplify to "null and x1 is null and x2 is null..."
+      List<RexNode> nullAndIsNullTerms = new ArrayList<>();
+
+      nullAndIsNullTerms.add(rexBuilder.makeNullLiteral(notSatisfiableNullables.get(0).getType()));
       for (RexNode notSatisfiableNullable : notSatisfiableNullables) {
-        terms.add(
+        nullAndIsNullTerms.add(
             simplifyIs((RexCall)
                 rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, notSatisfiableNullable)));
       }
-      // NULL AND (x IS NULL)
-      return rexBuilder.makeCall(SqlStdOperatorTable.AND, terms);
+      terms.addAll(nullAndIsNullTerms);
     }
     // Add the NOT disjunctions back in.
     for (RexNode notDisjunction : notTerms) {
