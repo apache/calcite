@@ -5280,6 +5280,15 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("substring(cast(null as varchar(1)),1,2)");
   }
 
+  @Test public void testFromBase64() {
+    tester.setFor(SqlStdOperatorTable.FROM_BASE64);
+    tester.checkString("from_base64('VGhpcyBpcyBhIHRlc3QgU3RyaW5nLg==')",
+            "This is a test String.",
+            "VARCHAR NOT NULL");
+
+    tester.checkNull("from_base64(cast(null as varchar(1)))");
+  }
+
   @Test public void testTrimFunc() {
     tester.setFor(SqlStdOperatorTable.TRIM);
 

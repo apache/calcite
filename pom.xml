@@ -135,7 +135,8 @@ limitations under the License.
     <sketches.version>0.9.0</sketches.version>
     <fmpp.version>0.9.16</fmpp.version>
 
-    <!-- Other properties (not version numbers) -->
+
+      <!-- Other properties (not version numbers) -->
     <maven-javadoc-plugin.excludePackageNames>
       org.apache.calcite.benchmarks.generated,
       org.apache.calcite.sql.parser.babel,

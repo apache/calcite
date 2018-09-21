@@ -1438,6 +1438,24 @@ public class RelToSqlConverterTest {
         .throws_("MSSQL SUBSTRING requires FROM and FOR arguments");
   }
 
+  @Test public void testFromBase64() {
+    final String query = "select from_base64(\"brand_name\") "
+            + "from \"product\"\n";
+    final String expectedOracle = "SELECT FROM_BASE64(\"brand_name\")\n"
+            + "FROM \"foodmart\".\"product\"";
+    final String expectedPostgresql = "SELECT FROM_BASE64(\"brand_name\")\n"
+            + "FROM \"foodmart\".\"product\"";
+    final String expectedMysql = "SELECT FROM_BASE64(`brand_name`)\n"
+            + "FROM `foodmart`.`product`";
+    sql(query)
+            .withOracle()
+            .ok(expectedOracle)
+            .withPostgresql()
+            .ok(expectedPostgresql)
+            .withMysql()
+            .ok(expectedMysql);
+  }
+
   @Test public void testSubstringWithFor() {
     final String query = "select substring(\"brand_name\" from 2 for 3) "
         + "from \"product\"\n";
