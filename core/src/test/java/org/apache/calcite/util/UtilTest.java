@@ -1113,6 +1113,12 @@ public class UtilTest {
     final List<String> anb0 = Arrays.asList("A", null, "B");
     assertEquals(anb, anb0);
     assertEquals(anb.hashCode(), anb0.hashCode());
+    assertEquals(anb + ".indexOf(null)", 1, anb.indexOf(null));
+    assertEquals(anb + ".lastIndexOf(null)", 1, anb.lastIndexOf(null));
+    assertEquals(anb + ".indexOf(B)", 2, anb.indexOf("B"));
+    assertEquals(anb + ".lastIndexOf(A)", 0, anb.lastIndexOf("A"));
+    assertEquals(anb + ".indexOf(Z)", -1, anb.indexOf("Z"));
+    assertEquals(anb + ".lastIndexOf(Z)", -1, anb.lastIndexOf("Z"));
 
     // Comparisons
     assertThat(emp, instanceOf(Comparable.class));

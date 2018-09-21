@@ -350,7 +350,7 @@ public class FlatLists {
           return 0;
         }
       } else {
-        if (t0.equals(o)) {
+        if (o.equals(t0)) {
           return 0;
         }
       }
@@ -363,7 +363,7 @@ public class FlatLists {
           return 0;
         }
       } else {
-        if (t0.equals(o)) {
+        if (o.equals(t0)) {
           return 0;
         }
       }
@@ -473,10 +473,10 @@ public class FlatLists {
           return 1;
         }
       } else {
-        if (t0.equals(o)) {
+        if (o.equals(t0)) {
           return 0;
         }
-        if (t1.equals(o)) {
+        if (o.equals(t1)) {
           return 1;
         }
       }
@@ -492,10 +492,10 @@ public class FlatLists {
           return 0;
         }
       } else {
-        if (t1.equals(o)) {
+        if (o.equals(t1)) {
           return 1;
         }
-        if (t0.equals(o)) {
+        if (o.equals(t0)) {
           return 0;
         }
       }
@@ -613,13 +613,13 @@ public class FlatLists {
           return 2;
         }
       } else {
-        if (t0.equals(o)) {
+        if (o.equals(t0)) {
           return 0;
         }
-        if (t1.equals(o)) {
+        if (o.equals(t1)) {
           return 1;
         }
-        if (t2.equals(o)) {
+        if (o.equals(t2)) {
           return 2;
         }
       }
@@ -638,13 +638,13 @@ public class FlatLists {
           return 0;
         }
       } else {
-        if (t2.equals(o)) {
+        if (o.equals(t2)) {
           return 2;
         }
-        if (t1.equals(o)) {
+        if (o.equals(t1)) {
           return 1;
         }
-        if (t0.equals(o)) {
+        if (o.equals(t0)) {
           return 0;
         }
       }
@@ -772,16 +772,16 @@ public class FlatLists {
           return 3;
         }
       } else {
-        if (t0.equals(o)) {
+        if (o.equals(t0)) {
           return 0;
         }
-        if (t1.equals(o)) {
+        if (o.equals(t1)) {
           return 1;
         }
-        if (t2.equals(o)) {
+        if (o.equals(t2)) {
           return 2;
         }
-        if (t3.equals(o)) {
+        if (o.equals(t3)) {
           return 3;
         }
       }
@@ -803,16 +803,16 @@ public class FlatLists {
           return 0;
         }
       } else {
-        if (t3.equals(o)) {
+        if (o.equals(t3)) {
           return 3;
         }
-        if (t2.equals(o)) {
+        if (o.equals(t2)) {
           return 2;
         }
-        if (t1.equals(o)) {
+        if (o.equals(t1)) {
           return 1;
         }
-        if (t0.equals(o)) {
+        if (o.equals(t0)) {
           return 0;
         }
       }
@@ -950,19 +950,19 @@ public class FlatLists {
           return 4;
         }
       } else {
-        if (t0.equals(o)) {
+        if (o.equals(t0)) {
           return 0;
         }
-        if (t1.equals(o)) {
+        if (o.equals(t1)) {
           return 1;
         }
-        if (t2.equals(o)) {
+        if (o.equals(t2)) {
           return 2;
         }
-        if (t3.equals(o)) {
+        if (o.equals(t3)) {
           return 3;
         }
-        if (t4.equals(o)) {
+        if (o.equals(t4)) {
           return 4;
         }
       }
@@ -987,19 +987,19 @@ public class FlatLists {
           return 0;
         }
       } else {
-        if (t4.equals(o)) {
+        if (o.equals(t4)) {
           return 4;
         }
-        if (t3.equals(o)) {
+        if (o.equals(t3)) {
           return 3;
         }
-        if (t2.equals(o)) {
+        if (o.equals(t2)) {
           return 2;
         }
-        if (t1.equals(o)) {
+        if (o.equals(t1)) {
           return 1;
         }
-        if (t0.equals(o)) {
+        if (o.equals(t0)) {
           return 0;
         }
       }
@@ -1148,22 +1148,22 @@ public class FlatLists {
           return 5;
         }
       } else {
-        if (t0.equals(o)) {
+        if (o.equals(t0)) {
           return 0;
         }
-        if (t1.equals(o)) {
+        if (o.equals(t1)) {
           return 1;
         }
-        if (t2.equals(o)) {
+        if (o.equals(t2)) {
           return 2;
         }
-        if (t3.equals(o)) {
+        if (o.equals(t3)) {
           return 3;
         }
-        if (t4.equals(o)) {
+        if (o.equals(t4)) {
           return 4;
         }
-        if (t5.equals(o)) {
+        if (o.equals(t5)) {
           return 5;
         }
       }
@@ -1191,22 +1191,22 @@ public class FlatLists {
           return 0;
         }
       } else {
-        if (t5.equals(o)) {
+        if (o.equals(t5)) {
           return 5;
         }
-        if (t4.equals(o)) {
+        if (o.equals(t4)) {
           return 4;
         }
-        if (t3.equals(o)) {
+        if (o.equals(t3)) {
           return 3;
         }
-        if (t2.equals(o)) {
+        if (o.equals(t2)) {
           return 2;
         }
-        if (t1.equals(o)) {
+        if (o.equals(t1)) {
           return 1;
         }
-        if (t0.equals(o)) {
+        if (o.equals(t0)) {
           return 0;
         }
       }
