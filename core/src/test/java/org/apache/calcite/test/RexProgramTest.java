@@ -1479,6 +1479,24 @@ public class RexProgramTest extends RexProgramBuilderBase {
         and(gt(aRef, literal1),
             gt(aRef, literal10)),
         ">(?0.a, 10)");
+
+    // "null AND NOT(null OR x)" => "null AND NOT(x)"
+    checkSimplify2(
+        and(nullBool,
+            not(or(nullBool, vBool()))),
+        "AND(null, NOT(?0.bool0))",
+        "false");
+
+    // "x1 AND x2 AND x3 AND NOT(x1) AND NOT(x2) AND NOT(x0)" =>
+    // "x3 AND null AND x1 IS NULL AND x2 IS NULL AND NOT(x0)"
+    checkSimplify2(
+        and(vBool(1), vBool(2),
+            vBool(3), not(vBool(1)),
+            not(vBool(2)), not(vBool())),
+        "AND(?0.bool3, null, IS NULL(?0.bool1),"
+            + " IS NULL(?0.bool2), NOT(?0.bool0))",
+        "false"
+    );
   }
 
   @Test public void testSimplifyOrTerms() {
