@@ -146,6 +146,38 @@ public class RexUtil {
   }
 
   /**
+   * Returns whether a node represents the true literal
+   * @param node The node
+   * @return Whether the node is a true literal
+   */
+  public static boolean isTrueLiteral(RexNode node) {
+    if (node instanceof RexLiteral) {
+      RexLiteral literal = (RexLiteral) node;
+      if (literal.getType().getSqlTypeName() == SqlTypeName.BOOLEAN
+          && RexLiteral.booleanValue(literal)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Returns whether a node represents the false literal
+   * @param node The node
+   * @return Whether the node is a false literal
+   */
+  public static boolean isFalseLiteral(RexNode node) {
+    if (node instanceof RexLiteral) {
+      RexLiteral literal = (RexLiteral) node;
+      if (literal.getType().getSqlTypeName() == SqlTypeName.BOOLEAN
+          && !RexLiteral.booleanValue(literal)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Returns whether a node represents the NULL value.
    *
    * <p>Examples:

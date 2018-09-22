@@ -378,9 +378,9 @@ public class RexSimplify {
       // NOT NOT x ==> x
       return simplify_(((RexCall) a).getOperands().get(0));
     case LITERAL:
-      if (a.isAlwaysTrue()) {
+      if (RexUtil.isTrueLiteral(a)) {
         return rexBuilder.makeLiteral(false);
-      } else if (a.isAlwaysFalse()) {
+      } else if (RexUtil.isFalseLiteral(a)) {
         return rexBuilder.makeLiteral(true);
       }
     }
