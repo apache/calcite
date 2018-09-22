@@ -373,15 +373,16 @@ public class RexSimplify {
 
   private RexNode simplifyNot(RexCall call) {
     final RexNode a = call.getOperands().get(0);
-    if (a.isAlwaysTrue()) {
-      return rexBuilder.makeLiteral(false);
-    } else if (a.isAlwaysFalse()) {
-      return rexBuilder.makeLiteral(true);
-    }
     switch (a.getKind()) {
     case NOT:
       // NOT NOT x ==> x
       return simplify_(((RexCall) a).getOperands().get(0));
+    case LITERAL:
+      if (a.isAlwaysTrue()) {
+        return rexBuilder.makeLiteral(false);
+      } else if (a.isAlwaysFalse()) {
+        return rexBuilder.makeLiteral(true);
+      }
     }
     final SqlKind negateKind = a.getKind().negate();
     if (a.getKind() != negateKind) {
