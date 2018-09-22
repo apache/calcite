@@ -379,7 +379,7 @@ public class RexSimplify {
       return simplify_(((RexCall) a).getOperands().get(0));
     case LITERAL:
       if (a.getType().getSqlTypeName() == SqlTypeName.BOOLEAN
-          && ((RexLiteral) a).getValue() != null) {
+          && !RexLiteral.isNullLiteral(a)) {
         return rexBuilder.makeLiteral(!RexLiteral.booleanValue(a));
       }
     }
