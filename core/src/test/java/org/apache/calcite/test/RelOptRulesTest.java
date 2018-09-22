@@ -2435,7 +2435,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .build();
 
     // The resulting plan should have no cast expressions
-    checkPlanning(program,
+    checkPlanUnchanged(new HepPlanner(program),
         "select cast(d.name as varchar(128)), cast(e.empno as integer) "
             + "from dept as d inner join emp as e "
             + "on cast(d.deptno as integer) = cast(e.deptno as integer) "

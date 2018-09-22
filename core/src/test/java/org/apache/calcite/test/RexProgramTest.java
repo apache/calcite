@@ -701,6 +701,19 @@ public class RexProgramTest extends RexProgramBuilderBase {
                 varCharType11, rexBuilder.makeInputRef(varCharType10, 0))), is(true));
   }
 
+  @Test public void removeRedundantCast() {
+    checkSimplify(cast(vInt(), nullable(tInt())), "?0.int0");
+    checkSimplify(cast(vInt(), tInt()), "CAST(?0.int0):INTEGER NOT NULL");
+    checkSimplify(cast(vIntNotNull(), nullable(tInt())), "CAST(?0.notNullInt0):INTEGER");
+    checkSimplify(cast(vIntNotNull(), tInt()), "?0.notNullInt0");
+
+    // Nested int int cast is removed
+    checkSimplify(cast(cast(vVarchar(), tInt()), tInt()), "CAST(?0.varchar0):INTEGER NOT NULL");
+    checkSimplify(cast(cast(vVarchar(), tInt()), tVarchar()),
+        "CAST(CAST(?0.varchar0):INTEGER NOT NULL):VARCHAR CHARACTER SET \"ISO-8859-1\" "
+            + "COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL");
+  }
+
   /** Unit test for {@link org.apache.calcite.rex.RexUtil#toCnf}. */
   @Test public void testCnf() {
     final RelDataType booleanType =

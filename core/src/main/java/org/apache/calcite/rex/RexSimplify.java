@@ -1250,6 +1250,9 @@ public class RexSimplify {
       return Objects.requireNonNull(
           Iterables.getOnlyElement(reducedValues));
     default:
+      if (operand.getType().equals(e.getType())) {
+        return simplify_(operand);
+      }
       return e;
     }
   }
