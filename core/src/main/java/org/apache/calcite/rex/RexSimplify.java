@@ -378,10 +378,14 @@ public class RexSimplify {
       // NOT NOT x ==> x
       return simplify_(((RexCall) a).getOperands().get(0));
     case LITERAL:
-      if (RexUtil.isTrueLiteral(a)) {
-        return rexBuilder.makeLiteral(false);
-      } else if (RexUtil.isFalseLiteral(a)) {
-        return rexBuilder.makeLiteral(true);
+      RexLiteral literal = (RexLiteral) a;
+      if (literal.getType().getSqlTypeName() == SqlTypeName.BOOLEAN
+          && literal.getValue() != null) {
+        if (RexLiteral.booleanValue(literal)) {
+          return rexBuilder.makeLiteral(false);
+        } else  {
+          return rexBuilder.makeLiteral(true);
+        }
       }
     }
     final SqlKind negateKind = a.getKind().negate();
