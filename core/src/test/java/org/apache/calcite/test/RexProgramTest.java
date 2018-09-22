@@ -2162,27 +2162,50 @@ public class RexProgramTest extends RexProgramBuilderBase {
     return map2.toString();
   }
 
-  @Test public void testSimplifyNot() {
+  @Test public void testSimplifyFalse() {
     final RelDataType booleanNullableType =
         typeFactory.createTypeWithNullability(
             typeFactory.createSqlType(SqlTypeName.BOOLEAN), true);
-    final RexNode booleanInput = rexBuilder.makeInputRef(booleanNullableType, 0);
-    final RexNode isFalse = rexBuilder.makeCall(SqlStdOperatorTable.IS_FALSE, booleanInput);
+    final RexNode booleanInput = input(booleanNullableType, 0);
+    final RexNode isFalse = isFalse(booleanInput);
     final RexCall result = (RexCall) simplify(isFalse);
     assertThat(result.getType().isNullable(), is(false));
-    assertThat(result.getOperator(), is((SqlOperator) SqlStdOperatorTable.IS_FALSE));
+    assertThat(result.getOperator(), is(SqlStdOperatorTable.IS_FALSE));
     assertThat(result.getOperands().size(), is(1));
     assertThat(result.getOperands().get(0), is(booleanInput));
 
     // Make sure that IS_FALSE(IS_FALSE(nullable boolean)) != IS_TRUE(nullable boolean)
     // IS_FALSE(IS_FALSE(null)) = IS_FALSE(false) = true
     // IS_TRUE(null) = false
-    final RexNode isFalseIsFalse = rexBuilder.makeCall(SqlStdOperatorTable.IS_FALSE, isFalse);
+    final RexNode isFalseIsFalse = isFalse(isFalse);
     final RexCall result2 = (RexCall) simplify(isFalseIsFalse);
     assertThat(result2.getType().isNullable(), is(false));
-    assertThat(result2.getOperator(), is((SqlOperator) SqlStdOperatorTable.IS_NOT_FALSE));
+    assertThat(result2.getOperator(), is(SqlStdOperatorTable.IS_NOT_FALSE));
     assertThat(result2.getOperands().size(), is(1));
     assertThat(result2.getOperands().get(0), is(booleanInput));
+  }
+
+  @Test public void testSimplifyNot() {
+    // "NOT(NOT(x))" => "x"
+    checkSimplify(not(not(vBool())), "?0.bool0");
+    // "NOT(true)"  => "false"
+    checkSimplify(not(trueLiteral), "false");
+    // "NOT(false)" => "true"
+    checkSimplify(not(falseLiteral), "true");
+    // "NOT(IS FALSE(x))" => "IS NOT FALSE(x)"
+    checkSimplify(not(isFalse(vBool())), "IS NOT FALSE(?0.bool0)");
+    // "NOT(IS TRUE(x))" => "IS NOT TRUE(x)"
+    checkSimplify(not(isTrue(vBool())), "IS NOT TRUE(?0.bool0)");
+    // "NOT(IS NULL(x))" => "IS NOT NULL(x)"
+    checkSimplify(not(isNull(vBool())), "IS NOT NULL(?0.bool0)");
+    // "NOT(IS NOT NULL(x)) => "IS NULL(x)"
+    checkSimplify(not(isNotNull(vBool())), "IS NULL(?0.bool0)");
+    // "NOT(AND(x0,x1))" => "OR(NOT(x0),NOT(x1))"
+    checkSimplify(not(and(vBool(0), vBool(1))),
+        "OR(NOT(?0.bool0), NOT(?0.bool1))");
+    // "NOT(OR(x0,x1))" => "AND(NOT(x0),NOT(x1))"
+    checkSimplify(not(or(vBool(0), vBool(1))),
+        "AND(NOT(?0.bool0), NOT(?0.bool1))");
   }
 
   private RexNode simplify(RexNode e) {
