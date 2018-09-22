@@ -628,9 +628,6 @@ class PredicateAnalyzer {
 
 
     @Override public QueryBuilder builder() {
-      if (builder == null) {
-        throw new IllegalStateException("builder was not set");
-      }
       return builder;
     }
 
