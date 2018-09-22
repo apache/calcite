@@ -4199,11 +4199,20 @@ LogicalProject(ENAME=[$1])
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-ProjectRel(DNAME=[$10], ENAME=[$1])
-  FilterRel(condition=[=($10, 'Propane')])
-    JoinRel(condition=[=($7, $9)], joinType=[inner])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
-      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(DNAME=[$10], ENAME=[$1])
+  LogicalFilter(condition=[=($10, 'Propane')])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalCalc(expr#0..10=[{inputs}], DNAME=[$t10], ENAME=[$t1])
+  LogicalCalc(expr#0..10=[{inputs}], expr#11=[=($t7, $t9)], expr#12=['Propane'], expr#13=[=($t10, $t12)], expr#14=[AND($t11, $t13)], proj#0..10=[{exprs}], $condition=[$t14])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -4432,11 +4441,20 @@ LogicalProject(ENAME=[$1])
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-UnionRel(all=[true])
-  ProjectRel(EXPR$0=[UPPER($1)])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
-  ProjectRel(EXPR$0=[LOWER($1)])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalUnion(all=[true])
+  LogicalProject(EXPR$0=[UPPER($1)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EXPR$0=[LOWER($1)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalUnion(all=[true])
+  LogicalCalc(expr#0..8=[{inputs}], expr#9=[UPPER($t1)], EXPR$0=[$t9])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalCalc(expr#0..8=[{inputs}], expr#9=[LOWER($t1)], EXPR$0=[$t9])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>

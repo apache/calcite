@@ -22,6 +22,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptListener;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
@@ -34,11 +35,25 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
+import org.apache.calcite.rel.rules.ReduceExpressionsRule;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.test.RelBuilderTest;
+import org.apache.calcite.tools.NoMergeProjectRelBuilder;
+import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RuleSet;
+import org.apache.calcite.tools.RuleSets;
+
+import com.google.common.collect.ImmutableList;
 
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -60,6 +75,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Unit test for {@link VolcanoPlanner the optimizer}.
@@ -470,6 +486,88 @@ public class VolcanoPlannerTest {
         RelOptListener.RelChosenEvent.class,
         null,
         null);
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2223">[CALCITE-2223]
+   * ProjectMergeRule is infinitely matched when is applied after ProjectReduceExpressionsRule</a>.
+   */
+  @Test(timeout = 10000)
+  public void testOomProjectMergeRule() {
+    // It is important to use NoMergeProjectRelBuilder here, otherwise the test-case is not right.
+    // Plain RelBuilder collapses projects and the case becomes not that interesting for planner.
+    RelBuilder relBuilder = NoMergeProjectRelBuilder.create(RelBuilderTest.config().build());
+
+    RexBuilder rexBuilder = relBuilder.getRexBuilder();
+
+    RexLiteral zeroLiteral = rexBuilder.makeExactLiteral(BigDecimal.ZERO);
+    RexNode zeroPlusZero = rexBuilder.makeCall(SqlStdOperatorTable.PLUS, zeroLiteral, zeroLiteral);
+    RexNode zeroEqZero = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, zeroPlusZero, zeroLiteral);
+    RexLiteral x = rexBuilder.makeLiteral("x");
+
+    // The following pattern is used:   CASE when 0+0=0 then f0 else 'x' end
+    // The idea is RexSimplify does not reduce 0+0
+    RelNode relNode = relBuilder
+        .values(new String[]{"f"}, "1")
+        .project(
+            relBuilder.alias(
+                rexBuilder.makeCall(SqlStdOperatorTable.CASE,
+                    zeroEqZero, relBuilder.field(0), x),
+                "f"))
+        .project(
+            relBuilder.alias(
+                rexBuilder.makeCall(SqlStdOperatorTable.CASE,
+                    zeroEqZero, relBuilder.field(0), x),
+                "f"))
+        .project(
+            relBuilder.alias(
+                rexBuilder.makeCall(SqlStdOperatorTable.CASE,
+                    zeroEqZero, relBuilder.field(0), x),
+                "f"))
+        .project(
+            relBuilder.alias(
+                rexBuilder.makeCall(SqlStdOperatorTable.CASE,
+                    zeroEqZero, relBuilder.field(0), x),
+                "f0"),
+            relBuilder.alias(relBuilder.field(0), "f"))
+        .project(
+            relBuilder.alias(relBuilder.field(0), "f"))
+        .build();
+
+    RelOptPlanner planner = relNode.getCluster().getPlanner();
+    RuleSet ruleSet =
+        RuleSets.ofList(
+            ReduceExpressionsRule.PROJECT_INSTANCE,
+            new ProjectMergeRuleWithLongerName(),
+            EnumerableRules.ENUMERABLE_PROJECT_RULE,
+            EnumerableRules.ENUMERABLE_VALUES_RULE);
+    Program program = Programs.of(ruleSet);
+
+    RelTraitSet toTraits =
+        relNode.getCluster().traitSet()
+            .replace(0, EnumerableConvention.INSTANCE);
+
+    TestListener listener = new TestListener();
+    planner.addListener(listener);
+
+    RelNode output = program.run(planner, relNode, toTraits,
+        ImmutableList.of(), ImmutableList.of());
+
+    // Expected outcomes are:
+    // 1) relation is optimized to simple VALUES
+    // 2) the number of rule invocations is reasonable
+    // 3) planner does not throw OutOfMemoryError
+    assertEquals(
+        "EnumerableValues.ENUMERABLE.[0](type=RecordType(CHAR(1) f),tuples=[{ '1' }])",
+        output.getDigest());
+
+    List<RelOptListener.RelEvent> plannerEvents = listener.getEventList();
+    // As of 2018-09-23 planner produces 101 events.
+    if (plannerEvents.size() > 500) {
+      fail("Too many rules fired: " + plannerEvents.size()
+          + ". The test expects less than 500 planner events to appear");
+    }
   }
 
   private void checkEvent(

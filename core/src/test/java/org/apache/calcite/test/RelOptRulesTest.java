@@ -1350,7 +1350,6 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "(select * from emp e1 union all select * from emp e2) r2");
   }
 
-  @Ignore("cycles")
   @Test public void testMergeFilterWithJoinCondition() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(TableScanRule.INSTANCE)
@@ -1617,7 +1616,6 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).with(program).checkUnchanged();
   }
 
-  @Ignore("cycles")
   @Test public void testHeterogeneousConversion() throws Exception {
     // This one tests the planner's ability to correctly
     // apply different converters on top of a common

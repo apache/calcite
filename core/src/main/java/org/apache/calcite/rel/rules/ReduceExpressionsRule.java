@@ -604,17 +604,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     }
 
     // Compute the values they reduce to.
-    RexExecutor executor = rel.getCluster().getPlanner().getExecutor();
-    if (executor == null) {
-      // Cannot reduce expressions: caller has not set an executor in their
-      // environment. Caller should execute something like the following before
-      // invoking the planner:
-      //
-      // final RexExecutorImpl executor =
-      //   new RexExecutorImpl(Schemas.createDataContext(null));
-      // rootRel.getCluster().getPlanner().setExecutor(executor);
-      return changed;
-    }
+    final RexExecutor executor =
+        Util.first(rel.getCluster().getPlanner().getExecutor(), RexUtil.EXECUTOR);
 
     final List<RexNode> reducedValues = new ArrayList<>();
     executor.reduce(simplify.rexBuilder, constExps2, reducedValues);

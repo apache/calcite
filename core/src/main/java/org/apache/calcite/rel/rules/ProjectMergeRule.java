@@ -68,6 +68,10 @@ public class ProjectMergeRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    return call.rel(0).getConvention() == call.rel(1).getConvention();
+  }
+
   public void onMatch(RelOptRuleCall call) {
     final Project topProject = call.rel(0);
     final Project bottomProject = call.rel(1);
