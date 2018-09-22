@@ -28,6 +28,9 @@ import org.apache.calcite.linq4j.tree.Shuttle;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.lang.reflect.Method;
+import java.util.function.Function;
+
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.FOUR;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
@@ -123,6 +126,36 @@ public class BlockBuilderTest {
         Expressions.toString(outer.toBlock()));
   }
 
+  /**
+   * CALCITE-2413: RexToLixTranslator does not generate correct declaration of Methods with
+   * generic return types
+   */
+  @Test public void genericMethodCall() throws NoSuchMethodException {
+    BlockBuilder bb = new BlockBuilder();
+    bb.append("_i",
+        Expressions.call(
+            Expressions.new_(Identity.class),
+            Identity.class.getMethod("apply", Object.class),
+            Expressions.constant("test")));
+
+    assertEquals(
+        "{\n"
+            + "  final Object _i = new org.apache.calcite.linq4j.test.BlockBuilderTest.Identity()"
+            + ".apply(\"test\");\n"
+            + "}\n",
+        Expressions.toString(bb.toBlock()));
+
+  }
+
+  /**
+   * Class with generics to validate if {@link Expressions#call(Method, Expression...)} works.
+   * @param <I> result type
+   */
+  static class Identity<I> implements Function<I, I> {
+    @Override public I apply(I i) {
+      return i;
+    }
+  }
 
 }
 
