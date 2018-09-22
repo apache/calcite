@@ -381,11 +381,7 @@ public class RexSimplify {
       RexLiteral literal = (RexLiteral) a;
       if (literal.getType().getSqlTypeName() == SqlTypeName.BOOLEAN
           && literal.getValue() != null) {
-        if (RexLiteral.booleanValue(literal)) {
-          return rexBuilder.makeLiteral(false);
-        } else  {
-          return rexBuilder.makeLiteral(true);
-        }
+        return rexBuilder.makeLiteral(!RexLiteral.booleanValue(literal));
       }
     }
     final SqlKind negateKind = a.getKind().negate();
