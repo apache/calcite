@@ -1582,6 +1582,12 @@ public class RexProgramTest extends RexProgramBuilderBase {
             or(eq(aRef, literal3),
                 eq(aRef, literal4))),
         "AND(=(?0.b, 2), =(?0.a, 3))");
+
+    checkSimplify2(
+        or(lt(vInt(), nullInt),
+            ne(literal(0), vInt())),
+        "OR(null, <>(0, ?0.int0))",
+        "<>(0, ?0.int0)");
   }
 
   @Test public void testSimplifyUnknown() {
