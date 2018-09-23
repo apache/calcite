@@ -17,16 +17,20 @@
 package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptListener;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
@@ -49,6 +53,7 @@ import static org.apache.calcite.plan.volcano.PlannerTests.PhysLeafRule;
 import static org.apache.calcite.plan.volcano.PlannerTests.PhysSingleRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.TestSingleRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
+import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
@@ -325,6 +330,44 @@ public class VolcanoPlannerTest {
     assertEquals(
         "c",
         resultLeaf.label);
+  }
+
+  @Ignore("CALCITE-2592 EnumerableMergeJoin is never taken")
+  @Test public void testMergeJoin() {
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+
+    // Below two lines are important for the planner to use collation trait and generate merge join
+    planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
+    planner.registerAbstractRelationalRules();
+
+    planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+    planner.addRule(EnumerableRules.ENUMERABLE_VALUES_RULE);
+    planner.addRule(EnumerableRules.ENUMERABLE_SORT_RULE);
+
+    RelOptCluster cluster = newCluster(planner);
+
+    RelBuilder relBuilder = RelFactories.LOGICAL_BUILDER.create(cluster, null);
+    RelNode logicalPlan = relBuilder
+        .values(new String[]{"id", "name"}, "2", "a", "1", "b")
+        .values(new String[]{"id", "name"}, "1", "x", "2", "y")
+        .join(JoinRelType.INNER, "id")
+        .build();
+
+    RelTraitSet desiredTraits =
+        cluster.traitSet().replace(EnumerableConvention.INSTANCE);
+    final RelNode newRoot = planner.changeTraits(logicalPlan, desiredTraits);
+    planner.setRoot(newRoot);
+
+    RelNode bestExp = planner.findBestExp();
+
+    final String plan = ""
+        + "EnumerableMergeJoin(condition=[=($0, $2)], joinType=[inner])\n"
+        + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+        + "    EnumerableValues(tuples=[[{ '2', 'a' }, { '1', 'b' }]])\n"
+        + "  EnumerableValues(tuples=[[{ '1', 'x' }, { '2', 'y' }]])\n";
+    assertThat("Merge join + sort is expected", plan,
+        isLinux(RelOptUtil.toString(bestExp)));
   }
 
   /**
