@@ -47,6 +47,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.Reader;
 import java.io.Writer;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.sql.Connection;
@@ -192,7 +193,15 @@ public abstract class QuidemTest {
 
   @Test public void test() throws Exception {
     if (method != null) {
-      method.invoke(this);
+      try {
+        method.invoke(this);
+      } catch (InvocationTargetException e) {
+        Throwable cause = e.getCause();
+        if (cause instanceof Exception) {
+          throw (Exception) cause;
+        }
+        throw e;
+      }
     } else {
       checkRun(path);
     }
