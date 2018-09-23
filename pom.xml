@@ -85,6 +85,7 @@ limitations under the License.
     <kerby.version>1.1.1</kerby.version>
     <maven-assembly-plugin.version>3.1.0</maven-assembly-plugin.version>
     <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
+    <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
     <maven-enforcer-plugin.version>3.0.0-M2</maven-enforcer-plugin.version>
     <maven-scm-provider.version>1.11.1</maven-scm-provider.version>
     <!-- ASF 21 provides 3.1.1 but need 3.2.0 due to MSHADE-289 -->
@@ -409,9 +410,12 @@ limitations under the License.
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
-          <compilerArgument>-Xlint:deprecation</compilerArgument>
+          <source>8</source>
+          <target>8</target>
+          <compilerArgs>
+            <arg>-Xlint:deprecation</arg>
+          </compilerArgs>
+          <failOnWarning>true</failOnWarning>
         </configuration>
       </plugin>
       <plugin>
@@ -529,6 +533,10 @@ limitations under the License.
         <plugin>
           <artifactId>maven-checkstyle-plugin</artifactId>
           <version>${maven-checkstyle-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${maven-compiler-plugin.version}</version>
         </plugin>
         <plugin>
           <artifactId>maven-dependency-plugin</artifactId>
@@ -655,7 +663,6 @@ limitations under the License.
             <protoSourceRoot>${basedir}/src/main/protobuf/</protoSourceRoot>
             <outputDirectory>${basedir}/src/main/java/</outputDirectory>
             <clearOutputDirectory>false</clearOutputDirectory>
-            <checkStaleness>true</checkStaleness>
           </configuration>
         </plugin>
         <plugin>
