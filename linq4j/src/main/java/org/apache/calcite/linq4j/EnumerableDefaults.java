@@ -1372,10 +1372,12 @@ public abstract class EnumerableDefaults {
       boolean generateNullsOnLeft,
       boolean generateNullsOnRight) {
     if (generateNullsOnLeft) {
-      throw new UnsupportedOperationException("not implemented, mergeJoin with generateNullsOnLeft");
+      throw new UnsupportedOperationException(
+        "not implemented, mergeJoin with generateNullsOnLeft");
     }
     if (generateNullsOnRight) {
-      throw new UnsupportedOperationException("not implemented, mergeJoin with generateNullsOnRight");
+      throw new UnsupportedOperationException(
+        "not implemented, mergeJoin with generateNullsOnRight");
     }
     return new AbstractEnumerable<TResult>() {
       public Enumerator<TResult> enumerator() {
@@ -3267,9 +3269,10 @@ public abstract class EnumerableDefaults {
         TKey leftKey2 = outerKeySelector.apply(left);
         int c = leftKey.compareTo(leftKey2);
         if (c != 0) {
-          if (c < 0) {
+          if (c > 0) {
             throw new IllegalStateException(
-              "not sorted, " + leftKey + " is less than " + leftKey2);
+              "mergeJoin assumes sorted in ascending order input, "
+                 + "however " + leftKey + " is less than " + leftKey2);
           }
           break;
         }
@@ -3286,9 +3289,10 @@ public abstract class EnumerableDefaults {
         TKey rightKey2 = innerKeySelector.apply(right);
         int c = rightKey.compareTo(rightKey2);
         if (c != 0) {
-          if (c < 0) {
+          if (c > 0) {
             throw new IllegalStateException(
-              "not sorted, " + rightKey + " is less than " + rightKey2);
+              "mergeJoin assumes sorted in ascending order input, "
+                 + "however " + rightKey + " is less than " + rightKey2);
           }
           break;
         }
