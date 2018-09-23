@@ -323,9 +323,8 @@ class RuleQueue {
    * the rule referenced by the match.
    */
   void addMatch(VolcanoRuleMatch match) {
-    final String matchName = match.toString();
     for (PhaseMatchList matchList : matchListMap.values()) {
-      if (!matchList.names.add(matchName)) {
+      if (!matchList.duplicateMatches.add(match)) {
         // Identical match has already been added.
         continue;
       }
@@ -339,7 +338,7 @@ class RuleQueue {
         }
       }
 
-      LOGGER.trace("{} Rule-match queued: {}", matchList.phase.toString(), matchName);
+      LOGGER.trace("{} Rule-match queued: {}", matchList.phase, match);
 
       matchList.list.add(match);
 
@@ -482,11 +481,6 @@ class RuleQueue {
         break;
       }
     }
-
-    // A rule match's digest is composed of the operand RelNodes' digests,
-    // which may have changed if sets have merged since the rule match was
-    // enqueued.
-    match.recomputeDigest();
 
     phaseMatchList.matchMap.remove(
         planner.getSubset(match.rels[0]), match);
@@ -670,7 +664,7 @@ class RuleQueue {
      * A set of rule-match names contained in {@link #list}. Allows fast
      * detection of duplicate rule-matches.
      */
-    final Set<String> names = new HashSet<>();
+    final Set<VolcanoRuleMatch> duplicateMatches = new HashSet<>();
 
     /**
      * Multi-map of RelSubset to VolcanoRuleMatches. Used to
@@ -688,7 +682,7 @@ class RuleQueue {
 
     void clear() {
       list.clear();
-      names.clear();
+      duplicateMatches.clear();
       matchMap.clear();
     }
   }

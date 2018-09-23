@@ -214,12 +214,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    */
   RelOptListener listener;
 
-  /**
-   * Dump of the root relational expression, as it was before any rules were
-   * applied. For debugging.
-   */
-  private String originalRootString;
-
   private RelNode originalRoot;
 
   /**
@@ -306,8 +300,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     if (this.originalRoot == null) {
       this.originalRoot = rel;
     }
-    this.originalRootString =
-        RelOptUtil.toString(root, SqlExplainLevel.ALL_ATTRIBUTES);
 
     // Making a node the root changes its importance.
     this.ruleQueue.recompute(this.root);
@@ -1158,7 +1150,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   public void dump(PrintWriter pw) {
     pw.println("Root: " + root.getDescription());
     pw.println("Original rel:");
-    pw.println(originalRootString);
+    pw.println(RelOptUtil.toString(root, SqlExplainLevel.ALL_ATTRIBUTES));
     pw.println("Sets:");
     Ordering<RelSet> ordering = Ordering.from(Comparator.comparingInt(o -> o.id));
     for (RelSet set : ordering.immutableSortedCopy(allSets)) {
@@ -1503,8 +1495,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           Litmus.THROW);
       RelSet equivSet = getSet(equivExp);
       if (equivSet != null) {
-        LOGGER.trace(
-            "Register: rel#{} is equivalent to {}", rel.getId(), equivExp.getDescription());
+        if (LOGGER.isTraceEnabled()) {
+          LOGGER.trace(
+              "Register: rel#{} is equivalent to {}", rel.getId(), equivExp.getDescription());
+        }
         return registerSubset(set, getSubset(equivExp));
       }
     }
@@ -1573,7 +1567,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     final RelNode xx = mapDigestToRel.put(key, rel);
     assert xx == null || xx == rel : rel.getDigest();
 
-    LOGGER.trace("Register {} in {}", rel.getDescription(), subset.getDescription());
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace("Register {} in {}", rel.getDescription(), subset.getDescription());
+    }
 
     // This relational expression may have been registered while we
     // recursively registered its children. If this is the case, we're done.

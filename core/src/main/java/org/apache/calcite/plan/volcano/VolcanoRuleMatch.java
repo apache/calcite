@@ -21,9 +21,12 @@ import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.Litmus;
+import org.apache.calcite.util.Util;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * A match of a rule to a particular set of target relational expressions,
@@ -34,7 +37,6 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
 
   private final RelSet targetSet;
   private RelSubset targetSubset;
-  private String digest;
   private double cachedImportance = Double.NaN;
 
   //~ Constructors -----------------------------------------------------------
@@ -56,14 +58,9 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
     // for now -- that the set is the same as the root relexp.
     targetSet = volcanoPlanner.getSet(rels[0]);
     assert targetSet != null : rels[0].toString() + " isn't in a set";
-    digest = computeDigest();
   }
 
   //~ Methods ----------------------------------------------------------------
-
-  public String toString() {
-    return digest;
-  }
 
   /**
    * Clears the cached importance value of this rule match. The importance
@@ -131,31 +128,41 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
     return importance;
   }
 
-  /**
-   * Computes a string describing this rule match. Two rule matches are
-   * equivalent if and only if their digests are the same.
-   *
-   * @return description of this rule match
-   */
-  private String computeDigest() {
-    StringBuilder buf =
-        new StringBuilder("rule [" + getRule() + "] rels [");
-    for (int i = 0; i < rels.length; i++) {
-      if (i > 0) {
-        buf.append(", ");
-      }
-      buf.append(rels[i].toString());
+  @Override public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
-    buf.append("]");
-    return buf.toString();
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    VolcanoRuleMatch that = (VolcanoRuleMatch) o;
+    if (rels.length != that.rels.length) {
+      return false;
+    }
+    for (int i = 0; i < rels.length; i++) {
+      if (rels[i].getId() != that.rels[i].getId()) {
+        return false;
+      }
+    }
+
+    return Objects.equals(getRule().toString(), that.getRule().toString());
   }
 
-  /**
-   * Recomputes the digest of this VolcanoRuleMatch. It is necessary when sets
-   * have merged since the match was created.
-   */
-  public void recomputeDigest() {
-    digest = computeDigest();
+  @Override public int hashCode() {
+    int result = getRule().toString().hashCode();
+    for (int i = 0; i < rels.length; i++) {
+      result = result * 31 + Integer.hashCode(rels[i].getId());
+    }
+    return result;
+  }
+
+  public String toString() {
+    return Util.toString(
+        Arrays.asList(rels),
+        "rule [" + getRule() + "] rels [",
+        ", ",
+        "]");
   }
 
   /**

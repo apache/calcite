@@ -68,11 +68,6 @@ public abstract class AbstractRelNode implements RelNode {
   //~ Instance fields --------------------------------------------------------
 
   /**
-   * Description, consists of id plus digest.
-   */
-  private String desc;
-
-  /**
    * Cached type of this relational expression.
    */
   protected RelDataType rowType;
@@ -83,8 +78,6 @@ public abstract class AbstractRelNode implements RelNode {
    * is equivalent if and only if it has the same value. Computed by
    * {@link #computeDigest}, assigned by {@link #onRegister}, returned by
    * {@link #getDigest()}.
-   *
-   * @see #desc
    */
   protected String digest;
 
@@ -112,7 +105,6 @@ public abstract class AbstractRelNode implements RelNode {
     this.traitSet = traitSet;
     this.id = NEXT_ID.getAndIncrement();
     this.digest = getRelTypeName() + "#" + id;
-    this.desc = digest;
     LOGGER.trace("new {}", digest);
   }
 
@@ -356,7 +348,6 @@ public abstract class AbstractRelNode implements RelNode {
     String tempDigest = computeDigest();
     assert tempDigest != null : "computeDigest() should be non-null";
 
-    this.desc = "rel#" + id + ":" + tempDigest;
     this.digest = tempDigest;
     return this.digest;
   }
@@ -368,11 +359,11 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   public String toString() {
-    return desc;
+    return getDescription();
   }
 
   public final String getDescription() {
-    return desc;
+    return "rel#" + id + ":" + getDigest();
   }
 
   public final String getDigest() {

@@ -889,7 +889,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       // reachable from here.
       notifyDiscard(vertex.getCurrentRel());
     }
-    String oldDigest = vertex.getCurrentRel().toString();
+    String oldDigest = vertex.getCurrentRel().getDigest();
     if (mapDigestToVertex.get(oldDigest) == vertex) {
       mapDigestToVertex.remove(oldDigest);
     }
