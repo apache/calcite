@@ -198,7 +198,8 @@ public class TestRunner implements Runnable {
     TestRunner runner = new TestRunner();
 
     // Parse the args, sets it on runner.
-    new JCommander(runner, args);
+    JCommander jc = new JCommander(runner);
+    jc.parse(args);
 
     // Run the tests.
     runner.run();

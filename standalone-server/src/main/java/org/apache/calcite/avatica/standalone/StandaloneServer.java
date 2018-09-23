@@ -96,7 +96,8 @@ public class StandaloneServer {
 
   public static void main(String[] args) {
     final StandaloneServer server = new StandaloneServer();
-    JCommander jc = new JCommander(server, args);
+    JCommander jc = new JCommander(server);
+    jc.parse(args);
     if (server.help) {
       jc.usage();
       Unsafe.systemExit(ExitCodes.USAGE.ordinal());
