@@ -108,6 +108,12 @@ class RuleQueue {
    */
   private final Map<VolcanoPlannerPhase, Set<String>> phaseRuleMapping;
 
+
+  /**
+   * Queue that is used in {@link #checkDuplicateSubsets(Deque, RelOptRuleOperand, RelNode[])}.
+   */
+  private final Deque<RelSubset> subSetsQueue = new ArrayDeque<>();
+
   //~ Constructors -----------------------------------------------------------
 
   RuleQueue(VolcanoPlanner planner) {
@@ -493,8 +499,7 @@ class RuleQueue {
    * {@link RelNode}s have importance zero. */
   private boolean skipMatch(VolcanoRuleMatch match) {
     for (RelNode rel : match.rels) {
-      Double importance = planner.relImportances.get(rel);
-      if (importance != null && importance == 0d) {
+      if (planner.shouldSkipRel(rel)) {
         return true;
       }
     }
@@ -509,10 +514,12 @@ class RuleQueue {
     //   Project(A, X = X + 0 + 0)
     //   Project(A, X = X + 0 + 0 + 0)
     // also in the same subset. They are valid but useless.
-    final Deque<RelSubset> subsets = new ArrayDeque<>();
+    final Deque<RelSubset> subsets = subSetsQueue;
+    subsets.clear(); // just in case
     try {
       checkDuplicateSubsets(subsets, match.rule.getOperand(), match.rels);
     } catch (Util.FoundOne e) {
+      subsets.clear(); // just in case
       return true;
     }
     return false;

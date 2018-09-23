@@ -179,28 +179,19 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       // in which case we don't need any runtime decision
       // about filtering.
       if (newConditionExp.isAlwaysTrue()) {
+        call.getPlanner().setImportance(filter, 0.0);
         call.transformTo(
             filter.getInput());
       } else if (newConditionExp instanceof RexLiteral
           || RexUtil.isNullLiteral(newConditionExp, true)) {
+        call.getPlanner().setImportance(filter, 0.0);
         call.transformTo(createEmptyRelOrEquivalent(call, filter));
       } else if (reduced) {
+        call.getPlanner().setImportance(filter, 0.0);
         call.transformTo(call.builder()
             .push(filter.getInput())
             .filter(newConditionExp).build());
-      } else {
-        if (newConditionExp instanceof RexCall) {
-          boolean reverse = newConditionExp.getKind() == SqlKind.NOT;
-          if (reverse) {
-            newConditionExp = ((RexCall) newConditionExp).getOperands().get(0);
-          }
-          reduceNotNullableFilter(call, filter, newConditionExp, reverse);
-        }
-        return;
       }
-
-      // New plan is absolutely better than old plan.
-      call.getPlanner().setImportance(filter, 0.0);
     }
 
     /**
@@ -225,41 +216,6 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       return call.builder().push(input).empty().build();
     }
 
-    private void reduceNotNullableFilter(
-        RelOptRuleCall call,
-        Filter filter,
-        RexNode rexNode,
-        boolean reverse) {
-      // If the expression is a IS [NOT] NULL on a non-nullable
-      // column, then we can either remove the filter or replace
-      // it with an Empty.
-      boolean alwaysTrue;
-      switch (rexNode.getKind()) {
-      case IS_NULL:
-      case IS_UNKNOWN:
-        alwaysTrue = false;
-        break;
-      case IS_NOT_NULL:
-        alwaysTrue = true;
-        break;
-      default:
-        return;
-      }
-      if (reverse) {
-        alwaysTrue = !alwaysTrue;
-      }
-      RexNode operand = ((RexCall) rexNode).getOperands().get(0);
-      if (operand instanceof RexInputRef) {
-        RexInputRef inputRef = (RexInputRef) operand;
-        if (!inputRef.getType().isNullable()) {
-          if (alwaysTrue) {
-            call.transformTo(filter.getInput());
-          } else {
-            call.transformTo(createEmptyRelOrEquivalent(call, filter));
-          }
-        }
-      }
-    }
   }
 
   /**
@@ -287,14 +243,15 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           Lists.newArrayList(project.getProjects());
       if (reduceExpressions(project, expList, predicates, false,
           matchNullability)) {
+        // New plan is absolutely better than old plan.
+        call.getPlanner().setImportance(project, 0.0);
+
         call.transformTo(
             call.builder()
                 .push(project.getInput())
                 .project(expList, project.getRowType().getFieldNames())
                 .build());
 
-        // New plan is absolutely better than old plan.
-        call.getPlanner().setImportance(project, 0.0);
       }
     }
   }
@@ -341,6 +298,9 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           return;
         }
       }
+      // New plan is absolutely better than old plan.
+      call.getPlanner().setImportance(join, 0.0);
+
       call.transformTo(
           join.copy(
               join.getTraitSet(),
@@ -349,9 +309,6 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
               join.getRight(),
               join.getJoinType(),
               join.isSemiJoinDone()));
-
-      // New plan is absolutely better than old plan.
-      call.getPlanner().setImportance(join, 0.0);
     }
   }
 
@@ -390,6 +347,9 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
       if (reduceExpressions(calc, expandedExprList, predicates, false,
           matchNullability)) {
+        // New plan is absolutely better than old plan.
+        call.getPlanner().setImportance(calc, 0.0);
+
         final RexProgramBuilder builder =
             new RexProgramBuilder(
                 calc.getInput().getRowType(),
@@ -424,9 +384,6 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         }
         call.transformTo(
             calc.copy(calc.getTraitSet(), calc.getInput(), builder.getProgram()));
-
-        // New plan is absolutely better than old plan.
-        call.getPlanner().setImportance(calc, 0.0);
       }
     }
 

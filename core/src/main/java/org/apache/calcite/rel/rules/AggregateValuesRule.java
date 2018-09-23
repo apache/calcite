@@ -99,12 +99,12 @@ public class AggregateValuesRule extends RelOptRule {
       }
     }
 
+    // New plan is absolutely better than old plan.
+    call.getPlanner().setImportance(aggregate, 0.0);
+
     call.transformTo(
         relBuilder.values(ImmutableList.of(literals), aggregate.getRowType())
             .build());
-
-    // New plan is absolutely better than old plan.
-    call.getPlanner().setImportance(aggregate, 0.0);
   }
 }
 

@@ -71,15 +71,15 @@ public class SortRemoveConstantKeysRule extends RelOptRule {
 
     // No active collations. Remove the sort completely
     if (collationsList.isEmpty() && sort.offset == null && sort.fetch == null) {
-      call.transformTo(input);
       call.getPlanner().setImportance(sort, 0.0);
+      call.transformTo(input);
       return;
     }
 
+    call.getPlanner().setImportance(sort, 0.0);
     final Sort result =
         sort.copy(sort.getTraitSet(), input, RelCollations.of(collationsList));
     call.transformTo(result);
-    call.getPlanner().setImportance(sort, 0.0);
   }
 }
 

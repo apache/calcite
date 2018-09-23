@@ -180,9 +180,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
           return;
         }
 
-        final Double importance =
-            volcanoPlanner.relImportances.get(rel);
-        if ((importance != null) && (importance == 0d)) {
+        if (volcanoPlanner.shouldSkipRel(rel)) {
           LOGGER.debug("Rule [{}] not fired because operand #{} ({}) has importance=0",
               getRule(), i, rel);
           return;
@@ -301,6 +299,9 @@ public class VolcanoRuleCall extends RelOptRuleCall {
       }
 
       for (RelNode rel : successors) {
+        if (volcanoPlanner.shouldSkipRel(rel)) {
+          continue;
+        }
         if (!operand.matches(rel)) {
           continue;
         }
