@@ -1372,10 +1372,10 @@ public abstract class EnumerableDefaults {
       boolean generateNullsOnLeft,
       boolean generateNullsOnRight) {
     if (generateNullsOnLeft) {
-      throw new UnsupportedOperationException("not implemented");
+      throw new UnsupportedOperationException("not implemented, mergeJoin with generateNullsOnLeft");
     }
     if (generateNullsOnRight) {
-      throw new UnsupportedOperationException("not implemented");
+      throw new UnsupportedOperationException("not implemented, mergeJoin with generateNullsOnRight");
     }
     return new AbstractEnumerable<TResult>() {
       public Enumerator<TResult> enumerator() {
