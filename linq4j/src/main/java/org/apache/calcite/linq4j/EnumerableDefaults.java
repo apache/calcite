@@ -3271,7 +3271,7 @@ public abstract class EnumerableDefaults {
         if (c != 0) {
           if (c > 0) {
             throw new IllegalStateException(
-              "mergeJoin assumes sorted in ascending order input, "
+              "mergeJoin assumes inputs sorted in ascending order, "
                  + "however " + leftKey + " is greater than " + leftKey2);
           }
           break;
@@ -3291,7 +3291,7 @@ public abstract class EnumerableDefaults {
         if (c != 0) {
           if (c > 0) {
             throw new IllegalStateException(
-              "mergeJoin assumes sorted in ascending order input, "
+              "mergeJoin assumes input sorted in ascending order, "
                  + "however " + rightKey + " is greater than " + rightKey2);
           }
           break;
