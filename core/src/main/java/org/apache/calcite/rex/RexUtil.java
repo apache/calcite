@@ -1872,7 +1872,9 @@ public class RexUtil {
                 RexCall call2 = (RexCall) e2;
                 if (call2.getOperands().get(0)
                     .equals(call.getOperands().get(0))
-                    && call2.getOperands().get(1) instanceof RexLiteral) {
+                    && call2.getOperands().get(1) instanceof RexLiteral
+                    && !call.getOperands().get(1)
+                          .equals(call2.getOperands().get(1))) {
                   return false;
                 }
               }
