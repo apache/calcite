@@ -907,7 +907,9 @@ limitations under the License.
                javadoc on private methods. The configuration for "mvn site" is
                under "reporting", and is more lenient. -->
           <configuration>
-            <additionalOptions>${maven-javadoc-html5}</additionalOptions>
+            <additionalOptions>
+              <additionalOption>${maven-javadoc-html5}</additionalOption>
+            </additionalOptions>
             <doclint>all,-missing</doclint>
             <failOnWarnings>true</failOnWarnings>
             <links>
@@ -1200,7 +1202,8 @@ limitations under the License.
         <jdk>1.8</jdk>
       </activation>
       <properties>
-        <maven-javadoc-html5/>
+        <!-- Java 1.8 does not support -html5, so we pass another harmles option -->
+        <maven-javadoc-html5>-notimestamp</maven-javadoc-html5>
       </properties>
     </profile>
   </profiles>
