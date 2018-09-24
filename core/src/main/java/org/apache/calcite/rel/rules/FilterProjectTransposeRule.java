@@ -24,6 +24,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexUtil;
@@ -51,7 +53,7 @@ public class FilterProjectTransposeRule extends RelOptRule {
    * {@link org.apache.calcite.rel.core.Correlate} from being de-correlated.
    */
   public static final FilterProjectTransposeRule INSTANCE =
-      new FilterProjectTransposeRule(Filter.class, Project.class, true, true,
+      new FilterProjectTransposeRule(LogicalFilter.class, LogicalProject.class, true, true,
           RelFactories.LOGICAL_BUILDER);
 
   private final boolean copyFilter;
@@ -129,6 +131,10 @@ public class FilterProjectTransposeRule extends RelOptRule {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  @Override public boolean matches(RelOptRuleCall call) {
+    return call.rel(0).getConvention() == call.rel(1).getConvention();
+  }
 
   public void onMatch(RelOptRuleCall call) {
     final Filter filter = call.rel(0);

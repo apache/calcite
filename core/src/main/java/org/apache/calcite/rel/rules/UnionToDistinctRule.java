@@ -43,7 +43,7 @@ public class UnionToDistinctRule extends RelOptRule {
    */
   public UnionToDistinctRule(Class<? extends Union> unionClazz,
       RelBuilderFactory relBuilderFactory) {
-    super(operand(unionClazz, any()), relBuilderFactory, null);
+    super(operandJ(unionClazz, null, u -> !u.all, any()), relBuilderFactory, null);
   }
 
   @Deprecated // to be removed before 2.0
@@ -56,9 +56,6 @@ public class UnionToDistinctRule extends RelOptRule {
 
   public void onMatch(RelOptRuleCall call) {
     final Union union = call.rel(0);
-    if (union.all) {
-      return; // nothing to do
-    }
     final RelBuilder relBuilder = call.builder();
     relBuilder.pushAll(union.getInputs());
     relBuilder.union(true, union.getInputs().size());

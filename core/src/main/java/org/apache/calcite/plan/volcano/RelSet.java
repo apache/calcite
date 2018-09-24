@@ -103,6 +103,11 @@ class RelSet {
 
   //~ Methods ----------------------------------------------------------------
 
+
+  @Override public String toString() {
+    return "RelSet#" + id;
+  }
+
   /**
    * Returns all of the {@link RelNode}s which reference {@link RelNode}s in
    * this set.

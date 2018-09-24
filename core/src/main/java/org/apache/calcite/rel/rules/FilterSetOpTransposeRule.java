@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
@@ -49,7 +50,12 @@ public class FilterSetOpTransposeRule extends RelOptRule {
   public FilterSetOpTransposeRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(Filter.class,
-            operand(SetOp.class, any())),
+            operandJ(SetOp.class,
+                null,
+                // When LOGICAL_BUILDER is used, match only relations with NONE (logical) convention
+                r -> relBuilderFactory != RelFactories.LOGICAL_BUILDER
+                    || r.getConvention() == null
+                    || r.getConvention() == Convention.NONE, any())),
         relBuilderFactory, null);
   }
 
@@ -60,11 +66,14 @@ public class FilterSetOpTransposeRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    return call.rel(0).getConvention() == call.rel(1).getConvention();
+  }
+
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
     Filter filterRel = call.rel(0);
     SetOp setOp = call.rel(1);
-
     RexNode condition = filterRel.getCondition();
 
     // create filters on top of each setop child, modifying the filter
@@ -83,7 +92,8 @@ public class FilterSetOpTransposeRule extends RelOptRule {
                   origFields,
                   input.getRowType().getFieldList(),
                   adjustments));
-      newSetOpInputs.add(relBuilder.push(input).filter(newCondition).build());
+      newSetOpInputs.add(
+          relBuilder.push(input).filter(newCondition).build());
     }
 
     // create a new setop whose children are the filters created above
