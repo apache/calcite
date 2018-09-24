@@ -1368,8 +1368,14 @@ public abstract class EnumerableDefaults {
       final Function2<TSource, TInner, TResult> resultSelector,
       boolean generateNullsOnLeft,
       boolean generateNullsOnRight) {
-    assert !generateNullsOnLeft : "not implemented";
-    assert !generateNullsOnRight : "not implemented";
+    if (generateNullsOnLeft) {
+      throw new UnsupportedOperationException(
+        "not implemented, mergeJoin with generateNullsOnLeft");
+    }
+    if (generateNullsOnRight) {
+      throw new UnsupportedOperationException(
+        "not implemented, mergeJoin with generateNullsOnRight");
+    }
     return new AbstractEnumerable<TResult>() {
       public Enumerator<TResult> enumerator() {
         return new MergeJoinEnumerator<>(outer.enumerator(),
@@ -3254,7 +3260,11 @@ public abstract class EnumerableDefaults {
         TKey leftKey2 = outerKeySelector.apply(left);
         int c = leftKey.compareTo(leftKey2);
         if (c != 0) {
-          assert c < 0 : "not sorted";
+          if (c > 0) {
+            throw new IllegalStateException(
+              "mergeJoin assumes inputs sorted in ascending order, "
+                 + "however " + leftKey + " is greater than " + leftKey2);
+          }
           break;
         }
         lefts.add(left);
@@ -3270,7 +3280,11 @@ public abstract class EnumerableDefaults {
         TKey rightKey2 = innerKeySelector.apply(right);
         int c = rightKey.compareTo(rightKey2);
         if (c != 0) {
-          assert c < 0 : "not sorted";
+          if (c > 0) {
+            throw new IllegalStateException(
+              "mergeJoin assumes input sorted in ascending order, "
+                 + "however " + rightKey + " is greater than " + rightKey2);
+          }
           break;
         }
         rights.add(right);
