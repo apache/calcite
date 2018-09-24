@@ -545,7 +545,7 @@ public class MaterializationTest {
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
             "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], "
-                + "expr#3=[+($t1, $t2)], $f0=[$t3], deptno=[$t0])\n"
+                + "expr#3=[+($t1, $t2)], C=[$t3], deptno=[$t0])\n"
                 + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($2)])\n"
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
   }

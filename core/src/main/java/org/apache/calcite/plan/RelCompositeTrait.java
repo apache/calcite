@@ -52,11 +52,13 @@ class RelCompositeTrait<T extends RelMultipleTrait> implements RelTrait {
 
   /** Creates a RelCompositeTrait. The constituent traits are canonized. */
   @SuppressWarnings("unchecked")
-  static <T extends RelMultipleTrait> RelCompositeTrait<T> of(RelTraitDef def,
+  static <T extends RelMultipleTrait> RelTrait of(RelTraitDef def,
       List<T> traitList) {
     final RelCompositeTrait<T> compositeTrait;
     if (traitList.isEmpty()) {
-      compositeTrait = new EmptyCompositeTrait<>(def);
+      return def.getDefault();
+    } else if (traitList.size() == 1) {
+      return def.canonize(traitList.get(0));
     } else {
       final RelMultipleTrait[] traits =
           traitList.toArray(new RelMultipleTrait[0]);
@@ -129,22 +131,6 @@ class RelCompositeTrait<T extends RelMultipleTrait> implements RelTrait {
 
   public int size() {
     return traits.length;
-  }
-
-  /** Composite trait with 0 elements.
-   *
-   * @param <T> trait type */
-  private static class EmptyCompositeTrait<T extends RelMultipleTrait>
-      extends RelCompositeTrait<T> {
-    private EmptyCompositeTrait(RelTraitDef traitDef) {
-      //noinspection unchecked
-      super(traitDef, (T[]) new RelMultipleTrait[0]);
-    }
-
-    @Override public boolean satisfies(RelTrait trait) {
-      //noinspection unchecked
-      return ((T) trait).isTop();
-    }
   }
 }
 
