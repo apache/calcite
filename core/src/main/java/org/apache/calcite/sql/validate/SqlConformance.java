@@ -372,6 +372,27 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean shouldConvertRaggedUnionTypesToVarying();
+
+  /**
+   * Whether TRIM should support more than one trim character.
+   *
+   * <p>For example, consider the query
+   *
+   * <blockquote><pre>SELECT TRIM('eh' FROM 'hehe__hehe')</pre></blockquote>
+   *
+   * <p>Under strict behavior, if the length of trim character is not 1,
+   * an exception should be thrown. This query will result in an exception.
+   * However many implimentations trim all the characters resulting in
+   * a return value of '__'.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#LENIENT},
+   * {@link SqlConformanceEnum#MYSQL_5},
+   * {@link SqlConformanceEnum#SQL_SERVER_2008};
+   * false otherwise.
+   */
+  boolean allowExtendedTrim();
 }
 
 // End SqlConformance.java

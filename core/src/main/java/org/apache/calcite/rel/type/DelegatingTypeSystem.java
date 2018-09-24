@@ -94,6 +94,10 @@ public class DelegatingTypeSystem implements RelDataTypeSystem {
   public boolean shouldConvertRaggedUnionTypesToVarying() {
     return typeSystem.shouldConvertRaggedUnionTypesToVarying();
   }
+
+  public boolean allowExtendedTrim() {
+    return typeSystem.allowExtendedTrim();
+  }
 }
 
 // End DelegatingTypeSystem.java
