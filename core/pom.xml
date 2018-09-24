@@ -62,6 +62,7 @@ limitations under the License.
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-pool2</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.esri.geometry</groupId>
