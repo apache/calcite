@@ -307,6 +307,7 @@ limitations under the License.
         <groupId>com.google.code.findbugs</groupId>
         <artifactId>jsr305</artifactId>
         <version>${findbugs.version}</version>
+        <optional>true</optional>
       </dependency>
       <dependency>
         <groupId>com.google.guava</groupId>
