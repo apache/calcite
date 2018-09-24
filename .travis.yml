@@ -20,10 +20,10 @@ language: java
 matrix:
   fast_finish: true
   include:
-    - env: IMAGE=maven:3-jdk-11
+    - env: IMAGE=maven:3-jdk-11 JDOC=Y
     - env: IMAGE=maven:3-jdk-10
     - env: IMAGE=maven:3-jdk-9
-    - env: IMAGE=maven:3-jdk-8
+    - env: IMAGE=maven:3-jdk-8 JDOC=Y
 branches:
   only:
     - master
@@ -44,7 +44,8 @@ install:
 script:
   # Print surefire output to the console instead of files
   - unset _JAVA_OPTIONS
-  - $DOCKERRUN $IMAGE mvn -Dcheckstyle.skip -Dsurefire.useFile=false -Dsurefire.threadCount=1 -Dsurefire.perCoreThreadCount=false -Djavax.net.ssl.trustStorePassword=changeit test
+  - if [ $JDOC = "Y" ]; then export JDOC=javadoc:javadoc; fi
+  - $DOCKERRUN $IMAGE mvn -Dcheckstyle.skip -Dsurefire.useFile=false -Dsurefire.threadCount=1 -Dsurefire.perCoreThreadCount=false -Djavax.net.ssl.trustStorePassword=changeit test $JDOC
 git:
   depth: 10000
 sudo: required

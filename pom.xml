@@ -136,6 +136,8 @@ limitations under the License.
     <fmpp.version>0.9.16</fmpp.version>
 
     <!-- Other properties (not version numbers) -->
+    <!-- Java 1.8 does not support -html5, so override via profile for Java 1.8 -->
+    <maven-javadoc-html5>-html5</maven-javadoc-html5>
     <maven-javadoc-plugin.excludePackageNames>
       org.apache.calcite.benchmarks.generated,
       org.apache.calcite.sql.parser.babel,
@@ -737,24 +739,8 @@ limitations under the License.
         <artifactId>maven-enforcer-plugin</artifactId>
       </plugin>
       <plugin>
-        <!-- This is the configuration used by "mvn javadoc:javadoc". It is
-             configured strict, so that it shows errors such as broken links in
-             javadoc on private methods. The configuration for "mvn site" is
-             under "reporting", and is more lenient. -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <configuration>
-          <additionalparam>-html5</additionalparam>
-          <doclint>all,-missing</doclint>
-          <failOnWarnings>true</failOnWarnings>
-          <links>
-            <link>${maven-javadoc-plugin.link}</link>
-          </links>
-          <notimestamp>true</notimestamp>
-          <excludePackageNames>${maven-javadoc-plugin.excludePackageNames}</excludePackageNames>
-          <quiet>true</quiet>
-          <show>private</show>
-        </configuration>
       </plugin>
       <plugin>
         <!-- Override apache parent POM's definition of release
@@ -916,6 +902,23 @@ limitations under the License.
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
+          <!-- This is the configuration used by "mvn javadoc:javadoc". It is
+               configured strict, so that it shows errors such as broken links in
+               javadoc on private methods. The configuration for "mvn site" is
+               under "reporting", and is more lenient. -->
+          <configuration>
+            <additionalOptions>${maven-javadoc-html5}</additionalOptions>
+            <doclint>all,-missing</doclint>
+            <failOnWarnings>true</failOnWarnings>
+            <links>
+              <link>${maven-javadoc-plugin.link}</link>
+            </links>
+            <notimestamp>true</notimestamp>
+            <excludePackageNames>${maven-javadoc-plugin.excludePackageNames}</excludePackageNames>
+            <quiet>true</quiet>
+            <show>private</show>
+            <windowtitle>Apache Calcite API</windowtitle>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -984,14 +987,6 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <configuration>
-          <links>
-            <link>${maven-javadoc-plugin.link}</link>
-          </links>
-          <excludePackageNames>${maven-javadoc-plugin.excludePackageNames}</excludePackageNames>
-          <notimestamp>true</notimestamp>
-          <windowtitle>Apache Calcite API</windowtitle>
-        </configuration>
       </plugin>
     </plugins>
   </reporting>
@@ -1198,6 +1193,15 @@ limitations under the License.
           </plugin>
         </plugins>
       </build>
+    </profile>
+    <profile>
+      <id>java8</id>
+      <activation>
+        <jdk>1.8</jdk>
+      </activation>
+      <properties>
+        <maven-javadoc-html5/>
+      </properties>
     </profile>
   </profiles>
 </project>

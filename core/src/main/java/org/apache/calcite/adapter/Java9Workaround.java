@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.calcite.adapter;
 
 /**
- * Contains query transformation rules relating to generating SQL for
- * foreign JDBC databases.
+ * JavaDoc from Java 9 seems to fail when package contents is empty.
+ * The sole purpose of this class it to make package non empty.
  */
-@PackageMarker
-package org.apache.calcite.rel.jdbc;
+class Java9Workaround {
+}
 
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java
+// End Java9Workaround.java
