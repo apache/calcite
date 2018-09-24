@@ -5301,29 +5301,16 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("trim(cast(null as varchar(1)) from 'a')");
     tester.checkNull("trim('a' from cast(null as varchar(1)))");
 
-    if (Bug.FNL3_FIXED) {
-      // SQL:2003 6.29.9: trim string must have length=1. Failure occurs
-      // at runtime.
-      //
-      // TODO: Change message to "Invalid argument\(s\) for
-      // 'TRIM' function".
-      // The message should come from a resource file, and should still
-      // have the SQL error code 22027.
-      tester.checkFails(
-          "trim('xy' from 'abcde')",
-          "could not calculate results for the following row:\n"
-              + "\\[ 0 \\]\n"
-              + "Messages:\n"
-              + "\\[0\\]:PC=0 Code=22027 ",
-          true);
-      tester.checkFails(
-          "trim('' from 'abcde')",
-          "could not calculate results for the following row:\n"
-              + "\\[ 0 \\]\n"
-              + "Messages:\n"
-              + "\\[0\\]:PC=0 Code=22027 ",
-          true);
-    }
+    // SQL:2003 6.29.9: trim string must have length=1. Failure occurs
+    // at runtime.
+    tester.checkFails(
+        "trim('xy' from 'abcde')",
+        "(?s).*(Invalid argument for 'TRIM' function: 'xy'|Code=22027).*",
+        true);
+    tester.checkFails(
+        "trim('' from 'abcde')",
+        "(?s).*(Invalid argument for 'TRIM' function: ''|Code=22027).*",
+        true);
   }
 
   @Test public void testRtrimFunc() {
