@@ -577,8 +577,9 @@ public class RexSimplify {
   private RexNode simplifyCoalesce(RexCall call) {
     final Set<String> digests = new HashSet<>();
     final List<RexNode> operands = new ArrayList<>();
+    final RexSimplify simplify = withUnknownAsFalse(false);
     for (RexNode operand : call.getOperands()) {
-      operand = simplify_(operand);
+      operand = simplify.simplify_(operand);
       if (digests.add(operand.digest)) {
         operands.add(operand);
       }
