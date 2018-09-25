@@ -578,8 +578,10 @@ public class RexSimplify {
     final Set<String> digests = new HashSet<>();
     final List<RexNode> operands = new ArrayList<>();
     for (RexNode operand : call.getOperands()) {
-      operand = simplify_(operand);
-      if (digests.add(operand.digest)) {
+      operand = withUnknownAsFalse(false).simplify_(operand);
+      if (digests.add(operand.digest)
+          && (!RexUtil.isNull(operand)
+                  || !unknownAsFalse)) {
         operands.add(operand);
       }
       if (!operand.getType().isNullable()) {
