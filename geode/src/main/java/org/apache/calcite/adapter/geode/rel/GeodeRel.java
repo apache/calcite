@@ -61,7 +61,7 @@ public interface GeodeRel extends RelNode {
 
     final Map<String, String> oqlAggregateFunctions = new LinkedHashMap<>();
 
-    String limitValue = null;
+    Long limitValue;
 
     RelOptTable table;
 
@@ -93,7 +93,7 @@ public interface GeodeRel extends RelNode {
       orderByFields.addAll(orderByFieldLists);
     }
 
-    public void setLimit(String limit) {
+    public void setLimit(long limit) {
       limitValue = limit;
     }
 
@@ -103,6 +103,10 @@ public interface GeodeRel extends RelNode {
 
     public void addAggregateFunctions(Map<String, String> oqlAggregateFunctions) {
       this.oqlAggregateFunctions.putAll(oqlAggregateFunctions);
+    }
+
+    void visitChild(RelNode input) {
+      ((GeodeRel) input).implement(this);
     }
 
     @Override public String toString() {

@@ -24,6 +24,7 @@ import org.apache.calcite.util.Util;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.geode.cache.CacheClosedException;
+import org.apache.geode.cache.GemFireCache;
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.client.ClientCache;
 import org.apache.geode.cache.client.ClientCacheFactory;
@@ -38,8 +39,11 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -114,19 +118,27 @@ public class GeodeUtils {
   /**
    * Obtains a proxy pointing to an existing Region on the server
    *
-   * @param clientCache {@link ClientCache} instance to interact with the Geode server
+   * @param cache {@link GemFireCache} instance to interact with the Geode server
    * @param regionName  Name of the region to create proxy for.
    * @return Returns a Region proxy to a remote (on the Server) regions.
    */
-  public static synchronized Region createRegionProxy(ClientCache clientCache,
-      String regionName) {
+  public static synchronized Region createRegion(GemFireCache cache, String regionName) {
+    Objects.requireNonNull(cache, "cache");
+    Objects.requireNonNull(regionName, "regionName");
     Region region = REGION_MAP.get(regionName);
     if (region == null) {
-      region = clientCache
-          .createClientRegionFactory(ClientRegionShortcut.PROXY)
-          .create(regionName);
+      try {
+        region = ((ClientCache) cache)
+            .createClientRegionFactory(ClientRegionShortcut.PROXY)
+            .create(regionName);
+      } catch (IllegalStateException e) {
+        // means this is a server cache (probably part of embedded testing)
+        region = cache.getRegion(regionName);
+      }
+
       REGION_MAP.put(regionName, region);
     }
+
     return region;
   }
 
@@ -262,8 +274,42 @@ public class GeodeUtils {
     return o;
   }
 
+  /**
+   * Extract the first entity of each Regions and use it to build a table types.
+   *
+   * @param region existing region
+   * @return derived data type.
+   */
+  public static RelDataType autodetectRelTypeFromRegion(Region<?, ?> region) {
+    Objects.requireNonNull(region, "region");
+
+    // try to detect type using value constraints (if they exists)
+    final Class<?> constraint = region.getAttributes().getValueConstraint();
+    if (constraint != null && !PdxInstance.class.isAssignableFrom(constraint)) {
+      return new JavaTypeFactoryExtImpl().createStructType(constraint);
+    }
+
+    final Iterator<?> iter;
+    if (region.getAttributes().getPoolName() == null) {
+      // means current cache is server (not ClientCache)
+      iter = region.keySet().iterator();
+    } else {
+      // for ClientCache
+      iter = region.keySetOnServer().iterator();
+    }
+
+    if (!iter.hasNext()) {
+      String message = String.format(Locale.ROOT, "Region %s is empty, can't "
+          + "autodetect type(s)", region.getName());
+      throw new IllegalStateException(message);
+    }
+
+    final Object entry = region.get(iter.next());
+    return createRelDataType(entry);
+  }
+
   // Create Relational Type by inferring a Geode entry or response instance.
-  public static RelDataType createRelDataType(Object regionEntry) {
+  private static RelDataType createRelDataType(Object regionEntry) {
     JavaTypeFactoryExtImpl typeFactory = new JavaTypeFactoryExtImpl();
     if (regionEntry instanceof PdxInstance) {
       return typeFactory.createPdxType((PdxInstance) regionEntry);

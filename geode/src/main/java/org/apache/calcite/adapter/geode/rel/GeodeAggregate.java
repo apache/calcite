@@ -76,21 +76,14 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
   }
 
   @Override public void implement(GeodeImplementContext geodeImplementContext) {
-
-    ((GeodeRel) getInput()).implement(geodeImplementContext);
+    geodeImplementContext.visitChild(getInput());
 
     List<String> inputFields = fieldNames(getInput().getRowType());
 
     List<String> groupByFields = new ArrayList<>();
 
-    // GROUP BY field == cardinality of 1, GROUP BY field1, field2 => cardinality of 2 ...
-    if (groupSet.cardinality() == 1) {
-      final String groupByFieldName = inputFields.get(groupSet.nth(0));
-      groupByFields.add(groupByFieldName);
-    } else {
-      for (int group : groupSet) {
-        groupByFields.add(inputFields.get(group));
-      }
+    for (int group : groupSet) {
+      groupByFields.add(inputFields.get(group));
     }
 
     geodeImplementContext.addGroupBy(groupByFields);
@@ -99,7 +92,7 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
     Builder<String, String> aggregateFunctionMap = ImmutableMap.builder();
     for (AggregateCall aggCall : aggCalls) {
 
-      ArrayList<Object> aggCallFieldNames = new ArrayList<>();
+      List<String> aggCallFieldNames = new ArrayList<>();
       for (int i : aggCall.getArgList()) {
         aggCallFieldNames.add(inputFields.get(i));
       }
@@ -112,7 +105,7 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
         aggCallFieldNames.add(inputFields.get(0));
       }
 
-      String oqlAggregateCall = Util.toString(aggCallFieldNames, " " + functionName + "(", ", ",
+      String oqlAggregateCall = Util.toString(aggCallFieldNames, functionName + "(", ", ",
           ")");
 
       aggregateFunctionMap.put(aggCall.getName(), oqlAggregateCall);

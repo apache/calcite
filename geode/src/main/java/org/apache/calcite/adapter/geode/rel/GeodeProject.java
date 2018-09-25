@@ -39,7 +39,7 @@ import java.util.Map;
  */
 public class GeodeProject extends Project implements GeodeRel {
 
-  public GeodeProject(RelOptCluster cluster, RelTraitSet traitSet,
+  GeodeProject(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, List<? extends RexNode> projects, RelDataType rowType) {
     super(cluster, traitSet, input, projects, rowType);
     assert getConvention() == GeodeRel.CONVENTION;
@@ -56,8 +56,7 @@ public class GeodeProject extends Project implements GeodeRel {
   }
 
   @Override public void implement(GeodeImplementContext geodeImplementContext) {
-
-    ((GeodeRel) getInput()).implement(geodeImplementContext);
+    geodeImplementContext.visitChild(getInput());
 
     final RexToGeodeTranslator translator =
         new RexToGeodeTranslator(
