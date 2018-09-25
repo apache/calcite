@@ -46,6 +46,11 @@ limitations under the License.
   </mailingLists>
 
   <properties>
+    <!-- Ensure that source and target version are overridden from base ASF POM.
+         This is also used by forbiddenapis to ensure correct signatures are loaded. -->
+    <maven.compiler.source>8</maven.compiler.source>
+    <maven.compiler.target>8</maven.compiler.target>
+
     <surefire.parallel>both</surefire.parallel>
     <surefire.threadCount>1</surefire.threadCount>
     <surefire.perCoreThreadCount>true</surefire.perCoreThreadCount>
@@ -701,9 +706,9 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
+        <!-- If you are looking to change source/target, 
+             change the maven.compiler.{source,target} property -->
         <configuration>
-          <source>8</source>
-          <target>8</target>
           <compilerArgument>-Xlint:deprecation</compilerArgument>
         </configuration>
       </plugin>
