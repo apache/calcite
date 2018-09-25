@@ -40,7 +40,7 @@ then build using maven:
 {% highlight bash %}
 $ tar xvfz apache-calcite-avatica-1.12.0-src.tar.gz
 $ cd apache-calcite-avatica-1.12.0-src
-$ mvn install
+$ ./mvnw install
 {% endhighlight %}
 
 [Running tests](#running-tests) describes how to run more or fewer
@@ -58,7 +58,7 @@ then build using maven:
 {% highlight bash %}
 $ git clone git://github.com/apache/calcite-avatica.git avatica
 $ cd avatica
-$ mvn install
+$ ./mvnw install
 {% endhighlight %}
 
 [Running tests](#running-tests) describes how to run more or fewer
@@ -70,7 +70,7 @@ The test suite will run by default when you build, unless you specify
 `-DskipTests`:
 
 {% highlight bash %}
-$ mvn clean verify -Dcheckstyle.skip
+$ ./mvnw clean verify -Dcheckstyle.skip
 {% endhighlight %}
 
 By default, invoking the `verify` Maven lifecycle phase will also cause checkstyle
@@ -153,7 +153,7 @@ Before you start:
 # Make sure that there are no junk files in the sandbox
 git clean -xn
 
-mvn -Papache-release clean install
+./mvnw -Papache-release clean install
 {% endhighlight %}
 
 When the dry-run has succeeded, change `install` to `deploy`.
@@ -172,7 +172,7 @@ Before you start:
   and say which versions of Java, Guava and operating systems the release is
   tested against.
 * Generate a report of vulnerabilities that occur among dependencies,
-  using `mvn verify -Ppedantic`.
+  using `./mvnw verify -Ppedantic`.
 * Make sure that
   <a href="https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20AND%20status%20%3D%20Resolved%20and%20fixVersion%20is%20null">
   every "resolved" JIRA case</a> (including duplicates) has
@@ -222,10 +222,10 @@ EOF
 # Typically we increment minor version: If X.Y.Z is 1.11.0, X2.Y2.Z2 is 1.12.0.
 # Note X.Y.Z is the current version we're trying to release, and X2.Y2.Z2 is the next development version.
 # For example, if I am currently building a release for 1.11.0, X.Y.Z would be 1.11.0 and X2.Y2.Z2 would be 1.12.0.
-mvn -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare
+./mvnw -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare
 
 # If you have multiple GPG keys, you can select the key used to sign the release by appending `-Darguments=-Dgpg.keyname=your_key_id`:
-mvn -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare -Darguments=-Dgpg.keyname=your_key_id
+./mvnw -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare -Darguments=-Dgpg.keyname=your_key_id
 
 {% endhighlight %}
 
@@ -255,7 +255,7 @@ If something is not correct, you can invoke the `release:clean` mojo to remove t
 generated files from your workspace:
 
 {% highlight bash %}
-mvn release:clean
+./mvnw release:clean
 {% endhighlight %}
 
 If successful, remove the `-DdryRun` flag and run the release for real.
@@ -265,13 +265,13 @@ If successful, remove the `-DdryRun` flag and run the release for real.
 # Typically we increment minor version: If X.Y.Z is 1.11.0, X2.Y2.Z2 is 1.12.0.
 # Note X.Y.Z is the current version we're trying to release, and X2.Y2.Z2 is the next development version.
 # For example, if I am currently building a release for 1.11.0, X.Y.Z would be 1.11.0 and X2.Y2.Z2 would be 1.12.0.
-mvn -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare
+./mvnw -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare
 
 # If you have multiple GPG keys, you can select the key used to sign the release by appending `-Darguments=-Dgpg.keyname=your_key_id`:
-mvn -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare -Darguments=-Dgpg.keyname=your_key_id
+./mvnw -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare -Darguments=-Dgpg.keyname=your_key_id
 
 # Perform checks out the tagged version, builds, and deploys to the staging repository
-mvn -Papache-release -Duser.name=${asf.username} release:perform -Darguments="-DskipTests"
+./mvnw -Papache-release -Duser.name=${asf.username} release:perform -Darguments="-DskipTests"
 {% endhighlight %}
 
 Verify the staged artifacts in the Nexus repository:
@@ -318,7 +318,7 @@ git tag -d avatica-X.Y.Z
 git push origin :refs/tags/avatica-X.Y.Z
 
 # Remove modified files
-mvn release:clean
+./mvnw release:clean
 
 # Check whether there are modified files and if so, go back to the
 # original git commit

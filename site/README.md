@@ -45,7 +45,7 @@ Site generation currently works best with ruby-2.5.1.
 ### Add javadoc
 
 1. `cd avatica`
-2. `mvn -DskipTests site`
+2. `./mvnw -DskipTests site`
 3. `rm -rf site/target/avatica/apidocs site/target/avatica/testapidocs`
 4. `mv target/site/apidocs target/site/testapidocs site/target/avatica`
 

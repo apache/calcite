@@ -50,7 +50,7 @@ then build using maven:
 {% highlight bash %}
 $ git clone git://github.com/apache/calcite-avatica.git avatica
 $ cd avatica
-$ mvn install
+$ ./mvnw install
 {% endhighlight %}
 
 The HOWTO describes how to
@@ -75,7 +75,7 @@ In most cases, it is unnecessary to re-generate the Protobuf messages into Java 
 can side-step this issue by disabling the `compile-protobuf` profile in their Maven execution.
 
 {% highlight bash %}
-$ mvn package -P!compile-protobuf
+$ ./mvnw package -P!compile-protobuf
 {% endhighlight %}
 
 
@@ -91,7 +91,7 @@ proposed feature or start a discussion on the dev list.
 Fork the github repository, and create a branch for your feature.
 
 Develop your feature and test cases, and make sure that
-`mvn install` succeeds. (Run extra tests if your change warrants it.)
+`./mvnw install` succeeds. (Run extra tests if your change warrants it.)
 
 Commit your change to your branch, and use a comment that starts with
 the JIRA case number, like this:
