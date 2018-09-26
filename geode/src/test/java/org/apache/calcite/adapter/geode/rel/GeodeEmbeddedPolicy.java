@@ -132,13 +132,9 @@ public class GeodeEmbeddedPolicy extends ExternalResource {
     }
 
     @Override public synchronized void before() {
-      try {
-        if (refCount.get() == 0) {
-          // initialize only once
-          policy.before();
-        }
-      } finally {
-        refCount.incrementAndGet();
+      if (refCount.getAndIncrement() == 0) {
+        // initialize only once
+        policy.before();
       }
     }
 
