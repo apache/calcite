@@ -95,6 +95,18 @@ public class EnumerableCorrelateTest {
             "empid=150; name=Sebastian");
   }
 
+  @Test public void simpleCorrelateWithConditionIncludingBoxedPrimitive() {
+    final String sql = "select empid from emps e where not exists (\n"
+        + "  select 1 from depts d where d.deptno=e.commission)";
+    tester(false, new JdbcTest.HrSchema())
+        .query(sql)
+        .returnsUnordered(
+            "empid=100",
+            "empid=110",
+            "empid=150",
+            "empid=200");
+  }
+
   private CalciteAssert.AssertThat tester(boolean forceDecorrelate,
       Object schema) {
     return CalciteAssert.that()
