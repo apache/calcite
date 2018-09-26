@@ -569,6 +569,18 @@ public class RexToLixTranslator {
     return scaleIntervalToNumber(sourceType, targetType, convert);
   }
 
+  private Expression handleNullUnboxingIfNecessary(
+      Expression input,
+      RexImpTable.NullAs nullAs,
+      Type storageType) {
+    if (RexImpTable.NullAs.NOT_POSSIBLE == nullAs && input.type.equals(storageType)) {
+      // When we asked for not null input that would be stored as box, avoid
+      // unboxing which may occur in the handleNull method below.
+      return input;
+    }
+    return handleNull(input, nullAs);
+  }
+
   /** Adapts an expression with "normal" result to one that adheres to
    * this particular policy. Wraps the result expression into a new
    * parameter if need be.
@@ -622,18 +634,13 @@ public class RexToLixTranslator {
       nullAs = RexImpTable.NullAs.NOT_POSSIBLE;
     }
     switch (expr.getKind()) {
-    case INPUT_REF:
+    case INPUT_REF: {
       final int index = ((RexInputRef) expr).getIndex();
       Expression x = inputGetter.field(list, index, storageType);
 
       Expression input = list.append("inp" + index + "_", x); // safe to share
-      if (nullAs == RexImpTable.NullAs.NOT_POSSIBLE
-          && input.type.equals(storageType)) {
-        // When we asked for not null input that would be stored as box, avoid
-        // unboxing via nullAs.handle below.
-        return input;
-      }
-      return handleNull(input, nullAs);
+      return handleNullUnboxingIfNecessary(input, nullAs, storageType);
+    }
     case LOCAL_REF:
       return translate(
           deref(expr),
@@ -653,8 +660,9 @@ public class RexToLixTranslator {
     case CORREL_VARIABLE:
       throw new RuntimeException("Cannot translate " + expr + ". Correlated"
           + " variables should always be referenced by field access");
-    case FIELD_ACCESS:
+    case FIELD_ACCESS: {
       RexFieldAccess fieldAccess = (RexFieldAccess) expr;
+      int fieldIndex = fieldAccess.getField().getIndex();
       RexNode target = deref(fieldAccess.getReferenceExpr());
       // only $cor.field access is supported
       if (!(target instanceof RexCorrelVariable)) {
@@ -667,7 +675,10 @@ public class RexToLixTranslator {
       }
       InputGetter getter =
           correlates.apply(((RexCorrelVariable) target).getName());
-      return getter.field(list, fieldAccess.getField().getIndex(), storageType);
+      Expression y = getter.field(list, fieldIndex, storageType);
+      Expression input = list.append("corInp" + fieldIndex + "_", y); // safe to share
+      return handleNullUnboxingIfNecessary(input, nullAs, storageType);
+    }
     default:
       if (expr instanceof RexCall) {
         return translateCall((RexCall) expr, nullAs);
