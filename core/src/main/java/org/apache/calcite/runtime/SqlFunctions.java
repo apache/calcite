@@ -21,12 +21,14 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.CartesianProductEnumerator;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Deterministic;
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.tree.Primitive;
@@ -36,6 +38,7 @@ import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
@@ -2388,6 +2391,37 @@ public class SqlFunctions {
       --x;
     }
     return x;
+  }
+
+  /**
+   * Implements the {@code .} (field access) operator on an object whose type is not known until
+   * runtime.
+   *
+   * A struct object can be represented in various ways by the runtime and depends on the
+   * {@link org.apache.calcite.adapter.enumerable.JavaRowFormat}.
+   */
+  @Experimental
+  public static Object structAccess(Object structObject, int index, String fieldName) {
+    if (structObject == null) {
+      return null;
+    }
+
+    if (structObject instanceof Object[]) {
+      return ((Object[]) structObject)[index];
+    } else if (structObject instanceof List) {
+      return ((List) structObject).get(index);
+    } else if (structObject instanceof Row) {
+      return ((Row) structObject).getObject(index);
+    } else {
+      Class<?> beanClass = structObject.getClass();
+      try {
+        Field structField = beanClass.getDeclaredField(fieldName);
+        return structField.get(structObject);
+      } catch (NoSuchFieldException | IllegalAccessException ex) {
+        throw new IllegalStateException("Failed to access field '" + fieldName
+            + "' of object of type " + beanClass.getName(), ex);
+      }
+    }
   }
 
   /** Enumerates over the cartesian product of the given lists, returning

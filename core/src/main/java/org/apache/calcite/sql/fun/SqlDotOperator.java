@@ -39,6 +39,7 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Static;
 
 import java.util.Arrays;
@@ -143,6 +144,10 @@ public class SqlDotOperator extends SqlSpecialOperator {
     default:
       throw new AssertionError(operandType.getSqlTypeName());
     }
+  }
+
+  @Override public boolean validRexOperands(final int count, final Litmus litmus) {
+    return litmus.fail("DOT is valid only for SqlCall not for RexCall");
   }
 
   @Override public String getAllowedSignatures(String name) {

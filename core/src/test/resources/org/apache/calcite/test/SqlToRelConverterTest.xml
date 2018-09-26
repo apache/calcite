@@ -363,7 +363,7 @@ window w as (partition by productId)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[DOT(ITEM(DOT(DOT(ITEM($3, 1), 'DETAIL'), 'SKILLS'), +(2, 3)), 'DESC')])
+LogicalProject(EXPR$0=[ITEM(ITEM($3, 1).DETAIL.SKILLS, +(2, 3)).DESC])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
 ]]>
         </Resource>

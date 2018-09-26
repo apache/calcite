@@ -196,9 +196,9 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     // "DOT"
     registerOp(SqlStdOperatorTable.DOT,
-        (cx, call) -> cx.getRexBuilder().makeCall(SqlStdOperatorTable.DOT,
+        (cx, call) -> cx.getRexBuilder().makeFieldAccess(
             cx.convertExpression(call.operand(0)),
-            cx.getRexBuilder().makeLiteral(call.operand(1).toString())));
+            call.operand(1).toString(), false));
     // "AS" has no effect, so expand "x AS id" into "x".
     registerOp(SqlStdOperatorTable.AS,
         (cx, call) -> cx.convertExpression(call.operand(0)));
