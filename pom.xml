@@ -647,7 +647,7 @@ limitations under the License.
             <exclude>**/src/test/resources/**/*.txt</exclude>
             <exclude>**/src/test/resources/bug/archers.json</exclude>
             <exclude>**/src/test/resources/foodmart-schema.spec</exclude>
-            <exclude>**/src/test/resources/zips-mini.json</exclude>
+            <exclude>**/src/test/resources/*.json</exclude>
             <exclude>**/data.txt</exclude>
             <exclude>**/data2.txt</exclude>
 
