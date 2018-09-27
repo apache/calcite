@@ -4315,13 +4315,13 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("json_value('{\"foo\":100}', 'lax $.foo1' null on empty)",
         null, "VARCHAR(2000)");
     tester.checkFails("json_value('{\"foo\":100}', 'lax $.foo1' error on empty)",
-        null, true);
+        "(?s).*empty json value.*", true);
     tester.checkString("json_value('{\"foo\":100}', 'lax $.foo1' default 'empty' on empty)",
         "empty", "VARCHAR(2000)");
     tester.checkString("json_value('{\"foo\":{}}', 'lax $.foo' null on empty)",
         null, "VARCHAR(2000)");
     tester.checkFails("json_value('{\"foo\":{}}', 'lax $.foo' error on empty)",
-        null, true);
+        "(?s).*empty json value.*", true);
     tester.checkString("json_value('{\"foo\":{}}', 'lax $.foo' default 'empty' on empty)",
         "empty", "VARCHAR(2000)");
     tester.checkString("json_value('{\"foo\":100}', 'lax $.foo' null on error)",
@@ -4335,7 +4335,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("json_value('{\"foo\":100}', 'invalid $.foo' null on error)",
         null, "VARCHAR(2000)");
     tester.checkFails("json_value('{\"foo\":100}', 'invalid $.foo' error on error)",
-        null, true);
+        "(?s).*illegal patch spec, missing mode declaration.*", true);
     tester.checkString("json_value('{\"foo\":100}', "
             + "'invalid $.foo' default 'empty' on error)",
         "empty", "VARCHAR(2000)");
@@ -4351,14 +4351,14 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("json_value('{\"foo\":100}', 'strict $.foo1' null on error)",
         null, "VARCHAR(2000)");
     tester.checkFails("json_value('{\"foo\":100}', 'strict $.foo1' error on error)",
-        null, true);
+        "(?s).*No results for path: \\$\\['foo1'\\].*", true);
     tester.checkString("json_value('{\"foo\":100}', "
             + "'strict $.foo1' default 'empty' on error)",
         "empty", "VARCHAR(2000)");
     tester.checkString("json_value('{\"foo\":{}}', 'strict $.foo' null on error)",
         null, "VARCHAR(2000)");
     tester.checkFails("json_value('{\"foo\":{}}', 'strict $.foo' error on error)",
-        null, true);
+        "(?s).*not a json value: \\{\\}.*", true);
     tester.checkString("json_value('{\"foo\":{}}', "
             + "'strict $.foo' default 'empty' on error)",
         "empty", "VARCHAR(2000)");
@@ -4377,7 +4377,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("json_query('{\"foo\":100}', 'lax $.foo' null on empty)",
         null, "VARCHAR(2000)");
     tester.checkFails("json_query('{\"foo\":100}', 'lax $.foo' error on empty)",
-        null, true);
+        "(?s).*empty json query.*", true);
     tester.checkString("json_query('{\"foo\":100}', 'lax $.foo' empty array on empty)",
         "[]", "VARCHAR(2000)");
     tester.checkString("json_query('{\"foo\":100}', 'lax $.foo' empty object on empty)",
@@ -4387,7 +4387,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("json_query('{\"foo\":100}', 'invalid $.foo' null on error)",
         null, "VARCHAR(2000)");
     tester.checkFails("json_query('{\"foo\":100}', 'invalid $.foo' error on error)",
-        null, true);
+        "(?s).*illegal patch spec, missing mode declaration.*", true);
     tester.checkString("json_query('{\"foo\":100}', "
             + "'invalid $.foo' empty array on error)",
         "[]", "VARCHAR(2000)");
@@ -4408,7 +4408,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("json_query('{\"foo\":100}', 'strict $.foo1' null on error)",
         null, "VARCHAR(2000)");
     tester.checkFails("json_query('{\"foo\":100}', 'strict $.foo1' error on error)",
-        null, true);
+        "(?s).*No results for path: \\$\\['foo1'\\].*", true);
     tester.checkString("json_query('{\"foo\":100}', 'strict $.foo1' empty array on error)",
         "[]", "VARCHAR(2000)");
     tester.checkString("json_query('{\"foo\":100}', 'strict $.foo1' empty object on error)",
@@ -4417,7 +4417,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("json_query('{\"foo\":100}', 'strict $.foo' null on error)",
         null, "VARCHAR(2000)");
     tester.checkFails("json_query('{\"foo\":100}', 'strict $.foo' error on error)",
-        null, true);
+        "(?s).*not a json array or a json object: 100.*", true);
     tester.checkString("json_query('{\"foo\":100}', 'strict $.foo' empty array on error)",
         "[]", "VARCHAR(2000)");
     tester.checkString("json_query('{\"foo\":100}', 'strict $.foo' empty object on error)",
