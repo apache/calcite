@@ -236,6 +236,7 @@ public class AggregateStarTableRule extends RelOptRule {
       }
       return AggregateCall.create(roll, false,
           aggregateCall.isApproximate(), ImmutableList.of(offset + i), -1,
+          aggregateCall.collation,
           groupCount, relBuilder.peek(), null, aggregateCall.name);
     }
 
@@ -251,7 +252,7 @@ public class AggregateStarTableRule extends RelOptRule {
         newArgs.add(z);
       }
       return AggregateCall.create(aggregation, false,
-          aggregateCall.isApproximate(), newArgs, -1,
+          aggregateCall.isApproximate(), newArgs, -1, aggregateCall.collation,
           groupCount, relBuilder.peek(), null, aggregateCall.name);
     }
 

@@ -17,6 +17,7 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.externalize.RelJsonReader;
@@ -140,10 +141,10 @@ public class RelWriterTest {
                   ImmutableList.of(
                       AggregateCall.create(SqlStdOperatorTable.COUNT,
                           true, false, ImmutableList.of(1), -1,
-                          bigIntType, "c"),
+                          RelCollations.EMPTY, bigIntType, "c"),
                       AggregateCall.create(SqlStdOperatorTable.COUNT,
                           false, false, ImmutableList.of(), -1,
-                          bigIntType, "d")));
+                          RelCollations.EMPTY, bigIntType, "d")));
           aggregate.explain(writer);
           return writer.asString();
         });

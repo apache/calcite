@@ -72,6 +72,7 @@ import org.apache.calcite.sql.util.ListSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Throwables;
@@ -1060,7 +1061,8 @@ public class PlannerTest {
   public static class MyCountAggFunction extends SqlAggFunction {
     public MyCountAggFunction() {
       super("MY_COUNT", null, SqlKind.OTHER_FUNCTION, ReturnTypes.BIGINT, null,
-          OperandTypes.ANY, SqlFunctionCategory.NUMERIC, false, false);
+          OperandTypes.ANY, SqlFunctionCategory.NUMERIC, false, false,
+          Optionality.FORBIDDEN);
     }
 
     @SuppressWarnings("deprecation")

@@ -4976,6 +4976,8 @@ SqlNode NamedFunctionCall() :
     final SqlNode filter;
     final SqlNode over;
     SqlLiteral quantifier = null;
+    SqlNodeList orderList = null;
+    final Span withinGroupSpan;
 }
 {
     (
@@ -5004,9 +5006,18 @@ SqlNode NamedFunctionCall() :
         }
     )
     {
-        call = createCall(qualifiedName, s.end(this), funcType, quantifier,
-            args);
+        call = createCall(qualifiedName, s.end(this), funcType, quantifier, args);
     }
+    [
+        <WITHIN> { withinGroupSpan = span(); }
+        <GROUP>
+        <LPAREN>
+        orderList = OrderBy(true)
+        <RPAREN> {
+            call = SqlStdOperatorTable.WITHIN_GROUP.createCall(
+                withinGroupSpan.end(this), call, orderList);
+        }
+    ]
     [
         <FILTER> { filterSpan = span(); }
         <LPAREN>

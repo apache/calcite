@@ -1482,7 +1482,9 @@ Syntax:
 
 {% highlight sql %}
 aggregateCall:
-        agg( [ ALL | DISTINCT ] value [, value ]*) [ FILTER (WHERE condition) ]
+        agg( [ ALL | DISTINCT ] value [, value ]*)
+        [ WITHIN GROUP (ORDER BY orderItem [, orderItem ]*) ]
+        [ FILTER (WHERE condition) ]
     |   agg(*) [ FILTER (WHERE condition) ]
 {% endhighlight %}
 
@@ -1491,6 +1493,13 @@ If `FILTER` is present, the aggregate function only considers rows for which
 
 If `DISTINCT` is present, duplicate argument values are eliminated before being
 passed to the aggregate function.
+
+If `WITHIN GROUP` is present, the aggregate function sorts the input rows
+according to the `ORDER BY` clause inside `WITHIN GROUP` before aggregating
+values. `WITHIN GROUP` is only allowed for hypothetical set functions (`RANK`,
+`DENSE_RANK`, `PERCENT_RANK` and `CUME_DIST`), inverse distribution functions
+(`PERCENTILE_CONT` and `PERCENTILE_DISC`) and collection functions (`COLLECT`
+and `LISTAGG`).
 
 | Operator syntax                    | Description
 |:---------------------------------- |:-----------
@@ -1516,6 +1525,7 @@ passed to the aggregate function.
 
 Not implemented:
 
+* LISTAGG(string)
 * REGR_AVGX(numeric1, numeric2)
 * REGR_AVGY(numeric1, numeric2)
 * REGR_INTERCEPT(numeric1, numeric2)

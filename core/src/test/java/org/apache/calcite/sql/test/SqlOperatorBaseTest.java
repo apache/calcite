@@ -5622,6 +5622,8 @@ public abstract class SqlOperatorBaseTest {
     final String[] values = {"0", "CAST(null AS INTEGER)", "2", "2"};
     tester.checkAgg("collect(x)", values,
         Collections.singletonList("[0, 2, 2]"), (double) 0);
+    tester.checkAgg("collect(x) within group(order by x desc)", values,
+        Collections.singletonList("[2, 2, 0]"), (double) 0);
     Object result1 = -3;
     if (!enable) {
       return;

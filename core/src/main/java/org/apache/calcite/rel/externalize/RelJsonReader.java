@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
@@ -280,7 +281,9 @@ public class RelJsonReader {
     final RelDataType type =
         relJson.toType(cluster.getTypeFactory(), jsonAggCall.get("type"));
     return AggregateCall.create(aggregation, distinct, false, operands,
-        filterOperand == null ? -1 : filterOperand, type, null);
+        filterOperand == null ? -1 : filterOperand,
+        RelCollations.EMPTY,
+        type, null);
   }
 
   private RelNode lookupInput(String jsonInput) {

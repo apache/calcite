@@ -46,6 +46,7 @@ import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlValuesOperator;
 import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.SqlWithinGroupOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -57,6 +58,7 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql2rel.AuxiliaryConverter;
 import org.apache.calcite.util.Litmus;
+import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -176,6 +178,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** <code>FILTER</code> operator filters which rows are included in an
    *  aggregate function. */
   public static final SqlFilterOperator FILTER = new SqlFilterOperator();
+
+  /** <code>WITHIN_GROUP</code> operator performs aggregations on ordered data input. */
+  public static final SqlWithinGroupOperator WITHIN_GROUP = new SqlWithinGroupOperator();
 
   /** {@code CUBE} operator, occurs within {@code GROUP BY} clause
    * or nested within a {@code GROUPING SETS}. */
@@ -1980,7 +1985,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.TO_MULTISET,
           null,
           OperandTypes.ANY,
-          SqlFunctionCategory.SYSTEM, false, false) {
+          SqlFunctionCategory.SYSTEM, false, false,
+          Optionality.OPTIONAL) {
       };
 
   /**
@@ -1992,7 +1998,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.ARG0,
           null,
           OperandTypes.MULTISET,
-          SqlFunctionCategory.SYSTEM, false, false) {
+          SqlFunctionCategory.SYSTEM, false, false,
+          Optionality.FORBIDDEN) {
       };
 
   /**

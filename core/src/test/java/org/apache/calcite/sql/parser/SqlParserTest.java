@@ -8194,6 +8194,64 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testWithinGroupClause1() {
+    final String sql = "select col1,\n"
+        + " collect(col2) within group (order by col3)\n"
+        + "from t\n"
+        + "order by col1 limit 10";
+    final String expected = "SELECT `COL1`,"
+        + " (COLLECT(`COL2`) WITHIN GROUP (ORDER BY `COL3`))\n"
+        + "FROM `T`\n"
+        + "ORDER BY `COL1`\n"
+        + "FETCH NEXT 10 ROWS ONLY";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testWithinGroupClause2() {
+    final String sql = "select collect(col2) within group (order by col3)\n"
+        + "from t\n"
+        + "order by col1 limit 10";
+    final String expected = "SELECT"
+        + " (COLLECT(`COL2`) WITHIN GROUP (ORDER BY `COL3`))\n"
+        + "FROM `T`\n"
+        + "ORDER BY `COL1`\n"
+        + "FETCH NEXT 10 ROWS ONLY";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testWithinGroupClause3() {
+    final String sql = "select collect(col2) within group (^)^ "
+        + "from t order by col1 limit 10";
+    sql(sql).fails("(?s).*Encountered \"\\)\" at line 1, column 36\\..*");
+  }
+
+  @Test public void testWithinGroupClause4() {
+    final String sql = "select col1,\n"
+        + " collect(col2) within group (order by col3, col4)\n"
+        + "from t\n"
+        + "order by col1 limit 10";
+    final String expected = "SELECT `COL1`,"
+        + " (COLLECT(`COL2`) WITHIN GROUP (ORDER BY `COL3`, `COL4`))\n"
+        + "FROM `T`\n"
+        + "ORDER BY `COL1`\n"
+        + "FETCH NEXT 10 ROWS ONLY";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testWithinGroupClause5() {
+    final String sql = "select col1,\n"
+        + " collect(col2) within group (\n"
+        + "  order by col3 desc nulls first, col4 asc nulls last)\n"
+        + "from t\n"
+        + "order by col1 limit 10";
+    final String expected = "SELECT `COL1`, (COLLECT(`COL2`) "
+        + "WITHIN GROUP (ORDER BY `COL3` DESC NULLS FIRST, `COL4` NULLS LAST))\n"
+        + "FROM `T`\n"
+        + "ORDER BY `COL1`\n"
+        + "FETCH NEXT 10 ROWS ONLY";
+    sql(sql).ok(expected);
+  }
+
   //~ Inner Interfaces -------------------------------------------------------
 
   /**

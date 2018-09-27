@@ -14,26 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql.fun;
-
-import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.sql.SqlFunctionCategory;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.util.Optionality;
+package org.apache.calcite.util;
 
 /**
- * <code>NTH_VALUE</code> windowed aggregate function
- * returns the value of an expression evaluated at the {@code n}th row of the
- * window frame.
+ * Four states that describe whether a particular behavior or
+ * property is allowed and/or not allowed.
  */
-public class SqlNthValueAggFunction extends SqlAggFunction {
-  public SqlNthValueAggFunction(SqlKind kind) {
-    super(kind.name(), null, kind, ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
-        null, OperandTypes.ANY_NUMERIC, SqlFunctionCategory.NUMERIC, false,
-        true, Optionality.FORBIDDEN);
-  }
+public enum Optionality {
+  /** A property is <em>mandatory</em> if an instance must possess it;
+   * it is an error if it does not. */
+  MANDATORY,
+
+  /** A property is <em>optional</em> if an instance may or may not possess it;
+   * neither state is an error. */
+  OPTIONAL,
+
+  /** A property is <em>ignored</em> if an instance may or may not possess it;
+   * if it possesses the property, the effect is as if it does not. */
+  IGNORED,
+
+  /** A property is <em>forbidden</em> if an instance must not possess it;
+   * it is an error if the instance has the property. */
+  FORBIDDEN
 }
 
-// End SqlNthValueAggFunction.java
+// End Optionality.java
