@@ -75,7 +75,8 @@ public class SqlMinMaxAggFunction extends SqlAggFunction {
         OperandTypes.COMPARABLE_ORDERED,
         SqlFunctionCategory.SYSTEM,
         false,
-        false);
+        false,
+        true);
     this.argTypes = ImmutableList.of();
     this.minMaxKind = MINMAX_COMPARABLE;
     Preconditions.checkArgument(kind == SqlKind.MIN

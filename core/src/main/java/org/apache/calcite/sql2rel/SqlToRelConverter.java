@@ -199,6 +199,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
@@ -1124,9 +1125,10 @@ public class SqlToRelConverter {
             LogicalAggregate.create(seek, ImmutableBitSet.of(), null,
                 ImmutableList.of(
                     AggregateCall.create(SqlStdOperatorTable.COUNT, false,
-                        false, ImmutableList.of(), -1, longType, null),
+                        false, ImmutableList.of(), -1, RelCollations.EMPTY,
+                        longType, null),
                     AggregateCall.create(SqlStdOperatorTable.COUNT, false,
-                        false, args, -1, longType, null)));
+                        false, args, -1, RelCollations.EMPTY, longType, null)));
         LogicalJoin join =
             LogicalJoin.create(bb.root, aggregate, rexBuilder.makeLiteral(true),
                 ImmutableSet.of(), JoinRelType.INNER);
@@ -5026,6 +5028,24 @@ public class SqlToRelConverter {
         distinct = true;
         approximate = true;
       }
+      final RelCollation collation;
+      if (aggFunction.ignoreAggregateOrder()) {
+        collation = RelCollations.EMPTY;
+      } else {
+        collation = RelCollations.of(
+            call.getAggOrderList().getList()
+                .stream()
+                .map(order ->
+                    bb.convertSortExpression(order,
+                        RelFieldCollation.Direction.ASCENDING,
+                        RelFieldCollation.NullDirection.UNSPECIFIED))
+                .map(fieldCollation ->
+                    new RelFieldCollation(
+                        lookupOrCreateGroupExpr(fieldCollation.left),
+                        fieldCollation.getDirection(),
+                        fieldCollation.getNullDirection()))
+                .collect(Collectors.toList()));
+      }
       final AggregateCall aggCall =
           AggregateCall.create(
               aggFunction,
@@ -5033,6 +5053,7 @@ public class SqlToRelConverter {
               approximate,
               args,
               filterArg,
+              collation,
               type,
               nameMap.get(outerCall.toString()));
       final AggregatingSelectScope.Resolved r =

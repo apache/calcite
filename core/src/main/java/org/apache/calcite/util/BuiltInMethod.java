@@ -17,6 +17,10 @@
 package org.apache.calcite.util;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.AggregateLambdaFactory;
+import org.apache.calcite.adapter.enumerable.OrderedAggregateLambdaFactory;
+import org.apache.calcite.adapter.enumerable.SequencedAdderAggregateLambdaFactory;
+import org.apache.calcite.adapter.enumerable.SourceSorter;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.avatica.util.DateTimeUtils;
@@ -433,7 +437,21 @@ public enum BuiltInMethod {
   CONTEXT_ROOT(Context.class, "root", true),
   DATA_CONTEXT_GET_QUERY_PROVIDER(DataContext.class, "getQueryProvider"),
   METADATA_REL(Metadata.class, "rel"),
-  STRUCT_ACCESS(SqlFunctions.class, "structAccess", Object.class, int.class, String.class);
+  STRUCT_ACCESS(SqlFunctions.class, "structAccess", Object.class, int.class,
+      String.class),
+  SOURCE_SORTER(SourceSorter.class, Function2.class, Function1.class,
+      Comparator.class),
+  ORDERED_AGGREGATE_LAMBDA_FACTORY(OrderedAggregateLambdaFactory.class,
+      Function0.class, List.class),
+  SEQUENCED_ADDER_AGGREGATE_LAMBDA_FACTORY(SequencedAdderAggregateLambdaFactory.class,
+      Function0.class, List.class),
+  AGG_LAMBDA_FACTORY_ACC_INITIALIZER(AggregateLambdaFactory.class,
+      "accumulatorInitializer"),
+  AGG_LAMBDA_FACTORY_ACC_ADDER(AggregateLambdaFactory.class, "accumulatorAdder"),
+  AGG_LAMBDA_FACTORY_ACC_RESULT_SELECTOR(AggregateLambdaFactory.class,
+      "resultSelector", Function2.class),
+  AGG_LAMBDA_FACTORY_ACC_SINGLE_GROUP_RESULT_SELECTOR(AggregateLambdaFactory.class,
+      "singleGroupResultSelector", Function1.class);
 
   public final Method method;
   public final Constructor constructor;

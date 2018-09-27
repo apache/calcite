@@ -274,11 +274,10 @@ public class SqlMatchRecognize extends SqlCall {
       return SqlSyntax.SPECIAL;
     }
 
-    @Override public SqlCall createCall(
-        SqlLiteral functionQualifier,
-        SqlParserPos pos,
-        SqlNode... operands) {
+    @Override public SqlCall createCall(SqlLiteral functionQualifier,
+        SqlParserPos pos, SqlNodeList orderList, SqlNode... operands) {
       assert functionQualifier == null;
+      assert SqlNodeList.isEmptyList(orderList);
       assert operands.length == 12;
 
       return new SqlMatchRecognize(pos, operands[0], operands[1],

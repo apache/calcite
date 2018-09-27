@@ -35,7 +35,7 @@ public class SqlRankFunction extends SqlAggFunction {
       boolean requiresOrder) {
     super(kind.name(), null, kind, returnTypes, null,
         OperandTypes.NILADIC, SqlFunctionCategory.NUMERIC, requiresOrder,
-        true);
+        true, true);
   }
 
   //~ Methods ----------------------------------------------------------------

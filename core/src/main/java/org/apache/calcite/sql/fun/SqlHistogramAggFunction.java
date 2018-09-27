@@ -53,7 +53,8 @@ public class SqlHistogramAggFunction extends SqlAggFunction {
         OperandTypes.NUMERIC_OR_STRING,
         SqlFunctionCategory.NUMERIC,
         false,
-        false);
+        false,
+        true);
     this.type = type;
   }
 

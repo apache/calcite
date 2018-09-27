@@ -84,7 +84,7 @@ public abstract class SqlCall extends SqlNode {
   @Override public SqlNode clone(SqlParserPos pos) {
     final List<SqlNode> operandList = getOperandList();
     return getOperator().createCall(getFunctionQuantifier(), pos,
-        operandList.toArray(new SqlNode[0]));
+        getAggOrderList(), operandList.toArray(new SqlNode[0]));
   }
 
   public void unparse(
@@ -202,6 +202,10 @@ public abstract class SqlCall extends SqlNode {
 
   public SqlLiteral getFunctionQuantifier() {
     return null;
+  }
+
+  public SqlNodeList getAggOrderList() {
+    return SqlNodeList.EMPTY;
   }
 }
 

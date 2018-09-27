@@ -55,7 +55,7 @@ public class SqlAbstractGroupFunction extends SqlAggFunction {
       SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory category) {
     super(name, null, kind, returnTypeInference, operandTypeInference,
-        operandTypeChecker, category, false, false);
+        operandTypeChecker, category, false, false, true);
   }
 
   @Override public void validateCall(SqlCall call, SqlValidator validator,

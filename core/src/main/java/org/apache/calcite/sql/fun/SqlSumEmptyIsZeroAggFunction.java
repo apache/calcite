@@ -48,7 +48,8 @@ public class SqlSumEmptyIsZeroAggFunction extends SqlAggFunction {
         OperandTypes.NUMERIC,
         SqlFunctionCategory.NUMERIC,
         false,
-        false);
+        false,
+        true);
   }
 
   //~ Methods ----------------------------------------------------------------

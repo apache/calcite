@@ -2381,4 +2381,127 @@ group by MONTH(HIREDATE);
 
 !ok
 
+# [CALCITE-2224] WITHIN GROUP clause for aggregate functions
+select deptno, collect(empno) within group (order by empno asc) as empnos
+from "scott".emp
+group by deptno;
+
++--------+--------------------------------------+
+| DEPTNO | EMPNOS                               |
++--------+--------------------------------------+
+|     10 | [7782, 7839, 7934]                   |
+|     20 | [7369, 7566, 7788, 7876, 7902]       |
+|     30 | [7499, 7521, 7654, 7698, 7844, 7900] |
++--------+--------------------------------------+
+(3 rows)
+
+!ok
+EnumerableAggregate(group=[{7}], EMPNOS=[COLLECT($0) WITHIN GROUP ([0])])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+select deptno, collect(empno) within group (order by empno desc) as empnos
+from "scott".emp
+group by deptno;
+
++--------+--------------------------------------+
+| DEPTNO | EMPNOS                               |
++--------+--------------------------------------+
+|     10 | [7934, 7839, 7782]                   |
+|     20 | [7902, 7876, 7788, 7566, 7369]       |
+|     30 | [7900, 7844, 7698, 7654, 7521, 7499] |
++--------+--------------------------------------+
+(3 rows)
+
+!ok
+EnumerableAggregate(group=[{7}], EMPNOS=[COLLECT($0) WITHIN GROUP ([0 DESC])])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+select deptno, collect(empno) within group (order by empno desc)
+filter (where empno > 7500) as empnos
+from "scott".emp
+group by deptno;
+
++--------+--------------------------------+
+| DEPTNO | EMPNOS                         |
++--------+--------------------------------+
+|     10 | [7934, 7839, 7782]             |
+|     20 | [7902, 7876, 7788, 7566]       |
+|     30 | [7900, 7844, 7698, 7654, 7521] |
++--------+--------------------------------+
+(3 rows)
+
+!ok
+EnumerableAggregate(group=[{0}], EMPNOS=[COLLECT($1) WITHIN GROUP ([1 DESC]) FILTER $2])
+  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[7500], expr#9=[>($t0, $t8)], DEPTNO=[$t7], EMPNO=[$t0], $f2=[$t9])
+    EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+select deptno, collect(empno) within group (order by empno desc) as empnos1,
+collect(empno) within group (order by empno asc) as empnos2
+from "scott".emp
+group by deptno;
+
++--------+--------------------------------------+--------------------------------------+
+| DEPTNO | EMPNOS1                              | EMPNOS2                              |
++--------+--------------------------------------+--------------------------------------+
+|     10 | [7934, 7839, 7782]                   | [7782, 7839, 7934]                   |
+|     20 | [7902, 7876, 7788, 7566, 7369]       | [7369, 7566, 7788, 7876, 7902]       |
+|     30 | [7900, 7844, 7698, 7654, 7521, 7499] | [7499, 7521, 7654, 7698, 7844, 7900] |
++--------+--------------------------------------+--------------------------------------+
+(3 rows)
+
+!ok
+EnumerableAggregate(group=[{7}], EMPNOS1=[COLLECT($0) WITHIN GROUP ([0 DESC])], EMPNOS2=[COLLECT($0) WITHIN GROUP ([0])])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Aggregate order should be ignored in general aggregate functions.
+select deptno, max(empno) within group (order by empno asc) as empnosum
+from "scott".emp
+group by deptno;
+
++--------+----------+
+| DEPTNO | EMPNOSUM |
++--------+----------+
+|     10 |     7934 |
+|     20 |     7902 |
+|     30 |     7900 |
++--------+----------+
+(3 rows)
+
+!ok
+EnumerableAggregate(group=[{7}], EMPNOSUM=[MAX($0)])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Aggregate WITHIN GROUP with JOIN
+select dept.deptno,
+  collect(sal) within group (order by sal desc) as s,
+  collect(sal) within group (order by 1)as s1,
+  collect(sal) within group (order by sal) filter (where sal > 2000) as s2
+from "scott".emp
+join "scott".dept using (deptno)
+group by dept.deptno;
+
++--------+-------------------------------------------------------+-------------------------------------------------------+-----------------------------+
+| DEPTNO | S                                                     | S1                                                    | S2                          |
++--------+-------------------------------------------------------+-------------------------------------------------------+-----------------------------+
+|     10 | [5000.00, 2450.00, 1300.00]                           | [2450.00, 5000.00, 1300.00]                           | [2450.00, 5000.00]          |
+|     20 | [3000.00, 3000.00, 2975.00, 1100.00, 800.00]          | [800.00, 2975.00, 3000.00, 1100.00, 3000.00]          | [2975.00, 3000.00, 3000.00] |
+|     30 | [2850.00, 1600.00, 1500.00, 1250.00, 1250.00, 950.00] | [1600.00, 1250.00, 1250.00, 2850.00, 1500.00, 950.00] | [2850.00]                   |
++--------+-------------------------------------------------------+-------------------------------------------------------+-----------------------------+
+(3 rows)
+
+!ok
+EnumerableAggregate(group=[{0}], S=[COLLECT($1) WITHIN GROUP ([1 DESC])], S1=[COLLECT($1) WITHIN GROUP ([2])], S2=[COLLECT($1) WITHIN GROUP ([1]) FILTER $3])
+  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[2000], expr#6=[>($t2, $t5)], expr#7=[IS TRUE($t6)], DEPTNO=[$t0], SAL=[$t2], $f2=[$t4], $f3=[$t7])
+    EnumerableJoin(condition=[=($0, $3)], joinType=[inner])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+        EnumerableTableScan(table=[[scott, DEPT]])
+      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+        EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End agg.iq

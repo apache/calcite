@@ -179,11 +179,10 @@ public class SqlJoin extends SqlCall {
       return SqlSyntax.SPECIAL;
     }
 
-    public SqlCall createCall(
-        SqlLiteral functionQualifier,
-        SqlParserPos pos,
-        SqlNode... operands) {
+    public SqlCall createCall(SqlLiteral functionQualifier, SqlParserPos pos,
+        SqlNodeList orderList, SqlNode... operands) {
       assert functionQualifier == null;
+      assert SqlNodeList.isEmptyList(orderList);
       return new SqlJoin(pos, operands[0], (SqlLiteral) operands[1],
           (SqlLiteral) operands[2], operands[3], (SqlLiteral) operands[4],
           operands[5]);

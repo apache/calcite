@@ -195,6 +195,7 @@ public class SqlFunction extends SqlOperator {
 
     super.validateCall(call, validator, scope, operandScope);
     validateQuantifier(validator, call);
+    validateCollation(validator, call);
   }
 
   /**
@@ -205,6 +206,18 @@ public class SqlFunction extends SqlOperator {
     if ((null != call.getFunctionQuantifier()) && !isQuantifierAllowed()) {
       throw validator.newValidationError(call.getFunctionQuantifier(),
           RESOURCE.functionQuantifierNotAllowed(call.getOperator().getName()));
+    }
+  }
+
+  /**
+   * Throws a validation error if a {@code WITHIN GROUP} clause is present but
+   * not allowed.
+   */
+  protected void validateCollation(SqlValidator validator, SqlCall call) {
+    if (!SqlNodeList.isEmptyList(call.getAggOrderList())
+        && !allowsOrderedAggregate()) {
+      throw validator.newValidationError(call,
+          RESOURCE.withinGroupNotAllowed(call.getOperator().getName()));
     }
   }
 

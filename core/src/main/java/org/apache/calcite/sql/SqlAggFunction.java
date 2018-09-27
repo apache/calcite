@@ -34,6 +34,7 @@ import java.util.List;
 public abstract class SqlAggFunction extends SqlFunction implements Context {
   private final boolean requiresOrder;
   private final boolean requiresOver;
+  private final boolean ignoreAggregateOrder;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -48,7 +49,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlFunctionCategory funcType) {
     // We leave sqlIdentifier as null to indicate that this is a builtin.
     this(name, null, kind, returnTypeInference, operandTypeInference,
-        operandTypeChecker, funcType, false, false);
+        operandTypeChecker, funcType, false, false, true);
   }
 
   /** Creates a user-defined SqlAggFunction. */
@@ -62,7 +63,23 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType) {
     this(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
-        operandTypeChecker, funcType, false, false);
+        operandTypeChecker, funcType, false, false, true);
+  }
+
+  /** Creates a built-in or user-defined SqlAggFunction or window function. */
+  @Deprecated // to be removed before 2.0
+  protected SqlAggFunction(
+      String name,
+      SqlIdentifier sqlIdentifier,
+      SqlKind kind,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
+      SqlFunctionCategory funcType,
+      boolean requiresOrder,
+      boolean requiresOver) {
+    this(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
+        operandTypeChecker, funcType, requiresOrder, requiresOver, true);
   }
 
   /** Creates a built-in or user-defined SqlAggFunction or window function.
@@ -78,11 +95,13 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType,
       boolean requiresOrder,
-      boolean requiresOver) {
+      boolean requiresOver,
+      boolean ignoreAggregateOrder) {
     super(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
         operandTypeChecker, null, funcType);
     this.requiresOrder = requiresOrder;
     this.requiresOver = requiresOver;
+    this.ignoreAggregateOrder = ignoreAggregateOrder;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -97,6 +116,21 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
 
   @Override public boolean isQuantifierAllowed() {
     return true;
+  }
+
+  @Override public boolean allowsOrderedAggregate() {
+    return true;
+  }
+
+  /**
+   * Returns whether aggregate order ({@code WITHIN GROUP}) should be ignored.
+   * For example, {@code SUM(X) WITHIN GROUP (ORDER BY ...)} is equivalent to
+   * {@code SUM(X)} so that the {@code WITHIN GROUP} clause should be ignored.
+   *
+   * @see #allowsOrderedAggregate()
+   */
+  public boolean ignoreAggregateOrder() {
+    return ignoreAggregateOrder;
   }
 
   @Override public void validateCall(

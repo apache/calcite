@@ -1198,6 +1198,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             rexBuilder.makeInputRef(relBuilder.peek(),
                 aggregate.getGroupCount() + i);
         aggregateCalls.add(
+            // TODO: handle aggregate ordering
             relBuilder.aggregateCall(rollupAgg, operand)
                 .distinct(aggCall.isDistinct())
                 .approximate(aggCall.isApproximate())
@@ -1469,6 +1470,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               }
               final RexInputRef operand = rexBuilder.makeInputRef(input, k);
               aggregateCalls.add(
+                  // TODO: handle aggregate ordering
                   relBuilder.aggregateCall(rollupAgg, operand)
                       .approximate(queryAggCall.isApproximate())
                       .distinct(queryAggCall.isDistinct())

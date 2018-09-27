@@ -436,6 +436,9 @@ public interface CalciteResource {
   @BaseMessage("DISTINCT/ALL not allowed with {0} function")
   ExInst<SqlValidatorException> functionQuantifierNotAllowed(String a0);
 
+  @BaseMessage("WITHIN GROUP not allowed with {0} function")
+  ExInst<SqlValidatorException> withinGroupNotAllowed(String a0);
+
   @BaseMessage("Some but not all arguments are named")
   ExInst<SqlValidatorException> someButNotAllArgumentsAreNamed();
 

@@ -1980,7 +1980,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.TO_MULTISET,
           null,
           OperandTypes.ANY,
-          SqlFunctionCategory.SYSTEM, false, false) {
+          SqlFunctionCategory.SYSTEM, false, false, false) {
       };
 
   /**
@@ -1992,7 +1992,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.ARG0,
           null,
           OperandTypes.MULTISET,
-          SqlFunctionCategory.SYSTEM, false, false) {
+          SqlFunctionCategory.SYSTEM, false, false, true) {
       };
 
   /**

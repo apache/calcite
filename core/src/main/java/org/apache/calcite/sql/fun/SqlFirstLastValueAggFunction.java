@@ -48,6 +48,7 @@ public class SqlFirstLastValueAggFunction extends SqlAggFunction {
         OperandTypes.ANY,
         SqlFunctionCategory.NUMERIC,
         false,
+        true,
         true);
     Preconditions.checkArgument(kind == SqlKind.FIRST_VALUE
         || kind == SqlKind.LAST_VALUE);

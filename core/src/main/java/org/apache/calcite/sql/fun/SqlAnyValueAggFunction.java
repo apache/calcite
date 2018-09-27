@@ -44,7 +44,8 @@ public class SqlAnyValueAggFunction extends SqlAggFunction {
         OperandTypes.ANY,
         SqlFunctionCategory.SYSTEM,
         false,
-        false);
+        false,
+        true);
     Preconditions.checkArgument(kind == SqlKind.ANY_VALUE);
   }
 

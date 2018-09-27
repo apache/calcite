@@ -305,6 +305,15 @@ public abstract class SqlUtil {
       operand.unparse(writer, 0, 0);
     }
     writer.endList(frame);
+    SqlNodeList aggOrderList = call.getAggOrderList();
+    if (!SqlNodeList.isEmptyList(aggOrderList)) {
+      writer.keyword("WITHIN GROUP");
+      final SqlWriter.Frame orderFrame =
+          writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY_LIST, "(", ")");
+      writer.keyword("ORDER BY");
+      aggOrderList.commaList(writer);
+      writer.endList(orderFrame);
+    }
   }
 
   public static void unparseBinarySyntax(

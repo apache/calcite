@@ -7116,6 +7116,33 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("FILTER must not contain aggregate expression");
   }
 
+  @Test public void testWithinGroup() {
+    sql("select deptno,\n"
+        + " collect(empno) within group(order by 1)\n"
+        + "from emp\n"
+        + "group by deptno").ok();
+    sql("select deptno,\n"
+        + " collect(empno) within group(order by deptno)\n"
+        + "from emp\n"
+        + "group by deptno").ok();
+    sql("select deptno,\n"
+        + " collect(empno) within group(order by deptno, hiredate desc)\n"
+        + "from emp\n"
+        + "group by deptno").ok();
+    sql("select deptno,\n"
+        + " collect(empno) within group(\n"
+        + "  order by cast(deptno as varchar), hiredate desc)\n"
+        + "from emp\n"
+        + "group by deptno").ok();
+    sql("select collect(empno) within group(order by 1)\n"
+        + "from emp\n"
+        + "group by deptno").ok();
+    sql("select collect(empno) within group(order by 1)\n"
+        + "from emp").ok();
+    sql("select ^power(deptno, 1) within group(order by 1)^ from emp")
+        .fails("(?s).*WITHIN GROUP not allowed with POWER function.*");
+  }
+
   @Test public void testCorrelatingVariables() {
     // reference to unqualified correlating column
     check("select * from emp where exists (\n"

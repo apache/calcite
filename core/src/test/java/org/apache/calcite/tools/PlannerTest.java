@@ -1060,7 +1060,7 @@ public class PlannerTest {
   public static class MyCountAggFunction extends SqlAggFunction {
     public MyCountAggFunction() {
       super("MY_COUNT", null, SqlKind.OTHER_FUNCTION, ReturnTypes.BIGINT, null,
-          OperandTypes.ANY, SqlFunctionCategory.NUMERIC, false, false);
+          OperandTypes.ANY, SqlFunctionCategory.NUMERIC, false, false, true);
     }
 
     @SuppressWarnings("deprecation")

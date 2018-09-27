@@ -54,7 +54,8 @@ public class SqlSumAggFunction extends SqlAggFunction {
         OperandTypes.NUMERIC,
         SqlFunctionCategory.NUMERIC,
         false,
-        false);
+        false,
+        true);
     this.type = type;
   }
 

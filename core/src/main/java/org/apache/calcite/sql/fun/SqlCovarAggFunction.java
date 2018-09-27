@@ -48,7 +48,8 @@ public class SqlCovarAggFunction extends SqlAggFunction {
         OperandTypes.NUMERIC_NUMERIC,
         SqlFunctionCategory.NUMERIC,
         false,
-        false);
+        false,
+        true);
     Preconditions.checkArgument(SqlKind.COVAR_AVG_AGG_FUNCTIONS.contains(kind),
         "unsupported sql kind: " + kind);
   }

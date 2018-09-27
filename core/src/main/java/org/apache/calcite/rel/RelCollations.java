@@ -26,6 +26,7 @@ import com.google.common.collect.Lists;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -185,6 +186,15 @@ public class RelCollations {
       fieldCollations.add(fc.shift(offset));
     }
     return new RelCollationImpl(fieldCollations.build());
+  }
+
+  /** Creates a copy of this collation that changes the ordinals of input
+   * fields. */
+  public static RelCollation permute(RelCollation collation,
+      Map<Integer, Integer> mapping) {
+    return of(
+        Util.transform(collation.getFieldCollations(),
+            fc -> fc.copy(mapping.get(fc.getFieldIndex()))));
   }
 }
 

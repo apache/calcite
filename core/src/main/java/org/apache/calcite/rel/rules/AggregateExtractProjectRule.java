@@ -120,7 +120,7 @@ public class AggregateExtractProjectRule extends RelOptRule {
               .distinct(aggCall.isDistinct())
               .filter(filterArg)
               .approximate(aggCall.isApproximate())
-              .approximate(aggCall.isApproximate())
+              .sort(relBuilder.fields(aggCall.collation))
               .as(aggCall.name));
     }
 

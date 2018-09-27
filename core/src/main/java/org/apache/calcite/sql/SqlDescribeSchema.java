@@ -30,7 +30,7 @@ public class SqlDescribeSchema extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("DESCRIBE_SCHEMA", SqlKind.DESCRIBE_SCHEMA) {
         @Override public SqlCall createCall(SqlLiteral functionQualifier,
-            SqlParserPos pos, SqlNode... operands) {
+            SqlParserPos pos, SqlNodeList orderList, SqlNode... operands) {
           return new SqlDescribeSchema(pos, (SqlIdentifier) operands[0]);
         }
       };

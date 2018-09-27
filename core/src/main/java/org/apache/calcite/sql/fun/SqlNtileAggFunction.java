@@ -37,6 +37,7 @@ public class SqlNtileAggFunction extends SqlAggFunction {
         OperandTypes.POSITIVE_INTEGER_LITERAL,
         SqlFunctionCategory.NUMERIC,
         false,
+        true,
         true);
   }
 

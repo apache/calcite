@@ -31,7 +31,7 @@ public class SqlNthValueAggFunction extends SqlAggFunction {
   public SqlNthValueAggFunction(SqlKind kind) {
     super(kind.name(), null, kind, ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
         null, OperandTypes.ANY_NUMERIC, SqlFunctionCategory.NUMERIC, false,
-        true);
+        true, true);
   }
 }
 

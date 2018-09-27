@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
@@ -365,6 +366,28 @@ public abstract class SqlAbstractParserImpl {
       SqlLiteral functionQualifier,
       Iterable<? extends SqlNode> operands) {
     return createCall(funName, pos, funcType, functionQualifier,
+        SqlNodeList.EMPTY, Iterables.toArray(operands, SqlNode.class));
+  }
+
+  /**
+   * Creates a call.
+   *
+   * @param funName           Name of function
+   * @param pos               Position in source code
+   * @param funcType          Type of function
+   * @param functionQualifier Qualifier
+   * @param orderList         OrderBy list
+   * @param operands          Operands to call
+   * @return Call
+   */
+  protected SqlCall createCall(
+      SqlIdentifier funName,
+      SqlParserPos pos,
+      SqlFunctionCategory funcType,
+      SqlLiteral functionQualifier,
+      SqlNodeList orderList,
+      Iterable<? extends SqlNode> operands) {
+    return createCall(funName, pos, funcType, functionQualifier, orderList,
         Iterables.toArray(operands, SqlNode.class));
   }
 
@@ -375,6 +398,7 @@ public abstract class SqlAbstractParserImpl {
    * @param pos               Position in source code
    * @param funcType          Type of function
    * @param functionQualifier Qualifier
+   * @param orderList         OrderBy list
    * @param operands          Operands to call
    * @return Call
    */
@@ -383,6 +407,7 @@ public abstract class SqlAbstractParserImpl {
       SqlParserPos pos,
       SqlFunctionCategory funcType,
       SqlLiteral functionQualifier,
+      SqlNodeList orderList,
       SqlNode[] operands) {
     SqlOperator fun = null;
 
@@ -405,7 +430,7 @@ public abstract class SqlAbstractParserImpl {
           funcType);
     }
 
-    return fun.createCall(functionQualifier, pos, operands);
+    return fun.createCall(functionQualifier, pos, orderList, operands);
   }
 
   /**

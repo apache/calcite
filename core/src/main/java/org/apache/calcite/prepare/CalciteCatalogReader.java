@@ -324,7 +324,8 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     } else if (function instanceof AggregateFunction) {
       return new SqlUserDefinedAggFunction(name,
           infer((AggregateFunction) function), InferTypes.explicit(argTypes),
-          typeChecker, (AggregateFunction) function, false, false, typeFactory);
+          typeChecker, (AggregateFunction) function, false, false, true,
+          typeFactory);
     } else if (function instanceof TableMacro) {
       return new SqlUserDefinedTableMacro(name, ReturnTypes.CURSOR,
           InferTypes.explicit(argTypes), typeChecker, paramTypes,

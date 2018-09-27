@@ -4976,6 +4976,7 @@ SqlNode NamedFunctionCall() :
     final SqlNode filter;
     final SqlNode over;
     SqlLiteral quantifier = null;
+    SqlNodeList orderList = SqlNodeList.EMPTY;
 }
 {
     (
@@ -5003,9 +5004,16 @@ SqlNode NamedFunctionCall() :
             args.remove(0);
         }
     )
+    [
+        <WITHIN>
+        <GROUP>
+        <LPAREN>
+        orderList = OrderBy(true)
+        <RPAREN>
+    ]
     {
         call = createCall(qualifiedName, s.end(this), funcType, quantifier,
-            args);
+            orderList, args);
     }
     [
         <FILTER> { filterSpan = span(); }

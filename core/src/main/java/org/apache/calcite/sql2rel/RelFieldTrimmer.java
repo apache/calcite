@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -794,12 +795,11 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         aggregate.getGroupSet().rebuild();
     // 2. agg functions
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
-      for (int i : aggCall.getArgList()) {
-        inputFieldsUsed.set(i);
-      }
+      inputFieldsUsed.addAll(aggCall.getArgList());
       if (aggCall.filterArg >= 0) {
         inputFieldsUsed.set(aggCall.filterArg);
       }
+      inputFieldsUsed.addAll(RelCollations.ordinals(aggCall.collation));
     }
 
     // Create input with trimmed columns.
@@ -871,6 +871,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
                 .distinct(aggCall.isDistinct())
                 .filter(filterArg)
                 .approximate(aggCall.isApproximate())
+                .sort(relBuilder.fields(aggCall.collation))
                 .as(aggCall.name);
         mapping.set(j, groupCount + indicatorCount + newAggCallList.size());
         newAggCallList.add(newAggCall);

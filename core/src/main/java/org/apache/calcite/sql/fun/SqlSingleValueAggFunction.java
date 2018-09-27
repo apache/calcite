@@ -51,7 +51,8 @@ public class SqlSingleValueAggFunction extends SqlAggFunction {
         OperandTypes.ANY,
         SqlFunctionCategory.SYSTEM,
         false,
-        false);
+        false,
+        true);
     this.type = type;
   }
 

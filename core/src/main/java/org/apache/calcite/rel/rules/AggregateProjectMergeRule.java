@@ -18,6 +18,9 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Aggregate.Group;
@@ -118,7 +121,20 @@ public class AggregateProjectMergeRule extends RelOptRule {
       } else {
         newFilterArg = -1;
       }
-      aggCalls.add(aggregateCall.copy(newArgs.build(), newFilterArg));
+      final Map<Integer, Integer> mapping = new HashMap<>();
+      for (RelFieldCollation fieldCollation
+          : aggregateCall.collation.getFieldCollations()) {
+        final int source = fieldCollation.getFieldIndex();
+        final RexNode rex = project.getProjects().get(source);
+        if (!(rex instanceof RexInputRef)) {
+          return null;
+        }
+        mapping.put(source, ((RexInputRef) rex).getIndex());
+      }
+      final RelCollation newCollation =
+          RelCollations.permute(aggregateCall.getCollation(), mapping);
+      aggCalls.add(
+          aggregateCall.copy(newArgs.build(), newFilterArg, newCollation));
     }
 
     final Aggregate newAggregate =

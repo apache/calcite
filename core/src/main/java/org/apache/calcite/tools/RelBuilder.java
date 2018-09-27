@@ -94,6 +94,7 @@ import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -1447,10 +1448,17 @@ public class RelBuilder {
         if (aggCall1.filter != null && !aggCall1.aggFunction.allowsFilter()) {
           throw new IllegalArgumentException("FILTER not allowed");
         }
+        RelCollation collation =
+            RelCollations.of(aggCall1.orderKeys
+                .stream()
+                .map(orderKey ->
+                    collation(orderKey, RelFieldCollation.Direction.ASCENDING,
+                        null, Collections.emptyList()))
+                .collect(Collectors.toList()));
         aggregateCall =
             AggregateCall.create(aggCall1.aggFunction, aggCall1.distinct,
-                aggCall1.approximate, args,
-                filterArg, groupSet.cardinality(), r, null, aggCall1.alias);
+                aggCall1.approximate, args, filterArg, collation,
+                groupSet.cardinality(), r, null, aggCall1.alias);
       } else {
         aggregateCall = ((AggCallImpl2) aggCall).aggregateCall;
       }

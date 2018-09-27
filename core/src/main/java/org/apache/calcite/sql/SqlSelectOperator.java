@@ -56,11 +56,10 @@ public class SqlSelectOperator extends SqlOperator {
     return SqlSyntax.SPECIAL;
   }
 
-  public SqlCall createCall(
-      SqlLiteral functionQualifier,
-      SqlParserPos pos,
-      SqlNode... operands) {
+  public SqlCall createCall(SqlLiteral functionQualifier, SqlParserPos pos,
+      SqlNodeList orderList, SqlNode... operands) {
     assert functionQualifier == null;
+    assert SqlNodeList.isEmptyList(orderList);
     return new SqlSelect(pos,
         (SqlNodeList) operands[0],
         (SqlNodeList) operands[1],

@@ -97,8 +97,9 @@ public class SqlWithItem extends SqlCall {
     }
 
     @Override public SqlCall createCall(SqlLiteral functionQualifier,
-        SqlParserPos pos, SqlNode... operands) {
+        SqlParserPos pos, SqlNodeList orderList, SqlNode... operands) {
       assert functionQualifier == null;
+      assert SqlNodeList.isEmptyList(orderList);
       assert operands.length == 3;
       return new SqlWithItem(pos, (SqlIdentifier) operands[0],
           (SqlNodeList) operands[1], operands[2]);

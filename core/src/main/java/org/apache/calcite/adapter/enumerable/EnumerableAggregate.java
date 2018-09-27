@@ -33,6 +33,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.InvalidRelException;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -52,6 +53,7 @@ import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Aggregate} in
@@ -232,36 +234,10 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
             typeFactory.createSyntheticType(aggStateTypes));
 
 
-    if (accPhysType.getJavaRowType() instanceof JavaTypeFactoryImpl.SyntheticRecordType) {
-      // We have to initialize the SyntheticRecordType instance this way, to avoid using
-      // class constructor with too many parameters.
-      JavaTypeFactoryImpl.SyntheticRecordType synType =
-          (JavaTypeFactoryImpl.SyntheticRecordType)
-          accPhysType.getJavaRowType();
-      final ParameterExpression record0_ =
-          Expressions.parameter(accPhysType.getJavaRowType(), "record0");
-      initBlock.add(Expressions.declare(0, record0_, null));
-      initBlock.add(
-          Expressions.statement(
-              Expressions.assign(record0_,
-                  Expressions.new_(accPhysType.getJavaRowType()))));
-      List<Types.RecordField> fieldList = synType.getRecordFields();
-      for (int i = 0; i < initExpressions.size(); i++) {
-        Expression right = initExpressions.get(i);
-        initBlock.add(
-            Expressions.statement(
-                Expressions.assign(
-                    Expressions.field(record0_, fieldList.get(i)),
-                    right)));
-      }
-      initBlock.add(record0_);
-    } else {
-      initBlock.add(accPhysType.record(initExpressions));
-    }
+    declareParentAccumulator(initExpressions, initBlock, accPhysType);
 
     final Expression accumulatorInitializer =
-        builder.append(
-            "accumulatorInitializer",
+        builder.append("accumulatorInitializer",
             Expressions.lambda(
                 Function0.class,
                 initBlock.toBlock()));
@@ -274,12 +250,12 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
     //             return acc;
     //         }
     //     };
-    final BlockBuilder builder2 = new BlockBuilder();
     final ParameterExpression inParameter =
         Expressions.parameter(inputPhysType.getJavaRowType(), "in");
     final ParameterExpression acc_ =
         Expressions.parameter(accPhysType.getJavaRowType(), "acc");
     for (int i = 0, stateOffset = 0; i < aggs.size(); i++) {
+      final BlockBuilder builder2 = new BlockBuilder();
       final AggImpState agg = aggs.get(i);
 
       final int stateSize = agg.state.size();
@@ -315,24 +291,25 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
                   currentBlock(),
                   new RexToLixTranslator.InputGetterImpl(
                       Collections.singletonList(
-                          Pair.of((Expression) inParameter, inputPhysType))),
+                          Pair.of(inParameter, inputPhysType))),
                   implementor.getConformance())
                   .setNullable(currentNullables());
             }
           };
 
       agg.implementor.implementAdd(agg.context, addContext);
+      builder2.add(acc_);
+      agg.accumulatorAdder = builder.append("accumulatorAdder",
+          Expressions.lambda(Function2.class, builder2.toBlock(),
+              acc_, inParameter));
     }
-    builder2.add(acc_);
-    final Expression accumulatorAdder =
-        builder.append(
-            "accumulatorAdder",
-            Expressions.lambda(
-                Function2.class,
-                builder2.toBlock(),
-                acc_,
-                inParameter));
 
+    final ParameterExpression lambdaFactory =
+        Expressions.parameter(AggregateLambdaFactory.class,
+            builder.newName("lambdaFactory"));
+
+    implementLambdaFactory(builder, inputPhysType, aggs, accumulatorInitializer,
+        hasOrderedCall(aggs), lambdaFactory);
     // Function2<Integer, Object[], Object[]> resultSelector =
     //     new Function2<Integer, Object[], Object[]>() {
     //         public Object[] apply(Integer key, Object[] acc) {
@@ -390,9 +367,13 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
                   BuiltInMethod.GROUP_BY_MULTIPLE.method,
                   Expressions.list(childExp,
                       keySelectors_,
-                      accumulatorInitializer,
-                      accumulatorAdder,
-                      resultSelector)
+                      Expressions.call(lambdaFactory,
+                          BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_INITIALIZER.method),
+                      Expressions.call(lambdaFactory,
+                          BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_ADDER.method),
+                      Expressions.call(lambdaFactory,
+                          BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_RESULT_SELECTOR.method,
+                          resultSelector))
                       .appendIfNotNull(keyPhysType.comparer()))));
     } else if (groupCount == 0) {
       final Expression resultSelector =
@@ -410,9 +391,15 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
                   Expressions.call(
                       childExp,
                       BuiltInMethod.AGGREGATE.method,
-                      Expressions.call(accumulatorInitializer, "apply"),
-                      accumulatorAdder,
-                      resultSelector))));
+                      Expressions.call(
+                          Expressions.call(lambdaFactory,
+                              BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_INITIALIZER.method),
+                          BuiltInMethod.FUNCTION0_APPLY.method),
+                      Expressions.call(lambdaFactory,
+                          BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_ADDER.method),
+                      Expressions.call(lambdaFactory,
+                          BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_SINGLE_GROUP_RESULT_SELECTOR.method,
+                          resultSelector)))));
     } else if (aggCalls.isEmpty()
         && groupSet.equals(
             ImmutableBitSet.range(child.getRowType().getFieldCount()))) {
@@ -441,12 +428,123 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
               Expressions.call(childExp,
                   BuiltInMethod.GROUP_BY2.method,
                   Expressions.list(keySelector_,
-                      accumulatorInitializer,
-                      accumulatorAdder,
-                      resultSelector_)
+                      Expressions.call(lambdaFactory,
+                          BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_INITIALIZER.method),
+                      Expressions.call(lambdaFactory,
+                          BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_ADDER.method),
+                      Expressions.call(lambdaFactory,
+                          BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_RESULT_SELECTOR.method,
+                          resultSelector_))
                       .appendIfNotNull(keyPhysType.comparer()))));
     }
     return implementor.result(physType, builder.toBlock());
+  }
+
+  private static boolean hasOrderedCall(List<AggImpState> aggs) {
+    for (AggImpState agg : aggs) {
+      if (!agg.call.collation.equals(RelCollations.EMPTY)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private void declareParentAccumulator(List<Expression> initExpressions,
+      BlockBuilder initBlock, PhysType accPhysType) {
+    if (accPhysType.getJavaRowType()
+        instanceof JavaTypeFactoryImpl.SyntheticRecordType) {
+      // We have to initialize the SyntheticRecordType instance this way, to
+      // avoid using a class constructor with too many parameters.
+      final JavaTypeFactoryImpl.SyntheticRecordType synType =
+          (JavaTypeFactoryImpl.SyntheticRecordType)
+          accPhysType.getJavaRowType();
+      final ParameterExpression record0_ =
+          Expressions.parameter(accPhysType.getJavaRowType(), "record0");
+      initBlock.add(Expressions.declare(0, record0_, null));
+      initBlock.add(
+          Expressions.statement(
+              Expressions.assign(record0_,
+                  Expressions.new_(accPhysType.getJavaRowType()))));
+      List<Types.RecordField> fieldList = synType.getRecordFields();
+      for (int i = 0; i < initExpressions.size(); i++) {
+        Expression right = initExpressions.get(i);
+        initBlock.add(
+            Expressions.statement(
+                Expressions.assign(Expressions.field(record0_, fieldList.get(i)),
+                    right)));
+      }
+      initBlock.add(record0_);
+    } else {
+      initBlock.add(accPhysType.record(initExpressions));
+    }
+  }
+
+  /**
+   * Implements the {@link AggregateLambdaFactory}.
+   *
+   * <p>Behavior depends upon ordering:
+   * <ul>
+   *
+   * <li>{@code hasOrderedCall == true} means there is at least one aggregate
+   * call including sort spec. We use {@link OrderedAggregateLambdaFactory}
+   * implementation to implement sorted aggregates for that.
+   *
+   * <li>{@code hasOrderedCall == false} indicates to use
+   * {@link SequencedAdderAggregateLambdaFactory} to implement a non-sort
+   * aggregate.
+   *
+   * </ul>
+   */
+  private void implementLambdaFactory(BlockBuilder builder,
+      PhysType inputPhysType,
+      List<AggImpState> aggs,
+      Expression accumulatorInitializer,
+      boolean hasOrderedCall,
+      ParameterExpression lambdaFactory) {
+    if (hasOrderedCall) {
+      ParameterExpression pe = Expressions.parameter(List.class,
+          builder.newName("sourceSorters"));
+      builder.add(
+          Expressions.declare(0, pe, Expressions.new_(LinkedList.class)));
+
+      for (AggImpState agg : aggs) {
+        if (agg.call.collation.equals(RelCollations.EMPTY)) {
+          continue;
+        }
+        final Pair<Expression, Expression> pair =
+            inputPhysType.generateCollationKey(
+                agg.call.collation.getFieldCollations());
+        builder.add(
+            Expressions.statement(
+                Expressions.call(pe,
+                    BuiltInMethod.COLLECTION_ADD.method,
+                    Expressions.new_(BuiltInMethod.SOURCE_SORTER.constructor,
+                        agg.accumulatorAdder, pair.left, pair.right))));
+      }
+      builder.add(
+          Expressions.declare(0, lambdaFactory,
+              Expressions.new_(
+                  BuiltInMethod.ORDERED_AGGREGATE_LAMBDA_FACTORY.constructor,
+                  accumulatorInitializer, pe)));
+    } else {
+      // when hasOrderedCall == false
+      ParameterExpression pe = Expressions.parameter(List.class,
+          builder.newName("accumulatorAdders"));
+      builder.add(
+          Expressions.declare(0, pe, Expressions.new_(LinkedList.class)));
+
+      for (AggImpState agg : aggs) {
+        builder.add(
+            Expressions.statement(
+                Expressions.call(pe, BuiltInMethod.COLLECTION_ADD.method,
+                    agg.accumulatorAdder)));
+      }
+      builder.add(
+          Expressions.declare(0, lambdaFactory,
+              Expressions.new_(
+                  BuiltInMethod.SEQUENCED_ADDER_AGGREGATE_LAMBDA_FACTORY.constructor,
+                  accumulatorInitializer, pe)));
+    }
   }
 
   /** An implementation of {@link AggContext}. */

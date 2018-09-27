@@ -768,6 +768,23 @@ public abstract class SqlImplementor {
       };
     }
 
+    void addOrderItem(List<SqlNode> orderByList, RelFieldCollation field) {
+      if (field.nullDirection != RelFieldCollation.NullDirection.UNSPECIFIED) {
+        final boolean first =
+            field.nullDirection == RelFieldCollation.NullDirection.FIRST;
+        SqlNode nullDirectionNode =
+            dialect.emulateNullDirection(field(field.getFieldIndex()),
+                first, field.direction.isDescending());
+        if (nullDirectionNode != null) {
+          orderByList.add(nullDirectionNode);
+          field = new RelFieldCollation(field.getFieldIndex(),
+              field.getDirection(),
+              RelFieldCollation.NullDirection.UNSPECIFIED);
+        }
+      }
+      orderByList.add(toSql(field));
+    }
+
     /** Converts a call to an aggregate function to an expression. */
     public SqlNode toSql(AggregateCall aggCall) {
       final SqlOperator op = aggCall.getAggregation();
@@ -778,13 +795,21 @@ public abstract class SqlImplementor {
       final SqlLiteral qualifier =
           aggCall.isDistinct() ? SqlSelectKeyword.DISTINCT.symbol(POS) : null;
       final SqlNode[] operands = operandList.toArray(new SqlNode[0]);
+      List<SqlNode> orderByList = Expressions.list();
+      for (RelFieldCollation field : aggCall.collation.getFieldCollations()) {
+        addOrderItem(orderByList, field);
+      }
+      SqlNodeList orderList = new SqlNodeList(orderByList, POS);
       if (op instanceof SqlSumEmptyIsZeroAggFunction) {
         final SqlNode node =
-            SqlStdOperatorTable.SUM.createCall(qualifier, POS, operands);
+            SqlStdOperatorTable.SUM.createCall(qualifier,
+                POS,
+                orderList,
+                operands);
         return SqlStdOperatorTable.COALESCE.createCall(POS, node,
             SqlLiteral.createExactNumeric("0", POS));
       } else {
-        return op.createCall(qualifier, POS, operands);
+        return op.createCall(qualifier, POS, orderList, operands);
       }
     }
 
@@ -1217,19 +1242,7 @@ public abstract class SqlImplementor {
 
     public void addOrderItem(List<SqlNode> orderByList,
         RelFieldCollation field) {
-      if (field.nullDirection != RelFieldCollation.NullDirection.UNSPECIFIED) {
-        boolean first = field.nullDirection == RelFieldCollation.NullDirection.FIRST;
-        SqlNode nullDirectionNode =
-            dialect.emulateNullDirection(context.field(field.getFieldIndex()),
-                first, field.direction.isDescending());
-        if (nullDirectionNode != null) {
-          orderByList.add(nullDirectionNode);
-          field = new RelFieldCollation(field.getFieldIndex(),
-              field.getDirection(),
-              RelFieldCollation.NullDirection.UNSPECIFIED);
-        }
-      }
-      orderByList.add(context.toSql(field));
+      context.addOrderItem(orderByList, field);
     }
 
     public Result result() {

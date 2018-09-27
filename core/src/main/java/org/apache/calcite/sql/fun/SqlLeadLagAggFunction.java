@@ -78,6 +78,7 @@ public class SqlLeadLagAggFunction extends SqlAggFunction {
         OPERAND_TYPES,
         SqlFunctionCategory.NUMERIC,
         false,
+        true,
         true);
     Preconditions.checkArgument(kind == SqlKind.LEAD
         || kind == SqlKind.LAG);
