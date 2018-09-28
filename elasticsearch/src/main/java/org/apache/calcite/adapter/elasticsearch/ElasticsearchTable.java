@@ -176,8 +176,8 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       ArrayNode sortNode = query.withArray("sort");
       sort.forEach(e ->
           sortNode.add(
-            mapper.createObjectNode().put(e.getKey(), e.getValue().isDescending() ? "desc" : "asc"))
-      );
+              mapper.createObjectNode().put(e.getKey(),
+                  e.getValue().isDescending() ? "desc" : "asc")));
     }
 
     if (offset != null) {

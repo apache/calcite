@@ -2394,10 +2394,11 @@ public class SqlFunctions {
   }
 
   /**
-   * Implements the {@code .} (field access) operator on an object whose type is not known until
-   * runtime.
+   * Implements the {@code .} (field access) operator on an object
+   * whose type is not known until runtime.
    *
-   * A struct object can be represented in various ways by the runtime and depends on the
+   * <p>A struct object can be represented in various ways by the
+   * runtime and depends on the
    * {@link org.apache.calcite.adapter.enumerable.JavaRowFormat}.
    */
   @Experimental

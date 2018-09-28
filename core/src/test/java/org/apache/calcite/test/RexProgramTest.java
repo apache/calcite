@@ -1541,8 +1541,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
             not(vBool(2)), not(vBool())),
         "AND(?0.bool3, null, IS NULL(?0.bool1),"
             + " IS NULL(?0.bool2), NOT(?0.bool0))",
-        "false"
-    );
+        "false");
   }
 
   @Test public void testSimplifyOrTerms() {
@@ -1617,8 +1616,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplifyFilter(
         or(isNull(bRef),
             isNotFalse(bRef)),
-        "OR(IS NULL(?0.b), IS NOT FALSE(?0.b))"
-    );
+        "OR(IS NULL(?0.b), IS NOT FALSE(?0.b))");
 
     // multiple predicates are handled correctly
     checkSimplifyFilter(

@@ -927,12 +927,13 @@ public class RexSimplify {
 
   }
 
-  /** Analyzes a given {@link RexNode} and decides whenever its safe to unwind.
+  /** Analyzes a given {@link RexNode} and decides whenever it is safe to
+   * unwind.
   *
-  * CaseSafe means that it only contains a combination of known good operators.
+  * <p>"Safe" means that it only contains a combination of known good operators.
   *
-  * The division is an unsafe operator, consider:
-  * <pre>case when a &gt; 0 then 1/a else null end</pre>
+  * <p>Division is an unsafe operator; consider the following:
+  * <pre>case when a &gt; 0 then 1 / a else null end</pre>
   */
   static boolean isSafeExpression(RexNode r) {
     return r.accept(new SafeRexVisitor());
@@ -972,7 +973,7 @@ public class RexSimplify {
   /**
    * Generic boolean case simplification.
    *
-   * Rewrites:
+   * <p>Rewrites:
    * <pre>
    * CASE
    *   WHEN p1 THEN x

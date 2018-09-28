@@ -24,56 +24,51 @@ import java.util.List;
 /**
  * A Schema representing a bookstore.
  *
- * It contains a single table with various levels/types of nesting, and is used mainly for testing
- * parts of code that rely on nested structures.
+ * <p>It contains a single table with various levels/types of nesting,
+ * and is used mainly for testing parts of code that rely on nested
+ * structures.
  *
- * New authors can be added but attention should be made to update appropriately tests that might
- * fail.
+ * <p>New authors can be added but attention should be made to update
+ * appropriately tests that might fail.
  *
- * The Schema is meant to be used with {@link org.apache.calcite.adapter.java.ReflectiveSchema} thus
- * all fields, and methods, should be public.
+ * <p>The Schema is meant to be used with
+ * {@link org.apache.calcite.adapter.java.ReflectiveSchema} thus all
+ * fields, and methods, should be public.
  */
 public final class BookstoreSchema {
 
   public final Author[] authors = {
-      new Author(
-          1,
+      new Author(1,
           "Victor Hugo",
           new Place(
               new Coordinate(BigDecimal.valueOf(47.24), BigDecimal.valueOf(6.02)),
               "Besançon",
               "France"),
           Collections.singletonList(
-              new Book(
-                  "Les Misérables",
+              new Book("Les Misérables",
                   1862,
                   Collections.singletonList(new Page(1, "Contents"))))),
-      new Author(
-          2,
+      new Author(2,
           "Nikos Kazantzakis",
-          new Place(new Coordinate(BigDecimal.valueOf(35.3387), BigDecimal.valueOf(25.1442)),
+          new Place(
+              new Coordinate(BigDecimal.valueOf(35.3387), BigDecimal.valueOf(25.1442)),
               "Heraklion",
               "Greece"),
           Arrays.asList(
-              new Book(
-                  "Zorba the Greek",
+              new Book("Zorba the Greek",
                   1946,
-                  Arrays.asList(
-                      new Page(1, "Contents"),
+                  Arrays.asList(new Page(1, "Contents"),
                       new Page(2, "Acknowledgements"))),
-              new Book(
-                  "The Last Temptation of Christ",
+              new Book("The Last Temptation of Christ",
                   1955,
                   Collections.singletonList(new Page(1, "Contents")))
           )),
-      new Author(
-          3,
+      new Author(3,
           "Homer",
           new Place(null,
               "Ionia",
               "Greece"),
-          Collections.emptyList()
-      )
+          Collections.emptyList())
   };
 
   /**

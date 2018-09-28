@@ -14,14 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.adapter.geode.rel;
 
 import org.junit.ClassRule;
 
 /**
- * Base class which allows sharing same geode instance across all tests. Also due to legacy
- * reasons there can't be more than one Geode instance (running in parallel) for a single JVM.
+ * Base class that allows sharing same geode instance across all tests.
+ *
+ * <p>Also, due to legacy reasons, there can't be more than one Geode
+ * instance (running in parallel) for a single JVM.
  */
 public abstract class AbstractGeodeTest {
 
