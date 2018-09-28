@@ -157,8 +157,9 @@ public class DruidRules {
       final RelOptPredicateList predicates =
           call.getMetadataQuery().getPulledUpPredicates(filter.getInput());
       final RexSimplify simplify =
-          new RexSimplify(rexBuilder, predicates, true, executor);
-      final RexNode cond = simplify.simplify(filter.getCondition());
+          new RexSimplify(rexBuilder, predicates, executor);
+      final RexNode cond =
+          simplify.simplifyUnknownAsFalse(filter.getCondition());
       for (RexNode e : RelOptUtil.conjunctions(cond)) {
         DruidJsonFilter druidJsonFilter = DruidJsonFilter
             .toDruidFilters(e, filter.getInput().getRowType(), query);
@@ -187,7 +188,7 @@ public class DruidRules {
             .unwrap(CalciteConnectionConfig.class).timeZone();
         assert timeZone != null;
         intervals = DruidDateTimeUtils.createInterval(
-            RexUtil.composeConjunction(rexBuilder, triple.getLeft(), false));
+            RexUtil.composeConjunction(rexBuilder, triple.getLeft()));
         if (intervals == null || intervals.isEmpty()) {
           // Case we have a filter with extract that can not be written as interval push down
           triple.getMiddle().addAll(triple.getLeft());
@@ -196,7 +197,7 @@ public class DruidRules {
 
       if (!triple.getMiddle().isEmpty()) {
         final RelNode newFilter = filter.copy(filter.getTraitSet(), Util.last(query.rels),
-            RexUtil.composeConjunction(rexBuilder, triple.getMiddle(), false));
+            RexUtil.composeConjunction(rexBuilder, triple.getMiddle()));
         newDruidQuery = DruidQuery.extendQuery(query, newFilter);
       }
       if (intervals != null && !intervals.isEmpty()) {
@@ -563,7 +564,7 @@ public class DruidRules {
       final RelOptPredicateList predicates =
           call.getMetadataQuery().getPulledUpPredicates(scan);
       final RexSimplify simplify =
-          new RexSimplify(builder, predicates, true, executor);
+          new RexSimplify(builder, predicates, executor);
 
       // if the druid query originally contained a filter
       boolean containsFilter = false;
@@ -613,7 +614,7 @@ public class DruidRules {
 
       // Simplify the filter as much as possible
       RexNode tempFilterNode = filterNode;
-      filterNode = simplify.simplify(filterNode);
+      filterNode = simplify.simplifyUnknownAsFalse(filterNode);
 
       // It's possible that after simplification that the expression is now always false.
       // Druid cannot handle such a filter.

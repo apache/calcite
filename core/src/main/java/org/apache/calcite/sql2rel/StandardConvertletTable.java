@@ -1403,7 +1403,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
           final RexNode expr2 = exprs.get(j);
           andList.add(rexBuilder.makeCall(op, expr, expr2));
         }
-        list.add(RexUtil.composeConjunction(rexBuilder, andList, false));
+        list.add(RexUtil.composeConjunction(rexBuilder, andList));
         list.add(expr);
       }
       list.add(exprs.get(exprs.size() - 1));

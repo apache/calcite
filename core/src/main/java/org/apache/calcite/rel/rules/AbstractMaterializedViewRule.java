@@ -82,6 +82,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
@@ -208,7 +209,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         Util.first(planner.getExecutor(), RexUtil.EXECUTOR);
     final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
     final RexSimplify simplify =
-        new RexSimplify(rexBuilder, predicates, true, executor);
+        new RexSimplify(rexBuilder, predicates, executor);
 
     final List<RelOptMaterialization> materializations =
         planner.getMaterializations();
@@ -244,9 +245,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
           // Bail out
           return;
         }
-        final RexNode pred = simplify.simplify(
-            RexUtil.composeConjunction(
-                rexBuilder, queryPredicateList.pulledUpPredicates, false));
+        final RexNode pred =
+            simplify.simplifyUnknownAsFalse(
+                RexUtil.composeConjunction(rexBuilder,
+                    queryPredicateList.pulledUpPredicates));
         final Triple<RexNode, RexNode, RexNode> queryPreds =
             splitPredicates(rexBuilder, pred);
 
@@ -290,9 +292,9 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             // Skip it
             continue;
           }
-          final RexNode viewPred = simplify.simplify(
-              RexUtil.composeConjunction(
-                  rexBuilder, viewPredicateList.pulledUpPredicates, false));
+          final RexNode viewPred = simplify.simplifyUnknownAsFalse(
+              RexUtil.composeConjunction(rexBuilder,
+                  viewPredicateList.pulledUpPredicates));
           final Triple<RexNode, RexNode, RexNode> viewPreds =
               splitPredicates(rexBuilder, viewPred);
 
@@ -423,12 +425,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                 continue;
               }
               RexNode compensationColumnsEquiPred = compensationPreds.getLeft();
-              RexNode otherCompensationPred = RexUtil.composeConjunction(
-                  rexBuilder,
-                  ImmutableList.of(
-                      compensationPreds.getMiddle(),
-                      compensationPreds.getRight()),
-                  false);
+              RexNode otherCompensationPred =
+                  RexUtil.composeConjunction(rexBuilder,
+                      ImmutableList.of(compensationPreds.getMiddle(),
+                          compensationPreds.getRight()));
               assert !compensationColumnsEquiPred.isAlwaysTrue()
                   || !otherCompensationPred.isAlwaysTrue();
 
@@ -463,12 +463,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               call.transformTo(result);
             } else if (compensationPreds != null) {
               RexNode compensationColumnsEquiPred = compensationPreds.getLeft();
-              RexNode otherCompensationPred = RexUtil.composeConjunction(
-                  rexBuilder,
-                  ImmutableList.of(
-                      compensationPreds.getMiddle(),
-                      compensationPreds.getRight()),
-                  false);
+              RexNode otherCompensationPred =
+                  RexUtil.composeConjunction(rexBuilder,
+                      ImmutableList.of(compensationPreds.getMiddle(),
+                          compensationPreds.getRight()));
 
               // a. Compute final compensation predicate.
               if (!compensationColumnsEquiPred.isAlwaysTrue()
@@ -500,12 +498,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                   }
                 }
               }
-              final RexNode viewCompensationPred = RexUtil.composeConjunction(
-                  rexBuilder,
-                  ImmutableList.of(
-                      compensationColumnsEquiPred,
-                      otherCompensationPred),
-                  false);
+              final RexNode viewCompensationPred =
+                  RexUtil.composeConjunction(rexBuilder,
+                      ImmutableList.of(compensationColumnsEquiPred,
+                          otherCompensationPred));
 
               // b. Generate final rewriting if possible.
               // First, we add the compensation predicate (if any) on top of the view.
@@ -515,7 +511,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               RelBuilder builder = call.builder();
               RelNode viewWithFilter;
               if (!viewCompensationPred.isAlwaysTrue()) {
-                RexNode newPred = simplify.simplify(viewCompensationPred);
+                RexNode newPred =
+                    simplify.simplifyUnknownAsFalse(viewCompensationPred);
                 viewWithFilter = builder.push(view).filter(newPred).build();
                 // We add (and push) the filter to the view plan before triggering the rewriting.
                 // This is useful in case some of the columns can be folded to same value after
@@ -580,7 +577,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       RelNode topProject, RelNode unionInputQuery, RelNode unionInputView);
 
   /**
-   * This method is responsible for rewriting the query using the given view query.
+   * Rewrites the query using the given view query.
    *
    * <p>The input node is a Scan on the view table and possibly a compensation Filter
    * on top. If a rewriting can be produced, we return that rewriting. If it cannot
@@ -754,17 +751,14 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         }
       }
       final RexNode queryCompensationPred = RexUtil.not(
-          RexUtil.composeConjunction(
-              rexBuilder,
-              ImmutableList.of(
-                  compensationColumnsEquiPred,
-                  otherCompensationPred),
-              false));
+          RexUtil.composeConjunction(rexBuilder,
+              ImmutableList.of(compensationColumnsEquiPred,
+                  otherCompensationPred)));
 
       // Generate query rewriting.
       RelNode rewrittenPlan = relBuilder
           .push(target)
-          .filter(simplify.simplify(queryCompensationPred))
+          .filter(simplify.simplifyUnknownAsFalse(queryCompensationPred))
           .build();
       if (unionRewritingPullProgram != null) {
         rewrittenPlan = newNode.copy(
@@ -1147,17 +1141,14 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         }
       }
       final RexNode queryCompensationPred = RexUtil.not(
-          RexUtil.composeConjunction(
-              rexBuilder,
-              ImmutableList.of(
-                  compensationColumnsEquiPred,
-                  otherCompensationPred),
-              false));
+          RexUtil.composeConjunction(rexBuilder,
+              ImmutableList.of(compensationColumnsEquiPred,
+                  otherCompensationPred)));
 
       // Generate query rewriting.
       RelNode rewrittenPlan = relBuilder
           .push(target)
-          .filter(simplify.simplify(queryCompensationPred))
+          .filter(simplify.simplifyUnknownAsFalse(queryCompensationPred))
           .build();
       if (unionRewritingPullProgram != null) {
         return aggregate.copy(aggregate.getTraitSet(),
@@ -1601,11 +1592,11 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         }
         // We only support project - filter - join, thus it should map to
         // a single expression
-        assert s.size() == 1;
+        final RexNode e = Iterables.getOnlyElement(s);
         // Rewrite expr to be expressed on query tables
-        RexNode expr = RexUtil.swapTableColumnReferences(
-            rexBuilder,
-            simplify.simplify(s.iterator().next()),
+        final RexNode simplified = simplify.simplifyUnknownAsFalse(e);
+        RexNode expr = RexUtil.swapTableColumnReferences(rexBuilder,
+            simplified,
             tableMapping.inverse(),
             equivalenceClassesMap);
         exprsLineage.put(expr.toString(), i);
@@ -1635,7 +1626,9 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             additionalExprs.add(rewrittenCeilExpr);
             // Then we simplify the expression and we add it to the expressions lineage so we
             // can try to find a match
-            exprsLineage.put(simplify.simplify(ceilExpr).toString(),
+            final RexNode simplified =
+                simplify.simplifyUnknownAsFalse(ceilExpr);
+            exprsLineage.put(simplified.toString(),
                 target.getRowType().getFieldCount() + additionalExprs.size() - 1);
           }
           // FLOOR
@@ -1651,7 +1644,9 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             additionalExprs.add(rewrittenFloorExpr);
             // Then we simplify the expression and we add it to the expressions lineage so we
             // can try to find a match
-            exprsLineage.put(simplify.simplify(floorExpr).toString(),
+            final RexNode simplified =
+                simplify.simplifyUnknownAsFalse(floorExpr);
+            exprsLineage.put(simplified.toString(),
                 target.getRowType().getFieldCount() + additionalExprs.size() - 1);
           }
         }
@@ -1665,11 +1660,11 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         }
         // We only support project - filter - join, thus it should map to
         // a single expression
-        assert s.size() == 1;
+        final RexNode e = Iterables.getOnlyElement(s);
         // Rewrite expr to be expressed on query tables
-        RexNode targetExpr = RexUtil.swapColumnReferences(
-            rexBuilder, simplify.simplify(s.iterator().next()),
-            equivalenceClassesMap);
+        final RexNode simplified = simplify.simplifyUnknownAsFalse(e);
+        RexNode targetExpr = RexUtil.swapColumnReferences(rexBuilder,
+            simplified, equivalenceClassesMap);
         Collection<Integer> c = exprsLineage.get(targetExpr.toString());
         if (!c.isEmpty()) {
           for (Integer j : c) {
@@ -1936,9 +1931,9 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       }
     }
     return ImmutableTriple.of(
-        RexUtil.composeConjunction(rexBuilder, equiColumnsPreds, false),
-        RexUtil.composeConjunction(rexBuilder, rangePreds, false),
-        RexUtil.composeConjunction(rexBuilder, residualPreds, false));
+        RexUtil.composeConjunction(rexBuilder, equiColumnsPreds),
+        RexUtil.composeConjunction(rexBuilder, rangePreds),
+        RexUtil.composeConjunction(rexBuilder, residualPreds));
   }
 
   /**

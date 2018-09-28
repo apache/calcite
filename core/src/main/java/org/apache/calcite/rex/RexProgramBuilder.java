@@ -325,8 +325,7 @@ public class RexProgramBuilder {
    */
   private RexLocalRef registerInternal(RexNode expr, boolean force) {
     final RexSimplify simplify =
-        new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
-            RexUtil.EXECUTOR);
+        new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, RexUtil.EXECUTOR);
     expr = simplify.simplify(expr);
 
     RexLocalRef ref;
@@ -550,7 +549,7 @@ public class RexProgramBuilder {
       boolean simplify_) {
     RexSimplify simplify = null;
     if (simplify_) {
-      simplify = new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
+      simplify = new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY,
           RexUtil.EXECUTOR);
     }
     return new RexProgramBuilder(rexBuilder, inputRowType, exprList,

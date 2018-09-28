@@ -52,6 +52,7 @@ import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexSubQuery;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexUtil.ExprSimplifier;
 import org.apache.calcite.rex.RexVisitorImpl;
@@ -534,14 +535,15 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     final RexExecutor executor =
         Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR);
     final RexSimplify simplify =
-        new RexSimplify(rexBuilder, predicates, unknownAsFalse, executor);
+        new RexSimplify(rexBuilder, predicates, executor);
 
     // Simplify predicates in place
-    boolean reduced = reduceExpressionsInternal(rel, simplify, expList,
-        predicates);
+    final RexUnknownAs unknownAs = RexUnknownAs.falseIf(unknownAsFalse);
+    boolean reduced = reduceExpressionsInternal(rel, simplify, unknownAs,
+        expList, predicates);
 
     final ExprSimplifier simplifier =
-        new ExprSimplifier(simplify, matchNullability);
+        new ExprSimplifier(simplify, unknownAs, matchNullability);
     boolean simplified = false;
     for (int i = 0; i < expList.size(); i++) {
       RexNode expr2 = simplifier.apply(expList.get(i));
@@ -555,7 +557,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
   }
 
   protected static boolean reduceExpressionsInternal(RelNode rel,
-      RexSimplify simplify, List<RexNode> expList,
+      RexSimplify simplify, RexUnknownAs unknownAs, List<RexNode> expList,
       RelOptPredicateList predicates) {
     boolean changed = false;
     // Replace predicates on CASE to CASE on predicates.
@@ -582,7 +584,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         reducedExprs.add(call.getOperands().get(0));
       }
       RexReplacer replacer =
-          new RexReplacer(simplify, removableCasts, reducedExprs,
+          new RexReplacer(simplify, unknownAs, removableCasts, reducedExprs,
               Collections.nCopies(removableCasts.size(), false));
       replacer.mutate(expList);
     }
@@ -597,8 +599,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       final List<Map.Entry<RexNode, RexNode>> pairs =
           Lists.newArrayList(predicates.constantMap.entrySet());
       RexReplacer replacer =
-          new RexReplacer(simplify, Pair.left(pairs), Pair.right(pairs),
-              Collections.nCopies(pairs.size(), false));
+          new RexReplacer(simplify, unknownAs, Pair.left(pairs),
+              Pair.right(pairs), Collections.nCopies(pairs.size(), false));
       replacer.mutate(constExps2);
     }
 
@@ -635,9 +637,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       addCasts = Collections.nCopies(reducedValues.size(), true);
     }
 
-    RexReplacer replacer =
-        new RexReplacer(simplify, constExps, reducedValues, addCasts);
-    replacer.mutate(expList);
+    new RexReplacer(simplify, unknownAs, constExps, reducedValues, addCasts)
+        .mutate(expList);
     return true;
   }
 
@@ -757,16 +758,19 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    */
   protected static class RexReplacer extends RexShuttle {
     private final RexSimplify simplify;
+    private final RexUnknownAs unknownAs;
     private final List<RexNode> reducibleExps;
     private final List<RexNode> reducedValues;
     private final List<Boolean> addCasts;
 
     RexReplacer(
         RexSimplify simplify,
+        RexUnknownAs unknownAs,
         List<RexNode> reducibleExps,
         List<RexNode> reducedValues,
         List<Boolean> addCasts) {
       this.simplify = simplify;
+      this.unknownAs = unknownAs;
       this.reducibleExps = reducibleExps;
       this.reducedValues = reducedValues;
       this.addCasts = addCasts;
@@ -787,7 +791,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       }
       node = super.visitCall(call);
       if (node != call) {
-        node = simplify.withUnknownAsFalse(false).simplify(node);
+        node = simplify.simplifyUnknownAs(node, unknownAs);
       }
       return node;
     }

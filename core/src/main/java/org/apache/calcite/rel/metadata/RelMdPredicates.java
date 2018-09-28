@@ -74,6 +74,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import javax.annotation.Nonnull;
 
 /**
  * Utility to infer Predicates that are applicable above a RelNode.
@@ -300,14 +301,11 @@ public class RelMdPredicates
     final RelOptPredicateList leftInfo = mq.getPulledUpPredicates(left);
     final RelOptPredicateList rightInfo = mq.getPulledUpPredicates(right);
 
-    final RexSimplify simplifier =
-        new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, true, executor);
-
     JoinConditionBasedPredicateInference joinInference =
         new JoinConditionBasedPredicateInference(join,
-            RexUtil.composeConjunction(rexBuilder, leftInfo.pulledUpPredicates, false),
-            RexUtil.composeConjunction(rexBuilder, rightInfo.pulledUpPredicates, false),
-            simplifier);
+            RexUtil.composeConjunction(rexBuilder, leftInfo.pulledUpPredicates),
+            RexUtil.composeConjunction(rexBuilder, rightInfo.pulledUpPredicates),
+            new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, executor));
 
     return joinInference.inferPredicates(false);
   }
@@ -385,7 +383,7 @@ public class RelMdPredicates
         }
       }
       // Add new residual preds
-      finalResidualPreds.add(RexUtil.composeConjunction(rexBuilder, residualPreds, false));
+      finalResidualPreds.add(RexUtil.composeConjunction(rexBuilder, residualPreds));
       // Add those that are not part of the final set to residual
       for (Entry<String, RexNode> e : finalPreds.entrySet()) {
         if (!preds.containsKey(e.getKey())) {
@@ -393,7 +391,7 @@ public class RelMdPredicates
           for (int j = 0; j < i; j++) {
             finalResidualPreds.set(j,
                 RexUtil.composeConjunction(rexBuilder,
-                    Lists.newArrayList(finalResidualPreds.get(j), e.getValue()), false));
+                    Lists.newArrayList(finalResidualPreds.get(j), e.getValue())));
           }
         }
       }
@@ -406,9 +404,8 @@ public class RelMdPredicates
     final RexExecutor executor =
         Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR);
     final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
-    final RexSimplify simplify =
-        new RexSimplify(rexBuilder, predicates, true, executor);
-    RexNode disjPred = simplify.simplifyOrs(finalResidualPreds);
+    RexNode disjPred = new RexSimplify(rexBuilder, predicates, executor)
+        .simplifyOrs(finalResidualPreds);
     if (!disjPred.isAlwaysTrue()) {
       preds.add(disjPred);
     }
@@ -487,19 +484,19 @@ public class RelMdPredicates
     final Set<String> equalityPredicates;
     final RexNode leftChildPredicates;
     final RexNode rightChildPredicates;
-    final RexSimplify simplifier;
+    final RexSimplify simplify;
 
     JoinConditionBasedPredicateInference(Join joinRel,
-            RexNode lPreds, RexNode rPreds, RexSimplify simplifier) {
-      this(joinRel, joinRel instanceof SemiJoin, lPreds, rPreds, simplifier);
+        RexNode lPreds, RexNode rPreds, RexSimplify simplify) {
+      this(joinRel, joinRel instanceof SemiJoin, lPreds, rPreds, simplify);
     }
 
     private JoinConditionBasedPredicateInference(Join joinRel, boolean isSemiJoin,
-        RexNode lPreds, RexNode rPreds, RexSimplify simplifier) {
+        RexNode lPreds, RexNode rPreds, RexSimplify simplify) {
       super();
       this.joinRel = joinRel;
       this.isSemiJoin = isSemiJoin;
-      this.simplifier = simplifier;
+      this.simplify = simplify;
       nFieldsLeft = joinRel.getLeft().getRowType().getFieldList().size();
       nFieldsRight = joinRel.getRight().getRowType().getFieldList().size();
       nSysFields = joinRel.getSystemFieldList().size();
@@ -678,7 +675,7 @@ public class RelMdPredicates
           // simplified RexNode versions as well. It also allows prevent of having
           // some duplicates in in result pulledUpPredicates
           RexNode simplifiedTarget =
-              simplifier.simplifyFilterPredicates(RelOptUtil.conjunctions(tr));
+              simplify.simplifyFilterPredicates(RelOptUtil.conjunctions(tr));
           if (checkTarget(inferringFields, allExprsDigests, tr)
               && checkTarget(inferringFields, allExprsDigests, simplifiedTarget)) {
             inferredPredicates.add(simplifiedTarget);
@@ -713,9 +710,9 @@ public class RelMdPredicates
       b.set(p1);
     }
 
-    RexNode compose(RexBuilder rexBuilder, Iterable<RexNode> exprs) {
+    @Nonnull RexNode compose(RexBuilder rexBuilder, Iterable<RexNode> exprs) {
       exprs = Linq4j.asEnumerable(exprs).where(Objects::nonNull);
-      return RexUtil.composeConjunction(rexBuilder, exprs, false);
+      return RexUtil.composeConjunction(rexBuilder, exprs);
     }
 
     /**

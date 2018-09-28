@@ -140,7 +140,6 @@ public class RelBuilder {
   private final Deque<Frame> stack = new ArrayDeque<>();
   private final boolean simplify;
   private final RexSimplify simplifier;
-  private final RexSimplify simplifierUnknownAsFalse;
 
   protected RelBuilder(Context context, RelOptCluster cluster,
       RelOptSchema relOptSchema) {
@@ -188,9 +187,7 @@ public class RelBuilder {
             Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR));
     final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
     this.simplifier =
-        new RexSimplify(cluster.getRexBuilder(), predicates, false, executor);
-    this.simplifierUnknownAsFalse =
-        new RexSimplify(cluster.getRexBuilder(), predicates, true, executor);
+        new RexSimplify(cluster.getRexBuilder(), predicates, executor);
   }
 
   /** Creates a RelBuilder. */
@@ -928,7 +925,7 @@ public class RelBuilder {
    * If the result is TRUE no filter is created. */
   public RelBuilder filter(Iterable<? extends RexNode> predicates) {
     final RexNode simplifiedPredicates =
-        simplifierUnknownAsFalse.simplifyFilterPredicates(predicates);
+        simplifier.simplifyFilterPredicates(predicates);
     if (simplifiedPredicates == null) {
       return empty();
     }

@@ -179,7 +179,7 @@ public class SubstitutionVisitor {
         Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR);
     final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
     this.simplify =
-        new RexSimplify(cluster.getRexBuilder(), predicates, false, executor);
+        new RexSimplify(cluster.getRexBuilder(), predicates, executor);
     this.rules = rules;
     this.query = Holder.of(MutableRels.toMutable(query_));
     this.target = MutableRels.toMutable(target_);
@@ -270,35 +270,36 @@ public class SubstitutionVisitor {
   @VisibleForTesting
   public static RexNode splitFilter(final RexSimplify simplify,
       RexNode condition, RexNode target) {
-    RexNode condition2 = canonizeNode(simplify.rexBuilder, condition);
-    RexNode target2 = canonizeNode(simplify.rexBuilder, target);
+    final RexBuilder rexBuilder = simplify.rexBuilder;
+    RexNode condition2 = canonizeNode(rexBuilder, condition);
+    RexNode target2 = canonizeNode(rexBuilder, target);
 
     // First, try splitting into ORs.
     // Given target    c1 OR c2 OR c3 OR c4
     // and condition   c2 OR c4
     // residue is      c2 OR c4
     // Also deals with case target [x] condition [x] yields residue [true].
-    RexNode z = splitOr(simplify.rexBuilder, condition2, target2);
+    RexNode z = splitOr(rexBuilder, condition2, target2);
     if (z != null) {
       return z;
     }
 
-    if (isEquivalent(simplify.rexBuilder, condition2, target2)) {
-      return simplify.rexBuilder.makeLiteral(true);
+    if (isEquivalent(rexBuilder, condition2, target2)) {
+      return rexBuilder.makeLiteral(true);
     }
 
-    RexNode x = andNot(simplify.rexBuilder, target2, condition2);
+    RexNode x = andNot(rexBuilder, target2, condition2);
     if (mayBeSatisfiable(x)) {
-      RexNode x2 = RexUtil.composeConjunction(simplify.rexBuilder,
-          ImmutableList.of(condition2, target2), false);
-      RexNode r = canonizeNode(simplify.rexBuilder,
-          simplify.withUnknownAsFalse(true).simplify(x2));
-      if (!r.isAlwaysFalse() && isEquivalent(simplify.rexBuilder, condition2, r)) {
+      RexNode x2 = RexUtil.composeConjunction(rexBuilder,
+          ImmutableList.of(condition2, target2));
+      RexNode r = canonizeNode(rexBuilder,
+          simplify.simplifyUnknownAsFalse(x2));
+      if (!r.isAlwaysFalse() && isEquivalent(rexBuilder, condition2, r)) {
         List<RexNode> conjs = RelOptUtil.conjunctions(r);
         for (RexNode e : RelOptUtil.conjunctions(target2)) {
           removeAll(conjs, e);
         }
-        return RexUtil.composeConjunction(simplify.rexBuilder, conjs, false);
+        return RexUtil.composeConjunction(rexBuilder, conjs);
       }
     }
     return null;

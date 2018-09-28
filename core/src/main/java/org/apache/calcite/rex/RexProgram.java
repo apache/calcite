@@ -790,7 +790,7 @@ public class RexProgram {
   public RexProgram normalize(RexBuilder rexBuilder, boolean simplify) {
     final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
     return normalize(rexBuilder, simplify
-        ? new RexSimplify(rexBuilder, predicates, false, RexUtil.EXECUTOR)
+        ? new RexSimplify(rexBuilder, predicates, RexUtil.EXECUTOR)
         : null);
   }
 

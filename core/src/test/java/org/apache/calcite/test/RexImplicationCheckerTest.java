@@ -33,6 +33,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSimplify;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
@@ -349,9 +350,9 @@ public class RexImplicationCheckerTest {
   @Test public void testSimplifyCastMatchNullability() {
     final Fixture f = new Fixture();
     final RexUtil.ExprSimplifier defaultSimplifier =
-        new RexUtil.ExprSimplifier(f.simplify, true);
+        new RexUtil.ExprSimplifier(f.simplify, RexUnknownAs.UNKNOWN, true);
     final RexUtil.ExprSimplifier nonMatchingNullabilitySimplifier =
-        new RexUtil.ExprSimplifier(f.simplify, false);
+        new RexUtil.ExprSimplifier(f.simplify, RexUnknownAs.UNKNOWN, false);
 
     // The cast is nullable, while the literal is not nullable. When we simplify
     // it, we end up with the literal. If defaultSimplifier is used, a CAST is
@@ -385,7 +386,7 @@ public class RexImplicationCheckerTest {
         ImmutableList.of(TimeUnitRange.YEAR, TimeUnitRange.MONTH);
     final Fixture f = new Fixture();
     final RexUtil.ExprSimplifier defaultSimplifier =
-        new RexUtil.ExprSimplifier(f.simplify, true);
+        new RexUtil.ExprSimplifier(f.simplify, RexUnknownAs.UNKNOWN, true);
 
     final RexNode literalTs =
         f.timestampLiteral(new TimestampString("2010-10-10 00:00:00"));
@@ -539,8 +540,8 @@ public class RexImplicationCheckerTest {
 
       executor = holder.get();
       simplify =
-          new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
-              executor).withParanoid(true);
+          new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, executor)
+              .withParanoid(true);
       checker = new RexImplicationChecker(rexBuilder, executor, rowType);
     }
 

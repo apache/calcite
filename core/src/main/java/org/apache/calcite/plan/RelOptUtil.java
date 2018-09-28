@@ -123,6 +123,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Supplier;
+import javax.annotation.Nonnull;
 
 /**
  * <code>RelOptUtil</code> defines static utility methods for use in optimizing
@@ -858,7 +859,7 @@ public abstract class RelOptUtil {
    * @return remaining join filters that are not equijoins; may return a
    * {@link RexLiteral} true, but never null
    */
-  public static RexNode splitJoinCondition(
+  public static @Nonnull RexNode splitJoinCondition(
       RelNode left,
       RelNode right,
       RexNode condition,
@@ -877,7 +878,7 @@ public abstract class RelOptUtil {
         nonEquiList);
 
     return RexUtil.composeConjunction(
-        left.getCluster().getRexBuilder(), nonEquiList, false);
+        left.getCluster().getRexBuilder(), nonEquiList);
   }
 
   @Deprecated // to be removed before 2.0
@@ -963,7 +964,7 @@ public abstract class RelOptUtil {
    *                      returned
    * @return What's left, never null
    */
-  public static RexNode splitJoinCondition(
+  public static @Nonnull RexNode splitJoinCondition(
       List<RelDataTypeField> sysFieldList,
       List<RelNode> inputs,
       RexNode condition,
@@ -983,7 +984,7 @@ public abstract class RelOptUtil {
 
     // Convert the remainders into a list that are AND'ed together.
     return RexUtil.composeConjunction(
-        inputs.get(0).getCluster().getRexBuilder(), nonEquiList, false);
+        inputs.get(0).getCluster().getRexBuilder(), nonEquiList);
   }
 
   @Deprecated // to be removed before 2.0
@@ -1250,7 +1251,7 @@ public abstract class RelOptUtil {
   }
 
   /** Builds an equi-join condition from a set of left and right keys. */
-  public static RexNode createEquiJoinCondition(
+  public static @Nonnull RexNode createEquiJoinCondition(
       final RelNode left, final List<Integer> leftKeys,
       final RelNode right, final List<Integer> rightKeys,
       final RexBuilder rexBuilder) {
@@ -1272,8 +1273,7 @@ public abstract class RelOptUtil {
           @Override public int size() {
             return leftKeys.size();
           }
-        },
-        false);
+        });
   }
 
   public static SqlOperator op(SqlKind kind, SqlOperator operator) {
@@ -3425,10 +3425,8 @@ public abstract class RelOptUtil {
         new RexImplicationChecker(rexBuilder, (RexExecutorImpl) executor,
             rowType);
     final RexNode first =
-        RexUtil.composeConjunction(rexBuilder, predicates.pulledUpPredicates,
-            false);
-    final RexNode second =
-        RexUtil.composeConjunction(rexBuilder, list, false);
+        RexUtil.composeConjunction(rexBuilder, predicates.pulledUpPredicates);
+    final RexNode second = RexUtil.composeConjunction(rexBuilder, list);
     // Suppose we have EMP(empno INT NOT NULL, mgr INT),
     // and predicates [empno > 0, mgr > 0].
     // We make first: "empno > 0 AND mgr > 0"
