@@ -954,6 +954,9 @@ limitations under the License.
             <additionalOptions>
               <additionalOption>${maven-javadoc-html5}</additionalOption>
             </additionalOptions>
+            <additionalJOptions>
+              <additionalJOption>-J-Xss4m</additionalJOption>
+            </additionalJOptions>
             <doclint>all,-missing</doclint>
             <failOnWarnings>true</failOnWarnings>
             <links>
