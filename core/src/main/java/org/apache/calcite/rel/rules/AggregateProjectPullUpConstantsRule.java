@@ -154,7 +154,7 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
           aggCall.adaptTo(input, aggCall.getArgList(), aggCall.filterArg,
               groupCount, newGroupCount));
     }
-    relBuilder.aggregate(relBuilder.groupKey(newGroupSet, null), newAggCalls);
+    relBuilder.aggregate(relBuilder.groupKey(newGroupSet), newAggCalls);
 
     // Create a projection back again.
     List<Pair<RexNode, String>> projects = new ArrayList<>();

@@ -381,7 +381,7 @@ The following methods return a
 |:------------------- |:-----------
 | `groupKey(fieldName...)`<br/>`groupKey(fieldOrdinal...)`<br/>`groupKey(expr...)`<br/>`groupKey(exprList)` | Creates a group key of the given expressions
 | `groupKey(exprList, exprListList)` | Creates a group key of the given expressions with grouping sets
-| `groupKey(bitSet, bitSets)` | Creates a group key of the given input columns with grouping sets
+| `groupKey(bitSet [, bitSets])` | Creates a group key of the given input columns, with multiple grouping sets if `bitSets` is specified
 
 ### Aggregate call methods
 

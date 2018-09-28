@@ -285,8 +285,7 @@ public class AggregateJoinTransposeRule extends RelOptRule {
           }
         }
         side.newInput = relBuilder.push(joinInput)
-            .aggregate(relBuilder.groupKey(belowAggregateKey, null),
-                belowAggCalls)
+            .aggregate(relBuilder.groupKey(belowAggregateKey), belowAggCalls)
             .build();
       }
       offset += fieldCount;

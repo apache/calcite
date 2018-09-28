@@ -838,7 +838,7 @@ public class RelBuilderTest {
     try {
       RelNode root =
           builder.scan("EMP")
-              .aggregate(builder.groupKey(ImmutableBitSet.of(17), null))
+              .aggregate(builder.groupKey(ImmutableBitSet.of(17)))
               .build();
       fail("expected error, got " + root);
     } catch (IllegalArgumentException e) {

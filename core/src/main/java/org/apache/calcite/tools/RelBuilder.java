@@ -104,6 +104,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import javax.annotation.Nonnull;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -664,7 +665,22 @@ public class RelBuilder {
   }
 
   /** Creates a group key with grouping sets. */
+  public GroupKey groupKey(Iterable<? extends RexNode> nodes,
+      Iterable<? extends Iterable<? extends RexNode>> nodeLists) {
+    return groupKey_(nodes, false, nodeLists);
+  }
+
+  /** @deprecated Now that indicator is deprecated, use
+   * {@link #groupKey(Iterable, Iterable)}, which has the same behavior as
+   * calling this method with {@code indicator = false}. */
+  @Deprecated // to be removed before 2.0
   public GroupKey groupKey(Iterable<? extends RexNode> nodes, boolean indicator,
+      Iterable<? extends Iterable<? extends RexNode>> nodeLists) {
+    return groupKey_(nodes, indicator, nodeLists);
+  }
+
+  private GroupKey groupKey_(Iterable<? extends RexNode> nodes,
+      boolean indicator,
       Iterable<? extends Iterable<? extends RexNode>> nodeLists) {
     final ImmutableList.Builder<ImmutableList<RexNode>> builder =
         ImmutableList.builder();
@@ -684,6 +700,16 @@ public class RelBuilder {
     return groupKey(fields(ImmutableList.copyOf(fieldNames)));
   }
 
+  /** Creates a group key, identified by field positions
+   * in the underlying relational expression.
+   *
+   * <p>This method of creating a group key does not allow you to group on new
+   * expressions, only column projections, but is efficient, especially when you
+   * are coming from an existing {@link Aggregate}. */
+  public GroupKey groupKey(@Nonnull ImmutableBitSet groupSet) {
+    return groupKey(groupSet, ImmutableList.of(groupSet));
+  }
+
   /** Creates a group key with grouping sets, both identified by field positions
    * in the underlying relational expression.
    *
@@ -691,31 +717,38 @@ public class RelBuilder {
    * expressions, only column projections, but is efficient, especially when you
    * are coming from an existing {@link Aggregate}. */
   public GroupKey groupKey(ImmutableBitSet groupSet,
-      ImmutableList<ImmutableBitSet> groupSets) {
-    return groupKey_(groupSet, false, groupSets);
+      @Nonnull Iterable<? extends ImmutableBitSet> groupSets) {
+    return groupKey_(groupSet, false, ImmutableList.copyOf(groupSets));
   }
 
-  /** @deprecated Use {@link #groupKey(ImmutableBitSet, ImmutableList)}. */
+  /** As {@link #groupKey(ImmutableBitSet, Iterable)}. */
+  // deprecated, to be removed before 2.0
+  public GroupKey groupKey(ImmutableBitSet groupSet,
+      ImmutableList<ImmutableBitSet> groupSets) {
+    return groupKey_(groupSet, false, groupSets == null
+        ? ImmutableList.of(groupSet) : ImmutableList.copyOf(groupSets));
+  }
+
+  /** @deprecated Use {@link #groupKey(ImmutableBitSet, Iterable)}. */
   @Deprecated // to be removed before 2.0
   public GroupKey groupKey(ImmutableBitSet groupSet, boolean indicator,
       ImmutableList<ImmutableBitSet> groupSets) {
-    return groupKey_(groupSet, indicator, groupSets);
+    return groupKey_(groupSet, indicator, groupSets == null
+        ? ImmutableList.of(groupSet) : ImmutableList.copyOf(groupSets));
   }
 
   private GroupKey groupKey_(ImmutableBitSet groupSet, boolean indicator,
-      ImmutableList<ImmutableBitSet> groupSets) {
+      @Nonnull ImmutableList<ImmutableBitSet> groupSets) {
     if (groupSet.length() > peek().getRowType().getFieldCount()) {
       throw new IllegalArgumentException("out of bounds: " + groupSet);
     }
-    if (groupSets == null) {
-      groupSets = ImmutableList.of(groupSet);
-    }
+    Objects.requireNonNull(groupSets);
     final ImmutableList<RexNode> nodes =
         fields(ImmutableIntList.of(groupSet.toArray()));
     final List<ImmutableList<RexNode>> nodeLists =
-        Lists.transform(groupSets,
+        Util.transform(groupSets,
             bitSet -> fields(ImmutableIntList.of(bitSet.toArray())));
-    return groupKey(nodes, indicator, nodeLists);
+    return groupKey_(nodes, indicator, nodeLists);
   }
 
   @Deprecated // to be removed before 2.0

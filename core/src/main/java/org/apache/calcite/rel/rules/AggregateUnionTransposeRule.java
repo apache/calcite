@@ -127,7 +127,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
       relBuilder.push(input);
       if (!alreadyUnique) {
         ++transformCount;
-        relBuilder.aggregate(relBuilder.groupKey(aggRel.getGroupSet(), null),
+        relBuilder.aggregate(relBuilder.groupKey(aggRel.getGroupSet()),
             aggRel.getAggCallList());
       }
     }
