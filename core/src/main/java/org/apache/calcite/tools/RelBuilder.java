@@ -104,6 +104,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -205,6 +206,14 @@ public class RelBuilder {
           }
         });
     return new RelBuilder(config.getContext(), clusters[0], relOptSchemas[0]);
+  }
+
+  /** Converts this RelBuilder to a string.
+   * The string is the string representation of all of the RelNodes on the stack. */
+  @Override public String toString() {
+    return stack.stream()
+        .map(frame -> RelOptUtil.toString(frame.rel))
+        .collect(Collectors.joining(""));
   }
 
   /** Returns the type factory. */
