@@ -108,7 +108,7 @@ public class RexSqlStandardConvertletTable
     registerEquivOp(SqlStdOperatorTable.LOWER);
     registerEquivOp(SqlStdOperatorTable.INITCAP);
 
-    registerEquivOp(OracleSqlOperatorTable.CHR);
+    registerEquivOp(OracleSqlOperatorTable.ORACLE_CHR);
     registerEquivOp(SqlStdOperatorTable.POWER);
     registerEquivOp(SqlStdOperatorTable.SQRT);
     registerEquivOp(SqlStdOperatorTable.MOD);

@@ -5639,7 +5639,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testChr() {
-    tester.setFor(OracleSqlOperatorTable.CHR, VM_FENNEL, VM_JAVA);
+    tester.setFor(OracleSqlOperatorTable.ORACLE_CHR, VM_FENNEL, VM_JAVA);
     final SqlTester tester1 = oracleTester();
     tester1.checkScalar("chr(97)",
         "a", "CHAR(1) NOT NULL");

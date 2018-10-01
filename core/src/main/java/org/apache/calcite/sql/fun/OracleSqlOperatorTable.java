@@ -109,7 +109,7 @@ public class OracleSqlOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.SAME_VARIADIC, SqlFunctionCategory.SYSTEM);
 
   /** The "CHR(value)" function. */
-  public static final SqlFunction CHR =
+  public static final SqlFunction ORACLE_CHR =
       new SqlFunction(
           "CHR",
           SqlKind.OTHER_FUNCTION,

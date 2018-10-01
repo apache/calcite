@@ -89,7 +89,7 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.OrElse;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
-import static org.apache.calcite.sql.fun.OracleSqlOperatorTable.CHR;
+import static org.apache.calcite.sql.fun.OracleSqlOperatorTable.ORACLE_CHR;
 import static org.apache.calcite.sql.fun.OracleSqlOperatorTable.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ABS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ACOS;
@@ -281,7 +281,7 @@ public class RexImpTable {
     defineUnary(UNARY_MINUS, Negate, NullPolicy.STRICT);
     defineUnary(UNARY_PLUS, UnaryPlus, NullPolicy.STRICT);
 
-    defineMethod(CHR, "chr", NullPolicy.STRICT);
+    defineMethod(ORACLE_CHR, "chr", NullPolicy.STRICT);
     defineMethod(MOD, "mod", NullPolicy.STRICT);
     defineMethod(EXP, "exp", NullPolicy.STRICT);
     defineMethod(POWER, "power", NullPolicy.STRICT);
