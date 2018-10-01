@@ -1212,6 +1212,11 @@ public class RexProgramTest extends RexProgramBuilderBase {
         "COALESCE(?0.i, +(?0.i, ?0.h), 1)");
     checkSimplify2(coalesce(gt(nullInt, nullInt), trueLiteral),
         "COALESCE(null, true)", "COALESCE(null, true)");
+    checkSimplify(coalesce(unaryPlus(nullInt), unaryPlus(vInt())),
+        "COALESCE(null, +(?0.int0))");
+    checkSimplify(coalesce(unaryPlus(vInt(1)), unaryPlus(vInt())),
+        "COALESCE(+(?0.int1), +(?0.int0))");
+
     // "(not x) is null" to "x is null"
     checkSimplify(isNull(not(vBool())), "IS NULL(?0.bool0)");
     checkSimplify(isNull(not(vBoolNotNull())), "false");

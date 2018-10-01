@@ -59,6 +59,8 @@ public class RexCall extends RexNode {
     this.type = Objects.requireNonNull(type);
     this.op = Objects.requireNonNull(op);
     this.operands = ImmutableList.copyOf(operands);
+    this.digest = computeDigest(isA(SqlKind.CAST)
+                            || isA(SqlKind.NEW_SPECIFICATION));
     assert op.getKind() != null : op;
     assert op.validRexOperands(operands.size(), Litmus.THROW) : this;
   }
@@ -90,17 +92,6 @@ public class RexCall extends RexNode {
       sb.append(type.getFullTypeString());
     }
     return sb.toString();
-  }
-
-  public String toString() {
-    // This data race is intentional
-    String localDigest = digest;
-    if (localDigest == null) {
-      localDigest = computeDigest(
-          isA(SqlKind.CAST) || isA(SqlKind.NEW_SPECIFICATION));
-      digest = localDigest;
-    }
-    return localDigest;
   }
 
   public <R> R accept(RexVisitor<R> visitor) {

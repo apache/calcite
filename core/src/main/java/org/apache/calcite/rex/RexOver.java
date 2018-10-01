@@ -69,6 +69,7 @@ public class RexOver extends RexCall {
     Preconditions.checkArgument(op.isAggregator());
     this.window = Objects.requireNonNull(window);
     this.distinct = distinct;
+    this.digest = computeDigest(false); //compute digest for over as window is prepared here
   }
 
   //~ Methods ----------------------------------------------------------------

@@ -344,7 +344,6 @@ public abstract class Match extends SingleRel {
         int ordinal) {
       super(type, aggFun, operands);
       this.ordinal = ordinal;
-      digest = toString(); // can compute here because class is final
     }
 
     @Override public int compareTo(RexMRAggCall o) {
