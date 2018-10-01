@@ -4387,6 +4387,7 @@ SqlDataTypeSpec DataType() :
     SqlIdentifier collectionTypeName = null;
     int scale = -1;
     int precision = -1;
+    boolean inBytes = false;
     String charSetName = null;
     final Span s;
 }
@@ -4400,6 +4401,12 @@ SqlDataTypeSpec DataType() :
         [
             <COMMA>
             scale = UnsignedIntLiteral()
+        ]
+        [
+            <BYTES>
+            {
+               inBytes = true;
+            }
         ]
         <RPAREN>
     ]
@@ -4426,7 +4433,8 @@ SqlDataTypeSpec DataType() :
             scale,
             charSetName,
             null,
-            s.end(this));
+            s.end(this))
+        .setInBytes(inBytes);
     }
 }
 
@@ -5503,6 +5511,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < BOTH: "BOTH" >
 |   < BREADTH: "BREADTH" >
 |   < BY: "BY" >
+|   < BYTES: "BYTES" >
 |   < C: "C" >
 |   < CALL: "CALL" >
 |   < CALLED: "CALLED" >
@@ -6151,6 +6160,7 @@ String CommonNonReservedKeyWord() :
     |   <BEFORE>
     |   <BERNOULLI>
     |   <BREADTH>
+    |   <BYTES>
     |   <C>
     |   <CASCADE>
     |   <CATALOG>

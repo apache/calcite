@@ -60,6 +60,9 @@ public class SqlDataTypeSpec extends SqlNode {
   private final SqlIdentifier baseTypeName;
   private final int scale;
   private final int precision;
+  // Only applies to the VoltDB VARCHAR type, indicates whether the column size
+  // is specified in bytes.
+  private boolean inBytes = false;
   private final String charSetName;
   private final TimeZone timeZone;
 
@@ -144,9 +147,9 @@ public class SqlDataTypeSpec extends SqlNode {
   public SqlNode clone(SqlParserPos pos) {
     return (collectionsTypeName != null)
         ? new SqlDataTypeSpec(collectionsTypeName, typeName, precision, scale,
-            charSetName, pos)
+            charSetName, pos).setInBytes(inBytes)
         : new SqlDataTypeSpec(typeName, precision, scale, charSetName, timeZone,
-            pos);
+            pos).setInBytes(inBytes);
   }
 
   public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
@@ -181,6 +184,15 @@ public class SqlDataTypeSpec extends SqlNode {
     return nullable;
   }
 
+  public boolean getInBytes() {
+    return inBytes;
+  }
+
+  public SqlDataTypeSpec setInBytes(boolean inBytes) {
+    this.inBytes = inBytes;
+    return this;
+  }
+
   /** Returns a copy of this data type specification with a given
    * nullability. */
   public SqlDataTypeSpec withNullable(Boolean nullable) {
@@ -188,7 +200,8 @@ public class SqlDataTypeSpec extends SqlNode {
       return this;
     }
     return new SqlDataTypeSpec(collectionsTypeName, typeName, precision, scale,
-        charSetName, timeZone, nullable, getParserPosition());
+        charSetName, timeZone, nullable, getParserPosition())
+        .setInBytes(inBytes);
   }
 
   /**
@@ -204,7 +217,8 @@ public class SqlDataTypeSpec extends SqlNode {
         scale,
         charSetName,
         timeZone,
-        getParserPosition());
+        getParserPosition())
+       .setInBytes(inBytes);
   }
 
   public void unparse(

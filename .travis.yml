@@ -31,6 +31,9 @@ branches:
     - javadoc
     - /^branch-.*$/
     - /^[0-9]+-.*$/
+    # VoltDB extension branch and engineering ticket branches.
+    - voltdb
+    - ENG-.+
 env:
   global:
   - DOCKERRUN="docker run -it --rm -v $PWD:/src -v $HOME/.m2:/root/.m2 -w /src"
