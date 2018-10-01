@@ -56,7 +56,6 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -1202,21 +1201,6 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplify2(gt(iRef, iRef), ">(?0.i, ?0.i)", "false");
     checkSimplify(gt(iRef, hRef), ">(?0.i, ?0.h)");
 
-    checkSimplify(coalesce(hRef, iRef), "?0.h"); // first arg not null
-    checkSimplify(coalesce(iRef, hRef), "COALESCE(?0.i, ?0.h)"); // a0 nullable
-    checkSimplify(coalesce(iRef, iRef), "?0.i"); // repeated arg
-    checkSimplify(coalesce(hRef, hRef), "?0.h"); // repeated arg
-    checkSimplify(coalesce(hRef, literal1), "?0.h");
-    checkSimplify(coalesce(iRef, literal1), "COALESCE(?0.i, 1)");
-    checkSimplify(coalesce(iRef, plus(iRef, hRef), literal1, hRef),
-        "COALESCE(?0.i, +(?0.i, ?0.h), 1)");
-    checkSimplify2(coalesce(gt(nullInt, nullInt), trueLiteral),
-        "COALESCE(null, true)", "COALESCE(null, true)");
-    checkSimplify(coalesce(unaryPlus(nullInt), unaryPlus(vInt())),
-        "COALESCE(null, +(?0.int0))");
-    checkSimplify(coalesce(unaryPlus(vInt(1)), unaryPlus(vInt())),
-        "COALESCE(+(?0.int1), +(?0.int0))");
-
     // "(not x) is null" to "x is null"
     checkSimplify(isNull(not(vBool())), "IS NULL(?0.bool0)");
     checkSimplify(isNull(not(vBoolNotNull())), "false");
@@ -2166,14 +2150,21 @@ public class RexProgramTest extends RexProgramBuilderBase {
         "IS DISTINCT FROM(?0.bool0, ?0.bool1)");
   }
 
-  @Ignore("[CALCITE-2505] java.lang.AssertionError: result mismatch")
-  @Test public void coalescePlusNull() {
-    // when applied to {?0.int0=-1},
-    // COALESCE(+(null), +(?0.int0)) yielded -1,
-    // and +(null) yielded NULL
-    checkSimplify2(
-        coalesce(unaryPlus(nullInt), unaryPlus(vInt())),
-        "...", "...");
+  @Test public void testSimplifyCoalesce() {
+    checkSimplify(coalesce(vIntNotNull(), vInt()), "?0.notNullInt0"); // first arg not null
+    checkSimplify(coalesce(vInt(), vIntNotNull()), "COALESCE(?0.int0, ?0.notNullInt0)");
+    checkSimplify(coalesce(vInt(), vInt()), "?0.int0"); // repeated arg
+    checkSimplify(coalesce(vIntNotNull(), vIntNotNull()), "?0.notNullInt0"); // repeated arg
+    checkSimplify(coalesce(vIntNotNull(), literal(1)), "?0.notNullInt0");
+    checkSimplify(coalesce(vInt(), literal(1)), "COALESCE(?0.int0, 1)");
+    checkSimplify(coalesce(vInt(), plus(vInt(), vIntNotNull()), literal(1), vIntNotNull()),
+        "COALESCE(?0.int0, +(?0.int0, ?0.notNullInt0), 1)");
+    checkSimplify2(coalesce(gt(nullInt, nullInt), trueLiteral),
+        "COALESCE(null, true)", "COALESCE(null, true)");
+    checkSimplify2(coalesce(unaryPlus(nullInt), unaryPlus(vInt())),
+        "COALESCE(null, +(?0.int0))", "COALESCE(null, +(?0.int0))");
+    checkSimplify(coalesce(unaryPlus(vInt(1)), unaryPlus(vInt())),
+        "COALESCE(+(?0.int1), +(?0.int0))");
   }
 
   @Test
