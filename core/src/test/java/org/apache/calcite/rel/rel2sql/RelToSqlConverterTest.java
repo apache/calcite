@@ -178,6 +178,37 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testSelectQueryWithGroupByEmpty() {
+    final String sql0 = "select count(*) from \"product\" group by ()";
+    final String sql1 = "select count(*) from \"product\"";
+    final String expected = "SELECT COUNT(*)\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedMySql = "SELECT COUNT(*)\n"
+        + "FROM `foodmart`.`product`";
+    sql(sql0)
+        .ok(expected)
+        .withMysql()
+        .ok(expectedMySql);
+    sql(sql1)
+        .ok(expected)
+        .withMysql()
+        .ok(expectedMySql);
+  }
+
+  @Test public void testSelectQueryWithGroupByEmpty2() {
+    final String query = "select 42 as c from \"product\" group by ()";
+    final String expected = "SELECT 42 AS \"C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ()";
+    final String expectedMySql = "SELECT 42 AS `C`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ()";
+    sql(query)
+        .ok(expected)
+        .withMysql()
+        .ok(expectedMySql);
+  }
+
   @Test public void testSelectQueryWithMinAggregateFunction() {
     String query = "select min(\"net_weight\") from \"product\" group by \"product_class_id\" ";
     final String expected = "SELECT MIN(\"net_weight\")\n"
@@ -233,6 +264,45 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\", \"product_id\"";
     sql(query).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1174">[CALCITE-1174]
+   * When generating SQL, translate SUM0(x) to COALESCE(SUM(x), 0)</a>. */
+  @Test public void testSum0BecomesCoalesce() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .aggregate(builder.groupKey(),
+            builder.aggregateCall(SqlStdOperatorTable.SUM0, false, false, null,
+                "s", builder.field(3)))
+        .build();
+    final String expectedMysql = "SELECT COALESCE(SUM(`MGR`), 0) AS `s`\n"
+        + "FROM `scott`.`EMP`";
+    assertThat(toSql(root, SqlDialect.DatabaseProduct.MYSQL.getDialect()),
+        isLinux(expectedMysql));
+    final String expectedPostgresql = "SELECT COALESCE(SUM(\"MGR\"), 0) AS \"s\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, SqlDialect.DatabaseProduct.POSTGRESQL.getDialect()),
+        isLinux(expectedPostgresql));
+  }
+
+  /** As {@link #testSum0BecomesCoalesce()} but for windowed aggregates. */
+  @Test public void testWindowedSum0BecomesCoalesce() {
+    final String query = "select\n"
+        + "  AVG(\"net_weight\") OVER (order by \"product_id\" rows 3 preceding)\n"
+        + "from \"foodmart\".\"product\"";
+    final String expectedPostgresql = "SELECT CASE WHEN (COUNT(\"net_weight\")"
+        + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW)) > 0 "
+        + "THEN CAST(COALESCE(SUM(\"net_weight\")"
+        + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 0)"
+        + " AS DOUBLE PRECISION) "
+        + "ELSE NULL END / (COUNT(\"net_weight\")"
+        + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW))\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query)
+        .withPostgresql()
+        .ok(expectedPostgresql);
   }
 
   /** Test case for

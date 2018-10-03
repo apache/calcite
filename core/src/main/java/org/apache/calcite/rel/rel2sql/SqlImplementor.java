@@ -675,11 +675,21 @@ public abstract class SqlImplementor {
           orderList, isRows, lowerBound, upperBound, allowPartial, POS);
 
       final List<SqlNode> nodeList = toSql(program, rexOver.getOperands());
-      final SqlCall aggFunctionCall =
-          rexOver.getAggOperator().createCall(POS, nodeList);
+      return createOverCall(rexOver.getAggOperator(), nodeList, sqlWindow);
+    }
 
+    private SqlCall createOverCall(SqlAggFunction op, List<SqlNode> operands,
+        SqlWindow window) {
+      if (op instanceof SqlSumEmptyIsZeroAggFunction) {
+        // Rewrite "SUM0(x) OVER w" to "COALESCE(SUM(x) OVER w, 0)"
+        final SqlCall node =
+            createOverCall(SqlStdOperatorTable.SUM, operands, window);
+        return SqlStdOperatorTable.COALESCE.createCall(POS, node,
+            SqlLiteral.createExactNumeric("0", POS));
+      }
+      final SqlCall aggFunctionCall = op.createCall(POS, operands);
       return SqlStdOperatorTable.OVER.createCall(POS, aggFunctionCall,
-          sqlWindow);
+          window);
     }
 
     private SqlNode toSql(RexProgram program, RexFieldCollation rfc) {
@@ -760,17 +770,22 @@ public abstract class SqlImplementor {
 
     /** Converts a call to an aggregate function to an expression. */
     public SqlNode toSql(AggregateCall aggCall) {
-      SqlOperator op = aggCall.getAggregation();
-      if (op instanceof SqlSumEmptyIsZeroAggFunction) {
-        op = SqlStdOperatorTable.SUM;
-      }
-      final List<SqlNode> operands = Expressions.list();
+      final SqlOperator op = aggCall.getAggregation();
+      final List<SqlNode> operandList = Expressions.list();
       for (int arg : aggCall.getArgList()) {
-        operands.add(field(arg));
+        operandList.add(field(arg));
       }
-      return op.createCall(
-          aggCall.isDistinct() ? SqlSelectKeyword.DISTINCT.symbol(POS) : null,
-          POS, operands.toArray(new SqlNode[0]));
+      final SqlLiteral qualifier =
+          aggCall.isDistinct() ? SqlSelectKeyword.DISTINCT.symbol(POS) : null;
+      final SqlNode[] operands = operandList.toArray(new SqlNode[0]);
+      if (op instanceof SqlSumEmptyIsZeroAggFunction) {
+        final SqlNode node =
+            SqlStdOperatorTable.SUM.createCall(qualifier, POS, operands);
+        return SqlStdOperatorTable.COALESCE.createCall(POS, node,
+            SqlLiteral.createExactNumeric("0", POS));
+      } else {
+        return op.createCall(qualifier, POS, operands);
+      }
     }
 
     /** Converts a collation to an ORDER BY item. */
