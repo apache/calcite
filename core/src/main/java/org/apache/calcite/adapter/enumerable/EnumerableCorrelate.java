@@ -100,8 +100,8 @@ public class EnumerableCorrelate extends Correlate
 
     Expression selector =
         EnumUtils.joinSelector(
-            joinType.returnsJustFirstInput() ? joinType.toJoinType()
-                : JoinRelType.INNER, physType,
+            joinType.returnsJustFirstInput() ? JoinRelType.INNER
+                : joinType.toJoinType(), physType,
             ImmutableList.of(leftResult.physType, rightResult.physType));
 
     builder.append(
