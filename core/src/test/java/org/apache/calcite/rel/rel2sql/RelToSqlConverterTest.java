@@ -33,6 +33,7 @@ import org.apache.calcite.sql.SqlDialect.Context;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.dialect.BigQuerySqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
@@ -438,11 +439,42 @@ public class RelToSqlConverterTest {
   }
 
   @Test public void testSelectQueryWithLimitClause() {
-    String query = "select \"product_id\"  from \"product\" limit 100 offset 10";
+    String query = "select \"product_"
+        + "id\"  from \"product\" limit 100 offset 10";
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "LIMIT 100\nOFFSET 10";
     sql(query).withHive().ok(expected);
+  }
+
+  @Test public void testPositionFunctionEmulationForHive() {
+    final String query = "select position('A' IN 'ABC') from \"product\"";
+    final String expected = "SELECT INSTR('ABC', 'A')\n"
+        + "FROM foodmart.product";
+    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+  }
+
+  @Test public void testPositionFunctionEmulationForBigQuery() {
+    final String query = "select position('A' IN 'ABC') from \"product\"";
+    final String expected = "SELECT STRPOS('ABC', 'A')\n"
+        + "FROM foodmart.product";
+    sql(query).dialect(BigQuerySqlDialect.DEFAULT).ok(expected);
+  }
+
+  @Test public void testModFunctionEmulationForHive() {
+    final String query = "select mod(11,3) from \"product\"";
+    final String expected = "SELECT 11 % 3\n"
+        + "FROM foodmart.product";
+    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+  }
+
+  @Test public void testUnionOperatorEmulationForBigQuery() {
+    final String query = "select mod(11,3) from \"product\"\n"
+        + "UNION select 1 from \"product\"";
+    final String expected = "SELECT MOD(11, 3)\n"
+        + "FROM foodmart.product\n"
+        + "UNION DISTINCT\nSELECT 1\nFROM foodmart.product";
+    sql(query).dialect(BigQuerySqlDialect.DEFAULT).ok(expected);
   }
 
   @Test public void testHiveSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
