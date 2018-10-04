@@ -943,7 +943,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   }
 
   private static String getClassName(RelDataType type) {
-    return null;
+    return Object.class.getName();
   }
 
   private static int getScale(RelDataType type) {

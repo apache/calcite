@@ -6574,14 +6574,82 @@ public class JdbcTest {
 
       rs.close();
 
-      final String sql = "update t2 set vals=? where id=?";
+      final String sql = "update t2 set vals=? where id=1";
       try (PreparedStatement ps =
                calciteConnection.prepareStatement(sql)) {
         ParameterMetaData pmd = ps.getParameterMetaData();
-        assertThat(pmd.getParameterCount(), is(2));
+        assertThat(pmd.getParameterCount(), is(1));
         assertThat(pmd.getParameterType(1), is(Types.DOUBLE));
-        assertThat(pmd.getParameterType(2), is(Types.INTEGER));
-        ps.close();
+      }
+      calciteConnection.close();
+    }
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2609">[CALCITE-2609]
+   * Dynamic parameters ? pushed to underlying jdbc schema causing error </a>.
+   */
+  @Test public void testQueryWithParameter() throws Exception {
+    String hsqldbMemUrl = "jdbc:hsqldb:mem:.";
+    try (Connection baseConnection = DriverManager.getConnection(hsqldbMemUrl);
+         Statement baseStmt = baseConnection.createStatement()) {
+      baseStmt.execute("CREATE TABLE T3 (\n"
+          + "ID INTEGER,\n"
+          + "VALS DOUBLE)");
+      baseStmt.execute("INSERT INTO T3 VALUES (1, 1.0)");
+      baseStmt.execute("INSERT INTO T3 VALUES (2, null)");
+      baseStmt.execute("INSERT INTO T3 VALUES (null, 2.0)");
+
+      baseStmt.close();
+      baseConnection.commit();
+
+      Properties info = new Properties();
+      final String model = "inline:"
+          + "{\n"
+          + "  version: '1.0',\n"
+          + "  defaultSchema: 'BASEJDBC',\n"
+          + "  schemas: [\n"
+          + "     {\n"
+          + "       type: 'jdbc',\n"
+          + "       name: 'BASEJDBC',\n"
+          + "       jdbcDriver: '" + jdbcDriver.class.getName() + "',\n"
+          + "       jdbcUrl: '" + hsqldbMemUrl + "',\n"
+          + "       jdbcCatalog: null,\n"
+          + "       jdbcSchema: null\n"
+          + "     }\n"
+          + "  ]\n"
+          + "}";
+      info.put("model", model);
+
+      Connection calciteConnection =
+          DriverManager.getConnection("jdbc:calcite:", info);
+
+      ResultSet rs = calciteConnection.prepareStatement("select * from t3")
+          .executeQuery();
+
+      assertThat(rs.next(), is(true));
+      assertThat((Integer) rs.getObject("ID"), is(1));
+      assertThat((Double) rs.getObject("VALS"), is(1.0));
+
+      assertThat(rs.next(), is(true));
+      assertThat((Integer) rs.getObject("ID"), is(2));
+      assertThat(rs.getObject("VALS"), nullValue());
+
+      assertThat(rs.next(), is(true));
+      assertThat(rs.getObject("ID"), nullValue());
+      assertThat((Double) rs.getObject("VALS"), equalTo(2.0));
+
+      rs.close();
+
+      final String sql = "select * from t3 where vals = ?";
+      try (PreparedStatement ps =
+               calciteConnection.prepareStatement(sql)) {
+        ParameterMetaData pmd = ps.getParameterMetaData();
+        assertThat(pmd.getParameterCount(), is(1));
+        assertThat(pmd.getParameterType(1), is(Types.DOUBLE));
+        ps.setDouble(1, 1.0);
+        ps.executeQuery();
       }
       calciteConnection.close();
     }

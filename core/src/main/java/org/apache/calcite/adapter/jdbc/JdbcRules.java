@@ -54,6 +54,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rel2sql.SqlImplementor;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexMultisetUtil;
@@ -71,6 +72,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 
 import org.slf4j.Logger;
@@ -137,7 +139,7 @@ public class JdbcRules {
         com.google.common.base.Predicate<? super R> predicate,
         RelTrait in, JdbcConvention out,
         RelBuilderFactory relBuilderFactory, String description) {
-      this(clazz, (Predicate<R>) predicate, in, out, relBuilderFactory,
+      this(clazz, (Predicate<R>) predicate::apply, in, out, relBuilderFactory,
           description);
     }
   }
@@ -472,14 +474,22 @@ public class JdbcRules {
     public JdbcFilterRule(JdbcConvention out,
         RelBuilderFactory relBuilderFactory) {
       super(Filter.class,
-          (Predicate<Filter>) r -> !userDefinedFunctionInFilter(r),
+          Predicates.and(
+              JdbcFilterRule::userDefinedFunctionNotInFilter,
+              JdbcFilterRule::dynamicParamNotInFilter),
           Convention.NONE, out, relBuilderFactory, "JdbcFilterRule");
     }
 
-    private static boolean userDefinedFunctionInFilter(Filter filter) {
+    private static boolean userDefinedFunctionNotInFilter(Filter filter) {
       CheckingUserDefinedFunctionVisitor visitor = new CheckingUserDefinedFunctionVisitor();
       filter.getCondition().accept(visitor);
-      return visitor.containsUserDefinedFunction();
+      return !visitor.containsUserDefinedFunction();
+    }
+
+    private static boolean dynamicParamNotInFilter(Filter filter) {
+      CheckingDynamicParamVisitor visitor = new CheckingDynamicParamVisitor();
+      filter.getCondition().accept(visitor);
+      return !visitor.containsDynamicParam();
     }
 
     public RelNode convert(RelNode rel) {
@@ -492,6 +502,7 @@ public class JdbcRules {
               filter.getInput().getTraitSet().replace(out)),
           filter.getCondition());
     }
+
   }
 
   /** Implementation of {@link org.apache.calcite.rel.core.Filter} in
@@ -945,6 +956,26 @@ public class JdbcRules {
       return super.visitCall(call);
     }
 
+  }
+  /**
+   * Visitor for checking whether part of filter contains dynamic param
+   */
+  private static class CheckingDynamicParamVisitor extends RexVisitorImpl<Void> {
+
+    private boolean containsDynamicParam = false;
+
+    CheckingDynamicParamVisitor() {
+      super(true);
+    }
+
+    public boolean containsDynamicParam() {
+      return containsDynamicParam;
+    }
+
+    @Override public Void visitDynamicParam(RexDynamicParam dynamicParam) {
+      containsDynamicParam |= true;
+      return super.visitDynamicParam(dynamicParam);
+    }
   }
 
 }

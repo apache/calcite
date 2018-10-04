@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.os.OsAdapterTest;
 import org.apache.calcite.adapter.tpcds.TpcdsTest;
 import org.apache.calcite.adapter.tpch.TpchTest;
 import org.apache.calcite.chinook.EndToEndTest;
+import org.apache.calcite.chinook.RemotePreparedStatementParametersTest;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -32,7 +33,8 @@ import org.junit.runners.Suite;
     OsAdapterTest.class,
     TpcdsTest.class,
     TpchTest.class,
-    EndToEndTest.class
+    EndToEndTest.class,
+    RemotePreparedStatementParametersTest.class
     })
 public class PlusSuite {
 }
