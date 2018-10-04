@@ -180,7 +180,7 @@ void TableElement(List<SqlNode> list) :
         }
     |
         <UNIQUE> { s.add(this); }
-        columnList = ParenthesizedSimpleIdentifierList() {
+        columnList = ParenthesizedQueryOrCommaList(ExprContext.ACCEPT_NON_QUERY) {
             list.add(SqlDdlNodes.unique(s.end(columnList), name, columnList));
         }
     |

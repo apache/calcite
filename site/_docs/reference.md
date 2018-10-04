@@ -2164,7 +2164,7 @@ tableConstraint:
       {
           CHECK '(' expression ')'
       |   PRIMARY KEY '(' columnName [, columnName ]* ')'
-      |   UNIQUE '(' columnName [, columnName ]* ')'
+      |   UNIQUE '(' { columnName | expression } [, { columnName | expression } ]* ')'
       }
 
 createViewStatement:

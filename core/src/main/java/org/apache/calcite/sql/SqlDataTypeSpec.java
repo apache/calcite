@@ -63,6 +63,8 @@ public class SqlDataTypeSpec extends SqlNode {
   // Only applies to the VoltDB VARCHAR type, indicates whether the column size
   // is specified in bytes.
   private boolean inBytes = false;
+  private boolean isUnique = false;
+  private boolean isPKey = false;
   private final String charSetName;
   private final TimeZone timeZone;
 
@@ -193,6 +195,24 @@ public class SqlDataTypeSpec extends SqlNode {
     return this;
   }
 
+  public boolean getIsUnique() {
+    return isUnique;
+  }
+
+  public SqlDataTypeSpec setIsUnique(boolean isUnique) {
+    this.isUnique = isUnique;
+    return this;
+  }
+
+  public boolean getIsPKey() {
+    return isPKey;
+  }
+
+  public SqlDataTypeSpec setIsPKey(boolean isPKey) {
+    this.isPKey = isPKey;
+    return this;
+  }
+
   /** Returns a copy of this data type specification with a given
    * nullability. */
   public SqlDataTypeSpec withNullable(Boolean nullable) {
@@ -201,7 +221,9 @@ public class SqlDataTypeSpec extends SqlNode {
     }
     return new SqlDataTypeSpec(collectionsTypeName, typeName, precision, scale,
         charSetName, timeZone, nullable, getParserPosition())
-        .setInBytes(inBytes);
+        .setInBytes(inBytes)
+        .setIsUnique(isUnique)
+        .setIsPKey(isPKey);
   }
 
   /**
@@ -218,7 +240,9 @@ public class SqlDataTypeSpec extends SqlNode {
         charSetName,
         timeZone,
         getParserPosition())
-       .setInBytes(inBytes);
+       .setInBytes(inBytes)
+        .setIsUnique(isUnique)
+        .setIsPKey(isPKey);
   }
 
   public void unparse(

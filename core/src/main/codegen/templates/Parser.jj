@@ -4231,6 +4231,30 @@ void SimpleIdentifierCommaList(List<SqlNode> list) :
 }
 
 /**
+ * Parses a comma-separate list of simple identifiers, or non-query expressions.
+ */
+void SimpleIdentifierOrExpressionCommaList(List<SqlNode> list) :
+{
+   SqlIdentifier id;
+   SqlNode expr;
+}
+{
+    (
+        id = SimpleIdentifier() {list.add(id);}
+        |
+        expr = Expression(ExprContext.ACCEPT_NON_QUERY) {list.add(expr);}
+    )
+    (
+        <COMMA>
+        (
+            id = SimpleIdentifier() {list.add(id);}
+            |
+            expr = Expression(ExprContext.ACCEPT_NON_QUERY) {list.add(expr);}
+        )
+    )*
+}
+
+/**
   * List of simple identifiers in parentheses. The position extends from the
   * open parenthesis to the close parenthesis.
   */
@@ -4242,6 +4266,23 @@ SqlNodeList ParenthesizedSimpleIdentifierList() :
 {
     <LPAREN> { s = span(); }
     SimpleIdentifierCommaList(list)
+    <RPAREN> {
+        return new SqlNodeList(list, s.end(this));
+    }
+}
+
+/**
+  * List of simple identifiers or expressions in parentheses. The position extends from the
+  * open parenthesis to the close parenthesis.
+  */
+SqlNodeList ParenthesizedSimpleIdentifierOrExpressionList() :
+{
+    final Span s;
+    final List<SqlNode> list = new ArrayList<SqlNode>();
+}
+{
+    <LPAREN> { s = span(); }
+    SimpleIdentifierOrExpressionCommaList(list)
     <RPAREN> {
         return new SqlNodeList(list, s.end(this));
     }
@@ -4388,6 +4429,8 @@ SqlDataTypeSpec DataType() :
     int scale = -1;
     int precision = -1;
     boolean inBytes = false;
+    boolean isUnique = false;
+    boolean isPKey = false;
     String charSetName = null;
     final Span s;
 }
@@ -4415,6 +4458,18 @@ SqlDataTypeSpec DataType() :
         charSetName = Identifier()
     ]
     [
+       <PRIMARY> <KEY>
+       {
+          isPKey = true;
+       }
+    ]
+    [
+       <UNIQUE>
+       {
+          isUnique = true;
+       }
+    ]
+    [
         collectionTypeName = CollectionsTypeName()
     ]
     {
@@ -4434,7 +4489,9 @@ SqlDataTypeSpec DataType() :
             charSetName,
             null,
             s.end(this))
-        .setInBytes(inBytes);
+        .setInBytes(inBytes)
+        .setIsUnique(isUnique)
+        .setIsPKey(isPKey);
     }
 }
 
