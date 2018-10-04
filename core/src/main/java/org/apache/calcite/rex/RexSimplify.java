@@ -507,7 +507,31 @@ public class RexSimplify {
       return simplify(
           rexBuilder.makeCall(SqlStdOperatorTable.AND, newOperands), unknownAs);
     }
-    return call;
+    if (a.getKind() == SqlKind.CASE) {
+      final List<RexNode> newOperands = new ArrayList<>();
+      List<RexNode> operands = ((RexCall) a).getOperands();
+      for (int i = 0; i < operands.size(); i += 2) {
+        if (i + 1 == operands.size()) {
+          newOperands.add(rexBuilder.makeCall(SqlStdOperatorTable.NOT, operands.get(i + 0)));
+        } else {
+          newOperands.add(operands.get(i + 0));
+          newOperands.add(rexBuilder.makeCall(SqlStdOperatorTable.NOT, operands.get(i + 1)));
+        }
+      }
+      return simplify(
+          rexBuilder.makeCall(SqlStdOperatorTable.CASE, newOperands), unknownAs);
+    }
+    RexNode a2 = simplify(a, unknownAs.negate());
+    if (a == a2) {
+      return call;
+    }
+    if (a2.isAlwaysTrue()) {
+      return rexBuilder.makeLiteral(false);
+    }
+    if (a2.isAlwaysFalse()) {
+      return rexBuilder.makeLiteral(true);
+    }
+    return rexBuilder.makeCall(SqlStdOperatorTable.NOT, a2);
   }
 
   private RexNode simplifyIs(RexCall call) {
