@@ -8562,7 +8562,7 @@ LogicalProject(DEPTNO=[$0])
             <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-    LogicalFilter(condition=[OR(=($5, 4), NOT(CASE(IS NOT NULL($10), true, false)))])
+    LogicalFilter(condition=[OR(=($5, 4), IS NULL($10))])
       LogicalJoin(condition=[=($0, $9)], joinType=[left])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalProject(DEPTNO=[$0], i=[true])
@@ -8573,7 +8573,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
             <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-    LogicalFilter(condition=[OR(=($5, 4), NOT(CASE(IS NOT NULL($10), true, false)))])
+    LogicalFilter(condition=[OR(=($5, 4), IS NULL($10))])
       LogicalJoin(condition=[=($0, $9)], joinType=[left])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalProject(DEPTNO=[$0], i=[true])

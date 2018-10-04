@@ -2098,7 +2098,7 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EMPNO=[$0], EXPR$1=[NOT(CASE(=($9, 0), false, IS NOT NULL($13), true, IS NULL($11), null:BOOLEAN, <($10, $9), null:BOOLEAN, false))])
+LogicalProject(EMPNO=[$0], EXPR$1=[OR(=($9, 0), AND(<($10, $9), null, <>($9, 0), IS NULL($13)), AND(<>($9, 0), IS NULL($13), >=($10, $9)))])
   LogicalJoin(condition=[=($11, $12)], joinType=[left])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$9], $f1=[$10], DEPTNO0=[$7])
       LogicalJoin(condition=[true], joinType=[inner])
@@ -2242,7 +2242,7 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EMPNO=[$0], EXPR$1=[NOT(CASE(=($9, 0), false, IS NOT NULL($13), true, IS NULL($11), null:BOOLEAN, <($10, $9), null:BOOLEAN, false))])
+LogicalProject(EMPNO=[$0], EXPR$1=[OR(=($9, 0), AND(<($10, $9), null, <>($9, 0), IS NULL($13)), AND(<>($9, 0), IS NULL($13), >=($10, $9)))])
   LogicalJoin(condition=[=($11, $12)], joinType=[left])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$9], $f1=[$10], DEPTNO0=[$7])
       LogicalJoin(condition=[true], joinType=[inner])
