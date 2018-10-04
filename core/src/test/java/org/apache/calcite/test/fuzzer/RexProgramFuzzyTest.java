@@ -119,7 +119,6 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
   /**
    * Verifies {@code IS TRUE(IS NULL(null))} kind of expressions up to 4 level deep.
    */
-  @Ignore("[CALCITE-2556] RexSimplify: not(trueLiteral) could be simplified to false")
   @Test public void testNestedCalls() {
     nestedCalls(trueLiteral);
     nestedCalls(falseLiteral);

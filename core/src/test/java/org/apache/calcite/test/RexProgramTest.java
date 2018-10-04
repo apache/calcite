@@ -449,7 +449,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
         // $t15 = $14 is true
         final RexLocalRef t15 =
             builder.addExpr(
-                rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE, t14));
+                isTrue(t14));
         builder.addCondition(t15);
       }
     }
@@ -2252,6 +2252,74 @@ public class RexProgramTest extends RexProgramBuilderBase {
         is(NullSentinel.INSTANCE));
     assertThat(eval(and(this.trueLiteral, falseLiteral)),
         is(false));
+  }
+
+  /** Unit tests for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2438">[CALCITE-2438]
+   * RexCall#isAlwaysTrue returns incorrect result</a>. */
+  @Test public void testIsAlwaysTrueAndFalseXisNullisNotNullisFalse() {
+    // "((x IS NULL) IS NOT NULL) IS FALSE" -> false
+    checkIs(isFalse(isNotNull(isNull(vBool()))), false);
+  }
+
+  @Test public void testIsAlwaysTrueAndFalseNotXisNullisNotNullisFalse() {
+    // "(NOT ((x IS NULL) IS NOT NULL)) IS FALSE" -> true
+    checkIs(isFalse(not(isNotNull(isNull(vBool())))), true);
+  }
+
+  @Test public void testIsAlwaysTrueAndFalseXisNullisNotNullisTrue() {
+    // "((x IS NULL) IS NOT NULL) IS TRUE" -> true
+    checkIs(isTrue(isNotNull(isNull(vBool()))), true);
+  }
+
+  @Test public void testIsAlwaysTrueAndFalseNotXisNullisNotNullisTrue() {
+    // "(NOT ((x IS NULL) IS NOT NULL)) IS TRUE" -> false
+    checkIs(isTrue(not(isNotNull(isNull(vBool())))), false);
+  }
+
+  @Test public void testIsAlwaysTrueAndFalseNotXisNullisNotNullisNotTrue() {
+    // "(NOT ((x IS NULL) IS NOT NULL)) IS NOT TRUE" -> true
+    checkIs(isNotTrue(not(isNotNull(isNull(vBool())))), true);
+  }
+
+  @Test public void testIsAlwaysTrueAndFalseXisNullisNotNull() {
+    // "(x IS NULL) IS NOT NULL" -> true
+    checkIs(isNotNull(isNull(vBool())), true);
+  }
+
+  @Test public void testIsAlwaysTrueAndFalseXisNotNullisNotNull() {
+    // "(x IS NOT NULL) IS NOT NULL" -> true
+    checkIs(isNotNull(isNotNull(vBool())), true);
+  }
+
+  @Test public void testIsAlwaysTrueAndFalseXisNullisNull() {
+    // "(x IS NULL) IS NULL" -> false
+    checkIs(isNull(isNull(vBool())), false);
+  }
+
+  @Test public void testIsAlwaysTrueAndFalseXisNotNullisNull() {
+    // "(x IS NOT NULL) IS NULL" -> false
+    checkIs(isNull(isNotNull(vBool())), false);
+  }
+
+  @Test public void testIsAlwaysTrueAndFalseXisNullisNotNullisNotFalse() {
+    // "((x IS NULL) IS NOT NULL) IS NOT FALSE" -> true
+    checkIs(isNotFalse(isNotNull(isNull(vBool()))), true);
+  }
+
+  @Test public void testIsAlwaysTrueAndFalseXisNullisNotNullisNotTrue() {
+    // "((x IS NULL) IS NOT NULL) IS NOT TRUE" -> false
+    checkIs(isNotTrue(isNotNull(isNull(vBool()))), false);
+  }
+
+  /** Checks that {@link RexNode#isAlwaysTrue()},
+   * {@link RexNode#isAlwaysTrue()} and {@link RexSimplify} agree that
+   * an expression reduces to true or false. */
+  private void checkIs(RexNode e, boolean expected) {
+    assertThat("isAlwaysTrue() of expression: " + e.toString(), e.isAlwaysTrue(), is(expected));
+    assertThat("isAlwaysFalse() of expression: " + e.toString(), e.isAlwaysFalse(), is(!expected));
+    assertThat("Simplification is not using isAlwaysX informations", simplify(e).toString(),
+            is(expected ? "true" : "false"));
   }
 
   private Comparable eval(RexNode e) {
