@@ -95,6 +95,9 @@ public class SqlWindow extends SqlCall {
   /** Whether to allow partial results. It may be null. */
   SqlLiteral allowPartial;
 
+  /** Whether to allow framing or not. */
+  boolean framingAllowed;
+
   private SqlCall windowCall = null;
 
   //~ Constructors -----------------------------------------------------------
@@ -105,7 +108,7 @@ public class SqlWindow extends SqlCall {
   public SqlWindow(SqlParserPos pos, SqlIdentifier declName,
       SqlIdentifier refName, SqlNodeList partitionList, SqlNodeList orderList,
       SqlLiteral isRows, SqlNode lowerBound, SqlNode upperBound,
-      SqlLiteral allowPartial) {
+      SqlLiteral allowPartial, final boolean framingAllowed) {
     super(pos);
     this.declName = declName;
     this.refName = refName;
@@ -115,6 +118,7 @@ public class SqlWindow extends SqlCall {
     this.lowerBound = lowerBound;
     this.upperBound = upperBound;
     this.allowPartial = allowPartial;
+    this.framingAllowed = framingAllowed;
 
     assert declName == null || declName.isSimple();
     assert partitionList != null;
@@ -124,7 +128,7 @@ public class SqlWindow extends SqlCall {
   public static SqlWindow create(SqlIdentifier declName, SqlIdentifier refName,
       SqlNodeList partitionList, SqlNodeList orderList, SqlLiteral isRows,
       SqlNode lowerBound, SqlNode upperBound, SqlLiteral allowPartial,
-      SqlParserPos pos) {
+      SqlParserPos pos, final boolean framingAllowed) {
     // If there's only one bound and it's 'FOLLOWING', make it the upper
     // bound.
     if (upperBound == null
@@ -134,13 +138,15 @@ public class SqlWindow extends SqlCall {
       lowerBound = null;
     }
     return new SqlWindow(pos, declName, refName, partitionList, orderList,
-        isRows, lowerBound, upperBound, allowPartial);
+        isRows, lowerBound, upperBound, allowPartial, framingAllowed);
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public SqlOperator getOperator() {
-    return SqlWindowOperator.INSTANCE;
+    SqlWindowOperator operator = SqlWindowOperator.INSTANCE;
+    operator.allowFraming(framingAllowed);
+    return operator;
   }
 
   @Override public SqlKind getKind() {
@@ -234,7 +240,7 @@ public class SqlWindow extends SqlCall {
     if (lowerBound == null || upperBound == null) {
       // Keep the current window unmodified
       tmp = new SqlWindow(getParserPosition(), null, null, partitionList,
-          orderList, isRows, lowerBound, upperBound, allowPartial);
+          orderList, isRows, lowerBound, upperBound, allowPartial, true);
       tmp.populateBounds();
     } else {
       tmp = this;
@@ -465,7 +471,7 @@ public class SqlWindow extends SqlCall {
         isRowsNew,
         lowerBoundNew,
         upperBoundNew,
-        allowPartialNew);
+        allowPartialNew, true);
   }
 
   private static boolean setOperand(SqlNode clonedOperand, SqlNode thatOperand,
@@ -728,7 +734,7 @@ public class SqlWindow extends SqlCall {
         SqlWindow.createCurrentRow(SqlParserPos.ZERO),
         SqlWindow.createCurrentRow(SqlParserPos.ZERO),
         SqlLiteral.createBoolean(true, SqlParserPos.ZERO),
-        SqlParserPos.ZERO);
+        SqlParserPos.ZERO, true);
   }
 
   /**
@@ -750,7 +756,7 @@ public class SqlWindow extends SqlCall {
         SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO),
         SqlWindow.createCurrentRow(SqlParserPos.ZERO),
         SqlLiteral.createBoolean(false, SqlParserPos.ZERO),
-        SqlParserPos.ZERO);
+        SqlParserPos.ZERO, true);
   }
 
   /**
@@ -807,9 +813,14 @@ public class SqlWindow extends SqlCall {
   /** An operator describing a window specification. */
   private static class SqlWindowOperator extends SqlOperator {
     private static final SqlWindowOperator INSTANCE = new SqlWindowOperator();
+    private boolean framingAllowed;
 
     private SqlWindowOperator() {
       super("WINDOW", SqlKind.WINDOW, 2, true, null, null, null);
+    }
+
+    public void allowFraming(boolean allowsFraming) {
+      this.framingAllowed = allowsFraming;
     }
 
     public SqlSyntax getSyntax() {
@@ -831,7 +842,7 @@ public class SqlWindow extends SqlCall {
           operands[5],
           operands[6],
           (SqlLiteral) operands[7],
-          pos);
+          pos, true);
     }
 
     public <R> void acceptCall(
@@ -881,24 +892,26 @@ public class SqlWindow extends SqlCall {
         window.orderList.unparse(writer, 0, 0);
         writer.endList(orderFrame);
       }
-      if (window.lowerBound == null) {
-        // No ROWS or RANGE clause
-      } else if (window.upperBound == null) {
-        if (window.isRows()) {
-          writer.sep("ROWS");
+      if (framingAllowed) {
+        if (window.lowerBound == null) {
+          // No ROWS or RANGE clause
+        } else if (window.upperBound == null) {
+          if (window.isRows()) {
+            writer.sep("ROWS");
+          } else {
+            writer.sep("RANGE");
+          }
+          window.lowerBound.unparse(writer, 0, 0);
         } else {
-          writer.sep("RANGE");
+          if (window.isRows()) {
+            writer.sep("ROWS BETWEEN");
+          } else {
+            writer.sep("RANGE BETWEEN");
+          }
+          window.lowerBound.unparse(writer, 0, 0);
+          writer.keyword("AND");
+          window.upperBound.unparse(writer, 0, 0);
         }
-        window.lowerBound.unparse(writer, 0, 0);
-      } else {
-        if (window.isRows()) {
-          writer.sep("ROWS BETWEEN");
-        } else {
-          writer.sep("RANGE BETWEEN");
-        }
-        window.lowerBound.unparse(writer, 0, 0);
-        writer.keyword("AND");
-        window.upperBound.unparse(writer, 0, 0);
       }
 
       // ALLOW PARTIAL/DISALLOW PARTIAL
