@@ -1558,7 +1558,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
     final RexNode neOrEq =
         or(ne(bRef, literal1),
             eq(bRef, literal1));
-    checkSimplifyFilter(neOrEq, "OR(<>(?0.b, 1), IS NOT NULL(?0.b))");
+    checkSimplifyFilter(neOrEq, "OR(<>(?0.b, 1), =(?0.b, 1))");
 
     // Careful of the excluded middle!
     // We cannot simplify "b != 1 or b = 1" to "true" because if b is null, the
@@ -1567,7 +1567,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
     final RexNode simplified =
         this.simplify.simplifyUnknownAs(neOrEq, RexUnknownAs.UNKNOWN);
     assertThat(simplified.toString(),
-        equalTo("OR(<>(?0.b, 1), IS NOT NULL(?0.b))"));
+        equalTo("OR(<>(?0.b, 1), =(?0.b, 1))"));
 
     // "a is null or a is not null" ==> "true"
     checkSimplifyFilter(
@@ -1617,6 +1617,18 @@ public class RexProgramTest extends RexProgramBuilderBase {
         "OR(null, <>(0, ?0.int0))",
         "<>(0, ?0.int0)",
         "true");
+  }
+
+  @Test public void testSimplifyNotAnd() {
+    final RexNode e = or(
+        le(
+            vBool(1),
+            literal(true)),
+        eq(
+            literal(false),
+            eq(literal(false), vBool(1))));
+    final String expected = "OR(<=(?0.bool1, true), =(false, =(false, ?0.bool1)))";
+    checkSimplify3(e, expected, expected, expected);
   }
 
   @Test public void testSimplifyUnknown() {
