@@ -943,6 +943,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   }
 
   private static String getClassName(RelDataType type) {
+    // AvaticaParameter requires className field to be not null, see CALCITE-2613
     return Object.class.getName();
   }
 

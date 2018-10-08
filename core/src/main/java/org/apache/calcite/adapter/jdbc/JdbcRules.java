@@ -951,7 +951,7 @@ public class JdbcRules {
       SqlOperator operator = call.getOperator();
       if (operator instanceof SqlFunction
           && ((SqlFunction) operator).getFunctionType().isUserDefined()) {
-        containsUsedDefinedFunction |= true;
+        containsUsedDefinedFunction = true;
       }
       return super.visitCall(call);
     }
@@ -973,7 +973,7 @@ public class JdbcRules {
     }
 
     @Override public Void visitDynamicParam(RexDynamicParam dynamicParam) {
-      containsDynamicParam |= true;
+      containsDynamicParam = true;
       return super.visitDynamicParam(dynamicParam);
     }
   }
