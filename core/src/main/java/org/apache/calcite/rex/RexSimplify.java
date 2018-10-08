@@ -427,7 +427,7 @@ public class RexSimplify {
       final RexNode t2 = simplify.simplify(t, RexUnknownAs.UNKNOWN);
       terms.set(i, t2);
       final RexNode inverse =
-          simplify.simplify(rexBuilder.makeCall(SqlStdOperatorTable.NOT, t2),
+          simplify.simplify(rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_TRUE, t2),
               RexUnknownAs.UNKNOWN);
       final RelOptPredicateList newPredicates = simplify.predicates.union(rexBuilder,
           RelOptPredicateList.of(rexBuilder, ImmutableList.of(inverse)));
@@ -1219,6 +1219,8 @@ public class RexSimplify {
     final List<RexNode> terms = RelOptUtil.disjunctions(call);
     if (predicateElimination) {
       simplifyOrTerms(terms);
+    } else {
+      simplifyList(terms, unknownAs);
     }
     return simplifyOrs(terms, unknownAs);
   }
