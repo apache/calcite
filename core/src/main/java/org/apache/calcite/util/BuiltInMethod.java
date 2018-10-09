@@ -432,7 +432,9 @@ public enum BuiltInMethod {
   CONTEXT_VALUES(Context.class, "values", true),
   CONTEXT_ROOT(Context.class, "root", true),
   DATA_CONTEXT_GET_QUERY_PROVIDER(DataContext.class, "getQueryProvider"),
-  METADATA_REL(Metadata.class, "rel");
+  METADATA_REL(Metadata.class, "rel"),
+  EXCEPTION_HANDLER_WRAP_ENUMERABLE(ExceptionHandlerUtil.class, "wrapEnumerable", Enumerable.class,
+      DataContext.class);
 
   public final Method method;
   public final Constructor constructor;

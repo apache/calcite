@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.runtime.ExceptionHandler;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.advise.SqlAdvisor;
 
@@ -100,7 +101,10 @@ public interface DataContext {
     /** Time zone in which the current statement is executing. Required;
      * defaults to the time zone of the JVM if the connection does not specify a
      * time zone. */
-    TIME_ZONE("timeZone", TimeZone.class);
+    TIME_ZONE("timeZone", TimeZone.class),
+
+    /** Handler handles exceptions produced by runtime execution. */
+    EXCEPTION_HANDLER("exceptionHandler", ExceptionHandler.class);
 
     public final String camelName;
     public final Class clazz;

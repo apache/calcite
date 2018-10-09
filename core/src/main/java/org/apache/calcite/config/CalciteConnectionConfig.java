@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.ConnectionConfig;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.model.JsonSchema;
+import org.apache.calcite.runtime.ExceptionHandler;
 import org.apache.calcite.sql.validate.SqlConformance;
 
 /** Interface for reading connection properties within Calcite code. There is
@@ -70,6 +71,8 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   <T> T typeSystem(Class<T> typeSystemClass, T defaultTypeSystem);
   /** @see CalciteConnectionProperty#CONFORMANCE */
   SqlConformance conformance();
+  /** @see CalciteConnectionProperty#EXCEPTION_HANDLER */
+  ExceptionHandler exceptionHandler();
 }
 
 // End CalciteConnectionConfig.java

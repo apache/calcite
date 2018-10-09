@@ -21,6 +21,8 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.model.JsonSchema;
 import org.apache.calcite.prepare.CalciteCatalogReader;
+import org.apache.calcite.runtime.ExceptionHandler;
+import org.apache.calcite.runtime.ExceptionHandlerEnum;
 import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
@@ -182,6 +184,11 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
   public SqlConformance conformance() {
     return CalciteConnectionProperty.CONFORMANCE.wrap(properties)
         .getEnum(SqlConformanceEnum.class);
+  }
+
+  @Override public ExceptionHandler exceptionHandler() {
+    return CalciteConnectionProperty.EXCEPTION_HANDLER.wrap(properties)
+        .getEnum(ExceptionHandlerEnum.class);
   }
 }
 

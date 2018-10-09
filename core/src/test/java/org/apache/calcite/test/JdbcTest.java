@@ -58,6 +58,7 @@ import org.apache.calcite.rel.rules.IntersectToDistinctRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.ExceptionHandlerEnum;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.SqlFunctions;
@@ -93,6 +94,7 @@ import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
@@ -6657,6 +6659,124 @@ public class JdbcTest {
     assertThat(resultSet.next(), is(false));
 
     connection.close();
+  }
+
+  @Test public void testExceptionHandler1() {
+    try {
+      // ensures that ExceptionHandlerEnum.THROW is the default behavior.
+      CalciteAssert.that()
+          .query("select x / y from "
+              + "(values (1, 2), (2, 1), (3, 0), (2, 2), (1, 0), (2, 1), (3, 8)) as t(X, Y) "
+              + "limit 10")
+          .returns(resultSet -> {
+            for (;;) {
+              try {
+                if (!resultSet.next()) {
+                  break;
+                }
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+      fail("expected error");
+    } catch (Exception e) {
+      assertThat(
+          Throwables.getStackTraceAsString(e),
+          containsString("/ by zero"));
+    }
+  }
+
+  @Test public void testExceptionHandler2() {
+    try {
+      CalciteAssert.that()
+          .with(CalciteConnectionProperty.EXCEPTION_HANDLER, ExceptionHandlerEnum.THROW)
+          .query("select x / y from "
+              + "(values (1, 2), (2, 1), (3, 0), (2, 2), (1, 0), (2, 1), (3, 8)) as t(X, Y) "
+              + "limit 10")
+          .returns(resultSet -> {
+            for (;;) {
+              try {
+                if (!resultSet.next()) {
+                  break;
+                }
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+      fail("expected error");
+    } catch (Exception e) {
+      assertThat(
+          Throwables.getStackTraceAsString(e),
+          containsString("/ by zero"));
+    }
+  }
+
+  @Test public void testExceptionHandler3() {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.EXCEPTION_HANDLER, ExceptionHandlerEnum.DISCARD)
+        .query("select x / y from "
+            + "(values (1, 2), (2, 1), (3, 0), (2, 2), (1, 0), (2, 1), (3, 8)) as t(X, Y) "
+            + "limit 10")
+        .returns("EXPR$0=0\n"
+            + "EXPR$0=2\n"
+            + "EXPR$0=1\n"
+            + "EXPR$0=2\n"
+            + "EXPR$0=0\n");
+  }
+
+  @Test public void testExceptionHandler4() {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.EXCEPTION_HANDLER, ExceptionHandlerEnum.LOG)
+        .query("select x / y from "
+            + "(values (1, 2), (2, 1), (3, 0), (2, 2), (1, 0), (2, 1), (3, 8)) as t(X, Y) "
+            + "limit 10")
+        .returns("EXPR$0=0\n"
+            + "EXPR$0=2\n"
+            + "EXPR$0=1\n"
+            + "EXPR$0=2\n"
+            + "EXPR$0=0\n");
+  }
+
+  @Test public void testExceptionHandler5() {
+    // discard all rows
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.EXCEPTION_HANDLER, ExceptionHandlerEnum.DISCARD)
+        .query("select x / y from "
+            + "(values (1, 0), (2, 0), (3, 0)) as t(X, Y) limit 10")
+        .returns("");
+  }
+
+  @Test public void testExceptionHandler6() {
+    // discard all rows with limit
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.EXCEPTION_HANDLER, ExceptionHandlerEnum.DISCARD)
+        .query("select x / y from "
+            + "(values (1, 0), (2, 0), (3, 0)) as t(X, Y) limit 1")
+        .returns("");
+  }
+
+  @Test public void testExceptionHandler7() {
+    // in aggregate call
+    // discard rows: (2, sum(1 / 0)), (3, sum(1 / 0))
+    // output row: (1, sum(1 / 1))
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.EXCEPTION_HANDLER, ExceptionHandlerEnum.DISCARD)
+        .query("select x, sum(1 / y) from "
+            + "(values (2, 0), (1, 1), (3, 0)) as t(X, Y) group by x limit 10")
+        .returns("X=1; EXPR$1=1\n");
+  }
+
+  @Test public void testExceptionHandler8() {
+    // a special case:
+    // agg call "count(*)" returns the predicated row number without doing division
+    // calculation, so that exception handler ExceptionHandlerEnum.DISCARD will not be called.
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.EXCEPTION_HANDLER, ExceptionHandlerEnum.DISCARD)
+        .query("select count(*) from (select x / y from "
+            + "(values (1, 0), (2, 0), (3, 0)) as t(X, Y))")
+        .returns("EXPR$0=3\n");
   }
 
   private static String sums(int n, boolean c) {

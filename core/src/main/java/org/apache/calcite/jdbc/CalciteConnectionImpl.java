@@ -305,6 +305,7 @@ abstract class CalciteConnectionImpl
       throw new RuntimeException(e);
     }
     map.put(DataContext.Variable.CANCEL_FLAG.camelName, cancelFlag);
+    map.put(DataContext.Variable.EXCEPTION_HANDLER.camelName, config().exceptionHandler());
     final DataContext dataContext = createDataContext(map, signature.rootSchema);
     return signature.enumerable(dataContext);
   }

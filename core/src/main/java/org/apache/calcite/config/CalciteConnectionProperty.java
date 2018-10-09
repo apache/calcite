@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.ConnectionProperty;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.model.JsonSchema;
+import org.apache.calcite.runtime.ExceptionHandlerEnum;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.Bug;
 
@@ -141,7 +142,10 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   TYPE_SYSTEM("typeSystem", Type.PLUGIN, null, false),
 
   /** SQL conformance level. */
-  CONFORMANCE("conformance", Type.ENUM, SqlConformanceEnum.DEFAULT, false);
+  CONFORMANCE("conformance", Type.ENUM, SqlConformanceEnum.DEFAULT, false),
+
+  /** The exception handler, which is called when exception is thrown by runtime execution. */
+  EXCEPTION_HANDLER("exceptionHandler", Type.ENUM, ExceptionHandlerEnum.THROW, false);
 
   private final String camelName;
   private final Type type;
