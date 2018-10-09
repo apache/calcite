@@ -270,7 +270,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
         .query(
             "select \"store\".\"store_country\" as \"c0\", sum(\"inventory_fact_1997\".\"supply_time\") as \"m0\" from \"store\" as \"store\", \"inventory_fact_1997\" as \"inventory_fact_1997\" where \"inventory_fact_1997\".\"store_id\" = \"store\".\"store_id\" group by \"store\".\"store_country\"")
         .planContains(
-            " left.join(right, new org.apache.calcite.linq4j.function.Function1() {\n");
+            ".join(");
   }
 }
 
