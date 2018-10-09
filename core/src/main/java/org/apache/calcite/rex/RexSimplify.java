@@ -1451,6 +1451,16 @@ public class RexSimplify {
     if (!paranoid) {
       return simplified;
     }
+    if (simplified.isAlwaysFalse()
+        && before.isAlwaysTrue()) {
+      throw new AssertionError("always true [" + before
+          + "] simplified to always false [" + simplified  + "]");
+    }
+    if (simplified.isAlwaysTrue()
+        && before.isAlwaysFalse()) {
+      throw new AssertionError("always false [" + before
+          + "] simplified to always true [" + simplified  + "]");
+    }
     final RexAnalyzer foo0 = new RexAnalyzer(before, predicates);
     final RexAnalyzer foo1 = new RexAnalyzer(simplified, predicates);
     if (foo0.unsupportedCount > 0 || foo1.unsupportedCount > 0) {
