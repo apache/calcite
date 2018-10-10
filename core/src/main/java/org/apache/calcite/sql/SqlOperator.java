@@ -245,10 +245,19 @@ public abstract class SqlOperator {
    */
   public SqlCall createCall(
       SqlLiteral functionQualifier,
+      boolean approximate,
       SqlParserPos pos,
       SqlNode... operands) {
     pos = pos.plusAll(Arrays.asList(operands));
-    return new SqlBasicCall(this, operands, pos, false, functionQualifier);
+    return new SqlBasicCall(this, operands, pos, false, approximate, functionQualifier);
+  }
+
+  public SqlCall createCall(
+      SqlLiteral functionQualifier,
+      SqlParserPos pos,
+      SqlNode... operands) {
+    pos = pos.plusAll(Arrays.asList(operands));
+    return new SqlBasicCall(this, operands, pos, false, false, functionQualifier);
   }
 
   /**
@@ -261,6 +270,13 @@ public abstract class SqlOperator {
    * @param operands List of arguments
    * @return call to this operator
    */
+  public final SqlCall createCall(
+      SqlParserPos pos,
+      boolean approximate,
+      SqlNode... operands) {
+    return createCall(null, approximate, pos, operands);
+  }
+
   public final SqlCall createCall(
       SqlParserPos pos,
       SqlNode... operands) {

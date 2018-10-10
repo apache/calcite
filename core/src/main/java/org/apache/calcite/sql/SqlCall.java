@@ -54,6 +54,10 @@ public abstract class SqlCall extends SqlNode {
     return false;
   }
 
+  public boolean isApproximate() {
+    return false;
+  }
+
   /**
    * Changes the value of an operand. Allows some rewrite by
    * {@link SqlValidator}; use sparingly.

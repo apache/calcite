@@ -30,12 +30,13 @@ public class SqlBasicCall extends SqlCall {
   public final SqlNode[] operands;
   private final SqlLiteral functionQuantifier;
   private final boolean expanded;
+  private final boolean approximate;
 
   public SqlBasicCall(
       SqlOperator operator,
       SqlNode[] operands,
       SqlParserPos pos) {
-    this(operator, operands, pos, false, null);
+    this(operator, operands, pos, false, false, null);
   }
 
   public SqlBasicCall(
@@ -43,11 +44,13 @@ public class SqlBasicCall extends SqlCall {
       SqlNode[] operands,
       SqlParserPos pos,
       boolean expanded,
+      boolean approximate,
       SqlLiteral functionQualifier) {
     super(pos);
     this.operator = Objects.requireNonNull(operator);
     this.operands = operands;
     this.expanded = expanded;
+    this.approximate = approximate;
     this.functionQuantifier = functionQualifier;
   }
 
@@ -57,6 +60,10 @@ public class SqlBasicCall extends SqlCall {
 
   @Override public boolean isExpanded() {
     return expanded;
+  }
+
+  @Override public boolean isApproximate() {
+    return approximate;
   }
 
   @Override public void setOperand(int i, SqlNode operand) {

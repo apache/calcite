@@ -814,21 +814,22 @@ public abstract class SqlImplementor {
         final SqlNode node =
             withOrder(
                 SqlStdOperatorTable.SUM.createCall(qualifier, POS, operands),
+                aggCall.isApproximate(),
                 orderList);
-        return SqlStdOperatorTable.COALESCE.createCall(POS, node,
+        return SqlStdOperatorTable.COALESCE.createCall(POS, aggCall.isApproximate(), node,
             SqlLiteral.createExactNumeric("0", POS));
       } else {
-        return withOrder(op.createCall(qualifier, POS, operands), orderList);
+        return withOrder(op.createCall(qualifier, POS, operands), aggCall.isApproximate(), orderList);
       }
     }
 
     /** Wraps a call in a {@link SqlKind#WITHIN_GROUP} call, if
      * {@code orderList} is non-empty. */
-    private SqlNode withOrder(SqlCall call, SqlNodeList orderList) {
+    private SqlNode withOrder(SqlCall call, boolean isApproximate, SqlNodeList orderList) {
       if (orderList == null || orderList.size() == 0) {
         return call;
       }
-      return SqlStdOperatorTable.WITHIN_GROUP.createCall(POS, call, orderList);
+      return SqlStdOperatorTable.WITHIN_GROUP.createCall(POS, isApproximate, call, orderList);
     }
 
     /** Converts a collation to an ORDER BY item. */
