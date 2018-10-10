@@ -42,10 +42,10 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.runtime.ExceptionHandlers;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.BuiltInMethod;
-import org.apache.calcite.util.ExceptionHandlerUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -251,7 +251,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
     builder.add(
         Expressions.return_(
             null,
-            ExceptionHandlerUtil.wrapEnumerableExpression(
+            ExceptionHandlers.wrapEnumerableExpression(
                 Expressions.new_(
                     BuiltInMethod.ABSTRACT_ENUMERABLE_CTOR.constructor,
                     // TODO: generics

@@ -16,21 +16,14 @@
  */
 package org.apache.calcite.runtime;
 
-import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.function.Experimental;
 
 /**
- * Exception handler that handles exceptions produced by runtime.
+ * Exception handler that handles exceptions.
  */
+@Experimental
 public interface ExceptionHandler {
-
-  /**
-   * Wraps an {@link Enumerable} with this {@link ExceptionHandler}.
-   * @param delegate The {@link Enumerable} to be wrapped.
-   * @param <T> Element type.
-   * @return An {@link Enumerable} instance with any produced exception to be handled by this
-   * {@link ExceptionHandler}.
-   */
-  <T> Enumerable<T> wrap(Enumerable<T> delegate);
+  void handleException(Throwable t);
 }
 
 // End ExceptionHandler.java

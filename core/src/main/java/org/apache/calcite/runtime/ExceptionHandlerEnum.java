@@ -16,10 +16,7 @@
  */
 package org.apache.calcite.runtime;
 
-import org.apache.calcite.linq4j.AbstractEnumerable;
-import org.apache.calcite.linq4j.DelegatingEnumerator;
-import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.function.Experimental;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,60 +24,27 @@ import org.slf4j.LoggerFactory;
 /**
  * Enumeration of exception handlers.
  */
+@Experimental
 public enum ExceptionHandlerEnum implements ExceptionHandler {
   THROW() {
-    @Override public <T> Enumerable<T> wrap(Enumerable<T> delegate) {
-      return delegate;
+    @Override public void handleException(Throwable t) {
+      throw new RuntimeException(t);
     }
   },
 
   DISCARD() {
-    @Override protected void logException(Throwable t) {
+    @Override public void handleException(Throwable t) {
       LOGGER.debug("Encountered exception while running SQL, discarded", t);
     }
   },
 
   LOG() {
-    @Override protected void logException(Throwable t) {
+    @Override public void handleException(Throwable t) {
       LOGGER.warn("Encountered exception while running SQL", t);
     }
   };
 
   private static final Logger LOGGER = LoggerFactory.getLogger("org.apache.calcite.runtime");
-
-  @Override public <T> Enumerable<T> wrap(Enumerable<T> delegate) {
-    return new AbstractEnumerable<T>() {
-      @Override public Enumerator<T> enumerator() {
-        return new DelegatingEnumerator<T>(delegate.enumerator()) {
-          private T current;
-          @Override public boolean moveNext() {
-            boolean hasNext;
-            for (;;) {
-              try {
-                hasNext = delegate.moveNext();
-                if (!hasNext) {
-                  return false;
-                }
-                current = delegate.current();
-              } catch (Throwable t) {
-                logException(t);
-                continue;
-              }
-              return true;
-            }
-          }
-
-          @Override public T current() {
-            return current;
-          }
-        };
-      }
-    };
-  }
-
-  protected void logException(Throwable t) {
-    // do nothing by default
-  }
 }
 
 // End ExceptionHandlerEnum.java
