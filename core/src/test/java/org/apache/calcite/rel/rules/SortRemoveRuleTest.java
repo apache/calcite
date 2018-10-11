@@ -153,7 +153,7 @@ public final class SortRemoveRuleTest {
     RuleSet prepareRules =
         RuleSets.ofList(
             SortProjectTransposeRule.INSTANCE,
-            JoinToCorrelateRule.INSTANCE,
+            JoinToCorrelateRule.JOIN,
             EnumerableRules.ENUMERABLE_SORT_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_CORRELATE_RULE,

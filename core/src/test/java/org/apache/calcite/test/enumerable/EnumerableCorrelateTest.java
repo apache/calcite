@@ -44,7 +44,7 @@ public class EnumerableCorrelateTest {
             "select e.empid, e.name, d.name as dept from emps e left outer join depts d on e.deptno=d.deptno")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           // force the left outer join to run via EnumerableCorrelate instead of EnumerableJoin
-          planner.addRule(JoinToCorrelateRule.INSTANCE);
+          planner.addRule(JoinToCorrelateRule.JOIN);
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
         })
         .explainContains(""
@@ -71,6 +71,32 @@ public class EnumerableCorrelateTest {
             + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
             + "    EnumerableTableScan(table=[[s, depts]])")
+        .returnsUnordered(
+            "empid=100; name=Bill",
+            "empid=110; name=Theodore",
+            "empid=150; name=Sebastian");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2621">[CALCITE-2621]
+   * Add rule to execute semi joins with correlation</a> */
+  @Test public void semiJoinCorrelate() {
+    tester(false, new JdbcTest.HrSchema())
+        .query(
+            "select empid, name from emps e where e.deptno in (select d.deptno from depts d)")
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          // force the semi-join to run via EnumerableCorrelate instead of EnumerableJoin/SemiJoin
+          planner.addRule(JoinToCorrelateRule.SEMI);
+          planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_SEMI_JOIN_RULE);
+        })
+        .explainContains(""
+            + "EnumerableCalc(expr#0..2=[{inputs}], empid=[$t0], name=[$t2])\n"
+            + "  EnumerableCorrelate(correlation=[$cor1], joinType=[semi], requiredColumns=[{1}])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
+            + "      EnumerableTableScan(table=[[s, emps]])\n"
+            + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[$cor1], expr#5=[$t4.deptno], expr#6=[=($t5, $t0)], proj#0..3=[{exprs}], $condition=[$t6])\n"
+            + "      EnumerableTableScan(table=[[s, depts]])")
         .returnsUnordered(
             "empid=100; name=Bill",
             "empid=110; name=Theodore",
