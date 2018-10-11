@@ -30,12 +30,22 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import java.util.function.Predicate;
+
 /**
  * Planner rule that pushes
  * a {@link org.apache.calcite.rel.logical.LogicalFilter}
  * past a {@link org.apache.calcite.rel.logical.LogicalProject}.
  */
 public class FilterProjectTransposeRule extends RelOptRule {
+  /**
+   * If there is a correlation condition anywhere in the filter, don't
+   * push this filter past project since in some cases it can prevent a
+   * Correlate from being de-correlated.
+   */
+  private static final Predicate<Filter> HAS_CORRELATION =
+      filter -> RexUtil.containsCorrelation(filter.getCondition());
+
   /** The default instance of
    * {@link org.apache.calcite.rel.rules.FilterProjectTransposeRule}.
    *
@@ -61,9 +71,23 @@ public class FilterProjectTransposeRule extends RelOptRule {
       Class<? extends Project> projectClass,
       boolean copyFilter, boolean copyProject,
       RelBuilderFactory relBuilderFactory) {
+    this(filterClass,
+        HAS_CORRELATION.negate(),
+        projectClass,
+        project -> true,
+        copyFilter, copyProject, relBuilderFactory);
+  }
+
+  public <F extends Filter, P extends Project> FilterProjectTransposeRule(
+      Class<F> filterClass,
+      Predicate<? super F> filterPredicate,
+      Class<P> projectClass,
+      Predicate<? super P> projectPredicate,
+      boolean copyFilter, boolean copyProject,
+      RelBuilderFactory relBuilderFactory) {
     this(
-        operand(filterClass,
-            operand(projectClass, any())),
+        operandJ(filterClass, null, filterPredicate,
+            operandJ(projectClass, null, projectPredicate, any())),
         copyFilter, copyProject, relBuilderFactory);
   }
 
@@ -73,7 +97,9 @@ public class FilterProjectTransposeRule extends RelOptRule {
       RelFactories.FilterFactory filterFactory,
       Class<? extends Project> projectClass,
       RelFactories.ProjectFactory projectFactory) {
-    this(filterClass, projectClass, filterFactory == null,
+    this(filterClass, HAS_CORRELATION.negate(),
+        projectClass, project -> true,
+        filterFactory == null,
         projectFactory == null,
         RelBuilder.proto(filterFactory, projectFactory));
   }
@@ -103,14 +129,6 @@ public class FilterProjectTransposeRule extends RelOptRule {
       // it can be pushed down. For now we don't support this.
       return;
     }
-
-    if (RexUtil.containsCorrelation(filter.getCondition())) {
-      // If there is a correlation condition anywhere in the filter, don't
-      // push this filter past project since in some cases it can prevent a
-      // Correlate from being de-correlated.
-      return;
-    }
-
     // convert the filter to one that references the child of the project
     RexNode newCondition =
         RelOptUtil.pushPastProject(filter.getCondition(), project);
