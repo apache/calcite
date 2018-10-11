@@ -52,6 +52,7 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
    * @param value       String constant, must not be null
    * @param charsetName Name of the character set, may be null
    * @param collation   Collation, may be null
+   * @param unsafe      If true, skip charset verification
    * @throws IllegalCharsetNameException If the given charset name is illegal
    * @throws UnsupportedCharsetException If no support for the named charset
    *     is available in this instance of the Java virtual machine
@@ -61,7 +62,8 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
   public NlsString(
       String value,
       String charsetName,
-      SqlCollation collation) {
+      SqlCollation collation,
+      boolean unsafe) {
     assert value != null;
     if (null != charsetName) {
       charsetName = charsetName.toUpperCase(Locale.ROOT);
@@ -72,13 +74,14 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
         throw new UnsupportedCharsetException(charsetName);
       }
       this.charset = Charset.forName(javaCharsetName);
-      CharsetEncoder encoder = charset.newEncoder();
-
-      // dry run to see if encoding hits any problems
-      try {
-        encoder.encode(CharBuffer.wrap(value));
-      } catch (CharacterCodingException ex) {
-        throw RESOURCE.charsetEncoding(value, javaCharsetName).ex();
+      if (!unsafe) {
+        CharsetEncoder encoder = charset.newEncoder();
+        // dry run to see if encoding hits any problems
+        try {
+          encoder.encode(CharBuffer.wrap(value));
+        } catch (CharacterCodingException ex) {
+          throw RESOURCE.charsetEncoding(value, javaCharsetName).ex();
+        }
       }
     } else {
       this.charsetName = null;
@@ -86,6 +89,25 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
     }
     this.collation = collation;
     this.value = value;
+  }
+
+  /**
+   * Creates a string in a specified character set.
+   *
+   * @param value       String constant, must not be null
+   * @param charsetName Name of the character set, may be null
+   * @param collation   Collation, may be null
+   * @throws IllegalCharsetNameException If the given charset name is illegal
+   * @throws UnsupportedCharsetException If no support for the named charset
+   *     is available in this instance of the Java virtual machine
+   * @throws RuntimeException If the given value cannot be represented in the
+   *     given charset
+   */
+  public NlsString(
+      String value,
+      String charsetName,
+      SqlCollation collation) {
+    this(value, charsetName, collation, false);
   }
 
   //~ Methods ----------------------------------------------------------------

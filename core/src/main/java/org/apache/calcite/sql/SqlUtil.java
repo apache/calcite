@@ -838,6 +838,8 @@ public abstract class SqlUtil {
   public static String translateCharacterSetName(String name) {
     if (name.equals("LATIN1")) {
       return "ISO-8859-1";
+    } else if (name.equals("UTF8")) {
+      return "UTF-8";
     } else if (name.equals("UTF16")) {
       return ConversionUtil.NATIVE_UTF16_CHARSET_NAME;
     } else if (name.equals(ConversionUtil.NATIVE_UTF16_CHARSET_NAME)) {

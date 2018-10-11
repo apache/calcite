@@ -19,9 +19,11 @@ package org.apache.calcite.rex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
@@ -487,6 +489,29 @@ public class RexBuilderTest {
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(), containsString("Second out of range: [60]"));
     }
+  }
+
+  /** Tests {@link RexBuilder#makeLiteral(String)} without charset check. */
+  @Test public void testUnsafeCharLiteral() {
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder builder = new RexBuilder(typeFactory);
+    String s = "\u82f1\u56fd";
+    RelDataType type = typeFactory.createSqlType(SqlTypeName.CHAR, s.length());
+    try {
+      RexNode l = builder.makeLiteral(
+          new NlsString(s, "LATIN1", type.getCollation()),
+          type,
+          SqlTypeName.CHAR);
+      fail("expected exception, got " + l);
+    } catch (CalciteException e) {
+      assertThat(e.getMessage(), containsString("Failed to encode"));
+    }
+
+    RexNode l = builder.makeLiteral(
+        new NlsString(s, "LATIN1", type.getCollation(), true),
+        type,
+        SqlTypeName.CHAR);
+    assertEquals("_LATIN1'\u82f1\u56fd'", l.toString());
   }
 
 }
