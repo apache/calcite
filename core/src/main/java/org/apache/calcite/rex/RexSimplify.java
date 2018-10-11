@@ -1229,6 +1229,7 @@ public class RexSimplify {
    * Modifies the list in place.
    * The simplified expression returns UNKNOWN values as is (not as FALSE). */
   public RexNode simplifyOrs(List<RexNode> terms) {
+    simplifyList(terms, UNKNOWN);
     return simplifyOrs(terms, UNKNOWN);
   }
 
@@ -1241,7 +1242,7 @@ public class RexSimplify {
           simplifier -> simplifier.simplifyOrs(terms, unknownAs));
     }
     for (int i = 0; i < terms.size(); i++) {
-      final RexNode term = simplify(terms.get(i), unknownAs);
+      final RexNode term = terms.get(i);
       switch (term.getKind()) {
       case LITERAL:
         if (RexLiteral.isNullLiteral(term)) {
