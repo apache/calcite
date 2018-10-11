@@ -270,8 +270,8 @@ public class RexProgramTest extends RexProgramBuilderBase {
         is("(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[1], "
             + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
             + "expr#6=[+($t0, $t4)], expr#7=[5], expr#8=[>($t4, $t7)], "
-            + "expr#9=[CAST($t8):BOOLEAN], expr#10=[IS FALSE($t9)], "
-            + "a=[$t5], b=[$t6], $condition=[$t10])"));
+            + "expr#9=[NOT($t8)], "
+            + "a=[$t5], b=[$t6], $condition=[$t9])"));
   }
 
   /**
@@ -292,8 +292,8 @@ public class RexProgramTest extends RexProgramBuilderBase {
         is("(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[1], "
             + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
             + "expr#6=[+($t0, $t4)], expr#7=[5], expr#8=[>($t4, $t7)], "
-            + "expr#9=[CAST($t8):BOOLEAN], expr#10=[IS FALSE($t9)], "
-            + "a=[$t5], b=[$t6], $condition=[$t10])"));
+            + "expr#9=[NOT($t8)], "
+            + "a=[$t5], b=[$t6], $condition=[$t9])"));
   }
 
   /**
@@ -1100,12 +1100,12 @@ public class RexProgramTest extends RexProgramBuilderBase {
 
     // case: remove false branches
     checkSimplify(case_(eq(bRef, cRef), dRef, falseLiteral, aRef, eRef),
-        "CASE(=(?0.b, ?0.c), ?0.d, ?0.e)");
+        "OR(AND(=(?0.b, ?0.c), ?0.d), AND(?0.e, <>(?0.b, ?0.c)))");
 
     // case: true branches become the last branch
     checkSimplify(
         case_(eq(bRef, cRef), dRef, trueLiteral, aRef, eq(cRef, dRef), eRef, cRef),
-        "CASE(=(?0.b, ?0.c), ?0.d, ?0.a)");
+        "OR(AND(=(?0.b, ?0.c), ?0.d), AND(?0.a, <>(?0.b, ?0.c)))");
 
     // case: singleton
     checkSimplify(case_(trueLiteral, aRef, eq(cRef, dRef), eRef, cRef), "?0.a");
@@ -1117,9 +1117,9 @@ public class RexProgramTest extends RexProgramBuilderBase {
     // case: trailing false and null, no simplification
     checkSimplify3(
         case_(aRef, trueLiteral, bRef, trueLiteral, cRef, falseLiteral, nullBool),
-        "CASE(?0.a, true, ?0.b, true, ?0.c, false, null)",
-        "CAST(OR(?0.a, ?0.b)):BOOLEAN",
-        "CAST(OR(?0.a, ?0.b)):BOOLEAN");
+        "OR(?0.a, ?0.b, AND(null, NOT(?0.a), NOT(?0.b), NOT(?0.c)))",
+        "OR(?0.a, ?0.b)",
+        "OR(?0.a, ?0.b, NOT(?0.c))");
 
     // case: form an AND of branches that return true
     checkSimplify(
@@ -1341,7 +1341,8 @@ public class RexProgramTest extends RexProgramBuilderBase {
     // case: trailing false and null, remove
     checkSimplifyFilter(
         case_(cRef, trueLiteral, dRef, trueLiteral, eRef, falseLiteral, fRef,
-            falseLiteral, nullBool), "CAST(OR(?0.c, ?0.d)):BOOLEAN");
+            falseLiteral, nullBool),
+        "OR(?0.c, ?0.d)");
 
     // condition with null value for range
     checkSimplifyFilter(and(gt(aRef, nullBool), ge(bRef, literal1)), "false");
@@ -1716,23 +1717,15 @@ public class RexProgramTest extends RexProgramBuilderBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1289">[CALCITE-1289]
    * RexUtil.simplifyCase() should account for nullability</a>. */
   @Test public void testSimplifyCaseNotNullableBoolean() {
-    RexNode condition = eq(
-        rexBuilder.makeInputRef(
-            typeFactory.createTypeWithNullability(
-                typeFactory.createSqlType(SqlTypeName.VARCHAR), true),
-            0),
-        rexBuilder.makeLiteral("S"));
+    RexNode condition = eq(vVarchar(), literal("S"));
     RexCall caseNode = (RexCall) case_(condition, trueLiteral, falseLiteral);
 
-    final RexCall result =
-        (RexCall) simplify.simplifyUnknownAs(caseNode, RexUnknownAs.UNKNOWN);
-    assertThat(result.getType().isNullable(), is(false));
+    final RexCall result = (RexCall) simplify.simplifyUnknownAs(caseNode, RexUnknownAs.UNKNOWN);
+    assertThat("The case should be nonNullable", caseNode.getType().isNullable(), is(false));
+    assertThat("Expected a nonNullable type", result.getType().isNullable(), is(false));
     assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.BOOLEAN));
-    assertThat(result.getOperator(), is((SqlOperator) SqlStdOperatorTable.CASE));
-    assertThat(result.getOperands().size(), is((Object) 3));
+    assertThat(result.getOperator(), is((SqlOperator) SqlStdOperatorTable.IS_TRUE));
     assertThat(result.getOperands().get(0), is(condition));
-    assertThat(result.getOperands().get(1), is((RexNode) trueLiteral));
-    assertThat(result.getOperands().get(2), is((RexNode) falseLiteral));
   }
 
   @Test public void testSimplifyCaseNullableBoolean() {
@@ -1755,6 +1748,78 @@ public class RexProgramTest extends RexProgramBuilderBase {
     assertThat(result.getType().isNullable(), is(false));
     assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.CHAR));
     assertThat(result, is(caseNode));
+  }
+
+  @Test public void testSimplifyCaseCasting() {
+    RexNode caseNode = case_(eq(vIntNotNull(), literal(3)), nullBool, falseLiteral);
+
+    checkSimplify3(caseNode, "AND(=(?0.notNullInt0, 3), null)",
+        "false",
+        "=(?0.notNullInt0, 3)");
+  }
+
+  @Test public void testSimplifyCaseAndNotSimplicationIsInAction() {
+    RexNode caseNode = case_(
+        eq(vIntNotNull(), literal(0)), falseLiteral,
+        eq(vIntNotNull(), literal(1)), trueLiteral,
+        falseLiteral);
+    checkSimplify(caseNode, "=(?0.notNullInt0, 1)");
+  }
+
+  @Test public void testSimplifyCaseBranchRemovalStrengthensType() {
+    RexNode caseNode =
+        case_(falseLiteral, nullBool, eq(div(vInt(), literal(2)), literal(3)), trueLiteral,
+            falseLiteral);
+    assertThat("Expected to have a nullable type for " + caseNode + ".",
+        caseNode.getType().isNullable(), is(true));
+    RexNode res = simplify.simplify(caseNode);
+    assertThat("Expected to have a nonNullable type for " + res + ".",
+        res.getType().isNullable(), is(false));
+  }
+
+  @Test public void testSimplifyCaseCompaction() {
+    RexNode caseNode = case_(vBool(0), vInt(0), vBool(1), vInt(0), vInt(1));
+    checkSimplify(caseNode, "CASE(OR(?0.bool0, ?0.bool1), ?0.int0, ?0.int1)");
+  }
+
+  @Test public void testSimplifyCaseCompaction2() {
+    RexNode caseNode = case_(vBool(0), vInt(0), vBool(1), vInt(1), vInt(1));
+    checkSimplify(caseNode, "CASE(?0.bool0, ?0.int0, ?0.int1)");
+  }
+
+  @Test public void testSimplifyCaseCompactionDiv() {
+    // FIXME: RexInterpreter currently evaluates childs beforehand.
+    simplify = simplify.withParanoid(false);
+    RexNode caseNode = case_(vBool(0), vInt(0),
+        eq(div(literal(3), vIntNotNull()), literal(11)), vInt(0),
+        vInt(1));
+    // expectation here is that the 2 branches are not merged.
+    checkSimplify(caseNode,
+        "CASE(?0.bool0, ?0.int0, =(/(3, ?0.notNullInt0), 11), ?0.int0, ?0.int1)");
+  }
+
+  /* case value branch contains division */
+  @Test public void testSimplifyCaseDiv1() {
+    // FIXME: RexInterpreter currently evaluates childs beforehand.
+    simplify = simplify.withParanoid(false);
+    RexNode caseNode = case_(
+        ne(vIntNotNull(), literal(0)),
+        eq(div(literal(3), vIntNotNull()), literal(11)),
+        falseLiteral);
+    checkSimplify(caseNode,
+        "CASE(<>(?0.notNullInt0, 0), =(/(3, ?0.notNullInt0), 11), false)");
+  }
+
+  /* case condition contains division */
+  @Test public void testSimplifyCaseDiv2() {
+    // FIXME: RexInterpreter currently evaluates childs beforehand.
+    simplify = simplify.withParanoid(false);
+    RexNode caseNode = case_(
+        eq(vIntNotNull(), literal(0)), trueLiteral,
+        gt(div(literal(3), vIntNotNull()), literal(1)), trueLiteral,
+        falseLiteral);
+    checkSimplify(caseNode,
+        "CASE(=(?0.notNullInt0, 0), true, >(/(3, ?0.notNullInt0), 1), true, false)");
   }
 
   @Test public void testSimplifyAnd() {
