@@ -34,6 +34,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
@@ -1191,6 +1192,54 @@ public class RelOptRulesTest extends RelOptTestBase {
         "select t1.name, t2.ename "
             + "from DEPT_NESTED as t1, "
             + "unnest(t1.employees) as t2");
+  }
+
+  /** Tests that the default instance of {@link FilterProjectTransposeRule}
+   * does not push a Filter that contains a correlating variable.
+   *
+   * @see #testFilterProjectTranspose() */
+  @Test public void testFilterProjectTransposePreventedByCorrelation() {
+    final String sql = "SELECT e.empno\n"
+        + "FROM emp as e\n"
+        + "WHERE exists (\n"
+        + "  SELECT *\n"
+        + "  FROM (\n"
+        + "    SELECT deptno * 2 AS twiceDeptno\n"
+        + "    FROM dept) AS d\n"
+        + "  WHERE e.deptno = d.twiceDeptno)";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
+        .build();
+    sql(sql)
+        .withDecorrelation(false)
+        .expand(true)
+        .with(program)
+        .checkUnchanged();
+  }
+
+  /** Tests a variant of {@link FilterProjectTransposeRule}
+   * that pushes a Filter that contains a correlating variable. */
+  @Test public void testFilterProjectTranspose() {
+    final String sql = "SELECT e.empno\n"
+        + "FROM emp as e\n"
+        + "WHERE exists (\n"
+        + "  SELECT *\n"
+        + "  FROM (\n"
+        + "    SELECT deptno * 2 AS twiceDeptno\n"
+        + "    FROM dept) AS d\n"
+        + "  WHERE e.deptno = d.twiceDeptno)";
+    final FilterProjectTransposeRule filterProjectTransposeRule =
+        new FilterProjectTransposeRule(Filter.class, filter -> true,
+            Project.class, project -> true, true, true,
+            RelFactories.LOGICAL_BUILDER);
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(filterProjectTransposeRule)
+        .build();
+    sql(sql)
+        .withDecorrelation(false)
+        .expand(true)
+        .with(program)
+        .check();
   }
 
   private static final String NOT_STRONG_EXPR =
