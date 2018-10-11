@@ -2274,11 +2274,15 @@ public class RexProgramTest extends RexProgramBuilderBase {
             vIntNotNull()),
         "COALESCE(?0.int0, +(?0.int0, ?0.notNullInt0), 1)");
     checkSimplify2(coalesce(gt(nullInt, nullInt), trueLiteral),
-        "COALESCE(null, true)", "COALESCE(null, true)");
+        "true", "true");
     checkSimplify2(coalesce(unaryPlus(nullInt), unaryPlus(vInt())),
-        "COALESCE(null, +(?0.int0))", "COALESCE(null, +(?0.int0))");
+        "+(?0.int0)", "+(?0.int0)");
     checkSimplify(coalesce(unaryPlus(vInt(1)), unaryPlus(vInt())),
         "COALESCE(+(?0.int1), +(?0.int0))");
+
+    checkSimplify(coalesce(nullInt, vInt()), "?0.int0");
+    checkSimplify(coalesce(vInt(), nullInt, vInt(1)),
+        "COALESCE(?0.int0, ?0.int1)");
   }
 
   @Test public void simplifyNull() {
