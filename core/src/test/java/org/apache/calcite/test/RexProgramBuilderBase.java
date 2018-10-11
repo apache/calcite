@@ -496,7 +496,7 @@ public abstract class RexProgramBuilderBase {
    */
   protected RexNode vInt(int arg) {
     assertArgValue(arg);
-    return rexBuilder.makeFieldAccess(getDynamicParam(nonNullableInt, "int"), arg);
+    return rexBuilder.makeFieldAccess(getDynamicParam(nullableInt, "int"), arg);
   }
 
   /**

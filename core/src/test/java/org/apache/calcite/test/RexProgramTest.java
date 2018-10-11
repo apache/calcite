@@ -1100,12 +1100,12 @@ public class RexProgramTest extends RexProgramBuilderBase {
 
     // case: remove false branches
     checkSimplify(case_(eq(bRef, cRef), dRef, falseLiteral, aRef, eRef),
-        "CASE(=(?0.b, ?0.c), ?0.d, ?0.e)");
+        "OR(AND(=(?0.b, ?0.c), ?0.d), AND(?0.e, <>(?0.b, ?0.c)))");
 
     // case: true branches become the last branch
     checkSimplify(
         case_(eq(bRef, cRef), dRef, trueLiteral, aRef, eq(cRef, dRef), eRef, cRef),
-        "CASE(=(?0.b, ?0.c), ?0.d, ?0.a)");
+        "OR(AND(=(?0.b, ?0.c), ?0.d), AND(?0.a, <>(?0.b, ?0.c)))");
 
     // case: singleton
     checkSimplify(case_(trueLiteral, aRef, eq(cRef, dRef), eRef, cRef), "?0.a");
@@ -1117,9 +1117,9 @@ public class RexProgramTest extends RexProgramBuilderBase {
     // case: trailing false and null, no simplification
     checkSimplify3(
         case_(aRef, trueLiteral, bRef, trueLiteral, cRef, falseLiteral, nullBool),
-        "CASE(?0.a, true, ?0.b, true, ?0.c, false, null)",
+        "OR(?0.a, AND(?0.b, NOT(?0.a)), AND(null, NOT(?0.a), NOT(?0.b), NOT(?0.c)))",
         "CAST(OR(?0.a, ?0.b)):BOOLEAN",
-        "CAST(OR(?0.a, ?0.b)):BOOLEAN");
+        "CAST(OR(?0.a, ?0.b, NOT(?0.c))):BOOLEAN");
 
     // case: form an AND of branches that return true
     checkSimplify(
@@ -1716,11 +1716,8 @@ public class RexProgramTest extends RexProgramBuilderBase {
         (RexCall) simplify.simplifyUnknownAs(caseNode, RexUnknownAs.UNKNOWN);
     assertThat(result.getType().isNullable(), is(false));
     assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.BOOLEAN));
-    assertThat(result.getOperator(), is((SqlOperator) SqlStdOperatorTable.CASE));
-    assertThat(result.getOperands().size(), is((Object) 3));
+    assertThat(result.getOperator(), is((SqlOperator) SqlStdOperatorTable.IS_TRUE));
     assertThat(result.getOperands().get(0), is(condition));
-    assertThat(result.getOperands().get(1), is((RexNode) trueLiteral));
-    assertThat(result.getOperands().get(2), is((RexNode) falseLiteral));
   }
 
   @Test public void testSimplifyCaseNullableBoolean() {

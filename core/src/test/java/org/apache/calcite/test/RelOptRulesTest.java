@@ -266,7 +266,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     final String sql = "SELECT CASE WHEN 1=2 "
         + "THEN cast((values(1)) as integer) "
         + "ELSE 2 end from (values(1))";
-    sql(sql).with(hepPlanner).check();
+    sql(sql).with(hepPlanner).checkUnchanged();
   }
 
   @Test public void testReduceNullableCase2() {
@@ -278,7 +278,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     final String sql = "SELECT deptno, ename, CASE WHEN 1=2 "
         + "THEN substring(ename, 1, cast(2 as int)) ELSE NULL end from emp"
         + " group by deptno, ename, case when 1=2 then substring(ename,1, cast(2 as int))  else null end";
-    sql(sql).with(hepPlanner).check();
+    sql(sql).with(hepPlanner).checkUnchanged();
   }
 
   @Test public void testProjectToWindowRuleForMultipleWindows() {
@@ -1738,7 +1738,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
         .build();
 
-    checkPlanning(program,
+    checkPlanUnchanged(new HepPlanner(program),
         "select p1 is not distinct from p0 from (values (2, cast(null as integer))) as t(p0, p1)");
   }
 
