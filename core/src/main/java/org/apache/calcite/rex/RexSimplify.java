@@ -653,7 +653,8 @@ public class RexSimplify {
     final List<RexNode> operands = new ArrayList<>();
     for (RexNode operand : call.getOperands()) {
       operand = simplify(operand, UNKNOWN);
-      if (digests.add(operand.toString())) {
+      if (!RexUtil.isNull(operand)
+          && digests.add(operand.toString())) {
         operands.add(operand);
       }
       if (!operand.getType().isNullable()) {
