@@ -21,6 +21,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 import java.util.Set;
 
@@ -29,7 +30,7 @@ import java.util.Set;
  */
 public class RexFieldCollation extends Pair<RexNode, ImmutableSet<SqlKind>> {
   public RexFieldCollation(RexNode left, Set<SqlKind> right) {
-    super(left, ImmutableSet.copyOf(right));
+    super(left, Sets.immutableEnumSet(right));
   }
 
   @Override public String toString() {
