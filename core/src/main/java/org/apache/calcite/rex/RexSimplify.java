@@ -413,6 +413,35 @@ public class RexSimplify {
     }
   }
 
+  private void simplifyOrTerms(List<RexNode> terms) {
+    // Suppose we are processing "e1(x) OR e2(x) OR e3(x)". When we are
+    // visiting "e3(x)" we know both "e1(x)" and "e2(x)" are not true (they
+    // may be unknown), because if either of them were true we would have
+    // stopped.
+    RexSimplify simplify = this;
+    for (int i = 0; i < terms.size(); i++) {
+      final RexNode t = terms.get(i);
+      if (Predicate.of(t) == null) {
+        continue;
+      }
+      final RexNode t2 = simplify.simplify(t, RexUnknownAs.UNKNOWN);
+      terms.set(i, t2);
+      final RexNode inverse =
+          simplify.simplify(rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_TRUE, t2),
+              RexUnknownAs.UNKNOWN);
+      final RelOptPredicateList newPredicates = simplify.predicates.union(rexBuilder,
+          RelOptPredicateList.of(rexBuilder, ImmutableList.of(inverse)));
+      simplify = simplify.withPredicates(newPredicates);
+    }
+    for (int i = 0; i < terms.size(); i++) {
+      final RexNode t = terms.get(i);
+      if (Predicate.of(t) != null) {
+        continue;
+      }
+      terms.set(i, simplify.simplify(t, RexUnknownAs.UNKNOWN));
+    }
+  }
+
   private RexNode simplifyNot(RexCall call, RexUnknownAs unknownAs) {
     final RexNode a = call.getOperands().get(0);
     switch (a.getKind()) {
@@ -1188,6 +1217,11 @@ public class RexSimplify {
   private RexNode simplifyOr(RexCall call, RexUnknownAs unknownAs) {
     assert call.getKind() == SqlKind.OR;
     final List<RexNode> terms = RelOptUtil.disjunctions(call);
+    if (predicateElimination) {
+      simplifyOrTerms(terms);
+    } else {
+      simplifyList(terms, unknownAs);
+    }
     return simplifyOrs(terms, unknownAs);
   }
 
@@ -1206,18 +1240,8 @@ public class RexSimplify {
       return verify(before, unknownAs,
           simplifier -> simplifier.simplifyOrs(terms, unknownAs));
     }
-    Set<Predicate> preds = new HashSet<>();
     for (int i = 0; i < terms.size(); i++) {
       final RexNode term = simplify(terms.get(i), unknownAs);
-      Predicate p = Predicate.of(term);
-      if (p != null) {
-        Predicate negatedP = p.negate();
-        if (preds.contains(negatedP)) {
-          return rexBuilder.makeLiteral(true);
-        }
-        preds.add(p);
-      }
-
       switch (term.getKind()) {
       case LITERAL:
         if (RexLiteral.isNullLiteral(term)) {
@@ -1666,8 +1690,6 @@ public class RexSimplify {
       }
       return IsPredicate.of(t);
     }
-
-    Predicate negate();
   }
 
   /** Comparison between a {@link RexInputRef} or {@link RexFieldAccess} and a
@@ -1711,32 +1733,6 @@ public class RexSimplify {
       }
       return null;
     }
-
-    @Override public Predicate negate() {
-      if (ref.getType().isNullable()) {
-        return null;
-      }
-      SqlKind negatedKind = kind.negateNullSafe();
-      if (kind != negatedKind && negatedKind != null) {
-        return new Comparison(ref, negatedKind, literal);
-      }
-      return null;
-    }
-
-    @Override public int hashCode() {
-      return Objects.hash(ref, kind, literal);
-    }
-
-    @Override public boolean equals(Object o) {
-      if (o == null || !(o instanceof Comparison)) {
-        return false;
-      }
-      Comparison cmp = (Comparison) o;
-      return Objects.equals(ref, cmp.ref)
-              && Objects.equals(kind, cmp.kind)
-              && Objects.equals(literal, cmp.literal);
-
-    }
   }
 
   /** Represents an IS Predicate. */
@@ -1762,29 +1758,6 @@ public class RexSimplify {
       }
       return null;
     }
-
-    @Override public Predicate negate() {
-      SqlKind negatedKind = kind.negate();
-      if (kind != negatedKind && negatedKind != null) {
-        return new IsPredicate(ref, negatedKind);
-      }
-      return null;
-    }
-
-    @Override public int hashCode() {
-      return Objects.hash(ref, kind);
-    }
-
-    @Override public boolean equals(Object o) {
-      if (o == null || !(o instanceof IsPredicate)) {
-        return false;
-      }
-      IsPredicate cmp = (IsPredicate) o;
-      return Objects.equals(ref, cmp.ref)
-              && Objects.equals(kind, cmp.kind);
-
-    }
-
   }
 
   private static boolean isUpperBound(final RexNode e) {

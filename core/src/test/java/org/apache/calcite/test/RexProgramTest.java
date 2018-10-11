@@ -1548,11 +1548,11 @@ public class RexProgramTest extends RexProgramBuilderBase {
             eq(aRef, literal1)),
         "true");
 
-    // "a = 1 or a != 1" ==> "true"
+    // TODO: make this simplify to "true"
     checkSimplifyFilter(
         or(eq(aRef, literal1),
             ne(aRef, literal1)),
-        "true");
+        "OR(=(?0.a, 1), <>(?0.a, 1))");
 
     // "b != 1 or b = 1" cannot be simplified, because b might be null
     final RexNode neOrEq =
@@ -1619,8 +1619,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
         "true");
   }
 
-  /** CALCITE-2615 */
-  @Test public void testSimplifyOrNoPredReuse() {
+  @Test public void testSimplifyNotAnd() {
     final RexNode e = or(
         le(
             vBool(1),
