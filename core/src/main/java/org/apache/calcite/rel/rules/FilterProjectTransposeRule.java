@@ -43,10 +43,14 @@ public class FilterProjectTransposeRule extends RelOptRule {
    * join and filter. */
   public static final FilterProjectTransposeRule INSTANCE =
       new FilterProjectTransposeRule(Filter.class, Project.class, true, true,
-          RelFactories.LOGICAL_BUILDER);
+          false, RelFactories.LOGICAL_BUILDER);
 
   private final boolean copyFilter;
   private final boolean copyProject;
+
+  // Whether the rule shall be applied or not if the filter contains a correlation condition.
+  // By default false.
+  private final boolean applyOnFilterWithCorrelation;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -61,10 +65,26 @@ public class FilterProjectTransposeRule extends RelOptRule {
       Class<? extends Project> projectClass,
       boolean copyFilter, boolean copyProject,
       RelBuilderFactory relBuilderFactory) {
+    this(filterClass, projectClass, copyFilter, copyProject, false, relBuilderFactory);
+  }
+
+  /**
+   * Creates a FilterProjectTransposeRule.
+   *
+   * <p>If {@code filterFactory} is null, creates the same kind of filter as
+   * matched in the rule. Similarly {@code projectFactory}.</p>
+   */
+  public FilterProjectTransposeRule(
+      Class<? extends Filter> filterClass,
+      Class<? extends Project> projectClass,
+      boolean copyFilter, boolean copyProject,
+      boolean applyOnFilterWithCorrelation,
+      RelBuilderFactory relBuilderFactory) {
     this(
         operand(filterClass,
             operand(projectClass, any())),
-        copyFilter, copyProject, relBuilderFactory);
+        copyFilter, copyProject,
+        applyOnFilterWithCorrelation, relBuilderFactory);
   }
 
   @Deprecated // to be removed before 2.0
@@ -83,9 +103,19 @@ public class FilterProjectTransposeRule extends RelOptRule {
       boolean copyFilter,
       boolean copyProject,
       RelBuilderFactory relBuilderFactory) {
+    this(operand, copyFilter, copyProject, false, relBuilderFactory);
+  }
+
+  protected FilterProjectTransposeRule(
+      RelOptRuleOperand operand,
+      boolean copyFilter,
+      boolean copyProject,
+      boolean applyOnFilterWithCorrelation,
+      RelBuilderFactory relBuilderFactory) {
     super(operand, relBuilderFactory, null);
     this.copyFilter = copyFilter;
     this.copyProject = copyProject;
+    this.applyOnFilterWithCorrelation = applyOnFilterWithCorrelation;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -104,7 +134,7 @@ public class FilterProjectTransposeRule extends RelOptRule {
       return;
     }
 
-    if (RexUtil.containsCorrelation(filter.getCondition())) {
+    if (!applyOnFilterWithCorrelation && RexUtil.containsCorrelation(filter.getCondition())) {
       // If there is a correlation condition anywhere in the filter, don't
       // push this filter past project since in some cases it can prevent a
       // Correlate from being de-correlated.
