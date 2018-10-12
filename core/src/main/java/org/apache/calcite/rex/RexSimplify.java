@@ -1219,8 +1219,6 @@ public class RexSimplify {
     final List<RexNode> terms = RelOptUtil.disjunctions(call);
     if (predicateElimination) {
       simplifyOrTerms(terms);
-    } else {
-      simplifyList(terms, unknownAs);
     }
     return simplifyOrs(terms, unknownAs);
   }
