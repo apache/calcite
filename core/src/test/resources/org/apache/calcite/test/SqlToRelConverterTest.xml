@@ -645,7 +645,7 @@ LogicalProject(DEPTNO=[$7])
     <TestCase name="testIsDistinctFrom">
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[OR(AND(IS NULL($0), IS NOT NULL($1)), AND(IS NULL($1), IS NOT NULL($0)), AND(<>(CAST($0):INTEGER NOT NULL, CAST($1):INTEGER NOT NULL), IS NOT NULL($0), IS NOT NULL($1)))])
+LogicalProject(EXPR$0=[CASE(IS NULL($0), IS NOT NULL($1), IS NULL($1), IS NOT NULL($0), <>(CAST($0):INTEGER NOT NULL, CAST($1):INTEGER NOT NULL))])
   LogicalUnion(all=[true])
     LogicalProject(EXPR$0=[null], EXPR$1=[1])
       LogicalValues(tuples=[[{ 0 }]])
@@ -662,7 +662,7 @@ from (values (cast(null as int), 1),
     <TestCase name="testIsNotDistinctFrom">
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[OR(AND(IS NULL($0), IS NULL($1)), AND(IS NULL($1), IS NULL($0), IS NOT NULL($0)), AND(=(CAST($0):INTEGER NOT NULL, CAST($1):INTEGER NOT NULL), IS NOT NULL($0), IS NOT NULL($1)))])
+LogicalProject(EXPR$0=[CASE(IS NULL($0), IS NULL($1), IS NULL($1), IS NULL($0), =(CAST($0):INTEGER NOT NULL, CAST($1):INTEGER NOT NULL))])
   LogicalUnion(all=[true])
     LogicalProject(EXPR$0=[null], EXPR$1=[1])
       LogicalValues(tuples=[[{ 0 }]])

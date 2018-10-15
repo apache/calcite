@@ -2527,7 +2527,7 @@ LogicalFilter(condition=[IS NOT DISTINCT FROM($7, 20)])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalFilter(condition=[=(CAST($7):TINYINT NOT NULL, 20)])
+LogicalFilter(condition=[CASE(IS NULL($7), false, =(CAST($7):TINYINT NOT NULL, 20))])
   LogicalTableScan(table=[[scott, EMP]])
 ]]>
         </Resource>
