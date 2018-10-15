@@ -276,7 +276,7 @@ public class SqlParserPos implements Serializable {
         || pos.startsBefore(this) && pos.endsAfter(this);
   }
 
-  private boolean startsBefore(SqlParserPos pos) {
+  public boolean startsBefore(SqlParserPos pos) {
     return lineNumber < pos.lineNumber
         || lineNumber == pos.lineNumber
         && columnNumber <= pos.columnNumber;

@@ -38,10 +38,13 @@ public class SqlOrderBy extends SqlCall {
     }
   };
 
-  public final SqlNode query;
-  public final SqlNodeList orderList;
-  public final SqlNode offset;
-  public final SqlNode fetch;
+  public SqlNode query;
+  public SqlNodeList orderList;
+  public SqlNode offset;
+  /**
+   * The limit clause.
+   */
+  public SqlNode fetch;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -66,6 +69,31 @@ public class SqlOrderBy extends SqlCall {
 
   public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(query, orderList, offset, fetch);
+  }
+
+  /**
+   * Update the operand in a given ordinal position.
+   *
+   * @param i operand ordinal index.
+   * @param operand operand value.
+   */
+  @Override public void setOperand(int i, SqlNode operand) {
+    switch (i) {
+    case 0:
+      query = operand;
+      break;
+    case 1:
+      orderList = (SqlNodeList) operand;
+      break;
+    case 2:
+      offset = operand;
+      break;
+    case 3:
+      fetch = operand;
+      break;
+    default:
+      throw new AssertionError(i);
+    }
   }
 
   /** Definition of {@code ORDER BY} operator. */
