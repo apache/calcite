@@ -38,14 +38,6 @@ import java.util.function.Predicate;
  * past a {@link org.apache.calcite.rel.logical.LogicalProject}.
  */
 public class FilterProjectTransposeRule extends RelOptRule {
-  /**
-   * If there is a correlation condition anywhere in the filter, don't
-   * push this filter past project since in some cases it can prevent a
-   * Correlate from being de-correlated.
-   */
-  private static final Predicate<Filter> HAS_CORRELATION =
-      filter -> RexUtil.containsCorrelation(filter.getCondition());
-
   /** The default instance of
    * {@link org.apache.calcite.rel.rules.FilterProjectTransposeRule}.
    *
@@ -63,8 +55,12 @@ public class FilterProjectTransposeRule extends RelOptRule {
   /**
    * Creates a FilterProjectTransposeRule.
    *
-   * <p>If {@code filterFactory} is null, creates the same kind of filter as
-   * matched in the rule. Similarly {@code projectFactory}.</p>
+   * <p>Equivalent with the rule created by
+   * {@link #FilterProjectTransposeRule(Class, Predicate, Class, Predicate, boolean, boolean, RelBuilderFactory)}
+   * with some default predicates that do not allow a filter to be pushed
+   * past the project if there is a correlation condition anywhere in the
+   * filter (since in some cases it can prevent a Correlate from being
+   * de-correlated).</p>
    */
   public FilterProjectTransposeRule(
       Class<? extends Filter> filterClass,
@@ -72,12 +68,23 @@ public class FilterProjectTransposeRule extends RelOptRule {
       boolean copyFilter, boolean copyProject,
       RelBuilderFactory relBuilderFactory) {
     this(filterClass,
-        HAS_CORRELATION.negate(),
+        filter -> !RexUtil.containsCorrelation(filter.getCondition()),
         projectClass,
         project -> true,
         copyFilter, copyProject, relBuilderFactory);
   }
 
+  /**
+   * Creates a FilterProjectTransposeRule.
+   *
+   * <p>If {@code copyFilter} is true, creates the same kind of filter as
+   * matched in the rule, otherwise it creates a filter using the RelBuilder
+   * obtained by the {@code relBuilderFactory}. Similarly for {@code copyProject}.</p>
+   *
+   * <p>Defining predicates for the filter (i.e., {@code filterPredicate}) and/or
+   * the project (i.e., {@code projectPredicate} allows making the rule
+   * more restrictive.</p>
+   */
   public <F extends Filter, P extends Project> FilterProjectTransposeRule(
       Class<F> filterClass,
       Predicate<? super F> filterPredicate,
@@ -97,7 +104,7 @@ public class FilterProjectTransposeRule extends RelOptRule {
       RelFactories.FilterFactory filterFactory,
       Class<? extends Project> projectClass,
       RelFactories.ProjectFactory projectFactory) {
-    this(filterClass, HAS_CORRELATION.negate(),
+    this(filterClass, filter -> !RexUtil.containsCorrelation(filter.getCondition()),
         projectClass, project -> true,
         filterFactory == null,
         projectFactory == null,
