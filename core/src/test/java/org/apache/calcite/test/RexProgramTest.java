@@ -1759,6 +1759,15 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplify(caseNode, "=(?0.notNullInt0, 1)");
   }
 
+  @Test public void testSimplifyCaseBranchRemovalStrengthensType() {
+    RexNode caseNode =
+        case_(falseLiteral, nullBool, eq(div(vInt(), literal(2)), literal(3)), trueLiteral,
+            falseLiteral);
+    assertThat(caseNode.getType().isNullable(), is(true));
+    RexNode res = simplify.simplify(caseNode);
+    assertThat(res.getType().isNullable(), is(false));
+  }
+
   @Test public void testSimplifyCaseCompaction() {
     RexNode caseNode = case_(vBool(0), vInt(0), vBool(1), vInt(0), vInt(1));
     checkSimplify(caseNode, "CASE(OR(?0.bool0, ?0.bool1), ?0.int0, ?0.int1)");
