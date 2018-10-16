@@ -752,7 +752,7 @@ public class RexSimplify {
       if (last == null) {
         last = b;
       } else {
-        if (last.value.equals(b.value) && isSafeExpression(b.cond)) {
+        if (last.value.toString().equals(b.value.toString()) && isSafeExpression(b.cond)) {
           RexNode newCond = rexBuilder.makeCall(SqlStdOperatorTable.OR, last.cond, b.cond);
           // last and b are 2 consequent branches with the same conclusion
           last = new CaseBranch(simplify(newCond, UNKNOWN.FALSE), last.value);
