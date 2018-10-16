@@ -1117,7 +1117,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
     // case: trailing false and null, no simplification
     checkSimplify3(
         case_(aRef, trueLiteral, bRef, trueLiteral, cRef, falseLiteral, nullBool),
-        "OR(?0.a, AND(?0.b, NOT(?0.a)), AND(null, NOT(?0.a), NOT(?0.b), NOT(?0.c)))",
+        "OR(?0.a, ?0.b, AND(null, NOT(?0.a), NOT(?0.b), NOT(?0.c)))",
         "OR(?0.a, ?0.b)",
         "OR(?0.a, ?0.b, NOT(?0.c))");
 
@@ -1744,12 +1744,40 @@ public class RexProgramTest extends RexProgramBuilderBase {
   }
 
   @Test public void testSimplifyCaseCasting() {
-    RexNode condition = eq(vIntNotNull(), literal(3));
-    RexNode caseNode = case_(condition, nullBool, falseLiteral);
+    RexNode caseNode = case_(eq(vIntNotNull(), literal(3)), nullBool, falseLiteral);
 
     checkSimplify3(caseNode, "AND(=(?0.notNullInt0, 3), null)",
         "false",
         "=(?0.notNullInt0, 3)");
+  }
+
+  @Test public void testSimplifyCaseAndNotSimplicationIsInAction() {
+    RexNode caseNode = case_(
+        eq(vIntNotNull(), literal(0)), falseLiteral,
+        eq(vIntNotNull(), literal(1)), trueLiteral,
+        falseLiteral);
+    checkSimplify(caseNode, "=(?0.notNullInt0, 1)");
+  }
+
+  @Test public void testSimplifyCaseCompaction() {
+    RexNode caseNode = case_(vBool(0), vInt(0), vBool(1), vInt(0), vInt(1));
+    checkSimplify(caseNode, "CASE(OR(?0.bool0, ?0.bool1), ?0.int0, ?0.int1)");
+  }
+
+  @Test public void testSimplifyCaseCompaction2() {
+    RexNode caseNode = case_(vBool(0), vInt(0), vBool(1), vInt(1), vInt(1));
+    checkSimplify(caseNode, "CASE(?0.bool0, ?0.int0, ?0.int1)");
+  }
+
+  @Test public void testSimplifyCaseCompactionDiv() {
+    // FIXME: RexInterpreter currently evaluates childs beforehand.
+    simplify = simplify.withParanoid(false);
+    RexNode caseNode = case_(vBool(0), vInt(0),
+        eq(div(literal(3), vIntNotNull()), literal(11)), vInt(0),
+        vInt(1));
+    // expectation here is that the 2 branches are not merged.
+    checkSimplify(caseNode,
+        "CASE(?0.bool0, ?0.int0, =(/(3, ?0.notNullInt0), 11), ?0.int0, ?0.int1)");
   }
 
   /* case value branch contains division */

@@ -706,6 +706,8 @@ public class RexSimplify {
       }
     }
 
+    branches = compactBranchesWithTheSameConclusion(branches);
+
     // collect cardinality of values
     Set<String> values =
         branches.stream().map(branch -> branch.value.toString()).collect(Collectors.toSet());
@@ -741,6 +743,27 @@ public class RexSimplify {
       return call;
     }
     return call.clone(call.getType(), newOperands);
+  }
+
+  private List<CaseBranch> compactBranchesWithTheSameConclusion(List<CaseBranch> branches) {
+    ArrayList newBranches = new ArrayList<>();
+    CaseBranch last = null;
+    for (CaseBranch b : branches) {
+      if (last == null) {
+        last = b;
+      } else {
+        if (last.value.equals(b.value) && isSafeExpression(b.cond)) {
+          RexNode newCond = rexBuilder.makeCall(SqlStdOperatorTable.OR, last.cond, b.cond);
+          // last and b are 2 consequent branches with the same conclusion
+          last = new CaseBranch(simplify(newCond, UNKNOWN.FALSE), last.value);
+        } else {
+          newBranches.add(last);
+          last = b;
+        }
+      }
+    }
+    newBranches.add(last);
+    return newBranches;
   }
 
   /**
@@ -894,7 +917,7 @@ public class RexSimplify {
   }
 
   private static RexNode simplifyBooleanCase(RexBuilder rexBuilder,
-      List<CaseBranch> inputBranches, RexUnknownAs unknownAs, RelDataType t) {
+      List<CaseBranch> inputBranches, RexUnknownAs unknownAs, RelDataType branchType) {
     RexNode result = null;
 
     // prepare all condition/branches for boolean interpretation
@@ -912,55 +935,16 @@ public class RexSimplify {
       } else {
         cond = branch.cond;
       }
-      if (!t.equals(branch.value.getType())) {
-        value = rexBuilder.makeAbstractCast(t, branch.value);
+      if (!branchType.equals(branch.value.getType())) {
+        value = rexBuilder.makeAbstractCast(branchType, branch.value);
       } else {
         value = branch.value;
       }
       branches.add(new CaseBranch(cond, value));
     }
 
-    result = simplifyBooleanCaseBooleanBranches(rexBuilder, branches);
-    if (result != null) {
-      return result;
-    }
-    result = simplifyBooleanCaseGeneric(rexBuilder, branches, t);
+    result = simplifyBooleanCaseGeneric(rexBuilder, branches, branchType);
     return result;
-  }
-
-  /**
-   * Boolean valued branches.
-   *
-   * Rewrites:
-   * <pre>
-   * CASE
-   *   WHEN p0 THEN TRUE
-   *   WHEN p1 THEN TRUE
-   *   WHEN p2 THEN FALSE
-   *   WHEN p3 THEN TRUE
-   *   ELSE FALSE
-   * END
-   * </pre>
-   * to: <pre>(p0 or p1 or (p3 and not(p2)))</pre>
-   */
-  private static RexNode simplifyBooleanCaseBooleanBranches(RexBuilder rexBuilder,
-      List<CaseBranch> branches) {
-    for (CaseBranch branch : branches) {
-      if (!branch.value.isAlwaysTrue()
-          && !branch.value.isAlwaysFalse()) {
-        return null;
-      }
-    }
-    final List<RexNode> terms = new ArrayList<>();
-    final List<RexNode> notTerms = new ArrayList<>();
-    for (CaseBranch branch : branches) {
-      if (branch.value.isAlwaysTrue()) {
-        terms.add(RexUtil.andNot(rexBuilder, branch.cond, notTerms));
-      } else {
-        notTerms.add(branch.cond);
-      }
-    }
-    return RexUtil.composeDisjunction(rexBuilder, terms);
   }
 
   /**
@@ -979,16 +963,28 @@ public class RexSimplify {
    */
   private static RexNode simplifyBooleanCaseGeneric(RexBuilder rexBuilder,
       List<CaseBranch> branches, RelDataType outputType) {
+
+    boolean booleanBranches = branches.stream()
+        .allMatch(branch -> branch.value.isAlwaysTrue() || branch.value.isAlwaysFalse());
     final List<RexNode> terms = new ArrayList<>();
     final List<RexNode> notTerms = new ArrayList<>();
     for (CaseBranch branch : branches) {
-      terms.add(
-          RexUtil.andNot(rexBuilder,
-              rexBuilder.makeCall(SqlStdOperatorTable.AND,
-                  branch.cond,
-                  branch.value),
-              notTerms));
-      notTerms.add(branch.cond);
+      boolean useBranch = !branch.value.isAlwaysFalse();
+      if (useBranch) {
+        final RexNode branchTerm;
+        if (branch.value.isAlwaysTrue()) {
+          branchTerm = branch.cond;
+        } else {
+          branchTerm = rexBuilder.makeCall(SqlStdOperatorTable.AND, branch.cond, branch.value);
+        }
+        terms.add(RexUtil.andNot(rexBuilder, branchTerm, notTerms));
+      }
+      if (booleanBranches && useBranch) {
+        // we are safe to ignore this branch because for boolean true branches:
+        // a || (b && !a) === a || b
+      } else {
+        notTerms.add(branch.cond);
+      }
     }
     return RexUtil.composeDisjunction(rexBuilder, terms);
   }
