@@ -1705,17 +1705,12 @@ public class RexProgramTest extends RexProgramBuilderBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1289">[CALCITE-1289]
    * RexUtil.simplifyCase() should account for nullability</a>. */
   @Test public void testSimplifyCaseNotNullableBoolean() {
-    RexNode condition = eq(
-        rexBuilder.makeInputRef(
-            typeFactory.createTypeWithNullability(
-                typeFactory.createSqlType(SqlTypeName.VARCHAR), true),
-            0),
-        rexBuilder.makeLiteral("S"));
+    RexNode condition = eq(vVarchar(), literal("S"));
     RexCall caseNode = (RexCall) case_(condition, trueLiteral, falseLiteral);
 
-    final RexCall result =
-        (RexCall) simplify.simplifyUnknownAs(caseNode, RexUnknownAs.UNKNOWN);
-    assertThat(result.getType().isNullable(), is(false));
+    final RexCall result = (RexCall) simplify.simplifyUnknownAs(caseNode, RexUnknownAs.UNKNOWN);
+    assertThat("The case should be nonNullable", caseNode.getType().isNullable(), is(false));
+    assertThat("Expected a nonNullable type", result.getType().isNullable(), is(false));
     assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.BOOLEAN));
     assertThat(result.getOperator(), is((SqlOperator) SqlStdOperatorTable.IS_TRUE));
     assertThat(result.getOperands().get(0), is(condition));
@@ -1763,9 +1758,10 @@ public class RexProgramTest extends RexProgramBuilderBase {
     RexNode caseNode =
         case_(falseLiteral, nullBool, eq(div(vInt(), literal(2)), literal(3)), trueLiteral,
             falseLiteral);
-    assertThat(caseNode.getType().isNullable(), is(true));
+    assertThat("Expected is nullable", caseNode.getType().isNullable(), is(true));
     RexNode res = simplify.simplify(caseNode);
-    assertThat(res.getType().isNullable(), is(false));
+    assertThat("Simplification removed the nullable branch; new type should not be nullable",
+        res.getType().isNullable(), is(false));
   }
 
   @Test public void testSimplifyCaseCompaction() {
