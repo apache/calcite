@@ -1758,7 +1758,8 @@ public class RexProgramTest extends RexProgramBuilderBase {
     RexNode caseNode =
         case_(falseLiteral, nullBool, eq(div(vInt(), literal(2)), literal(3)), trueLiteral,
             falseLiteral);
-    assertThat("Expected is nullable", caseNode.getType().isNullable(), is(true));
+    assertThat("Expected to have a nullable type for " + caseNode + ".",
+        caseNode.getType().isNullable(), is(true));
     RexNode res = simplify.simplify(caseNode);
     assertThat("Expected to have a nonNullable type for " + res + ".",
         res.getType().isNullable(), is(false));
