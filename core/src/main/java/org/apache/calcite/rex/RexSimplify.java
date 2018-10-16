@@ -18,12 +18,12 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
-import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.metadata.NullSentinel;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -674,135 +674,316 @@ public class RexSimplify {
   }
 
   private RexNode simplifyCase(RexCall call, RexUnknownAs unknownAs) {
-    final List<RexNode> operands = call.getOperands();
-    final List<RexNode> newOperands = new ArrayList<>();
-    final Set<String> values = new HashSet<>();
-    for (int i = 0; i < operands.size(); i++) {
-      RexNode operand = operands.get(i);
-      if (RexUtil.isCasePredicate(call, i)) {
-        if (operand.isAlwaysTrue()) {
-          // Predicate is always TRUE. Make value the ELSE and quit.
-          newOperands.add(operands.get(++i));
-          if (unknownAs == FALSE && RexUtil.isNull(operands.get(i))) {
-            values.add(rexBuilder.makeLiteral(false).toString());
-          } else {
-            values.add(operands.get(i).toString());
-          }
-          break;
-        } else if (operand.isAlwaysFalse() || RexUtil.isNull(operand)) {
-          // Predicate is always FALSE or NULL. Skip predicate and value.
-          ++i;
-          continue;
-        }
+    List<CaseBranch> inputBranches =
+        CaseBranch.fromCaseOperands(rexBuilder, new ArrayList(call.getOperands()));
+
+    // run simplification on all operands
+    RexSimplify branchSimplifier = this;
+    RelDataType branchType = call.getType();
+
+    List<CaseBranch> branches = new ArrayList<>();
+    for (CaseBranch branch : inputBranches) {
+      // simplify the condition
+      RexNode newCond = branchSimplifier.simplify(branch.cond, RexUnknownAs.FALSE);
+
+      // use the condition to simplify the branch
+      RexNode value = branch.value;
+      RexNode newValue = branchSimplifier.simplify(value, unknownAs);
+
+      branches.add(new CaseBranch(newCond, newValue));
+    }
+
+    // remove branches with invalid conditions
+    branches.removeIf(branch -> branch.cond.isAlwaysFalse());
+
+    // delete all branches after the first AlwaysTrue
+    for (int i = 0; i < branches.size(); i++) {
+      CaseBranch branch = branches.get(i);
+      if (branch.cond.isAlwaysTrue()) {
+        branches.subList(i + 1, branches.size()).clear();
+        break;
+      }
+    }
+
+    branches = compactBranchesWithTheSameConclusion(branches);
+
+    if (branches.size() == 1) {
+      final RexNode firstValue = branches.get(0).value;
+
+      if (sameTypeOrNarrowsNullability(branchType, firstValue.getType())) {
+        return firstValue;
       } else {
-        if (unknownAs == FALSE && RexUtil.isNull(operand)) {
-          values.add(rexBuilder.makeLiteral(false).toString());
-        } else {
-          values.add(operand.toString());
-        }
+        return rexBuilder.makeAbstractCast(branchType, firstValue);
       }
-      newOperands.add(operand);
     }
-    assert newOperands.size() % 2 == 1;
-    if (newOperands.size() == 1 || values.size() == 1) {
-      final RexNode last = Util.last(newOperands);
-      if (!call.getType().equals(last.getType())) {
-        return rexBuilder.makeAbstractCast(call.getType(), last);
-      }
-      return last;
-    }
-  trueFalse:
+
     if (call.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
-      // Optimize CASE where every branch returns constant true or constant
-      // false.
-      final List<Pair<RexNode, RexNode>> pairs =
-          casePairs(rexBuilder, newOperands);
-      // 1) Possible simplification if unknown is treated as false:
-      //   CASE
-      //   WHEN p1 THEN TRUE
-      //   WHEN p2 THEN TRUE
-      //   ELSE FALSE
-      //   END
-      // can be rewritten to: (p1 or p2)
-      if (unknownAs == FALSE) {
-        final List<RexNode> terms = new ArrayList<>();
-        int pos = 0;
-        for (; pos < pairs.size(); pos++) {
-          // True block
-          Pair<RexNode, RexNode> pair = pairs.get(pos);
-          if (!pair.getValue().isAlwaysTrue()) {
-            break;
-          }
-          terms.add(pair.getKey());
-        }
-        for (; pos < pairs.size(); pos++) {
-          // False block
-          Pair<RexNode, RexNode> pair = pairs.get(pos);
-          if (!pair.getValue().isAlwaysFalse()
-              && !RexUtil.isNull(pair.getValue())) {
-            break;
-          }
-        }
-        if (pos == pairs.size()) {
-          final RexNode disjunction =
-              RexUtil.composeDisjunction(rexBuilder, terms);
-          if (!call.getType().equals(disjunction.getType())) {
-            return rexBuilder.makeCast(call.getType(), disjunction);
-          }
-          return disjunction;
-        }
-      }
-      // 2) Another simplification
-      //   CASE
-      //   WHEN p1 THEN TRUE
-      //   WHEN p2 THEN FALSE
-      //   WHEN p3 THEN TRUE
-      //   ELSE FALSE
-      //   END
-      // if p1...pn cannot be nullable
-      for (Ord<Pair<RexNode, RexNode>> pair : Ord.zip(pairs)) {
-        if (pair.e.getKey().getType().isNullable()) {
-          break trueFalse;
-        }
-        if (!pair.e.getValue().isAlwaysTrue()
-            && !pair.e.getValue().isAlwaysFalse()
-            && (unknownAs == UNKNOWN || !RexUtil.isNull(pair.e.getValue()))) {
-          break trueFalse;
-        }
-      }
-      final List<RexNode> terms = new ArrayList<>();
-      final List<RexNode> notTerms = new ArrayList<>();
-      for (Ord<Pair<RexNode, RexNode>> pair : Ord.zip(pairs)) {
-        if (pair.e.getValue().isAlwaysTrue()) {
-          terms.add(RexUtil.andNot(rexBuilder, pair.e.getKey(), notTerms));
+      final RexNode result = simplifyBooleanCase(rexBuilder, branches, unknownAs, branchType);
+      if (result != null) {
+        if (sameTypeOrNarrowsNullability(branchType, result.getType())) {
+          return simplify(result, unknownAs);
         } else {
-          notTerms.add(pair.e.getKey());
+          // If the simplification would widen the nullability
+          RexNode simplified = simplify(result, UNKNOWN);
+          if (!simplified.getType().isNullable()) {
+            return simplified;
+          } else {
+            return rexBuilder.makeCast(call.getType(), simplified);
+          }
         }
       }
-      RexNode disjunction = RexUtil.composeDisjunction(rexBuilder, terms);
-      if (!call.getType().equals(disjunction.getType())) {
-        disjunction = rexBuilder.makeCast(call.getType(), disjunction);
-      }
-      return simplify(disjunction, unknownAs);
     }
-    if (newOperands.equals(operands)) {
+    List<RexNode> newOperands = CaseBranch.toCaseOperands(rexBuilder, branches);
+    if (newOperands.equals(call.getOperands())) {
       return call;
     }
-    return call.clone(call.getType(), newOperands);
+    RexNode retNode = rexBuilder.makeCall(SqlStdOperatorTable.CASE, newOperands);
+    assert sameTypeOrNarrowsNullability(branchType, retNode.getType()) : "Unexpected type change.";
+    return retNode;
   }
 
-  /** Given "CASE WHEN p1 THEN v1 ... ELSE e END"
-   * returns [(p1, v1), ..., (true, e)]. */
-  private static List<Pair<RexNode, RexNode>> casePairs(RexBuilder rexBuilder,
-      List<RexNode> operands) {
-    final ImmutableList.Builder<Pair<RexNode, RexNode>> builder =
-        ImmutableList.builder();
-    for (int i = 0; i < operands.size() - 1; i += 2) {
-      builder.add(Pair.of(operands.get(i), operands.get(i + 1)));
+  private List<CaseBranch> compactBranchesWithTheSameConclusion(List<CaseBranch> branches) {
+    ArrayList newBranches = new ArrayList<>();
+    CaseBranch last = null;
+    for (CaseBranch b : branches) {
+      if (last == null) {
+        last = b;
+      } else {
+        if (last.value.toString().equals(b.value.toString()) && isSafeExpression(b.cond)) {
+          RexNode newCond = rexBuilder.makeCall(SqlStdOperatorTable.OR, last.cond, b.cond);
+          // last and b are 2 consequent branches with the same conclusion
+          last = new CaseBranch(simplify(newCond, UNKNOWN.FALSE), last.value);
+        } else {
+          newBranches.add(last);
+          last = b;
+        }
+      }
     }
-    builder.add(
-        Pair.of((RexNode) rexBuilder.makeLiteral(true), Util.last(operands)));
-    return builder.build();
+    newBranches.add(last);
+    return newBranches;
+  }
+
+  /**
+   * Return if the new type is the same and at most narrows the nullability.
+   */
+  private boolean sameTypeOrNarrowsNullability(RelDataType oldType, RelDataType newType) {
+    return oldType.equals(newType)
+        || (SqlTypeUtil.equalSansNullability(rexBuilder.typeFactory, oldType, newType)
+            && oldType.isNullable());
+  }
+
+  /** Object to describe a Case branch */
+  static final class CaseBranch {
+
+    private final RexNode cond;
+    private final RexNode value;
+
+    CaseBranch(RexNode cond, RexNode value) {
+      this.cond = cond;
+      this.value = value;
+    }
+
+    @Override public String toString() {
+      return new StringBuilder(cond.toString()).append(" => ").append(value).toString();
+    }
+
+    /** Given "CASE WHEN p1 THEN v1 ... ELSE e END"
+     * returns [(p1, v1), ..., (true, e)]. */
+    private static List<CaseBranch> fromCaseOperands(RexBuilder rexBuilder,
+        List<RexNode> operands) {
+      List<CaseBranch> ret = new ArrayList<>();
+      for (int i = 0; i < operands.size() - 1; i += 2) {
+        ret.add(new CaseBranch(operands.get(i), operands.get(i + 1)));
+      }
+      ret.add(new CaseBranch(rexBuilder.makeLiteral(true), Util.last(operands)));
+      return ret;
+    }
+
+    private static List<RexNode> toCaseOperands(RexBuilder rexBuilder,
+        List<CaseBranch> branches) {
+      List<RexNode> ret = new ArrayList<>();
+      for (int i = 0; i < branches.size() - 1; i++) {
+        CaseBranch branch = branches.get(i);
+        ret.add(branch.cond);
+        ret.add(branch.value);
+      }
+      CaseBranch lastBranch = Util.last(branches);
+      assert lastBranch.cond.isAlwaysTrue();
+      ret.add(lastBranch.value);
+      return ret;
+    }
+  }
+
+  /**
+   * Decides whether it is safe to flatten the given case part into AND/ORs
+   */
+  static class SafeRexVisitor implements RexVisitor<Boolean> {
+
+    private Set<SqlKind> safeOps;
+
+    SafeRexVisitor() {
+      safeOps = new HashSet<>();
+
+      safeOps.addAll(SqlKind.COMPARISON);
+      safeOps.add(SqlKind.PLUS);
+      safeOps.add(SqlKind.MINUS);
+      safeOps.add(SqlKind.TIMES);
+      safeOps.add(SqlKind.IS_FALSE);
+      safeOps.add(SqlKind.IS_NOT_FALSE);
+      safeOps.add(SqlKind.IS_TRUE);
+      safeOps.add(SqlKind.IS_NOT_TRUE);
+      safeOps.add(SqlKind.IS_NULL);
+      safeOps.add(SqlKind.IS_NOT_NULL);
+      safeOps.add(SqlKind.IN);
+      safeOps.add(SqlKind.NOT_IN);
+      safeOps.add(SqlKind.OR);
+      safeOps.add(SqlKind.AND);
+      safeOps.add(SqlKind.NOT);
+      safeOps.add(SqlKind.CASE);
+      safeOps.add(SqlKind.LIKE);
+    }
+
+    @Override public Boolean visitInputRef(RexInputRef inputRef) {
+      return true;
+    }
+
+    @Override public Boolean visitLocalRef(RexLocalRef localRef) {
+      return true;
+    }
+
+    @Override public Boolean visitLiteral(RexLiteral literal) {
+      return true;
+    }
+
+    @Override public Boolean visitCall(RexCall call) {
+
+      if (!safeOps.contains(call.getKind())) {
+        return false;
+      }
+      for (RexNode o : call.getOperands()) {
+        if (!o.accept(this)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    @Override public Boolean visitOver(RexOver over) {
+      return false;
+    }
+
+    @Override public Boolean visitCorrelVariable(RexCorrelVariable correlVariable) {
+      return false;
+    }
+
+    @Override public Boolean visitDynamicParam(RexDynamicParam dynamicParam) {
+      return false;
+    }
+
+    @Override public Boolean visitRangeRef(RexRangeRef rangeRef) {
+      return false;
+    }
+
+    @Override public Boolean visitFieldAccess(RexFieldAccess fieldAccess) {
+      return true;
+    }
+
+    @Override public Boolean visitSubQuery(RexSubQuery subQuery) {
+      return false;
+    }
+
+    @Override public Boolean visitTableInputRef(RexTableInputRef fieldRef) {
+      return false;
+    }
+
+    @Override public Boolean visitPatternFieldRef(RexPatternFieldRef fieldRef) {
+      return false;
+    }
+
+  }
+
+  /** Analyzes a given {@link RexNode} and decides whenever its safe to unwind.
+  *
+  * CaseSafe means that it only contains a combination of known good operators.
+  *
+  * The divison is an unsafe operator, consider:
+  * <pre>case when a &gt; 0 then 1/a else null end</pre>
+  */
+  static boolean isSafeExpression(RexNode r) {
+    return r.accept(new SafeRexVisitor());
+  }
+
+  private static RexNode simplifyBooleanCase(RexBuilder rexBuilder,
+      List<CaseBranch> inputBranches, RexUnknownAs unknownAs, RelDataType branchType) {
+    RexNode result = null;
+
+    // prepare all condition/branches for boolean interpretation
+    // It's done here make these interpretation changes available to case2or simplifications
+    // but not interfere with the normal simplifcation recursion
+    List<CaseBranch> branches = new ArrayList<>();
+    for (CaseBranch branch : inputBranches) {
+      if (!isSafeExpression(branch.cond) || !isSafeExpression(branch.value)) {
+        return null;
+      }
+      RexNode cond;
+      RexNode value;
+      if (branch.cond.getType().isNullable()) {
+        cond = rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE, branch.cond);
+      } else {
+        cond = branch.cond;
+      }
+      if (!branchType.equals(branch.value.getType())) {
+        value = rexBuilder.makeAbstractCast(branchType, branch.value);
+      } else {
+        value = branch.value;
+      }
+      branches.add(new CaseBranch(cond, value));
+    }
+
+    result = simplifyBooleanCaseGeneric(rexBuilder, branches, branchType);
+    return result;
+  }
+
+  /**
+   * Generic boolean case simplification.
+   *
+   * Rewrites:
+   * <pre>
+   * CASE
+   *   WHEN p1 THEN x
+   *   WHEN p2 THEN y
+   *   ELSE z
+   * END
+   * </pre>
+   * to
+   * <pre>(p1 and x) or (p2 and y and not(p1)) or (true and z and not(p1) and not(p2))</pre>
+   */
+  private static RexNode simplifyBooleanCaseGeneric(RexBuilder rexBuilder,
+      List<CaseBranch> branches, RelDataType outputType) {
+
+    boolean booleanBranches = branches.stream()
+        .allMatch(branch -> branch.value.isAlwaysTrue() || branch.value.isAlwaysFalse());
+    final List<RexNode> terms = new ArrayList<>();
+    final List<RexNode> notTerms = new ArrayList<>();
+    for (CaseBranch branch : branches) {
+      boolean useBranch = !branch.value.isAlwaysFalse();
+      if (useBranch) {
+        final RexNode branchTerm;
+        if (branch.value.isAlwaysTrue()) {
+          branchTerm = branch.cond;
+        } else {
+          branchTerm = rexBuilder.makeCall(SqlStdOperatorTable.AND, branch.cond, branch.value);
+        }
+        terms.add(RexUtil.andNot(rexBuilder, branchTerm, notTerms));
+      }
+      if (booleanBranches && useBranch) {
+        // we are safe to ignore this branch because for boolean true branches:
+        // a || (b && !a) === a || b
+      } else {
+        notTerms.add(branch.cond);
+      }
+    }
+    return RexUtil.composeDisjunction(rexBuilder, terms);
   }
 
   @Deprecated // to be removed before 2.0

@@ -19,7 +19,7 @@ limitations under the License.
     <TestCase name="testCase">
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CASE(=('a', 'a'), 1, null)])
+LogicalProject(EXPR$0=[1])
   LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
@@ -2049,7 +2049,7 @@ from dept]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(NAME=[$1], EXPR$1=[CASE(=($2, 0), false, IS NOT NULL($6), true, <($3, $2), null, false)])
+LogicalProject(NAME=[$1], EXPR$1=[OR(AND(IS NOT NULL($6), <>($2, 0)), AND(<($3, $2), null, <>($2, 0), IS NULL($6)))])
   LogicalJoin(condition=[=($4, $5)], joinType=[left])
     LogicalProject(DEPTNO=[$0], NAME=[$1], $f0=[$2], $f1=[$3], DEPTNO0=[$0])
       LogicalJoin(condition=[true], joinType=[inner])
@@ -4400,8 +4400,7 @@ LogicalProject(DEPTNO=[$0])
     </TestCase>
     <TestCase name="testNotCaseInThreeClause">
         <Resource name="sql">
-            <![CDATA[select empno from emp where not case when
-            true then deptno in (10,20) else false end]]>
+            <![CDATA[select empno from emp where not case when true then deptno in (10,20) else true end]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -4413,8 +4412,7 @@ LogicalProject(EMPNO=[$0])
     </TestCase>
     <TestCase name="testNotCaseInMoreClause">
         <Resource name="sql">
-            <![CDATA[select empno from emp where not case when
-             true then deptno in (10,20) when false then false else deptno in (30,40) end]]>
+            <![CDATA[select empno from emp where not case when true then deptno in (10,20) when false then false else deptno in (30,40) end]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -4426,8 +4424,7 @@ LogicalProject(EMPNO=[$0])
     </TestCase>
     <TestCase name="testNotCaseInWithoutElse">
         <Resource name="sql">
-            <![CDATA[select empno from emp where not case when
-            true then deptno in (10,20) end]]>
+            <![CDATA[select empno from emp where not case when true then deptno in (10,20)  end]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -5184,8 +5181,10 @@ LogicalProject(EXPR$0=[CASE(>(COUNT(ITEM($0, 'N_NATIONKEY')) OVER (PARTITION BY 
     <TestCase name="testWindowAndGroupByWithDynamicStar">
         <Resource name="sql">
             <![CDATA[SELECT
-n_regionkey, MAX(MIN(n_nationkey)) OVER (PARTITION BY n_regionkey)
-FROM (SELECT * FROM SALES.NATION) GROUP BY n_regionkey)]]>
+n_regionkey,
+MAX(MIN(n_nationkey)) OVER (PARTITION BY n_regionkey)
+FROM (SELECT * FROM SALES.NATION)
+GROUP BY n_regionkey]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
