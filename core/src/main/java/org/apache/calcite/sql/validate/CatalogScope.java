@@ -16,14 +16,11 @@
  */
 package org.apache.calcite.sql.validate;
 
-import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.sql.SqlNode;
 
 import com.google.common.collect.ImmutableList;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Implementation of {@link SqlValidatorScope} that can see all schemas in the
@@ -39,20 +36,12 @@ import java.util.Set;
 class CatalogScope extends DelegatingScope {
   /** Fully-qualified name of the catalog. Typically empty or ["CATALOG"]. */
   final ImmutableList<String> names;
-  private final Set<List<String>> schemaNames;
 
   //~ Constructors -----------------------------------------------------------
 
   CatalogScope(SqlValidatorScope parent, List<String> names) {
     super(parent);
     this.names = ImmutableList.copyOf(names);
-    this.schemaNames =
-        Linq4j.asEnumerable(
-            validator.getCatalogReader()
-                .getAllSchemaObjectNames(ImmutableList.of()))
-            .where(input -> input.getType() == SqlMonikerType.SCHEMA)
-            .select(SqlMoniker::getFullyQualifiedNames)
-            .into(new HashSet<>());
   }
 
   //~ Methods ----------------------------------------------------------------
