@@ -71,12 +71,6 @@ public class SqlOrderBy extends SqlCall {
     return ImmutableNullableList.of(query, orderList, offset, fetch);
   }
 
-  /**
-   * Update the operand in a given ordinal position.
-   *
-   * @param i operand ordinal index.
-   * @param operand operand value.
-   */
   @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
