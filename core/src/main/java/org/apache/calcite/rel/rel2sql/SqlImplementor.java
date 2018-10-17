@@ -988,21 +988,23 @@ public abstract class SqlImplementor {
     }
 
     private boolean hasNestedAggregations(LogicalAggregate rel) {
-      List<AggregateCall> aggCallList = rel.getAggCallList();
-      HashSet<Integer> aggregatesArgs = new HashSet<>();
-      for (AggregateCall aggregateCall: aggCallList) {
-        aggregatesArgs.addAll(aggregateCall.getArgList());
-      }
-      for (Integer aggregatesArg : aggregatesArgs) {
-        SqlNode selectNode = ((SqlSelect) node).getSelectList().get(aggregatesArg);
-        if (!(selectNode instanceof SqlBasicCall)) {
-          continue;
-        }
-        for (SqlNode operand : ((SqlBasicCall) selectNode).getOperands()) {
-          if (operand instanceof SqlCall) {
-            final SqlOperator operator = ((SqlCall) operand).getOperator();
-            if (operator instanceof SqlAggFunction) {
-              return true;
+      if (node instanceof SqlSelect) {
+        final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
+        if (selectList != null) {
+          final Set<Integer> aggregatesArgs = new HashSet<>();
+          for (AggregateCall aggregateCall : rel.getAggCallList()) {
+            aggregatesArgs.addAll(aggregateCall.getArgList());
+          }
+          for (int aggregatesArg : aggregatesArgs) {
+            if (selectList.get(aggregatesArg) instanceof SqlBasicCall) {
+              final SqlBasicCall call =
+                  (SqlBasicCall) selectList.get(aggregatesArg);
+              for (SqlNode operand : call.getOperands()) {
+                if (operand instanceof SqlCall
+                    && ((SqlCall) operand).getOperator() instanceof SqlAggFunction) {
+                  return true;
+                }
+              }
             }
           }
         }

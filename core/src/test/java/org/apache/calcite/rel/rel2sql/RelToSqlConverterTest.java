@@ -80,9 +80,6 @@ public class RelToSqlConverterTest {
           .withExpand(false)
           .build();
 
-  final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
-  final RelBuilder empScan = builder.scan("EMP");
-
   /** Initiates a test case with a given SQL query. */
   private Sql sql(String sql) {
     return new Sql(CalciteAssert.SchemaSpec.JDBC_FOODMART, sql,
@@ -121,6 +118,23 @@ public class RelToSqlConverterTest {
         .withDatabaseProduct(SqlDialect.DatabaseProduct.MYSQL)
         .withIdentifierQuoteString("`")
         .withNullCollation(nullCollation));
+  }
+
+  /** Creates a RelBuilder. */
+  private static RelBuilder relBuilder() {
+    return RelBuilder.create(RelBuilderTest.config().build());
+  }
+
+  /** Converts a relational expression to SQL. */
+  private String toSql(RelNode root) {
+    return toSql(root, SqlDialect.DatabaseProduct.CALCITE.getDialect());
+  }
+
+  /** Converts a relational expression to SQL in a given dialect. */
+  private static String toSql(RelNode root, SqlDialect dialect) {
+    final RelToSqlConverter converter = new RelToSqlConverter(dialect);
+    final SqlNode sqlNode = converter.visitChild(0, root).asStatement();
+    return sqlNode.toSqlString(dialect).getSql();
   }
 
   @Test public void testSimpleSelectStarFromProductTable() {
@@ -262,6 +276,45 @@ public class RelToSqlConverterTest {
         .ok(expectedPostgresql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2628">[CALCITE-2628]
+   * JDBC adapter throws NullPointerException while generating GROUP BY query
+   * for MySQL</a>.
+   *
+   * <p>MySQL does not support nested aggregates, so {@link RelToSqlConverter}
+   * performs some extra checks, looking for aggregates in the input
+   * sub-query, and these would fail with {@code NullPointerException}
+   * and {@code ClassCastException} in some cases. */
+  @Test public void testNestedAggregatesMySqlTable() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .aggregate(builder.groupKey(),
+            builder.count(false, "c", builder.field(3)))
+        .build();
+    final SqlDialect dialect = SqlDialect.DatabaseProduct.MYSQL.getDialect();
+    final String expectedSql = "SELECT COUNT(`MGR`) AS `c`\n"
+        + "FROM `scott`.`EMP`";
+    assertThat(toSql(root, dialect), isLinux(expectedSql));
+  }
+
+  /** As {@link #testNestedAggregatesMySqlTable()}, but input is a sub-query,
+   * not a table. */
+  @Test public void testNestedAggregatesMySqlStar() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(builder.equals(builder.field("DEPTNO"), builder.literal(10)))
+        .aggregate(builder.groupKey(),
+            builder.count(false, "c", builder.field(3)))
+        .build();
+    final SqlDialect dialect = SqlDialect.DatabaseProduct.MYSQL.getDialect();
+    final String expectedSql = "SELECT COUNT(`MGR`) AS `c`\n"
+        + "FROM `scott`.`EMP`\n"
+        + "WHERE `DEPTNO` = 10";
+    assertThat(toSql(root, dialect), isLinux(expectedSql));
+  }
+
   @Test public void testSelectQueryWithGroupByAndProjectList1() {
     String query =
         "select count(*)  from \"product\" group by \"product_class_id\", \"product_id\"";
@@ -371,14 +424,6 @@ public class RelToSqlConverterTest {
     sql(query).withHive().ok(expected);
   }
 
-
-  private String unparseRelTree(RelNode root) {
-    SqlDialect dialect = SqlDialect.DatabaseProduct.CALCITE.getDialect();
-    final RelToSqlConverter converter = new RelToSqlConverter(dialect);
-    final SqlNode sqlNode = converter.visitChild(0, root).asStatement();
-    return sqlNode.toSqlString(dialect).getSql();
-  }
-
   /**
    * Tests that IN can be un-parsed.
    *
@@ -386,10 +431,12 @@ public class RelToSqlConverterTest {
    * replaces INs with ORs or sub-queries.
    */
   @Test public void testUnparseIn1() {
+    final RelBuilder builder = relBuilder().scan("EMP");
     final RexNode condition =
         builder.call(SqlStdOperatorTable.IN, builder.field("DEPTNO"),
             builder.literal(21));
-    final String sql = unparseRelTree(empScan.filter(condition).build());
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+    final String sql = toSql(root);
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "WHERE \"DEPTNO\" IN (21)";
@@ -397,10 +444,14 @@ public class RelToSqlConverterTest {
   }
 
   @Test public void testUnparseIn2() {
-    final RexNode filter =
-        builder.call(SqlStdOperatorTable.IN, builder.field("DEPTNO"),
-            builder.literal(20), builder.literal(21));
-    final String sql = unparseRelTree(empScan.filter(filter).build());
+    final RelBuilder builder = relBuilder();
+    final RelNode rel = builder
+        .scan("EMP")
+        .filter(
+            builder.call(SqlStdOperatorTable.IN, builder.field("DEPTNO"),
+                builder.literal(20), builder.literal(21)))
+        .build();
+    final String sql = toSql(rel);
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "WHERE \"DEPTNO\" IN (20, 21)";
@@ -408,13 +459,15 @@ public class RelToSqlConverterTest {
   }
 
   @Test public void testUnparseInStruct1() {
+    final RelBuilder builder = relBuilder().scan("EMP");
     final RexNode condition =
         builder.call(SqlStdOperatorTable.IN,
             builder.call(SqlStdOperatorTable.ROW, builder.field("DEPTNO"),
                 builder.field("JOB")),
             builder.call(SqlStdOperatorTable.ROW, builder.literal(1),
                 builder.literal("PRESIDENT")));
-    final String sql = unparseRelTree(empScan.filter(condition).build());
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+    final String sql = toSql(root);
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "WHERE ROW(\"DEPTNO\", \"JOB\") IN (ROW(1, 'PRESIDENT'))";
@@ -422,6 +475,7 @@ public class RelToSqlConverterTest {
   }
 
   @Test public void testUnparseInStruct2() {
+    final RelBuilder builder = relBuilder().scan("EMP");
     final RexNode condition =
         builder.call(SqlStdOperatorTable.IN,
             builder.call(SqlStdOperatorTable.ROW, builder.field("DEPTNO"),
@@ -430,7 +484,8 @@ public class RelToSqlConverterTest {
                 builder.literal("PRESIDENT")),
             builder.call(SqlStdOperatorTable.ROW, builder.literal(2),
                 builder.literal("PRESIDENT")));
-    final String sql = unparseRelTree(empScan.filter(condition).build());
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+    final String sql = toSql(root);
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "WHERE ROW(\"DEPTNO\", \"JOB\") IN (ROW(1, 'PRESIDENT'), ROW(2, 'PRESIDENT'))";
@@ -2742,10 +2797,7 @@ public class RelToSqlConverterTest {
         for (Function<RelNode, RelNode> transform : transforms) {
           rel = transform.apply(rel);
         }
-        final RelToSqlConverter converter =
-            new RelToSqlConverter(dialect);
-        final SqlNode sqlNode = converter.visitChild(0, rel).asStatement();
-        return sqlNode.toSqlString(dialect).getSql();
+        return toSql(rel, dialect);
       } catch (RuntimeException e) {
         throw e;
       } catch (Exception e) {
