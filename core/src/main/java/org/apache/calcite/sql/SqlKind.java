@@ -956,11 +956,17 @@ public enum SqlKind {
   /** {@code UNIQUE} constraint. */
   UNIQUE,
 
+  /** {@code ASSUME_UNIQUE} constraint. */
+  ASSUME_UNIQUE,
+
   /** {@code PRIMARY KEY} constraint. */
   PRIMARY_KEY,
 
   /** {@code FOREIGN KEY} constraint. */
   FOREIGN_KEY,
+
+  /** {@code LIMIT PARTITION ROWS} constraint. */
+  LIMIT_PARTITION_ROWS,
 
   // DDL and session control statements follow. The list is not exhaustive: feel
   // free to add more.

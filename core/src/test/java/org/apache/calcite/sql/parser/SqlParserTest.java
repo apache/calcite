@@ -111,6 +111,7 @@ public class SqlParserTest {
       "ASC",                           "92", "99",
       "ASENSITIVE",                          "99", "2003", "2011", "2014", "c",
       "ASSERTION",                     "92", "99",
+      "ASSUMEUNIQUE",                                                      "c",
       "ASYMMETRIC",                          "99", "2003", "2011", "2014", "c",
       "AT",                            "92", "99", "2003", "2011", "2014", "c",
       "ATOMIC",                              "99", "2003", "2011", "2014", "c",

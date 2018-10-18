@@ -82,9 +82,57 @@ import static org.apache.calcite.util.Static.RESOURCE;
  */
 public class SqlCreateTable extends SqlCreate
     implements SqlExecutableStatement {
+
+  /**
+   * The optional TTL constraint for {@code CREATE TABLE} statement as in
+   * {@code CREATE TABLE t(...) USING TTL n MINUTES ON COLUMN c}.
+   */
+  public static final class TtlConstraint {
+    /**
+     * Unit of time to live for the tuples.
+     */
+    public enum Unit {
+      SECONDS, MINUTES, HOURS, DAYS;
+    }
+
+    private final int duration;
+    private final Unit unit;
+    private final SqlIdentifier column;
+
+    private static Unit unitOfChar(char c) {
+      switch (c) {
+      case 's':
+        return Unit.SECONDS;
+      case 'm':
+        return Unit.MINUTES;
+      case 'h':
+        return Unit.HOURS;
+      case 'd':
+        return Unit.DAYS;
+      default:
+        throw new AssertionError("Unknown character encoding for TTL unit: " + c);
+      }
+    }
+    public TtlConstraint(int duration, char unit, SqlIdentifier column) {
+      this.duration = duration;
+      this.unit = unitOfChar(unit);
+      this.column = column;
+    }
+    public int getDuration() {
+      return duration;
+    }
+    public Unit getUnit() {
+      return unit;
+    }
+    public SqlIdentifier getColumn() {
+      return column;
+    }
+  }
+
   private final SqlIdentifier name;
   private final SqlNodeList columnList;
   private final SqlNode query;
+  private TtlConstraint ttlConstraint = null;
 
   private static final SqlOperator OPERATOR =
       new SqlSpecialOperator("CREATE TABLE", SqlKind.CREATE_TABLE);
@@ -100,6 +148,15 @@ public class SqlCreateTable extends SqlCreate
 
   public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(name, columnList, query);
+  }
+
+  public SqlCreateTable setTtlConstraint(TtlConstraint ttlConstraint) {
+    this.ttlConstraint = ttlConstraint;
+    return this;
+  }
+
+  public TtlConstraint getTtlConstraint() {
+    return ttlConstraint;
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {

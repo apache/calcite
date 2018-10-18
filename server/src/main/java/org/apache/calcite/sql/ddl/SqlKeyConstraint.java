@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.ddl;
 
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -30,13 +31,16 @@ import org.apache.calcite.util.ImmutableNullableList;
 import java.util.List;
 
 /**
- * Parse tree for {@code UNIQUE}, {@code PRIMARY KEY} constraints.
+ * Parse tree for {@code UNIQUE}, {@code ASSUMEUNIQUE}, {@code PRIMARY KEY} constraints.
  *
  * <p>And {@code FOREIGN KEY}, when we support it.
  */
 public class SqlKeyConstraint extends SqlCall {
   private static final SqlSpecialOperator UNIQUE =
       new SqlSpecialOperator("UNIQUE", SqlKind.UNIQUE);
+
+  protected static final SqlSpecialOperator ASSUME_UNIQUE =
+      new SqlSpecialOperator("ASSUMEUNIQUE", SqlKind.ASSUME_UNIQUE);
 
   protected static final SqlSpecialOperator PRIMARY =
       new SqlSpecialOperator("PRIMARY KEY", SqlKind.PRIMARY_KEY);
@@ -58,6 +62,16 @@ public class SqlKeyConstraint extends SqlCall {
     return new SqlKeyConstraint(pos, name, columnList);
   }
 
+  /** Creates an ASSUME_UNIQUE constraint. */
+  public static SqlKeyConstraint assumeUnique(SqlParserPos pos, SqlIdentifier name,
+      SqlNodeList columnList) {
+    return new SqlKeyConstraint(pos, name, columnList) {
+      @Override public SqlOperator getOperator() {
+        return ASSUME_UNIQUE;
+      }
+    };
+  }
+
   /** Creates a PRIMARY KEY constraint. */
   public static SqlKeyConstraint primary(SqlParserPos pos, SqlIdentifier name,
       SqlNodeList columnList) {
@@ -66,6 +80,12 @@ public class SqlKeyConstraint extends SqlCall {
         return PRIMARY;
       }
     };
+  }
+
+  /** Creates a LIMIT PARTITION ROWS constraint. */
+  public static SqlKeyConstraint limitPartitionRows(SqlParserPos pos, SqlIdentifier name,
+      int rowCount, SqlDelete delStmt) {
+    return new SqlLimitPartitionRowsConstraint(pos, name, rowCount, delStmt);
   }
 
   @Override public SqlOperator getOperator() {
@@ -81,7 +101,7 @@ public class SqlKeyConstraint extends SqlCall {
       writer.keyword("CONSTRAINT");
       name.unparse(writer, 0, 0);
     }
-    writer.keyword(getOperator().getName()); // "UNIQUE" or "PRIMARY KEY"
+    writer.keyword(getOperator().getName()); // "UNIQUE", "ASSUMEUNIQUE", or "PRIMARY KEY"
     columnList.unparse(writer, 1, 1);
   }
 }

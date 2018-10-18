@@ -110,7 +110,8 @@ SqlNodeList TableElementList() :
     (
         <COMMA> TableElement(list)
     )*
-    <RPAREN> {
+    <RPAREN>
+    {
         return new SqlNodeList(list, s.end(this));
     }
 }
@@ -123,6 +124,8 @@ void TableElement(List<SqlNode> list) :
     final SqlNode e;
     final SqlNode constraint;
     SqlIdentifier name = null;
+    SqlNumericLiteral limitRowCount = null;
+    SqlNode delStmt = null;
     final SqlNodeList columnList;
     final Span s = Span.of();
     final ColumnStrategy strategy;
@@ -132,32 +135,83 @@ void TableElement(List<SqlNode> list) :
     (
         type = DataType()
         (
-            <NULL> { nullable = true; }
-        |
-            <NOT> <NULL> { nullable = false; }
-        |
-            { nullable = true; }
-        )
-        (
-            [ <GENERATED> <ALWAYS> ] <AS> <LPAREN>
-            e = Expression(ExprContext.ACCEPT_SUB_QUERY) <RPAREN>
-            (
-                <VIRTUAL> { strategy = ColumnStrategy.VIRTUAL; }
-            |
-                <STORED> { strategy = ColumnStrategy.STORED; }
-            |
-                { strategy = ColumnStrategy.VIRTUAL; }
-            )
-        |
-            <DEFAULT_> e = Expression(ExprContext.ACCEPT_SUB_QUERY) {
-                strategy = ColumnStrategy.DEFAULT;
-            }
-        |
-            {
-                e = null;
-                strategy = nullable ? ColumnStrategy.NULLABLE
-                    : ColumnStrategy.NOT_NULLABLE;
-            }
+           (
+              <DEFAULT_> e = Expression(ExprContext.ACCEPT_SUB_QUERY) {
+                   strategy = ColumnStrategy.DEFAULT;
+               }
+               (
+                     <NULL>
+                     {
+                        nullable = true;
+                     }
+                  |
+                     <NOT> <NULL>
+                     {
+                        nullable = false;
+                     }
+               )
+               (
+                     <UNIQUE>
+                     {
+                        assert ! type.getIsUnique();
+                        type.setIsUnique(true);
+                     }
+                  |
+                     <ASSUME_UNIQUE>
+                     {
+                        assert ! type.getIsAssumeUnique();
+                        type.setIsAssumeUnique(true);
+                     }
+                  |
+                     {}
+               )
+           )
+           |
+           (
+              (
+                    <NULL> { nullable = true; }
+                 |
+                    <NOT> <NULL> { nullable = false; }
+                 |
+                    { nullable = true; }
+              )
+              (
+                    <UNIQUE>
+                    {
+                       assert ! type.getIsUnique();
+                       type.setIsUnique(true);
+                    }
+                 |
+                    <ASSUME_UNIQUE>
+                    {
+                       assert ! type.getIsAssumeUnique();
+                       type.setIsAssumeUnique(true);
+                    }
+                 |
+                    {}
+              )
+              (
+                  [ <GENERATED> <ALWAYS> ] <AS> <LPAREN>
+                  e = Expression(ExprContext.ACCEPT_SUB_QUERY) <RPAREN>
+                  (
+                      <VIRTUAL> { strategy = ColumnStrategy.VIRTUAL; }
+                  |
+                      <STORED> { strategy = ColumnStrategy.STORED; }
+                  |
+                      { strategy = ColumnStrategy.VIRTUAL; }
+                  )
+              |
+                  <DEFAULT_> e = Expression(ExprContext.ACCEPT_SUB_QUERY) {
+                      strategy = ColumnStrategy.DEFAULT;
+                  }
+              |
+                  {
+                      e = null;
+                      strategy = nullable ? ColumnStrategy.NULLABLE
+                          : ColumnStrategy.NOT_NULLABLE;
+                  }
+              )
+           )
         )
         {
             list.add(
@@ -168,10 +222,6 @@ void TableElement(List<SqlNode> list) :
         { list.add(id); }
     )
 |
-    id = SimpleIdentifier() {
-        list.add(id);
-    }
-|
     [ <CONSTRAINT> { s.add(this); } name = SimpleIdentifier() ]
     (
         <CHECK> { s.add(this); } <LPAREN>
@@ -180,14 +230,31 @@ void TableElement(List<SqlNode> list) :
         }
     |
         <UNIQUE> { s.add(this); }
-        columnList = ParenthesizedSimpleIdentifierList() {
+        columnList = ParenthesizedQueryOrCommaList(ExprContext.ACCEPT_NON_QUERY) {
             list.add(SqlDdlNodes.unique(s.end(columnList), name, columnList));
+        }
+    |
+        <ASSUME_UNIQUE> { s.add(this); }
+        columnList = ParenthesizedQueryOrCommaList(ExprContext.ACCEPT_NON_QUERY) {
+            list.add(SqlDdlNodes.assumeUnique(s.end(columnList), name, columnList));
         }
     |
         <PRIMARY>  { s.add(this); } <KEY>
         columnList = ParenthesizedSimpleIdentifierList() {
             list.add(SqlDdlNodes.primary(s.end(columnList), name, columnList));
         }
+    |
+       <LIMIT> <PARTITION> <ROWS>
+       limitRowCount = UnsignedNumericLiteral()
+       <EXECUTE>
+       <LPAREN>
+       delStmt = SqlDelete()
+       <RPAREN> { s.add(this); }
+       {
+          columnList = SqlNodeList.EMPTY;
+          list.add(SqlDdlNodes.limitPartitionRows(s.end(columnList), name,
+                   limitRowCount.intValue(true), (SqlDelete) delStmt));
+       }
     )
 }
 
@@ -260,14 +327,25 @@ SqlCreate SqlCreateTable(Span s, boolean replace) :
     final SqlIdentifier id;
     SqlNodeList tableElementList = null;
     SqlNode query = null;
+    int ttlNumber = -1;
+    char ttlUnit = 's';
+    SqlIdentifier ttlColumn = null;
 }
 {
     <TABLE> ifNotExists = IfNotExistsOpt() id = CompoundIdentifier()
     [ tableElementList = TableElementList() ]
+    [
+        <USING> <TTL> ttlNumber = UnsignedIntLiteral()
+        [ ttlUnit = TtlUnitLiteral() ]
+        <ON>
+        <COLUMN> ttlColumn = SimpleIdentifier()
+    ]
     [ <AS> query = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY) ]
     {
         return SqlDdlNodes.createTable(s.end(this), replace, ifNotExists, id,
-            tableElementList, query);
+            tableElementList, query)
+        .setTtlConstraint(ttlColumn == null ? null :
+           new org.apache.calcite.sql.ddl.SqlCreateTable.TtlConstraint(ttlNumber, ttlUnit, ttlColumn));
     }
 }
 

@@ -23,6 +23,7 @@ import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDrop;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -153,6 +154,16 @@ public class SqlDdlNodes {
     return new SqlKeyConstraint(pos, name, columnList);
   }
 
+  /** Creates an ASSUMEUNIQUE constraint. */
+  public static SqlKeyConstraint assumeUnique(SqlParserPos pos, SqlIdentifier name,
+      SqlNodeList columnList) {
+    return new SqlKeyConstraint(pos, name, columnList) {
+      @Override public SqlOperator getOperator() {
+        return ASSUME_UNIQUE;
+      }
+    };
+  }
+
   /** Creates a PRIMARY KEY constraint. */
   public static SqlKeyConstraint primary(SqlParserPos pos, SqlIdentifier name,
       SqlNodeList columnList) {
@@ -161,6 +172,12 @@ public class SqlDdlNodes {
         return PRIMARY;
       }
     };
+  }
+
+  /** Creates a LIMIT PARTITION ROWS constraint. */
+  public static SqlKeyConstraint limitPartitionRows(SqlParserPos pos, SqlIdentifier name,
+      int val, SqlDelete delStmt) {
+    return new SqlLimitPartitionRowsConstraint(pos, name, val, delStmt);
   }
 
   /** Returns the schema in which to create an object. */

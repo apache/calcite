@@ -63,6 +63,10 @@ public class SqlDataTypeSpec extends SqlNode {
   // Only applies to the VoltDB VARCHAR type, indicates whether the column size
   // is specified in bytes.
   private boolean inBytes = false;
+  private boolean isUnique = false;
+  private boolean isAssumeUnique = false;
+  private boolean isPKey = false;
+  private boolean isUsingTTL = false;
   private final String charSetName;
   private final TimeZone timeZone;
 
@@ -147,9 +151,9 @@ public class SqlDataTypeSpec extends SqlNode {
   public SqlNode clone(SqlParserPos pos) {
     return (collectionsTypeName != null)
         ? new SqlDataTypeSpec(collectionsTypeName, typeName, precision, scale,
-            charSetName, pos).setInBytes(inBytes)
+            charSetName, pos)
         : new SqlDataTypeSpec(typeName, precision, scale, charSetName, timeZone,
-            pos).setInBytes(inBytes);
+            pos);
   }
 
   public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
@@ -193,6 +197,42 @@ public class SqlDataTypeSpec extends SqlNode {
     return this;
   }
 
+  public boolean getIsUnique() {
+    return isUnique;
+  }
+
+  public SqlDataTypeSpec setIsUnique(boolean isUnique) {
+    this.isUnique = isUnique;
+    return this;
+  }
+
+  public boolean getIsAssumeUnique() {
+    return isAssumeUnique;
+  }
+
+  public SqlDataTypeSpec setIsAssumeUnique(boolean isAssumeUnique) {
+    this.isAssumeUnique = isAssumeUnique;
+    return this;
+  }
+
+  public boolean getIsPKey() {
+    return isPKey;
+  }
+
+  public SqlDataTypeSpec setIsPKey(boolean isPKey) {
+    this.isPKey = isPKey;
+    return this;
+  }
+
+  public boolean getIsUsingTTL() {
+    return isUsingTTL;
+  }
+
+  public SqlDataTypeSpec setIsUsingTTL(boolean isUsingTTL) {
+    this.isUsingTTL = isUsingTTL;
+    return this;
+  }
+
   /** Returns a copy of this data type specification with a given
    * nullability. */
   public SqlDataTypeSpec withNullable(Boolean nullable) {
@@ -201,7 +241,10 @@ public class SqlDataTypeSpec extends SqlNode {
     }
     return new SqlDataTypeSpec(collectionsTypeName, typeName, precision, scale,
         charSetName, timeZone, nullable, getParserPosition())
-        .setInBytes(inBytes);
+       .setInBytes(inBytes)
+       .setIsUnique(isUnique)
+       .setIsAssumeUnique(isAssumeUnique)
+       .setIsPKey(isPKey);
   }
 
   /**
@@ -218,7 +261,10 @@ public class SqlDataTypeSpec extends SqlNode {
         charSetName,
         timeZone,
         getParserPosition())
-       .setInBytes(inBytes);
+       .setInBytes(inBytes)
+       .setIsUnique(isUnique)
+       .setIsAssumeUnique(isAssumeUnique)
+       .setIsPKey(isPKey);
   }
 
   public void unparse(

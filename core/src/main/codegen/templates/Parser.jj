@@ -4353,6 +4353,25 @@ int UnsignedIntLiteral() :
     }
 }
 
+char TtlUnitLiteral() :
+{
+   final char t;
+}
+{
+   (
+        <SECONDS> { t = 's'; }
+   |
+        <MINUTES> { t = 'm'; }
+   |
+        <HOURS> { t = 'h'; }
+   |
+        <DAYS> { t = 'd'; }
+   )
+   {
+      return t;
+   }
+}
+
 int IntLiteral() :
 {
     Token t;
@@ -4388,6 +4407,9 @@ SqlDataTypeSpec DataType() :
     int scale = -1;
     int precision = -1;
     boolean inBytes = false;
+    boolean isUnique = false;
+    boolean isAssumeUnique = false;
+    boolean isPKey = false;
     String charSetName = null;
     final Span s;
 }
@@ -4415,6 +4437,24 @@ SqlDataTypeSpec DataType() :
         charSetName = Identifier()
     ]
     [
+       <PRIMARY> <KEY>
+       {
+          isPKey = true;
+       }
+    ]
+    [
+       <UNIQUE>
+       {
+          isUnique = true;
+       }
+    ]
+    [
+       <ASSUME_UNIQUE>
+       {
+          isAssumeUnique = true;
+       }
+    ]
+    [
         collectionTypeName = CollectionsTypeName()
     ]
     {
@@ -4434,7 +4474,10 @@ SqlDataTypeSpec DataType() :
             charSetName,
             null,
             s.end(this))
-        .setInBytes(inBytes);
+        .setInBytes(inBytes)
+        .setIsUnique(isUnique)
+        .setIsAssumeUnique(isAssumeUnique)
+        .setIsPKey(isPKey);
     }
 }
 
@@ -5486,6 +5529,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < ARRAY: "ARRAY" >
 |   < ARRAY_MAX_CARDINALITY: "ARRAY_MAX_CARDINALITY" >
 |   < AS: "AS" >
+|   < ASSUME_UNIQUE: "ASSUMEUNIQUE" >
 |   < ASC: "ASC" >
 |   < ASENSITIVE: "ASENSITIVE" >
 |   < ASSERTION: "ASSERTION" >
@@ -5598,6 +5642,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < DATETIME_INTERVAL_CODE: "DATETIME_INTERVAL_CODE" >
 |   < DATETIME_INTERVAL_PRECISION: "DATETIME_INTERVAL_PRECISION" >
 |   < DAY: "DAY" >
+|   < DAYS: "DAYS" >
 |   < DEALLOCATE: "DEALLOCATE" >
 |   < DEC: "DEC" >
 |   < DECADE: "DECADE" >
@@ -5695,6 +5740,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < HIERARCHY: "HIERARCHY" >
 |   < HOLD: "HOLD" >
 |   < HOUR: "HOUR" >
+|   < HOURS: "HOURS" >
 |   < IDENTITY: "IDENTITY" >
 |   < IMMEDIATE: "IMMEDIATE" >
 |   < IMMEDIATELY: "IMMEDIATELY" >
@@ -5774,6 +5820,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < MILLENNIUM: "MILLENNIUM" >
 |   < MIN: "MIN" >
 |   < MINUTE: "MINUTE" >
+|   < MINUTES: "MINUTES" >
 |   < MINVALUE: "MINVALUE" >
 |   < MOD: "MOD" >
 |   < MODIFIES: "MODIFIES" >
@@ -5919,6 +5966,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < ROWS: "ROWS" >
 |   < RUNNING: "RUNNING" >
 |   < SAVEPOINT: "SAVEPOINT" >
+|   < SECONDS: "SECONDS" >
 |   < SCALE: "SCALE" >
 |   < SCHEMA: "SCHEMA" >
 |   < SCHEMA_NAME: "SCHEMA_NAME" >
@@ -6065,6 +6113,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < TRIM_ARRAY: "TRIM_ARRAY" >
 |   < TRUE: "TRUE" >
 |   < TRUNCATE: "TRUNCATE" >
+|   < TTL: "TTL" >
 |   < TYPE: "TYPE" >
 |   < UESCAPE: "UESCAPE" >
 |   < UNBOUNDED: "UNBOUNDED" >
@@ -6196,6 +6245,7 @@ String CommonNonReservedKeyWord() :
     |   <DATABASE>
     |   <DATETIME_INTERVAL_CODE>
     |   <DATETIME_INTERVAL_PRECISION>
+    |   <DAYS>
     |   <DECADE>
     |   <DEFAULTS>
     |   <DEFERRABLE>
@@ -6233,6 +6283,7 @@ String CommonNonReservedKeyWord() :
     |   <GOTO>
     |   <GRANTED>
     |   <HIERARCHY>
+    |   <HOURS>
     |   <IMMEDIATE>
     |   <IMMEDIATELY>
     |   <IMPLEMENTATION>
@@ -6266,6 +6317,7 @@ String CommonNonReservedKeyWord() :
     |   <MESSAGE_LENGTH>
     |   <MESSAGE_OCTET_LENGTH>
     |   <MESSAGE_TEXT>
+    |   <MINUTES>
     |   <MILLISECOND>
     |   <MILLENNIUM>
     |   <MINVALUE>
@@ -6331,6 +6383,7 @@ String CommonNonReservedKeyWord() :
     |   <SCOPE_CATALOGS>
     |   <SCOPE_NAME>
     |   <SCOPE_SCHEMA>
+    |   <SECONDS>
     |   <SECTION>
     |   <SECURITY>
     |   <SELF>
@@ -6406,6 +6459,7 @@ String CommonNonReservedKeyWord() :
     |   <TIMESTAMPADD>
     |   <TIMESTAMPDIFF>
     |   <TOP_LEVEL_COUNT>
+    |   <TTL>
     |   <TRANSACTION>
     |   <TRANSACTIONS_ACTIVE>
     |   <TRANSACTIONS_COMMITTED>

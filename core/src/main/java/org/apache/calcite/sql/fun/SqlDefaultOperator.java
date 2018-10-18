@@ -36,7 +36,7 @@ class SqlDefaultOperator extends SqlSpecialOperator {
   SqlDefaultOperator() {
     super("DEFAULT", SqlKind.DEFAULT, 100, true,
         ReturnTypes.explicit(SqlTypeName.ANY), InferTypes.RETURN_TYPE,
-        OperandTypes.NILADIC);
+        OperandTypes.VARIADIC);
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
