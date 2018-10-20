@@ -332,14 +332,13 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
   }
 
   public SqlMonotonicity getMonotonicity(String columnName) {
-    final int i = rowType.getFieldNames().indexOf(columnName);
-    if (i >= 0) {
-      for (RelCollation collation : table.getStatistic().getCollations()) {
-        final RelFieldCollation fieldCollation =
-            collation.getFieldCollations().get(0);
-        if (fieldCollation.getFieldIndex() == i) {
-          return fieldCollation.direction.monotonicity();
-        }
+    for (RelCollation collation : table.getStatistic().getCollations()) {
+      final RelFieldCollation fieldCollation =
+          collation.getFieldCollations().get(0);
+      final int fieldIndex = fieldCollation.getFieldIndex();
+      if (rowType.getFieldCount() > fieldIndex
+          && rowType.getFieldNames().get(fieldIndex).equals(columnName)) {
+        return fieldCollation.direction.monotonicity();
       }
     }
     return SqlMonotonicity.NOT_MONOTONIC;
