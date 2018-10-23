@@ -72,7 +72,6 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import static org.apache.calcite.util.Static.RESOURCE;
-import static org.apache.calcite.util.TestUtil.repeat;
 import static org.apache.calcite.util.Util.toLinux;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -797,19 +796,28 @@ public class SqlParserTest {
     * <a href="https://issues.apache.org/jira/browse/CALCITE-2636">[CALCITE-2636]
     * SQL parser has quadratic running time when SQL string is very large</a>.
     *
-    * <p>Before fix, this test took 70s for n = 1_000_000; after, 2s. */
+    * <p>Before fix, this test took 107s for n = 2_000_000; after, 0.6s. */
   @Test void testLarge() {
-    checkLarge(1_000_000);
+    checkLarge(2_000_000);
   }
 
   private void checkLarge(int n) {
-    String sql = "select '"
-        + repeat("abcdefghi ", n)
-        + "' from (values (1))";
-    String expected = "SELECT '"
-        + repeat("abcdefghi ", n)
-        + "'\nFROM (VALUES (ROW(1)))";
-    sql(sql).ok(expected);
+    final CharSequence bigString = TestUtil.repeat("abcdefghi ", n);
+
+    // a query with a character literal of length 10 * n
+    String sql0 = "select '" + bigString + "' from (values (1))";
+    String expected0 = "SELECT '" + bigString + "'\n"
+        + "FROM (VALUES (ROW(1)))";
+    sql(sql0).ok(expected0);
+
+    // two queries with comments of length 10 * n
+    final String sql1 = "select 1 /* a large comment: " + bigString + "\n*/";
+    final String expected1 = "SELECT 1";
+    sql(sql1).ok(expected1);
+
+    final String sql2 = "select /* a large comment: " + bigString + "*/ 2";
+    final String expected2 = "SELECT 2";
+    sql(sql2).ok(expected2);
   }
 
   // TODO: should fail in parser
