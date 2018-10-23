@@ -72,6 +72,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+import static org.apache.calcite.util.TestUtil.repeat;
 import static org.apache.calcite.util.Util.toLinux;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -797,44 +798,18 @@ public class SqlParserTest {
     * SQL parser has quadratic running time when SQL string is very large</a>.
     *
     * <p>Before fix, this test took 70s for n = 1_000_000; after, 2s. */
-  @Test public void testLarge() {
+  @Test void testLarge() {
     checkLarge(1_000_000);
   }
 
   private void checkLarge(int n) {
-    final StringBuilder sql = new StringBuilder()
-        .append("select '")
-        .append(repeat("abcdefghi ", n))
-        .append("' from (values (1))");
-    final StringBuilder expected = new StringBuilder()
-        .append("SELECT '")
-        .append(repeat("abcdefghi ", n))
-        .append("'\nFROM (VALUES (ROW(1)))");
-    sql(sql.toString()).ok(expected.toString());
-  }
-
-  private static CharSequence repeat(String s, int count) {
-    return new CharSequence() {
-      public int length() {
-        return s.length() * count;
-      }
-
-      public char charAt(int index) {
-        return s.charAt(index % s.length());
-      }
-
-      public CharSequence subSequence(int start, int end) {
-        if (start % s.length() == end % s.length()) {
-          final int offset = start % s.length();
-          final String rotated = s.substring(offset) + s.substring(0, offset);
-          return repeat(rotated, (end - start) / s.length());
-        }
-        return new StringBuilder()
-            .append(this)
-            .delete(end, length())
-            .delete(0, start).toString();
-      }
-    };
+    String sql = "select '"
+        + repeat("abcdefghi ", n)
+        + "' from (values (1))";
+    String expected = "SELECT '"
+        + repeat("abcdefghi ", n)
+        + "'\nFROM (VALUES (ROW(1)))";
+    sql(sql).ok(expected);
   }
 
   // TODO: should fail in parser

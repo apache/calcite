@@ -33,6 +33,8 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static org.apache.calcite.util.Util.first;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -424,6 +426,50 @@ public abstract class TestUtil {
         // ignore
       }
       return this;
+    }
+  }
+
+  /** Returns a {@code CharSequence} that contains a given string repeated
+   * {@code count} times. Unlike a String with the same contents, it
+   * is virtual, and only becomes real when, say, someone calls
+   * {@link StringBuilder#append(CharSequence)} with it. */
+  public static CharSequence repeat(String s, int count) {
+    final int length = s.length() * count;
+    return new RepeatCharSequence(s, length);
+  }
+
+  /** CharSequence that repeats a given string up to a given length. */
+  private static class RepeatCharSequence implements CharSequence {
+    private final int length;
+    private final String s;
+
+    RepeatCharSequence(String s, int length) {
+      this.s = requireNonNull(s, "s");
+      this.length = length;
+      checkArgument(!s.isEmpty());
+      checkArgument(length >= 0);
+    }
+
+    @Override public String toString() {
+      //noinspection StringBufferReplaceableByString
+      return new StringBuilder().append(this).toString();
+    }
+
+    @Override public int length() {
+      return length;
+    }
+
+    @Override public char charAt(int index) {
+      return s.charAt(index % s.length());
+    }
+
+    @Override public CharSequence subSequence(int start, int end) {
+      final int offset = start % s.length();
+      if (offset == 0) {
+        return new RepeatCharSequence(s, end - start);
+      }
+      final String rotated = s.substring(offset) + s.substring(0, offset);
+      return new RepeatCharSequence(rotated, end - start);
     }
   }
 }
