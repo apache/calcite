@@ -179,6 +179,7 @@ public class ${parser.class} extends SqlAbstractParserImpl
                 final String sql =
                     ((SourceStringReader) reader).getSourceString();
                 parser.setOriginalSql(sql);
+                parser.jj_input_stream.ReInit(reader, 1, 1, sql.length());
             }
           return parser;
         }
