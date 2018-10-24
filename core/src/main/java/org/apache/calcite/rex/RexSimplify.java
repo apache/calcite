@@ -715,10 +715,11 @@ public class RexSimplify {
           if (!branch.cond.isAlwaysFalse()) {
             // If the condition is not false, we add it to the final result
             branches.add(branch);
-          }
-          if (branch.cond.isAlwaysTrue()) {
-            // If the condition is always true, we are done
-            break;
+            if (branch.cond.isAlwaysTrue()) {
+              // If the condition is always true, we are done
+              lastBranch = null;
+              break;
+            }
           }
           conditionNeedsSimplify = false;
         }
@@ -741,7 +742,7 @@ public class RexSimplify {
 
     if (branches.size() == 1) {
       // we can just return the value in this case (matching the case type)
-      final RexNode value = lastBranch.value;
+      final RexNode value = branches.get(0).value;
       if (sameTypeOrNarrowsNullability(caseType, value.getType())) {
         return value;
       } else {
