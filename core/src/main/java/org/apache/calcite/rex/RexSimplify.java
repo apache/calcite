@@ -676,52 +676,63 @@ public class RexSimplify {
 
   private RexNode simplifyCase(RexCall call, RexUnknownAs unknownAs) {
     List<CaseBranch> inputBranches =
-        CaseBranch.fromCaseOperands(rexBuilder, new ArrayList(call.getOperands()));
+        CaseBranch.fromCaseOperands(rexBuilder, new ArrayList<>(call.getOperands()));
 
     // run simplification on all operands
     RexSimplify branchSimplifier = this;
-    RelDataType branchType = call.getType();
+    RelDataType caseType = call.getType();
 
+    boolean merged = false;
+    CaseBranch lastBranch = null;
     List<CaseBranch> branches = new ArrayList<>();
     for (CaseBranch branch : inputBranches) {
       // simplify the condition
       RexNode newCond = branchSimplifier.simplify(branch.cond, RexUnknownAs.FALSE);
+      if (newCond.isAlwaysFalse()) {
+        // If the condition is false, we do not need to add it
+        continue;
+      }
 
-      // use the condition to simplify the branch
-      RexNode value = branch.value;
-      RexNode newValue = branchSimplifier.simplify(value, unknownAs);
+      // simplify the value
+      RexNode newValue = branchSimplifier.simplify(branch.value, unknownAs);
 
-      branches.add(new CaseBranch(newCond, newValue));
-    }
+      // create new branch
+      if (lastBranch != null) {
+        if (lastBranch.value.toString().equals(newValue.toString())
+            && isSafeExpression(newCond)) {
+          // in this case, last branch and new branch have the same conclusion,
+          // hence we create a new composite one
+          newCond = rexBuilder.makeCall(SqlStdOperatorTable.OR, lastBranch.cond, newCond);
+          merged = true;
+        } else {
+          simplifyAndAddToBranches(merged, branches, lastBranch);
+          merged = false;
+        }
+      }
+      lastBranch = new CaseBranch(newCond, newValue);
 
-    // remove branches with invalid conditions
-    branches.removeIf(branch -> branch.cond.isAlwaysFalse());
-
-    // delete all branches after the first AlwaysTrue
-    for (int i = 0; i < branches.size(); i++) {
-      CaseBranch branch = branches.get(i);
-      if (branch.cond.isAlwaysTrue()) {
-        branches.subList(i + 1, branches.size()).clear();
+      if (newCond.isAlwaysTrue()) {
+        // If the condition is always true, we are done
         break;
       }
     }
-
-    branches = compactBranchesWithTheSameConclusion(branches);
+    if (lastBranch != null) {
+      simplifyAndAddToBranches(merged, branches, lastBranch);
+    }
 
     if (branches.size() == 1) {
-      final RexNode firstValue = branches.get(0).value;
-
-      if (sameTypeOrNarrowsNullability(branchType, firstValue.getType())) {
-        return firstValue;
+      final RexNode value = lastBranch.value;
+      if (sameTypeOrNarrowsNullability(caseType, value.getType())) {
+        return value;
       } else {
-        return rexBuilder.makeAbstractCast(branchType, firstValue);
+        return rexBuilder.makeAbstractCast(caseType, value);
       }
     }
 
     if (call.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
-      final RexNode result = simplifyBooleanCase(rexBuilder, branches, unknownAs, branchType);
+      final RexNode result = simplifyBooleanCase(rexBuilder, branches, unknownAs, caseType);
       if (result != null) {
-        if (sameTypeOrNarrowsNullability(branchType, result.getType())) {
+        if (sameTypeOrNarrowsNullability(caseType, result.getType())) {
           return simplify(result, unknownAs);
         } else {
           // If the simplification would widen the nullability
@@ -738,30 +749,22 @@ public class RexSimplify {
     if (newOperands.equals(call.getOperands())) {
       return call;
     }
-    RexNode retNode = rexBuilder.makeCall(SqlStdOperatorTable.CASE, newOperands);
-    assert sameTypeOrNarrowsNullability(branchType, retNode.getType()) : "Unexpected type change.";
-    return retNode;
+    return rexBuilder.makeCall(SqlStdOperatorTable.CASE, newOperands);
   }
 
-  private List<CaseBranch> compactBranchesWithTheSameConclusion(List<CaseBranch> branches) {
-    ArrayList newBranches = new ArrayList<>();
-    CaseBranch last = null;
-    for (CaseBranch b : branches) {
-      if (last == null) {
-        last = b;
-      } else {
-        if (last.value.toString().equals(b.value.toString()) && isSafeExpression(b.cond)) {
-          RexNode newCond = rexBuilder.makeCall(SqlStdOperatorTable.OR, last.cond, b.cond);
-          // last and b are 2 consequent branches with the same conclusion
-          last = new CaseBranch(simplify(newCond, UNKNOWN.FALSE), last.value);
-        } else {
-          newBranches.add(last);
-          last = b;
-        }
-      }
+  /**
+   * If boolean is true, first simplify when clause in branch, then add new case to branches.
+   * Otherwise, simply add input case to branches.
+   */
+  private void simplifyAndAddToBranches(boolean simplifyCond, List<CaseBranch> branches,
+      CaseBranch branch) {
+    if (simplifyCond) {
+      // the previous branch was merged, time to simplify it and
+      // add it to the final result
+      branch = new CaseBranch(
+          simplify(branch.cond, RexUnknownAs.FALSE), branch.value);
     }
-    newBranches.add(last);
-    return newBranches;
+    branches.add(branch);
   }
 
   /**
