@@ -679,7 +679,8 @@ public class RexSimplify {
         CaseBranch.fromCaseOperands(rexBuilder, new ArrayList<>(call.getOperands()));
 
     // run simplification on all operands
-    RexSimplify branchSimplifier = this;
+    RexSimplify condSimplifier = this.withPredicates(RelOptPredicateList.EMPTY);
+    RexSimplify valueSimplifier = this;
     RelDataType caseType = call.getType();
 
     boolean merged = false;
@@ -687,14 +688,14 @@ public class RexSimplify {
     List<CaseBranch> branches = new ArrayList<>();
     for (CaseBranch branch : inputBranches) {
       // simplify the condition
-      RexNode newCond = branchSimplifier.simplify(branch.cond, RexUnknownAs.FALSE);
+      RexNode newCond = condSimplifier.simplify(branch.cond, RexUnknownAs.FALSE);
       if (newCond.isAlwaysFalse()) {
         // If the condition is false, we do not need to add it
         continue;
       }
 
       // simplify the value
-      RexNode newValue = branchSimplifier.simplify(branch.value, unknownAs);
+      RexNode newValue = valueSimplifier.simplify(branch.value, unknownAs);
 
       // create new branch
       if (lastBranch != null) {
@@ -705,7 +706,7 @@ public class RexSimplify {
           newCond = rexBuilder.makeCall(SqlStdOperatorTable.OR, lastBranch.cond, newCond);
           merged = true;
         } else {
-          simplifyAndAddToBranches(merged, branches, lastBranch);
+          simplifyAndAddToBranches(merged, condSimplifier, lastBranch, branches);
           merged = false;
         }
       }
@@ -717,7 +718,7 @@ public class RexSimplify {
       }
     }
     if (lastBranch != null) {
-      simplifyAndAddToBranches(merged, branches, lastBranch);
+      simplifyAndAddToBranches(merged, condSimplifier, lastBranch, branches);
     }
 
     if (branches.size() == 1) {
@@ -756,13 +757,13 @@ public class RexSimplify {
    * If boolean is true, first simplify when clause in branch, then add new case to branches.
    * Otherwise, simply add input case to branches.
    */
-  private void simplifyAndAddToBranches(boolean simplifyCond, List<CaseBranch> branches,
-      CaseBranch branch) {
+  private void simplifyAndAddToBranches(boolean simplifyCond, RexSimplify simplifier,
+      CaseBranch branch, List<CaseBranch> branches) {
     if (simplifyCond) {
       // the previous branch was merged, time to simplify it and
       // add it to the final result
       branch = new CaseBranch(
-          simplify(branch.cond, RexUnknownAs.FALSE), branch.value);
+          simplifier.simplify(branch.cond, RexUnknownAs.FALSE), branch.value);
     }
     branches.add(branch);
   }
@@ -910,7 +911,7 @@ public class RexSimplify {
   *
   * CaseSafe means that it only contains a combination of known good operators.
   *
-  * The divison is an unsafe operator, consider:
+  * The division is an unsafe operator, consider:
   * <pre>case when a &gt; 0 then 1/a else null end</pre>
   */
   static boolean isSafeExpression(RexNode r) {

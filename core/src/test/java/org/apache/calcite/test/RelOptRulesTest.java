@@ -4056,6 +4056,17 @@ public class RelOptRulesTest extends RelOptTestBase {
     final String planAfter = NL + RelOptUtil.toString(relAfter);
     diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
   }
+
+  @Test public void testOversimplifiedCaseStatement() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .build();
+
+    String sql = "select * from emp "
+        + "where MGR > 0 and "
+        + "case when MGR > 0 then deptno / MGR else null end > 1";
+    checkPlanning(program, sql);
+  }
 }
 
 // End RelOptRulesTest.java
