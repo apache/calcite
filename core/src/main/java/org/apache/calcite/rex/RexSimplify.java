@@ -702,10 +702,15 @@ public class RexSimplify {
         if (lastBranch.value.toString().equals(newValue.toString())
             && isSafeExpression(newCond)) {
           // in this case, last branch and new branch have the same conclusion,
-          // hence we create a new composite one
+          // hence we create a new composite condition and we do not add it to
+          // the final branches for the time being
           newCond = rexBuilder.makeCall(SqlStdOperatorTable.OR, lastBranch.cond, newCond);
           merged = true;
         } else {
+          // if we reach here, the new branch is not mergeable with the last one,
+          // hence we are going to add the last branch to the final branches.
+          // if the last branch was merged, then we will simplify it first.
+          // otherwise, we just add it
           branches.add(generateBranch(merged, condSimplifier, lastBranch));
           merged = false;
         }
@@ -718,10 +723,13 @@ public class RexSimplify {
       }
     }
     if (lastBranch != null) {
+      // we need to add the last pending branch once we have finished
+      // with the for loop
       branches.add(generateBranch(merged, condSimplifier, lastBranch));
     }
 
     if (branches.size() == 1) {
+      // we can just return the value in this case (matching the case type)
       final RexNode value = lastBranch.value;
       if (sameTypeOrNarrowsNullability(caseType, value.getType())) {
         return value;
