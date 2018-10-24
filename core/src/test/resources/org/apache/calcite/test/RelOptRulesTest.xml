@@ -6201,16 +6201,18 @@ LogicalProject(EMPNO=[$0])
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-LogicalProject(SAL=[$0], EXPR$1=[+($0, 5)], T=[$1])
-  LogicalProject(SAL=[$5], T=[CURRENT_TIMESTAMP])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(SAL=[$0], R=[$1])
+  LogicalFilter(condition=[>($1, 0.5)])
+    LogicalProject(SAL=[$5], R=[RAND()])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(SAL=[$0], EXPR$1=[+($0, 5)], T=[$1])
-  LogicalProject(SAL=[$5], T=[CURRENT_TIMESTAMP])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(SAL=[$0], R=[$1])
+  LogicalFilter(condition=[>($1, 0.5)])
+    LogicalProject(SAL=[$5], R=[RAND()])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
