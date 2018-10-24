@@ -6120,6 +6120,29 @@ LogicalProject(EXPR$0=[CASE(=($1, 0), null, $0)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testReduceConstantsDynamicFunction">
+        <Resource name="sql">
+            <![CDATA[select sal, t
+from (select sal, current_timestamp t from emp)
+where t > TIMESTAMP '2018-01-01 00:00:00']]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(SAL=[$0], T=[$1])
+  LogicalFilter(condition=[>($1, 2018-01-01 00:00:00)])
+    LogicalProject(SAL=[$5], T=[CURRENT_TIMESTAMP])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(SAL=[$0], T=[$1])
+  LogicalFilter(condition=[>($1, 2018-01-01 00:00:00)])
+    LogicalProject(SAL=[$5], T=[CURRENT_TIMESTAMP])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testReduceConstantsIsNotNull">
         <Resource name="sql">
             <![CDATA[select empno from emp
@@ -6425,6 +6448,27 @@ LogicalProject(DEPTNO=[$0], DEPTNO0=[$9])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[*($7, 2)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceConstantsNonDeterministicFunction">
+        <Resource name="sql">
+            <![CDATA[select sal, r
+from (select sal, rand() as r from emp)
+where r > 0.5]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalFilter(condition=[>($1, 10)])
+  LogicalProject(SAL=[$5], N=[NDC()])
+    LogicalTableScan(table=[[scott, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalFilter(condition=[>($1, 10)])
+  LogicalProject(SAL=[$5], N=[NDC()])
+    LogicalTableScan(table=[[scott, EMP]])
 ]]>
         </Resource>
     </TestCase>
