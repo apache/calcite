@@ -762,8 +762,8 @@ public class RexSimplify {
   }
 
   /**
-   * If boolean is true, first simplify when clause in branch, then add new case to branches.
-   * Otherwise, simply add input case to branches.
+   * If boolean is true, simplify cond in input branch and return new branch.
+   * Otherwise, simply return input branch.
    */
   private CaseBranch generateBranch(boolean simplifyCond, RexSimplify simplifier,
       CaseBranch branch) {
