@@ -683,19 +683,19 @@ public class RexSimplify {
     RexSimplify valueSimplifier = this;
     RelDataType caseType = call.getType();
 
-    boolean merged = false;
+    boolean conditionNeedsSimplify = false;
     CaseBranch lastBranch = null;
     List<CaseBranch> branches = new ArrayList<>();
-    for (CaseBranch branch : inputBranches) {
+    for (CaseBranch inputBranch : inputBranches) {
       // simplify the condition
-      RexNode newCond = condSimplifier.simplify(branch.cond, RexUnknownAs.FALSE);
+      RexNode newCond = condSimplifier.simplify(inputBranch.cond, RexUnknownAs.FALSE);
       if (newCond.isAlwaysFalse()) {
         // If the condition is false, we do not need to add it
         continue;
       }
 
       // simplify the value
-      RexNode newValue = valueSimplifier.simplify(branch.value, unknownAs);
+      RexNode newValue = valueSimplifier.simplify(inputBranch.value, unknownAs);
 
       // create new branch
       if (lastBranch != null) {
@@ -705,27 +705,38 @@ public class RexSimplify {
           // hence we create a new composite condition and we do not add it to
           // the final branches for the time being
           newCond = rexBuilder.makeCall(SqlStdOperatorTable.OR, lastBranch.cond, newCond);
-          merged = true;
+          conditionNeedsSimplify = true;
         } else {
           // if we reach here, the new branch is not mergeable with the last one,
           // hence we are going to add the last branch to the final branches.
           // if the last branch was merged, then we will simplify it first.
           // otherwise, we just add it
-          branches.add(generateBranch(merged, condSimplifier, lastBranch));
-          merged = false;
+          CaseBranch branch = generateBranch(conditionNeedsSimplify, condSimplifier, lastBranch);
+          if (!branch.cond.isAlwaysFalse()) {
+            // If the condition is not false, we add it to the final result
+            branches.add(branch);
+          }
+          if (branch.cond.isAlwaysTrue()) {
+            // If the condition is always true, we are done
+            break;
+          }
+          conditionNeedsSimplify = false;
         }
       }
       lastBranch = new CaseBranch(newCond, newValue);
 
       if (newCond.isAlwaysTrue()) {
-        // If the condition is always true, we are done
+        // If the condition is always true, we are done (useful in first loop iteration)
         break;
       }
     }
     if (lastBranch != null) {
       // we need to add the last pending branch once we have finished
       // with the for loop
-      branches.add(generateBranch(merged, condSimplifier, lastBranch));
+      CaseBranch branch = generateBranch(conditionNeedsSimplify, condSimplifier, lastBranch);
+      if (!branch.cond.isAlwaysFalse()) {
+        branches.add(branch);
+      }
     }
 
     if (branches.size() == 1) {
