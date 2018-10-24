@@ -910,7 +910,12 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
 
     @Override public Void visitInputRef(RexInputRef inputRef) {
       if (constants.containsKey(inputRef)) {
-        stack.add(Constancy.REDUCIBLE_CONSTANT);
+        if (constants.get(inputRef) instanceof RexCall) {
+          RexCall call = (RexCall) constants.get(inputRef);
+          call.accept(this);
+        } else {
+          stack.add(Constancy.REDUCIBLE_CONSTANT);
+        }
         return null;
       }
       return pushVariable();

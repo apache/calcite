@@ -2178,6 +2178,18 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(program, sql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2638">[CALCITE-2638]
+   * Should not do constant reduction when dynamic function is as inputRef in project</a>. */
+  @Test public void testReduceConstantsOfDynamicFunctionAsInputRef() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)
+        .build();
+
+    final String sql = "select sal, sal + 5, t from (select sal, current_timestamp as t from emp)";
+    sql(sql).with(program).checkUnchanged();
+  }
+
   @Test public void testCasePushIsAlwaysWorking() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)

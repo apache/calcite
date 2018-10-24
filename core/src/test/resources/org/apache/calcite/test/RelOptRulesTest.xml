@@ -6195,6 +6195,25 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testReduceConstantsOfDynamicFunctionAsInputRef">
+        <Resource name="sql">
+            <![CDATA[select sal, sal + 5, t from (select sal, current_timestamp as t from emp)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(SAL=[$0], EXPR$1=[+($0, 5)], T=[$1])
+  LogicalProject(SAL=[$5], T=[CURRENT_TIMESTAMP])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(SAL=[$0], EXPR$1=[+($0, 5)], T=[$1])
+  LogicalProject(SAL=[$5], T=[CURRENT_TIMESTAMP])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testReduceConstantsNull">
         <Resource name="sql">
             <![CDATA[select * from (
