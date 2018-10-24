@@ -706,7 +706,7 @@ public class RexSimplify {
           newCond = rexBuilder.makeCall(SqlStdOperatorTable.OR, lastBranch.cond, newCond);
           merged = true;
         } else {
-          simplifyAndAddToBranches(merged, condSimplifier, lastBranch, branches);
+          branches.add(generateBranch(merged, condSimplifier, lastBranch));
           merged = false;
         }
       }
@@ -718,7 +718,7 @@ public class RexSimplify {
       }
     }
     if (lastBranch != null) {
-      simplifyAndAddToBranches(merged, condSimplifier, lastBranch, branches);
+      branches.add(generateBranch(merged, condSimplifier, lastBranch));
     }
 
     if (branches.size() == 1) {
@@ -757,15 +757,15 @@ public class RexSimplify {
    * If boolean is true, first simplify when clause in branch, then add new case to branches.
    * Otherwise, simply add input case to branches.
    */
-  private void simplifyAndAddToBranches(boolean simplifyCond, RexSimplify simplifier,
-      CaseBranch branch, List<CaseBranch> branches) {
+  private CaseBranch generateBranch(boolean simplifyCond, RexSimplify simplifier,
+                                    CaseBranch branch) {
     if (simplifyCond) {
       // the previous branch was merged, time to simplify it and
       // add it to the final result
-      branch = new CaseBranch(
+      return new CaseBranch(
           simplifier.simplify(branch.cond, RexUnknownAs.FALSE), branch.value);
     }
-    branches.add(branch);
+    return branch;
   }
 
   /**
