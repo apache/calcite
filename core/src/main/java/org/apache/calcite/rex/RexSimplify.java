@@ -758,7 +758,7 @@ public class RexSimplify {
    * Otherwise, simply add input case to branches.
    */
   private CaseBranch generateBranch(boolean simplifyCond, RexSimplify simplifier,
-                                    CaseBranch branch) {
+      CaseBranch branch) {
     if (simplifyCond) {
       // the previous branch was merged, time to simplify it and
       // add it to the final result
