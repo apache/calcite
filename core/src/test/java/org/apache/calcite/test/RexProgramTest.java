@@ -1754,6 +1754,28 @@ public class RexProgramTest extends RexProgramBuilderBase {
     assertThat(result, is(condition));
   }
 
+  @Test public void testSimplifyCaseBranchesCollapse() {
+    // case when x is true then 1 when x is not true then 1 else 2 end
+    // => case when x is true or x is not true then 1 else 2 end
+    checkSimplify(
+        case_(
+            isTrue(vBool()), literal(1),
+            isNotTrue(vBool()), literal(1),
+            literal(2)),
+        "CASE(OR(IS TRUE(?0.bool0), IS NOT TRUE(?0.bool0)), 1, 2)");
+  }
+
+  @Test public void testSimplifyCaseBranchesCollapse2() {
+    // case when x is true then 1 when true then 1 else 2 end
+    // => 1
+    checkSimplify(
+        case_(
+            isTrue(vBool()), literal(1),
+            trueLiteral, literal(1),
+            literal(2)),
+        "1");
+  }
+
   @Test public void testSimplifyCaseNullableVarChar() {
     RexNode condition = eq(input(tVarchar(), 0), literal("S"));
     RexNode caseNode = case_(condition, literal("A"), literal("B"));
