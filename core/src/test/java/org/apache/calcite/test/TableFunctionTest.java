@@ -457,6 +457,27 @@ public class TableFunctionTest {
       assertThat(CalciteAssert.toString(resultSet), equalTo(expected));
     }
   }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2641">[CALCITE-2641]</a>
+   */
+  @Test public void testTimestampInParams() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+      final TableFunction table =
+          TableFunctionImpl.create(Smalls.DAYSBETWEEN_METHOD);
+      schema.add("DaysBetween", table);
+      final String sql = "select count(*) as CNT\n"
+          + "from table(\"s\".\"DaysBetween\"(TIMESTAMP '2018-01-01 01:01:01', TIMESTAMP '2018-01-05 01:01:01')) \n";
+      ResultSet resultSet = connection.createStatement().executeQuery(sql);
+      assertThat(CalciteAssert.toString(resultSet),
+          equalTo("CNT=3\n"));
+    }
+  }
 }
 
 // End TableFunctionTest.java
