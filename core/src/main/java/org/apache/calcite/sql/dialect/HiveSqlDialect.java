@@ -17,9 +17,13 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 /**
  * A <code>SqlDialect</code> implementation for the Apache Hive database.
@@ -58,6 +62,32 @@ public class HiveSqlDialect extends SqlDialect {
     }
 
     return null;
+  }
+
+  @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,
+      final int rightPrec) {
+    switch (call.getOperator().getName()) {
+
+    case "POSITION":
+      final SqlWriter.Frame frame = writer.startFunCall("INSTR");
+      writer.sep(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      if (3 == call.operandCount()) {
+        throw new RuntimeException("3rd operand Not Supported for Function INSTR in Hive");
+      }
+      writer.endFunCall(frame);
+      break;
+
+    case "MOD":
+      SqlOperator op = SqlStdOperatorTable.PERCENT_REMAINDER;
+      SqlSyntax.BINARY.unparse(writer, op, call, leftPrec, rightPrec);
+      break;
+
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
   }
 
   @Override public boolean supportsCharSet() {

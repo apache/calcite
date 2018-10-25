@@ -17,7 +17,13 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.SqlWriter;
 
 /**
  * A <code>SqlDialect</code> implementation for Google BigQuery's "Standard SQL"
@@ -34,6 +40,31 @@ public class BigQuerySqlDialect extends SqlDialect {
   public BigQuerySqlDialect(SqlDialect.Context context) {
     super(context);
   }
+
+  @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,
+      final int rightPrec) {
+    switch (call.getOperator().getName()) {
+    case "POSITION":
+      final SqlWriter.Frame frame = writer.startFunCall("STRPOS");
+      writer.sep(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      if (3 == call.operandCount()) {
+        throw new RuntimeException("3rd operand Not Supported for Function STRPOS in Big Query");
+      }
+      writer.endFunCall(frame);
+      break;
+    case "UNION":
+      SqlSyntax.BINARY.unparse(writer, UNION_DISTINCT, call, leftPrec, rightPrec);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private static final SqlOperator UNION_DISTINCT = new SqlSetOperator(
+      "UNION DISTINCT", SqlKind.UNION, 14, true);
 }
 
 // End BigQuerySqlDialect.java
