@@ -706,7 +706,7 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <!-- If you are looking to change source/target, 
+        <!-- If you are looking to change source/target,
              change the maven.compiler.{source,target} property -->
         <configuration>
           <compilerArgument>-Xlint:deprecation</compilerArgument>
@@ -723,7 +723,6 @@ limitations under the License.
               <configLocation>${top.dir}/src/main/config/checkstyle/checker.xml</configLocation>
               <suppressionsLocation>${top.dir}/src/main/config/checkstyle/suppressions.xml</suppressionsLocation>
               <consoleOutput>true</consoleOutput>
-              <headerLocation>${top.dir}/src/main/config/checkstyle/header.txt</headerLocation>
               <failOnViolation>true</failOnViolation>
               <includeTestSourceDirectory>true</includeTestSourceDirectory>
             </configuration>
