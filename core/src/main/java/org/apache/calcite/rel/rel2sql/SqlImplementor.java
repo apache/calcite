@@ -662,8 +662,11 @@ public abstract class SqlImplementor {
       // "disallow partial" and set the allowPartial = false.
       final SqlLiteral allowPartial = null;
 
+      final SqlAggFunction sqlAggregateFunction = rexOver.getAggOperator();
+
       final SqlWindow sqlWindow = SqlWindow.create(null, null, partitionList,
-          orderList, isRows, lowerBound, upperBound, allowPartial, POS);
+          orderList, isRows, lowerBound, upperBound, allowPartial, POS,
+          sqlAggregateFunction.allowsFraming());
 
       final List<SqlNode> nodeList = toSql(program, rexOver.getOperands());
       final SqlCall aggFunctionCall =
