@@ -730,7 +730,6 @@ public abstract class CalciteSchema {
     public TableEntryImpl(CalciteSchema schema, String name, Table table,
         ImmutableList<String> sqls) {
       super(schema, name, sqls);
-      assert table != null;
       this.table = Objects.requireNonNull(table);
     }
 

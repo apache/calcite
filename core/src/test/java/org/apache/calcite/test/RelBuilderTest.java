@@ -17,12 +17,15 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Window;
@@ -56,13 +59,14 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
-import org.junit.Ignore;
+import org.hamcrest.Matcher;
 import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -120,6 +124,30 @@ public class RelBuilderTest {
             CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.SCOTT))
         .traitDefs((List<RelTraitDef>) null)
         .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2));
+  }
+
+  /** Creates a config builder that will contain a view, "MYVIEW", and also
+   * the SCOTT JDBC schema, whose tables implement
+   * {@link org.apache.calcite.schema.TranslatableTable}. */
+  static Frameworks.ConfigBuilder expandingConfig(Connection connection)
+      throws SQLException {
+    final CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    final SchemaPlus root = calciteConnection.getRootSchema();
+    CalciteAssert.SchemaSpec spec = CalciteAssert.SchemaSpec.SCOTT;
+    CalciteAssert.addSchema(root, spec);
+    final String viewSql =
+        String.format(Locale.ROOT, "select * from \"%s\".\"%s\" where 1=1",
+            spec.schemaName, "EMP");
+
+    // create view
+    ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
+        Collections.singletonList("test"), Arrays.asList("test", "view"), false);
+
+    // register view (in root schema)
+    root.add("MYVIEW", macro);
+
+    return Frameworks.newConfigBuilder().defaultSchema(root);
   }
 
   @Test public void testScan() {
@@ -2189,38 +2217,67 @@ public class RelBuilderTest {
    *
    * <p>This test currently fails (thus ignored).
    */
-  @Ignore("https://issues.apache.org/jira/browse/CALCITE-2441")
-  @Test public void testExpandViewInRelBuilder() throws Exception {
-    final Connection connection = DriverManager.getConnection("jdbc:calcite:");
-    final SchemaPlus root = connection.unwrap(CalciteConnection.class).getRootSchema();
-    CalciteAssert.SchemaSpec spec = CalciteAssert.SchemaSpec.SCOTT;
-    CalciteAssert.addSchema(root, spec);
-    final String viewSql =
-        String.format(Locale.ROOT, "select * from \"%s\".\"%s\" where 1=1",
-            spec.schemaName, "EMP");
+  @Test public void testExpandViewInRelBuilder() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      final Frameworks.ConfigBuilder configBuilder =
+          expandingConfig(connection);
+      final RelOptTable.ViewExpander viewExpander =
+          (RelOptTable.ViewExpander) Frameworks.getPlanner(configBuilder.build());
+      final RelFactories.TableScanFactory tableScanFactory =
+          RelFactories.expandingScanFactory(viewExpander,
+              RelFactories.DEFAULT_TABLE_SCAN_FACTORY);
+      configBuilder.context(Contexts.of(tableScanFactory));
+      final RelBuilder builder = RelBuilder.create(configBuilder.build());
+      RelNode node = builder.scan("MYVIEW").build();
 
-    // create view
-    ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
-        Collections.singletonList("test"), Arrays.asList("test", "view"), false);
-
-    // register view (in root schema)
-    root.add("MYVIEW", macro);
-
-    FrameworkConfig config = Frameworks.newConfigBuilder().defaultSchema(root).build();
-    RelNode node = RelBuilder.create(config).scan("MYVIEW").build();
-
-    int count = 0;
-    try (PreparedStatement statement =
-             connection.unwrap(RelRunner.class).prepare(node);
-        ResultSet resultSet = statement.executeQuery()) {
-      while (resultSet.next()) {
-        count++;
+      int count = 0;
+      try (PreparedStatement statement =
+               connection.unwrap(RelRunner.class).prepare(node);
+           ResultSet resultSet = statement.executeQuery()) {
+        while (resultSet.next()) {
+          count++;
+        }
       }
-    }
 
-    assertTrue(count > 1);
+      assertTrue(count > 1);
+    }
   }
 
+  @Test public void testExpandTable() throws SQLException {
+    final RelOptTable.ViewExpander viewExpander =
+        (rowType, queryString, schemaPath, viewPath) -> null;
+    final RelFactories.TableScanFactory tableScanFactory =
+        RelFactories.expandingScanFactory(viewExpander,
+            RelFactories.DEFAULT_TABLE_SCAN_FACTORY);
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      // First, use a non-expanding RelBuilder. Plan contains LogicalTableScan.
+      final Frameworks.ConfigBuilder configBuilder =
+          expandingConfig(connection);
+      final RelBuilder builder = RelBuilder.create(configBuilder.build());
+      final String expected = "LogicalFilter(condition=[>($2, 10)])\n"
+          + "  LogicalTableScan(table=[[JDBC_SCOTT, EMP]])\n";
+      checkExpandTable(builder, hasTree(expected));
+
+      // Next, use an expanding RelBuilder. Plan contains JdbcTableScan,
+      // because RelBuilder.scan has called RelOptTable.toRel.
+      final FrameworkConfig config = configBuilder
+          .context(Contexts.of(tableScanFactory)).build();
+      final RelBuilder builder2 = RelBuilder.create(config);
+      final String expected2 = "LogicalFilter(condition=[>($2, 10)])\n"
+          + "  JdbcTableScan(table=[[JDBC_SCOTT, EMP]])\n";
+      checkExpandTable(builder2, hasTree(expected2));
+    }
+  }
+
+  private void checkExpandTable(RelBuilder builder, Matcher<RelNode> matcher) {
+    final RelNode root =
+        builder.scan("JDBC_SCOTT", "EMP")
+            .filter(
+                builder.call(SqlStdOperatorTable.GREATER_THAN, builder.field(2),
+                    builder.literal(10)))
+            .build();
+    assertThat(root, matcher);
+  }
 }
 
 // End RelBuilderTest.java

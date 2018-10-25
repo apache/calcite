@@ -933,6 +933,7 @@ public class RelBuilder {
     }
     final RelNode scan = scanFactory.createScan(cluster, relOptTable);
     push(scan);
+    rename(relOptTable.getRowType().getFieldNames());
     return this;
   }
 

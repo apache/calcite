@@ -768,6 +768,11 @@ public class CalciteAssert {
                   + "    (40, 'Empty')) as t(deptno, dname)",
               ImmutableList.of(), ImmutableList.of("POST", "DEPT"),
               null));
+      post.add("DEPT30",
+          ViewTable.viewMacro(post,
+              "select * from dept where deptno = 30",
+              ImmutableList.of("POST"), ImmutableList.of("POST", "DEPT30"),
+              null));
       post.add("EMPS",
           ViewTable.viewMacro(post,
               "select * from (values\n"

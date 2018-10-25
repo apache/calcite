@@ -27,8 +27,8 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.SubstitutionVisitor;
+import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.RelNode;
@@ -148,7 +148,7 @@ public class AggregateStarTableRule extends RelOptRule {
             aggregateTableRowType,
             tableEntry,
             rowCount);
-    relBuilder.push(aggregateRelOptTable.toRel(RelOptUtil.getContext(cluster)));
+    relBuilder.push(aggregateRelOptTable.toRel(ViewExpanders.simpleContext(cluster)));
     if (tileKey == null) {
       if (CalcitePrepareImpl.DEBUG) {
         System.out.println("Using materialization "

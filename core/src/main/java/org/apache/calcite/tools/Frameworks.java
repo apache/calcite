@@ -24,6 +24,7 @@ import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.PlannerImpl;
@@ -202,6 +203,7 @@ public class Frameworks {
     private RelDataTypeSystem typeSystem;
     private boolean evolveLattice;
     private SqlStatisticProvider statisticProvider;
+    private RelOptTable.ViewExpander viewExpander;
 
     /** Creates a ConfigBuilder, initializing to defaults. */
     private ConfigBuilder() {
@@ -236,7 +238,7 @@ public class Frameworks {
       return new StdFrameworkConfig(context, convertletTable, operatorTable,
           programs, traitDefs, parserConfig, sqlToRelConverterConfig,
           defaultSchema, costFactory, typeSystem, executor, evolveLattice,
-          statisticProvider);
+          statisticProvider, viewExpander);
     }
 
     public ConfigBuilder context(Context c) {
@@ -329,6 +331,11 @@ public class Frameworks {
       this.statisticProvider = Objects.requireNonNull(statisticProvider);
       return this;
     }
+
+    public ConfigBuilder viewExpander(RelOptTable.ViewExpander viewExpander) {
+      this.viewExpander = viewExpander;
+      return this;
+    }
   }
 
   /**
@@ -349,6 +356,7 @@ public class Frameworks {
     private final RexExecutor executor;
     private final boolean evolveLattice;
     private final SqlStatisticProvider statisticProvider;
+    private final RelOptTable.ViewExpander viewExpander;
 
     StdFrameworkConfig(Context context,
         SqlRexConvertletTable convertletTable,
@@ -362,7 +370,8 @@ public class Frameworks {
         RelDataTypeSystem typeSystem,
         RexExecutor executor,
         boolean evolveLattice,
-        SqlStatisticProvider statisticProvider) {
+        SqlStatisticProvider statisticProvider,
+        RelOptTable.ViewExpander viewExpander) {
       this.context = context;
       this.convertletTable = convertletTable;
       this.operatorTable = operatorTable;
@@ -376,6 +385,7 @@ public class Frameworks {
       this.executor = executor;
       this.evolveLattice = evolveLattice;
       this.statisticProvider = statisticProvider;
+      this.viewExpander = viewExpander;
     }
 
     public SqlParser.Config getParserConfig() {
@@ -428,6 +438,10 @@ public class Frameworks {
 
     public SqlStatisticProvider getStatisticProvider() {
       return statisticProvider;
+    }
+
+    public RelOptTable.ViewExpander getViewExpander() {
+      return viewExpander;
     }
   }
 }

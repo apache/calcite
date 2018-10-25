@@ -24,6 +24,8 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.RelShuttleImpl;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
@@ -118,13 +120,26 @@ public class ViewTable
     return expandView(context, relOptTable.getRowType(), viewSql).rel;
   }
 
-  private RelRoot expandView(RelOptTable.ToRelContext preparingStmt,
+  private RelRoot expandView(RelOptTable.ToRelContext context,
       RelDataType rowType, String queryString) {
     try {
-      RelRoot root = preparingStmt.expandView(rowType, queryString, schemaPath, viewPath);
-
-      root = root.withRel(RelOptUtil.createCastRel(root.rel, rowType, true));
-      return root;
+      final RelRoot root =
+          context.expandView(rowType, queryString, schemaPath, viewPath);
+      final RelNode rel = RelOptUtil.createCastRel(root.rel, rowType, true);
+      // Expand any views
+      final RelNode rel2 = rel.accept(
+          new RelShuttleImpl() {
+            @Override public RelNode visit(TableScan scan) {
+              final RelOptTable table = scan.getTable();
+              final TranslatableTable translatableTable =
+                  table.unwrap(TranslatableTable.class);
+              if (translatableTable != null) {
+                return translatableTable.toRel(context, table);
+              }
+              return super.visit(scan);
+            }
+          });
+      return root.withRel(rel2);
     } catch (Exception e) {
       throw new RuntimeException("Error while parsing view definition: "
           + queryString, e);

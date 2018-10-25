@@ -19,6 +19,7 @@ package org.apache.calcite.tools;
 import org.apache.calcite.materialize.SqlStatisticProvider;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptCostFactory;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexExecutor;
@@ -133,6 +134,11 @@ public interface FrameworkConfig {
    * direction of relationships.
    */
   SqlStatisticProvider getStatisticProvider();
+
+  /**
+   * Returns a view expander.
+   */
+  RelOptTable.ViewExpander getViewExpander();
 }
 
 // End FrameworkConfig.java
