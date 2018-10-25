@@ -1741,37 +1741,26 @@ public class RexProgramTest extends RexProgramBuilderBase {
 
   @Test public void testSimplifyCaseBranchesCollapse() {
     // case when x is true then 1 when x is not true then 1 else 2 end
-    // => case when x or not(x) then 1 else 2 end
-    RexNode x = input(tBoolean(), 0);
-    RexNode firstCond = isTrue(x);
-    RexNode literal1 = literal(1);
-    RexNode secondCond = isNotTrue(x);
-    RexNode literal2 = literal(2);
-
-    RexNode caseNode = case_(firstCond, literal1, secondCond, literal1, literal2);
-
-    RexNode result =
-        simplify.simplifyUnknownAs(caseNode, RexUnknownAs.FALSE);
-    assertThat(result.getType().isNullable(), is(false));
-    assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.INTEGER));
-    RexNode expectedResult = case_(or(x, not(x)), literal1, literal2);
-    assertThat(result.toString(), is(expectedResult.toString()));
+    // => case when x is true or x is not true then 1 else 2 end
+    checkSimplify3(
+        case_(
+            isTrue(vBool()), literal(1),
+            isNotTrue(vBool()), literal(1),
+            literal(2)),
+        "CASE(OR(IS TRUE(?0.bool0), IS NOT TRUE(?0.bool0)), 1, 2)",
+        "CASE(OR(IS TRUE(?0.bool0), IS NOT TRUE(?0.bool0)), 1, 2)",
+        "CASE(OR(IS TRUE(?0.bool0), IS NOT TRUE(?0.bool0)), 1, 2)");
   }
 
   @Test public void testSimplifyCaseBranchesCollapse2() {
     // case when x is true then 1 when true then 1 else 2 end
     // => 1
-    RexNode cond = isTrue(input(tBoolean(), 0));
-    RexNode literal1 = literal(1);
-    RexNode literal2 = literal(2);
-
-    RexNode caseNode = case_(cond, literal1, trueLiteral, literal1, literal2);
-
-    RexNode result =
-        simplify.simplifyUnknownAs(caseNode, RexUnknownAs.FALSE);
-    assertThat(result.getType().isNullable(), is(false));
-    assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.INTEGER));
-    assertThat(result, is(literal1));
+    checkSimplify3(
+        case_(
+            isTrue(vBool()), literal(1),
+            trueLiteral, literal(1),
+            literal(2)),
+        "1", "1", "1");
   }
 
   @Test public void testSimplifyCaseNullableVarChar() {
