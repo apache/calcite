@@ -911,8 +911,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     @Override public Void visitInputRef(RexInputRef inputRef) {
       final RexNode constant = constants.get(inputRef);
       if (constant != null) {
-        if (constant instanceof RexCall
-            && !((RexCall) constant).op.isDeterministic()) {
+        if (constant instanceof RexCall) {
           constant.accept(this);
         } else {
           stack.add(Constancy.REDUCIBLE_CONSTANT);

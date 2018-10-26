@@ -2242,7 +2242,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select sal, t\n"
         + "from (select sal, current_timestamp t from emp)\n"
         + "where t > TIMESTAMP '2018-01-01 00:00:00'";
-    sql(sql).with(program).check();
+    sql(sql).with(program).checkUnchanged();
   }
 
   @Test public void testCasePushIsAlwaysWorking() throws Exception {

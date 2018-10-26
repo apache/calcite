@@ -6136,8 +6136,8 @@ LogicalProject(SAL=[$0], T=[$1])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(SAL=[$0], T=[CURRENT_TIMESTAMP])
-  LogicalFilter(condition=[>(CURRENT_TIMESTAMP, 2018-01-01 00:00:00)])
+LogicalProject(SAL=[$0], T=[$1])
+  LogicalFilter(condition=[>($1, 2018-01-01 00:00:00)])
     LogicalProject(SAL=[$5], T=[CURRENT_TIMESTAMP])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
