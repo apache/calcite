@@ -17,10 +17,13 @@
 package org.apache.calcite.util;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
+import java.sql.Time;
 import java.util.Calendar;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
@@ -31,7 +34,7 @@ import javax.annotation.Nonnull;
  * <p>Immutable, internally represented as a string (in ISO format),
  * and can support unlimited precision (milliseconds, nanoseconds).
  */
-public class TimeString implements Comparable<TimeString> {
+public class TimeString implements Comparable<TimeString>, ToTypeConvertible {
   private static final Pattern PATTERN =
       Pattern.compile("[0-9][0-9]:[0-9][0-9]:[0-9][0-9](\\.[0-9]*[1-9])?");
 
@@ -133,6 +136,17 @@ public class TimeString implements Comparable<TimeString> {
     return v.compareTo(o.v);
   }
 
+  @Override public Object convertTo(RelDataType type) {
+    if (!(type instanceof RelDataTypeFactoryImpl.JavaType)) {
+      return null;
+    }
+    Class cl = ((RelDataTypeFactoryImpl.JavaType) type).getJavaClass();
+    if (!cl.isAssignableFrom(Time.class)) {
+      return null;
+    }
+    return new Time(getMillisOfDay());
+  }
+
   /** Creates a TimeString from a Calendar. */
   public static TimeString fromCalendarFields(Calendar calendar) {
     return new TimeString(
@@ -222,6 +236,7 @@ public class TimeString implements Comparable<TimeString> {
   private int precision() {
     return v.length() < 9 ? 0 : (v.length() - 9);
   }
+
 }
 
 // End TimeString.java

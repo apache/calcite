@@ -42,6 +42,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.ToTypeConvertible;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
@@ -164,6 +165,12 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
   private static Object coerce(Object o, RelDataType type) {
     if (o == null) {
       return null;
+    }
+    if (o instanceof ToTypeConvertible) {
+      Object converted = ((ToTypeConvertible) o).convertTo(type);
+      if (converted != null) {
+        return coerce(converted, type);
+      }
     }
     if (!(type instanceof RelDataTypeFactoryImpl.JavaType)) {
       return null;

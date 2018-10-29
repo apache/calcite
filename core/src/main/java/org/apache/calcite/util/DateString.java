@@ -17,9 +17,12 @@
 package org.apache.calcite.util;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 
 import com.google.common.base.Preconditions;
 
+import java.sql.Date;
 import java.util.Calendar;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
@@ -29,7 +32,7 @@ import javax.annotation.Nonnull;
  *
  * <p>Immutable, internally represented as a string (in ISO format).
  */
-public class DateString implements Comparable<DateString> {
+public class DateString implements Comparable<DateString>, ToTypeConvertible {
   private static final Pattern PATTERN =
       Pattern.compile("[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]");
 
@@ -88,6 +91,20 @@ public class DateString implements Comparable<DateString> {
 
   @Override public int compareTo(@Nonnull DateString o) {
     return v.compareTo(o.v);
+  }
+
+  @Override public Object convertTo(RelDataType type) {
+    if (!(type instanceof RelDataTypeFactoryImpl.JavaType)) {
+      return null;
+    }
+    Class cl = ((RelDataTypeFactoryImpl.JavaType) type).getJavaClass();
+    if (cl.isAssignableFrom(Date.class)) {
+      return new Date(getMillisSinceEpoch());
+    }
+    if (cl.isAssignableFrom(java.util.Date.class)) {
+      return new java.util.Date(getMillisSinceEpoch());
+    }
+    return null;
   }
 
   /** Creates a DateString from a Calendar. */

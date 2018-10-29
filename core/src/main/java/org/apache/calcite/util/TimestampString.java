@@ -17,10 +17,14 @@
 package org.apache.calcite.util;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.regex.Pattern;
 
@@ -30,7 +34,7 @@ import java.util.regex.Pattern;
  * <p>Immutable, internally represented as a string (in ISO format),
  * and can support unlimited precision (milliseconds, nanoseconds).
  */
-public class TimestampString implements Comparable<TimestampString> {
+public class TimestampString implements Comparable<TimestampString>, ToTypeConvertible {
   private static final Pattern PATTERN =
       Pattern.compile("[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
           + " "
@@ -111,6 +115,23 @@ public class TimestampString implements Comparable<TimestampString> {
 
   @Override public int compareTo(TimestampString o) {
     return v.compareTo(o.v);
+  }
+
+  @Override public Object convertTo(RelDataType type) {
+    if (!(type instanceof RelDataTypeFactoryImpl.JavaType)) {
+      return null;
+    }
+    Class cl = ((RelDataTypeFactoryImpl.JavaType) type).getJavaClass();
+    if (cl.isAssignableFrom(Timestamp.class)) {
+      return new Timestamp(getMillisSinceEpoch());
+    }
+    if (cl.isAssignableFrom(Date.class)) {
+      return new Date(getMillisSinceEpoch());
+    }
+    if (cl.isAssignableFrom(java.util.Date.class)) {
+      return new java.util.Date(getMillisSinceEpoch());
+    }
+    return null;
   }
 
   /** Creates a TimestampString from a Calendar. */
