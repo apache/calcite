@@ -49,15 +49,20 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.rules.IntersectToDistinctRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.SqlFunctions;
@@ -81,11 +86,16 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
+import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Planner;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
@@ -6554,8 +6564,8 @@ public class JdbcTest {
           + "}";
       info.put("model", model);
 
-      Connection calciteConnection =
-          DriverManager.getConnection("jdbc:calcite:", info);
+      CalciteConnection calciteConnection =
+          (CalciteConnection) DriverManager.getConnection("jdbc:calcite:", info);
 
       ResultSet rs = calciteConnection.prepareStatement("select * from t2")
           .executeQuery();
@@ -6574,16 +6584,98 @@ public class JdbcTest {
 
       rs.close();
 
-      final String sql = "update t2 set vals=? where id=1";
-      try (PreparedStatement ps =
-               calciteConnection.prepareStatement(sql)) {
-        ParameterMetaData pmd = ps.getParameterMetaData();
-        assertThat(pmd.getParameterCount(), is(1));
-        assertThat(pmd.getParameterType(1), is(Types.DOUBLE));
-      }
+      final String sql = "update BASEJDBC.T2 set vals=? where id=?";
+
+      Planner planner = createPlanner(calciteConnection);
+
+      SqlNode node = planner.parse(sql);
+      SqlNode validatedNode = planner.validate(node);
+      RelRoot root = planner.rel(validatedNode);
+      DynamicParamSearcher searcher = new DynamicParamSearcher();
+      root.project().accept(new RexNodeShuttlingRelNodeShuttle(searcher));
+
+      assertThat(searcher.getParam(0).getSqlTypeName().getJdbcOrdinal(), is(Types.DOUBLE));
+      assertThat(searcher.getParam(1).getSqlTypeName().getJdbcOrdinal(), is(Types.INTEGER));
+
       calciteConnection.close();
     }
   }
+
+  /**
+   * With this shuttle we can reach all Rex expressions which can be dynamic params
+   */
+  private class RexNodeShuttlingRelNodeShuttle extends RelShuttleImpl {
+
+    private final RexShuttle rexShuttle;
+
+    RexNodeShuttlingRelNodeShuttle(RexShuttle rexShuttle) {
+      this.rexShuttle = rexShuttle;
+    }
+
+    @Override protected RelNode visitChild(RelNode parent, int i, RelNode child) {
+      RelNode result = super.visitChild(parent, i, child);
+      return result.accept(rexShuttle);
+    }
+
+    @Override protected RelNode visitChildren(RelNode rel) {
+      RelNode result = super.visitChildren(rel);
+      return result.accept(rexShuttle);
+    }
+  }
+
+
+  /**
+   * Shuttle for searching of dynamic params
+   */
+  private class DynamicParamSearcher extends RexShuttle {
+
+    private final Map<Integer, RelDataType> params = new HashMap<>();
+
+    @Override public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
+      params.put(dynamicParam.getIndex(), dynamicParam.getType());
+      return super.visitDynamicParam(dynamicParam);
+    }
+
+    public RelDataType getParam(int i) {
+      return params.get(i);
+    }
+  }
+
+
+  private Planner createPlanner(CalciteConnection calciteConnection) {
+    Frameworks.ConfigBuilder configBuilder = Frameworks.newConfigBuilder();
+    configBuilder.operatorTable(createOperatorTable(calciteConnection));
+    configBuilder.defaultSchema(calciteConnection.getRootSchema());
+    SqlParser.ConfigBuilder parserConfigBuilder = SqlParser.configBuilder();
+    parserConfigBuilder.setCaseSensitive(false);
+    parserConfigBuilder.setQuotedCasing(calciteConnection.config().quotedCasing());
+    parserConfigBuilder.setLex(calciteConnection.config().lex());
+    parserConfigBuilder.setCaseSensitive(calciteConnection.config().caseSensitive());
+    parserConfigBuilder.setConformance(calciteConnection.config().conformance());
+    parserConfigBuilder.setUnquotedCasing(calciteConnection.config().unquotedCasing());
+    parserConfigBuilder.setQuoting(calciteConnection.config().quoting());
+    configBuilder.parserConfig(parserConfigBuilder.build());
+    return Frameworks.getPlanner(configBuilder.build());
+  }
+
+  private SqlOperatorTable createOperatorTable(CalciteConnection connection) {
+    return ChainedSqlOperatorTable.of(
+        createStdOperators(),
+        createCatalogReader(connection));
+  }
+
+  private SqlStdOperatorTable createStdOperators() {
+    return SqlStdOperatorTable.instance();
+  }
+
+  private CalciteCatalogReader createCatalogReader(CalciteConnection connection) {
+    return new CalciteCatalogReader(
+        CalciteSchema.from(connection.getRootSchema()),
+        Collections.emptyList(),
+        connection.getTypeFactory(),
+        connection.config());
+  }
+
 
   /**
    * Test case for
