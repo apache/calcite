@@ -990,6 +990,12 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  /** CALCITE-2652: expectation is to not get an exception */
+  @Test public void testBooleanColInOn() {
+    final String sql = "SELECT 1 from emps join emp on (emp.deptno = emps.empno and manager)";
+    sql(sql).schema(CalciteAssert.SchemaSpec.POST).exec();
+  }
+
   @Test public void testCartesianProductWithInnerJoinSyntax() {
     String query = "select * from \"department\"\n"
         + "INNER JOIN \"employee\" ON TRUE";
