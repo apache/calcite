@@ -220,8 +220,7 @@ public abstract class MutableRels {
     case WINDOW: {
       final MutableWindow window = (MutableWindow) node;
       final RelNode child = fromMutable(window.getInput(), relBuilder);
-      return LogicalWindow.create(child.getTraitSet(),
-          child, window.constants, window.rowType, window.groups);
+      return LogicalWindow.create(child, window.constants, window.rowType, window.groups);
     }
     case TABLE_MODIFY:
       final MutableTableModify modify = (MutableTableModify) node;

@@ -35,6 +35,8 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -71,6 +73,44 @@ public class EnumerableWindow extends Window implements EnumerableRel {
   EnumerableWindow(RelOptCluster cluster, RelTraitSet traits, RelNode child,
       List<RexLiteral> constants, RelDataType rowType, List<Group> groups) {
     super(cluster, traits, child, constants, rowType, groups);
+  }
+
+  public static EnumerableWindow create(RelNode input, List<RexLiteral> constants,
+                                        RelDataType rowType, List<Group> groups) {
+    final RelOptCluster cluster = input.getCluster();
+    RelTraitSet traitSet = cluster.traitSet()
+        .replace(EnumerableConvention.INSTANCE)
+        .replaceIfs(RelCollationTraitDef.INSTANCE, () -> collations(input, groups));
+    return new EnumerableWindow(cluster, traitSet, input, constants, rowType, groups);
+
+  }
+
+  private static List<RelCollation> collations(RelNode input, List<Group> groups) {
+    boolean wipeOrder = false;
+    for (Group group : groups) {
+      if (!group.keys.isEmpty()) {
+        wipeOrder = true;
+        break;
+      }
+    }
+
+    if (wipeOrder) {
+      // wipe collations if input is shuffled by partitions.
+      return ImmutableList.of();
+    }
+
+    for (int i = groups.size() - 1; i >= 0; i--) {
+      Group group = groups.get(i);
+      RelCollation collation = group.orderKeys;
+      if (collation != null && !collation.getFieldCollations().isEmpty()) {
+        // take collation from the last group including order.
+        return ImmutableList.of(collation);
+      }
+    }
+
+    // otherwise take collations from input.
+    return input.getTraitSet()
+        .getTraits(RelCollationTraitDef.INSTANCE);
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {

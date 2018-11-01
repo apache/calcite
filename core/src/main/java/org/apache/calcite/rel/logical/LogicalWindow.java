@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.logical;
 
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
@@ -81,6 +82,12 @@ public final class LogicalWindow extends Window {
       rowType, groups);
   }
 
+  public static LogicalWindow create(RelNode input, List<RexLiteral> constants,
+                                     RelDataType rowType, List<Group> groups) {
+    final RelTraitSet traitSet = input.getCluster().traitSetOf(Convention.NONE);
+    return create(traitSet, input, constants, rowType, groups);
+  }
+
   /**
    * Creates a LogicalWindow.
    *
@@ -94,6 +101,12 @@ public final class LogicalWindow extends Window {
       List<RexLiteral> constants, RelDataType rowType, List<Group> groups) {
     return new LogicalWindow(input.getCluster(), traitSet, input, constants,
         rowType, groups);
+  }
+
+  public static RelNode create(RelOptCluster cluster, RelBuilder relBuilder, RelNode child,
+                               final RexProgram program) {
+    final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
+    return create(cluster, traitSet, relBuilder, child, program);
   }
 
   /**

@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalWindow;
@@ -34,14 +33,12 @@ class EnumerableWindowRule extends ConverterRule {
 
   public RelNode convert(RelNode rel) {
     final LogicalWindow winAgg = (LogicalWindow) rel;
-    final RelTraitSet traitSet =
-        winAgg.getTraitSet().replace(EnumerableConvention.INSTANCE);
     final RelNode child = winAgg.getInput();
     final RelNode convertedChild =
         convert(child,
             child.getTraitSet().replace(EnumerableConvention.INSTANCE));
-    return new EnumerableWindow(rel.getCluster(), traitSet, convertedChild,
-        winAgg.getConstants(), winAgg.getRowType(), winAgg.groups);
+    return EnumerableWindow.create(convertedChild, winAgg.getConstants(), winAgg.getRowType(),
+        winAgg.groups);
   }
 }
 

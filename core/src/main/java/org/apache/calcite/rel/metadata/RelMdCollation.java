@@ -113,6 +113,7 @@ public class RelMdCollation
     return ImmutableList.of();
   }
 
+  @Deprecated // to be removed before 2.0
   public ImmutableList<RelCollation> collations(Window rel,
       RelMetadataQuery mq) {
     return ImmutableList.copyOf(window(mq, rel.getInput(), rel.groups));
@@ -308,9 +309,10 @@ public class RelMdCollation
    * from each of its windows. Assuming (quite reasonably) that the
    * implementation does not re-order its input rows, then any collations of its
    * input are preserved. */
+  @Deprecated // to be removed before 2.0
   public static List<RelCollation> window(RelMetadataQuery mq, RelNode input,
       ImmutableList<Window.Group> groups) {
-    return mq.collations(input);
+    return ImmutableList.of();
   }
 
   /** Helper method to determine a

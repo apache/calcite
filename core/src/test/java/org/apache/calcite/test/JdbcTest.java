@@ -6658,7 +6658,6 @@ public class JdbcTest {
     connection.close();
   }
 
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2224">[CALCITE-2224]
    * WITHIN GROUP clause for aggregate functions</a>. */
@@ -6784,6 +6783,91 @@ public class JdbcTest {
       }
       calciteConnection.close();
     }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2648">[CALCITE-2648]
+   * Output collation of EnumerableWindow is not consistent with its implementation</a>. */
+  @Test public void testWindowWithOrder1() {
+    final String sql = "select x, count(*) over (partition by x) "
+        + "from (values (20), (35)) as t(x) "
+        + "order by x";
+
+    CalciteAssert.that()
+        .query(sql)
+        .returns("X=20; EXPR$1=1\n"
+            + "X=35; EXPR$1=1\n");
+  }
+
+  @Test public void testWindowWithOrder2() {
+    final String sql = "select x, y, count(*) over (partition by x) "
+        + "from (values (20, 0), (35, 1)) as t(x, y) "
+        + "order by x";
+
+    CalciteAssert.that()
+        .query(sql)
+        .returns("X=20; Y=0; EXPR$2=1\n"
+            + "X=35; Y=1; EXPR$2=1\n");
+  }
+
+  @Test public void testWindowWithOrder3() {
+    final String sql = "select x, count(*) over () "
+        + "from (values (20), (35)) as t(x) "
+        + "order by x";
+
+    CalciteAssert.that()
+        .query(sql)
+        .explainContains("PLAN=EnumerableWindow")
+        .returns("X=20; EXPR$1=2\n"
+            + "X=35; EXPR$1=2\n");
+  }
+
+  @Test public void testWindowWithOrder4() {
+    final String sql = "select x, count(*) over (order by x) "
+        + "from (values (20), (35)) as t(x) "
+        + "order by x desc";
+
+    CalciteAssert.that()
+        .query(sql)
+        .explainContains("PLAN=EnumerableSort")
+        .returns("X=35; EXPR$1=2\n"
+            + "X=20; EXPR$1=1\n");
+  }
+
+  @Test public void testWindowWithOrder5() {
+    final String sql = "select x, count(*) over (order by x desc) "
+        + "from (values (20), (35)) as t(x) "
+        + "order by x desc";
+
+    CalciteAssert.that()
+        .query(sql)
+        .explainContains("PLAN=EnumerableWindow")
+        .returns("X=35; EXPR$1=1\n"
+            + "X=20; EXPR$1=2\n");
+  }
+
+  @Test public void testWindowWithOrder6() {
+    final String sql = "select x, count(*) over (order by x), count(*) over (order by x desc) "
+        + "from (values (20), (35)) as t(x) "
+        + "order by x desc";
+
+    CalciteAssert.that()
+        .query(sql)
+        .explainContains("PLAN=EnumerableWindow")
+        .returns("X=35; EXPR$1=2; EXPR$2=1\n"
+            + "X=20; EXPR$1=1; EXPR$2=2\n");
+  }
+
+  @Test public void testWindowWithOrder7() {
+    final String sql = "select x, count(*) over (order by x desc), count(*) over (order by x) "
+        + "from (values (20), (35)) as t(x) "
+        + "order by x desc";
+
+    CalciteAssert.that()
+        .query(sql)
+        .explainContains("PLAN=EnumerableSort")
+        .returns("X=35; EXPR$1=1; EXPR$2=2\n"
+            + "X=20; EXPR$1=2; EXPR$2=1\n");
   }
 
   private static String sums(int n, boolean c) {
