@@ -61,6 +61,7 @@ import java.util.function.Function;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -988,6 +989,18 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"department\",\n"
         + "\"foodmart\".\"employee\"";
     sql(query).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2652">[CALCITE-2652]
+   * SqlNode to SQL conversion fails if the join condition references a BOOLEAN
+   * column</a>. */
+  @Test public void testJoinOnBoolean() {
+    final String sql = "SELECT 1\n"
+        + "from emps\n"
+        + "join emp on (emp.deptno = emps.empno and manager)";
+    final String s = sql(sql).schema(CalciteAssert.SchemaSpec.POST).exec();
+    assertThat(s, notNullValue()); // sufficient that conversion did not throw
   }
 
   @Test public void testCartesianProductWithInnerJoinSyntax() {
