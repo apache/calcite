@@ -4679,6 +4679,21 @@ public class JdbcTest {
             "deptno=null; deptno=40");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2464">[CALCITE-2464]
+   * Allow to set nullability for columns of structured types</a>. */
+  @Test public void testLeftJoinWhereStructIsNotNull() {
+    CalciteAssert.hr()
+        .query("select e.\"deptno\", d.\"deptno\"\n"
+            + "from \"hr\".\"emps\" as e\n"
+            + "  left join \"hr\".\"depts\" as d using (\"deptno\")"
+            + "where d.\"location\" is not null")
+        .returnsUnordered(
+            "deptno=10; deptno=10",
+            "deptno=10; deptno=10",
+            "deptno=10; deptno=10");
+  }
+
   /** Various queries against EMP and DEPT, in particular involving composite
    * join conditions in various flavors of outer join. Results are verified
    * against MySQL (except full join, which MySQL does not support). */
