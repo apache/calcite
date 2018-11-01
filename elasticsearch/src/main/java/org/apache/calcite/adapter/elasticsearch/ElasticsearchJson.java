@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -55,7 +56,7 @@ import static java.util.Collections.unmodifiableMap;
  * <p>Since we're using basic row-level rest client http response has to be
  * processed manually using JSON (jackson) library.
  */
-class ElasticsearchJson {
+final class ElasticsearchJson {
 
   /**
    * Used as special aggregation key for missing values (documents which are missing a field).
@@ -162,6 +163,7 @@ class ElasticsearchJson {
   static class Result {
     private final SearchHits hits;
     private final Aggregations aggregations;
+    private final String scrollId;
     private final long took;
 
     /**
@@ -172,9 +174,11 @@ class ElasticsearchJson {
     @JsonCreator
     Result(@JsonProperty("hits") SearchHits hits,
         @JsonProperty("aggregations") Aggregations aggregations,
+        @JsonProperty("_scroll_id") String scrollId,
         @JsonProperty("took") long took) {
       this.hits = Objects.requireNonNull(hits, "hits");
       this.aggregations = aggregations;
+      this.scrollId = scrollId;
       this.took = took;
     }
 
@@ -186,8 +190,12 @@ class ElasticsearchJson {
       return aggregations;
     }
 
-    public Duration took() {
+    Duration took() {
       return Duration.ofMillis(took);
+    }
+
+    Optional<String> scrollId() {
+      return Optional.ofNullable(scrollId);
     }
 
   }
@@ -625,6 +633,7 @@ class ElasticsearchJson {
     }
 
   }
+
 }
 
 // End ElasticsearchJson.java

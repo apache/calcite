@@ -29,30 +29,20 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeName;
-
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpStatus;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.util.EntityUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -60,7 +50,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -79,50 +68,22 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
    */
   private static final String AGGREGATIONS = "aggregations";
 
-  private final RestClient restClient;
   private final ElasticsearchVersion version;
   private final String indexName;
   private final String typeName;
   final ObjectMapper mapper;
+  private final ElasticsearchTransport transport;
 
   /**
    * Creates an ElasticsearchTable.
-   * @param client low-level ES rest client
-   * @param mapper Jackson API
-   * @param indexName elastic search index
-   * @param typeName elastic searh index type
    */
-  ElasticsearchTable(RestClient client, ObjectMapper mapper, String indexName, String typeName) {
+  ElasticsearchTable(ElasticsearchTransport transport) {
     super(Object[].class);
-    this.restClient = Objects.requireNonNull(client, "client");
-    try {
-      this.version = detectVersion(client, mapper);
-    } catch (IOException e) {
-      final String message = String.format(Locale.ROOT, "Couldn't detect ES version "
-          + "for %s/%s", indexName, typeName);
-      throw new UncheckedIOException(message, e);
-    }
-    this.indexName = Objects.requireNonNull(indexName, "indexName");
-    this.typeName = Objects.requireNonNull(typeName, "typeName");
-    this.mapper = Objects.requireNonNull(mapper, "mapper");
-
-  }
-
-  /**
-   * Detects current Elastic Search version by connecting to a existing instance.
-   * It is a {@code GET} request to {@code /}. Returned JSON has server information
-   * (including version).
-   *
-   * @param client low-level rest client connected to ES instance
-   * @param mapper Jackson mapper instance used to parse responses
-   * @return parsed version from ES, or {@link ElasticsearchVersion#UNKNOWN}
-   * @throws IOException if couldn't connect to ES
-   */
-  private static ElasticsearchVersion detectVersion(RestClient client, ObjectMapper mapper)
-      throws IOException {
-    HttpEntity entity = client.performRequest("GET", "/").getEntity();
-    JsonNode node = mapper.readTree(EntityUtils.toString(entity));
-    return ElasticsearchVersion.fromString(node.get("version").get("number").asText());
+    this.transport = Objects.requireNonNull(transport, "transport");
+    this.version = transport.version;
+    this.indexName = transport.indexName;
+    this.typeName = transport.typeName;
+    this.mapper = transport.mapper();
   }
 
   /**
@@ -154,7 +115,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
    * @param aggregations aggregation functions
    * @return Enumerator of results
    */
-  protected Enumerable<Object> find(List<String> ops,
+  private Enumerable<Object> find(List<String> ops,
       List<Map.Entry<String, Class>> fields,
       List<Map.Entry<String, RelFieldCollation.Direction>> sort,
       List<String> groupBy,
@@ -188,14 +149,19 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       query.put("size", fetch);
     }
 
-    try {
-      ElasticsearchJson.Result search = httpRequest(query);
-      final Function1<ElasticsearchJson.SearchHit, Object> getter =
-          ElasticsearchEnumerators.getter(fields);
-      return Linq4j.asEnumerable(search.searchHits().hits()).select(getter);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
+    final Function1<ElasticsearchJson.SearchHit, Object> getter =
+        ElasticsearchEnumerators.getter(fields);
+
+    Iterable<ElasticsearchJson.SearchHit> iter;
+    if (offset == null) {
+      // apply scrolling when there is no offsets
+      iter = () -> new Scrolling(transport).query(query);
+    } else {
+      final ElasticsearchJson.Result search = transport.search().apply(query);
+      iter = () -> search.searchHits().hits().iterator();
     }
+
+    return Linq4j.asEnumerable(iter).select(getter);
   }
 
   private Enumerable<Object> aggregate(List<String> ops,
@@ -281,7 +247,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
     }
     ((ObjectNode) agg).remove(AGGREGATIONS);
 
-    ElasticsearchJson.Result res = httpRequest(query);
+    ElasticsearchJson.Result res = transport.search(Collections.emptyMap()).apply(query);
 
     final List<Map<String, Object>> result = new ArrayList<>();
     if (res.aggregations() != null) {
@@ -318,30 +284,6 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
             .collect(Collectors.toList()));
 
     return Linq4j.asEnumerable(hits.hits()).select(getter);
-  }
-
-  private ElasticsearchJson.Result httpRequest(ObjectNode query) throws IOException {
-    Objects.requireNonNull(query, "query");
-    String uri = String.format(Locale.ROOT, "/%s/%s/_search", indexName, typeName);
-
-    Hook.QUERY_PLAN.run(query);
-    final String json = mapper.writeValueAsString(query);
-
-    LOGGER.debug("Elasticsearch Query: {}", json);
-
-    HttpEntity entity = new StringEntity(json, ContentType.APPLICATION_JSON);
-    Response response = restClient.performRequest("POST", uri, Collections.emptyMap(), entity);
-    if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-      final String error = EntityUtils.toString(response.getEntity());
-      final String message = String.format(Locale.ROOT,
-          "Error while querying Elastic (on %s/%s) status: %s\nQuery:\n%s\nError:\n%s\n",
-          response.getHost(), response.getRequestLine(), response.getStatusLine(), query, error);
-      throw new RuntimeException(message);
-    }
-
-    try (InputStream is = response.getEntity().getContent()) {
-      return mapper.readValue(is, ElasticsearchJson.Result.class);
-    }
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory relDataTypeFactory) {

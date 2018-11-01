@@ -197,12 +197,16 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
     if (client != null) {
       return client;
     }
-    TransportAddress address = httpAddress();
-    RestClient client = RestClient.builder(new HttpHost(address.getAddress(), address.getPort()))
-            .build();
+
+    final RestClient client = RestClient.builder(httpHost()).build();
     closer.add(client);
     this.client = client;
     return client;
+  }
+
+  HttpHost httpHost() {
+    final TransportAddress address = httpAddress();
+    return new HttpHost(address.getAddress(), address.getPort());
   }
 
   /**
