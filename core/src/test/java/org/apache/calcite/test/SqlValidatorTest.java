@@ -10704,14 +10704,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " default 100 on empty)^", "(?s).*Cast function cannot convert value.*");
   }
 
-  @Test public void testJsonObject() {
-    checkExp("json_object()");
-    checkExp("json_object('foo': 'bar')");
-    checkExpType("json_object('foo': 'bar')", "VARCHAR(2000) NOT NULL");
-    checkExpFails("^json_object(100: 'bar')^",
-        "(?s).*Expected a character type*");
-  }
-
   @Test public void testJsonQuery() {
     checkExp("json_query('{\"foo\":\"bar\"}', 'lax $')");
     checkExpType("json_query('{\"foo\":\"bar\"}', 'lax $')", "VARCHAR(2000)");
@@ -10725,6 +10717,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpType("json_query('{\"foo\":\"bar\"}', 'strict $' EMPTY OBJECT ON EMPTY "
             + "EMPTY ARRAY ON ERROR EMPTY ARRAY ON EMPTY NULL ON ERROR)",
         "VARCHAR(2000)");
+  }
+
+  @Test public void testJsonArray() {
+    checkExp("json_array()");
+    checkExp("json_array('foo', 'bar')");
+    checkExpType("json_array('foo', 'bar')", "VARCHAR(2000) NOT NULL");
+  }
+
+  @Test public void testJsonArrayAgg() {
+    check("select json_arrayagg(ename) from emp");
+    checkExpType("json_arrayagg('foo')", "VARCHAR(2000) NOT NULL");
+  }
+
+  @Test public void testJsonObject() {
+    checkExp("json_object()");
+    checkExp("json_object('foo': 'bar')");
+    checkExpType("json_object('foo': 'bar')", "VARCHAR(2000) NOT NULL");
+    checkExpFails("^json_object(100: 'bar')^",
+        "(?s).*Expected a character type*");
   }
 
   @Test public void testJsonObjectAgg() {

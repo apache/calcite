@@ -89,7 +89,7 @@ public class SqlJsonValueFunction extends SqlFunction {
       operandList.add(operands[3]);
       operandList.add(operands[4]);
     }
-    if (operands[5] != null) {
+    if (operands.length == 6 && operands[5] != null) {
       if (returnAny) {
         throw new IllegalArgumentException("illegal returning clause in json_value_any function");
       }

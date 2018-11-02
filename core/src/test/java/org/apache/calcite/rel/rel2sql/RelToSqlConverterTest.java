@@ -2822,6 +2822,87 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testJsonExists() {
+    String query = "select json_exists(\"product_name\", 'lax $') from \"product\"";
+    final String expected = "SELECT JSON_EXISTS(\"product_name\" FORMAT JSON, 'lax $')\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonValue() {
+    String query = "select json_value(\"product_name\", 'lax $') from \"product\"";
+    // todo translate to JSON_VALUE rather than CAST
+    final String expected = "SELECT CAST(JSON_VALUE_ANY(\"product_name\" FORMAT JSON, "
+        + "'lax $' NULL ON EMPTY NULL ON ERROR) AS VARCHAR(2000) CHARACTER SET \"ISO-8859-1\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonQuery() {
+    String query = "select json_query(\"product_name\", 'lax $') from \"product\"";
+    final String expected = "SELECT JSON_QUERY(\"product_name\" FORMAT JSON, 'lax $' "
+        + "WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonArray() {
+    String query = "select json_array(\"product_name\", \"product_name\") from \"product\"";
+    final String expected = "SELECT JSON_ARRAY(\"product_name\", \"product_name\" ABSENT ON NULL)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonArrayAgg() {
+    String query = "select json_arrayagg(\"product_name\") from \"product\"";
+    final String expected = "SELECT JSON_ARRAYAGG(\"product_name\" ABSENT ON NULL)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonObject() {
+    String query = "select json_object(\"product_name\": \"product_id\") from \"product\"";
+    final String expected = "SELECT "
+        + "JSON_OBJECT(KEY \"product_name\" VALUE \"product_id\" NULL ON NULL)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonObjectAgg() {
+    String query = "select json_objectagg(\"product_name\": \"product_id\") from \"product\"";
+    final String expected = "SELECT "
+        + "JSON_OBJECTAGG(KEY \"product_name\" VALUE \"product_id\" NULL ON NULL)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonPredicate() {
+    String query = "select "
+        + "\"product_name\" is json, "
+        + "\"product_name\" is json value, "
+        + "\"product_name\" is json object, "
+        + "\"product_name\" is json array, "
+        + "\"product_name\" is json scalar, "
+        + "\"product_name\" is not json, "
+        + "\"product_name\" is not json value, "
+        + "\"product_name\" is not json object, "
+        + "\"product_name\" is not json array, "
+        + "\"product_name\" is not json scalar "
+        + "from \"product\"";
+    final String expected = "SELECT "
+        + "\"product_name\" IS JSON VALUE, "
+        + "\"product_name\" IS JSON VALUE, "
+        + "\"product_name\" IS JSON OBJECT, "
+        + "\"product_name\" IS JSON ARRAY, "
+        + "\"product_name\" IS JSON SCALAR, "
+        + "\"product_name\" IS NOT JSON VALUE, "
+        + "\"product_name\" IS NOT JSON VALUE, "
+        + "\"product_name\" IS NOT JSON OBJECT, "
+        + "\"product_name\" IS NOT JSON ARRAY, "
+        + "\"product_name\" IS NOT JSON SCALAR\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
 
   /** Fluid interface to run tests. */
   static class Sql {
