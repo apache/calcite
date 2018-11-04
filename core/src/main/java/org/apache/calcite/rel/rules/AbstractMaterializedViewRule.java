@@ -1194,13 +1194,14 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
           // Cannot rollup this aggregate, bail out
           return null;
         }
+        final RexInputRef operand =
+            rexBuilder.makeInputRef(relBuilder.peek(),
+                aggregate.getGroupCount() + i);
         aggregateCalls.add(
-            relBuilder.aggregateCall(
-                rollupAgg,
-                aggCall.isDistinct(), aggCall.isApproximate(), null,
-                aggCall.name,
-                rexBuilder.makeInputRef(relBuilder.peek(),
-                    aggregate.getGroupCount() + i)));
+            relBuilder.aggregateCall(rollupAgg, operand)
+                .distinct(aggCall.isDistinct())
+                .approximate(aggCall.isApproximate())
+                .as(aggCall.name));
       }
       RelNode prevNode = relBuilder.peek();
       RelNode result = relBuilder
@@ -1466,10 +1467,12 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                 // Cannot rollup this aggregate, bail out
                 return null;
               }
+              final RexInputRef operand = rexBuilder.makeInputRef(input, k);
               aggregateCalls.add(
-                  relBuilder.aggregateCall(
-                      rollupAgg, queryAggCall.isDistinct(), queryAggCall.isApproximate(),
-                      null, queryAggCall.name, rexBuilder.makeInputRef(input, k)));
+                  relBuilder.aggregateCall(rollupAgg, operand)
+                      .approximate(queryAggCall.isApproximate())
+                      .distinct(queryAggCall.isDistinct())
+                      .as(queryAggCall.name));
               rewritingMapping.set(k, sourceIdx);
               added = true;
             }

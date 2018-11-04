@@ -274,14 +274,15 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
 
     // Add the distinct aggregate column(s) to the group-by columns,
     // if not already a part of the group-by
-    final SortedSet<Integer> bottomGroupSet = new TreeSet<>();
-    bottomGroupSet.addAll(aggregate.getGroupSet().asList());
+    final SortedSet<Integer> bottomGroups = new TreeSet<>();
+    bottomGroups.addAll(aggregate.getGroupSet().asList());
     for (AggregateCall aggCall : originalAggCalls) {
       if (aggCall.isDistinct()) {
-        bottomGroupSet.addAll(aggCall.getArgList());
+        bottomGroups.addAll(aggCall.getArgList());
         break;  // since we only have single distinct call
       }
     }
+    final ImmutableBitSet bottomGroupSet = ImmutableBitSet.of(bottomGroups);
 
     // Generate the intermediate aggregate B, the one on the bottom that converts
     // a distinct call to group by call.
@@ -295,16 +296,15 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
         final AggregateCall newCall =
             AggregateCall.create(aggCall.getAggregation(), false,
                 aggCall.isApproximate(), aggCall.getArgList(), -1,
-                ImmutableBitSet.of(bottomGroupSet).cardinality(),
+                bottomGroupSet.cardinality(),
                 relBuilder.peek(), null, aggCall.name);
         bottomAggregateCalls.add(newCall);
       }
     }
     // Generate the aggregate B (see the reference example above)
     relBuilder.push(
-        aggregate.copy(
-            aggregate.getTraitSet(), relBuilder.build(),
-            false, ImmutableBitSet.of(bottomGroupSet), null, bottomAggregateCalls));
+        aggregate.copy(aggregate.getTraitSet(), relBuilder.build(),
+            false, bottomGroupSet, null, bottomAggregateCalls));
 
     // Add aggregate A (see the reference example above), the top aggregate
     // to handle the rest of the aggregation that the bottom aggregate hasn't handled
@@ -316,7 +316,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
       if (aggCall.isDistinct()) {
         List<Integer> newArgList = new ArrayList<>();
         for (int arg : aggCall.getArgList()) {
-          newArgList.add(bottomGroupSet.headSet(arg).size());
+          newArgList.add(bottomGroups.headSet(arg).size());
         }
         newCall =
             AggregateCall.create(aggCall.getAggregation(),
@@ -332,7 +332,8 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
         // If aggregate B had a COUNT aggregate call the corresponding aggregate at
         // aggregate A must be SUM. For other aggregates, it remains the same.
         final List<Integer> newArgs =
-            Lists.newArrayList(bottomGroupSet.size() + nonDistinctAggCallProcessedSoFar);
+            Lists.newArrayList(bottomGroups.size()
+                + nonDistinctAggCallProcessedSoFar);
         if (aggCall.getAggregation().getKind() == SqlKind.COUNT) {
           newCall =
               AggregateCall.create(new SqlSumEmptyIsZeroAggFunction(), false,
@@ -357,7 +358,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     // output), minus the distinct aggCall's input.
     final Set<Integer> topGroupSet = new HashSet<>();
     int groupSetToAdd = 0;
-    for (int bottomGroup : bottomGroupSet) {
+    for (int bottomGroup : bottomGroups) {
       if (originalGroupSet.get(bottomGroup)) {
         topGroupSet.add(groupSetToAdd);
       }

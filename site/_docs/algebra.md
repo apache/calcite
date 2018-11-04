@@ -390,9 +390,21 @@ The following methods return an
 
 | Method              | Description
 |:------------------- |:-----------
-| `aggregateCall(op, distinct, approximate, filter, alias, expr...)`<br/>`aggregateCall(op, distinct, approximate, filter, alias, exprList)` | Creates a call to a given aggregate function, with an optional filter expression
-| `count(distinct, alias, expr...)` | Creates a call to the COUNT aggregate function
+| `aggregateCall(op, distinct, approximate, filter, orderKeys, alias, expr...)`<br/>`aggregateCall(op, distinct, approximate, filter, orderKeys, alias, exprList)` | Creates a call to a given aggregate function, with an optional filter expression and a list of optional ordering keys (for sorting input values before aggregation)
+| `count( [ distinct, alias, ] expr...)` | Creates a call to the COUNT aggregate function
 | `countStar(alias)` | Creates a call to the COUNT(*) aggregate function
-| `sum(distinct, alias, expr)` | Creates a call to the SUM aggregate function
-| `min(alias, expr)` | Creates a call to the MIN aggregate function
-| `max(alias, expr)` | Creates a call to the MAX aggregate function
+| `sum( [ distinct, alias, ] expr)` | Creates a call to the SUM aggregate function
+| `min( [ alias, ] expr)` | Creates a call to the MIN aggregate function
+| `max( [ alias, ] expr)` | Creates a call to the MAX aggregate function
+
+To further modify the `AggCall`, call its methods:
+
+| Method               | Description
+|:-------------------- |:-----------
+| `distinct()`         | Eliminates duplicate values before aggregating (see SQL `DISTINCT`)
+| `distinct(distinct)` | Eliminates duplicate values before aggregating if `distinct`
+| `as(alias)`          | Assigns a column alias to this expression (see SQL `AS`)
+| `filter(expr)`       | Filters rows before aggregating (see SQL `FILTER (WHERE ...)`)
+| `sort(expr, ...)`<br/>`sort(exprList)` | Sorts rows before aggregating (see SQL `WITHIN GROUP`)
+| `approximate(approximate)` | Allows approximate value for the aggregate of `approximate`
+
