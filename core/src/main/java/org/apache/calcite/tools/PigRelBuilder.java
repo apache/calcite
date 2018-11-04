@@ -146,8 +146,7 @@ public class PigRelBuilder extends RelBuilder {
           cluster.getRexBuilder().makeCall(peek(1, 0).getRowType(),
               SqlStdOperatorTable.ROW, fields());
       aggregate(groupKey.e,
-          aggregateCall(SqlStdOperatorTable.COLLECT, false, false, null,
-              getAlias(), row));
+          aggregateCall(SqlStdOperatorTable.COLLECT, row).as(getAlias()));
       if (groupKey.i < n - 1) {
         push(r);
         List<RexNode> predicates = new ArrayList<>();
