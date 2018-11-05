@@ -20,8 +20,6 @@ import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
 
-import com.google.common.collect.Iterables;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -68,8 +66,7 @@ public class OrderedAggregateLambdaFactory<TSource, TKey, TSortKey,
     return lazySource -> {
       final TOrigAccumulate accumulator = accumulatorInitializer.apply();
       for (SourceSorter<TOrigAccumulate, TSource, TSortKey> acc : sourceSorters) {
-        acc.sortAndAccumulate(Iterables.unmodifiableIterable(lazySource),
-            accumulator);
+        acc.sortAndAccumulate(lazySource, accumulator);
       }
       return resultSelector.apply(accumulator);
     };
@@ -80,8 +77,7 @@ public class OrderedAggregateLambdaFactory<TSource, TKey, TSortKey,
     return (groupByKey, lazySource) -> {
       final TOrigAccumulate accumulator = accumulatorInitializer.apply();
       for (SourceSorter<TOrigAccumulate, TSource, TSortKey> acc : sourceSorters) {
-        acc.sortAndAccumulate(Iterables.unmodifiableIterable(lazySource),
-            accumulator);
+        acc.sortAndAccumulate(lazySource, accumulator);
       }
       return resultSelector.apply(groupByKey, accumulator);
     };
