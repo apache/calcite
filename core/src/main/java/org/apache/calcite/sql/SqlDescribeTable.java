@@ -30,7 +30,7 @@ public class SqlDescribeTable extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("DESCRIBE_TABLE", SqlKind.DESCRIBE_TABLE) {
         @Override public SqlCall createCall(SqlLiteral functionQualifier,
-            SqlParserPos pos, SqlNodeList orderList, SqlNode... operands) {
+            SqlParserPos pos, SqlNode... operands) {
           return new SqlDescribeTable(pos, (SqlIdentifier) operands[0],
               (SqlIdentifier) operands[1]);
         }

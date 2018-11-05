@@ -326,6 +326,9 @@ public interface CalciteResource {
   @BaseMessage("FILTER must not contain aggregate expression")
   ExInst<SqlValidatorException> aggregateInFilterIllegal();
 
+  @BaseMessage("WITHIN GROUP must not contain aggregate expression")
+  ExInst<SqlValidatorException> aggregateInWithinGroupIllegal();
+
   @BaseMessage("Aggregate expression is illegal in ORDER BY clause of non-aggregating SELECT")
   ExInst<SqlValidatorException> aggregateIllegalInOrderBy();
 

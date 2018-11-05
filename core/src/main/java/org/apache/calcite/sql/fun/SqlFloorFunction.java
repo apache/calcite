@@ -80,11 +80,10 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
    * @param pos Parser position
    * @return Modified call
    */
-  public static SqlCall replaceTimeUnitOperand(SqlCall call, String literal,
-      SqlParserPos pos) {
+  public static SqlCall replaceTimeUnitOperand(SqlCall call, String literal, SqlParserPos pos) {
     SqlLiteral literalNode = SqlLiteral.createCharString(literal, null, pos);
     return call.getOperator().createCall(call.getFunctionQuantifier(), pos,
-        call.getAggOrderList(), call.getOperandList().get(0), literalNode);
+        call.getOperandList().get(0), literalNode);
   }
 
   /**

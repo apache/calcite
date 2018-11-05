@@ -802,15 +802,22 @@ public abstract class SqlImplementor {
       SqlNodeList orderList = new SqlNodeList(orderByList, POS);
       if (op instanceof SqlSumEmptyIsZeroAggFunction) {
         final SqlNode node =
-            SqlStdOperatorTable.SUM.createCall(qualifier,
-                POS,
-                orderList,
-                operands);
+            withOrder(
+                SqlStdOperatorTable.SUM.createCall(qualifier,
+                    POS,
+                    operands), orderList);
         return SqlStdOperatorTable.COALESCE.createCall(POS, node,
             SqlLiteral.createExactNumeric("0", POS));
       } else {
-        return op.createCall(qualifier, POS, orderList, operands);
+        return withOrder(op.createCall(qualifier, POS, operands), orderList);
       }
+    }
+
+    private SqlNode withOrder(SqlCall call, SqlNodeList orderList) {
+      if (orderList == null || orderList.size() == 0) {
+        return call;
+      }
+      return SqlStdOperatorTable.WITHIN_GROUP.createCall(POS, call, orderList);
     }
 
     /** Converts a collation to an ORDER BY item. */

@@ -213,6 +213,11 @@ public enum SqlKind {
   FILTER,
 
   /**
+   * WITHIN_GROUP operator
+   */
+  WITHIN_GROUP,
+
+  /**
    * Window specification
    */
   WINDOW,

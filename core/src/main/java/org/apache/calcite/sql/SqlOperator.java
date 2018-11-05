@@ -234,28 +234,6 @@ public abstract class SqlOperator {
   public abstract SqlSyntax getSyntax();
 
   /**
-   * Creates a call to this operator with an array of operands.
-   *
-   * <p>The position of the resulting call is the union of the {@code pos} and
-   * the positions of all of the operands.
-   *
-   * @param functionQualifier function qualifier (e.g. "DISTINCT"), may be
-   * @param pos               parser position of the identifier of the call
-   * @param orderList         order by node list of the call, typically used in
-   *                          aggregate function calls
-   * @param operands          array of operands
-   */
-  public SqlCall createCall(
-      SqlLiteral functionQualifier,
-      SqlParserPos pos,
-      SqlNodeList orderList,
-      SqlNode... operands) {
-    pos = pos.plusAll(Arrays.asList(operands));
-    return new SqlBasicCall(this, operands, pos, false, functionQualifier,
-        orderList);
-  }
-
-  /**
    * Creates a call to this operand with an array of operands.
    *
    * <p>The position of the resulting call is the union of the <code>
@@ -269,7 +247,8 @@ public abstract class SqlOperator {
       SqlLiteral functionQualifier,
       SqlParserPos pos,
       SqlNode... operands) {
-    return createCall(functionQualifier, pos, SqlNodeList.EMPTY, operands);
+    pos = pos.plusAll(Arrays.asList(operands));
+    return new SqlBasicCall(this, operands, pos, false, functionQualifier);
   }
 
   /**
@@ -285,7 +264,7 @@ public abstract class SqlOperator {
   public final SqlCall createCall(
       SqlParserPos pos,
       SqlNode... operands) {
-    return createCall(null, pos, SqlNodeList.EMPTY, operands);
+    return createCall(null, pos, operands);
   }
 
   /**
@@ -299,20 +278,24 @@ public abstract class SqlOperator {
    */
   public final SqlCall createCall(
       SqlNodeList nodeList) {
-    return createCall(null, nodeList.getParserPosition(), SqlNodeList.EMPTY,
+    return createCall(
+        null,
+        nodeList.getParserPosition(),
         nodeList.toArray());
   }
 
   /**
    * Creates a call to this operand with a list of operands.
    *
-   * <p>The position of the resulting call is the union of the {@code pos}
-   * and the positions of all of the operands.
+   * <p>The position of the resulting call is the union of the <code>
+   * pos</code> and the positions of all of the operands.
    */
   public final SqlCall createCall(
       SqlParserPos pos,
       List<? extends SqlNode> operandList) {
-    return createCall(null, pos, SqlNodeList.EMPTY,
+    return createCall(
+        null,
+        pos,
         operandList.toArray(new SqlNode[0]));
   }
 
@@ -797,15 +780,6 @@ public abstract class SqlOperator {
    * @see #isAggregator()
    */
   public boolean requiresOrder() {
-    return false;
-  }
-
-  /**
-   * Returns whether this is a aggregate function that allows the
-   * {@code WITHIN GROUP} clause because the order of its input values is
-   * significant.
-   */
-  public boolean allowsOrderedAggregate() {
     return false;
   }
 

@@ -23,7 +23,6 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -126,10 +125,11 @@ public class SqlTrimFunction extends SqlFunction {
     }
   }
 
-  public SqlCall createCall(SqlLiteral functionQualifier, SqlParserPos pos,
-      SqlNodeList orderList, SqlNode... operands) {
+  public SqlCall createCall(
+      SqlLiteral functionQualifier,
+      SqlParserPos pos,
+      SqlNode... operands) {
     assert functionQualifier == null;
-    assert SqlNodeList.isEmptyList(orderList);
     switch (operands.length) {
     case 1:
       // This variant occurs when someone writes TRIM(string)
@@ -151,7 +151,7 @@ public class SqlTrimFunction extends SqlFunction {
       throw new IllegalArgumentException(
           "invalid operand count " + Arrays.toString(operands));
     }
-    return super.createCall(functionQualifier, pos, orderList, operands);
+    return super.createCall(functionQualifier, pos, operands);
   }
 
   public boolean checkOperandTypes(

@@ -118,16 +118,10 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
     return true;
   }
 
-  @Override public boolean allowsOrderedAggregate() {
-    return true;
-  }
-
   /**
    * Returns whether aggregate order ({@code WITHIN GROUP}) should be ignored.
    * For example, {@code SUM(X) WITHIN GROUP (ORDER BY ...)} is equivalent to
    * {@code SUM(X)} so that the {@code WITHIN GROUP} clause should be ignored.
-   *
-   * @see #allowsOrderedAggregate()
    */
   public boolean ignoreAggregateOrder() {
     return ignoreAggregateOrder;
@@ -139,7 +133,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlValidatorScope scope,
       SqlValidatorScope operandScope) {
     super.validateCall(call, validator, scope, operandScope);
-    validator.validateAggregateParams(call, null, scope);
+    validator.validateAggregateParams(call, null, null, scope);
   }
 
   @Override public final boolean requiresOrder() {

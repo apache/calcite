@@ -296,9 +296,10 @@ public interface SqlValidator {
    *
    * @param aggCall     Function containing COLUMN_LIST parameter
    * @param filter      Filter, or null
+   * @param orderList   Ordering spec, or null
    * @param scope       Syntactic scope
    */
-  void validateAggregateParams(SqlCall aggCall, SqlNode filter,
+  void validateAggregateParams(SqlCall aggCall, SqlNode filter, SqlNodeList orderList,
       SqlValidatorScope scope);
 
   /**

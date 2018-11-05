@@ -29,14 +29,13 @@ public class SqlBasicCall extends SqlCall {
   private SqlOperator operator;
   public final SqlNode[] operands;
   private final SqlLiteral functionQuantifier;
-  private final SqlNodeList aggOrderList;
   private final boolean expanded;
 
   public SqlBasicCall(
       SqlOperator operator,
       SqlNode[] operands,
       SqlParserPos pos) {
-    this(operator, operands, pos, false, null, SqlNodeList.EMPTY);
+    this(operator, operands, pos, false, null);
   }
 
   protected SqlBasicCall(
@@ -45,23 +44,11 @@ public class SqlBasicCall extends SqlCall {
       SqlParserPos pos,
       boolean expanded,
       SqlLiteral functionQualifier) {
-    this(operator, operands, pos, expanded, functionQualifier,
-        SqlNodeList.EMPTY);
-  }
-
-  protected SqlBasicCall(
-      SqlOperator operator,
-      SqlNode[] operands,
-      SqlParserPos pos,
-      boolean expanded,
-      SqlLiteral functionQualifier,
-      SqlNodeList aggOrderList) {
     super(pos);
     this.operator = Objects.requireNonNull(operator);
     this.operands = operands;
     this.expanded = expanded;
     this.functionQuantifier = functionQualifier;
-    this.aggOrderList = Objects.requireNonNull(aggOrderList);
   }
 
   public SqlKind getKind() {
@@ -92,10 +79,6 @@ public class SqlBasicCall extends SqlCall {
     return UnmodifiableArrayList.of(operands); // not immutable, but quick
   }
 
-  @Override public SqlNodeList getAggOrderList() {
-    return aggOrderList;
-  }
-
   @SuppressWarnings("unchecked")
   @Override public <S extends SqlNode> S operand(int i) {
     return (S) operands[i];
@@ -110,8 +93,7 @@ public class SqlBasicCall extends SqlCall {
   }
 
   @Override public SqlNode clone(SqlParserPos pos) {
-    return getOperator().createCall(getFunctionQuantifier(), pos,
-        getAggOrderList(), operands);
+    return getOperator().createCall(getFunctionQuantifier(), pos, operands);
   }
 
 }

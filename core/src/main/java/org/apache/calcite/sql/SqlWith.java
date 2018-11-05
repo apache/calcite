@@ -108,7 +108,7 @@ public class SqlWith extends SqlCall {
 
 
     @Override public SqlCall createCall(SqlLiteral functionQualifier,
-        SqlParserPos pos, SqlNodeList orderList, SqlNode... operands) {
+        SqlParserPos pos, SqlNode... operands) {
       return new SqlWith(pos, (SqlNodeList) operands[0], operands[1]);
     }
 

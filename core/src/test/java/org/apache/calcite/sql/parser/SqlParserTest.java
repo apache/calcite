@@ -8200,7 +8200,7 @@ public class SqlParserTest {
         + "from t\n"
         + "order by col1 limit 10";
     final String expected = "SELECT `COL1`,"
-        + " COLLECT(`COL2`) WITHIN GROUP (ORDER BY `COL3`)\n"
+        + " (COLLECT(`COL2`) WITHIN GROUP (ORDER BY `COL3`))\n"
         + "FROM `T`\n"
         + "ORDER BY `COL1`\n"
         + "FETCH NEXT 10 ROWS ONLY";
@@ -8212,7 +8212,7 @@ public class SqlParserTest {
         + "from t\n"
         + "order by col1 limit 10";
     final String expected = "SELECT"
-        + " COLLECT(`COL2`) WITHIN GROUP (ORDER BY `COL3`)\n"
+        + " (COLLECT(`COL2`) WITHIN GROUP (ORDER BY `COL3`))\n"
         + "FROM `T`\n"
         + "ORDER BY `COL1`\n"
         + "FETCH NEXT 10 ROWS ONLY";
@@ -8231,7 +8231,7 @@ public class SqlParserTest {
         + "from t\n"
         + "order by col1 limit 10";
     final String expected = "SELECT `COL1`,"
-        + " COLLECT(`COL2`) WITHIN GROUP (ORDER BY `COL3`, `COL4`)\n"
+        + " (COLLECT(`COL2`) WITHIN GROUP (ORDER BY `COL3`, `COL4`))\n"
         + "FROM `T`\n"
         + "ORDER BY `COL1`\n"
         + "FETCH NEXT 10 ROWS ONLY";
@@ -8244,8 +8244,8 @@ public class SqlParserTest {
         + "  order by col3 desc nulls first, col4 asc nulls last)\n"
         + "from t\n"
         + "order by col1 limit 10";
-    final String expected = "SELECT `COL1`, COLLECT(`COL2`) "
-        + "WITHIN GROUP (ORDER BY `COL3` DESC NULLS FIRST, `COL4` NULLS LAST)\n"
+    final String expected = "SELECT `COL1`, (COLLECT(`COL2`) "
+        + "WITHIN GROUP (ORDER BY `COL3` DESC NULLS FIRST, `COL4` NULLS LAST))\n"
         + "FROM `T`\n"
         + "ORDER BY `COL1`\n"
         + "FETCH NEXT 10 ROWS ONLY";
