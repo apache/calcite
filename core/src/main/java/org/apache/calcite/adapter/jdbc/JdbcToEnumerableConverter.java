@@ -43,6 +43,7 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.BuiltInMethod;
 
 import java.lang.reflect.Method;
@@ -88,7 +89,8 @@ public class JdbcToEnumerableConverter
             pref.prefer(JavaRowFormat.CUSTOM));
     final JdbcConvention jdbcConvention =
         (JdbcConvention) child.getConvention();
-    String sql = generateSql(jdbcConvention.dialect);
+    SqlString sqlString = generateSql(jdbcConvention.dialect);
+    String sql = sqlString.getSql();
     if (CalcitePrepareImpl.DEBUG) {
       System.out.println("[" + sql + "]");
     }
@@ -151,6 +153,8 @@ public class JdbcToEnumerableConverter
                                                 RuntimeException.class,
                                                 e_)))))))),
                 resultSet_));
+    // TODO: add Consumer<PreparedStatement> argument to ResultSetEnumerable.of method
+    // the method should set arguments to the prepared statement using sqlString.dynamicParameters
     final Expression enumerable =
         builder0.append(
             "enumerable",
@@ -292,13 +296,13 @@ public class JdbcToEnumerableConverter
         : "get" + SqlFunctions.initcap(primitive.primitiveName);
   }
 
-  private String generateSql(SqlDialect dialect) {
+  private SqlString generateSql(SqlDialect dialect) {
     final JdbcImplementor jdbcImplementor =
         new JdbcImplementor(dialect,
             (JavaTypeFactory) getCluster().getTypeFactory());
     final JdbcImplementor.Result result =
         jdbcImplementor.visitChild(0, getInput());
-    return result.asStatement().toSqlString(dialect).getSql();
+    return result.asStatement().toSqlString(dialect);
   }
 }
 
