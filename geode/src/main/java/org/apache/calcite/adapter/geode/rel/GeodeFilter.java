@@ -16,29 +16,23 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptCost;
-import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.*;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
-import static org.apache.calcite.sql.type.SqlTypeName.BOOLEAN_TYPES;
-import static org.apache.calcite.sql.type.SqlTypeName.CHAR;
-import static org.apache.calcite.sql.type.SqlTypeName.NUMERIC_TYPES;
+import static org.apache.calcite.sql.type.SqlTypeName.*;
 
 /**
  * Implementation of
@@ -49,7 +43,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
   private final String match;
 
   GeodeFilter(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode input, RexNode condition) {
+              RelNode input, RexNode condition) {
 
     super(cluster, traitSet, input, condition);
 
@@ -111,6 +105,8 @@ public class GeodeFilter extends Filter implements GeodeRel {
       List<RexNode> disjunctions = RelOptUtil.disjunctions(condition);
       if (disjunctions.size() == 1) {
         return translateAnd(disjunctions.get(0));
+      } else if (useInSetQueryClause(disjunctions)) {
+        return translateInSet(disjunctions);
       } else {
         return translateOr(disjunctions);
       }
@@ -151,18 +147,18 @@ public class GeodeFilter extends Filter implements GeodeRel {
       // We currently only use equality, but inequalities on clustering keys
       // should be possible in the future
       switch (node.getKind()) {
-      case EQUALS:
-        return translateBinary("=", "=", (RexCall) node);
-      case LESS_THAN:
-        return translateBinary("<", ">", (RexCall) node);
-      case LESS_THAN_OR_EQUAL:
-        return translateBinary("<=", ">=", (RexCall) node);
-      case GREATER_THAN:
-        return translateBinary(">", "<", (RexCall) node);
-      case GREATER_THAN_OR_EQUAL:
-        return translateBinary(">=", "<=", (RexCall) node);
-      default:
-        throw new AssertionError("cannot translate " + node);
+        case EQUALS:
+          return translateBinary("=", "=", (RexCall) node);
+        case LESS_THAN:
+          return translateBinary("<", ">", (RexCall) node);
+        case LESS_THAN_OR_EQUAL:
+          return translateBinary("<=", ">=", (RexCall) node);
+        case GREATER_THAN:
+          return translateBinary(">", "<", (RexCall) node);
+        case GREATER_THAN_OR_EQUAL:
+          return translateBinary(">=", "<=", (RexCall) node);
+        default:
+          throw new AssertionError("cannot translate " + node);
       }
     }
 
@@ -189,26 +185,26 @@ public class GeodeFilter extends Filter implements GeodeRel {
      */
     private String translateBinary2(String op, RexNode left, RexNode right) {
       switch (right.getKind()) {
-      case LITERAL:
-        break;
-      default:
-        return null;
+        case LITERAL:
+          break;
+        default:
+          return null;
       }
 
       final RexLiteral rightLiteral = (RexLiteral) right;
       switch (left.getKind()) {
-      case INPUT_REF:
-        final RexInputRef left1 = (RexInputRef) left;
-        String name = fieldNames.get(left1.getIndex());
-        return translateOp2(op, name, rightLiteral);
-      case CAST:
-        // FIXME This will not work in all cases (for example, we ignore string encoding)
-        return translateBinary2(op, ((RexCall) left).operands.get(0), right);
-      case OTHER_FUNCTION:
-        String item = left.accept(new GeodeRules.RexToGeodeTranslator(this.fieldNames));
-        return (item == null) ? null : item + " " + op + " " + quoteCharLiteral(rightLiteral);
-      default:
-        return null;
+        case INPUT_REF:
+          final RexInputRef left1 = (RexInputRef) left;
+          String name = fieldNames.get(left1.getIndex());
+          return translateOp2(op, name, rightLiteral);
+        case CAST:
+          // FIXME This will not work in all cases (for example, we ignore string encoding)
+          return translateBinary2(op, ((RexCall) left).operands.get(0), right);
+        case OTHER_FUNCTION:
+          String item = left.accept(new GeodeRules.RexToGeodeTranslator(this.fieldNames));
+          return (item == null) ? null : item + " " + op + " " + quoteCharLiteral(rightLiteral);
+        default:
+          return null;
       }
     }
 
@@ -232,6 +228,102 @@ public class GeodeFilter extends Filter implements GeodeRel {
         valueString = "'" + valueString + "'";
       }
       return name + " " + op + " " + valueString;
+    }
+
+    /**
+     * return the geode fieldName of the left RexNode for in set query
+     *
+     * @param left
+     * @return left RexNode fieldName
+     */
+    private String getLeftNodeFieldNameForInSetPredicate(RexNode left) {
+      switch (left.getKind()) {
+        case INPUT_REF:
+          final RexInputRef left1 = (RexInputRef) left;
+          return fieldNames.get(left1.getIndex());
+        case CAST:
+          // FIXME This will not work in all cases (for example, we ignore string encoding)
+          return getLeftNodeFieldNameForInSetPredicate(((RexCall) left).operands.get(0));
+        default:
+          return null;
+      }
+    }
+
+    /**
+     * Checks if we should use IN SET query clause instead of Multiple OR clauses, to improve
+     * performance
+     *
+     * @param disjunctions
+     * @return boolean
+     */
+    private boolean useInSetQueryClause(List<RexNode> disjunctions) {
+      Set<String> leftFieldNameSet = new HashSet<>();
+
+      return disjunctions.stream().allMatch(node -> {
+        // In case if SqlKind is not same as SqlKind.EQUALS we should not use IN SET query
+        SqlKind sqlKind = node.getKind();
+        if (!sqlKind.equals(SqlKind.EQUALS))
+          return false;
+
+        RexCall call = (RexCall) node;
+
+        final RexNode left = call.operands.get(0);
+        final RexNode right = call.operands.get(1);
+
+        // The right node should always be literal
+        if (!right.getKind().equals(SqlKind.LITERAL))
+          return false;
+
+        String name = getLeftNodeFieldNameForInSetPredicate(left);
+        if (name == null)
+          return false;
+
+        leftFieldNameSet.add(name);
+
+        // Ensuring that left node field name is same for all RexNode in disjunctions
+        if (leftFieldNameSet.size() != 1)
+          return false;
+
+        return true;
+      });
+    }
+
+    /**
+     * return in set oql oql string predicate
+     *
+     * @param disjunctions
+     * @return in set oql string predicate
+     */
+    private String translateInSet(List<RexNode> disjunctions) {
+      RexNode firstNode = disjunctions.get(0);
+      RexCall firstCall = (RexCall) firstNode;
+
+      final RexNode left = firstCall.operands.get(0);
+      String name = getLeftNodeFieldNameForInSetPredicate(left);
+
+      if (name == null)
+        return null;
+
+      RelDataTypeField relDataTypeField = rowType.getField(name, true, false);
+      if (relDataTypeField == null)
+        return null;
+
+      SqlTypeName typeName = relDataTypeField.getType().getSqlTypeName();
+
+      Set<String> rightLiteralValueList = new HashSet<>();
+
+      disjunctions.forEach(node -> {
+        RexCall call = (RexCall) node;
+        RexLiteral rightLiteral = (RexLiteral) call.operands.get(1);
+
+        rightLiteralValueList.add(literalValue(rightLiteral));
+      });
+
+      if (NUMERIC_TYPES.contains(typeName) || BOOLEAN_TYPES.contains(typeName)) {
+        return String.format("%s IN SET (%s)", name, String.join(", ", rightLiteralValueList));
+      } else {
+        return String.format("%s IN SET ('%s')", name, String.join("', '", rightLiteralValueList));
+      }
     }
   }
 }
