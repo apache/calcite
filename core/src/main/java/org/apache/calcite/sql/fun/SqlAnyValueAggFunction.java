@@ -21,6 +21,7 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.validate.AggregateOrderLevel;
 
 import com.google.common.base.Preconditions;
 
@@ -45,7 +46,7 @@ public class SqlAnyValueAggFunction extends SqlAggFunction {
         SqlFunctionCategory.SYSTEM,
         false,
         false,
-        true);
+        AggregateOrderLevel.FORBIDDEN);
     Preconditions.checkArgument(kind == SqlKind.ANY_VALUE);
   }
 

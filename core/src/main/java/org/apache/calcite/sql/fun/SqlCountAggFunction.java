@@ -28,6 +28,7 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.AggregateOrderLevel;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
@@ -52,7 +53,8 @@ public class SqlCountAggFunction extends SqlAggFunction {
   public SqlCountAggFunction(String name,
       SqlOperandTypeChecker sqlOperandTypeChecker) {
     super(name, null, SqlKind.COUNT, ReturnTypes.BIGINT, null,
-        sqlOperandTypeChecker, SqlFunctionCategory.NUMERIC, false, false, true);
+        sqlOperandTypeChecker, SqlFunctionCategory.NUMERIC, false, false,
+        AggregateOrderLevel.FORBIDDEN);
   }
 
   //~ Methods ----------------------------------------------------------------

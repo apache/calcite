@@ -6732,18 +6732,6 @@ public class JdbcTest {
         .returns("EXPR$0=[250, 500, 1000]\n");
   }
 
-  @Test public void testWithinGroupClause7() {
-    final String sql = "select avg(\"empid\")"
-        + " within group (order by \"empid\")\n"
-        + "from \"hr\".\"emps\"";
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
-        .query(sql)
-        .explainContains("EnumerableAggregate(group=[{}], "
-            + "agg#0=[$SUM0($0)], agg#1=[COUNT()])")
-        .returns("EXPR$0=140\n");
-  }
-
   private static String sums(int n, boolean c) {
     final StringBuilder b = new StringBuilder();
     for (int i = 0; i < n; i++) {

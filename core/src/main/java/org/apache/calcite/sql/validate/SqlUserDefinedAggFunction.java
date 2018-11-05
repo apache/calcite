@@ -57,12 +57,12 @@ public class SqlUserDefinedAggFunction extends SqlAggFunction {
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker, AggregateFunction function,
-      boolean requiresOrder, boolean requiresOver, boolean ignoreAggregateOrder,
+      boolean requiresOrder, boolean requiresOver, AggregateOrderLevel orderLevel,
       RelDataTypeFactory typeFactory) {
     super(Util.last(opName.names), opName, SqlKind.OTHER_FUNCTION,
         returnTypeInference, operandTypeInference, operandTypeChecker,
         SqlFunctionCategory.USER_DEFINED_FUNCTION, requiresOrder, requiresOver,
-        ignoreAggregateOrder);
+        orderLevel);
     this.function = function;
     this.typeFactory = typeFactory;
   }

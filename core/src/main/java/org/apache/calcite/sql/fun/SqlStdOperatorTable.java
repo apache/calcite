@@ -54,6 +54,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
+import org.apache.calcite.sql.validate.AggregateOrderLevel;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql2rel.AuxiliaryConverter;
@@ -1984,7 +1985,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.TO_MULTISET,
           null,
           OperandTypes.ANY,
-          SqlFunctionCategory.SYSTEM, false, false, false) {
+          SqlFunctionCategory.SYSTEM, false, false,
+          AggregateOrderLevel.OPTIONAL) {
       };
 
   /**
@@ -1996,7 +1998,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.ARG0,
           null,
           OperandTypes.MULTISET,
-          SqlFunctionCategory.SYSTEM, false, false, true) {
+          SqlFunctionCategory.SYSTEM, false, false,
+          AggregateOrderLevel.FORBIDDEN) {
       };
 
   /**

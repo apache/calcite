@@ -2457,25 +2457,6 @@ EnumerableAggregate(group=[{7}], EMPNOS1=[COLLECT($0) WITHIN GROUP ([0 DESC])], 
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
-# Aggregate order should be ignored in general aggregate functions.
-select deptno, max(empno) within group (order by empno asc) as empnosum
-from "scott".emp
-group by deptno;
-
-+--------+----------+
-| DEPTNO | EMPNOSUM |
-+--------+----------+
-|     10 |     7934 |
-|     20 |     7902 |
-|     30 |     7900 |
-+--------+----------+
-(3 rows)
-
-!ok
-EnumerableAggregate(group=[{7}], EMPNOSUM=[MAX($0)])
-  EnumerableTableScan(table=[[scott, EMP]])
-!plan
-
 # Aggregate WITHIN GROUP with JOIN
 select dept.deptno,
   collect(sal) within group (order by sal desc) as s,

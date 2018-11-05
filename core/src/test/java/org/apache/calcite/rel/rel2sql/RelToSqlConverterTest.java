@@ -2789,7 +2789,6 @@ public class RelToSqlConverterTest {
     final String query = "select \"product_class_id\", collect(\"net_weight\") "
         + "within group (order by \"net_weight\" desc), "
         + "min(\"low_fat\")"
-        + "within group (order by \"net_weight\" desc) "
         + "from \"product\" group by \"product_class_id\"";
     final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
         + "WITHIN GROUP (ORDER BY \"net_weight\" DESC), MIN(\"low_fat\")\n"

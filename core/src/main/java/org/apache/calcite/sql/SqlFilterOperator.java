@@ -75,7 +75,12 @@ public class SqlFilterOperator extends SqlBinaryOperator {
           RESOURCE.filterNonAggregate());
     }
     final SqlNode condition = call.operand(1);
-    validator.validateAggregateParams(aggCall, condition, null, scope);
+    SqlNodeList orderList = null;
+    if (hasWithinGroupCall(call)) {
+      SqlCall withinGroupCall = getWithinGroupCall(call);
+      orderList = withinGroupCall.operand(1);
+    }
+    validator.validateAggregateParams(aggCall, condition, orderList, scope);
 
     final RelDataType type = validator.deriveType(scope, condition);
     if (!SqlTypeUtil.inBooleanFamily(type)) {

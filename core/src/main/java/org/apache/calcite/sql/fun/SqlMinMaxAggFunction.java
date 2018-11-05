@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.validate.AggregateOrderLevel;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -76,7 +77,7 @@ public class SqlMinMaxAggFunction extends SqlAggFunction {
         SqlFunctionCategory.SYSTEM,
         false,
         false,
-        true);
+        AggregateOrderLevel.FORBIDDEN);
     this.argTypes = ImmutableList.of();
     this.minMaxKind = MINMAX_COMPARABLE;
     Preconditions.checkArgument(kind == SqlKind.MIN

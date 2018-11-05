@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.AggregateOrderLevel;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -49,7 +50,7 @@ public class SqlFirstLastValueAggFunction extends SqlAggFunction {
         SqlFunctionCategory.NUMERIC,
         false,
         true,
-        true);
+        AggregateOrderLevel.FORBIDDEN);
     Preconditions.checkArgument(kind == SqlKind.FIRST_VALUE
         || kind == SqlKind.LAST_VALUE);
   }

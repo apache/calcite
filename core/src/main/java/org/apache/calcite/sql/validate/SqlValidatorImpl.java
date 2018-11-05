@@ -45,6 +45,7 @@ import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAccessEnum;
 import org.apache.calcite.sql.SqlAccessType;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
@@ -5181,6 +5182,31 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           throw newValidationError(aggCall, RESOURCE.aggregateInWithinGroupIllegal());
         }
       }
+    }
+
+    SqlAggFunction op = (SqlAggFunction) aggCall.getOperator();
+    switch (op.getOrderLevel()) {
+    case MANDATORY:
+      if (orderList == null || orderList.size() == 0) {
+        throw newValidationError(aggCall, RESOURCE.aggregateMissingWithinGroupClause(op.getName()));
+      }
+      break;
+    case OPTIONAL:
+      break;
+    case IGNORED:
+      // rewrite the order list to empty
+      if (orderList != null) {
+        orderList.getList().clear();
+      }
+      break;
+    case FORBIDDEN:
+      if (orderList != null && orderList.size() != 0) {
+        throw newValidationError(aggCall,
+            RESOURCE.withinGroupClauseIllegalInAggregate(op.getName()));
+      }
+      break;
+    default:
+      throw new AssertionError();
     }
   }
 

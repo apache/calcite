@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.AggregateOrderLevel;
 
 import com.google.common.collect.ImmutableList;
 
@@ -49,7 +50,7 @@ public class SqlSumEmptyIsZeroAggFunction extends SqlAggFunction {
         SqlFunctionCategory.NUMERIC,
         false,
         false,
-        true);
+        AggregateOrderLevel.FORBIDDEN);
   }
 
   //~ Methods ----------------------------------------------------------------

@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.validate.AggregateOrderLevel;
 import org.apache.calcite.sql.validate.AggregatingSelectScope;
 import org.apache.calcite.sql.validate.OrderByScope;
 import org.apache.calcite.sql.validate.SelectScope;
@@ -55,7 +56,8 @@ public class SqlAbstractGroupFunction extends SqlAggFunction {
       SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory category) {
     super(name, null, kind, returnTypeInference, operandTypeInference,
-        operandTypeChecker, category, false, false, true);
+        operandTypeChecker, category, false, false,
+        AggregateOrderLevel.FORBIDDEN);
   }
 
   @Override public void validateCall(SqlCall call, SqlValidator validator,

@@ -21,6 +21,7 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.validate.AggregateOrderLevel;
 
 /**
  * <code>NTH_VALUE</code> windowed aggregate function
@@ -31,7 +32,7 @@ public class SqlNthValueAggFunction extends SqlAggFunction {
   public SqlNthValueAggFunction(SqlKind kind) {
     super(kind.name(), null, kind, ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
         null, OperandTypes.ANY_NUMERIC, SqlFunctionCategory.NUMERIC, false,
-        true, true);
+        true, AggregateOrderLevel.FORBIDDEN);
   }
 }
 

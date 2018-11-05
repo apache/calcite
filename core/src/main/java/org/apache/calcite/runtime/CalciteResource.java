@@ -329,6 +329,12 @@ public interface CalciteResource {
   @BaseMessage("WITHIN GROUP must not contain aggregate expression")
   ExInst<SqlValidatorException> aggregateInWithinGroupIllegal();
 
+  @BaseMessage("Aggregate expression ''{0}'' must contain a within group clause")
+  ExInst<SqlValidatorException> aggregateMissingWithinGroupClause(String a0);
+
+  @BaseMessage("Aggregate expression ''{0}'' must not contain a within group clause")
+  ExInst<SqlValidatorException> withinGroupClauseIllegalInAggregate(String a0);
+
   @BaseMessage("Aggregate expression is illegal in ORDER BY clause of non-aggregating SELECT")
   ExInst<SqlValidatorException> aggregateIllegalInOrderBy();
 

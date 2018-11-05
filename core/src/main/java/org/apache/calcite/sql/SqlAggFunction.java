@@ -22,6 +22,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.validate.AggregateOrderLevel;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
@@ -34,7 +35,7 @@ import java.util.List;
 public abstract class SqlAggFunction extends SqlFunction implements Context {
   private final boolean requiresOrder;
   private final boolean requiresOver;
-  private final boolean ignoreAggregateOrder;
+  private final AggregateOrderLevel orderLevel;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -49,7 +50,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlFunctionCategory funcType) {
     // We leave sqlIdentifier as null to indicate that this is a builtin.
     this(name, null, kind, returnTypeInference, operandTypeInference,
-        operandTypeChecker, funcType, false, false, true);
+        operandTypeChecker, funcType, false, false, AggregateOrderLevel.FORBIDDEN);
   }
 
   /** Creates a user-defined SqlAggFunction. */
@@ -63,7 +64,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType) {
     this(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
-        operandTypeChecker, funcType, false, false, true);
+        operandTypeChecker, funcType, false, false, AggregateOrderLevel.FORBIDDEN);
   }
 
   /** Creates a built-in or user-defined SqlAggFunction or window function. */
@@ -79,7 +80,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       boolean requiresOrder,
       boolean requiresOver) {
     this(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
-        operandTypeChecker, funcType, requiresOrder, requiresOver, true);
+        operandTypeChecker, funcType, requiresOrder, requiresOver, AggregateOrderLevel.FORBIDDEN);
   }
 
   /** Creates a built-in or user-defined SqlAggFunction or window function.
@@ -96,12 +97,12 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlFunctionCategory funcType,
       boolean requiresOrder,
       boolean requiresOver,
-      boolean ignoreAggregateOrder) {
+      AggregateOrderLevel orderLevel) {
     super(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
         operandTypeChecker, null, funcType);
     this.requiresOrder = requiresOrder;
     this.requiresOver = requiresOver;
-    this.ignoreAggregateOrder = ignoreAggregateOrder;
+    this.orderLevel = orderLevel;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -116,15 +117,6 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
 
   @Override public boolean isQuantifierAllowed() {
     return true;
-  }
-
-  /**
-   * Returns whether aggregate order ({@code WITHIN GROUP}) should be ignored.
-   * For example, {@code SUM(X) WITHIN GROUP (ORDER BY ...)} is equivalent to
-   * {@code SUM(X)} so that the {@code WITHIN GROUP} clause should be ignored.
-   */
-  public boolean ignoreAggregateOrder() {
-    return ignoreAggregateOrder;
   }
 
   @Override public void validateCall(
@@ -158,6 +150,10 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
    * clause. */
   public boolean allowsFilter() {
     return true;
+  }
+
+  public AggregateOrderLevel getOrderLevel() {
+    return orderLevel;
   }
 }
 

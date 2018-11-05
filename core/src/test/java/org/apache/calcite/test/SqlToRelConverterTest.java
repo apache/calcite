@@ -2871,14 +2871,6 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testWithinGroup2() {
-    final String sql = "select deptno,\n"
-        + " sum(empno) within group(order by deptno, hiredate desc)\n"
-        + "from emp\n"
-        + "group by deptno";
-    sql(sql).ok();
-  }
-
-  @Test public void testWithinGroup3() {
     final String sql = "select dept.deptno,\n"
         + " collect(sal) within group (order by sal desc) as s,\n"
         + " collect(sal) within group (order by 1)as s1,\n"

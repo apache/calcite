@@ -5052,9 +5052,7 @@ public class SqlToRelConverter {
         approximate = true;
       }
       final RelCollation collation;
-      if (aggFunction.ignoreAggregateOrder()) {
-        collation = RelCollations.EMPTY;
-      } else if (orderList == null) {
+      if (orderList == null || orderList.size() == 0) {
         collation = RelCollations.EMPTY;
       } else {
         collation = RelCollations.of(

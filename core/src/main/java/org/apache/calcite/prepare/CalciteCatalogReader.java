@@ -50,6 +50,7 @@ import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ListSqlOperatorTable;
+import org.apache.calcite.sql.validate.AggregateOrderLevel;
 import org.apache.calcite.sql.validate.SqlMoniker;
 import org.apache.calcite.sql.validate.SqlMonikerImpl;
 import org.apache.calcite.sql.validate.SqlMonikerType;
@@ -324,8 +325,8 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     } else if (function instanceof AggregateFunction) {
       return new SqlUserDefinedAggFunction(name,
           infer((AggregateFunction) function), InferTypes.explicit(argTypes),
-          typeChecker, (AggregateFunction) function, false, false, true,
-          typeFactory);
+          typeChecker, (AggregateFunction) function, false, false,
+          AggregateOrderLevel.FORBIDDEN, typeFactory);
     } else if (function instanceof TableMacro) {
       return new SqlUserDefinedTableMacro(name, ReturnTypes.CURSOR,
           InferTypes.explicit(argTypes), typeChecker, paramTypes,
