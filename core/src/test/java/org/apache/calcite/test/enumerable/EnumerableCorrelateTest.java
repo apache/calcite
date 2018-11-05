@@ -16,19 +16,51 @@
  */
 package org.apache.calcite.test.enumerable;
 
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.rel.rules.JoinToCorrelateRule;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.JdbcTest;
 
 import org.junit.Test;
+
+import java.util.function.Consumer;
 
 /**
  * Unit test for
  * {@link org.apache.calcite.adapter.enumerable.EnumerableCorrelate}.
  */
 public class EnumerableCorrelateTest {
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2605">[CALCITE-2605]
+   * NullPointerException when left outer join implemented with EnumerableCorrelate</a> */
+  @Test public void leftOuterJoinCorrelate() {
+    tester(false, new JdbcTest.HrSchema())
+        .query(
+            "select e.empid, e.name, d.name as dept from emps e left outer join depts d on e.deptno=d.deptno")
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          // force the left outer join to run via EnumerableCorrelate instead of EnumerableJoin
+          planner.addRule(JoinToCorrelateRule.INSTANCE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+        })
+        .explainContains(""
+            + "EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t2], dept=[$t4])\n"
+            + "  EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
+            + "      EnumerableTableScan(table=[[s, emps]])\n"
+            + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[$cor0], expr#5=[$t4.deptno], expr#6=[=($t5, $t0)], proj#0..1=[{exprs}], $condition=[$t6])\n"
+            + "      EnumerableTableScan(table=[[s, depts]])")
+        .returnsUnordered(
+            "empid=100; name=Bill; dept=Sales",
+            "empid=110; name=Theodore; dept=Sales",
+            "empid=150; name=Sebastian; dept=Sales",
+            "empid=200; name=Eric; dept=null");
+  }
+
   @Test public void simpleCorrelateDecorrelated() {
     tester(true, new JdbcTest.HrSchema())
         .query(

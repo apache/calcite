@@ -98,11 +98,16 @@ public class EnumerableCorrelate extends Correlate
             getRowType(),
             pref.prefer(JavaRowFormat.CUSTOM));
 
-    Expression selector =
-        EnumUtils.joinSelector(
-            joinType.returnsJustFirstInput() ? joinType.toJoinType()
-                : JoinRelType.INNER, physType,
-            ImmutableList.of(leftResult.physType, rightResult.physType));
+    Expression selector;
+    if (joinType.returnsJustFirstInput()) {
+      // SEMI, ANTI
+      selector = EnumUtils.joinSelector(JoinRelType.INNER, physType,
+          ImmutableList.of(leftResult.physType));
+    } else {
+      // INNER, LEFT
+      selector = EnumUtils.joinSelector(joinType.toJoinType(), physType,
+          ImmutableList.of(leftResult.physType, rightResult.physType));
+    }
 
     builder.append(
         Expressions.call(leftExpression, BuiltInMethod.CORRELATE_JOIN.method,
