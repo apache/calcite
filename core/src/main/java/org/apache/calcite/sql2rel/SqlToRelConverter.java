@@ -4977,7 +4977,7 @@ public class SqlToRelConverter {
     }
 
     private void translateAgg(SqlCall call) {
-      translateAgg(call, null, SqlNodeList.EMPTY, call);
+      translateAgg(call, null, null, call);
     }
 
     private void translateAgg(SqlCall call, SqlNode filter, SqlNodeList orderList,
@@ -4990,7 +4990,7 @@ public class SqlToRelConverter {
         translateAgg(call.operand(0), call.operand(1), orderList, outerCall);
         return;
       case WITHIN_GROUP:
-        assert orderList.size() == 0;
+        assert orderList == null;
         translateAgg(call.operand(0), filter, call.operand(1), outerCall);
         return;
       }
@@ -5053,6 +5053,8 @@ public class SqlToRelConverter {
       }
       final RelCollation collation;
       if (aggFunction.ignoreAggregateOrder()) {
+        collation = RelCollations.EMPTY;
+      } else if (orderList == null) {
         collation = RelCollations.EMPTY;
       } else {
         collation = RelCollations.of(

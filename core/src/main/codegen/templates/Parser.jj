@@ -4976,7 +4976,7 @@ SqlNode NamedFunctionCall() :
     final SqlNode filter;
     final SqlNode over;
     SqlLiteral quantifier = null;
-    SqlNodeList orderList = SqlNodeList.EMPTY;
+    SqlNodeList orderList = null;
     final Span withinGroupSpan;
 }
 {
