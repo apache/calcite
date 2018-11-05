@@ -30,13 +30,13 @@ public class ConnectionFactory implements Quidem.ConnectionFactory {
   private static final CalciteConnectionProvider CALCITE = new CalciteConnectionProvider();
 
   public Connection connect(String db, boolean bln) throws Exception {
-    return DBWrapper.valueOf(db).connection();
+    return DatabaseWrapper.valueOf(db).connection();
   }
 
   /**
    * Wrapping with Fairy environmental decoration
    */
-  private enum DBWrapper {
+  public enum DatabaseWrapper {
     CALCITE_AS_ADMIN {
       @Override public Connection connection() throws Exception {
         EnvironmentFairy.login(EnvironmentFairy.User.ADMIN);
