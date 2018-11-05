@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.jdbc;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
@@ -23,6 +24,7 @@ import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
@@ -43,6 +45,7 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.BuiltInMethod;
 
 import java.lang.reflect.Method;
@@ -53,6 +56,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
 
 /**
  * Relational expression representing a scan of a table in a JDBC data source.
@@ -88,7 +92,8 @@ public class JdbcToEnumerableConverter
             pref.prefer(JavaRowFormat.CUSTOM));
     final JdbcConvention jdbcConvention =
         (JdbcConvention) child.getConvention();
-    String sql = generateSql(jdbcConvention.dialect);
+    SqlString sqlString = generateSql(jdbcConvention.dialect);
+    String sql = sqlString.getSql();
     if (CalcitePrepareImpl.DEBUG) {
       System.out.println("[" + sql + "]");
     }
@@ -151,20 +156,53 @@ public class JdbcToEnumerableConverter
                                                 RuntimeException.class,
                                                 e_)))))))),
                 resultSet_));
-    final Expression enumerable =
-        builder0.append(
-            "enumerable",
-            Expressions.call(
-                BuiltInMethod.RESULT_SET_ENUMERABLE_OF.method,
-                Expressions.call(
-                    Schemas.unwrap(jdbcConvention.expression,
-                        JdbcSchema.class),
-                    BuiltInMethod.JDBC_SCHEMA_DATA_SOURCE.method),
-                sql_,
-                rowBuilderFactory_));
+
+    final Expression enumerable;
+
+    if (sqlString.getDynamicParameters() != null && !sqlString.getDynamicParameters().isEmpty()) {
+
+      final Expression preparedStatementConsumer_ =
+          builder0.append("preparedStatementConsumer",
+              Expressions.call(
+                  BuiltInMethod.CREATE_PREPARED_STATEMENT_CONSUMER.method,
+                  Expressions.newArrayInit(Integer.class, 1,
+                      toIndexesTableExpression(sqlString)),
+                  DataContext.ROOT));
+
+      enumerable = builder0.append(
+          "enumerable",
+          Expressions.call(
+              BuiltInMethod.PREPARED_STMT_RESULT_SET_ENUMERABLE_OF.method,
+              Expressions.call(
+                  Schemas.unwrap(jdbcConvention.expression,
+                      JdbcSchema.class),
+                  BuiltInMethod.JDBC_SCHEMA_DATA_SOURCE.method),
+              sql_,
+              rowBuilderFactory_,
+              preparedStatementConsumer_));
+
+    } else {
+      enumerable = builder0.append(
+          "enumerable",
+          Expressions.call(
+              BuiltInMethod.RESULT_SET_ENUMERABLE_OF.method,
+              Expressions.call(
+                  Schemas.unwrap(jdbcConvention.expression,
+                      JdbcSchema.class),
+                  BuiltInMethod.JDBC_SCHEMA_DATA_SOURCE.method),
+              sql_,
+              rowBuilderFactory_));
+    }
+
     builder0.add(
         Expressions.return_(null, enumerable));
     return implementor.result(physType, builder0.toBlock());
+  }
+
+  private List<ConstantExpression> toIndexesTableExpression(SqlString sqlString) {
+    return sqlString.getDynamicParameters().stream()
+        .map(Expressions::constant)
+        .collect(Collectors.toList());
   }
 
   private UnaryExpression getTimeZoneExpression(
@@ -292,13 +330,13 @@ public class JdbcToEnumerableConverter
         : "get" + SqlFunctions.initcap(primitive.primitiveName);
   }
 
-  private String generateSql(SqlDialect dialect) {
+  private SqlString generateSql(SqlDialect dialect) {
     final JdbcImplementor jdbcImplementor =
         new JdbcImplementor(dialect,
             (JavaTypeFactory) getCluster().getTypeFactory());
     final JdbcImplementor.Result result =
         jdbcImplementor.visitChild(0, getInput());
-    return result.asStatement().toSqlString(dialect).getSql();
+    return result.asStatement().toSqlString(dialect);
   }
 }
 

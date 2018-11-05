@@ -36,7 +36,7 @@ public class ConnectionFactory implements Quidem.ConnectionFactory {
   /**
    * Wrapping with Fairy environmental decoration
    */
-  private enum DBWrapper {
+  public enum DBWrapper {
     CALCITE_AS_ADMIN {
       @Override public Connection connection() throws Exception {
         EnvironmentFairy.login(EnvironmentFairy.User.ADMIN);

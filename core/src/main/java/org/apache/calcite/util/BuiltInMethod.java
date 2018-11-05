@@ -22,6 +22,7 @@ import org.apache.calcite.adapter.enumerable.OrderedAggregateLambdaFactory;
 import org.apache.calcite.adapter.enumerable.SequencedAdderAggregateLambdaFactory;
 import org.apache.calcite.adapter.enumerable.SourceSorter;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.adapter.jdbc.JdbcPreparedStatementUtils;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnitRange;
@@ -148,6 +149,8 @@ public enum BuiltInMethod {
   ROW_AS_COPY(Row.class, "asCopy", Object[].class),
   RESULT_SET_ENUMERABLE_OF(ResultSetEnumerable.class, "of", DataSource.class,
       String.class, Function1.class),
+  PREPARED_STMT_RESULT_SET_ENUMERABLE_OF(ResultSetEnumerable.class, "of",
+      DataSource.class, String.class, Function1.class, Consumer.class),
   JOIN(ExtendedEnumerable.class, "join", Enumerable.class, Function1.class,
       Function1.class, Function2.class),
   MERGE_JOIN(EnumerableDefaults.class, "mergeJoin", Enumerable.class,
@@ -485,7 +488,9 @@ public enum BuiltInMethod {
   AGG_LAMBDA_FACTORY_ACC_RESULT_SELECTOR(AggregateLambdaFactory.class,
       "resultSelector", Function2.class),
   AGG_LAMBDA_FACTORY_ACC_SINGLE_GROUP_RESULT_SELECTOR(AggregateLambdaFactory.class,
-      "singleGroupResultSelector", Function1.class);
+      "singleGroupResultSelector", Function1.class),
+  CREATE_PREPARED_STATEMENT_CONSUMER(JdbcPreparedStatementUtils.class,
+      "createPreparedStatementConsumer", Integer[].class, DataContext.class);
 
   public final Method method;
   public final Constructor constructor;

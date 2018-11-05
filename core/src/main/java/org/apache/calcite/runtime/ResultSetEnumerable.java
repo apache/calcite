@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -36,6 +37,7 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import javax.sql.DataSource;
 
 /**
@@ -47,6 +49,8 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
   private final DataSource dataSource;
   private final String sql;
   private final Function1<ResultSet, Function0<T>> rowBuilderFactory;
+  private final Consumer<PreparedStatement> consumer;
+
   private static final Logger LOGGER = LoggerFactory.getLogger(
       ResultSetEnumerable.class);
 
@@ -96,10 +100,19 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
   private ResultSetEnumerable(
       DataSource dataSource,
       String sql,
-      Function1<ResultSet, Function0<T>> rowBuilderFactory) {
+      Function1<ResultSet, Function0<T>> rowBuilderFactory,
+      Consumer<PreparedStatement> consumer) {
     this.dataSource = dataSource;
     this.sql = sql;
     this.rowBuilderFactory = rowBuilderFactory;
+    this.consumer = consumer;
+  }
+
+  private ResultSetEnumerable(
+      DataSource dataSource,
+      String sql,
+      Function1<ResultSet, Function0<T>> rowBuilderFactory) {
+    this(dataSource, sql, rowBuilderFactory, null);
   }
 
   /** Creates an ResultSetEnumerable. */
@@ -123,17 +136,32 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
     return new ResultSetEnumerable<>(dataSource, sql, rowBuilderFactory);
   }
 
+  /** Executes a SQL query and returns the results as an enumerator, using a
+   * row builder to convert JDBC column values into rows.
+   * It user PreparedStatement for computing the query result.*/
+  public static <T> Enumerable<T> of(
+      DataSource dataSource,
+      String sql,
+      Function1<ResultSet, Function0<T>> rowBuilderFactory,
+      Consumer<PreparedStatement> consumer) {
+    return new ResultSetEnumerable<>(dataSource, sql, rowBuilderFactory, consumer);
+  }
+
   public Enumerator<T> enumerator() {
+    if (consumer == null) {
+      return enumeratorBasedOnStatement();
+    } else {
+      return enumeratorBasedOnPeparedStatement();
+    }
+  }
+
+  private Enumerator<T> enumeratorBasedOnStatement() {
     Connection connection = null;
     Statement statement = null;
     try {
       connection = dataSource.getConnection();
       statement = connection.createStatement();
-      try {
-        statement.setQueryTimeout(10);
-      } catch (SQLFeatureNotSupportedException e) {
-        LOGGER.debug("Failed to set query timeout.");
-      }
+      setTimeoutIfPossible(statement);
       if (statement.execute(sql)) {
         final ResultSet resultSet = statement.getResultSet();
         statement = null;
@@ -146,19 +174,55 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
     } catch (SQLException e) {
       throw new RuntimeException("while executing SQL [" + sql + "]", e);
     } finally {
-      if (statement != null) {
-        try {
-          statement.close();
-        } catch (SQLException e) {
-          // ignore
-        }
+      closeIfPossible(connection, statement);
+    }
+  }
+
+  private Enumerator<T> enumeratorBasedOnPeparedStatement() {
+    Connection connection = null;
+    PreparedStatement statement = null;
+    try {
+      connection = dataSource.getConnection();
+      statement = connection.prepareStatement(sql);
+      setTimeoutIfPossible(statement);
+      consumer.accept(statement);
+      if (statement.execute()) {
+        final ResultSet resultSet = statement.getResultSet();
+        statement = null;
+        connection = null;
+        return new ResultSetEnumerator<>(resultSet, rowBuilderFactory);
+      } else {
+        Integer updateCount = statement.getUpdateCount();
+        return Linq4j.singletonEnumerator((T) updateCount);
       }
-      if (connection != null) {
-        try {
-          connection.close();
-        } catch (SQLException e) {
-          // ignore
-        }
+    } catch (SQLException e) {
+      throw new RuntimeException("while executing SQL [" + sql + "]", e);
+    } finally {
+      closeIfPossible(connection, statement);
+    }
+  }
+
+  private void setTimeoutIfPossible(Statement statement) throws SQLException {
+    try {
+      statement.setQueryTimeout(10);
+    } catch (SQLFeatureNotSupportedException e) {
+      LOGGER.debug("Failed to set query timeout.");
+    }
+  }
+
+  private void closeIfPossible(Connection connection, Statement statement) {
+    if (statement != null) {
+      try {
+        statement.close();
+      } catch (SQLException e) {
+        // ignore
+      }
+    }
+    if (connection != null) {
+      try {
+        connection.close();
+      } catch (SQLException e) {
+        // ignore
       }
     }
   }

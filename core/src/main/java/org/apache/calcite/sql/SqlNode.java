@@ -149,8 +149,7 @@ public abstract class SqlNode implements Cloneable {
     writer.setSelectListItemsOnSeparateLines(false);
     writer.setIndentation(0);
     unparse(writer, 0, 0);
-    final String sql = writer.toString();
-    return new SqlString(dialect, sql);
+    return writer.toSqlString();
   }
 
   public SqlString toSqlString(SqlDialect dialect) {
