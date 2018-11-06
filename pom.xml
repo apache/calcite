@@ -103,8 +103,8 @@ limitations under the License.
     <scott-data-hsqldb.version>0.1</scott-data-hsqldb.version>
     <servlet.version>4.0.1</servlet.version>
     <slf4j.version>1.7.25</slf4j.version>
-    <spotbugs.version>3.1.7</spotbugs.version>
-    <spotbugs-maven-plugin.version>3.1.6</spotbugs-maven-plugin.version>
+    <spotbugs.version>3.1.8</spotbugs.version>
+    <spotbugs-maven-plugin.version>3.1.8</spotbugs-maven-plugin.version>
   </properties>
   <issueManagement>
     <system>Jira</system>
@@ -578,7 +578,8 @@ limitations under the License.
               <configuration>
                 <threadCount>6</threadCount>
                 <parallel>both</parallel>
-                <argLine>-Xmx1024m</argLine>
+                <!-- work around https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=911925 -->
+                <argLine>-Xmx1024m -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
               </configuration>
             </execution>
             <execution>
@@ -604,7 +605,8 @@ limitations under the License.
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
-            <argLine>-Xmx1536m -XX:MaxPermSize=256m -Duser.timezone=${user.timezone}</argLine>
+            <!-- work around https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=911925 -->
+            <argLine>-Xmx1536m -XX:MaxPermSize=256m -Duser.timezone=${user.timezone} -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
           </configuration>
         </plugin>
         <plugin>
