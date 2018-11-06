@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
 import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 
 import com.google.common.collect.ImmutableMap;
+import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.PathNotFoundException;
 
 import org.hamcrest.BaseMatcher;
@@ -39,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -51,6 +53,23 @@ import static org.junit.Assert.fail;
  * Unit test for the methods in {@link SqlFunctions} that implement JSON processing functions.
  */
 public class SqlJsonFunctionsTest {
+
+  public static final String INVOC_DESC_JSON_VALUE_EXPRESSION = "jsonValueExpression";
+  public static final String INVOC_DESC_JSON_STRUCTURED_VALUE_EXPRESSION = "jsonStructuredValueExpression";
+  public static final String INVOC_DESC_JSON_API_COMMON_SYNTAX = "jsonApiCommonSyntax";
+  public static final String INVOC_DESC_JSON_EXISTS = "jsonExists";
+  public static final String INVOC_DESC_JSON_VALUE_ANY = "jsonValueAny";
+  public static final String INVOC_DESC_JSON_QUERY = "jsonQuery";
+  public static final String INVOC_DESC_JSONIZE = "jsonize";
+  public static final String INVOC_DESC_DEJSONIZE = "dejsonize";
+  public static final String INVOC_DESC_JSON_OBJECT = "jsonObject";
+  public static final String INVOC_DESC_JSON_OBJECT_AGG_ADD = "jsonObjectAggAdd";
+  public static final String INVOC_DESC_JSON_ARRAY = "jsonArray";
+  public static final String INVOC_DESC_JSON_ARRAY_AGG_ADD = "jsonArrayAggAdd";
+  public static final String INVOC_DESC_IS_JSON_VALUE = "isJsonValue";
+  public static final String INVOC_DESC_IS_JSON_SCALAR = "isJsonScalar";
+  public static final String INVOC_DESC_IS_JSON_ARRAY = "isJsonArray";
+  public static final String INVOC_DESC_IS_JSON_OBJECT = "isJsonObject";
 
   @Test
   public void testJsonValueExpression() {
@@ -85,70 +104,65 @@ public class SqlJsonFunctionsTest {
 
   @Test
   public void testJsonExists() {
-    assertjsonExists(
+    assertJsonExists(
         SqlFunctions.PathContext.withReturned(SqlFunctions.PathMode.STRICT, "bar"),
         SqlJsonExistsErrorBehavior.FALSE,
         is(true));
 
-    assertjsonExists(
+    assertJsonExists(
         SqlFunctions.PathContext.withReturned(SqlFunctions.PathMode.STRICT, "bar"),
         SqlJsonExistsErrorBehavior.TRUE,
         is(true));
 
-    assertjsonExists(
+    assertJsonExists(
         SqlFunctions.PathContext.withReturned(SqlFunctions.PathMode.STRICT, "bar"),
         SqlJsonExistsErrorBehavior.UNKNOWN,
         is(true));
 
-    assertjsonExists(
+    assertJsonExists(
         SqlFunctions.PathContext.withReturned(SqlFunctions.PathMode.STRICT, "bar"),
         SqlJsonExistsErrorBehavior.ERROR,
         is(true));
 
-    assertjsonExists(
+    assertJsonExists(
         SqlFunctions.PathContext.withReturned(SqlFunctions.PathMode.LAX, null),
         SqlJsonExistsErrorBehavior.FALSE,
         is(false));
 
-    assertjsonExists(
+    assertJsonExists(
         SqlFunctions.PathContext.withReturned(SqlFunctions.PathMode.LAX, null),
         SqlJsonExistsErrorBehavior.TRUE,
         is(false));
 
-    assertjsonExists(
+    assertJsonExists(
         SqlFunctions.PathContext.withReturned(SqlFunctions.PathMode.LAX, null),
         SqlJsonExistsErrorBehavior.UNKNOWN,
         is(false));
 
-    assertjsonExists(
+    assertJsonExists(
         SqlFunctions.PathContext.withReturned(SqlFunctions.PathMode.LAX, null),
         SqlJsonExistsErrorBehavior.ERROR,
         is(false));
 
-    assertjsonExists(
+    assertJsonExists(
         SqlFunctions.PathContext.withStrictException(new Exception("test message")),
         SqlJsonExistsErrorBehavior.FALSE,
         is(false));
 
-    assertjsonExists(
+    assertJsonExists(
         SqlFunctions.PathContext.withStrictException(new Exception("test message")),
         SqlJsonExistsErrorBehavior.TRUE,
         is(true));
 
-    assertjsonExists(
+    assertJsonExists(
         SqlFunctions.PathContext.withStrictException(new Exception("test message")),
         SqlJsonExistsErrorBehavior.UNKNOWN,
         nullValue());
 
-    try {
-      SqlFunctions.
-          jsonExists(SqlFunctions.PathContext
-                  .withStrictException(new Exception("test message")),
-              SqlJsonExistsErrorBehavior.ERROR);
-      fail("expect exception, but not");
-    } catch (RuntimeException e) {
-      assertThat(e.getMessage(), is("java.lang.Exception: test message"));
-    }
+    assertJsonExistsFailed(
+        SqlFunctions.PathContext.withStrictException(new Exception("test message")),
+        SqlJsonExistsErrorBehavior.ERROR,
+        errorMatches(new RuntimeException("java.lang.Exception: test message")));
   }
 
   @Test
@@ -180,19 +194,14 @@ public class SqlJsonFunctionsTest {
         null,
         is("empty")
     );
-    try {
-      SqlFunctions
-          .jsonValueAny(
-              SqlFunctions.PathContext
-                  .withReturned(SqlFunctions.PathMode.LAX, null),
-              SqlJsonValueEmptyOrErrorBehavior.ERROR,
-              null,
-              SqlJsonValueEmptyOrErrorBehavior.NULL,
-              null);
-      fail("expect exception, but not");
-    } catch (Exception e) {
-      assertThat(e.getMessage(), is("empty json value"));
-    }
+    assertJsonValueAnyFailed(
+        SqlFunctions.PathContext
+            .withReturned(SqlFunctions.PathMode.LAX, null),
+        SqlJsonValueEmptyOrErrorBehavior.ERROR,
+        null,
+        SqlJsonValueEmptyOrErrorBehavior.NULL,
+        null, errorMatches(new RuntimeException("empty json value"))
+    );
     assertJsonValueAny(
         SqlFunctions.PathContext
             .withReturned(SqlFunctions.PathMode.LAX, Collections.emptyList()),
@@ -211,19 +220,15 @@ public class SqlJsonFunctionsTest {
         null,
         is("empty")
     );
-    try {
-      SqlFunctions
-          .jsonValueAny(
-              SqlFunctions.PathContext
-                  .withReturned(SqlFunctions.PathMode.LAX, Collections.emptyList()),
-              SqlJsonValueEmptyOrErrorBehavior.ERROR,
-              null,
-              SqlJsonValueEmptyOrErrorBehavior.NULL,
-              null);
-      fail("expect exception, but not");
-    } catch (Exception e) {
-      assertThat(e.getMessage(), is("empty json value"));
-    }
+    assertJsonValueAnyFailed(
+        SqlFunctions.PathContext
+            .withReturned(SqlFunctions.PathMode.LAX, Collections.emptyList()),
+        SqlJsonValueEmptyOrErrorBehavior.ERROR,
+        null,
+        SqlJsonValueEmptyOrErrorBehavior.NULL,
+        null,
+        errorMatches(new RuntimeException("empty json value"))
+    );
     assertJsonValueAny(
         SqlFunctions.PathContext
             .withStrictException(new Exception("test message")),
@@ -242,19 +247,15 @@ public class SqlJsonFunctionsTest {
         "empty",
         is("empty")
     );
-    try {
-      SqlFunctions
-          .jsonValueAny(
+    assertJsonValueAnyFailed(
               SqlFunctions.PathContext
                   .withStrictException(new Exception("test message")),
               SqlJsonValueEmptyOrErrorBehavior.NULL,
               null,
               SqlJsonValueEmptyOrErrorBehavior.ERROR,
-              null);
-      fail("expect exception, but not");
-    } catch (Exception e) {
-      assertThat(e.getMessage(), is("java.lang.Exception: test message"));
-    }
+              null,
+        errorMatches(new RuntimeException("java.lang.Exception: test message"))
+    );
     assertJsonValueAny(
         SqlFunctions.PathContext
             .withReturned(SqlFunctions.PathMode.STRICT, Collections.emptyList()),
@@ -273,19 +274,15 @@ public class SqlJsonFunctionsTest {
         "empty",
         is("empty")
     );
-    try {
-      SqlFunctions
-          .jsonValueAny(
-              SqlFunctions.PathContext
-                  .withReturned(SqlFunctions.PathMode.STRICT, Collections.emptyList()),
-              SqlJsonValueEmptyOrErrorBehavior.NULL,
-              null,
-              SqlJsonValueEmptyOrErrorBehavior.ERROR,
-              null);
-      fail("expect exception, but not");
-    } catch (Exception e) {
-      assertThat(e.getMessage(), is("java.lang.RuntimeException: not a json value: []"));
-    }
+    assertJsonValueAnyFailed(
+        SqlFunctions.PathContext
+            .withReturned(SqlFunctions.PathMode.STRICT, Collections.emptyList()),
+        SqlJsonValueEmptyOrErrorBehavior.NULL,
+        null,
+        SqlJsonValueEmptyOrErrorBehavior.ERROR,
+        null,
+        errorMatches(new RuntimeException("java.lang.RuntimeException: not a json value: []"))
+    );
   }
 
   @Test
@@ -322,18 +319,14 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         is("{}")
     );
-    try {
-      SqlFunctions
-          .jsonQuery(
-              SqlFunctions.PathContext
-                  .withReturned(SqlFunctions.PathMode.LAX, null),
-              SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
-              SqlJsonQueryEmptyOrErrorBehavior.ERROR,
-              SqlJsonQueryEmptyOrErrorBehavior.NULL);
-      fail("expect exception, but not");
-    } catch (Exception e) {
-      assertThat(e.getMessage(), is("empty json query"));
-    }
+    assertJsonQueryFailed(
+        SqlFunctions.PathContext
+            .withReturned(SqlFunctions.PathMode.LAX, null),
+        SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
+        SqlJsonQueryEmptyOrErrorBehavior.ERROR,
+        SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        errorMatches(new IllegalArgumentException("empty json query"))
+    );
 
     assertJsonQuery(
         SqlFunctions.PathContext
@@ -359,20 +352,14 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         is("{}")
     );
-    try {
-      SqlFunctions
-          .jsonQuery(
-              SqlFunctions.PathContext
-                  .withReturned(SqlFunctions.PathMode.LAX, "bar"),
-              SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
-              SqlJsonQueryEmptyOrErrorBehavior.ERROR,
-              SqlJsonQueryEmptyOrErrorBehavior.NULL);
-      fail("expect exception, but not");
-    } catch (Exception e) {
-      assertThat(e.getMessage(), is("empty json query"));
-    }
-
-
+    assertJsonQueryFailed(
+        SqlFunctions.PathContext
+            .withReturned(SqlFunctions.PathMode.LAX, "bar"),
+        SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
+        SqlJsonQueryEmptyOrErrorBehavior.ERROR,
+        SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        errorMatches(new IllegalArgumentException("empty json query"))
+    );
     assertJsonQuery(
         SqlFunctions.PathContext
             .withStrictException(new Exception("test message")),
@@ -389,19 +376,14 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryEmptyOrErrorBehavior.EMPTY_OBJECT,
         is("{}")
     );
-    try {
-      SqlFunctions
-          .jsonQuery(
-              SqlFunctions.PathContext
-                  .withStrictException(new Exception("test message")),
-              SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
-              SqlJsonQueryEmptyOrErrorBehavior.NULL,
-              SqlJsonQueryEmptyOrErrorBehavior.ERROR);
-      fail("expect exception, but not");
-    } catch (Exception e) {
-      assertThat(e.getMessage(), is("java.lang.Exception: test message"));
-    }
-
+    assertJsonQueryFailed(
+        SqlFunctions.PathContext
+            .withStrictException(new Exception("test message")),
+        SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
+        SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryEmptyOrErrorBehavior.ERROR,
+        errorMatches(new RuntimeException("java.lang.Exception: test message"))
+    );
     assertJsonQuery(
         SqlFunctions.PathContext
             .withReturned(SqlFunctions.PathMode.STRICT, "bar"),
@@ -418,20 +400,15 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryEmptyOrErrorBehavior.EMPTY_ARRAY,
         is("[]")
     );
-    try {
-      SqlFunctions
-          .jsonQuery(
-              SqlFunctions.PathContext
-                  .withReturned(SqlFunctions.PathMode.STRICT, "bar"),
-              SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
-              SqlJsonQueryEmptyOrErrorBehavior.NULL,
-              SqlJsonQueryEmptyOrErrorBehavior.ERROR);
-      fail("expect exception, but not");
-    } catch (Exception e) {
-      assertThat(
-          e.getMessage(), is("java.lang.RuntimeException: "
-              + "not a json array or a json object: bar"));
-    }
+    assertJsonQueryFailed(
+        SqlFunctions.PathContext
+            .withReturned(SqlFunctions.PathMode.STRICT, "bar"),
+        SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
+        SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryEmptyOrErrorBehavior.ERROR,
+        errorMatches(new RuntimeException("java.lang.RuntimeException: "
+            + "not a json array or a json object: bar"))
+    );
 
     // wrapper behavior test
 
@@ -489,12 +466,13 @@ public class SqlJsonFunctionsTest {
     );
 
     // expect exception thrown
-    try {
-      SqlFunctions.dejsonize("[}");
-      fail("expect exception, but not");
-    } catch (Exception ignored) {
-      // ignored
-    }
+    assertDejsonizeFailed("[}",
+        errorMatches(
+            new InvalidJsonException("com.fasterxml.jackson.core.JsonParseException: "
+                + "Unexpected close marker '}': expected ']' "
+                + "(for Array starting at [Source: (String)\"[}\"; line: 1, column: 1])\n"
+                + " at [Source: (String)\"[}\"; line: 1, column: 3]"))
+    );
   }
 
   @Test
@@ -583,28 +561,34 @@ public class SqlJsonFunctionsTest {
   private void assertJsonValueExpression(String input,
                                          Matcher<Object> matcher) {
     assertThat(
-        invocationDesc("jsonValueExpression", input),
+        invocationDesc(INVOC_DESC_JSON_VALUE_EXPRESSION, input),
         SqlFunctions.jsonValueExpression(input), matcher);
   }
 
   private void assertJsonStructuredValueExpression(Object input,
                                                    Matcher<Object> matcher) {
     assertThat(
-        invocationDesc("jsonStructuredValueExpression", input),
+        invocationDesc(INVOC_DESC_JSON_STRUCTURED_VALUE_EXPRESSION, input),
         SqlFunctions.jsonStructuredValueExpression(input), matcher);
   }
 
   private void assertJsonApiCommonSyntax(Object input, String pathSpec,
                                          Matcher<? super SqlFunctions.PathContext> matcher) {
     assertThat(
-        invocationDesc("jsonApiCommonSyntax", input, pathSpec),
+        invocationDesc(INVOC_DESC_JSON_API_COMMON_SYNTAX, input, pathSpec),
         SqlFunctions.jsonApiCommonSyntax(input, pathSpec), matcher);
   }
 
-  private void assertjsonExists(Object input, SqlJsonExistsErrorBehavior errorBehavior,
+  private void assertJsonExists(Object input, SqlJsonExistsErrorBehavior errorBehavior,
                                 Matcher<? super Boolean> matcher) {
-    assertThat(invocationDesc("jsonExists", input, errorBehavior),
+    assertThat(invocationDesc(INVOC_DESC_JSON_EXISTS, input, errorBehavior),
         SqlFunctions.jsonExists(input, errorBehavior), matcher);
+  }
+
+  private void assertJsonExistsFailed(Object input, SqlJsonExistsErrorBehavior errorBehavior,
+                                Matcher<? super Throwable> matcher) {
+    assertFailed(invocationDesc(INVOC_DESC_JSON_EXISTS, input, errorBehavior),
+        () -> SqlFunctions.jsonExists(input, errorBehavior), matcher);
   }
 
   private void assertJsonValueAny(Object input,
@@ -614,9 +598,23 @@ public class SqlJsonFunctionsTest {
                                   Object defaultValueOnError,
                                   Matcher<Object> matcher) {
     assertThat(
-        invocationDesc("jsonValueAny", input, emptyBehavior, defaultValueOnEmpty,
+        invocationDesc(INVOC_DESC_JSON_VALUE_ANY, input, emptyBehavior, defaultValueOnEmpty,
             errorBehavior, defaultValueOnError),
         SqlFunctions.jsonValueAny(
+            input, emptyBehavior, defaultValueOnEmpty, errorBehavior, defaultValueOnError),
+        matcher);
+  }
+
+  private void assertJsonValueAnyFailed(Object input,
+                                  SqlJsonValueEmptyOrErrorBehavior emptyBehavior,
+                                  Object defaultValueOnEmpty,
+                                  SqlJsonValueEmptyOrErrorBehavior errorBehavior,
+                                  Object defaultValueOnError,
+                                  Matcher<? super Throwable> matcher) {
+    assertFailed(
+        invocationDesc(INVOC_DESC_JSON_VALUE_ANY, input, emptyBehavior, defaultValueOnEmpty,
+            errorBehavior, defaultValueOnError),
+        () -> SqlFunctions.jsonValueAny(
             input, emptyBehavior, defaultValueOnEmpty, errorBehavior, defaultValueOnError),
         matcher);
   }
@@ -627,16 +625,28 @@ public class SqlJsonFunctionsTest {
                                SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
                                Matcher<? super String> matcher) {
     assertThat(
-        invocationDesc("jsonQuery", input, wrapperBehavior, emptyBehavior,
+        invocationDesc(INVOC_DESC_JSON_QUERY, input, wrapperBehavior, emptyBehavior,
             errorBehavior),
         SqlFunctions.jsonQuery(input, wrapperBehavior, emptyBehavior, errorBehavior),
+        matcher);
+  }
+
+  private void assertJsonQueryFailed(Object input,
+                               SqlJsonQueryWrapperBehavior wrapperBehavior,
+                               SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
+                               SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
+                               Matcher<? super Throwable> matcher) {
+    assertFailed(
+        invocationDesc(INVOC_DESC_JSON_QUERY, input, wrapperBehavior, emptyBehavior,
+            errorBehavior),
+        () -> SqlFunctions.jsonQuery(input, wrapperBehavior, emptyBehavior, errorBehavior),
         matcher);
   }
 
   private void assertJsonize(Object input,
                              Matcher<? super String> matcher) {
     assertThat(
-        invocationDesc("jsonize", input),
+        invocationDesc(INVOC_DESC_JSONIZE, input),
         SqlFunctions.jsonize(input),
         matcher);
   }
@@ -644,8 +654,16 @@ public class SqlJsonFunctionsTest {
   private void assertDejsonize(String input,
                                Matcher<Object> matcher) {
     assertThat(
-        invocationDesc("dejsonize", input),
+        invocationDesc(INVOC_DESC_DEJSONIZE, input),
         SqlFunctions.dejsonize(input),
+        matcher);
+  }
+
+  private void assertDejsonizeFailed(String input,
+                               Matcher<? super Throwable> matcher) {
+    assertFailed(
+        invocationDesc(INVOC_DESC_DEJSONIZE, input),
+        () -> SqlFunctions.dejsonize(input),
         matcher);
   }
 
@@ -653,7 +671,7 @@ public class SqlJsonFunctionsTest {
                                 SqlJsonConstructorNullClause nullClause,
                                 Object... kvs) {
     assertThat(
-        invocationDesc("jsonObject", nullClause, kvs),
+        invocationDesc(INVOC_DESC_JSON_OBJECT, nullClause, kvs),
         SqlFunctions.jsonObject(nullClause, kvs),
         matcher);
   }
@@ -662,14 +680,14 @@ public class SqlJsonFunctionsTest {
                                       SqlJsonConstructorNullClause nullClause,
                                       Matcher<? super Map> matcher) {
     SqlFunctions.jsonObjectAggAdd(map, k, v, nullClause);
-    assertThat(invocationDesc("jsonObjectAggAdd", map, k, v, nullClause),
+    assertThat(invocationDesc(INVOC_DESC_JSON_OBJECT_AGG_ADD, map, k, v, nullClause),
         map, matcher);
   }
 
   private void assertJsonArray(Matcher<? super String> matcher,
                                SqlJsonConstructorNullClause nullClause, Object... elements) {
     assertThat(
-        invocationDesc("jsonArray", nullClause, elements),
+        invocationDesc(INVOC_DESC_JSON_ARRAY, nullClause, elements),
         SqlFunctions.jsonArray(nullClause, elements),
         matcher);
   }
@@ -679,13 +697,13 @@ public class SqlJsonFunctionsTest {
                                      Matcher<? super List> matcher) {
     SqlFunctions.jsonArrayAggAdd(list, element, nullClause);
     assertThat(
-        invocationDesc("jsonArrayAggAdd", list, element, nullClause), list, matcher);
+        invocationDesc(INVOC_DESC_JSON_ARRAY_AGG_ADD, list, element, nullClause), list, matcher);
   }
 
   private void assertIsJsonValue(String input,
                                  Matcher<? super Boolean> matcher) {
     assertThat(
-        invocationDesc("isJsonValue", input),
+        invocationDesc(INVOC_DESC_IS_JSON_VALUE, input),
         SqlFunctions.isJsonValue(input),
         matcher);
   }
@@ -693,7 +711,7 @@ public class SqlJsonFunctionsTest {
   private void assertIsJsonScalar(String input,
                                   Matcher<? super Boolean> matcher) {
     assertThat(
-        invocationDesc("isJsonScalar", input),
+        invocationDesc(INVOC_DESC_IS_JSON_SCALAR, input),
         SqlFunctions.isJsonScalar(input),
         matcher);
   }
@@ -701,7 +719,7 @@ public class SqlJsonFunctionsTest {
   private void assertIsJsonArray(String input,
                                  Matcher<? super Boolean> matcher) {
     assertThat(
-        invocationDesc("isJsonArray", input),
+        invocationDesc(INVOC_DESC_IS_JSON_ARRAY, input),
         SqlFunctions.isJsonArray(input),
         matcher);
   }
@@ -709,7 +727,7 @@ public class SqlJsonFunctionsTest {
   private void assertIsJsonObject(String input,
                                   Matcher<? super Boolean> matcher) {
     assertThat(
-        invocationDesc("isJsonObject", input),
+        invocationDesc(INVOC_DESC_IS_JSON_OBJECT, input),
         SqlFunctions.isJsonObject(input),
         matcher);
   }
@@ -720,6 +738,34 @@ public class SqlJsonFunctionsTest {
             .map(Objects::toString)
             .collect(Collectors.toList())
     ) + ")";
+  }
+
+  private void assertFailed(String invocationDesc, Supplier<?> supplier,
+                            Matcher<? super Throwable> matcher) {
+    try {
+      supplier.get();
+      fail("expect exception, but not: " + invocationDesc);
+    } catch (Throwable t) {
+      assertThat(invocationDesc, t, matcher);
+    }
+  }
+
+  private Matcher<? super Throwable> errorMatches(Throwable expected) {
+    return new BaseMatcher<Throwable>() {
+      @Override public boolean matches(Object item) {
+        if (!(item instanceof Throwable)) {
+          return false;
+        }
+        Throwable error = (Throwable) item;
+        return expected != null
+            && Objects.equals(error.getClass(), expected.getClass())
+            && Objects.equals(error.getMessage(), expected.getMessage());
+      }
+
+      @Override public void describeTo(Description description) {
+        description.appendText("is ").appendText(expected.toString());
+      }
+    };
   }
 
   @NotNull private BaseMatcher<SqlFunctions.PathContext> contextMatches(
