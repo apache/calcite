@@ -65,6 +65,11 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
           RESOURCE.withinGroupNotAllowed(aggCall.getOperator().getName()));
     }
     final SqlNodeList orderList = call.operand(1);
+    for (SqlNode order : orderList) {
+      RelDataType nodeType =
+          validator.deriveType(scope, order);
+      assert nodeType != null;
+    }
     validator.validateAggregateParams(aggCall, null, orderList, scope);
   }
 

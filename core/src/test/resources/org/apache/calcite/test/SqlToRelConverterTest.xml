@@ -5322,4 +5322,16 @@ LogicalAggregate(group=[{0}], S=[COLLECT($1) WITHIN GROUP ([1 DESC])], S1=[COLLE
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testWithinGroup3">
+        <Resource name="sql">
+            <![CDATA[select deptno, collect(empno) filter (where empno not in (1, 2)), count(*) from emp group by deptno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[COLLECT($1) WITHIN GROUP ([2])], EXPR$2=[COUNT()])
+  LogicalProject(DEPTNO=[$7], EMPNO=[$0], $f2=[AND(<>($0, 1), <>($0, 2))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

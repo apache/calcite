@@ -2485,4 +2485,23 @@ EnumerableAggregate(group=[{0}], S=[COLLECT($1) WITHIN GROUP ([1 DESC])], S1=[CO
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+select deptno, collect(empno + 1) within group (order by 1) as empnos
+from "scott".emp
+group by deptno;
+
++--------+--------------------------------------+
+| DEPTNO | EMPNOS                               |
++--------+--------------------------------------+
+|     10 | [7783, 7840, 7935]                   |
+|     20 | [7370, 7567, 7789, 7877, 7903]       |
+|     30 | [7500, 7522, 7655, 7699, 7845, 7901] |
++--------+--------------------------------------+
+(3 rows)
+
+!ok
+EnumerableAggregate(group=[{0}], EMPNOS=[COLLECT($1) WITHIN GROUP ([2])])
+  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[1], expr#9=[+($t0, $t8)], DEPTNO=[$t7], $f1=[$t9], $f2=[$t8])
+    EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End agg.iq
