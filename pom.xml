@@ -915,7 +915,8 @@ limitations under the License.
               <configuration>
                 <threadCount>6</threadCount>
                 <parallel>both</parallel>
-                <argLine>-Xmx1024m</argLine>
+                <!-- work around https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=911925 -->
+                <argLine>-Xmx1024m -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
                 <systemPropertyVariables>
                   <calcite.integrationTest>true</calcite.integrationTest>
                 </systemPropertyVariables>
@@ -987,8 +988,8 @@ limitations under the License.
                 <value>tr</value>
               </systemProperty>
             </systemProperties>
-            <!--<argLine>-Xmx1536m -Duser.timezone=${user.timezone} -Duser.country=${user.country} -Duser.language=${user.language}</argLine>-->
-            <argLine>-Xmx1536m</argLine>
+            <!-- work around https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=911925 -->
+            <argLine>-Xmx1536m -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
           </configuration>
         </plugin>
         <plugin>
