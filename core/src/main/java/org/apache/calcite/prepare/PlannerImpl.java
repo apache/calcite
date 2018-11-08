@@ -55,6 +55,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import java.io.Reader;
 import java.util.List;
 import java.util.Properties;
 
@@ -162,14 +163,14 @@ public class PlannerImpl implements Planner, ViewExpander {
     }
   }
 
-  public SqlNode parse(final String sql) throws SqlParseException {
+  public SqlNode parse(final Reader reader) throws SqlParseException {
     switch (state) {
     case STATE_0_CLOSED:
     case STATE_1_RESET:
       ready();
     }
     ensure(State.STATE_2_READY);
-    SqlParser parser = SqlParser.create(sql, parserConfig);
+    SqlParser parser = SqlParser.create(reader, parserConfig);
     SqlNode sqlNode = parser.parseStmt();
     state = State.STATE_3_PARSED;
     return sqlNode;

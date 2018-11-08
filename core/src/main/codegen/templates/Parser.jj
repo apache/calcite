@@ -110,6 +110,7 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.SourceStringReader;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -153,8 +154,14 @@ public class ${parser.class} extends SqlAbstractParserImpl
      * {@link SqlParserImplFactory} implementation for creating parser.
      */
     public static final SqlParserImplFactory FACTORY = new SqlParserImplFactory() {
-        public SqlAbstractParserImpl getParser(Reader stream) {
-            return new ${parser.class}(stream);
+        public SqlAbstractParserImpl getParser(Reader reader) {
+            final ${parser.class} parser = new ${parser.class}(reader);
+            if (reader instanceof SourceStringReader) {
+                final String sql =
+                    ((SourceStringReader) reader).getSourceString();
+                parser.setOriginalSql(sql);
+            }
+          return parser;
         }
     };
 

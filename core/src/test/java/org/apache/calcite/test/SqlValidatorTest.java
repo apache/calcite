@@ -22,11 +22,14 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
@@ -53,6 +56,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
@@ -63,11 +67,16 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import static org.apache.calcite.sql.parser.SqlParser.configBuilder;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Concrete child class of {@link SqlValidatorTestCase}, containing lots of unit
@@ -10780,6 +10789,44 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpType("'100' is not json scalar", "BOOLEAN NOT NULL");
     checkExpFails("^100 is json value^", "(?s).*Cannot apply.*");
   }
+
+  @Test public void testValidatorReportsOriginalQueryUsingReader()
+      throws Exception {
+    final String sql = "select a from b";
+    final SqlParser.Config config = configBuilder().build();
+    final String messagePassingSqlString;
+    try {
+      final SqlParser sqlParserReader = SqlParser.create(sql, config);
+      final SqlNode node = sqlParserReader.parseQuery();
+      final SqlValidator validator = tester.getValidator();
+      final SqlNode x = validator.validate(node);
+      fail("expecting an error, got " + x);
+      return;
+    } catch (CalciteContextException error) {
+      // we want the exception to report column and line
+      assertThat(error.getMessage(),
+          is("At line 1, column 15: Object 'B' not found"));
+      messagePassingSqlString = error.getMessage();
+      // the error does not contain the original query (even using a String)
+      assertNull(error.getOriginalStatement());
+    }
+
+    // parse SQL text using a java.io.Reader and not a java.lang.String
+    try {
+      final SqlParser sqlParserReader =
+          SqlParser.create(new StringReader(sql), config);
+      final SqlNode node = sqlParserReader.parseQuery();
+      final SqlValidator validator = tester.getValidator();
+      final SqlNode x = validator.validate(node);
+      fail("expecting an error, got " + x);
+    } catch (CalciteContextException error) {
+      // we want exactly the same error as with java.lang.String input
+      assertThat(error.getMessage(), is(messagePassingSqlString));
+      // the error does not contain the original query (using a Reader)
+      assertThat(error.getOriginalStatement(), nullValue());
+    }
+  }
+
 }
 
 // End SqlValidatorTest.java

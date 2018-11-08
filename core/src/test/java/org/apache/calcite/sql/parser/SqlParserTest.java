@@ -30,6 +30,7 @@ import org.apache.calcite.test.DiffTestCase;
 import org.apache.calcite.test.SqlValidatorTestCase;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ConversionUtil;
+import org.apache.calcite.util.SourceStringReader;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
@@ -49,6 +50,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.Reader;
+import java.io.StringReader;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
@@ -595,7 +598,11 @@ public class SqlParserTest {
   }
 
   protected SqlParser getSqlParser(String sql) {
-    return SqlParser.create(sql,
+    return getSqlParser(new SourceStringReader(sql));
+  }
+
+  protected SqlParser getSqlParser(Reader source) {
+    return SqlParser.create(source,
         SqlParser.configBuilder()
             .setParserFactory(parserImplFactory())
             .setQuoting(quoting)
@@ -8430,6 +8437,15 @@ public class SqlParserTest {
         "('[]' IS NOT JSON ARRAY)");
     checkExp("'100' is not json scalar",
         "('100' IS NOT JSON SCALAR)");
+  }
+
+  @Test public void testParseWithReader() throws Exception {
+    String query = "select * from dual";
+    SqlParser sqlParserReader = getSqlParser(new StringReader(query));
+    SqlNode node1 = sqlParserReader.parseQuery();
+    SqlParser sqlParserString = getSqlParser(query);
+    SqlNode node2 = sqlParserString.parseQuery();
+    assertEquals(node2.toString(), node1.toString());
   }
 
   //~ Inner Interfaces -------------------------------------------------------
