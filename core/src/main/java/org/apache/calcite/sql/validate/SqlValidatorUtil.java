@@ -168,8 +168,7 @@ public class SqlValidatorUtil {
       SqlNodeList extendedColumns) {
     final List list = extendedColumns.getList();
     //noinspection unchecked
-    return Pair.zip(Util.quotientList(list, 2, 0),
-        Util.quotientList(list, 2, 1));
+    return Util.pairs(list);
   }
 
   /**

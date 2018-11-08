@@ -99,6 +99,14 @@ public class SqlDdlNodes {
         columnList, query);
   }
 
+  /** Creates a CREATE FUNCTION. */
+  public static SqlCreateFunction createFunction(
+      SqlParserPos pos, boolean replace, boolean ifNotExists,
+      SqlIdentifier name, SqlNode className, SqlNodeList usingList) {
+    return new SqlCreateFunction(pos, replace, ifNotExists, name,
+        className, usingList);
+  }
+
   /** Creates a DROP [ FOREIGN ] SCHEMA. */
   public static SqlDropSchema dropSchema(SqlParserPos pos, boolean foreign,
       boolean ifExists, SqlIdentifier name) {
@@ -127,6 +135,12 @@ public class SqlDdlNodes {
   public static SqlDrop dropMaterializedView(SqlParserPos pos,
       boolean ifExists, SqlIdentifier name) {
     return new SqlDropMaterializedView(pos, ifExists, name);
+  }
+
+  /** Creates a DROP FUNCTION. */
+  public static SqlDrop dropFunction(SqlParserPos pos,
+      boolean ifExists, SqlIdentifier name) {
+    return new SqlDropFunction(pos, ifExists, name);
   }
 
   /** Creates a column declaration. */
@@ -235,6 +249,13 @@ public class SqlDdlNodes {
         | RelConversionException | SQLException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  /** File type for CREATE FUNCTION. */
+  public enum FileType {
+    FILE,
+    JAR,
+    ARCHIVE
   }
 }
 

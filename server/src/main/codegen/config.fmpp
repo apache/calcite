@@ -25,6 +25,8 @@ data: {
         "org.apache.calcite.sql.SqlCreate"
         "org.apache.calcite.sql.SqlDrop"
         "org.apache.calcite.sql.ddl.SqlDdlNodes"
+        "java.util.Map"
+        "java.util.HashMap"
       ]
 
       # List of keywords.
@@ -33,6 +35,9 @@ data: {
         "MATERIALIZED"
         "STORED"
         "VIRTUAL"
+        "JAR"
+        "FILE"
+        "ARCHIVE"
       ]
 
       # List of keywords from "keywords" section that are not reserved.
@@ -344,6 +349,9 @@ data: {
         "MATERIALIZED"
         "STORED"
         "VIRTUAL"
+        "JAR"
+        "FILE"
+        "ARCHIVE"
       ]
 
       # List of additional join types. Each is a method with no arguments.
@@ -378,6 +386,7 @@ data: {
         "SqlCreateTable"
         "SqlCreateType"
         "SqlCreateView"
+        "SqlCreateFunction"
       ]
 
       # List of methods for parsing extensions to "DROP" calls.
@@ -388,6 +397,7 @@ data: {
         "SqlDropTable"
         "SqlDropType"
         "SqlDropView"
+        "SqlDropFunction"
       ]
 
       # List of files in @includes directory that have parser method

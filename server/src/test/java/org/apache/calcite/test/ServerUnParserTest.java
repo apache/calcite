@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql.parser;
+package org.apache.calcite.test;
 
 /**
- * Extension to {@link SqlParserTest} which ensures that every expression can
+ * Extension to {@link ServerParserTest} that ensures that every expression can
  * un-parse successfully.
  */
-public class SqlUnParserTest extends SqlParserTest {
+public class ServerUnParserTest extends ServerParserTest {
   //~ Constructors -----------------------------------------------------------
 
-  public SqlUnParserTest() {
+  public ServerUnParserTest() {
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -37,4 +37,4 @@ public class SqlUnParserTest extends SqlParserTest {
   }
 }
 
-// End SqlUnParserTest.java
+// End ServerUnParserTest.java
