@@ -210,6 +210,15 @@ public class ServerParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testCreateFunction() {
+    final String sql = "create function demo_udf as 'org.apache.calcite.udf.TableFun.demoUdf' "
+        + "using jar 'file:/path/udf/udf-0.0.1-SNAPSHOT.jar'";
+    final String expected = "CREATE FUNCTION `DEMO_UDF` AS "
+        + "'org.apache.calcite.udf.TableFun.demoUdf' "
+        + "USING ('file:/path/udf/udf-0.0.1-SNAPSHOT.jar')";
+    sql(sql).ok(expected);
+  }
+
   @Test public void testDropSchema() {
     sql("drop schema x")
         .ok("DROP SCHEMA `X`");
