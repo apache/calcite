@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.parser;
 
+
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.config.Lex;
@@ -26,7 +27,10 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.StringReader;
+import java.nio.charset.Charset;
 import java.util.Objects;
 
 /**
@@ -97,6 +101,13 @@ public class SqlParser {
         config.parserFactory().getParser(new StringReader(sql));
 
     return new SqlParser(sql, parser, config);
+  }
+
+  public static SqlParser create(InputStream sql, Charset encoding, Config config) {
+    SqlAbstractParserImpl parser =
+        config.parserFactory().getParser(new InputStreamReader(sql, encoding));
+
+    return new SqlParser(null, parser, config);
   }
 
   /**

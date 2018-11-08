@@ -55,6 +55,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Properties;
 
@@ -170,6 +172,20 @@ public class PlannerImpl implements Planner, ViewExpander {
     }
     ensure(State.STATE_2_READY);
     SqlParser parser = SqlParser.create(sql, parserConfig);
+    SqlNode sqlNode = parser.parseStmt();
+    state = State.STATE_3_PARSED;
+    return sqlNode;
+  }
+
+  public SqlNode parse(final InputStream inputStream, final Charset charset)
+          throws SqlParseException {
+    switch (state) {
+    case STATE_0_CLOSED:
+    case STATE_1_RESET:
+      ready();
+    }
+    ensure(State.STATE_2_READY);
+    SqlParser parser = SqlParser.create(inputStream, charset, parserConfig);
     SqlNode sqlNode = parser.parseStmt();
     state = State.STATE_3_PARSED;
     return sqlNode;
