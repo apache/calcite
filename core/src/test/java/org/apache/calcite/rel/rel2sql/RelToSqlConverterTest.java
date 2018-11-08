@@ -23,6 +23,7 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.FlatLists;
@@ -1235,6 +1236,17 @@ public class RelToSqlConverterTest {
     final HepProgram program =
         new HepProgramBuilder().addRuleClass(UnionMergeRule.class).build();
     final RuleSet rules = RuleSets.ofList(UnionMergeRule.INSTANCE);
+    sql(query)
+          .optimize(rules, new HepPlanner(program))
+          .ok(expected);
+  }
+
+  @Test public void testProjectRemoveRuleShouldKeepAliases() {
+    String query =   "select \"product_class_id\" as \"x\",\"product_id\",\"brand_name\",\"product_name\",\"SKU\",\"SRP\",\"gross_weight\",\"net_weight\",\"recyclable_package\",\"low_fat\",\"units_per_case\",\"cases_per_pallet\",\"shelf_width\",\"shelf_height\",\"shelf_depth\" FROM \"foodmart\".\"product\"";
+    String expected =  "SELECT \"product_class_id\" AS \"x\", \"product_id\", \"brand_name\", \"product_name\", \"SKU\", \"SRP\", \"gross_weight\", \"net_weight\", \"recyclable_package\", \"low_fat\", \"units_per_case\", \"cases_per_pallet\", \"shelf_width\", \"shelf_height\", \"shelf_depth\"\nFROM \"foodmart\".\"product\"";
+    final HepProgram program =
+          new HepProgramBuilder().addRuleClass(ProjectRemoveRule.class).build();
+    final RuleSet rules = RuleSets.ofList(ProjectRemoveRule.INSTANCE);
     sql(query)
         .optimize(rules, new HepPlanner(program))
         .ok(expected);

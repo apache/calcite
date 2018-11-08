@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.rules;
 
+import static org.apache.calcite.plan.RelOptUtil.areRowTypesEqual;
+
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
@@ -84,7 +86,7 @@ public class ProjectRemoveRule extends RelOptRule {
 
   public static boolean isTrivial(Project project) {
     return RexUtil.isIdentity(project.getProjects(),
-        project.getInput().getRowType());
+        project.getInput().getRowType()) && areRowTypesEqual(project.getInput().getRowType(), project.getRowType(), true);
   }
 
   @Deprecated // to be removed before 1.5
