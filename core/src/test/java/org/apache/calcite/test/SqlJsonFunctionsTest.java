@@ -31,7 +31,6 @@ import com.jayway.jsonpath.PathNotFoundException;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -777,7 +776,7 @@ public class SqlJsonFunctionsTest {
     };
   }
 
-  @NotNull private BaseMatcher<SqlFunctions.PathContext> contextMatches(
+  private BaseMatcher<SqlFunctions.PathContext> contextMatches(
       SqlFunctions.PathContext expected) {
     return new BaseMatcher<SqlFunctions.PathContext>() {
       @Override public boolean matches(Object item) {

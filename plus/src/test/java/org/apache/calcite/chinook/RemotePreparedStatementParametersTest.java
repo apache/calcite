@@ -39,6 +39,7 @@ public class RemotePreparedStatementParametersTest {
     pS.setString(1, "AC/DC");
     // then
     ResultSet resultSet = pS.executeQuery();
+    server.stop();
   }
 
   @Test public void testSeveralParametersShouldWorkWithCalcite() throws Exception {
@@ -54,6 +55,7 @@ public class RemotePreparedStatementParametersTest {
     pS.setInt(2, 10);
     // then
     ResultSet resultSet = pS.executeQuery();
+    server.stop();
   }
 
   @Test public void testParametersShouldWorkWithRaw() throws Exception {
@@ -67,6 +69,7 @@ public class RemotePreparedStatementParametersTest {
     pS.setString(1, "AC/DC");
     // then
     ResultSet resultSet = pS.executeQuery();
+    server.stop();
   }
 }
 

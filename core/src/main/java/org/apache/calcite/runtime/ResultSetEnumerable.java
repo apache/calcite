@@ -23,6 +23,7 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.util.Static;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +38,6 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 import javax.sql.DataSource;
 
 /**
@@ -49,7 +49,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
   private final DataSource dataSource;
   private final String sql;
   private final Function1<ResultSet, Function0<T>> rowBuilderFactory;
-  private final Consumer<PreparedStatement> consumer;
+  private final PreparedStatementEnricher preparedStatementEnricher;
 
   private static final Logger LOGGER = LoggerFactory.getLogger(
       ResultSetEnumerable.class);
@@ -101,11 +101,11 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
       DataSource dataSource,
       String sql,
       Function1<ResultSet, Function0<T>> rowBuilderFactory,
-      Consumer<PreparedStatement> consumer) {
+      PreparedStatementEnricher preparedStatementEnricher) {
     this.dataSource = dataSource;
     this.sql = sql;
     this.rowBuilderFactory = rowBuilderFactory;
-    this.consumer = consumer;
+    this.preparedStatementEnricher = preparedStatementEnricher;
   }
 
   private ResultSetEnumerable(
@@ -143,12 +143,12 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
       DataSource dataSource,
       String sql,
       Function1<ResultSet, Function0<T>> rowBuilderFactory,
-      Consumer<PreparedStatement> consumer) {
+      PreparedStatementEnricher consumer) {
     return new ResultSetEnumerable<>(dataSource, sql, rowBuilderFactory, consumer);
   }
 
   public Enumerator<T> enumerator() {
-    if (consumer == null) {
+    if (preparedStatementEnricher == null) {
       return enumeratorBasedOnStatement();
     } else {
       return enumeratorBasedOnPeparedStatement();
@@ -172,7 +172,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
         return Linq4j.singletonEnumerator((T) updateCount);
       }
     } catch (SQLException e) {
-      throw new RuntimeException("while executing SQL [" + sql + "]", e);
+      throw  Static.RESOURCE.exceptionWhilePerformingQueryOnJDBSubschema(sql).ex(e);
     } finally {
       closeIfPossible(connection, statement);
     }
@@ -185,7 +185,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
       connection = dataSource.getConnection();
       statement = connection.prepareStatement(sql);
       setTimeoutIfPossible(statement);
-      consumer.accept(statement);
+      preparedStatementEnricher.enrich(statement);
       if (statement.execute()) {
         final ResultSet resultSet = statement.getResultSet();
         statement = null;
@@ -196,7 +196,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
         return Linq4j.singletonEnumerator((T) updateCount);
       }
     } catch (SQLException e) {
-      throw new RuntimeException("while executing SQL [" + sql + "]", e);
+      throw  Static.RESOURCE.exceptionWhilePerformingQueryOnJDBSubschema(sql).ex(e);
     } finally {
       closeIfPossible(connection, statement);
     }
@@ -318,6 +318,14 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
       };
     };
   }
+
+  /**
+   * Consumer for decorating prepared statement, ie setting bindable params
+   */
+  public interface PreparedStatementEnricher {
+    void enrich(PreparedStatement statement) throws SQLException;
+  }
+
 }
 
 // End ResultSetEnumerable.java

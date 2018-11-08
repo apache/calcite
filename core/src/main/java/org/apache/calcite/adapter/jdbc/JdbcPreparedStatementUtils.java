@@ -17,6 +17,8 @@
 package org.apache.calcite.adapter.jdbc;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.avatica.SqlType;
+import org.apache.calcite.runtime.ResultSetEnumerable;
 
 import java.math.BigDecimal;
 import java.net.URL;
@@ -31,7 +33,6 @@ import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.function.Consumer;
 
 /**
  * Utils for handling prepared statement decoration, like setting dynamic parameters
@@ -41,8 +42,9 @@ public class JdbcPreparedStatementUtils {
   private JdbcPreparedStatementUtils() {
   }
 
-  public static Consumer<PreparedStatement> createPreparedStatementConsumer(Integer[] indexes,
-                                                                            DataContext context) {
+  public static ResultSetEnumerable.PreparedStatementEnricher createPreparedStatementConsumer(
+      Integer[] indexes,
+      DataContext context) {
     return pstm -> {
       int dynamicParamIndex = 1;
       for (int index : indexes) {
@@ -50,61 +52,56 @@ public class JdbcPreparedStatementUtils {
         dynamicParamIndex++;
       }
     };
-
   }
 
-  private static void setDynamicParam(Integer i, Object value, PreparedStatement pstm) {
-    try {
-      if (value == null) {
-        pstm.setObject(i, null);
-      } else if (value instanceof Timestamp) {
-        pstm.setTimestamp(i, (Timestamp) value);
-      } else if (value instanceof Time) {
-        pstm.setTime(i, (Time) value);
-      } else if (value instanceof String) {
-        pstm.setString(i, (String) value);
-      } else if (value instanceof Integer) {
-        pstm.setInt(i, (Integer) value);
-      } else if (value instanceof Double) {
-        pstm.setDouble(i, (Double) value);
-      } else if (value instanceof java.sql.Array) {
-        pstm.setArray(i, (java.sql.Array) value);
-      } else if (value instanceof BigDecimal) {
-        pstm.setBigDecimal(i, (BigDecimal) value);
-      } else if (value instanceof Boolean) {
-        pstm.setBoolean(i, (Boolean) value);
-      } else if (value instanceof Blob) {
-        pstm.setBoolean(i, (Boolean) value);
-      } else if (value instanceof Byte) {
-        pstm.setByte(i, (Byte) value);
-      } else if (value instanceof Clob) {
-        pstm.setClob(i, (Clob) value);
-      } else if (value instanceof byte[]) {
-        pstm.setBytes(i, (byte[]) value);
-      } else if (value instanceof Date) {
-        pstm.setDate(i, (Date) value);
-      } else if (value instanceof Float) {
-        pstm.setFloat(i, (Float) value);
-      } else if (value instanceof Long) {
-        pstm.setLong(i, (Long) value);
-      } else if (value instanceof NClob) {
-        pstm.setNClob(i, (NClob) value);
-      } else if (value instanceof Ref) {
-        pstm.setRef(i, (Ref) value);
-      } else if (value instanceof RowId) {
-        pstm.setRowId(i, (RowId) value);
-      } else if (value instanceof Short) {
-        pstm.setShort(i, (Short) value);
-      } else if (value instanceof URL) {
-        pstm.setURL(i, (URL) value);
-      } else if (value instanceof SQLXML) {
-        pstm.setSQLXML(i, (SQLXML) value);
-      } else {
-        pstm.setObject(i, value);
-      }
-
-    } catch (SQLException e) {
-      e.printStackTrace();
+  private static void setDynamicParam(Integer i, Object value, PreparedStatement pstm)
+      throws SQLException {
+    if (value == null) {
+      pstm.setObject(i, null, SqlType.ANY.id);
+    } else if (value instanceof Timestamp) {
+      pstm.setTimestamp(i, (Timestamp) value);
+    } else if (value instanceof Time) {
+      pstm.setTime(i, (Time) value);
+    } else if (value instanceof String) {
+      pstm.setString(i, (String) value);
+    } else if (value instanceof Integer) {
+      pstm.setInt(i, (Integer) value);
+    } else if (value instanceof Double) {
+      pstm.setDouble(i, (Double) value);
+    } else if (value instanceof java.sql.Array) {
+      pstm.setArray(i, (java.sql.Array) value);
+    } else if (value instanceof BigDecimal) {
+      pstm.setBigDecimal(i, (BigDecimal) value);
+    } else if (value instanceof Boolean) {
+      pstm.setBoolean(i, (Boolean) value);
+    } else if (value instanceof Blob) {
+      pstm.setBoolean(i, (Boolean) value);
+    } else if (value instanceof Byte) {
+      pstm.setByte(i, (Byte) value);
+    } else if (value instanceof Clob) {
+      pstm.setClob(i, (Clob) value);
+    } else if (value instanceof byte[]) {
+      pstm.setBytes(i, (byte[]) value);
+    } else if (value instanceof Date) {
+      pstm.setDate(i, (Date) value);
+    } else if (value instanceof Float) {
+      pstm.setFloat(i, (Float) value);
+    } else if (value instanceof Long) {
+      pstm.setLong(i, (Long) value);
+    } else if (value instanceof NClob) {
+      pstm.setNClob(i, (NClob) value);
+    } else if (value instanceof Ref) {
+      pstm.setRef(i, (Ref) value);
+    } else if (value instanceof RowId) {
+      pstm.setRowId(i, (RowId) value);
+    } else if (value instanceof Short) {
+      pstm.setShort(i, (Short) value);
+    } else if (value instanceof URL) {
+      pstm.setURL(i, (URL) value);
+    } else if (value instanceof SQLXML) {
+      pstm.setSQLXML(i, (SQLXML) value);
+    } else {
+      pstm.setObject(i, value);
     }
   }
 
