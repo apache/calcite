@@ -89,6 +89,9 @@ public interface CalciteResource {
   @BaseMessage("ROW expression encountered in illegal context")
   ExInst<CalciteException> illegalRowExpression();
 
+  @BaseMessage("Illegal identifier '':''. Was expecting ''VALUE''")
+  ExInst<CalciteException> illegalColon();
+
   @BaseMessage("TABLESAMPLE percentage must be between 0 and 100, inclusive")
   @Property(name = "SQLSTATE", value = "2202H")
   ExInst<CalciteException> invalidSampleSize();
@@ -223,6 +226,9 @@ public interface CalciteResource {
 
   @BaseMessage("Expected a boolean type")
   ExInst<SqlValidatorException> expectedBoolean();
+
+  @BaseMessage("Expected a character type")
+  ExInst<SqlValidatorException> expectedCharacter();
 
   @BaseMessage("ELSE clause or at least one THEN clause must be non-NULL")
   ExInst<SqlValidatorException> mustNotNullInElse();
@@ -769,6 +775,77 @@ public interface CalciteResource {
 
   @BaseMessage("Dialect does not support feature: ''{0}''")
   ExInst<SqlValidatorException> dialectDoesNotSupportFeature(String featureName);
+
+  @BaseMessage("Substring error: negative substring length not allowed")
+  ExInst<CalciteException> illegalNegativeSubstringLength();
+
+  @BaseMessage("Trim error: trim character must be exactly 1 character")
+  ExInst<CalciteException> trimError();
+
+  @BaseMessage("Invalid types for arithmetic: {0} {1} {2}")
+  ExInst<CalciteException> invalidTypesForArithmetic(String clazzName0, String op,
+                                                     String clazzName1);
+
+  @BaseMessage("Invalid types for comparison: {0} {1} {2}")
+  ExInst<CalciteException> invalidTypesForComparison(String clazzName0, String op,
+                                                     String clazzName1);
+
+  @BaseMessage("Cannot convert {0} to {1}")
+  ExInst<CalciteException> cannotConvert(String o, String toType);
+
+  @BaseMessage("Invalid character for cast: {0}")
+  ExInst<CalciteException> invalidCharacterForCast(String s);
+
+  @BaseMessage("More than one value in list: {0}")
+  ExInst<CalciteException> moreThanOneValueInList(String list);
+
+  @BaseMessage("Failed to access field ''{0}'' of object of type {1}")
+  ExInstWithCause<CalciteException> failedToAccessField(String fieldName, String typeName);
+
+  @BaseMessage("Illegal jsonpath spec ''{0}'', format of the spec should be: ''<lax|strict> $'{'expr'}'''")
+  ExInst<CalciteException> illegalJsonPathSpec(String pathSpec);
+
+  @BaseMessage("Illegal jsonpath mode ''{0}''")
+  ExInst<CalciteException> illegalJsonPathMode(String pathMode);
+
+  @BaseMessage("Illegal jsonpath mode ''{0}'' in jsonpath spec: ''{1}''")
+  ExInst<CalciteException> illegalJsonPathModeInPathSpec(String pathMode, String pathSpec);
+
+  @BaseMessage("Strict jsonpath mode requires a non empty returned value, but is null")
+  ExInst<CalciteException> strictPathModeRequiresNonEmptyValue();
+
+  @BaseMessage("Illegal error behavior ''{0}'' specified in JSON_EXISTS function")
+  ExInst<CalciteException> illegalErrorBehaviorInJsonExistsFunc(String errorBehavior);
+
+  @BaseMessage("Empty result of JSON_VALUE function is not allowed")
+  ExInst<CalciteException> emptyResultOfJsonValueFuncNotAllowed();
+
+  @BaseMessage("Illegal empty behavior ''{0}'' specified in JSON_VALUE function")
+  ExInst<CalciteException> illegalEmptyBehaviorInJsonValueFunc(String emptyBehavior);
+
+  @BaseMessage("Illegal error behavior ''{0}'' specified in JSON_VALUE function")
+  ExInst<CalciteException> illegalErrorBehaviorInJsonValueFunc(String errorBehavior);
+
+  @BaseMessage("Strict jsonpath mode requires scalar value, and the actual value is: ''{0}''")
+  ExInst<CalciteException> scalarValueRequiredInStrictModeOfJsonValueFunc(String value);
+
+  @BaseMessage("Illegal wrapper behavior ''{0}'' specified in JSON_QUERY function")
+  ExInst<CalciteException> illegalWrapperBehaviorInJsonQueryFunc(String wrapperBehavior);
+
+  @BaseMessage("Empty result of JSON_QUERY function is not allowed")
+  ExInst<CalciteException> emptyResultOfJsonQueryFuncNotAllowed();
+
+  @BaseMessage("Illegal empty behavior ''{0}'' specified in JSON_VALUE function")
+  ExInst<CalciteException> illegalEmptyBehaviorInJsonQueryFunc(String emptyBehavior);
+
+  @BaseMessage("Strict jsonpath mode requires array or object value, and the actual value is: ''{0}''")
+  ExInst<CalciteException> arrayOrObjectValueRequiredInStrictModeOfJsonQueryFunc(String value);
+
+  @BaseMessage("Illegal error behavior ''{0}'' specified in JSON_VALUE function")
+  ExInst<CalciteException> illegalErrorBehaviorInJsonQueryFunc(String errorBehavior);
+
+  @BaseMessage("Null key of JSON object is not allowed")
+  ExInst<CalciteException> nullKeyOfJsonObjectNotAllowed();
 }
 
 // End CalciteResource.java

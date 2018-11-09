@@ -27,6 +27,7 @@ import org.apache.calcite.util.Util;
 
 import java.sql.ResultSet;
 import java.sql.Types;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -130,6 +131,43 @@ public abstract class SqlTests {
         buf.append("SELECT ");
         String inputValue = inputValues[i];
         buf.append(inputValue).append(" AS x FROM (VALUES (1))");
+      }
+      buf.append(")");
+    }
+    return buf.toString();
+  }
+
+  public static String generateAggQueryWithMultipleArgs(String expr, String[][] inputValues) {
+    int argCount = -1;
+    for (String[] row : inputValues) {
+      if (argCount == -1) {
+        argCount = row.length;
+      } else if (argCount != row.length) {
+        throw new IllegalArgumentException("invalid test input: " + Arrays.toString(row));
+      }
+    }
+    StringBuilder buf = new StringBuilder();
+    buf.append("SELECT ").append(expr).append(" FROM ");
+    if (inputValues.length == 0) {
+      buf.append("(VALUES 1) AS t(x) WHERE false");
+    } else {
+      buf.append("(");
+      for (int i = 0; i < inputValues.length; i++) {
+        if (i > 0) {
+          buf.append(" UNION ALL ");
+        }
+        buf.append("SELECT ");
+        for (int j = 0; j < argCount; j++) {
+          if (j != 0) {
+            buf.append(", ");
+          }
+          String inputValue = inputValues[i][j];
+          buf.append(inputValue).append(" AS x");
+          if (j != 0) {
+            buf.append(j + 1);
+          }
+        }
+        buf.append(" FROM (VALUES (1))");
       }
       buf.append(")");
     }

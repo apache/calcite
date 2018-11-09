@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlGroupedWindowFunction;
 import org.apache.calcite.sql.SqlInternalOperator;
+import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLateralOperator;
 import org.apache.calcite.sql.SqlLiteral;
@@ -732,6 +733,79 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           null,
           OperandTypes.COLLECTION_OR_MAP);
 
+  public static final SqlPostfixOperator IS_JSON_VALUE =
+      new SqlPostfixOperator(
+          "IS JSON VALUE",
+          SqlKind.OTHER,
+          28,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.CHARACTER);
+
+  public static final SqlPostfixOperator IS_NOT_JSON_VALUE =
+      new SqlPostfixOperator(
+          "IS NOT JSON VALUE",
+          SqlKind.OTHER,
+          28,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.CHARACTER);
+
+  public static final SqlPostfixOperator IS_JSON_OBJECT =
+      new SqlPostfixOperator(
+          "IS JSON OBJECT",
+          SqlKind.OTHER,
+          28,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.CHARACTER);
+
+  public static final SqlPostfixOperator IS_NOT_JSON_OBJECT =
+      new SqlPostfixOperator(
+          "IS NOT JSON OBJECT",
+          SqlKind.OTHER,
+          28,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.CHARACTER);
+
+  public static final SqlPostfixOperator IS_JSON_ARRAY =
+      new SqlPostfixOperator(
+          "IS JSON ARRAY",
+          SqlKind.OTHER,
+          28,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.CHARACTER);
+
+  public static final SqlPostfixOperator IS_NOT_JSON_ARRAY =
+      new SqlPostfixOperator(
+          "IS NOT JSON ARRAY",
+          SqlKind.OTHER,
+          28,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.CHARACTER);
+
+  public static final SqlPostfixOperator IS_JSON_SCALAR =
+      new SqlPostfixOperator(
+          "IS JSON SCALAR",
+          SqlKind.OTHER,
+          28,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.CHARACTER);
+
+  public static final SqlPostfixOperator IS_NOT_JSON_SCALAR =
+      new SqlPostfixOperator(
+          "IS NOT JSON SCALAR",
+          SqlKind.OTHER,
+          28,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.CHARACTER);
+
+
   //-------------------------------------------------------------
   //                   PREFIX OPERATORS
   //-------------------------------------------------------------
@@ -1194,6 +1268,43 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlLiteralChainOperator();
 
   public static final SqlThrowOperator THROW = new SqlThrowOperator();
+
+  public static final SqlJsonValueExpressionOperator JSON_VALUE_EXPRESSION =
+      new SqlJsonValueExpressionOperator("JSON_VALUE_EXPRESSION", false);
+
+  public static final SqlJsonValueExpressionOperator JSON_STRUCTURED_VALUE_EXPRESSION =
+      new SqlJsonValueExpressionOperator("JSON_STRUCTURED_VALUE_EXPRESSION", true);
+
+  public static final SqlJsonApiCommonSyntaxOperator JSON_API_COMMON_SYNTAX =
+      new SqlJsonApiCommonSyntaxOperator();
+
+  public static final SqlFunction JSON_EXISTS = new SqlJsonExistsFunction();
+
+  public static final SqlFunction JSON_VALUE = new SqlJsonValueFunction("JSON_VALUE", false);
+
+  public static final SqlFunction JSON_VALUE_ANY = new SqlJsonValueFunction("JSON_VALUE_ANY", true);
+
+  public static final SqlFunction JSON_QUERY = new SqlJsonQueryFunction();
+
+  public static final SqlFunction JSON_OBJECT = new SqlJsonObjectFunction();
+
+  public static final SqlAggFunction JSON_OBJECTAGG_NULL_ON_NULL
+      = new SqlJsonObjectAggAggFunction("JSON_OBJECTAGG_NULL_ON_NULL",
+      SqlJsonConstructorNullClause.NULL_ON_NULL);
+
+  public static final SqlAggFunction JSON_OBJECTAGG_ABSENT_ON_NULL
+      = new SqlJsonObjectAggAggFunction("JSON_OBJECTAGG_ABSENT_ON_NULL",
+      SqlJsonConstructorNullClause.ABSENT_ON_NULL);
+
+  public static final SqlFunction JSON_ARRAY = new SqlJsonArrayFunction();
+
+  public static final SqlAggFunction JSON_ARRAYAGG_NULL_ON_NULL
+      = new SqlJsonArrayAggAggFunction("JSON_ARRAYAGG_NULL_ON_NULL",
+      SqlJsonConstructorNullClause.NULL_ON_NULL);
+
+  public static final SqlAggFunction JSON_ARRAYAGG_ABSENT_ON_NULL
+      = new SqlJsonArrayAggAggFunction("JSON_ARRAYAGG_ABSENT_ON_NULL",
+      SqlJsonConstructorNullClause.ABSENT_ON_NULL);
 
   public static final SqlBetweenOperator BETWEEN =
       new SqlBetweenOperator(

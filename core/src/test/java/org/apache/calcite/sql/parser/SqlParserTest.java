@@ -291,6 +291,13 @@ public class SqlParserTest {
       "ISOLATION",                     "92", "99",
       "ITERATE",                             "99", "2003",
       "JOIN",                          "92", "99", "2003", "2011", "2014", "c",
+      "JSON_ARRAY",                                                        "c",
+      "JSON_ARRAYAGG",                                                     "c",
+      "JSON_EXISTS",                                                       "c",
+      "JSON_OBJECT",                                                       "c",
+      "JSON_OBJECTAGG",                                                    "c",
+      "JSON_QUERY",                                                        "c",
+      "JSON_VALUE",                                                        "c",
       "KEEP",                                              "2011",
       "KEY",                           "92", "99",
       "LAG",                                               "2011", "2014", "c",
@@ -8250,6 +8257,146 @@ public class SqlParserTest {
         + "ORDER BY `COL1`\n"
         + "FETCH NEXT 10 ROWS ONLY";
     sql(sql).ok(expected);
+  }
+
+  @Test public void testJsonExists() {
+    checkExp("json_exists('{\"foo\": \"bar\"}', 'lax $.foo')",
+        "JSON_EXISTS('{\"foo\": \"bar\"}' FORMAT JSON, 'lax $.foo')");
+    checkExp("json_exists('{\"foo\": \"bar\"}', 'lax $.foo' error on error)",
+        "JSON_EXISTS('{\"foo\": \"bar\"}' FORMAT JSON, 'lax $.foo' ERROR ON ERROR)");
+  }
+
+  @Test public void testJsonValue() {
+    checkExp("json_value('{\"foo\": \"100\"}', 'lax $.foo' "
+            + "returning integer)",
+        "JSON_VALUE('{\"foo\": \"100\"}' FORMAT JSON, 'lax $.foo' "
+            + "RETURNING INTEGER NULL ON EMPTY NULL ON ERROR)");
+    checkExp("json_value('{\"foo\": \"100\"}', 'lax $.foo' "
+            + "returning integer default 10 on empty error on error)",
+        "JSON_VALUE('{\"foo\": \"100\"}' FORMAT JSON, 'lax $.foo' "
+            + "RETURNING INTEGER DEFAULT 10 ON EMPTY ERROR ON ERROR)");
+  }
+
+  @Test public void testJsonQuery() {
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITHOUT ARRAY WRAPPER)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITH WRAPPER)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITH UNCONDITIONAL ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITH UNCONDITIONAL WRAPPER)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITH UNCONDITIONAL ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITH CONDITIONAL WRAPPER)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITH CONDITIONAL ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' NULL ON EMPTY)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' ERROR ON EMPTY)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER ERROR ON EMPTY NULL ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY ARRAY ON EMPTY)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER EMPTY ARRAY ON EMPTY NULL ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY OBJECT ON EMPTY)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER EMPTY OBJECT ON EMPTY NULL ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' NULL ON ERROR)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' ERROR ON ERROR)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY ERROR ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY ARRAY ON ERROR)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY EMPTY ARRAY ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY OBJECT ON ERROR)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY EMPTY OBJECT ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY ARRAY ON EMPTY "
+            + "EMPTY OBJECT ON ERROR)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER EMPTY ARRAY ON EMPTY EMPTY OBJECT ON ERROR)");
+  }
+
+  @Test public void testJsonObject() {
+    checkExp("json_object('foo': 'bar')",
+        "JSON_OBJECT(KEY 'foo' VALUE 'bar' NULL ON NULL)");
+    checkExp("json_object('foo': 'bar', 'foo2': 'bar2')",
+        "JSON_OBJECT(KEY 'foo' VALUE 'bar', KEY 'foo2' VALUE 'bar2' NULL ON NULL)");
+    checkExp("json_object('foo' value 'bar')",
+        "JSON_OBJECT(KEY 'foo' VALUE 'bar' NULL ON NULL)");
+    checkExp("json_object(key 'foo' value 'bar')",
+        "JSON_OBJECT(KEY 'foo' VALUE 'bar' NULL ON NULL)");
+    checkExp("json_object('foo': null)",
+        "JSON_OBJECT(KEY 'foo' VALUE NULL NULL ON NULL)");
+    checkExp("json_object('foo': null absent on null)",
+        "JSON_OBJECT(KEY 'foo' VALUE NULL ABSENT ON NULL)");
+    checkExp("json_object('foo': json_object('foo': 'bar') format json)",
+        "JSON_OBJECT(KEY 'foo' VALUE "
+            + "JSON_OBJECT(KEY 'foo' VALUE 'bar' NULL ON NULL) "
+            + "FORMAT JSON NULL ON NULL)");
+  }
+
+  @Test public void testJsonObjectAgg() {
+    checkExp("json_objectagg(k_column: v_column)",
+        "JSON_OBJECTAGG(KEY `K_COLUMN` VALUE `V_COLUMN` NULL ON NULL)");
+    checkExp("json_objectagg(k_column value v_column)",
+        "JSON_OBJECTAGG(KEY `K_COLUMN` VALUE `V_COLUMN` NULL ON NULL)");
+    checkExp("json_objectagg(key k_column value v_column)",
+        "JSON_OBJECTAGG(KEY `K_COLUMN` VALUE `V_COLUMN` NULL ON NULL)");
+    checkExp("json_objectagg(k_column: null)",
+        "JSON_OBJECTAGG(KEY `K_COLUMN` VALUE NULL NULL ON NULL)");
+    checkExp("json_objectagg(k_column: null absent on null)",
+        "JSON_OBJECTAGG(KEY `K_COLUMN` VALUE NULL ABSENT ON NULL)");
+    checkExp("json_objectagg(k_column: json_object(k_column: v_column) format json)",
+        "JSON_OBJECTAGG(KEY `K_COLUMN` VALUE "
+            + "JSON_OBJECT(KEY `K_COLUMN` VALUE `V_COLUMN` NULL ON NULL) "
+            + "FORMAT JSON NULL ON NULL)");
+  }
+
+  @Test public void testJsonArray() {
+    checkExp("json_array('foo')",
+        "JSON_ARRAY('foo' ABSENT ON NULL)");
+    checkExp("json_array(null)",
+        "JSON_ARRAY(NULL ABSENT ON NULL)");
+    checkExp("json_array(null null on null)",
+        "JSON_ARRAY(NULL NULL ON NULL)");
+    checkExp("json_array(json_array('foo', 'bar') format json)",
+        "JSON_ARRAY(JSON_ARRAY('foo', 'bar' ABSENT ON NULL) FORMAT JSON ABSENT ON NULL)");
+  }
+
+  @Test public void testJsonArrayAgg() {
+    checkExp("json_arrayagg(\"column\")",
+        "JSON_ARRAYAGG(`column` ABSENT ON NULL)");
+    checkExp("json_arrayagg(\"column\" null on null)",
+        "JSON_ARRAYAGG(`column` NULL ON NULL)");
+    checkExp("json_arrayagg(json_array(\"column\") format json)",
+        "JSON_ARRAYAGG(JSON_ARRAY(`column` ABSENT ON NULL) FORMAT JSON ABSENT ON NULL)");
+  }
+
+  @Test public void testJsonPredicate() {
+    checkExp("'{}' is json",
+        "('{}' IS JSON VALUE)");
+    checkExp("'{}' is json value",
+        "('{}' IS JSON VALUE)");
+    checkExp("'{}' is json object",
+        "('{}' IS JSON OBJECT)");
+    checkExp("'[]' is json array",
+        "('[]' IS JSON ARRAY)");
+    checkExp("'100' is json scalar",
+        "('100' IS JSON SCALAR)");
+    checkExp("'{}' is not json",
+        "('{}' IS NOT JSON VALUE)");
+    checkExp("'{}' is not json value",
+        "('{}' IS NOT JSON VALUE)");
+    checkExp("'{}' is not json object",
+        "('{}' IS NOT JSON OBJECT)");
+    checkExp("'[]' is not json array",
+        "('[]' IS NOT JSON ARRAY)");
+    checkExp("'100' is not json scalar",
+        "('100' IS NOT JSON SCALAR)");
   }
 
   //~ Inner Interfaces -------------------------------------------------------
