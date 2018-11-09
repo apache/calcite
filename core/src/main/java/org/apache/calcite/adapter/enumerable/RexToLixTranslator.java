@@ -571,7 +571,11 @@ public class RexToLixTranslator {
     return scaleIntervalToNumber(sourceType, targetType, convert);
   }
 
-  private Expression handleNullUnboxingIfNecessary(
+  /**
+   * Similar to {@link #handleNull(Expression, RexImpTable.NullAs)}
+   * skipping unboxing of primitive expressions under certain circumstances.
+   */
+  private Expression handleNull(
       Expression input,
       RexImpTable.NullAs nullAs,
       Type storageType) {
@@ -579,6 +583,13 @@ public class RexToLixTranslator {
       // When we asked for not null input that would be stored as box, avoid
       // unboxing which may occur in the handleNull method below.
       return input;
+      // REVIEW 9-Nov-2018: From an optimization perspective it is good to
+      // avoid redundant boxing/unboxing of primitives so this piece of code
+      // makes sense. However, removing this if statement should not affect
+      // correctness (unboxing an input that cannot be null should never
+      // lead to a NullPointerException). After attempting to remove this
+      // block various tests failed with a NullPointerException which means
+      // that there are possibly bugs in other parts of the code.
     }
     return handleNull(input, nullAs);
   }
@@ -641,7 +652,7 @@ public class RexToLixTranslator {
       Expression x = inputGetter.field(list, index, storageType);
 
       Expression input = list.append("inp" + index + "_", x); // safe to share
-      return handleNullUnboxingIfNecessary(input, nullAs, storageType);
+      return handleNull(input, nullAs, storageType);
     }
     case LOCAL_REF:
       return translate(
@@ -677,7 +688,7 @@ public class RexToLixTranslator {
             correlates.apply(((RexCorrelVariable) target).getName());
         Expression y = getter.field(list, fieldIndex, storageType);
         Expression input = list.append("corInp" + fieldIndex + "_", y); // safe to share
-        return handleNullUnboxingIfNecessary(input, nullAs, storageType);
+        return handleNull(input, nullAs, storageType);
       default:
         RexNode rxIndex = builder.makeLiteral(fieldIndex, typeFactory.createType(int.class), true);
         RexNode rxName = builder.makeLiteral(fieldName, typeFactory.createType(String.class), true);
