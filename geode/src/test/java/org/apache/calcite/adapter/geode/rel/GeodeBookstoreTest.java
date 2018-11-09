@@ -16,116 +16,108 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.util.Sources;
-import org.apache.calcite.util.Util;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.geode.cache.Cache;
+import org.apache.geode.cache.Region;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.Arrays;
+
 /**
- * Tests for the {@code org.apache.calcite.adapter.geode} package.
- *
- * <p>Before calling this rel, you need to populate Geode, as follows:
- *
- * <blockquote><code>
- * git clone https://github.com/vlsi/calcite-test-dataset<br>
- * cd calcite-rel-dataset<br>
- * mvn install
- * </code></blockquote>
- *
- * <p>This will create a virtual machine with Geode and the "bookshop"
- * and "zips" rel dataset.
+ * Tests using {@code Bookshop} schema.
  */
-public class GeodeAdapterBookshopIT {
-  /**
-   * Connection factory based on the "geode relational " model.
-   */
-  public static final ImmutableMap<String, String> GEODE =
-      ImmutableMap.of("model",
-          Sources.of(GeodeAdapterBookshopIT.class.getResource("/model-bookshop.json"))
-              .file().getAbsolutePath());
+public class GeodeBookstoreTest extends AbstractGeodeTest {
 
+  @BeforeClass
+  public static void setUp() throws Exception {
+    Cache cache = POLICY.cache();
+    Region<?, ?> bookMaster =  cache.<String, Object>createRegionFactory().create("BookMaster");
+    new JsonLoader(bookMaster).loadClasspathResource("/book_master.json");
 
-  /**
-   * Whether to run Geode tests. Enabled by default, however rel is only
-   * included if "it" profile is activated ({@code -Pit}). To disable,
-   * specify {@code -Dcalcite.rel.geode=false} on the Java command line.
-   */
-  public static final boolean ENABLED = Util.getBooleanProperty("calcite.rel.geode", true);
+    Region<?, ?> bookCustomer =  cache.<String, Object>createRegionFactory().create("BookCustomer");
+    new JsonLoader(bookCustomer).loadClasspathResource("/book_customer.json");
 
-  /**
-   * Whether to run this rel.
-   */
-  protected boolean enabled() {
-    return ENABLED;
+  }
+
+  private CalciteAssert.ConnectionFactory newConnectionFactory() {
+    return new CalciteAssert.ConnectionFactory() {
+      @Override public Connection createConnection() throws SQLException {
+        final Connection connection = DriverManager.getConnection("jdbc:calcite:lex=JAVA");
+        final SchemaPlus root = connection.unwrap(CalciteConnection.class).getRootSchema();
+        root.add("geode",
+            new GeodeSchema(POLICY.cache(), Arrays.asList("BookMaster", "BookCustomer")));
+        return connection;
+      }
+    };
+  }
+
+  private CalciteAssert.AssertThat calciteAssert() {
+    return CalciteAssert.that()
+        .with(newConnectionFactory());
   }
 
   @Test
   public void testSelect() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select * from \"BookMaster\"")
+    calciteAssert()
+        .query("select * from geode.BookMaster")
         .returnsCount(3);
   }
 
   @Test
   public void testWhereEqual() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select * from \"BookMaster\" WHERE \"itemNumber\" = 123")
+    calciteAssert()
+        .query("select * from geode.BookMaster WHERE itemNumber = 123")
         .returnsCount(1)
         .returns("itemNumber=123; description=Run on sentences and drivel on all things mundane;"
             + " retailCost=34.99; yearPublished=2011; author=Daisy Mae West; title=A Treatise of "
             + "Treatises\n")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeFilter(condition=[=(CAST($0):INTEGER, 123)])\n"
-            + "    GeodeTableScan(table=[[TEST, BookMaster]])");
+            + "    GeodeTableScan(table=[[geode, BookMaster]])");
   }
 
   @Test
   public void testWhereWithAnd() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select * from \"BookMaster\" WHERE \"itemNumber\" > 122 "
-            + "AND \"itemNumber\" <= 123")
+    calciteAssert()
+        .query("select * from geode.BookMaster WHERE itemNumber > 122 "
+            + "AND itemNumber <= 123")
         .returnsCount(1)
         .returns("itemNumber=123; description=Run on sentences and drivel on all things mundane; "
             + "retailCost=34.99; yearPublished=2011; author=Daisy Mae West; title=A Treatise of "
             + "Treatises\n")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeFilter(condition=[AND(>($0, 122), <=($0, 123))])\n"
-            + "    GeodeTableScan(table=[[TEST, BookMaster]])");
+            + "    GeodeTableScan(table=[[geode, BookMaster]])");
   }
 
   @Test
   public void testWhereWithOr() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select \"author\" from \"BookMaster\" "
-            + "WHERE \"itemNumber\" = 123 OR \"itemNumber\" = 789")
+    calciteAssert()
+        .query("select author from geode.BookMaster "
+            + "WHERE itemNumber = 123 OR itemNumber = 789")
         .returnsCount(2)
         .returnsUnordered("author=Jim Heavisides", "author=Daisy Mae West")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeProject(author=[$4])\n"
             + "    GeodeFilter(condition=[OR(=(CAST($0):INTEGER, 123), "
             + "=(CAST($0):INTEGER, 789))])\n"
-            + "      GeodeTableScan(table=[[TEST, BookMaster]])\n");
+            + "      GeodeTableScan(table=[[geode, BookMaster]])\n");
   }
 
   @Test
   public void testWhereWithAndOr() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("SELECT \"author\" from \"BookMaster\" "
-            + "WHERE (\"itemNumber\" > 123 AND \"itemNumber\" = 789) "
-            + "OR \"author\"='Daisy Mae West'")
+    calciteAssert()
+        .query("SELECT author from geode.BookMaster "
+            + "WHERE (itemNumber > 123 AND itemNumber = 789) "
+            + "OR author='Daisy Mae West'")
         .returnsCount(2)
         .returnsUnordered("author=Jim Heavisides", "author=Daisy Mae West")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
@@ -133,19 +125,17 @@ public class GeodeAdapterBookshopIT {
             + "    GeodeFilter(condition=[OR(AND(>($0, 123), =(CAST($0):INTEGER, 789)), "
             + "=(CAST($4):VARCHAR CHARACTER SET \"ISO-8859-1\" "
             + "COLLATE \"ISO-8859-1$en_US$primary\", 'Daisy Mae West'))])\n"
-            + "      GeodeTableScan(table=[[TEST, BookMaster]])\n"
+            + "      GeodeTableScan(table=[[geode, BookMaster]])\n"
             + "\n");
   }
 
   // TODO: Not supported YET
   @Test
   public void testWhereWithOrAnd() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("SELECT \"author\" from \"BookMaster\" "
-            + "WHERE (\"itemNumber\" > 100 OR \"itemNumber\" = 789) "
-            + "AND \"author\"='Daisy Mae West'")
+    calciteAssert()
+        .query("SELECT author from geode.BookMaster "
+            + "WHERE (itemNumber > 100 OR itemNumber = 789) "
+            + "AND author='Daisy Mae West'")
         .returnsCount(1)
         .returnsUnordered("author=Daisy Mae West")
         .explainContains("");
@@ -153,40 +143,34 @@ public class GeodeAdapterBookshopIT {
 
   @Test
   public void testProjectionsAndWhereGreatThan() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select \"author\" from \"BookMaster\" WHERE \"itemNumber\" > 123")
+    calciteAssert()
+        .query("select author from geode.BookMaster WHERE itemNumber > 123")
         .returnsCount(2)
         .returns("author=Clarence Meeks\n"
             + "author=Jim Heavisides\n")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeProject(author=[$4])\n"
             + "    GeodeFilter(condition=[>($0, 123)])\n"
-            + "      GeodeTableScan(table=[[TEST, BookMaster]])");
+            + "      GeodeTableScan(table=[[geode, BookMaster]])");
   }
 
   @Test
   public void testLimit() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select * from \"BookMaster\" LIMIT 1")
+    calciteAssert()
+        .query("select * from geode.BookMaster LIMIT 1")
         .returnsCount(1)
         .returns("itemNumber=123; description=Run on sentences and drivel on all things mundane; "
             + "retailCost=34.99; yearPublished=2011; author=Daisy Mae West; title=A Treatise of "
             + "Treatises\n")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeSort(fetch=[1])\n"
-            + "    GeodeTableScan(table=[[TEST, BookMaster]])");
+            + "    GeodeTableScan(table=[[geode, BookMaster]])");
   }
 
   @Test
   public void testSortWithProjection() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select \"yearPublished\" from \"BookMaster\" ORDER BY \"yearPublished\" ASC")
+    calciteAssert()
+        .query("select yearPublished from geode.BookMaster ORDER BY yearPublished ASC")
         .returnsCount(3)
         .returns("yearPublished=1971\n"
             + "yearPublished=2011\n"
@@ -194,15 +178,13 @@ public class GeodeAdapterBookshopIT {
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeSort(sort0=[$0], dir0=[ASC])\n"
             + "    GeodeProject(yearPublished=[$3])\n"
-            + "      GeodeTableScan(table=[[TEST, BookMaster]])\n");
+            + "      GeodeTableScan(table=[[geode, BookMaster]])\n");
   }
 
   @Test
   public void testSortWithProjectionAndLimit() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select \"yearPublished\" from \"BookMaster\" ORDER BY \"yearPublished\" "
+    calciteAssert()
+        .query("select yearPublished from geode.BookMaster ORDER BY yearPublished "
             + "LIMIT 2")
         .returnsCount(2)
         .returns("yearPublished=1971\n"
@@ -210,28 +192,26 @@ public class GeodeAdapterBookshopIT {
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeProject(yearPublished=[$3])\n"
             + "    GeodeSort(sort0=[$3], dir0=[ASC], fetch=[2])\n"
-            + "      GeodeTableScan(table=[[TEST, BookMaster]])\n");
+            + "      GeodeTableScan(table=[[geode, BookMaster]])\n");
   }
 
   @Test
   public void testSortBy2Columns() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select \"yearPublished\", \"itemNumber\" from \"BookMaster\" ORDER BY "
-            + "\"yearPublished\" ASC, \"itemNumber\" DESC")
+    calciteAssert()
+        .query("select yearPublished, itemNumber from geode.BookMaster ORDER BY "
+            + "yearPublished ASC, itemNumber DESC")
         .returnsCount(3)
         .returns("yearPublished=1971; itemNumber=456\n"
             + "yearPublished=2011; itemNumber=789\n"
             + "yearPublished=2011; itemNumber=123\n")
-        .explainContains("PLAN=GeodeToEnumerableConverter\n"
-            + "  GeodeProject(yearPublished=[$3], itemNumber=[$0])\n"
-            + "    GeodeSort(sort0=[$3], sort1=[$0], dir0=[ASC], dir1=[DESC])\n"
-            + "      GeodeTableScan(table=[[TEST, BookMaster]])\n");
+        .queryContains(
+            GeodeAssertions.query("SELECT yearPublished AS yearPublished, "
+              + "itemNumber AS itemNumber "
+              + "FROM /BookMaster ORDER BY yearPublished ASC, itemNumber DESC"));
   }
 
   //
-  // TEST Group By and Aggregation Function Support
+  // geode Group By and Aggregation Function Support
   //
 
   /**
@@ -240,11 +220,9 @@ public class GeodeAdapterBookshopIT {
    */
   @Test
   public void testAddMissingGroupByColumnToProjectedFields() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select \"yearPublished\" from \"BookMaster\" GROUP BY  \"yearPublished\", "
-            + "\"author\"")
+    calciteAssert()
+        .query("select yearPublished from geode.BookMaster GROUP BY  yearPublished, "
+            + "author")
         .returnsCount(3)
         .returns("yearPublished=1971\n"
             + "yearPublished=2011\n"
@@ -252,7 +230,7 @@ public class GeodeAdapterBookshopIT {
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeProject(yearPublished=[$0])\n"
             + "    GeodeAggregate(group=[{3, 4}])\n"
-            + "      GeodeTableScan(table=[[TEST, BookMaster]])");
+            + "      GeodeTableScan(table=[[geode, BookMaster]])");
   }
 
   /**
@@ -261,16 +239,14 @@ public class GeodeAdapterBookshopIT {
    */
   @Test
   public void testMissingProjectRelationOnGroupByColumnMatchingProjectedFields() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select \"yearPublished\" from \"BookMaster\" GROUP BY \"yearPublished\"")
+    calciteAssert()
+        .query("select yearPublished from geode.BookMaster GROUP BY yearPublished")
         .returnsCount(2)
         .returns("yearPublished=1971\n"
             + "yearPublished=2011\n")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeAggregate(group=[{3}])\n"
-            + "    GeodeTableScan(table=[[TEST, BookMaster]])");
+            + "    GeodeTableScan(table=[[geode, BookMaster]])");
   }
 
   /**
@@ -279,85 +255,73 @@ public class GeodeAdapterBookshopIT {
    */
   @Test
   public void testMissingProjectRelationOnGroupByColumnMatchingProjectedFields2() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select \"yearPublished\", MAX(\"retailCost\") from \"BookMaster\" GROUP BY "
-            + "\"yearPublished\"")
+    calciteAssert()
+        .query("select yearPublished, MAX(retailCost) from geode.BookMaster GROUP BY "
+            + "yearPublished")
         .returnsCount(2)
         .returns("yearPublished=1971; EXPR$1=11.99\n"
             + "yearPublished=2011; EXPR$1=59.99\n")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeAggregate(group=[{3}], EXPR$1=[MAX($2)])\n"
-            + "    GeodeTableScan(table=[[TEST, BookMaster]])");
+            + "    GeodeTableScan(table=[[geode, BookMaster]])");
   }
 
   @Test
   public void testCount() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select COUNT(\"retailCost\") from \"BookMaster\"")
+    calciteAssert()
+        .query("select COUNT(retailCost) from geode.BookMaster")
         .returnsCount(1)
         .returns("EXPR$0=3\n")
         .returnsValue("3")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeAggregate(group=[{}], EXPR$0=[COUNT($2)])\n"
-            + "    GeodeTableScan(table=[[TEST, BookMaster]])\n");
+            + "    GeodeTableScan(table=[[geode, BookMaster]])\n");
   }
 
   @Test
   public void testCountStar() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select COUNT(*) from \"BookMaster\"")
+    calciteAssert()
+        .query("select COUNT(*) from geode.BookMaster")
         .returnsCount(1)
         .returns("EXPR$0=3\n")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeAggregate(group=[{}], EXPR$0=[COUNT()])\n"
-            + "    GeodeTableScan(table=[[TEST, BookMaster]])\n");
+            + "    GeodeTableScan(table=[[geode, BookMaster]])\n");
   }
 
   @Test
   public void testCountInGroupBy() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select \"yearPublished\", COUNT(\"retailCost\") from \"BookMaster\" GROUP BY "
-            + "\"yearPublished\"")
+    calciteAssert()
+        .query("select yearPublished, COUNT(retailCost) from geode.BookMaster GROUP BY "
+            + "yearPublished")
         .returnsCount(2)
         .returns("yearPublished=1971; EXPR$1=1\n"
             + "yearPublished=2011; EXPR$1=2\n")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeAggregate(group=[{3}], EXPR$1=[COUNT($2)])\n"
-            + "    GeodeTableScan(table=[[TEST, BookMaster]])\n");
+            + "    GeodeTableScan(table=[[geode, BookMaster]])\n");
   }
 
   @Test
   public void testMaxMinSumAvg() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select MAX(\"retailCost\"), MIN(\"retailCost\"), SUM(\"retailCost\"), AVG"
-            + "(\"retailCost\") from \"BookMaster\"")
+    calciteAssert()
+        .query("select MAX(retailCost), MIN(retailCost), SUM(retailCost), AVG"
+            + "(retailCost) from geode.BookMaster")
         .returnsCount(1)
         .returns("EXPR$0=59.99; EXPR$1=11.99; EXPR$2=106.97000122070312; "
             + "EXPR$3=35.65666580200195\n")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeAggregate(group=[{}], EXPR$0=[MAX($2)], EXPR$1=[MIN($2)], EXPR$2=[SUM($2)"
             + "], EXPR$3=[AVG($2)])\n"
-            + "    GeodeTableScan(table=[[TEST, BookMaster]])\n");
+            + "    GeodeTableScan(table=[[geode, BookMaster]])\n");
   }
 
   @Test
   public void testMaxMinSumAvgInGroupBy() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select \"yearPublished\", MAX(\"retailCost\"), MIN(\"retailCost\"), SUM"
-            + "(\"retailCost\"), AVG(\"retailCost\") from \"BookMaster\" "
-            + "GROUP BY  \"yearPublished\"")
+    calciteAssert()
+        .query("select yearPublished, MAX(retailCost), MIN(retailCost), SUM"
+            + "(retailCost), AVG(retailCost) from geode.BookMaster "
+            + "GROUP BY  yearPublished")
         .returnsCount(2)
         .returns("yearPublished=2011; EXPR$1=59.99; EXPR$2=34.99; EXPR$3=94.9800033569336; "
             + "EXPR$4=47.4900016784668\n"
@@ -366,44 +330,38 @@ public class GeodeAdapterBookshopIT {
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeAggregate(group=[{3}], EXPR$1=[MAX($2)], EXPR$2=[MIN($2)], EXPR$3=[SUM($2)"
             + "], EXPR$4=[AVG($2)])\n"
-            + "    GeodeTableScan(table=[[TEST, BookMaster]])\n");
+            + "    GeodeTableScan(table=[[geode, BookMaster]])\n");
   }
 
   @Test
   public void testGroupBy() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select \"yearPublished\", MAX(\"retailCost\") AS MAXCOST, \"author\" from "
-            + "\"BookMaster\" GROUP BY \"yearPublished\", \"author\"")
+    calciteAssert()
+        .query("select yearPublished, MAX(retailCost) AS MAXCOST, author from "
+            + "geode.BookMaster GROUP BY yearPublished, author")
         .returnsCount(3)
-        .returns("yearPublished=2011; MAXCOST=59.99; author=Jim Heavisides\n"
-            + "yearPublished=1971; MAXCOST=11.99; author=Clarence Meeks\n"
-            + "yearPublished=2011; MAXCOST=34.99; author=Daisy Mae West\n")
+        .returnsUnordered("yearPublished=2011; MAXCOST=59.99; author=Jim Heavisides",
+            "yearPublished=1971; MAXCOST=11.99; author=Clarence Meeks",
+            "yearPublished=2011; MAXCOST=34.99; author=Daisy Mae West")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeProject(yearPublished=[$0], MAXCOST=[$2], author=[$1])\n"
             + "    GeodeAggregate(group=[{3, 4}], MAXCOST=[MAX($2)])\n"
-            + "      GeodeTableScan(table=[[TEST, BookMaster]])\n");
+            + "      GeodeTableScan(table=[[geode, BookMaster]])\n");
   }
 
   @Test
   public void testSelectWithNestedPdx() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select * from \"BookCustomer\" limit 2")
+    calciteAssert()
+        .query("select * from geode.BookCustomer limit 2")
         .returnsCount(2)
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeSort(fetch=[2])\n"
-            + "    GeodeTableScan(table=[[TEST, BookCustomer]])\n");
+            + "    GeodeTableScan(table=[[geode, BookCustomer]])\n");
   }
 
   @Test
   public void testSelectWithNestedPdx2() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select \"primaryAddress\" from \"BookCustomer\" limit 2")
+    calciteAssert()
+        .query("select primaryAddress from geode.BookCustomer limit 2")
         .returnsCount(2)
         .returns("primaryAddress=PDX[addressLine1,addressLine2,addressLine3,city,state,"
             + "postalCode,country,phoneNumber,addressTag]\n"
@@ -412,30 +370,26 @@ public class GeodeAdapterBookshopIT {
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeProject(primaryAddress=[$3])\n"
             + "    GeodeSort(fetch=[2])\n"
-            + "      GeodeTableScan(table=[[TEST, BookCustomer]])\n");
+            + "      GeodeTableScan(table=[[geode, BookCustomer]])\n");
   }
 
   @Test
   public void testSelectWithNestedPdxFieldAccess() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select \"primaryAddress\"['city'] as \"city\" from \"BookCustomer\" limit 2")
+    calciteAssert()
+        .query("select primaryAddress['city'] as city from geode.BookCustomer limit 2")
         .returnsCount(2)
         .returns("city=Topeka\n"
             + "city=San Francisco\n")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeProject(city=[ITEM($3, 'city')])\n"
             + "    GeodeSort(fetch=[2])\n"
-            + "      GeodeTableScan(table=[[TEST, BookCustomer]])\n");
+            + "      GeodeTableScan(table=[[geode, BookCustomer]])\n");
   }
 
   @Test
   public void testSelectWithNullFieldValue() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("select \"primaryAddress\"['addressLine2'] from \"BookCustomer\" limit"
+    calciteAssert()
+        .query("select primaryAddress['addressLine2'] from geode.BookCustomer limit"
             + " 2")
         .returnsCount(2)
         .returns("EXPR$0=null\n"
@@ -443,17 +397,15 @@ public class GeodeAdapterBookshopIT {
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeProject(EXPR$0=[ITEM($3, 'addressLine2')])\n"
             + "    GeodeSort(fetch=[2])\n"
-            + "      GeodeTableScan(table=[[TEST, BookCustomer]])\n");
+            + "      GeodeTableScan(table=[[geode, BookCustomer]])\n");
   }
 
   @Test
   public void testFilterWithNestedField() {
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(GEODE)
-        .query("SELECT \"primaryAddress\"['postalCode'] AS \"postalCode\"\n"
-            + "FROM \"TEST\".\"BookCustomer\"\n"
-            + "WHERE \"primaryAddress\"['postalCode'] > '0'\n")
+    calciteAssert()
+        .query("SELECT primaryAddress['postalCode'] AS postalCode\n"
+            + "FROM geode.BookCustomer\n"
+            + "WHERE primaryAddress['postalCode'] > '0'\n")
         .returnsCount(3)
         .returns("postalCode=50505\n"
             + "postalCode=50505\n"
@@ -461,9 +413,71 @@ public class GeodeAdapterBookshopIT {
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeProject(postalCode=[ITEM($3, 'postalCode')])\n"
             + "    GeodeFilter(condition=[>(ITEM($3, 'postalCode'), '0')])\n"
-            + "      GeodeTableScan(table=[[TEST, BookCustomer]])\n");
+            + "      GeodeTableScan(table=[[geode, BookCustomer]])\n");
+  }
+
+  @Test
+  public void testSqlSimple() throws SQLException {
+    calciteAssert()
+        .query("SELECT itemNumber FROM geode.BookMaster WHERE itemNumber > 123")
+        .runs();
+  }
+
+  @Test
+  public void testSqlSingleNumberWhereFilter() throws SQLException {
+    calciteAssert().query("SELECT * FROM geode.BookMaster "
+        + "WHERE itemNumber = 123").runs();
+  }
+
+  @Test
+  public void testSqlDistinctSort() throws SQLException {
+    calciteAssert().query("SELECT DISTINCT itemNumber, author "
+        + "FROM geode.BookMaster ORDER BY itemNumber, author").runs();
+  }
+
+  @Test
+  public void testSqlDistinctSort2() throws SQLException {
+    calciteAssert().query("SELECT itemNumber, author "
+        + "FROM geode.BookMaster GROUP BY itemNumber, author ORDER BY itemNumber, "
+        + "author").runs();
+  }
+
+  @Test
+  public void testSqlDistinctSort3() throws SQLException {
+    calciteAssert().query("SELECT DISTINCT * FROM geode.BookMaster").runs();
+  }
+
+
+  @Test
+  public void testSqlLimit2() throws SQLException {
+    calciteAssert().query("SELECT DISTINCT * FROM geode.BookMaster LIMIT 2").runs();
+  }
+
+
+  @Test
+  public void testSqlDisjunciton() throws SQLException {
+    calciteAssert().query("SELECT author FROM geode.BookMaster "
+        + "WHERE itemNumber = 789 OR itemNumber = 123").runs();
+  }
+
+  @Test
+  public void testSqlConjunciton() throws SQLException {
+    calciteAssert().query("SELECT author FROM geode.BookMaster "
+        + "WHERE itemNumber = 789 AND author = 'Jim Heavisides'").runs();
+  }
+
+  @Test
+  public void testSqlBookMasterWhere() throws SQLException {
+    calciteAssert().query("select author, title from geode.BookMaster "
+        + "WHERE author = 'Jim Heavisides' LIMIT 2")
+        .runs();
+  }
+
+  @Test
+  public void testSqlBookMasterCount() throws SQLException {
+    calciteAssert().query("select count(*) from geode.BookMaster").runs();
   }
 
 }
 
-// End GeodeAdapterBookshopIT.java
+// End GeodeBookstoreTest.java

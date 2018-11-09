@@ -74,7 +74,7 @@ Choose a source distribution in either *tar* or *zip* format.
 
 For fast downloads, current source distributions are hosted on mirror servers;
 older source distributions are in the
-[archive](https://archive.apache.org/dist/calcite/) 
+[archive](https://archive.apache.org/dist/calcite/)
 or [incubator archive](https://archive.apache.org/dist/incubator/calcite/).
 If a download from a mirror fails, retry, and the second download will likely
 succeed.

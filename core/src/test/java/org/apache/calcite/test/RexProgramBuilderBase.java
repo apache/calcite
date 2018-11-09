@@ -116,7 +116,7 @@ public abstract class RexProgramBuilderBase {
     executor =
         new RexExecutorImpl(new DummyTestDataContext());
     simplify =
-        new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false, executor)
+        new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, executor)
             .withParanoid(true);
     trueLiteral = rexBuilder.makeLiteral(true);
     falseLiteral = rexBuilder.makeLiteral(false);

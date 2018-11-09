@@ -19,6 +19,7 @@ package org.apache.calcite.test.fuzzer;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -44,6 +45,7 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.Set;
+import javax.annotation.Nonnull;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -119,7 +121,6 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
   /**
    * Verifies {@code IS TRUE(IS NULL(null))} kind of expressions up to 4 level deep.
    */
-  @Ignore("[CALCITE-2556] RexSimplify: not(trueLiteral) could be simplified to false")
   @Test public void testNestedCalls() {
     nestedCalls(trueLiteral);
     nestedCalls(falseLiteral);
@@ -142,34 +143,34 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
     };
     for (SqlOperator op1 : operators) {
       RexNode n1 = rexBuilder.makeCall(op1, arg);
-      checkTrueFalse(n1);
+      checkUnknownAs(n1);
       for (SqlOperator op2 : operators) {
         RexNode n2 = rexBuilder.makeCall(op2, n1);
-        checkTrueFalse(n2);
+        checkUnknownAs(n2);
         for (SqlOperator op3 : operators) {
           RexNode n3 = rexBuilder.makeCall(op3, n2);
-          checkTrueFalse(n3);
+          checkUnknownAs(n3);
           for (SqlOperator op4 : operators) {
             RexNode n4 = rexBuilder.makeCall(op4, n3);
-            checkTrueFalse(n4);
+            checkUnknownAs(n4);
           }
         }
       }
     }
   }
 
-
-  private void checkTrueFalse(RexNode node) {
-    checkTrueFalse(node, true);
-    checkTrueFalse(node, false);
+  private void checkUnknownAs(RexNode node) {
+    checkUnknownAs(node, RexUnknownAs.FALSE);
+    checkUnknownAs(node, RexUnknownAs.UNKNOWN);
+    checkUnknownAs(node, RexUnknownAs.TRUE);
   }
 
-  private void checkTrueFalse(RexNode node, boolean unknownAsFalse) {
+  private void checkUnknownAs(RexNode node, RexUnknownAs unknownAs) {
     RexNode opt;
-    String uaf = unknownAsFalse ? "unknownAsFalse " : "";
+    final String uaf = unknownAsString(unknownAs);
     try {
       long start = System.nanoTime();
-      opt = this.simplify.withUnknownAsFalse(unknownAsFalse).simplify(node);
+      opt = simplify.simplifyUnknownAs(node, unknownAs);
       long end = System.nanoTime();
       if (end - start > 1000 && slowestTasks != null) {
         slowestTasks.add(new SimplifyTask(node, currentSeed, opt, end - start));
@@ -222,7 +223,8 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
       }
     }
     if (STRONG.isNull(node)) {
-      if (unknownAsFalse) {
+      switch (unknownAs) {
+      case FALSE:
         if (node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
           if (!falseLiteral.equals(opt)) {
             assertEquals(nodeToString(node)
@@ -236,7 +238,23 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
                 rexBuilder.makeNullLiteral(node.getType()), opt);
           }
         }
-      } else {
+        break;
+      case TRUE:
+        if (node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
+          if (!trueLiteral.equals(opt)) {
+            assertEquals(nodeToString(node)
+                    + " is always null boolean, so it should simplify to TRUE " + uaf,
+                trueLiteral, opt);
+          }
+        } else {
+          if (!RexLiteral.isNullLiteral(opt)) {
+            assertEquals(nodeToString(node)
+                    + " is always null (non boolean), so it should simplify to NULL " + uaf,
+                rexBuilder.makeNullLiteral(node.getType()), opt);
+          }
+        }
+        break;
+      case UNKNOWN:
         if (!RexUtil.isNull(opt)) {
           assertEquals(nodeToString(node)
                   + " is always null, so it should simplify to NULL " + uaf,
@@ -253,6 +271,18 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
     if (!SqlTypeUtil.equalSansNullability(typeFactory, node.getType(), opt.getType())) {
       assertEquals(nodeToString(node) + " has different type after simplification to "
           + nodeToString(opt), node.getType(), opt.getType());
+    }
+  }
+
+  @Nonnull private String unknownAsString(RexUnknownAs unknownAs) {
+    switch (unknownAs) {
+    case UNKNOWN:
+    default:
+      return "";
+    case FALSE:
+      return "unknownAsFalse";
+    case TRUE:
+      return "unknownAsTrue";
     }
   }
 
@@ -379,7 +409,7 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
 
   private void generateRexAndCheckTrueFalse(RexFuzzer fuzzer, Random r) {
     RexNode expression = fuzzer.getExpression(r, r.nextInt(10));
-    checkTrueFalse(expression);
+    checkUnknownAs(expression);
   }
 
   @Ignore("This is just a scaffold for quick investigation of a single fuzz test")

@@ -768,6 +768,11 @@ public class CalciteAssert {
                   + "    (40, 'Empty')) as t(deptno, dname)",
               ImmutableList.of(), ImmutableList.of("POST", "DEPT"),
               null));
+      post.add("DEPT30",
+          ViewTable.viewMacro(post,
+              "select * from dept where deptno = 30",
+              ImmutableList.of("POST"), ImmutableList.of("POST", "DEPT30"),
+              null));
       post.add("EMPS",
           ViewTable.viewMacro(post,
               "select * from (values\n"
@@ -802,6 +807,9 @@ public class CalciteAssert {
           ViewTable.viewMacro(aux, lateralSql, ImmutableList.of(),
               ImmutableList.of("AUX", "VIEWLATERAL"), null));
       return aux;
+    case BOOKSTORE:
+      return rootSchema.add(schema.schemaName,
+          new ReflectiveSchema(new BookstoreSchema()));
     default:
       throw new AssertionError("unknown schema " + schema);
     }
@@ -1817,7 +1825,8 @@ public class CalciteAssert {
     LINGUAL("SALES"),
     POST("POST"),
     ORINOCO("ORINOCO"),
-    AUX("AUX");
+    AUX("AUX"),
+    BOOKSTORE("bookstore");
 
     /** The name of the schema that is usually created from this specification.
      * (Names are not unique, and you can use another name if you wish.) */

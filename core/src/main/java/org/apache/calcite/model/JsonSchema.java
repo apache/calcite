@@ -88,6 +88,10 @@ public abstract class JsonSchema {
    */
   public Boolean cache;
 
+  /** Whether to create lattices in this schema based on queries occurring in
+   * other schemas. Default value is {@code false}. */
+  public Boolean autoLattice;
+
   public abstract void accept(ModelHandler handler);
 
   public void visitChildren(ModelHandler modelHandler) {

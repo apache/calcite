@@ -13,35 +13,34 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * A JSON model of a simple Calcite schema.
  */
-{
-  "version": "1.0",
-  "defaultSchema": "geode_raw",
-  "schemas": [
-    {
-      "name": "geode_raw",
-      "type": "custom",
-      "factory": "org.apache.calcite.adapter.geode.rel.GeodeSchemaFactory",
-      "operand": {
-        "locatorHost": "localhost",
-        "locatorPort": "10334",
-        "regions": "Zips",
-        "pdxSerializablePackagePath": ".*"
-      }
-    },
-    {
-      "name": "geode",
-      "tables": [
-        {
-          "name": "ZIPS",
-          "type": "view",
-          "sql": [
-            "select \"_id\" AS \"id\", \"city\", \"loc\", cast(\"pop\" AS integer) AS \"pop\", cast(\"state\" AS varchar(2)) AS \"state\" from \"geode_raw\".\"Zips\""
-          ]
-        }
-      ]
+package org.apache.calcite.materialize;
+
+import org.apache.calcite.util.mapping.IntPair;
+
+import com.google.common.collect.ImmutableList;
+
+import java.util.List;
+import java.util.Objects;
+
+/** Non-root node in a {@link Lattice}. */
+public class LatticeChildNode extends LatticeNode {
+  public final LatticeNode parent;
+  public final ImmutableList<IntPair> link;
+
+  LatticeChildNode(LatticeSpace space, LatticeNode parent,
+      MutableNode mutableNode) {
+    super(space, parent, mutableNode);
+    this.parent = Objects.requireNonNull(parent);
+    this.link = ImmutableList.copyOf(mutableNode.step.keys);
+  }
+
+  void use(List<LatticeNode> usedNodes) {
+    if (!usedNodes.contains(this)) {
+      parent.use(usedNodes);
+      usedNodes.add(this);
     }
-  ]
+  }
 }
+
+// End LatticeChildNode.java

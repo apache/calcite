@@ -527,8 +527,10 @@ public class ModelHandler {
   public void visit(JsonMeasure jsonMeasure) {
     checkRequiredAttributes(jsonMeasure, "agg");
     assert latticeBuilder != null;
+    final boolean distinct = false; // no distinct field in JsonMeasure.yet
     final Lattice.Measure measure =
-        latticeBuilder.resolveMeasure(jsonMeasure.agg, jsonMeasure.args);
+        latticeBuilder.resolveMeasure(jsonMeasure.agg, distinct,
+            jsonMeasure.args);
     if (tileBuilder != null) {
       tileBuilder.addMeasure(measure);
     } else if (latticeBuilder != null) {

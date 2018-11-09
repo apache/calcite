@@ -1031,18 +1031,18 @@ for example `ST_GeomFromText('POINT (30 10)')`.
 | Data type   | Type code | Examples in WKT
 |:----------- |:--------- |:---------------------
 | GEOMETRY           |  0 | generalization of Point, Curve, Surface, GEOMETRYCOLLECTION
-| POINT              |  1 | <tt>ST_GeomFromText(&#8203;'POINT (30 10)')</tt> is a point in 2D space; <tt>ST_GeomFromText(&#8203;'POINT Z(30 10 2)')</tt> is point in 3D space
+| POINT              |  1 | <code>ST_GeomFromText(&#8203;'POINT (30 10)')</code> is a point in 2D space; <code>ST_GeomFromText(&#8203;'POINT Z(30 10 2)')</code> is point in 3D space
 | CURVE            | 13 | generalization of LINESTRING
-| LINESTRING         |  2 | <tt>ST_GeomFromText(&#8203;'LINESTRING (30 10, 10 30, 40 40)')</tt>
+| LINESTRING         |  2 | <code>ST_GeomFromText(&#8203;'LINESTRING (30 10, 10 30, 40 40)')</code>
 | SURFACE            | 14 | generalization of Polygon, PolyhedralSurface
-| POLYGON            |  3 | <tt>ST_GeomFromText(&#8203;'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')</tt> is a pentagon; <tt>ST_GeomFromText(&#8203;'POLYGON ((35 10, 45 45, 15 40, 10 20, 35 10), (20 30, 35 35, 30 20, 20 30))')</tt> is a pentagon with a quadrilateral hole
+| POLYGON            |  3 | <code>ST_GeomFromText(&#8203;'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')</code> is a pentagon; <code>ST_GeomFromText(&#8203;'POLYGON ((35 10, 45 45, 15 40, 10 20, 35 10), (20 30, 35 35, 30 20, 20 30))')</code> is a pentagon with a quadrilateral hole
 | POLYHEDRALSURFACE  | 15 |
 | GEOMETRYCOLLECTION |  7 | a collection of zero or more GEOMETRY instances; a generalization of MULTIPOINT, MULTILINESTRING, MULTIPOLYGON
-| MULTIPOINT         |  4 | <tt>ST_GeomFromText(&#8203;'MULTIPOINT ((10 40), (40 30), (20 20), (30 10))')</tt> is equivalent to <tt>ST_GeomFromText(&#8203;'MULTIPOINT (10 40, 40 30, 20 20, 30 10)')</tt>
+| MULTIPOINT         |  4 | <code>ST_GeomFromText(&#8203;'MULTIPOINT ((10 40), (40 30), (20 20), (30 10))')</code> is equivalent to <code>ST_GeomFromText(&#8203;'MULTIPOINT (10 40, 40 30, 20 20, 30 10)')</code>
 | MULTICURVE         |  - | generalization of MULTILINESTRING
-| MULTILINESTRING    |  5 | <tt>ST_GeomFromText(&#8203;'MULTILINESTRING ((10 10, 20 20, 10 40), (40 40, 30 30, 40 20, 30 10))')</tt>
+| MULTILINESTRING    |  5 | <code>ST_GeomFromText(&#8203;'MULTILINESTRING ((10 10, 20 20, 10 40), (40 40, 30 30, 40 20, 30 10))')</code>
 | MULTISURFACE       |  - | generalization of MULTIPOLYGON
-| MULTIPOLYGON       |  6 | <tt>ST_GeomFromText(&#8203;'MULTIPOLYGON (((30 20, 45 40, 10 40, 30 20)), ((15 5, 40 10, 10 20, 5 10, 15 5)))')</tt>
+| MULTIPOLYGON       |  6 | <code>ST_GeomFromText(&#8203;'MULTIPOLYGON (((30 20, 45 40, 10 40, 30 20)), ((15 5, 40 10, 10 20, 5 10, 15 5)))')</code>
 
 ## Operators and functions
 
@@ -1482,7 +1482,9 @@ Syntax:
 
 {% highlight sql %}
 aggregateCall:
-        agg( [ ALL | DISTINCT ] value [, value ]*) [ FILTER (WHERE condition) ]
+        agg( [ ALL | DISTINCT ] value [, value ]*)
+        [ WITHIN GROUP (ORDER BY orderItem [, orderItem ]*) ]
+        [ FILTER (WHERE condition) ]
     |   agg(*) [ FILTER (WHERE condition) ]
 {% endhighlight %}
 
@@ -1491,6 +1493,13 @@ If `FILTER` is present, the aggregate function only considers rows for which
 
 If `DISTINCT` is present, duplicate argument values are eliminated before being
 passed to the aggregate function.
+
+If `WITHIN GROUP` is present, the aggregate function sorts the input rows
+according to the `ORDER BY` clause inside `WITHIN GROUP` before aggregating
+values. `WITHIN GROUP` is only allowed for hypothetical set functions (`RANK`,
+`DENSE_RANK`, `PERCENT_RANK` and `CUME_DIST`), inverse distribution functions
+(`PERCENTILE_CONT` and `PERCENTILE_DISC`) and collection functions (`COLLECT`
+and `LISTAGG`).
 
 | Operator syntax                    | Description
 |:---------------------------------- |:-----------
@@ -1516,6 +1525,7 @@ passed to the aggregate function.
 
 Not implemented:
 
+* LISTAGG(string)
 * REGR_AVGX(numeric1, numeric2)
 * REGR_AVGY(numeric1, numeric2)
 * REGR_INTERCEPT(numeric1, numeric2)

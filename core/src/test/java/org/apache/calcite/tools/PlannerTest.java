@@ -72,11 +72,13 @@ import org.apache.calcite.sql.util.ListSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
+import org.hamcrest.Matcher;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -88,6 +90,7 @@ import static org.apache.calcite.plan.RelOptRule.operand;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -1058,7 +1061,8 @@ public class PlannerTest {
   public static class MyCountAggFunction extends SqlAggFunction {
     public MyCountAggFunction() {
       super("MY_COUNT", null, SqlKind.OTHER_FUNCTION, ReturnTypes.BIGINT, null,
-          OperandTypes.ANY, SqlFunctionCategory.NUMERIC, false, false);
+          OperandTypes.ANY, SqlFunctionCategory.NUMERIC, false, false,
+          Optionality.FORBIDDEN);
     }
 
     @SuppressWarnings("deprecation")
@@ -1131,6 +1135,44 @@ public class PlannerTest {
                 RelBuilder.proto(RelFactories.DEFAULT_PROJECT_FACTORY)));
     Planner planner = getPlanner(null, Programs.of(ruleSet));
     planner.close();
+  }
+
+  @Test public void testView() throws Exception {
+    final String sql = "select * FROM dept";
+    final String expected = "LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
+        + "  LogicalValues(type=[RecordType(INTEGER DEPTNO, CHAR(11) DNAME)], "
+        + "tuples=[[{ 10, 'Sales      ' },"
+        + " { 20, 'Marketing  ' },"
+        + " { 30, 'Engineering' },"
+        + " { 40, 'Empty      ' }]])\n";
+    checkView(sql, is(expected));
+  }
+
+  @Test public void testViewOnView() throws Exception {
+    final String sql = "select * FROM dept30";
+    final String expected = "LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
+        + "  LogicalFilter(condition=[=($0, 30)])\n"
+        + "    LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
+        + "      LogicalValues(type=[RecordType(INTEGER DEPTNO, CHAR(11) DNAME)], "
+        + "tuples=[[{ 10, 'Sales      ' },"
+        + " { 20, 'Marketing  ' },"
+        + " { 30, 'Engineering' },"
+        + " { 40, 'Empty      ' }]])\n";
+    checkView(sql, is(expected));
+  }
+
+  private void checkView(String sql, Matcher<String> matcher)
+      throws SqlParseException, ValidationException, RelConversionException {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(
+            CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.POST))
+        .build();
+    final Planner planner = Frameworks.getPlanner(config);
+    SqlNode parse = planner.parse(sql);
+    final SqlNode validate = planner.validate(parse);
+    final RelRoot root = planner.rel(validate);
+    assertThat(toString(root.rel), matcher);
   }
 }
 

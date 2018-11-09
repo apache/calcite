@@ -19,7 +19,7 @@ limitations under the License.
     <TestCase name="testCase">
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CASE(=('a', 'a'), 1, null)])
+LogicalProject(EXPR$0=[1])
   LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
@@ -363,7 +363,7 @@ window w as (partition by productId)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[DOT(ITEM(DOT(DOT(ITEM($3, 1), 'DETAIL'), 'SKILLS'), +(2, 3)), 'DESC')])
+LogicalProject(EXPR$0=[ITEM(ITEM($3, 1).DETAIL.SKILLS, +(2, 3)).DESC])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
 ]]>
         </Resource>
@@ -2049,7 +2049,7 @@ from dept]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(NAME=[$1], EXPR$1=[CASE(=($2, 0), false, IS NOT NULL($6), true, <($3, $2), null, false)])
+LogicalProject(NAME=[$1], EXPR$1=[OR(AND(IS NOT NULL($6), <>($2, 0)), AND(<($3, $2), null, <>($2, 0), IS NULL($6)))])
   LogicalJoin(condition=[=($4, $5)], joinType=[left])
     LogicalProject(DEPTNO=[$0], NAME=[$1], $f0=[$2], $f1=[$3], DEPTNO0=[$0])
       LogicalJoin(condition=[true], joinType=[inner])
@@ -4400,8 +4400,7 @@ LogicalProject(DEPTNO=[$0])
     </TestCase>
     <TestCase name="testNotCaseInThreeClause">
         <Resource name="sql">
-            <![CDATA[select empno from emp where not case when
-            true then deptno in (10,20) else false end]]>
+            <![CDATA[select empno from emp where not case when true then deptno in (10,20) else true end]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -4413,8 +4412,7 @@ LogicalProject(EMPNO=[$0])
     </TestCase>
     <TestCase name="testNotCaseInMoreClause">
         <Resource name="sql">
-            <![CDATA[select empno from emp where not case when
-             true then deptno in (10,20) when false then false else deptno in (30,40) end]]>
+            <![CDATA[select empno from emp where not case when true then deptno in (10,20) when false then false else deptno in (30,40) end]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -4426,8 +4424,7 @@ LogicalProject(EMPNO=[$0])
     </TestCase>
     <TestCase name="testNotCaseInWithoutElse">
         <Resource name="sql">
-            <![CDATA[select empno from emp where not case when
-            true then deptno in (10,20) end]]>
+            <![CDATA[select empno from emp where not case when true then deptno in (10,20)  end]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -5184,8 +5181,10 @@ LogicalProject(EXPR$0=[CASE(>(COUNT(ITEM($0, 'N_NATIONKEY')) OVER (PARTITION BY 
     <TestCase name="testWindowAndGroupByWithDynamicStar">
         <Resource name="sql">
             <![CDATA[SELECT
-n_regionkey, MAX(MIN(n_nationkey)) OVER (PARTITION BY n_regionkey)
-FROM (SELECT * FROM SALES.NATION) GROUP BY n_regionkey)]]>
+n_regionkey,
+MAX(MIN(n_nationkey)) OVER (PARTITION BY n_regionkey)
+FROM (SELECT * FROM SALES.NATION)
+GROUP BY n_regionkey]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -5294,6 +5293,44 @@ LogicalProject(ANYEMPNO=[$1])
   LogicalAggregate(group=[{0}], ANYEMPNO=[ANY_VALUE($1)])
     LogicalProject(SAL=[$5], EMPNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testWithinGroup1">
+        <Resource name="sql">
+            <![CDATA[select deptno, collect(empno) within group (order by deptno, hiredate desc) from emp group by deptno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[COLLECT($1) WITHIN GROUP ([1, 2 DESC])])
+  LogicalProject(DEPTNO=[$7], EMPNO=[$0], HIREDATE=[$4])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testWithinGroup2">
+        <Resource name="sql">
+            <![CDATA[select dept.deptno, collect(sal) within group (order by sal desc) as s, collect(sal) within group (order by 1)as s1, collect(sal) within group (order by sal) filter (where sal > 2000) as s2 from emp join dept using (deptno) group by dept.deptn]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}], S=[COLLECT($1) WITHIN GROUP ([1 DESC])], S1=[COLLECT($1) WITHIN GROUP ([2])], S2=[COLLECT($1) WITHIN GROUP ([1]) FILTER $3])
+  LogicalProject(DEPTNO=[$9], SAL=[$5], $f2=[1], $f3=[>($5, 2000)])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testWithinGroup3">
+        <Resource name="sql">
+            <![CDATA[select deptno, collect(empno) filter (where empno not in (1, 2)), count(*) from emp group by deptno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[COLLECT($1) WITHIN GROUP ([2])], EXPR$2=[COUNT()])
+  LogicalProject(DEPTNO=[$7], EMPNO=[$0], $f2=[AND(<>($0, 1), <>($0, 2))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>

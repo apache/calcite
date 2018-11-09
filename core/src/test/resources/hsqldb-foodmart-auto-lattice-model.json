@@ -13,23 +13,19 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * A JSON model of a simple Calcite schema.
  */
 {
   "version": "1.0",
-  "defaultSchema": "TEST",
-  "schemas": [
-    {
-      "name": "TEST",
-      "type": "custom",
-      "factory": "org.apache.calcite.adapter.geode.simple.GeodeSchemaFactory",
-      "operand": {
-        "locatorHost": "localhost",
-        "locatorPort": "10334",
-        "regions": "BookMaster",
-        "pdxSerializablePackagePath": "net.tzolov.geode.bookstore.domain.*"
-      }
-    }
-  ]
+  "defaultSchema": "foodmart",
+  "schemas": [ {
+    "type": "jdbc",
+    "name": "foodmart",
+    "jdbcUser": "FOODMART",
+    "jdbcPassword": "FOODMART",
+    "jdbcUrl": "jdbc:hsqldb:res:foodmart",
+    "jdbcSchema": "foodmart"
+  }, {
+    "name": "adhoc",
+    "autoLattice": true
+  } ]
 }

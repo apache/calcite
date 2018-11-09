@@ -13,23 +13,22 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * A JSON model of a simple Calcite schema.
  */
-{
-  "version": "1.0",
-  "defaultSchema": "TEST",
-  "schemas": [
-    {
-      "name": "TEST",
-      "type": "custom",
-      "factory": "org.apache.calcite.adapter.geode.simple.GeodeSchemaFactory",
-      "operand": {
-        "locatorHost": "localhost",
-        "locatorPort": "10334",
-        "regions": "BookMaster,Customer,InventoryItem,BookOrder",
-        "pdxSerializablePackagePath": "net.tzolov.geode.bookstore.domain.*"
-      }
-    }
-  ]
+package org.apache.calcite.adapter.geode.rel;
+
+import org.junit.ClassRule;
+
+/**
+ * Base class that allows sharing same geode instance across all tests.
+ *
+ * <p>Also, due to legacy reasons, there can't be more than one Geode
+ * instance (running in parallel) for a single JVM.
+ */
+public abstract class AbstractGeodeTest {
+
+  @ClassRule
+  public static final GeodeEmbeddedPolicy POLICY = GeodeEmbeddedPolicy.create().share();
+
 }
+
+// End AbstractGeodeTest.java

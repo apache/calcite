@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.util.Optionality;
 
 import com.google.common.base.Preconditions;
 
@@ -51,8 +52,10 @@ public class SqlAvgAggFunction extends SqlAggFunction {
         OperandTypes.NUMERIC,
         SqlFunctionCategory.NUMERIC,
         false,
-        false);
-    Preconditions.checkArgument(SqlKind.AVG_AGG_FUNCTIONS.contains(kind), "unsupported sql kind");
+        false,
+        Optionality.FORBIDDEN);
+    Preconditions.checkArgument(SqlKind.AVG_AGG_FUNCTIONS.contains(kind),
+        "unsupported sql kind");
   }
 
   @Deprecated // to be removed before 2.0

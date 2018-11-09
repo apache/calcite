@@ -147,6 +147,22 @@ public class BlockBuilderTest {
 
   }
 
+  /** CALCITE-2611: unknown on one side of an or may lead to uncompilable code */
+  @Test
+  public void testOptimizeBoxedFalseEqNull() {
+    BlockBuilder outer = new BlockBuilder();
+    outer.append(
+        Expressions.equal(
+            OptimizeShuttle.BOXED_FALSE_EXPR,
+            Expressions.constant(null)));
+
+    assertEquals("Expected to optimize Boolean.FALSE = null to false",
+        "{\n"
+            + "  return false;\n"
+            + "}\n",
+        Expressions.toString(outer.toBlock()));
+  }
+
   /**
    * Class with generics to validate if {@link Expressions#call(Method, Expression...)} works.
    * @param <I> result type

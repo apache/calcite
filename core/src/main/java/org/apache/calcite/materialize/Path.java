@@ -13,23 +13,33 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * A JSON model of a simple Calcite schema.
  */
-{
-  "version": "1.0",
-  "defaultSchema": "TEST",
-  "schemas": [
-    {
-      "name": "TEST",
-      "type": "custom",
-      "factory": "org.apache.calcite.adapter.geode.rel.GeodeSchemaFactory",
-      "operand": {
-        "locatorHost": "localhost",
-        "locatorPort": "10334",
-        "regions": "BookMaster,BookCustomer",
-        "pdxSerializablePackagePath": "org.apache.calcite.adapter.geode.*"
-      }
-    }
-  ]
+package org.apache.calcite.materialize;
+
+import com.google.common.collect.ImmutableList;
+
+import java.util.List;
+
+/** A sequence of {@link Step}s from a root node (fact table) to another node
+ * (dimension table), possibly via intermediate dimension tables. */
+class Path {
+  final List<Step> steps;
+  private final int id;
+
+  Path(List<Step> steps, int id) {
+    this.steps = ImmutableList.copyOf(steps);
+    this.id = id;
+  }
+
+  @Override public int hashCode() {
+    return id;
+  }
+
+  @Override public boolean equals(Object obj) {
+    return this == obj
+        || obj instanceof Path
+        && id == ((Path) obj).id;
+  }
 }
+
+// End Path.java

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util.graph;
 
+import com.google.common.collect.Ordering;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,8 +36,7 @@ import java.util.Set;
 public class DefaultDirectedGraph<V, E extends DefaultEdge>
     implements DirectedGraph<V, E> {
   final Set<E> edges = new LinkedHashSet<>();
-  final Map<V, VertexInfo<V, E>> vertexMap =
-      new LinkedHashMap<>();
+  final Map<V, VertexInfo<V, E>> vertexMap = new LinkedHashMap<>();
   final EdgeFactory<V, E> edgeFactory;
 
   /** Creates a graph. */
@@ -52,15 +53,28 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     return new DefaultDirectedGraph<>(edgeFactory);
   }
 
+  public String toStringUnordered() {
+    return "graph("
+        + "vertices: " + vertexMap.keySet()
+        + ", edges: " + edges + ")";
+  }
+
   @Override public String toString() {
-    StringBuilder buf = new StringBuilder();
-    buf.append("graph(")
-        .append("vertices: ")
-        .append(vertexMap.keySet())
-        .append(", edges: ")
-        .append(edges)
-        .append(")");
-    return buf.toString();
+    @SuppressWarnings("unchecked")
+    final Ordering<V> vertexOrdering = (Ordering) Ordering.usingToString();
+    @SuppressWarnings("unchecked")
+    final Ordering<E> edgeOrdering = (Ordering) Ordering.usingToString();
+    return toString(vertexOrdering, edgeOrdering);
+  }
+
+  /** Returns the string representation of this graph, using the given
+   * orderings to ensure that the output order of vertices and edges is
+   * deterministic. */
+  private String toString(Ordering<V> vertexOrdering,
+      Ordering<E> edgeOrdering) {
+    return "graph("
+        + "vertices: " + vertexOrdering.sortedCopy(vertexMap.keySet())
+        + ", edges: " + edgeOrdering.sortedCopy(edges) + ")";
   }
 
   public boolean addVertex(V vertex) {

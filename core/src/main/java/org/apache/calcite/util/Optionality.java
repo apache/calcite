@@ -13,27 +13,29 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * A JSON model of a simple Calcite schema.
  */
-{
-  "version": "1.0",
-  "defaultSchema": "TEST",
-  "schemas": [
-    {
-      "name": "TEST",
-      "type": "custom",
-      "factory": "org.apache.calcite.adapter.geode.simple.GeodeSchemaFactory",
-      "operand": {
-        "locatorHost": "localhost",
-        "locatorPort": "10334",
-        "regions": "BookMaster,Customer,InventoryItem,BookOrder",
-        "BookMaster": "net.tzolov.geode.bookstore.domain.BookMaster",
-        "Customer": "net.tzolov.geode.bookstore.domain.Customer",
-        "InventoryItem": "net.tzolov.geode.bookstore.domain.InventoryItem",
-        "BookOrder": "net.tzolov.geode.bookstore.domain.BookOrder",
-        "pdxSerializablePackagePath": "net.tzolov.geode.bookstore.domain.*"
-      }
-    }
-  ]
+package org.apache.calcite.util;
+
+/**
+ * Four states that describe whether a particular behavior or
+ * property is allowed and/or not allowed.
+ */
+public enum Optionality {
+  /** A property is <em>mandatory</em> if an instance must possess it;
+   * it is an error if it does not. */
+  MANDATORY,
+
+  /** A property is <em>optional</em> if an instance may or may not possess it;
+   * neither state is an error. */
+  OPTIONAL,
+
+  /** A property is <em>ignored</em> if an instance may or may not possess it;
+   * if it possesses the property, the effect is as if it does not. */
+  IGNORED,
+
+  /** A property is <em>forbidden</em> if an instance must not possess it;
+   * it is an error if the instance has the property. */
+  FORBIDDEN
 }
+
+// End Optionality.java

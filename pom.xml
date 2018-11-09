@@ -46,6 +46,11 @@ limitations under the License.
   </mailingLists>
 
   <properties>
+    <!-- Ensure that source and target version are overridden from base ASF POM.
+         This is also used by forbiddenapis to ensure correct signatures are loaded. -->
+    <maven.compiler.source>8</maven.compiler.source>
+    <maven.compiler.target>8</maven.compiler.target>
+
     <surefire.parallel>both</surefire.parallel>
     <surefire.threadCount>1</surefire.threadCount>
     <surefire.perCoreThreadCount>true</surefire.perCoreThreadCount>
@@ -77,7 +82,7 @@ limitations under the License.
     <foodmart-data-hsqldb.version>0.3</foodmart-data-hsqldb.version>
     <foodmart-queries.version>0.4.1</foodmart-queries.version>
     <forbiddenapis.version>2.6</forbiddenapis.version>
-    <freemarker.version>2.3.25-incubating</freemarker.version>
+    <freemarker.version>2.3.28</freemarker.version>
     <git-commit-id-plugin.version>2.1.9</git-commit-id-plugin.version>
     <geode.version>1.6.0</geode.version>
     <fongo.version>2.1.1</fongo.version>
@@ -642,7 +647,7 @@ limitations under the License.
             <exclude>**/src/test/resources/**/*.txt</exclude>
             <exclude>**/src/test/resources/bug/archers.json</exclude>
             <exclude>**/src/test/resources/foodmart-schema.spec</exclude>
-            <exclude>**/src/test/resources/zips-mini.json</exclude>
+            <exclude>**/src/test/resources/*.json</exclude>
             <exclude>**/data.txt</exclude>
             <exclude>**/data2.txt</exclude>
 
@@ -701,9 +706,9 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
+        <!-- If you are looking to change source/target,
+             change the maven.compiler.{source,target} property -->
         <configuration>
-          <source>8</source>
-          <target>8</target>
           <compilerArgument>-Xlint:deprecation</compilerArgument>
         </configuration>
       </plugin>
@@ -718,7 +723,6 @@ limitations under the License.
               <configLocation>${top.dir}/src/main/config/checkstyle/checker.xml</configLocation>
               <suppressionsLocation>${top.dir}/src/main/config/checkstyle/suppressions.xml</suppressionsLocation>
               <consoleOutput>true</consoleOutput>
-              <headerLocation>${top.dir}/src/main/config/checkstyle/header.txt</headerLocation>
               <failOnViolation>true</failOnViolation>
               <includeTestSourceDirectory>true</includeTestSourceDirectory>
             </configuration>
@@ -911,7 +915,8 @@ limitations under the License.
               <configuration>
                 <threadCount>6</threadCount>
                 <parallel>both</parallel>
-                <argLine>-Xmx1024m</argLine>
+                <!-- work around https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=911925 -->
+                <argLine>-Xmx1024m -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
                 <systemPropertyVariables>
                   <calcite.integrationTest>true</calcite.integrationTest>
                 </systemPropertyVariables>
@@ -983,8 +988,8 @@ limitations under the License.
                 <value>tr</value>
               </systemProperty>
             </systemProperties>
-            <!--<argLine>-Xmx1536m -Duser.timezone=${user.timezone} -Duser.country=${user.country} -Duser.language=${user.language}</argLine>-->
-            <argLine>-Xmx1536m</argLine>
+            <!-- work around https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=911925 -->
+            <argLine>-Xmx1536m -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
           </configuration>
         </plugin>
         <plugin>

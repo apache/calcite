@@ -61,6 +61,7 @@ import java.util.function.Function;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -79,9 +80,6 @@ public class RelToSqlConverterTest {
           .withConvertTableAccess(false)
           .withExpand(false)
           .build();
-
-  final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
-  final RelBuilder empScan = builder.scan("EMP");
 
   /** Initiates a test case with a given SQL query. */
   private Sql sql(String sql) {
@@ -123,6 +121,23 @@ public class RelToSqlConverterTest {
         .withNullCollation(nullCollation));
   }
 
+  /** Creates a RelBuilder. */
+  private static RelBuilder relBuilder() {
+    return RelBuilder.create(RelBuilderTest.config().build());
+  }
+
+  /** Converts a relational expression to SQL. */
+  private String toSql(RelNode root) {
+    return toSql(root, SqlDialect.DatabaseProduct.CALCITE.getDialect());
+  }
+
+  /** Converts a relational expression to SQL in a given dialect. */
+  private static String toSql(RelNode root, SqlDialect dialect) {
+    final RelToSqlConverter converter = new RelToSqlConverter(dialect);
+    final SqlNode sqlNode = converter.visitChild(0, root).asStatement();
+    return sqlNode.toSqlString(dialect).getSql();
+  }
+
   @Test public void testSimpleSelectStarFromProductTable() {
     String query = "select * from \"product\"";
     sql(query).ok("SELECT *\nFROM \"foodmart\".\"product\"");
@@ -162,6 +177,37 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\", \"product_id\"";
     sql(query).ok(expected);
+  }
+
+  @Test public void testSelectQueryWithGroupByEmpty() {
+    final String sql0 = "select count(*) from \"product\" group by ()";
+    final String sql1 = "select count(*) from \"product\"";
+    final String expected = "SELECT COUNT(*)\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedMySql = "SELECT COUNT(*)\n"
+        + "FROM `foodmart`.`product`";
+    sql(sql0)
+        .ok(expected)
+        .withMysql()
+        .ok(expectedMySql);
+    sql(sql1)
+        .ok(expected)
+        .withMysql()
+        .ok(expectedMySql);
+  }
+
+  @Test public void testSelectQueryWithGroupByEmpty2() {
+    final String query = "select 42 as c from \"product\" group by ()";
+    final String expected = "SELECT 42 AS \"C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ()";
+    final String expectedMySql = "SELECT 42 AS `C`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ()";
+    sql(query)
+        .ok(expected)
+        .withMysql()
+        .ok(expectedMySql);
   }
 
   @Test public void testSelectQueryWithMinAggregateFunction() {
@@ -222,6 +268,45 @@ public class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1174">[CALCITE-1174]
+   * When generating SQL, translate SUM0(x) to COALESCE(SUM(x), 0)</a>. */
+  @Test public void testSum0BecomesCoalesce() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .aggregate(builder.groupKey(),
+            builder.aggregateCall(SqlStdOperatorTable.SUM0, builder.field(3))
+                .as("s"))
+        .build();
+    final String expectedMysql = "SELECT COALESCE(SUM(`MGR`), 0) AS `s`\n"
+        + "FROM `scott`.`EMP`";
+    assertThat(toSql(root, SqlDialect.DatabaseProduct.MYSQL.getDialect()),
+        isLinux(expectedMysql));
+    final String expectedPostgresql = "SELECT COALESCE(SUM(\"MGR\"), 0) AS \"s\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, SqlDialect.DatabaseProduct.POSTGRESQL.getDialect()),
+        isLinux(expectedPostgresql));
+  }
+
+  /** As {@link #testSum0BecomesCoalesce()} but for windowed aggregates. */
+  @Test public void testWindowedSum0BecomesCoalesce() {
+    final String query = "select\n"
+        + "  AVG(\"net_weight\") OVER (order by \"product_id\" rows 3 preceding)\n"
+        + "from \"foodmart\".\"product\"";
+    final String expectedPostgresql = "SELECT CASE WHEN (COUNT(\"net_weight\")"
+        + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW)) > 0 "
+        + "THEN CAST(COALESCE(SUM(\"net_weight\")"
+        + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 0)"
+        + " AS DOUBLE PRECISION) "
+        + "ELSE NULL END / (COUNT(\"net_weight\")"
+        + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW))\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query)
+        .withPostgresql()
+        .ok(expectedPostgresql);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1946">[CALCITE-1946]
    * JDBC adapter should generate sub-SELECT if dialect does not support nested
    * aggregate functions</a>. */
@@ -260,6 +345,45 @@ public class RelToSqlConverterTest {
         .ok(expectedVertica)
         .withPostgresql()
         .ok(expectedPostgresql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2628">[CALCITE-2628]
+   * JDBC adapter throws NullPointerException while generating GROUP BY query
+   * for MySQL</a>.
+   *
+   * <p>MySQL does not support nested aggregates, so {@link RelToSqlConverter}
+   * performs some extra checks, looking for aggregates in the input
+   * sub-query, and these would fail with {@code NullPointerException}
+   * and {@code ClassCastException} in some cases. */
+  @Test public void testNestedAggregatesMySqlTable() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .aggregate(builder.groupKey(),
+            builder.count(false, "c", builder.field(3)))
+        .build();
+    final SqlDialect dialect = SqlDialect.DatabaseProduct.MYSQL.getDialect();
+    final String expectedSql = "SELECT COUNT(`MGR`) AS `c`\n"
+        + "FROM `scott`.`EMP`";
+    assertThat(toSql(root, dialect), isLinux(expectedSql));
+  }
+
+  /** As {@link #testNestedAggregatesMySqlTable()}, but input is a sub-query,
+   * not a table. */
+  @Test public void testNestedAggregatesMySqlStar() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(builder.equals(builder.field("DEPTNO"), builder.literal(10)))
+        .aggregate(builder.groupKey(),
+            builder.count(false, "c", builder.field(3)))
+        .build();
+    final SqlDialect dialect = SqlDialect.DatabaseProduct.MYSQL.getDialect();
+    final String expectedSql = "SELECT COUNT(`MGR`) AS `c`\n"
+        + "FROM `scott`.`EMP`\n"
+        + "WHERE `DEPTNO` = 10";
+    assertThat(toSql(root, dialect), isLinux(expectedSql));
   }
 
   @Test public void testSelectQueryWithGroupByAndProjectList1() {
@@ -371,14 +495,6 @@ public class RelToSqlConverterTest {
     sql(query).withHive().ok(expected);
   }
 
-
-  private String unparseRelTree(RelNode root) {
-    SqlDialect dialect = SqlDialect.DatabaseProduct.CALCITE.getDialect();
-    final RelToSqlConverter converter = new RelToSqlConverter(dialect);
-    final SqlNode sqlNode = converter.visitChild(0, root).asStatement();
-    return sqlNode.toSqlString(dialect).getSql();
-  }
-
   /**
    * Tests that IN can be un-parsed.
    *
@@ -386,10 +502,12 @@ public class RelToSqlConverterTest {
    * replaces INs with ORs or sub-queries.
    */
   @Test public void testUnparseIn1() {
+    final RelBuilder builder = relBuilder().scan("EMP");
     final RexNode condition =
         builder.call(SqlStdOperatorTable.IN, builder.field("DEPTNO"),
             builder.literal(21));
-    final String sql = unparseRelTree(empScan.filter(condition).build());
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+    final String sql = toSql(root);
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "WHERE \"DEPTNO\" IN (21)";
@@ -397,10 +515,14 @@ public class RelToSqlConverterTest {
   }
 
   @Test public void testUnparseIn2() {
-    final RexNode filter =
-        builder.call(SqlStdOperatorTable.IN, builder.field("DEPTNO"),
-            builder.literal(20), builder.literal(21));
-    final String sql = unparseRelTree(empScan.filter(filter).build());
+    final RelBuilder builder = relBuilder();
+    final RelNode rel = builder
+        .scan("EMP")
+        .filter(
+            builder.call(SqlStdOperatorTable.IN, builder.field("DEPTNO"),
+                builder.literal(20), builder.literal(21)))
+        .build();
+    final String sql = toSql(rel);
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "WHERE \"DEPTNO\" IN (20, 21)";
@@ -408,13 +530,15 @@ public class RelToSqlConverterTest {
   }
 
   @Test public void testUnparseInStruct1() {
+    final RelBuilder builder = relBuilder().scan("EMP");
     final RexNode condition =
         builder.call(SqlStdOperatorTable.IN,
             builder.call(SqlStdOperatorTable.ROW, builder.field("DEPTNO"),
                 builder.field("JOB")),
             builder.call(SqlStdOperatorTable.ROW, builder.literal(1),
                 builder.literal("PRESIDENT")));
-    final String sql = unparseRelTree(empScan.filter(condition).build());
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+    final String sql = toSql(root);
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "WHERE ROW(\"DEPTNO\", \"JOB\") IN (ROW(1, 'PRESIDENT'))";
@@ -422,6 +546,7 @@ public class RelToSqlConverterTest {
   }
 
   @Test public void testUnparseInStruct2() {
+    final RelBuilder builder = relBuilder().scan("EMP");
     final RexNode condition =
         builder.call(SqlStdOperatorTable.IN,
             builder.call(SqlStdOperatorTable.ROW, builder.field("DEPTNO"),
@@ -430,7 +555,8 @@ public class RelToSqlConverterTest {
                 builder.literal("PRESIDENT")),
             builder.call(SqlStdOperatorTable.ROW, builder.literal(2),
                 builder.literal("PRESIDENT")));
-    final String sql = unparseRelTree(empScan.filter(condition).build());
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+    final String sql = toSql(root);
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "WHERE ROW(\"DEPTNO\", \"JOB\") IN (ROW(1, 'PRESIDENT'), ROW(2, 'PRESIDENT'))";
@@ -863,6 +989,18 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"department\",\n"
         + "\"foodmart\".\"employee\"";
     sql(query).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2652">[CALCITE-2652]
+   * SqlNode to SQL conversion fails if the join condition references a BOOLEAN
+   * column</a>. */
+  @Test public void testJoinOnBoolean() {
+    final String sql = "SELECT 1\n"
+        + "from emps\n"
+        + "join emp on (emp.deptno = emps.empno and manager)";
+    final String s = sql(sql).schema(CalciteAssert.SchemaSpec.POST).exec();
+    assertThat(s, notNullValue()); // sufficient that conversion did not throw
   }
 
   @Test public void testCartesianProductWithInnerJoinSyntax() {
@@ -2638,6 +2776,53 @@ public class RelToSqlConverterTest {
         callsUnparseCallOnSqlSelect[0], is(true));
   }
 
+  @Test public void testWithinGroup1() {
+    final String query = "select \"product_class_id\", collect(\"net_weight\") "
+        + "within group (order by \"net_weight\" desc) "
+        + "from \"product\" group by \"product_class_id\"";
+    final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
+        + "WITHIN GROUP (ORDER BY \"net_weight\" DESC)\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testWithinGroup2() {
+    final String query = "select \"product_class_id\", collect(\"net_weight\") "
+        + "within group (order by \"low_fat\", \"net_weight\" desc nulls last) "
+        + "from \"product\" group by \"product_class_id\"";
+    final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
+        + "WITHIN GROUP (ORDER BY \"low_fat\", \"net_weight\" DESC NULLS LAST)\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testWithinGroup3() {
+    final String query = "select \"product_class_id\", collect(\"net_weight\") "
+        + "within group (order by \"net_weight\" desc), "
+        + "min(\"low_fat\")"
+        + "from \"product\" group by \"product_class_id\"";
+    final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
+        + "WITHIN GROUP (ORDER BY \"net_weight\" DESC), MIN(\"low_fat\")\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testWithinGroup4() {
+    // filter in AggregateCall is not unparsed
+    final String query = "select \"product_class_id\", collect(\"net_weight\") "
+        + "within group (order by \"net_weight\" desc) filter (where \"net_weight\" > 0)"
+        + "from \"product\" group by \"product_class_id\"";
+    final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
+        + "WITHIN GROUP (ORDER BY \"net_weight\" DESC)\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\"";
+    sql(query).ok(expected);
+  }
+
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;
@@ -2742,10 +2927,7 @@ public class RelToSqlConverterTest {
         for (Function<RelNode, RelNode> transform : transforms) {
           rel = transform.apply(rel);
         }
-        final RelToSqlConverter converter =
-            new RelToSqlConverter(dialect);
-        final SqlNode sqlNode = converter.visitChild(0, rel).asStatement();
-        return sqlNode.toSqlString(dialect).getSql();
+        return toSql(rel, dialect);
       } catch (RuntimeException e) {
         throw e;
       } catch (Exception e) {

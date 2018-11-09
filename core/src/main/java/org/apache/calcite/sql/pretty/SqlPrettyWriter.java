@@ -881,12 +881,6 @@ public class SqlPrettyWriter implements SqlWriter {
   }
 
   public void print(String s) {
-    if (s.equals("(")) {
-      throw new RuntimeException("Use 'startList'");
-    }
-    if (s.equals(")")) {
-      throw new RuntimeException("Use 'endList'");
-    }
     maybeWhitespace(s);
     pw.print(s);
     charCount += s.length();

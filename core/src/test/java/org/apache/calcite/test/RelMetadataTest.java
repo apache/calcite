@@ -1350,7 +1350,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
             ImmutableList.of(
                 AggregateCall.create(SqlStdOperatorTable.COUNT,
                     false, false, ImmutableIntList.of(),
-                    -1, 2, join, null, null)));
+                    -1, RelCollations.EMPTY, 2, join, null, null)));
     rowSize = mq.getAverageRowSize(aggregate);
     columnSizes = mq.getAverageColumnSizes(aggregate);
     assertThat(columnSizes.size(), equalTo(3));
@@ -1556,7 +1556,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     RelOptPredicateList list = mq.getPulledUpPredicates(rel);
     // Uses "IS NOT DISTINCT FROM" rather than "=" because cannot guarantee not null.
     assertThat(list.pulledUpPredicates,
-        sortsAs("[IS NOT DISTINCT FROM($0, CASE(=(1, 1), null, 1))]"));
+        sortsAs("[IS NULL($0)]"));
   }
 
   @Test public void testDistributionSimple() {

@@ -44,7 +44,7 @@ Models can also be built programmatically using the `Schema` SPI.
 {% highlight yaml %}
 version: 1.0
 defaultSchema: mongo
-schemas: 
+schemas:
 - [Schema...]
 {% endhighlight %}
 
@@ -73,10 +73,10 @@ Occurs within `root.schemas`.
 #### YAML
 {% highlight yaml %}
 name: foodmart
-path: 
+path:
   lib
 cache: true
-materializations: 
+materializations:
 - [ Materialization... ]
 {% endhighlight %}
 
@@ -100,7 +100,7 @@ strings. For example,
 
 #### YAML
 {% highlight yaml %}
-path: 
+path:
 - [usr, lib]
 - lib
 {% endhighlight %}
@@ -138,7 +138,7 @@ immediately, and are never flushed.
 
 Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
 
-#### JSON 
+#### JSON
 {% highlight json %}
 {
   name: 'foodmart',
@@ -153,11 +153,11 @@ Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
 {% highlight yaml %}
 name: foodmart
 type: map
-tables: 
+tables:
 - [ Table... ]
-functions: 
+functions:
 - [ Function... ]
-types: 
+types:
 - [ Type... ]
 {% endhighlight %}
 
@@ -194,7 +194,7 @@ Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
 name: mongo
 type: custom
 factory: org.apache.calcite.adapter.mongodb.MongoSchemaFactory
-operand: 
+operand:
   host: localhost
   database: test
 {% endhighlight %}
@@ -303,7 +303,7 @@ Occurs within `root.schemas.tables`.
 #### YAML
 {% highlight yaml %}
 name: sales_fact
-columns: 
+columns:
   [ Column... ]
 {% endhighlight %}
 
@@ -393,7 +393,7 @@ Like base class <a href="#table">Table</a>, occurs within `root.schemas.tables`.
 name: female_emps
 type: custom
 factory: TODO
-operand: 
+operand:
   todo: TODO
 {% endhighlight %}
 
@@ -469,7 +469,7 @@ Occurs within `root.schemas.functions`.
 name: MY_PLUS
 className: com.example.functions.MyPlusFunction
 methodName: apply
-path: {}  
+path: {}
 {% endhighlight %}
 
 `name` (required string) is the name of this function.
@@ -516,7 +516,7 @@ Occurs within `root.schemas.types`.
 {% highlight yaml %}
 name: mytype1
 type: BIGINT
-attributes:  
+attributes:
 - name: f1
   type: BIGINT
 {% endhighlight %}
@@ -577,11 +577,11 @@ auto: false
 algorithm: true
 algorithmMaxMillis: 10000
 rowCountEstimate: 86837
-defaultMeasures: 
+defaultMeasures:
 - agg: count
-tiles: 
-- dimensions: [ 'the_year', ['t', 'quarter'] ] 
-  measures: 
+tiles:
+- dimensions: [ 'the_year', ['t', 'quarter'] ]
+  measures:
   - agg: sum
     args: unit_sales
   - agg: sum
@@ -663,8 +663,8 @@ Occurs within `root.schemas.lattices.tiles`.
 
 #### YAML
 {% highlight yaml %}
-dimensions: [ 'the_year', ['t', 'quarter'] ] 
-measures: 
+dimensions: [ 'the_year', ['t', 'quarter'] ]
+measures:
 - agg: sum
   args: unit_sales
 - agg: sum

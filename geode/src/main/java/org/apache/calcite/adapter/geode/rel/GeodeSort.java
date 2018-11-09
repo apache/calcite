@@ -42,7 +42,7 @@ public class GeodeSort extends Sort implements GeodeRel {
   public static final String DESC = "DESC";
 
   /** Creates a GeodeSort. */
-  public GeodeSort(RelOptCluster cluster, RelTraitSet traitSet,
+  GeodeSort(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RelCollation collation, RexNode fetch) {
     super(cluster, traitSet, input, collation, null, fetch);
 
@@ -68,9 +68,7 @@ public class GeodeSort extends Sort implements GeodeRel {
   }
 
   @Override public void implement(GeodeImplementContext geodeImplementContext) {
-
-    ((GeodeRel) getInput()).implement(geodeImplementContext);
-
+    geodeImplementContext.visitChild(getInput());
 
     List<RelFieldCollation> sortCollations = collation.getFieldCollations();
 
@@ -85,9 +83,8 @@ public class GeodeSort extends Sort implements GeodeRel {
       geodeImplementContext.addOrderByFields(orderByFields);
     }
 
-
     if (fetch != null) {
-      geodeImplementContext.setLimit(((RexLiteral) fetch).getValue().toString());
+      geodeImplementContext.setLimit(((RexLiteral) fetch).getValueAs(Long.class));
     }
   }
 

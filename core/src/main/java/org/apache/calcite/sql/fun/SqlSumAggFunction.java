@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
 
@@ -54,7 +55,8 @@ public class SqlSumAggFunction extends SqlAggFunction {
         OperandTypes.NUMERIC,
         SqlFunctionCategory.NUMERIC,
         false,
-        false);
+        false,
+        Optionality.FORBIDDEN);
     this.type = type;
   }
 

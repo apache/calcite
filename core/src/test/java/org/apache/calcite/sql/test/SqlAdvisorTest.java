@@ -667,7 +667,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertSimplify(sql, "SELECT ax _suggest_ FROM ( SELECT * FROM dummy a )");
   }
 
-  @Test public void testSimlifySubqueryStar() {
+  @Test public void testSimlifySubQueryStar() {
     String sql;
     sql = "select ax^ from (select (select * from dummy) axc from dummy a)";
     assertSimplify(sql,
@@ -691,7 +691,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertSimplify(sql, "SELECT _suggest_ FROM ( SELECT a.x + b.y FROM dummy a , dummy b )");
   }
 
-  @Test public void testSimlifySubqueryMultipleFrom() {
+  @Test public void testSimlifySubQueryMultipleFrom() {
     String sql;
     // "dummy b" should be removed
     sql = "select axc from (select (select ^ from dummy) axc from dummy a), dummy b";

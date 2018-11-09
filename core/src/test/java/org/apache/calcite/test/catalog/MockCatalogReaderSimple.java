@@ -279,7 +279,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
                         salField.getIndex()),
                     rexBuilder.makeExactLiteral(BigDecimal.valueOf(1000L),
                         salField.getType())));
-            return RexUtil.composeConjunction(rexBuilder, nodes, false);
+            return RexUtil.composeConjunction(rexBuilder, nodes);
           }
         };
     salesSchema.addTable(Util.last(emp20View.getQualifiedName()));
@@ -314,7 +314,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
                         salField.getIndex()),
                     rexBuilder.makeExactLiteral(BigDecimal.valueOf(1000L),
                         salField.getType())));
-            return RexUtil.composeConjunction(rexBuilder, nodes, false);
+            return RexUtil.composeConjunction(rexBuilder, nodes);
           }
         };
     salesSchema.addTable(Util.last(empNullables20View.getQualifiedName()));

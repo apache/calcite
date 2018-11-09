@@ -240,17 +240,6 @@ JAVACODE String unquotedIdentifier() {
         unquotedCasing);
 }
 
-String NonReservedKeyWord() :
-{
-    String kw;
-}
-{
-    kw = CommonNonReservedKeyWord()
-    {
-        return kw;
-    }
-}
-
 /**
  * Allows parser to be extended with new types of table references.  The
  * default implementation of this production is empty.
@@ -4987,6 +4976,8 @@ SqlNode NamedFunctionCall() :
     final SqlNode filter;
     final SqlNode over;
     SqlLiteral quantifier = null;
+    SqlNodeList orderList = null;
+    final Span withinGroupSpan;
 }
 {
     (
@@ -5015,9 +5006,18 @@ SqlNode NamedFunctionCall() :
         }
     )
     {
-        call = createCall(qualifiedName, s.end(this), funcType, quantifier,
-            args);
+        call = createCall(qualifiedName, s.end(this), funcType, quantifier, args);
     }
+    [
+        <WITHIN> { withinGroupSpan = span(); }
+        <GROUP>
+        <LPAREN>
+        orderList = OrderBy(true)
+        <RPAREN> {
+            call = SqlStdOperatorTable.WITHIN_GROUP.createCall(
+                withinGroupSpan.end(this), call, orderList);
+        }
+    ]
     [
         <FILTER> { filterSpan = span(); }
         <LPAREN>
@@ -6109,328 +6109,80 @@ SqlPostfixOperator PostfixRowOperator() :
 </#list>
 }
 
-/*
- * Abstract production:
- *
- *   String NonReservedKeyWord()
- *
- * Parses non-reserved keywords (e.g. keywords that may be used as
- * identifiers).  Should use CommonNonReservedKeyWord as a base, but
- * may add other key words.
- */
-
 /**
- * Parses a non-reserved keyword for use as an identifier.  Specializations
- * of this parser can use this as a base for implementing the
- * NonReservedKeyWord() production.
+ * Parses a non-reserved keyword for use as an identifier.
  *
- * <p>When adding keywords to this list, be sure that they are not reserved
- * by the SQL:2003 standard (see productions for "non-reserved word"
- * and "reserved word" in reference below).
+ * <p>The method is broken up into several sub-methods; without this
+ * decomposition, parsers such as Babel with more than ~1,000 non-reserved
+ * keywords would generate such deeply nested 'if' statements that javac would
+ * fail with a {@link StackOverflowError}.
+ *
+ * <p>The list is generated from the FMPP config data. To add or remove
+ * keywords, modify config.fmpp. For parsers except Babel, make sure that
+ * keywords are not reserved by the SQL standard.
  *
  * @see Glossary#SQL2003 SQL:2003 Part 2 Section 5.2
  */
-String CommonNonReservedKeyWord() :
+String NonReservedKeyWord() :
 {
 }
 {
     (
-        <A>
-    |   <ABSOLUTE>
-    |   <ACTION>
-    |   <ADA>
-    |   <ADD>
-    |   <ADMIN>
-    |   <AFTER>
-    |   <ALWAYS>
-    |   <APPLY>
-    |   <ASC>
-    |   <ASSERTION>
-    |   <ASSIGNMENT>
-    |   <ATTRIBUTE>
-    |   <ATTRIBUTES>
-    |   <BEFORE>
-    |   <BERNOULLI>
-    |   <BREADTH>
-    |   <C>
-    |   <CASCADE>
-    |   <CATALOG>
-    |   <CATALOG_NAME>
-    |   <CENTURY>
-    |   <CHAIN>
-    |   <CHARACTER_SET_CATALOG>
-    |   <CHARACTER_SET_NAME>
-    |   <CHARACTER_SET_SCHEMA>
-    |   <CHARACTERISTICS>
-    |   <CHARACTERS>
-    |   <CLASS_ORIGIN>
-    |   <COBOL>
-    |   <COLLATION>
-    |   <COLLATION_CATALOG>
-    |   <COLLATION_NAME>
-    |   <COLLATION_SCHEMA>
-    |   <COLUMN_NAME>
-    |   <COMMAND_FUNCTION>
-    |   <COMMAND_FUNCTION_CODE>
-    |   <COMMITTED>
-    |   <CONDITION_NUMBER>
-    |   <CONNECTION>
-    |   <CONNECTION_NAME>
-    |   <CONSTRAINT_CATALOG>
-    |   <CONSTRAINT_NAME>
-    |   <CONSTRAINT_SCHEMA>
-    |   <CONSTRAINTS>
-    |   <CONSTRUCTOR>
-    |   <CONTINUE>
-    |   <CURSOR_NAME>
-    |   <DATA>
-    |   <DATABASE>
-    |   <DATETIME_INTERVAL_CODE>
-    |   <DATETIME_INTERVAL_PRECISION>
-    |   <DECADE>
-    |   <DEFAULTS>
-    |   <DEFERRABLE>
-    |   <DEFERRED>
-    |   <DEFINED>
-    |   <DEFINER>
-    |   <DEGREE>
-    |   <DEPTH>
-    |   <DERIVED>
-    |   <DESC>
-    |   <DESCRIPTION>
-    |   <DESCRIPTOR>
-    |   <DIAGNOSTICS>
-    |   <DISPATCH>
-    |   <DOMAIN>
-    |   <DOW>
-    |   <DOY>
-    |   <DYNAMIC_FUNCTION>
-    |   <DYNAMIC_FUNCTION_CODE>
-    |   <EPOCH>
-    |   <EXCEPTION>
-    |   <EXCLUDE>
-    |   <EXCLUDING>
-    |   <FINAL>
-    |   <FIRST>
-    |   <FOLLOWING>
-    |   <FORTRAN>
-    |   <FOUND>
-    |   <FRAC_SECOND>
-    |   <G>
-    |   <GENERAL>
-    |   <GENERATED>
-    |   <GEOMETRY>
-    |   <GO>
-    |   <GOTO>
-    |   <GRANTED>
-    |   <HIERARCHY>
-    |   <IMMEDIATE>
-    |   <IMMEDIATELY>
-    |   <IMPLEMENTATION>
-    |   <INCLUDING>
-    |   <INCREMENT>
-    |   <INITIALLY>
-    |   <INPUT>
-    |   <INSTANCE>
-    |   <INSTANTIABLE>
-    |   <INVOKER>
-    |   <ISODOW>
-    |   <ISOYEAR>
-    |   <ISOLATION>
-    |   <JAVA>
-    |   <JSON>
-    |   <K>
-    |   <KEY>
-    |   <KEY_MEMBER>
-    |   <KEY_TYPE>
-    |   <LABEL>
-    |   <LAST>
-    |   <LENGTH>
-    |   <LEVEL>
-    |   <LIBRARY>
-    |   <LOCATOR>
-    |   <M>
-    |   <MAP>
-    |   <MATCHED>
-    |   <MAXVALUE>
-    |   <MICROSECOND>
-    |   <MESSAGE_LENGTH>
-    |   <MESSAGE_OCTET_LENGTH>
-    |   <MESSAGE_TEXT>
-    |   <MILLISECOND>
-    |   <MILLENNIUM>
-    |   <MINVALUE>
-    |   <MORE_>
-    |   <MUMPS>
-    |   <NAME>
-    |   <NAMES>
-    |   <NANOSECOND>
-    |   <NESTING>
-    |   <NORMALIZED>
-    |   <NULLABLE>
-    |   <NULLS>
-    |   <NUMBER>
-    |   <OBJECT>
-    |   <OCTETS>
-    |   <OPTION>
-    |   <OPTIONS>
-    |   <ORDERING>
-    |   <ORDINALITY>
-    |   <OTHERS>
-    |   <OUTPUT>
-    |   <OVERRIDING>
-    |   <PAD>
-    |   <PARAMETER_MODE>
-    |   <PARAMETER_NAME>
-    |   <PARAMETER_ORDINAL_POSITION>
-    |   <PARAMETER_SPECIFIC_CATALOG>
-    |   <PARAMETER_SPECIFIC_NAME>
-    |   <PARAMETER_SPECIFIC_SCHEMA>
-    |   <PARTIAL>
-    |   <PASCAL>
-    |   <PASSTHROUGH>
-    |   <PAST>
-    |   <PATH>
-    |   <PLACING>
-    |   <PLAN>
-    |   <PLI>
-    |   <PRECEDING>
-    |   <PRESERVE>
-    |   <PRIOR>
-    |   <PRIVILEGES>
-    |   <PUBLIC>
-    |   <QUARTER>
-    |   <READ>
-    |   <RELATIVE>
-    |   <REPEATABLE>
-    |   <REPLACE>
-    |   <RESTART>
-    |   <RESTRICT>
-    |   <RETURNED_CARDINALITY>
-    |   <RETURNED_LENGTH>
-    |   <RETURNED_OCTET_LENGTH>
-    |   <RETURNED_SQLSTATE>
-    |   <ROLE>
-    |   <ROUTINE>
-    |   <ROUTINE_CATALOG>
-    |   <ROUTINE_NAME>
-    |   <ROUTINE_SCHEMA>
-    |   <ROW_COUNT>
-    |   <SCALE>
-    |   <SCHEMA>
-    |   <SCHEMA_NAME>
-    |   <SCOPE_CATALOGS>
-    |   <SCOPE_NAME>
-    |   <SCOPE_SCHEMA>
-    |   <SECTION>
-    |   <SECURITY>
-    |   <SELF>
-    |   <SEQUENCE>
-    |   <SERIALIZABLE>
-    |   <SERVER>
-    |   <SERVER_NAME>
-    |   <SESSION>
-    |   <SETS>
-    |   <SIMPLE>
-    |   <SIZE>
-    |   <SOURCE>
-    |   <SPACE>
-    |   <SPECIFIC_NAME>
-    |   <SQL_BIGINT>
-    |   <SQL_BINARY>
-    |   <SQL_BIT>
-    |   <SQL_BLOB>
-    |   <SQL_BOOLEAN>
-    |   <SQL_CHAR>
-    |   <SQL_CLOB>
-    |   <SQL_DATE>
-    |   <SQL_DECIMAL>
-    |   <SQL_DOUBLE>
-    |   <SQL_FLOAT>
-    |   <SQL_INTEGER>
-    |   <SQL_INTERVAL_DAY>
-    |   <SQL_INTERVAL_DAY_TO_HOUR>
-    |   <SQL_INTERVAL_DAY_TO_MINUTE>
-    |   <SQL_INTERVAL_DAY_TO_SECOND>
-    |   <SQL_INTERVAL_HOUR>
-    |   <SQL_INTERVAL_HOUR_TO_MINUTE>
-    |   <SQL_INTERVAL_HOUR_TO_SECOND>
-    |   <SQL_INTERVAL_MINUTE>
-    |   <SQL_INTERVAL_MINUTE_TO_SECOND>
-    |   <SQL_INTERVAL_MONTH>
-    |   <SQL_INTERVAL_SECOND>
-    |   <SQL_INTERVAL_YEAR>
-    |   <SQL_INTERVAL_YEAR_TO_MONTH>
-    |   <SQL_LONGVARBINARY>
-    |   <SQL_LONGVARNCHAR>
-    |   <SQL_LONGVARCHAR>
-    |   <SQL_NCHAR>
-    |   <SQL_NCLOB>
-    |   <SQL_NUMERIC>
-    |   <SQL_NVARCHAR>
-    |   <SQL_REAL>
-    |   <SQL_SMALLINT>
-    |   <SQL_TIME>
-    |   <SQL_TIMESTAMP>
-    |   <SQL_TINYINT>
-    |   <SQL_TSI_DAY>
-    |   <SQL_TSI_FRAC_SECOND>
-    |   <SQL_TSI_HOUR>
-    |   <SQL_TSI_MICROSECOND>
-    |   <SQL_TSI_MINUTE>
-    |   <SQL_TSI_MONTH>
-    |   <SQL_TSI_QUARTER>
-    |   <SQL_TSI_SECOND>
-    |   <SQL_TSI_WEEK>
-    |   <SQL_TSI_YEAR>
-    |   <SQL_VARBINARY>
-    |   <SQL_VARCHAR>
-    |   <STATE>
-    |   <STATEMENT>
-    |   <STRUCTURE>
-    |   <STYLE>
-    |   <SUBCLASS_ORIGIN>
-    |   <SUBSTITUTE>
-    |   <TABLE_NAME>
-    |   <TEMPORARY>
-    |   <TIES>
-    |   <TIMESTAMPADD>
-    |   <TIMESTAMPDIFF>
-    |   <TOP_LEVEL_COUNT>
-    |   <TRANSACTION>
-    |   <TRANSACTIONS_ACTIVE>
-    |   <TRANSACTIONS_COMMITTED>
-    |   <TRANSACTIONS_ROLLED_BACK>
-    |   <TRANSFORM>
-    |   <TRANSFORMS>
-    |   <TRIGGER_CATALOG>
-    |   <TRIGGER_NAME>
-    |   <TRIGGER_SCHEMA>
-    |   <TYPE>
-    |   <UNBOUNDED>
-    |   <UNCOMMITTED>
-    |   <UNDER>
-    |   <UNNAMED>
-    |   <USAGE>
-    |   <USER_DEFINED_TYPE_CATALOG>
-    |   <USER_DEFINED_TYPE_CODE>
-    |   <USER_DEFINED_TYPE_NAME>
-    |   <USER_DEFINED_TYPE_SCHEMA>
-    |   <VERSION>
-    |   <VIEW>
-    |   <WEEK>
-    |   <WRAPPER>
-    |   <WORK>
-    |   <WRITE>
-    |   <XML>
-    |   <ZONE>
-<#list parser.nonReservedKeywords as keyword>
-    |   <${keyword}>
-</#list>
+        NonReservedKeyWord0of3()
+    |   NonReservedKeyWord1of3()
+    |   NonReservedKeyWord2of3()
     )
     {
         return unquotedIdentifier();
     }
+}
+
+/** @see #NonReservedKeyWord */
+void NonReservedKeyWord0of3() :
+{
+}
+{
+    (
+<#list parser.nonReservedKeywords as keyword>
+<#if keyword?index == 0>
+        <${keyword}>
+<#elseif keyword?index % 3 == 0>
+    |   <${keyword}>
+</#if>
+</#list>
+    )
+}
+
+/** @see #NonReservedKeyWord */
+void NonReservedKeyWord1of3() :
+{
+}
+{
+    (
+<#list parser.nonReservedKeywords as keyword>
+<#if keyword?index == 1>
+        <${keyword}>
+<#elseif keyword?index % 3 == 1>
+    |   <${keyword}>
+</#if>
+</#list>
+    )
+}
+
+/** @see #NonReservedKeyWord */
+void NonReservedKeyWord2of3() :
+{
+}
+{
+    (
+<#list parser.nonReservedKeywords as keyword>
+<#if keyword?index == 2>
+        <${keyword}>
+<#elseif keyword?index % 3 == 2>
+    |   <${keyword}>
+</#if>
+</#list>
+    )
 }
 
 /* LITERALS */

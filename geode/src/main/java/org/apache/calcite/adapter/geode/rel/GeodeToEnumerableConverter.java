@@ -35,7 +35,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 
@@ -76,7 +76,7 @@ public class GeodeToEnumerableConverter extends ConverterImpl implements Enumera
   private static final Method GEODE_QUERY_METHOD =
       Types.lookupMethod(GeodeTable.GeodeQueryable.class, "query", List.class,
           List.class, List.class, List.class, List.class, List.class,
-          String.class);
+          Long.class);
 
   /**
    * {@inheritDoc}
@@ -88,6 +88,8 @@ public class GeodeToEnumerableConverter extends ConverterImpl implements Enumera
     // travers all relations form this to the scan leaf
     final GeodeImplementContext geodeImplementContext = new GeodeImplementContext();
     ((GeodeRel) getInput()).implement(geodeImplementContext);
+
+    final RelDataType rowType = getRowType();
 
     // PhysType is Enumerable Adapter class that maps SQL types (getRowType)
     // with physical Java types (getJavaTypes())
@@ -112,18 +114,17 @@ public class GeodeToEnumerableConverter extends ConverterImpl implements Enumera
         Expressions.call(
             geodeImplementContext.table.getExpression(GeodeTable.GeodeQueryable.class),
             GEODE_QUERY_METHOD,
+            // fields
             constantArrayList(Pair.zip(geodeFieldNames(rowType), physFieldClasses), Pair.class),
-            // physical fields
-            constantArrayList(toListMapPairs(geodeImplementContext.selectFields), Pair.class),
             // selected fields
+            constantArrayList(toListMapPairs(geodeImplementContext.selectFields), Pair.class),
+            // aggregate functions
             constantArrayList(
                 toListMapPairs(geodeImplementContext.oqlAggregateFunctions), Pair.class),
             constantArrayList(geodeImplementContext.groupByFields, String.class),
             constantArrayList(geodeImplementContext.whereClause, String.class),
             constantArrayList(geodeImplementContext.orderByFields, String.class),
             Expressions.constant(geodeImplementContext.limitValue)));
-
-    Hook.QUERY_PLAN.run(geodeImplementContext);
 
     return implementor.result(physType, blockBuilder.toBlock());
   }

@@ -16,8 +16,10 @@
  */
 package org.apache.calcite.tools;
 
+import org.apache.calcite.materialize.SqlStatisticProvider;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptCostFactory;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexExecutor;
@@ -118,6 +120,25 @@ public interface FrameworkConfig {
    * Returns the type system.
    */
   RelDataTypeSystem getTypeSystem();
+
+  /**
+   * Returns whether the lattice suggester should try to widen a lattice when a
+   * new query arrives that doesn't quite fit, as opposed to creating a new
+   * lattice.
+   */
+  boolean isEvolveLattice();
+
+  /**
+   * Returns the source of statistics about tables and columns to be used
+   * by the lattice suggester to deduce primary keys, foreign keys, and the
+   * direction of relationships.
+   */
+  SqlStatisticProvider getStatisticProvider();
+
+  /**
+   * Returns a view expander.
+   */
+  RelOptTable.ViewExpander getViewExpander();
 }
 
 // End FrameworkConfig.java
