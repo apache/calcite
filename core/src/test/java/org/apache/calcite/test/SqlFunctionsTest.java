@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.Utilities;
 
@@ -530,7 +531,7 @@ public class SqlFunctionsTest {
     try {
       assertThat(SqlFunctions.ltAny("1", 2L), is(false));
       fail("'lt' on non-numeric different type is not possible");
-    } catch (IllegalArgumentException e) {
+    } catch (CalciteException e) {
       assertThat(e.getMessage(),
           is("Invalid types for comparison: class java.lang.String < "
               + "class java.lang.Long"));
@@ -565,7 +566,7 @@ public class SqlFunctionsTest {
     try {
       assertThat(SqlFunctions.leAny("2", 2L), is(false));
       fail("'le' on non-numeric different type is not possible");
-    } catch (IllegalArgumentException e) {
+    } catch (CalciteException e) {
       assertThat(e.getMessage(),
           is("Invalid types for comparison: class java.lang.String <= "
               + "class java.lang.Long"));
@@ -591,7 +592,7 @@ public class SqlFunctionsTest {
     try {
       assertThat(SqlFunctions.gtAny("2", 1L), is(false));
       fail("'gt' on non-numeric different type is not possible");
-    } catch (IllegalArgumentException e) {
+    } catch (CalciteException e) {
       assertThat(e.getMessage(),
           is("Invalid types for comparison: class java.lang.String > "
               + "class java.lang.Long"));
@@ -626,7 +627,7 @@ public class SqlFunctionsTest {
     try {
       assertThat(SqlFunctions.geAny("2", 2L), is(false));
       fail("'ge' on non-numeric different type is not possible");
-    } catch (IllegalArgumentException e) {
+    } catch (CalciteException e) {
       assertThat(e.getMessage(),
           is("Invalid types for comparison: class java.lang.String >= "
               + "class java.lang.Long"));
@@ -656,7 +657,7 @@ public class SqlFunctionsTest {
     try {
       SqlFunctions.plusAny("2", 2L);
       fail("'plus' on non-numeric type is not possible");
-    } catch (IllegalArgumentException e) {
+    } catch (CalciteException e) {
       assertThat(e.getMessage(),
           is("Invalid types for arithmetic: class java.lang.String + "
               + "class java.lang.Long"));
@@ -686,7 +687,7 @@ public class SqlFunctionsTest {
     try {
       SqlFunctions.minusAny("2", 2L);
       fail("'minus' on non-numeric type is not possible");
-    } catch (IllegalArgumentException e) {
+    } catch (CalciteException e) {
       assertThat(e.getMessage(),
           is("Invalid types for arithmetic: class java.lang.String - "
               + "class java.lang.Long"));
@@ -718,7 +719,7 @@ public class SqlFunctionsTest {
     try {
       SqlFunctions.multiplyAny("2", 2L);
       fail("'multiply' on non-numeric type is not possible");
-    } catch (IllegalArgumentException e) {
+    } catch (CalciteException e) {
       assertThat(e.getMessage(),
           is("Invalid types for arithmetic: class java.lang.String * "
               + "class java.lang.Long"));
@@ -751,7 +752,7 @@ public class SqlFunctionsTest {
     try {
       SqlFunctions.divideAny("5", 2L);
       fail("'divide' on non-numeric type is not possible");
-    } catch (IllegalArgumentException e) {
+    } catch (CalciteException e) {
       assertThat(e.getMessage(),
           is("Invalid types for arithmetic: class java.lang.String / "
               + "class java.lang.Long"));

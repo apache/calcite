@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;
@@ -55,7 +56,8 @@ import static org.junit.Assert.fail;
 public class SqlJsonFunctionsTest {
 
   public static final String INVOC_DESC_JSON_VALUE_EXPRESSION = "jsonValueExpression";
-  public static final String INVOC_DESC_JSON_STRUCTURED_VALUE_EXPRESSION = "jsonStructuredValueExpression";
+  public static final String INVOC_DESC_JSON_STRUCTURED_VALUE_EXPRESSION
+      = "jsonStructuredValueExpression";
   public static final String INVOC_DESC_JSON_API_COMMON_SYNTAX = "jsonApiCommonSyntax";
   public static final String INVOC_DESC_JSON_EXISTS = "jsonExists";
   public static final String INVOC_DESC_JSON_VALUE_ANY = "jsonValueAny";
@@ -200,7 +202,8 @@ public class SqlJsonFunctionsTest {
         SqlJsonValueEmptyOrErrorBehavior.ERROR,
         null,
         SqlJsonValueEmptyOrErrorBehavior.NULL,
-        null, errorMatches(new RuntimeException("empty json value"))
+        null, errorMatches(
+            new CalciteException("Empty result of JSON_VALUE function is not allowed", null))
     );
     assertJsonValueAny(
         SqlFunctions.PathContext
@@ -227,7 +230,8 @@ public class SqlJsonFunctionsTest {
         null,
         SqlJsonValueEmptyOrErrorBehavior.NULL,
         null,
-        errorMatches(new RuntimeException("empty json value"))
+        errorMatches(
+            new CalciteException("Empty result of JSON_VALUE function is not allowed", null))
     );
     assertJsonValueAny(
         SqlFunctions.PathContext
@@ -281,7 +285,9 @@ public class SqlJsonFunctionsTest {
         null,
         SqlJsonValueEmptyOrErrorBehavior.ERROR,
         null,
-        errorMatches(new RuntimeException("java.lang.RuntimeException: not a json value: []"))
+        errorMatches(
+            new CalciteException(
+                "Strict jsonpath mode requires scalar value, and the actual value is: '[]'", null))
     );
   }
 
@@ -325,7 +331,8 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.ERROR,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
-        errorMatches(new IllegalArgumentException("empty json query"))
+        errorMatches(
+            new CalciteException("Empty result of JSON_QUERY function is not allowed", null))
     );
 
     assertJsonQuery(
@@ -358,7 +365,8 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.ERROR,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
-        errorMatches(new IllegalArgumentException("empty json query"))
+        errorMatches(
+            new CalciteException("Empty result of JSON_QUERY function is not allowed", null))
     );
     assertJsonQuery(
         SqlFunctions.PathContext
@@ -406,8 +414,9 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         SqlJsonQueryEmptyOrErrorBehavior.ERROR,
-        errorMatches(new RuntimeException("java.lang.RuntimeException: "
-            + "not a json array or a json object: bar"))
+        errorMatches(
+            new CalciteException("Strict jsonpath mode requires array or object value, "
+                + "and the actual value is: 'bar'", null))
     );
 
     // wrapper behavior test

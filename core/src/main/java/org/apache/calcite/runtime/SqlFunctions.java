@@ -79,6 +79,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 /**
  * Helper methods to implement SQL functions in generated code.
  *
@@ -142,7 +144,7 @@ public class SqlFunctions {
     }
     int e = s + l;
     if (e < s) {
-      throw new IllegalArgumentException("substring error: negative substring length not allowed");
+      throw RESOURCE.illegalNegativeSubstringLength().ex();
     }
     if (s > lc || e < 1) {
       return "";
@@ -165,7 +167,7 @@ public class SqlFunctions {
     }
     int e = s + l;
     if (e < s) {
-      throw new IllegalArgumentException("substring error: negative substring length not allowed");
+      throw RESOURCE.illegalNegativeSubstringLength().ex();
     }
     if (s > lc || e < 1) {
       return ByteString.EMPTY;
@@ -261,7 +263,7 @@ public class SqlFunctions {
   public static String trim(boolean left, boolean right, String seek,
       String s, boolean strict) {
     if (strict && seek.length() != 1) {
-      throw new IllegalArgumentException("trim error: trim character must be exactly 1 character");
+      throw RESOURCE.trimError().ex();
     }
     int j = s.length();
     if (right) {
@@ -836,16 +838,16 @@ public class SqlFunctions {
     throw notArithmetic("*", b0, b1);
   }
 
-  private static IllegalArgumentException notArithmetic(String op, Object b0,
+  private static RuntimeException notArithmetic(String op, Object b0,
       Object b1) {
-    return new IllegalArgumentException("Invalid types for arithmetic: "
-        + b0.getClass() + " " + op + " " + b1.getClass());
+    return RESOURCE.invalidTypesForArithmetic(b0.getClass().toString(),
+        op, b1.getClass().toString()).ex();
   }
 
-  private static IllegalArgumentException notComparable(String op, Object b0,
+  private static RuntimeException notComparable(String op, Object b0,
       Object b1) {
-    return new IllegalArgumentException("Invalid types for comparison: "
-        + b0.getClass() + " " + op + " " + b1.getClass());
+    return RESOURCE.invalidTypesForComparison(b0.getClass().toString(),
+        op, b1.getClass().toString()).ex();
   }
 
   // EXP
@@ -1522,7 +1524,7 @@ public class SqlFunctions {
 
   @NonDeterministic
   private static Object cannotConvert(Object o, Class toType) {
-    throw new RuntimeException("Cannot convert " + o + " to " + toType);
+    throw RESOURCE.cannotConvert(o.toString(), toType.toString()).ex();
   }
 
   /** CAST(VARCHAR AS BOOLEAN). */
@@ -1533,7 +1535,7 @@ public class SqlFunctions {
     } else if (s.equalsIgnoreCase("FALSE")) {
       return false;
     } else {
-      throw new RuntimeException("Invalid character for cast");
+      throw RESOURCE.invalidCharacterForCast(s).ex();
     }
   }
 
@@ -2116,7 +2118,7 @@ public class SqlFunctions {
     try {
       return Primitive.asList(a.getArray());
     } catch (SQLException e) {
-      throw new RuntimeException(e);
+      throw toUnchecked(e);
     }
   }
 
@@ -2155,7 +2157,7 @@ public class SqlFunctions {
     case 1:
       return list.get(0);
     default:
-      throw new RuntimeException("more than one value");
+      throw RESOURCE.moreThanOneValueInList(list.toString()).ex();
     }
   }
 
@@ -2443,8 +2445,7 @@ public class SqlFunctions {
         Field structField = beanClass.getDeclaredField(fieldName);
         return structField.get(structObject);
       } catch (NoSuchFieldException | IllegalAccessException ex) {
-        throw new IllegalStateException("Failed to access field '" + fieldName
-            + "' of object of type " + beanClass.getName(), ex);
+        throw RESOURCE.failedToAccessField(fieldName, beanClass.getName()).ex(ex);
       }
     }
   }
@@ -2476,7 +2477,7 @@ public class SqlFunctions {
     try {
       Matcher matcher = JSON_PATH_BASE.matcher(pathSpec);
       if (!matcher.matches()) {
-        throw new RuntimeException("illegal patch spec, missing mode declaration");
+        throw RESOURCE.illegalJsonPathSpec(pathSpec).ex();
       }
       PathMode mode = PathMode.valueOf(matcher.group(1).toUpperCase(Locale.ENGLISH));
       String pathWff = matcher.group(2);
@@ -2508,7 +2509,7 @@ public class SqlFunctions {
         );
         break;
       default:
-        throw new RuntimeException("illegal mode: " + mode);
+        throw RESOURCE.illegalJsonPathModeInPathSpec(mode.toString(), pathSpec).ex();
       }
       try {
         return PathContext.withReturned(mode, ctx.read(pathWff));
@@ -2533,11 +2534,11 @@ public class SqlFunctions {
       case FALSE:
         return Boolean.FALSE;
       case ERROR:
-        throw new RuntimeException(context.exc);
+        throw toUnchecked(context.exc);
       case UNKNOWN:
         return null;
       default:
-        throw new RuntimeException("illegal error behavior: " + errorBehavior);
+        throw RESOURCE.illegalErrorBehaviorInJsonExistsFunc(errorBehavior.toString()).ex();
       }
     } else {
       return !Objects.isNull(context.pathReturned);
@@ -2559,29 +2560,29 @@ public class SqlFunctions {
           && !isScalarObject(value)) {
         switch (emptyBehavior) {
         case ERROR:
-          throw new RuntimeException("empty json value");
+          throw RESOURCE.emptyResultOfJsonValueFuncNotAllowed().ex();
         case NULL:
           return null;
         case DEFAULT:
           return defaultValueOnEmpty;
         default:
-          throw new RuntimeException("illegal empty behavior: " + emptyBehavior);
+          throw RESOURCE.illegalEmptyBehaviorInJsonValueFunc(emptyBehavior.toString()).ex();
         }
       } else if (context.mode == PathMode.STRICT && !isScalarObject(value)) {
-        exc = new RuntimeException("not a json value: " + value);
+        exc = RESOURCE.scalarValueRequiredInStrictModeOfJsonValueFunc(value.toString()).ex();
       } else {
         return value;
       }
     }
     switch (errorBehavior) {
     case ERROR:
-      throw new RuntimeException(exc);
+      throw toUnchecked(exc);
     case NULL:
       return null;
     case DEFAULT:
       return defaultValueOnError;
     default:
-      throw new RuntimeException("illegal error behavior: " + errorBehavior);
+      throw RESOURCE.illegalErrorBehaviorInJsonValueFunc(errorBehavior.toString()).ex();
     }
   }
 
@@ -2613,14 +2614,14 @@ public class SqlFunctions {
           }
           break;
         default:
-          throw new RuntimeException("illegal wrapper behavior: " + wrapperBehavior);
+          throw RESOURCE.illegalWrapperBehaviorInJsonQueryFunc(wrapperBehavior.toString()).ex();
         }
       }
       if (value == null || context.mode == PathMode.LAX
           && isScalarObject(value)) {
         switch (emptyBehavior) {
         case ERROR:
-          throw new IllegalArgumentException("empty json query");
+          throw RESOURCE.emptyResultOfJsonQueryFuncNotAllowed().ex();
         case NULL:
           return null;
         case EMPTY_ARRAY:
@@ -2628,10 +2629,10 @@ public class SqlFunctions {
         case EMPTY_OBJECT:
           return "{}";
         default:
-          throw new RuntimeException("illegal empty behavior: " + emptyBehavior);
+          throw RESOURCE.illegalEmptyBehaviorInJsonQueryFunc(emptyBehavior.toString()).ex();
         }
       } else if (context.mode == PathMode.STRICT && isScalarObject(value)) {
-        exc = new RuntimeException("not a json array or a json object: " + value);
+        exc = RESOURCE.arrayOrObjectValueRequiredInStrictModeOfJsonQueryFunc(value.toString()).ex();
       } else {
         try {
           return jsonize(value);
@@ -2642,7 +2643,7 @@ public class SqlFunctions {
     }
     switch (errorBehavior) {
     case ERROR:
-      throw new RuntimeException(exc);
+      throw toUnchecked(exc);
     case NULL:
       return null;
     case EMPTY_ARRAY:
@@ -2650,7 +2651,7 @@ public class SqlFunctions {
     case EMPTY_OBJECT:
       return "{}";
     default:
-      throw new RuntimeException("illegal error behavior: " + errorBehavior);
+      throw RESOURCE.illegalErrorBehaviorInJsonQueryFunc(errorBehavior.toString()).ex();
     }
   }
 
@@ -2669,7 +2670,7 @@ public class SqlFunctions {
       String k = (String) kvs[i];
       Object v = kvs[i + 1];
       if (k == null) {
-        throw new RuntimeException("illegal null key input in json object");
+        throw RESOURCE.nullKeyOfJsonObjectNotAllowed().ex();
       }
       if (v == null) {
         if (nullClause == SqlJsonConstructorNullClause.NULL_ON_NULL) {
@@ -2685,7 +2686,7 @@ public class SqlFunctions {
   public static void jsonObjectAggAdd(Map map, String k, Object v,
                                         SqlJsonConstructorNullClause nullClause) {
     if (k == null) {
-      throw new RuntimeException("illegal null key input in json object");
+      throw RESOURCE.nullKeyOfJsonObjectNotAllowed().ex();
     }
     if (v == null) {
       if (nullClause == SqlJsonConstructorNullClause.NULL_ON_NULL) {
@@ -2773,6 +2774,13 @@ public class SqlFunctions {
     }
   }
 
+  private static RuntimeException toUnchecked(Exception e) {
+    if (e instanceof RuntimeException) {
+      return (RuntimeException) e;
+    }
+    return new RuntimeException(e);
+  }
+
   /**
    * Returned path context of JsonApiCommonSyntax, public for testing.
    */
@@ -2797,10 +2805,10 @@ public class SqlFunctions {
 
     public static PathContext withReturned(PathMode mode, Object pathReturned) {
       if (mode == PathMode.UNKNOWN) {
-        throw new IllegalArgumentException("unknown path mode");
+        throw RESOURCE.illegalJsonPathMode(mode.toString()).ex();
       }
       if (mode == PathMode.STRICT && pathReturned == null) {
-        throw new IllegalArgumentException("null path returned value in strict mode");
+        throw RESOURCE.strictPathModeRequiresNonEmptyValue().ex();
       }
       return new PathContext(mode, pathReturned, null);
     }

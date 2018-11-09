@@ -4315,13 +4315,13 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("json_value('{\"foo\":100}', 'lax $.foo1' null on empty)",
         null, "VARCHAR(2000)");
     tester.checkFails("json_value('{\"foo\":100}', 'lax $.foo1' error on empty)",
-        "(?s).*empty json value.*", true);
+        "(?s).*Empty result of JSON_VALUE function is not allowed.*", true);
     tester.checkString("json_value('{\"foo\":100}', 'lax $.foo1' default 'empty' on empty)",
         "empty", "VARCHAR(2000)");
     tester.checkString("json_value('{\"foo\":{}}', 'lax $.foo' null on empty)",
         null, "VARCHAR(2000)");
     tester.checkFails("json_value('{\"foo\":{}}', 'lax $.foo' error on empty)",
-        "(?s).*empty json value.*", true);
+        "(?s).*Empty result of JSON_VALUE function is not allowed.*", true);
     tester.checkString("json_value('{\"foo\":{}}', 'lax $.foo' default 'empty' on empty)",
         "empty", "VARCHAR(2000)");
     tester.checkString("json_value('{\"foo\":100}', 'lax $.foo' null on error)",
@@ -4335,7 +4335,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("json_value('{\"foo\":100}', 'invalid $.foo' null on error)",
         null, "VARCHAR(2000)");
     tester.checkFails("json_value('{\"foo\":100}', 'invalid $.foo' error on error)",
-        "(?s).*illegal patch spec, missing mode declaration.*", true);
+        "(?s).*Illegal jsonpath spec.*", true);
     tester.checkString("json_value('{\"foo\":100}', "
             + "'invalid $.foo' default 'empty' on error)",
         "empty", "VARCHAR(2000)");
@@ -4358,7 +4358,8 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("json_value('{\"foo\":{}}', 'strict $.foo' null on error)",
         null, "VARCHAR(2000)");
     tester.checkFails("json_value('{\"foo\":{}}', 'strict $.foo' error on error)",
-        "(?s).*not a json value: \\{\\}.*", true);
+        "(?s).*Strict jsonpath mode requires scalar value, "
+            + "and the actual value is: '\\{\\}'.*", true);
     tester.checkString("json_value('{\"foo\":{}}', "
             + "'strict $.foo' default 'empty' on error)",
         "empty", "VARCHAR(2000)");
@@ -4377,7 +4378,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("json_query('{\"foo\":100}', 'lax $.foo' null on empty)",
         null, "VARCHAR(2000)");
     tester.checkFails("json_query('{\"foo\":100}', 'lax $.foo' error on empty)",
-        "(?s).*empty json query.*", true);
+        "(?s).*Empty result of JSON_QUERY function is not allowed.*", true);
     tester.checkString("json_query('{\"foo\":100}', 'lax $.foo' empty array on empty)",
         "[]", "VARCHAR(2000)");
     tester.checkString("json_query('{\"foo\":100}', 'lax $.foo' empty object on empty)",
@@ -4387,7 +4388,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("json_query('{\"foo\":100}', 'invalid $.foo' null on error)",
         null, "VARCHAR(2000)");
     tester.checkFails("json_query('{\"foo\":100}', 'invalid $.foo' error on error)",
-        "(?s).*illegal patch spec, missing mode declaration.*", true);
+        "(?s).*Illegal jsonpath spec.*", true);
     tester.checkString("json_query('{\"foo\":100}', "
             + "'invalid $.foo' empty array on error)",
         "[]", "VARCHAR(2000)");
@@ -4417,7 +4418,8 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("json_query('{\"foo\":100}', 'strict $.foo' null on error)",
         null, "VARCHAR(2000)");
     tester.checkFails("json_query('{\"foo\":100}', 'strict $.foo' error on error)",
-        "(?s).*not a json array or a json object: 100.*", true);
+        "(?s).*Strict jsonpath mode requires array or object value, "
+            + "and the actual value is: '100'.*", true);
     tester.checkString("json_query('{\"foo\":100}', 'strict $.foo' empty array on error)",
         "[]", "VARCHAR(2000)");
     tester.checkString("json_query('{\"foo\":100}', 'strict $.foo' empty object on error)",
@@ -5527,7 +5529,7 @@ public abstract class SqlOperatorBaseTest {
         "VARCHAR(3) NOT NULL");
     tester.checkFails(
         "substring('abc' from 1 for -1)",
-        "substring error: negative substring length not allowed",
+        "Substring error: negative substring length not allowed",
         true);
     tester.checkString(
         "substring('abc' from 2)", "bc", "VARCHAR(3) NOT NULL");
@@ -5560,7 +5562,7 @@ public abstract class SqlOperatorBaseTest {
         "VARBINARY(3) NOT NULL");
     tester.checkFails(
         "substring(x'aabbcc' from 1 for -1)",
-        "substring error: negative substring length not allowed",
+        "Substring error: negative substring length not allowed",
         true);
     tester.checkString(
         "substring(x'aabbcc' from 2)", "bbcc", "VARBINARY(3) NOT NULL");
@@ -5611,11 +5613,11 @@ public abstract class SqlOperatorBaseTest {
     // have the SQL error code 22027.
     tester.checkFails(
         "trim('xy' from 'abcde')",
-        "trim error: trim character must be exactly 1 character",
+        "Trim error: trim character must be exactly 1 character",
         true);
     tester.checkFails(
         "trim('' from 'abcde')",
-        "trim error: trim character must be exactly 1 character",
+        "Trim error: trim character must be exactly 1 character",
         true);
 
     final SqlTester tester1 = tester.withConformance(SqlConformanceEnum.MYSQL_5);
