@@ -61,6 +61,7 @@ import java.util.function.Function;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -274,8 +275,8 @@ public class RelToSqlConverterTest {
     final RelNode root = builder
         .scan("EMP")
         .aggregate(builder.groupKey(),
-            builder.aggregateCall(SqlStdOperatorTable.SUM0, false, false, null,
-                "s", builder.field(3)))
+            builder.aggregateCall(SqlStdOperatorTable.SUM0, builder.field(3))
+                .as("s"))
         .build();
     final String expectedMysql = "SELECT COALESCE(SUM(`MGR`), 0) AS `s`\n"
         + "FROM `scott`.`EMP`";
@@ -988,6 +989,18 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"department\",\n"
         + "\"foodmart\".\"employee\"";
     sql(query).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2652">[CALCITE-2652]
+   * SqlNode to SQL conversion fails if the join condition references a BOOLEAN
+   * column</a>. */
+  @Test public void testJoinOnBoolean() {
+    final String sql = "SELECT 1\n"
+        + "from emps\n"
+        + "join emp on (emp.deptno = emps.empno and manager)";
+    final String s = sql(sql).schema(CalciteAssert.SchemaSpec.POST).exec();
+    assertThat(s, notNullValue()); // sufficient that conversion did not throw
   }
 
   @Test public void testCartesianProductWithInnerJoinSyntax() {
@@ -2761,6 +2774,134 @@ public class RelToSqlConverterTest {
 
     assertThat("Dialect must be able to customize unparseCall() for SqlSelect",
         callsUnparseCallOnSqlSelect[0], is(true));
+  }
+
+  @Test public void testWithinGroup1() {
+    final String query = "select \"product_class_id\", collect(\"net_weight\") "
+        + "within group (order by \"net_weight\" desc) "
+        + "from \"product\" group by \"product_class_id\"";
+    final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
+        + "WITHIN GROUP (ORDER BY \"net_weight\" DESC)\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testWithinGroup2() {
+    final String query = "select \"product_class_id\", collect(\"net_weight\") "
+        + "within group (order by \"low_fat\", \"net_weight\" desc nulls last) "
+        + "from \"product\" group by \"product_class_id\"";
+    final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
+        + "WITHIN GROUP (ORDER BY \"low_fat\", \"net_weight\" DESC NULLS LAST)\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testWithinGroup3() {
+    final String query = "select \"product_class_id\", collect(\"net_weight\") "
+        + "within group (order by \"net_weight\" desc), "
+        + "min(\"low_fat\")"
+        + "from \"product\" group by \"product_class_id\"";
+    final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
+        + "WITHIN GROUP (ORDER BY \"net_weight\" DESC), MIN(\"low_fat\")\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testWithinGroup4() {
+    // filter in AggregateCall is not unparsed
+    final String query = "select \"product_class_id\", collect(\"net_weight\") "
+        + "within group (order by \"net_weight\" desc) filter (where \"net_weight\" > 0)"
+        + "from \"product\" group by \"product_class_id\"";
+    final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
+        + "WITHIN GROUP (ORDER BY \"net_weight\" DESC)\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonExists() {
+    String query = "select json_exists(\"product_name\", 'lax $') from \"product\"";
+    final String expected = "SELECT JSON_EXISTS(\"product_name\" FORMAT JSON, 'lax $')\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonValue() {
+    String query = "select json_value(\"product_name\", 'lax $') from \"product\"";
+    // todo translate to JSON_VALUE rather than CAST
+    final String expected = "SELECT CAST(JSON_VALUE_ANY(\"product_name\" FORMAT JSON, "
+        + "'lax $' NULL ON EMPTY NULL ON ERROR) AS VARCHAR(2000) CHARACTER SET \"ISO-8859-1\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonQuery() {
+    String query = "select json_query(\"product_name\", 'lax $') from \"product\"";
+    final String expected = "SELECT JSON_QUERY(\"product_name\" FORMAT JSON, 'lax $' "
+        + "WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonArray() {
+    String query = "select json_array(\"product_name\", \"product_name\") from \"product\"";
+    final String expected = "SELECT JSON_ARRAY(\"product_name\", \"product_name\" ABSENT ON NULL)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonArrayAgg() {
+    String query = "select json_arrayagg(\"product_name\") from \"product\"";
+    final String expected = "SELECT JSON_ARRAYAGG(\"product_name\" ABSENT ON NULL)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonObject() {
+    String query = "select json_object(\"product_name\": \"product_id\") from \"product\"";
+    final String expected = "SELECT "
+        + "JSON_OBJECT(KEY \"product_name\" VALUE \"product_id\" NULL ON NULL)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonObjectAgg() {
+    String query = "select json_objectagg(\"product_name\": \"product_id\") from \"product\"";
+    final String expected = "SELECT "
+        + "JSON_OBJECTAGG(KEY \"product_name\" VALUE \"product_id\" NULL ON NULL)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonPredicate() {
+    String query = "select "
+        + "\"product_name\" is json, "
+        + "\"product_name\" is json value, "
+        + "\"product_name\" is json object, "
+        + "\"product_name\" is json array, "
+        + "\"product_name\" is json scalar, "
+        + "\"product_name\" is not json, "
+        + "\"product_name\" is not json value, "
+        + "\"product_name\" is not json object, "
+        + "\"product_name\" is not json array, "
+        + "\"product_name\" is not json scalar "
+        + "from \"product\"";
+    final String expected = "SELECT "
+        + "\"product_name\" IS JSON VALUE, "
+        + "\"product_name\" IS JSON VALUE, "
+        + "\"product_name\" IS JSON OBJECT, "
+        + "\"product_name\" IS JSON ARRAY, "
+        + "\"product_name\" IS JSON SCALAR, "
+        + "\"product_name\" IS NOT JSON VALUE, "
+        + "\"product_name\" IS NOT JSON VALUE, "
+        + "\"product_name\" IS NOT JSON OBJECT, "
+        + "\"product_name\" IS NOT JSON ARRAY, "
+        + "\"product_name\" IS NOT JSON SCALAR\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
   }
 
   /** Fluid interface to run tests. */

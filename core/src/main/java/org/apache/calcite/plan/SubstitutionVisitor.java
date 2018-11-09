@@ -61,7 +61,6 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
@@ -1247,15 +1246,8 @@ public class SubstitutionVisitor {
     ImmutableList<ImmutableBitSet> groupSets =
         Mappings.apply2(mapping, aggregate.groupSets);
     List<AggregateCall> aggregateCalls =
-        apply(mapping, aggregate.aggCalls);
+        Util.transform(aggregate.aggCalls, call -> call.transform(mapping));
     return MutableAggregate.of(input, groupSet, groupSets, aggregateCalls);
-  }
-
-  private static List<AggregateCall> apply(final Mapping mapping,
-      List<AggregateCall> aggCallList) {
-    return Lists.transform(aggCallList,
-        call -> call.copy(Mappings.apply2(mapping, call.getArgList()),
-            Mappings.apply(mapping, call.filterArg)));
   }
 
   public static MutableRel unifyAggregates(MutableAggregate query,
@@ -1304,7 +1296,8 @@ public class SubstitutionVisitor {
             AggregateCall.create(getRollup(aggregateCall.getAggregation()),
                 aggregateCall.isDistinct(), aggregateCall.isApproximate(),
                 ImmutableList.of(target.groupSet.cardinality() + i), -1,
-                aggregateCall.type, aggregateCall.name));
+                aggregateCall.collation, aggregateCall.type,
+                aggregateCall.name));
       }
       result = MutableAggregate.of(target, groupSet.build(), null,
           aggregateCalls);

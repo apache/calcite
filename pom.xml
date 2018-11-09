@@ -140,6 +140,7 @@ limitations under the License.
     <xerces.version>2.9.1</xerces.version>
     <sketches.version>0.9.0</sketches.version>
     <fmpp.version>0.9.16</fmpp.version>
+    <jsonpath.version>2.4.0</jsonpath.version>
 
     <!-- Other properties (not version numbers) -->
     <!-- Java 1.8 does not support -html5, so override via profile for Java 1.8 -->
@@ -584,6 +585,17 @@ limitations under the License.
         <version>${xalan.version}</version>
       </dependency>
       <dependency>
+        <groupId>com.jayway.jsonpath</groupId>
+        <artifactId>json-path</artifactId>
+        <version>${jsonpath.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>net.minidev</groupId>
+            <artifactId>json-smart</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
         <groupId>com.github.stephenc.jcip</groupId>
         <artifactId>jcip-annotations</artifactId>
         <version>${jcip-annotations.version}</version>
@@ -915,7 +927,8 @@ limitations under the License.
               <configuration>
                 <threadCount>6</threadCount>
                 <parallel>both</parallel>
-                <argLine>-Xmx1024m</argLine>
+                <!-- work around https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=911925 -->
+                <argLine>-Xmx1024m -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
                 <systemPropertyVariables>
                   <calcite.integrationTest>true</calcite.integrationTest>
                 </systemPropertyVariables>
@@ -987,8 +1000,8 @@ limitations under the License.
                 <value>tr</value>
               </systemProperty>
             </systemProperties>
-            <!--<argLine>-Xmx1536m -Duser.timezone=${user.timezone} -Duser.country=${user.country} -Duser.language=${user.language}</argLine>-->
-            <argLine>-Xmx1536m</argLine>
+            <!-- work around https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=911925 -->
+            <argLine>-Xmx1536m -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
           </configuration>
         </plugin>
         <plugin>

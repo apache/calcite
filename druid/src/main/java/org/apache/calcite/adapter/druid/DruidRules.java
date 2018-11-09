@@ -595,13 +595,12 @@ public class DruidRules {
 
       // Erase references to filters
       for (AggregateCall aggCall : aggregate.getAggCallList()) {
-        int newFilterArg = aggCall.filterArg;
-        if (!aggCall.hasFilter()
-                || (uniqueFilterRefs.size() == 1 && allHaveFilters) // filters get extracted
-                || project.getProjects().get(newFilterArg).isAlwaysTrue()) {
-          newFilterArg = -1;
+        if ((uniqueFilterRefs.size() == 1
+                && allHaveFilters) // filters get extracted
+            || project.getProjects().get(aggCall.filterArg).isAlwaysTrue()) {
+          aggCall = aggCall.copy(aggCall.getArgList(), -1, aggCall.collation);
         }
-        newCalls.add(aggCall.copy(aggCall.getArgList(), newFilterArg));
+        newCalls.add(aggCall);
       }
       aggregate = aggregate.copy(aggregate.getTraitSet(), aggregate.getInput(),
               aggregate.indicator, aggregate.getGroupSet(), aggregate.getGroupSets(),

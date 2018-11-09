@@ -5296,4 +5296,42 @@ LogicalProject(ANYEMPNO=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testWithinGroup1">
+        <Resource name="sql">
+            <![CDATA[select deptno, collect(empno) within group (order by deptno, hiredate desc) from emp group by deptno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[COLLECT($1) WITHIN GROUP ([1, 2 DESC])])
+  LogicalProject(DEPTNO=[$7], EMPNO=[$0], HIREDATE=[$4])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testWithinGroup2">
+        <Resource name="sql">
+            <![CDATA[select dept.deptno, collect(sal) within group (order by sal desc) as s, collect(sal) within group (order by 1)as s1, collect(sal) within group (order by sal) filter (where sal > 2000) as s2 from emp join dept using (deptno) group by dept.deptn]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}], S=[COLLECT($1) WITHIN GROUP ([1 DESC])], S1=[COLLECT($1) WITHIN GROUP ([2])], S2=[COLLECT($1) WITHIN GROUP ([1]) FILTER $3])
+  LogicalProject(DEPTNO=[$9], SAL=[$5], $f2=[1], $f3=[>($5, 2000)])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testWithinGroup3">
+        <Resource name="sql">
+            <![CDATA[select deptno, collect(empno) filter (where empno not in (1, 2)), count(*) from emp group by deptno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[COLLECT($1) WITHIN GROUP ([2])], EXPR$2=[COUNT()])
+  LogicalProject(DEPTNO=[$7], EMPNO=[$0], $f2=[AND(<>($0, 1), <>($0, 2))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

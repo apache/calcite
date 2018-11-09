@@ -298,6 +298,7 @@ Reserved keywords are **bold**.
 {% comment %} start {% endcomment %}
 A,
 **ABS**,
+ABSENT,
 ABSOLUTE,
 ACTION,
 ADA,
@@ -384,6 +385,7 @@ COMMAND_FUNCTION_CODE,
 **COMMIT**,
 COMMITTED,
 **CONDITION**,
+CONDITIONAL,
 CONDITION_NUMBER,
 **CONNECT**,
 CONNECTION,
@@ -467,12 +469,14 @@ DYNAMIC_FUNCTION_CODE,
 **ELEMENT**,
 **ELSE**,
 **EMPTY**,
+ENCODING,
 **END**,
 **END-EXEC**,
 **END_FRAME**,
 **END_PARTITION**,
 EPOCH,
 **EQUALS**,
+ERROR,
 **ESCAPE**,
 **EVERY**,
 **EXCEPT**,
@@ -498,6 +502,7 @@ FIRST,
 FOLLOWING,
 **FOR**,
 **FOREIGN**,
+FORMAT,
 FORTRAN,
 FOUND,
 FRAC_SECOND,
@@ -556,6 +561,13 @@ ISOYEAR,
 JAVA,
 **JOIN**,
 JSON,
+**JSON_ARRAY**,
+**JSON_ARRAYAGG**,
+**JSON_EXISTS**,
+**JSON_OBJECT**,
+**JSON_OBJECTAGG**,
+**JSON_QUERY**,
+**JSON_VALUE**,
 K,
 KEY,
 KEY_MEMBER,
@@ -672,6 +684,7 @@ PARAMETER_SPECIFIC_SCHEMA,
 PARTIAL,
 **PARTITION**,
 PASCAL,
+PASSING,
 PASSTHROUGH,
 PAST,
 PATH,
@@ -733,6 +746,7 @@ RETURNED_CARDINALITY,
 RETURNED_LENGTH,
 RETURNED_OCTET_LENGTH,
 RETURNED_SQLSTATE,
+RETURNING,
 **RETURNS**,
 **REVOKE**,
 **RIGHT**,
@@ -749,6 +763,7 @@ ROW_COUNT,
 **ROW_NUMBER**,
 **RUNNING**,
 **SAVEPOINT**,
+SCALAR,
 SCALE,
 SCHEMA,
 SCHEMA_NAME,
@@ -898,6 +913,7 @@ TYPE,
 **UESCAPE**,
 UNBOUNDED,
 UNCOMMITTED,
+UNCONDITIONAL,
 UNDER,
 **UNION**,
 **UNIQUE**,
@@ -914,6 +930,9 @@ USER_DEFINED_TYPE_CODE,
 USER_DEFINED_TYPE_NAME,
 USER_DEFINED_TYPE_SCHEMA,
 **USING**,
+UTF16,
+UTF32,
+UTF8,
 **VALUE**,
 **VALUES**,
 **VALUE_OF**,
@@ -1482,7 +1501,9 @@ Syntax:
 
 {% highlight sql %}
 aggregateCall:
-        agg( [ ALL | DISTINCT ] value [, value ]*) [ FILTER (WHERE condition) ]
+        agg( [ ALL | DISTINCT ] value [, value ]*)
+        [ WITHIN GROUP (ORDER BY orderItem [, orderItem ]*) ]
+        [ FILTER (WHERE condition) ]
     |   agg(*) [ FILTER (WHERE condition) ]
 {% endhighlight %}
 
@@ -1491,6 +1512,13 @@ If `FILTER` is present, the aggregate function only considers rows for which
 
 If `DISTINCT` is present, duplicate argument values are eliminated before being
 passed to the aggregate function.
+
+If `WITHIN GROUP` is present, the aggregate function sorts the input rows
+according to the `ORDER BY` clause inside `WITHIN GROUP` before aggregating
+values. `WITHIN GROUP` is only allowed for hypothetical set functions (`RANK`,
+`DENSE_RANK`, `PERCENT_RANK` and `CUME_DIST`), inverse distribution functions
+(`PERCENTILE_CONT` and `PERCENTILE_DISC`) and collection functions (`COLLECT`
+and `LISTAGG`).
 
 | Operator syntax                    | Description
 |:---------------------------------- |:-----------
@@ -1516,6 +1544,7 @@ passed to the aggregate function.
 
 Not implemented:
 
+* LISTAGG(string)
 * REGR_AVGX(numeric1, numeric2)
 * REGR_AVGY(numeric1, numeric2)
 * REGR_INTERCEPT(numeric1, numeric2)
@@ -1900,6 +1929,68 @@ Not implemented:
 * ST_Accum(geom) Accumulates *geom* into a GEOMETRYCOLLECTION (or MULTIPOINT, MULTILINESTRING or MULTIPOLYGON if possible)
 * ST_Collect(geom) Alias for `ST_Accum`
 * ST_Union(geom) Computes the union of geometries
+
+### JSON Functions
+
+#### Query Functions
+
+| Operator syntax        | Description
+|:---------------------- |:-----------
+| JSON_EXISTS(value, path [ { TRUE &#124; FALSE &#124; UNKNOWN &#124; ERROR ) ON ERROR } ) | Test whether a JSON **value** satisfies a search criterion described using JSON path expression **path**
+| JSON_VALUE(value, path [ RETURNING type ] [ { ERROR &#124; NULL &#124; DEFAULT expr } ON EMPTY ] [ { ERROR &#124; NULL &#124; DEFAULT expr } ON ERROR ] ) | Extract an SQL scalar from a JSON **value** using JSON path expression **path**
+| JSON_QUERY(value, path [ { WITHOUT [ ARRAY ] &#124; WITH [ CONDITIONAL &#124; UNCONDITIONAL ] [ ARRAY ] } WRAPPER ] [ { ERROR &#124; NULL &#124; EMPTY ARRAY &#124; EMPTY OBJECT } ON EMPTY ] [ { ERROR &#124; NULL &#124; EMPTY ARRAY &#124; EMPTY OBJECT } ON ERROR ] ) | Extract an JSON object or an JSON array from a JSON **value** using JSON path expression **path**
+
+Note:
+
+* The common structure `value, path` is JSON API common syntax. **value** is a character string type json input, and **path** is a JSON path expression (in character string type too), mode flag **strict** or **lax** should be specified in the beginning of **path**.  
+* **ON ERROR** clause, and **ON EMPTY** clause define the fallback behavior of the function when an error is thrown or a null value is about to be returned.   
+* **ARRAY WRAPPER** clause defines how to represent JSON array result in JSON_QUERY function. Following is a comparision to demonstrate the difference among different wrapper behaviors.
+
+Example Data:
+
+```JSON
+{ "a": "[1,2]", "b": [1,2], "c": "hi"}
+```
+
+Comparision:
+
+|Operator                                    |$.a          |$.b          |$.c
+|:-------------------------------------------|:------------|:------------|:------------
+|JSON_VALUE                                  | [1, 2]      | error       | hi             
+|JSON QUERY WITHOUT ARRAY WRAPPER            | error       | [1, 2]      | error
+|JSON QUERY WITH UNCONDITIONAL ARRAY WRAPPER | [ "[1,2]" ] | [ [1,2] ]   | [ "hi" ]
+|JSON QUERY WITH CONDITIONAL ARRAY WRAPPER   | [ "[1,2]" ] | [1,2]       | [ "hi" ]
+
+Not implemented:
+
+* JSON_TABLE
+
+#### Constructor Functions
+
+| Operator syntax        | Description
+|:---------------------- |:-----------
+| JSON_OBJECT( { [ KEY ] name VALUE value [ FORMAT JSON ] &#124; name : value [ FORMAT JSON ] } * [ { NULL &#124; ABSENT } ON NULL ] ) | Construct json object using a series of key (**name**) value (**value**) pairs
+| JSON_OBJECTAGG( { [ KEY ] name VALUE value [ FORMAT JSON ] &#124; name : value [ FORMAT JSON ] } [ { NULL &#124; ABSENT } ON NULL ] ) | Aggregate function to construct json object using a key (**name**) value (**value**) pair
+| JSON_ARRAY( { value [ FORMAT JSON ] } * [ { NULL &#124; ABSENT } ON NULL ] ) | Construct json array using a series of values (**value**)
+| JSON_ARRAYAGG( value [ FORMAT JSON ] [ { NULL &#124; ABSENT } ON NULL ] ) | Aggregate function to construct json array using a value (**value**)
+
+Note:
+
+* The flag **FORMAT JSON** indicates the value is formatted as JSON character string. When **FORMAT JSON** is used, value should be de-parse from JSON character string to SQL structured value.  
+* **ON NULL** clause defines how the JSON output represents null value. The default null behavior of **JSON_OBJECT** and **JSON_OBJECTAGG** is *NULL ON NULL*, and for **JSON_ARRAY** and **JSON_ARRAYAGG** it is *ABSENT ON NULL*.
+
+#### Comparison Operators
+
+| Operator syntax                                   | Description
+|:------------------------------------------------- |:-----------
+| value IS JSON [ VALUE ]                           | Whether *value* is a json value, *value* is in character string type
+| value IS NOT JSON [ VALUE ]                       | Whether *value* is not a json value, *value* is in character string type
+| value IS JSON SCALAR                              | Whether *value* is a json scalar value, *value* is in character string type
+| value IS NOT JSON SCALAR                          | Whether *value* is not a json scalar value, *value* is in character string type
+| value IS JSON OBJECT                              | Whether *value* is a json object, *value* is in character string type
+| value IS NOT JSON OBJECT                          | Whether *value* is not a json object, *value* is in character string type
+| value IS JSON ARRAY                               | Whether *value* is a json array, *value* is in character string type
+| value IS NOT JSON ARRAY                           | Whether *value* is not a json array, *value* is in character string type
 
 ## User-defined functions
 

@@ -203,6 +203,12 @@ public abstract class ReturnTypes {
       };
 
   /**
+   * Type-inference strategy whereby the result type of a call is a nullable Boolean.
+   */
+  public static final SqlReturnTypeInference BOOLEAN_FORCE_NULLABLE =
+      cascade(BOOLEAN, SqlTypeTransforms.FORCE_NULLABLE);
+
+  /**
    * Type-inference strategy whereby the result type of a call is Boolean
    * not null.
    */

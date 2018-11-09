@@ -45,6 +45,7 @@ import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAccessEnum;
 import org.apache.calcite.sql.SqlAccessType;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
@@ -4868,7 +4869,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     targetWindow.setWindowCall(null);
     call.validate(this, scope);
 
-    validateAggregateParams(call, null, scope);
+    validateAggregateParams(call, null, null, scope);
 
     // Disable nested aggregates post validation
     inWindow = false;
@@ -5141,7 +5142,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public void validateAggregateParams(SqlCall aggCall, SqlNode filter,
-      SqlValidatorScope scope) {
+      SqlNodeList orderList, SqlValidatorScope scope) {
     // For "agg(expr)", expr cannot itself contain aggregate function
     // invocations.  For example, "SUM(2 * MAX(x))" is illegal; when
     // we see it, we'll report the error for the SUM (not the MAX).
@@ -5174,6 +5175,40 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (a.findAgg(filter) != null) {
         throw newValidationError(filter, RESOURCE.aggregateInFilterIllegal());
       }
+    }
+    if (orderList != null) {
+      for (SqlNode param : orderList) {
+        if (a.findAgg(param) != null) {
+          throw newValidationError(aggCall,
+              RESOURCE.aggregateInWithinGroupIllegal());
+        }
+      }
+    }
+
+    final SqlAggFunction op = (SqlAggFunction) aggCall.getOperator();
+    switch (op.requiresGroupOrder()) {
+    case MANDATORY:
+      if (orderList == null || orderList.size() == 0) {
+        throw newValidationError(aggCall,
+            RESOURCE.aggregateMissingWithinGroupClause(op.getName()));
+      }
+      break;
+    case OPTIONAL:
+      break;
+    case IGNORED:
+      // rewrite the order list to empty
+      if (orderList != null) {
+        orderList.getList().clear();
+      }
+      break;
+    case FORBIDDEN:
+      if (orderList != null && orderList.size() != 0) {
+        throw newValidationError(aggCall,
+            RESOURCE.withinGroupClauseIllegalInAggregate(op.getName()));
+      }
+      break;
+    default:
+      throw new AssertionError(op);
     }
   }
 

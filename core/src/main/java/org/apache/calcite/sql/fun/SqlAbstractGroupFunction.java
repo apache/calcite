@@ -31,6 +31,7 @@ import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Static;
 
 /**
@@ -55,7 +56,7 @@ public class SqlAbstractGroupFunction extends SqlAggFunction {
       SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory category) {
     super(name, null, kind, returnTypeInference, operandTypeInference,
-        operandTypeChecker, category, false, false);
+        operandTypeChecker, category, false, false, Optionality.FORBIDDEN);
   }
 
   @Override public void validateCall(SqlCall call, SqlValidator validator,
