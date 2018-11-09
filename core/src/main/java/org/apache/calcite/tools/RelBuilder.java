@@ -27,6 +27,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -132,6 +133,8 @@ public class RelBuilder {
   private final RelFactories.ProjectFactory projectFactory;
   private final RelFactories.AggregateFactory aggregateFactory;
   private final RelFactories.SortFactory sortFactory;
+  private final RelFactories.ExchangeFactory exchangFactory;
+  private final RelFactories.SortExchangeFactory sortExchangFactory;
   private final RelFactories.SetOpFactory setOpFactory;
   private final RelFactories.JoinFactory joinFactory;
   private final RelFactories.SemiJoinFactory semiJoinFactory;
@@ -163,6 +166,12 @@ public class RelBuilder {
     this.sortFactory =
         Util.first(context.unwrap(RelFactories.SortFactory.class),
             RelFactories.DEFAULT_SORT_FACTORY);
+    this.exchangFactory =
+        Util.first(context.unwrap(RelFactories.ExchangeFactory.class),
+            RelFactories.DEFAULT_EXCHANGE_FACTORY);
+    this.sortExchangFactory =
+        Util.first(context.unwrap(RelFactories.SortExchangeFactory.class),
+            RelFactories.DEFAULT_SORT_EXCHANGE_FACTORY);
     this.setOpFactory =
         Util.first(context.unwrap(RelFactories.SetOpFactory.class),
             RelFactories.DEFAULT_SET_OP_FACTORY);
@@ -1801,6 +1810,22 @@ public class RelBuilder {
   /** Creates a limit without a sort. */
   public RelBuilder limit(int offset, int fetch) {
     return sortLimit(offset, fetch, ImmutableList.of());
+  }
+
+  /** Creates a Exchange by distribution. */
+  public RelBuilder exchange(RelDistribution distribution) {
+    RelNode exchange = exchangFactory.createExchange(peek(), distribution);
+    replaceTop(exchange);
+    return this;
+  }
+
+  /** Creates a SortExchange by distribution and collation. */
+  public RelBuilder sortExchange(RelDistribution distribution,
+      RelCollation collation) {
+    RelNode exchange = sortExchangFactory
+        .createSortExchange(peek(), distribution, collation);
+    replaceTop(exchange);
+    return this;
   }
 
   /** Creates a {@link Sort} by field ordinals.
