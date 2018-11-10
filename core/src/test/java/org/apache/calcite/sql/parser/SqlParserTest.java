@@ -3727,6 +3727,7 @@ public class SqlParserTest {
     checkExp(
         "_iso-8859-1'bye' \n\n--\n-- this is a comment\n' bye'",
         "_ISO-8859-1'bye'\n' bye'");
+    checkExp("_utf8'hi'", "_UTF8'hi'");
 
     // newline in string literal
     checkExp("'foo\rbar'", "'foo\rbar'");
