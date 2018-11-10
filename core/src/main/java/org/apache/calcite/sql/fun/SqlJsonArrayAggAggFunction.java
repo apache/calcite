@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.util.Optionality;
 
 /**
  * The <code>JSON_OBJECTAGG</code> aggregation function.
@@ -44,7 +45,8 @@ public class SqlJsonArrayAggAggFunction extends SqlAggFunction {
         OperandTypes.ANY,
         SqlFunctionCategory.SYSTEM,
         false,
-        false
+        false,
+        Optionality.FORBIDDEN
     );
     this.name = name;
     this.nullClause = nullClause;
