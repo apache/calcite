@@ -38,11 +38,14 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Predicates;
+import com.google.common.base.Utf8;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.charset.UnsupportedCharsetException;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.text.MessageFormat;
@@ -836,18 +839,61 @@ public abstract class SqlUtil {
    * @return Java-level name, or null if SQL-level name is unknown
    */
   public static String translateCharacterSetName(String name) {
-    if (name.equals("LATIN1")) {
+    switch (name) {
+    case "BIG5":
+      return "Big5";
+    case "LATIN1":
       return "ISO-8859-1";
-    } else if (name.equals("UTF16")) {
+    case "GB2312":
+    case "GBK":
+      return name;
+    case "UTF8":
+      return "UTF-8";
+    case "UTF16":
       return ConversionUtil.NATIVE_UTF16_CHARSET_NAME;
-    } else if (name.equals(ConversionUtil.NATIVE_UTF16_CHARSET_NAME)) {
-      // no translation needed
+    case "UTF-16BE":
+    case "UTF-16LE":
+    case "ISO-8859-1":
+    case "UTF-8":
       return name;
-    } else if (name.equals("ISO-8859-1")) {
-      // no translation needed
-      return name;
+    default:
+      return null;
     }
-    return null;
+  }
+
+  /**
+   * Get Java-level Charset based on given SQL-level name.
+   *
+   * @param charsetName Sql charset name, must not be null.
+   * @return charset, or default charset if charsetName is null.
+   * @throws UnsupportedCharsetException If no support for the named charset
+   *     is available in this instance of the Java virtual machine
+   */
+  public static Charset getCharset(String charsetName) {
+    assert charsetName != null;
+    charsetName = charsetName.toUpperCase(Locale.ROOT);
+    String javaCharsetName = translateCharacterSetName(charsetName);
+    if (javaCharsetName == null) {
+      throw new UnsupportedCharsetException(charsetName);
+    }
+    return Charset.forName(javaCharsetName);
+  }
+
+  /**
+   * Validate if value can be decoded by given charset.
+   *
+   * @param value nls string in byte array
+   * @param charset charset
+   * @throws RuntimeException If the given value cannot be represented in the
+   *     given charset
+   */
+  public static void validateCharset(byte[] value, Charset charset) {
+    if (charset == StandardCharsets.UTF_8) {
+      if (!Utf8.isWellFormed(value)) {
+        throw RESOURCE.charsetEncoding(
+            new String(value, charset), charset.name()).ex();
+      }
+    }
   }
 
   /** If a node is "AS", returns the underlying expression; otherwise returns

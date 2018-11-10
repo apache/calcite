@@ -20,10 +20,14 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlUtil;
 
-import java.nio.CharBuffer;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+
+import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
-import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CharsetDecoder;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.List;
@@ -39,19 +43,116 @@ import static org.apache.calcite.util.Static.RESOURCE;
 public class NlsString implements Comparable<NlsString>, Cloneable {
   //~ Instance fields --------------------------------------------------------
 
+  private final LoadingCache<ByteString, String> decodeMap =
+      CacheBuilder.newBuilder()
+          .softValues()
+          .build(
+              new CacheLoader<ByteString, String>() {
+                public String load(ByteString key) {
+                  CharsetDecoder decoder = key.charset.newDecoder();
+                  ByteBuffer buffer = ByteBuffer.wrap(key.value);
+                  try {
+                    return decoder.decode(buffer).toString();
+                  } catch (CharacterCodingException ex) {
+                    throw RESOURCE.charsetEncoding(
+                        new String(key.value, Charset.defaultCharset()),
+                        charset.name()).ex();
+                  }
+                }
+              }
+          );
+
   private final String charsetName;
-  private final String value;
+  private ByteString valueBytes;
+  private String valueString;
   private final Charset charset;
   private final SqlCollation collation;
+
+  /**
+   * Internal class for cache loader.
+   */
+  static class ByteString implements Comparable<ByteString> {
+    private final byte[] value;
+    private final Charset charset;
+
+    ByteString(byte[] value, Charset charset) {
+      assert value != null;
+      this.value = value.clone();
+      this.charset = Util.first(charset, Charset.defaultCharset());
+    }
+
+    @Override public int hashCode() {
+      return Objects.hash(value, charset);
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj instanceof ByteString
+          && this.compareTo((ByteString) obj) == 0;
+    }
+
+    @Override public int compareTo(ByteString that) {
+      if (this == that) {
+        return 0;
+      }
+      final byte[] v1 = value;
+      final byte[] v2 = that.value;
+      final int min = Math.min(v1.length, v2.length);
+      for (int i=0; i<min; i++) {
+        int d= v1[i] - v2[i];
+        if (d != 0) {
+          return d;
+        }
+      }
+      int d = v1.length - v2.length;
+      if (d != 0) {
+        return d;
+      }
+      return charset.compareTo(that.charset);
+    }
+
+    public byte[] getValue() {
+      return value.clone();
+    }
+  }
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a string in a specified character set.
    *
-   * @param value       String constant, must not be null
+   * @param value       String constant in byte array, must not be null
    * @param charsetName Name of the character set, may be null
    * @param collation   Collation, may be null
+   * @throws IllegalCharsetNameException If the given charset name is illegal
+   * @throws UnsupportedCharsetException If no support for the named charset
+   *     is available in this instance of the Java virtual machine
+   * @throws RuntimeException If the given value cannot be represented in the
+   *     given charset
+   */
+  public NlsString(
+      byte[] value,
+      String charsetName,
+      SqlCollation collation) {
+    assert value != null;
+    if (charsetName != null) {
+      this.charsetName = charsetName.toUpperCase(Locale.ROOT);
+      charset = SqlUtil.getCharset(charsetName);
+      SqlUtil.validateCharset(value, charset);
+    } else {
+      this.charsetName = null;
+      charset = null;
+    }
+    this.collation = collation;
+    // Validate charset
+    this.valueBytes = new ByteString(value, charset);
+  }
+
+  /**
+   * Easy constructor for java string.
+   *
+   * @param value String constant, must not be null
+   * @param charsetName Name of the character set, may be null
+   * @param collation Collation, may be null
    * @throws IllegalCharsetNameException If the given charset name is illegal
    * @throws UnsupportedCharsetException If no support for the named charset
    *     is available in this instance of the Java virtual machine
@@ -63,29 +164,22 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
       String charsetName,
       SqlCollation collation) {
     assert value != null;
-    if (null != charsetName) {
-      charsetName = charsetName.toUpperCase(Locale.ROOT);
-      this.charsetName = charsetName;
-      String javaCharsetName =
-          SqlUtil.translateCharacterSetName(charsetName);
-      if (javaCharsetName == null) {
-        throw new UnsupportedCharsetException(charsetName);
-      }
-      this.charset = Charset.forName(javaCharsetName);
-      CharsetEncoder encoder = charset.newEncoder();
-
-      // dry run to see if encoding hits any problems
-      try {
-        encoder.encode(CharBuffer.wrap(value));
-      } catch (CharacterCodingException ex) {
-        throw RESOURCE.charsetEncoding(value, javaCharsetName).ex();
+    if (charsetName != null) {
+      this.charsetName = charsetName.toUpperCase(Locale.ROOT);
+      this.charset = SqlUtil.getCharset(charsetName);
+      // Java string can be malformed if LATIN1 is required.
+      if (this.charsetName.equals("LATIN1")
+          || this.charsetName.equals("ISO-8859-1")) {
+        if (!charset.newEncoder().canEncode(value)) {
+          throw RESOURCE.charsetEncoding(value, charset.name()).ex();
+        }
       }
     } else {
       this.charsetName = null;
       this.charset = null;
     }
     this.collation = collation;
-    this.value = value;
+    this.valueString = value;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -99,7 +193,7 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
   }
 
   public int hashCode() {
-    return Objects.hash(value, charsetName, collation);
+    return Objects.hash(valueBytes, valueString, charsetName, collation);
   }
 
   public boolean equals(Object obj) {
@@ -107,17 +201,16 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
       return false;
     }
     NlsString that = (NlsString) obj;
-    return Objects.equals(value, that.value)
+    return Objects.equals(valueBytes, that.valueBytes)
+        && Objects.equals(valueString, that.valueString)
         && Objects.equals(charsetName, that.charsetName)
         && Objects.equals(collation, that.collation);
   }
 
-  // implement Comparable
-  public int compareTo(NlsString other) {
+  @Override public int compareTo(NlsString other) {
     // TODO jvs 18-Jan-2006:  Actual collation support.  This just uses
     // the default collation.
-
-    return value.compareTo(other.value);
+    return getValue().compareTo(other.getValue());
   }
 
   public String getCharsetName() {
@@ -133,7 +226,11 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
   }
 
   public String getValue() {
-    return value;
+    if (valueString == null) {
+      assert valueBytes != null;
+      return decodeMap.getUnchecked(valueBytes);
+    }
+    return valueString;
   }
 
   /**
@@ -141,8 +238,8 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
    * right.
    */
   public NlsString rtrim() {
-    String trimmed = SqlFunctions.rtrim(value);
-    if (!trimmed.equals(value)) {
+    String trimmed = SqlFunctions.rtrim(getValue());
+    if (!trimmed.equals(getValue())) {
       return new NlsString(trimmed, charsetName, collation);
     }
     return this;
@@ -165,7 +262,7 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
       ret.append(charsetName);
     }
     ret.append("'");
-    ret.append(Util.replace(value, "'", "''"));
+    ret.append(Util.replace(getValue(), "'", "''"));
     ret.append("'");
 
     // NOTE jvs 3-Feb-2005:  see FRG-78 for why this should go away
@@ -200,12 +297,12 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
     }
     String charSetName = args.get(0).charsetName;
     SqlCollation collation = args.get(0).collation;
-    int length = args.get(0).value.length();
+    int length = args.get(0).getValue().length();
 
     // sum string lengths and validate
     for (int i = 1; i < args.size(); i++) {
       final NlsString arg = args.get(i);
-      length += arg.value.length();
+      length += arg.getValue().length();
       if (!((arg.charsetName == null)
           || arg.charsetName.equals(charSetName))) {
         throw new IllegalArgumentException("mismatched charsets");
@@ -218,7 +315,7 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
 
     StringBuilder sb = new StringBuilder(length);
     for (NlsString arg : args) {
-      sb.append(arg.value);
+      sb.append(arg.getValue());
     }
     return new NlsString(
         sb.toString(),
@@ -230,6 +327,15 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
    * charset and collation. */
   public NlsString copy(String value) {
     return new NlsString(value, charsetName, collation);
+  }
+
+  /**
+   * Get value in raw bytes.
+   *
+   * @return value bytes.
+   */
+  public byte[] getValueBytes() {
+    return valueBytes.getValue();
   }
 }
 

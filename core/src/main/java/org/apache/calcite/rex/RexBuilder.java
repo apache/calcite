@@ -28,6 +28,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -1030,6 +1031,24 @@ public class RexBuilder {
               s.length()),
           SqlTypeName.CHAR);
     }
+  }
+
+  /**
+   * Creates a character string literal with type CHAR.
+   *
+   * @param value       String value in bytes
+   * @param charsetName SQL-level charset name
+   * @param collation   Sql collation
+   * @return String     literal
+   */
+  protected RexLiteral makePreciseStringLiteral(byte[] value,
+      String charsetName, SqlCollation collation) {
+    return makeLiteral(
+        new NlsString(value, charsetName, collation),
+        typeFactory.createSqlType(
+            SqlTypeName.CHAR
+        ),
+        SqlTypeName.CHAR);
   }
 
   /**
