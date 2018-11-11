@@ -8826,4 +8826,32 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
             <![CDATA[select * from emp where MGR > 0 and case when MGR > 0 then deptno / MGR else null end > 1]]>
         </Resource>
     </TestCase>
+    <TestCase name="testReduceConstantsWindow">
+        <Resource name="sql">
+            <![CDATA[select col1, col2, col3
+from (
+  select empno,
+    sum(100) over (partition by deptno, sal order by sal) as col1,
+    sum(100) over (partition by deptno order by deptno) as col2,
+    sum(sal) over (partition by deptno order by sal) as col3
+  from emp where sal = 5000)
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject($0=[$2], $1=[$3], $2=[$4])
+  LogicalWindow(window#0=[window(partition {1} order by [] range between UNBOUNDED PRECEDING and CURRENT ROW aggs [SUM($2)])], window#1=[window(partition {} order by [1] range between UNBOUNDED PRECEDING and CURRENT ROW aggs [SUM($2)])], window#2=[window(partition {1} order by [] range between UNBOUNDED PRECEDING and CURRENT ROW aggs [SUM(5000)])])
+    LogicalProject(SAL=[$5], DEPTNO=[$7])
+      LogicalFilter(condition=[=($5, 5000)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(COL1=[SUM(100) OVER (PARTITION BY $7, $5 ORDER BY $5 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], COL2=[SUM(100) OVER (PARTITION BY $5 ORDER BY $7 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], COL3=[SUM($5) OVER (PARTITION BY $7 ORDER BY $5 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])
+  LogicalFilter(condition=[=($5, 5000)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
