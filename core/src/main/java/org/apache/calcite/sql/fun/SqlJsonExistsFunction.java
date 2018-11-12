@@ -29,14 +29,10 @@ import org.apache.calcite.sql.type.ReturnTypes;
  */
 public class SqlJsonExistsFunction extends SqlFunction {
   public SqlJsonExistsFunction() {
-    super(
-        "JSON_EXISTS",
-        SqlKind.OTHER_FUNCTION,
-        ReturnTypes.BOOLEAN_FORCE_NULLABLE,
-        null,
+    super("JSON_EXISTS", SqlKind.OTHER_FUNCTION,
+        ReturnTypes.BOOLEAN_FORCE_NULLABLE, null,
         OperandTypes.or(OperandTypes.ANY, OperandTypes.ANY_ANY),
-        SqlFunctionCategory.SYSTEM
-    );
+        SqlFunctionCategory.SYSTEM);
   }
 
   @Override public String getSignatureTemplate(int operandsCount) {
@@ -47,7 +43,8 @@ public class SqlJsonExistsFunction extends SqlFunction {
     return "{0}({1} {2} ON ERROR)";
   }
 
-  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall(getName());
     call.operand(0).unparse(writer, 0, 0);
     if (call.operandCount() == 2) {

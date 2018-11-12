@@ -137,13 +137,15 @@ public abstract class SqlTests {
     return buf.toString();
   }
 
-  public static String generateAggQueryWithMultipleArgs(String expr, String[][] inputValues) {
+  public static String generateAggQueryWithMultipleArgs(String expr,
+      String[][] inputValues) {
     int argCount = -1;
     for (String[] row : inputValues) {
       if (argCount == -1) {
         argCount = row.length;
       } else if (argCount != row.length) {
-        throw new IllegalArgumentException("invalid test input: " + Arrays.toString(row));
+        throw new IllegalArgumentException("invalid test input: "
+            + Arrays.toString(row));
       }
     }
     StringBuilder buf = new StringBuilder();

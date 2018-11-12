@@ -4978,48 +4978,42 @@ SqlCall JsonExistsFunctionCall() :
 
 List<SqlNode> JsonValueEmptyOrErrorBehavior() :
 {
-    List<SqlNode> list = new ArrayList<SqlNode>();
-    SqlNode e;
+    final List<SqlNode> list = new ArrayList<SqlNode>();
+    final SqlNode e;
 }
 {
     (
-        <ERROR>
-        {
+        <ERROR> {
             list.add(SqlLiteral.createSymbol(SqlJsonValueEmptyOrErrorBehavior.ERROR, getPos()));
             list.add(SqlLiteral.createNull(getPos()));
         }
-        |
-        <NULL>
-        {
+    |
+        <NULL> {
             list.add(SqlLiteral.createSymbol(SqlJsonValueEmptyOrErrorBehavior.NULL, getPos()));
             list.add(SqlLiteral.createNull(getPos()));
         }
-        |
-        <DEFAULT_> e = Expression(ExprContext.ACCEPT_NON_QUERY)
-        {
+    |
+        <DEFAULT_> e = Expression(ExprContext.ACCEPT_NON_QUERY) {
             list.add(SqlLiteral.createSymbol(SqlJsonValueEmptyOrErrorBehavior.DEFAULT, getPos()));
             list.add(e);
         }
     )
     <ON>
     (
-        <EMPTY>
-        {
+        <EMPTY> {
             list.add(SqlLiteral.createSymbol(SqlJsonEmptyOrError.EMPTY, getPos()));
         }
-        |
-        <ERROR>
-        {
+    |
+        <ERROR> {
             list.add(SqlLiteral.createSymbol(SqlJsonEmptyOrError.ERROR, getPos()));
         }
     )
-
-    { return list;}
+    { return list; }
 }
 
 SqlCall JsonValueFunctionCall() :
 {
-    SqlNode[] args;
+    final SqlNode[] args = new SqlNode[6];
     SqlNode e;
     final Span span;
     List<SqlNode> behavior;
@@ -5027,16 +5021,17 @@ SqlCall JsonValueFunctionCall() :
 {
     <JSON_VALUE> { span = span(); }
     <LPAREN> e = JsonApiCommonSyntax() {
-        args = new SqlNode[6];
         args[0] = e;
     }
     [
-        e = JsonReturningClause() { args[5] = e; }
+        e = JsonReturningClause() {
+            args[5] = e;
+        }
     ]
     (
-        behavior = JsonValueEmptyOrErrorBehavior()
-        {
-            SqlJsonEmptyOrError symbol = ((SqlLiteral) behavior.get(2)).getValueAs(SqlJsonEmptyOrError.class);
+        behavior = JsonValueEmptyOrErrorBehavior() {
+            final SqlJsonEmptyOrError symbol =
+                ((SqlLiteral) behavior.get(2)).getValueAs(SqlJsonEmptyOrError.class);
             switch (symbol) {
             case EMPTY:
                 args[1] = behavior.get(0);
@@ -5056,45 +5051,38 @@ SqlCall JsonValueFunctionCall() :
 
 List<SqlNode> JsonQueryEmptyOrErrorBehavior() :
 {
-    List<SqlNode> list = new ArrayList<SqlNode>();
+    final List<SqlNode> list = new ArrayList<SqlNode>();
     SqlNode e;
 }
 {
     (
-        <ERROR>
-        {
+        <ERROR> {
             list.add(SqlLiteral.createSymbol(SqlJsonQueryEmptyOrErrorBehavior.ERROR, getPos()));
         }
-        |
-        <NULL>
-        {
+    |
+        <NULL> {
             list.add(SqlLiteral.createSymbol(SqlJsonQueryEmptyOrErrorBehavior.NULL, getPos()));
         }
-        |
-        <EMPTY> <ARRAY>
-        {
+    |
+        <EMPTY> <ARRAY> {
             list.add(SqlLiteral.createSymbol(SqlJsonQueryEmptyOrErrorBehavior.EMPTY_ARRAY, getPos()));
         }
-        |
-        <EMPTY> <OBJECT>
-        {
+    |
+        <EMPTY> <OBJECT> {
             list.add(SqlLiteral.createSymbol(SqlJsonQueryEmptyOrErrorBehavior.EMPTY_OBJECT, getPos()));
         }
     )
     <ON>
     (
-        <EMPTY>
-        {
+        <EMPTY> {
             list.add(SqlLiteral.createSymbol(SqlJsonEmptyOrError.EMPTY, getPos()));
         }
-        |
-        <ERROR>
-        {
+    |
+        <ERROR> {
             list.add(SqlLiteral.createSymbol(SqlJsonEmptyOrError.ERROR, getPos()));
         }
     )
-
-    { return list;}
+    { return list; }
 }
 
 SqlNode JsonQueryWrapperBehavior() :
@@ -5102,26 +5090,23 @@ SqlNode JsonQueryWrapperBehavior() :
     SqlNode e;
 }
 {
-    <WITHOUT> [<ARRAY>]
-    {
+    <WITHOUT> [<ARRAY>] {
         return SqlLiteral.createSymbol(SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY, getPos());
     }
-    |
+|
     LOOKAHEAD(2)
-    <WITH> <CONDITIONAL> [<ARRAY>]
-    {
+    <WITH> <CONDITIONAL> [<ARRAY>] {
         return SqlLiteral.createSymbol(SqlJsonQueryWrapperBehavior.WITH_CONDITIONAL_ARRAY, getPos());
     }
-    |
-    <WITH> [<UNCONDITIONAL>] [<ARRAY>]
-    {
+|
+    <WITH> [<UNCONDITIONAL>] [<ARRAY>] {
         return SqlLiteral.createSymbol(SqlJsonQueryWrapperBehavior.WITH_UNCONDITIONAL_ARRAY, getPos());
     }
 }
 
 SqlCall JsonQueryFunctionCall() :
 {
-    SqlNode[] args;
+    final SqlNode[] args = new SqlNode[4];
     SqlNode e;
     final Span span;
     List<SqlNode> behavior;
@@ -5129,16 +5114,17 @@ SqlCall JsonQueryFunctionCall() :
 {
     <JSON_QUERY> { span = span(); }
     <LPAREN> e = JsonApiCommonSyntax() {
-        args = new SqlNode[4];
         args[0] = e;
     }
     [
-        e = JsonQueryWrapperBehavior() <WRAPPER> { args[1] = e; }
+        e = JsonQueryWrapperBehavior() <WRAPPER> {
+            args[1] = e;
+        }
     ]
     (
-        behavior = JsonQueryEmptyOrErrorBehavior()
-        {
-            SqlJsonEmptyOrError symbol = ((SqlLiteral) behavior.get(1)).getValueAs(SqlJsonEmptyOrError.class);
+        behavior = JsonQueryEmptyOrErrorBehavior() {
+            final SqlJsonEmptyOrError symbol =
+                ((SqlLiteral) behavior.get(1)).getValueAs(SqlJsonEmptyOrError.class);
             switch (symbol) {
             case EMPTY:
                 args[2] = behavior.get(0);
@@ -5156,7 +5142,7 @@ SqlCall JsonQueryFunctionCall() :
 
 SqlNode JsonName() :
 {
-    SqlNode e;
+    final SqlNode e;
 }
 {
      e = Expression(ExprContext.ACCEPT_NON_QUERY) {
@@ -5166,12 +5152,14 @@ SqlNode JsonName() :
 
 List<SqlNode> JsonNameAndValue() :
 {
-    List<SqlNode> list = new ArrayList<SqlNode>();
+    final List<SqlNode> list = new ArrayList<SqlNode>();
     SqlNode e;
     boolean kvMode = false;
 }
 {
-    [ <KEY> { kvMode = true; } ]
+    [
+        <KEY> { kvMode = true; }
+    ]
     e = JsonName() {
         list.add(e);
     }
@@ -5184,7 +5172,7 @@ List<SqlNode> JsonNameAndValue() :
             }
         }
     )
-    e =JsonValueExpression(false) {
+    e = JsonValueExpression(false) {
         list.add(e);
     }
     {
@@ -5194,34 +5182,27 @@ List<SqlNode> JsonNameAndValue() :
 
 SqlNode JsonConstructorNullClause() :
 {
-    SqlNode e;
 }
 {
-    <NULL> <ON> <NULL>
-    {
+    <NULL> <ON> <NULL> {
         return SqlLiteral.createSymbol(SqlJsonConstructorNullClause.NULL_ON_NULL, getPos());
     }
-    |
-    <ABSENT> <ON> <NULL>
-    {
+|
+    <ABSENT> <ON> <NULL> {
         return SqlLiteral.createSymbol(SqlJsonConstructorNullClause.ABSENT_ON_NULL, getPos());
     }
 }
 
 SqlCall JsonObjectFunctionCall() :
 {
-    List<SqlNode> nvArgs;
-    SqlNode[] otherArgs;
+    final List<SqlNode> nvArgs = new ArrayList<SqlNode>();
+    final SqlNode[] otherArgs = new SqlNode[1];
     SqlNode e;
     List<SqlNode> list;
     final Span span;
 }
 {
-    <JSON_OBJECT> {
-        span = span();
-        nvArgs = new ArrayList<SqlNode>();
-        otherArgs = new SqlNode[1];
-    }
+    <JSON_OBJECT> { span = span(); }
     <LPAREN> [
         list = JsonNameAndValue() {
             nvArgs.addAll(list);
@@ -5239,7 +5220,7 @@ SqlCall JsonObjectFunctionCall() :
         }
     ]
     <RPAREN> {
-        List<SqlNode> args = new ArrayList();
+        final List<SqlNode> args = new ArrayList();
         args.addAll(Arrays.asList(otherArgs));
         args.addAll(nvArgs);
         return SqlStdOperatorTable.JSON_OBJECT.createCall(span.end(this), args);
@@ -5248,21 +5229,18 @@ SqlCall JsonObjectFunctionCall() :
 
 SqlCall JsonObjectAggFunctionCall() :
 {
-    SqlNode[] args;
+    final SqlNode[] args = new SqlNode[2];
     List<SqlNode> list;
     final Span span;
-    SqlJsonConstructorNullClause nullClause;
-    SqlNode e;
+    SqlJsonConstructorNullClause nullClause =
+        SqlJsonConstructorNullClause.NULL_ON_NULL;
+    final SqlNode e;
 }
 {
-    <JSON_OBJECTAGG> {
-        span = span();
-        args = new SqlNode[2];
-        nullClause = SqlJsonConstructorNullClause.NULL_ON_NULL;
-    }
+    <JSON_OBJECTAGG> { span = span(); }
     <LPAREN> list = JsonNameAndValue() {
-            args[0] = list.get(0);
-            args[1] = list.get(1);
+        args[0] = list.get(0);
+        args[1] = list.get(1);
     }
     [
         e = JsonConstructorNullClause() {
@@ -5283,17 +5261,13 @@ SqlCall JsonObjectAggFunctionCall() :
 
 SqlCall JsonArrayFunctionCall() :
 {
-    List<SqlNode> elements;
-    SqlNode[] otherArgs;
+    final List<SqlNode> elements = new ArrayList<SqlNode>();
+    final SqlNode[] otherArgs = new SqlNode[1];
     SqlNode e;
     final Span span;
 }
 {
-    <JSON_ARRAY> {
-        span = span();
-        elements = new ArrayList<SqlNode>();
-        otherArgs = new SqlNode[1];
-    }
+    <JSON_ARRAY> { span = span(); }
     <LPAREN> [
         e = JsonValueExpression(false) {
             elements.add(e);
@@ -5311,7 +5285,7 @@ SqlCall JsonArrayFunctionCall() :
         }
     ]
     <RPAREN> {
-        List<SqlNode> args = new ArrayList();
+        final List<SqlNode> args = new ArrayList();
         args.addAll(Arrays.asList(otherArgs));
         args.addAll(elements);
         return SqlStdOperatorTable.JSON_ARRAY.createCall(span.end(this), args);
@@ -5320,20 +5294,16 @@ SqlCall JsonArrayFunctionCall() :
 
 SqlCall JsonArrayAggFunctionCall() :
 {
-    SqlNode arg;
+    final SqlNode arg;
     List<SqlNode> list;
     final Span span;
-    SqlJsonConstructorNullClause nullClause;
+    SqlJsonConstructorNullClause nullClause =
+        SqlJsonConstructorNullClause.ABSENT_ON_NULL;
     SqlNode e;
 }
 {
-    <JSON_ARRAYAGG> {
-        span = span();
-        nullClause = SqlJsonConstructorNullClause.ABSENT_ON_NULL;
-    }
-    <LPAREN> e = JsonValueExpression(false) {
-            arg = e;
-    }
+    <JSON_ARRAYAGG> { span = span(); }
+    <LPAREN> arg = JsonValueExpression(false)
     [
         e = JsonConstructorNullClause() {
             nullClause = (SqlJsonConstructorNullClause) ((SqlLiteral) e).getValue();

@@ -61,8 +61,7 @@ public final class BookstoreSchema {
                       new Page(2, "Acknowledgements"))),
               new Book("The Last Temptation of Christ",
                   1955,
-                  Collections.singletonList(new Page(1, "Contents")))
-          )),
+                  Collections.singletonList(new Page(1, "Contents"))))),
       new Author(3,
           "Homer",
           new Place(null,

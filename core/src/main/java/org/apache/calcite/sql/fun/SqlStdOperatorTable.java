@@ -1273,38 +1273,41 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlJsonValueExpressionOperator("JSON_VALUE_EXPRESSION", false);
 
   public static final SqlJsonValueExpressionOperator JSON_STRUCTURED_VALUE_EXPRESSION =
-      new SqlJsonValueExpressionOperator("JSON_STRUCTURED_VALUE_EXPRESSION", true);
+      new SqlJsonValueExpressionOperator("JSON_STRUCTURED_VALUE_EXPRESSION",
+          true);
 
   public static final SqlJsonApiCommonSyntaxOperator JSON_API_COMMON_SYNTAX =
       new SqlJsonApiCommonSyntaxOperator();
 
   public static final SqlFunction JSON_EXISTS = new SqlJsonExistsFunction();
 
-  public static final SqlFunction JSON_VALUE = new SqlJsonValueFunction("JSON_VALUE", false);
+  public static final SqlFunction JSON_VALUE =
+      new SqlJsonValueFunction("JSON_VALUE", false);
 
-  public static final SqlFunction JSON_VALUE_ANY = new SqlJsonValueFunction("JSON_VALUE_ANY", true);
+  public static final SqlFunction JSON_VALUE_ANY =
+      new SqlJsonValueFunction("JSON_VALUE_ANY", true);
 
   public static final SqlFunction JSON_QUERY = new SqlJsonQueryFunction();
 
   public static final SqlFunction JSON_OBJECT = new SqlJsonObjectFunction();
 
-  public static final SqlAggFunction JSON_OBJECTAGG_NULL_ON_NULL
-      = new SqlJsonObjectAggAggFunction("JSON_OBJECTAGG_NULL_ON_NULL",
-      SqlJsonConstructorNullClause.NULL_ON_NULL);
+  public static final SqlAggFunction JSON_OBJECTAGG_NULL_ON_NULL =
+      new SqlJsonObjectAggAggFunction("JSON_OBJECTAGG_NULL_ON_NULL",
+          SqlJsonConstructorNullClause.NULL_ON_NULL);
 
-  public static final SqlAggFunction JSON_OBJECTAGG_ABSENT_ON_NULL
-      = new SqlJsonObjectAggAggFunction("JSON_OBJECTAGG_ABSENT_ON_NULL",
-      SqlJsonConstructorNullClause.ABSENT_ON_NULL);
+  public static final SqlAggFunction JSON_OBJECTAGG_ABSENT_ON_NULL =
+      new SqlJsonObjectAggAggFunction("JSON_OBJECTAGG_ABSENT_ON_NULL",
+          SqlJsonConstructorNullClause.ABSENT_ON_NULL);
 
   public static final SqlFunction JSON_ARRAY = new SqlJsonArrayFunction();
 
-  public static final SqlAggFunction JSON_ARRAYAGG_NULL_ON_NULL
-      = new SqlJsonArrayAggAggFunction("JSON_ARRAYAGG_NULL_ON_NULL",
-      SqlJsonConstructorNullClause.NULL_ON_NULL);
+  public static final SqlAggFunction JSON_ARRAYAGG_NULL_ON_NULL =
+      new SqlJsonArrayAggAggFunction("JSON_ARRAYAGG_NULL_ON_NULL",
+          SqlJsonConstructorNullClause.NULL_ON_NULL);
 
-  public static final SqlAggFunction JSON_ARRAYAGG_ABSENT_ON_NULL
-      = new SqlJsonArrayAggAggFunction("JSON_ARRAYAGG_ABSENT_ON_NULL",
-      SqlJsonConstructorNullClause.ABSENT_ON_NULL);
+  public static final SqlAggFunction JSON_ARRAYAGG_ABSENT_ON_NULL =
+      new SqlJsonArrayAggAggFunction("JSON_ARRAYAGG_ABSENT_ON_NULL",
+          SqlJsonConstructorNullClause.ABSENT_ON_NULL);
 
   public static final SqlBetweenOperator BETWEEN =
       new SqlBetweenOperator(

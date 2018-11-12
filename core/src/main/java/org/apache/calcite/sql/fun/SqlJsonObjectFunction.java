@@ -43,27 +43,22 @@ import static org.apache.calcite.util.Static.RESOURCE;
  */
 public class SqlJsonObjectFunction extends SqlFunction {
   public SqlJsonObjectFunction() {
-    super(
-        "JSON_OBJECT",
-        SqlKind.OTHER_FUNCTION,
-        ReturnTypes.VARCHAR_2000,
-        null,
-        null,
-        SqlFunctionCategory.SYSTEM
-    );
+    super("JSON_OBJECT", SqlKind.OTHER_FUNCTION, ReturnTypes.VARCHAR_2000, null,
+        null, SqlFunctionCategory.SYSTEM);
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.from(1);
   }
 
-  @Override protected void checkOperandCount(SqlValidator validator, SqlOperandTypeChecker argType,
-                                             SqlCall call) {
+  @Override protected void checkOperandCount(SqlValidator validator,
+      SqlOperandTypeChecker argType, SqlCall call) {
     assert call.operandCount() % 2 == 1;
   }
 
-  @Override public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
-    int count = callBinding.getOperandCount();
+  @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
+      boolean throwOnFailure) {
+    final int count = callBinding.getOperandCount();
     for (int i = 1; i < count; i += 2) {
       RelDataType nameType = callBinding.getOperandType(i);
       if (!SqlTypeUtil.inCharFamily(nameType)) {
@@ -75,7 +70,8 @@ public class SqlJsonObjectFunction extends SqlFunction {
       if (nameType.isNullable()) {
         if (throwOnFailure) {
           throw callBinding.newError(
-              RESOURCE.argumentMustNotBeNull(callBinding.operand(i).toString()));
+              RESOURCE.argumentMustNotBeNull(
+                  callBinding.operand(i).toString()));
         }
         return false;
       }
@@ -83,10 +79,11 @@ public class SqlJsonObjectFunction extends SqlFunction {
     return true;
   }
 
-  @Override public SqlCall createCall(SqlLiteral functionQualifier, SqlParserPos pos,
-                                      SqlNode... operands) {
+  @Override public SqlCall createCall(SqlLiteral functionQualifier,
+      SqlParserPos pos, SqlNode... operands) {
     if (operands[0] == null) {
-      operands[0] = SqlLiteral.createSymbol(SqlJsonConstructorNullClause.NULL_ON_NULL, pos);
+      operands[0] = SqlLiteral.createSymbol(
+          SqlJsonConstructorNullClause.NULL_ON_NULL, pos);
     }
     return super.createCall(functionQualifier, pos, operands);
   }
@@ -102,7 +99,8 @@ public class SqlJsonObjectFunction extends SqlFunction {
     return sb.toString();
   }
 
-  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
     assert call.operandCount() % 2 == 1;
     final SqlWriter.Frame frame = writer.startFunCall(getName());
     SqlWriter.Frame listFrame = writer.startList("", "");

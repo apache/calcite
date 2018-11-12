@@ -20,7 +20,9 @@ package org.apache.calcite.sql;
  * How json query function handle array result.
  */
 public enum SqlJsonQueryWrapperBehavior {
-  WITHOUT_ARRAY, WITH_CONDITIONAL_ARRAY, WITH_UNCONDITIONAL_ARRAY
+  WITHOUT_ARRAY,
+  WITH_CONDITIONAL_ARRAY,
+  WITH_UNCONDITIONAL_ARRAY
 }
 
 // End SqlJsonQueryWrapperBehavior.java

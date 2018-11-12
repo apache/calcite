@@ -130,8 +130,10 @@ public class SqlFunctions {
       Pattern.compile("^\\s*(?<mode>strict|lax)\\s+(?<spec>.+)$",
           Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);
 
-  private static final JsonProvider JSON_PATH_JSON_PROVIDER = new JacksonJsonProvider();
-  private static final MappingProvider JSON_PATH_MAPPING_PROVIDER = new JacksonMappingProvider();
+  private static final JsonProvider JSON_PATH_JSON_PROVIDER =
+      new JacksonJsonProvider();
+  private static final MappingProvider JSON_PATH_MAPPING_PROVIDER =
+      new JacksonMappingProvider();
 
   private SqlFunctions() {
   }
@@ -2492,8 +2494,7 @@ public class SqlFunctions {
                 .builder()
                 .jsonProvider(JSON_PATH_JSON_PROVIDER)
                 .mappingProvider(JSON_PATH_MAPPING_PROVIDER)
-                .build()
-        );
+                .build());
         break;
       case LAX:
         if (input instanceof Exception) {
@@ -2505,8 +2506,7 @@ public class SqlFunctions {
                 .options(Option.SUPPRESS_EXCEPTIONS)
                 .jsonProvider(JSON_PATH_JSON_PROVIDER)
                 .mappingProvider(JSON_PATH_MAPPING_PROVIDER)
-                .build()
-        );
+                .build());
         break;
       default:
         throw RESOURCE.illegalJsonPathModeInPathSpec(mode.toString(), pathSpec).ex();
@@ -2525,7 +2525,8 @@ public class SqlFunctions {
     return jsonExists(input, SqlJsonExistsErrorBehavior.FALSE);
   }
 
-  public static Boolean jsonExists(Object input, SqlJsonExistsErrorBehavior errorBehavior) {
+  public static Boolean jsonExists(Object input,
+      SqlJsonExistsErrorBehavior errorBehavior) {
     PathContext context = (PathContext) input;
     if (context.exc != null) {
       switch (errorBehavior) {
@@ -2538,7 +2539,8 @@ public class SqlFunctions {
       case UNKNOWN:
         return null;
       default:
-        throw RESOURCE.illegalErrorBehaviorInJsonExistsFunc(errorBehavior.toString()).ex();
+        throw RESOURCE.illegalErrorBehaviorInJsonExistsFunc(
+            errorBehavior.toString()).ex();
       }
     } else {
       return !Objects.isNull(context.pathReturned);
@@ -2546,12 +2548,12 @@ public class SqlFunctions {
   }
 
   public static Object jsonValueAny(Object input,
-                                 SqlJsonValueEmptyOrErrorBehavior emptyBehavior,
-                                 Object defaultValueOnEmpty,
-                                 SqlJsonValueEmptyOrErrorBehavior errorBehavior,
-                                 Object defaultValueOnError) {
-    PathContext context = (PathContext) input;
-    Exception exc;
+      SqlJsonValueEmptyOrErrorBehavior emptyBehavior,
+      Object defaultValueOnEmpty,
+      SqlJsonValueEmptyOrErrorBehavior errorBehavior,
+      Object defaultValueOnError) {
+    final PathContext context = (PathContext) input;
+    final Exception exc;
     if (context.exc != null) {
       exc = context.exc;
     } else {
@@ -2566,10 +2568,13 @@ public class SqlFunctions {
         case DEFAULT:
           return defaultValueOnEmpty;
         default:
-          throw RESOURCE.illegalEmptyBehaviorInJsonValueFunc(emptyBehavior.toString()).ex();
+          throw RESOURCE.illegalEmptyBehaviorInJsonValueFunc(
+              emptyBehavior.toString()).ex();
         }
-      } else if (context.mode == PathMode.STRICT && !isScalarObject(value)) {
-        exc = RESOURCE.scalarValueRequiredInStrictModeOfJsonValueFunc(value.toString()).ex();
+      } else if (context.mode == PathMode.STRICT
+          && !isScalarObject(value)) {
+        exc = RESOURCE.scalarValueRequiredInStrictModeOfJsonValueFunc(
+            value.toString()).ex();
       } else {
         return value;
       }
@@ -2582,16 +2587,17 @@ public class SqlFunctions {
     case DEFAULT:
       return defaultValueOnError;
     default:
-      throw RESOURCE.illegalErrorBehaviorInJsonValueFunc(errorBehavior.toString()).ex();
+      throw RESOURCE.illegalErrorBehaviorInJsonValueFunc(
+          errorBehavior.toString()).ex();
     }
   }
 
   public static String jsonQuery(Object input,
-                                 SqlJsonQueryWrapperBehavior wrapperBehavior,
-                                 SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
-                                 SqlJsonQueryEmptyOrErrorBehavior errorBehavior) {
-    PathContext context = (PathContext) input;
-    Exception exc;
+      SqlJsonQueryWrapperBehavior wrapperBehavior,
+      SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
+      SqlJsonQueryEmptyOrErrorBehavior errorBehavior) {
+    final PathContext context = (PathContext) input;
+    final Exception exc;
     if (context.exc != null) {
       exc = context.exc;
     } else {
@@ -2614,7 +2620,8 @@ public class SqlFunctions {
           }
           break;
         default:
-          throw RESOURCE.illegalWrapperBehaviorInJsonQueryFunc(wrapperBehavior.toString()).ex();
+          throw RESOURCE.illegalWrapperBehaviorInJsonQueryFunc(
+              wrapperBehavior.toString()).ex();
         }
       }
       if (value == null || context.mode == PathMode.LAX
@@ -2629,10 +2636,12 @@ public class SqlFunctions {
         case EMPTY_OBJECT:
           return "{}";
         default:
-          throw RESOURCE.illegalEmptyBehaviorInJsonQueryFunc(emptyBehavior.toString()).ex();
+          throw RESOURCE.illegalEmptyBehaviorInJsonQueryFunc(
+              emptyBehavior.toString()).ex();
         }
       } else if (context.mode == PathMode.STRICT && isScalarObject(value)) {
-        exc = RESOURCE.arrayOrObjectValueRequiredInStrictModeOfJsonQueryFunc(value.toString()).ex();
+        exc = RESOURCE.arrayOrObjectValueRequiredInStrictModeOfJsonQueryFunc(
+            value.toString()).ex();
       } else {
         try {
           return jsonize(value);
@@ -2651,7 +2660,8 @@ public class SqlFunctions {
     case EMPTY_OBJECT:
       return "{}";
     default:
-      throw RESOURCE.illegalErrorBehaviorInJsonQueryFunc(errorBehavior.toString()).ex();
+      throw RESOURCE.illegalErrorBehaviorInJsonQueryFunc(
+          errorBehavior.toString()).ex();
     }
   }
 
@@ -2663,7 +2673,8 @@ public class SqlFunctions {
     return JSON_PATH_JSON_PROVIDER.parse(input);
   }
 
-  public static String jsonObject(SqlJsonConstructorNullClause nullClause, Object... kvs) {
+  public static String jsonObject(SqlJsonConstructorNullClause nullClause,
+      Object... kvs) {
     assert kvs.length % 2 == 0;
     Map<String, Object> map = new HashMap<>();
     for (int i = 0; i < kvs.length; i += 2) {
@@ -2684,7 +2695,7 @@ public class SqlFunctions {
   }
 
   public static void jsonObjectAggAdd(Map map, String k, Object v,
-                                        SqlJsonConstructorNullClause nullClause) {
+      SqlJsonConstructorNullClause nullClause) {
     if (k == null) {
       throw RESOURCE.nullKeyOfJsonObjectNotAllowed().ex();
     }
@@ -2705,7 +2716,8 @@ public class SqlFunctions {
     jsonObjectAggAdd(map, k, v, SqlJsonConstructorNullClause.ABSENT_ON_NULL);
   }
 
-  public static String jsonArray(SqlJsonConstructorNullClause nullClause, Object... elements) {
+  public static String jsonArray(SqlJsonConstructorNullClause nullClause,
+      Object... elements) {
     List<Object> list = new ArrayList<>();
     for (Object element : elements) {
       if (element == null) {
@@ -2720,7 +2732,7 @@ public class SqlFunctions {
   }
 
   public static void jsonArrayAggAdd(List list, Object element,
-                                      SqlJsonConstructorNullClause nullClause) {
+      SqlJsonConstructorNullClause nullClause) {
     if (element == null) {
       if (nullClause == SqlJsonConstructorNullClause.NULL_ON_NULL) {
         list.add(null);
@@ -2823,8 +2835,9 @@ public class SqlFunctions {
   }
 
   /**
-   * Path spec has two different modes: lax mode and strict mode. Lax mode suppress any thrown
-   * exception and return null; where strict mode throws exceptions.
+   * Path spec has two different modes: lax mode and strict mode.
+   * Lax mode suppresses any thrown exception and returns null,
+   * whereas strict mode throws exceptions.
    */
   public enum PathMode {
     LAX,

@@ -22,10 +22,14 @@ import java.util.Locale;
  * Categorizing Json query empty or error behaviors.
  */
 public enum SqlJsonQueryEmptyOrErrorBehavior {
-  ERROR, NULL, EMPTY_ARRAY, EMPTY_OBJECT;
+  ERROR,
+  NULL,
+  EMPTY_ARRAY,
+  EMPTY_OBJECT;
 
   @Override public String toString() {
-    return String.format(Locale.ENGLISH, "SqlJsonQueryEmptyOrErrorBehavior[%s]", name());
+    return String.format(Locale.ENGLISH,
+        "SqlJsonQueryEmptyOrErrorBehavior[%s]", name());
   }
 }
 

@@ -784,11 +784,11 @@ public interface CalciteResource {
 
   @BaseMessage("Invalid types for arithmetic: {0} {1} {2}")
   ExInst<CalciteException> invalidTypesForArithmetic(String clazzName0, String op,
-                                                     String clazzName1);
+      String clazzName1);
 
   @BaseMessage("Invalid types for comparison: {0} {1} {2}")
   ExInst<CalciteException> invalidTypesForComparison(String clazzName0, String op,
-                                                     String clazzName1);
+      String clazzName1);
 
   @BaseMessage("Cannot convert {0} to {1}")
   ExInst<CalciteException> cannotConvert(String o, String toType);

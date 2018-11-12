@@ -346,9 +346,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
         builder.filter(
             builder.or(
                 builder.and(conditions),
-                builder.or(
-                    isNullOpperands
-                )));
+                builder.or(isNullOpperands)));
         RexNode project = builder.and(
             fields.stream()
                 .map(builder::isNotNull)

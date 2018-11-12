@@ -1790,7 +1790,6 @@ public class RexImpTable {
 
   /** Implementor for the {@code JSON_OBJECTAGG} aggregate function. */
   static class JsonObjectAggImplementor implements AggImplementor {
-
     private final Method m;
 
     JsonObjectAggImplementor(Method m) {
@@ -1806,27 +1805,24 @@ public class RexImpTable {
     }
 
     @Override public void implementReset(AggContext info,
-                                                   AggResetContext reset) {
+        AggResetContext reset) {
       reset.currentBlock().add(
           Expressions.statement(
               Expressions.assign(reset.accumulator().get(0),
                   Expressions.new_(HashMap.class))));
     }
 
-    @Override public void implementAdd(AggContext info,
-                                              AggAddContext add) {
+    @Override public void implementAdd(AggContext info, AggAddContext add) {
       add.currentBlock().add(
           Expressions.statement(
-              Expressions.call(
-                  m,
+              Expressions.call(m,
                   Iterables.concat(
-                      Collections.singletonList(
-                          add.accumulator().get(0)),
+                      Collections.singletonList(add.accumulator().get(0)),
                       add.arguments()))));
     }
 
     @Override public Expression implementResult(AggContext info,
-                                                       AggResultContext result) {
+        AggResultContext result) {
       return Expressions.call(BuiltInMethod.JSONIZE.method,
           result.accumulator().get(0));
     }
@@ -1834,7 +1830,6 @@ public class RexImpTable {
 
   /** Implementor for the {@code JSON_ARRAYAGG} aggregate function. */
   static class JsonArrayAggImplementor implements AggImplementor {
-
     private final Method m;
 
     JsonArrayAggImplementor(Method m) {
@@ -1844,12 +1839,13 @@ public class RexImpTable {
     static Supplier<JsonArrayAggImplementor> supplierFor(Method m) {
       return () -> new JsonArrayAggImplementor(m);
     }
+
     @Override public List<Type> getStateType(AggContext info) {
       return Collections.singletonList(List.class);
     }
 
     @Override public void implementReset(AggContext info,
-                                         AggResetContext reset) {
+        AggResetContext reset) {
       reset.currentBlock().add(
           Expressions.statement(
               Expressions.assign(reset.accumulator().get(0),
@@ -1857,19 +1853,17 @@ public class RexImpTable {
     }
 
     @Override public void implementAdd(AggContext info,
-                                       AggAddContext add) {
+        AggAddContext add) {
       add.currentBlock().add(
           Expressions.statement(
-              Expressions.call(
-                  m,
+              Expressions.call(m,
                   Iterables.concat(
-                      Collections.singletonList(
-                          add.accumulator().get(0)),
+                      Collections.singletonList(add.accumulator().get(0)),
                       add.arguments()))));
     }
 
     @Override public Expression implementResult(AggContext info,
-                                                AggResultContext result) {
+        AggResultContext result) {
       return Expressions.call(BuiltInMethod.JSONIZE.method,
           result.accumulator().get(0));
     }

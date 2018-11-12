@@ -17,7 +17,8 @@
 package org.apache.calcite.sql;
 
 /**
- * SqlJsonEncoding lists the supported json encodings that could be passed to JsonValueExpression.
+ * Supported json encodings that could be passed to a
+ * {@code JsonValueExpression}.
  */
 public enum SqlJsonEncoding {
   UTF8("UTF8"),

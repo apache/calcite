@@ -1158,8 +1158,8 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplify(
         case_(eq(falseLiteral, falseLiteral), falseLiteral,
               eq(falseLiteral, falseLiteral), trueLiteral,
-              trueLiteral
-    ), "false");
+              trueLiteral),
+        "false");
 
     // is null, applied to not-null value
     checkSimplify(rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, aRef),

@@ -32,27 +32,18 @@ import org.apache.calcite.util.Optionality;
  * The <code>JSON_OBJECTAGG</code> aggregation function.
  */
 public class SqlJsonArrayAggAggFunction extends SqlAggFunction {
-  private final String name;
   private final SqlJsonConstructorNullClause nullClause;
 
-  public SqlJsonArrayAggAggFunction(String name, SqlJsonConstructorNullClause nullClause) {
-    super(
-        name,
-        null,
-        SqlKind.JSON_ARRAYAGG,
-        ReturnTypes.VARCHAR_2000,
-        null,
-        OperandTypes.ANY,
-        SqlFunctionCategory.SYSTEM,
-        false,
-        false,
-        Optionality.FORBIDDEN
-    );
-    this.name = name;
+  public SqlJsonArrayAggAggFunction(String name,
+      SqlJsonConstructorNullClause nullClause) {
+    super(name, null, SqlKind.JSON_ARRAYAGG, ReturnTypes.VARCHAR_2000, null,
+        OperandTypes.ANY, SqlFunctionCategory.SYSTEM, false, false,
+        Optionality.FORBIDDEN);
     this.nullClause = nullClause;
   }
 
-  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
     assert call.operandCount() == 1;
     final SqlWriter.Frame frame = writer.startFunCall("JSON_ARRAYAGG");
     call.operand(0).unparse(writer, leftPrec, rightPrec);

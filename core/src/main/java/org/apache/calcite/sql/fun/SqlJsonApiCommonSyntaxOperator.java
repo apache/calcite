@@ -34,28 +34,20 @@ import org.apache.calcite.sql.validate.SqlValidator;
 public class SqlJsonApiCommonSyntaxOperator extends SqlSpecialOperator {
 
   public SqlJsonApiCommonSyntaxOperator() {
-    super(
-        "JSON_API_COMMON_SYNTAX",
-        SqlKind.JSON_API_COMMON_SYNTAX,
-        100,
-        true,
-        ReturnTypes.explicit(SqlTypeName.ANY),
-        null,
-        OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING)
-    );
+    super("JSON_API_COMMON_SYNTAX", SqlKind.JSON_API_COMMON_SYNTAX, 100, true,
+        ReturnTypes.explicit(SqlTypeName.ANY), null,
+        OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING));
   }
 
-  @Override protected void checkOperandCount(
-      SqlValidator validator,
-      SqlOperandTypeChecker argType,
-      SqlCall call
-  ) {
+  @Override protected void checkOperandCount(SqlValidator validator,
+      SqlOperandTypeChecker argType, SqlCall call) {
     if (call.operandCount() != 2) {
       throw new UnsupportedOperationException("json passing syntax is not yet supported");
     }
   }
 
-  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
     SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
     call.operand(0).unparse(writer, 0, 0);
     writer.sep(",", true);

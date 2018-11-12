@@ -22,10 +22,13 @@ import java.util.Locale;
  * Categorizing Json value empty or error behaviors.
  */
 public enum SqlJsonValueEmptyOrErrorBehavior {
-  ERROR, NULL, DEFAULT;
+  ERROR,
+  NULL,
+  DEFAULT;
 
   @Override public String toString() {
-    return String.format(Locale.ENGLISH, "SqlJsonValueEmptyOrErrorBehavior[%s]", name());
+    return String.format(Locale.ENGLISH,
+        "SqlJsonValueEmptyOrErrorBehavior[%s]", name());
   }
 }
 

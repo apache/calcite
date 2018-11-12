@@ -318,7 +318,8 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
       double delta);
 
   /**
-   * Checks that an aggregate expression with multiple args returns the expected result.
+   * Checks that an aggregate expression with multiple args returns the expected
+   * result.
    *
    * @param expr        Aggregate expression, e.g. <code>AGG_FUNC(x, x2, x3)</code>
    * @param inputValues Nested array of input values, e.g. <code>[

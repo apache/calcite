@@ -337,8 +337,7 @@ public class ElasticSearchAdapterTest {
         .query("select * from zips where pop in (96074, 99568)")
         .returnsUnordered(
             "city=BELL GARDENS; longitude=-118.17205; latitude=33.969177; pop=99568; state=CA; id=90201",
-            "city=LOS ANGELES; longitude=-118.258189; latitude=34.007856; pop=96074; state=CA; id=90011"
-        )
+            "city=LOS ANGELES; longitude=-118.258189; latitude=34.007856; pop=96074; state=CA; id=90011")
         .queryContains(ElasticsearchChecker.elasticsearchChecker(searches));
   }
 

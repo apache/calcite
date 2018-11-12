@@ -428,8 +428,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         || input instanceof Integer
         || input instanceof Long
         || input instanceof Float
-        || input instanceof Double
-        ) {
+        || input instanceof Double) {
       return Expressions.constant(input, clazz);
     }
     ParameterExpression cached = stashedParameters.get(input);
