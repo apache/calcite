@@ -290,4 +290,60 @@ SqlDrop SqlDropMaterializedView(Span s, boolean replace) :
     }
 }
 
+private void FunctionJarDef(List<SqlNode> list) :
+{
+    SqlParserPos pos;
+    SqlNode uri;
+}
+{
+    ( <JAR> | <FILE> | <ARCHIVE> ) {
+        pos = getPos();
+        list.add(StringLiteral());
+    }
+}
+
+SqlNodeList FunctionJarDefList() :
+{
+    SqlParserPos pos;
+    List<SqlNode> list = new ArrayList();
+}
+{
+    <USING> { pos = getPos(); }
+    { pos = getPos(); }
+    FunctionJarDef(list)
+    ( <COMMA> FunctionJarDef(list) )* {
+        return new SqlNodeList(list, pos.plus(getPos()));
+    }
+}
+
+/**
+* CREATE FUNCTION [db_name.]function_name AS class_name
+*   [USING JAR|FILE|ARCHIVE 'file_uri' [, JAR|FILE|ARCHIVE 'file_uri']
+*/
+SqlCreateFunction SqlCreateFunction() :
+{
+    SqlParserPos pos;
+    SqlIdentifier dbName = null;
+    SqlIdentifier funcName;
+    SqlNode className;
+    SqlNodeList jarList = null;
+}
+{
+    <CREATE> { pos = getPos(); }
+    <FUNCTION>
+    [
+        dbName = SimpleIdentifier()
+        <DOT>
+    ]
+    funcName = SimpleIdentifier()
+    <AS>
+    className = StringLiteral()
+    [
+        jarList = FunctionJarDefList()
+    ]
+    {
+        return new SqlCreateFunction(pos, dbName, funcName, className, jarList);
+    }
+}
+
 // End parserImpls.ftl

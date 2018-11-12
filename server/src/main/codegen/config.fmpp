@@ -25,6 +25,7 @@ data: {
         "org.apache.calcite.sql.SqlCreate"
         "org.apache.calcite.sql.SqlDrop"
         "org.apache.calcite.sql.ddl.SqlDdlNodes"
+        "org.apache.calcite.sql.ddl.SqlCreateFunction"
       ]
 
       # List of keywords.
@@ -33,6 +34,9 @@ data: {
         "MATERIALIZED"
         "STORED"
         "VIRTUAL"
+        "JAR"
+        "FILE"
+        "ARCHIVE"
       ]
 
       # List of keywords from "keywords" section that are not reserved.
@@ -41,10 +45,14 @@ data: {
         "MATERIALIZED"
         "STORED"
         "VIRTUAL"
+        "JAR"
+        "FILE"
+        "ARCHIVE"
       ]
 
       # List of methods for parsing custom SQL statements.
       statementParserMethods: [
+        "SqlCreateFunction()"
       ]
 
       # List of methods for parsing custom literals.
