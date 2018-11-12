@@ -98,7 +98,12 @@ limitations under the License.
     </profile>
     <profile>
       <!-- Need to verify that the URL we're pulling from in the Dockerfile is correct for this release -->
-      <id>apache-release</id>
+      <id>check-dockerfile-version</id>
+      <activation>
+        <property>
+          <name>!skipDockerCheck</name>
+        </property>
+      </activation>
       <build>
         <plugins>
           <plugin>

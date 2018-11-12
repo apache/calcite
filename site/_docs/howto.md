@@ -206,26 +206,14 @@ start again from the top.
 # Make sure that there are no junk files in the sandbox
 git clean -xn
 
-# For the dry run, edit the docker/dockerhub/Dockerfile
-patch -p1 <<EOF
-diff --git a/docker/src/main/dockerhub/Dockerfile b/docker/src/main/dockerhub/Dockerfile
-index 4617a4e..4ccd97f 100644
---- a/docker/src/main/dockerhub/Dockerfile
-+++ b/docker/src/main/dockerhub/Dockerfile
-@@ -23,3 +23,3 @@ RUN mkdir -p /home/avatica/classpath
-# This line must be preserved. The Maven build will verify this version matches its version
--ARG AVATICA_VERSION="1.12.0"
-+ARG AVATICA_VERSION="1.12.0-SNAPSHOT"
-EOF
-
 # Do a dry run of the release:prepare step, which sets version numbers.
 # Typically we increment minor version: If X.Y.Z is 1.11.0, X2.Y2.Z2 is 1.12.0.
 # Note X.Y.Z is the current version we're trying to release, and X2.Y2.Z2 is the next development version.
 # For example, if I am currently building a release for 1.11.0, X.Y.Z would be 1.11.0 and X2.Y2.Z2 would be 1.12.0.
-./mvnw -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare
+./mvnw -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare -Darguments=-DskipDockerCheck 
 
-# If you have multiple GPG keys, you can select the key used to sign the release by appending `-Darguments=-Dgpg.keyname=your_key_id`:
-./mvnw -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare -Darguments=-Dgpg.keyname=your_key_id
+# If you have multiple GPG keys, you can select the key used to sign the release by appending `-Dgpg.keyname=${your.key.id}` to `-Darguments`:
+./mvnw -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare -Darguments="-DskipDockerCheck -Dgpg.keyname=${your.key.id}"
 
 {% endhighlight %}
 
@@ -267,8 +255,8 @@ If successful, remove the `-DdryRun` flag and run the release for real.
 # For example, if I am currently building a release for 1.11.0, X.Y.Z would be 1.11.0 and X2.Y2.Z2 would be 1.12.0.
 ./mvnw -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare
 
-# If you have multiple GPG keys, you can select the key used to sign the release by appending `-Darguments=-Dgpg.keyname=your_key_id`:
-./mvnw -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare -Darguments=-Dgpg.keyname=your_key_id
+# If you have multiple GPG keys, you can select the key used to sign the release by appending `-Darguments=-Dgpg.keyname=${your.key.id}`:
+./mvnw -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare -Darguments=-Dgpg.keyname=${your.key.id}
 
 # Perform checks out the tagged version, builds, and deploys to the staging repository
 ./mvnw -Papache-release -Duser.name=${asf.username} release:perform -Darguments="-DskipTests"
