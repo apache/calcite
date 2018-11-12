@@ -133,8 +133,8 @@ public class RelBuilder {
   private final RelFactories.ProjectFactory projectFactory;
   private final RelFactories.AggregateFactory aggregateFactory;
   private final RelFactories.SortFactory sortFactory;
-  private final RelFactories.ExchangeFactory exchangFactory;
-  private final RelFactories.SortExchangeFactory sortExchangFactory;
+  private final RelFactories.ExchangeFactory exchangeFactory;
+  private final RelFactories.SortExchangeFactory sortExchangeFactory;
   private final RelFactories.SetOpFactory setOpFactory;
   private final RelFactories.JoinFactory joinFactory;
   private final RelFactories.SemiJoinFactory semiJoinFactory;
@@ -166,10 +166,10 @@ public class RelBuilder {
     this.sortFactory =
         Util.first(context.unwrap(RelFactories.SortFactory.class),
             RelFactories.DEFAULT_SORT_FACTORY);
-    this.exchangFactory =
+    this.exchangeFactory =
         Util.first(context.unwrap(RelFactories.ExchangeFactory.class),
             RelFactories.DEFAULT_EXCHANGE_FACTORY);
-    this.sortExchangFactory =
+    this.sortExchangeFactory =
         Util.first(context.unwrap(RelFactories.SortExchangeFactory.class),
             RelFactories.DEFAULT_SORT_EXCHANGE_FACTORY);
     this.setOpFactory =
@@ -1812,9 +1812,9 @@ public class RelBuilder {
     return sortLimit(offset, fetch, ImmutableList.of());
   }
 
-  /** Creates a Exchange by distribution. */
+  /** Creates an Exchange by distribution. */
   public RelBuilder exchange(RelDistribution distribution) {
-    RelNode exchange = exchangFactory.createExchange(peek(), distribution);
+    RelNode exchange = exchangeFactory.createExchange(peek(), distribution);
     replaceTop(exchange);
     return this;
   }
@@ -1822,7 +1822,7 @@ public class RelBuilder {
   /** Creates a SortExchange by distribution and collation. */
   public RelBuilder sortExchange(RelDistribution distribution,
       RelCollation collation) {
-    RelNode exchange = sortExchangFactory
+    RelNode exchange = sortExchangeFactory
         .createSortExchange(peek(), distribution, collation);
     replaceTop(exchange);
     return this;
