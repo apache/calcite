@@ -1863,11 +1863,12 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
     return result;
   }
 
-  /** Currently we only support TableScan - Project - Filter - Join */
+  /** Currently we only support TableScan - Project - Filter - Inner Join */
   private static boolean isValidRelNodePlan(RelNode node, RelMetadataQuery mq) {
     final Multimap<Class<? extends RelNode>, RelNode> m =
             mq.getNodeTypes(node);
-    for (Class<? extends RelNode> c : m.keySet()) {
+    for (Entry<Class<? extends RelNode>, Collection<RelNode>> e : m.asMap().entrySet()) {
+      Class<? extends RelNode> c = e.getKey();
       if (!TableScan.class.isAssignableFrom(c)
               && !Project.class.isAssignableFrom(c)
               && !Filter.class.isAssignableFrom(c)
@@ -1875,6 +1876,14 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               || SemiJoin.class.isAssignableFrom(c))) {
         // Skip it
         return false;
+      }
+      if (Join.class.isAssignableFrom(c)) {
+        for (RelNode n : e.getValue()) {
+          if (((Join) n).getJoinType() != JoinRelType.INNER) {
+            // Skip it
+            return false;
+          }
+        }
       }
     }
     return true;

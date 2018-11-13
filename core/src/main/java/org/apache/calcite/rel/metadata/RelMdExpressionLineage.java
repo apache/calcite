@@ -44,7 +44,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import java.util.ArrayList;
@@ -80,7 +79,7 @@ public class RelMdExpressionLineage
 
   //~ Constructors -----------------------------------------------------------
 
-  private RelMdExpressionLineage() {}
+  protected RelMdExpressionLineage() {}
 
   //~ Methods ----------------------------------------------------------------
 
@@ -116,10 +115,7 @@ public class RelMdExpressionLineage
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
 
     // Extract input fields referenced by expression
-    final Set<RelDataTypeField> inputExtraFields = new LinkedHashSet<>();
-    final RelOptUtil.InputFinder inputFinder = new RelOptUtil.InputFinder(inputExtraFields);
-    outputExpression.accept(inputFinder);
-    final ImmutableBitSet inputFieldsUsed = inputFinder.inputBitSet.build();
+    final ImmutableBitSet inputFieldsUsed = extractInputRefs(outputExpression);
 
     // Infer column origin expressions for given references
     final Map<RexInputRef, Set<RexNode>> mapping = new LinkedHashMap<>();
@@ -147,10 +143,7 @@ public class RelMdExpressionLineage
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
 
     // Extract input fields referenced by expression
-    final Set<RelDataTypeField> inputExtraFields = new LinkedHashSet<>();
-    final RelOptUtil.InputFinder inputFinder = new RelOptUtil.InputFinder(inputExtraFields);
-    outputExpression.accept(inputFinder);
-    final ImmutableBitSet inputFieldsUsed = inputFinder.inputBitSet.build();
+    final ImmutableBitSet inputFieldsUsed = extractInputRefs(outputExpression);
 
     for (int idx : inputFieldsUsed) {
       if (idx >= rel.getGroupCount()) {
@@ -184,21 +177,66 @@ public class RelMdExpressionLineage
    */
   public Set<RexNode> getExpressionLineage(Join rel, RelMetadataQuery mq,
       RexNode outputExpression) {
-    if (rel.getJoinType() != JoinRelType.INNER) {
-      // We cannot map origin of this expression.
-      return null;
-    }
-
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
     final RelNode leftInput = rel.getLeft();
     final RelNode rightInput = rel.getRight();
     final int nLeftColumns = leftInput.getRowType().getFieldList().size();
 
-    // Infer column origin expressions for given references
+    // Extract input fields referenced by expression
+    final ImmutableBitSet inputFieldsUsed = extractInputRefs(outputExpression);
+
+    if (rel.getJoinType() != JoinRelType.INNER) {
+      // If we reference the inner side, we will bail out
+      if (rel.getJoinType() == JoinRelType.LEFT) {
+        ImmutableBitSet rightFields = ImmutableBitSet.range(
+            nLeftColumns, rel.getRowType().getFieldCount());
+        if (inputFieldsUsed.intersects(rightFields)) {
+          // We cannot map origin of this expression.
+          return null;
+        }
+      } else if (rel.getJoinType() == JoinRelType.RIGHT) {
+        ImmutableBitSet leftFields = ImmutableBitSet.range(
+            0, nLeftColumns);
+        if (inputFieldsUsed.intersects(leftFields)) {
+          // We cannot map origin of this expression.
+          return null;
+        }
+      } else {
+        // We cannot map origin of this expression.
+        return null;
+      }
+    }
+
+    // Gather table references
+    final Set<RelTableRef> leftTableRefs = mq.getTableReferences(leftInput);
+    if (leftTableRefs == null) {
+      // Bail out
+      return null;
+    }
+    final Set<RelTableRef> rightTableRefs = mq.getTableReferences(rightInput);
+    if (rightTableRefs == null) {
+      // Bail out
+      return null;
+    }
     final Multimap<List<String>, RelTableRef> qualifiedNamesToRefs = HashMultimap.create();
     final Map<RelTableRef, RelTableRef> currentTablesMapping = new HashMap<>();
+    for (RelTableRef leftRef : leftTableRefs) {
+      qualifiedNamesToRefs.put(leftRef.getQualifiedName(), leftRef);
+    }
+    for (RelTableRef rightRef : rightTableRefs) {
+      int shift = 0;
+      Collection<RelTableRef> lRefs = qualifiedNamesToRefs.get(
+          rightRef.getQualifiedName());
+      if (lRefs != null) {
+        shift = lRefs.size();
+      }
+      currentTablesMapping.put(rightRef,
+          RelTableRef.of(rightRef.getTable(), shift + rightRef.getEntityNumber()));
+    }
+
+    // Infer column origin expressions for given references
     final Map<RexInputRef, Set<RexNode>> mapping = new LinkedHashMap<>();
-    for (int idx = 0; idx < rel.getRowType().getFieldList().size(); idx++) {
+    for (int idx : inputFieldsUsed) {
       if (idx < nLeftColumns) {
         final RexInputRef inputRef = RexInputRef.of(idx, leftInput.getRowType().getFieldList());
         final Set<RexNode> originalExprs = mq.getExpressionLineage(leftInput, inputRef);
@@ -206,12 +244,7 @@ public class RelMdExpressionLineage
           // Bail out
           return null;
         }
-        // Gather table references, left input references remain unchanged
-        final Set<RelTableRef> tableRefs =
-            RexUtil.gatherTableReferences(Lists.newArrayList(originalExprs));
-        for (RelTableRef leftRef : tableRefs) {
-          qualifiedNamesToRefs.put(leftRef.getQualifiedName(), leftRef);
-        }
+        // Left input references remain unchanged
         mapping.put(RexInputRef.of(idx, rel.getRowType().getFieldList()), originalExprs);
       } else {
         // Right input.
@@ -222,20 +255,8 @@ public class RelMdExpressionLineage
           // Bail out
           return null;
         }
-        // Gather table references, right input references might need to be
-        // updated if there are table names clashes with left input
-        final Set<RelTableRef> tableRefs =
-            RexUtil.gatherTableReferences(Lists.newArrayList(originalExprs));
-        for (RelTableRef rightRef : tableRefs) {
-          int shift = 0;
-          Collection<RelTableRef> lRefs = qualifiedNamesToRefs.get(
-              rightRef.getQualifiedName());
-          if (lRefs != null) {
-            shift = lRefs.size();
-          }
-          currentTablesMapping.put(rightRef,
-              RelTableRef.of(rightRef.getTable(), shift + rightRef.getEntityNumber()));
-        }
+        // Right input references might need to be updated if there are
+        // table names clashes with left input
         final Set<RexNode> updatedExprs = ImmutableSet.copyOf(
             Iterables.transform(originalExprs, e ->
                 RexUtil.swapTableReferences(rexBuilder, e,
@@ -258,34 +279,40 @@ public class RelMdExpressionLineage
       RexNode outputExpression) {
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
 
+    // Extract input fields referenced by expression
+    final ImmutableBitSet inputFieldsUsed = extractInputRefs(outputExpression);
+
     // Infer column origin expressions for given references
     final Multimap<List<String>, RelTableRef> qualifiedNamesToRefs = HashMultimap.create();
     final Map<RexInputRef, Set<RexNode>> mapping = new LinkedHashMap<>();
     for (RelNode input : rel.getInputs()) {
+      // Gather table references
       final Map<RelTableRef, RelTableRef> currentTablesMapping = new HashMap<>();
-      for (int idx = 0; idx < input.getRowType().getFieldList().size(); idx++) {
+      final Set<RelTableRef> tableRefs = mq.getTableReferences(input);
+      if (tableRefs == null) {
+        // Bail out
+        return null;
+      }
+      for (RelTableRef tableRef : tableRefs) {
+        int shift = 0;
+        Collection<RelTableRef> lRefs = qualifiedNamesToRefs.get(
+            tableRef.getQualifiedName());
+        if (lRefs != null) {
+          shift = lRefs.size();
+        }
+        currentTablesMapping.put(tableRef,
+            RelTableRef.of(tableRef.getTable(), shift + tableRef.getEntityNumber()));
+      }
+      // Map references
+      for (int idx : inputFieldsUsed) {
         final RexInputRef inputRef = RexInputRef.of(idx, input.getRowType().getFieldList());
         final Set<RexNode> originalExprs = mq.getExpressionLineage(input, inputRef);
         if (originalExprs == null) {
           // Bail out
           return null;
         }
-
+        // References might need to be updated
         final RexInputRef ref = RexInputRef.of(idx, rel.getRowType().getFieldList());
-        // Gather table references, references might need to be
-        // updated
-        final Set<RelTableRef> tableRefs =
-            RexUtil.gatherTableReferences(Lists.newArrayList(originalExprs));
-        for (RelTableRef tableRef : tableRefs) {
-          int shift = 0;
-          Collection<RelTableRef> lRefs = qualifiedNamesToRefs.get(
-              tableRef.getQualifiedName());
-          if (lRefs != null) {
-            shift = lRefs.size();
-          }
-          currentTablesMapping.put(tableRef,
-              RelTableRef.of(tableRef.getTable(), shift + tableRef.getEntityNumber()));
-        }
         final Set<RexNode> updatedExprs =
             originalExprs.stream()
                 .map(e ->
@@ -318,10 +345,7 @@ public class RelMdExpressionLineage
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
 
     // Extract input fields referenced by expression
-    final Set<RelDataTypeField> inputExtraFields = new LinkedHashSet<>();
-    final RelOptUtil.InputFinder inputFinder = new RelOptUtil.InputFinder(inputExtraFields);
-    outputExpression.accept(inputFinder);
-    final ImmutableBitSet inputFieldsUsed = inputFinder.inputBitSet.build();
+    final ImmutableBitSet inputFieldsUsed = extractInputRefs(outputExpression);
 
     // Infer column origin expressions for given references
     final Map<RexInputRef, Set<RexNode>> mapping = new LinkedHashMap<>();
@@ -377,10 +401,7 @@ public class RelMdExpressionLineage
   protected static Set<RexNode> createAllPossibleExpressions(RexBuilder rexBuilder,
       RexNode expr, Map<RexInputRef, Set<RexNode>> mapping) {
     // Extract input fields referenced by expression
-    final Set<RelDataTypeField> inputExtraFields = new LinkedHashSet<>();
-    final RelOptUtil.InputFinder inputFinder = new RelOptUtil.InputFinder(inputExtraFields);
-    expr.accept(inputFinder);
-    final ImmutableBitSet predFieldsUsed = inputFinder.inputBitSet.build();
+    final ImmutableBitSet predFieldsUsed = extractInputRefs(expr);
 
     if (predFieldsUsed.isEmpty()) {
       // The unique expression is the input expression
@@ -444,6 +465,12 @@ public class RelMdExpressionLineage
     }
   }
 
+  private static ImmutableBitSet extractInputRefs(RexNode expr) {
+    final Set<RelDataTypeField> inputExtraFields = new LinkedHashSet<>();
+    final RelOptUtil.InputFinder inputFinder = new RelOptUtil.InputFinder(inputExtraFields);
+    expr.accept(inputFinder);
+    return inputFinder.inputBitSet.build();
+  }
 }
 
 // End RelMdExpressionLineage.java

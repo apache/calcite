@@ -63,7 +63,7 @@ public class RelMdTableReferences
 
   //~ Constructors -----------------------------------------------------------
 
-  private RelMdTableReferences() {}
+  protected RelMdTableReferences() {}
 
   //~ Methods ----------------------------------------------------------------
 
