@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
@@ -31,6 +32,7 @@ import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Correlate;
@@ -2076,6 +2078,21 @@ public class RelMetadataTest extends SqlToRelTestBase {
         equalTo("[true, =([CATALOG, SALES, EMP].#1.$0, 5), true]"));
   }
 
+  @Test public void testTableReferencesJoinUnknownNode() {
+    final String sql = "select * from emp limit 10";
+    final RelNode node = convertSql(sql);
+    final RelNode nodeWithUnknown = new DummyRelNode(
+        node.getCluster(), node.getTraitSet(), node);
+    final RexBuilder rexBuilder = node.getCluster().getRexBuilder();
+    // Join
+    final LogicalJoin join =
+        LogicalJoin.create(nodeWithUnknown, node, rexBuilder.makeLiteral(true),
+            ImmutableSet.of(), JoinRelType.INNER);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final Set<RelTableRef> tableReferences = mq.getTableReferences(join);
+    assertNull(tableReferences);
+  }
+
   @Test public void testAllPredicatesUnionMultiTable() {
     final String sql = "select x.sal from\n"
         + "(select a.deptno, a.sal from (select * from emp) as a\n"
@@ -2093,6 +2110,20 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelOptPredicateList inputSet = mq.getAllPredicates(rel);
     assertThat(inputSet.pulledUpPredicates.toString(),
         equalTo("[=([CATALOG, SALES, EMP].#2.$0, 5)]"));
+  }
+
+  @Test public void testTableReferencesUnionUnknownNode() {
+    final String sql = "select * from emp limit 10";
+    final RelNode node = convertSql(sql);
+    final RelNode nodeWithUnknown = new DummyRelNode(
+        node.getCluster(), node.getTraitSet(), node);
+    // Union
+    final LogicalUnion union =
+        LogicalUnion.create(ImmutableList.of(nodeWithUnknown, node),
+            true);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final Set<RelTableRef> tableReferences = mq.getTableReferences(union);
+    assertNull(tableReferences);
   }
 
   private void checkNodeTypeCount(String sql, Map<Class<? extends RelNode>, Integer> expected) {
@@ -2503,6 +2534,19 @@ public class RelMetadataTest extends SqlToRelTestBase {
           colTypeHandler = revise(e.relClass, ColType.DEF);
         }
       }
+    }
+  }
+
+  /**
+   * Dummy rel node used for testing.
+   */
+  private class DummyRelNode extends SingleRel {
+
+    /**
+     * Creates a <code>DummyRelNode</code>.
+     */
+    DummyRelNode(RelOptCluster cluster, RelTraitSet traits, RelNode input) {
+      super(cluster, traits, input);
     }
   }
 }

@@ -108,7 +108,12 @@ public class RelMdTableReferences
 
     // Gather table references, left input references remain unchanged
     final Multimap<List<String>, RelTableRef> leftQualifiedNamesToRefs = HashMultimap.create();
-    for (RelTableRef leftRef : mq.getTableReferences(leftInput)) {
+    final Set<RelTableRef> leftTableRefs = mq.getTableReferences(leftInput);
+    if (leftTableRefs == null) {
+      // We could not infer the table refs from left input
+      return null;
+    }
+    for (RelTableRef leftRef : leftTableRefs) {
       assert !result.contains(leftRef);
       result.add(leftRef);
       leftQualifiedNamesToRefs.put(leftRef.getQualifiedName(), leftRef);
@@ -116,7 +121,12 @@ public class RelMdTableReferences
 
     // Gather table references, right input references might need to be
     // updated if there are table names clashes with left input
-    for (RelTableRef rightRef : mq.getTableReferences(rightInput)) {
+    final Set<RelTableRef> rightTableRefs = mq.getTableReferences(rightInput);
+    if (rightTableRefs == null) {
+      // We could not infer the table refs from right input
+      return null;
+    }
+    for (RelTableRef rightRef : rightTableRefs) {
       int shift = 0;
       Collection<RelTableRef> lRefs = leftQualifiedNamesToRefs.get(rightRef.getQualifiedName());
       if (lRefs != null) {
@@ -145,7 +155,12 @@ public class RelMdTableReferences
     final Multimap<List<String>, RelTableRef> qualifiedNamesToRefs = HashMultimap.create();
     for (RelNode input : rel.getInputs()) {
       final Map<RelTableRef, RelTableRef> currentTablesMapping = new HashMap<>();
-      for (RelTableRef tableRef : mq.getTableReferences(input)) {
+      final Set<RelTableRef> inputTableRefs = mq.getTableReferences(input);
+      if (inputTableRefs == null) {
+        // We could not infer the table refs from input
+        return null;
+      }
+      for (RelTableRef tableRef : inputTableRefs) {
         int shift = 0;
         Collection<RelTableRef> lRefs = qualifiedNamesToRefs.get(
             tableRef.getQualifiedName());
