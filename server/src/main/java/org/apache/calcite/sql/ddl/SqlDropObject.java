@@ -84,6 +84,7 @@ abstract class SqlDropObject extends SqlDrop
             RESOURCE.viewNotFound(name.getSimple()));
       }
       break;
+    case OTHER_DDL:
     default:
       throw new AssertionError(getKind());
     }

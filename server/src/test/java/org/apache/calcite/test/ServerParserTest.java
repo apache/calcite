@@ -130,9 +130,9 @@ public class ServerParserTest extends SqlParserTest {
   }
 
   @Test public void testCreateTableCheck() {
-    final String expected = "CREATE TABLE `X` (`I` INTEGER NOT NULL,"
+    final String expected = "CREATE TABLE `WPL`.`X` (`I` INTEGER NOT NULL,"
         + " CONSTRAINT `C1` CHECK (`I` < 10), `J` INTEGER)";
-    sql("create table x (i int not null, constraint c1 check (i < 10), j int)")
+    sql("create table wpl.x (i int not null, constraint c1 check (i < 10), j int)")
         .ok(expected);
   }
 
@@ -195,10 +195,11 @@ public class ServerParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test public void testCreateFunction() {
-    final String sql = "create function demo_udf as 'org.apache.calcite.udf.TableFun.demoUdf' "
+  @Test public void testCreateOrReplaceFunction() {
+    final String sql = "create or replace function if not exists x.demo_udf as "
+            + "'org.apache.calcite.udf.TableFun.demoUdf' "
             + "using jar 'file:/path/udf/udf-0.0.1-SNAPSHOT.jar'";
-    final String expected = "CREATE FUNCTION `DEMO_UDF` AS "
+    final String expected = "CREATE OR REPLACE FUNCTION IF NOT EXISTS `X`.`DEMO_UDF` AS "
             + "'org.apache.calcite.udf.TableFun.demoUdf' "
             + "USING ('file:/path/udf/udf-0.0.1-SNAPSHOT.jar')";
     sql(sql).ok(expected);
@@ -247,6 +248,12 @@ public class ServerParserTest extends SqlParserTest {
   @Test public void testDropMaterializedViewIfExists() {
     sql("drop materialized view if exists x")
         .ok("DROP MATERIALIZED VIEW IF EXISTS `X`");
+  }
+
+  @Test public void testDropFunction() {
+    final String sql = "drop function if exists  x.demo_udf";
+    final String expected = "DROP FUNCTION IF EXISTS `X`.`DEMO_UDF`";
+    sql(sql).ok(expected);
   }
 
 }
