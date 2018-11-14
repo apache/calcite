@@ -487,8 +487,8 @@ public class GeodeBookstoreTest extends AbstractGeodeTest {
 
   @Test
   public void testInSetFilterWithNestedStringField() {
-    String expectedQuery = "SELECT primaryAddress.city AS city FROM /BookCustomer WHERE primaryAddress.city "
-        + "IN SET('TOPEKA', 'SAN FRANCISCO')";
+    String expectedQuery = "SELECT primaryAddress.city AS city FROM /BookCustomer "
+        + "WHERE primaryAddress.city IN SET('TOPEKA', 'SAN FRANCISCO')";
 
     calciteAssert()
         .query("SELECT primaryAddress['city'] AS city\n"

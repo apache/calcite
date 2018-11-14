@@ -189,12 +189,14 @@ public class GeodeZipsTest extends AbstractGeodeTest {
 
   @Test
   public void testWhereWithOrForStringField() {
+    String expectedQuery = "SELECT state AS state FROM /zips "
+        + "WHERE state IN SET('RI', 'MA')";
     calciteAssert()
         .query("SELECT state as state "
             + "FROM view WHERE state = 'MA' OR state = 'RI'")
         .returnsCount(6)
         .queryContains(
-            GeodeAssertions.query("SELECT state AS state FROM /zips WHERE state IN SET('RI', 'MA')"));
+            GeodeAssertions.query(expectedQuery));
   }
 
   @Test
