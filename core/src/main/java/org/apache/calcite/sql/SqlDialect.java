@@ -33,6 +33,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +45,7 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
@@ -72,6 +74,57 @@ public class SqlDialect {
   @Deprecated // to be removed before 2.0
   public static final SqlDialect CALCITE =
       CalciteSqlDialect.DEFAULT;
+
+  /** Built-in scalar functions and operators common for every dialect. */
+  protected static final Set<SqlOperator> BUILT_IN_OPERATORS_LIST =
+      ImmutableSet.<SqlOperator>builder()
+          .add(SqlStdOperatorTable.ABS)
+          .add(SqlStdOperatorTable.ACOS)
+          .add(SqlStdOperatorTable.AND)
+          .add(SqlStdOperatorTable.ASIN)
+          .add(SqlStdOperatorTable.BETWEEN)
+          .add(SqlStdOperatorTable.CASE)
+          .add(SqlStdOperatorTable.CAST)
+          .add(SqlStdOperatorTable.CEIL)
+          .add(SqlStdOperatorTable.CHAR_LENGTH)
+          .add(SqlStdOperatorTable.CHARACTER_LENGTH)
+          .add(SqlStdOperatorTable.COALESCE)
+          .add(SqlStdOperatorTable.CONCAT)
+          .add(SqlStdOperatorTable.COS)
+          .add(SqlStdOperatorTable.COT)
+          .add(SqlStdOperatorTable.DIVIDE)
+          .add(SqlStdOperatorTable.EQUALS)
+          .add(SqlStdOperatorTable.FLOOR)
+          .add(SqlStdOperatorTable.GREATER_THAN)
+          .add(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL)
+          .add(SqlStdOperatorTable.IN)
+          .add(SqlStdOperatorTable.IS_NOT_NULL)
+          .add(SqlStdOperatorTable.IS_NULL)
+          .add(SqlStdOperatorTable.LESS_THAN)
+          .add(SqlStdOperatorTable.LESS_THAN_OR_EQUAL)
+          .add(SqlStdOperatorTable.LIKE)
+          .add(SqlStdOperatorTable.LN)
+          .add(SqlStdOperatorTable.LOG10)
+          .add(SqlStdOperatorTable.MINUS)
+          .add(SqlStdOperatorTable.MOD)
+          .add(SqlStdOperatorTable.MULTIPLY)
+          .add(SqlStdOperatorTable.NOT)
+          .add(SqlStdOperatorTable.NOT_BETWEEN)
+          .add(SqlStdOperatorTable.NOT_EQUALS)
+          .add(SqlStdOperatorTable.NOT_IN)
+          .add(SqlStdOperatorTable.NOT_LIKE)
+          .add(SqlStdOperatorTable.OR)
+          .add(SqlStdOperatorTable.PI)
+          .add(SqlStdOperatorTable.PLUS)
+          .add(SqlStdOperatorTable.POWER)
+          .add(SqlStdOperatorTable.RAND)
+          .add(SqlStdOperatorTable.ROUND)
+          .add(SqlStdOperatorTable.SIN)
+          .add(SqlStdOperatorTable.SQRT)
+          .add(SqlStdOperatorTable.SUBSTRING)
+          .add(SqlStdOperatorTable.TAN)
+          .build();
+
 
   //~ Instance fields --------------------------------------------------------
 
@@ -588,10 +641,41 @@ public class SqlDialect {
     return true;
   }
 
-  /** Returns whether this dialect supports a given function or operator. */
+  /** Returns whether this dialect supports a given function or operator.
+   * It only applies to built-in scalar functions and operators, since
+   * user-defined functions and procedures should be read by JdbcSchema. */
   public boolean supportsFunction(SqlOperator operator, RelDataType type,
       List<RelDataType> paramTypes) {
-    return true;
+    switch (operator.kind) {
+    case AND:
+    case BETWEEN:
+    case CASE:
+    case CAST:
+    case CEIL:
+    case COALESCE:
+    case DIVIDE:
+    case EQUALS:
+    case FLOOR:
+    case GREATER_THAN:
+    case GREATER_THAN_OR_EQUAL:
+    case IN:
+    case IS_NULL:
+    case IS_NOT_NULL:
+    case LESS_THAN:
+    case LESS_THAN_OR_EQUAL:
+    case MINUS:
+    case MOD:
+    case NOT:
+    case NOT_IN:
+    case NOT_EQUALS:
+    case NVL:
+    case OR:
+    case PLUS:
+    case TIMES:
+      return true;
+    default:
+      return BUILT_IN_OPERATORS_LIST.contains(operator);
+    }
   }
 
   public CalendarPolicy getCalendarPolicy() {
