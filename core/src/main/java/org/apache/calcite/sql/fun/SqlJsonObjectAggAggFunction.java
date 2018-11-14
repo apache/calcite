@@ -16,31 +16,38 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Optionality;
 
+import java.util.Locale;
+import java.util.Objects;
+
 /**
- * The <code>JSON_OBJECTAGG</code> aggregation function.
+ * The <code>JSON_OBJECTAGG</code> aggregate function.
  */
 public class SqlJsonObjectAggAggFunction extends SqlAggFunction {
   private final SqlJsonConstructorNullClause nullClause;
 
+  /** Creates a SqlJsonObjectAggAggFunction. */
   public SqlJsonObjectAggAggFunction(String name,
       SqlJsonConstructorNullClause nullClause) {
     super(name, null, SqlKind.JSON_OBJECTAGG, ReturnTypes.VARCHAR_2000, null,
         OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.ANY),
         SqlFunctionCategory.SYSTEM, false, false, Optionality.FORBIDDEN);
-    this.nullClause = nullClause;
+    this.nullClause = Objects.requireNonNull(nullClause);
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
@@ -51,21 +58,31 @@ public class SqlJsonObjectAggAggFunction extends SqlAggFunction {
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.keyword("VALUE");
     call.operand(1).unparse(writer, leftPrec, rightPrec);
-    switch (nullClause) {
-    case ABSENT_ON_NULL:
-      writer.keyword("ABSENT ON NULL");
-      break;
-    case NULL_ON_NULL:
-      writer.keyword("NULL ON NULL");
-      break;
-    default:
-      throw new IllegalStateException("unreachable code");
-    }
+    writer.keyword(nullClause.sql);
     writer.endFunCall(frame);
   }
 
-  private <E extends Enum<E>> E getEnumValue(SqlNode operand) {
-    return (E) ((SqlLiteral) operand).getValue();
+  @Override public RelDataType deriveType(SqlValidator validator,
+      SqlValidatorScope scope, SqlCall call) {
+    // To prevent operator rewriting by SqlFunction#deriveType.
+    for (SqlNode operand : call.getOperandList()) {
+      RelDataType nodeType = validator.deriveType(scope, operand);
+      ((SqlValidatorImpl) validator).setValidatedNodeType(operand, nodeType);
+    }
+    return validateOperands(validator, scope, call);
+  }
+
+  @Override public String toString() {
+    return getName() + String.format(Locale.ROOT, "<%s>", nullClause);
+  }
+
+  public SqlJsonObjectAggAggFunction with(SqlJsonConstructorNullClause nullClause) {
+    return this.nullClause == nullClause ? this
+        : new SqlJsonObjectAggAggFunction(getName(), nullClause);
+  }
+
+  public SqlJsonConstructorNullClause getNullClause() {
+    return nullClause;
   }
 }
 

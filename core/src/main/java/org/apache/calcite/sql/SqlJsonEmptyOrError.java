@@ -23,10 +23,11 @@ import java.util.Locale;
  * EmptyOrErrorBehavior is invoked.
  */
 public enum SqlJsonEmptyOrError {
-  EMPTY, ERROR;
+  EMPTY,
+  ERROR;
 
   @Override public String toString() {
-    return String.format(Locale.ENGLISH, "SqlJsonEmptyOrError[%s]", name());
+    return String.format(Locale.ROOT, "SqlJsonEmptyOrError[%s]", name());
   }
 }
 

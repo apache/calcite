@@ -2409,7 +2409,7 @@ public class SqlFunctions {
       if (!matcher.matches()) {
         throw RESOURCE.illegalJsonPathSpec(pathSpec).ex();
       }
-      PathMode mode = PathMode.valueOf(matcher.group(1).toUpperCase(Locale.ENGLISH));
+      PathMode mode = PathMode.valueOf(matcher.group(1).toUpperCase(Locale.ROOT));
       String pathWff = matcher.group(2);
       DocumentContext ctx;
       switch (mode) {
@@ -2636,14 +2636,6 @@ public class SqlFunctions {
     }
   }
 
-  public static void jsonObjectAggAddNullOnNull(Map map, String k, Object v) {
-    jsonObjectAggAdd(map, k, v, SqlJsonConstructorNullClause.NULL_ON_NULL);
-  }
-
-  public static void jsonObjectAggAddAbsentOnNull(Map map, String k, Object v) {
-    jsonObjectAggAdd(map, k, v, SqlJsonConstructorNullClause.ABSENT_ON_NULL);
-  }
-
   public static String jsonArray(SqlJsonConstructorNullClause nullClause,
       Object... elements) {
     List<Object> list = new ArrayList<>();
@@ -2668,14 +2660,6 @@ public class SqlFunctions {
     } else {
       list.add(element);
     }
-  }
-
-  public static void jsonArrayAggAddNullOnNull(List list, Object element) {
-    jsonArrayAggAdd(list, element, SqlJsonConstructorNullClause.NULL_ON_NULL);
-  }
-
-  public static void jsonArrayAggAddAbsentOnNull(List list, Object element) {
-    jsonArrayAggAdd(list, element, SqlJsonConstructorNullClause.ABSENT_ON_NULL);
   }
 
   public static boolean isJsonValue(String input) {

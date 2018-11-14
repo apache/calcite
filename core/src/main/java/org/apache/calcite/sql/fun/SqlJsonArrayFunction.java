@@ -67,7 +67,7 @@ public class SqlJsonArrayFunction extends SqlFunction {
     final StringBuilder sb = new StringBuilder();
     sb.append("{0}(");
     for (int i = 1; i < operandsCount; i++) {
-      sb.append(String.format(Locale.ENGLISH, "{%d} ", i + 1));
+      sb.append(String.format(Locale.ROOT, "{%d} ", i + 1));
     }
     sb.append("{1})");
     return sb.toString();

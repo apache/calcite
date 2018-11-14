@@ -254,7 +254,7 @@ public class AggregateCall {
   }
 
   public String toString() {
-    StringBuilder buf = new StringBuilder(aggFunction.getName());
+    StringBuilder buf = new StringBuilder(aggFunction.toString());
     buf.append("(");
     if (distinct) {
       buf.append((argList.size() == 0) ? "DISTINCT" : "DISTINCT ");

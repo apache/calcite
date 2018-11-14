@@ -27,7 +27,7 @@ public enum SqlJsonValueEmptyOrErrorBehavior {
   DEFAULT;
 
   @Override public String toString() {
-    return String.format(Locale.ENGLISH,
+    return String.format(Locale.ROOT,
         "SqlJsonValueEmptyOrErrorBehavior[%s]", name());
   }
 }

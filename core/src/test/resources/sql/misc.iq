@@ -2213,4 +2213,10 @@ X
 true
 !ok
 
+# JSON
+values json_exists('{"foo":"bar"}', 'strict $.foo' false on error);
+EXPR$0
+true
+!ok
+
 # End misc.iq
