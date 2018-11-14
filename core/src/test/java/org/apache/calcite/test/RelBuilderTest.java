@@ -2193,20 +2193,20 @@ public class RelBuilderTest {
     builder.scan("EMP");
 
     // One entry on the stack, a single-node tree
-    final String expected1 = "LogicalTableScan(table=[[scott, EMP]])\n";
+    final String expected1 = "LogicalTableScan(table=[[scott, EMP]])\r\n";
     assertThat(builder.toString(), is(expected1));
 
     // One entry on the stack, a two-node tree
     builder.filter(builder.equals(builder.field(2), builder.literal(3)));
-    final String expected2 = "LogicalFilter(condition=[=($2, 3)])\n"
-        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    final String expected2 = "LogicalFilter(condition=[=($2, 3)])\r\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\r\n";
     assertThat(builder.toString(), is(expected2));
 
     // Two entries on the stack
     builder.scan("DEPT");
-    final String expected3 = "LogicalTableScan(table=[[scott, DEPT]])\n"
-        + "LogicalFilter(condition=[=($2, 3)])\n"
-        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    final String expected3 = "LogicalTableScan(table=[[scott, DEPT]])\r\n"
+        + "LogicalFilter(condition=[=($2, 3)])\r\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\r\n";
     assertThat(builder.toString(), is(expected3));
   }
 
