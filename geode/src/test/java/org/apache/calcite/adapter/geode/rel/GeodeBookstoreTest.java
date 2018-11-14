@@ -100,6 +100,9 @@ public class GeodeBookstoreTest extends AbstractGeodeTest {
 
   @Test
   public void testWhereWithOr() {
+    String expecteQuery = "SELECT author AS author FROM /BookMaster "
+        + "WHERE itemNumber IN SET(123, 789)";
+
     calciteAssert()
         .query("select author from geode.BookMaster "
             + "WHERE itemNumber = 123 OR itemNumber = 789")
@@ -110,8 +113,7 @@ public class GeodeBookstoreTest extends AbstractGeodeTest {
             + "    GeodeFilter(condition=[OR(=(CAST($0):INTEGER, 123), "
             + "=(CAST($0):INTEGER, 789))])\n"
             + "      GeodeTableScan(table=[[geode, BookMaster]])\n")
-        .queryContains(GeodeAssertions.query("SELECT author AS author FROM /BookMaster "
-            + "WHERE itemNumber IN SET(123, 789)"));;
+        .queryContains(GeodeAssertions.query(expecteQuery));
   }
 
   @Test
@@ -457,15 +459,16 @@ public class GeodeBookstoreTest extends AbstractGeodeTest {
 
 
   @Test
-  public void testSqlDisjunciton() throws SQLException {
+  public void testSqlDisjunction() throws SQLException {
+    String expectedQuery = "SELECT author AS author FROM /BookMaster "
+        + "WHERE itemNumber IN SET(123, 789)";
     calciteAssert().query("SELECT author FROM geode.BookMaster "
         + "WHERE itemNumber = 789 OR itemNumber = 123").runs()
-    .queryContains(GeodeAssertions.query("SELECT author AS author FROM /BookMaster "
-        + "WHERE itemNumber IN SET(123, 789)"));
+    .queryContains(GeodeAssertions.query(expectedQuery));
   }
 
   @Test
-  public void testSqlConjunciton() throws SQLException {
+  public void testSqlConjunction() throws SQLException {
     calciteAssert().query("SELECT author FROM geode.BookMaster "
         + "WHERE itemNumber = 789 AND author = 'Jim Heavisides'").runs();
   }
@@ -484,13 +487,15 @@ public class GeodeBookstoreTest extends AbstractGeodeTest {
 
   @Test
   public void testInSetFilterWithNestedStringField() {
+    String expectedQuery = "SELECT primaryAddress.city AS city FROM /BookCustomer WHERE primaryAddress.city "
+        + "IN SET('TOPEKA', 'SAN FRANCISCO')";
+
     calciteAssert()
         .query("SELECT primaryAddress['city'] AS city\n"
             + "FROM geode.BookCustomer\n"
             + "WHERE primaryAddress['city'] = 'TOPEKA' OR primaryAddress['city'] = 'SAN FRANCISCO'\n")
         .returnsCount(3)
-        .queryContains(GeodeAssertions.query("SELECT primaryAddress.city AS city FROM "
-            + "/BookCustomer WHERE primaryAddress.city IN SET('TOPEKA', 'SAN FRANCISCO')"));
+        .queryContains(GeodeAssertions.query(expectedQuery));
   }
 }
 

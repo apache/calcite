@@ -193,8 +193,8 @@ public class GeodeZipsTest extends AbstractGeodeTest {
         .query("SELECT state as state "
             + "FROM view WHERE state = 'MA' OR state = 'RI'")
         .returnsCount(6)
-        .queryContains(GeodeAssertions.query("SELECT state AS state FROM /zips "
-            + "WHERE state IN SET('RI', 'MA')"));
+        .queryContains(
+            GeodeAssertions.query("SELECT state AS state FROM /zips WHERE state IN SET('RI', 'MA')"));
   }
 
   @Test
@@ -203,8 +203,8 @@ public class GeodeZipsTest extends AbstractGeodeTest {
         .query("SELECT pop as pop "
             + "FROM view WHERE pop = 34035 OR pop = 40173")
         .returnsCount(2)
-        .queryContains(GeodeAssertions.query("SELECT pop AS pop FROM /zips "
-            + "WHERE pop IN SET(40173, 34035)"));
+        .queryContains(
+            GeodeAssertions.query("SELECT pop AS pop FROM /zips WHERE pop IN SET(40173, 34035)"));
   }
 
   @Test
@@ -213,8 +213,8 @@ public class GeodeZipsTest extends AbstractGeodeTest {
         .query("SELECT loc[1] as lan "
             + "FROM view WHERE loc[1] = 43 OR loc[1] = 44")
         .returnsCount(2)
-        .queryContains(GeodeAssertions.query("SELECT loc[1] AS lan FROM /zips "
-            + "WHERE loc[1] IN SET(44, 43)"));
+        .queryContains(
+            GeodeAssertions.query("SELECT loc[1] AS lan FROM /zips WHERE loc[1] IN SET(44, 43)"));
   }
 }
 

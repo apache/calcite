@@ -265,26 +265,30 @@ public class GeodeFilter extends Filter implements GeodeRel {
 
       return disjunctions.stream().allMatch(node -> {
         // IN SET query can only be used for EQUALS
-        if (!node.getKind().equals(SqlKind.EQUALS))
+        if (!node.getKind().equals(SqlKind.EQUALS)) {
           return false;
+        }
 
         RexCall call = (RexCall) node;
         final RexNode left = call.operands.get(0);
         final RexNode right = call.operands.get(1);
 
         // The right node should always be literal
-        if (!right.getKind().equals(SqlKind.LITERAL))
+        if (!right.getKind().equals(SqlKind.LITERAL)) {
           return false;
+        }
 
         String name = getLeftNodeFieldName(left);
-        if (name == null)
+        if (name == null) {
           return false;
+        }
 
         leftFieldNameSet.add(name);
 
         // Ensure that left node field name is same for Nodes in disjunctions
-        if (leftFieldNameSet.size() != 1)
+        if (leftFieldNameSet.size() != 1) {
           return false;
+        }
 
         return true;
       });
