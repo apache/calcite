@@ -1796,7 +1796,8 @@ Syntax:
 {% highlight sql %}
 aggregateCall:
       agg '(' [ ALL | DISTINCT ] value [, value ]* ')'
-      [ WITHIN GROUP (ORDER BY orderItem [, orderItem ]*) ]
+      [ WITHIN DISTINCT '(' expression [, expression ]* ')' ]
+      [ WITHIN GROUP '(' ORDER BY orderItem [, orderItem ]* ')' ]
       [ FILTER '(' WHERE condition ')' ]
   |   agg '(' '*' ')' [ FILTER (WHERE condition) ]
 {% endhighlight %}
@@ -1809,6 +1810,9 @@ If `FILTER` is present, the aggregate function only considers rows for which
 
 If `DISTINCT` is present, duplicate argument values are eliminated before being
 passed to the aggregate function.
+
+If `WITHIN DISTINCT` is present, argument values are made distinct within
+each value of specified keys before being passed to the aggregate function.
 
 If `WITHIN GROUP` is present, the aggregate function sorts the input rows
 according to the `ORDER BY` clause inside `WITHIN GROUP` before aggregating

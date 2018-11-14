@@ -28,29 +28,29 @@ import java.util.Objects;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * An operator that applies a sort operation before rows are included in an aggregate function.
+ * An operator that applies a distinct operation before rows are included in an
+ * aggregate function.
  *
- * <p>Operands are as follows:</p>
+ * <p>Operands are as follows:
  *
  * <ul>
  * <li>0: a call to an aggregate function ({@link SqlCall})
- * <li>1: order operation list
+ * <li>1: expressions to make distinct
  * </ul>
  */
-public class SqlWithinGroupOperator extends SqlBinaryOperator {
-
-  public SqlWithinGroupOperator() {
-    super("WITHIN GROUP", SqlKind.WITHIN_GROUP, 100, true, ReturnTypes.ARG0,
-        null, OperandTypes.ANY_IGNORE);
+public class SqlWithinDistinctOperator extends SqlBinaryOperator {
+  public SqlWithinDistinctOperator() {
+    super("WITHIN DISTINCT", SqlKind.WITHIN_DISTINCT, 100, true,
+        ReturnTypes.ARG0, null, OperandTypes.ANY_IGNORE);
   }
 
-  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
     assert call.operandCount() == 2;
     call.operand(0).unparse(writer, 0, 0);
-    writer.keyword("WITHIN GROUP");
+    writer.keyword("WITHIN DISTINCT");
     final SqlWriter.Frame orderFrame =
-        writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY_LIST, "(", ")");
-    writer.keyword("ORDER BY");
+        writer.startList(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, "(", ")");
     call.operand(1).unparse(writer, 0, 0);
     writer.endList(orderFrame);
   }
@@ -62,13 +62,14 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
       SqlValidatorScope operandScope) {
     assert call.getOperator() == this;
     assert call.operandCount() == 2;
-    final SqlValidatorUtil.FlatAggregate flat = SqlValidatorUtil.flatten(call);
+    final SqlValidatorUtil.FlatAggregate flat =
+        SqlValidatorUtil.flatten(call);
     if (!flat.aggregateCall.getOperator().isAggregator()) {
       throw validator.newValidationError(call,
-          RESOURCE.withinGroupNotAllowed(
+          RESOURCE.withinDistinctNotAllowed(
               flat.aggregateCall.getOperator().getName()));
     }
-    for (SqlNode order : Objects.requireNonNull(flat.orderList)) {
+    for (SqlNode order : Objects.requireNonNull(flat.distinctList)) {
       Objects.requireNonNull(validator.deriveType(scope, order));
     }
     validator.validateAggregateParams(flat.aggregateCall, flat.filter,

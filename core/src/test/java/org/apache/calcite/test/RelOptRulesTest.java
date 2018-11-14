@@ -60,6 +60,7 @@ import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rel.rules.AggregateExpandWithinDistinctRule;
 import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
@@ -1519,6 +1520,53 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES)
         .check();
+  }
+
+  /** Tests {@link AggregateExpandWithinDistinctRule}. The generated query
+   * throws if arguments are not functionally dependent on the distinct key. */
+  @Test void testWithinDistinct() {
+    final String sql = "SELECT deptno, SUM(sal), SUM(sal) WITHIN DISTINCT (job)\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
+        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT)
+        .build();
+    sql(sql).with(program).check();
+  }
+
+  /** As {@link #testWithinDistinct()}, but the generated query does not throw
+   * if arguments are not functionally dependent on the distinct key.
+   *
+   * @see AggregateExpandWithinDistinctRule.Config#throwIfNotUnique() */
+  @Test void testWithinDistinctNoThrow() {
+    final String sql = "SELECT deptno, SUM(sal), SUM(sal) WITHIN DISTINCT (job)\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
+        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT
+            .config.withThrowIfNotUnique(false).toRule())
+        .build();
+    sql(sql).with(program).check();
+  }
+
+  /** Tests that {@link AggregateExpandWithinDistinctRule} treats
+   * "COUNT(DISTINCT x)" as if it were "COUNT(x) WITHIN DISTINCT (x)". */
+  @Test void testWithinDistinctCountDistinct() {
+    final String sql = "SELECT deptno,\n"
+        + "  SUM(sal) WITHIN DISTINCT (job) AS ss_j,\n"
+        + "  COUNT(DISTINCT job) cdj,\n"
+        + "  COUNT(job) WITHIN DISTINCT (job) AS cj_j,\n"
+        + "  COUNT(DISTINCT job) WITHIN DISTINCT (job) AS cdj_j\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
+        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT
+            .config.withThrowIfNotUnique(false).toRule())
+        .build();
+    sql(sql).with(program).check();
   }
 
   @Test void testPushProjectPastFilter() {

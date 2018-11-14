@@ -3929,6 +3929,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testWithinDistinct1() {
+    final String sql = "select avg(empno) within distinct (deptno)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
   /** Test case for:
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3310">[CALCITE-3310]
    * Approximate and exact aggregate calls are recognized as the same

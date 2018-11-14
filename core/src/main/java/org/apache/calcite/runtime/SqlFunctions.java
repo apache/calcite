@@ -147,6 +147,18 @@ public class SqlFunctions {
   private SqlFunctions() {
   }
 
+  /** Internal THROW_UNLESS(condition, message) function.
+   *
+   * <p>The method is marked {@link NonDeterministic} to prevent the generator
+   * from storing its value as a constant. */
+  @NonDeterministic
+  public static boolean throwUnless(boolean condition, String message) {
+    if (!condition) {
+      throw new IllegalStateException(message);
+    }
+    return condition;
+  }
+
   /** SQL TO_BASE64(string) function. */
   public static String toBase64(String string) {
     return toBase64_(string.getBytes(UTF_8));

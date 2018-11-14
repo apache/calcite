@@ -925,6 +925,9 @@ public abstract class RelOptUtil {
       if (aggregateCall.filterArg >= 0) {
         allFields.add(aggregateCall.filterArg);
       }
+      if (aggregateCall.distinctKeys != null) {
+        allFields.addAll(aggregateCall.distinctKeys.asList());
+      }
       allFields.addAll(RelCollations.ordinals(aggregateCall.collation));
     }
     return allFields;
@@ -946,8 +949,8 @@ public abstract class RelOptUtil {
     for (int i = 0; i < aggCallCnt; i++) {
       aggCalls.add(
           AggregateCall.create(SqlStdOperatorTable.SINGLE_VALUE, false, false,
-              false, ImmutableList.of(i), -1, RelCollations.EMPTY, 0, rel, null,
-              null));
+              false, ImmutableList.of(i), -1, null, RelCollations.EMPTY, 0, rel,
+              null, null));
     }
 
     return LogicalAggregate.create(rel, ImmutableList.of(), ImmutableBitSet.of(),

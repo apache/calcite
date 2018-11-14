@@ -214,7 +214,7 @@ public class AggregateStarTableRule
       }
       return AggregateCall.create(roll, false, aggregateCall.isApproximate(),
           aggregateCall.ignoreNulls(), ImmutableList.of(offset + i), -1,
-          aggregateCall.collation,
+          aggregateCall.distinctKeys, aggregateCall.collation,
           groupCount, relBuilder.peek(), null, aggregateCall.name);
     }
 
@@ -231,7 +231,7 @@ public class AggregateStarTableRule
       }
       return AggregateCall.create(aggregation, false,
           aggregateCall.isApproximate(), aggregateCall.ignoreNulls(),
-          newArgs, -1, aggregateCall.collation,
+          newArgs, -1, aggregateCall.distinctKeys, aggregateCall.collation,
           groupCount, relBuilder.peek(), null, aggregateCall.name);
     }
 

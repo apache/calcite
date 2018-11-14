@@ -9398,6 +9398,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "NEXT_VALUE -\n"
         + "PATTERN_EXCLUDE -\n"
         + "PATTERN_PERMUTE -\n"
+        + "WITHIN DISTINCT left\n"
         + "WITHIN GROUP left\n"
         + "\n"
         + "PATTERN_QUANTIFIER -\n"

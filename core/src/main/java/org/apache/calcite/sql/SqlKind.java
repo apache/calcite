@@ -209,6 +209,9 @@ public enum SqlKind {
   /** {@code WITHIN GROUP} operator. */
   WITHIN_GROUP,
 
+  /** {@code WITHIN DISTINCT} operator. */
+  WITHIN_DISTINCT,
+
   /** Window specification. */
   WINDOW,
 

@@ -146,7 +146,8 @@ public class AggregateFilterTransposeRule
         topAggCallList.add(
             AggregateCall.create(rollup, aggregateCall.isDistinct(),
                 aggregateCall.isApproximate(), aggregateCall.ignoreNulls(),
-                ImmutableList.of(i++), -1, aggregateCall.collation,
+                ImmutableList.of(i++), -1,
+                aggregateCall.distinctKeys, aggregateCall.collation,
                 aggregateCall.type, aggregateCall.name));
       }
       final Aggregate topAggregate =

@@ -672,7 +672,7 @@ public class DruidRules {
       // Erase references to filters
       for (AggregateCall aggCall : aggregate.getAggCallList()) {
         if ((uniqueFilterRefs.size() == 1
-            && allHaveFilters) // filters get extracted
+                && allHaveFilters) // filters get extracted
             || aggCall.hasFilter()
             && project.getProjects().get(aggCall.filterArg).isAlwaysTrue()) {
           aggCall = aggCall.withFilter(-1);

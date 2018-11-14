@@ -8989,6 +8989,35 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testWithinDistinct() {
+    final String sql = "select col1,\n"
+        + " sum(col2) within distinct (col3 + col4, col5)\n"
+        + "from t\n"
+        + "order by col1 limit 10";
+    final String expected = "SELECT `COL1`,"
+        + " (SUM(`COL2`) WITHIN DISTINCT ((`COL3` + `COL4`), `COL5`))\n"
+        + "FROM `T`\n"
+        + "ORDER BY `COL1`\n"
+        + "FETCH NEXT 10 ROWS ONLY";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testWithinDistinct2() {
+    final String sql = "select col1,\n"
+        + " sum(col2) within distinct (col3 + col4, col5)\n"
+        + "   within group (order by col6 desc)\n"
+        + "   filter (where col7 < col8) as sum2\n"
+        + "from t\n"
+        + "group by col9";
+    final String expected = "SELECT `COL1`,"
+        + " (SUM(`COL2`) WITHIN DISTINCT ((`COL3` + `COL4`), `COL5`))"
+        + " WITHIN GROUP (ORDER BY `COL6` DESC)"
+        + " FILTER (WHERE (`COL7` < `COL8`)) AS `SUM2`\n"
+        + "FROM `T`\n"
+        + "GROUP BY `COL9`";
+    sql(sql).ok(expected);
+  }
+
   @Test void testJsonValueExpressionOperator() {
     expr("foo format json")
         .ok("`FOO` FORMAT JSON");

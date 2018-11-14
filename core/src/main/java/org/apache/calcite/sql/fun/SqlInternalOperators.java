@@ -82,6 +82,11 @@ public abstract class SqlInternalOperators {
         }
       };
 
+  /** "$THROW_UNLESS(condition, message)" throws an error with the given message
+   * if condition is not TRUE, otherwise returns TRUE. */
+  public static final SqlInternalOperator THROW_UNLESS =
+      new SqlInternalOperator("$THROW_UNLESS", SqlKind.OTHER);
+
   /** An IN operator for Druid.
    *
    * <p>Unlike the regular

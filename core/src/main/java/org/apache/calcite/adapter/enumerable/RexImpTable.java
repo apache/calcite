@@ -103,6 +103,7 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.Negate;
 import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
+import static org.apache.calcite.sql.fun.SqlInternalOperators.THROW_UNLESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_AND;
@@ -341,6 +342,7 @@ public class RexImpTable {
 
   @SuppressWarnings("method.invocation.invalid")
   RexImpTable() {
+    defineMethod(THROW_UNLESS, BuiltInMethod.THROW_UNLESS.method, NullPolicy.NONE);
     defineMethod(ROW, BuiltInMethod.ARRAY.method, NullPolicy.NONE);
     defineMethod(UPPER, BuiltInMethod.UPPER.method, NullPolicy.STRICT);
     defineMethod(LOWER, BuiltInMethod.LOWER.method, NullPolicy.STRICT);

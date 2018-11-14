@@ -23,6 +23,9 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+
+import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -69,22 +72,19 @@ public class SqlFilterOperator extends SqlBinaryOperator {
       SqlValidatorScope operandScope) {
     assert call.getOperator() == this;
     assert call.operandCount() == 2;
-    SqlCall aggCall = getAggCall(call);
+    final SqlValidatorUtil.FlatAggregate flat = SqlValidatorUtil.flatten(call);
+    SqlCall aggCall = flat.aggregateCall;
     if (!aggCall.getOperator().isAggregator()) {
       throw validator.newValidationError(aggCall,
           RESOURCE.filterNonAggregate());
     }
-    final SqlNode condition = call.operand(1);
-    SqlNodeList orderList = null;
-    if (hasWithinGroupCall(call)) {
-      SqlCall withinGroupCall = getWithinGroupCall(call);
-      orderList = withinGroupCall.operand(1);
-    }
-    validator.validateAggregateParams(aggCall, condition, orderList, scope);
+    validator.validateAggregateParams(aggCall, flat.filter,
+        flat.distinctList, flat.orderList, scope);
 
-    final RelDataType type = validator.deriveType(scope, condition);
+    final SqlNode filter = Objects.requireNonNull(flat.filter);
+    final RelDataType type = validator.deriveType(scope, filter);
     if (!SqlTypeUtil.inBooleanFamily(type)) {
-      throw validator.newValidationError(condition,
+      throw validator.newValidationError(filter,
           RESOURCE.condMustBeBoolean("FILTER"));
     }
   }
@@ -97,7 +97,8 @@ public class SqlFilterOperator extends SqlBinaryOperator {
     validateOperands(validator, scope, call);
 
     // Assume the first operand is an aggregate call and derive its type.
-    final SqlCall aggCall = getAggCall(call);
+    final SqlValidatorUtil.FlatAggregate flat = SqlValidatorUtil.flatten(call);
+    final SqlCall aggCall = flat.aggregateCall;
 
     // Pretend that group-count is 0. This tells the aggregate function that it
     // might be invoked with 0 rows in a group. Most aggregate functions will
@@ -111,35 +112,18 @@ public class SqlFilterOperator extends SqlBinaryOperator {
     RelDataType ret = aggCall.getOperator().inferReturnType(opBinding);
 
     // Copied from validateOperands
-    ((SqlValidatorImpl) validator).setValidatedNodeType(call, ret);
-    ((SqlValidatorImpl) validator).setValidatedNodeType(aggCall, ret);
-    if (hasWithinGroupCall(call)) {
-      ((SqlValidatorImpl) validator).setValidatedNodeType(getWithinGroupCall(call), ret);
+    final SqlValidatorImpl validator1 = (SqlValidatorImpl) validator;
+    validator1.setValidatedNodeType(call, ret);
+    validator1.setValidatedNodeType(aggCall, ret);
+    if (flat.distinctList != null) {
+      validator1.setValidatedNodeType(
+          Objects.requireNonNull(flat.distinctCall), ret);
+    }
+    if (flat.orderList != null) {
+      validator1.setValidatedNodeType(
+          Objects.requireNonNull(flat.orderCall), ret);
     }
     return ret;
   }
 
-  private static SqlCall getAggCall(SqlCall call) {
-    assert call.getOperator().getKind() == SqlKind.FILTER;
-    call = call.operand(0);
-    if (call.getOperator().getKind() == SqlKind.WITHIN_GROUP) {
-      call = call.operand(0);
-    }
-    return call;
-  }
-
-  private static SqlCall getWithinGroupCall(SqlCall call) {
-    assert call.getOperator().getKind() == SqlKind.FILTER;
-    call = call.operand(0);
-    if (call.getOperator().getKind() == SqlKind.WITHIN_GROUP) {
-      return call;
-    }
-    throw new AssertionError();
-  }
-
-  private static boolean hasWithinGroupCall(SqlCall call) {
-    assert call.getOperator().getKind() == SqlKind.FILTER;
-    call = call.operand(0);
-    return call.getOperator().getKind() == SqlKind.WITHIN_GROUP;
-  }
 }

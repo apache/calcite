@@ -1949,7 +1949,7 @@ public class SubstitutionVisitor {
                 AggregateCall.create(aggregateCall.getAggregation(),
                     aggregateCall.isDistinct(), aggregateCall.isApproximate(),
                     aggregateCall.ignoreNulls(),
-                    ImmutableList.of(newIndex), -1,
+                    ImmutableList.of(newIndex), -1, aggregateCall.distinctKeys,
                     aggregateCall.collation, aggregateCall.type,
                     aggregateCall.name));
             continue;
@@ -1971,8 +1971,8 @@ public class SubstitutionVisitor {
                 aggregateCall.isDistinct(), aggregateCall.isApproximate(),
                 aggregateCall.ignoreNulls(),
                 ImmutableList.of(target.groupSet.cardinality() + i), -1,
-                aggregateCall.collation, aggregateCall.type,
-                aggregateCall.name));
+                aggregateCall.distinctKeys, aggregateCall.collation,
+                aggregateCall.type, aggregateCall.name));
       }
       if (targetCond != null && !targetCond.isAlwaysTrue()) {
         RexProgram compenRexProgram = RexProgram.create(

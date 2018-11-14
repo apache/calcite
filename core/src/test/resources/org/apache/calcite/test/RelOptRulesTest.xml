@@ -8670,6 +8670,29 @@ LogicalProject(EXPR$0=[1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSwapOuterJoinFieldAccess">
+        <Resource name="sql">
+            <![CDATA[select t1.name, e.ename
+from DEPT_NESTED as t1 left outer join sales.emp e
+ on t1.skill.type = e.job]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(NAME=[$1], ENAME=[$5])
+  LogicalJoin(condition=[=($2.TYPE, $6)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(NAME=[$10], ENAME=[$1])
+  LogicalJoin(condition=[=($11.TYPE, $2)], joinType=[right])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testDistinctCountMultipleViaJoin">
         <Resource name="sql">
             <![CDATA[select deptno, count(distinct ename),
@@ -13057,7 +13080,7 @@ LogicalProject(DEPTNO=[$0])
       LogicalProject(EMPNO=[$0])
         LogicalTableScan(table=[[scott, EMP]])
 ]]>
-    </Resource>
+        </Resource>
     </TestCase>
     <TestCase name="testSimplifyItemIsNotNull">
         <Resource name="sql">
@@ -13085,26 +13108,79 @@ LogicalProject(**=[$1])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testSwapOuterJoinFieldAccess">
+    <TestCase name="testWithinDistinctNoThrow">
         <Resource name="sql">
-            <![CDATA[select t1.name, e.ename
-from DEPT_NESTED as t1 left outer join sales.emp e
- on t1.skill.type = e.job]]>
+            <![CDATA[SELECT deptno, SUM(sal), SUM(sal) WITHIN DISTINCT (job)
+FROM emp
+GROUP BY deptno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-LogicalProject(NAME=[$1], ENAME=[$5])
-  LogicalJoin(condition=[=($2.TYPE, $6)], joinType=[left])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[SUM($1) WITHIN DISTINCT ($2)])
+  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(NAME=[$10], ENAME=[$1])
-  LogicalJoin(condition=[=($11.TYPE, $2)], joinType=[right])
+LogicalProject(DEPTNO=[$0], $f1=[CAST($1):INTEGER NOT NULL], $f2=[$2])
+  LogicalAggregate(group=[{0}], agg#0=[MIN($1) FILTER $3], agg#1=[$SUM0($2) FILTER $4])
+    LogicalProject(DEPTNO=[$0], $f2=[$2], $f3=[$3], $f5=[=($4, 1)], $f6=[=($4, 0)])
+      LogicalAggregate(group=[{0, 2}], groups=[[{0, 2}, {0}]], agg#0=[$SUM0($1)], agg#1=[MIN($1)], agg#2=[GROUPING($0, $2)])
+        LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testWithinDistinctCountDistinct">
+        <Resource name="sql">
+            <![CDATA[SELECT deptno,
+  SUM(sal) WITHIN DISTINCT (job) AS ss_j,
+  COUNT(DISTINCT job) cdj,
+  COUNT(job) WITHIN DISTINCT (job) AS cj_j,
+  COUNT(DISTINCT job) WITHIN DISTINCT (job) AS cdj_j
+FROM emp
+GROUP BY deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0}], SS_J=[SUM($1) WITHIN DISTINCT ($2)], CDJ=[COUNT(DISTINCT $2)], CJ_J=[COUNT() WITHIN DISTINCT ($2)], CDJ_J=[COUNT(DISTINCT $2) WITHIN DISTINCT ($2)])
+  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], $f1=[$1], $f2=[$2], $f20=[$2], $f21=[$2])
+  LogicalAggregate(group=[{0}], agg#0=[$SUM0($1) FILTER $2], agg#1=[COUNT() FILTER $2])
+    LogicalProject(DEPTNO=[$0], $f2=[$2], $f4=[=($3, 0)])
+      LogicalAggregate(group=[{0, 2}], groups=[[{0, 2}, {0}]], agg#0=[MIN($1)], agg#1=[GROUPING($0, $2)])
+        LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testWithinDistinct">
+        <Resource name="sql">
+            <![CDATA[SELECT deptno, SUM(sal), SUM(sal) WITHIN DISTINCT (job)
+FROM emp
+GROUP BY deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[SUM($1) WITHIN DISTINCT ($2)])
+  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], $f1=[CAST($1):INTEGER NOT NULL], $f2=[$2])
+  LogicalAggregate(group=[{0}], agg#0=[MIN($1) FILTER $3], agg#1=[$SUM0($2) FILTER $4])
+    LogicalProject(DEPTNO=[$0], $f2=[$2], $f3=[$3], $f6=[=($5, 1)], $f7=[AND(=($5, 0), $THROW_UNLESS(OR(<>($5, 0), =($3, $4)), 'more than one distinct value in agg UNIQUE_VALUE'))])
+      LogicalAggregate(group=[{0, 2}], groups=[[{0, 2}, {0}]], agg#0=[$SUM0($1)], agg#1=[MIN($1)], agg#2=[MAX($1)], agg#3=[GROUPING($0, $2)])
+        LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>

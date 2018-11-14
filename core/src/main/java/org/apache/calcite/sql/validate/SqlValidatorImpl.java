@@ -5357,7 +5357,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     targetWindow.setWindowCall(null);
     call.validate(this, scope);
 
-    validateAggregateParams(call, null, null, scope);
+    validateAggregateParams(call, null, null, null, scope);
 
     // Disable nested aggregates post validation
     inWindow = false;
@@ -5840,7 +5840,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return node;
   }
 
-  @Override public void validateAggregateParams(SqlCall aggCall, @Nullable SqlNode filter,
+  @Override public void validateAggregateParams(SqlCall aggCall,
+      @Nullable SqlNode filter, @Nullable SqlNodeList distinctList,
       @Nullable SqlNodeList orderList, SqlValidatorScope scope) {
     // For "agg(expr)", expr cannot itself contain aggregate function
     // invocations.  For example, "SUM(2 * MAX(x))" is illegal; when
@@ -5873,6 +5874,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (filter != null) {
       if (a.findAgg(filter) != null) {
         throw newValidationError(filter, RESOURCE.aggregateInFilterIllegal());
+      }
+    }
+    if (distinctList != null) {
+      for (SqlNode param : distinctList) {
+        if (a.findAgg(param) != null) {
+          throw newValidationError(aggCall,
+              RESOURCE.aggregateInWithinDistinctIllegal());
+        }
       }
     }
     if (orderList != null) {
@@ -5922,7 +5931,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // For example, "LOCALTIME()" is illegal. (It should be
       // "LOCALTIME", which would have been handled as a
       // SqlIdentifier.)
-      throw handleUnresolvedFunction(call, (SqlFunction) operator,
+      throw handleUnresolvedFunction(call, operator,
           ImmutableList.of(), null);
     }
 

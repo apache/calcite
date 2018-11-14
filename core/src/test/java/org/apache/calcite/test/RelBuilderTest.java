@@ -1751,6 +1751,24 @@ public class RelBuilderTest {
         .build();
   }
 
+  @Test void testWithinDistinct() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .aggregate(builder.groupKey(),
+                builder.avg(builder.field("SAL"))
+                    .as("g"),
+                builder.avg(builder.field("SAL"))
+                    .unique(builder.field("DEPTNO"))
+                    .as("g2"))
+            .build();
+    final String expected = ""
+        + "LogicalAggregate(group=[{}], g=[AVG($5)],"
+        + " g2=[AVG($5) WITHIN DISTINCT ($7)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
   @Test void testDistinct() {
     // Equivalent SQL:
     //   SELECT DISTINCT deptno

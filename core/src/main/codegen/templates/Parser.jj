@@ -6642,20 +6642,35 @@ SqlCall MatchRecognizeNavigationPhysical() :
     }
 }
 
+SqlCall withinDistinct(SqlNode arg) :
+{
+    final Span s;
+    final SqlNodeList distinctList;
+}
+{
+    <WITHIN> { s = span(); }
+    <DISTINCT>
+    <LPAREN>
+    distinctList = ExpressionCommaList(s, ExprContext.ACCEPT_SUB_QUERY)
+    <RPAREN> {
+        return SqlStdOperatorTable.WITHIN_DISTINCT.createCall(
+            s.end(this), arg, distinctList);
+    }
+}
+
 SqlCall withinGroup(SqlNode arg) :
 {
-    final Span withinGroupSpan;
+    final Span s;
     final SqlNodeList orderList;
 }
 {
-
-    <WITHIN> { withinGroupSpan = span(); }
+    <WITHIN> { s = span(); }
     <GROUP>
     <LPAREN>
     orderList = OrderBy(true)
     <RPAREN> {
         return SqlStdOperatorTable.WITHIN_GROUP.createCall(
-            withinGroupSpan.end(this), arg, orderList);
+            s.end(this), arg, orderList);
     }
 }
 
@@ -6714,6 +6729,10 @@ SqlNode NamedFunctionCall() :
     )
     [
         LOOKAHEAD(2) call = nullTreatment(call)
+    ]
+    [
+        LOOKAHEAD(2) // decide between WITHIN DISTINCT and WITHIN GROUP
+        call = withinDistinct(call)
     ]
     [
         call = withinGroup(call)

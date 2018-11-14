@@ -1213,10 +1213,11 @@ public class SqlToRelConverter {
                 null,
                 ImmutableList.of(
                     AggregateCall.create(SqlStdOperatorTable.COUNT, false,
-                        false, false, ImmutableList.of(), -1, RelCollations.EMPTY,
-                        longType, null),
+                        false, false, ImmutableList.of(), -1, null,
+                        RelCollations.EMPTY, longType, null),
                     AggregateCall.create(SqlStdOperatorTable.COUNT, false,
-                        false, false, args, -1, RelCollations.EMPTY, longType, null)));
+                        false, false, args, -1, null,
+                        RelCollations.EMPTY, longType, null)));
         LogicalJoin join =
             LogicalJoin.create(bb.root(), aggregate, ImmutableList.of(),
                 rexBuilder.makeLiteral(true), ImmutableSet.of(), JoinRelType.INNER);
@@ -5224,6 +5225,7 @@ public class SqlToRelConverter {
         if (window == null
             && (op.isAggregator()
             || op.getKind() == SqlKind.FILTER
+            || op.getKind() == SqlKind.WITHIN_DISTINCT
             || op.getKind() == SqlKind.WITHIN_GROUP)) {
           return requireNonNull(agg.lookupAggregates(call),
               () -> "agg.lookupAggregates for call " + call);
@@ -5487,6 +5489,7 @@ public class SqlToRelConverter {
       case FILTER:
       case IGNORE_NULLS:
       case RESPECT_NULLS:
+      case WITHIN_DISTINCT:
       case WITHIN_GROUP:
         translateAgg(call);
         return null;
@@ -5540,11 +5543,12 @@ public class SqlToRelConverter {
     }
 
     private void translateAgg(SqlCall call) {
-      translateAgg(call, null, null, false, call);
+      translateAgg(call, null, null, null, false, call);
     }
 
     private void translateAgg(SqlCall call, @Nullable SqlNode filter,
-        @Nullable SqlNodeList orderList, boolean ignoreNulls, SqlCall outerCall) {
+        @Nullable SqlNodeList distinctList, @Nullable SqlNodeList orderList,
+        boolean ignoreNulls, SqlCall outerCall) {
       assert bb.agg == this;
       assert outerCall != null;
       final List<SqlNode> operands = call.getOperandList();
@@ -5553,20 +5557,25 @@ public class SqlToRelConverter {
       switch (call.getKind()) {
       case FILTER:
         assert filter == null;
-        translateAgg(call.operand(0), call.operand(1), orderList, ignoreNulls,
-            outerCall);
+        translateAgg(call.operand(0), call.operand(1), distinctList, orderList,
+            ignoreNulls, outerCall);
+        return;
+      case WITHIN_DISTINCT:
+        assert orderList == null;
+        translateAgg(call.operand(0), filter, call.operand(1), orderList,
+            ignoreNulls, outerCall);
         return;
       case WITHIN_GROUP:
         assert orderList == null;
-        translateAgg(call.operand(0), filter, call.operand(1), ignoreNulls,
-            outerCall);
+        translateAgg(call.operand(0), filter, distinctList, call.operand(1),
+            ignoreNulls, outerCall);
         return;
       case IGNORE_NULLS:
         ignoreNulls = true;
         // fall through
       case RESPECT_NULLS:
-        translateAgg(call.operand(0), filter, orderList, ignoreNulls,
-            outerCall);
+        translateAgg(call.operand(0), filter, distinctList, orderList,
+            ignoreNulls, outerCall);
         return;
 
       case COUNTIF:
@@ -5575,7 +5584,8 @@ public class SqlToRelConverter {
         call2 =
             SqlStdOperatorTable.COUNT.createCall(pos, SqlIdentifier.star(pos));
         final SqlNode filter2 = SqlUtil.andExpressions(filter, call.operand(0));
-        translateAgg(call2, filter2, orderList, ignoreNulls, outerCall);
+        translateAgg(call2, filter2, distinctList, orderList, ignoreNulls,
+            outerCall);
         return;
 
       case STRING_AGG:
@@ -5593,7 +5603,8 @@ public class SqlToRelConverter {
         call2 =
             SqlStdOperatorTable.LISTAGG.createCall(
                 call.getFunctionQuantifier(), pos, operands2);
-        translateAgg(call2, filter, orderList, ignoreNulls, outerCall);
+        translateAgg(call2, filter, distinctList, orderList, ignoreNulls,
+            outerCall);
         return;
 
       case GROUP_CONCAT:
@@ -5623,7 +5634,8 @@ public class SqlToRelConverter {
         call2 =
             SqlStdOperatorTable.LISTAGG.createCall(
                 call.getFunctionQuantifier(), pos, operands2);
-        translateAgg(call2, filter, orderList, ignoreNulls, outerCall);
+        translateAgg(call2, filter, distinctList, orderList, ignoreNulls,
+            outerCall);
         return;
 
       case ARRAY_AGG:
@@ -5637,7 +5649,8 @@ public class SqlToRelConverter {
           call2 =
               call.getOperator().createCall(
                   call.getFunctionQuantifier(), pos, Util.skipLast(operands));
-          translateAgg(call2, filter, orderList, ignoreNulls, outerCall);
+          translateAgg(call2, filter, distinctList, orderList, ignoreNulls,
+              outerCall);
           return;
         }
         // "ARRAY_AGG" and "ARRAY_CONCAT_AGG" without "ORDER BY"
@@ -5648,6 +5661,7 @@ public class SqlToRelConverter {
       }
       final List<Integer> args = new ArrayList<>();
       int filterArg = -1;
+      final ImmutableBitSet distinctKeys;
       try {
         // switch out of agg mode
         bb.agg = null;
@@ -5673,6 +5687,19 @@ public class SqlToRelConverter {
                 rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE, convertedExpr);
           }
           filterArg = lookupOrCreateGroupExpr(convertedExpr);
+        }
+
+        if (distinctList == null) {
+          distinctKeys = null;
+        } else {
+          final ImmutableBitSet.Builder distinctBuilder =
+              ImmutableBitSet.builder();
+          for (SqlNode distinct : distinctList) {
+            RexNode e = bb.convertExpression(distinct);
+            assert e != null;
+            distinctBuilder.set(lookupOrCreateGroupExpr(e));
+          }
+          distinctKeys = distinctBuilder.build();
         }
       } finally {
         // switch back into agg mode
@@ -5719,6 +5746,7 @@ public class SqlToRelConverter {
               ignoreNulls,
               args,
               filterArg,
+              distinctKeys,
               collation,
               type,
               nameMap.get(outerCall.toString()));
@@ -6050,6 +6078,7 @@ public class SqlToRelConverter {
   private static class AggregateFinder extends SqlBasicVisitor<Void> {
     final SqlNodeList list = new SqlNodeList(SqlParserPos.ZERO);
     final SqlNodeList filterList = new SqlNodeList(SqlParserPos.ZERO);
+    final SqlNodeList distinctList = new SqlNodeList(SqlParserPos.ZERO);
     final SqlNodeList orderList = new SqlNodeList(SqlParserPos.ZERO);
 
     @Override public Void visit(SqlCall call) {
@@ -6068,9 +6097,16 @@ public class SqlToRelConverter {
         return null;
       }
 
+      if (call.getOperator().getKind() == SqlKind.WITHIN_DISTINCT) {
+        final SqlNode aggCall = call.getOperandList().get(0);
+        final SqlNodeList distinctList =
+            (SqlNodeList) call.getOperandList().get(1);
+        list.add(aggCall);
+        distinctList.getList().forEach(this.distinctList::add);
+        return null;
+      }
+
       if (call.getOperator().getKind() == SqlKind.WITHIN_GROUP) {
-        // the WHERE in a WITHIN_GROUP must be tracked too so we can call replaceSubQueries on it.
-        // see https://issues.apache.org/jira/browse/CALCITE-1910
         final SqlNode aggCall = call.getOperandList().get(0);
         final SqlNodeList orderList = (SqlNodeList) call.getOperandList().get(1);
         list.add(aggCall);

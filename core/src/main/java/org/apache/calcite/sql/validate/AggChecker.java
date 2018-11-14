@@ -157,6 +157,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
     case WITHIN_GROUP:
     case RESPECT_NULLS:
     case IGNORE_NULLS:
+    case WITHIN_DISTINCT:
       call.operand(0).accept(this);
       return null;
     default:
