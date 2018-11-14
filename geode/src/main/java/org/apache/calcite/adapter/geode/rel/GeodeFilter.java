@@ -29,12 +29,15 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.apache.calcite.sql.type.SqlTypeName.BOOLEAN_TYPES;
 import static org.apache.calcite.sql.type.SqlTypeName.CHAR;
@@ -111,6 +114,8 @@ public class GeodeFilter extends Filter implements GeodeRel {
       List<RexNode> disjunctions = RelOptUtil.disjunctions(condition);
       if (disjunctions.size() == 1) {
         return translateAnd(disjunctions.get(0));
+      } else if (useInSetQueryClause(disjunctions)) {
+        return translateInSet(disjunctions);
       } else {
         return translateOr(disjunctions);
       }
@@ -232,6 +237,80 @@ public class GeodeFilter extends Filter implements GeodeRel {
         valueString = "'" + valueString + "'";
       }
       return name + " " + op + " " + valueString;
+    }
+
+    /**
+     *  Get the field name for the left node to use for IN SET query
+     */
+    private String getLeftNodeFieldName(RexNode left) {
+      switch (left.getKind()) {
+      case INPUT_REF:
+        final RexInputRef left1 = (RexInputRef) left;
+        return fieldNames.get(left1.getIndex());
+      case CAST:
+        // FIXME This will not work in all cases (for example, we ignore string encoding)
+        return getLeftNodeFieldName(((RexCall) left).operands.get(0));
+      case OTHER_FUNCTION:
+        return left.accept(new GeodeRules.RexToGeodeTranslator(this.fieldNames));
+      default:
+        return null;
+      }
+    }
+
+    /**
+     *  Check if we can use IN SET Query clause to improve query performance
+     */
+    private boolean useInSetQueryClause(List<RexNode> disjunctions) {
+      Set<String> leftFieldNameSet = new HashSet<>();
+
+      return disjunctions.stream().allMatch(node -> {
+        // IN SET query can only be used for EQUALS
+        if (!node.getKind().equals(SqlKind.EQUALS))
+          return false;
+
+        RexCall call = (RexCall) node;
+        final RexNode left = call.operands.get(0);
+        final RexNode right = call.operands.get(1);
+
+        // The right node should always be literal
+        if (!right.getKind().equals(SqlKind.LITERAL))
+          return false;
+
+        String name = getLeftNodeFieldName(left);
+        if (name == null)
+          return false;
+
+        leftFieldNameSet.add(name);
+
+        // Ensure that left node field name is same for Nodes in disjunctions
+        if (leftFieldNameSet.size() != 1)
+          return false;
+
+        return true;
+      });
+    }
+
+    /**
+     * Creates OQL IN SET predicate string
+     */
+    private String translateInSet(List<RexNode> disjunctions) {
+      RexNode firstNode = disjunctions.get(0);
+      RexCall firstCall = (RexCall) firstNode;
+
+      final RexNode left = firstCall.operands.get(0);
+      String name = getLeftNodeFieldName(left);
+
+      Set<String> rightLiteralValueList = new HashSet<>();
+
+      disjunctions.forEach(node -> {
+        RexCall call = (RexCall) node;
+        RexLiteral rightLiteral = (RexLiteral) call.operands.get(1);
+
+        rightLiteralValueList.add(quoteCharLiteral(rightLiteral));
+      });
+
+      return String.format("%s IN SET(%S)", name,
+          Util.toString(rightLiteralValueList, "", ", ", ""));
     }
   }
 }
