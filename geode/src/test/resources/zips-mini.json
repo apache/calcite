@@ -6,8 +6,8 @@
 { "_id" : "02895", "city" : "NORTH SMITHFIELD", "loc" : [ -71.513683, 41.99948 ], "pop" : 53733, "state" : "RI" }
 { "_id" : "03060", "city" : "NASHUA", "loc" : [ -71.466684, 42.756395 ], "pop" : 41438, "state" : "NH" }
 { "_id" : "03103", "city" : "MANCHESTER", "loc" : [ -71.449325, 42.965563 ], "pop" : 36613, "state" : "NH" }
-{ "_id" : "03301", "city" : "CONCORD", "loc" : [ -71.527734, 43.218525 ], "pop" : 34035, "state" : "NH" }
-{ "_id" : "04240", "city" : "LEWISTON", "loc" : [ -70.191619, 44.098538 ], "pop" : 40173, "state" : "ME" }
+{ "_id" : "03301", "city" : "CONCORD", "loc" : [ -71.527734, 43 ], "pop" : 34035, "state" : "NH" }
+{ "_id" : "04240", "city" : "LEWISTON", "loc" : [ -70.191619, 44 ], "pop" : 40173, "state" : "ME" }
 { "_id" : "04401", "city" : "BANGOR", "loc" : [ -68.791839, 44.824199 ], "pop" : 40434, "state" : "ME" }
 { "_id" : "05301", "city" : "BRATTLEBORO", "loc" : [ -72.593322, 42.857353 ], "pop" : 17522, "state" : "VT" }
 { "_id" : "05401", "city" : "BURLINGTON", "loc" : [ -73.219875, 44.484023 ], "pop" : 39127, "state" : "VT" }
