@@ -265,7 +265,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
 
       return disjunctions.stream().allMatch(node -> {
         // IN SET query can only be used for EQUALS
-        if (!node.getKind().equals(SqlKind.EQUALS)) {
+        if (node.getKind() != SqlKind.EQUALS) {
           return false;
         }
 
@@ -274,7 +274,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
         final RexNode right = call.operands.get(1);
 
         // The right node should always be literal
-        if (!right.getKind().equals(SqlKind.LITERAL)) {
+        if (right.getKind() != SqlKind.LITERAL) {
           return false;
         }
 
@@ -313,8 +313,14 @@ public class GeodeFilter extends Filter implements GeodeRel {
         rightLiteralValueList.add(quoteCharLiteral(rightLiteral));
       });
 
-      return String.format("%s IN SET(%S)", name,
-          Util.toString(rightLiteralValueList, "", ", ", ""));
+      final StringBuilder stringBuilder = new StringBuilder();
+
+      stringBuilder.append(name);
+      stringBuilder.append(" IN SET(");
+      stringBuilder.append(Util.toString(rightLiteralValueList, "", ", ", ""));
+      stringBuilder.append(")");
+
+      return stringBuilder.toString();
     }
   }
 }
