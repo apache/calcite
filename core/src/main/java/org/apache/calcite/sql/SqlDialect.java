@@ -33,6 +33,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +45,7 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
@@ -72,6 +74,92 @@ public class SqlDialect {
   @Deprecated // to be removed before 2.0
   public static final SqlDialect CALCITE =
       CalciteSqlDialect.DEFAULT;
+
+  /** Operators supported by default. */
+  protected static final Set<SqlOperator> DEFAULT_OPERATORS_LIST =
+      ImmutableSet.<SqlOperator>builder()
+          .add(SqlStdOperatorTable.ABS)
+          .add(SqlStdOperatorTable.ACOS)
+          .add(SqlStdOperatorTable.AND)
+          .add(SqlStdOperatorTable.ANY_VALUE)
+          .add(SqlStdOperatorTable.ASIN)
+          .add(SqlStdOperatorTable.AVG)
+          .add(SqlStdOperatorTable.BETWEEN)
+          .add(SqlStdOperatorTable.CASE)
+          .add(SqlStdOperatorTable.CAST)
+          .add(SqlStdOperatorTable.CEIL)
+          .add(SqlStdOperatorTable.CHAR_LENGTH)
+          .add(SqlStdOperatorTable.CHARACTER_LENGTH)
+          .add(SqlStdOperatorTable.COALESCE)
+          .add(SqlStdOperatorTable.CONCAT)
+          .add(SqlStdOperatorTable.CONVERT)
+          .add(SqlStdOperatorTable.COS)
+          .add(SqlStdOperatorTable.COT)
+          .add(SqlStdOperatorTable.CURRENT_DATE)
+          .add(SqlStdOperatorTable.CURRENT_TIME)
+          .add(SqlStdOperatorTable.CURRENT_TIMESTAMP)
+          .add(SqlStdOperatorTable.DAYOFMONTH)
+          .add(SqlStdOperatorTable.DAYOFWEEK)
+          .add(SqlStdOperatorTable.DAYOFYEAR)
+          .add(SqlStdOperatorTable.DEGREES)
+          .add(SqlStdOperatorTable.DIVIDE)
+          .add(SqlStdOperatorTable.EQUALS)
+          .add(SqlStdOperatorTable.EXP)
+          .add(SqlStdOperatorTable.EXTRACT)
+          .add(SqlStdOperatorTable.FLOOR)
+          .add(SqlStdOperatorTable.GREATER_THAN)
+          .add(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL)
+          .add(SqlStdOperatorTable.GROUPING)
+          .add(SqlStdOperatorTable.HOUR)
+          .add(SqlStdOperatorTable.IN)
+          .add(SqlStdOperatorTable.IS_FALSE)
+          .add(SqlStdOperatorTable.IS_NOT_TRUE)
+          .add(SqlStdOperatorTable.IS_TRUE)
+          .add(SqlStdOperatorTable.IS_NOT_FALSE)
+          .add(SqlStdOperatorTable.IS_NOT_NULL)
+          .add(SqlStdOperatorTable.IS_NULL)
+          .add(SqlStdOperatorTable.LAST)
+          .add(SqlStdOperatorTable.LESS_THAN)
+          .add(SqlStdOperatorTable.LESS_THAN_OR_EQUAL)
+          .add(SqlStdOperatorTable.LIKE)
+          .add(SqlStdOperatorTable.LN)
+          .add(SqlStdOperatorTable.LOG10)
+          .add(SqlStdOperatorTable.LOWER)
+          .add(SqlStdOperatorTable.MINUS)
+          .add(SqlStdOperatorTable.MINUTE)
+          .add(SqlStdOperatorTable.MOD)
+          .add(SqlStdOperatorTable.MONTH)
+          .add(SqlStdOperatorTable.MULTIPLY)
+          .add(SqlStdOperatorTable.NOT)
+          .add(SqlStdOperatorTable.NOT_BETWEEN)
+          .add(SqlStdOperatorTable.NOT_EQUALS)
+          .add(SqlStdOperatorTable.NOT_IN)
+          .add(SqlStdOperatorTable.NOT_LIKE)
+          .add(SqlStdOperatorTable.NULLIF)
+          .add(SqlStdOperatorTable.OR)
+          .add(SqlStdOperatorTable.PI)
+          .add(SqlStdOperatorTable.PLUS)
+          .add(SqlStdOperatorTable.POSITION)
+          .add(SqlStdOperatorTable.POWER)
+          .add(SqlStdOperatorTable.QUARTER)
+          .add(SqlStdOperatorTable.RADIANS)
+          .add(SqlStdOperatorTable.RAND)
+          .add(SqlStdOperatorTable.REPLACE)
+          .add(SqlStdOperatorTable.ROUND)
+          .add(SqlStdOperatorTable.SECOND)
+          .add(SqlStdOperatorTable.SIN)
+          .add(SqlStdOperatorTable.SQRT)
+          .add(SqlStdOperatorTable.SUBSTRING)
+          .add(SqlStdOperatorTable.TAN)
+          .add(SqlStdOperatorTable.TRIM)
+          .add(SqlStdOperatorTable.TRUNCATE)
+          .add(SqlStdOperatorTable.UNARY_MINUS)
+          .add(SqlStdOperatorTable.UPPER)
+          .add(SqlStdOperatorTable.VALUES)
+          .add(SqlStdOperatorTable.WEEK)
+          .add(SqlStdOperatorTable.YEAR)
+          .build();
+
 
   //~ Instance fields --------------------------------------------------------
 
@@ -591,7 +679,7 @@ public class SqlDialect {
   /** Returns whether this dialect supports a given function or operator. */
   public boolean supportsFunction(SqlOperator operator, RelDataType type,
       List<RelDataType> paramTypes) {
-    return true;
+    return DEFAULT_OPERATORS_LIST.contains(operator);
   }
 
   public CalendarPolicy getCalendarPolicy() {
