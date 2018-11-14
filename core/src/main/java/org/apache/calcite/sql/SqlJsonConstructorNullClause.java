@@ -20,7 +20,8 @@ package org.apache.calcite.sql;
  * Indicating that how do Json constructors handle null
  */
 public enum SqlJsonConstructorNullClause {
-  NULL_ON_NULL, ABSENT_ON_NULL
+  NULL_ON_NULL,
+  ABSENT_ON_NULL
 }
 
 // End SqlJsonConstructorNullClause.java

@@ -2526,10 +2526,10 @@ public class SqlFunctions {
   }
 
   public static Boolean jsonExists(Object input,
-      SqlJsonExistsErrorBehavior errorBehavior) {
+      Enum errorBehavior) {
     PathContext context = (PathContext) input;
     if (context.exc != null) {
-      switch (errorBehavior) {
+      switch ((SqlJsonExistsErrorBehavior) errorBehavior) {
       case TRUE:
         return Boolean.TRUE;
       case FALSE:
@@ -2548,9 +2548,9 @@ public class SqlFunctions {
   }
 
   public static Object jsonValueAny(Object input,
-      SqlJsonValueEmptyOrErrorBehavior emptyBehavior,
+      Enum emptyBehavior,
       Object defaultValueOnEmpty,
-      SqlJsonValueEmptyOrErrorBehavior errorBehavior,
+      Enum errorBehavior,
       Object defaultValueOnError) {
     final PathContext context = (PathContext) input;
     final Exception exc;
@@ -2560,7 +2560,7 @@ public class SqlFunctions {
       Object value = context.pathReturned;
       if (value == null || context.mode == PathMode.LAX
           && !isScalarObject(value)) {
-        switch (emptyBehavior) {
+        switch ((SqlJsonValueEmptyOrErrorBehavior) emptyBehavior) {
         case ERROR:
           throw RESOURCE.emptyResultOfJsonValueFuncNotAllowed().ex();
         case NULL:
@@ -2579,7 +2579,7 @@ public class SqlFunctions {
         return value;
       }
     }
-    switch (errorBehavior) {
+    switch ((SqlJsonValueEmptyOrErrorBehavior) errorBehavior) {
     case ERROR:
       throw toUnchecked(exc);
     case NULL:
@@ -2593,9 +2593,9 @@ public class SqlFunctions {
   }
 
   public static String jsonQuery(Object input,
-      SqlJsonQueryWrapperBehavior wrapperBehavior,
-      SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
-      SqlJsonQueryEmptyOrErrorBehavior errorBehavior) {
+      Enum wrapperBehavior,
+      Enum emptyBehavior,
+      Enum errorBehavior) {
     final PathContext context = (PathContext) input;
     final Exception exc;
     if (context.exc != null) {
@@ -2605,7 +2605,7 @@ public class SqlFunctions {
       if (context.pathReturned == null) {
         value = null;
       } else {
-        switch (wrapperBehavior) {
+        switch ((SqlJsonQueryWrapperBehavior) wrapperBehavior) {
         case WITHOUT_ARRAY:
           value = context.pathReturned;
           break;
@@ -2626,7 +2626,7 @@ public class SqlFunctions {
       }
       if (value == null || context.mode == PathMode.LAX
           && isScalarObject(value)) {
-        switch (emptyBehavior) {
+        switch ((SqlJsonQueryEmptyOrErrorBehavior) emptyBehavior) {
         case ERROR:
           throw RESOURCE.emptyResultOfJsonQueryFuncNotAllowed().ex();
         case NULL:
@@ -2650,7 +2650,7 @@ public class SqlFunctions {
         }
       }
     }
-    switch (errorBehavior) {
+    switch ((SqlJsonQueryEmptyOrErrorBehavior) errorBehavior) {
     case ERROR:
       throw toUnchecked(exc);
     case NULL:
@@ -2673,7 +2673,7 @@ public class SqlFunctions {
     return JSON_PATH_JSON_PROVIDER.parse(input);
   }
 
-  public static String jsonObject(SqlJsonConstructorNullClause nullClause,
+  public static String jsonObject(Enum nullClause,
       Object... kvs) {
     assert kvs.length % 2 == 0;
     Map<String, Object> map = new HashMap<>();
@@ -2695,7 +2695,7 @@ public class SqlFunctions {
   }
 
   public static void jsonObjectAggAdd(Map map, String k, Object v,
-      SqlJsonConstructorNullClause nullClause) {
+      Enum nullClause) {
     if (k == null) {
       throw RESOURCE.nullKeyOfJsonObjectNotAllowed().ex();
     }
@@ -2708,15 +2708,7 @@ public class SqlFunctions {
     }
   }
 
-  public static void jsonObjectAggAddNullOnNull(Map map, String k, Object v) {
-    jsonObjectAggAdd(map, k, v, SqlJsonConstructorNullClause.NULL_ON_NULL);
-  }
-
-  public static void jsonObjectAggAddAbsentOnNull(Map map, String k, Object v) {
-    jsonObjectAggAdd(map, k, v, SqlJsonConstructorNullClause.ABSENT_ON_NULL);
-  }
-
-  public static String jsonArray(SqlJsonConstructorNullClause nullClause,
+  public static String jsonArray(Enum nullClause,
       Object... elements) {
     List<Object> list = new ArrayList<>();
     for (Object element : elements) {
@@ -2732,7 +2724,7 @@ public class SqlFunctions {
   }
 
   public static void jsonArrayAggAdd(List list, Object element,
-      SqlJsonConstructorNullClause nullClause) {
+      Enum nullClause) {
     if (element == null) {
       if (nullClause == SqlJsonConstructorNullClause.NULL_ON_NULL) {
         list.add(null);
@@ -2740,14 +2732,6 @@ public class SqlFunctions {
     } else {
       list.add(element);
     }
-  }
-
-  public static void jsonArrayAggAddNullOnNull(List list, Object element) {
-    jsonArrayAggAdd(list, element, SqlJsonConstructorNullClause.NULL_ON_NULL);
-  }
-
-  public static void jsonArrayAggAddAbsentOnNull(List list, Object element) {
-    jsonArrayAggAdd(list, element, SqlJsonConstructorNullClause.ABSENT_ON_NULL);
   }
 
   public static boolean isJsonValue(String input) {

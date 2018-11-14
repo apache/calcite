@@ -26,27 +26,27 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.util.Optionality;
 
 /**
  * The <code>JSON_OBJECTAGG</code> aggregation function.
  */
 public class SqlJsonArrayAggAggFunction extends SqlAggFunction {
-  private final SqlJsonConstructorNullClause nullClause;
 
-  public SqlJsonArrayAggAggFunction(String name,
-      SqlJsonConstructorNullClause nullClause) {
+  public SqlJsonArrayAggAggFunction(String name) {
     super(name, null, SqlKind.JSON_ARRAYAGG, ReturnTypes.VARCHAR_2000, null,
-        OperandTypes.ANY, SqlFunctionCategory.SYSTEM, false, false,
+        OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.ANY),
+            SqlFunctionCategory.SYSTEM, false, false,
         Optionality.FORBIDDEN);
-    this.nullClause = nullClause;
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
-    assert call.operandCount() == 1;
+    assert call.operandCount() == 2;
     final SqlWriter.Frame frame = writer.startFunCall("JSON_ARRAYAGG");
     call.operand(0).unparse(writer, leftPrec, rightPrec);
+    SqlJsonConstructorNullClause nullClause = getEnumValue(call.operand(1));
     switch (nullClause) {
     case ABSENT_ON_NULL:
       writer.keyword("ABSENT ON NULL");

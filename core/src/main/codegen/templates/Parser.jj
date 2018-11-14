@@ -5229,7 +5229,7 @@ SqlCall JsonObjectFunctionCall() :
 
 SqlCall JsonObjectAggFunctionCall() :
 {
-    final SqlNode[] args = new SqlNode[2];
+    final SqlNode[] args = new SqlNode[3];
     List<SqlNode> list;
     final Span span;
     SqlJsonConstructorNullClause nullClause =
@@ -5247,15 +5247,11 @@ SqlCall JsonObjectAggFunctionCall() :
             nullClause = (SqlJsonConstructorNullClause) ((SqlLiteral) e).getValue();
         }
     ]
+    {
+        args[2] = SqlLiteral.createSymbol(nullClause, getPos());
+    }
     <RPAREN> {
-        switch (nullClause) {
-        case ABSENT_ON_NULL:
-          return SqlStdOperatorTable.JSON_OBJECTAGG_ABSENT_ON_NULL.createCall(span.end(this), args);
-        case NULL_ON_NULL:
-          return SqlStdOperatorTable.JSON_OBJECTAGG_NULL_ON_NULL.createCall(span.end(this), args);
-        default:
-          return SqlStdOperatorTable.JSON_OBJECTAGG_NULL_ON_NULL.createCall(span.end(this), args);
-        }
+        return SqlStdOperatorTable.JSON_OBJECTAGG.createCall(span.end(this), args);
     }
 }
 
@@ -5294,7 +5290,7 @@ SqlCall JsonArrayFunctionCall() :
 
 SqlCall JsonArrayAggFunctionCall() :
 {
-    final SqlNode arg;
+    final SqlNode[] args = new SqlNode[2];
     List<SqlNode> list;
     final Span span;
     SqlJsonConstructorNullClause nullClause =
@@ -5303,21 +5299,19 @@ SqlCall JsonArrayAggFunctionCall() :
 }
 {
     <JSON_ARRAYAGG> { span = span(); }
-    <LPAREN> arg = JsonValueExpression(false)
+    <LPAREN> e = JsonValueExpression(false) {
+        args[0] = e;
+    }
     [
         e = JsonConstructorNullClause() {
             nullClause = (SqlJsonConstructorNullClause) ((SqlLiteral) e).getValue();
         }
     ]
+    {
+        args[1] = SqlLiteral.createSymbol(nullClause, getPos());
+    }
     <RPAREN> {
-        switch (nullClause) {
-        case ABSENT_ON_NULL:
-          return SqlStdOperatorTable.JSON_ARRAYAGG_ABSENT_ON_NULL.createCall(span.end(this), arg);
-        case NULL_ON_NULL:
-          return SqlStdOperatorTable.JSON_ARRAYAGG_NULL_ON_NULL.createCall(span.end(this), arg);
-        default:
-          return SqlStdOperatorTable.JSON_ARRAYAGG_ABSENT_ON_NULL.createCall(span.end(this), arg);
-        }
+        return SqlStdOperatorTable.JSON_ARRAYAGG.createCall(span.end(this), args);
     }
 }
 

@@ -213,6 +213,8 @@ public class JavaTypeFactoryImpl
         return ByteString.class;
       case GEOMETRY:
         return GeoFunctions.Geom.class;
+      case SYMBOL:
+        return Enum.class;
       case ANY:
         return Object.class;
       }

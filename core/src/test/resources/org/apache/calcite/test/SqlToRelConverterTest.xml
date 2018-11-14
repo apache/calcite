@@ -5296,6 +5296,114 @@ LogicalProject(ANYEMPNO=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testJsonExists">
+        <Resource name="sql">
+            <![CDATA[select json_exists(ename, 'lax $')
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[JSON_EXISTS(JSON_API_COMMON_SYNTAX(JSON_VALUE_EXPRESSION($1), 'lax $'))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJsonValue">
+        <Resource name="sql">
+            <![CDATA[select json_value(ename, 'lax $')
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[CAST(JSON_VALUE_ANY(JSON_API_COMMON_SYNTAX(JSON_VALUE_EXPRESSION($1), 'lax $'), FLAG(SqlJsonValueEmptyOrErrorBehavior[NULL]), null, FLAG(SqlJsonValueEmptyOrErrorBehavior[NULL]), null)):VARCHAR(2000) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJsonQuery">
+        <Resource name="sql">
+            <![CDATA[select json_query(ename, 'lax $')
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[JSON_QUERY(JSON_API_COMMON_SYNTAX(JSON_VALUE_EXPRESSION($1), 'lax $'), FLAG(WITHOUT_ARRAY), FLAG(SqlJsonQueryEmptyOrErrorBehavior[NULL]), FLAG(SqlJsonQueryEmptyOrErrorBehavior[NULL]))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJsonArray">
+        <Resource name="sql">
+            <![CDATA[select json_array(ename, ename)
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[JSON_ARRAY(FLAG(ABSENT_ON_NULL), JSON_STRUCTURED_VALUE_EXPRESSION($1), JSON_STRUCTURED_VALUE_EXPRESSION($1))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJsonArrayAgg">
+        <Resource name="sql">
+            <![CDATA[select json_arrayagg(ename)
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG($0, $1)])
+  LogicalProject($f0=[JSON_STRUCTURED_VALUE_EXPRESSION($1)], $f1=[FLAG(ABSENT_ON_NULL)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJsonObject">
+        <Resource name="sql">
+            <![CDATA[select select json_object(ename: deptno, ename: deptno)
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[JSON_OBJECT(FLAG(NULL_ON_NULL), $1, JSON_STRUCTURED_VALUE_EXPRESSION($7), $1, JSON_STRUCTURED_VALUE_EXPRESSION($7))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJsonObjectAgg">
+        <Resource name="sql">
+            <![CDATA[select json_objectagg(ename: deptno)
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[JSON_OBJECTAGG($0, $1, $2)])
+  LogicalProject(ENAME=[$1], $f1=[JSON_STRUCTURED_VALUE_EXPRESSION($7)], $f2=[FLAG(NULL_ON_NULL)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJsonPredicate">
+        <Resource name="sql">
+            <![CDATA[select
+ename is json,
+ename is json value,
+ename is json object,
+ename is json array,
+ename is json scalar,
+ename is not json,
+ename is not json value,
+ename is not json object,
+ename is not json array,
+ename is not json scalar
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[IS JSON VALUE($1)], EXPR$1=[IS JSON VALUE($1)], EXPR$2=[IS JSON OBJECT($1)], EXPR$3=[IS JSON ARRAY($1)], EXPR$4=[IS JSON SCALAR($1)], EXPR$5=[IS NOT JSON VALUE($1)], EXPR$6=[IS NOT JSON VALUE($1)], EXPR$7=[IS NOT JSON OBJECT($1)], EXPR$8=[IS NOT JSON ARRAY($1)], EXPR$9=[IS NOT JSON SCALAR($1)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testWithinGroup1">
         <Resource name="sql">
             <![CDATA[select deptno, collect(empno) within group (order by deptno, hiredate desc) from emp group by deptno]]>

@@ -33,24 +33,23 @@ import org.apache.calcite.util.Optionality;
  * The <code>JSON_OBJECTAGG</code> aggregation function.
  */
 public class SqlJsonObjectAggAggFunction extends SqlAggFunction {
-  private final SqlJsonConstructorNullClause nullClause;
 
-  public SqlJsonObjectAggAggFunction(String name,
-      SqlJsonConstructorNullClause nullClause) {
+  public SqlJsonObjectAggAggFunction(String name) {
     super(name, null, SqlKind.JSON_OBJECTAGG, ReturnTypes.VARCHAR_2000, null,
-        OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.ANY),
+        OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.ANY,
+            SqlTypeFamily.ANY),
         SqlFunctionCategory.SYSTEM, false, false, Optionality.FORBIDDEN);
-    this.nullClause = nullClause;
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
-    assert call.operandCount() == 2;
+    assert call.operandCount() == 3;
     final SqlWriter.Frame frame = writer.startFunCall("JSON_OBJECTAGG");
     writer.keyword("KEY");
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.keyword("VALUE");
     call.operand(1).unparse(writer, leftPrec, rightPrec);
+    SqlJsonConstructorNullClause nullClause = getEnumValue(call.operand(2));
     switch (nullClause) {
     case ABSENT_ON_NULL:
       writer.keyword("ABSENT ON NULL");

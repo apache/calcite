@@ -27,7 +27,6 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlGroupedWindowFunction;
 import org.apache.calcite.sql.SqlInternalOperator;
-import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLateralOperator;
 import org.apache.calcite.sql.SqlLiteral;
@@ -1291,23 +1290,13 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlFunction JSON_OBJECT = new SqlJsonObjectFunction();
 
-  public static final SqlAggFunction JSON_OBJECTAGG_NULL_ON_NULL =
-      new SqlJsonObjectAggAggFunction("JSON_OBJECTAGG_NULL_ON_NULL",
-          SqlJsonConstructorNullClause.NULL_ON_NULL);
-
-  public static final SqlAggFunction JSON_OBJECTAGG_ABSENT_ON_NULL =
-      new SqlJsonObjectAggAggFunction("JSON_OBJECTAGG_ABSENT_ON_NULL",
-          SqlJsonConstructorNullClause.ABSENT_ON_NULL);
+  public static final SqlAggFunction JSON_OBJECTAGG =
+      new SqlJsonObjectAggAggFunction("JSON_OBJECTAGG");
 
   public static final SqlFunction JSON_ARRAY = new SqlJsonArrayFunction();
 
-  public static final SqlAggFunction JSON_ARRAYAGG_NULL_ON_NULL =
-      new SqlJsonArrayAggAggFunction("JSON_ARRAYAGG_NULL_ON_NULL",
-          SqlJsonConstructorNullClause.NULL_ON_NULL);
-
-  public static final SqlAggFunction JSON_ARRAYAGG_ABSENT_ON_NULL =
-      new SqlJsonArrayAggAggFunction("JSON_ARRAYAGG_ABSENT_ON_NULL",
-          SqlJsonConstructorNullClause.ABSENT_ON_NULL);
+  public static final SqlAggFunction JSON_ARRAYAGG =
+      new SqlJsonArrayAggAggFunction("JSON_ARRAYAGG");
 
   public static final SqlBetweenOperator BETWEEN =
       new SqlBetweenOperator(
