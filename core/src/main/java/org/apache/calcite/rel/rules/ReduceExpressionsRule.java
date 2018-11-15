@@ -790,9 +790,6 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         return node;
       }
       node = super.visitCall(call);
-      if (node != call) {
-        node = simplify.simplifyUnknownAs(node, unknownAs);
-      }
       return node;
     }
 
