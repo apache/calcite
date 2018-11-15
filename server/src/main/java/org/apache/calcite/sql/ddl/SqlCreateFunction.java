@@ -65,7 +65,7 @@ public class SqlCreateFunction extends SqlCreate {
     }
     u.node(funcName).keyword("AS").node(className);
     if (jarList != null) {
-      u.keyword("USING").nodeList(jarList);
+      u.nodeList(jarList);
     }
   }
 

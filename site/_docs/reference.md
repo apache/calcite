@@ -2175,6 +2175,11 @@ createMaterializedViewStatement:
       CREATE MATERIALIZED VIEW [ IF NOT EXISTS ] name
       [ '(' columnName [, columnName ]* ')' ]
       AS query
+      
+createFunctionStatement:
+      CREATE [ OR REPLACE ] FUNCTION  [ IF NOT EXISTS ] name
+      AS class_name 
+      [USING JAR|FILE|ARCHIVE 'file_uri' [, JAR|FILE|ARCHIVE 'file_uri'] ];      
 
 dropSchemaStatement:
       DROP SCHEMA [ IF EXISTS ] name
@@ -2193,6 +2198,9 @@ dropMaterializedViewStatement:
 
 dropTypeStatement:
       DROP TYPE [ IF EXISTS ] name
+      
+dropFunctionStatement:
+      DROP FUNCTION [ IF EXISTS ] name      
 {% endhighlight %}
 
 In *createTableStatement*, if you specify *AS query*, you may omit the list of

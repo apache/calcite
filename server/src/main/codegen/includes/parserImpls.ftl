@@ -329,10 +329,6 @@ private SqlNodeList FunctionJarDefList() :
     }
 }
 
-/**
-* CREATE FUNCTION [db_name.]function_name AS class_name
-*   [USING JAR|FILE|ARCHIVE 'file_uri' [, JAR|FILE|ARCHIVE 'file_uri']
-*/
 SqlCreate SqlCreateFunction(Span s, boolean replace) :
 {
     SqlParserPos pos;
