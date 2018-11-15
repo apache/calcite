@@ -202,6 +202,10 @@ that the release process will complete as expected.
 If any of the steps fail, clean up (see below), fix the problem, and
 start again from the top.
 
+To perform the dry-run, you can either use your environment or the release script and docker.
+
+### To perform the dry-run directly in your environment:
+
 {% highlight bash %}
 # Make sure that there are no junk files in the sandbox
 git clean -xn
@@ -214,7 +218,22 @@ git clean -xn
 
 # If you have multiple GPG keys, you can select the key used to sign the release by appending `-Dgpg.keyname=${your.key.id}` to `-Darguments`:
 ./mvnw -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare -Darguments="-DskipDockerCheck -Dgpg.keyname=${your.key.id}"
+{% endhighlight %}
 
+### To perform the dry-run in docker:
+
+* You will need to have [docker](https://docs.docker.com/install/) and [Docker Compose](https://docs.docker.com/compose/install/) installed.
+
+* The script expects you to mount your `~/.gnupg` directory into the `/.gnupg` directory in the container. Once mounted into the container,
+the script will make a copy of the contents and move it to a different location, so that it will not modify the contents of your original
+`~/.gnupg` directory during the build.
+
+{% highlight bash %}
+# On Linux:
+docker-compose run -v ~/.gnupg:/.gnupg dry-run
+
+# On Windows
+docker-compose run -v /c/Users/username/AppData/Roaming/gnupg:/.gnupg dry-run
 {% endhighlight %}
 
 Check the artifacts:
@@ -242,11 +261,21 @@ Check the artifacts:
 If something is not correct, you can invoke the `release:clean` mojo to remove the
 generated files from your workspace:
 
+### If you are building directly in your environment:
+
 {% highlight bash %}
 ./mvnw release:clean
 {% endhighlight %}
 
+### If you are building using docker:
+
+{% highlight bash %}
+docker-compose run clean
+{% endhighlight %}
+
 If successful, remove the `-DdryRun` flag and run the release for real.
+
+### To build directly in your environment:
 
 {% highlight bash %}
 # Prepare sets the version numbers, creates a tag, and pushes it to git.
@@ -261,6 +290,17 @@ If successful, remove the `-DdryRun` flag and run the release for real.
 # Perform checks out the tagged version, builds, and deploys to the staging repository
 ./mvnw -Papache-release -Duser.name=${asf.username} release:perform -Darguments="-DskipTests"
 {% endhighlight %}
+
+### To build using docker:
+
+{% highlight bash %}
+# On Linux:
+docker-compose run -v ~/.gnupg:/.gnupg release
+
+# On Windows
+docker-compose run -v /c/Users/username/AppData/Roaming/gnupg:/.gnupg release
+{% endhighlight %}
+
 
 Verify the staged artifacts in the Nexus repository:
 
