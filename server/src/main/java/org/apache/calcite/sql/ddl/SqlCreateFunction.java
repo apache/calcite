@@ -14,9 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.calcite.sql.ddl;
 
-import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCreate;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -32,21 +33,20 @@ import java.util.List;
 /**
  * Parse tree for {@code CREATE FUNCTION} statement.
  */
-public class SqlCreateFunction extends SqlCall {
-  private final SqlIdentifier dbName;
+public class SqlCreateFunction extends SqlCreate {
   private final SqlIdentifier funcName;
   private final SqlNode className;
   private final SqlNodeList jarList;
-
   private static final SqlSpecialOperator OPERATOR =
-          new SqlSpecialOperator("UDF", SqlKind.OTHER_DDL);
+          new SqlSpecialOperator("CREATE FUNCTION", SqlKind.OTHER_DDL);
+
   /**
    * Creates a SqlCreateFunction.
    */
-  public SqlCreateFunction(SqlParserPos pos, SqlIdentifier dbName,
-                             SqlIdentifier funcName, SqlNode className, SqlNodeList jarList) {
-    super(pos);
-    this.dbName = dbName;
+  public SqlCreateFunction(SqlParserPos pos, boolean replace,
+                           boolean ifNotExists, SqlIdentifier funcName,
+                           SqlNode className, SqlNodeList jarList) {
+    super(OPERATOR, pos, replace, ifNotExists);
     this.funcName = funcName;
     this.className = className;
     this.jarList = jarList;
@@ -54,9 +54,14 @@ public class SqlCreateFunction extends SqlCall {
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     UnparseUtil u = new UnparseUtil(writer, leftPrec, rightPrec);
-    u.keyword("CREATE", "FUNCTION");
-    if (dbName != null) {
-      u.node(dbName).keyword(".");
+    if (getReplace()) {
+      u.keyword("CREATE OR REPLACE");
+    } else {
+      u.keyword("CREATE");
+    }
+    u.keyword("FUNCTION");
+    if (ifNotExists) {
+      u.keyword("IF NOT EXISTS");
     }
     u.node(funcName).keyword("AS").node(className);
     if (jarList != null) {
@@ -69,12 +74,9 @@ public class SqlCreateFunction extends SqlCall {
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return Arrays.asList(dbName, funcName, className, jarList);
+    return Arrays.asList(funcName, className, jarList);
   }
 
-  public SqlIdentifier dbName() {
-    return dbName;
-  }
 
   public SqlIdentifier funcName() {
     return funcName;
@@ -93,23 +95,19 @@ public class SqlCreateFunction extends SqlCall {
     private final SqlWriter writer;
     private final int leftPrec;
     private final int rightPrec;
-
     UnparseUtil(SqlWriter writer, int leftPrec, int rightPrec) {
       this.writer = writer;
       this.leftPrec = leftPrec;
       this.rightPrec = rightPrec;
     }
-
     UnparseUtil keyword(String... keywords) {
       Arrays.stream(keywords).forEach(writer::keyword);
       return this;
     }
-
     UnparseUtil node(SqlNode n) {
       n.unparse(writer, leftPrec, rightPrec);
       return this;
     }
-
     UnparseUtil nodeList(SqlNodeList l) {
       writer.keyword("(");
       if (l.size() > 0) {

@@ -303,6 +303,57 @@ SqlCreate SqlCreateMaterializedView(Span s, boolean replace) :
     }
 }
 
+private void FunctionJarDef(List<SqlNode> list) :
+{
+    SqlParserPos pos;
+    SqlNode uri;
+}
+{
+    ( <JAR> | <FILE> | <ARCHIVE> ) {
+        pos = getPos();
+        list.add(StringLiteral());
+    }
+}
+
+private SqlNodeList FunctionJarDefList() :
+{
+    SqlParserPos pos;
+    List<SqlNode> list = new ArrayList();
+}
+{
+    <USING> { pos = getPos(); }
+    { pos = getPos(); }
+    FunctionJarDef(list)
+    ( <COMMA> FunctionJarDef(list) )* {
+        return new SqlNodeList(list, pos.plus(getPos()));
+    }
+}
+
+/**
+* CREATE FUNCTION [db_name.]function_name AS class_name
+*   [USING JAR|FILE|ARCHIVE 'file_uri' [, JAR|FILE|ARCHIVE 'file_uri']
+*/
+SqlCreate SqlCreateFunction(Span s, boolean replace) :
+{
+    SqlParserPos pos;
+    final boolean ifNotExists;
+    final SqlIdentifier id;
+    SqlNode className;
+    SqlNodeList jarList = null;
+}
+{
+    <FUNCTION> ifNotExists = IfNotExistsOpt()
+    id = CompoundIdentifier()
+    <AS>
+    className = StringLiteral()
+    [
+        jarList = FunctionJarDefList()
+    ]
+    {
+        return SqlDdlNodes.createFunction(s.end(this), replace, ifNotExists, id, className, jarList);
+    }
+}
+
 SqlDrop SqlDropSchema(Span s, boolean replace) :
 {
     final boolean ifExists;
@@ -364,60 +415,15 @@ SqlDrop SqlDropMaterializedView(Span s, boolean replace) :
     }
 }
 
-private void FunctionJarDef(List<SqlNode> list) :
+SqlDrop SqlDropFunction(Span s, boolean replace) :
 {
-    SqlParserPos pos;
-    SqlNode uri;
+    final boolean ifExists;
+    final SqlIdentifier id;
 }
 {
-    ( <JAR> | <FILE> | <ARCHIVE> ) {
-        pos = getPos();
-        list.add(StringLiteral());
-    }
-}
-
-SqlNodeList FunctionJarDefList() :
-{
-    SqlParserPos pos;
-    List<SqlNode> list = new ArrayList();
-}
-{
-    <USING> { pos = getPos(); }
-    { pos = getPos(); }
-    FunctionJarDef(list)
-    ( <COMMA> FunctionJarDef(list) )* {
-        return new SqlNodeList(list, pos.plus(getPos()));
-    }
-}
-
-/**
-* CREATE FUNCTION [db_name.]function_name AS class_name
-*   [USING JAR|FILE|ARCHIVE 'file_uri' [, JAR|FILE|ARCHIVE 'file_uri']
-*/
-SqlCreateFunction SqlCreateFunction() :
-{
-    SqlParserPos pos;
-    SqlIdentifier dbName = null;
-    SqlIdentifier funcName;
-    SqlNode className;
-    SqlNodeList jarList = null;
-}
-{
-    <CREATE> { pos = getPos(); }
-    <FUNCTION>
-    [
-        dbName = SimpleIdentifier()
-        <DOT>
-    ]
-
-    funcName = SimpleIdentifier()
-    <AS>
-    className = StringLiteral()
-    [
-        jarList = FunctionJarDefList()
-    ]
-    {
-        return new SqlCreateFunction(pos, dbName, funcName, className, jarList);
+    <FUNCTION> ifExists = IfExistsOpt()
+    id = CompoundIdentifier() {
+        return SqlDdlNodes.dropFunction(s.end(this), ifExists, id);
     }
 }
 

@@ -25,7 +25,6 @@ data: {
         "org.apache.calcite.sql.SqlCreate"
         "org.apache.calcite.sql.SqlDrop"
         "org.apache.calcite.sql.ddl.SqlDdlNodes"
-        "org.apache.calcite.sql.ddl.SqlCreateFunction"
       ]
 
       # List of keywords.
@@ -57,7 +56,6 @@ data: {
 
       # List of methods for parsing custom SQL statements.
       statementParserMethods: [
-        "SqlCreateFunction()"
       ]
 
       # List of methods for parsing custom literals.
@@ -83,6 +81,7 @@ data: {
         "SqlCreateTable"
         "SqlCreateType"
         "SqlCreateView"
+        "SqlCreateFunction"
       ]
 
       # List of methods for parsing extensions to "DROP" calls.
@@ -93,6 +92,7 @@ data: {
         "SqlDropTable"
         "SqlDropType"
         "SqlDropView"
+        "SqlDropFunction"
       ]
 
       # List of files in @includes directory that have parser method
