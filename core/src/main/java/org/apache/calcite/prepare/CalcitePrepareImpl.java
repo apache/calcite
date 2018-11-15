@@ -77,6 +77,7 @@ import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
 import org.apache.calcite.rel.rules.AggregateStarTableRule;
 import org.apache.calcite.rel.rules.AggregateValuesRule;
+import org.apache.calcite.rel.rules.ExchangeRemoveConstantKeysRule;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
@@ -234,7 +235,9 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           SortProjectTransposeRule.INSTANCE,
           SortJoinTransposeRule.INSTANCE,
           SortRemoveConstantKeysRule.INSTANCE,
-          SortUnionTransposeRule.INSTANCE);
+          SortUnionTransposeRule.INSTANCE,
+          ExchangeRemoveConstantKeysRule.EXCHANGE_INSTANCE,
+          ExchangeRemoveConstantKeysRule.SORT_EXCHANGE_INSTANCE);
 
   private static final List<RelOptRule> CONSTANT_REDUCTION_RULES =
       ImmutableList.of(

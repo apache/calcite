@@ -8854,4 +8854,24 @@ LogicalProject(COL1=[SUM(100) OVER (PARTITION BY $7, $5 ORDER BY $5 RANGE BETWEE
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testExchangeRemoveConstantKeysRule">
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSortExchange(distribution=[hash[0, 1]], collation=[[0, 1]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1])
+    LogicalExchange(distribution=[hash[0]])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[scott, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalSortExchange(distribution=[hash[1]], collation=[[1]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1])
+    LogicalExchange(distribution=[single])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[scott, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
