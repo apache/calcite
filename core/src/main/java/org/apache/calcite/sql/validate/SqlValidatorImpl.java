@@ -1796,18 +1796,24 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           call.getOperator().getOperandTypeInference();
       final SqlCallBinding callBinding = new SqlCallBinding(this, scope, call);
       final List<SqlNode> operands = callBinding.operands();
-      final RelDataType[] operandTypes = new RelDataType[operands.size()];
-      if (operandTypeInference == null) {
-        // TODO:  eventually should assert(operandTypeInference != null)
-        // instead; for now just eat it
-        Arrays.fill(operandTypes, unknownType);
+      int inferOperandSize;
+      // For AS operator, alias operand should not be inferred
+      if (call.getOperator().kind == SqlKind.AS) {
+        inferOperandSize = operands.size()-1;
       } else {
+        inferOperandSize = operands.size();
+      }
+      final RelDataType[] operandTypes = new RelDataType[inferOperandSize];
+      Arrays.fill(operandTypes, unknownType);
+      // TODO:  eventually should assert(operandTypeInference != null)
+      // instead; for now just eat it
+      if (operandTypeInference != null) {
         operandTypeInference.inferOperandTypes(
             callBinding,
             inferredType,
             operandTypes);
       }
-      for (int i = 0; i < operands.size(); ++i) {
+      for (int i = 0; i < inferOperandSize; ++i) {
         inferUnknownTypes(operandTypes[i], scope, operands.get(i));
       }
     }

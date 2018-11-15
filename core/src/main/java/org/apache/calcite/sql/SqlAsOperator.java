@@ -129,6 +129,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
       SqlValidatorScope scope,
       SqlCall call) {
     // special case for AS:  never try to derive type for alias
+    // TODO:[CALCITE-2468] should expand handling for alias in InferReturnType.
     RelDataType nodeType =
         validator.deriveType(scope, call.operand(0));
     assert nodeType != null;
