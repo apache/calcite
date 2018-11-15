@@ -37,19 +37,24 @@ public class SqlCreateFunction extends SqlCreate {
   private final SqlIdentifier funcName;
   private final SqlNode className;
   private final SqlNodeList jarList;
+  private final SqlNodeList fileList;
+  private final SqlNodeList archiveList;
   private static final SqlSpecialOperator OPERATOR =
-          new SqlSpecialOperator("CREATE FUNCTION", SqlKind.OTHER_DDL);
+      new SqlSpecialOperator("CREATE FUNCTION", SqlKind.OTHER_DDL);
 
   /**
    * Creates a SqlCreateFunction.
    */
   public SqlCreateFunction(SqlParserPos pos, boolean replace,
-                           boolean ifNotExists, SqlIdentifier funcName,
-                           SqlNode className, SqlNodeList jarList) {
+      boolean ifNotExists, SqlIdentifier funcName,
+      SqlNode className, SqlNodeList jarList,
+      SqlNodeList fileList, SqlNodeList archiveList) {
     super(OPERATOR, pos, replace, ifNotExists);
     this.funcName = funcName;
     this.className = className;
     this.jarList = jarList;
+    this.fileList = fileList;
+    this.archiveList = archiveList;
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
@@ -65,7 +70,19 @@ public class SqlCreateFunction extends SqlCreate {
     }
     u.node(funcName).keyword("AS").node(className);
     if (jarList != null) {
-      u.nodeList(jarList);
+      u.keyword("JAR =").nodeList(jarList);
+    }
+    if (fileList != null) {
+      if (jarList != null) {
+        u.keyword(",");
+      }
+      u.keyword("FILE =").nodeList(fileList);
+    }
+    if (archiveList != null) {
+      if (jarList != null  || fileList != null) {
+        u.keyword(",");
+      }
+      u.keyword("ARCHIVE =").nodeList(archiveList);
     }
   }
 
@@ -88,6 +105,14 @@ public class SqlCreateFunction extends SqlCreate {
 
   public SqlNodeList jarList() {
     return jarList;
+  }
+
+  public SqlNodeList fileList() {
+    return fileList;
+  }
+
+  public SqlNodeList archiveList() {
+    return archiveList;
   }
 
   /** Creates a inner class. */

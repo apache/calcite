@@ -213,10 +213,12 @@ public class ServerParserTest extends SqlParserTest {
   @Test public void testCreateOrReplaceFunction() {
     final String sql = "create or replace function if not exists x.udf as "
             + "'org.apache.calcite.udf.TableFun.demoUdf' "
-            + "using jar 'file:/path/udf/udf-0.0.1-SNAPSHOT.jar', file 'file:/path/udf/logback.xml'";
+            + "using jar 'file:/path/udf/udf-0.0.1-SNAPSHOT.jar',"
+            + "jar 'file:/path/udf/udf2-0.0.1-SNAPSHOT.jar', file 'file:/path/udf/logback.xml'";
     final String expected = "CREATE OR REPLACE FUNCTION IF NOT EXISTS `X`.`UDF` AS "
             + "'org.apache.calcite.udf.TableFun.demoUdf' "
-            + "('file:/path/udf/udf-0.0.1-SNAPSHOT.jar', 'file:/path/udf/logback.xml')";
+            + "JAR = ('file:/path/udf/udf-0.0.1-SNAPSHOT.jar', 'file:/path/udf/udf2-0.0.1-SNAPSHOT.jar'), "
+            + "FILE = ('file:/path/udf/logback.xml')";
     sql(sql).ok(expected);
   }
 

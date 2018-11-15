@@ -102,8 +102,10 @@ public class SqlDdlNodes {
   /** Creates a CREATE FUNCTION. */
   public static SqlCreateFunction createFunction(
       SqlParserPos pos, boolean replace, boolean ifNotExists,
-      SqlIdentifier name, SqlNode className, SqlNodeList jarList) {
-    return new SqlCreateFunction(pos, replace, ifNotExists, name, className, jarList);
+      SqlIdentifier name, SqlNode className,
+      SqlNodeList jarList, SqlNodeList fileList, SqlNodeList archiveList) {
+    return new SqlCreateFunction(pos, replace, ifNotExists, name,
+        className, jarList, fileList, archiveList);
   }
 
   /** Creates a DROP [ FOREIGN ] SCHEMA. */
