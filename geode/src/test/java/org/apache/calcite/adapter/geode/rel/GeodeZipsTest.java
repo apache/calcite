@@ -232,12 +232,15 @@ public class GeodeZipsTest extends AbstractGeodeTest {
 
   @Test
   public void testWhereWithOrForNestedNumericField() {
+    String expectedQuery = "SELECT loc[1] AS lan FROM /zips "
+        + "WHERE loc[1] IN SET(44.098538, 43.218525)";
+
     calciteAssert()
         .query("SELECT loc[1] as lan "
             + "FROM view WHERE loc[1] = 43.218525 OR loc[1] = 44.098538")
         .returnsCount(2)
         .queryContains(
-            GeodeAssertions.query("SELECT loc[1] AS lan FROM /zips WHERE loc[1] IN SET(44.098538, 43.218525)"));
+            GeodeAssertions.query(expectedQuery));
   }
 
   @Test
@@ -260,11 +263,15 @@ public class GeodeZipsTest extends AbstractGeodeTest {
         + "'LA', 'RI', 'NE', 'CT', 'PA', 'KY', 'WY', 'UT', 'TN', 'OH', 'NJ', 'ID', 'MD', 'SD'";
 
     String queryToBeExecuted = "SELECT state as state FROM view WHERE " + stateListPredicate;
+
+    String expectedQuery = "SELECT state AS state FROM /zips WHERE state "
+        + "IN SET(" + stateListStr + ")";
+
     calciteAssert()
         .query(queryToBeExecuted)
         .returnsCount(149)
         .queryContains(
-            GeodeAssertions.query("SELECT state AS state FROM /zips WHERE state IN SET(" + stateListStr + ")"));
+            GeodeAssertions.query(expectedQuery));
   }
 
   @Test
