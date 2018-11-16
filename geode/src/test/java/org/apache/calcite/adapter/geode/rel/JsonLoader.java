@@ -48,7 +48,7 @@ class JsonLoader {
     this.mapper = new ObjectMapper();
   }
 
-  private void load(Reader reader) throws IOException {
+  void load(Reader reader) throws IOException {
     Objects.requireNonNull(reader, "reader");
     try (BufferedReader br = new BufferedReader(reader)) {
       int key = 0;

@@ -382,8 +382,8 @@ public class GeodeBookstoreTest extends AbstractGeodeTest {
     calciteAssert()
         .query("select primaryAddress['city'] as city from geode.BookCustomer limit 2")
         .returnsCount(2)
-        .returns("city=TOPEKA\n"
-            + "city=SAN FRANCISCO\n")
+        .returns("city=Topeka\n"
+            + "city=San Francisco\n")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeProject(city=[ITEM($3, 'city')])\n"
             + "    GeodeSort(fetch=[2])\n"
@@ -488,12 +488,12 @@ public class GeodeBookstoreTest extends AbstractGeodeTest {
   @Test
   public void testInSetFilterWithNestedStringField() {
     String expectedQuery = "SELECT primaryAddress.city AS city FROM /BookCustomer "
-        + "WHERE primaryAddress.city IN SET('TOPEKA', 'SAN FRANCISCO')";
+        + "WHERE primaryAddress.city IN SET('Topeka', 'San Francisco')";
 
     calciteAssert()
         .query("SELECT primaryAddress['city'] AS city\n"
             + "FROM geode.BookCustomer\n"
-            + "WHERE primaryAddress['city'] = 'TOPEKA' OR primaryAddress['city'] = 'SAN FRANCISCO'\n")
+            + "WHERE primaryAddress['city'] = 'Topeka' OR primaryAddress['city'] = 'San Francisco'\n")
         .returnsCount(3)
         .queryContains(GeodeAssertions.query(expectedQuery));
   }

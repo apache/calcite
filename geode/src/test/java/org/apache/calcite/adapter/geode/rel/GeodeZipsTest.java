@@ -29,6 +29,8 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.Reader;
+import java.io.StringReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -45,6 +47,25 @@ public class GeodeZipsTest extends AbstractGeodeTest {
     Cache cache = POLICY.cache();
     Region<?, ?> region =  cache.<String, Object>createRegionFactory().create("zips");
     new JsonLoader(region).loadClasspathResource("/zips-mini.json");
+    createTestRegion();
+  }
+
+  private static void createTestRegion() throws Exception {
+    Cache cache = POLICY.cache();
+    Region<?, ?> region =  cache.<String, Object>createRegionFactory().create("TestRegion");
+
+    final StringBuilder stringBuilder = new StringBuilder();
+    stringBuilder.append("{\"foo\": \"abc\", \"bar\": [123, 1.5899], \"baz\": true}");
+    stringBuilder.append("\n");
+    stringBuilder.append("{\"foo\": \"def\", \"bar\": [456, 9.675344], \"baz\": false}");
+    stringBuilder.append("\n");
+    stringBuilder.append("{\"foo\": \"ghi\", \"bar\": [789, 89.7899], \"baz\": true}");
+    stringBuilder.append("\n");
+    stringBuilder.append("{\"foo\": \"jkl\", \"bar\": [572, 8.9234], \"baz\": null}");
+    stringBuilder.append("\n");
+
+    final Reader reader = new StringReader(stringBuilder.toString());
+    new JsonLoader(region).load(reader);
   }
 
   private CalciteAssert.ConnectionFactory newConnectionFactory() {
@@ -53,7 +74,7 @@ public class GeodeZipsTest extends AbstractGeodeTest {
         final Connection connection = DriverManager.getConnection("jdbc:calcite:lex=JAVA");
         final SchemaPlus root = connection.unwrap(CalciteConnection.class).getRootSchema();
 
-        root.add("geode", new GeodeSchema(POLICY.cache(), Collections.singleton("zips")));
+        root.add("geode", new GeodeSchema(POLICY.cache(), Arrays.asList("zips", "TestRegion")));
 
         // add calcite view programmatically
         final String viewSql =  "select \"_id\" AS \"id\", \"city\", \"loc\", "
@@ -213,10 +234,65 @@ public class GeodeZipsTest extends AbstractGeodeTest {
   public void testWhereWithOrForNestedNumericField() {
     calciteAssert()
         .query("SELECT loc[1] as lan "
-            + "FROM view WHERE loc[1] = 43 OR loc[1] = 44")
+            + "FROM view WHERE loc[1] = 43.218525 OR loc[1] = 44.098538")
         .returnsCount(2)
         .queryContains(
-            GeodeAssertions.query("SELECT loc[1] AS lan FROM /zips WHERE loc[1] IN SET(44, 43)"));
+            GeodeAssertions.query("SELECT loc[1] AS lan FROM /zips WHERE loc[1] IN SET(44.098538, 43.218525)"));
+  }
+
+  @Test
+  public void testWhereWithOrForLargeValueList() {
+    String stateListPredicate = "state = 'IL' OR state = 'UT' OR state = 'NJ' OR state = 'AL' "
+        + "OR state = 'TN' OR state = 'OH' OR state = 'MD' OR state = 'CT' OR state = 'PA' "
+        + "OR state = 'SC' OR state = 'VA' OR state = 'ID' OR state = 'NV' OR state = 'MT' "
+        + "OR state = 'WY' OR state = 'MI' OR state = 'ME' OR state = 'KY' OR state = 'NC' "
+        + "OR state = 'MA' OR state = 'SD' OR state = 'IA' OR state = 'AZ' OR state = 'GA' "
+        + "OR state = 'CA' OR state = 'DC' OR state = 'MN' OR state = 'IN' OR state = 'WV' "
+        + "OR state = 'FL' OR state = 'VT' OR state = 'NH' OR state = 'ND' OR state = 'AR' "
+        + "OR state = 'WI' OR state = 'WA' OR state = 'TX' OR state = 'OR' OR state = 'MO' "
+        + "OR state = 'NM' OR state = 'KS' OR state = 'OK' OR state = 'AK' OR state = 'CO' "
+        + "OR state = 'RI' OR state = 'NE' OR state = 'LA' OR state = 'NY' OR state = 'MS' "
+        + "OR state = 'DE' OR state = 'HI'";
+
+    String stateListStr = "'WA', 'FL', 'IN', 'MN', 'TX', 'OR', 'CA', 'DC', 'GA', 'AZ', "
+        + "'MI', 'NC', 'ME', 'IA', 'AR', 'WI', 'MA', 'AK', 'CO', 'NY', 'MS', 'KS', 'MO', "
+        + "'DE', 'HI', 'VT', 'WV', 'NH', 'ND', 'SC', 'VA', 'AL', 'NV', 'MT', 'IL', 'NM', 'OK', "
+        + "'LA', 'RI', 'NE', 'CT', 'PA', 'KY', 'WY', 'UT', 'TN', 'OH', 'NJ', 'ID', 'MD', 'SD'";
+
+    String queryToBeExecuted = "SELECT state as state FROM view WHERE " + stateListPredicate;
+    calciteAssert()
+        .query(queryToBeExecuted)
+        .returnsCount(149)
+        .queryContains(
+            GeodeAssertions.query("SELECT state AS state FROM /zips WHERE state IN SET(" + stateListStr + ")"));
+  }
+
+  @Test
+  public void testWhereWithOrForBooleanField() {
+    calciteAssert()
+        .query("SELECT foo as foo "
+            + "FROM geode.TestRegion WHERE baz = true OR baz = false")
+        .returnsCount(3)
+        .queryContains(
+            GeodeAssertions.query("SELECT foo AS foo FROM /TestRegion WHERE baz IN SET(true, false)"));
+  }
+
+  @Test
+  public void testWhereWithMultipleOr() {
+    String queryToBeExecuted = "SELECT foo as foo "
+        + "FROM geode.TestRegion WHERE (foo = 'abc' OR foo = 'def') OR "
+        + "(bar[0] = 789 OR bar[0] = 572) OR (bar[1] = 1.5899 AND bar[1] = 0.5234) OR "
+        + "(baz = false OR baz = null)";
+
+    String expectedQuery = "SELECT foo AS foo FROM /TestRegion WHERE foo "
+        + "IN SET('def', 'abc') OR bar[0] IN SET(572, 789) OR "
+        + "(bar[1] = 1.5899 AND bar[1] = 0.5234) OR baz IN SET(null, false)";
+
+    calciteAssert()
+        .query(queryToBeExecuted)
+        .returnsCount(4)
+        .queryContains(
+            GeodeAssertions.query(expectedQuery));
   }
 }
 

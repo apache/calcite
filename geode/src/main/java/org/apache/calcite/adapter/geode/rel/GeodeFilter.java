@@ -35,9 +35,12 @@ import org.apache.calcite.util.Util;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.sql.type.SqlTypeName.BOOLEAN_TYPES;
 import static org.apache.calcite.sql.type.SqlTypeName.CHAR;
@@ -97,7 +100,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
      * @return String representation of the literal
      */
     private static String literalValue(RexLiteral literal) {
-      Object value = literal.getValue2();
+      Object value = literal.getValue3();
       StringBuilder buf = new StringBuilder();
       buf.append(value);
       return buf.toString();
@@ -114,8 +117,6 @@ public class GeodeFilter extends Filter implements GeodeRel {
       List<RexNode> disjunctions = RelOptUtil.disjunctions(condition);
       if (disjunctions.size() == 1) {
         return translateAnd(disjunctions.get(0));
-      } else if (useInSetQueryClause(disjunctions)) {
-        return translateInSet(disjunctions);
       } else {
         return translateOr(disjunctions);
       }
@@ -136,10 +137,45 @@ public class GeodeFilter extends Filter implements GeodeRel {
       return Util.toString(predicates, "", " AND ", "");
     }
 
+    private String getLeftNodeFieldNameForNode(RexNode node) {
+      final RexCall call = (RexCall) node;
+      final RexNode left = call.operands.get(0);
+      return getLeftNodeFieldName(left);
+    }
+
+    private List<RexNode> getLeftNodeDisjunctions(RexNode node, List<RexNode> disjunctions) {
+      List<RexNode> leftNodeDisjunctions = new ArrayList<>();
+      String leftNodeFieldName = getLeftNodeFieldNameForNode(node);
+
+      if (leftNodeFieldName != null) {
+        leftNodeDisjunctions = disjunctions.stream().filter(rexNode -> {
+          RexCall rexCall = (RexCall) rexNode;
+          RexNode rexCallLeft = rexCall.operands.get(0);
+          return leftNodeFieldName.equals(getLeftNodeFieldName(rexCallLeft));
+        }).collect(Collectors.toList());
+      }
+
+      return leftNodeDisjunctions;
+    }
+
     private String translateOr(List<RexNode> disjunctions) {
       List<String> predicates = new ArrayList<>();
+      List<String> inSetLeftFieldNameList = new ArrayList<>();
+
       for (RexNode node : disjunctions) {
-        if (RelOptUtil.conjunctions(node).size() > 1) {
+        final String leftNodeFieldName = getLeftNodeFieldNameForNode(node);
+        // If any one left node is processed with IN SET predicate
+        // all the nodes are already handled
+        if (inSetLeftFieldNameList.contains(leftNodeFieldName)) {
+          continue;
+        }
+
+        final List<RexNode> leftNodeDisjunctions = getLeftNodeDisjunctions(node, disjunctions);
+
+        if (useInSetQueryClause(leftNodeDisjunctions)) {
+          predicates.add(translateInSet(leftNodeDisjunctions));
+          inSetLeftFieldNameList.add(leftNodeFieldName);
+        } else if (RelOptUtil.conjunctions(node).size() > 1) {
           predicates.add("(" + translateMatch(node) + ")");
         } else {
           predicates.add(translateMatch2(node));
@@ -261,7 +297,9 @@ public class GeodeFilter extends Filter implements GeodeRel {
      *  Check if we can use IN SET Query clause to improve query performance
      */
     private boolean useInSetQueryClause(List<RexNode> disjunctions) {
-      Set<String> leftFieldNameSet = new HashSet<>();
+      if (disjunctions.size() == 0) {
+        return false;
+      }
 
       return disjunctions.stream().allMatch(node -> {
         // IN SET query can only be used for EQUALS
@@ -280,13 +318,6 @@ public class GeodeFilter extends Filter implements GeodeRel {
 
         String name = getLeftNodeFieldName(left);
         if (name == null) {
-          return false;
-        }
-
-        leftFieldNameSet.add(name);
-
-        // Ensure that left node field name is same for Nodes in disjunctions
-        if (leftFieldNameSet.size() != 1) {
           return false;
         }
 
@@ -317,7 +348,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
 
       stringBuilder.append(name);
       stringBuilder.append(" IN SET(");
-      stringBuilder.append(Util.toString(rightLiteralValueList, "", ", ", ""));
+      stringBuilder.append(String.join(", ", rightLiteralValueList));
       stringBuilder.append(")");
 
       return stringBuilder.toString();
