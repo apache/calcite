@@ -2096,7 +2096,11 @@ public class SqlFunctions {
 
   /** Support the SLICE function. */
   public static List slice(List list) {
-    return list;
+    List result = new ArrayList(list.size());
+    for (Object e : list) {
+      result.add(structAccess(e, 0, null));
+    }
+    return result;
   }
 
   /** Support the ELEMENT function. */
