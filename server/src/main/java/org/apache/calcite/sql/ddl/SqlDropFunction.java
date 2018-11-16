@@ -14,8 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.sql.ddl;
+
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -24,7 +24,6 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 
 /**
  * Parse tree for {@code DROP FUNCTION} statement.
- *
  */
 public class SqlDropFunction extends SqlDropObject {
   private static final SqlOperator OPERATOR =

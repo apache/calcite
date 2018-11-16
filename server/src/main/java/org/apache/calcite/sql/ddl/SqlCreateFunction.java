@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.sql.ddl;
 
 import org.apache.calcite.sql.SqlCreate;
@@ -29,12 +28,13 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Parse tree for {@code CREATE FUNCTION} statement.
  */
 public class SqlCreateFunction extends SqlCreate {
-  private final SqlIdentifier funcName;
+  private final SqlIdentifier name;
   private final SqlNode className;
   private final SqlNodeList jarList;
   private final SqlNodeList fileList;
@@ -46,44 +46,52 @@ public class SqlCreateFunction extends SqlCreate {
    * Creates a SqlCreateFunction.
    */
   public SqlCreateFunction(SqlParserPos pos, boolean replace,
-      boolean ifNotExists, SqlIdentifier funcName,
+      boolean ifNotExists, SqlIdentifier name,
       SqlNode className, SqlNodeList jarList,
       SqlNodeList fileList, SqlNodeList archiveList) {
     super(OPERATOR, pos, replace, ifNotExists);
-    this.funcName = funcName;
+    this.name = Objects.requireNonNull(name);
     this.className = className;
     this.jarList = jarList;
     this.fileList = fileList;
     this.archiveList = archiveList;
   }
 
-  @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-    UnparseUtil u = new UnparseUtil(writer, leftPrec, rightPrec);
-    if (getReplace()) {
-      u.keyword("CREATE OR REPLACE");
-    } else {
-      u.keyword("CREATE");
-    }
-    u.keyword("FUNCTION");
+  @Override public void unparse(SqlWriter writer, int leftPrec,
+      int rightPrec) {
+    writer.keyword(getReplace() ? "CREATE OR REPLACE" : "CREATE");
+    writer.keyword("FUNCTION");
     if (ifNotExists) {
-      u.keyword("IF NOT EXISTS");
+      writer.keyword("IF NOT EXISTS");
     }
-    u.node(funcName).keyword("AS").node(className);
+    name.unparse(writer, 0, 0);
+    writer.keyword("AS");
+    className.unparse(writer, 0, 0);
     if (jarList != null) {
-      u.keyword("JAR =").nodeList(jarList);
+      writerInfo(writer, "JAR =", jarList);
     }
     if (fileList != null) {
       if (jarList != null) {
-        u.keyword(",");
+        writer.keyword(",");
       }
-      u.keyword("FILE =").nodeList(fileList);
+      writerInfo(writer, "FILE =", fileList);
     }
     if (archiveList != null) {
       if (jarList != null  || fileList != null) {
-        u.keyword(",");
+        writer.keyword(",");
       }
-      u.keyword("ARCHIVE =").nodeList(archiveList);
+      writerInfo(writer, "ARCHIVE =", fileList);
     }
+  }
+
+  private void writerInfo(SqlWriter writer, String s, SqlNodeList fileList) {
+    writer.keyword(s);
+    SqlWriter.Frame frame = writer.startList("(", ")");
+    for (SqlNode c : fileList) {
+      writer.sep(",");
+      c.unparse(writer, 0, 0);
+    }
+    writer.endList(frame);
   }
 
   @Override public SqlOperator getOperator() {
@@ -91,60 +99,7 @@ public class SqlCreateFunction extends SqlCreate {
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return Arrays.asList(funcName, className, jarList);
-  }
-
-
-  public SqlIdentifier funcName() {
-    return funcName;
-  }
-
-  public SqlNode className() {
-    return className;
-  }
-
-  public SqlNodeList jarList() {
-    return jarList;
-  }
-
-  public SqlNodeList fileList() {
-    return fileList;
-  }
-
-  public SqlNodeList archiveList() {
-    return archiveList;
-  }
-
-  /** Creates a inner class. */
-  class UnparseUtil   {
-    private final SqlWriter writer;
-    private final int leftPrec;
-    private final int rightPrec;
-    UnparseUtil(SqlWriter writer, int leftPrec, int rightPrec) {
-      this.writer = writer;
-      this.leftPrec = leftPrec;
-      this.rightPrec = rightPrec;
-    }
-    UnparseUtil keyword(String... keywords) {
-      Arrays.stream(keywords).forEach(writer::keyword);
-      return this;
-    }
-    UnparseUtil node(SqlNode n) {
-      n.unparse(writer, leftPrec, rightPrec);
-      return this;
-    }
-    UnparseUtil nodeList(SqlNodeList l) {
-      writer.keyword("(");
-      if (l.size() > 0) {
-        l.get(0).unparse(writer, leftPrec, rightPrec);
-        for (int i = 1; i < l.size(); ++i) {
-          writer.keyword(",");
-          l.get(i).unparse(writer, leftPrec, rightPrec);
-        }
-      }
-      writer.keyword(")");
-      return this;
-    }
+    return Arrays.asList(name, className, jarList);
   }
 }
 
