@@ -276,12 +276,15 @@ public class GeodeZipsTest extends AbstractGeodeTest {
 
   @Test
   public void testWhereWithOrForBooleanField() {
+    String expectedQuery = "SELECT foo AS foo FROM /TestRegion "
+        + "WHERE baz IN SET(true, false)";
+
     calciteAssert()
         .query("SELECT foo as foo "
             + "FROM geode.TestRegion WHERE baz = true OR baz = false")
         .returnsCount(3)
         .queryContains(
-            GeodeAssertions.query("SELECT foo AS foo FROM /TestRegion WHERE baz IN SET(true, false)"));
+            GeodeAssertions.query(expectedQuery));
   }
 
   @Test
