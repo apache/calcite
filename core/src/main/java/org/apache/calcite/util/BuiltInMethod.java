@@ -92,6 +92,10 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlJsonConstructorNullClause;
+import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
+import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
+import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -263,15 +267,20 @@ public enum BuiltInMethod {
       Object.class, String.class),
   JSON_EXISTS(SqlFunctions.class, "jsonExists", Object.class),
   JSON_VALUE_ANY(SqlFunctions.class, "jsonValueAny", Object.class,
-      Enum.class, Object.class, Enum.class, Object.class),
-  JSON_QUERY(SqlFunctions.class, "jsonQuery",
-      Object.class, Enum.class, Enum.class, Enum.class),
-  JSON_OBJECT(SqlFunctions.class, "jsonObject", Enum.class),
+      SqlJsonValueEmptyOrErrorBehavior.class, Object.class,
+      SqlJsonValueEmptyOrErrorBehavior.class, Object.class),
+  JSON_QUERY(SqlFunctions.class, "jsonQuery", Object.class,
+      SqlJsonQueryWrapperBehavior.class,
+      SqlJsonQueryEmptyOrErrorBehavior.class,
+      SqlJsonQueryEmptyOrErrorBehavior.class),
+  JSON_OBJECT(SqlFunctions.class, "jsonObject",
+      SqlJsonConstructorNullClause.class),
   JSON_OBJECTAGG_ADD(SqlFunctions.class, "jsonObjectAggAdd", Map.class,
-      String.class, Object.class, Enum.class),
-  JSON_ARRAY(SqlFunctions.class, "jsonArray", Enum.class),
+      String.class, Object.class, SqlJsonConstructorNullClause.class),
+  JSON_ARRAY(SqlFunctions.class, "jsonArray",
+      SqlJsonConstructorNullClause.class),
   JSON_ARRAYAGG_ADD(SqlFunctions.class, "jsonArrayAggAdd",
-      List.class, Object.class, Enum.class),
+      List.class, Object.class, SqlJsonConstructorNullClause.class),
   IS_JSON_VALUE(SqlFunctions.class, "isJsonValue", String.class),
   IS_JSON_OBJECT(SqlFunctions.class, "isJsonObject", String.class),
   IS_JSON_ARRAY(SqlFunctions.class, "isJsonArray", String.class),
