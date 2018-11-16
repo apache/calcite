@@ -165,9 +165,6 @@ public class JavaTypeFactoryImpl
       JavaType javaType = (JavaType) type;
       return javaType.getJavaClass();
     }
-    if (type.isStruct() && type.getFieldCount() == 1) {
-      return getJavaClass(type.getFieldList().get(0).getType());
-    }
     if (type instanceof BasicSqlType || type instanceof IntervalSqlType) {
       switch (type.getSqlTypeName()) {
       case VARCHAR:

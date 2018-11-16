@@ -406,7 +406,7 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
           Expressions.return_(
               null,
               Expressions.call(
-                  inputPhysType.convertTo(childExp, physType),
+                  inputPhysType.convertTo(childExp, physType.getFormat()),
                   BuiltInMethod.DISTINCT.method,
                   Expressions.<Expression>list()
                       .appendIfNotNull(physType.comparer()))));

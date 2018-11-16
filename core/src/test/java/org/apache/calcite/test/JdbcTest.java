@@ -101,6 +101,7 @@ import com.google.common.collect.Multimap;
 
 import org.hamcrest.Matcher;
 import org.hsqldb.jdbcDriver;
+import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -1972,6 +1973,7 @@ public class JdbcTest {
   }
 
   @Test public void testMultisetQueryWithSingleColumn() {
+    Assume.assumeTrue("[CALCITE-2776]", Bug.CALCITE_2776_FIXED);
     CalciteAssert.hr()
         .query("select multiset(\n"
             + "  select \"deptno\" from \"hr\".\"emps\") as a\n"

@@ -43,6 +43,8 @@ public class EnumerableCollect extends Collect implements EnumerableRel {
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel child = (EnumerableRel) getInput();
+    // REVIEW zabetak January 7, 2019: Even if we ask the implementor to provide a result
+    // where records are represented as arrays (Prefer.ARRAY) this may not be respected.
     final Result result = implementor.visitChild(this, 0, child, Prefer.ARRAY);
     final PhysType physType =
         PhysTypeImpl.of(
@@ -50,14 +52,24 @@ public class EnumerableCollect extends Collect implements EnumerableRel {
             getRowType(),
             JavaRowFormat.LIST);
 
-    // final Enumerable<Employee> child = <<child adapter>>;
-    // final List<Employee> list = child.toList();
+    // final Enumerable child = <<child adapter>>;
+    // final Enumerable<Object[]> converted = child.select(<<conversion code>>);
+    // final List<Object[]> list = converted.toList();
     Expression child_ =
         builder.append(
             "child", result.block);
+    // In the internal representation of multisets , every element must be a record. In case the
+    // result above is a scalar type we have to wrap it around a physical type capable of
+    // representing records. For this reason the following conversion is necessary.
+    // REVIEW zabetak January 7, 2019: If we can ensure that the input to this operator
+    // has the correct physical type (e.g., respecting the Prefer.ARRAY above) then this conversion
+    // can be removed.
+    Expression conv_ =
+        builder.append(
+            "converted", result.physType.convertTo(child_, JavaRowFormat.ARRAY));
     Expression list_ =
         builder.append("list",
-            Expressions.call(child_,
+            Expressions.call(conv_,
                 BuiltInMethod.ENUMERABLE_TO_LIST.method));
 
     builder.add(
