@@ -969,7 +969,8 @@ public class UtilTest {
   }
 
   /**
-   * Unit test for {@link Util#quotientList(java.util.List, int, int)}.
+   * Unit test for {@link Util#quotientList(java.util.List, int, int)}
+   * and {@link Util#pairs(List)}.
    */
   @Test public void testQuotientList() {
     List<String> beatles = Arrays.asList("john", "paul", "george", "ringo");
@@ -1017,6 +1018,16 @@ public class UtilTest {
 
     final List list5 = Util.quotientList(beatles, 10, 5);
     assertEquals(0, list5.size());
+
+    final List<Pair<String, String>> list6 = Util.pairs(beatles);
+    assertThat(list6.size(), is(2));
+    assertThat(list6.get(0).left, is("john"));
+    assertThat(list6.get(0).right, is("paul"));
+    assertThat(list6.get(1).left, is("george"));
+    assertThat(list6.get(1).right, is("ringo"));
+
+    final List<Pair<String, String>> list7 = Util.pairs(empty);
+    assertThat(list7.size(), is(0));
   }
 
   @Test public void testImmutableIntList() {

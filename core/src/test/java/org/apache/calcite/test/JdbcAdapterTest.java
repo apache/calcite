@@ -857,6 +857,17 @@ public class JdbcAdapterTest {
         .typeIs("[employee_id INTEGER NOT NULL, position_id INTEGER]");
   }
 
+  @Test public void pushBindParameters() throws Exception {
+    final String sql = "select empno, ename from emp where empno = ?";
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query(sql)
+        .consumesPreparedStatement(p -> {
+          p.setInt(1, 7566);
+        })
+        .returnsCount(1)
+        .planHasSql("SELECT \"EMPNO\", \"ENAME\"\nFROM \"SCOTT\".\"EMP\"\nWHERE \"EMPNO\" = ?");
+  }
+
   /** Acquires a lock, and releases it when closed. */
   static class LockWrapper implements AutoCloseable {
     private final Lock lock;

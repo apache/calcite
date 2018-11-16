@@ -14,27 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql.parser;
+package org.apache.calcite.sql.ddl;
+
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.parser.SqlParserPos;
 
 /**
- * Extension to {@link SqlParserTest} which ensures that every expression can
- * un-parse successfully.
+ * Parse tree for {@code DROP FUNCTION} statement.
  */
-public class SqlUnParserTest extends SqlParserTest {
-  //~ Constructors -----------------------------------------------------------
+public class SqlDropFunction extends SqlDropObject {
+  private static final SqlOperator OPERATOR =
+      new SqlSpecialOperator("DROP FUNCTION", SqlKind.DROP_FUNCTION);
 
-  public SqlUnParserTest() {
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
-  @Override protected Tester getTester() {
-    return new UnparsingTesterImpl();
-  }
-
-  @Override protected boolean isUnparserTest() {
-    return true;
+  /** Creates a SqlDropFunction. */
+  public SqlDropFunction(SqlParserPos pos, boolean ifExists,
+      SqlIdentifier name) {
+    super(OPERATOR, pos, ifExists, name);
   }
 }
 
-// End SqlUnParserTest.java
+// End SqlDropFunction.java

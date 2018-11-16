@@ -21,6 +21,8 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
@@ -52,6 +54,11 @@ public class ElasticsearchSchema extends AbstractSchema {
   private final Map<String, Table> tableMap;
 
   /**
+   * Default batch size to be used during scrolling.
+   */
+  private final int fetchSize;
+
+  /**
    * Allows schema to be instantiated from existing elastic search client.
    * This constructor is used in tests.
    * @param client existing client instance
@@ -63,10 +70,20 @@ public class ElasticsearchSchema extends AbstractSchema {
   }
 
   public ElasticsearchSchema(RestClient client, ObjectMapper mapper, String index, String type) {
+    this(client, mapper, index, type, ElasticsearchTransport.DEFAULT_FETCH_SIZE);
+  }
+
+  @VisibleForTesting
+  ElasticsearchSchema(RestClient client, ObjectMapper mapper,
+                      String index, String type,
+                      int fetchSize) {
     super();
     this.client = Objects.requireNonNull(client, "client");
     this.mapper = Objects.requireNonNull(mapper, "mapper");
     this.index = Objects.requireNonNull(index, "index");
+    Preconditions.checkArgument(fetchSize > 0,
+        "invalid fetch size. Expected %s > 0", fetchSize);
+    this.fetchSize = fetchSize;
     if (type == null) {
       try {
         this.tableMap = createTables(listTypesFromElastic());
@@ -76,6 +93,7 @@ public class ElasticsearchSchema extends AbstractSchema {
     } else {
       this.tableMap = createTables(Collections.singleton(type));
     }
+
   }
 
   @Override protected Map<String, Table> getTableMap() {
@@ -85,7 +103,9 @@ public class ElasticsearchSchema extends AbstractSchema {
   private Map<String, Table> createTables(Iterable<String> types) {
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
     for (String type : types) {
-      builder.put(type, new ElasticsearchTable(client, mapper, index, type));
+      final ElasticsearchTransport transport = new ElasticsearchTransport(client, mapper,
+          index, type, fetchSize);
+      builder.put(type, new ElasticsearchTable(transport));
     }
     return builder.build();
   }
@@ -101,7 +121,7 @@ public class ElasticsearchSchema extends AbstractSchema {
     final String endpoint = "/" + index + "/_mapping";
     final Response response = client.performRequest("GET", endpoint);
     try (InputStream is = response.getEntity().getContent()) {
-      JsonNode root = mapper.readTree(is);
+      final JsonNode root = mapper.readTree(is);
       if (!root.isObject() || root.size() != 1) {
         final String message = String.format(Locale.ROOT, "Invalid response for %s/%s "
             + "Expected object of size 1 got %s (of size %d)", response.getHost(),

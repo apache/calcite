@@ -56,6 +56,14 @@ limitations under the License.
       <artifactId>avatica-core</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.apache.calcite.avatica</groupId>
+      <artifactId>avatica-server</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-server</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
     </dependency>
@@ -147,6 +155,7 @@ limitations under the License.
               <!-- ignore "unused but declared" warnings -->
               <ignoredUnusedDeclaredDependencies>
                 <ignoredUnusedDeclaredDependency>net.hydromatic:chinook-data-hsqldb</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.eclipse.jetty:jetty-server</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.hsqldb:hsqldb</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.incava:java-diff</ignoredUnusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>

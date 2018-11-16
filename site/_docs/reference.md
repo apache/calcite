@@ -2196,12 +2196,14 @@ ddlStatement:
   |   createViewStatement
   |   createMaterializedViewStatement
   |   createTypeStatement
+  |   createFunctionStatement
   |   dropSchemaStatement
   |   dropForeignSchemaStatement
   |   dropTableStatement
   |   dropViewStatement
   |   dropMaterializedViewStatement
   |   dropTypeStatement
+  |   dropFunctionStatement
 
 createSchemaStatement:
       CREATE [ OR REPLACE ] SCHEMA [ IF NOT EXISTS ] name
@@ -2267,6 +2269,14 @@ createMaterializedViewStatement:
       [ '(' columnName [, columnName ]* ')' ]
       AS query
 
+createFunctionStatement:
+      CREATE [ OR REPLACE ] FUNCTION [ IF NOT EXISTS ] name
+      AS classNameLiteral
+      [ USING  usingFile [, usingFile ]* ]
+
+usingFile:
+      ( JAR | FILE | ARCHIVE ) filePathLiteral
+
 dropSchemaStatement:
       DROP SCHEMA [ IF EXISTS ] name
 
@@ -2284,6 +2294,9 @@ dropMaterializedViewStatement:
 
 dropTypeStatement:
       DROP TYPE [ IF EXISTS ] name
+
+dropFunctionStatement:
+      DROP FUNCTION [ IF EXISTS ] name
 {% endhighlight %}
 
 In *createTableStatement*, if you specify *AS query*, you may omit the list of
@@ -2292,3 +2305,6 @@ case it just renames the underlying column.
 
 In *columnGenerator*, if you do not specify `VIRTUAL` or `STORED` for a
 generated column, `VIRTUAL` is the default.
+
+In *createFunctionStatement* and *usingFile*, *classNameLiteral*
+and *filePathLiteral* are character literals.
