@@ -92,7 +92,7 @@ limitations under the License.
     <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
     <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
     <maven-enforcer-plugin.version>3.0.0-M2</maven-enforcer-plugin.version>
-    <maven-scm-provider.version>1.11.1</maven-scm-provider.version>
+    <maven-scm-provider.version>1.10.0</maven-scm-provider.version>
     <!-- ASF 21 provides 3.1.1 but need 3.2.0 due to MSHADE-289 -->
     <maven-shade-plugin.version>3.2.0</maven-shade-plugin.version>
     <mockito.version>2.22.0</mockito.version>
