@@ -92,6 +92,7 @@ limitations under the License.
     <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
     <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
     <maven-enforcer-plugin.version>3.0.0-M2</maven-enforcer-plugin.version>
+    <maven-scm-api.version>1.10.0</maven-scm-api.version>
     <maven-scm-provider.version>1.10.0</maven-scm-provider.version>
     <!-- ASF 21 provides 3.1.1 but need 3.2.0 due to MSHADE-289 -->
     <maven-shade-plugin.version>3.2.0</maven-shade-plugin.version>
@@ -502,6 +503,11 @@ limitations under the License.
              commit during release process. -->
         <artifactId>maven-release-plugin</artifactId>
         <dependencies>
+          <dependency>
+            <groupId>org.apache.maven.scm</groupId>
+            <artifactId>maven-scm-api</artifactId>
+            <version>${maven-scm-api.version}</version>
+          </dependency>
           <dependency>
             <groupId>org.apache.maven.scm</groupId>
             <artifactId>maven-scm-provider-gitexe</artifactId>
