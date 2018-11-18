@@ -152,6 +152,7 @@ RELEASE_VERSION=""
 RC_NUMBER=""
 DEV_VERSION=""
 ASF_USERNAME=""
+NAME=""
 
 get_build_configuration(){
 
@@ -160,10 +161,12 @@ get_build_configuration(){
         read -p "Enter the release candidate number (example: if you are releasing rc0, enter 0): " RC_NUMBER
         read -p "Enter the development version number (example: if your release version is 1.12.0, enter 1.13.0): " DEV_VERSION
         read -p "Enter your ASF username: " ASF_USERNAME
+        read -p "Enter your name (this will be used for git commits): " NAME
         echo "Build configured as follows:"
         echo "Release: $RELEASE_VERSION-rc$RC_NUMBER"
         echo "Next development version: $DEV_VERSION-SNAPSHOT"
         echo "ASF Username: $ASF_USERNAME"
+        echo "Name: $NAME"
 
         INVALID_CONFIRMATION=true
 
@@ -189,6 +192,8 @@ set_git_credentials(){
 
     echo https://$ASF_USERNAME:$ASF_PASSWORD@git-wip-us.apache.org >> /root/.git-credentials
     git config --global credential.helper 'store --file=/root/.git-credentials'
+
+    git config --global user.name $NAME
 }
 
 set_maven_credentials(){
