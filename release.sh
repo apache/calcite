@@ -193,7 +193,7 @@ set_git_credentials(){
     echo https://$ASF_USERNAME:$ASF_PASSWORD@git-wip-us.apache.org >> /root/.git-credentials
     git config --global credential.helper 'store --file=/root/.git-credentials'
 
-    git config --global user.name $NAME
+    git config --global user.name "$NAME"
 }
 
 set_maven_credentials(){
