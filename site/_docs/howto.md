@@ -69,13 +69,26 @@ tests.
 The test suite will run by default when you build, unless you specify
 `-DskipTests`:
 
+Note: During development, you should include `-DskipDockerCheck`, because the docker check checks to see if the dockerfile
+includes the correct version, which will fail unless you are making a release of Avatica.
+
+### Running tests in your environment
+
 {% highlight bash %}
-$ ./mvnw clean verify -Dcheckstyle.skip
+$ ./mvnw clean verify -Dcheckstyle.skip -DskipDockerCheck
 {% endhighlight %}
 
 By default, invoking the `verify` Maven lifecycle phase will also cause checkstyle
 rules to be run. It is expected that contributions pass the checkstyle rules; however,
 it is common to ignore these while working on a feature/bug and fix them at the end.
+
+### To run tests in docker:
+
+* You will need to have [docker](https://docs.docker.com/install/) and [Docker Compose](https://docs.docker.com/compose/install/) installed.
+
+{% highlight bash %}
+docker-compose run test
+{% endhighlight %}
 
 ## Contributing
 

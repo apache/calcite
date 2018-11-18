@@ -24,11 +24,16 @@ trap terminate SIGINT
 
 KEYS=()
 
-init(){
-    apk --no-cache add ca-certificates wget git gnupg
+init_glibc(){
+    apk --no-cache add ca-certificates wget
+    echo "Installing glibc..."
     wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub
     wget -q -O /tmp/glibc.apk https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.28-r0/glibc-2.28-r0.apk
     apk add /tmp/glibc.apk
+}
+
+init_release(){
+    apk --no-cache add git gnupg
 }
 
 GPG_COMMAND="gpg2"
@@ -231,7 +236,8 @@ EOF
 
 case $1 in
     dry-run)
-        init
+        init_glibc
+        init_release
         mount_gpg_keys
         select_gpg_key
         get_build_configuration
@@ -240,7 +246,8 @@ case $1 in
         ;;
 
     release)
-        init
+        init_glibc
+        init_release
         mount_gpg_keys
         select_gpg_key
         get_build_configuration
@@ -252,12 +259,16 @@ case $1 in
         ;;
 
     clean)
-        init
         mvn release:clean
         ;;
 
+    test)
+        init_glibc
+        mvn clean verify -Dcheckstyle.skip -DskipDockerCheck
+        ;;
+
     *)
-       echo $"Usage: $0 {dry-run|release|clean}"
+       echo $"Usage: $0 {dry-run|release|clean|test}"
        ;;
 
 esac
