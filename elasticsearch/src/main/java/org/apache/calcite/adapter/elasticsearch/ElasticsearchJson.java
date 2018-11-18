@@ -27,15 +27,14 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableSet;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -74,9 +73,17 @@ final class ElasticsearchJson {
         rows.computeIfAbsent(r, ignore -> new ArrayList<>()).add(v);
     aggregations.forEach(a -> visitValueNodes(a, new ArrayList<>(), cons));
     rows.forEach((k, v) -> {
-      Map<String, Object> row = new LinkedHashMap<>(k.keys);
-      v.forEach(val -> row.put(val.getName(), val.value()));
-      consumer.accept(row);
+      if (v.stream().anyMatch(val -> val instanceof GroupValue)) {
+        v.forEach(tuple -> {
+          Map<String, Object> groupRow = new LinkedHashMap<>(k.keys);
+          groupRow.put(tuple.getName(), tuple.value());
+          consumer.accept(groupRow);
+        });
+      } else {
+        Map<String, Object> row = new LinkedHashMap<>(k.keys);
+        v.forEach(val -> row.put(val.getName(), val.value()));
+        consumer.accept(row);
+      }
     });
   }
 
@@ -178,7 +185,7 @@ final class ElasticsearchJson {
       Bucket bucket = (Bucket) aggregation;
       if (bucket.hasNoAggregations()) {
         // bucket with no aggregations is also considered a leaf node
-        visitValueNodes(MultiValue.of(bucket.getName(), bucket.key()), parents, consumer);
+        visitValueNodes(GroupValue.of(bucket.getName(), bucket.key()), parents, consumer);
         return;
       }
       parents.add(bucket);
@@ -561,13 +568,23 @@ final class ElasticsearchJson {
       return values().get("value");
     }
 
-    /**
-     * Constructs a {@link MultiValue} instance with a single value.
-     */
-    static MultiValue of(String name, Object value) {
-      return new MultiValue(name, Collections.singletonMap("value", value));
+  }
+
+  /**
+   * Distinguishes from {@link MultiValue}.
+   * In order that rows which have the same key can be put into result map.
+   */
+  static class GroupValue extends MultiValue {
+    GroupValue(String name, Map<String, Object> values) {
+      super(name, values);
     }
 
+    /**
+     * Constructs a {@link GroupValue} instance with a single value.
+     */
+    static GroupValue of(String name, Object value) {
+      return new GroupValue(name, Collections.singletonMap("value", value));
+    }
   }
 
   /**
@@ -575,8 +592,9 @@ final class ElasticsearchJson {
    */
   static class AggregationsDeserializer extends StdDeserializer<Aggregations> {
 
-    private static final Set<String> IGNORE_TOKENS = new HashSet<>(Arrays.asList("meta",
-        "buckets", "value", "values", "value_as_string", "doc_count", "key", "key_as_string"));
+    private static final Set<String> IGNORE_TOKENS =
+        ImmutableSet.of("meta", "buckets", "value", "values", "value_as_string",
+            "doc_count", "key", "key_as_string");
 
     AggregationsDeserializer() {
       super(Aggregations.class);
