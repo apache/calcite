@@ -99,6 +99,9 @@ select_gpg_key(){
     echo "Starting GPG agent..."
     gpg-agent --daemon
 
+    touch /root/.gnupg/gpg.conf
+    echo use-agent >> /root/.gnupg/gpg.conf
+
     while $INVALID_KEY_SELECTED; do
 
         if [ "${#KEYS[@]}" -le 0 ]; then
