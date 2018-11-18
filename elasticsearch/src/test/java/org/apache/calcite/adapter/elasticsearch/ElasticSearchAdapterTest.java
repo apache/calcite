@@ -458,6 +458,39 @@ public class ElasticSearchAdapterTest {
 
   @Test
   public void groupBy() {
+    // distinct
+    calciteAssert()
+        .query("select distinct state from zips limit 6")
+        .queryContains(
+            ElasticsearchChecker.elasticsearchChecker("_source:false",
+            "size:0",
+            "aggregations:{'g_state':{'terms':{'field':'state','missing':'__MISSING__', 'size' : 6}}}"))
+        .returnsOrdered("state=AK",
+            "state=AL",
+            "state=AR",
+            "state=AZ",
+            "state=CA",
+            "state=CO");
+
+    // without aggregation function
+    calciteAssert()
+        .query("select state, city from zips group by state, city order by city limit 10")
+        .queryContains(
+            ElasticsearchChecker.elasticsearchChecker("'_source':false",
+            "size:0",
+            "aggregations:{'g_city':{'terms':{'field':'city','missing':'__MISSING__','size':10,'order':{'_key':'asc'}}",
+            "aggregations:{'g_state':{'terms':{'field':'state','missing':'__MISSING__','size':10}}}}}}"))
+        .returnsOrdered("state=SD; city=ABERDEEN",
+            "state=SC; city=AIKEN",
+            "state=TX; city=ALTON",
+            "state=IA; city=AMES",
+            "state=AK; city=ANCHORAGE",
+            "state=MD; city=BALTIMORE",
+            "state=ME; city=BANGOR",
+            "state=KS; city=BAVARIA",
+            "state=NJ; city=BAYONNE",
+            "state=OR; city=BEAVERTON");
+
     // ascending
     calciteAssert()
         .query("select min(pop), max(pop), state from zips group by state "
