@@ -42,12 +42,12 @@ before_install:
   - docker pull $IMAGE
 install:
   # Print the Maven version, skip tests and javadoc
-  - $DOCKERRUN $IMAGE mvn -V install -DskipTests -Dmaven.javadoc.skip=true -Djavax.net.ssl.trustStorePassword=changeit
+  - $DOCKERRUN $IMAGE mvn -V install -DskipTests -Dmaven.javadoc.skip=true -Djavax.net.ssl.trustStorePassword=changeit -DskipDockerCheck
 script:
   # Print surefire output to the console instead of files
   # Ensure that IBM JDK and Jetty work together - -Dcom.ibm.jsse2.overrideDefaultTLS=true
   - unset _JAVA_OPTIONS
-  - $DOCKERRUN $IMAGE mvn -Dsurefire.useFile=false -Djavax.net.ssl.trustStorePassword=changeit -Dcom.ibm.jsse2.overrideDefaultTLS=true verify javadoc:javadoc javadoc:test-javadoc
+  - $DOCKERRUN $IMAGE mvn -Dsurefire.useFile=false -Djavax.net.ssl.trustStorePassword=changeit -Dcom.ibm.jsse2.overrideDefaultTLS=true -DskipDockerCheck verify javadoc:javadoc javadoc:test-javadoc
 git:
   depth: 10000
 sudo: required
