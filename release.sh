@@ -99,9 +99,6 @@ select_gpg_key(){
     echo "Starting GPG agent..."
     gpg-agent --daemon
 
-    touch /root/.gnupg/gpg.conf
-    echo use-agent >> /root/.gnupg/gpg.conf
-
     while $INVALID_KEY_SELECTED; do
 
         if [ "${#KEYS[@]}" -le 0 ]; then
@@ -250,7 +247,7 @@ case $1 in
         set_maven_credentials
 
         mvn -Dmaven.artifact.threads=20 -DreleaseVersion=$RELEASE_VERSION -DdevelopmentVersion=$DEV_VERSION-SNAPSHOT -Dtag="avatica-$RELEASE_VERSION-rc$RC_NUMBER" -Papache-release -Duser.name=$ASF_USERNAME release:prepare -Darguments=-Dgpg.keyname=$SELECTED_GPG_KEY
-        mvn -Dmaven.artifact.threads=20 -Papache-release -Duser.name=$ASF_USERNAME release:perform -Darguments="-DskipTests"
+        mvn -Dmaven.artifact.threads=20 -Papache-release -Duser.name=$ASF_USERNAME release:perform -Darguments="-DskipTests -Dgpg.keyname=$SELECTED_GPG_KEY"
         ;;
 
     clean)
