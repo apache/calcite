@@ -201,11 +201,7 @@ set_maven_credentials(){
     rm -f /root/.m2/settings.xml
     rm -f /root/.m2/settings-security.xml
 
-    read -s -p "Enter a maven master password (used to encrypt your ASF password): " MAVEN_MASTER_PASSWORD
-
-    printf "\n"
-
-    ENCRYPTED_MAVEN_PASSWORD="$(mvn --encrypt-master-password $MAVEN_MASTER_PASSWORD)"
+    ENCRYPTED_MAVEN_PASSWORD="$(mvn --encrypt-master-password $ASF_PASSWORD)"
 
     cat <<EOF >> /root/.m2/settings-security.xml
 <settingsSecurity>
