@@ -458,62 +458,108 @@ public class ElasticSearchAdapterTest {
 
   @Test
   public void groupBy() {
+    // distinct
+    calciteAssert()
+        .query("select distinct state\n"
+            + "from zips\n"
+            + "limit 6")
+        .queryContains(
+            ElasticsearchChecker.elasticsearchChecker("_source:false",
+                "size:0",
+                "aggregations:{'g_state':{'terms':{'field':'state','missing':'__MISSING__', 'size' : 6}}}"))
+        .returnsOrdered("state=AK",
+            "state=AL",
+            "state=AR",
+            "state=AZ",
+            "state=CA",
+            "state=CO");
+
+    // without aggregate function
+    calciteAssert()
+        .query("select state, city\n"
+            + "from zips\n"
+            + "group by state, city\n"
+            + "order by city limit 10")
+        .queryContains(
+            ElasticsearchChecker.elasticsearchChecker("'_source':false",
+                "size:0",
+                "aggregations:{'g_city':{'terms':{'field':'city','missing':'__MISSING__','size':10,'order':{'_key':'asc'}}",
+                "aggregations:{'g_state':{'terms':{'field':'state','missing':'__MISSING__','size':10}}}}}}"))
+        .returnsOrdered("state=SD; city=ABERDEEN",
+            "state=SC; city=AIKEN",
+            "state=TX; city=ALTON",
+            "state=IA; city=AMES",
+            "state=AK; city=ANCHORAGE",
+            "state=MD; city=BALTIMORE",
+            "state=ME; city=BANGOR",
+            "state=KS; city=BAVARIA",
+            "state=NJ; city=BAYONNE",
+            "state=OR; city=BEAVERTON");
+
     // ascending
     calciteAssert()
-        .query("select min(pop), max(pop), state from zips group by state "
+        .query("select min(pop), max(pop), state\n"
+            + "from zips\n"
+            + "group by state\n"
             + "order by state limit 3")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
-            "size:0",
-            "aggregations:{'g_state':{terms:{field:'state',missing:'__MISSING__',size:3,"
-                + " order:{'_key':'asc'}}",
-            "aggregations:{'EXPR$0':{min:{field:'pop'}},'EXPR$1':{max:{field:'pop'}}}}}"))
+                "size:0",
+                "aggregations:{'g_state':{terms:{field:'state',missing:'__MISSING__',size:3,"
+                    + " order:{'_key':'asc'}}",
+                "aggregations:{'EXPR$0':{min:{field:'pop'}},'EXPR$1':{max:{field:'pop'}}}}}"))
         .returnsOrdered("EXPR$0=23238; EXPR$1=32383; state=AK",
             "EXPR$0=42124; EXPR$1=44165; state=AL",
             "EXPR$0=37428; EXPR$1=53532; state=AR");
 
     // just one aggregation function
     calciteAssert()
-        .query("select min(pop), state from zips group by state"
-            + " order by state limit 3")
+        .query("select min(pop), state\n"
+            + "from zips\n"
+            + "group by state\n"
+            + "order by state limit 3")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
-            "size:0",
-            "aggregations:{'g_state':{terms:{field:'state',missing:'__MISSING__',"
-                + "size:3, order:{'_key':'asc'}}",
-            "aggregations:{'EXPR$0':{min:{field:'pop'}} }}}"))
+                "size:0",
+                "aggregations:{'g_state':{terms:{field:'state',missing:'__MISSING__',"
+                    + "size:3, order:{'_key':'asc'}}",
+                "aggregations:{'EXPR$0':{min:{field:'pop'}} }}}"))
         .returnsOrdered("EXPR$0=23238; state=AK",
             "EXPR$0=42124; state=AL",
             "EXPR$0=37428; state=AR");
 
     // group by count
     calciteAssert()
-        .query("select count(city), state from zips group by state "
+        .query("select count(city), state\n"
+            + "from zips\n"
+            + "group by state\n"
             + "order by state limit 3")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
-            "size:0",
-            "aggregations:{'g_state':{terms:{field:'state',missing:'__MISSING__',"
-                + " size:3, order:{'_key':'asc'}}",
-            "aggregations:{'EXPR$0':{'value_count':{field:'city'}} }}}"))
+                "size:0",
+                "aggregations:{'g_state':{terms:{field:'state',missing:'__MISSING__',"
+                    + " size:3, order:{'_key':'asc'}}",
+                "aggregations:{'EXPR$0':{'value_count':{field:'city'}} }}}"))
         .returnsOrdered("EXPR$0=3; state=AK",
             "EXPR$0=3; state=AL",
             "EXPR$0=3; state=AR");
 
     // descending
     calciteAssert()
-        .query("select min(pop), max(pop), state from zips group by state "
-            + " order by state desc limit 3")
+        .query("select min(pop), max(pop), state\n"
+            + "from zips\n"
+            + "group by state\n"
+            + "order by state desc limit 3")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
-            "size:0",
-            "aggregations:{'g_state':{terms:{field:'state',missing:'__MISSING__',"
-                + "size:3, order:{'_key':'desc'}}",
-            "aggregations:{'EXPR$0':{min:{field:'pop'}},'EXPR$1':"
-                + "{max:{field:'pop'}}}}}"))
+                "size:0",
+                "aggregations:{'g_state':{terms:{field:'state',missing:'__MISSING__',"
+                    + "size:3, order:{'_key':'desc'}}",
+                "aggregations:{'EXPR$0':{min:{field:'pop'}},'EXPR$1':"
+                    + "{max:{field:'pop'}}}}}"))
         .returnsOrdered("EXPR$0=25968; EXPR$1=33107; state=WY",
-                        "EXPR$0=45196; EXPR$1=70185; state=WV",
-                        "EXPR$0=51008; EXPR$1=57187; state=WI");
+            "EXPR$0=45196; EXPR$1=70185; state=WV",
+            "EXPR$0=51008; EXPR$1=57187; state=WI");
   }
 
   /**
