@@ -53,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -122,7 +123,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       List<Map.Entry<String, String>> aggregations,
       Long offset, Long fetch) throws IOException {
 
-    if (!aggregations.isEmpty()) {
+    if (!aggregations.isEmpty() || !groupBy.isEmpty()) {
       // process aggregations separately
       return aggregate(ops, fields, sort, groupBy, aggregations, offset, fetch);
     }
@@ -170,10 +171,6 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       List<String> groupBy,
       List<Map.Entry<String, String>> aggregations,
       Long offset, Long fetch) throws IOException {
-
-    if (aggregations.isEmpty()) {
-      throw new IllegalArgumentException("Missing Aggregations");
-    }
 
     if (!groupBy.isEmpty() && offset != null) {
       String message = "Currently ES doesn't support generic pagination "
@@ -240,12 +237,23 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       }
     }
 
+    Consumer<JsonNode> emptyAggRemover = new Consumer<JsonNode>() {
+      @Override public void accept(JsonNode node) {
+        if (!node.has(AGGREGATIONS)) {
+          node.elements().forEachRemaining(this);
+          return;
+        }
+        JsonNode agg = node.get(AGGREGATIONS);
+        if (agg.size() == 0) {
+          ((ObjectNode) node).remove(AGGREGATIONS);
+        } else {
+          this.accept(agg);
+        }
+      }
+    };
+
     // cleanup query. remove empty AGGREGATIONS element (if empty)
-    JsonNode agg = query;
-    while (agg.has(AGGREGATIONS) && agg.get(AGGREGATIONS).elements().hasNext()) {
-      agg = agg.get(AGGREGATIONS);
-    }
-    ((ObjectNode) agg).remove(AGGREGATIONS);
+    emptyAggRemover.accept(query);
 
     ElasticsearchJson.Result res = transport.search(Collections.emptyMap()).apply(query);
 
@@ -253,6 +261,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
     if (res.aggregations() != null) {
       // collect values
       ElasticsearchJson.visitValueNodes(res.aggregations(), m -> {
+        // using 'Collectors.toMap' will trigger Java 8 bug here
         Map<String, Object> newMap = new LinkedHashMap<>();
         for (String key: m.keySet()) {
           newMap.put(fieldMap.getOrDefault(key, key), m.get(key));

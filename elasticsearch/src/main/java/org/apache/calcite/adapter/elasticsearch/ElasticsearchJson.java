@@ -80,9 +80,17 @@ final class ElasticsearchJson {
         rows.computeIfAbsent(r, ignore -> new ArrayList<>()).add(v);
     aggregations.forEach(a -> visitValueNodes(a, new ArrayList<>(), cons));
     rows.forEach((k, v) -> {
-      Map<String, Object> row = new LinkedHashMap<>(k.keys);
-      v.forEach(val -> row.put(val.getName(), val.value()));
-      consumer.accept(row);
+      if (v.stream().anyMatch(val -> val instanceof GroupValue)) {
+        v.forEach(tuple -> {
+          Map<String, Object> groupRow = new LinkedHashMap<>(k.keys);
+          groupRow.put(tuple.getName(), tuple.value());
+          consumer.accept(groupRow);
+        });
+      } else {
+        Map<String, Object> row = new LinkedHashMap<>(k.keys);
+        v.forEach(val -> row.put(val.getName(), val.value()));
+        consumer.accept(row);
+      }
     });
   }
 
@@ -140,7 +148,7 @@ final class ElasticsearchJson {
       Bucket bucket = (Bucket) aggregation;
       if (bucket.hasNoAggregations()) {
         // bucket with no aggregations is also considered a leaf node
-        visitValueNodes(MultiValue.of(bucket.getName(), bucket.key()), parents, consumer);
+        visitValueNodes(GroupValue.of(bucket.getName(), bucket.key()), parents, consumer);
         return;
       }
       parents.add(bucket);
@@ -523,13 +531,24 @@ final class ElasticsearchJson {
       return values().get("value");
     }
 
-    /**
-     * Constructs a {@link MultiValue} instance with a single value.
-     */
-    static MultiValue of(String name, Object value) {
-      return new MultiValue(name, Collections.singletonMap("value", value));
+  }
+
+  /**
+   * Distinguishes from {@link MultiValue}.
+   * In order that rows which have the same key can be put into result map.
+   */
+  static class GroupValue extends MultiValue {
+
+    GroupValue(String name, Map<String, Object> values) {
+      super(name, values);
     }
 
+    /**
+     * Constructs a {@link GroupValue} instance with a single value.
+     */
+    static GroupValue of(String name, Object value) {
+      return new GroupValue(name, Collections.singletonMap("value", value));
+    }
   }
 
   /**
