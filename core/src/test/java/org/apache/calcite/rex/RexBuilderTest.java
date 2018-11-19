@@ -29,6 +29,7 @@ import org.apache.calcite.util.Util;
 
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.TimeZone;
 
@@ -487,6 +488,28 @@ public class RexBuilderTest {
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(), containsString("Second out of range: [60]"));
     }
+  }
+
+  /** Tests {@link RexBuilder#makeExactLiteral(java.math.BigDecimal)}. */
+  @Test public void testBigDecimalLiteral() {
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    assertBigDecimalLiteral(builder, "25");
+    assertBigDecimalLiteral(builder, "9.9");
+    assertBigDecimalLiteral(builder, "0");
+    assertBigDecimalLiteral(builder, "-75.5");
+    assertBigDecimalLiteral(builder, "10000000");
+    assertBigDecimalLiteral(builder, "100000.111111111111111111");
+    assertBigDecimalLiteral(builder, "-100000.111111111111111111");
+    assertBigDecimalLiteral(builder, "73786976294838206464"); // 2^66
+    assertBigDecimalLiteral(builder, "-73786976294838206464");
+  }
+
+  private void assertBigDecimalLiteral(RexBuilder builder, String val) {
+    final RexNode literal = builder.makeExactLiteral(new BigDecimal(val));
+    assertThat("builder.makeExactLiteral(new BigDecimal(" + val
+                    + ")).getValueAs(BigDecimal.class).toString()",
+            ((RexLiteral) literal).getValueAs(BigDecimal.class).toString(), is(val));
   }
 
 }
