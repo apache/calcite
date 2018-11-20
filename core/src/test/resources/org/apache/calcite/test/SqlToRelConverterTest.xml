@@ -645,7 +645,7 @@ LogicalProject(DEPTNO=[$7])
     <TestCase name="testIsDistinctFrom">
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CASE(IS NULL($0), IS NOT NULL($1), IS NULL($1), IS NOT NULL($0), <>(CAST($0):INTEGER NOT NULL, CAST($1):INTEGER NOT NULL))])
+LogicalProject(EXPR$0=[AND(OR(IS NOT NULL($0), IS NOT NULL($1)), IS NOT TRUE(=($0, $1)))])
   LogicalUnion(all=[true])
     LogicalProject(EXPR$0=[null], EXPR$1=[1])
       LogicalValues(tuples=[[{ 0 }]])
@@ -662,7 +662,7 @@ from (values (cast(null as int), 1),
     <TestCase name="testIsNotDistinctFrom">
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CASE(IS NULL($0), IS NULL($1), IS NULL($1), IS NULL($0), =(CAST($0):INTEGER NOT NULL, CAST($1):INTEGER NOT NULL))])
+LogicalProject(EXPR$0=[OR(AND(IS NULL($0), IS NULL($1)), IS TRUE(=($0, $1)))])
   LogicalUnion(all=[true])
     LogicalProject(EXPR$0=[null], EXPR$1=[1])
       LogicalValues(tuples=[[{ 0 }]])
@@ -5298,7 +5298,10 @@ LogicalProject(ANYEMPNO=[$1])
     </TestCase>
     <TestCase name="testWithinGroup1">
         <Resource name="sql">
-            <![CDATA[select deptno, collect(empno) within group (order by deptno, hiredate desc) from emp group by deptno]]>
+            <![CDATA[select deptno,
+ collect(empno) within group (order by deptno, hiredate desc)
+from emp
+group by deptno]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -5310,7 +5313,14 @@ LogicalAggregate(group=[{0}], EXPR$1=[COLLECT($1) WITHIN GROUP ([1, 2 DESC])])
     </TestCase>
     <TestCase name="testWithinGroup2">
         <Resource name="sql">
-            <![CDATA[select dept.deptno, collect(sal) within group (order by sal desc) as s, collect(sal) within group (order by 1)as s1, collect(sal) within group (order by sal) filter (where sal > 2000) as s2 from emp join dept using (deptno) group by dept.deptn]]>
+            <![CDATA[select dept.deptno,
+ collect(sal) within group (order by sal desc) as s,
+ collect(sal) within group (order by 1)as s1,
+ collect(sal) within group (order by sal)
+  filter (where sal > 2000) as s2
+from emp
+join dept using (deptno)
+group by dept.deptno]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -5324,7 +5334,10 @@ LogicalAggregate(group=[{0}], S=[COLLECT($1) WITHIN GROUP ([1 DESC])], S1=[COLLE
     </TestCase>
     <TestCase name="testWithinGroup3">
         <Resource name="sql">
-            <![CDATA[select deptno, collect(empno) filter (where empno not in (1, 2)), count(*) from emp group by deptno]]>
+            <![CDATA[select deptno,
+ collect(empno) within group (order by empno not in (1, 2)), count(*)
+from emp
+group by deptno]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[

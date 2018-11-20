@@ -2194,7 +2194,7 @@ LogicalCalc(expr#0=[{inputs}], expr#1=['TABLE        '], expr#2=['t'], U=[$t1], 
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-LogicalProject(EXPR$0=[false])
+LogicalProject(EXPR$0=[IS TRUE(null)])
   LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
@@ -2590,7 +2590,7 @@ LogicalFilter(condition=[IS NOT DISTINCT FROM($7, 20)])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalFilter(condition=[CASE(IS NULL($7), false, =(CAST($7):TINYINT NOT NULL, 20))])
+LogicalFilter(condition=[IS TRUE(=($7, 20))])
   LogicalTableScan(table=[[scott, EMP]])
 ]]>
         </Resource>
@@ -6197,6 +6197,29 @@ LogicalProject(QX=[CASE(=($0, 1), 1, IS NOT NULL(1), 2, null)])
             <![CDATA[
 LogicalProject(QX=[CAST(CASE(=($0, 1), 1, 2)):INTEGER])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceConstants3">
+        <Resource name="sql">
+            <![CDATA[select e.mgr is not distinct from f.mgr from emp e join emp f on (e.mgr=f.mgr) where e.mgr is null]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EXPR$0=[OR(AND(IS NULL($3), IS NULL($12)), IS TRUE(=($3, $12)))])
+  LogicalFilter(condition=[IS NULL($3)])
+    LogicalJoin(condition=[=($3, $12)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EXPR$0=[IS NULL($12)])
+  LogicalFilter(condition=[IS NULL($3)])
+    LogicalJoin(condition=[=($3, $12)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
