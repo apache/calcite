@@ -95,6 +95,9 @@ public class SqlDotOperator extends SqlSpecialOperator {
       SqlValidatorScope scope, SqlCall call) {
     RelDataType nodeType = validator.deriveType(scope, call.getOperandList().get(0));
     assert nodeType != null;
+    if (!nodeType.isStruct()) {
+      throw SqlUtil.newContextException(SqlParserPos.ZERO, Static.RESOURCE.incompatibleTypes());
+    }
 
     final String fieldName = call.getOperandList().get(1).toString();
     RelDataTypeField field =
@@ -129,6 +132,8 @@ public class SqlDotOperator extends SqlSpecialOperator {
     final RelDataType type =
         callBinding.getValidator().deriveType(callBinding.getScope(), left);
     if (type.getSqlTypeName() != SqlTypeName.ROW) {
+      return false;
+    } else if (type.getSqlIdentifier().isStar()) {
       return false;
     }
     final RelDataType operandType = callBinding.getOperandType(0);

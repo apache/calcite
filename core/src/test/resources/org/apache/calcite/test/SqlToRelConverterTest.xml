@@ -778,6 +778,28 @@ from emp
 window w1 as (partition by job order by hiredate rows 2 preceding)]]>
         </Resource>
     </TestCase>
+    <TestCase name="testNestRowDotLiteral">
+        <Resource name="sql">
+            <![CDATA[select 1 from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[ROW(ROW(1, 2), ROW(3, 4, 5)).EXPR$1.EXPR$2])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testRowDotLiteral">
+        <Resource name="sql">
+            <![CDATA[select 1 from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[ROW(1, 2).EXPR$1])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testIntegerLiteral">
         <Resource name="sql">
             <![CDATA[select 1 from emp]]>

@@ -3000,6 +3000,7 @@ void Expression2b(ExprContext exprContext, List<Object> list) :
 {
     SqlNode e;
     SqlOperator op;
+    String p;
 }
 {
     (
@@ -3011,6 +3012,15 @@ void Expression2b(ExprContext exprContext, List<Object> list) :
     e = Expression3(exprContext) {
         list.add(e);
     }
+    (
+        <DOT>
+        p = Identifier() {
+            list.add(
+                new SqlParserUtil.ToTreeListItem(
+                    SqlStdOperatorTable.DOT, getPos()));
+            list.add(new SqlIdentifier(p, getPos()));
+        }
+    )*
 }
 
 /**

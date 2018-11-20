@@ -1259,6 +1259,24 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "INTEGER NOT NULL");
   }
 
+  @Test public void testRowWitValidDot() {
+    checkColumnType("select ((1,2),(3,4,5)).\"EXPR$1\".\"EXPR$2\"\n from dept",
+        "INTEGER NOT NULL");
+    checkColumnType("select row(1,2).\"EXPR$1\" from dept",
+        "INTEGER NOT NULL");
+    checkColumnType("select t.a.\"EXPR$1\" from (select row(1,2) as a from (values (1))) as t",
+        "INTEGER NOT NULL");
+  }
+
+  @Test public void testRowWitInvalidDotOperation() {
+    checkExpFails("select t.^s.\"EXPR$1\"^ from (select 1 AS s from (values (1))) as t",
+        "(?s).*Column 'S\\.EXPR\\$1' not found in table 'T'.*");
+    checkExpFails("select array[1, 2, 3].\"EXPR$1\" from dept",
+        "(?s).*Incompatible types.*");
+    checkExpFails("select 'mystr'.\"EXPR$1\" from dept",
+        "(?s).*Incompatible types.*");
+  }
+
   @Test public void testMultiset() {
     checkExpType("multiset[1]", "INTEGER NOT NULL MULTISET NOT NULL");
     checkExpType(
@@ -4818,8 +4836,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testStarDotIdFails() {
     // Fails in parser
+    sql("select emp.^*^.\"EXPR$1\" from emp")
+        .fails("(?s).*Unknown field '\\*'");
     sql("select emp.^*^.foo from emp")
-        .fails("(?s).*Encountered \".\" at .*");
+        .fails("(?s).*Unknown field '\\*'");
     // Parser does not allow star dot identifier.
     sql("select ^*^.foo from emp")
         .fails("(?s).*Encountered \".\" at .*");
