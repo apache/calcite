@@ -556,11 +556,6 @@ public class RelBuilder {
   private RexNode call(SqlOperator operator, List<RexNode> operandList) {
     final RexBuilder builder = cluster.getRexBuilder();
     final RelDataType type = builder.deriveReturnType(operator, operandList);
-    if (type == null) {
-      throw new IllegalArgumentException("cannot derive type: " + operator
-          + "; operands: "
-          + Lists.transform(operandList, e -> e + ": " + e.getType()));
-    }
     return builder.makeCall(type, operator, operandList);
   }
 

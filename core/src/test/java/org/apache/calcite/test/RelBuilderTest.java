@@ -401,8 +401,8 @@ public class RelBuilderTest {
       fail("expected error, got " + call);
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(),
-          is("cannot derive type: +; "
-              + "operands: [$1: VARCHAR(10), $3: SMALLINT]"));
+          is("Cannot infer return type for +; "
+              + "operand types: [VARCHAR(10), SMALLINT]"));
     }
   }
 
@@ -2057,7 +2057,7 @@ public class RelBuilderTest {
       builder.call(SqlStdOperatorTable.PLUS, Lists.newArrayList(arg0, arg1));
       fail("Invalid combination of parameter types");
     } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), containsString("cannot derive type"));
+      assertThat(e.getMessage(), containsString("Cannot infer return type"));
     }
 
     // test for b) call(operator, RexNode...)
@@ -2065,7 +2065,7 @@ public class RelBuilderTest {
       builder.call(SqlStdOperatorTable.PLUS, arg0, arg1);
       fail("Invalid combination of parameter types");
     } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), containsString("cannot derive type"));
+      assertThat(e.getMessage(), containsString("Cannot infer return type"));
     }
   }
 
