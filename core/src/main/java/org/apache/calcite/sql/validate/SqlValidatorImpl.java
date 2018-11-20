@@ -1797,9 +1797,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlCallBinding callBinding = new SqlCallBinding(this, scope, call);
       final List<SqlNode> operands = callBinding.operands();
       int inferOperandSize;
-      // For AS operator, alias operand should not be inferred
+      // [CALCITE-2468] For AS operator, alias operand should not be inferred
       if (call.getOperator().kind == SqlKind.AS) {
-        inferOperandSize = operands.size()-1;
+        inferOperandSize = operands.size() - 1;
       } else {
         inferOperandSize = operands.size();
       }
