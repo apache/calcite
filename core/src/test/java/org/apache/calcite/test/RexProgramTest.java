@@ -748,6 +748,11 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplifyUnchanged(cast(cast(vVarchar(), tInt()), tVarchar()));
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void checkNoCommonReturnTypeException() {
+    coalesce(vVarchar(1), vInt(2));
+  }
+
   /** Unit test for {@link org.apache.calcite.rex.RexUtil#toCnf}. */
   @Test public void testCnf() {
     final RelDataType booleanType =
