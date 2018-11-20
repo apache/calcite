@@ -1952,9 +1952,8 @@ public abstract class RelOptUtil {
         rexBuilder.makeCall(nullOp, x),
 
         // else return x compared to y
-        rexBuilder.makeCall(eqOp,
-            rexBuilder.makeNotNull(x),
-            rexBuilder.makeNotNull(y))
+        rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE,
+            rexBuilder.makeCall(eqOp, x, y))
     };
     return rexBuilder.makeCall(
         SqlStdOperatorTable.CASE,
@@ -2703,7 +2702,7 @@ public abstract class RelOptUtil {
     //noinspection unchecked
     return (T) rel.copy(
         rel.getTraitSet().replace(trait),
-        (List) rel.getInputs());
+        rel.getInputs());
   }
 
   /**
