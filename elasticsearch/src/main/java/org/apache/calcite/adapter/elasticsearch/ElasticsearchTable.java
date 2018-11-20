@@ -219,7 +219,11 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       final ObjectNode section = parent.with(aggName);
       final ObjectNode terms = section.with("terms");
       terms.put("field", name);
-      terms.set("missing", ElasticsearchJson.MISSING_VALUE); // expose missing terms
+
+      transport.mapping.missingValueFor(name).ifPresent(m -> {
+        // expose missing terms. each type has a different missing value
+        terms.set("missing", m);
+      });
 
       if (fetch != null) {
         terms.put("size", fetch);

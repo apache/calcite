@@ -26,14 +26,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -58,13 +59,6 @@ import static java.util.Collections.unmodifiableMap;
  */
 final class ElasticsearchJson {
 
-  /**
-   * Used as special aggregation key for missing values (documents which are missing a field).
-   * Buckets with that value are then converted to {@code null}s in flat tabular format.
-   * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-sum-aggregation.html">Missing Value</a>
-   */
-  static final JsonNode MISSING_VALUE = JsonNodeFactory.instance.textNode("__MISSING__");
-
   private ElasticsearchJson() {}
 
   /**
@@ -85,6 +79,48 @@ final class ElasticsearchJson {
       consumer.accept(row);
     });
   }
+
+  /**
+   * Visits elastic <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html">mapping properties</a>
+   * and calls consumer for each {@code field / type} pair. Nested fields are represented as
+   * {@code foo.bar.qux}.
+   */
+  static void visitMappingProperties(ObjectNode mapping, BiConsumer<String, String> consumer) {
+    Objects.requireNonNull(mapping, "mapping");
+    Objects.requireNonNull(consumer, "consumer");
+    visitMappingProperties(new ArrayDeque<>(), mapping, consumer);
+  }
+
+  private static void visitMappingProperties(Deque<String> path, ObjectNode mapping,
+      BiConsumer<String, String> consumer) {
+    Objects.requireNonNull(mapping, "mapping");
+    if (mapping.isMissingNode()) {
+      return;
+    }
+
+    if (mapping.has("properties")) {
+      // recurse
+      visitMappingProperties(path, (ObjectNode) mapping.get("properties"), consumer);
+      return;
+    }
+
+    if (mapping.has("type")) {
+      // this is leaf (register field / type mapping)
+      consumer.accept(String.join(".", path), mapping.get("type").asText());
+      return;
+    }
+
+    // otherwise continue visiting mapping(s)
+    Iterable<Map.Entry<String, JsonNode>> iter = mapping::fields;
+    for (Map.Entry<String, JsonNode> entry : iter) {
+      final String name = entry.getKey();
+      final ObjectNode node = (ObjectNode) entry.getValue();
+      path.add(name);
+      visitMappingProperties(path, node, consumer);
+      path.removeLast();
+    }
+  }
+
 
   /**
    * Identifies a calcite row (as in relational algebra)
@@ -601,18 +637,23 @@ final class ElasticsearchJson {
      * Determines if current key is a missing field key. Missing key is returned when document
      * does not have pivoting attribute (example {@code GROUP BY _MAP['a.b.missing']}). It helps
      * grouping documents which don't have a field. In relational algebra this
-     * would be {@code null}.
+     * would normally be {@code null}.
+     *
+     * <p>Please note that missing value is different for each type.
      *
      * @param key current {@code key} (usually string) as returned by ES
      * @return {@code true} if this value
-     * @see #MISSING_VALUE
      */
     private static boolean isMissingBucket(JsonNode key) {
-      return MISSING_VALUE.equals(key);
+      return ElasticsearchMapping.Datatype.isMissingValue(key);
     }
 
     private static Bucket parseBucket(JsonParser parser, String name, ObjectNode node)
         throws JsonProcessingException  {
+
+      if (!node.has("key")) {
+        throw new IllegalArgumentException("No 'key' attribute for " + node);
+      }
 
       final JsonNode keyNode = node.get("key");
       final Object key;

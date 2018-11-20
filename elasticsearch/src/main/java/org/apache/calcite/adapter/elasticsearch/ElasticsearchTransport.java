@@ -36,6 +36,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.google.common.collect.ImmutableMap;
 
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
@@ -72,6 +73,8 @@ final class ElasticsearchTransport {
 
   final ElasticsearchVersion version;
 
+  final ElasticsearchMapping mapping;
+
   /**
    * Default batch size
    * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html">Scrolling API</a>
@@ -89,6 +92,7 @@ final class ElasticsearchTransport {
     this.typeName = Objects.requireNonNull(typeName, "typeName");
     this.fetchSize = fetchSize;
     this.version = version(); // cache version
+    this.mapping = fetchAndCreateMapping(); // cache mapping
   }
 
   RestClient restClient() {
@@ -110,6 +114,19 @@ final class ElasticsearchTransport {
     return rawHttp(ObjectNode.class)
         .andThen(fn)
         .apply(request);
+  }
+
+  /**
+   * Build index mapping returning new instance of {@link ElasticsearchMapping}.
+   */
+  private ElasticsearchMapping fetchAndCreateMapping() {
+    final String uri = String.format(Locale.ROOT, "/%s/%s/_mapping", indexName, typeName);
+    final ObjectNode root = rawHttp(ObjectNode.class).apply(new HttpGet(uri));
+    ObjectNode properties = (ObjectNode) root.elements().next().get("mappings").elements().next();
+
+    ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+    ElasticsearchJson.visitMappingProperties(properties, builder::put);
+    return new ElasticsearchMapping(indexName, typeName, builder.build());
   }
 
   ObjectMapper mapper() {

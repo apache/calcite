@@ -23,6 +23,8 @@ import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.ElasticsearchChecker;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
@@ -53,20 +55,29 @@ public class AggregationTest {
   @BeforeClass
   public static void setupInstance() throws Exception {
 
-    final Map<String, String> mappings = ImmutableMap.of("cat1", "keyword",
-        "cat2", "keyword", "cat3", "keyword",
-        "val1", "long", "val2", "long");
+    final Map<String, String> mappings = ImmutableMap.<String, String>builder()
+        .put("cat1", "keyword")
+        .put("cat2", "keyword")
+        .put("cat3", "keyword")
+        .put("cat4", "date")
+        .put("cat5", "integer")
+        .put("val1", "long")
+        .put("val2", "long")
+        .build();
 
     NODE.createIndex(NAME, mappings);
 
-    String doc1 = "{'cat1': 'a', 'cat2': 'g', 'val1': 1 }".replace('\'', '"');
-    String doc2 = "{'cat2': 'g', 'cat3': 'y', 'val2': 5 }".replace('\'', '"');
-    String doc3 = "{'cat1': 'b', 'cat2':'h', 'cat3': 'z', 'val1': 7, 'val2': '42'}"
-        .replace('\'', '"');
+    String doc1 = "{cat1:'a', cat2:'g', val1:1, cat4:'2018-01-01', cat5:1}";
+    String doc2 = "{cat2:'g', cat3:'y', val2:5, cat4:'2019-12-12'}";
+    String doc3 = "{cat1:'b', cat2:'h', cat3:'z', cat5:2, val1:7, val2:42}";
 
-    List<ObjectNode> docs = new ArrayList<>();
+    final ObjectMapper mapper = new ObjectMapper()
+        .enable(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES) // user-friendly settings to
+        .enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES); // avoid too much quoting
+
+    final List<ObjectNode> docs = new ArrayList<>();
     for (String text: Arrays.asList(doc1, doc2, doc3)) {
-      docs.add((ObjectNode) NODE.mapper().readTree(text));
+      docs.add((ObjectNode) mapper.readTree(text));
     }
 
     NODE.insertBulk(NAME, docs);
@@ -85,6 +96,8 @@ public class AggregationTest {
             "select _MAP['cat1'] AS \"cat1\", "
                 + " _MAP['cat2']  AS \"cat2\", "
                 +  " _MAP['cat3'] AS \"cat3\", "
+                +  " _MAP['cat4'] AS \"cat4\", "
+                +  " _MAP['cat5'] AS \"cat5\", "
                 +  " _MAP['val1'] AS \"val1\", "
                 +  " _MAP['val2'] AS \"val2\" "
                 +  " from \"elastic\".\"%s\"", NAME);
@@ -255,6 +268,34 @@ public class AggregationTest {
             .returnsUnordered("cat1=a; cat2=g; cat3=null; EXPR$3=1; EXPR$4=1.0; EXPR$5=0.0",
                     "cat1=b; cat2=h; cat3=z; EXPR$3=1; EXPR$4=7.0; EXPR$5=42.0",
                     "cat1=null; cat2=g; cat3=y; EXPR$3=1; EXPR$4=0.0; EXPR$5=5.0");
+  }
+
+  /**
+   * Group by <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/date.html">date</a>
+   * data type.
+   */
+  @Test
+  public void dateCat() {
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select cat4, sum(val1) from view group by cat4")
+        .returnsUnordered("cat4=1514764800000; EXPR$1=1.0",
+                          "cat4=1576108800000; EXPR$1=0.0",
+                          "cat4=null; EXPR$1=7.0");
+  }
+
+  /**
+   * Group by <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/number.html">number</a>
+   * data type.
+   */
+  @Test
+  public void integerCat() {
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select cat5, sum(val1) from view group by cat5")
+        .returnsUnordered("cat5=1; EXPR$1=1.0",
+            "cat5=null; EXPR$1=0.0",
+            "cat5=2; EXPR$1=7.0");
   }
 }
 

@@ -54,7 +54,7 @@ public class BooleanLogicTest {
   @BeforeClass
   public static void setupInstance() throws Exception {
 
-    final Map<String, String> mapping = ImmutableMap.of("A", "keyword", "b", "keyword",
+    final Map<String, String> mapping = ImmutableMap.of("a", "keyword", "b", "keyword",
         "c", "keyword", "int", "long");
 
     NODE.createIndex(NAME, mapping);
