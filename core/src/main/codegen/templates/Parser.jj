@@ -5229,7 +5229,7 @@ SqlCall JsonObjectFunctionCall() :
 
 SqlCall JsonObjectAggFunctionCall() :
 {
-    final SqlNode[] args = new SqlNode[3];
+    final SqlNode[] args = new SqlNode[2];
     List<SqlNode> list;
     final Span span;
     SqlJsonConstructorNullClause nullClause =
@@ -5247,11 +5247,9 @@ SqlCall JsonObjectAggFunctionCall() :
             nullClause = (SqlJsonConstructorNullClause) ((SqlLiteral) e).getValue();
         }
     ]
-    {
-        args[2] = SqlLiteral.createSymbol(nullClause, getPos());
-    }
     <RPAREN> {
-        return SqlStdOperatorTable.JSON_OBJECTAGG.createCall(span.end(this), args);
+        return SqlStdOperatorTable.JSON_OBJECTAGG.with(nullClause)
+            .createCall(span.end(this), args);
     }
 }
 
@@ -5290,7 +5288,7 @@ SqlCall JsonArrayFunctionCall() :
 
 SqlCall JsonArrayAggFunctionCall() :
 {
-    final SqlNode[] args = new SqlNode[2];
+    final SqlNode[] args = new SqlNode[1];
     List<SqlNode> list;
     final Span span;
     SqlJsonConstructorNullClause nullClause =
@@ -5307,11 +5305,9 @@ SqlCall JsonArrayAggFunctionCall() :
             nullClause = (SqlJsonConstructorNullClause) ((SqlLiteral) e).getValue();
         }
     ]
-    {
-        args[1] = SqlLiteral.createSymbol(nullClause, getPos());
-    }
     <RPAREN> {
-        return SqlStdOperatorTable.JSON_ARRAYAGG.createCall(span.end(this), args);
+        return SqlStdOperatorTable.JSON_ARRAYAGG.with(nullClause)
+            .createCall(span.end(this), args);
     }
 }
 

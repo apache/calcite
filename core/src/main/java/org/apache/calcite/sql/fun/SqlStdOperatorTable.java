@@ -1290,13 +1290,13 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlFunction JSON_OBJECT = new SqlJsonObjectFunction();
 
-  public static final SqlAggFunction JSON_OBJECTAGG =
-      new SqlJsonObjectAggAggFunction("JSON_OBJECTAGG");
+  public static final SqlJsonObjectAggAggFunction JSON_OBJECTAGG =
+      new SqlJsonObjectAggAggFunction("JSON_OBJECTAGG", null);
 
   public static final SqlFunction JSON_ARRAY = new SqlJsonArrayFunction();
 
-  public static final SqlAggFunction JSON_ARRAYAGG =
-      new SqlJsonArrayAggAggFunction("JSON_ARRAYAGG");
+  public static final SqlJsonArrayAggAggFunction JSON_ARRAYAGG =
+      new SqlJsonArrayAggAggFunction("JSON_ARRAYAGG", null);
 
   public static final SqlBetweenOperator BETWEEN =
       new SqlBetweenOperator(

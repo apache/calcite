@@ -45,6 +45,8 @@ import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlJsonArrayAggAggFunction;
+import org.apache.calcite.sql.fun.SqlJsonObjectAggAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -1805,12 +1807,16 @@ public class RexImpTable {
     }
 
     @Override public void implementAdd(AggContext info, AggAddContext add) {
+      SqlJsonObjectAggAggFunction function
+          = (SqlJsonObjectAggAggFunction) info.aggregation();
       add.currentBlock().add(
           Expressions.statement(
               Expressions.call(m,
                   Iterables.concat(
                       Collections.singletonList(add.accumulator().get(0)),
-                      add.arguments()))));
+                      add.arguments(),
+                      Collections.singletonList(
+                          Expressions.constant(function.getNullClause()))))));
     }
 
     @Override public Expression implementResult(AggContext info,
@@ -1846,12 +1852,16 @@ public class RexImpTable {
 
     @Override public void implementAdd(AggContext info,
         AggAddContext add) {
+      SqlJsonArrayAggAggFunction function
+          = (SqlJsonArrayAggAggFunction) info.aggregation();
       add.currentBlock().add(
           Expressions.statement(
               Expressions.call(m,
                   Iterables.concat(
                       Collections.singletonList(add.accumulator().get(0)),
-                      add.arguments()))));
+                      add.arguments(),
+                      Collections.singletonList(
+                          Expressions.constant(function.getNullClause()))))));
     }
 
     @Override public Expression implementResult(AggContext info,
