@@ -78,6 +78,16 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).convertsTo(plan);
   }
 
+  @Test public void testDotLiteralAfterNestedRow() {
+    final String sql = "select ((1,2),(3,4,5)).\"EXPR$1\".\"EXPR$2\" from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testDotLiteralAfterRow() {
+    final String sql = "select row(1,2).\"EXPR$1\" from emp";
+    sql(sql).ok();
+  }
+
   @Test public void testIntegerLiteral() {
     final String sql = "select 1 from emp";
     sql(sql).ok();

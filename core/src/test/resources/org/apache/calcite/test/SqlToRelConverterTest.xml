@@ -717,6 +717,28 @@ LogicalProject(EXPR$0=[CHAR_LENGTH('foo')])
             <![CDATA[values (character_length('foo'))]]>
         </Resource>
     </TestCase>
+    <TestCase name="testDotLiteralAfterNestedRow">
+        <Resource name="sql">
+            <![CDATA[select ((1,2),(3,4,5))."EXPR$1"."EXPR$2" from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[ROW(ROW(1, 2), ROW(3, 4, 5)).EXPR$1.EXPR$2])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testDotLiteralAfterRow">
+        <Resource name="sql">
+            <![CDATA[select row(1,2)."EXPR$1" from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[ROW(1, 2).EXPR$1])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testDynamicNestedColumn">
         <Resource name="sql">
             <![CDATA[select t3.fake_q1['fake_col2'] as fake2

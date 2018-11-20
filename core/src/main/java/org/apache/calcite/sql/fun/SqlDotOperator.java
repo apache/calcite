@@ -93,14 +93,22 @@ public class SqlDotOperator extends SqlSpecialOperator {
 
   @Override public RelDataType deriveType(SqlValidator validator,
       SqlValidatorScope scope, SqlCall call) {
-    RelDataType nodeType = validator.deriveType(scope, call.getOperandList().get(0));
+    final SqlNode operand = call.getOperandList().get(0);
+    final RelDataType nodeType =
+        validator.deriveType(scope, operand);
     assert nodeType != null;
+    if (!nodeType.isStruct()) {
+      throw SqlUtil.newContextException(operand.getParserPosition(),
+          Static.RESOURCE.incompatibleTypes());
+    }
 
-    final String fieldName = call.getOperandList().get(1).toString();
-    RelDataTypeField field =
+    final SqlNode fieldId = call.operand(1);
+    final String fieldName = fieldId.toString();
+    final RelDataTypeField field =
         nodeType.getField(fieldName, false, false);
     if (field == null) {
-      throw SqlUtil.newContextException(SqlParserPos.ZERO, Static.RESOURCE.unknownField(fieldName));
+      throw SqlUtil.newContextException(fieldId.getParserPosition(),
+          Static.RESOURCE.unknownField(fieldName));
     }
     RelDataType type = field.getType();
 
@@ -129,6 +137,8 @@ public class SqlDotOperator extends SqlSpecialOperator {
     final RelDataType type =
         callBinding.getValidator().deriveType(callBinding.getScope(), left);
     if (type.getSqlTypeName() != SqlTypeName.ROW) {
+      return false;
+    } else if (type.getSqlIdentifier().isStar()) {
       return false;
     }
     final RelDataType operandType = callBinding.getOperandType(0);

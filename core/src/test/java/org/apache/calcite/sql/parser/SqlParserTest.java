@@ -1094,6 +1094,11 @@ public class SqlParserTest {
     return false;
   }
 
+  @Test public void testRowWitDot() {
+    check("select (1,2).a from c.t", "SELECT ((ROW(1, 2)).`A`)\nFROM `C`.`T`");
+    check("select row(1,2).a from c.t", "SELECT ((ROW(1, 2)).`A`)\nFROM `C`.`T`");
+  }
+
   @Test public void testPeriod() {
     // We don't have a PERIOD constructor currently;
     // ROW constructor is sufficient for now.
@@ -1512,6 +1517,10 @@ public class SqlParserTest {
     check("select count(1), count(distinct 2) from emp",
         "SELECT COUNT(1), COUNT(DISTINCT 2)\n"
             + "FROM `EMP`");
+  }
+
+  @Test public void testFunctionCallWithDot() {
+    checkExp("foo(a,b).c", "(`FOO`(`A`, `B`).`C`)");
   }
 
   @Test public void testFunctionInFunction() {
@@ -2470,11 +2479,6 @@ public class SqlParserTest {
     sql("select emp.* as foo from emp")
         .ok("SELECT `EMP`.* AS `FOO`\n"
                 + "FROM `EMP`");
-  }
-
-  @Test public void testTableStarColumnFails() {
-    sql("select emp.*^.^xx from emp")
-        .fails("(?s).*Encountered \".\" .*");
   }
 
   @Test public void testNotExists() {
@@ -6620,6 +6624,7 @@ public class SqlParserTest {
         "(?s)Encountered \"to year\" at line 1, column 19.\n"
             + "Was expecting one of:\n"
             + "    <EOF> \n"
+            + "    \"\\.\" \\.\\.\\.\n"
             + "    \"NOT\" \\.\\.\\..*");
     checkExpFails("interval '1-2' year ^to^ day", ANY);
     checkExpFails("interval '1-2' year ^to^ hour", ANY);
