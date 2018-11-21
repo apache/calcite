@@ -21,6 +21,8 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.rel.core.RelFactories;
 
+import java.util.function.Function;
+
 /** A partially-created RelBuilder.
  *
  * <p>Add a cluster, and optionally a schema,
@@ -35,7 +37,12 @@ import org.apache.calcite.rel.core.RelFactories;
  */
 public interface RelBuilderFactory {
   /** Creates a RelBuilder. */
-  RelBuilder create(RelOptCluster cluster, RelOptSchema schema);
+  default RelBuilder create(RelOptCluster cluster, RelOptSchema schema) {
+    return create(cluster, schema, rb -> true);
+  }
+
+  RelBuilder create(RelOptCluster cluster, RelOptSchema schema,
+                    Function<RelBuilder, Boolean> mergeProjectStartegy);
 }
 
 // End RelBuilderFactory.java

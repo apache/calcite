@@ -1786,6 +1786,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   @Test public void testReduceConstants2() throws Exception {
     HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
         .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)
         .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
         .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)

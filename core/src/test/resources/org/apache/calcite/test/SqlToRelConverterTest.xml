@@ -500,8 +500,9 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{}], agg#0=[MIN($0)])
         LogicalProject($f0=[true])
-          LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
-            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+          LogicalProject(EXPR$0=[1])
+            LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -1723,10 +1724,11 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{}], agg#0=[MIN($0)])
         LogicalProject($f0=[true])
-          LogicalFilter(condition=[<=($0, $cor1.DEPTNO)])
-            LogicalProject(DEPTNO=[$0], NAME=[$1])
-              LogicalFilter(condition=[>=($0, $cor1.DEPTNO)])
-                LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+          LogicalProject(EXPR$0=[1])
+            LogicalFilter(condition=[<=($0, $cor1.DEPTNO)])
+              LogicalProject(DEPTNO=[$0], NAME=[$1])
+                LogicalFilter(condition=[>=($0, $cor1.DEPTNO)])
+                  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1823,15 +1825,17 @@ LogicalProject(D2=[$0], D3=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{}], agg#0=[MIN($0)])
         LogicalProject($f0=[true])
-          LogicalFilter(condition=[AND(=($0, $cor3.D2), IS NOT NULL($1))])
-            LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
-              LogicalProject(D1=[+($0, 1)])
-                LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-              LogicalAggregate(group=[{}], agg#0=[MIN($0)])
-                LogicalProject($f0=[true])
-                  LogicalFilter(condition=[AND(=($0, $cor0.D1), =($1, $cor0.D1), =($2, $cor3.D3))])
-                    LogicalProject(D4=[+($0, 4)], D5=[+($0, 5)], D6=[+($0, 6)])
-                      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+          LogicalProject(EXPR$0=[1])
+            LogicalFilter(condition=[AND(=($0, $cor3.D2), IS NOT NULL($1))])
+              LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+                LogicalProject(D1=[+($0, 1)])
+                  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+                LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+                  LogicalProject($f0=[true])
+                    LogicalProject(EXPR$0=[2])
+                      LogicalFilter(condition=[AND(=($0, $cor0.D1), =($1, $cor0.D1), =($2, $cor3.D3))])
+                        LogicalProject(D4=[+($0, 4)], D5=[+($0, 5)], D6=[+($0, 6)])
+                          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -3323,7 +3327,7 @@ LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[
             <![CDATA[
 LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
   LogicalFilter(condition=[=($7, 20)])
-    LogicalProject(EMPNO=[44], ENAME=['Fred'], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[999999], COMM=[null], DEPTNO=[20], SLACKER=[null], EXTRA=[null], UPDATED=[?0])
+    LogicalProject(EMPNO=[44], ENAME=['Fred'], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[CAST(999999):INTEGER], COMM=[null], DEPTNO=[CAST(20):INTEGER], SLACKER=[null], EXTRA=[null], UPDATED=[?0])
       LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
@@ -4983,8 +4987,9 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{}], agg#0=[MIN($0)])
         LogicalProject($f0=[true])
-          LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
-            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+          LogicalProject(EXPR$0=[1])
+            LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>

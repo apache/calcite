@@ -57,8 +57,12 @@ SELECT SC.email EMAIL, TF.TYPE, TF.CODEVALUE
 FROM ENHANCED.SIMPLE_CUSTOMER SC
 JOIN TABLE(AUX.CODES('luisg@embraer.com.br')) TF ON TF.CODEVALUE = SC.EMAIL
 LIMIT 6;
-It should be a result but exception is thrown
-(? rows)
++----------------------+----------+----------------------+
+| EMAIL                | TYPE     | CODEVALUE            |
++----------------------+----------+----------------------+
+| luisg@embraer.com.br | ORIGINAL | luisg@embraer.com.br |
++----------------------+----------+----------------------+
+(1 row)
 
 !ok
 

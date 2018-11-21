@@ -323,7 +323,8 @@ public class SqlToRelConverter {
     this.exprConverter = new SqlNodeToRexConverterImpl(convertletTable);
     this.explainParamCount = 0;
     this.config = new ConfigBuilder().withConfig(config).build();
-    this.relBuilder = config.getRelBuilderFactory().create(cluster, null);
+    this.relBuilder = config.getRelBuilderFactory().create(cluster, null,
+        this::shouldMergeProject);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -614,6 +615,11 @@ public class SqlToRelConverter {
       return requiredCollation(((Delta) r).getInput());
     }
     throw new AssertionError();
+  }
+
+  // Don't merge projects which are leaves, they are needed in a rel tree to proper map rex
+  private Boolean shouldMergeProject(RelBuilder relBuilder) {
+    return !leaves.contains(relBuilder.peek());
   }
 
   /**

@@ -151,7 +151,10 @@ public class MutableRelTest {
         + "  select * from emp\n"
         + "  where emp.deptno = dept.deptno\n"
         + "  and emp.sal > 100)";
-    checkConvertMutableRel("Correlate", sql);
+    checkConvertMutableRel("Correlate", sql,
+        false,
+        ImmutableList.of(
+        ProjectMergeRule.INSTANCE));
   }
 
   @Test public void testConvertUnion() {

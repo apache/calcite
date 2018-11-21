@@ -106,6 +106,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
@@ -128,6 +129,9 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <p>It is not thread-safe.
  */
 public class RelBuilder {
+
+  public static final Function<RelBuilder, Boolean> DEFAULT_PROJECT_MERGE_STRATEGY = rb -> true;
+
   protected final RelOptCluster cluster;
   protected final RelOptSchema relOptSchema;
   private final RelFactories.FilterFactory filterFactory;
@@ -146,9 +150,15 @@ public class RelBuilder {
   private final Deque<Frame> stack = new ArrayDeque<>();
   private final boolean simplify;
   private final RexSimplify simplifier;
+  private final Function<RelBuilder, Boolean> mergeProjectStrategy;
+
+  protected RelBuilder(Context context, RelOptCluster cluster, RelOptSchema relOptSchema) {
+    this(context, cluster, relOptSchema, DEFAULT_PROJECT_MERGE_STRATEGY);
+  }
 
   protected RelBuilder(Context context, RelOptCluster cluster,
-      RelOptSchema relOptSchema) {
+      RelOptSchema relOptSchema, Function<RelBuilder, Boolean> mergeProjectStrategy) {
+    this.mergeProjectStrategy = mergeProjectStrategy;
     this.cluster = cluster;
     this.relOptSchema = relOptSchema;
     if (context == null) {
@@ -215,7 +225,8 @@ public class RelBuilder {
             return null;
           }
         });
-    return new RelBuilder(config.getContext(), clusters[0], relOptSchemas[0]);
+    return new RelBuilder(config.getContext(), clusters[0], relOptSchemas[0],
+        DEFAULT_PROJECT_MERGE_STRATEGY);
   }
 
   /** Converts this RelBuilder to a string.
@@ -239,7 +250,8 @@ public class RelBuilder {
   /** Creates a {@link RelBuilderFactory}, a partially-created RelBuilder.
    * Just add a {@link RelOptCluster} and a {@link RelOptSchema} */
   public static RelBuilderFactory proto(final Context context) {
-    return (cluster, schema) -> new RelBuilder(context, cluster, schema);
+    return (cluster, schema, projecMergeStrategy) -> new RelBuilder(context, cluster, schema,
+        projecMergeStrategy);
   }
 
   /** Creates a {@link RelBuilderFactory} that uses a given set of factories. */
@@ -1263,7 +1275,7 @@ public class RelBuilder {
    * sub-classes may disable merge by overriding to return {@code false}. */
   @Experimental
   protected boolean shouldMergeProject() {
-    return true;
+    return mergeProjectStrategy.apply(this);
   }
 
   /** Creates a {@link Project} of the given
