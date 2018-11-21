@@ -32,22 +32,26 @@ import java.util.Properties;
  */
 public class CalciteConnectionProvider {
 
+  public static final String USER_SA = "sa";
+  public static final String USER_SPECIFIC = "specificuser";
+
   public static final String DRIVER_URL = "jdbc:calcite:";
 
-  public Connection connection() throws IOException, SQLException {
-    return DriverManager.getConnection(DRIVER_URL, provideConnectionInfo());
+  public Connection connection(String user) throws IOException, SQLException {
+    return DriverManager.getConnection(DRIVER_URL, provideConnectionInfo(user));
   }
 
-  public Properties provideConnectionInfo() throws IOException {
+  public Properties provideConnectionInfo(String user) throws IOException {
     Properties info = new Properties();
     info.setProperty("lex", "MYSQL");
     info.setProperty("model", "inline:" + provideSchema());
+    info.setProperty("user", user);
     return info;
   }
 
   private String provideSchema() throws IOException {
     final InputStream stream =
-        getClass().getResourceAsStream("/chinook/chinook.json");
+            getClass().getResourceAsStream("/chinook/chinook.json");
     return CharStreams.toString(new InputStreamReader(stream, Charsets.UTF_8));
   }
 

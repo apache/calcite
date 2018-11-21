@@ -17,6 +17,10 @@
 {
   "version": "1.0",
   "defaultSchema": "ENHANCED",
+  "authorization": {
+    "factory": "org.apache.calcite.access.PrincipalBasedAuthFactory",
+    "operand": {}
+  },
   "schemas": [
     {
       "name": "CHINOOK",
@@ -24,13 +28,20 @@
       "jdbcDriver": "org.hsqldb.jdbc.JDBCDriver",
       "jdbcUrl": "jdbc:hsqldb:res:chinook",
       "jdbcUser": "sa",
-      "jdbcPassword": ""
+      "jdbcPassword": "",
+      "authConfig": {
+        "sa": "SELECT"
+      }
     },
     {
       "name": "ENHANCED",
       "type": "custom",
       "factory": "org.apache.calcite.schema.impl.AbstractSchema$Factory",
       "operand": {},
+      "authConfig": {
+        "sa": "OWNER",
+        "specificuser" : "SELECT"
+      },
       "tables": [
         {
           "name": "PREFERRED_TRACKS",
@@ -77,6 +88,9 @@
       "type": "custom",
       "factory": "org.apache.calcite.schema.impl.AbstractSchema$Factory",
       "operand": {},
+      "authConfig": {
+        "sa": "SELECT"
+      },
       "functions": [
         {
           "name": "CODES",
@@ -90,6 +104,9 @@
       "type": "custom",
       "factory": "org.apache.calcite.schema.impl.AbstractSchema$Factory",
       "operand": {},
+      "authConfig": {
+        "sa": "SELECT"
+      },
       "tables": [
         {
           "name": "CODED_EMAILS",

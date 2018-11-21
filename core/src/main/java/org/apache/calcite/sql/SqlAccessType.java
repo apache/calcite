@@ -31,6 +31,8 @@ public class SqlAccessType {
       new SqlAccessType(EnumSet.of(SqlAccessEnum.SELECT));
   public static final SqlAccessType WRITE_ONLY =
       new SqlAccessType(EnumSet.of(SqlAccessEnum.INSERT));
+  public static final SqlAccessType NONE =
+      new SqlAccessType(EnumSet.noneOf(SqlAccessEnum.class));
 
   //~ Instance fields --------------------------------------------------------
 

@@ -53,7 +53,7 @@ public class EndToEndTest extends QuidemTest {
   public static Collection<Object[]> data() {
     // Start with a test file we know exists, then find the directory and list
     // its files.
-    final String first = "sql/basic.iq";
+    final String first = "sql/basic_test.iq";
     return data(first);
   }
 

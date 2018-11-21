@@ -14,13 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql;
+package org.apache.calcite.access;
+
+import org.apache.commons.lang3.StringUtils;
 
 /**
- * Enumeration representing different access types
+ *
  */
-public enum SqlAccessEnum {
-  SELECT, UPDATE, INSERT, DELETE
+public class CalcitePrincipalImpl implements CalcitePrincipal {
+
+  public static CalcitePrincipal fromName(String user) {
+    return StringUtils.isNotBlank(user) ? new CalcitePrincipalImpl(user) : null;
+  }
+
+  private final String name;
+
+  private CalcitePrincipalImpl(String name) {
+    this.name = name;
+  }
+
+  @Override public String getName() {
+    return name;
+  }
+
 }
 
-// End SqlAccessEnum.java
+// End CalcitePrincipalImpl.java

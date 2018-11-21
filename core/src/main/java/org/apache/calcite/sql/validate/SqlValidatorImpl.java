@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.access.Authorization;
+import org.apache.calcite.access.AuthorizationRequest;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.Ord;
@@ -44,7 +46,6 @@ import org.apache.calcite.schema.impl.ModifiableViewTable;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAccessEnum;
-import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -956,10 +957,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (node == top) {
       validateModality(node);
     }
-    validateAccess(
-        node,
-        ns.getTable(),
-        SqlAccessEnum.SELECT);
+    validateAccess(node, ns.getTable(), SqlAccessEnum.SELECT);
   }
 
   /**
@@ -4613,21 +4611,43 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   /**
    * Validates access to a table.
    *
-   * @param table          Table
+   * @param table Table
    * @param requiredAccess Access requested on table
    */
   private void validateAccess(
-      SqlNode node,
-      SqlValidatorTable table,
-      SqlAccessEnum requiredAccess) {
+          SqlNode node,
+          SqlValidatorTable table,
+          SqlAccessEnum requiredAccess) {
     if (table != null) {
-      SqlAccessType access = table.getAllowedAccess();
-      if (!access.allowsAccess(requiredAccess)) {
+      List<String> path = table.getQualifiedName();
+      path = path.subList(0, path.size() - 1);
+      CalciteSchema schema = SqlValidatorUtil.getSchema(
+              catalogReader.getRootSchema(),
+              path,
+              catalogReader.nameMatcher());
+      Authorization guard = schema.getAuthorization();
+      if (!guard.accessGranted(createAuthorizationRequest(requiredAccess, node, table))) {
         throw newValidationError(node,
-            RESOURCE.accessNotAllowed(requiredAccess.name(),
-                table.getQualifiedName().toString()));
+                RESOURCE.accessNotAllowed(requiredAccess.name(),
+                        table.getQualifiedName().toString()));
       }
     }
+  }
+
+  private AuthorizationRequest createAuthorizationRequest(
+      SqlAccessEnum requiredAccess,
+      SqlNode node,
+      SqlValidatorTable table) {
+    return new AuthorizationRequest(
+        requiredAccess,
+        node,
+        table,
+        getObjectPath(),
+        catalogReader);
+  }
+
+  protected List<String> getObjectPath() {
+    return Collections.emptyList();
   }
 
   /**

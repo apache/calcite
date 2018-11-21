@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.schema;
 
+import org.apache.calcite.access.Authorization;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.rel.type.RelProtoDataType;
 
@@ -85,6 +86,9 @@ public interface SchemaPlus extends Schema {
   void setCacheEnabled(boolean cache);
 
   boolean isCacheEnabled();
+
+  /** Registers guard for this schema */
+  void setAuthorization(Authorization authorization);
 }
 
 // End SchemaPlus.java

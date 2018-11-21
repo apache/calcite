@@ -36,8 +36,9 @@ import java.util.Map;
  * Factory for the table of albums preferred by the current user.
  */
 public class PreferredAlbumsTableFactory implements TableFactory<AbstractQueryableTable> {
-  private static final Integer[] SPECIFIC_USER_PREFERRED_ALBUMS =
-      {4, 56, 154, 220, 321};
+
+  private static final Integer[] SPECIFIC_CONDITION_ALBUMS
+          = new Integer[]{4, 56, 154, 220, 321};
   private static final int FIRST_ID = 1;
   private static final int LAST_ID = 347;
 
@@ -61,8 +62,8 @@ public class PreferredAlbumsTableFactory implements TableFactory<AbstractQueryab
   }
 
   private Queryable<Integer> fetchPreferredAlbums() {
-    if (EnvironmentFairy.getUser() == EnvironmentFairy.User.SPECIFIC_USER) {
-      return Linq4j.asEnumerable(SPECIFIC_USER_PREFERRED_ALBUMS).asQueryable();
+    if (EnvironmentFairy.getCondition() == EnvironmentFairy.Condition.SPECIFIC_CONDITION) {
+      return Linq4j.asEnumerable(SPECIFIC_CONDITION_ALBUMS).asQueryable();
     } else {
       final ContiguousSet<Integer> set =
           ContiguousSet.create(Range.closed(FIRST_ID, LAST_ID),

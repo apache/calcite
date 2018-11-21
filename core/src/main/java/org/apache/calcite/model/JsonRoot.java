@@ -60,6 +60,11 @@ public class JsonRoot {
    */
   public String defaultSchema;
 
+  /**
+   * Factory for authorization logic
+   */
+  public JsonAuthorization authorization;
+
   /** List of schema elements.
    *
    * <p>The list may be empty.

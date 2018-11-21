@@ -14,13 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql;
+package org.apache.calcite.access;
 
 /**
- * Enumeration representing different access types
+ * Dummy guard that ensures backward compatibility where all access is granted to schema
  */
-public enum SqlAccessEnum {
-  SELECT, UPDATE, INSERT, DELETE
+public class AlwaysPassAuthorization implements Authorization {
+
+  public static final Authorization INSTANCE = new AlwaysPassAuthorization();
+
+  @Override public boolean accessGranted(AuthorizationRequest request) {
+    return true;
+  }
+
 }
 
-// End SqlAccessEnum.java
+// End AlwaysPassAuthorization.java

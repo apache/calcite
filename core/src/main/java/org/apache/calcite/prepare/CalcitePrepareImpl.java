@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.prepare;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumerableBindable;
 import org.apache.calcite.adapter.enumerable.EnumerableCalc;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
@@ -132,6 +133,7 @@ import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -849,7 +851,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     final JavaTypeFactory typeFactory = context.getTypeFactory();
     final SqlConformance conformance = context.config().conformance();
     return new CalciteSqlValidator(opTab, catalogReader, typeFactory,
-        conformance);
+        conformance, context.getObjectPath());
   }
 
   private List<ColumnMetaData> getColumnMetaDataList(
@@ -1178,7 +1180,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       // View may have different schema path than current connection.
       final CatalogReader catalogReader =
           this.catalogReader.withSchemaPath(schemaPath);
-      SqlValidator validator = createSqlValidator(catalogReader);
+      Context expandViewContext = createExpandViewContext(context, viewPath);
+      SqlValidator validator = createSqlValidator(catalogReader, expandViewContext);
       final SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
               .withTrimUnusedFields(true).build();
       SqlToRelConverter sqlToRelConverter =
@@ -1190,14 +1193,15 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       return root;
     }
 
-    protected SqlValidator createSqlValidator(CatalogReader catalogReader) {
-      return prepare.createSqlValidator(context,
-          (CalciteCatalogReader) catalogReader);
+    protected SqlValidator createSqlValidator(
+            CatalogReader catalogReader,
+            CalcitePrepare.Context context) {
+      return prepare.createSqlValidator(context, (CalciteCatalogReader) catalogReader);
     }
 
     @Override protected SqlValidator getSqlValidator() {
       if (sqlValidator == null) {
-        sqlValidator = createSqlValidator(catalogReader);
+        sqlValidator = createSqlValidator(catalogReader, context);
       }
       return sqlValidator;
     }
@@ -1287,6 +1291,46 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
     @Override protected List<LatticeEntry> getLattices() {
       return Schemas.getLatticeEntries(schema);
+    }
+
+    private Context createExpandViewContext(final Context context, final List<String> viewPath) {
+      return new Context() {
+        @Override public JavaTypeFactory getTypeFactory() {
+          return context.getTypeFactory();
+        }
+
+        @Override public CalciteSchema getRootSchema() {
+          return context.getRootSchema();
+        }
+
+        @Override public CalciteSchema getMutableRootSchema() {
+          return context.getMutableRootSchema();
+        }
+
+        @Override public List<String> getDefaultSchemaPath() {
+          return context.getDefaultSchemaPath();
+        }
+
+        @Override public CalciteConnectionConfig config() {
+          return context.config();
+        }
+
+        @Override public SparkHandler spark() {
+          return context.spark();
+        }
+
+        @Override public DataContext getDataContext() {
+          return context.getDataContext();
+        }
+
+        @Override public List<String> getObjectPath() {
+          return viewPath;
+        }
+
+        @Override public RelRunner getRelRunner() {
+          return context.getRelRunner();
+        }
+      };
     }
   }
 

@@ -23,12 +23,23 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
+import java.util.List;
+
 /** Validator. */
 class CalciteSqlValidator extends SqlValidatorImpl {
+
+  private final List<String> objectPath;
+
   CalciteSqlValidator(SqlOperatorTable opTab,
       CalciteCatalogReader catalogReader, JavaTypeFactory typeFactory,
-      SqlConformance conformance) {
+      SqlConformance conformance,
+      List<String> objectPath) {
     super(opTab, catalogReader, typeFactory, conformance);
+    this.objectPath = objectPath;
+  }
+
+  @Override protected List<String> getObjectPath() {
+    return objectPath;
   }
 
   @Override protected RelDataType getLogicalSourceRowType(

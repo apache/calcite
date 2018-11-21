@@ -17,6 +17,9 @@
 package org.apache.calcite.jdbc;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.access.CalcitePrincipal;
+import org.apache.calcite.access.CalcitePrincipalFairy;
+import org.apache.calcite.access.CalcitePrincipalImpl;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaFactory;
@@ -82,6 +85,8 @@ import java.util.Properties;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.apache.commons.lang3.StringUtils.isBlank;
+
 /**
  * Implementation of JDBC connection
  * in the Calcite engine.
@@ -143,6 +148,10 @@ abstract class CalciteConnectionImpl
     this.properties.put(InternalProperty.UNQUOTED_CASING, cfg.unquotedCasing());
     this.properties.put(InternalProperty.QUOTED_CASING, cfg.quotedCasing());
     this.properties.put(InternalProperty.QUOTING, cfg.quoting());
+    String username = cfg.user();
+    if (!isBlank(username)) {
+      CalcitePrincipalFairy.INSTANCE.register(CalcitePrincipalImpl.fromName(username));
+    }
   }
 
   CalciteMetaImpl meta() {
@@ -551,6 +560,10 @@ abstract class CalciteConnectionImpl
     public CalcitePrepare.SparkHandler spark() {
       final boolean enable = config().spark();
       return CalcitePrepare.Dummy.getSparkHandler(enable);
+    }
+
+    public CalcitePrincipal getPrincipal() {
+      return CalcitePrincipalImpl.fromName(connection.config().user());
     }
   }
 

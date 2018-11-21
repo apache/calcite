@@ -55,6 +55,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
@@ -181,7 +182,7 @@ public class PlannerImpl implements Planner, ViewExpander {
     final CalciteCatalogReader catalogReader = createCatalogReader();
     this.validator =
         new CalciteSqlValidator(operatorTable, catalogReader, typeFactory,
-            conformance);
+            conformance, Collections.<String>emptyList());
     this.validator.setIdentifierExpansion(true);
     try {
       validatedSqlNode = validator.validate(sqlNode);
@@ -273,7 +274,7 @@ public class PlannerImpl implements Planner, ViewExpander {
         createCatalogReader().withSchemaPath(schemaPath);
     final SqlValidator validator =
         new CalciteSqlValidator(operatorTable, catalogReader, typeFactory,
-            conformance);
+            conformance, viewPath);
     validator.setIdentifierExpansion(true);
 
     final RexBuilder rexBuilder = createRexBuilder();

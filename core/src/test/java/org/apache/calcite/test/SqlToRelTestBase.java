@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.access.AlwaysPassAuthorization;
+import org.apache.calcite.access.Authorization;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.Context;
@@ -357,6 +359,10 @@ public abstract class SqlToRelTestBase {
     }
 
     public void registerRules(RelOptPlanner planner) throws Exception {
+    }
+
+    @Override public Authorization getAuthorization() {
+      return AlwaysPassAuthorization.INSTANCE;
     }
 
     /** Mock column set. */

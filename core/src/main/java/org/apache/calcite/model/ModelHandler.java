@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.model;
 
+import org.apache.calcite.access.Authorization;
+import org.apache.calcite.access.AuthorizationFactory;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.jdbc.CalciteConnection;
@@ -75,6 +77,7 @@ public class ModelHandler {
   private final CalciteConnection connection;
   private final Deque<Pair<String, SchemaPlus>> schemaStack = new ArrayDeque<>();
   private final String modelUri;
+  private AuthorizationFactory authFactory;
   Lattice.Builder latticeBuilder;
   Lattice.TileBuilder tileBuilder;
 
@@ -204,6 +207,10 @@ public class ModelHandler {
     final Pair<String, SchemaPlus> pair =
         Pair.of(null, connection.getRootSchema());
     schemaStack.push(pair);
+    if (jsonRoot.authorization != null) {
+      // not the real visitor pattern, but better readability
+      visit(jsonRoot.authorization);
+    }
     for (JsonSchema schema : jsonRoot.schemas) {
       schema.accept(this);
     }
@@ -216,6 +223,13 @@ public class ModelHandler {
         throw new RuntimeException(e);
       }
     }
+  }
+
+  public void visit(JsonAuthorization authorization) {
+    authFactory = AvaticaUtils.instantiatePlugin(
+            AuthorizationFactory.class,
+            authorization.factory);
+    authFactory.init(authorization.operand);
   }
 
   public void visit(JsonMapSchema jsonSchema) {
@@ -269,6 +283,11 @@ public class ModelHandler {
     jsonSchema.visitChildren(this);
     final Pair<String, SchemaPlus> p = schemaStack.pop();
     assert p == pair;
+    if (authFactory != null) {
+      Authorization authorization = authFactory.create(
+          jsonSchema == null ? Collections.<String, String>emptyMap() : jsonSchema.authConfig);
+      schema.setAuthorization(authorization);
+    }
   }
 
   public void visit(JsonCustomSchema jsonSchema) {
