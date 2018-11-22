@@ -96,34 +96,5 @@ limitations under the License.
         </plugins>
       </build>
     </profile>
-    <profile>
-      <!-- Need to verify that the URL we're pulling from in the Dockerfile is correct for this release -->
-      <id>check-dockerfile-version</id>
-      <activation>
-        <property>
-          <name>!skipDockerCheck</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.codehaus.gmaven</groupId>
-            <artifactId>groovy-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>check-dockerhub-dockerfile-version</id>
-                <phase>validate</phase>
-                <goals>
-                  <goal>execute</goal>
-                </goals>
-                <configuration>
-                  <source>${project.basedir}/src/test/scripts/verify-dockerhub-dockerfile-version.groovy</source>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
   </profiles>
 </project>

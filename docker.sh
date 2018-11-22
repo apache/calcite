@@ -242,7 +242,7 @@ case $1 in
         select_gpg_key
         get_build_configuration
 
-        mvn -Dmaven.artifact.threads=20 -DdryRun=true -DreleaseVersion=$RELEASE_VERSION -DdevelopmentVersion=$DEV_VERSION-SNAPSHOT -Dtag="avatica-$RELEASE_VERSION-rc$RC_NUMBER" -Papache-release -Duser.name=$ASF_USERNAME release:prepare -Darguments="-DskipDockerCheck -Dgpg.keyname=$SELECTED_GPG_KEY"
+        mvn -Dmaven.artifact.threads=20 -DdryRun=true -DreleaseVersion=$RELEASE_VERSION -DdevelopmentVersion=$DEV_VERSION-SNAPSHOT -Dtag="avatica-$RELEASE_VERSION-rc$RC_NUMBER" -Papache-release -Duser.name=$ASF_USERNAME release:prepare -Darguments=-Dgpg.keyname=$SELECTED_GPG_KEY
         ;;
 
     release)
@@ -264,7 +264,7 @@ case $1 in
 
     test)
         init_glibc
-        mvn clean verify -Dcheckstyle.skip -DskipDockerCheck
+        mvn clean verify -Dcheckstyle.skip
         ;;
 
     *)

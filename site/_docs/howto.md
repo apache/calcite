@@ -67,15 +67,12 @@ tests.
 ## Running tests
 
 The test suite will run by default when you build, unless you specify
-`-DskipTests`:
-
-Note: During development, you should include `-DskipDockerCheck`, because the docker check checks to see if the dockerfile
-includes the correct version, which will fail unless you are making a release of Avatica.
+`-DskipTests`.
 
 ### Running tests in your environment
 
 {% highlight bash %}
-$ ./mvnw clean verify -Dcheckstyle.skip -DskipDockerCheck
+$ ./mvnw clean verify -Dcheckstyle.skip
 {% endhighlight %}
 
 By default, invoking the `verify` Maven lifecycle phase will also cause checkstyle
@@ -177,8 +174,7 @@ Before you start:
 
 * Set up signing keys as described above.
 * Make sure you are using JDK 8 (not 9 or 10).
-* Check that `README`, `site/_docs/howto.md`, `site/_docs/docker_images.md`,
-  and `docker/src/main/dockerhub/Dockerfile` have the correct version number.
+* Check that `README`, `site/_docs/howto.md`, `site/_docs/docker_images.md` have the correct version number.
 * Check that `NOTICE` has the current copyright year.
 * Set `version.major` and `version.minor` in `pom.xml`.
 * Add release notes to `site/_docs/history.md`. Include the commit history,
@@ -227,10 +223,10 @@ git clean -xn
 # Typically we increment minor version: If X.Y.Z is 1.11.0, X2.Y2.Z2 is 1.12.0.
 # Note X.Y.Z is the current version we're trying to release, and X2.Y2.Z2 is the next development version.
 # For example, if I am currently building a release for 1.11.0, X.Y.Z would be 1.11.0 and X2.Y2.Z2 would be 1.12.0.
-./mvnw -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare -Darguments=-DskipDockerCheck 
+./mvnw -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare
 
 # If you have multiple GPG keys, you can select the key used to sign the release by appending `-Dgpg.keyname=${your.key.id}` to `-Darguments`:
-./mvnw -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare -Darguments="-DskipDockerCheck -Dgpg.keyname=${your.key.id}"
+./mvnw -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare -Darguments=-Dgpg.keyname=${your.key.id}
 {% endhighlight %}
 
 ### To perform the dry-run in docker:
@@ -511,6 +507,10 @@ Promote the staged nexus artifacts.
 * In the line with "orgapachecalcite-xxxx", check the box
 * Press "Release" button
 
+Tip: Push the git tag only after the staged nexus artifacts are promoted in the repository. This is because pushing the
+tag triggers Docker Hub to start building the docker images immediately and the build will pull in the promoted artifacts.
+If the artifacts are not yet available, the build on Docker Hub will fail.
+ 
 Copy the Git tag:
 
 {% highlight bash %}
@@ -552,8 +552,6 @@ svn ci
 
 The old releases will remain available in the
 [release archive](http://archive.apache.org/dist/calcite/).
-
-Publish the [Docker images](docker.html).
 
 Add a release note by copying
 [site/_posts/2016-11-01-release-1.9.0.md]({{ site.sourceRoot }}/site/_posts/2016-11-01-release-1.9.0.md),

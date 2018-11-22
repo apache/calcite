@@ -69,7 +69,6 @@ limitations under the License.
     <docker-maven-plugin.version>1.1.1</docker-maven-plugin.version>
     <dropwizard-metrics.version>4.0.3</dropwizard-metrics.version>
     <forbiddenapis.version>2.6</forbiddenapis.version>
-    <groovy-maven-plugin.version>2.1</groovy-maven-plugin.version>
     <!-- We support guava versions as old as 14.0.1 (the version used by Hive)
          but prefer more recent versions. -->
     <guava.version>14.0.1</guava.version>
@@ -619,11 +618,6 @@ limitations under the License.
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
           <version>${build-helper-maven-plugin.version}</version>
-        </plugin>
-        <plugin>
-          <groupId>org.codehaus.gmaven</groupId>
-          <artifactId>groovy-maven-plugin</artifactId>
-          <version>${groovy-maven-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>org.eclipse.m2e</groupId>
