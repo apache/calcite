@@ -739,7 +739,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
   @Test public void removeRedundantCast() {
     checkSimplify(cast(vInt(), nullable(tInt())), "?0.int0");
     checkSimplifyUnchanged(cast(vInt(), tInt()));
-    checkSimplifyUnchanged(cast(vIntNotNull(), nullable(tInt())));
+    checkSimplify(cast(vIntNotNull(), nullable(tInt())), "?0.notNullInt0");
     checkSimplify(cast(vIntNotNull(), tInt()), "?0.notNullInt0");
 
     // Nested int int cast is removed
@@ -2110,6 +2110,13 @@ public class RexProgramTest extends RexProgramBuilderBase {
         "2011-07-19 18:23:45");
     checkSimplify(cast(literalTimeLTZ, timestampLTZType),
         "2011-07-20 01:23:45");
+  }
+
+  @Test public void testRemovalOfNullabilityWideningCast() {
+    RexNode expr = cast(isTrue(vBoolNotNull()), tBoolean(true));
+    assertThat(expr.getType().isNullable(), is(true));
+    RexNode result = simplify.simplifyUnknownAs(expr, RexUnknownAs.UNKNOWN);
+    assertThat(result.getType().isNullable(), is(false));
   }
 
   @Test public void testCompareTimestampWithTimeZone() {
