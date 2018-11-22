@@ -7903,7 +7903,7 @@ LogicalProject(DEPTNO=[$1])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EMPNO=[$0], D=[CASE(=($9, 0), false, IS NULL(CASE(true, CAST($7):INTEGER, null)), null, IS NOT NULL($12), true, <($10, $9), null, false)])
-  LogicalJoin(condition=[=(CAST($7):INTEGER, $11)], joinType=[left])
+  LogicalJoin(condition=[=($7, $11)], joinType=[left])
     LogicalJoin(condition=[true], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
