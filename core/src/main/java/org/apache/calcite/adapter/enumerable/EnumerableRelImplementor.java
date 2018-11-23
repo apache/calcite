@@ -124,13 +124,6 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     final List<MemberDeclaration> memberDeclarations = new ArrayList<>();
     new TypeRegistrar(memberDeclarations).go(result);
 
-    // The following is a workaround to
-    // http://jira.codehaus.org/browse/JANINO-169. Otherwise we'd remove the
-    // member variable, rename the "root0" parameter as "root", and reference it
-    // directly from inner classes.
-    final ParameterExpression root0_ =
-        Expressions.parameter(Modifier.FINAL, DataContext.class, "root0");
-
     // This creates the following code
     // final Integer v1stashed = (Integer) root.get("v1stashed")
     // It is convenient for passing non-literal "compile-time" constants
@@ -145,20 +138,14 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
 
     final BlockStatement block = Expressions.block(
         Iterables.concat(
-            ImmutableList.of(
-                Expressions.statement(
-                    Expressions.assign(DataContext.ROOT, root0_))),
             stashed,
             result.block.statements));
-    memberDeclarations.add(
-        Expressions.fieldDecl(0, DataContext.ROOT, null));
-
     memberDeclarations.add(
         Expressions.methodDecl(
             Modifier.PUBLIC,
             Enumerable.class,
             BuiltInMethod.BINDABLE_BIND.method.getName(),
-            Expressions.list(root0_),
+            Expressions.list(DataContext.ROOT),
             block));
     memberDeclarations.add(
         Expressions.methodDecl(Modifier.PUBLIC, Class.class,
