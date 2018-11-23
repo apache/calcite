@@ -1230,7 +1230,7 @@ Not implemented:
 | HOUR(date)                | Equivalent to `EXTRACT(HOUR FROM date)`. Returns an integer between 0 and 23.
 | MINUTE(date)              | Equivalent to `EXTRACT(MINUTE FROM date)`. Returns an integer between 0 and 59.
 | SECOND(date)              | Equivalent to `EXTRACT(SECOND FROM date)`. Returns an integer between 0 and 59.
-| TIMESTAMPADD(timeUnit, integer, datetime) | Returns *datetime* with an interval of (signed) *integer* *timeUnit*s added. Equivalent to `datetime + INTERVAL 'integer' timeUnit`
+| TIMESTAMPADD(timeUnit, integer, datetime) | Returns *datetime or date or time* with an interval of (signed) *integer* *timeUnit*s added. Equivalent to `datetime or date or time + INTERVAL 'integer' timeUnit`
 | TIMESTAMPDIFF(timeUnit, datetime, datetime2) | Returns the (signed) number of *timeUnit* intervals between *datetime* and *datetime2*. Equivalent to `(datetime2 - datetime) timeUnit`
 
 Calls to niladic functions such as `CURRENT_DATE` do not accept parentheses in
@@ -1474,6 +1474,8 @@ Not implemented:
 | {fn MINUTE(date)} | Equivalent to `EXTRACT(MINUTE FROM date)`. Returns an integer between 0 and 59.
 | {fn SECOND(date)} | Equivalent to `EXTRACT(SECOND FROM date)`. Returns an integer between 0 and 59.
 | {fn TIMESTAMPADD(timeUnit, count, timestamp)} | Adds an interval of *count* *timeUnit*s to a timestamp
+| {fn TIMESTAMPADD(timeUnit, count, time)} | Adds an interval of *count* *timeUnit*s to a time
+| {fn TIMESTAMPADD(timeUnit, count, date)} | Adds an interval of *count* *timeUnit*s to a date
 | {fn TIMESTAMPDIFF(timeUnit, timestamp1, timestamp2)} | Subtracts *timestamp1* from *timestamp2* and returns the result in *timeUnit*s
 
 Not implemented:

@@ -2621,7 +2621,13 @@ public class RexImpTable {
             operand0.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP
                 ? BuiltInMethod.ADD_MONTHS
                 : BuiltInMethod.ADD_MONTHS_INT;
-        return Expressions.call(method.method, trop0, trop1);
+        if (typeName == SqlTypeName.TIME) {
+          return Expressions.convert_(
+                  trop0,
+                  (Class) long.class);
+        } else {
+          return Expressions.call(method.method, trop0, trop1);
+        }
 
       case INTERVAL_DAY:
       case INTERVAL_DAY_HOUR:

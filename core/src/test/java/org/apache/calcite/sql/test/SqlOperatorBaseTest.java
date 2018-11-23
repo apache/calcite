@@ -6957,6 +6957,43 @@ public abstract class SqlOperatorBaseTest {
         "2016-06-30", "DATE NOT NULL");
     tester.checkScalar("timestampadd(MONTH, -1, date '2016-03-31')",
         "2016-02-29", "DATE NOT NULL");
+
+    // TIMESTAMPADD with time; returns a time value.The interval is positive.
+    tester.checkScalar("timestampadd(SECOND, 1, time '23:59:59')",
+            "00:00:00", "TIME(0) NOT NULL");
+    tester.checkScalar("timestampadd(MINUTE, 1, time '00:00:00')",
+            "00:01:00", "TIME(0) NOT NULL");
+    tester.checkScalar("timestampadd(MINUTE, 1, time '23:59:59')",
+            "00:00:59", "TIME(0) NOT NULL");
+    tester.checkScalar("timestampadd(HOUR, 1, time '23:59:59')",
+            "00:59:59", "TIME(0) NOT NULL");
+    tester.checkScalar("timestampadd(DAY, 15, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL");
+    tester.checkScalar("timestampadd(WEEK, 3, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL");
+    tester.checkScalar("timestampadd(MONTH, 6, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL");
+    tester.checkScalar("timestampadd(QUARTER, 1, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL");
+    tester.checkScalar("timestampadd(YEAR, 10, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL");
+    // TIMESTAMPADD with time; returns a time value .The interval is negative.
+    tester.checkScalar("timestampadd(SECOND, -1, time '00:00:00')",
+            "23:59:59", "TIME(0) NOT NULL");
+    tester.checkScalar("timestampadd(MINUTE, -1, time '00:00:00')",
+            "23:59:00", "TIME(0) NOT NULL");
+    tester.checkScalar("timestampadd(HOUR, -1, time '00:00:00')",
+            "23:00:00", "TIME(0) NOT NULL");
+    tester.checkScalar("timestampadd(DAY, -1, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL");
+    tester.checkScalar("timestampadd(WEEK, -1, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL");
+    tester.checkScalar("timestampadd(MONTH, -1, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL");
+    tester.checkScalar("timestampadd(QUARTER, -1, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL");
+    tester.checkScalar("timestampadd(YEAR, -1, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL");
   }
 
   @Test public void testTimestampAddFractionalSeconds() {
