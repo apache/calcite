@@ -1381,8 +1381,9 @@ public class JdbcTest {
 
   /** Janino bug
    * <a href="https://jira.codehaus.org/browse/JANINO-169">[JANINO-169]</a>
-   * running queries against the JDBC adapter. As of janino-2.7.3 bug is
-   * open but we have a workaround in EnumerableRelImplementor. */
+   * running queries against the JDBC adapter. The bug is not present with
+   * janino-3.0.9 so the workaround in EnumerableRelImplementor was removed.
+   */
   @Test public void testJanino169() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
