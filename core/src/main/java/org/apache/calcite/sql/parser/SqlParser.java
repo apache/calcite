@@ -27,10 +27,8 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.Reader;
 import java.io.StringReader;
-import java.nio.charset.Charset;
 import java.util.Objects;
 
 /**
@@ -103,9 +101,21 @@ public class SqlParser {
     return new SqlParser(sql, parser, config);
   }
 
-  public static SqlParser create(InputStream sql, Charset encoding, Config config) {
+  /**
+   * Creates a <code>SqlParser</code> to parse the given string using the
+   * parser implementation created from given {@link SqlParserImplFactory}
+   * with given quoting syntax and casing policies for identifiers.
+   * <p>Differently from
+   * {@link #create(java.lang.String, org.apache.calcite.sql.parser.SqlParser.Config) )}
+   * the parser won't be able to return the 'originalInput' query
+   *
+   * @param reader Teh source for the SQL statement or expression to parse.
+   * @param config The parser configuration (identifier max length, etc.)
+   * @return A parser
+   */
+  public static SqlParser create(Reader reader, Config config) {
     SqlAbstractParserImpl parser =
-        config.parserFactory().getParser(new InputStreamReader(sql, encoding));
+        config.parserFactory().getParser(reader);
 
     return new SqlParser(null, parser, config);
   }

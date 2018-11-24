@@ -25,8 +25,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.util.Pair;
 
-import java.io.InputStream;
-import java.nio.charset.Charset;
+import java.io.Reader;
 
 /**
  * A fa&ccedil;ade that covers Calcite's query planning process: parse SQL,
@@ -51,13 +50,12 @@ public interface Planner extends AutoCloseable {
   /**
    * Parses and validates a SQL statement.
    *
-   * @param input An inputstream which contains the SQL statement to parse.
-   * @param encoding The encoding of the stream
+   * @param source A reader which will provide the SQL statement to parse.
    *
    * @return The root node of the SQL parse tree.
    * @throws org.apache.calcite.sql.parser.SqlParseException on parse error
    */
-  SqlNode parse(InputStream input, Charset encoding) throws SqlParseException;
+  SqlNode parse(Reader source) throws SqlParseException;
 
   /**
    * Validates a SQL statement.
