@@ -28,6 +28,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -51,12 +53,20 @@ class JsonLoader {
   private void load(Reader reader) throws IOException {
     Objects.requireNonNull(reader, "reader");
     try (BufferedReader br = new BufferedReader(reader)) {
-      int key = 0;
+      List<Map> mapList = new ArrayList<>();
       for (String line; (line = br.readLine()) != null;) {
         Map jsonMap = mapper.readValue(line, Map.class);
-        PdxInstance pdxInstance = mapToPdx(rootPackage, jsonMap);
-        region.put(key++, pdxInstance);
+        mapList.add(jsonMap);
       }
+      loadMapList(mapList);
+    }
+  }
+
+  void loadMapList(List<Map> mapList) {
+    int key = 0;
+    for (Map jsonMap : mapList) {
+      PdxInstance pdxInstance = mapToPdx(rootPackage, jsonMap);
+      region.put(key++, pdxInstance);
     }
   }
 
