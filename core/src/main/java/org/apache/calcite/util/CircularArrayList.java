@@ -82,6 +82,16 @@ public class CircularArrayList<E> extends AbstractList<E>
     return es[(first + index) & (es.length - 1)];
   }
 
+  @Override public E set(int index, E element) {
+    if (index < 0 || index >= size()) {
+      throw new IndexOutOfBoundsException("Index: " + index + ", Size: "
+          + size());
+    }
+    E previous = es[(first + index) & (es.length - 1)];
+    es[(first + index) & (es.length - 1)] = element;
+    return previous;
+  }
+
   public int size() {
     assert last >= 0 && last < es.length;
     assert first >= 0 && first < es.length;
