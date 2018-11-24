@@ -29,16 +29,20 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.Util;
+
+import com.google.common.base.Preconditions;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import static org.apache.calcite.sql.type.SqlTypeName.BOOLEAN_TYPES;
 import static org.apache.calcite.sql.type.SqlTypeName.CHAR;
-import static org.apache.calcite.sql.type.SqlTypeName.NUMERIC_TYPES;
 
 /**
  * Implementation of
@@ -94,7 +98,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
      * @return String representation of the literal
      */
     private static String literalValue(RexLiteral literal) {
-      Object value = literal.getValue2();
+      Object value = literal.getValue3();
       StringBuilder buf = new StringBuilder();
       buf.append(value);
       return buf.toString();
@@ -131,14 +135,137 @@ public class GeodeFilter extends Filter implements GeodeRel {
       return Util.toString(predicates, "", " AND ", "");
     }
 
+    /**
+     *  Get the field name for the left node to use for IN SET query
+     */
+    private String getLeftNodeFieldName(RexNode left) {
+      switch (left.getKind()) {
+      case INPUT_REF:
+        final RexInputRef left1 = (RexInputRef) left;
+        return fieldNames.get(left1.getIndex());
+      case CAST:
+        // FIXME This will not work in all cases (for example, we ignore string encoding)
+        return getLeftNodeFieldName(((RexCall) left).operands.get(0));
+      case OTHER_FUNCTION:
+        return left.accept(new GeodeRules.RexToGeodeTranslator(this.fieldNames));
+      default:
+        return null;
+      }
+    }
+
+    /**
+     *  Check if we can use IN SET Query clause to improve query performance
+     */
+    private boolean useInSetQueryClause(List<RexNode> disjunctions) {
+      // Only use the in set for more than one disjunctions
+      if (disjunctions.size() <= 1) {
+        return false;
+      }
+
+      return disjunctions.stream().allMatch(node -> {
+        // IN SET query can only be used for EQUALS
+        if (node.getKind() != SqlKind.EQUALS) {
+          return false;
+        }
+
+        RexCall call = (RexCall) node;
+        final RexNode left = call.operands.get(0);
+        final RexNode right = call.operands.get(1);
+
+        // The right node should always be literal
+        if (right.getKind() != SqlKind.LITERAL) {
+          return false;
+        }
+
+        String name = getLeftNodeFieldName(left);
+        if (name == null) {
+          return false;
+        }
+
+        return true;
+      });
+    }
+
+    /**
+     * Creates OQL IN SET predicate string
+     */
+    private String translateInSet(List<RexNode> disjunctions) {
+      Preconditions.checkArgument(
+          !disjunctions.isEmpty(), "empty disjunctions");
+
+      RexNode firstNode = disjunctions.get(0);
+      RexCall firstCall = (RexCall) firstNode;
+
+      final RexNode left = firstCall.operands.get(0);
+      String name = getLeftNodeFieldName(left);
+
+      Set<String> rightLiteralValueList = new LinkedHashSet<>();
+
+      disjunctions.forEach(node -> {
+        RexCall call = (RexCall) node;
+        RexLiteral rightLiteral = (RexLiteral) call.operands.get(1);
+
+        rightLiteralValueList.add(quoteCharLiteral(rightLiteral));
+      });
+
+      return String.format(Locale.ROOT, "%s IN SET(%s)", name,
+          String.join(", ", rightLiteralValueList));
+    }
+
+    private String getLeftNodeFieldNameForNode(RexNode node) {
+      final RexCall call = (RexCall) node;
+      final RexNode left = call.operands.get(0);
+      return getLeftNodeFieldName(left);
+    }
+
+    private List<RexNode> getLeftNodeDisjunctions(RexNode node, List<RexNode> disjunctions) {
+      List<RexNode> leftNodeDisjunctions = new ArrayList<>();
+      String leftNodeFieldName = getLeftNodeFieldNameForNode(node);
+
+      if (leftNodeFieldName != null) {
+        leftNodeDisjunctions = disjunctions.stream().filter(rexNode -> {
+          RexCall rexCall = (RexCall) rexNode;
+          RexNode rexCallLeft = rexCall.operands.get(0);
+          return leftNodeFieldName.equals(getLeftNodeFieldName(rexCallLeft));
+        }).collect(Collectors.toList());
+      }
+
+      return leftNodeDisjunctions;
+    }
+
     private String translateOr(List<RexNode> disjunctions) {
       List<String> predicates = new ArrayList<>();
+
+      List<String> leftFieldNameList = new ArrayList<>();
+      List<String> inSetLeftFieldNameList = new ArrayList<>();
+
       for (RexNode node : disjunctions) {
-        if (RelOptUtil.conjunctions(node).size() > 1) {
+        final String leftNodeFieldName = getLeftNodeFieldNameForNode(node);
+        // If any one left node is processed with IN SET predicate
+        // all the nodes are already handled
+        if (inSetLeftFieldNameList.contains(leftNodeFieldName)) {
+          continue;
+        }
+
+        List<RexNode> leftNodeDisjunctions = new ArrayList<>();
+        boolean useInSetQueryClause = false;
+
+        // In case the left field node name is already processed and not applicable
+        // for IN SET query clause, we can skip the checking
+        if (!leftFieldNameList.contains(leftNodeFieldName)) {
+          leftNodeDisjunctions = getLeftNodeDisjunctions(node, disjunctions);
+          useInSetQueryClause = useInSetQueryClause(leftNodeDisjunctions);
+        }
+
+        if (useInSetQueryClause) {
+          predicates.add(translateInSet(leftNodeDisjunctions));
+          inSetLeftFieldNameList.add(leftNodeFieldName);
+        } else if (RelOptUtil.conjunctions(node).size() > 1) {
           predicates.add("(" + translateMatch(node) + ")");
         } else {
           predicates.add(translateMatch2(node));
         }
+        leftFieldNameList.add(leftNodeFieldName);
       }
 
       return Util.toString(predicates, "", " OR ", "");
@@ -224,13 +351,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
      * Combines a field name, operator, and literal to produce a predicate string.
      */
     private String translateOp2(String op, String name, RexLiteral right) {
-      String valueString = literalValue(right);
-      SqlTypeName typeName = rowType.getField(name, true, false).getType().getSqlTypeName();
-      if (NUMERIC_TYPES.contains(typeName) || BOOLEAN_TYPES.contains(typeName)) {
-        // leave the value as it is
-      } else if (typeName != SqlTypeName.CHAR) {
-        valueString = "'" + valueString + "'";
-      }
+      String valueString = quoteCharLiteral(right);
       return name + " " + op + " " + valueString;
     }
   }
