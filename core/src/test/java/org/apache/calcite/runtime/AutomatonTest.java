@@ -16,21 +16,28 @@
  */
 package org.apache.calcite.runtime;
 
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.util.CircularArrayList;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
 
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.Stack;
+import java.util.TreeSet;
 import java.util.function.Predicate;
 
 import static org.hamcrest.core.Is.is;
@@ -38,8 +45,7 @@ import static org.junit.Assert.assertThat;
 
 /** Unit tests for {@link Enumerables.Automaton}. */
 public class AutomatonTest {
-  @Test
-  public void testSimple() {
+  @Test public void testSimple() {
     // pattern(a)
     final Graph g = new GraphBuilder().symbol("a").build();
     final String[] rows = {"", "a", "", "a"};
@@ -49,8 +55,7 @@ public class AutomatonTest {
     assertThat(matcher.match(rows).toString(), is(expected));
   }
 
-  @Test
-  public void testSequence() {
+  @Test public void testSequence() {
     // pattern(a b)
     final Graph g = new GraphBuilder().symbol("a").symbol("b").build();
     final String[] rows = {"", "a", "", "ab", "a", "ab", "b", "b"};
@@ -59,7 +64,7 @@ public class AutomatonTest {
             .add("a", s -> s.contains("a"))
             .add("b", s -> s.contains("b"))
             .build();
-    final String expected = "[[ab], [b]]";
+    final String expected = "[[a, ab], [ab, b]]";
     assertThat(matcher.match(rows).toString(), is(expected));
   }
 
@@ -105,8 +110,13 @@ public class AutomatonTest {
           transitions.add((SymbolState) state);
         }
       }
+      final ImmutableList<String> symbolNames = symbolIds.entrySet()
+          .stream()
+          .sorted(Comparator.comparingInt(Map.Entry::getValue))
+          .map(Map.Entry::getKey)
+          .collect(Util.toImmutableList());
       return new Graph((StartState) stateList.get(0), endState,
-          transitions.build());
+          transitions.build(), symbolNames);
     }
   }
 
@@ -156,12 +166,15 @@ public class AutomatonTest {
     final StartState startState;
     final State endState;
     final ImmutableList<SymbolState> transitions;
+    final ImmutableList<String> symbolNames;
 
     Graph(StartState startState, State endState,
-        ImmutableList<SymbolState> transitions) {
+        ImmutableList<SymbolState> transitions,
+        ImmutableList<String> symbolNames) {
       this.startState = Objects.requireNonNull(startState);
       this.endState = Objects.requireNonNull(endState);
       this.transitions = Objects.requireNonNull(transitions);
+      this.symbolNames = symbolNames;
     }
 
     /** Returns the set of states, represented as a bit set, that the graph is
@@ -187,12 +200,12 @@ public class AutomatonTest {
    * @param <E> Type of rows matched by this automaton */
   static class Matcher<E> {
     private final Graph graph;
-    private final ImmutableList<Symbol<E>> symbols;
+    private final ImmutableList<Predicate<E>> predicates;
 
     /** Creates a Matcher; use {@link #builder}. */
-    private Matcher(Graph graph, ImmutableList<Symbol<E>> symbols) {
+    private Matcher(Graph graph, ImmutableList<Predicate<E>> predicates) {
       this.graph = Objects.requireNonNull(graph);
-      this.symbols = Objects.requireNonNull(symbols);
+      this.predicates = Objects.requireNonNull(predicates);
     }
 
     static <E> Builder<E> builder(Graph graph) {
@@ -207,34 +220,38 @@ public class AutomatonTest {
       final ImmutableBitSet emptyStateSet = ImmutableBitSet.of();
       final ImmutableList.Builder<List<E>> resultMatches =
           ImmutableList.builder();
+      final CircularArrayList<E> bufferedRows =
+          new CircularArrayList<>();
       final CircularArrayList<ImmutableBitSet> stateSets =
           new CircularArrayList<>();
+      final List<Pair<E, ImmutableBitSet>> rowStateSets =
+          new MutableZipList<>(bufferedRows, stateSets);
       final ImmutableBitSet startSet = ImmutableBitSet.of(graph.startState.id);
       final List<Integer> rowSymbols = new ArrayList<>();
       final ImmutableBitSet.Builder nextStateBuilder = ImmutableBitSet.builder();
       for (E row : rows) {
         // Add this row to the states.
-        stateSets.add(startSet);
+        rowStateSets.add(Pair.of(row, startSet));
 
         // Compute the set of symbols (i.e. predicates that evaluate to true)
         // for this row.
         rowSymbols.clear();
-        for (Symbol<E> symbol : symbols) {
-          if (symbol.predicate.test(row)) {
-            rowSymbols.add(symbol.id);
+        for (Ord<Predicate<E>> predicate : Ord.zip(predicates)) {
+          if (predicate.e.test(row)) {
+            rowSymbols.add(predicate.i);
           }
         }
 
-        // TODO: Should we short-cut if truePredicates is empty?
+        // TODO: Should we short-cut if symbols is empty?
 
         // Now process the states of matches, oldest first, and compute the
         // successors based on the predicates that are true for the current
         // row.
-        for (int i = 0; i < stateSets.size();) {
-          final ImmutableBitSet stateSet = stateSets.get(i);
+        for (int i = 0; i < rowStateSets.size();) {
+          final Pair<E, ImmutableBitSet> rowStateSet = rowStateSets.get(i);
           assert nextStateBuilder.isEmpty();
           for (int symbol : rowSymbols) {
-            for (int state : stateSet) {
+            for (int state : rowStateSet.right) {
               graph.successors(state, symbol, nextStateBuilder);
             }
           }
@@ -244,23 +261,25 @@ public class AutomatonTest {
             if (i == 0) {
               // Don't add the stateSet if it is empty and would be the oldest.
               // The first item in stateSets must not be empty.
-              stateSets.remove(0);
+              rowStateSets.remove(0);
             } else {
-              stateSets.set(i++, emptyStateSet);
+              rowStateSets.set(i++, Pair.of(row, emptyStateSet));
             }
           } else if (nextStateSet.get(graph.endState.id)) {
-            resultMatches.add(ImmutableList.of(row)); // todo: set of rows, not current row
+            resultMatches.add(
+                ImmutableList.copyOf(
+                    bufferedRows.subList(i, bufferedRows.size())));
             if (i == 0) {
               // Don't add the stateSet if it is empty and would be the oldest.
               // The first item in stateSets must not be empty.
-              stateSets.remove(0);
+              rowStateSets.remove(0);
             } else {
               // Set state to empty so that it is not considered for any
               // further matches, and will be removed when it is the oldest.
-              stateSets.set(i++, emptyStateSet);
+              rowStateSets.set(i++, Pair.of(row, emptyStateSet));
             }
           } else {
-            stateSets.set(i++, nextStateSet);
+            rowStateSets.set(i++, Pair.of(row, nextStateSet));
           }
         }
       }
@@ -272,42 +291,74 @@ public class AutomatonTest {
      * @param <E> Type of rows matched by this automaton */
     static class Builder<E> {
       final Graph graph;
-      final ImmutableList.Builder<Symbol<E>> symbolBuilder =
-          ImmutableList.builder();
-      int symbolCount = 0;
+      final Map<String, Predicate<E>> symbolPredicates =
+          new HashMap<>();
 
       Builder(Graph graph) {
         this.graph = graph;
       }
 
-      Builder<E> add(String symbol, Predicate<E> predicate) {
-        symbolBuilder.add(new Symbol<>(symbolCount++, symbol, predicate));
+      Builder<E> add(String symbolName, Predicate<E> predicate) {
+        symbolPredicates.put(symbolName, predicate);
         return this;
       }
 
       public Matcher<E> build() {
-        return new Matcher<>(graph, symbolBuilder.build());
-      }
-    }
-
-    /** A symbol and the predicate that determines whether a given row matches
-     * that symbol.
-     *
-     * @param <E> Type of rows matched by this automaton */
-    static class Symbol<E> {
-      /** zero-based ordinal of symbol */
-      final int id;
-      final String name;
-      final Predicate<E> predicate;
-
-      Symbol(int id, String name, Predicate<E> predicate) {
-        this.id = id;
-        this.name = Objects.requireNonNull(name);
-        this.predicate = Objects.requireNonNull(predicate);
+        final Set<String> graphSymbolNames = new TreeSet<>(graph.symbolNames);
+        if (!symbolPredicates.keySet().equals(graphSymbolNames)) {
+          throw new IllegalArgumentException("not all symbols in the graph ["
+              + graphSymbolNames + "] have predicates ["
+              + symbolPredicates.keySet() + "]");
+        }
+        final ImmutableList.Builder<Predicate<E>> builder =
+            ImmutableList.builder();
+        for (String symbolName : graph.symbolNames) {
+          builder.add(symbolPredicates.get(symbolName));
+        }
+        return new Matcher<>(graph, builder.build());
       }
     }
   }
 
+  /** A mutable list of pairs backed by a pair of mutable lists.
+   *
+   * <p>Modifications to this list are reflected in the backing lists, and vice
+   * versa. */
+  private static class MutableZipList<K, V> extends AbstractList<Pair<K, V>> {
+    private final List<K> lefts;
+    private final List<V> rights;
+
+    MutableZipList(List<K> lefts, List<V> rights) {
+      this.lefts = Objects.requireNonNull(lefts);
+      this.rights = Objects.requireNonNull(rights);
+    }
+
+    @Override public Pair<K, V> get(int index) {
+      return Pair.of(lefts.get(index), rights.get(index));
+    }
+
+    @Override public int size() {
+      return Math.min(lefts.size(), rights.size());
+    }
+
+    @Override public void add(int index, Pair<K, V> pair) {
+      lefts.add(index, pair.left);
+      rights.add(index, pair.right);
+    }
+
+    @Override public Pair<K, V> remove(int index) {
+      final K bufferedRow = lefts.remove(index);
+      final V stateSet = rights.remove(index);
+      return Pair.of(bufferedRow, stateSet);
+    }
+
+    @Override public Pair<K, V> set(int index, Pair<K, V> pair) {
+      final Pair<K, V> previous = get(index);
+      lefts.set(index, pair.left);
+      rights.set(index, pair.right);
+      return previous;
+    }
+  }
 }
 
 // End AutomatonTest.java
