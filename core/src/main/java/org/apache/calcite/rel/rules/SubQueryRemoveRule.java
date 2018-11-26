@@ -599,7 +599,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     }
 
     @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
-      return RexUtil.eq(subQuery, this.subQuery) ? replacement : subQuery;
+      return subQuery.equals(this.subQuery) ? replacement : subQuery;
     }
   }
 }

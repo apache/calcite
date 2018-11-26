@@ -168,7 +168,7 @@ public class RexImplicationChecker {
     }
 
     // E.g. "x is null" implies "x is null".
-    if (RexUtil.eq(first, second)) {
+    if (first.equals(second)) {
       return true;
     }
 
@@ -184,7 +184,7 @@ public class RexImplicationChecker {
       final RexNode operand = ((RexCall) second).getOperands().get(0);
       final Strong strong = new Strong() {
         @Override public boolean isNull(RexNode node) {
-          return RexUtil.eq(node, operand)
+          return node.equals(operand)
               || super.isNull(node);
         }
       };

@@ -30,6 +30,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+import javax.annotation.Nonnull;
 
 /**
  * Scalar expression that represents an IN, EXISTS or scalar sub-query.
@@ -108,11 +109,11 @@ public class RexSubQuery extends RexCall {
     return visitor.visitSubQuery(this, arg);
   }
 
-  @Override protected String computeDigest(boolean withType) {
-    StringBuilder sb = new StringBuilder(op.getName());
+  @Override protected @Nonnull String computeDigest(boolean withType) {
+    final StringBuilder sb = new StringBuilder(op.getName());
     sb.append("(");
     for (RexNode operand : operands) {
-      sb.append(operand.toString());
+      sb.append(operand);
       sb.append(", ");
     }
     sb.append("{\n");

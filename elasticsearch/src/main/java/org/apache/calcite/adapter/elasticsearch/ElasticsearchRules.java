@@ -149,8 +149,8 @@ class ElasticsearchRules {
           return stripQuotes(strings.get(0)) + "[" + ((RexLiteral) op1).getValue2() + "]";
         }
       }
-      throw new IllegalArgumentException("Translation of " + call.toString()
-        + " is not supported by ElasticsearchProject");
+      throw new IllegalArgumentException("Translation of " + call
+          + " is not supported by ElasticsearchProject");
     }
 
     List<String> visitList(List<RexNode> list) {

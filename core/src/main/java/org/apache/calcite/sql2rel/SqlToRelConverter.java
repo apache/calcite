@@ -706,8 +706,8 @@ public class SqlToRelConverter {
       final List<Integer> origins = new ArrayList<>();
       int dupCount = 0;
       for (int i = 0; i < projectExprs.size(); i++) {
-        int x = findExpr(projectExprs.get(i), projectExprs, i);
-        if (x >= 0) {
+        int x = projectExprs.indexOf(projectExprs.get(i));
+        if (x >= 0 && x < i) {
           origins.add(x);
           ++dupCount;
         } else {
@@ -768,16 +768,6 @@ public class SqlToRelConverter {
     bb.setRoot(
         rel,
         false);
-  }
-
-  private int findExpr(RexNode seek, List<RexNode> exprs, int count) {
-    for (int i = 0; i < count; i++) {
-      RexNode expr = exprs.get(i);
-      if (expr.toString().equals(seek.toString())) {
-        return i;
-      }
-    }
-    return -1;
   }
 
   /**
@@ -5095,7 +5085,7 @@ public class SqlToRelConverter {
     private int lookupOrCreateGroupExpr(RexNode expr) {
       int index = 0;
       for (RexNode convertedInputExpr : Pair.left(convertedInputExprs)) {
-        if (expr.toString().equals(convertedInputExpr.toString())) {
+        if (expr.equals(convertedInputExpr)) {
           return index;
         }
         ++index;

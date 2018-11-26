@@ -43,13 +43,12 @@ public class MutableFilter extends MutableSingleRel {
   @Override public boolean equals(Object obj) {
     return obj == this
         || obj instanceof MutableFilter
-        && condition.toString().equals(
-            ((MutableFilter) obj).condition.toString())
+        && condition.equals(((MutableFilter) obj).condition)
         && input.equals(((MutableFilter) obj).input);
   }
 
   @Override public int hashCode() {
-    return Objects.hash(input, condition.toString());
+    return Objects.hash(input, condition);
   }
 
   @Override public StringBuilder digest(StringBuilder buf) {

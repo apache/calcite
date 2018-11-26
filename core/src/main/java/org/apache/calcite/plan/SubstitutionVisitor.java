@@ -1362,13 +1362,13 @@ public class SubstitutionVisitor {
   /** Builds a shuttle that stores a list of expressions, and can map incoming
    * expressions to references to them. */
   protected static RexShuttle getRexShuttle(MutableProject target) {
-    final Map<String, Integer> map = new HashMap<>();
+    final Map<RexNode, Integer> map = new HashMap<>();
     for (RexNode e : target.projects) {
-      map.put(e.toString(), map.size());
+      map.put(e, map.size());
     }
     return new RexShuttle() {
       @Override public RexNode visitInputRef(RexInputRef ref) {
-        final Integer integer = map.get(ref.getName());
+        final Integer integer = map.get(ref);
         if (integer != null) {
           return new RexInputRef(integer, ref.getType());
         }
@@ -1376,7 +1376,7 @@ public class SubstitutionVisitor {
       }
 
       @Override public RexNode visitCall(RexCall call) {
-        final Integer integer = map.get(call.toString());
+        final Integer integer = map.get(call);
         if (integer != null) {
           return new RexInputRef(integer, call.getType());
         }

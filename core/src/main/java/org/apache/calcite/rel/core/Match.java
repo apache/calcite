@@ -277,7 +277,7 @@ public abstract class Match extends SingleRel {
           }
           boolean update = true;
           for (RexMRAggCall rex : set) {
-            if (rex.toString().equals(aggCall.toString())) {
+            if (rex.equals(aggCall)) {
               update = false;
               break;
             }

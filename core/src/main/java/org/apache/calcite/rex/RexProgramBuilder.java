@@ -43,7 +43,7 @@ public class RexProgramBuilder {
   private final RexBuilder rexBuilder;
   private final RelDataType inputRowType;
   private final List<RexNode> exprList = new ArrayList<>();
-  private final Map<Pair<String, String>, RexLocalRef> exprMap =
+  private final Map<Pair<RexNode, String>, RexLocalRef> exprMap =
       new HashMap<>();
   private final List<RexLocalRef> localRefList = new ArrayList<>();
   private final List<RexLocalRef> projectRefList = new ArrayList<>();
@@ -329,7 +329,7 @@ public class RexProgramBuilder {
     expr = simplify.simplifyPreservingType(expr);
 
     RexLocalRef ref;
-    final Pair<String, String> key;
+    final Pair<RexNode, String> key;
     if (expr instanceof RexLocalRef) {
       key = null;
       ref = (RexLocalRef) expr;

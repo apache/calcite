@@ -1359,7 +1359,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       }
 
       // Generate result rewriting
-      List<String> additionalViewExprs = new ArrayList<>();
+      final List<RexNode> additionalViewExprs = new ArrayList<>();
       Mapping rewritingMapping = null;
       RelNode result = relBuilder.push(input).build();
       // We create view expressions that will be used in a Project on top of the
@@ -1389,7 +1389,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             RexNode targetNode = rollupNodes.get(
                 targetIdx - viewInputFieldCount - viewInputDifferenceViewFieldCount);
             // We need to rollup this expression
-            final Multimap<String, Integer> exprsLineage = ArrayListMultimap.create();
+            final Multimap<RexNode, Integer> exprsLineage = ArrayListMultimap.create();
             final ImmutableBitSet refs = RelOptUtil.InputFinder.bits(targetNode);
             for (int childTargetIdx : refs) {
               added = false;
@@ -1398,10 +1398,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                 if (!n.isA(SqlKind.INPUT_REF)) {
                   continue;
                 }
-                int ref = ((RexInputRef) n).getIndex();
+                final int ref = ((RexInputRef) n).getIndex();
                 if (ref == childTargetIdx) {
                   exprsLineage.put(
-                      new RexInputRef(childTargetIdx, targetNode.getType()).toString(), k);
+                      new RexInputRef(ref, targetNode.getType()), k);
                   added = true;
                 }
               }
@@ -1414,7 +1414,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             groupSetB.set(inputViewExprs.size());
             rewritingMapping.set(inputViewExprs.size(), i);
             additionalViewExprs.add(
-                new RexInputRef(targetIdx, targetNode.getType()).toString());
+                new RexInputRef(targetIdx, targetNode.getType()));
             // We need to create the rollup expression
             inputViewExprs.add(
                 shuttleReferences(rexBuilder, targetNode, exprsLineage));
@@ -1536,12 +1536,12 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         topRowType = queryAggregate.getRowType();
       }
       // Available in view.
-      final Multimap<String, Integer> viewExprs = ArrayListMultimap.create();
+      final Multimap<RexNode, Integer> viewExprs = ArrayListMultimap.create();
       int numberViewExprs = 0;
       for (RexNode viewExpr : topViewProject.getChildExps()) {
-        viewExprs.put(viewExpr.toString(), numberViewExprs++);
+        viewExprs.put(viewExpr, numberViewExprs++);
       }
-      for (String additionalViewExpr : additionalViewExprs) {
+      for (RexNode additionalViewExpr : additionalViewExprs) {
         viewExprs.put(additionalViewExpr, numberViewExprs++);
       }
       final List<RexNode> rewrittenExprs = new ArrayList<>(topExprs.size());
@@ -1587,7 +1587,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       Multimap<Integer, Integer> m = ArrayListMultimap.create();
       Map<RexTableInputRef, Set<RexTableInputRef>> equivalenceClassesMap =
           sourceEC.getEquivalenceClassesMap();
-      Multimap<String, Integer> exprsLineage = ArrayListMultimap.create();
+      Multimap<RexNode, Integer> exprsLineage = ArrayListMultimap.create();
       List<RexNode> timestampExprs = new ArrayList<>();
       for (int i = 0; i < target.getRowType().getFieldCount(); i++) {
         Set<RexNode> s = mq.getExpressionLineage(target, rexBuilder.makeInputRef(target, i));
@@ -1604,7 +1604,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             simplified,
             tableMapping.inverse(),
             equivalenceClassesMap);
-        exprsLineage.put(expr.toString(), i);
+        exprsLineage.put(expr, i);
         SqlTypeName sqlTypeName = expr.getType().getSqlTypeName();
         if (sqlTypeName == SqlTypeName.TIMESTAMP
             || sqlTypeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
@@ -1633,7 +1633,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             // can try to find a match
             final RexNode simplified =
                 simplify.simplifyUnknownAsFalse(ceilExpr);
-            exprsLineage.put(simplified.toString(),
+            exprsLineage.put(simplified,
                 target.getRowType().getFieldCount() + additionalExprs.size() - 1);
           }
           // FLOOR
@@ -1651,7 +1651,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             // can try to find a match
             final RexNode simplified =
                 simplify.simplifyUnknownAsFalse(floorExpr);
-            exprsLineage.put(simplified.toString(),
+            exprsLineage.put(simplified,
                 target.getRowType().getFieldCount() + additionalExprs.size() - 1);
           }
         }
@@ -1670,7 +1670,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         final RexNode simplified = simplify.simplifyUnknownAsFalse(e);
         RexNode targetExpr = RexUtil.swapColumnReferences(rexBuilder,
             simplified, equivalenceClassesMap);
-        Collection<Integer> c = exprsLineage.get(targetExpr.toString());
+        final Collection<Integer> c = exprsLineage.get(targetExpr);
         if (!c.isEmpty()) {
           for (Integer j : c) {
             m.put(i, j);
@@ -2010,8 +2010,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                 parentTRef.getTable().getRowType().getFieldList().get(uniqueKeyPos).getType());
             if (!foreignKeyColumnType.isNullable()
                 && sourceEC.getEquivalenceClassesMap().containsKey(uniqueKeyColumnRef)
-                && sourceEC.getEquivalenceClassesMap().get(uniqueKeyColumnRef).contains(
-                    foreignKeyColumnRef)) {
+                && sourceEC.getEquivalenceClassesMap().get(uniqueKeyColumnRef)
+                    .contains(foreignKeyColumnRef)) {
               equiColumns.put(foreignKeyColumnRef, uniqueKeyColumnRef);
             } else {
               canBeRewritten = false;
@@ -2310,8 +2310,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       BiMap<RelTableRef, RelTableRef> tableMapping,
       EquivalenceClasses ec,
       List<RexNode> nodeExprs) {
-    Map<String, Integer> exprsLineage = new HashMap<>();
-    Map<String, Integer> exprsLineageLosslessCasts = new HashMap<>();
+    final Map<RexNode, Integer> exprsLineage = new HashMap<>();
+    final Map<RexNode, Integer> exprsLineageLosslessCasts = new HashMap<>();
     for (int i = 0; i < nodeExprs.size(); i++) {
       final Set<RexNode> s = mq.getExpressionLineage(node, nodeExprs.get(i));
       if (s == null) {
@@ -2325,12 +2325,12 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       // mapping, then we take first element from the corresponding equivalence class
       final RexNode e = RexUtil.swapTableColumnReferences(rexBuilder,
           s.iterator().next(), tableMapping, ec.getEquivalenceClassesMap());
-      exprsLineage.put(e.toString(), i);
+      exprsLineage.put(e, i);
       if (RexUtil.isLosslessCast(e)) {
-        exprsLineageLosslessCasts.put(((RexCall) e).getOperands().get(0).toString(), i);
+        exprsLineageLosslessCasts.put(((RexCall) e).getOperands().get(0), i);
       }
     }
-    return NodeLineage.of(exprsLineage, exprsLineageLosslessCasts);
+    return new NodeLineage(exprsLineage, exprsLineageLosslessCasts);
   }
 
   /**
@@ -2344,8 +2344,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       BiMap<RelTableRef, RelTableRef> tableMapping,
       EquivalenceClasses ec,
       List<RexNode> nodeExprs) {
-    Map<String, Integer> exprsLineage = new HashMap<>();
-    Map<String, Integer> exprsLineageLosslessCasts = new HashMap<>();
+    final Map<RexNode, Integer> exprsLineage = new HashMap<>();
+    final Map<RexNode, Integer> exprsLineageLosslessCasts = new HashMap<>();
     for (int i = 0; i < nodeExprs.size(); i++) {
       final Set<RexNode> s = mq.getExpressionLineage(node, nodeExprs.get(i));
       if (s == null) {
@@ -2354,17 +2354,17 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       }
       // We only support project - filter - join, thus it should map to
       // a single expression
-      assert s.size() == 1;
+      final RexNode node2 = Iterables.getOnlyElement(s);
       // Rewrite expr. First we take first element from the corresponding equivalence class,
       // then we swap the table references following the table mapping
-      final RexNode e = RexUtil.swapColumnTableReferences(
-          rexBuilder, s.iterator().next(), ec.getEquivalenceClassesMap(), tableMapping);
-      exprsLineage.put(e.toString(), i);
+      final RexNode e = RexUtil.swapColumnTableReferences(rexBuilder, node2,
+          ec.getEquivalenceClassesMap(), tableMapping);
+      exprsLineage.put(e, i);
       if (RexUtil.isLosslessCast(e)) {
-        exprsLineageLosslessCasts.put(((RexCall) e).getOperands().get(0).toString(), i);
+        exprsLineageLosslessCasts.put(((RexCall) e).getOperands().get(0), i);
       }
     }
-    return NodeLineage.of(exprsLineage, exprsLineageLosslessCasts);
+    return new NodeLineage(exprsLineage, exprsLineageLosslessCasts);
   }
 
   /**
@@ -2392,12 +2392,12 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
           }
 
           private RexNode replace(RexNode e) {
-            Integer pos = nodeLineage.exprsLineage.get(e.toString());
+            Integer pos = nodeLineage.exprsLineage.get(e);
             if (pos != null) {
               // Found it
               return rexBuilder.makeInputRef(node, pos);
             }
-            pos = nodeLineage.exprsLineageLosslessCasts.get(e.toString());
+            pos = nodeLineage.exprsLineageLosslessCasts.get(e);
             if (pos != null) {
               // Found it
               return rexBuilder.makeCast(
@@ -2436,29 +2436,29 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
   }
 
   /**
-   * Replaces all the possible subexpressions by input references
+   * Replaces all the possible sub-expressions by input references
    * to the input node.
    */
   private static RexNode shuttleReferences(final RexBuilder rexBuilder,
-      final RexNode expr, final Multimap<String, Integer> exprsLineage) {
+      final RexNode expr, final Multimap<RexNode, Integer> exprsLineage) {
     return shuttleReferences(rexBuilder, expr,
         exprsLineage, null, null);
   }
 
   /**
-   * Replaces all the possible subexpressions by input references
+   * Replaces all the possible sub-expressions by input references
    * to the input node. If available, it uses the rewriting mapping
    * to change the position to reference. Takes the reference type
    * from the input node.
    */
   private static RexNode shuttleReferences(final RexBuilder rexBuilder,
-      final RexNode expr, final Multimap<String, Integer> exprsLineage,
+      final RexNode expr, final Multimap<RexNode, Integer> exprsLineage,
       final RelNode node, final Mapping rewritingMapping) {
     try {
       RexShuttle visitor =
           new RexShuttle() {
             @Override public RexNode visitTableInputRef(RexTableInputRef ref) {
-              Collection<Integer> c = exprsLineage.get(ref.toString());
+              Collection<Integer> c = exprsLineage.get(ref);
               if (c.isEmpty()) {
                 // Cannot map expression
                 throw Util.FoundOne.NULL;
@@ -2478,7 +2478,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             }
 
             @Override public RexNode visitInputRef(RexInputRef inputRef) {
-              Collection<Integer> c = exprsLineage.get(inputRef.toString());
+              Collection<Integer> c = exprsLineage.get(inputRef);
               if (c.isEmpty()) {
                 // Cannot map expression
                 throw Util.FoundOne.NULL;
@@ -2498,7 +2498,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             }
 
             @Override public RexNode visitCall(final RexCall call) {
-              Collection<Integer> c = exprsLineage.get(call.toString());
+              Collection<Integer> c = exprsLineage.get(call);
               if (c.isEmpty()) {
                 // Cannot map expression
                 return super.visitCall(call);
@@ -2612,28 +2612,21 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
     }
   }
 
-  /**
-   * Class to encapsulate expression lineage details
-   */
+  /** Expression lineage details. */
   private static class NodeLineage {
-    private final Map<String, Integer> exprsLineage;
-    private final Map<String, Integer> exprsLineageLosslessCasts;
+    private final Map<RexNode, Integer> exprsLineage;
+    private final Map<RexNode, Integer> exprsLineageLosslessCasts;
 
-    private NodeLineage(Map<String, Integer> exprsLineage,
-        Map<String, Integer> exprsLineageLosslessCasts) {
-      this.exprsLineage = Collections.unmodifiableMap(exprsLineage);
-      this.exprsLineageLosslessCasts = Collections.unmodifiableMap(exprsLineageLosslessCasts);
-    }
-
-    protected static NodeLineage of(
-        Map<String, Integer> exprsLineage, Map<String, Integer> exprsLineageLosslessCasts) {
-      return new NodeLineage(exprsLineage, exprsLineageLosslessCasts);
+    private NodeLineage(Map<RexNode, Integer> exprsLineage,
+        Map<RexNode, Integer> exprsLineageLosslessCasts) {
+      this.exprsLineage = ImmutableMap.copyOf(exprsLineage);
+      this.exprsLineageLosslessCasts =
+          ImmutableMap.copyOf(exprsLineageLosslessCasts);
     }
   }
 
   /** Edge for graph */
   private static class Edge extends DefaultEdge {
-
     final Multimap<RexTableInputRef, RexTableInputRef> equiColumns =
         ArrayListMultimap.create();
 
