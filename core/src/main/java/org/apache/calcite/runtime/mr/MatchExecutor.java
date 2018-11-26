@@ -28,25 +28,21 @@ import java.util.Queue;
 import java.util.Set;
 
 /**
- * Executor match recognize
+ * Executor for MATCH_RECOGNIZE.
  */
-public class MRExecutor {
+public class MatchExecutor {
 
-  /**
-   * can not create an instance
-   */
-  private MRExecutor() {
+  private MatchExecutor() {}
 
-  }
-
-  public static List<Object[]> executMR(List<Object[]> inputData, MRHelper mr) {
+  public static List<Object[]> executeMatch(List<Object[]> inputData,
+      MatchHelper mr) {
     List<Tuple> resultOutput = new ArrayList<>();
     final Set<String> alphaEval = new HashSet<>();
     final Set<String> alphaMatch = new HashSet<>();
     final Map<String, Queue> inputsPerGroup = new HashMap<>();
 
     int mrCounter = 0;
-    boolean isEOF = false;
+    boolean isEof = false;
     int maxTID = 0;
     int tupleCounter = 0;
 
@@ -64,7 +60,7 @@ public class MRExecutor {
         break;
       }
       tupleCounter += tuples.size() - prevSize;
-      isEOF = tuples.size() - prevSize < 0;
+      isEof = tuples.size() - prevSize < 0;
 
       // for each partition, do the matching
       int smallestID = tupleCounter;
@@ -90,7 +86,7 @@ public class MRExecutor {
         while (!input.isEmpty()) {
           Matching top = input.poll();
           int status = top.getStatus();
-          nextTupleIdx = top.getNextTID();
+          nextTupleIdx = top.getNextTid();
 
           if (!tupleList.containsKey(nextTupleIdx)) {
             tmpQueue.add(top);
@@ -100,9 +96,9 @@ public class MRExecutor {
           alphaEval.clear();
           alphaMatch.clear();
 
-          List<NFAState> nfaStates = mr.getNFA().getStateNoFinals(status);
+          List<NfaState> nfaStates = mr.getNfa().getStateNoFinals(status);
           int matchCounter = 0;
-          for (NFAState tt : nfaStates) {
+          for (NfaState tt : nfaStates) {
             String alpha = tt.getAlpha();
             Matching activeTemp = null;
             if (alphaMatch.contains(alpha)) {
@@ -120,29 +116,30 @@ public class MRExecutor {
               //update aggregations
               mr.updateAggregates(tuples, tupleList, activeTemp, alpha);
               activeTemp.setStatus(tt.getTo());
-              activeTemp.setNextTID(nextTupleIdx + 1);
+              activeTemp.setNextTid(nextTupleIdx + 1);
 
               //add tuple id to the matching
               activeTemp.addTuple(nextTupleIdx, alpha);
 
-              if (mr.getNFA().isFinal(tt.getTo())) {
-                if (mr.isLongestFirst() && mr.getNFA().getStateNoFinals(tt.getTo()).size() > 0) {
+              if (mr.getNfa().isFinal(tt.getTo())) {
+                if (mr.isLongestFirst()
+                    && mr.getNfa().getStateNoFinals(tt.getTo()).size() > 0) {
                   Matching copy = activeTemp.copy();
-                  if (!mr.getNFA().isStrictEnds()) {
+                  if (!mr.getNfa().isStrictEnds()) {
                     copy.setBak(activeTemp);
                   }
                   input.add(copy);
                 } else {
-                  if (!mr.getNFA().isStrictEnds()
-                      || mr.getNFA().isStrictEnds()
-                      && isEOF && activeTemp.getNextTID() > maxTID) {
+                  if (!mr.getNfa().isStrictEnds()
+                      || mr.getNfa().isStrictEnds()
+                      && isEof && activeTemp.getNextTid() > maxTID) {
                     mrCounter = mr.measures(resultOutput, tuples, tuplesPerPart.get(pKey),
                         pKeys.get(pKey), mrCounter, activeTemp);
                   } else {
                     input.add(activeTemp.copy());
                   }
                 }
-                if (!mr.getNFA().isStrictStarts()) {
+                if (!mr.getNfa().isStrictStarts()) {
                   mr.addMatching(input, activeTemp, matchStartsAt, mr.getMatchingFactory());
                 }
               } else {
@@ -154,15 +151,16 @@ public class MRExecutor {
           if (matchCounter == 0) {
             // no valid transition found
             if (top.getBak() != null) {
-              if (!mr.getNFA().isStrictEnds()
-                  || mr.getNFA().isStrictEnds()
-                  && isEOF && top.getNextTID() > maxTID) {
+              if (!mr.getNfa().isStrictEnds()
+                  || mr.getNfa().isStrictEnds()
+                  && isEof && top.getNextTid() > maxTID) {
                 mr.measures(resultOutput, tuples,
-                    tuplesPerPart.get(pKey), pKeys.get(pKey), mrCounter, top.getBak());
+                    tuplesPerPart.get(pKey), pKeys.get(pKey), mrCounter,
+                    top.getBak());
               }
-            } else if (!mr.getNFA().isStrictStarts()) {
-              int reStart = top.getStartTID() + 1;
-              if (!matchStartsAt.get(reStart) && !mr.getNFA().isStrictStarts()) {
+            } else if (!mr.getNfa().isStrictStarts()) {
+              int reStart = top.getStartTid() + 1;
+              if (!matchStartsAt.get(reStart) && !mr.getNfa().isStrictStarts()) {
                 matchStartsAt.set(reStart);
                 input.add(mr.getMatchingFactory().create(reStart));
               }
@@ -170,7 +168,7 @@ public class MRExecutor {
           }
         }
         if (tmpQueue.size() > 0) {
-          int peekID = tmpQueue.peek().getStartTID();
+          int peekID = tmpQueue.peek().getStartTid();
           if (tupleList.containsKey(peekID)) {
             smallestID = Math.min(smallestID, tupleList.get(peekID));
           }
@@ -178,8 +176,8 @@ public class MRExecutor {
         }
       }
 
-      tuples = MRUtilFuns.cleanUp(tuples, tuplesPerPart, smallestID);
-    } while (!isEOF);
+      tuples = MatchUtils.cleanUp(tuples, tuplesPerPart, smallestID);
+    } while (!isEof);
 
     for (Map.Entry<String, Queue> entry : inputsPerGroup.entrySet()) {
       String pKey = entry.getKey();
@@ -188,10 +186,10 @@ public class MRExecutor {
       while (!queue.isEmpty()) {
         Matching top = (Matching) queue.poll();
         int status = top.getStatus();
-        if (!mr.getNFA().isStrictEnds()
-            || mr.getNFA().isStrictEnds()
-            && isEOF && top.getNextTID() > maxTID) {
-          if (mr.getNFA().isFinal(status)) {
+        if (!mr.getNfa().isStrictEnds()
+            || mr.getNfa().isStrictEnds()
+            && isEof && top.getNextTid() > maxTID) {
+          if (mr.getNfa().isFinal(status)) {
             mrCounter = mr.measures(resultOutput, tuples,
                 tuplesPerPart.get(pKey), pKeys.get(pKey), mrCounter, top);
           } else if (top.getBak() != null) {
@@ -206,12 +204,12 @@ public class MRExecutor {
   }
 
   private static Set<String> parseTuples(List<Object[]> dataSet,
-                                         MRHelper mr,
-                                         Map<Integer, Tuple> tuples,
-                                         Map<String, Map<Integer, Integer>> tuplesPerPart,
-                                         Map<String, Object[]> pKeys,
-                                         Map<String, Integer> startTIDs,
-                                         int offset) {
+      MatchHelper mr,
+      Map<Integer, Tuple> tuples,
+      Map<String, Map<Integer, Integer>> tuplesPerPart,
+      Map<String, Object[]> pKeys,
+      Map<String, Integer> startTIDs,
+      int offset) {
     List<Object[]> results = new ArrayList<>();
     Map<String, List<Integer>> newTuplesPerPart = new HashMap<>();
     if (dataSet != null) {
@@ -234,7 +232,7 @@ public class MRExecutor {
         for (int i = 0; i < mr.getPartitionKey().length; i++) {
           keys[i] = tuple.getData(mr.getPartitionKey()[i]);
         }
-        pKey = MRUtilFuns.objectsToS(keys);
+        pKey = MatchUtils.objectsToS(keys);
         if (!pKeys.containsKey(pKey)) {
           pKeys.put(pKey, keys);
         }
@@ -246,7 +244,7 @@ public class MRExecutor {
         tupleList = new ArrayList<>();
         newTuplesPerPart.put(pKey, tupleList);
       }
-      tupleList.add(tuple.getTID());
+      tupleList.add(tuple.getTid());
     }
 
     for (Map.Entry<String, List<Integer>> entry : newTuplesPerPart.entrySet()) {
@@ -272,4 +270,4 @@ public class MRExecutor {
   }
 }
 
-// End MRExecutor.java
+// End MatchExecutor.java

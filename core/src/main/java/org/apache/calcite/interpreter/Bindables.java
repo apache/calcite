@@ -117,7 +117,7 @@ public class Bindables {
       new BindableWindowRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule BINDABLE_MATCH_RULE =
-    new BindableMatchRule(RelFactories.LOGICAL_BUILDER);
+      new BindableMatchRule(RelFactories.LOGICAL_BUILDER);
 
   /** All rules that convert logical relational expression to bindable. */
   public static final ImmutableList<RelOptRule> RULES =
@@ -708,7 +708,7 @@ public class Bindables {
   /** Implementation of {@link org.apache.calcite.rel.core.Window}
    * in bindable convention. */
   public static class BindableWindow extends Window implements BindableRel {
-    /** Creates an BindableWindowRel. */
+    /** Creates a BindableWindow. */
     BindableWindow(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
         List<RexLiteral> constants, RelDataType rowType, List<Group> groups) {
       super(cluster, traitSet, input, constants, rowType, groups);
@@ -771,27 +771,23 @@ public class Bindables {
   /** Implementation of {@link org.apache.calcite.rel.core.Match}
    * in bindable convention. */
   public static class BindableMatch extends Match implements BindableRel {
-    /** Creates an BindableMatchRel. */
+    /** Creates a BindableMatch. */
     BindableMatch(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
-        RelDataType rowType, RexNode pattern,
-        boolean strictStart, boolean strictEnd,
-        Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-        RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-        boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+        RelDataType rowType, RexNode pattern, boolean strictStart,
+        boolean strictEnd, Map<String, RexNode> patternDefinitions,
+        Map<String, RexNode> measures, RexNode after,
+        Map<String, ? extends SortedSet<String>> subsets, boolean allRows,
+        List<RexNode> partitionKeys, RelCollation orderKeys,
         RexNode interval) {
       super(cluster, traitSet, input, rowType, pattern, strictStart, strictEnd,
-        patternDefinitions, measures, after, subsets, allRows, partitionKeys, orderKeys, interval);
+          patternDefinitions, measures, after, subsets, allRows, partitionKeys,
+          orderKeys, interval);
     }
 
-    @Override public Match copy(RelTraitSet traits, RelNode input, RelDataType rowType,
-        RexNode pattern, boolean strictStart, boolean strictEnd,
-        Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-        RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-        boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
-        RexNode interval) {
-      return new BindableMatch(getCluster(), traits, input, rowType, pattern,
-        strictStart, strictEnd, patternDefinitions, measures, after, subsets,
-        allRows, partitionKeys, orderKeys, interval);
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+      return new BindableMatch(getCluster(), traitSet, inputs.get(0), rowType,
+          pattern, strictStart, strictEnd, patternDefinitions, measures, after,
+          subsets, allRows, partitionKeys, orderKeys, interval);
     }
 
     public Class<Object[]> getElementType() {
@@ -820,22 +816,24 @@ public class Bindables {
      */
     public BindableMatchRule(RelBuilderFactory relBuilderFactory) {
       super(LogicalMatch.class, (Predicate<RelNode>) r -> true,
-        Convention.NONE, BindableConvention.INSTANCE, relBuilderFactory,
-        "BindableMatchRule");
+          Convention.NONE, BindableConvention.INSTANCE, relBuilderFactory,
+          "BindableMatchRule");
     }
 
     public RelNode convert(RelNode rel) {
       final LogicalMatch match = (LogicalMatch) rel;
       final RelTraitSet traitSet =
-        match.getTraitSet().replace(BindableConvention.INSTANCE);
+          match.getTraitSet().replace(BindableConvention.INSTANCE);
       final RelNode input = match.getInput();
       final RelNode convertedInput =
-        convert(input,
-          input.getTraitSet().replace(BindableConvention.INSTANCE));
+          convert(input,
+              input.getTraitSet().replace(BindableConvention.INSTANCE));
       return new BindableMatch(rel.getCluster(), traitSet, convertedInput,
-        match.getRowType(), match.getPattern(), match.isStrictStart(), match.isStrictEnd(),
-        match.getPatternDefinitions(), match.getMeasures(), match.getAfter(), match.getSubsets(),
-        match.isAllRows(), match.getPartitionKeys(), match.getOrderKeys(), match.getInterval());
+          match.getRowType(), match.getPattern(), match.isStrictStart(),
+          match.isStrictEnd(), match.getPatternDefinitions(),
+          match.getMeasures(), match.getAfter(), match.getSubsets(),
+          match.isAllRows(), match.getPartitionKeys(), match.getOrderKeys(),
+          match.getInterval());
     }
   }
 

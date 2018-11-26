@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nonnull;
 
 /**
  * Matching object for compare
@@ -29,8 +30,10 @@ import java.util.Set;
 public class Matching implements Comparable<Matching> {
 
   private int status;
-  private int startTID;
-  private int nextTID;
+  /** Start tuple ID */
+  private int startTid;
+  /** Next tuple ID */
+  private int nextTid;
   private Matching backup;
 
   private final List<Integer> tuples = new ArrayList<>();
@@ -40,11 +43,12 @@ public class Matching implements Comparable<Matching> {
 
   public Matching(int sta, int tid) {
     status = sta;
-    startTID = tid;
-    nextTID = tid;
+    startTid = tid;
+    nextTid = tid;
   }
 
-  public Matching(int sta, int tid, List<String> funs, Map<String, Set<String>> sets) {
+  public Matching(int sta, int tid, List<String> funs, Map<String,
+      Set<String>> sets) {
     this(sta, tid);
     if (funs != null) {
       for (String fun : funs) {
@@ -62,24 +66,24 @@ public class Matching implements Comparable<Matching> {
     return status;
   }
 
-  public void setStatus(int st) {
-    status = st;
+  public void setStatus(int status) {
+    this.status = status;
   }
 
-  public int getStartTID() {
-    return startTID;
+  public int getStartTid() {
+    return startTid;
   }
 
-  public void setStartTID(int startTupleID) {
-    startTID = startTupleID;
+  public void setStartTid(int startTid) {
+    this.startTid = startTid;
   }
 
-  public int getNextTID() {
-    return nextTID;
+  public int getNextTid() {
+    return nextTid;
   }
 
-  public void setNextTID(int nextTID) {
-    this.nextTID = nextTID;
+  public void setNextTid(int nextTid) {
+    this.nextTid = nextTid;
   }
 
   public Matching getBak() {
@@ -94,8 +98,8 @@ public class Matching implements Comparable<Matching> {
     return tuples;
   }
 
-  public void addTuple(int tupleID, String alpha) {
-    tuples.add(tupleID);
+  public void addTuple(int tupleId, String alpha) {
+    tuples.add(tupleId);
 
     List<Integer> list;
     if (classifier.containsKey(alpha)) {
@@ -104,7 +108,7 @@ public class Matching implements Comparable<Matching> {
       list = new ArrayList<>();
       classifier.put(alpha, list);
     }
-    list.add(tupleID);
+    list.add(tupleId);
 
     // check if it is used in any subset
     if (reverseSubSets.containsKey(alpha)) {
@@ -115,7 +119,7 @@ public class Matching implements Comparable<Matching> {
           list = new ArrayList<>();
           classifier.put(token, list);
         }
-        list.add(tupleID);
+        list.add(tupleId);
       }
     }
   }
@@ -127,8 +131,8 @@ public class Matching implements Comparable<Matching> {
     return null;
   }
 
-  public void setClassifier(String alphaID, List<Integer> list) {
-    classifier.put(alphaID, list);
+  public void setClassifier(String alphaId, List<Integer> list) {
+    classifier.put(alphaId, list);
   }
 
   public Map<String, List<Integer>> getClassifier() {
@@ -140,32 +144,31 @@ public class Matching implements Comparable<Matching> {
   }
 
   public Matching copy() {
-    Matching copy = new Matching(status, startTID);
-    copy.nextTID = nextTID;
+    Matching copy = new Matching(status, startTid);
+    copy.nextTid = nextTid;
     copy.tuples.addAll(new ArrayList<>(getTuples()));
     for (Map.Entry<String, List<Integer>> et : classifier.entrySet()) {
-      copy.classifier.put(et.getKey(), new ArrayList<Integer>(et.getValue()));
+      copy.classifier.put(et.getKey(), new ArrayList<>(et.getValue()));
     }
     for (Map.Entry<String, List<Object>> et : aggrs.entrySet()) {
-      copy.aggrs.put(et.getKey(), new ArrayList<Object>(et.getValue()));
+      copy.aggrs.put(et.getKey(), new ArrayList<>(et.getValue()));
     }
     for (Map.Entry<String, Set<String>> et : reverseSubSets.entrySet()) {
-      copy.reverseSubSets.put(et.getKey(), new HashSet<String>(et.getValue()));
+      copy.reverseSubSets.put(et.getKey(), new HashSet<>(et.getValue()));
     }
     return copy;
   }
 
   // matching with smaller start id and next tuple id will be sorted first
-  public int compareTo(Matching matching) {
-    if (getStartTID() != matching.getStartTID()) {
-      return getStartTID() - matching.getStartTID();
+  public int compareTo(@Nonnull Matching matching) {
+    if (getStartTid() != matching.getStartTid()) {
+      return getStartTid() - matching.getStartTid();
     }
-    if (getNextTID() != matching.getNextTID()) {
-      return getNextTID() - matching.getNextTID();
+    if (getNextTid() != matching.getNextTid()) {
+      return getNextTid() - matching.getNextTid();
     }
     return 0;
   }
-
 }
 
 // End Matching.java

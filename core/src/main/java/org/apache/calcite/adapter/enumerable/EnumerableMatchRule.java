@@ -17,30 +17,28 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalMatch;
 
 /**
- * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalMatch} to an
- * {@link EnumerableProject}.
+ * Rule to convert a {@link LogicalMatch} to an
+ * {@link EnumerableMatch}.
  */
-public class EnumerableMatchRecognizeRule extends ConverterRule {
-
-  public EnumerableMatchRecognizeRule() {
-    super(LogicalMatch.class, Convention.NONE,
-      EnumerableConvention.INSTANCE, "EnumerableMatchRecognizeRule");
+public class EnumerableMatchRule extends ConverterRule {
+  EnumerableMatchRule() {
+    super(LogicalMatch.class, Convention.NONE, EnumerableConvention.INSTANCE,
+        "EnumerableMatchRule");
   }
 
   @Override public RelNode convert(RelNode rel) {
-    final RelTraitSet traitSet = rel.getTraitSet().replace(EnumerableConvention.INSTANCE);
-    LogicalMatch mr = (LogicalMatch) rel;
-    return new EnumerableMatchRecognize(rel.getCluster(), traitSet,
-      mr.getInput(), mr.getRowType(), mr.getPattern(), mr.isStrictStart(), mr.isStrictEnd(),
-      mr.getPatternDefinitions(), mr.getMeasures(), mr.getAfter(), mr.getSubsets(), mr.isAllRows(),
-      mr.getPartitionKeys(), mr.getOrderKeys(), mr.getInterval());
+    final LogicalMatch match = (LogicalMatch) rel;
+    return EnumerableMatch.create(match.getInput(), match.getRowType(),
+        match.getPattern(), match.isStrictStart(), match.isStrictEnd(),
+        match.getPatternDefinitions(), match.getMeasures(), match.getAfter(),
+        match.getSubsets(), match.isAllRows(), match.getPartitionKeys(),
+        match.getOrderKeys(), match.getInterval());
   }
 }
 
-// End EnumerableMatchRecognizeRule.java
+// End EnumerableMatchRule.java

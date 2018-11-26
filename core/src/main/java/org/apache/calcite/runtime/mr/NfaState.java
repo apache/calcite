@@ -19,16 +19,15 @@ package org.apache.calcite.runtime.mr;
 /**
  * each transition state in NFA
  */
-public class NFAState {
+public class NfaState {
 
   private String alpha;
   private int toState;
 
-  public NFAState() {
-
+  public NfaState() {
   }
 
-  public NFAState(String alphaID, int toState) {
+  public NfaState(String alphaID, int toState) {
     this.alpha = alphaID;
     this.toState = toState;
   }
@@ -48,24 +47,25 @@ public class NFAState {
     return toState;
   }
 
-
-  public NFAState copy() {
-    NFAState copy = new NFAState();
+  public NfaState copy() {
+    NfaState copy = new NfaState();
     copy.setAlpha(alpha);
     copy.setTo(toState);
     return copy;
   }
 
-  public NFAState copy(int offSet) {
-    NFAState copy = new NFAState();
+  public NfaState copy(int offSet) {
+    NfaState copy = new NfaState();
     copy.setAlpha(alpha);
     copy.setTo(toState + offSet);
     return copy;
   }
 
   @Override public boolean equals(Object object) {
-    NFAState other  = (NFAState) object;
-    return this == object || other.getAlpha().equals(alpha) && other.getTo() == toState;
+    return this == object
+        || object instanceof NfaState
+        && ((NfaState) object).getAlpha().equals(alpha)
+        && ((NfaState) object).getTo() == toState;
   }
 
   @Override public int hashCode() {
@@ -78,4 +78,4 @@ public class NFAState {
 
 }
 
-// End NFAState.java
+// End NfaState.java

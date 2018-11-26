@@ -23,17 +23,17 @@ import org.apache.calcite.rel.logical.LogicalMatch;
 
 /**
  * Planner rule that converts a
- * {@link MatchRecognizeRule} to the result
-// * of calling {@link LogicalMatch#copy}.
+ * {@link LogicalMatch} to the result
+ * of calling {@link LogicalMatch#copy}.
  */
-public class MatchRecognizeRule extends RelOptRule {
+public class MatchRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final MatchRecognizeRule INSTANCE = new MatchRecognizeRule();
+  public static final MatchRule INSTANCE = new MatchRule();
 
   //~ Constructors -----------------------------------------------------------
 
-  private MatchRecognizeRule() {
+  private MatchRule() {
     super(operand(LogicalMatch.class, any()));
   }
 
@@ -41,15 +41,15 @@ public class MatchRecognizeRule extends RelOptRule {
 
   public void onMatch(RelOptRuleCall call) {
     final LogicalMatch oldRel = call.rel(0);
-    RelNode enumerableMR = LogicalMatch.create(oldRel.getCluster(),
-      oldRel.getTraitSet(), oldRel.getInput(), oldRel.getRowType(), oldRel.getPattern(),
-      oldRel.isStrictStart(), oldRel.isStrictEnd(), oldRel.getPatternDefinitions(),
-      oldRel.getMeasures(), oldRel.getAfter(), oldRel.getSubsets(), oldRel.isAllRows(),
-      oldRel.getPartitionKeys(), oldRel.getOrderKeys(), oldRel.getInterval());
-    call.transformTo(enumerableMR);
+    final RelNode match = LogicalMatch.create(oldRel.getCluster(),
+        oldRel.getTraitSet(), oldRel.getInput(), oldRel.getRowType(),
+        oldRel.getPattern(), oldRel.isStrictStart(), oldRel.isStrictEnd(),
+        oldRel.getPatternDefinitions(), oldRel.getMeasures(),
+        oldRel.getAfter(), oldRel.getSubsets(), oldRel.isAllRows(),
+        oldRel.getPartitionKeys(), oldRel.getOrderKeys(),
+        oldRel.getInterval());
+    call.transformTo(match);
   }
-
-
 }
 
-// End MatchRecognizeRule.java
+// End MatchRule.java

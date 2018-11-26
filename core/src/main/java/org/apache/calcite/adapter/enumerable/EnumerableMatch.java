@@ -21,7 +21,6 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Match;
-import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 
@@ -31,39 +30,49 @@ import java.util.SortedSet;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Match} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
-public class EnumerableMatchRecognize extends LogicalMatch implements EnumerableRel {
-
-  public EnumerableMatchRecognize(RelOptCluster cluster,
-      RelTraitSet traits, RelNode input, RelDataType rowType, RexNode pattern,
+public class EnumerableMatch extends Match implements EnumerableRel {
+  /**
+   * Creates an EnumerableMatch.
+   *
+   * <p>Use {@link #create} unless you know what you're doing.
+   */
+  public EnumerableMatch(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode input, RelDataType rowType, RexNode pattern,
       boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
       RexNode interval) {
-    super(cluster, traits, input, rowType, pattern, strictStart, strictEnd, patternDefinitions,
-      measures, after, subsets, allRows, partitionKeys, orderKeys, interval);
+    super(cluster, traitSet, input, rowType, pattern, strictStart, strictEnd,
+        patternDefinitions, measures, after, subsets, allRows, partitionKeys,
+        orderKeys, interval);
   }
 
-  @Override public Match copy(RelTraitSet traits, RelNode input, RelDataType rowType,
+  /** Creates an EnumerableMatch. */
+  public static EnumerableMatch create(RelNode input, RelDataType rowType,
       RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
       RexNode interval) {
-    return new EnumerableMatchRecognize(getCluster(), traits,
-      input,
-      rowType,
-      pattern, strictStart, strictEnd, patternDefinitions, measures,
-      after, subsets, allRows, partitionKeys, orderKeys,
-      interval);
+    final RelOptCluster cluster = input.getCluster();
+    final RelTraitSet traitSet =
+        cluster.traitSetOf(EnumerableConvention.INSTANCE);
+    return new EnumerableMatch(cluster, traitSet, input, rowType, pattern,
+        strictStart, strictEnd, patternDefinitions, measures, after, subsets,
+        allRows, partitionKeys, orderKeys, interval);
   }
 
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    return new EnumerableMatch(getCluster(), traitSet, inputs.get(0), rowType,
+        pattern, strictStart, strictEnd, patternDefinitions, measures, after,
+        subsets, allRows, partitionKeys, orderKeys, interval);
+  }
 
   public EnumerableRel.Result implement(EnumerableRelImplementor implementor,
       EnumerableRel.Prefer pref) {
     throw new RuntimeException("Test");
   }
-
 }
 
-// End EnumerableMatchRecognize.java
+// End EnumerableMatch.java

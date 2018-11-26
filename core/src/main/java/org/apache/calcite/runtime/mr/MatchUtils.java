@@ -26,15 +26,15 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * match recognize util functions
+ * Utility functions for MATCH_RECOGNIZE.
  */
-public class MRUtilFuns {
+public class MatchUtils {
   public static final String STAR = "*";
 
   /**
    * private constructor
    */
-  private MRUtilFuns() {
+  private MatchUtils() {
   }
 
   public static String objectsToS(Object[] array) {
@@ -60,10 +60,10 @@ public class MRUtilFuns {
   }
 
   public static Object getAggrValueAt(Matching matching,
-                                      String aggrFun,
-                                      String type,
-                                      int idx,
-                                      boolean isFinal) {
+      String aggrFun,
+      String type,
+      int idx,
+      boolean isFinal) {
     List list = matching.getAggrResult(aggrFun);
     int idxInList = isFinal ? list.size() - 1 : matching.getTuples().indexOf(idx);
     Object result = idxInList < 0 ? null : list.get(idxInList);
@@ -91,11 +91,11 @@ public class MRUtilFuns {
     AggregateEnum type = AggregateEnum.valueOf(kind);
     switch (type) {
     case COUNT_STAR:
-      oldValue = oldValue == null ? new Long(0) : SqlFunctions.toLong((Number) oldValue);
+      oldValue = oldValue == null ? 0L : SqlFunctions.toLong((Number) oldValue);
       result = SqlFunctions.plus((Long) oldValue, 1);
       break;
     case COUNT:
-      oldValue = oldValue == null ? new Long(0) : SqlFunctions.toLong((Number) oldValue);
+      oldValue = oldValue == null ? 0L : SqlFunctions.toLong((Number) oldValue);
       result = newValue == null ? oldValue : SqlFunctions.plus((Long) oldValue, 1);
       break;
     case SUM:
@@ -117,10 +117,10 @@ public class MRUtilFuns {
   }
 
   public static void computeAggrValue(Matching matching,
-                                      String fun,
-                                      String kind,
-                                      Object newValue,
-                                      boolean isAllRows) {
+      String fun,
+      String kind,
+      Object newValue,
+      boolean isAllRows) {
     List list = matching.getAggrResult(fun);
     Object oldValue = list.size() == 0 ? null : list.get(list.size() - 1);
     Object result = computeAggrValue(kind, oldValue, newValue);
@@ -152,27 +152,27 @@ public class MRUtilFuns {
   public static int first(Matching matching, String targetAlpha, String alpha, int offSet) {
     List<Integer> list = alpha.equals(STAR) ? matching.getTuples() : matching.getClassifier(alpha);
     if (list == null && targetAlpha != null && alpha.equals(targetAlpha)) {
-      return matching.getNextTID();
+      return matching.getNextTid();
     }
     int idx = list != null && list.size() > 0 && offSet < list.size() ? list.get(offSet) : -1;
     return idx;
   }
 
   public static int first(Matching matching,
-                          String targetAlpha,
-                          String alpha,
-                          int offSet,
-                          boolean isFinal,
-                          int idx) {
+      String targetAlpha,
+      String alpha,
+      int offSet,
+      boolean isFinal,
+      int idx) {
     return first(matching, targetAlpha, alpha, offSet);
   }
 
   public static int last(Matching matching,
-                         String targetAlpha,
-                         String alpha,
-                         int offset,
-                         boolean isFinal,
-                         int idx) {
+      String targetAlpha,
+      String alpha,
+      int offset,
+      boolean isFinal,
+      int idx) {
     List<Integer> list = alpha.equals(STAR) ? matching.getTuples() : matching.getClassifier(alpha);
     int result = -1;
 
@@ -219,8 +219,8 @@ public class MRUtilFuns {
   }
 
   public static Map<Integer, Tuple> cleanUp(final Map<Integer, Tuple> tuples,
-                                            Map<String, Map<Integer, Integer>> tuplesPerPart,
-                                            int smallestTID) {
+      Map<String, Map<Integer, Integer>> tuplesPerPart,
+      int smallestTID) {
     //remove tuples that will never be visited again
     if (smallestTID == 0) {
       return tuples;
@@ -254,4 +254,4 @@ public class MRUtilFuns {
 
 }
 
-// End MRUtilFuns.java
+// End MatchUtils.java

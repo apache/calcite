@@ -39,7 +39,9 @@ public class LogicalMatch extends Match {
   /**
    * Creates a LogicalMatch.
    *
-   * @param cluster cluster
+   * <p>Use {@link #create} unless you know what you're doing.
+   *
+   * @param cluster Cluster
    * @param traitSet Trait set
    * @param input Input relational expression
    * @param rowType Row type
@@ -85,30 +87,24 @@ public class LogicalMatch extends Match {
   /**
    * Creates a LogicalMatch.
    */
-  public static LogicalMatch create(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
-      RelDataType rowType, RexNode pattern, boolean strictStart, boolean strictEnd,
-      Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-      RexNode after, Map<String, ? extends SortedSet<String>> subsets, boolean allRows,
-      List<RexNode> partitionKeys, RelCollation orderKeys, RexNode interval) {
-    return new LogicalMatch(cluster, traitSet, input, rowType, pattern,
-      strictStart, strictEnd, patternDefinitions, measures, after, subsets,
-      allRows, partitionKeys, orderKeys, interval);
-  }
-
-  //~ Methods ------------------------------------------------------
-
-  @Override public Match copy(RelTraitSet traits, RelNode input, RelDataType rowType,
+  public static LogicalMatch create(RelOptCluster cluster,
+      RelTraitSet traitSet, RelNode input, RelDataType rowType,
       RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
       RexNode interval) {
-    return new LogicalMatch(getCluster(), traits,
-        input,
-        rowType,
-        pattern, strictStart, strictEnd, patternDefinitions, measures,
-        after, subsets, allRows, partitionKeys, orderKeys,
-        interval);
+    return new LogicalMatch(cluster, traitSet, input, rowType, pattern,
+        strictStart, strictEnd, patternDefinitions, measures, after, subsets,
+        allRows, partitionKeys, orderKeys, interval);
+  }
+
+  //~ Methods ------------------------------------------------------
+
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    return new LogicalMatch(getCluster(), traitSet, inputs.get(0), rowType,
+        pattern, strictStart, strictEnd, patternDefinitions, measures, after,
+        subsets, allRows, partitionKeys, orderKeys, interval);
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {

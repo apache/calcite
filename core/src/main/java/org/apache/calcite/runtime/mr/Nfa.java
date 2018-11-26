@@ -27,7 +27,7 @@ import java.util.Set;
 /**
  * an NFA graph
  */
-public class NFA {
+public class Nfa {
   private boolean strictStarts = false;
 
   private boolean strictEnds = false;
@@ -38,40 +38,41 @@ public class NFA {
 
   private static final String EMPTY_ALPHA = "--";
 
-  public static final NFAState FINAL_STATE = new NFAState(EMPTY_ALPHA, NFA.ACCEPT_STATE);
+  public static final NfaState FINAL_STATE =
+      new NfaState(EMPTY_ALPHA, Nfa.ACCEPT_STATE);
 
   private int numOfStates;
 
-  private final List<List<NFAState>> allStates;
+  private final List<List<NfaState>> allStates;
 
-  private final List<List<NFAState>> allStatesNoFinals;
+  private final List<List<NfaState>> allStatesNoFinals;
 
   private final BitSet finalStates;
 
-  public NFA(int numOfStates) {
+  public Nfa(int numOfStates) {
     this.numOfStates = numOfStates;
     finalStates = new BitSet(numOfStates);
     allStates = new ArrayList<>();
     allStatesNoFinals = new ArrayList<>();
     for (int i = 0; i < numOfStates; i++) {
-      allStates.add(new ArrayList<NFAState>());
+      allStates.add(new ArrayList<NfaState>());
     }
   }
 
-  public void addState(int state, NFAState tran) {
-    List<NFAState> list = allStates.get(state);
+  public void addState(int state, NfaState tran) {
+    List<NfaState> list = allStates.get(state);
     list.add(tran);
   }
 
   public void addState(int from, String alphaID, int to) {
-    addState(from, new NFAState(alphaID, to));
+    addState(from, new NfaState(alphaID, to));
   }
 
   public Set<String> getAlphas() {
     Set<String> alphas = new HashSet<>();
     for (int state = 0; state < numOfStates; state++) {
-      List<NFAState> nfaStates = allStates.get(state);
-      for (NFAState nfaState : nfaStates) {
+      List<NfaState> nfaStates = allStates.get(state);
+      for (NfaState nfaState : nfaStates) {
         alphas.add(nfaState.getAlpha());
       }
     }
@@ -84,7 +85,7 @@ public class NFA {
 
   public void setFinal(int state) {
     if (!isFinal(state)) {
-      List<NFAState> list = allStates.get(state);
+      List<NfaState> list = allStates.get(state);
       finalStates.set(state, true);
       int idx = search(FINAL_STATE, list);
       if (idx < 0) {
@@ -107,9 +108,9 @@ public class NFA {
     return result;
   }
 
-  public void copyNFAStates(int state, List<NFAState> nfaStates, int offset) {
+  public void copyNfaStates(int state, List<NfaState> nfaStates, int offset) {
     for (int i = 0; i < nfaStates.size(); i++) {
-      NFAState tran = nfaStates.get(i);
+      NfaState tran = nfaStates.get(i);
       if (tran.equals(FINAL_STATE) && search(FINAL_STATE, allStates.get(state)) == -1) {
         addState(state, FINAL_STATE);
       } else {
@@ -121,19 +122,19 @@ public class NFA {
   /**
    * get all nfa starts from the starting
    */
-  public List<NFAState> getStartStates() {
+  public List<NfaState> getStartStates() {
     return allStates.get(START_STATE);
   }
 
-  public void copyNFAStates(NFA copy) {
+  public void copyNfaStates(Nfa copy) {
     for (int i = 0; i < copy.getNumOfStates(); i++) {
-      for (NFAState tran : copy.allStates.get(i)) {
+      for (NfaState tran : copy.allStates.get(i)) {
         addState(i, tran.copy());
       }
     }
   }
 
-  public void copyFinalsFrom(NFA copy) {
+  public void copyFinalsFrom(Nfa copy) {
     BitSet finalCopy = copy.getFinals();
     for (int i = 0; i < finalCopy.size(); i++) {
       if (finalCopy.get(i)) {
@@ -142,10 +143,10 @@ public class NFA {
     }
   }
 
-  public NFA copy() {
-    NFA copy = new NFA(numOfStates);
+  public Nfa copy() {
+    Nfa copy = new Nfa(numOfStates);
     for (int i = 0; i < numOfStates; i++) {
-      copy.allStates.set(i, new ArrayList<NFAState>(allStates.get(i)));
+      copy.allStates.set(i, new ArrayList<NfaState>(allStates.get(i)));
     }
     copy.finalStates.or(finalStates);
     copy.strictEnds = strictEnds;
@@ -154,19 +155,22 @@ public class NFA {
   }
 
   // concat two NFAs, eg. (A B)* and (C D), add transitions for C to list of B
-  public void concatNFAStatesTo(int state, List<NFAState> nfaStates, int offset) {
-    List<NFAState> list = new ArrayList<>();
-    for (NFAState nfaState : nfaStates) {
-      nfaState = nfaState.equals(FINAL_STATE) ? FINAL_STATE : nfaState.copy(offset);
+  public void concatNfaStatesTo(int state, List<NfaState> nfaStates,
+      int offset) {
+    List<NfaState> list = new ArrayList<>();
+    for (NfaState nfaState : nfaStates) {
+      nfaState = nfaState.equals(FINAL_STATE)
+          ? FINAL_STATE
+          : nfaState.copy(offset);
       list.add(nfaState);
     }
-    List<NFAState> tmp = allStates.get(state);
+    List<NfaState> tmp = allStates.get(state);
     int idx = search(FINAL_STATE, allStates.get(state));
     tmp.remove(idx);
     tmp.addAll(idx, list);
   }
 
-  private int search(NFAState nfaState, List<NFAState> nfaStates) {
+  private int search(NfaState nfaState, List<NfaState> nfaStates) {
     for (int i = 0; i < nfaStates.size(); i++) {
       if (nfaState.equals(nfaStates.get(i))) {
         return i;
@@ -182,9 +186,9 @@ public class NFA {
   private void saveStatesNoFinals() {
     allStatesNoFinals.clear();
     for (int state = 0; state < allStates.size(); state++) {
-      List<NFAState> list = allStates.get(state);
-      List<NFAState> copy = new ArrayList<>();
-      for (NFAState nfaState : list) {
+      List<NfaState> list = allStates.get(state);
+      List<NfaState> copy = new ArrayList<>();
+      for (NfaState nfaState : list) {
         if (nfaState.equals(FINAL_STATE)) {
           continue;
         }
@@ -194,14 +198,14 @@ public class NFA {
     }
   }
 
-  public List<NFAState> getStateNoFinals(int state) {
+  public List<NfaState> getStateNoFinals(int state) {
     if (allStatesNoFinals.size() == 0) {
       saveStatesNoFinals();
     }
     return allStatesNoFinals.get(state);
   }
 
-  public List<NFAState> getStatesAt(int state) {
+  public List<NfaState> getStatesAt(int state) {
     return allStates.get(state);
   }
 
@@ -209,12 +213,12 @@ public class NFA {
     return print(allStates, true);
   }
 
-  private String print(List<List<NFAState>> allStates, boolean withFinals) {
+  private String print(List<List<NfaState>> allStates, boolean withFinals) {
     StringBuilder builder = new StringBuilder();
     for (int i = 0; i < allStates.size(); i++) {
-      for (NFAState nfaState : allStates.get(i)) {
+      for (NfaState nfaState : allStates.get(i)) {
         if (!withFinals) {
-          if (nfaState.equals(NFA.FINAL_STATE)) {
+          if (nfaState.equals(Nfa.FINAL_STATE)) {
             continue;
           }
         }
@@ -234,7 +238,7 @@ public class NFA {
   public List<Pair<Integer, Pair<String, Integer>>> getAllStatesNoFinal() {
     final List<Pair<Integer, Pair<String, Integer>>> result = new ArrayList<>();
     for (int i = 0; i < getNumOfStates(); i++) {
-      for (NFAState state : getStateNoFinals(i)) {
+      for (NfaState state : getStateNoFinals(i)) {
         String alpha = state.getAlpha();
         int to = state.getTo();
         result.add(Pair.of(i, Pair.of(alpha, to)));
@@ -260,4 +264,4 @@ public class NFA {
   }
 }
 
-// End NFA.java
+// End Nfa.java

@@ -23,7 +23,7 @@ import java.util.AbstractList;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
-/** Unit tests for {@link Enumerables.Automaton}. */
+/** Unit tests for {@link Automaton}. */
 public class AutomatonTest {
   @Test public void testSimple() {
     // pattern(a)

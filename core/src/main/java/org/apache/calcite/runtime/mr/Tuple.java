@@ -21,11 +21,11 @@ package org.apache.calcite.runtime.mr;
  */
 public class Tuple {
 
-  private int tupleID;
+  private int tupleId;
   private Object[] data;
 
   public Tuple(int tid, Object[] values) {
-    this.tupleID = tid;
+    this.tupleId = tid;
     this.data = values;
   }
 
@@ -44,12 +44,12 @@ public class Tuple {
     return data.length;
   }
 
-  public int getTID() {
-    return tupleID;
+  public int getTid() {
+    return tupleId;
   }
 
-  public void setTID(int tupleID) {
-    this.tupleID = tupleID;
+  public void setTid(int tupleId) {
+    this.tupleId = tupleId;
   }
 
   public Object getData(int index) {

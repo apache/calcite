@@ -28,7 +28,7 @@ import java.util.Set;
 /**
  *
  */
-public abstract class MRHelper {
+public abstract class MatchHelper {
 
   protected boolean longestFirst = true;
 
@@ -45,7 +45,7 @@ public abstract class MRHelper {
   protected Map<String, Set<String>> subSets;
 
   //NFA parsed
-  protected NFA nfa;
+  protected Nfa nfa;
 
   // partition key list, the order of partition key does not matter
   protected Integer[] partitionKey;
@@ -58,12 +58,12 @@ public abstract class MRHelper {
   private Map<Integer, Object> dynamicParams = new HashMap<>();
 
   public void init(boolean isAllRows,
-                   NFA nfa,
+                   Nfa nfa,
                    List<String> aggrFun,
                    Set<String> excludeVars,
                    Map<String, Set<String>> subSets,
                    Integer[] partitionKey) {
-    this.setNFA(nfa.copy());
+    this.setNfa(nfa.copy());
     this.setAggrFun(new ArrayList<String>(aggrFun));
     this.setExcludeVars(new HashSet<String>(excludeVars));
     this.setSubSets(new HashMap<String, Set<String>>(subSets));
@@ -159,11 +159,11 @@ public abstract class MRHelper {
     this.subSets = subSets;
   }
 
-  public NFA getNFA() {
+  public Nfa getNfa() {
     return nfa;
   }
 
-  public void setNFA(NFA nfa) {
+  public void setNfa(Nfa nfa) {
     this.nfa = nfa;
   }
 
@@ -208,4 +208,4 @@ public abstract class MRHelper {
   }
 }
 
-// End MRHelper.java
+// End MatchHelper.java

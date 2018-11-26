@@ -24,6 +24,9 @@ import java.util.Objects;
 
 /** A finite-state automaton.
  *
+ * <p>It is used to implement the {@link org.apache.calcite.rel.core.Match}
+ * relational expression (for the {@code MATCH_RECOGNIZE} clause in SQL).
+ *
  * @see Pattern
  * @see AutomatonBuilder
  */

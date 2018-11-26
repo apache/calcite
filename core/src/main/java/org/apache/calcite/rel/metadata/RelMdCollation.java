@@ -118,11 +118,13 @@ public class RelMdCollation
   }
 
   public ImmutableList<RelCollation> collations(Match rel,
-                                                RelMetadataQuery mq) {
-    return ImmutableList.copyOf(match(mq, rel.getInput(), rel.getRowType(), rel.getPattern(),
-      rel.isStrictStart(), rel.isStrictEnd(), rel.getPatternDefinitions(), rel.getMeasures(),
-      rel.getAfter(), rel.getSubsets(), rel.isAllRows(), rel.getPartitionKeys(),
-      rel.getOrderKeys(), rel.getInterval()));
+      RelMetadataQuery mq) {
+    return ImmutableList.copyOf(
+        match(mq, rel.getInput(), rel.getRowType(), rel.getPattern(),
+            rel.isStrictStart(), rel.isStrictEnd(),
+            rel.getPatternDefinitions(), rel.getMeasures(), rel.getAfter(),
+            rel.getSubsets(), rel.isAllRows(), rel.getPartitionKeys(),
+            rel.getOrderKeys(), rel.getInterval()));
   }
 
   public ImmutableList<RelCollation> collations(Filter rel,
