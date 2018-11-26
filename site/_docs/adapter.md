@@ -601,9 +601,8 @@ There are many built-in kinds of metadata, including
 [row count]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMdRowCount.html),
 [selectivity]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMdSelectivity.html),
 [size]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMdSize.html),
-[table references]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMdTableReferences.html),
-[unique keys]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMdUniqueKeys.html), and
-[selectivity]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMdSelectivity.html);
+[table references]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMdTableReferences.html), and
+[unique keys]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMdUniqueKeys.html);
 you can also define your own.
 
 You can then supply a *metadata provider* that computes that kind of metadata
