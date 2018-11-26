@@ -731,6 +731,11 @@ public class SqlParserTest {
             + "INNER JOIN `DEPT` AS `D` (`DEPTNO`, `DNAME`) ON (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)");
   }
 
+  @Test public void testBetweenAnd() {
+    check("select * from emp where deptno between - DEPTNO + 1 and 5", "SELECT *\nFROM"
+            + " `EMP`\nWHERE (`DEPTNO` BETWEEN ASYMMETRIC ((- `DEPTNO`) + 1) AND 5)");
+  }
+
   @Ignore
   @Test public void testDerivedColumnListNoAs() {
     check("select * from emp e (empno, gender) where true", "foo");
