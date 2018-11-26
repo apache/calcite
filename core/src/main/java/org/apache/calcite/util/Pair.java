@@ -205,15 +205,7 @@ public class Pair<T1, T2>
     } else {
       size = Math.min(ks.size(), vs.size());
     }
-    return new AbstractList<Pair<K, V>>() {
-      public Pair<K, V> get(int index) {
-        return Pair.of(ks.get(index), vs.get(index));
-      }
-
-      public int size() {
-        return size;
-      }
-    };
+    return new ZipList<>(ks, vs, size);
   }
 
   /**
@@ -260,6 +252,19 @@ public class Pair<T1, T2>
         return Math.min(ks.length, vs.length);
       }
     };
+  }
+
+  /** Returns a mutable list of pairs backed by a pair of mutable lists.
+   *
+   * <p>Modifications to this list are reflected in the backing lists, and vice
+   * versa.
+   *
+   * @param <K> Key (left) value type
+   * @param <V> Value (right) value type */
+  public static <K, V> List<Pair<K, V>> zipMutable(
+      final List<K> ks,
+      final List<V> vs) {
+    return new MutableZipList<>(ks, vs);
   }
 
   /**
@@ -484,6 +489,73 @@ public class Pair<T1, T2>
 
     public void remove() {
       throw new UnsupportedOperationException("remove");
+    }
+  }
+
+  /** Unmodifiable list of pairs, backed by a pair of lists.
+   *
+   * @param <K> Left-hand type
+   * @param <V> Right-hand type */
+  private static class ZipList<K, V> extends AbstractList<Pair<K, V>> {
+    private final List<K> ks;
+    private final List<V> vs;
+    private final int size;
+
+    ZipList(List<K> ks, List<V> vs, int size) {
+      this.ks = ks;
+      this.vs = vs;
+      this.size = size;
+    }
+
+    public Pair<K, V> get(int index) {
+      return Pair.of(ks.get(index), vs.get(index));
+    }
+
+    public int size() {
+      return size;
+    }
+  }
+
+  /** A mutable list of pairs backed by a pair of mutable lists.
+   *
+   * <p>Modifications to this list are reflected in the backing lists, and vice
+   * versa.
+   *
+   * @param <K> Key (left) value type
+   * @param <V> Value (right) value type */
+  private static class MutableZipList<K, V> extends AbstractList<Pair<K, V>> {
+    private final List<K> ks;
+    private final List<V> vs;
+
+    MutableZipList(List<K> ks, List<V> vs) {
+      this.ks = Objects.requireNonNull(ks);
+      this.vs = Objects.requireNonNull(vs);
+    }
+
+    @Override public Pair<K, V> get(int index) {
+      return of(ks.get(index), vs.get(index));
+    }
+
+    @Override public int size() {
+      return Math.min(ks.size(), vs.size());
+    }
+
+    @Override public void add(int index, Pair<K, V> pair) {
+      ks.add(index, pair.left);
+      vs.add(index, pair.right);
+    }
+
+    @Override public Pair<K, V> remove(int index) {
+      final K bufferedRow = ks.remove(index);
+      final V stateSet = vs.remove(index);
+      return of(bufferedRow, stateSet);
+    }
+
+    @Override public Pair<K, V> set(int index, Pair<K, V> pair) {
+      final Pair<K, V> previous = get(index);
+      ks.set(index, pair.left);
+      vs.set(index, pair.right);
+      return previous;
     }
   }
 }

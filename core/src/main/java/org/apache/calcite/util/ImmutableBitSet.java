@@ -1014,6 +1014,18 @@ public class ImmutableBitSet
       return this;
     }
 
+    public boolean get(int bitIndex) {
+      if (words == null) {
+        throw new IllegalArgumentException("can only use builder once");
+      }
+      if (bitIndex < 0) {
+        throw new IndexOutOfBoundsException("bitIndex < 0: " + bitIndex);
+      }
+      int wordIndex = wordIndex(bitIndex);
+      return (wordIndex < words.length)
+          && ((words[wordIndex] & (1L << bitIndex)) != 0);
+    }
+
     private void trim(int wordCount) {
       while (wordCount > 0 && words[wordCount - 1] == 0L) {
         --wordCount;
