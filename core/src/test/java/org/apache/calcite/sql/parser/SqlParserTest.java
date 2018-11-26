@@ -83,7 +83,7 @@ public class SqlParserTest {
    * the SQL:92, SQL:99, SQL:2003, SQL:2011, SQL:2014 standards and in Calcite.
    *
    * <p>The standard keywords are derived from
-   * <a href="http://developer.mimer.com/validator/sql-reserved-words.tml">Mimer</a>
+   * <a href="https://developer.mimer.com/wp-content/uploads/2018/05/Standard-SQL-Reserved-Words-Summary.pdf">Mimer</a>
    * and from the specification.
    *
    * <p>If a new <b>reserved</b> keyword is added to the parser, include it in
@@ -729,6 +729,28 @@ public class SqlParserTest {
         "SELECT *\n"
             + "FROM `EMP` AS `E` (`EMPNO`, `GENDER`)\n"
             + "INNER JOIN `DEPT` AS `D` (`DEPTNO`, `DNAME`) ON (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)");
+  }
+
+  /** Test case that does not reproduce but is related to
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2637">[CALCITE-2637]
+   * Prefix '-' operator failed between BETWEEN and AND</a>. */
+  @Test public void testBetweenAnd() {
+    final String sql = "select * from emp\n"
+        + "where deptno between - DEPTNO + 1 and 5";
+    final String expected = "SELECT *\n"
+        + "FROM `EMP`\n"
+        + "WHERE (`DEPTNO` BETWEEN ASYMMETRIC ((- `DEPTNO`) + 1) AND 5)";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testBetweenAnd2() {
+    final String sql = "select * from emp\n"
+        + "where deptno between - DEPTNO + 1 and - empno - 3";
+    final String expected = "SELECT *\n"
+        + "FROM `EMP`\n"
+        + "WHERE (`DEPTNO` BETWEEN ASYMMETRIC ((- `DEPTNO`) + 1)"
+        + " AND ((- `EMPNO`) - 3))";
+    sql(sql).ok(expected);
   }
 
   @Ignore

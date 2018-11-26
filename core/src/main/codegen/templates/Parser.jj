@@ -3031,6 +3031,7 @@ List<Object> Expression2(ExprContext exprContext) :
 {
     final List<Object> list = new ArrayList();
     List<Object> list2;
+    final List<Object> list3 = new ArrayList();
     SqlNodeList nodeList;
     SqlNode e;
     SqlOperator op;
@@ -3106,9 +3107,10 @@ List<Object> Expression2(ExprContext exprContext) :
                         <ASYMMETRIC>
                     ]
                 )
-                e = Expression3(ExprContext.ACCEPT_SUB_QUERY) {
+                Expression2b(ExprContext.ACCEPT_SUB_QUERY, list3) {
                     list.add(new SqlParserUtil.ToTreeListItem(op, s.pos()));
-                    list.add(e);
+                    list.addAll(list3);
+                    list3.clear();
                 }
             |
                 {
