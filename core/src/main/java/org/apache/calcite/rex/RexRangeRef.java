@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rex;
 
+import java.util.Objects;
+
 import org.apache.calcite.rel.type.RelDataType;
 
 /**
@@ -73,6 +75,19 @@ public class RexRangeRef extends RexNode {
 
   public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitRangeRef(this, arg);
+  }
+
+  @Override public boolean equals(Object obj) {
+    if (obj == null || obj.getClass() != this.getClass()) {
+      return false;
+    }
+    RexRangeRef o = (RexRangeRef) obj;
+    return o == this || Objects.equals(type, o.type) &&
+        Objects.equals(offset, o.offset);
+  }
+
+  @Override public int hashCode() {
+    return Objects.hash(type, offset);
   }
 }
 

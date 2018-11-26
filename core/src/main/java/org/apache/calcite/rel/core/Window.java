@@ -47,6 +47,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.AbstractList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A relational expression representing a set of window aggregates.
@@ -359,6 +360,14 @@ public abstract class Window extends SingleRel {
       super(type, aggFun, operands);
       this.ordinal = ordinal;
       this.distinct = distinct;
+    }
+
+    @Override public boolean equals(Object obj) {
+      return (this == obj);
+    }
+
+    @Override public int hashCode() {
+      return Objects.hash(digest, ordinal, distinct);
     }
 
     @Override public RexCall clone(RelDataType type, List<RexNode> operands) {
