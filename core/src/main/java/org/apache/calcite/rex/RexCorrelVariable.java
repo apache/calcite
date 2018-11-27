@@ -60,9 +60,9 @@ public class RexCorrelVariable extends RexVariable {
       return false;
     }
     RexCorrelVariable o = (RexCorrelVariable) obj;
-    return o == this || Objects.equals(digest, o.digest) &&
-        Objects.equals(type, o.type) &&
-        Objects.equals(id, o.id);
+    return o == this || Objects.equals(digest, o.digest)
+        && Objects.equals(type, o.type)
+        && Objects.equals(id, o.id);
   }
 
   @Override public int hashCode() {

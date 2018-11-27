@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.rex;
 
-import java.util.Objects;
-
 import org.apache.calcite.rel.type.RelDataType;
+
+import java.util.Objects;
 
 /**
  * Reference to a range of columns.
@@ -82,8 +82,8 @@ public class RexRangeRef extends RexNode {
       return false;
     }
     RexRangeRef o = (RexRangeRef) obj;
-    return o == this || Objects.equals(type, o.type) &&
-        Objects.equals(offset, o.offset);
+    return o == this || Objects.equals(type, o.type)
+        && Objects.equals(offset, o.offset);
   }
 
   @Override public int hashCode() {

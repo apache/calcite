@@ -20,7 +20,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
 import java.util.Collection;
-import java.util.Objects;
 
 /**
  * Row expression.
@@ -83,10 +82,6 @@ public abstract class RexNode {
     return digest;
   }
 
-  @Override public abstract boolean equals(Object obj);
-
-  @Override public abstract int hashCode();
-
   /**
    * Accepts a visitor, dispatching to the right overloaded
    * {@link RexVisitor#visitInputRef visitXxx} method.
@@ -101,6 +96,16 @@ public abstract class RexNode {
    * {@link RexBiVisitor#visitInputRef(RexInputRef, Object)} visitXxx} method.
    */
   public abstract <R, P> R accept(RexBiVisitor<R, P> visitor, P arg);
+
+  /**
+   * Every Node must implement {@link Object#equals(Object)}.
+   */
+  @Override public abstract boolean equals(Object obj);
+
+  /**
+   * Every Node must implement {@link Object#equals(Object)}.
+   */
+  @Override public abstract int hashCode();
 }
 
 // End RexNode.java

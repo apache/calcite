@@ -16,10 +16,11 @@
  */
 package org.apache.calcite.rex;
 
-import java.util.Objects;
-
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
+
+import java.util.Objects;
+
 
 /**
  * Dynamic parameter reference in a row-expression.
@@ -67,9 +68,9 @@ public class RexDynamicParam extends RexVariable {
       return false;
     }
     RexDynamicParam o = (RexDynamicParam) obj;
-    return o == this || Objects.equals(digest, o.digest) &&
-        Objects.equals(type, o.type) &&
-        Objects.equals(index, o.index);
+    return o == this || Objects.equals(digest, o.digest)
+        && Objects.equals(type, o.type)
+        && Objects.equals(index, o.index);
   }
 
   @Override public int hashCode() {
