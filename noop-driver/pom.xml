@@ -20,7 +20,7 @@ limitations under the License.
   <parent>
     <groupId>org.apache.calcite.avatica</groupId>
     <artifactId>avatica-parent</artifactId>
-    <version>1.13.0-SNAPSHOT</version>
+    <version>1.13.0</version>
   </parent>
 
   <artifactId>avatica-noop-driver</artifactId>

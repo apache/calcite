@@ -25,7 +25,7 @@ limitations under the License.
   <groupId>org.apache.calcite.avatica</groupId>
   <artifactId>avatica-parent</artifactId>
   <packaging>pom</packaging>
-  <version>1.13.0-SNAPSHOT</version>
+  <version>1.13.0</version>
   <name>Apache Calcite Avatica Project</name>
   <description>Avatica is a JDBC driver framework which is a part of Apache Calcite</description>
   <url>https://calcite.apache.org/avatica</url>
@@ -118,7 +118,7 @@ limitations under the License.
     <connection>scm:git:https://git-wip-us.apache.org/repos/asf/calcite-avatica.git</connection>
     <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/calcite-avatica.git</developerConnection>
     <url>https://github.com/apache/calcite-avatica</url>
-    <tag>HEAD</tag>
+    <tag>avatica-1.13.0-rc0</tag>
   </scm>
   <modules>
     <module>core</module>
