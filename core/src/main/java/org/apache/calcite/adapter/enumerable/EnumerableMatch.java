@@ -93,11 +93,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
         Expressions.return_(null,
             Expressions.call(BuiltInMethod.MATCH.method,
                 inputExp,
-                Expressions.constant(null), // TODO: state names
-                Expressions.list(
-                    builder.append("keySelector", pair.left))
-                    .appendIfNotNull(
-                        builder.appendIfNotNull("comparator", pair.right)))));
+                Expressions.constant(null)))); // TODO: state names
     return implementor.result(physType, builder.toBlock());
   }
 }

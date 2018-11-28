@@ -28,7 +28,9 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 
@@ -167,6 +169,108 @@ public class Enumerables {
     };
   }
 
+  public static <E, TKey, TResult> Enumerable<TResult> match2(
+      Enumerable<E> enumerable,
+      final Function1<E, TKey> keySelector,
+      Matcher<E> matcher,
+      Emitter<E, TResult> emitter) {
+    return new AbstractEnumerable<TResult>() {
+      public Enumerator<TResult> enumerator() {
+        return new Enumerator<TResult>() {
+          final Enumerator<E> inputEnumerator = enumerable.enumerator();
+
+          // State of each partition.
+          final Map<TKey, PartitionState> partitionStates = new HashMap<>();
+
+          int inputRow = -1;
+
+          final CircularArrayList<E> recentRows = new CircularArrayList<>();
+
+          final Deque<TResult> emitRows = new ArrayDeque<>();
+
+          /** Current result row. Null if no row is ready. */
+          TResult resultRow;
+
+          public TResult current() {
+            Objects.requireNonNull(resultRow);
+            return resultRow;
+          }
+
+          public boolean moveNext() {
+            for (;;) {
+              resultRow = emitRows.pollFirst();
+              if (resultRow != null) {
+                return true;
+              }
+              // No rows are currently read to emit. Read the next input row,
+              // see whether it completes a match (or matches), and if so, add
+              // the resulting rows to the buffer.
+              if (!inputEnumerator.moveNext()) {
+                return false;
+              }
+              ++inputRow;
+              final E e = inputEnumerator.current();
+              final TKey key = keySelector.apply(e);
+              final PartitionState partitionState =
+                  partitionStates.computeIfAbsent(key, k -> new PartitionState());
+              matcher.matchTwo(e, recentRows, partitionState.matchCount);
+/*
+              recentRows.add(e);
+              int earliestRetainedRow = Integer.MAX_VALUE;
+              for (int i = 0; i < partitionState.incompleteMatches.size(); i++) {
+                MatchState match = partitionState.incompleteMatches.get(i);
+                earliestRetainedRow = Math.min(earliestRetainedRow, match.firstRow);
+                final int state = automaton.nextState(match.state, e);
+                switch (state) {
+                case Automaton.ACCEPT:
+                  final List<E> matchedRows =
+                      recentRows.subList(0, 0); // TODO:
+                  final List<Integer> rowStates = ImmutableList.of(); // TODO:
+                  emitRows.addAll(
+                      emitter.emit(matchedRows, rowStates,
+                          partitionState.matchCount++));
+                  // fall through
+                case Automaton.FAIL:
+                  partitionState.incompleteMatches.remove(i--);
+                  break;
+                default:
+                  match.state = state;
+                }
+              }
+              // Try to start a match based on the current row
+              final int state = automaton.nextState(Automaton.START_STATE, e);
+              switch (state) {
+              case Automaton.ACCEPT:
+                final List<E> matchedRows = ImmutableList.of(e);
+                final List<Integer> rowStates = ImmutableList.of(state);
+                emitRows.addAll(
+                    emitter.emit(matchedRows, rowStates,
+                        partitionState.matchCount++));
+                // fall through
+              case Automaton.FAIL:
+                // since it immediately succeeded or failed, don't add
+                // it to the queue
+                break;
+              default:
+                partitionState.incompleteMatches.add(
+                    new MatchState(inputRow, state));
+              }
+*/
+            }
+          }
+
+          public void reset() {
+            throw new UnsupportedOperationException();
+          }
+
+          public void close() {
+            inputEnumerator.close();
+          }
+        };
+      }
+    };
+  }
+
   /** Transition table of a finite-state machine. Given a state and an
    * element, tells the next state.
    *
@@ -194,6 +298,8 @@ public class Enumerables {
   private static class PartitionState {
     final List<MatchState> incompleteMatches = new ArrayList<>();
     int matchCount;
+
+    public PartitionState() {}
   }
 
   /** The state of an incomplete match. */
