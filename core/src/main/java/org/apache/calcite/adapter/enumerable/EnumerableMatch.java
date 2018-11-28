@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
@@ -23,6 +26,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.Pair;
 
 import java.util.List;
 import java.util.Map;
@@ -71,7 +76,29 @@ public class EnumerableMatch extends Match implements EnumerableRel {
 
   public EnumerableRel.Result implement(EnumerableRelImplementor implementor,
       EnumerableRel.Prefer pref) {
-    throw new RuntimeException("Test");
+    final BlockBuilder builder = new BlockBuilder();
+    final EnumerableRel input = (EnumerableRel) getInput();
+    final Result result = implementor.visitChild(this, 0, input, pref);
+    final PhysType physType =
+        PhysTypeImpl.of(
+            implementor.getTypeFactory(),
+            getRowType(),
+            result.format);
+    final Expression inputExp =
+        builder.append("input", result.block);
+
+    PhysType inputPhysType = result.physType;
+
+    builder.add(
+        Expressions.return_(null,
+            Expressions.call(BuiltInMethod.MATCH.method,
+                inputExp,
+                Expressions.constant(null), // TODO: state names
+                Expressions.list(
+                    builder.append("keySelector", pair.left))
+                    .appendIfNotNull(
+                        builder.appendIfNotNull("comparator", pair.right)))));
+    return implementor.result(physType, builder.toBlock());
   }
 }
 
