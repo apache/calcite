@@ -65,7 +65,7 @@ limitations under the License.
 
     <!-- This list is in alphabetical order. -->
     <airlift-tpch.version>0.1</airlift-tpch.version>
-    <avatica.version>1.12.0</avatica.version>
+    <avatica.version>1.13.0</avatica.version>
     <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
     <cassandra-driver-core.version>3.4.0</cassandra-driver-core.version>
     <cassandra-unit.version>3.5.0.1</cassandra-unit.version>
@@ -107,7 +107,7 @@ limitations under the License.
     <java-diff.version>1.1.2</java-diff.version>
     <javacc-maven-plugin.version>2.4</javacc-maven-plugin.version>
     <jcip-annotations.version>1.0-1</jcip-annotations.version>
-    <jetty.version>9.2.19.v20160908</jetty.version>
+    <jetty.version>9.4.11.v20180605</jetty.version>
     <jmh.version>1.12</jmh.version>
     <jsoup.version>1.11.3</jsoup.version>
     <junit.version>4.12</junit.version>
@@ -116,22 +116,22 @@ limitations under the License.
     <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
     <maven-dependency-plugin.version>3.1.1</maven-dependency-plugin.version>
     <maven-enforcer-plugin.version>3.0.0-M2</maven-enforcer-plugin.version>
-    <maven-scm-provider.version>1.9.5</maven-scm-provider.version>
-    <mockito.version>2.21.0</mockito.version>
+    <maven-scm-provider.version>1.10.0</maven-scm-provider.version>
+    <mockito.version>2.22.0</mockito.version>
     <mongo-java-driver.version>3.5.0</mongo-java-driver.version>
     <mysql-driver.version>5.1.20</mysql-driver.version>
     <natty.version>0.13</natty.version>
     <opencsv.version>2.3</opencsv.version>
     <oracle-jdbc6-driver.version>11.2.0.2.0</oracle-jdbc6-driver.version>
-    <owasp-dependency-check.version>3.3.1</owasp-dependency-check.version>
+    <owasp-dependency-check.version>3.3.2</owasp-dependency-check.version>
     <pig.version>0.16.0</pig.version>
     <aggdesigner.version>6.0</aggdesigner.version>
     <postgresql.version>9.3-1102-jdbc3</postgresql.version>
     <quidem.version>0.9</quidem.version>
     <scala.version>2.10.3</scala.version>
     <scott-data-hsqldb.version>0.1</scott-data-hsqldb.version>
-    <servlet.version>3.0.1</servlet.version>
-    <slf4j.version>1.7.13</slf4j.version>
+    <servlet.version>4.0.1</servlet.version>
+    <slf4j.version>1.7.25</slf4j.version>
     <log4j2.version>2.11.0</log4j2.version>
     <spark.version>2.2.0</spark.version>
     <sqlline.version>1.6.0</sqlline.version>
