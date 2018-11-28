@@ -38,8 +38,8 @@ Unpack the source distribution `.tar.gz` file,
 then build using maven:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-avatica-1.12.0-src.tar.gz
-$ cd apache-calcite-avatica-1.12.0-src
+$ tar xvfz apache-calcite-avatica-1.13.0-src.tar.gz
+$ cd apache-calcite-avatica-1.13.0-src
 $ ./mvnw install
 {% endhighlight %}
 
@@ -220,8 +220,9 @@ To perform the dry-run, you can either use your environment or the release scrip
 git clean -xn
 
 # Do a dry run of the release:prepare step, which sets version numbers.
-# Typically we increment minor version: If X.Y.Z is 1.11.0, X2.Y2.Z2 is 1.12.0.
+# Typically we increment minor version: If X.Y.Z is 1.13.0, X2.Y2.Z2 is 1.14.0.
 # Note X.Y.Z is the current version we're trying to release, and X2.Y2.Z2 is the next development version.
+
 # For example, if I am currently building a release for 1.11.0, X.Y.Z would be 1.11.0 and X2.Y2.Z2 would be 1.12.0.
 ./mvnw -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare
 
@@ -288,9 +289,9 @@ If successful, remove the `-DdryRun` flag and run the release for real.
 
 {% highlight bash %}
 # Prepare sets the version numbers, creates a tag, and pushes it to git.
-# Typically we increment minor version: If X.Y.Z is 1.11.0, X2.Y2.Z2 is 1.12.0.
+# Typically we increment minor version: If X.Y.Z is 1.13.0, X2.Y2.Z2 is 1.14.0.
 # Note X.Y.Z is the current version we're trying to release, and X2.Y2.Z2 is the next development version.
-# For example, if I am currently building a release for 1.11.0, X.Y.Z would be 1.11.0 and X2.Y2.Z2 would be 1.12.0.
+# For example, if I am currently building a release for 1.13.0, X.Y.Z would be 1.13.0 and X2.Y2.Z2 would be 1.14.0.
 ./mvnw -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare
 
 # If you have multiple GPG keys, you can select the key used to sign the release by appending `-Darguments=-Dgpg.keyname=${your.key.id}`:

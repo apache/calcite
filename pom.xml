@@ -59,7 +59,7 @@ limitations under the License.
     <top.dir>${project.basedir}</top.dir>
     <avatica.release.version>${project.version}</avatica.release.version>
     <version.major>1</version.major>
-    <version.minor>12</version.minor>
+    <version.minor>13</version.minor>
 
     <!-- This list is in alphabetical order. -->
     <bouncycastle.version>1.60</bouncycastle.version>

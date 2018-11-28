@@ -70,22 +70,22 @@ file will start an instance of PostgreSQL and an instance of the Avatica server,
 exposing an Avatica server configured against a "real" PostgreSQL database.
 
 All of the `Dockerfile` and `docker-compose.yml` files are conveniently provided in an archive for
-each release. Here is the layout for release 1.11.0:
+each release. Here is the layout for release 1.13.0:
 
 ```
-avatica-docker-1.11.0/
-avatica-docker-1.11.0/hypersql/
-avatica-docker-1.11.0/mysql/
-avatica-docker-1.11.0/postgresql/
-avatica-docker-1.11.0/Dockerfile
-avatica-docker-1.11.0/hypersql/build.sh
-avatica-docker-1.11.0/hypersql/Dockerfile
-avatica-docker-1.11.0/mysql/build.sh
-avatica-docker-1.11.0/mysql/docker-compose.yml
-avatica-docker-1.11.0/mysql/Dockerfile
-avatica-docker-1.11.0/postgresql/build.sh
-avatica-docker-1.11.0/postgresql/docker-compose.yml
-avatica-docker-1.11.0/postgresql/Dockerfile
+avatica-docker-1.13.0/
+avatica-docker-1.13.0/hypersql/
+avatica-docker-1.13.0/mysql/
+avatica-docker-1.13.0/postgresql/
+avatica-docker-1.13.0/Dockerfile
+avatica-docker-1.13.0/hypersql/build.sh
+avatica-docker-1.13.0/hypersql/Dockerfile
+avatica-docker-1.13.0/mysql/build.sh
+avatica-docker-1.13.0/mysql/docker-compose.yml
+avatica-docker-1.13.0/mysql/Dockerfile
+avatica-docker-1.13.0/postgresql/build.sh
+avatica-docker-1.13.0/postgresql/docker-compose.yml
+avatica-docker-1.13.0/postgresql/Dockerfile
 ```
 
 #### Running

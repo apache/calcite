@@ -28,6 +28,93 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/avatica.html).
 
+## <a href="https://github.com/apache/calcite-avatica/releases/tag/rel/avatica-1.13.0">1.13.0</a> / 2018-11-XX
+{: #v1-13-0}
+
+Apache Calcite Avatica 1.13.0 includes around 30 bugs fixes and enhancements. This release adds the ability to
+prepare and make a release, run tests and execute `mvn clean` in a docker container.
+
+Compatibility: This release is tested
+on Linux, macOS, Microsoft Windows;
+using Oracle JDK 8, 9, 10, 11, 12;
+using IBM Java 8;
+Guava versions 14.0 to 23.0;
+other software versions as specified in `pom.xml`.
+
+Features and bug fixes
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2386">CALCITE-2386</a>]
+  Naively wire up struct support
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2390">CALCITE-2390</a>]
+  Remove uses of `X509CertificateObject` which is deprecated in current version of bouncycastle
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2467">CALCITE-2467</a>]
+  Update owasp-dependency-check maven plugin to 3.3.1, protobuf-java to 3.5.1, jackson to 2.9.6 and jetty to 9.4.11.v20180605
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2503">CALCITE-2503</a>]
+  AvaticaCommonsHttpClientImpl client needs to set user-token on HttpClientContext before sending the request
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2570">CALCITE-2570</a>]
+  Upgrade forbiddenapis to 2.6 for JDK 11 support
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1183">CALCITE-1183</a>]
+  Upgrade kerby to 1.1.1 and re-enable AvaticaSpnegoTest
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2486">CALCITE-2486</a>]
+  Upgrade Apache parent POM to version 21 and update other dependencies
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2583">CALCITE-2583</a>]
+  Upgrade dropwizard metrics to 4.0.3
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1006">CALCITE-1006</a>]
+  Enable spotbugs-maven-plugin
+* Move spotbugs-filter.xml to src/main/config/spotbugs/
+* Update usage of JCommander after upgrading to 1.72
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2587">CALCITE-2587</a>]
+  Regenerate protobuf files for protobuf 3.6.1
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2594">CALCITE-2594</a>]
+  Ensure forbiddenapis and maven-compiler use the correct JDK version
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2595">CALCITE-2595</a>]
+  Add maven wrapper
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2385">CALCITE-2385</a>]
+  Add flag to disable dockerfile checks when executing a dry-run build
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2676">CALCITE-2676</a>]
+  Add release script and docker-compose.yml to support building releases using docker
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2680">CALCITE-2680</a>]
+  Downgrade maven-scm-provider to 1.10.0 due to API incompatibility that prevents releases from building
+* Update release script to use GPG agent
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2681">CALCITE-2681</a>]
+  Add maven-scm-api as a dependency, so that Avatica can build
+* Include -Dgpg.keyname when executing release:perform in the release script
+* Prompt user for git username when using release script
+* Fix release script to ensure git usernames are not truncated
+* Remove requirement to set maven master password when using the release script
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2682">CALCITE-2682</a>]
+  Add ability to run tests in docker
+* Update travis-ci status badge to the correct one in README.md
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2385">CALCITE-2385</a>]
+  Update travis configuration to disable dockerfile checks during testing
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2698">CALCITE-2698</a>]
+  Use Docker Hub hooks to select Avatica version during image build and publish HSQLDB image
+
+Tests
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2568">CALCITE-2568</a>]
+  Ensure that IBM JDK TLS cipher list matches Oracle/OpenJDK for Travis CI
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2655">CALCITE-2655</a>]
+  Enable Travis to test against JDK12
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2412">CALCITE-2412</a>]
+  Add appveyor.yml to run Windows tests
+
+Website and Documentation
+
+* Fix broken links to Github release on the history page
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2381">CALCITE-2381</a>]
+  Document how to authenticate against the Apache maven repository, select GPG keys and version numbers when building
+  a release
+* Fix Go client download links
+* Fix download link to release history in news item template
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2550">CALCITE-2550</a>]
+  Update download links for avatica-go to link to `apache-calcite-avatica-go-x.x.x-src.tar.gz` for release 3.2.0 and onwards
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2574">CALCITE-2574</a>]
+  Update download pages to include instructions for verifying downloaded artifacts
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2577">CALCITE-2577</a>]
+  Update URLs on download page to HTTPS
+* Update links on Go client download page to reference `go_history.html` and not `history.html`
+
 ## <a href="https://github.com/apache/calcite-avatica/releases/tag/rel/avatica-1.12.0">1.12.0</a> / 2018-06-24
 {: #v1-12-0}
 
