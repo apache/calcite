@@ -495,6 +495,17 @@ public class RelToSqlConverterTest {
     sql(query).withHive().ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2715">[CALCITE-2715]
+   * MS SQL Server does not support character set as part of data type</a>. */
+  @Test public void testMssqlCharacterSet() {
+    String query = "select \"hire_date\", cast(\"hire_date\" as varchar(10))\n"
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expected = "SELECT [hire_date], CAST([hire_date] AS VARCHAR(10))\n"
+        + "FROM [foodmart].[reserve_employee]";
+    sql(query).withMssql().ok(expected);
+  }
+
   /**
    * Tests that IN can be un-parsed.
    *
