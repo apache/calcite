@@ -23,10 +23,13 @@ import org.apache.calcite.util.SerializableCharset;
 import com.google.common.base.Preconditions;
 
 import java.nio.charset.Charset;
+import java.util.Objects;
 
 /**
  * BasicSqlType represents a standard atomic SQL type (excluding interval
  * types).
+ *
+ * <p>Instances of this class are immutable.
  */
 public class BasicSqlType extends AbstractSqlType {
   //~ Static fields/initializers ---------------------------------------------
@@ -36,8 +39,8 @@ public class BasicSqlType extends AbstractSqlType {
   private final int precision;
   private final int scale;
   private final RelDataTypeSystem typeSystem;
-  private SqlCollation collation;
-  private SerializableCharset wrappedCharset;
+  private final SqlCollation collation;
+  private final SerializableCharset wrappedCharset;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -45,39 +48,51 @@ public class BasicSqlType extends AbstractSqlType {
    * Constructs a type with no parameters. This should only be called from a
    * factory method.
    *
+   * @param typeSystem Type system
    * @param typeName Type name
    */
   public BasicSqlType(RelDataTypeSystem typeSystem, SqlTypeName typeName) {
     this(typeSystem, typeName, false, PRECISION_NOT_SPECIFIED,
-        SCALE_NOT_SPECIFIED);
-    assert typeName.allowsPrecScale(false, false)
-        : "typeName.allowsPrecScale(false,false), typeName=" + typeName.name();
-    computeDigest();
+        SCALE_NOT_SPECIFIED, null, null);
+    checkPrecScale(typeName, false, false);
+  }
+
+  /** Throws if {@code typeName} does not allow the given combination of
+   * precision and scale. */
+  protected static void checkPrecScale(SqlTypeName typeName,
+      boolean precisionSpecified, boolean scaleSpecified) {
+    if (!typeName.allowsPrecScale(precisionSpecified, scaleSpecified)) {
+      throw new AssertionError("typeName.allowsPrecScale("
+          + precisionSpecified + ", " + scaleSpecified + "): " + typeName);
+    }
   }
 
   /**
    * Constructs a type with precision/length but no scale.
    *
+   * @param typeSystem Type system
    * @param typeName Type name
+   * @param precision Precision (called length for some types)
    */
   public BasicSqlType(RelDataTypeSystem typeSystem, SqlTypeName typeName,
       int precision) {
-    this(typeSystem, typeName, false, precision, SCALE_NOT_SPECIFIED);
-    assert typeName.allowsPrecScale(true, false)
-        : "typeName.allowsPrecScale(true, false)";
-    computeDigest();
+    this(typeSystem, typeName, false, precision, SCALE_NOT_SPECIFIED, null,
+        null);
+    checkPrecScale(typeName, true, false);
   }
 
   /**
    * Constructs a type with precision/length and scale.
    *
+   * @param typeSystem Type system
    * @param typeName Type name
+   * @param precision Precision (called length for some types)
+   * @param scale Scale
    */
   public BasicSqlType(RelDataTypeSystem typeSystem, SqlTypeName typeName,
       int precision, int scale) {
-    this(typeSystem, typeName, false, precision, scale);
-    assert typeName.allowsPrecScale(true, true);
-    computeDigest();
+    this(typeSystem, typeName, false, precision, scale, null, null);
+    checkPrecScale(typeName, true, true);
   }
 
   /** Internal constructor. */
@@ -86,61 +101,52 @@ public class BasicSqlType extends AbstractSqlType {
       SqlTypeName typeName,
       boolean nullable,
       int precision,
-      int scale) {
+      int scale,
+      SqlCollation collation,
+      SerializableCharset wrappedCharset) {
     super(typeName, nullable, null);
-    this.typeSystem = typeSystem;
+    this.typeSystem = Objects.requireNonNull(typeSystem);
     this.precision = precision;
     this.scale = scale;
+    this.collation = collation;
+    this.wrappedCharset = wrappedCharset;
+    computeDigest();
   }
 
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * Constructs a type with nullablity
+   * Constructs a type with nullablity.
    */
   BasicSqlType createWithNullability(boolean nullable) {
-    BasicSqlType ret;
-    try {
-      ret = (BasicSqlType) this.clone();
-    } catch (CloneNotSupportedException e) {
-      throw new AssertionError(e);
+    if (nullable == this.isNullable) {
+      return this;
     }
-    ret.isNullable = nullable;
-    ret.computeDigest();
-    return ret;
+    return new BasicSqlType(this.typeSystem, this.typeName, nullable,
+        this.precision, this.scale, this.collation, this.wrappedCharset);
   }
 
   /**
    * Constructs a type with charset and collation.
    *
-   * <p>This must be a character tyoe.
+   * <p>This must be a character type.
    */
-  BasicSqlType createWithCharsetAndCollation(
-      Charset charset,
+  BasicSqlType createWithCharsetAndCollation(Charset charset,
       SqlCollation collation) {
     Preconditions.checkArgument(SqlTypeUtil.inCharFamily(this));
-    BasicSqlType ret;
-    try {
-      ret = (BasicSqlType) this.clone();
-    } catch (CloneNotSupportedException e) {
-      throw new AssertionError(e);
-    }
-    ret.wrappedCharset = SerializableCharset.forCharset(charset);
-    ret.collation = collation;
-    ret.computeDigest();
-    return ret;
+    return new BasicSqlType(this.typeSystem, this.typeName, this.isNullable,
+        this.precision, this.scale, collation,
+        SerializableCharset.forCharset(charset));
   }
 
-  // implement RelDataType
-  public int getPrecision() {
+  @Override public int getPrecision() {
     if (precision == PRECISION_NOT_SPECIFIED) {
       return typeSystem.getDefaultPrecision(typeName);
     }
     return precision;
   }
 
-  // implement RelDataType
-  public int getScale() {
+  @Override public int getScale() {
     if (scale == SCALE_NOT_SPECIFIED) {
       switch (typeName) {
       case TINYINT:
@@ -156,13 +162,11 @@ public class BasicSqlType extends AbstractSqlType {
     return scale;
   }
 
-  // implement RelDataType
-  public Charset getCharset() {
+  @Override public Charset getCharset() {
     return wrappedCharset == null ? null : wrappedCharset.getCharset();
   }
 
-  // implement RelDataType
-  public SqlCollation getCollation() {
+  @Override public SqlCollation getCollation() {
     return collation;
   }
 
