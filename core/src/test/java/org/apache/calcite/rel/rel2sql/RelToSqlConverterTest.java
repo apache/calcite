@@ -495,6 +495,14 @@ public class RelToSqlConverterTest {
     sql(query).withHive().ok(expected);
   }
 
+  @Test public void testMssqlCharacterSet() {
+    String query = "select \"hire_date\", cast(\"hire_date\" as varchar(10)) "
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expected = "SELECT [hire_date], CAST([hire_date] AS VARCHAR(10))\n"
+        + "FROM [foodmart].[reserve_employee]";
+    sql(query).withMssql().ok(expected);
+  }
+
   /**
    * Tests that IN can be un-parsed.
    *
