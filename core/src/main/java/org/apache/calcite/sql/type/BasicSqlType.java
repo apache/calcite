@@ -36,8 +36,8 @@ public class BasicSqlType extends AbstractSqlType {
   private final int precision;
   private final int scale;
   private final RelDataTypeSystem typeSystem;
-  private SqlCollation collation;
-  private SerializableCharset wrappedCharset;
+  private final SqlCollation collation;
+  private final SerializableCharset wrappedCharset;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -82,15 +82,29 @@ public class BasicSqlType extends AbstractSqlType {
 
   /** Internal constructor. */
   private BasicSqlType(
-      RelDataTypeSystem typeSystem,
-      SqlTypeName typeName,
-      boolean nullable,
-      int precision,
-      int scale) {
+          RelDataTypeSystem typeSystem,
+          SqlTypeName typeName,
+          boolean nullable,
+          int precision,
+          int scale) {
+    this(typeSystem, typeName, nullable, precision, scale, null, null);
+  }
+
+  /** Internal constructor. */
+  private BasicSqlType(
+          RelDataTypeSystem typeSystem,
+          SqlTypeName typeName,
+          boolean nullable,
+          int precision,
+          int scale,
+          SqlCollation collation,
+          SerializableCharset wrappedCharset) {
     super(typeName, nullable, null);
     this.typeSystem = typeSystem;
     this.precision = precision;
     this.scale = scale;
+    this.collation = collation;
+    this.wrappedCharset = wrappedCharset;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -99,13 +113,8 @@ public class BasicSqlType extends AbstractSqlType {
    * Constructs a type with nullablity
    */
   BasicSqlType createWithNullability(boolean nullable) {
-    BasicSqlType ret;
-    try {
-      ret = (BasicSqlType) this.clone();
-    } catch (CloneNotSupportedException e) {
-      throw new AssertionError(e);
-    }
-    ret.isNullable = nullable;
+    BasicSqlType ret = new BasicSqlType(this.typeSystem, this.typeName, nullable,
+            this.precision, this.scale, this.collation, this.wrappedCharset);
     ret.computeDigest();
     return ret;
   }
@@ -119,14 +128,8 @@ public class BasicSqlType extends AbstractSqlType {
       Charset charset,
       SqlCollation collation) {
     Preconditions.checkArgument(SqlTypeUtil.inCharFamily(this));
-    BasicSqlType ret;
-    try {
-      ret = (BasicSqlType) this.clone();
-    } catch (CloneNotSupportedException e) {
-      throw new AssertionError(e);
-    }
-    ret.wrappedCharset = SerializableCharset.forCharset(charset);
-    ret.collation = collation;
+    BasicSqlType ret = new BasicSqlType(this.typeSystem, this.typeName, this.isNullable,
+            this.precision, this.scale, collation, SerializableCharset.forCharset(charset));
     ret.computeDigest();
     return ret;
   }

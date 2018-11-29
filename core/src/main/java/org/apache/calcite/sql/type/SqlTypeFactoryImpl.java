@@ -194,8 +194,12 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
       final boolean nullable) {
     RelDataType newType;
     if (type instanceof BasicSqlType) {
-      BasicSqlType sqlType = (BasicSqlType) type;
-      newType = sqlType.createWithNullability(nullable);
+      if (type.isNullable() == nullable) {
+        newType = type;
+      } else {
+        BasicSqlType sqlType = (BasicSqlType) type;
+        newType = sqlType.createWithNullability(nullable);
+      }
     } else if (type instanceof MapSqlType) {
       newType = copyMapType(type, nullable);
     } else if (type instanceof ArraySqlType) {
