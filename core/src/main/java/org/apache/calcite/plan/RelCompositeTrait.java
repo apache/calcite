@@ -67,7 +67,7 @@ class RelCompositeTrait<T extends RelMultipleTrait> implements RelTrait {
       }
       compositeTrait = new RelCompositeTrait<>(def, (T[]) traits);
     }
-    return def.canonizeComposite(compositeTrait);
+    return def.canonize(compositeTrait);
   }
 
   public RelTraitDef getTraitDef() {
