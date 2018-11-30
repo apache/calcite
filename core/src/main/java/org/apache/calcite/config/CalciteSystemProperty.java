@@ -26,6 +26,7 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.IntPredicate;
 import java.util.stream.Stream;
 
 /**
@@ -245,14 +246,68 @@ public final class CalciteSystemProperty<T> {
   public static final CalciteSystemProperty<Integer> METADATA_HANDLER_CACHE_MAXIMUM_SIZE =
       intProperty("calcite.metadata.handler.cache.maximum.size", 1000);
 
+  /**
+   * The maximum size of the cache used for storing Bindable objects, instantiated via
+   * dynamically generated Java classes.
+   *
+   * <p>The default value is 0.</p>
+   *
+   * <p>The property can take any value between [0, {@link Integer#MAX_VALUE}] inclusive. If the
+   * value is not valid (or not specified) then the default value is used.</p>
+   *
+   * <p>The cached objects may be quite big so it is suggested to use a rather small cache size
+   * (e.g., 1000). For the most common use cases a number close to 1000 should be enough to
+   * alleviate the performance penalty of compiling and loading classes.</p>
+   *
+   * <p>Setting this property to 0 disables the cache.</p>
+   */
+  public static final CalciteSystemProperty<Integer> BINDABLE_CACHE_MAX_SIZE =
+      intProperty("calcite.bindable.cache.maxSize", 0, v -> v >= 0 && v <= Integer.MAX_VALUE);
+  /**
+   * The concurrency level of the cache used for storing Bindable objects, instantiated via
+   * dynamically generated Java classes.
+   *
+   * <p>The default value is 1.</p>
+   *
+   * <p>The property can take any value between [1, {@link Integer#MAX_VALUE}] inclusive. If the
+   * value is not valid (or not specified) then the default value is used.</p>
+   *
+   * <p>This property has no effect if the cache is disabled (i.e., {@link #BINDABLE_CACHE_MAX_SIZE}
+   * set to 0.</p>
+   */
+  public static final CalciteSystemProperty<Integer> BINDABLE_CACHE_CONCURRENCY_LEVEL =
+      intProperty("calcite.bindable.cache.concurrencyLevel", 1,
+          v -> v >= 1 && v <= Integer.MAX_VALUE);
+
   private static CalciteSystemProperty<Boolean> booleanProperty(String key, boolean defaultValue) {
     return new CalciteSystemProperty<>(key,
         v -> v == null ? defaultValue : Boolean.parseBoolean(v));
   }
 
   private static CalciteSystemProperty<Integer> intProperty(String key, int defaultValue) {
-    return new CalciteSystemProperty<>(key,
-        v -> v == null ? defaultValue : Integer.parseInt(v));
+    return intProperty(key, defaultValue, v -> true);
+  }
+
+  /**
+   * Returns the value of the system property with the specified name as int, or
+   * the <code>defaultValue</code> if any of the conditions below hold:
+   * (i) the property is not defined;
+   * (ii) the property value cannot be transformed to an int;
+   * (iii) the property value does not satisfy the checker.
+   */
+  private static CalciteSystemProperty<Integer> intProperty(String key, int defaultValue,
+      IntPredicate valueChecker) {
+    return new CalciteSystemProperty<>(key, v -> {
+      if (v == null) {
+        return defaultValue;
+      }
+      try {
+        int intVal = Integer.parseInt(v);
+        return valueChecker.test(intVal) ? intVal : defaultValue;
+      } catch (NumberFormatException nfe) {
+        return defaultValue;
+      }
+    });
   }
 
   private static CalciteSystemProperty<String> stringProperty(String key, String defaultValue) {
