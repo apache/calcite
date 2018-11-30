@@ -78,7 +78,8 @@ public class VisitorImpl<R> implements Visitor<R> {
 
   public R visit(FieldDeclaration fieldDeclaration) {
     R r0 = fieldDeclaration.parameter.accept(this);
-    return fieldDeclaration.initializer.accept(this);
+    return fieldDeclaration.initializer == null ? null
+        : fieldDeclaration.initializer.accept(this);
   }
 
   public R visit(ForStatement forStatement) {
