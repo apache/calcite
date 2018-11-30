@@ -67,7 +67,7 @@ class RelCompositeTrait<T extends RelMultipleTrait> implements RelTrait {
       }
       compositeTrait = new RelCompositeTrait<>(def, (T[]) traits);
     }
-    return def.canonizeComposite(compositeTrait);
+    return def.canonize(compositeTrait);
   }
 
   public RelTraitDef getTraitDef() {
@@ -105,30 +105,12 @@ class RelCompositeTrait<T extends RelMultipleTrait> implements RelTrait {
     return ImmutableList.copyOf(traits);
   }
 
-  RelCompositeTrait<T> canonize(RelTraitDef<T> traitDef) {
-    T[] newTraits = null;
-    for (int i = 0; i < traits.length; i++) {
-      final T trait = traits[i];
-      final T trait2 = traitDef.canonize(trait);
-      if (trait2 != trait) {
-        if (newTraits == null) {
-          newTraits = traits.clone();
-        }
-        newTraits[i] = trait2;
-      }
-    }
-    if (newTraits == null) {
-      return this;
-    }
-    assert false;
-    // TODO: cache duplicate composites
-    return new RelCompositeTrait<>(traitDef, newTraits);
-  }
-
+  /** Returns the {@code i}th trait. */
   public T trait(int i) {
     return traits[i];
   }
 
+  /** Returns the number of traits. */
   public int size() {
     return traits.length;
   }
