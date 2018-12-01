@@ -42,6 +42,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 
+import java.io.StringReader;
 import java.util.Map;
 import java.util.Objects;
 
@@ -112,7 +113,9 @@ public class SqlTestFactory {
   }
 
   public SqlParser createParser(String sql) {
-    return SqlParser.create(sql, parserConfig.get());
+    return SqlParser.create(
+            new StringReader(sql), // using a Reader is enough
+            parserConfig.get());
   }
 
   public static SqlParser.Config createParserConfig(ImmutableMap<String, Object> options) {

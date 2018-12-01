@@ -117,7 +117,7 @@ public class SqlParser {
     SqlAbstractParserImpl parser =
         config.parserFactory().getParser(reader);
 
-    return new SqlParser(null, parser, config);
+    return new SqlParser("?", parser, config);
   }
 
   /**
