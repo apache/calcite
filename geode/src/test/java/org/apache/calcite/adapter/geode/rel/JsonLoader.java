@@ -53,18 +53,19 @@ class JsonLoader {
   private void load(Reader reader) throws IOException {
     Objects.requireNonNull(reader, "reader");
     try (BufferedReader br = new BufferedReader(reader)) {
-      List<Map> mapList = new ArrayList<>();
+      List<Map<String, Object>> mapList = new ArrayList<>();
       for (String line; (line = br.readLine()) != null;) {
-        Map jsonMap = mapper.readValue(line, Map.class);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> jsonMap = mapper.readValue(line, Map.class);
         mapList.add(jsonMap);
       }
       loadMapList(mapList);
     }
   }
 
-  void loadMapList(List<Map> mapList) {
+  void loadMapList(List<Map<String, Object>> mapList) {
     int key = 0;
-    for (Map jsonMap : mapList) {
+    for (Map<String, Object> jsonMap : mapList) {
       PdxInstance pdxInstance = mapToPdx(rootPackage, jsonMap);
       region.put(key++, pdxInstance);
     }

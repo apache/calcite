@@ -30,6 +30,9 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
@@ -98,10 +101,23 @@ public class GeodeFilter extends Filter implements GeodeRel {
      * @return String representation of the literal
      */
     private static String literalValue(RexLiteral literal) {
-      Object value = literal.getValue3();
-      StringBuilder buf = new StringBuilder();
-      buf.append(value);
-      return buf.toString();
+      final Comparable valueComparable = literal.getValueAs(Comparable.class);
+
+      switch (literal.getTypeName()) {
+      case TIMESTAMP:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+        assert valueComparable instanceof TimestampString;
+        return "TIMESTAMP '" + valueComparable.toString() + "'";
+      case DATE:
+        assert valueComparable instanceof DateString;
+        return "DATE '" + valueComparable.toString() + "'";
+      case TIME:
+      case TIME_WITH_LOCAL_TIME_ZONE:
+        assert valueComparable instanceof TimeString;
+        return "TIME '" + valueComparable.toString() + "'";
+      default:
+        return String.valueOf(literal.getValue3());
+      }
     }
 
     /**
