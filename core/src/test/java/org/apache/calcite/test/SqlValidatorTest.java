@@ -10779,7 +10779,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       fail("expecting an error");
       return;
     } catch (CalciteContextException error) {
-      // we want the exception
+      // we want the exception to report column and line
       assertEquals("At line 1, column 15: Object 'B' not found", error.getMessage());
       messagePassingSqlString = error.getMessage();
       // the error does not contain the original query (even using a String)
@@ -10794,6 +10794,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       validator.validate(node);
       fail("expecting an error");
     } catch (CalciteContextException error) {
+      // we want exactly the same error as with java.lang.String input
       assertEquals(error.getMessage(), messagePassingSqlString);
       // the error does not contain the original query (using a Reader)
       assertNull(error.getOriginalStatement());
