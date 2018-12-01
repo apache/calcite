@@ -107,9 +107,9 @@ public class SqlParser {
    * with given quoting syntax and casing policies for identifiers.
    * <p>Differently from
    * {@link #create(java.lang.String, org.apache.calcite.sql.parser.SqlParser.Config) )}
-   * the parser won't be able to return the 'originalInput' query
+   * the parser is not able to return the 'originalInput' query but it will return "?"
    *
-   * @param reader Teh source for the SQL statement or expression to parse.
+   * @param reader The source for the SQL statement or expression to parse.
    * @param config The parser configuration (identifier max length, etc.)
    * @return A parser
    */
