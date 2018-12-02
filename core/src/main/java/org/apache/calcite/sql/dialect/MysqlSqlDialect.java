@@ -105,7 +105,8 @@ public class MysqlSqlDialect extends SqlDialect {
       return new SqlDataTypeSpec(new SqlIdentifier("CHAR", SqlParserPos.ZERO),
           type.getPrecision(), -1, null, null, SqlParserPos.ZERO);
     case INTEGER:
-      return new SqlDataTypeSpec(new SqlIdentifier("_UNSIGNED", SqlParserPos.ZERO),
+    case BIGINT:
+      return new SqlDataTypeSpec(new SqlIdentifier("_SIGNED", SqlParserPos.ZERO),
           type.getPrecision(), -1, null, null, SqlParserPos.ZERO);
     }
     return super.getCastSpec(type);
