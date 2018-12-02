@@ -618,6 +618,13 @@ public class RelToSqlConverterTest {
     sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
   }
 
+  @Test public void testMySQLCastToBigIntShouldBeCastToSigned() {
+    final String query = "select cast(\"product_id\" as bigint) from \"product\"";
+    final String expected = "SELECT CAST(`product_id` AS SIGNED)\n"
+        + "FROM `foodmart`.`product`";
+    sql(query).withMysql().ok(expected);
+  }
+
   @Test public void testHiveSelectQueryWithOrderByDescAndHighNullsWithVersionGreaterThanOrEq21() {
     final HiveSqlDialect hive2_1Dialect =
         new HiveSqlDialect(SqlDialect.EMPTY_CONTEXT
