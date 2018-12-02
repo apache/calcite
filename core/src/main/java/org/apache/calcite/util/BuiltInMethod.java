@@ -74,11 +74,14 @@ import org.apache.calcite.rel.metadata.BuiltInMetadata.UniqueKeys;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.ArrayBindable;
+import org.apache.calcite.runtime.Automaton;
+import org.apache.calcite.runtime.AutomatonBuilder;
 import org.apache.calcite.runtime.BinarySearch;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Enumerables;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.JsonFunctions;
+import org.apache.calcite.runtime.Matcher;
 import org.apache.calcite.runtime.RandomFunction;
 import org.apache.calcite.runtime.ResultSetEnumerable;
 import org.apache.calcite.runtime.SortedMultiMap;
@@ -160,8 +163,13 @@ public enum BuiltInMethod {
       DataContext.class),
   HASH_JOIN(ExtendedEnumerable.class, "hashJoin", Enumerable.class, Function1.class,
       Function1.class, Function2.class),
-  MATCH(Enumerables.class, "match", Enumerable.class, List.class,
-      Enumerables.Automaton.class, Enumerables.Emitter.class),
+  MATCH(Enumerables.class, "match2", Enumerable.class, Function1.class,
+      Matcher.class, Enumerables.Emitter.class),
+  AUTOMATON_BUILD(AutomatonBuilder.class, "build"),
+  MATCHER_BUILDER(Matcher.class, "builder", Automaton.class),
+  MATCHER_BUILDER_BUILD(Matcher.Builder.class, "build"),
+  EMITTER_EMIT(Enumerables.Emitter.class, "emit", List.class, List.class,
+      int.class),
   MERGE_JOIN(EnumerableDefaults.class, "mergeJoin", Enumerable.class,
       Enumerable.class, Function1.class, Function1.class, Function2.class,
       boolean.class, boolean.class),

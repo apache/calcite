@@ -236,9 +236,10 @@ public abstract class MutableRels {
     case MATCH_RECOGNIZE: {
       final MutableMatch match = (MutableMatch) node;
       final RelNode child = fromMutable(match.getInput(), relBuilder);
-      return LogicalMatch.create(child, match.rowType, match.pattern, match.strictStart,
-        match.strictEnd, match.patternDefinitions, match.measures, match.after, match.subsets,
-        match.allRows, match.partitionKeys, match.orderKeys, match.interval);
+      return LogicalMatch.create(child, match.rowType, match.pattern,
+          match.strictStart, match.strictEnd, match.patternDefinitions,
+          match.measures, match.after, match.subsets, match.allRows,
+          match.partitionKeys, match.orderKeys, match.interval);
     }
     case TABLE_MODIFY:
       final MutableTableModify modify = (MutableTableModify) node;

@@ -32,11 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/** Builds a state-transition graph for deterministic finite automaton.
- * Helps us write tests for automata.
- * In production code, the automaton is created based on a parse tree.
- */
-class AutomatonBuilder {
+/** Builds a state-transition graph for deterministic finite automaton. */
+public class AutomatonBuilder {
   private final Map<String, Integer> symbolIds = new HashMap<>();
   private final List<State> stateList = new ArrayList<>();
   private final List<Transition> transitionList = new ArrayList<>();

@@ -75,7 +75,7 @@ public class Enumerables {
   public static <E, TResult> Enumerable<TResult> match(
       Enumerable<E> enumerable,
       List<String> stateNames,
-      Automaton<E> automaton,
+      OldAutomaton<E> automaton,
       Emitter<E, TResult> emitter) {
     return new AbstractEnumerable<TResult>() {
       public Enumerator<TResult> enumerator() {
@@ -121,7 +121,7 @@ public class Enumerables {
                 earliestRetainedRow = Math.min(earliestRetainedRow, match.firstRow);
                 final int state = automaton.nextState(match.state, e);
                 switch (state) {
-                case Automaton.ACCEPT:
+                case OldAutomaton.ACCEPT:
                   final List<E> matchedRows =
                       recentRows.subList(0, 0); // TODO:
                   final List<Integer> rowStates = ImmutableList.of(); // TODO:
@@ -129,7 +129,7 @@ public class Enumerables {
                       emitter.emit(matchedRows, rowStates,
                           partitionState.matchCount++));
                   // fall through
-                case Automaton.FAIL:
+                case OldAutomaton.FAIL:
                   partitionState.incompleteMatches.remove(i--);
                   break;
                 default:
@@ -137,16 +137,16 @@ public class Enumerables {
                 }
               }
               // Try to start a match based on the current row
-              final int state = automaton.nextState(Automaton.START_STATE, e);
+              final int state = automaton.nextState(OldAutomaton.START_STATE, e);
               switch (state) {
-              case Automaton.ACCEPT:
+              case OldAutomaton.ACCEPT:
                 final List<E> matchedRows = ImmutableList.of(e);
                 final List<Integer> rowStates = ImmutableList.of(state);
                 emitRows.addAll(
                     emitter.emit(matchedRows, rowStates,
                         partitionState.matchCount++));
                 // fall through
-              case Automaton.FAIL:
+              case OldAutomaton.FAIL:
                 // since it immediately succeeded or failed, don't add
                 // it to the queue
                 break;
@@ -275,7 +275,7 @@ public class Enumerables {
    * element, tells the next state.
    *
    * @param <E> element type */
-  public interface Automaton<E> {
+  public interface OldAutomaton<E> {
     int START_STATE = 0;
     int ACCEPT = -1;
     int FAIL = -2;
@@ -299,7 +299,7 @@ public class Enumerables {
     final List<MatchState> incompleteMatches = new ArrayList<>();
     int matchCount;
 
-    public PartitionState() {}
+    PartitionState() {}
   }
 
   /** The state of an incomplete match. */

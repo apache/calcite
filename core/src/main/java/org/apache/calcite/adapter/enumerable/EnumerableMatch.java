@@ -17,8 +17,11 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.Blocks;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
@@ -26,12 +29,18 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.AutomatonBuilder;
+import org.apache.calcite.runtime.Enumerables;
 import org.apache.calcite.util.BuiltInMethod;
-import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.ImmutableBitSet;
+
+import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
+
+import static org.apache.calcite.adapter.enumerable.EnumUtils.NO_EXPRS;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Match} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -46,7 +55,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
       boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-      boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+      boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
       RexNode interval) {
     super(cluster, traitSet, input, rowType, pattern, strictStart, strictEnd,
         patternDefinitions, measures, after, subsets, allRows, partitionKeys,
@@ -58,7 +67,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
       RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-      boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+      boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
       RexNode interval) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet =
@@ -89,11 +98,44 @@ public class EnumerableMatch extends Match implements EnumerableRel {
 
     PhysType inputPhysType = result.physType;
 
+    final PhysType keyPhysType =
+        inputPhysType.project(partitionKeys.asList(), JavaRowFormat.LIST);
+    final ParameterExpression row_ =
+        Expressions.parameter(Object.class, "row");
+    final Expression keySelector_ =
+        builder.append("keySelector",
+            inputPhysType.generateSelector(row_,
+                partitionKeys.asList(),
+                keyPhysType.getFormat()));
+
+    final Expression automaton_ = builder.append("automaton",
+        Expressions.call(Expressions.new_(AutomatonBuilder.class),
+            BuiltInMethod.AUTOMATON_BUILD.method));
+    final Expression matcherBuilder_ = builder.append("matcherBuilder",
+        Expressions.call(BuiltInMethod.MATCHER_BUILDER.method, automaton_));
+    final Expression matcher_ = builder.append("matcher",
+        Expressions.call(matcherBuilder_,
+            BuiltInMethod.MATCHER_BUILDER_BUILD.method));
+
+    final ParameterExpression rows_ =
+        Expressions.parameter(List.class, "rows");
+    final ParameterExpression rowStates_ =
+        Expressions.parameter(List.class, "rowStates");
+    final ParameterExpression match_ =
+        Expressions.parameter(int.class, "match");
+    final Expression emitter_ =
+        Expressions.new_(Types.of(Enumerables.Emitter.class),
+            NO_EXPRS,
+            Expressions.list(
+                EnumUtils.overridingMethodDecl(
+                    BuiltInMethod.EMITTER_EMIT.method,
+                    ImmutableList.of(rows_, rowStates_, match_),
+                    Blocks.toFunctionBlock(
+                        Expressions.constant(null)))));
     builder.add(
         Expressions.return_(null,
             Expressions.call(BuiltInMethod.MATCH.method,
-                inputExp,
-                Expressions.constant(null)))); // TODO: state names
+                inputExp, keySelector_, matcher_, emitter_)));
     return implementor.result(physType, builder.toBlock());
   }
 }

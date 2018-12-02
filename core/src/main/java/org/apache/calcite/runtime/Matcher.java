@@ -19,10 +19,8 @@ package org.apache.calcite.runtime;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.util.CircularArrayList;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
-import com.sun.corba.se.spi.orbutil.threadpool.Work;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,18 +35,33 @@ import java.util.function.Predicate;
 /** Workspace that matches patterns against an automaton.
  *
  * @param <E> Type of rows matched by this automaton */
-class Matcher<E> {
+public class Matcher<E> {
   private final Automaton automaton;
   private final ImmutableList<Predicate<E>> predicates;
+
+  // The following members are work space. They can be shared among partitions,
+  // but only one thread can use them at a time. Putting them here saves the
+  // expense of creating a fresh object each call to "match".
+
+  private final ImmutableBitSet emptyStateSet = ImmutableBitSet.of();
+  private final ImmutableBitSet startSet;
+  private final List<Integer> rowSymbols = new ArrayList<>();
+  private final ImmutableBitSet.Builder nextStateBuilder =
+      ImmutableBitSet.builder();
 
   /** Creates a Matcher; use {@link #builder}. */
   private Matcher(Automaton automaton,
       ImmutableList<Predicate<E>> predicates) {
     this.automaton = Objects.requireNonNull(automaton);
     this.predicates = Objects.requireNonNull(predicates);
+    final ImmutableBitSet.Builder startSetBuilder =
+        ImmutableBitSet.builder();
+    startSetBuilder.set(automaton.startState.id);
+    automaton.epsilonSuccessors(automaton.startState.id, startSetBuilder);
+    startSet = startSetBuilder.build();
   }
 
-  static <E> Builder<E> builder(Automaton automaton) {
+  public static <E> Builder<E> builder(Automaton automaton) {
     return new Builder<>(automaton);
   }
 
@@ -59,54 +72,28 @@ class Matcher<E> {
   public List<List<E>> match(Iterable<E> rows) {
     final ImmutableList.Builder<List<E>> resultMatches =
         ImmutableList.builder();
-    final Workspace workspace = new Workspace(automaton);
     final PartitionState<E> partitionState = new PartitionState<>();
     for (E row : rows) {
-      matchOne(workspace, partitionState, resultMatches, row);
+      matchOne(partitionState, resultMatches, row);
     }
     return resultMatches.build();
   }
 
-  /** Work space that can be shared among partitions. */
-  static class Workspace {
-    final ImmutableBitSet emptyStateSet = ImmutableBitSet.of();
-    final ImmutableBitSet startSet;
-    final List<Integer> rowSymbols = new ArrayList<>();
-    final ImmutableBitSet.Builder nextStateBuilder =
-        ImmutableBitSet.builder();
-
-    Workspace(Automaton automaton) {
-      final ImmutableBitSet.Builder startSetBuilder =
-          ImmutableBitSet.builder();
-      startSetBuilder.set(automaton.startState.id);
-      automaton.epsilonSuccessors(automaton.startState.id, startSetBuilder);
-      startSet = startSetBuilder.build();
-    }
-  }
-
-  /** Work space for each partition. */
-  static class PartitionState<E> {
-    final CircularArrayList<E> bufferedRows =
-        new CircularArrayList<>();
-    final CircularArrayList<ImmutableBitSet> stateSets =
-        new CircularArrayList<>();
-    final List<Pair<E, ImmutableBitSet>> rowStateSets =
-        Pair.zipMutable(bufferedRows, stateSets);
-  }
-
-  protected void matchOne(Workspace workspace,
-      PartitionState<E> partitionState,
+  /** Feeds a single input row into the given partition state,
+   * and writes the resulting output rows (if any). */
+  protected void matchOne(PartitionState<E> partitionState,
       ImmutableList.Builder<List<E>> resultMatches,
       E row) {
     // Add this row to the states.
-    partitionState.rowStateSets.add(Pair.of(row, workspace.startSet));
+    partitionState.bufferedRows.add(row);
+    partitionState.stateSets.add(startSet);
 
     // Compute the set of symbols whose predicates that evaluate to true
     // for this row.
-    workspace.rowSymbols.clear();
+    rowSymbols.clear();
     for (Ord<Predicate<E>> predicate : Ord.zip(predicates)) {
       if (predicate.e.test(row)) {
-        workspace.rowSymbols.add(predicate.i);
+        rowSymbols.add(predicate.i);
       }
     }
 
@@ -116,24 +103,23 @@ class Matcher<E> {
     // Now process the states of matches, oldest first, and compute the
     // successors based on the predicates that are true for the current
     // row.
-    for (int i = 0; i < partitionState.rowStateSets.size();) {
-      final Pair<E, ImmutableBitSet> rowStateSet =
-          partitionState.rowStateSets.get(i);
-      assert workspace.nextStateBuilder.isEmpty();
-      for (int symbol : workspace.rowSymbols) {
-        for (int state : rowStateSet.right) {
-          automaton.successors(state, symbol, workspace.nextStateBuilder);
+    for (int i = 0; i < partitionState.stateSets.size();) {
+      final ImmutableBitSet stateSet = partitionState.stateSets.get(i);
+      assert nextStateBuilder.isEmpty();
+      for (int symbol : rowSymbols) {
+        for (int state : stateSet) {
+          automaton.successors(state, symbol, nextStateBuilder);
         }
       }
-      final ImmutableBitSet nextStateSet =
-          workspace.nextStateBuilder.buildAndReset();
+      final ImmutableBitSet nextStateSet = nextStateBuilder.buildAndReset();
       if (nextStateSet.isEmpty()) {
         if (i == 0) {
           // Don't add the stateSet if it is empty and would be the oldest.
           // The first item in stateSets must not be empty.
-          partitionState.rowStateSets.remove(0);
+          partitionState.bufferedRows.remove(0);
+          partitionState.stateSets.remove(0);
         } else {
-          partitionState.stateSets.set(i++, workspace.emptyStateSet);
+          partitionState.stateSets.set(i++, emptyStateSet);
         }
       } else if (nextStateSet.get(automaton.endState.id)) {
         resultMatches.add(
@@ -143,11 +129,12 @@ class Matcher<E> {
         if (i == 0) {
           // Don't add the stateSet if it is empty and would be the oldest.
           // The first item in stateSets must not be empty.
-          partitionState.rowStateSets.remove(0);
+          partitionState.bufferedRows.remove(0);
+          partitionState.stateSets.remove(0);
         } else {
           // Set state to empty so that it is not considered for any
           // further matches, and will be removed when it is the oldest.
-          partitionState.stateSets.set(i++, workspace.emptyStateSet);
+          partitionState.stateSets.set(i++, emptyStateSet);
         }
       } else {
         partitionState.stateSets.set(i++, nextStateSet);
@@ -159,13 +146,33 @@ class Matcher<E> {
     // TODO
   }
 
-/** Builds a Matcher.
+  /** State for each partition.
+   *
+   * @param <E> Row type */
+  static class PartitionState<E> {
+    /** Rows that have arrived recently and might yield a match. */
+    final CircularArrayList<E> bufferedRows =
+        new CircularArrayList<>();
+
+    /** The state of each recent row.
+     *
+     * <p>This collection always has the same number of entries as
+     * {@link #bufferedRows}.
+     *
+     * <p>Because this automaton is non-deterministic, a row may be in more
+     * than more than one state at a time, hence we use a bit set rather than
+     * an integer.
+     */
+    final CircularArrayList<ImmutableBitSet> stateSets =
+        new CircularArrayList<>();
+  }
+
+  /** Builds a Matcher.
    *
    * @param <E> Type of rows matched by this automaton */
-  static class Builder<E> {
+  static public class Builder<E> {
     final Automaton automaton;
-    final Map<String, Predicate<E>> symbolPredicates =
-        new HashMap<>();
+    final Map<String, Predicate<E>> symbolPredicates = new HashMap<>();
 
     Builder(Automaton automaton) {
       this.automaton = automaton;

@@ -6884,15 +6884,21 @@ public class JdbcTest {
     final String convert = ""
         + "LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
         + "commission=[$4])\n"
-        + "  LogicalMatch(partition=[[]], order=[[0]], outputFields=[[empid, "
+        + "  LogicalMatch(partition=[{}], order=[[0]], outputFields=[[empid, "
         + "deptno, name, salary, commission]], allRows=[false], "
         + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('S', 'UP')], "
         + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
         + "patternDefinitions=[[>(PREV(UP.$4, 0), PREV(UP.$4, 1))]], "
         + "inputFields=[[empid, deptno, name, salary, commission]])\n"
         + "    EnumerableTableScan(table=[[hr, emps]])\n";
-    final String plan = "EnumerableAggregate(group=[{}], "
-        + "EXPR$0=[COLLECT($4) WITHIN GROUP ([4])])";
+    final String plan = "PLAN="
+        + "EnumerableMatch(partition=[{}], order=[[0]], "
+        + "outputFields=[[empid, deptno, name, salary, commission]], allRows=[false], "
+        + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('S', 'UP')], isStrictStarts=[false], "
+        + "isStrictEnds=[false], subsets=[[]], "
+        + "patternDefinitions=[[>(PREV(UP.$4, 0), PREV(UP.$4, 1))]], "
+        + "inputFields=[[empid, deptno, name, salary, commission]])\n"
+        + "  EnumerableTableScan(table=[[hr, emps]])";
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
         .query(sql)

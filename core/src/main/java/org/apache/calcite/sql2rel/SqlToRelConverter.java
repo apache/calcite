@@ -2166,10 +2166,10 @@ public class SqlToRelConverter {
 
     // PARTITION BY
     final SqlNodeList partitionList = matchRecognize.getPartitionList();
-    final List<RexNode> partitionKeys = new ArrayList<>();
+    final ImmutableBitSet.Builder partitionKeys = ImmutableBitSet.builder();
     for (SqlNode partition : partitionList) {
       RexNode e = matchBb.convertExpression(partition);
-      partitionKeys.add(e);
+      partitionKeys.set(((RexInputRef) e).getIndex());
     }
 
     // ORDER BY
@@ -2310,8 +2310,8 @@ public class SqlToRelConverter {
         factory.createMatch(input, patternNode,
             rowType, matchRecognize.getStrictStart().booleanValue(),
             matchRecognize.getStrictEnd().booleanValue(),
-            definitionNodes.build(), measureNodes.build(), after,
-            subsetMap, allRows, partitionKeys, orders, intervalNode);
+            definitionNodes.build(), measureNodes.build(), after, subsetMap,
+            allRows, partitionKeys.build(), orders, intervalNode);
     bb.setRoot(rel, false);
   }
 

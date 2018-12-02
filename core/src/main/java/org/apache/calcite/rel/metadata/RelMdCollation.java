@@ -49,6 +49,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -335,7 +336,7 @@ public class RelMdCollation
        boolean strictStart, boolean strictEnd,
        Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
        RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-       boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+       boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
        RexNode interval) {
     return mq.collations(input);
   }

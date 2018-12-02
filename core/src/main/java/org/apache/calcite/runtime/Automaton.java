@@ -30,7 +30,7 @@ import java.util.Objects;
  * @see Pattern
  * @see AutomatonBuilder
  */
-class Automaton {
+public class Automaton {
   final State startState;
   final State endState;
   private final ImmutableList<SymbolTransition> transitions;
