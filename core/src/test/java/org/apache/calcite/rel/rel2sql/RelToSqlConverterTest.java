@@ -27,8 +27,15 @@ import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.sql.*;
+import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialect.Context;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
@@ -47,10 +54,10 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.apache.calcite.util.Util;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -2906,64 +2913,67 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
-    /**
-     *   [CALCITE-2722]
-     *    Method createLeftCall recursive implementation in org.apache.calcite.rel.rel2sql.SqlImplementor class
-     *    must throw StackOverflowError on huge SqlNode list
-     */
-    @Test(expected = StackOverflowError.class)
-    public void createLeftCallWithRecursionTest() {
-        SqlBinaryOperator op = SqlStdOperatorTable.OR;
-        createLeftRecursionCall(op, createLeftCallNodeList());
-    }
+  /**
+   * [CALCITE-2722]
+   * Method createLeftCall recursive implementation in
+   * org.apache.calcite.rel.rel2sql.SqlImplementor class
+   * must throw StackOverflowError on huge SqlNode list
+   */
+  @Test(expected = StackOverflowError.class)
+  public void createLeftCallWithRecursionTest() {
+    SqlBinaryOperator op = SqlStdOperatorTable.OR;
+    createLeftRecursionCall(op, createLeftCallNodeList());
+  }
 
-    /**
-     *   [CALCITE-2722]
-     *    Method createLeftCall non recursive implementation in org.apache.calcite.rel.rel2sql.SqlImplementor class
-     *    must be safe
-     */
-    @Test public void createLeftCallNoRecursion() {
-        try {
-            createLeftCallNoRecursion(SqlStdOperatorTable.OR, createLeftCallNodeList());
-        } catch(StackOverflowError error) {
-            fail(error.getMessage());
-        }
+  /**
+   * [CALCITE-2722]
+   * Method createLeftCall non recursive implementation in
+   * org.apache.calcite.rel.rel2sql.SqlImplementor class
+   * must be safe
+   */
+  @Test
+  public void createLeftCallNoRecursion() {
+    try {
+      createLeftCallNoRecursion(SqlStdOperatorTable.OR, createLeftCallNodeList());
+    } catch (StackOverflowError error) {
+      fail(error.getMessage());
     }
+  }
 
-    private List<SqlNode> createLeftCallNodeList() {
-        final SqlNode node;
-        String query = "a = b";
-        try {
-            node = SqlParser.create(query, SqlParser.configBuilder().build()).parseExpression();
-        }  catch (SqlParseException e) {
-            throw new RuntimeException();
-        }
-        List<SqlNode> nodeList = new ArrayList<>();
-        IntStream.range(0, 10000).forEach(i -> nodeList.add(node));
-        return nodeList;
+  private List<SqlNode> createLeftCallNodeList() {
+    final SqlNode node;
+    String query = "a = b";
+    try {
+      node = SqlParser.create(query, SqlParser.configBuilder().build()).parseExpression();
+    } catch (SqlParseException e) {
+      throw new RuntimeException();
     }
+    List<SqlNode> nodeList = new ArrayList<>();
+    IntStream.range(0, 10000).forEach(i -> nodeList.add(node));
+    return nodeList;
+  }
 
-    // [CALCITE-2722] non recursive createLeftCall implementation
-    private SqlNode createLeftCallNoRecursion(SqlOperator op, List<SqlNode> nodeList) {
-        SqlNode node = op.createCall(
-                new SqlNodeList(ImmutableList.of(nodeList.get(0), nodeList.get(1)), POS)
-        );
-        for (SqlNode n: nodeList.subList(2, nodeList.size() - 1)) {
-            node = op.createCall(new SqlNodeList(ImmutableList.of(node, n), POS));
-        }
-        return node;
+  // [CALCITE-2722] non recursive createLeftCall implementation
+  private SqlNode createLeftCallNoRecursion(SqlOperator op, List<SqlNode> nodeList) {
+    SqlNode node = op.createCall(
+        new SqlNodeList(ImmutableList.of(nodeList.get(0), nodeList.get(1)), POS)
+    );
+    for (SqlNode n : nodeList.subList(2, nodeList.size() - 1)) {
+      node = op.createCall(new SqlNodeList(ImmutableList.of(node, n), POS));
     }
-    // Implementation of createLeftCall before [CALCITE-2722] fix
-    private SqlNode createLeftRecursionCall(SqlOperator op, List<SqlNode> nodeList) {
-        System.out.println(Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory());
-        if (nodeList.size() == 2) {
-            return op.createCall(new SqlNodeList(nodeList, POS));
-        }
-        final List<SqlNode> butLast = Util.skipLast(nodeList);
-        final SqlNode last = nodeList.get(nodeList.size() - 1);
-        final SqlNode call = createLeftRecursionCall(op, butLast);
-        return op.createCall(new SqlNodeList(ImmutableList.of(call, last), POS));
+    return node;
+  }
+
+  // Implementation of createLeftCall before [CALCITE-2722] fix
+  private SqlNode createLeftRecursionCall(SqlOperator op, List<SqlNode> nodeList) {
+    if (nodeList.size() == 2) {
+      return op.createCall(new SqlNodeList(nodeList, POS));
     }
+    final List<SqlNode> butLast = Util.skipLast(nodeList);
+    final SqlNode last = nodeList.get(nodeList.size() - 1);
+    final SqlNode call = createLeftRecursionCall(op, butLast);
+    return op.createCall(new SqlNodeList(ImmutableList.of(call, last), POS));
+  }
 
   /** Fluid interface to run tests. */
   static class Sql {
