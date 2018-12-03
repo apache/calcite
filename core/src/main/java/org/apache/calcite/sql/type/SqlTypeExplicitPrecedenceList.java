@@ -22,14 +22,13 @@ import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * SqlTypeExplicitPrecedenceList implements the
@@ -60,8 +59,7 @@ public class SqlTypeExplicitPrecedenceList
           SqlTypeName.DOUBLE);
 
   private static final List<SqlTypeName> COMPACT_NUMERIC_TYPES =
-      ImmutableList.copyOf(
-          Iterables.filter(NUMERIC_TYPES, Predicates.notNull()));
+      ImmutableList.copyOf(Util.filter(NUMERIC_TYPES, Objects::nonNull));
 
   /**
    * Map from SqlTypeName to corresponding precedence list.
@@ -78,8 +76,8 @@ public class SqlTypeExplicitPrecedenceList
           .put(SqlTypeName.BIGINT, numeric(SqlTypeName.BIGINT))
           .put(SqlTypeName.DECIMAL, numeric(SqlTypeName.DECIMAL))
           .put(SqlTypeName.REAL, numeric(SqlTypeName.REAL))
-          .put(SqlTypeName.FLOAT, numeric(SqlTypeName.FLOAT))
-          .put(SqlTypeName.DOUBLE, numeric(SqlTypeName.DOUBLE))
+          .put(SqlTypeName.FLOAT, list(SqlTypeName.FLOAT, SqlTypeName.REAL, SqlTypeName.DOUBLE))
+          .put(SqlTypeName.DOUBLE, list(SqlTypeName.DOUBLE, SqlTypeName.DECIMAL))
           .put(SqlTypeName.CHAR, list(SqlTypeName.CHAR, SqlTypeName.VARCHAR))
           .put(SqlTypeName.VARCHAR, list(SqlTypeName.VARCHAR))
           .put(SqlTypeName.BINARY,

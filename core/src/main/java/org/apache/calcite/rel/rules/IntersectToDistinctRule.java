@@ -107,7 +107,7 @@ public class IntersectToDistinctRule extends RelOptRule {
 
     final ImmutableBitSet groupSet =
         ImmutableBitSet.range(fieldCount - 1);
-    relBuilder.aggregate(relBuilder.groupKey(groupSet, null),
+    relBuilder.aggregate(relBuilder.groupKey(groupSet),
         relBuilder.countStar(null));
 
     // add a filter count(c) = #branches

@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.test;
 
-import com.google.common.base.Function;
+import org.apache.calcite.util.Sources;
+
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.Test;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.List;
+import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
 
@@ -35,16 +35,8 @@ public class PigAdapterTest extends AbstractPigTest {
   // Undo the %20 replacement of a space by URL
   public static final ImmutableMap<String, String> MODEL =
       ImmutableMap.of("model",
-          decodeUrl(PigAdapterTest.class.getResource("/model.json").getPath()));
-
-  /** URL-decodes the given string with UTF-8 encoding */
-  private static String decodeUrl(String urlEncoded) {
-    try {
-      return URLDecoder.decode(urlEncoded, "UTF-8");
-    } catch (UnsupportedEncodingException e) {
-      throw new RuntimeException(e);
-    }
-  }
+          Sources.of(PigAdapterTest.class.getResource("/model.json"))
+              .file().getAbsolutePath());
 
   @Test public void testScanAndFilter() throws Exception {
     CalciteAssert.that()
@@ -170,17 +162,14 @@ public class PigAdapterTest extends AbstractPigTest {
   /** Returns a function that checks that a particular Pig Latin scriptis
    * generated to implement a query. */
   @SuppressWarnings("rawtypes")
-  private static Function<List, Void> pigScriptChecker(final String... strings) {
-    return new Function<List, Void>() {
-      public Void apply(List actual) {
-        String actualArray =
-            actual == null || actual.isEmpty()
-                ? null
-                : (String) actual.get(0);
-        assertEquals("expected Pig script not found",
-            strings[0], actualArray);
-        return null;
-      }
+  private static Consumer<List> pigScriptChecker(final String... strings) {
+    return actual -> {
+      String actualArray =
+          actual == null || actual.isEmpty()
+              ? null
+              : (String) actual.get(0);
+      assertEquals("expected Pig script not found",
+          strings[0], actualArray);
     };
   }
 }

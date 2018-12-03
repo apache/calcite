@@ -19,8 +19,8 @@ package org.apache.calcite.interpreter;
 import org.apache.calcite.rel.core.Join;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -35,14 +35,14 @@ public class JoinNode implements Node {
   private final Scalar condition;
   private final Context context;
 
-  public JoinNode(Interpreter interpreter, Join rel) {
-    this.leftSource = interpreter.source(rel, 0);
-    this.rightSource = interpreter.source(rel, 1);
-    this.sink = interpreter.sink(rel);
-    this.condition = interpreter.compile(ImmutableList.of(rel.getCondition()),
-        interpreter.combinedRowType(rel.getInputs()));
+  public JoinNode(Compiler compiler, Join rel) {
+    this.leftSource = compiler.source(rel, 0);
+    this.rightSource = compiler.source(rel, 1);
+    this.sink = compiler.sink(rel);
+    this.condition = compiler.compile(ImmutableList.of(rel.getCondition()),
+        compiler.combinedRowType(rel.getInputs()));
     this.rel = rel;
-    this.context = interpreter.createContext();
+    this.context = compiler.createContext();
 
   }
 
@@ -56,7 +56,7 @@ public class JoinNode implements Node {
     while ((left = leftSource.receive()) != null) {
       System.arraycopy(left.getValues(), 0, context.values, 0, leftCount);
       if (rightList == null) {
-        rightList = Lists.newArrayList();
+        rightList = new ArrayList<>();
         while ((right = rightSource.receive()) != null) {
           rightList.add(right);
         }

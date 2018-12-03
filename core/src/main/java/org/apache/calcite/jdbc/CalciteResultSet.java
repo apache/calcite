@@ -25,7 +25,6 @@ import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.util.Cursor;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.runtime.ArrayEnumeratorCursor;
 import org.apache.calcite.runtime.ObjectEnumeratorCursor;
 
@@ -47,7 +46,7 @@ public class CalciteResultSet extends AvaticaResultSet {
   CalciteResultSet(AvaticaStatement statement,
       CalcitePrepare.CalciteSignature calciteSignature,
       ResultSetMetaData resultSetMetaData, TimeZone timeZone,
-      Meta.Frame firstFrame) {
+      Meta.Frame firstFrame) throws SQLException {
     super(statement, null, calciteSignature, resultSetMetaData, timeZone, firstFrame);
   }
 
@@ -57,9 +56,7 @@ public class CalciteResultSet extends AvaticaResultSet {
     final boolean autoTemp = connection.config().autoTemp();
     Handler.ResultSink resultSink = null;
     if (autoTemp) {
-      resultSink = new Handler.ResultSink() {
-        public void toBeCompleted() {
-        }
+      resultSink = () -> {
       };
     }
     connection.getDriver().handler.onStatementExecute(statement, resultSink);
@@ -69,7 +66,7 @@ public class CalciteResultSet extends AvaticaResultSet {
   }
 
   @Override public ResultSet create(ColumnMetaData.AvaticaType elementType,
-      Iterable<Object> iterable) {
+      Iterable<Object> iterable) throws SQLException {
     final List<ColumnMetaData> columnMetaDataList;
     if (elementType instanceof ColumnMetaData.StructType) {
       columnMetaDataList = ((ColumnMetaData.StructType) elementType).columns;
@@ -83,7 +80,7 @@ public class CalciteResultSet extends AvaticaResultSet {
         new CalcitePrepare.CalciteSignature<>(signature.sql,
             signature.parameters, signature.internalParameters,
             signature.rowType, columnMetaDataList, Meta.CursorFactory.ARRAY,
-            signature.rootSchema, ImmutableList.<RelCollation>of(), -1, null,
+            signature.rootSchema, ImmutableList.of(), -1, null,
             statement.getStatementType());
     ResultSetMetaData subResultSetMetaData =
         new AvaticaResultSetMetaData(statement, null, newSignature);
@@ -111,7 +108,7 @@ public class CalciteResultSet extends AvaticaResultSet {
   }
 
   // do not make public
-  CalciteConnectionImpl getCalciteConnection() {
+  CalciteConnectionImpl getCalciteConnection() throws SQLException {
     return (CalciteConnectionImpl) statement.getConnection();
   }
 }

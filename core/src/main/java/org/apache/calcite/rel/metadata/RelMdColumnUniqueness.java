@@ -40,13 +40,11 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
@@ -63,14 +61,6 @@ public class RelMdColumnUniqueness
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
           BuiltInMethod.COLUMN_UNIQUENESS.method, new RelMdColumnUniqueness());
-
-  /** Aggregate and Calc are "safe" children of a RelSubset to delve into. */
-  private static final Predicate<RelNode> SAFE_REL =
-      new PredicateImpl<RelNode>() {
-        public boolean test(RelNode r) {
-          return r instanceof Aggregate || r instanceof Project;
-        }
-      };
 
   //~ Constructors -----------------------------------------------------------
 
@@ -332,7 +322,8 @@ public class RelMdColumnUniqueness
     final Set<List<Comparable>> set = new HashSet<>();
     final List<Comparable> values = new ArrayList<>();
     for (ImmutableList<RexLiteral> tuple : rel.tuples) {
-      for (RexLiteral literal : tuple) {
+      for (int column : columns) {
+        final RexLiteral literal = tuple.get(column);
         values.add(literal.isNull()
             ? NullSentinel.INSTANCE
             : literal.getValueAs(Comparable.class));

@@ -16,10 +16,9 @@
  */
 package org.apache.calcite.rel;
 
-import com.google.common.collect.Lists;
-
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -32,21 +31,48 @@ import static org.junit.Assert.assertThat;
  */
 public class RelCollationTest {
   /** Unit test for {@link RelCollations#contains}. */
+  @SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
   @Test public void testCollationContains() {
-    final RelCollation collation =
+    final RelCollation collation21 =
         RelCollations.of(
             new RelFieldCollation(2, RelFieldCollation.Direction.ASCENDING),
             new RelFieldCollation(1, RelFieldCollation.Direction.DESCENDING));
-    assertThat(RelCollations.contains(collation, Arrays.asList(2)), is(true));
-    assertThat(RelCollations.contains(collation, Arrays.asList(1)), is(false));
-    assertThat(RelCollations.contains(collation, Arrays.asList(0)), is(false));
-    assertThat(RelCollations.contains(collation, Arrays.asList(2, 1)),
+    assertThat(RelCollations.contains(collation21, Arrays.asList(2)), is(true));
+    assertThat(RelCollations.contains(collation21, Arrays.asList(1)),
+        is(false));
+    assertThat(RelCollations.contains(collation21, Arrays.asList(0)),
+        is(false));
+    assertThat(RelCollations.contains(collation21, Arrays.asList(2, 1)),
         is(true));
-    assertThat(RelCollations.contains(collation, Arrays.asList(2, 0)),
+    assertThat(RelCollations.contains(collation21, Arrays.asList(2, 0)),
         is(false));
-    assertThat(RelCollations.contains(collation, Arrays.asList(2, 1, 3)),
+    assertThat(RelCollations.contains(collation21, Arrays.asList(2, 1, 3)),
         is(false));
-    assertThat(RelCollations.contains(collation, Arrays.<Integer>asList()),
+    assertThat(RelCollations.contains(collation21, Arrays.asList()),
+        is(true));
+
+    // if there are duplicates in keys, later occurrences are ignored
+    assertThat(RelCollations.contains(collation21, Arrays.asList(2, 1, 2)),
+        is(true));
+    assertThat(RelCollations.contains(collation21, Arrays.asList(2, 1, 1)),
+        is(true));
+    assertThat(RelCollations.contains(collation21, Arrays.asList(1, 2, 1)),
+        is(false));
+    assertThat(RelCollations.contains(collation21, Arrays.asList(1, 1)),
+        is(false));
+    assertThat(RelCollations.contains(collation21, Arrays.asList(2, 2)),
+        is(true));
+
+    final RelCollation collation1 =
+        RelCollations.of(
+            new RelFieldCollation(1, RelFieldCollation.Direction.DESCENDING));
+    assertThat(RelCollations.contains(collation1, Arrays.asList(1, 1)),
+        is(true));
+    assertThat(RelCollations.contains(collation1, Arrays.asList(2, 2)),
+        is(false));
+    assertThat(RelCollations.contains(collation1, Arrays.asList(1, 2, 1)),
+        is(false));
+    assertThat(RelCollations.contains(collation1, Arrays.asList()),
         is(true));
   }
 
@@ -63,7 +89,7 @@ public class RelCollationTest {
   }
 
   private static RelCollation collation(int... ordinals) {
-    final List<RelFieldCollation> list = Lists.newArrayList();
+    final List<RelFieldCollation> list = new ArrayList<>();
     for (int ordinal : ordinals) {
       list.add(new RelFieldCollation(ordinal));
     }

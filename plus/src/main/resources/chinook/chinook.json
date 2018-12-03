@@ -1,0 +1,107 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the License); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+{
+  "version": "1.0",
+  "defaultSchema": "ENHANCED",
+  "schemas": [
+    {
+      "name": "CHINOOK",
+      "type": "jdbc",
+      "jdbcDriver": "org.hsqldb.jdbc.JDBCDriver",
+      "jdbcUrl": "jdbc:hsqldb:res:chinook",
+      "jdbcUser": "sa",
+      "jdbcPassword": ""
+    },
+    {
+      "name": "ENHANCED",
+      "type": "custom",
+      "factory": "org.apache.calcite.schema.impl.AbstractSchema$Factory",
+      "operand": {},
+      "tables": [
+        {
+          "name": "PREFERRED_TRACKS",
+          "type": "view",
+          "sql": [
+            "SELECT trackid, name, albumid, mediatypeid, genreid, composer, milliseconds, bytes, unitprice ",
+            "FROM chinook.track AS tr",
+            "WHERE tr.genreid IN (SELECT id FROM preferred_genres) ",
+            "OR tr.albumid IN (SELECT id FROM preferred_albums)"
+          ]
+        },
+        {
+          "name": "SIMPLE_CUSTOMER",
+          "type": "view",
+          "sql": [
+            "SELECT c.firstname, c.lastname, c.email ",
+            "FROM chinook.customer AS c"
+          ]
+        },
+        {
+          "name": "PREFERRED_GENRES",
+          "type": "table",
+          "factory": "org.apache.calcite.chinook.PreferredGenresTableFactory"
+        },
+        {
+          "name": "PREFERRED_ALBUMS",
+          "type": "table",
+          "factory": "org.apache.calcite.chinook.PreferredAlbumsTableFactory"
+        }
+      ],
+      "functions": [
+        {
+          "name": "ASCONCATOFPARAMS",
+          "className": "org.apache.calcite.chinook.StringConcatFunction"
+        },
+        {
+          "name": "CHOSENCUSTOMEREMAIL",
+          "className": "org.apache.calcite.chinook.ChosenCustomerEmail"
+        }
+      ]
+    },
+    {
+      "name": "AUX",
+      "type": "custom",
+      "factory": "org.apache.calcite.schema.impl.AbstractSchema$Factory",
+      "operand": {},
+      "functions": [
+        {
+          "name": "CODES",
+          "className": "org.apache.calcite.chinook.CodesFunction",
+          "methodName": "getTable"
+        }
+      ]
+    },
+    {
+      "name": "EXAMPLES",
+      "type": "custom",
+      "factory": "org.apache.calcite.schema.impl.AbstractSchema$Factory",
+      "operand": {},
+      "tables": [
+        {
+          "name": "CODED_EMAILS",
+          "type": "view",
+          "sql": [
+            "SELECT SC.email, TF.TYPE, TF.CODEVALUE ",
+            "FROM ENHANCED.SIMPLE_CUSTOMER SC ",
+            "CROSS JOIN LATERAL TABLE(AUX.CODES(SC.email)) TF ",
+            "limit 6"
+          ]
+        }
+      ]
+    }
+  ]
+}

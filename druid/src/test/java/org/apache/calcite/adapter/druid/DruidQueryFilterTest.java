@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -30,13 +31,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -47,8 +47,21 @@ import static org.hamcrest.core.Is.is;
  */
 public class DruidQueryFilterTest {
 
-  @Test public void testInFilter() throws NoSuchMethodException,
-      InvocationTargetException, IllegalAccessException, IOException {
+  private DruidQuery druidQuery;
+  @Before
+  public void testSetup() {
+    druidQuery = Mockito.mock(DruidQuery.class);
+    final CalciteConnectionConfig connectionConfigMock = Mockito
+        .mock(CalciteConnectionConfig.class);
+    Mockito.when(connectionConfigMock.timeZone()).thenReturn("UTC");
+    Mockito.when(druidQuery.getConnectionConfig()).thenReturn(connectionConfigMock);
+    Mockito.when(druidQuery.getDruidTable())
+        .thenReturn(
+            new DruidTable(Mockito.mock(DruidSchema.class), "dataSource", null,
+                ImmutableSet.of(), "timestamp", null, null,
+                null));
+  }
+  @Test public void testInFilter() throws IOException {
     final Fixture f = new Fixture();
     final List<? extends RexNode> listRexNodes =
         ImmutableList.of(f.rexBuilder.makeInputRef(f.varcharRowType, 0),
@@ -58,13 +71,9 @@ public class DruidQueryFilterTest {
 
     RexNode inRexNode =
         f.rexBuilder.makeCall(SqlStdOperatorTable.IN, listRexNodes);
-    Method translateFilter =
-        DruidQuery.Translator.class.getDeclaredMethod("translateFilter",
-            RexNode.class);
-    translateFilter.setAccessible(true);
-    DruidQuery.JsonInFilter returnValue =
-        (DruidQuery.JsonInFilter) translateFilter.invoke(f.translatorStringKind,
-            inRexNode);
+    DruidJsonFilter returnValue = DruidJsonFilter
+        .toDruidFilters(inRexNode, f.varcharRowType, druidQuery);
+    Assert.assertNotNull("Filter is null", returnValue);
     JsonFactory jsonFactory = new JsonFactory();
     final StringWriter sw = new StringWriter();
     JsonGenerator jsonGenerator = jsonFactory.createGenerator(sw);
@@ -76,8 +85,7 @@ public class DruidQueryFilterTest {
             + "\"values\":[\"1\",\"5\",\"value1\"]}"));
   }
 
-  @Test public void testBetweenFilterStringCase() throws NoSuchMethodException,
-      InvocationTargetException, IllegalAccessException, IOException {
+  @Test public void testBetweenFilterStringCase() throws IOException {
     final Fixture f = new Fixture();
     final List<RexNode> listRexNodes =
         ImmutableList.of(f.rexBuilder.makeLiteral(false),
@@ -88,13 +96,9 @@ public class DruidQueryFilterTest {
     RexNode betweenRexNode = f.rexBuilder.makeCall(relDataType,
         SqlStdOperatorTable.BETWEEN, listRexNodes);
 
-    Method translateFilter =
-        DruidQuery.Translator.class.getDeclaredMethod("translateFilter",
-            RexNode.class);
-    translateFilter.setAccessible(true);
-    DruidQuery.JsonBound returnValue =
-        (DruidQuery.JsonBound) translateFilter.invoke(f.translatorStringKind,
-            betweenRexNode);
+    DruidJsonFilter returnValue = DruidJsonFilter
+        .toDruidFilters(betweenRexNode, f.varcharRowType, druidQuery);
+    Assert.assertNotNull("Filter is null", returnValue);
     JsonFactory jsonFactory = new JsonFactory();
     final StringWriter sw = new StringWriter();
     JsonGenerator jsonGenerator = jsonFactory.createGenerator(sw);
@@ -113,15 +117,13 @@ public class DruidQueryFilterTest {
     final RexBuilder rexBuilder = new RexBuilder(typeFactory);
     final DruidTable druidTable =
         new DruidTable(Mockito.mock(DruidSchema.class), "dataSource", null,
-            ImmutableSet.<String>of(), "timestamp", null, null,
+            ImmutableSet.of(), "timestamp", null, null,
                 null);
     final RelDataType varcharType =
         typeFactory.createSqlType(SqlTypeName.VARCHAR);
     final RelDataType varcharRowType = typeFactory.builder()
         .add("dimensionName", varcharType)
         .build();
-    final DruidQuery.Translator translatorStringKind =
-        new DruidQuery.Translator(druidTable, varcharRowType, "UTC");
   }
 }
 

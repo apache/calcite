@@ -34,23 +34,18 @@ import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
-import com.google.common.collect.Lists;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 
-import com.mongodb.AggregationOptions;
-import com.mongodb.AggregationOutput;
-import com.mongodb.BasicDBList;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
-import com.mongodb.util.JSON;
+import org.bson.BsonDocument;
+import org.bson.Document;
+import org.bson.conversions.Bson;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import static org.apache.calcite.util.Static.cons;
 
 /**
  * Table based on a MongoDB collection.
@@ -102,19 +97,20 @@ public class MongoTable extends AbstractQueryableTable
    * @param fields List of fields to project; or null to return map
    * @return Enumerator of results
    */
-  private Enumerable<Object> find(DB mongoDb, String filterJson,
+  private Enumerable<Object> find(MongoDatabase mongoDb, String filterJson,
       String projectJson, List<Map.Entry<String, Class>> fields) {
-    final DBCollection collection =
+    final MongoCollection collection =
         mongoDb.getCollection(collectionName);
-    final DBObject filter =
-        filterJson == null ? null : (DBObject) JSON.parse(filterJson);
-    final DBObject project =
-        projectJson == null ? null : (DBObject) JSON.parse(projectJson);
-    final Function1<DBObject, Object> getter = MongoEnumerator.getter(fields);
+    final Bson filter =
+        filterJson == null ? null : BsonDocument.parse(filterJson);
+    final Bson project =
+        projectJson == null ? null : BsonDocument.parse(projectJson);
+    final Function1<Document, Object> getter = MongoEnumerator.getter(fields);
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
-        final DBCursor cursor = collection.find(filter, project);
-        return new MongoEnumerator(cursor, getter);
+        @SuppressWarnings("unchecked") final FindIterable<Document> cursor =
+            collection.find(filter).projection(project);
+        return new MongoEnumerator(cursor.iterator(), getter);
       }
     };
   }
@@ -132,57 +128,21 @@ public class MongoTable extends AbstractQueryableTable
    * @param operations One or more JSON strings
    * @return Enumerator of results
    */
-  private Enumerable<Object> aggregate(final DB mongoDb,
+  private Enumerable<Object> aggregate(final MongoDatabase mongoDb,
       final List<Map.Entry<String, Class>> fields,
       final List<String> operations) {
-    final List<DBObject> list = new ArrayList<>();
-    final BasicDBList versionArray = (BasicDBList) mongoDb
-        .command("buildInfo").get("versionArray");
-    final Integer versionMajor = parseIntString(versionArray
-        .get(0).toString());
-    final Integer versionMinor = parseIntString(versionArray
-        .get(1).toString());
-//    final Integer versionMaintenance = parseIntString(versionArray
-//      .get(2).toString());
-//    final Integer versionBuild = parseIntString(versionArray
-//      .get(3).toString());
-
+    final List<Bson> list = new ArrayList<>();
     for (String operation : operations) {
-      list.add((DBObject) JSON.parse(operation));
+      list.add(BsonDocument.parse(operation));
     }
-    final DBObject first = list.get(0);
-    final List<DBObject> rest = Util.skip(list);
-    final Function1<DBObject, Object> getter =
+    final Function1<Document, Object> getter =
         MongoEnumerator.getter(fields);
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
-        final Iterator<DBObject> resultIterator;
+        final Iterator<Document> resultIterator;
         try {
-          // Changed in version 2.6: The db.collection.aggregate() method
-          // returns a cursor
-          // and can return result sets of any size.
-          // See: http://docs.mongodb.org/manual/core/aggregation-pipeline
-          if (versionMajor > 1) {
-            // MongoDB version 2.6+
-            if (versionMinor > 5) {
-              AggregationOptions options = AggregationOptions.builder()
-                   .outputMode(AggregationOptions.OutputMode.CURSOR).build();
-              // Warning - this can result in a very large ArrayList!
-              // but you should know your data and aggregate accordingly
-              final List<DBObject> resultAsArrayList =
-                  Lists.newArrayList(mongoDb.getCollection(collectionName)
-                      .aggregate(list, options));
-              resultIterator = resultAsArrayList.iterator();
-            } else { // Pre MongoDB version 2.6
-              AggregationOutput result = aggregateOldWay(mongoDb
-                   .getCollection(collectionName), first, rest);
-              resultIterator = result.results().iterator();
-            }
-          } else { // Pre MongoDB version 2
-            AggregationOutput result = aggregateOldWay(mongoDb
-                 .getCollection(collectionName), first, rest);
-            resultIterator = result.results().iterator();
-          }
+          resultIterator = mongoDb.getCollection(collectionName)
+              .aggregate(list).iterator();
         } catch (Exception e) {
           throw new RuntimeException("While running MongoDB query "
               + Util.toString(operations, "[", ",\n", "]"), e);
@@ -198,24 +158,6 @@ public class MongoTable extends AbstractQueryableTable
    * from buildInfo.versionArray for use in aggregate method logic. */
   private static Integer parseIntString(String valueString) {
     return Integer.parseInt(valueString.replaceAll("[^0-9]", ""));
-  }
-
-  /** Executes an "aggregate" operation for pre-2.6 mongo servers.
-   *
-   * <p>Return document is limited to 4M or 16M in size depending on
-   * version of mongo.
-
-   * <p>Helper method for
-   * {@link org.apache.calcite.adapter.mongodb.MongoTable#aggregate}.
-   *
-   * @param dbCollection Collection
-   * @param first First aggregate action
-   * @param rest Rest of the aggregate actions
-   * @return Aggregation output
-   */
-  private AggregationOutput aggregateOldWay(DBCollection dbCollection,
-       DBObject first, List<DBObject> rest) {
-    return dbCollection.aggregate(cons(first, rest));
   }
 
   /** Implementation of {@link org.apache.calcite.linq4j.Queryable} based on
@@ -235,7 +177,7 @@ public class MongoTable extends AbstractQueryableTable
       return enumerable.enumerator();
     }
 
-    private DB getMongoDb() {
+    private MongoDatabase getMongoDb() {
       return schema.unwrap(MongoSchema.class).mongoDb;
     }
 
@@ -254,6 +196,11 @@ public class MongoTable extends AbstractQueryableTable
     }
 
     /** Called via code-generation.
+     *
+     * @param filterJson Filter document
+     * @param projectJson Projection document
+     * @param fields List of expected fields (and their types)
+     * @return result of mongo query
      *
      * @see org.apache.calcite.adapter.mongodb.MongoMethod#MONGO_QUERYABLE_FIND
      */

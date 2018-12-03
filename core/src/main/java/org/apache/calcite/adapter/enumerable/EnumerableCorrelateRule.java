@@ -23,7 +23,7 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-import com.google.common.base.Predicates;
+import java.util.function.Predicate;
 
 /**
  * Implementation of nested loops over enumerable inputs.
@@ -35,7 +35,7 @@ public class EnumerableCorrelateRule extends ConverterRule {
    * @param relBuilderFactory Builder for relational expressions
    */
   public EnumerableCorrelateRule(RelBuilderFactory relBuilderFactory) {
-    super(LogicalCorrelate.class, Predicates.<RelNode>alwaysTrue(),
+    super(LogicalCorrelate.class, (Predicate<RelNode>) r -> true,
         Convention.NONE, EnumerableConvention.INSTANCE, relBuilderFactory,
         "EnumerableCorrelateRule");
   }

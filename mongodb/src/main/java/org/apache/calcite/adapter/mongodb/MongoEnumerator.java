@@ -21,8 +21,9 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.Primitive;
 
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
+import com.mongodb.client.MongoCursor;
+
+import org.bson.Document;
 
 import java.util.Date;
 import java.util.Iterator;
@@ -31,8 +32,8 @@ import java.util.Map;
 
 /** Enumerator that reads from a MongoDB collection. */
 class MongoEnumerator implements Enumerator<Object> {
-  private final Iterator<DBObject> cursor;
-  private final Function1<DBObject, Object> getter;
+  private final Iterator<Document> cursor;
+  private final Function1<Document, Object> getter;
   private Object current;
 
   /** Creates a MongoEnumerator.
@@ -40,8 +41,8 @@ class MongoEnumerator implements Enumerator<Object> {
    * @param cursor Mongo iterator (usually a {@link com.mongodb.DBCursor})
    * @param getter Converts an object into a list of fields
    */
-  MongoEnumerator(Iterator<DBObject> cursor,
-      Function1<DBObject, Object> getter) {
+  MongoEnumerator(Iterator<Document> cursor,
+      Function1<Document, Object> getter) {
     this.cursor = cursor;
     this.getter = getter;
   }
@@ -53,7 +54,7 @@ class MongoEnumerator implements Enumerator<Object> {
   public boolean moveNext() {
     try {
       if (cursor.hasNext()) {
-        DBObject map = cursor.next();
+        Document map = cursor.next();
         current = getter.apply(map);
         return true;
       } else {
@@ -70,56 +71,46 @@ class MongoEnumerator implements Enumerator<Object> {
   }
 
   public void close() {
-    if (cursor instanceof DBCursor) {
-      ((DBCursor) cursor).close();
+    if (cursor instanceof MongoCursor) {
+      ((MongoCursor) cursor).close();
     }
     // AggregationOutput implements Iterator but not DBCursor. There is no
     // available close() method -- apparently there is no open resource.
   }
 
-  static Function1<DBObject, Map> mapGetter() {
-    return new Function1<DBObject, Map>() {
-      public Map apply(DBObject a0) {
-        return (Map) a0;
-      }
-    };
+  static Function1<Document, Map> mapGetter() {
+    return a0 -> (Map) a0;
   }
 
-  static Function1<DBObject, Object> singletonGetter(final String fieldName,
+  static Function1<Document, Object> singletonGetter(final String fieldName,
       final Class fieldClass) {
-    return new Function1<DBObject, Object>() {
-      public Object apply(DBObject a0) {
-        return convert(a0.get(fieldName), fieldClass);
-      }
-    };
+    return a0 -> convert(a0.get(fieldName), fieldClass);
   }
 
   /**
    * @param fields List of fields to project; or null to return map
    */
-  static Function1<DBObject, Object[]> listGetter(
+  static Function1<Document, Object[]> listGetter(
       final List<Map.Entry<String, Class>> fields) {
-    return new Function1<DBObject, Object[]>() {
-      public Object[] apply(DBObject a0) {
-        Object[] objects = new Object[fields.size()];
-        for (int i = 0; i < fields.size(); i++) {
-          final Map.Entry<String, Class> field = fields.get(i);
-          final String name = field.getKey();
-          objects[i] = convert(a0.get(name), field.getValue());
-        }
-        return objects;
+    return a0 -> {
+      Object[] objects = new Object[fields.size()];
+      for (int i = 0; i < fields.size(); i++) {
+        final Map.Entry<String, Class> field = fields.get(i);
+        final String name = field.getKey();
+        objects[i] = convert(a0.get(name), field.getValue());
       }
+      return objects;
     };
   }
 
-  static Function1<DBObject, Object> getter(
+  static Function1<Document, Object> getter(
       List<Map.Entry<String, Class>> fields) {
     //noinspection unchecked
     return fields == null
         ? (Function1) mapGetter()
         : fields.size() == 1
             ? singletonGetter(fields.get(0).getKey(), fields.get(0).getValue())
-            : listGetter(fields);
+            : (Function1) listGetter(fields);
   }
 
   private static Object convert(Object o, Class clazz) {

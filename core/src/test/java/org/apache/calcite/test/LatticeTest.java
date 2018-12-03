@@ -16,23 +16,18 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.Lattices;
 import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import org.junit.Assume;
 import org.junit.Ignore;
@@ -43,11 +38,14 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
+import static org.apache.calcite.test.Matchers.containsStringLinux;
 import static org.apache.calcite.test.Matchers.within;
 
 import static org.hamcrest.CoreMatchers.anyOf;
@@ -120,6 +118,35 @@ public class LatticeTest {
       + "  } ]\n"
       + "}\n";
 
+  private static final String AUTO_LATTICE = "{\n"
+      + "  name: 'star',\n"
+      + "  sql: [\n"
+      + "    'select 1 from \"foodmart\".\"sales_fact_1997\" as \"s\"',\n"
+      + "    'join \"foodmart\".\"product\" as \"p\" using (\"product_id\")',\n"
+      + "    'join \"foodmart\".\"time_by_day\" as \"t\" using (\"time_id\")',\n"
+      + "    'join \"foodmart\".\"product_class\" as \"pc\" on \"p\".\"product_class_id\" = \"pc\".\"product_class_id\"'\n"
+      + "  ],\n"
+      + "  auto: false,\n"
+      + "  algorithm: true,\n"
+      + "  algorithmMaxMillis: 10000,\n"
+      + "  rowCountEstimate: 86837,\n"
+      + "  defaultMeasures: [ {\n"
+      + "    agg: 'count'\n"
+      + "  } ],\n"
+      + "  tiles: [ {\n"
+      + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
+      + "   measures: [ {\n"
+      + "      agg: 'sum',\n"
+      + "      args: 'unit_sales'\n"
+      + "    }, {\n"
+      + "      agg: 'sum',\n"
+      + "      args: 'store_sales'\n"
+      + "    }, {\n"
+      + "      agg: 'count'\n"
+      + "    } ]\n"
+      + "  } ]\n"
+      + "}\n";
+
   private static CalciteAssert.AssertThat modelWithLattice(String name,
       String sql, String... extras) {
     final StringBuilder buf = new StringBuilder("{ name: '")
@@ -166,29 +193,48 @@ public class LatticeTest {
    * schema. */
   @Test public void testLatticeSql() throws Exception {
     modelWithLattice("EMPLOYEES", "select * from \"foodmart\".\"days\"")
-        .doWithConnection(new Function<CalciteConnection, Void>() {
-          public Void apply(CalciteConnection c) {
-            final SchemaPlus schema = c.getRootSchema();
-            final SchemaPlus adhoc = schema.getSubSchema("adhoc");
-            assertThat(adhoc.getTableNames().contains("EMPLOYEES"), is(true));
-            final Map.Entry<String, CalciteSchema.LatticeEntry> entry =
-                adhoc.unwrap(CalciteSchema.class).getLatticeMap().firstEntry();
-            final Lattice lattice = entry.getValue().getLattice();
-            final String sql = "SELECT \"days\".\"day\"\n"
-                + "FROM \"foodmart\".\"days\" AS \"days\"\n"
-                + "GROUP BY \"days\".\"day\"";
-            assertThat(
-                lattice.sql(ImmutableBitSet.of(0),
-                    ImmutableList.<Lattice.Measure>of()), is(sql));
-            final String sql2 = "SELECT"
-                + " \"days\".\"day\", \"days\".\"week_day\"\n"
-                + "FROM \"foodmart\".\"days\" AS \"days\"";
-            assertThat(
-                lattice.sql(ImmutableBitSet.of(0, 1), false,
-                    ImmutableList.<Lattice.Measure>of()),
-                is(sql2));
-            return null;
-          }
+        .doWithConnection(c -> {
+          final SchemaPlus schema = c.getRootSchema();
+          final SchemaPlus adhoc = schema.getSubSchema("adhoc");
+          assertThat(adhoc.getTableNames().contains("EMPLOYEES"), is(true));
+          final Map.Entry<String, CalciteSchema.LatticeEntry> entry =
+              adhoc.unwrap(CalciteSchema.class).getLatticeMap().firstEntry();
+          final Lattice lattice = entry.getValue().getLattice();
+          final String sql = "SELECT \"days\".\"day\"\n"
+              + "FROM \"foodmart\".\"days\" AS \"days\"\n"
+              + "GROUP BY \"days\".\"day\"";
+          assertThat(
+              lattice.sql(ImmutableBitSet.of(0),
+                  ImmutableList.of()), is(sql));
+          final String sql2 = "SELECT"
+              + " \"days\".\"day\", \"days\".\"week_day\"\n"
+              + "FROM \"foodmart\".\"days\" AS \"days\"";
+          assertThat(
+              lattice.sql(ImmutableBitSet.of(0, 1), false,
+                  ImmutableList.of()),
+              is(sql2));
+        });
+  }
+
+  /** Tests some of the properties of the {@link Lattice} data structure. */
+  @Test public void testLattice() throws Exception {
+    modelWithLattice("star",
+        "select 1 from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "join \"foodmart\".\"product\" as p using (\"product_id\")\n"
+            + "join \"foodmart\".\"time_by_day\" as t on t.\"time_id\" = s.\"time_id\"")
+        .doWithConnection(c -> {
+          final SchemaPlus schema = c.getRootSchema();
+          final SchemaPlus adhoc = schema.getSubSchema("adhoc");
+          assertThat(adhoc.getTableNames().contains("EMPLOYEES"), is(true));
+          final Map.Entry<String, CalciteSchema.LatticeEntry> entry =
+              adhoc.unwrap(CalciteSchema.class).getLatticeMap().firstEntry();
+          final Lattice lattice = entry.getValue().getLattice();
+          assertThat(lattice.firstColumn("S"), is(10));
+          assertThat(lattice.firstColumn("P"), is(18));
+          assertThat(lattice.firstColumn("T"), is(0));
+          assertThat(lattice.firstColumn("PC"), is(-1));
+          assertThat(lattice.defaultMeasures.size(), is(1));
+          assertThat(lattice.rootNode.descendants.size(), is(3));
         });
   }
 
@@ -264,6 +310,15 @@ public class LatticeTest {
         .connectThrows("only inner join allowed, but got LEFT");
   }
 
+  /** Each lattice table must have a parent. */
+  @Test public void testLatticeInvalidSql3() {
+    modelWithLattice("star",
+        "select 1 from \"foodmart\".\"sales_fact_1997\" as s\n"
+        + "join \"foodmart\".\"product\" as p using (\"product_id\")\n"
+        + "join \"foodmart\".\"time_by_day\" as t on s.\"product_id\" = p.\"product_id\"")
+        .connectThrows("child node must have precisely one parent");
+  }
+
   /** When a lattice is registered, there is a table with the same name.
    * It can be used for explain, but not for queries. */
   @Test public void testLatticeStarTable() {
@@ -309,23 +364,20 @@ public class LatticeTest {
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"product\" as p using (\"product_id\")\n")
         .enableMaterializations(true)
-        .substitutionMatches(
-            new Function<RelNode, Void>() {
-              public Void apply(RelNode relNode) {
-                counter.incrementAndGet();
-                String s = Util.toLinux(RelOptUtil.toString(relNode));
-                assertThat(s,
-                    anyOf(
-                        containsString(
-                            "LogicalProject(brand_name=[$1], customer_id=[$0])\n"
-                            + "  LogicalAggregate(group=[{2, 10}])\n"
-                            + "    LogicalTableScan(table=[[adhoc, star]])\n"),
-                        containsString(
-                            "LogicalAggregate(group=[{2, 10}])\n"
-                            + "  LogicalTableScan(table=[[adhoc, star]])\n")));
-                return null;
-              }
-            });
+        .substitutionMatches(relNode -> {
+          counter.incrementAndGet();
+          String s = RelOptUtil.toString(relNode);
+          assertThat(s,
+              anyOf(
+                  containsStringLinux(
+                      "LogicalProject(brand_name=[$1], customer_id=[$0])\n"
+                      + "  LogicalAggregate(group=[{2, 10}])\n"
+                      + "    LogicalTableScan(table=[[adhoc, star]])\n"),
+                  containsStringLinux(
+                      "LogicalAggregate(group=[{2, 10}])\n"
+                      + "  LogicalTableScan(table=[[adhoc, star]])\n")));
+          return null;
+        });
     assertThat(counter.intValue(), equalTo(2));
     that.explainContains(""
         + "EnumerableCalc(expr#0..1=[{inputs}], brand_name=[$t1], customer_id=[$t0])\n"
@@ -334,13 +386,9 @@ public class LatticeTest {
 
     // Run the same query again and see whether it uses the same
     // materialization.
-    that.withHook(
-        Hook.CREATE_MATERIALIZATION,
-        new Function<String, Void>() {
-          public Void apply(String materializationName) {
-            counter.incrementAndGet();
-            return null;
-          }
+    that.withHook(Hook.CREATE_MATERIALIZATION,
+        materializationName -> {
+          counter.incrementAndGet();
         })
         .returnsCount(69203);
 
@@ -365,7 +413,7 @@ public class LatticeTest {
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n")
       .enableMaterializations(true)
-      .explainContains("EnumerableTableScan(table=[[adhoc, m{27, 31}")
+      .explainContains("EnumerableTableScan(table=[[adhoc, m{32, 36}")
       .returnsCount(4);
   }
 
@@ -380,7 +428,7 @@ public class LatticeTest {
       .enableMaterializations(true)
       .explainContains(""
           + "EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
-          + "  EnumerableTableScan(table=[[adhoc, m{27, 31}")
+          + "  EnumerableTableScan(table=[[adhoc, m{32, 36}")
       .returnsUnordered("the_year=1997; quarter=Q1; C=21588",
           "the_year=1997; quarter=Q2; C=20368",
           "the_year=1997; quarter=Q3; C=21453",
@@ -404,7 +452,7 @@ public class LatticeTest {
         .explainContains(""
             + "EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[*($t3, $t4)], proj#0..2=[{exprs}], US=[$t5])\n"
             + "  EnumerableAggregate(group=[{0}], C=[$SUM0($2)], Q=[MIN($1)], agg#2=[$SUM0($4)])\n"
-            + "    EnumerableTableScan(table=[[adhoc, m{27, 31}")
+            + "    EnumerableTableScan(table=[[adhoc, m{32, 36}")
         .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .returnsUnordered("the_year=1997; C=86837; Q=Q1; US=2667730.0000")
         .sameResultWithMaterializationsDisabled();
@@ -419,7 +467,7 @@ public class LatticeTest {
    * materialize</a>. */
   @Test public void testTileAlgorithm() {
     final String explain = "EnumerableAggregate(group=[{2, 3}])\n"
-        + "  EnumerableTableScan(table=[[adhoc, m{16, 17, 27, 31, 32, 37}]])";
+        + "  EnumerableTableScan(table=[[adhoc, m{16, 17, 32, 36, 37}]])";
     checkTileAlgorithm(
         FoodMartLatticeStatisticProvider.class.getCanonicalName() + "#FACTORY",
         explain);
@@ -430,8 +478,8 @@ public class LatticeTest {
   @Test public void testTileAlgorithm2() {
     // Different explain than above, but note that it still selects columns
     // (27, 31).
-    final String explain = "EnumerableAggregate(group=[{0, 1}])\n"
-        + "  EnumerableTableScan(table=[[adhoc, m{27, 31, 32, 36, 37}]";
+    final String explain = "EnumerableAggregate(group=[{4, 5}])\n"
+        + "  EnumerableTableScan(table=[[adhoc, m{16, 17, 27, 31, 32, 36, 37}]";
     checkTileAlgorithm(Lattices.class.getCanonicalName() + "#CACHED_SQL",
         explain);
   }
@@ -441,8 +489,8 @@ public class LatticeTest {
   @Test public void testTileAlgorithm3() {
     Assume.assumeTrue("Yahoo sketches requires JDK 8 or higher",
         TestUtil.getJavaMajorVersion() >= 8);
-    final String explain = "EnumerableAggregate(group=[{0, 1}])\n"
-        + "  EnumerableTableScan(table=[[adhoc, m{27, 31, 32, 36, 37}]";
+    final String explain = "EnumerableAggregate(group=[{4, 5}])\n"
+        + "  EnumerableTableScan(table=[[adhoc, m{16, 17, 27, 31, 32, 36, 37}]";
     checkTileAlgorithm(Lattices.class.getCanonicalName() + "#PROFILER",
         explain);
   }
@@ -456,6 +504,10 @@ public class LatticeTest {
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n")
         .enableMaterializations(true)
+        // disable for MySQL; times out running star-join query
+        // disable for H2; it thinks our generated SQL has invalid syntax
+        .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.MYSQL
+            && CalciteAssert.DB != CalciteAssert.DatabaseInstance.H2)
         .explainContains(expectedExplain)
         .returnsUnordered("the_year=1997; quarter=Q1",
             "the_year=1997; quarter=Q2",
@@ -542,18 +594,11 @@ public class LatticeTest {
   /** Tests that two queries of the same dimensionality that use different
    * measures can use the same materialization. */
   @Test public void testGroupByEmpty3() {
-    final List<String> mats = Lists.newArrayList();
-    final Function<String, Void> handler =
-        new Function<String, Void>() {
-          public Void apply(String materializationName) {
-            mats.add(materializationName);
-            return null;
-          }
-        };
+    final List<String> mats = new ArrayList<>();
     final CalciteAssert.AssertThat that = foodmartModel().pooled();
     that.query("select sum(\"unit_sales\") as s, count(*) as c\n"
             + "from \"foodmart\".\"sales_fact_1997\"")
-        .withHook(Hook.CREATE_MATERIALIZATION, handler)
+        .withHook(Hook.CREATE_MATERIALIZATION, (Consumer<String>) mats::add)
         .enableMaterializations(true)
         .explainContains("EnumerableTableScan(table=[[adhoc, m{}]])")
         .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
@@ -563,7 +608,7 @@ public class LatticeTest {
     // A similar query can use the same materialization.
     that.query("select sum(\"unit_sales\") as s\n"
         + "from \"foodmart\".\"sales_fact_1997\"")
-        .withHook(Hook.CREATE_MATERIALIZATION, handler)
+        .withHook(Hook.CREATE_MATERIALIZATION, (Consumer<String>) mats::add)
         .enableMaterializations(true)
         .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .returnsUnordered("S=266773.0000");
@@ -595,7 +640,7 @@ public class LatticeTest {
         .enableMaterializations(true)
         .explainContains("EnumerableCalc(expr#0..1=[{inputs}], C=[$t1])\n"
             + "  EnumerableAggregate(group=[{0}], C=[COUNT($1)])\n"
-            + "    EnumerableTableScan(table=[[adhoc, m{27, 31}]])")
+            + "    EnumerableTableScan(table=[[adhoc, m{32, 36}]])")
         .returnsUnordered("C=4");
   }
 
@@ -609,7 +654,7 @@ public class LatticeTest {
         .explainContains("EnumerableCalc(expr#0..1=[{inputs}], C=[$t1])\n"
             + "  EnumerableAggregate(group=[{0}], C=[COUNT($0)])\n"
             + "    EnumerableAggregate(group=[{0}])\n"
-            + "      EnumerableTableScan(table=[[adhoc, m{27, 31}]])")
+            + "      EnumerableTableScan(table=[[adhoc, m{32, 36}]])")
         .returnsUnordered("C=1");
   }
 
@@ -637,8 +682,8 @@ public class LatticeTest {
   }
 
   private void check(int n) throws IOException {
-    final FoodmartTest.FoodmartQuery query =
-        FoodmartTest.FoodMartQuerySet.instance().queries.get(n);
+    final FoodMartQuerySet set = FoodMartQuerySet.instance();
+    final FoodMartQuerySet.FoodmartQuery query = set.queries.get(n);
     if (query == null) {
       return;
     }
@@ -680,18 +725,26 @@ public class LatticeTest {
 
   @Test public void testTwoLattices() {
     final AtomicInteger counter = new AtomicInteger();
+    // disable for MySQL; times out running star-join query
+    // disable for H2; it thinks our generated SQL has invalid syntax
+    final boolean enabled =
+        CalciteAssert.DB != CalciteAssert.DatabaseInstance.MYSQL
+            && CalciteAssert.DB != CalciteAssert.DatabaseInstance.H2;
     modelWithLattices(SALES_LATTICE, INVENTORY_LATTICE)
         .query("select s.\"unit_sales\", p.\"brand_name\"\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"product\" as p using (\"product_id\")\n")
         .enableMaterializations(true)
+        .enable(enabled)
         .substitutionMatches(
             CalciteAssert.checkRel(
                 "LogicalProject(unit_sales=[$7], brand_name=[$10])\n"
                     + "  LogicalProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], product_class_id=[$8], product_id0=[$9], brand_name=[$10], product_name=[$11], SKU=[$12], SRP=[$13], gross_weight=[$14], net_weight=[$15], recyclable_package=[$16], low_fat=[$17], units_per_case=[$18], cases_per_pallet=[$19], shelf_width=[$20], shelf_height=[$21], shelf_depth=[$22])\n"
                     + "    LogicalTableScan(table=[[adhoc, star]])\n",
                 counter));
-    assertThat(counter.intValue(), equalTo(1));
+    if (enabled) {
+      assertThat(counter.intValue(), is(1));
+    }
   }
 
   /** Test case for
@@ -764,13 +817,54 @@ public class LatticeTest {
         .returns("EXPR$0=1\n");
   }
 
+  @Test public void testSuggester() {
+    final Class<JdbcTest.EmpDeptTableFactory> clazz =
+        JdbcTest.EmpDeptTableFactory.class;
+    final String model = ""
+        + "{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + JdbcTest.FOODMART_SCHEMA
+        + ",\n"
+        + "     {\n"
+        + "       name: 'adhoc',\n"
+        + "       tables: [\n"
+        + "         {\n"
+        + "           name: 'EMPLOYEES',\n"
+        + "           type: 'custom',\n"
+        + "           factory: '" + clazz.getName() + "',\n"
+        + "           operand: {'foo': true, 'bar': 345}\n"
+        + "         }\n"
+        + "       ],\n"
+        + "       \"autoLattice\": true"
+        + "     }\n"
+        + "   ]\n"
+        + "}";
+    final String sql = "select count(*)\n"
+        + "from \"sales_fact_1997\"\n"
+        + "join \"time_by_day\" using (\"time_id\")\n";
+    final String explain = "PLAN=JdbcToEnumerableConverter\n"
+        + "  JdbcAggregate(group=[{}], EXPR$0=[COUNT()])\n"
+        + "    JdbcJoin(condition=[=($1, $0)], joinType=[inner])\n"
+        + "      JdbcProject(time_id=[$0])\n"
+        + "        JdbcTableScan(table=[[foodmart, time_by_day]])\n"
+        + "      JdbcProject(time_id=[$1])\n"
+        + "        JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n";
+    CalciteAssert.model(model)
+        .withDefaultSchema("foodmart")
+        .query(sql)
+        .returns("EXPR$0=86837\n")
+        .explainContains(explain);
+  }
+
   private static CalciteAssert.AssertThat foodmartModel(String... extras) {
-    return modelWithLattice("star",
-        "select 1 from \"foodmart\".\"sales_fact_1997\" as \"s\"\n"
-            + "join \"foodmart\".\"product\" as \"p\" using (\"product_id\")\n"
-            + "join \"foodmart\".\"time_by_day\" as \"t\" using (\"time_id\")\n"
-            + "join \"foodmart\".\"product_class\" as \"pc\" on \"p\".\"product_class_id\" = \"pc\".\"product_class_id\"",
-        extras);
+    final String sql = "select 1\n"
+        + "from \"foodmart\".\"sales_fact_1997\" as \"s\"\n"
+        + "join \"foodmart\".\"product\" as \"p\" using (\"product_id\")\n"
+        + "join \"foodmart\".\"time_by_day\" as \"t\" using (\"time_id\")\n"
+        + "join \"foodmart\".\"product_class\" as \"pc\"\n"
+        + "  on \"p\".\"product_class_id\" = \"pc\".\"product_class_id\"";
+    return modelWithLattice("star", sql, extras);
   }
 
   private CalciteAssert.AssertThat foodmartModelWithOneTile() {
@@ -797,7 +891,7 @@ public class LatticeTest {
     final Connection connection = DriverManager.getConnection(
         "jdbc:calcite:model=core/src/test/resources/mysql-foodmart-lattice-model.json");
     final ResultSet resultSet = connection.createStatement()
-        .executeQuery("select * from \"adhoc\".\"m{27, 31}\"");
+        .executeQuery("select * from \"adhoc\".\"m{32, 36}\"");
     System.out.println(CalciteAssert.toString(resultSet));
     connection.close();
   }

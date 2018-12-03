@@ -21,21 +21,38 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.CartesianProductEnumerator;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Deterministic;
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.runtime.FlatLists.ComparableList;
+import org.apache.calcite.sql.SqlJsonConstructorNullClause;
+import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;
+import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
+import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
+import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.Option;
+import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
+import com.jayway.jsonpath.spi.json.JsonProvider;
+import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
+import com.jayway.jsonpath.spi.mapper.MappingProvider;
+
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
@@ -45,15 +62,24 @@ import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Helper methods to implement SQL functions in generated code.
@@ -75,31 +101,20 @@ public class SqlFunctions {
   private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
   private static final Function1<List<Object>, Enumerable<Object>> LIST_AS_ENUMERABLE =
-      new Function1<List<Object>, Enumerable<Object>>() {
-        public Enumerable<Object> apply(List<Object> list) {
-          return Linq4j.asEnumerable(list);
-        }
-      };
+      Linq4j::asEnumerable;
 
   private static final Function1<Object[], Enumerable<Object[]>> ARRAY_CARTESIAN_PRODUCT =
-      new Function1<Object[], Enumerable<Object[]>>() {
-        public Enumerable<Object[]> apply(Object[] lists) {
-          final List<Enumerator<Object>> enumerators = new ArrayList<>();
-          for (Object list : lists) {
-            enumerators.add(Linq4j.enumerator((List) list));
-          }
-          final Enumerator<List<Object>> product = Linq4j.product(enumerators);
-          return new AbstractEnumerable<Object[]>() {
-            public Enumerator<Object[]> enumerator() {
-              return Linq4j.transform(product,
-                  new Function1<List<Object>, Object[]>() {
-                    public Object[] apply(List<Object> list) {
-                      return list.toArray();
-                    }
-                  });
-            }
-          };
+      lists -> {
+        final List<Enumerator<Object>> enumerators = new ArrayList<>();
+        for (Object list : lists) {
+          enumerators.add(Linq4j.enumerator((List) list));
         }
+        final Enumerator<List<Object>> product = Linq4j.product(enumerators);
+        return new AbstractEnumerable<Object[]>() {
+          public Enumerator<Object[]> enumerator() {
+            return Linq4j.transform(product, List::toArray);
+          }
+        };
       };
 
   /** Holds, for each thread, a map from sequence name to sequence current
@@ -109,33 +124,64 @@ public class SqlFunctions {
    * that sequences can be parsed, validated and planned. A real application
    * will want persistent values for sequences, shared among threads. */
   private static final ThreadLocal<Map<String, AtomicLong>> THREAD_SEQUENCES =
-      new ThreadLocal<Map<String, AtomicLong>>() {
-        @Override protected Map<String, AtomicLong> initialValue() {
-          return new HashMap<String, AtomicLong>();
-        }
-      };
+      ThreadLocal.withInitial(HashMap::new);
+
+  private static final Pattern JSON_PATH_BASE =
+      Pattern.compile("^\\s*(?<mode>strict|lax)\\s+(?<spec>.+)$",
+          Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);
+
+  private static final JsonProvider JSON_PATH_JSON_PROVIDER =
+      new JacksonJsonProvider();
+  private static final MappingProvider JSON_PATH_MAPPING_PROVIDER =
+      new JacksonMappingProvider();
 
   private SqlFunctions() {
   }
 
   /** SQL SUBSTRING(string FROM ... FOR ...) function. */
-  public static String substring(String s, int from, int for_) {
-    return s.substring(from - 1, Math.min(from - 1 + for_, s.length()));
+  public static String substring(String c, int s, int l) {
+    int lc = c.length();
+    if (s < 0) {
+      s += lc + 1;
+    }
+    int e = s + l;
+    if (e < s) {
+      throw RESOURCE.illegalNegativeSubstringLength().ex();
+    }
+    if (s > lc || e < 1) {
+      return "";
+    }
+    int s1 = Math.max(s, 1);
+    int e1 = Math.min(e, lc + 1);
+    return c.substring(s1 - 1, e1 - 1);
   }
 
   /** SQL SUBSTRING(string FROM ...) function. */
-  public static String substring(String s, int from) {
-    return s.substring(from - 1);
+  public static String substring(String c, int s) {
+    return substring(c, s, c.length() + 1);
   }
 
   /** SQL SUBSTRING(binary FROM ... FOR ...) function. */
-  public static ByteString substring(ByteString b, int from, int for_) {
-    return b.substring(from - 1, Math.min(from - 1 + for_, b.length()));
+  public static ByteString substring(ByteString c, int s, int l) {
+    int lc = c.length();
+    if (s < 0) {
+      s += lc + 1;
+    }
+    int e = s + l;
+    if (e < s) {
+      throw RESOURCE.illegalNegativeSubstringLength().ex();
+    }
+    if (s > lc || e < 1) {
+      return ByteString.EMPTY;
+    }
+    int s1 = Math.max(s, 1);
+    int e1 = Math.min(e, lc + 1);
+    return c.substring(s1 - 1, e1 - 1);
   }
 
   /** SQL SUBSTRING(binary FROM ...) function. */
-  public static ByteString substring(ByteString b, int from) {
-    return b.substring(from - 1);
+  public static ByteString substring(ByteString c, int s) {
+    return substring(c, s, c.length() + 1);
   }
 
   /** SQL UPPER(string) function. */
@@ -202,29 +248,32 @@ public class SqlFunctions {
 
   /** SQL {@code RTRIM} function applied to string. */
   public static String rtrim(String s) {
-    return trim_(s, false, true, ' ');
+    return trim(false, true, " ", s);
   }
 
   /** SQL {@code LTRIM} function. */
   public static String ltrim(String s) {
-    return trim_(s, true, false, ' ');
+    return trim(true, false, " ", s);
   }
 
   /** SQL {@code TRIM(... seek FROM s)} function. */
-  public static String trim(boolean leading, boolean trailing, String seek,
+  public static String trim(boolean left, boolean right, String seek,
       String s) {
-    return trim_(s, leading, trailing, seek.charAt(0));
+    return trim(left, right, seek, s, true);
   }
 
-  /** SQL {@code TRIM} function. */
-  private static String trim_(String s, boolean left, boolean right, char c) {
+  public static String trim(boolean left, boolean right, String seek,
+      String s, boolean strict) {
+    if (strict && seek.length() != 1) {
+      throw RESOURCE.trimError().ex();
+    }
     int j = s.length();
     if (right) {
       for (;;) {
         if (j == 0) {
           return "";
         }
-        if (s.charAt(j - 1) != c) {
+        if (seek.indexOf(s.charAt(j - 1)) < 0) {
           break;
         }
         --j;
@@ -236,7 +285,7 @@ public class SqlFunctions {
         if (i == j) {
           return "";
         }
-        if (s.charAt(i) != c) {
+        if (seek.indexOf(s.charAt(i)) < 0) {
           break;
         }
         ++i;
@@ -791,16 +840,16 @@ public class SqlFunctions {
     throw notArithmetic("*", b0, b1);
   }
 
-  private static IllegalArgumentException notArithmetic(String op, Object b0,
+  private static RuntimeException notArithmetic(String op, Object b0,
       Object b1) {
-    return new IllegalArgumentException("Invalid types for arithmetic: "
-        + b0.getClass() + " " + op + " " + b1.getClass());
+    return RESOURCE.invalidTypesForArithmetic(b0.getClass().toString(),
+        op, b1.getClass().toString()).ex();
   }
 
-  private static IllegalArgumentException notComparable(String op, Object b0,
+  private static RuntimeException notComparable(String op, Object b0,
       Object b1) {
-    return new IllegalArgumentException("Invalid types for comparison: "
-        + b0.getClass() + " " + op + " " + b1.getClass());
+    return RESOURCE.invalidTypesForComparison(b0.getClass().toString(),
+        op, b1.getClass().toString()).ex();
   }
 
   // EXP
@@ -839,6 +888,10 @@ public class SqlFunctions {
 
   public static double power(long b0, BigDecimal b1) {
     return Math.pow(b0, b1.doubleValue());
+  }
+
+  public static double power(BigDecimal b0, long b1) {
+    return Math.pow(b0.doubleValue(), b1);
   }
 
   // LN
@@ -1124,6 +1177,11 @@ public class SqlFunctions {
   /** SQL <code>ATAN2</code> operator applied to long/BigDecimal values. */
   public static double atan2(long b0, BigDecimal b1) {
     return Math.atan2(b0, b1.doubleValue());
+  }
+
+  /** SQL <code>ATAN2</code> operator applied to BigDecimal/long values. */
+  public static double atan2(BigDecimal b0, long b1) {
+    return Math.atan2(b0.doubleValue(), b1);
   }
 
   /** SQL <code>ATAN2</code> operator applied to BigDecimal values. */
@@ -1468,18 +1526,18 @@ public class SqlFunctions {
 
   @NonDeterministic
   private static Object cannotConvert(Object o, Class toType) {
-    throw new RuntimeException("Cannot convert " + o + " to " + toType);
+    throw RESOURCE.cannotConvert(o.toString(), toType.toString()).ex();
   }
 
   /** CAST(VARCHAR AS BOOLEAN). */
   public static boolean toBoolean(String s) {
-    s = trim_(s, true, true, ' ');
+    s = trim(true, true, " ", s);
     if (s.equalsIgnoreCase("TRUE")) {
       return true;
     } else if (s.equalsIgnoreCase("FALSE")) {
       return false;
     } else {
-      throw new RuntimeException("Invalid character for cast");
+      throw RESOURCE.invalidCharacterForCast(s).ex();
     }
   }
 
@@ -2062,7 +2120,7 @@ public class SqlFunctions {
     try {
       return Primitive.asList(a.getArray());
     } catch (SQLException e) {
-      throw new RuntimeException(e);
+      throw toUnchecked(e);
     }
   }
 
@@ -2101,8 +2159,103 @@ public class SqlFunctions {
     case 1:
       return list.get(0);
     default:
-      throw new RuntimeException("more than one value");
+      throw RESOURCE.moreThanOneValueInList(list.toString()).ex();
     }
+  }
+
+  /** Support the MEMBER OF function. */
+  public static boolean memberOf(Object object, Collection collection) {
+    return collection.contains(object);
+  }
+
+  /** Support the MULTISET INTERSECT DISTINCT function. */
+  public static <E> Collection<E> multisetIntersectDistinct(Collection<E> c1,
+      Collection<E> c2) {
+    final Set<E> result = new HashSet<>(c1);
+    result.retainAll(c2);
+    return new ArrayList<>(result);
+  }
+
+  /** Support the MULTISET INTERSECT ALL function. */
+  public static <E> Collection<E> multisetIntersectAll(Collection<E> c1,
+      Collection<E> c2) {
+    final List<E> result = new ArrayList<>(c1.size());
+    final List<E> c2Copy = new ArrayList<>(c2);
+    for (E e : c1) {
+      if (c2Copy.remove(e)) {
+        result.add(e);
+      }
+    }
+    return result;
+  }
+
+  /** Support the MULTISET EXCEPT ALL function. */
+  public static <E> Collection<E> multisetExceptAll(Collection<E> c1,
+      Collection<E> c2) {
+    final List<E> result = new LinkedList<>(c1);
+    for (E e : c2) {
+      result.remove(e);
+    }
+    return result;
+  }
+
+  /** Support the MULTISET EXCEPT DISTINCT function. */
+  public static <E> Collection<E> multisetExceptDistinct(Collection<E> c1,
+      Collection<E> c2) {
+    final Set<E> result = new HashSet<>(c1);
+    result.removeAll(c2);
+    return new ArrayList<>(result);
+  }
+
+  /** Support the IS A SET function. */
+  public static boolean isASet(Collection collection) {
+    if (collection instanceof Set) {
+      return true;
+    }
+    // capacity calculation is in the same way like for new HashSet(Collection)
+    // however return immediately in case of duplicates
+    Set set = new HashSet(Math.max((int) (collection.size() / .75f) + 1, 16));
+    for (Object e : collection) {
+      if (!set.add(e)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Support the SUBMULTISET OF function. */
+  public static boolean submultisetOf(Collection possibleSubMultiset,
+      Collection multiset) {
+    if (possibleSubMultiset.size() > multiset.size()) {
+      return false;
+    }
+    Collection multisetLocal = new LinkedList(multiset);
+    for (Object e : possibleSubMultiset) {
+      if (!multisetLocal.remove(e)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Support the MULTISET UNION function. */
+  public static Collection multisetUnionDistinct(Collection collection1,
+      Collection collection2) {
+    // capacity calculation is in the same way like for new HashSet(Collection)
+    Set resultCollection =
+        new HashSet(Math.max((int) ((collection1.size() + collection2.size()) / .75f) + 1, 16));
+    resultCollection.addAll(collection1);
+    resultCollection.addAll(collection2);
+    return new ArrayList(resultCollection);
+  }
+
+  /** Support the MULTISET UNION ALL function. */
+  public static Collection multisetUnionAll(Collection collection1,
+      Collection collection2) {
+    List resultCollection = new ArrayList(collection1.size() + collection2.size());
+    resultCollection.addAll(collection1);
+    resultCollection.addAll(collection2);
+    return resultCollection;
   }
 
   public static Function1<Object, Enumerable<ComparableList<Comparable>>> flatProduct(
@@ -2113,20 +2266,12 @@ public class SqlFunctions {
         //noinspection unchecked
         return (Function1) LIST_AS_ENUMERABLE;
       } else {
-        return new Function1<Object, Enumerable<ComparableList<Comparable>>>() {
-          public Enumerable<ComparableList<Comparable>> apply(Object row) {
-            return p2(new Object[] { row }, fieldCounts, withOrdinality,
-                  inputTypes);
-          }
-        };
+        return row -> p2(new Object[] { row }, fieldCounts, withOrdinality,
+              inputTypes);
       }
     }
-    return new Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>>() {
-      public Enumerable<FlatLists.ComparableList<Comparable>> apply(Object lists) {
-        return p2((Object[]) lists, fieldCounts, withOrdinality,
-            inputTypes);
-      }
-    };
+    return lists -> p2((Object[]) lists, fieldCounts, withOrdinality,
+        inputTypes);
   }
 
   private static Enumerable<FlatLists.ComparableList<Comparable>> p2(
@@ -2144,12 +2289,7 @@ public class SqlFunctions {
             (List<Comparable>) inputObject;
         enumerators.add(
             Linq4j.transform(
-                Linq4j.enumerator(list),
-                new Function1<Comparable, List<Comparable>>() {
-                  public List<Comparable> apply(Comparable a0) {
-                    return FlatLists.of(a0);
-                  }
-                }));
+                Linq4j.enumerator(list), FlatLists::of));
         break;
       case LIST:
         @SuppressWarnings("unchecked") List<List<Comparable>> listList =
@@ -2163,11 +2303,7 @@ public class SqlFunctions {
             Linq4j.enumerator(map.entrySet());
 
         Enumerator<List<Comparable>> transformed = Linq4j.transform(enumerator,
-            new Function1<Entry<Comparable, Comparable>, List<Comparable>>() {
-              public List<Comparable> apply(Entry<Comparable, Comparable> e) {
-                return FlatLists.of(e.getKey(), e.getValue());
-              }
-            });
+            e -> FlatLists.of(e.getKey(), e.getValue()));
         enumerators.add(transformed);
         break;
       default:
@@ -2283,6 +2419,430 @@ public class SqlFunctions {
       --x;
     }
     return x;
+  }
+
+  /**
+   * Implements the {@code .} (field access) operator on an object
+   * whose type is not known until runtime.
+   *
+   * <p>A struct object can be represented in various ways by the
+   * runtime and depends on the
+   * {@link org.apache.calcite.adapter.enumerable.JavaRowFormat}.
+   */
+  @Experimental
+  public static Object structAccess(Object structObject, int index, String fieldName) {
+    if (structObject == null) {
+      return null;
+    }
+
+    if (structObject instanceof Object[]) {
+      return ((Object[]) structObject)[index];
+    } else if (structObject instanceof List) {
+      return ((List) structObject).get(index);
+    } else if (structObject instanceof Row) {
+      return ((Row) structObject).getObject(index);
+    } else {
+      Class<?> beanClass = structObject.getClass();
+      try {
+        Field structField = beanClass.getDeclaredField(fieldName);
+        return structField.get(structObject);
+      } catch (NoSuchFieldException | IllegalAccessException ex) {
+        throw RESOURCE.failedToAccessField(fieldName, beanClass.getName()).ex(ex);
+      }
+    }
+  }
+
+
+  private static boolean isScalarObject(Object obj) {
+    if (obj instanceof Collection) {
+      return false;
+    }
+    if (obj instanceof Map) {
+      return false;
+    }
+    return true;
+  }
+
+  public static Object jsonValueExpression(String input) {
+    try {
+      return dejsonize(input);
+    } catch (Exception e) {
+      return e;
+    }
+  }
+
+  public static Object jsonStructuredValueExpression(Object input) {
+    return input;
+  }
+
+  public static PathContext jsonApiCommonSyntax(Object input, String pathSpec) {
+    try {
+      Matcher matcher = JSON_PATH_BASE.matcher(pathSpec);
+      if (!matcher.matches()) {
+        throw RESOURCE.illegalJsonPathSpec(pathSpec).ex();
+      }
+      PathMode mode = PathMode.valueOf(matcher.group(1).toUpperCase(Locale.ENGLISH));
+      String pathWff = matcher.group(2);
+      DocumentContext ctx;
+      switch (mode) {
+      case STRICT:
+        if (input instanceof Exception) {
+          return PathContext.withStrictException((Exception) input);
+        }
+        ctx = JsonPath.parse(input,
+            Configuration
+                .builder()
+                .jsonProvider(JSON_PATH_JSON_PROVIDER)
+                .mappingProvider(JSON_PATH_MAPPING_PROVIDER)
+                .build());
+        break;
+      case LAX:
+        if (input instanceof Exception) {
+          return PathContext.withReturned(PathMode.LAX, null);
+        }
+        ctx = JsonPath.parse(input,
+            Configuration
+                .builder()
+                .options(Option.SUPPRESS_EXCEPTIONS)
+                .jsonProvider(JSON_PATH_JSON_PROVIDER)
+                .mappingProvider(JSON_PATH_MAPPING_PROVIDER)
+                .build());
+        break;
+      default:
+        throw RESOURCE.illegalJsonPathModeInPathSpec(mode.toString(), pathSpec).ex();
+      }
+      try {
+        return PathContext.withReturned(mode, ctx.read(pathWff));
+      } catch (Exception e) {
+        return PathContext.withStrictException(e);
+      }
+    } catch (Exception e) {
+      return PathContext.withUnknownException(e);
+    }
+  }
+
+  public static Boolean jsonExists(Object input) {
+    return jsonExists(input, SqlJsonExistsErrorBehavior.FALSE);
+  }
+
+  public static Boolean jsonExists(Object input,
+      SqlJsonExistsErrorBehavior errorBehavior) {
+    PathContext context = (PathContext) input;
+    if (context.exc != null) {
+      switch (errorBehavior) {
+      case TRUE:
+        return Boolean.TRUE;
+      case FALSE:
+        return Boolean.FALSE;
+      case ERROR:
+        throw toUnchecked(context.exc);
+      case UNKNOWN:
+        return null;
+      default:
+        throw RESOURCE.illegalErrorBehaviorInJsonExistsFunc(
+            errorBehavior.toString()).ex();
+      }
+    } else {
+      return !Objects.isNull(context.pathReturned);
+    }
+  }
+
+  public static Object jsonValueAny(Object input,
+      SqlJsonValueEmptyOrErrorBehavior emptyBehavior,
+      Object defaultValueOnEmpty,
+      SqlJsonValueEmptyOrErrorBehavior errorBehavior,
+      Object defaultValueOnError) {
+    final PathContext context = (PathContext) input;
+    final Exception exc;
+    if (context.exc != null) {
+      exc = context.exc;
+    } else {
+      Object value = context.pathReturned;
+      if (value == null || context.mode == PathMode.LAX
+          && !isScalarObject(value)) {
+        switch (emptyBehavior) {
+        case ERROR:
+          throw RESOURCE.emptyResultOfJsonValueFuncNotAllowed().ex();
+        case NULL:
+          return null;
+        case DEFAULT:
+          return defaultValueOnEmpty;
+        default:
+          throw RESOURCE.illegalEmptyBehaviorInJsonValueFunc(
+              emptyBehavior.toString()).ex();
+        }
+      } else if (context.mode == PathMode.STRICT
+          && !isScalarObject(value)) {
+        exc = RESOURCE.scalarValueRequiredInStrictModeOfJsonValueFunc(
+            value.toString()).ex();
+      } else {
+        return value;
+      }
+    }
+    switch (errorBehavior) {
+    case ERROR:
+      throw toUnchecked(exc);
+    case NULL:
+      return null;
+    case DEFAULT:
+      return defaultValueOnError;
+    default:
+      throw RESOURCE.illegalErrorBehaviorInJsonValueFunc(
+          errorBehavior.toString()).ex();
+    }
+  }
+
+  public static String jsonQuery(Object input,
+      SqlJsonQueryWrapperBehavior wrapperBehavior,
+      SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
+      SqlJsonQueryEmptyOrErrorBehavior errorBehavior) {
+    final PathContext context = (PathContext) input;
+    final Exception exc;
+    if (context.exc != null) {
+      exc = context.exc;
+    } else {
+      Object value;
+      if (context.pathReturned == null) {
+        value = null;
+      } else {
+        switch (wrapperBehavior) {
+        case WITHOUT_ARRAY:
+          value = context.pathReturned;
+          break;
+        case WITH_UNCONDITIONAL_ARRAY:
+          value = Collections.singletonList(context.pathReturned);
+          break;
+        case WITH_CONDITIONAL_ARRAY:
+          if (context.pathReturned instanceof Collection) {
+            value = context.pathReturned;
+          } else {
+            value = Collections.singletonList(context.pathReturned);
+          }
+          break;
+        default:
+          throw RESOURCE.illegalWrapperBehaviorInJsonQueryFunc(
+              wrapperBehavior.toString()).ex();
+        }
+      }
+      if (value == null || context.mode == PathMode.LAX
+          && isScalarObject(value)) {
+        switch (emptyBehavior) {
+        case ERROR:
+          throw RESOURCE.emptyResultOfJsonQueryFuncNotAllowed().ex();
+        case NULL:
+          return null;
+        case EMPTY_ARRAY:
+          return "[]";
+        case EMPTY_OBJECT:
+          return "{}";
+        default:
+          throw RESOURCE.illegalEmptyBehaviorInJsonQueryFunc(
+              emptyBehavior.toString()).ex();
+        }
+      } else if (context.mode == PathMode.STRICT && isScalarObject(value)) {
+        exc = RESOURCE.arrayOrObjectValueRequiredInStrictModeOfJsonQueryFunc(
+            value.toString()).ex();
+      } else {
+        try {
+          return jsonize(value);
+        } catch (Exception e) {
+          exc = e;
+        }
+      }
+    }
+    switch (errorBehavior) {
+    case ERROR:
+      throw toUnchecked(exc);
+    case NULL:
+      return null;
+    case EMPTY_ARRAY:
+      return "[]";
+    case EMPTY_OBJECT:
+      return "{}";
+    default:
+      throw RESOURCE.illegalErrorBehaviorInJsonQueryFunc(
+          errorBehavior.toString()).ex();
+    }
+  }
+
+  public static String jsonize(Object input) {
+    return JSON_PATH_JSON_PROVIDER.toJson(input);
+  }
+
+  public static Object dejsonize(String input) {
+    return JSON_PATH_JSON_PROVIDER.parse(input);
+  }
+
+  public static String jsonObject(SqlJsonConstructorNullClause nullClause,
+      Object... kvs) {
+    assert kvs.length % 2 == 0;
+    Map<String, Object> map = new HashMap<>();
+    for (int i = 0; i < kvs.length; i += 2) {
+      String k = (String) kvs[i];
+      Object v = kvs[i + 1];
+      if (k == null) {
+        throw RESOURCE.nullKeyOfJsonObjectNotAllowed().ex();
+      }
+      if (v == null) {
+        if (nullClause == SqlJsonConstructorNullClause.NULL_ON_NULL) {
+          map.put(k, null);
+        }
+      } else {
+        map.put(k, v);
+      }
+    }
+    return jsonize(map);
+  }
+
+  public static void jsonObjectAggAdd(Map map, String k, Object v,
+      SqlJsonConstructorNullClause nullClause) {
+    if (k == null) {
+      throw RESOURCE.nullKeyOfJsonObjectNotAllowed().ex();
+    }
+    if (v == null) {
+      if (nullClause == SqlJsonConstructorNullClause.NULL_ON_NULL) {
+        map.put(k, null);
+      }
+    } else {
+      map.put(k, v);
+    }
+  }
+
+  public static void jsonObjectAggAddNullOnNull(Map map, String k, Object v) {
+    jsonObjectAggAdd(map, k, v, SqlJsonConstructorNullClause.NULL_ON_NULL);
+  }
+
+  public static void jsonObjectAggAddAbsentOnNull(Map map, String k, Object v) {
+    jsonObjectAggAdd(map, k, v, SqlJsonConstructorNullClause.ABSENT_ON_NULL);
+  }
+
+  public static String jsonArray(SqlJsonConstructorNullClause nullClause,
+      Object... elements) {
+    List<Object> list = new ArrayList<>();
+    for (Object element : elements) {
+      if (element == null) {
+        if (nullClause == SqlJsonConstructorNullClause.NULL_ON_NULL) {
+          list.add(null);
+        }
+      } else {
+        list.add(element);
+      }
+    }
+    return jsonize(list);
+  }
+
+  public static void jsonArrayAggAdd(List list, Object element,
+      SqlJsonConstructorNullClause nullClause) {
+    if (element == null) {
+      if (nullClause == SqlJsonConstructorNullClause.NULL_ON_NULL) {
+        list.add(null);
+      }
+    } else {
+      list.add(element);
+    }
+  }
+
+  public static void jsonArrayAggAddNullOnNull(List list, Object element) {
+    jsonArrayAggAdd(list, element, SqlJsonConstructorNullClause.NULL_ON_NULL);
+  }
+
+  public static void jsonArrayAggAddAbsentOnNull(List list, Object element) {
+    jsonArrayAggAdd(list, element, SqlJsonConstructorNullClause.ABSENT_ON_NULL);
+  }
+
+  public static boolean isJsonValue(String input) {
+    try {
+      dejsonize(input);
+      return true;
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  public static boolean isJsonObject(String input) {
+    try {
+      Object o = dejsonize(input);
+      return o instanceof Map;
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  public static boolean isJsonArray(String input) {
+    try {
+      Object o = dejsonize(input);
+      return o instanceof Collection;
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  public static boolean isJsonScalar(String input) {
+    try {
+      Object o = dejsonize(input);
+      return !(o instanceof Map) && !(o instanceof Collection);
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  private static RuntimeException toUnchecked(Exception e) {
+    if (e instanceof RuntimeException) {
+      return (RuntimeException) e;
+    }
+    return new RuntimeException(e);
+  }
+
+  /**
+   * Returned path context of JsonApiCommonSyntax, public for testing.
+   */
+  public static class PathContext {
+    public final PathMode mode;
+    public final Object pathReturned;
+    public final Exception exc;
+
+    private PathContext(PathMode mode, Object pathReturned, Exception exc) {
+      this.mode = mode;
+      this.pathReturned = pathReturned;
+      this.exc = exc;
+    }
+
+    public static PathContext withUnknownException(Exception exc) {
+      return new PathContext(PathMode.UNKNOWN, null, exc);
+    }
+
+    public static PathContext withStrictException(Exception exc) {
+      return new PathContext(PathMode.STRICT, null, exc);
+    }
+
+    public static PathContext withReturned(PathMode mode, Object pathReturned) {
+      if (mode == PathMode.UNKNOWN) {
+        throw RESOURCE.illegalJsonPathMode(mode.toString()).ex();
+      }
+      if (mode == PathMode.STRICT && pathReturned == null) {
+        throw RESOURCE.strictPathModeRequiresNonEmptyValue().ex();
+      }
+      return new PathContext(mode, pathReturned, null);
+    }
+
+    @Override public String toString() {
+      return "PathContext{"
+          + "mode=" + mode
+          + ", pathReturned=" + pathReturned
+          + ", exc=" + exc
+          + '}';
+    }
+  }
+
+  /**
+   * Path spec has two different modes: lax mode and strict mode.
+   * Lax mode suppresses any thrown exception and returns null,
+   * whereas strict mode throws exceptions.
+   */
+  public enum PathMode {
+    LAX,
+    STRICT,
+    UNKNOWN
   }
 
   /** Enumerates over the cartesian product of the given lists, returning

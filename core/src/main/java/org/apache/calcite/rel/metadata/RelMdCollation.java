@@ -26,6 +26,7 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
@@ -47,10 +48,8 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedListMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 
@@ -59,6 +58,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -149,6 +149,11 @@ public class RelMdCollation
         project(mq, project.getInput(), project.getProjects()));
   }
 
+  public ImmutableList<RelCollation> collations(Calc calc,
+      RelMetadataQuery mq) {
+    return ImmutableList.copyOf(calc(mq, calc.getInput(), calc.getProgram()));
+  }
+
   public ImmutableList<RelCollation> collations(Values values,
       RelMetadataQuery mq) {
     return ImmutableList.copyOf(
@@ -163,7 +168,7 @@ public class RelMdCollation
   public ImmutableList<RelCollation> collations(RelSubset rel,
       RelMetadataQuery mq) {
     return ImmutableList.copyOf(
-        Preconditions.checkNotNull(
+        Objects.requireNonNull(
             rel.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE)));
   }
 
@@ -211,7 +216,7 @@ public class RelMdCollation
     final Multimap<Integer, Integer> targets = LinkedListMultimap.create();
     final Map<Integer, SqlMonotonicity> targetsWithMonotonicity =
         new HashMap<>();
-    for (Ord<RexNode> project : Ord.zip(projects)) {
+    for (Ord<RexNode> project : Ord.<RexNode>zip(projects)) {
       if (project.e instanceof RexInputRef) {
         targets.put(((RexInputRef) project.e).getIndex(), project.i);
       } else if (project.e instanceof RexCall) {
@@ -296,10 +301,10 @@ public class RelMdCollation
   public static List<RelCollation> values(RelMetadataQuery mq,
       RelDataType rowType, ImmutableList<ImmutableList<RexLiteral>> tuples) {
     Util.discard(mq); // for future use
-    final List<RelCollation> list = Lists.newArrayList();
+    final List<RelCollation> list = new ArrayList<>();
     final int n = rowType.getFieldCount();
     final List<Pair<RelFieldCollation, Ordering<List<RexLiteral>>>> pairs =
-        Lists.newArrayList();
+        new ArrayList<>();
   outer:
     for (int i = 0; i < n; i++) {
       pairs.clear();

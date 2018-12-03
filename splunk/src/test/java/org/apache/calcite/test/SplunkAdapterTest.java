@@ -18,7 +18,6 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 
 import org.junit.Ignore;
@@ -33,6 +32,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -192,21 +192,18 @@ public class SplunkAdapterTest {
    * Reads from a table.
    */
   @Test public void testSelect() throws SQLException {
-    checkSql(
-        "select \"source\", \"sourcetype\"\n"
-            + "from \"splunk\".\"splunk\"",
-        new Function<ResultSet, Void>() {
-          public Void apply(ResultSet a0) {
-            try {
-              if (!(a0.next() && a0.next() && a0.next())) {
-                throw new AssertionError("expected at least 3 rows");
-              }
-              return null;
-            } catch (SQLException e) {
-              throw new RuntimeException(e);
-            }
-          }
-        });
+    final String sql = "select \"source\", \"sourcetype\"\n"
+        + "from \"splunk\".\"splunk\"";
+    checkSql(sql, resultSet -> {
+      try {
+        if (!(resultSet.next() && resultSet.next() && resultSet.next())) {
+          throw new AssertionError("expected at least 3 rows");
+        }
+        return null;
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+    });
   }
 
   @Test public void testSelectDistinct() throws SQLException {
@@ -220,16 +217,14 @@ public class SplunkAdapterTest {
 
   private static Function<ResultSet, Void> expect(final String... lines) {
     final Collection<String> expected = ImmutableSet.copyOf(lines);
-    return new Function<ResultSet, Void>() {
-      public Void apply(ResultSet a0) {
-        try {
-          Collection<String> actual =
-              CalciteAssert.toStringList(a0, new HashSet<String>());
-          assertThat(actual, equalTo(expected));
-          return null;
-        } catch (SQLException e) {
-          throw new RuntimeException(e);
-        }
+    return a0 -> {
+      try {
+        Collection<String> actual =
+            CalciteAssert.toStringList(a0, new HashSet<>());
+        assertThat(actual, equalTo(expected));
+        return null;
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
       }
     };
   }
@@ -239,19 +234,16 @@ public class SplunkAdapterTest {
   @Test public void testSelectNonBuiltInColumn() throws SQLException {
     checkSql(
         "select \"status\"\n"
-        + "from \"splunk\".\"splunk\"",
-        new Function<ResultSet, Void>() {
-          public Void apply(ResultSet a0) {
-            final Set<String> actual = new HashSet<>();
-            try {
-              while (a0.next()) {
-                actual.add(a0.getString(1));
-              }
-              assertThat(actual.contains("404"), is(true));
-              return null;
-            } catch (SQLException e) {
-              throw new RuntimeException(e);
+        + "from \"splunk\".\"splunk\"", a0 -> {
+          final Set<String> actual = new HashSet<>();
+          try {
+            while (a0.next()) {
+              actual.add(a0.getString(1));
             }
+            assertThat(actual.contains("404"), is(true));
+            return null;
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
           }
         });
   }

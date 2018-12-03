@@ -247,13 +247,13 @@ join (values (1, 'LeaderShip'),
              (2, 'TestGroup'),
              (3, 'Development')) as d(deptno, name)
 using (deptno);
-+-------+-----------+--------+---------+-------------+
-| EMPID | NAME      | DEPTNO | DEPTNO0 | NAME0       |
-+-------+-----------+--------+---------+-------------+
-|   100 | Bill      |      1 |       1 | LeaderShip  |
-|   150 | Sebastian |      3 |       3 | Development |
-|   200 | Eric      |      1 |       1 | LeaderShip  |
-+-------+-----------+--------+---------+-------------+
++--------+-------+-----------+-------------+
+| DEPTNO | EMPID | NAME      | NAME0       |
++--------+-------+-----------+-------------+
+|      1 |   100 | Bill      | LeaderShip  |
+|      1 |   200 | Eric      | LeaderShip  |
+|      3 |   150 | Sebastian | Development |
++--------+-------+-----------+-------------+
 (3 rows)
 
 !ok
@@ -262,29 +262,30 @@ using (deptno);
 select * from (select * from "scott".emp) e left join (
   select * from "scott".dept d) using (deptno)
 order by empno limit 10;
-+-------+--------+-----------+------+------------+---------+---------+--------+---------+------------+----------+
-| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | DEPTNO0 | DNAME      | LOC      |
-+-------+--------+-----------+------+------------+---------+---------+--------+---------+------------+----------+
-|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |      20 | RESEARCH   | DALLAS   |
-|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |      30 | SALES      | CHICAGO  |
-|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |      30 | SALES      | CHICAGO  |
-|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |      20 | RESEARCH   | DALLAS   |
-|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |      30 | SALES      | CHICAGO  |
-|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |      30 | SALES      | CHICAGO  |
-|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |      10 | ACCOUNTING | NEW YORK |
-|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |      20 | RESEARCH   | DALLAS   |
-|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |      10 | ACCOUNTING | NEW YORK |
-|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |      30 | SALES      | CHICAGO  |
-+-------+--------+-----------+------+------------+---------+---------+--------+---------+------------+----------+
++--------+-------+--------+-----------+------+------------+---------+---------+------------+----------+
+| DEPTNO | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DNAME      | LOC      |
++--------+-------+--------+-----------+------+------------+---------+---------+------------+----------+
+|     20 |  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         | RESEARCH   | DALLAS   |
+|     30 |  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 | SALES      | CHICAGO  |
+|     30 |  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 | SALES      | CHICAGO  |
+|     20 |  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         | RESEARCH   | DALLAS   |
+|     30 |  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 | SALES      | CHICAGO  |
+|     30 |  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         | SALES      | CHICAGO  |
+|     10 |  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         | ACCOUNTING | NEW YORK |
+|     20 |  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         | RESEARCH   | DALLAS   |
+|     10 |  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         | ACCOUNTING | NEW YORK |
+|     30 |  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 | SALES      | CHICAGO  |
++--------+-------+--------+-----------+------+------------+---------+---------+------------+----------+
 (10 rows)
 
 !ok
-EnumerableLimit(fetch=[10])
-  EnumerableSort(sort0=[$0], dir0=[ASC])
-    EnumerableJoin(condition=[=($7, $8)], joinType=[left])
-      EnumerableLimit(fetch=[10])
-        EnumerableTableScan(table=[[scott, EMP]])
-      EnumerableTableScan(table=[[scott, DEPT]])
+EnumerableCalc(expr#0..10=[{inputs}], expr#11=[COALESCE($t7, $t8)], DEPTNO=[$t11], EMPNO=[$t0], ENAME=[$t1], JOB=[$t2], MGR=[$t3], HIREDATE=[$t4], SAL=[$t5], COMM=[$t6], DNAME=[$t9], LOC=[$t10])
+  EnumerableLimit(fetch=[10])
+    EnumerableSort(sort0=[$0], dir0=[ASC])
+      EnumerableJoin(condition=[=($7, $8)], joinType=[left])
+        EnumerableLimit(fetch=[10])
+          EnumerableTableScan(table=[[scott, EMP]])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # End join.iq

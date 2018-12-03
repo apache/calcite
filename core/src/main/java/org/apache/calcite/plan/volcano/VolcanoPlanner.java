@@ -69,12 +69,9 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.LinkedListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -88,6 +85,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -230,11 +228,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   private boolean locked;
 
   private final List<RelOptMaterialization> materializations =
-      Lists.newArrayList();
+      new ArrayList<>();
 
-  /** Map of lattices by the qualified name of their star table. */
+  /**
+   * Map of lattices by the qualified name of their star table.
+   */
   private final Map<List<String>, RelOptLattice> latticeByName =
-      Maps.newLinkedHashMap();
+      new LinkedHashMap<>();
 
   final Map<RelNode, Provenance> provenanceMap = new HashMap<>();
 
@@ -283,14 +283,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   protected VolcanoPlannerPhaseRuleMappingInitializer
       getPhaseRuleMappingInitializer() {
-    return new VolcanoPlannerPhaseRuleMappingInitializer() {
-      public void initialize(
-          Map<VolcanoPlannerPhase, Set<String>> phaseRuleMap) {
-        // Disable all phases except OPTIMIZE by adding one useless rule name.
-        phaseRuleMap.get(VolcanoPlannerPhase.PRE_PROCESS_MDR).add("xxx");
-        phaseRuleMap.get(VolcanoPlannerPhase.PRE_PROCESS).add("xxx");
-        phaseRuleMap.get(VolcanoPlannerPhase.CLEANUP).add("xxx");
-      }
+    return phaseRuleMap -> {
+      // Disable all phases except OPTIMIZE by adding one useless rule name.
+      phaseRuleMap.get(VolcanoPlannerPhase.PRE_PROCESS_MDR).add("xxx");
+      phaseRuleMap.get(VolcanoPlannerPhase.PRE_PROCESS).add("xxx");
+      phaseRuleMap.get(VolcanoPlannerPhase.CLEANUP).add("xxx");
     };
   }
 
@@ -321,7 +318,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return root;
   }
 
-  public ImmutableList<RelOptMaterialization> getMaterializations() {
+  @Override public List<RelOptMaterialization> getMaterializations() {
     return ImmutableList.copyOf(materializations);
   }
 
@@ -505,13 +502,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     unmapRuleDescription(rule);
 
     // Remove operands.
-    for (Iterator<RelOptRuleOperand> iter = classOperands.values().iterator();
-         iter.hasNext();) {
-      RelOptRuleOperand entry = iter.next();
-      if (entry.getRule().equals(rule)) {
-        iter.remove();
-      }
-    }
+    classOperands.values().removeIf(entry -> entry.getRule().equals(rule));
 
     // Remove trait mappings. (In particular, entries from conversion
     // graph.)
@@ -689,7 +680,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * will be asking for the result in a particular convention, but the root has
    * no consumers. */
   void ensureRootConverters() {
-    final Set<RelSubset> subsets = Sets.newHashSet();
+    final Set<RelSubset> subsets = new HashSet<>();
     for (RelNode rel : root.getRels()) {
       if (rel instanceof AbstractConverter) {
         subsets.add((RelSubset) ((AbstractConverter) rel).getInput());
@@ -862,8 +853,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
     final RelSubset subset = registerImpl(rel, set);
 
+    // Checking if tree is valid considerably slows down planning
+    // Only doing it if logger level is debug or finer
     if (LOGGER.isDebugEnabled()) {
-      validate();
+      assert isValid(Litmus.THROW);
     }
 
     return subset;
@@ -887,31 +880,26 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Checks internal consistency.
    */
-  protected void validate() {
+  protected boolean isValid(Litmus litmus) {
     for (RelSet set : allSets) {
       if (set.equivalentSet != null) {
-        throw new AssertionError(
-            "set [" + set
-            + "] has been merged: it should not be in the list");
+        return litmus.fail("set [{}] has been merged: it should not be in the list", set);
       }
       for (RelSubset subset : set.subsets) {
         if (subset.set != set) {
-          throw new AssertionError(
-              "subset [" + subset.getDescription()
-              + "] is in wrong set [" + set + "]");
+          return litmus.fail("subset [{}] is in wrong set [{}]",
+              subset.getDescription(), set);
         }
         for (RelNode rel : subset.getRels()) {
           RelOptCost relCost = getCost(rel, rel.getCluster().getMetadataQuery());
           if (relCost.isLt(subset.bestCost)) {
-            throw new AssertionError(
-                "rel [" + rel.getDescription()
-                + "] has lower cost " + relCost
-                + " than best cost " + subset.bestCost
-                + " of subset [" + subset.getDescription() + "]");
+            return litmus.fail("rel [{}] has lower cost {} than best cost {} of subset [{}]",
+                rel.getDescription(), relCost, subset.bestCost, subset.getDescription());
           }
         }
       }
     }
+    return litmus.succeed();
   }
 
   public void registerAbstractRelationalRules() {
@@ -1172,14 +1160,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     pw.println("Original rel:");
     pw.println(originalRootString);
     pw.println("Sets:");
-    Ordering<RelSet> ordering = Ordering.from(
-        new Comparator<RelSet>() {
-          public int compare(
-              RelSet o1,
-              RelSet o2) {
-            return o1.id - o2.id;
-          }
-        });
+    Ordering<RelSet> ordering = Ordering.from(Comparator.comparingInt(o -> o.id));
     for (RelSet set : ordering.immutableSortedCopy(allSets)) {
       pw.println("Set#" + set.id
           + ", type: " + set.subsets.get(0).getRowType());
@@ -1651,7 +1632,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // not established. So, give the subset another change to figure out
     // its cost.
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    subset.propagateCostImprovements(this, mq, rel, new HashSet<RelSubset>());
+    subset.propagateCostImprovements(this, mq, rel, new HashSet<>());
 
     return subset;
   }

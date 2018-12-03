@@ -23,8 +23,11 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Helpers for {@link SqlNameMatcher}.
@@ -117,6 +120,22 @@ public class SqlNameMatchers {
 
     public RelDataTypeField field(RelDataType rowType, String fieldName) {
       return rowType.getField(fieldName, caseSensitive, false);
+    }
+
+    public int frequency(Iterable<String> names, String name) {
+      int n = 0;
+      for (String s : names) {
+        if (matches(s, name)) {
+          ++n;
+        }
+      }
+      return n;
+    }
+
+    public Set<String> createSet() {
+      return isCaseSensitive()
+          ? new LinkedHashSet<>()
+          : new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
     }
   }
 

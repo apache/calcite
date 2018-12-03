@@ -23,11 +23,11 @@ import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 
 /** Abstract syntax tree.
  *
@@ -136,8 +136,8 @@ public class Ast {
     public final SqlParserPos pos;
 
     protected Node(SqlParserPos pos, Op op) {
-      this.op = Preconditions.checkNotNull(op);
-      this.pos = Preconditions.checkNotNull(pos);
+      this.op = Objects.requireNonNull(op);
+      this.pos = Objects.requireNonNull(pos);
     }
   }
 
@@ -154,7 +154,7 @@ public class Ast {
 
     protected Assignment(SqlParserPos pos, Op op, Identifier target) {
       super(pos, op);
-      this.target = Preconditions.checkNotNull(target);
+      this.target = Objects.requireNonNull(target);
     }
   }
 
@@ -164,7 +164,7 @@ public class Ast {
 
     public LoadStmt(SqlParserPos pos, Identifier target, Literal name) {
       super(pos, Op.LOAD, target);
-      this.name = Preconditions.checkNotNull(name);
+      this.name = Objects.requireNonNull(name);
     }
   }
 
@@ -333,7 +333,7 @@ public class Ast {
 
     public DumpStmt(SqlParserPos pos, Identifier relation) {
       super(pos, Op.DUMP);
-      this.relation = Preconditions.checkNotNull(relation);
+      this.relation = Objects.requireNonNull(relation);
     }
   }
 
@@ -343,7 +343,7 @@ public class Ast {
 
     public DescribeStmt(SqlParserPos pos, Identifier relation) {
       super(pos, Op.DESCRIBE);
-      this.relation = Preconditions.checkNotNull(relation);
+      this.relation = Objects.requireNonNull(relation);
     }
   }
 
@@ -353,7 +353,7 @@ public class Ast {
 
     public Literal(SqlParserPos pos, Object value) {
       super(pos, Op.LITERAL);
-      this.value = Preconditions.checkNotNull(value);
+      this.value = Objects.requireNonNull(value);
     }
 
     public static NumericLiteral createExactNumeric(String s,
@@ -408,7 +408,7 @@ public class Ast {
 
     public Identifier(SqlParserPos pos, String value) {
       super(pos, Op.IDENTIFIER);
-      this.value = Preconditions.checkNotNull(value);
+      this.value = Objects.requireNonNull(value);
     }
 
     public boolean isStar() {
@@ -466,8 +466,8 @@ public class Ast {
 
     public FieldSchema(SqlParserPos pos, Identifier id, Type type) {
       super(pos, Op.FIELD_SCHEMA);
-      this.id = Preconditions.checkNotNull(id);
-      this.type = Preconditions.checkNotNull(type);
+      this.id = Objects.requireNonNull(id);
+      this.type = Objects.requireNonNull(type);
     }
   }
 
@@ -570,7 +570,7 @@ public class Ast {
 
     public UnParser appendList(List<? extends Node> list) {
       append("[").in();
-      for (Ord<Node> n : Ord.zip(list)) {
+      for (Ord<Node> n : Ord.<Node>zip(list)) {
         newline().append(n.e);
         if (n.i < list.size() - 1) {
           append(",");

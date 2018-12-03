@@ -117,6 +117,27 @@ order by "florist", 2;
 
 !ok
 
+!use scott
+
+# [CALCITE-2102] Ignore duplicate ORDER BY keys
+select *
+from "scott".DEPT
+order by deptno desc, dname, deptno;
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     40 | OPERATIONS | BOSTON   |
+|     30 | SALES      | CHICAGO  |
+|     20 | RESEARCH   | DALLAS   |
+|     10 | ACCOUNTING | NEW YORK |
++--------+------------+----------+
+(4 rows)
+
+!ok
+EnumerableSort(sort0=[$0], sort1=[$1], dir0=[DESC], dir1=[ASC])
+  EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
 !use post
 
 # [CALCITE-603] WITH ... ORDER BY cannot find table

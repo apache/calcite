@@ -20,12 +20,12 @@ limitations under the License.
   <parent>
     <groupId>org.apache.calcite</groupId>
     <artifactId>calcite</artifactId>
-    <version>1.16.0-SNAPSHOT</version>
+    <version>1.18.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>calcite-core</artifactId>
   <packaging>jar</packaging>
-  <version>1.16.0-SNAPSHOT</version>
+  <version>1.18.0-SNAPSHOT</version>
   <name>Calcite Core</name>
   <description>Core Calcite APIs and engine.</description>
 
@@ -52,12 +52,17 @@ limitations under the License.
     </dependency>
 
     <dependency>
-      <groupId>commons-dbcp</groupId>
-      <artifactId>commons-dbcp</artifactId>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-dbcp2</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-pool2</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.esri.geometry</groupId>
@@ -76,8 +81,13 @@ limitations under the License.
       <artifactId>jackson-databind</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.google.code.findbugs</groupId>
       <artifactId>jsr305</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
@@ -93,8 +103,27 @@ limitations under the License.
       <artifactId>sketches-core</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.jayway.jsonpath</groupId>
+      <artifactId>json-path</artifactId>
+    </dependency>
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-stdlib</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-test-junit</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -173,11 +202,76 @@ limitations under the License.
   <build>
     <plugins>
       <plugin>
+        <groupId>org.apache.drill.tools</groupId>
+        <artifactId>drill-fmpp-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <configuration>
+              <config>src/main/codegen/config.fmpp</config>
+              <templates>src/main/codegen/templates</templates>
+            </configuration>
+            <id>generate-fmpp-sources</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+          <execution>
+            <configuration>
+              <config>src/test/codegen/config.fmpp</config>
+              <templates>src/main/codegen/templates</templates>
+              <output>${project.build.directory}/generated-test-sources/fmpp</output>
+              <scope>test</scope>
+            </configuration>
+            <id>generate-fmpp-test-sources</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
+        <!-- http://kotlinlang.org/docs/reference/using-maven.html#compiling-kotlin-and-java-sources
+             Ensure kotlin-compile comes before maven-compiler-plugin, so Kotlin files
+             can be used in Java code (this especially important so CalciteSuite.java
+             can include Kotlin tests as well)
+         -->
+        <executions>
+          <!-- Replacing default-compile as it is treated specially by maven -->
+          <execution>
+            <id>default-compile</id>
+            <phase>none</phase>
+          </execution>
+          <!-- Replacing default-testCompile as it is treated specially by maven -->
+          <execution>
+            <id>default-testCompile</id>
+            <phase>none</phase>
+          </execution>
+          <execution>
+            <id>java-compile</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>java-test-compile</id>
+            <phase>test-compile</phase>
+            <goals>
+              <goal>testCompile</goal>
+            </goals>
+          </execution>
+        </executions>
         <configuration>
-          <source>1.7</source>
-          <target>1.7</target>
+          <source>8</source>
+          <target>8</target>
           <excludes>
             <exclude>org/apache/calcite/sql/parser/parserextensiontesting/*.java</exclude>
           </excludes>
@@ -458,51 +552,6 @@ limitations under the License.
             <filtering>true</filtering>
           </resource>
         </resources>
-      </build>
-    </profile>
-    <profile>
-      <!-- CALCITE-538: workaround for https://github.com/freemarker/fmpp/issues/11
-        FMPP always overwrites destination file, however we do not want
-        recompile the whole module every time.
-      -->
-      <id>generate-parser</id>
-      <activation>
-        <property>
-          <name>!skipGenerate</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>com.googlecode.fmpp-maven-plugin</groupId>
-            <artifactId>fmpp-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <configuration>
-                  <cfgFile>src/main/codegen/config.fmpp</cfgFile>
-                  <templateDirectory>src/main/codegen/templates</templateDirectory>
-                </configuration>
-                <id>generate-fmpp-sources</id>
-                <phase>validate</phase>
-                <goals>
-                  <goal>generate</goal>
-                </goals>
-              </execution>
-              <execution>
-                <configuration>
-                  <cfgFile>src/test/codegen/config.fmpp</cfgFile>
-                  <templateDirectory>src/main/codegen/templates</templateDirectory>
-                  <outputDirectory>${project.build.directory}/generated-test-sources/fmpp</outputDirectory>
-                </configuration>
-                <id>generate-fmpp-test-sources</id>
-                <phase>validate</phase>
-                <goals>
-                  <goal>generate</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
       </build>
     </profile>
   </profiles>

@@ -28,10 +28,9 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
-
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -58,7 +57,7 @@ public abstract class SqlNode implements Cloneable {
    * @param pos Parser position, must not be null.
    */
   SqlNode(SqlParserPos pos) {
-    this.pos = Preconditions.checkNotNull(pos);
+    this.pos = Objects.requireNonNull(pos);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -150,8 +149,7 @@ public abstract class SqlNode implements Cloneable {
     writer.setSelectListItemsOnSeparateLines(false);
     writer.setIndentation(0);
     unparse(writer, 0, 0);
-    final String sql = writer.toString();
-    return new SqlString(dialect, sql);
+    return writer.toSqlString();
   }
 
   public SqlString toSqlString(SqlDialect dialect) {

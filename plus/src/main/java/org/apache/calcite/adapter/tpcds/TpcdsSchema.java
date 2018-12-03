@@ -17,10 +17,13 @@
 package org.apache.calcite.adapter.tpcds;
 
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
+import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.SchemaPlus;
@@ -29,17 +32,19 @@ import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Bug;
-import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.teradata.tpcds.Results;
+import com.teradata.tpcds.Session;
+import com.teradata.tpcds.column.Column;
+import com.teradata.tpcds.column.ColumnType;
 
-import net.hydromatic.tpcds.TpcdsColumn;
-import net.hydromatic.tpcds.TpcdsEntity;
-import net.hydromatic.tpcds.TpcdsTable;
-
-import java.sql.Date;
-import java.util.Collections;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -48,48 +53,53 @@ import java.util.Map;
  * particular scale factor. */
 public class TpcdsSchema extends AbstractSchema {
   private final double scaleFactor;
-  private final int part;
-  private final int partCount;
   private final ImmutableMap<String, Table> tableMap;
 
   // From TPC-DS spec, table 3-2 "Database Row Counts", for 1G sizing.
   private static final ImmutableMap<String, Integer> TABLE_ROW_COUNTS =
       ImmutableMap.<String, Integer>builder()
-          .put("call_center", 8)
-          .put("catalog_page", 11718)
-          .put("catalog_returns", 144067)
-          .put("catalog_sales", 1441548)
-          .put("customer", 100000)
-          .put("customer_address", 50000)
-          .put("customer_demographics", 1920800)
-          .put("date_dim", 73049)
-          .put("household_demographics", 7200)
-          .put("income_band", 20)
-          .put("inventory", 11745000)
-          .put("item", 18000)
-          .put("promotion", 300)
-          .put("reason", 35)
-          .put("ship_mode", 20)
-          .put("store", 12)
-          .put("store_returns", 287514)
-          .put("store_sales", 2880404)
-          .put("time_dim", 86400)
-          .put("warehouse", 5)
-          .put("web_page", 60)
-          .put("web_returns", 71763)
-          .put("web_sales", 719384)
-          .put("web_site", 1)
+          .put("CALL_CENTER", 8)
+          .put("CATALOG_PAGE", 11718)
+          .put("CATALOG_RETURNS", 144067)
+          .put("CATALOG_SALES", 1441548)
+          .put("CUSTOMER", 100000)
+          .put("CUSTOMER_ADDRESS", 50000)
+          .put("CUSTOMER_DEMOGRAPHICS", 1920800)
+          .put("DATE_DIM", 73049)
+          .put("DBGEN_VERSION", 1)
+          .put("HOUSEHOLD_DEMOGRAPHICS", 7200)
+          .put("INCOME_BAND", 20)
+          .put("INVENTORY", 11745000)
+          .put("ITEM", 18000)
+          .put("PROMOTION", 300)
+          .put("REASON", 35)
+          .put("SHIP_MODE", 20)
+          .put("STORE", 12)
+          .put("STORE_RETURNS", 287514)
+          .put("STORE_SALES", 2880404)
+          .put("TIME_DIM", 86400)
+          .put("WAREHOUSE", 5)
+          .put("WEB_PAGE", 60)
+          .put("WEB_RETURNS", 71763)
+          .put("WEB_SALES", 719384)
+          .put("WEB_SITE", 1)
           .build();
 
+  @Deprecated
   public TpcdsSchema(double scaleFactor, int part, int partCount) {
+    this(scaleFactor);
+    Util.discard(part);
+    Util.discard(partCount);
+  }
+
+  /** Creates a TpcdsSchema. */
+  public TpcdsSchema(double scaleFactor) {
     this.scaleFactor = scaleFactor;
-    this.part = part;
-    this.partCount = partCount;
 
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
-    for (TpcdsTable<?> tpcdsTable : TpcdsTable.getTables()) {
-      //noinspection unchecked
-      builder.put(tpcdsTable.getTableName().toUpperCase(Locale.ROOT),
+    for (com.teradata.tpcds.Table tpcdsTable
+        : com.teradata.tpcds.Table.getBaseTables()) {
+      builder.put(tpcdsTable.name().toUpperCase(Locale.ROOT),
           new TpcdsQueryableTable(tpcdsTable));
     }
     this.tableMap = builder.build();
@@ -99,23 +109,46 @@ public class TpcdsSchema extends AbstractSchema {
     return tableMap;
   }
 
+  private static Object convert(String string, Column column) {
+    if (string == null) {
+      return null;
+    }
+    switch (column.getType().getBase()) {
+    case IDENTIFIER:
+      return Long.valueOf(string);
+    case INTEGER:
+      return Integer.valueOf(string);
+    case CHAR:
+    case VARCHAR:
+      return string;
+    case DATE:
+      return DateTimeUtils.dateStringToUnixDate(string);
+    case TIME:
+      return DateTimeUtils.timeStringToUnixDate(string);
+    case DECIMAL:
+      return new BigDecimal(string);
+    default:
+      throw new AssertionError(column);
+    }
+  }
+
   /** Definition of a table in the TPC-DS schema.
    *
    * @param <E> entity type */
-  private class TpcdsQueryableTable<E extends TpcdsEntity>
+  private class TpcdsQueryableTable<E extends com.teradata.tpcds.Table>
       extends AbstractQueryableTable {
-    private final TpcdsTable<E> tpcdsTable;
+    private final com.teradata.tpcds.Table tpcdsTable;
 
-    TpcdsQueryableTable(TpcdsTable<E> tpcdsTable) {
+    TpcdsQueryableTable(com.teradata.tpcds.Table tpcdsTable) {
       super(Object[].class);
       this.tpcdsTable = tpcdsTable;
     }
 
     @Override public Statistic getStatistic() {
       Bug.upgrade("add row count estimate to TpcdsTable, and use it");
-      Integer rowCount = TABLE_ROW_COUNTS.get(tpcdsTable.name);
-      assert rowCount != null : tpcdsTable.name;
-      return Statistics.of(rowCount, Collections.<ImmutableBitSet>emptyList());
+      Integer rowCount = TABLE_ROW_COUNTS.get(tpcdsTable.name());
+      assert rowCount != null : tpcdsTable;
+      return Statistics.of(rowCount, ImmutableList.of());
     }
 
     public <T> Queryable<T> asQueryable(final QueryProvider queryProvider,
@@ -124,62 +157,67 @@ public class TpcdsSchema extends AbstractSchema {
       return (Queryable) new AbstractTableQueryable<Object[]>(queryProvider,
           schema, this, tableName) {
         public Enumerator<Object[]> enumerator() {
-          final Enumerator<E> iterator =
-              Linq4j.iterableEnumerator(
-                  tpcdsTable.createGenerator(scaleFactor, part, partCount));
-          return new Enumerator<Object[]>() {
-            public Object[] current() {
-              final List<TpcdsColumn<E>> columns = tpcdsTable.getColumns();
-              final Object[] objects = new Object[columns.size()];
-              int i = 0;
-              for (TpcdsColumn<E> column : columns) {
-                objects[i++] = value(column, iterator.current());
-              }
-              return objects;
-            }
+          final Session session =
+              Session.getDefaultSession()
+                  .withTable(tpcdsTable)
+                  .withScale(scaleFactor);
+          final Results results = Results.constructResults(tpcdsTable, session);
+          return Linq4j.asEnumerable(results)
+              .selectMany(
+                  new Function1<List<List<String>>, Enumerable<Object[]>>() {
+                    final Column[] columns = tpcdsTable.getColumns();
 
-            private Object value(TpcdsColumn<E> tpcdsColumn, E current) {
-              final Class<?> type = realType(tpcdsColumn);
-              if (type == String.class) {
-                return tpcdsColumn.getString(current);
-              } else if (type == Double.class) {
-                return tpcdsColumn.getDouble(current);
-              } else if (type == Date.class) {
-                return Date.valueOf(tpcdsColumn.getString(current));
-              } else {
-                return tpcdsColumn.getLong(current);
-              }
-            }
+                    public Enumerable<Object[]> apply(
+                        List<List<String>> inRows) {
+                      final List<Object[]> rows = new ArrayList<>();
+                      for (List<String> strings : inRows) {
+                        final Object[] values = new Object[columns.length];
+                        for (int i = 0; i < strings.size(); i++) {
+                          values[i] = convert(strings.get(i), columns[i]);
+                        }
+                        rows.add(values);
+                      }
+                      return Linq4j.asEnumerable(rows);
+                    }
 
-            public boolean moveNext() {
-              return iterator.moveNext();
-            }
-
-            public void reset() {
-              iterator.reset();
-            }
-
-            public void close() {
-            }
-          };
+                  })
+              .enumerator();
         }
       };
     }
 
     public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       final RelDataTypeFactory.Builder builder = typeFactory.builder();
-      for (TpcdsColumn<E> column : tpcdsTable.getColumns()) {
-        builder.add(column.getColumnName().toUpperCase(Locale.ROOT),
-            typeFactory.createJavaType(realType(column)));
+      for (Column column : tpcdsTable.getColumns()) {
+        builder.add(column.getName().toUpperCase(Locale.ROOT),
+            type(typeFactory, column));
       }
       return builder.build();
     }
 
-    private Class<?> realType(TpcdsColumn<E> column) {
-      if (column.getColumnName().endsWith("date")) {
-        return Date.class;
+    private RelDataType type(RelDataTypeFactory typeFactory, Column column) {
+      final ColumnType type = column.getType();
+      switch (type.getBase()) {
+      case DATE:
+        return typeFactory.createSqlType(SqlTypeName.DATE);
+      case TIME:
+        return typeFactory.createSqlType(SqlTypeName.TIME);
+      case INTEGER:
+        return typeFactory.createSqlType(SqlTypeName.INTEGER);
+      case IDENTIFIER:
+        return typeFactory.createSqlType(SqlTypeName.BIGINT);
+      case DECIMAL:
+        return typeFactory.createSqlType(SqlTypeName.DECIMAL,
+            type.getPrecision().get(), type.getScale().get());
+      case VARCHAR:
+        return typeFactory.createSqlType(SqlTypeName.VARCHAR,
+            type.getPrecision().get());
+      case CHAR:
+        return typeFactory.createSqlType(SqlTypeName.CHAR,
+            type.getPrecision().get());
+      default:
+        throw new AssertionError(type.getBase() + ": " + column);
       }
-      return column.getType();
     }
   }
 }

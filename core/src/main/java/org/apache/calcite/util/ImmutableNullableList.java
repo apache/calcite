@@ -19,7 +19,6 @@ package org.apache.calcite.util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -60,12 +59,15 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
       //noinspection unchecked
       return (List<E>) elements;
     }
+    if (elements == Collections.EMPTY_LIST) {
+      return ImmutableList.of();
+    }
     // If there are no nulls, ImmutableList is better.
     for (E object : elements) {
       if (object == null) {
         final Object[] objects = elements.toArray();
         //noinspection unchecked
-        return new ImmutableNullableList<E>((E[]) objects);
+        return new ImmutableNullableList<>((E[]) objects);
       }
     }
     return ImmutableList.copyOf(elements);
@@ -110,7 +112,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
     for (E object : elements) {
       if (object == null) {
         //noinspection unchecked
-        return new ImmutableNullableList<E>(elements.clone());
+        return new ImmutableNullableList<>(elements.clone());
       }
     }
     // There are no nulls. ImmutableList is better.
@@ -179,7 +181,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
     array[7] = e8;
     System.arraycopy(others, 0, array, 8, others.length);
     //noinspection unchecked
-    return new ImmutableNullableList<E>((E[]) array);
+    return new ImmutableNullableList<>((E[]) array);
   }
 
   @Override public E get(int index) {
@@ -195,7 +197,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
    * created by the {@link Builder} constructor.
    */
   public static <E> Builder<E> builder() {
-    return new Builder<E>();
+    return new Builder<>();
   }
 
   /**
@@ -204,7 +206,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
    * @param <E> element type
    */
   public static final class Builder<E> {
-    private final List<E> contents = Lists.newArrayList();
+    private final List<E> contents = new ArrayList<>();
 
     /**
      * Creates a new builder. The returned builder is equivalent to the builder

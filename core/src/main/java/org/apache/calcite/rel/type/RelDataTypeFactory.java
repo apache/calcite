@@ -23,12 +23,11 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
-import com.google.common.base.Preconditions;
-
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * RelDataTypeFactory is a factory for datatype descriptors. It defines methods
@@ -408,7 +407,7 @@ public interface RelDataTypeFactory {
      * Creates a Builder with the given type factory.
      */
     public Builder(RelDataTypeFactory typeFactory) {
-      this.typeFactory = Preconditions.checkNotNull(typeFactory);
+      this.typeFactory = Objects.requireNonNull(typeFactory);
     }
 
     /**
@@ -547,6 +546,15 @@ public interface RelDataTypeFactory {
      */
     public RelDataType build() {
       return typeFactory.createStructType(kind, types, names);
+    }
+
+    /** Creates a dynamic struct type with the current contents of this
+     * builder. */
+    public RelDataType buildDynamic() {
+      final RelDataType dynamicType = new DynamicRecordTypeImpl(typeFactory);
+      final RelDataType type = build();
+      dynamicType.getFieldList().addAll(type.getFieldList());
+      return dynamicType;
     }
 
     /** Returns whether a field exists with the given name. */

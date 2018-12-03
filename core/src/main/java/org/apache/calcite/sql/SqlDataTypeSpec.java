@@ -28,8 +28,6 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
-
 import java.nio.charset.Charset;
 import java.util.Objects;
 import java.util.TimeZone;
@@ -59,6 +57,7 @@ public class SqlDataTypeSpec extends SqlNode {
 
   private final SqlIdentifier collectionsTypeName;
   private final SqlIdentifier typeName;
+  private final SqlIdentifier baseTypeName;
   private final int scale;
   private final int precision;
   private final String charSetName;
@@ -101,7 +100,7 @@ public class SqlDataTypeSpec extends SqlNode {
   }
 
   /**
-   * Creates a type specification.
+   * Creates a type specification that has no base type.
    */
   public SqlDataTypeSpec(
       SqlIdentifier collectionsTypeName,
@@ -112,9 +111,27 @@ public class SqlDataTypeSpec extends SqlNode {
       TimeZone timeZone,
       Boolean nullable,
       SqlParserPos pos) {
+    this(collectionsTypeName, typeName, typeName, precision, scale, charSetName,
+        timeZone, nullable, pos);
+  }
+
+  /**
+   * Creates a type specification.
+   */
+  public SqlDataTypeSpec(
+      SqlIdentifier collectionsTypeName,
+      SqlIdentifier typeName,
+      SqlIdentifier baseTypeName,
+      int precision,
+      int scale,
+      String charSetName,
+      TimeZone timeZone,
+      Boolean nullable,
+      SqlParserPos pos) {
     super(pos);
     this.collectionsTypeName = collectionsTypeName;
     this.typeName = typeName;
+    this.baseTypeName = baseTypeName;
     this.precision = precision;
     this.scale = scale;
     this.charSetName = charSetName;
@@ -268,27 +285,26 @@ public class SqlDataTypeSpec extends SqlNode {
   }
 
   /**
-   * Throws an error if the type is not built-in.
+   * Throws an error if the type is not found.
    */
   public RelDataType deriveType(SqlValidator validator) {
-    String name = typeName.getSimple();
-
-    // for now we only support builtin datatypes
-    if (SqlTypeName.get(name) == null) {
-      throw validator.newValidationError(this,
-          RESOURCE.unknownDatatypeName(name));
-    }
-
-    if (null != collectionsTypeName) {
-      final String collectionName = collectionsTypeName.getSimple();
-      if (SqlTypeName.get(collectionName) == null) {
-        throw validator.newValidationError(this,
-            RESOURCE.unknownDatatypeName(collectionName));
+    RelDataType type = null;
+    if (typeName.isSimple()) {
+      if (null != collectionsTypeName) {
+        final String collectionName = collectionsTypeName.getSimple();
+        if (SqlTypeName.get(collectionName) == null) {
+          throw validator.newValidationError(this,
+              RESOURCE.unknownDatatypeName(collectionName));
+        }
       }
-    }
 
-    RelDataTypeFactory typeFactory = validator.getTypeFactory();
-    return deriveType(typeFactory);
+      RelDataTypeFactory typeFactory = validator.getTypeFactory();
+      type = deriveType(typeFactory);
+    }
+    if (type == null) {
+      type = validator.getValidatedNodeType(typeName);
+    }
+    return type;
   }
 
   /**
@@ -308,9 +324,14 @@ public class SqlDataTypeSpec extends SqlNode {
    */
   public RelDataType deriveType(RelDataTypeFactory typeFactory,
       boolean nullable) {
+    if (!typeName.isSimple()) {
+      return null;
+    }
     final String name = typeName.getSimple();
-    final SqlTypeName sqlTypeName =
-        Preconditions.checkNotNull(SqlTypeName.get(name));
+    final SqlTypeName sqlTypeName = SqlTypeName.get(name);
+    if (sqlTypeName == null) {
+      return null;
+    }
 
     // NOTE jvs 15-Jan-2009:  earlier validation is supposed to
     // have caught these, which is why it's OK for them
@@ -341,7 +362,7 @@ public class SqlDataTypeSpec extends SqlNode {
         charset = typeFactory.getDefaultCharset();
       } else {
         String javaCharSetName =
-            Preconditions.checkNotNull(
+            Objects.requireNonNull(
                 SqlUtil.translateCharacterSetName(charSetName), charSetName);
         charset = Charset.forName(javaCharSetName);
       }
@@ -355,7 +376,7 @@ public class SqlDataTypeSpec extends SqlNode {
     if (null != collectionsTypeName) {
       final String collectionName = collectionsTypeName.getSimple();
       final SqlTypeName collectionsSqlTypeName =
-          Preconditions.checkNotNull(SqlTypeName.get(collectionName),
+          Objects.requireNonNull(SqlTypeName.get(collectionName),
               collectionName);
 
       switch (collectionsSqlTypeName) {

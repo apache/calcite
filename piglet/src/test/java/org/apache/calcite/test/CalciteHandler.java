@@ -42,7 +42,7 @@ class CalciteHandler extends Handler {
   }
 
   @Override protected void dump(RelNode rel) {
-    try (final PreparedStatement preparedStatement = RelRunners.run(rel)) {
+    try (PreparedStatement preparedStatement = RelRunners.run(rel)) {
       final ResultSet resultSet = preparedStatement.executeQuery();
       dump(resultSet, true);
     } catch (SQLException e) {

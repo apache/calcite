@@ -21,7 +21,9 @@ import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.TransformedEnumerator;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
@@ -38,20 +40,31 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.ReflectiveVisitDispatcher;
 import org.apache.calcite.util.ReflectiveVisitor;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 
 import java.math.BigDecimal;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
 /**
  * Interpreter.
@@ -62,20 +75,19 @@ import java.util.NoSuchElementException;
  */
 public class Interpreter extends AbstractEnumerable<Object[]>
     implements AutoCloseable {
-  final Map<RelNode, NodeInfo> nodes = Maps.newLinkedHashMap();
+  private final Map<RelNode, NodeInfo> nodes;
   private final DataContext dataContext;
   private final RelNode rootRel;
-  private final Map<RelNode, List<RelNode>> relInputs = Maps.newHashMap();
-  protected final ScalarCompiler scalarCompiler;
 
   /** Creates an Interpreter. */
   public Interpreter(DataContext dataContext, RelNode rootRel) {
-    this.dataContext = Preconditions.checkNotNull(dataContext);
-    this.scalarCompiler =
-        new JaninoRexCompiler(rootRel.getCluster().getRexBuilder());
+    this.dataContext = Objects.requireNonNull(dataContext);
     final RelNode rel = optimize(rootRel);
-    final Compiler compiler = new Nodes.CoreCompiler(this);
-    this.rootRel = compiler.visitRoot(rel);
+    final CompilerImpl compiler =
+        new Nodes.CoreCompiler(this, rootRel.getCluster());
+    Pair<RelNode, Map<RelNode, NodeInfo>> pair = compiler.visitRoot(rel);
+    this.rootRel = pair.left;
+    this.nodes = ImmutableMap.copyOf(pair.right);
   }
 
   private RelNode optimize(RelNode rootRel) {
@@ -98,7 +110,8 @@ public class Interpreter extends AbstractEnumerable<Object[]>
     if (nodeInfo.rowEnumerable != null) {
       rows = nodeInfo.rowEnumerable.enumerator();
     } else {
-      final ArrayDeque<Row> queue = ((ListSink) nodeInfo.sink).list;
+      final ArrayDeque<Row> queue =
+          Iterables.getOnlyElement(nodeInfo.sinks.values()).list;
       rows = Linq4j.iterableEnumerator(queue);
     }
 
@@ -122,23 +135,6 @@ public class Interpreter extends AbstractEnumerable<Object[]>
   }
 
   public void close() {
-  }
-
-  /** Compiles an expression to an executable form. */
-  public Scalar compile(List<RexNode> nodes, RelDataType inputRowType) {
-    if (inputRowType == null) {
-      inputRowType = dataContext.getTypeFactory().builder().build();
-    }
-    return scalarCompiler.compile(nodes, inputRowType);
-  }
-
-  RelDataType combinedRowType(List<RelNode> inputs) {
-    final RelDataTypeFactory.Builder builder =
-        dataContext.getTypeFactory().builder();
-    for (RelNode input : inputs) {
-      builder.addAll(input.getRowType().getFieldList());
-    }
-    return builder.build();
   }
 
   /** Not used. */
@@ -249,85 +245,16 @@ public class Interpreter extends AbstractEnumerable<Object[]>
     }
   }
 
-  public Source source(RelNode rel, int ordinal) {
-    final RelNode input = getInput(rel, ordinal);
-    final NodeInfo nodeInfo = nodes.get(input);
-    if (nodeInfo == null) {
-      throw new AssertionError("should be registered: " + rel);
-    }
-    if (nodeInfo.rowEnumerable != null) {
-      return new EnumeratorSource(nodeInfo.rowEnumerable.enumerator());
-    }
-    Sink sink = nodeInfo.sink;
-    if (sink instanceof ListSink) {
-      return new ListSource((ListSink) nodeInfo.sink);
-    }
-    throw new IllegalStateException(
-      "Got a sink " + sink + " to which there is no match source type!");
-  }
-
-  private RelNode getInput(RelNode rel, int ordinal) {
-    final List<RelNode> inputs = relInputs.get(rel);
-    if (inputs != null) {
-      return inputs.get(ordinal);
-    }
-    return rel.getInput(ordinal);
-  }
-
-  /**
-   * Creates a Sink for a relational expression to write into.
-   *
-   * <p>This method is generally called from the constructor of a {@link Node}.
-   * But a constructor could instead call
-   * {@link #enumerable(RelNode, Enumerable)}.
-   *
-   * @param rel Relational expression
-   * @return Sink
-   */
-  public Sink sink(RelNode rel) {
-    final ArrayDeque<Row> queue = new ArrayDeque<>(1);
-    final Sink sink = new ListSink(queue);
-    NodeInfo nodeInfo = new NodeInfo(rel, sink, null);
-    nodes.put(rel, nodeInfo);
-    return sink;
-  }
-
-  /** Tells the interpreter that a given relational expression wishes to
-   * give its output as an enumerable.
-   *
-   * <p>This is as opposed to the norm, where a relational expression calls
-   * {@link #sink(RelNode)}, then its {@link Node#run()} method writes into that
-   * sink.
-   *
-   * @param rel Relational expression
-   * @param rowEnumerable Contents of relational expression
-   */
-  public void enumerable(RelNode rel, Enumerable<Row> rowEnumerable) {
-    NodeInfo nodeInfo = new NodeInfo(rel, null, rowEnumerable);
-    nodes.put(rel, nodeInfo);
-  }
-
-  public Context createContext() {
-    return new Context(dataContext);
-  }
-
-  public DataContext getDataContext() {
-    return dataContext;
-  }
-
   /** Information about a node registered in the data flow graph. */
   private static class NodeInfo {
     final RelNode rel;
-    final Sink sink;
+    final Map<Edge, ListSink> sinks = new LinkedHashMap<>();
     final Enumerable<Row> rowEnumerable;
     Node node;
 
-    NodeInfo(RelNode rel, Sink sink, Enumerable<Row> rowEnumerable) {
+    NodeInfo(RelNode rel, Enumerable<Row> rowEnumerable) {
       this.rel = rel;
-      this.sink = sink;
       this.rowEnumerable = rowEnumerable;
-      Preconditions.checkArgument((sink == null) != (rowEnumerable == null),
-          "one or the other");
     }
   }
 
@@ -339,7 +266,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
     private final Enumerator<Row> enumerator;
 
     EnumeratorSource(final Enumerator<Row> enumerator) {
-      this.enumerator = Preconditions.checkNotNull(enumerator);
+      this.enumerator = Objects.requireNonNull(enumerator);
     }
 
     @Override public Row receive() {
@@ -386,21 +313,55 @@ public class Interpreter extends AbstractEnumerable<Object[]>
   /** Implementation of {@link Source} using a {@link java.util.ArrayDeque}. */
   private static class ListSource implements Source {
     private final ArrayDeque<Row> list;
+    private Iterator<Row> iterator = null;
 
-    ListSource(ListSink sink) {
-      this.list = sink.list;
+    ListSource(ArrayDeque<Row> list) {
+      this.list = list;
     }
 
     public Row receive() {
       try {
-        return list.remove();
+        if (iterator == null) {
+          iterator = list.iterator();
+        }
+        return iterator.next();
       } catch (NoSuchElementException e) {
+        iterator = null;
         return null;
       }
     }
 
     @Override public void close() {
       // noop
+    }
+  }
+
+  /** Implementation of {@link Sink} using a {@link java.util.ArrayDeque}. */
+  private static class DuplicatingSink implements Sink {
+    private List<ArrayDeque<Row>> queues;
+
+    private DuplicatingSink(List<ArrayDeque<Row>> queues) {
+      this.queues = ImmutableList.copyOf(queues);
+    }
+
+    public void send(Row row) throws InterruptedException {
+      for (ArrayDeque<Row> queue : queues) {
+        queue.add(row);
+      }
+    }
+
+    public void end() throws InterruptedException {
+    }
+
+    @SuppressWarnings("deprecation")
+    @Override public void setSourceEnumerable(Enumerable<Row> enumerable)
+        throws InterruptedException {
+      // just copy over the source into the local list
+      final Enumerator<Row> enumerator = enumerable.enumerator();
+      while (enumerator.moveNext()) {
+        this.send(enumerator.current());
+      }
+      enumerator.close();
     }
   }
 
@@ -417,25 +378,32 @@ public class Interpreter extends AbstractEnumerable<Object[]>
    * "visit" methods in this or a sub-class, and they will be found and called
    * via reflection.
    */
-  public static class Compiler extends RelVisitor implements ReflectiveVisitor {
-    private final ReflectiveVisitDispatcher<Compiler, RelNode> dispatcher =
-        ReflectUtil.createDispatcher(Compiler.class, RelNode.class);
+  static class CompilerImpl extends RelVisitor
+      implements Compiler, ReflectiveVisitor {
+    final ScalarCompiler scalarCompiler;
+    private final ReflectiveVisitDispatcher<CompilerImpl, RelNode> dispatcher =
+        ReflectUtil.createDispatcher(CompilerImpl.class, RelNode.class);
     protected final Interpreter interpreter;
     protected RelNode rootRel;
     protected RelNode rel;
     protected Node node;
+    final Map<RelNode, NodeInfo> nodes = new LinkedHashMap<>();
+    final Map<RelNode, List<RelNode>> relInputs = new HashMap<>();
+    final Multimap<RelNode, Edge> outEdges = LinkedHashMultimap.create();
 
     private static final String REWRITE_METHOD_NAME = "rewrite";
     private static final String VISIT_METHOD_NAME = "visit";
 
-    Compiler(Interpreter interpreter) {
+    CompilerImpl(Interpreter interpreter, RelOptCluster cluster) {
       this.interpreter = interpreter;
+      this.scalarCompiler = new JaninoRexCompiler(cluster.getRexBuilder());
     }
 
-    public RelNode visitRoot(RelNode p) {
+    /** Visits the tree, starting from the root {@code p}. */
+    Pair<RelNode, Map<RelNode, NodeInfo>> visitRoot(RelNode p) {
       rootRel = p;
       visit(p, 0, null);
-      return rootRel;
+      return Pair.of(rootRel, nodes);
     }
 
     @Override public void visit(RelNode p, int ordinal, RelNode parent) {
@@ -454,10 +422,10 @@ public class Interpreter extends AbstractEnumerable<Object[]>
         }
         p = rel;
         if (parent != null) {
-          List<RelNode> inputs = interpreter.relInputs.get(parent);
+          List<RelNode> inputs = relInputs.get(parent);
           if (inputs == null) {
             inputs = Lists.newArrayList(parent.getInputs());
-            interpreter.relInputs.put(parent, inputs);
+            relInputs.put(parent, inputs);
           }
           inputs.set(ordinal, p);
         } else {
@@ -466,7 +434,10 @@ public class Interpreter extends AbstractEnumerable<Object[]>
       }
 
       // rewrite children first (from left to right)
-      final List<RelNode> inputs = interpreter.relInputs.get(p);
+      final List<RelNode> inputs = relInputs.get(p);
+      for (Ord<RelNode> input : Ord.zip(Util.first(inputs, p.getInputs()))) {
+        outEdges.put(input.e, new Edge(p, input.i));
+      }
       if (inputs != null) {
         for (int i = 0; i < inputs.size(); i++) {
           RelNode input = inputs.get(i);
@@ -482,17 +453,22 @@ public class Interpreter extends AbstractEnumerable<Object[]>
         if (p instanceof InterpretableRel) {
           InterpretableRel interpretableRel = (InterpretableRel) p;
           node = interpretableRel.implement(
-              new InterpretableRel.InterpreterImplementor(interpreter, null,
-                  null));
+              new InterpretableRel.InterpreterImplementor(this, null, null));
         } else {
           // Probably need to add a visit(XxxRel) method to CoreCompiler.
           throw new AssertionError("interpreter: no implementation for "
               + p.getClass());
         }
       }
-      final NodeInfo nodeInfo = interpreter.nodes.get(p);
+      final NodeInfo nodeInfo = nodes.get(p);
       assert nodeInfo != null;
       nodeInfo.node = node;
+      if (inputs != null) {
+        for (int i = 0; i < inputs.size(); i++) {
+          final RelNode input = inputs.get(i);
+          visit(input, i, p);
+        }
+      }
     }
 
     /** Fallback rewrite method.
@@ -501,6 +477,95 @@ public class Interpreter extends AbstractEnumerable<Object[]>
      * as its argument type) sets the {@link #rel} field if intends to
      * rewrite. */
     public void rewrite(RelNode r) {
+    }
+
+    public Scalar compile(List<RexNode> nodes, RelDataType inputRowType) {
+      if (inputRowType == null) {
+        inputRowType = interpreter.dataContext.getTypeFactory().builder()
+            .build();
+      }
+      return scalarCompiler.compile(nodes, inputRowType);
+    }
+
+    public RelDataType combinedRowType(List<RelNode> inputs) {
+      final RelDataTypeFactory.Builder builder =
+          interpreter.dataContext.getTypeFactory().builder();
+      for (RelNode input : inputs) {
+        builder.addAll(input.getRowType().getFieldList());
+      }
+      return builder.build();
+    }
+
+    public Source source(RelNode rel, int ordinal) {
+      final RelNode input = getInput(rel, ordinal);
+      final Edge edge = new Edge(rel, ordinal);
+      final Collection<Edge> edges = outEdges.get(input);
+      final NodeInfo nodeInfo = nodes.get(input);
+      if (nodeInfo == null) {
+        throw new AssertionError("should be registered: " + rel);
+      }
+      if (nodeInfo.rowEnumerable != null) {
+        return new EnumeratorSource(nodeInfo.rowEnumerable.enumerator());
+      }
+      assert nodeInfo.sinks.size() == edges.size();
+      final ListSink sink = nodeInfo.sinks.get(edge);
+      if (sink != null) {
+        return new ListSource(sink.list);
+      }
+      throw new IllegalStateException(
+          "Got a sink " + sink + " to which there is no match source type!");
+    }
+
+    private RelNode getInput(RelNode rel, int ordinal) {
+      final List<RelNode> inputs = relInputs.get(rel);
+      if (inputs != null) {
+        return inputs.get(ordinal);
+      }
+      return rel.getInput(ordinal);
+    }
+
+    public Sink sink(RelNode rel) {
+      final Collection<Edge> edges = outEdges.get(rel);
+      final Collection<Edge> edges2 = edges.isEmpty()
+          ? ImmutableList.of(new Edge(null, 0))
+          : edges;
+      NodeInfo nodeInfo = nodes.get(rel);
+      if (nodeInfo == null) {
+        nodeInfo = new NodeInfo(rel, null);
+        nodes.put(rel, nodeInfo);
+        for (Edge edge : edges2) {
+          nodeInfo.sinks.put(edge, new ListSink(new ArrayDeque<>()));
+        }
+      }
+      if (edges.size() == 1) {
+        return Iterables.getOnlyElement(nodeInfo.sinks.values());
+      } else {
+        final List<ArrayDeque<Row>> queues = new ArrayList<>();
+        for (ListSink sink : nodeInfo.sinks.values()) {
+          queues.add(sink.list);
+        }
+        return new DuplicatingSink(queues);
+      }
+    }
+
+    public void enumerable(RelNode rel, Enumerable<Row> rowEnumerable) {
+      NodeInfo nodeInfo = new NodeInfo(rel, rowEnumerable);
+      nodes.put(rel, nodeInfo);
+    }
+
+    public Context createContext() {
+      return new Context(getDataContext());
+    }
+
+    public DataContext getDataContext() {
+      return interpreter.dataContext;
+    }
+  }
+
+  /** Edge between a {@link RelNode} and one of its inputs. */
+  static class Edge extends Pair<RelNode, Integer> {
+    Edge(RelNode parent, int ordinal) {
+      super(parent, ordinal);
     }
   }
 

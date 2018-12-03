@@ -21,10 +21,10 @@ import org.apache.calcite.sql.type.SqlTypeName;
 /** Druid type. */
 public enum DruidType {
   LONG(SqlTypeName.BIGINT),
-  // SQL DOUBLE and FLOAT types are both 64 bit, but we use DOUBLE because
-  // people find FLOAT confusing.
-  FLOAT(SqlTypeName.DOUBLE),
+  FLOAT(SqlTypeName.FLOAT),
+  DOUBLE(SqlTypeName.DOUBLE),
   STRING(SqlTypeName.VARCHAR),
+  COMPLEX(SqlTypeName.OTHER),
   HYPER_UNIQUE(SqlTypeName.VARBINARY),
   THETA_SKETCH(SqlTypeName.VARBINARY);
 
@@ -39,13 +39,13 @@ public enum DruidType {
    * Returns true if and only if this enum should be used inside of a {@link ComplexMetric}
    * */
   public boolean isComplex() {
-    return this == THETA_SKETCH || this == HYPER_UNIQUE;
+    return this == THETA_SKETCH || this == HYPER_UNIQUE || this == COMPLEX;
   }
 
   /**
    * Returns a DruidType matching the given String type from a Druid metric
    * */
-  public static DruidType getTypeFromMetric(String type) {
+  protected static DruidType getTypeFromMetric(String type) {
     assert type != null;
     if (type.equals("hyperUnique")) {
       return HYPER_UNIQUE;
@@ -54,6 +54,8 @@ public enum DruidType {
     } else if (type.startsWith("long") || type.equals("count")) {
       return LONG;
     } else if (type.startsWith("double")) {
+      return DOUBLE;
+    } else if (type.startsWith("float")) {
       return FLOAT;
     }
     throw new AssertionError("Unknown type: " + type);
@@ -62,13 +64,15 @@ public enum DruidType {
   /**
    * Returns a DruidType matching the String from a meta data query
    * */
-  public static DruidType getTypeFromMetaData(String type) {
+  protected static DruidType getTypeFromMetaData(String type) {
     assert type != null;
     switch (type) {
     case "LONG":
       return LONG;
     case "FLOAT":
       return FLOAT;
+    case "DOUBLE":
+      return DOUBLE;
     case "STRING":
       return STRING;
     default:

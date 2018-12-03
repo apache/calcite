@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.druid;
 import com.fasterxml.jackson.core.JsonGenerator;
 
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * Default implementation of DimensionSpec.
@@ -29,16 +30,42 @@ import java.io.IOException;
 public class DefaultDimensionSpec implements DimensionSpec {
 
   private final String dimension;
+  private final String outputName;
+  private final DruidType outputType;
+
+  public DefaultDimensionSpec(String dimension, String outputName, DruidType outputType) {
+    this.dimension = Objects.requireNonNull(dimension);
+    this.outputName = Objects.requireNonNull(outputName);
+    this.outputType = outputType == null ? DruidType.STRING : outputType;
+  }
 
   public DefaultDimensionSpec(String dimension) {
-    this.dimension = dimension;
+    this(dimension, dimension, null);
   }
 
   @Override public void write(JsonGenerator generator) throws IOException {
     generator.writeStartObject();
     generator.writeStringField("type", "default");
     generator.writeStringField("dimension", dimension);
+    generator.writeStringField("outputName", outputName);
+    generator.writeStringField("outputType", outputType.name());
     generator.writeEndObject();
+  }
+
+  @Override public String getOutputName() {
+    return outputName;
+  }
+
+  @Override public DruidType getOutputType() {
+    return outputType;
+  }
+
+  @Override public ExtractionFunction getExtractionFn() {
+    return null;
+  }
+
+  @Override public String getDimension() {
+    return dimension;
   }
 }
 

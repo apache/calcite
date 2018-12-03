@@ -574,7 +574,6 @@ EXPR$0
 # Not implemented
 
 # ST_Y(geom) Returns the y-value of the first coordinate of *geom*
-# Not implemented
 
 SELECT ST_Y(ST_GeomFromText('POINT Z(1 2 3)'));
 EXPR$0
@@ -802,6 +801,7 @@ EXPR$0
 {"rings":[[[11,11],[11,19],[19,19],[19,11],[11,11]]]}
 !ok
 
+!if (fixed.calcite2539) {
 # ST_BUFFER(geom, bufferSize, style) variant - not implemented
 SELECT ST_Buffer(
  ST_GeomFromText('POINT(100 90)'),
@@ -816,6 +816,7 @@ SELECT ST_Buffer(
  50, 2);
 at org.apache.calcite.runtime.GeoFunctions.todo
 !error GeoFunctions
+!}
 
 # ST_ConvexHull(geom) Computes the smallest convex polygon that contains all the points in the Geometry
 # Not implemented

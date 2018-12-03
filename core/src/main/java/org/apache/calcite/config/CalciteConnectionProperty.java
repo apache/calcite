@@ -48,6 +48,10 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    * DECIMAL types are acceptable. */
   APPROXIMATE_DECIMAL("approximateDecimal", Type.BOOLEAN, false, false),
 
+  /** Whether to treat empty strings as null for Druid Adapter.
+   */
+  NULL_EQUAL_TO_EMPTY("nullEqualToEmpty", Type.BOOLEAN, true, false),
+
   /** Whether to store query results in temporary tables. */
   AUTO_TEMP("autoTemp", Type.BOOLEAN, false, false),
 
@@ -74,7 +78,8 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   LEX("lex", Type.ENUM, Lex.ORACLE, false),
 
   /** Collection of built-in functions and operators. Valid values include
-   * "standard" and "oracle". */
+   * "standard", "oracle" and "spatial", and also comma-separated lists, for
+   * example "oracle,spatial". */
   FUN("fun", Type.STRING, "standard", true),
 
   /** How identifiers are quoted.

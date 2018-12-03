@@ -50,6 +50,13 @@ public enum JoinType {
   RIGHT,
 
   /**
+   * Left semi join.
+   *
+   * <p>Not used by Calcite; only in Babel's Hive dialect.
+   */
+  LEFT_SEMI_JOIN,
+
+  /**
    * Comma join: the good old-fashioned SQL <code>FROM</code> clause,
    * where table expressions are specified with commas between them, and
    * join conditions are specified in the <code>WHERE</code> clause.
@@ -58,6 +65,22 @@ public enum JoinType {
 
   /** Lower-case name. */
   public final String lowerName = name().toLowerCase(Locale.ROOT);
+
+  /**
+   * Returns whether a join of this type may generate NULL values on the
+   * left-hand side.
+   */
+  public boolean generatesNullsOnLeft() {
+    return this == RIGHT || this == FULL;
+  }
+
+  /**
+   * Returns whether a join of this type may generate NULL values on the
+   * right-hand side.
+   */
+  public boolean generatesNullsOnRight() {
+    return this == LEFT || this == FULL;
+  }
 
   /**
    * Creates a parse-tree node representing an occurrence of this

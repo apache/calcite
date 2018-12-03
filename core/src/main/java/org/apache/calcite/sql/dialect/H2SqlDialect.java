@@ -35,6 +35,10 @@ public class H2SqlDialect extends SqlDialect {
   @Override public boolean supportsCharSet() {
     return false;
   }
+
+  @Override public boolean supportsWindowFunctions() {
+    return false;
+  }
 }
 
 // End H2SqlDialect.java

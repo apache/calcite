@@ -27,12 +27,11 @@ import org.apache.calcite.linq4j.tree.NewExpression;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableScan;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
@@ -49,7 +48,7 @@ import java.util.List;
  *
  * @see QueryableRelBuilder
  */
-class LixToRelTranslator implements RelOptTable.ToRelContext {
+class LixToRelTranslator {
   final RelOptCluster cluster;
   private final Prepare preparingStmt;
   final JavaTypeFactory typeFactory;
@@ -60,18 +59,19 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
     this.typeFactory = (JavaTypeFactory) cluster.getTypeFactory();
   }
 
-  public RelOptCluster getCluster() {
-    return cluster;
-  }
-
-  public RelRoot expandView(RelDataType rowType, String queryString,
-      List<String> schemaPath, List<String> viewPath) {
-    return preparingStmt.expandView(rowType, queryString, schemaPath, viewPath);
+  RelOptTable.ToRelContext toRelContext() {
+    if (preparingStmt instanceof RelOptTable.ViewExpander) {
+      final RelOptTable.ViewExpander viewExpander =
+          (RelOptTable.ViewExpander) this.preparingStmt;
+      return ViewExpanders.toRelContext(viewExpander, cluster);
+    } else {
+      return ViewExpanders.simpleContext(cluster);
+    }
   }
 
   public <T> RelNode translate(Queryable<T> queryable) {
     QueryableRelBuilder<T> translatorQueryable =
-        new QueryableRelBuilder<T>(this);
+        new QueryableRelBuilder<>(this);
     return translatorQueryable.toRel(queryable);
   }
 
@@ -102,7 +102,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
                 typeFactory.createJavaType(
                     Types.toClass(
                         Types.getElementType(call.targetExpression.getType()))),
-                ImmutableList.<String>of(),
+                ImmutableList.of(),
                 call.targetExpression));
 
       case SCHEMA_GET_TABLE:
@@ -110,7 +110,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
             RelOptTableImpl.create(null,
                 typeFactory.createJavaType((Class)
                     ((ConstantExpression) call.expressions.get(1)).value),
-                ImmutableList.<String>of(),
+                ImmutableList.of(),
                 call.targetExpression));
 
       default:
@@ -132,7 +132,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
         CalcitePrepareImpl.EmptyScalarTranslator
             .empty(rexBuilder)
             .bind(expression.parameterList, list);
-    final List<RexNode> rexList = new ArrayList<RexNode>();
+    final List<RexNode> rexList = new ArrayList<>();
     final Expression simple = Blocks.simple(expression.body);
     for (Expression expression1 : fieldExpressions(simple)) {
       rexList.add(translator.toRex(expression1));
@@ -153,7 +153,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
   List<RexNode> toRexList(
       FunctionExpression expression,
       RelNode... inputs) {
-    List<RexNode> list = new ArrayList<RexNode>();
+    List<RexNode> list = new ArrayList<>();
     RexBuilder rexBuilder = cluster.getRexBuilder();
     for (RelNode input : inputs) {
       list.add(rexBuilder.makeRangeReference(input));
@@ -166,7 +166,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
   RexNode toRex(
       FunctionExpression expression,
       RelNode... inputs) {
-    List<RexNode> list = new ArrayList<RexNode>();
+    List<RexNode> list = new ArrayList<>();
     RexBuilder rexBuilder = cluster.getRexBuilder();
     for (RelNode input : inputs) {
       list.add(rexBuilder.makeRangeReference(input));

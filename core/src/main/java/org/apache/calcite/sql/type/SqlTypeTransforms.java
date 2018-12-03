@@ -22,9 +22,8 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
-
 import java.util.List;
+import java.util.Objects;
 
 /**
  * SqlTypeTransforms defines a number of reusable instances of
@@ -44,60 +43,53 @@ public abstract class SqlTypeTransforms {
    * nullable
    */
   public static final SqlTypeTransform TO_NULLABLE =
-      new SqlTypeTransform() {
-        public RelDataType transformType(
-            SqlOperatorBinding opBinding,
-            RelDataType typeToTransform) {
-          return SqlTypeUtil.makeNullableIfOperandsAre(
-              opBinding.getTypeFactory(),
+      (opBinding, typeToTransform) ->
+          SqlTypeUtil.makeNullableIfOperandsAre(opBinding.getTypeFactory(),
               opBinding.collectOperandTypes(),
-              Preconditions.checkNotNull(typeToTransform));
-        }
-      };
+              Objects.requireNonNull(typeToTransform));
 
   /**
    * Parameter type-inference transform strategy where a derived type is
    * transformed into the same type, but nullable if and only if all of a call's
    * operands are nullable.
    */
-  public static final SqlTypeTransform TO_NULLABLE_ALL =
-      new SqlTypeTransform() {
-        public RelDataType transformType(SqlOperatorBinding opBinding,
-            RelDataType type) {
-          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-          return typeFactory.createTypeWithNullability(type,
-              SqlTypeUtil.allNullable(opBinding.collectOperandTypes()));
-        }
-      };
+  public static final SqlTypeTransform TO_NULLABLE_ALL = (opBinding, type) -> {
+    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    return typeFactory.createTypeWithNullability(type,
+        SqlTypeUtil.allNullable(opBinding.collectOperandTypes()));
+  };
 
   /**
    * Parameter type-inference transform strategy where a derived type is
    * transformed into the same type but not nullable.
    */
   public static final SqlTypeTransform TO_NOT_NULLABLE =
-      new SqlTypeTransform() {
-        public RelDataType transformType(
-            SqlOperatorBinding opBinding,
-            RelDataType typeToTransform) {
-          return opBinding.getTypeFactory().createTypeWithNullability(
-              Preconditions.checkNotNull(typeToTransform),
-              false);
-        }
-      };
+      (opBinding, typeToTransform) ->
+          opBinding.getTypeFactory().createTypeWithNullability(
+              Objects.requireNonNull(typeToTransform), false);
 
   /**
    * Parameter type-inference transform strategy where a derived type is
    * transformed into the same type with nulls allowed.
    */
   public static final SqlTypeTransform FORCE_NULLABLE =
-      new SqlTypeTransform() {
-        public RelDataType transformType(
-            SqlOperatorBinding opBinding,
-            RelDataType typeToTransform) {
-          return opBinding.getTypeFactory().createTypeWithNullability(
-              Preconditions.checkNotNull(typeToTransform),
-              true);
+      (opBinding, typeToTransform) ->
+          opBinding.getTypeFactory().createTypeWithNullability(
+              Objects.requireNonNull(typeToTransform), true);
+
+  /**
+   * Type-inference strategy whereby the result is NOT NULL if any of
+   * the arguments is NOT NULL; otherwise the type is unchanged.
+   */
+  public static final SqlTypeTransform LEAST_NULLABLE =
+      (opBinding, typeToTransform) -> {
+        for (RelDataType type : opBinding.collectOperandTypes()) {
+          if (!type.isNullable()) {
+            return opBinding.getTypeFactory()
+                .createTypeWithNullability(typeToTransform, false);
+          }
         }
+        return typeToTransform;
       };
 
   /**
@@ -158,13 +150,7 @@ public abstract class SqlTypeTransforms {
    * @see MultisetSqlType#getComponentType
    */
   public static final SqlTypeTransform TO_MULTISET_ELEMENT_TYPE =
-      new SqlTypeTransform() {
-        public RelDataType transformType(
-            SqlOperatorBinding opBinding,
-            RelDataType typeToTransform) {
-          return typeToTransform.getComponentType();
-        }
-      };
+      (opBinding, typeToTransform) -> typeToTransform.getComponentType();
 
   /**
    * Parameter type-inference transform strategy that wraps a given type
@@ -173,13 +159,8 @@ public abstract class SqlTypeTransforms {
    * @see org.apache.calcite.rel.type.RelDataTypeFactory#createMultisetType(RelDataType, long)
    */
   public static final SqlTypeTransform TO_MULTISET =
-      new SqlTypeTransform() {
-        public RelDataType transformType(SqlOperatorBinding opBinding,
-            RelDataType typeToTransform) {
-          return opBinding.getTypeFactory().createMultisetType(typeToTransform,
-              -1);
-        }
-      };
+      (opBinding, typeToTransform) ->
+          opBinding.getTypeFactory().createMultisetType(typeToTransform, -1);
 
   /**
    * Parameter type-inference transform strategy where a derived type must be
@@ -187,15 +168,10 @@ public abstract class SqlTypeTransforms {
    * of that field.
    */
   public static final SqlTypeTransform ONLY_COLUMN =
-      new SqlTypeTransform() {
-        public RelDataType transformType(
-            SqlOperatorBinding opBinding,
-            RelDataType typeToTransform) {
-          final List<RelDataTypeField> fields =
-              typeToTransform.getFieldList();
-          assert fields.size() == 1;
-          return fields.get(0).getType();
-        }
+      (opBinding, typeToTransform) -> {
+        final List<RelDataTypeField> fields = typeToTransform.getFieldList();
+        assert fields.size() == 1;
+        return fields.get(0).getType();
       };
 }
 

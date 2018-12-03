@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.util.Optionality;
 
 import com.google.common.base.Preconditions;
 
@@ -43,16 +44,15 @@ public class SqlCovarAggFunction extends SqlAggFunction {
     super(kind.name(),
         null,
         kind,
-        ReturnTypes.COVAR_FUNCTION,
+        kind == SqlKind.REGR_COUNT ? ReturnTypes.BIGINT : ReturnTypes.COVAR_REGR_FUNCTION,
         null,
         OperandTypes.NUMERIC_NUMERIC,
         SqlFunctionCategory.NUMERIC,
         false,
-        false);
-    Preconditions.checkArgument(kind == SqlKind.COVAR_POP
-        || kind == SqlKind.COVAR_SAMP
-        || kind == SqlKind.REGR_SXX
-        || kind == SqlKind.REGR_SYY);
+        false,
+        Optionality.FORBIDDEN);
+    Preconditions.checkArgument(SqlKind.COVAR_AVG_AGG_FUNCTIONS.contains(kind),
+        "unsupported sql kind: " + kind);
   }
 
   @Deprecated // to be removed before 2.0

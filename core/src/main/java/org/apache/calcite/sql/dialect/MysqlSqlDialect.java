@@ -16,9 +16,11 @@
  */
 package org.apache.calcite.sql.dialect;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -26,6 +28,7 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
@@ -64,8 +67,9 @@ public class MysqlSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public boolean supportsOffsetFetch() {
-    return false;
+  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
+      SqlNode fetch) {
+    unparseFetchUsingLimit(writer, offset, fetch);
   }
 
   @Override public SqlNode emulateNullDirection(SqlNode node,
@@ -123,12 +127,10 @@ public class MysqlSqlDialect extends SqlDialect {
             SqlStdOperatorTable.COUNT.createCall(SqlParserPos.ZERO, operand),
             SqlNodeList.of(
                 SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO),
-                SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)
-            ),
+                SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),
             SqlNodeList.of(
                 nullLiteral,
-                operand
-            ),
+                operand),
             SqlStdOperatorTable.SCALAR_QUERY.createCall(SqlParserPos.ZERO,
                 SqlStdOperatorTable.UNION_ALL
                     .createCall(SqlParserPos.ZERO, unionOperand, unionOperand)));
@@ -189,13 +191,13 @@ public class MysqlSqlDialect extends SqlDialect {
       format = "%Y-%m-%d";
       break;
     case HOUR:
-      format = "%Y-%m-%d %k:00:00";
+      format = "%Y-%m-%d %H:00:00";
       break;
     case MINUTE:
-      format = "%Y-%m-%d %k:%i:00";
+      format = "%Y-%m-%d %H:%i:00";
       break;
     case SECOND:
-      format = "%Y-%m-%d %k:%i:%s";
+      format = "%Y-%m-%d %H:%i:%s";
       break;
     default:
       throw new AssertionError("MYSQL does not support FLOOR for time unit: "
@@ -208,6 +210,63 @@ public class MysqlSqlDialect extends SqlDialect {
     writer.sep(",", true);
     writer.print("'" + format + "'");
     writer.endList(frame);
+  }
+
+
+  @Override public void unparseSqlIntervalQualifier(SqlWriter writer,
+      SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
+
+    //  Unit Value         | Expected Format
+    // --------------------+-------------------------------------------
+    //  MICROSECOND        | MICROSECONDS
+    //  SECOND             | SECONDS
+    //  MINUTE             | MINUTES
+    //  HOUR               | HOURS
+    //  DAY                | DAYS
+    //  WEEK               | WEEKS
+    //  MONTH              | MONTHS
+    //  QUARTER            | QUARTERS
+    //  YEAR               | YEARS
+    //  MINUTE_SECOND      | 'MINUTES:SECONDS'
+    //  HOUR_MINUTE        | 'HOURS:MINUTES'
+    //  DAY_HOUR           | 'DAYS HOURS'
+    //  YEAR_MONTH         | 'YEARS-MONTHS'
+    //  MINUTE_MICROSECOND | 'MINUTES:SECONDS.MICROSECONDS'
+    //  HOUR_MICROSECOND   | 'HOURS:MINUTES:SECONDS.MICROSECONDS'
+    //  SECOND_MICROSECOND | 'SECONDS.MICROSECONDS'
+    //  DAY_MINUTE         | 'DAYS HOURS:MINUTES'
+    //  DAY_MICROSECOND    | 'DAYS HOURS:MINUTES:SECONDS.MICROSECONDS'
+    //  DAY_SECOND         | 'DAYS HOURS:MINUTES:SECONDS'
+    //  HOUR_SECOND        | 'HOURS:MINUTES:SECONDS'
+
+    if (!qualifier.useDefaultFractionalSecondPrecision()) {
+      throw new AssertionError("Fractional second precision is not supported now ");
+    }
+
+    final String start = validate(qualifier.timeUnitRange.startUnit).name();
+    if (qualifier.timeUnitRange.startUnit == TimeUnit.SECOND
+        || qualifier.timeUnitRange.endUnit == null) {
+      writer.keyword(start);
+    } else {
+      writer.keyword(start + "_" + qualifier.timeUnitRange.endUnit.name());
+    }
+  }
+
+  private TimeUnit validate(TimeUnit timeUnit) {
+    switch (timeUnit) {
+    case MICROSECOND:
+    case SECOND:
+    case MINUTE:
+    case HOUR:
+    case DAY:
+    case WEEK:
+    case MONTH:
+    case QUARTER:
+    case YEAR:
+      return timeUnit;
+    default:
+      throw new AssertionError(" Time unit " + timeUnit + "is not supported now.");
+    }
   }
 }
 

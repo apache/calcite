@@ -16,91 +16,95 @@
  */
 package org.apache.calcite.sql.type;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 /**
- * Class to hold rules to determine if a type is assignable from another type.
- *
- * <p>REVIEW 7/05/04 Wael: We should split this up in Cast rules, symmetric and
- * asymmetric assignable rules
+ * Rules that determine whether a type is assignable from another type.
  */
 public class SqlTypeAssignmentRules {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static SqlTypeAssignmentRules instance = null;
+  private static final SqlTypeAssignmentRules INSTANCE;
+  private static final SqlTypeAssignmentRules COERCE_INSTANCE;
 
-  private final Map<SqlTypeName, Set<SqlTypeName>> rules;
-  private final Map<SqlTypeName, Set<SqlTypeName>> coerceRules;
+  private final Map<SqlTypeName, ImmutableSet<SqlTypeName>> map;
 
   //~ Constructors -----------------------------------------------------------
 
-  private SqlTypeAssignmentRules() {
-    rules = new HashMap<>();
+  private SqlTypeAssignmentRules(
+      Map<SqlTypeName, ImmutableSet<SqlTypeName>> map) {
+    this.map = ImmutableMap.copyOf(map);
+  }
 
-    Set<SqlTypeName> rule;
+  static {
+    final Builder rules = new Builder();
+
+    final Set<SqlTypeName> rule = new HashSet<>();
 
     // IntervalYearMonth is assignable from...
     for (SqlTypeName interval : SqlTypeName.YEAR_INTERVAL_TYPES) {
-      rules.put(interval, SqlTypeName.YEAR_INTERVAL_TYPES);
+      rules.add(interval, SqlTypeName.YEAR_INTERVAL_TYPES);
     }
     for (SqlTypeName interval : SqlTypeName.DAY_INTERVAL_TYPES) {
-      rules.put(interval, SqlTypeName.DAY_INTERVAL_TYPES);
+      rules.add(interval, SqlTypeName.DAY_INTERVAL_TYPES);
+    }
+    for (SqlTypeName interval : SqlTypeName.DAY_INTERVAL_TYPES) {
+      final Set<SqlTypeName> dayIntervalTypes = SqlTypeName.DAY_INTERVAL_TYPES;
+      rules.add(interval, dayIntervalTypes);
     }
 
-    // Multiset is assignable from...
-    rules.put(SqlTypeName.MULTISET, EnumSet.of(SqlTypeName.MULTISET));
+    // MULTISET is assignable from...
+    rules.add(SqlTypeName.MULTISET, EnumSet.of(SqlTypeName.MULTISET));
 
-    // Tinyint is assignable from...
-    rules.put(SqlTypeName.TINYINT, EnumSet.of(SqlTypeName.TINYINT));
+    // TINYINT is assignable from...
+    rules.add(SqlTypeName.TINYINT, EnumSet.of(SqlTypeName.TINYINT));
 
-    // Smallint is assignable from...
-    rule = new HashSet<>();
+    // SMALLINT is assignable from...
+    rule.clear();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
-    rules.put(SqlTypeName.SMALLINT, rule);
+    rules.add(SqlTypeName.SMALLINT, rule);
 
-    // Int is assignable from...
-    rule = new HashSet<>();
-    rule.add(SqlTypeName.TINYINT);
-    rule.add(SqlTypeName.SMALLINT);
-    rule.add(SqlTypeName.INTEGER);
-    rules.put(SqlTypeName.INTEGER, rule);
-
-    // BigInt is assignable from...
-    rule = new HashSet<>();
+    // INTEGER is assignable from...
+    rule.clear();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
-    rule.add(SqlTypeName.BIGINT);
-    rules.put(SqlTypeName.BIGINT, rule);
+    rules.add(SqlTypeName.INTEGER, rule);
 
-    // Float is assignable from...
-    rule = new HashSet<>();
+    // BIGINT is assignable from...
+    rule.clear();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
     rule.add(SqlTypeName.BIGINT);
-    rule.add(SqlTypeName.DECIMAL);
-    rule.add(SqlTypeName.FLOAT);
-    rules.put(SqlTypeName.FLOAT, rule);
+    rules.add(SqlTypeName.BIGINT, rule);
 
-    // Real is assignable from...
-    rule = new HashSet<>();
+    // FLOAT (up to 64 bit floating point) is assignable from...
+    rule.clear();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
     rule.add(SqlTypeName.BIGINT);
     rule.add(SqlTypeName.DECIMAL);
     rule.add(SqlTypeName.FLOAT);
-    rule.add(SqlTypeName.REAL);
-    rules.put(SqlTypeName.REAL, rule);
+    rules.add(SqlTypeName.FLOAT, rule);
 
-    // Double is assignable from...
-    rule = new HashSet<>();
+    // REAL (32 bit floating point) is assignable from...
+    rule.clear();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
@@ -108,75 +112,86 @@ public class SqlTypeAssignmentRules {
     rule.add(SqlTypeName.DECIMAL);
     rule.add(SqlTypeName.FLOAT);
     rule.add(SqlTypeName.REAL);
-    rule.add(SqlTypeName.DOUBLE);
-    rules.put(SqlTypeName.DOUBLE, rule);
+    rules.add(SqlTypeName.REAL, rule);
 
-    // Decimal is assignable from...
-    rule = new HashSet<>();
+    // DOUBLE is assignable from...
+    rule.clear();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
     rule.add(SqlTypeName.BIGINT);
+    rule.add(SqlTypeName.DECIMAL);
+    rule.add(SqlTypeName.FLOAT);
     rule.add(SqlTypeName.REAL);
     rule.add(SqlTypeName.DOUBLE);
-    rule.add(SqlTypeName.DECIMAL);
-    rules.put(SqlTypeName.DECIMAL, rule);
+    rules.add(SqlTypeName.DOUBLE, rule);
 
-    // VarBinary is assignable from...
-    rule = new HashSet<>();
+    // DECIMAL is assignable from...
+    rule.clear();
+    rule.add(SqlTypeName.TINYINT);
+    rule.add(SqlTypeName.SMALLINT);
+    rule.add(SqlTypeName.INTEGER);
+    rule.add(SqlTypeName.BIGINT);
+    rule.add(SqlTypeName.REAL);
+    rule.add(SqlTypeName.DOUBLE);
+    rule.add(SqlTypeName.DECIMAL);
+    rules.add(SqlTypeName.DECIMAL, rule);
+
+    // VARBINARY is assignable from...
+    rule.clear();
     rule.add(SqlTypeName.VARBINARY);
     rule.add(SqlTypeName.BINARY);
-    rules.put(SqlTypeName.VARBINARY, rule);
+    rules.add(SqlTypeName.VARBINARY, rule);
 
-    // Char is assignable from...
-    rules.put(SqlTypeName.CHAR, EnumSet.of(SqlTypeName.CHAR));
+    // CHAR is assignable from...
+    rules.add(SqlTypeName.CHAR, EnumSet.of(SqlTypeName.CHAR));
 
-    // VarChar is assignable from...
-    rule = new HashSet<>();
+    // VARCHAR is assignable from...
+    rule.clear();
     rule.add(SqlTypeName.CHAR);
     rule.add(SqlTypeName.VARCHAR);
-    rules.put(SqlTypeName.VARCHAR, rule);
+    rules.add(SqlTypeName.VARCHAR, rule);
 
-    // Boolean is assignable from...
-    rules.put(SqlTypeName.BOOLEAN, EnumSet.of(SqlTypeName.BOOLEAN));
+    // BOOLEAN is assignable from...
+    rules.add(SqlTypeName.BOOLEAN, EnumSet.of(SqlTypeName.BOOLEAN));
 
-    // Binary is assignable from...
-    rule = new HashSet<>();
+    // BINARY is assignable from...
+    rule.clear();
     rule.add(SqlTypeName.BINARY);
     rule.add(SqlTypeName.VARBINARY);
-    rules.put(SqlTypeName.BINARY, rule);
+    rules.add(SqlTypeName.BINARY, rule);
 
-    // Date is assignable from ...
-    rule = new HashSet<>();
+    // DATE is assignable from...
+    rule.clear();
     rule.add(SqlTypeName.DATE);
     rule.add(SqlTypeName.TIMESTAMP);
-    rules.put(SqlTypeName.DATE, rule);
+    rules.add(SqlTypeName.DATE, rule);
 
-    // Time is assignable from ...
-    rule = new HashSet<>();
+    // TIME is assignable from...
+    rule.clear();
     rule.add(SqlTypeName.TIME);
     rule.add(SqlTypeName.TIMESTAMP);
-    rules.put(SqlTypeName.TIME, rule);
+    rules.add(SqlTypeName.TIME, rule);
 
-    // Time with local time-zone is assignable from ...
-    rules.put(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE,
+    // TIME WITH LOCAL TIME ZONE is assignable from...
+    rules.add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE,
         EnumSet.of(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE));
 
-    // Timestamp is assignable from ...
-    rules.put(SqlTypeName.TIMESTAMP, EnumSet.of(SqlTypeName.TIMESTAMP));
+    // TIMESTAMP is assignable from ...
+    rules.add(SqlTypeName.TIMESTAMP, EnumSet.of(SqlTypeName.TIMESTAMP));
 
-    // Timestamp with local time-zone is assignable from ...
-    rules.put(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE,
+    // TIMESTAMP WITH LOCAL TIME ZONE is assignable from...
+    rules.add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE,
         EnumSet.of(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE));
 
-    // Geometry is assignable from ...
-    rules.put(SqlTypeName.GEOMETRY, EnumSet.of(SqlTypeName.GEOMETRY));
+    // GEOMETRY is assignable from ...
+    rules.add(SqlTypeName.GEOMETRY, EnumSet.of(SqlTypeName.GEOMETRY));
 
-    // Array is assignable from ...
-    rules.put(SqlTypeName.ARRAY, EnumSet.of(SqlTypeName.ARRAY));
+    // ARRAY is assignable from ...
+    rules.add(SqlTypeName.ARRAY, EnumSet.of(SqlTypeName.ARRAY));
 
-    // Any is assignable from ...
-    rule = new HashSet<>();
+    // ANY is assignable from ...
+    rule.clear();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
@@ -187,14 +202,14 @@ public class SqlTypeAssignmentRules {
     rule.add(SqlTypeName.TIME);
     rule.add(SqlTypeName.DATE);
     rule.add(SqlTypeName.TIMESTAMP);
-    rules.put(SqlTypeName.ANY, rule);
+    rules.add(SqlTypeName.ANY, rule);
 
     // we use coerceRules when we're casting
-    coerceRules = copy(rules);
+    final Builder coerceRules = new Builder(rules);
 
-    // Make numbers symmetrical and
-    // make varchar/char castable to/from numbers
-    rule = new HashSet<>();
+    // Make numbers symmetrical,
+    // and make VARCHAR and CHAR castable to/from numbers
+    rule.clear();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
@@ -207,148 +222,156 @@ public class SqlTypeAssignmentRules {
     rule.add(SqlTypeName.CHAR);
     rule.add(SqlTypeName.VARCHAR);
 
-    coerceRules.put(
-        SqlTypeName.TINYINT,
-        copy(rule));
-    coerceRules.put(
-        SqlTypeName.SMALLINT,
-        copy(rule));
-    coerceRules.put(
-        SqlTypeName.INTEGER,
-        copy(rule));
-    coerceRules.put(
-        SqlTypeName.BIGINT,
-        copy(rule));
-    coerceRules.put(
-        SqlTypeName.FLOAT,
-        copy(rule));
-    coerceRules.put(
-        SqlTypeName.REAL,
-        copy(rule));
-    coerceRules.put(
-        SqlTypeName.DECIMAL,
-        copy(rule));
-    coerceRules.put(
-        SqlTypeName.DOUBLE,
-        copy(rule));
-    coerceRules.put(
-        SqlTypeName.CHAR,
-        copy(rule));
-    coerceRules.put(
-        SqlTypeName.VARCHAR,
-        copy(rule));
+    coerceRules.add(SqlTypeName.TINYINT, rule);
+    coerceRules.add(SqlTypeName.SMALLINT, rule);
+    coerceRules.add(SqlTypeName.INTEGER, rule);
+    coerceRules.add(SqlTypeName.BIGINT, rule);
+    coerceRules.add(SqlTypeName.FLOAT, rule);
+    coerceRules.add(SqlTypeName.REAL, rule);
+    coerceRules.add(SqlTypeName.DECIMAL, rule);
+    coerceRules.add(SqlTypeName.DOUBLE, rule);
+    coerceRules.add(SqlTypeName.CHAR, rule);
+    coerceRules.add(SqlTypeName.VARCHAR, rule);
 
-    // Exact Numerics are castable from intervals
+    // Exact numeric types are castable from intervals
     for (SqlTypeName exactType : SqlTypeName.EXACT_TYPES) {
-      rule = coerceRules.get(exactType);
-      rule.addAll(SqlTypeName.INTERVAL_TYPES);
+      coerceRules.add(exactType,
+          coerceRules.copyValues(exactType)
+              .addAll(SqlTypeName.INTERVAL_TYPES)
+              .build());
     }
 
-    // intervals are castable from Exact Numeric
+    // Intervals are castable from exact numeric
     for (SqlTypeName typeName : SqlTypeName.INTERVAL_TYPES) {
-      rule = coerceRules.get(typeName);
-      rule.add(SqlTypeName.TINYINT);
-      rule.add(SqlTypeName.SMALLINT);
-      rule.add(SqlTypeName.INTEGER);
-      rule.add(SqlTypeName.BIGINT);
-      rule.add(SqlTypeName.DECIMAL);
-      rule.add(SqlTypeName.VARCHAR);
+      coerceRules.add(typeName,
+          coerceRules.copyValues(typeName)
+              .add(SqlTypeName.TINYINT)
+              .add(SqlTypeName.SMALLINT)
+              .add(SqlTypeName.INTEGER)
+              .add(SqlTypeName.BIGINT)
+              .add(SqlTypeName.DECIMAL)
+              .add(SqlTypeName.VARCHAR)
+              .build());
     }
 
-    // varchar is castable from Boolean, Date, time, timestamp, numbers and
+    // VARCHAR is castable from BOOLEAN, DATE, TIMESTAMP, numeric types and
     // intervals
-    rule = coerceRules.get(SqlTypeName.VARCHAR);
-    rule.add(SqlTypeName.BOOLEAN);
-    rule.add(SqlTypeName.DATE);
-    rule.add(SqlTypeName.TIME);
-    rule.add(SqlTypeName.TIMESTAMP);
-    rule.addAll(SqlTypeName.INTERVAL_TYPES);
+    coerceRules.add(SqlTypeName.VARCHAR,
+        coerceRules.copyValues(SqlTypeName.VARCHAR)
+            .add(SqlTypeName.BOOLEAN)
+            .add(SqlTypeName.DATE)
+            .add(SqlTypeName.TIME)
+            .add(SqlTypeName.TIMESTAMP)
+            .addAll(SqlTypeName.INTERVAL_TYPES)
+            .build());
 
-    // char is castable from Boolean, Date, time and timestamp and numbers
-    rule = coerceRules.get(SqlTypeName.CHAR);
-    rule.add(SqlTypeName.BOOLEAN);
-    rule.add(SqlTypeName.DATE);
-    rule.add(SqlTypeName.TIME);
-    rule.add(SqlTypeName.TIMESTAMP);
-    rule.addAll(SqlTypeName.INTERVAL_TYPES);
+    // CHAR is castable from BOOLEAN, DATE, TIME, TIMESTAMP and numeric types
+    coerceRules.add(SqlTypeName.CHAR,
+        coerceRules.copyValues(SqlTypeName.CHAR)
+            .add(SqlTypeName.BOOLEAN)
+            .add(SqlTypeName.DATE)
+            .add(SqlTypeName.TIME)
+            .add(SqlTypeName.TIMESTAMP)
+            .addAll(SqlTypeName.INTERVAL_TYPES)
+            .build());
 
-    // Boolean is castable from char and varchar
-    rule = coerceRules.get(SqlTypeName.BOOLEAN);
-    rule.add(SqlTypeName.CHAR);
-    rule.add(SqlTypeName.VARCHAR);
+    // BOOLEAN is castable from CHAR and VARCHAR
+    coerceRules.add(SqlTypeName.BOOLEAN,
+        coerceRules.copyValues(SqlTypeName.BOOLEAN)
+            .add(SqlTypeName.CHAR)
+            .add(SqlTypeName.VARCHAR)
+            .build());
 
-    // Date, time, and timestamp are castable from
-    // char and varchar
-    // Date is castable from ...
-    rule = new HashSet<>();
-    rule.add(SqlTypeName.DATE);
-    rule.add(SqlTypeName.TIMESTAMP);
-    rule.add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
-    rule.add(SqlTypeName.CHAR);
-    rule.add(SqlTypeName.VARCHAR);
-    coerceRules.put(SqlTypeName.DATE, rule);
+    // DATE, TIME, and TIMESTAMP are castable from
+    // CHAR and VARCHAR.
 
-    // Time is castable from ...
-    rule = new HashSet<>();
-    rule.add(SqlTypeName.TIME);
-    rule.add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
-    rule.add(SqlTypeName.TIMESTAMP);
-    rule.add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
-    rule.add(SqlTypeName.CHAR);
-    rule.add(SqlTypeName.VARCHAR);
-    coerceRules.put(SqlTypeName.TIME, rule);
+    // DATE is castable from...
+    coerceRules.add(SqlTypeName.DATE,
+        coerceRules.copyValues(SqlTypeName.DATE)
+            .add(SqlTypeName.DATE)
+            .add(SqlTypeName.TIMESTAMP)
+            .add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
+            .add(SqlTypeName.CHAR)
+            .add(SqlTypeName.VARCHAR)
+            .build());
 
-    // Time with local time-zone is castable from ...
-    rule = new HashSet<>();
-    rule.add(SqlTypeName.TIME);
-    rule.add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
-    rule.add(SqlTypeName.TIMESTAMP);
-    rule.add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
-    rule.add(SqlTypeName.CHAR);
-    rule.add(SqlTypeName.VARCHAR);
-    coerceRules.put(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE, rule);
+    // TIME is castable from...
+    coerceRules.add(SqlTypeName.TIME,
+        coerceRules.copyValues(SqlTypeName.TIME)
+            .add(SqlTypeName.TIME)
+            .add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE)
+            .add(SqlTypeName.TIMESTAMP)
+            .add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
+            .add(SqlTypeName.CHAR)
+            .add(SqlTypeName.VARCHAR)
+            .build());
 
-    // Timestamp is castable from ...
-    rule = new HashSet<>();
-    rule.add(SqlTypeName.TIMESTAMP);
-    rule.add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
-    rule.add(SqlTypeName.DATE);
-    rule.add(SqlTypeName.TIME);
-    rule.add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
-    rule.add(SqlTypeName.CHAR);
-    rule.add(SqlTypeName.VARCHAR);
-    coerceRules.put(SqlTypeName.TIMESTAMP, rule);
+    // TIME WITH LOCAL TIME ZONE is castable from...
+    coerceRules.add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE,
+        coerceRules.copyValues(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE)
+            .add(SqlTypeName.TIME)
+            .add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE)
+            .add(SqlTypeName.TIMESTAMP)
+            .add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
+            .add(SqlTypeName.CHAR)
+            .add(SqlTypeName.VARCHAR)
+            .build());
 
-    // Timestamp with local time-zone is castable from ...
-    rule = new HashSet<>();
-    rule.add(SqlTypeName.TIMESTAMP);
-    rule.add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
-    rule.add(SqlTypeName.DATE);
-    rule.add(SqlTypeName.TIME);
-    rule.add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
-    rule.add(SqlTypeName.CHAR);
-    rule.add(SqlTypeName.VARCHAR);
-    coerceRules.put(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, rule);
+    // TIMESTAMP is castable from...
+    coerceRules.add(SqlTypeName.TIMESTAMP,
+        coerceRules.copyValues(SqlTypeName.TIMESTAMP)
+            .add(SqlTypeName.TIMESTAMP)
+            .add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
+            .add(SqlTypeName.DATE)
+            .add(SqlTypeName.TIME)
+            .add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE)
+            .add(SqlTypeName.CHAR)
+            .add(SqlTypeName.VARCHAR)
+            .build());
+
+    // TIMESTAMP WITH LOCAL TIME ZONE is castable from...
+    coerceRules.add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE,
+        coerceRules.copyValues(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
+            .add(SqlTypeName.TIMESTAMP)
+            .add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
+            .add(SqlTypeName.DATE)
+            .add(SqlTypeName.TIME)
+            .add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE)
+            .add(SqlTypeName.CHAR)
+            .add(SqlTypeName.VARCHAR)
+            .build());
+
+    INSTANCE = new SqlTypeAssignmentRules(rules.map);
+    COERCE_INSTANCE = new SqlTypeAssignmentRules(coerceRules.map);
   }
 
   //~ Methods ----------------------------------------------------------------
 
+  /** Returns an instance that does not coerce. */
   public static synchronized SqlTypeAssignmentRules instance() {
-    if (instance == null) {
-      instance = new SqlTypeAssignmentRules();
-    }
-    return instance;
+    return instance(false);
   }
 
+  /** Returns an instance. */
+  public static synchronized SqlTypeAssignmentRules instance(boolean coerce) {
+    return coerce ? COERCE_INSTANCE : INSTANCE;
+  }
+
+  @Deprecated
   public boolean canCastFrom(
       SqlTypeName to,
       SqlTypeName from,
       boolean coerce) {
-    assert to != null;
-    assert from != null;
+    return instance(coerce).canCastFrom(to, from);
+  }
 
-    Map<SqlTypeName, Set<SqlTypeName>> ruleset =
-        coerce ? coerceRules : rules;
+  /** Returns whether it is valid to cast a value of from type {@code from} to
+   * type {@code to}. */
+  public boolean canCastFrom(
+      SqlTypeName to,
+      SqlTypeName from) {
+    Objects.requireNonNull(to);
+    Objects.requireNonNull(from);
 
     if (to == SqlTypeName.NULL) {
       return false;
@@ -356,7 +379,7 @@ public class SqlTypeAssignmentRules {
       return true;
     }
 
-    final Set<SqlTypeName> rule = ruleset.get(to);
+    final Set<SqlTypeName> rule = map.get(to);
     if (rule == null) {
       // if you hit this assert, see the constructor of this class on how
       // to add new rule
@@ -366,21 +389,38 @@ public class SqlTypeAssignmentRules {
     return rule.contains(from);
   }
 
-  @SuppressWarnings("unchecked")
-  private static <K, V> Map<K, V> copy(Map<K, V> map) {
-    Map<K, V> copy = new HashMap<>();
-    for (Map.Entry<K, V> e : map.entrySet()) {
-      if (e.getValue() instanceof Set) {
-        copy.put(e.getKey(), (V) copy((Set) e.getValue()));
-      } else {
-        copy.put(e.getKey(), e.getValue());
+
+  /** Keeps state while maps are building build. */
+  private static class Builder {
+    final Map<SqlTypeName, ImmutableSet<SqlTypeName>> map;
+    final LoadingCache<Set<SqlTypeName>, ImmutableSet<SqlTypeName>> sets;
+
+    /** Creates an empty Builder. */
+    Builder() {
+      this.map = new HashMap<>();
+      this.sets =
+          CacheBuilder.newBuilder()
+              .build(CacheLoader.from(set -> Sets.immutableEnumSet(set)));
+    }
+
+    /** Creates a Builder as a copy of another Builder. */
+    Builder(Builder builder) {
+      this.map = new HashMap<>(builder.map);
+      this.sets = builder.sets; // share the same canonical sets
+    }
+
+    void add(SqlTypeName fromType, Set<SqlTypeName> toTypes) {
+      try {
+        map.put(fromType, sets.get(toTypes));
+      } catch (ExecutionException e) {
+        throw new RuntimeException("populating SqlTypeAssignmentRules", e);
       }
     }
-    return copy;
-  }
 
-  private static <T> HashSet<T> copy(Set<T> set) {
-    return new HashSet<T>(set);
+    ImmutableSet.Builder<SqlTypeName> copyValues(SqlTypeName typeName) {
+      return ImmutableSet.<SqlTypeName>builder()
+          .addAll(map.get(typeName));
+    }
   }
 }
 

@@ -17,22 +17,39 @@
 package org.apache.calcite.adapter.druid;
 
 import java.util.Locale;
+import javax.annotation.Nonnull;
 
-/** Granularity of a Druid query. */
-public enum Granularity {
-  ALL,
-  YEAR,
-  QUARTER,
-  MONTH,
-  WEEK,
-  DAY,
-  HOUR,
-  MINUTE,
-  SECOND,
-  NONE;
+/**
+ * A strategy by which Druid rolls up rows into sub-totals based on their
+ * timestamp values.
+ *
+ * <p>Typical granularities are based upon time units (e.g. 1 day or
+ * 15 minutes). A special granularity, all, combines all rows into a single
+ * total.
+ *
+ * <p>A Granularity instance is immutable, and generates a JSON string as
+ * part of a Druid query.
+ *
+ * @see Granularities
+ */
+public interface Granularity extends DruidJson {
+  /** Type of supported periods for granularity. */
+  enum Type {
+    ALL,
+    YEAR,
+    QUARTER,
+    MONTH,
+    WEEK,
+    DAY,
+    HOUR,
+    MINUTE,
+    SECOND;
 
-  /** JSON attribute value in a Druid query. */
-  public final String value = name().toLowerCase(Locale.ROOT);
+    /** Lower-case name, e.g. "all", "minute". */
+    public final String lowerName = name().toLowerCase(Locale.ROOT);
+  }
+
+  @Nonnull Type getType();
 }
 
 // End Granularity.java

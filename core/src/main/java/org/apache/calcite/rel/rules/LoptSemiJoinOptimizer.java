@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.SemiJoin;
@@ -281,7 +282,7 @@ public class LoptSemiJoinOptimizer {
     final List<Integer> bestKeyOrder = new ArrayList<>();
     LcsTableScan tmpFactRel =
         (LcsTableScan) factTable.toRel(
-            RelOptUtil.getContext(factRel.getCluster()));
+            ViewExpanders.simpleContext(factRel.getCluster()));
 
     LcsIndexOptimizer indexOptimizer = new LcsIndexOptimizer(tmpFactRel);
     FemLocalIndex bestIndex =
@@ -671,7 +672,7 @@ public class LoptSemiJoinOptimizer {
       return 0;
     }
 
-    Double dimRows = dimCost.getRows();
+    double dimRows = dimCost.getRows();
     if (dimRows < 1.0) {
       dimRows = 1.0;
     }

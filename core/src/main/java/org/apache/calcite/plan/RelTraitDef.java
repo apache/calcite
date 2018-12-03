@@ -19,12 +19,8 @@ package org.apache.calcite.plan;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-
-import java.util.List;
-import javax.annotation.Nonnull;
+import com.google.common.collect.Interner;
+import com.google.common.collect.Interners;
 
 /**
  * RelTraitDef represents a class of {@link RelTrait}s. Implementations of
@@ -56,39 +52,12 @@ import javax.annotation.Nonnull;
 public abstract class RelTraitDef<T extends RelTrait> {
   //~ Instance fields --------------------------------------------------------
 
-  private final LoadingCache<T, T> canonicalMap =
-      CacheBuilder.newBuilder()
-          .softValues()
-          .build(
-              new CacheLoader<T, T>() {
-                @Override public T load(@Nonnull T key) throws Exception {
-                  return key;
-                }
-              });
-
-  /** Cache of composite traits.
+  /**
+   * Cache of traits.
    *
-   * <p>Uses soft values to allow GC.
-   *
-   * <p>You can look up using a {@link RelCompositeTrait} whose constituent
-   * traits are not canonized.
+   * <p>Uses weak interner to allow GC.
    */
-  private final LoadingCache<Object, RelCompositeTrait> canonicalCompositeMap =
-      CacheBuilder.newBuilder()
-          .softValues()
-          .build(
-              new CacheLoader<Object, RelCompositeTrait>() {
-                @Override public RelCompositeTrait load(@Nonnull Object key) {
-                  if (key instanceof RelCompositeTrait) {
-                    return (RelCompositeTrait) key;
-                  }
-                  @SuppressWarnings("unchecked")
-                  final List<RelMultipleTrait> list =
-                      (List<RelMultipleTrait>) key;
-                  final RelTraitDef def = list.get(0).getTraitDef();
-                  return (RelCompositeTrait) RelCompositeTrait.of(def, list);
-                }
-              });
+  private final Interner<T> interner = Interners.newWeakInterner();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -131,20 +100,13 @@ public abstract class RelTraitDef<T extends RelTrait> {
    * @return a canonical RelTrait.
    */
   public final T canonize(T trait) {
-    if (trait instanceof RelCompositeTrait) {
-      RelCompositeTrait relCompositeTrait = (RelCompositeTrait) trait;
-      return (T) canonizeComposite(relCompositeTrait);
+    if (!(trait instanceof RelCompositeTrait)) {
+      assert getTraitClass().isInstance(trait)
+          : getClass().getName()
+          + " cannot canonize a "
+          + trait.getClass().getName();
     }
-    assert getTraitClass().isInstance(trait)
-        : getClass().getName()
-        + " cannot canonize a "
-        + trait.getClass().getName();
-
-    return canonicalMap.getUnchecked(trait);
-  }
-
-  final RelCompositeTrait canonizeComposite(RelCompositeTrait compositeTrait) {
-    return canonicalCompositeMap.getUnchecked(compositeTrait);
+    return interner.intern(trait);
   }
 
   /**

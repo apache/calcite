@@ -39,6 +39,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.pigunit.Cluster;
 import org.apache.pig.pigunit.PigTest;
+import org.apache.pig.pigunit.pig.PigServer;
 import org.apache.pig.test.Util;
 
 import org.junit.After;
@@ -277,7 +278,10 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
 
   @After
   public void shutdownPigServer() {
-    PigTest.getPigServer().shutdown();
+    PigServer pigServer = PigTest.getPigServer();
+    if (pigServer != null) {
+      pigServer.shutdown();
+    }
   }
 
   @Before

@@ -16,10 +16,6 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.jdbc.CalciteConnection;
-
-import com.google.common.base.Function;
-
 import org.hamcrest.Matcher;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -56,26 +52,22 @@ public class JdbcFrontJdbcBackTest {
   @Test public void testTables() throws Exception {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
-        .doWithConnection(
-            new Function<CalciteConnection, Object>() {
-              public Object apply(CalciteConnection a0) {
-                try {
-                  ResultSet rset =
-                      a0.getMetaData().getTables(
-                          null, null, null, null);
-                  StringBuilder buf = new StringBuilder();
-                  while (rset.next()) {
-                    buf.append(rset.getString(3)).append(';');
-                  }
-                  assertEquals(
-                      "account;agg_c_10_sales_fact_1997;agg_c_14_sales_fact_1997;agg_c_special_sales_fact_1997;agg_g_ms_pcat_sales_fact_1997;agg_l_03_sales_fact_1997;agg_l_04_sales_fact_1997;agg_l_05_sales_fact_1997;agg_lc_06_sales_fact_1997;agg_lc_100_sales_fact_1997;agg_ll_01_sales_fact_1997;agg_pl_01_sales_fact_1997;category;currency;customer;days;department;employee;employee_closure;expense_fact;inventory_fact_1997;inventory_fact_1998;position;product;product_class;products;promotion;region;reserve_employee;salary;sales_fact_1997;sales_fact_1998;sales_fact_dec_1998;store;store_ragged;time_by_day;warehouse;warehouse_class;COLUMNS;TABLES;",
-                      buf.toString());
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                }
-                return null;
-              }
-            });
+        .doWithConnection(connection -> {
+          try {
+            ResultSet rset =
+                connection.getMetaData().getTables(
+                    null, null, null, null);
+            StringBuilder buf = new StringBuilder();
+            while (rset.next()) {
+              buf.append(rset.getString(3)).append(';');
+            }
+            assertEquals(
+                "account;agg_c_10_sales_fact_1997;agg_c_14_sales_fact_1997;agg_c_special_sales_fact_1997;agg_g_ms_pcat_sales_fact_1997;agg_l_03_sales_fact_1997;agg_l_04_sales_fact_1997;agg_l_05_sales_fact_1997;agg_lc_06_sales_fact_1997;agg_lc_100_sales_fact_1997;agg_ll_01_sales_fact_1997;agg_pl_01_sales_fact_1997;category;currency;customer;days;department;employee;employee_closure;expense_fact;inventory_fact_1997;inventory_fact_1998;position;product;product_class;products;promotion;region;reserve_employee;salary;sales_fact_1997;sales_fact_1998;sales_fact_dec_1998;store;store_ragged;time_by_day;warehouse;warehouse_class;COLUMNS;TABLES;",
+                buf.toString());
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   @Test public void testTablesByType() throws Exception {
@@ -89,47 +81,39 @@ public class JdbcFrontJdbcBackTest {
       final Matcher<String> matcher) throws Exception {
     that()
         .with(CalciteAssert.Config.REGULAR_PLUS_METADATA)
-        .doWithConnection(
-            new Function<CalciteConnection, Object>() {
-              public Object apply(CalciteConnection a0) {
-                try (ResultSet rset = a0.getMetaData().getTables(null, null,
-                    null, new String[] {tableType})) {
-                  StringBuilder buf = new StringBuilder();
-                  while (rset.next()) {
-                    buf.append(rset.getString(3)).append(';');
-                  }
-                  assertThat(buf.toString(), matcher);
-                  return null;
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                }
-              }
-            });
+        .doWithConnection(connection -> {
+          try (ResultSet rset = connection.getMetaData().getTables(null, null,
+              null, new String[] {tableType})) {
+            StringBuilder buf = new StringBuilder();
+            while (rset.next()) {
+              buf.append(rset.getString(3)).append(';');
+            }
+            assertThat(buf.toString(), matcher);
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   @Test public void testColumns() throws Exception {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
-        .doWithConnection(
-            new Function<CalciteConnection, Object>() {
-              public Object apply(CalciteConnection a0) {
-                try {
-                  ResultSet rset =
-                      a0.getMetaData().getColumns(
-                          null, null, "sales_fact_1997", null);
-                  StringBuilder buf = new StringBuilder();
-                  while (rset.next()) {
-                    buf.append(rset.getString(4)).append(';');
-                  }
-                  assertEquals(
-                      "product_id;time_id;customer_id;promotion_id;store_id;store_sales;store_cost;unit_sales;",
-                      buf.toString());
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                }
-                return null;
-              }
-            });
+        .doWithConnection(connection -> {
+          try {
+            ResultSet rset =
+                connection.getMetaData().getColumns(
+                    null, null, "sales_fact_1997", null);
+            StringBuilder buf = new StringBuilder();
+            while (rset.next()) {
+              buf.append(rset.getString(4)).append(';');
+            }
+            assertEquals(
+                "product_id;time_id;customer_id;promotion_id;store_id;store_sales;store_cost;unit_sales;",
+                buf.toString());
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   /** Tests a JDBC method known to be not implemented (as it happens,
@@ -138,26 +122,21 @@ public class JdbcFrontJdbcBackTest {
   @Test public void testEmpty() throws Exception {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
-        .doWithConnection(
-            new Function<CalciteConnection, Object>() {
-              public Object apply(CalciteConnection a0) {
-                try {
-                  ResultSet rset =
-                      a0.getMetaData().getPrimaryKeys(
-                          null, null, "sales_fact_1997");
-                  assertFalse(rset.next());
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                }
-                return null;
-              }
-            });
+        .doWithConnection(connection -> {
+          try {
+            ResultSet rset =
+                connection.getMetaData().getPrimaryKeys(
+                    null, null, "sales_fact_1997");
+            assertFalse(rset.next());
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   @Test public void testCase() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
-        .withDefaultSchema("foodmart")
         .query("select\n"
             + "  case when \"sales_fact_1997\".\"promotion_id\" = 1 then 0\n"
             + "  else \"sales_fact_1997\".\"store_sales\" end as \"c0\"\n"

@@ -24,6 +24,8 @@ import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 
+import com.google.common.collect.ImmutableList;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
@@ -524,7 +526,7 @@ public abstract class Expressions {
    */
   public static ConditionalExpression condition(Expression test,
       Expression ifTrue, Expression ifFalse, Type type) {
-    return new ConditionalExpression(Arrays.<Node>asList(test, ifFalse, ifTrue),
+    return new ConditionalExpression(Arrays.asList(test, ifFalse, ifTrue),
         type);
   }
 
@@ -962,7 +964,7 @@ public abstract class Expressions {
    * block with an if statement.
    */
   public static ConditionalStatement ifThen(Expression test, Node ifTrue) {
-    return new ConditionalStatement(Arrays.<Node>asList(test, ifTrue));
+    return new ConditionalStatement(Arrays.asList(test, ifTrue));
   }
 
   /**
@@ -971,7 +973,7 @@ public abstract class Expressions {
    */
   public static ConditionalStatement ifThenElse(Expression test, Node ifTrue,
       Node ifFalse) {
-    return new ConditionalStatement(Arrays.<Node>asList(test, ifTrue, ifFalse));
+    return new ConditionalStatement(Arrays.asList(test, ifTrue, ifFalse));
   }
 
   /**
@@ -1118,7 +1120,7 @@ public abstract class Expressions {
     // default constructor, etc.?
 
     //noinspection unchecked
-    return new FunctionExpression<F>(function);
+    return new FunctionExpression<>(function);
   }
 
   /**
@@ -1131,7 +1133,7 @@ public abstract class Expressions {
     final List<ParameterExpression> parameterList = toList(parameters);
     @SuppressWarnings("unchecked")
     Class<F> type = deduceType(parameterList, body.getType());
-    return new FunctionExpression<F>(type, body, parameterList);
+    return new FunctionExpression<>(type, body, parameterList);
   }
 
   /**
@@ -1170,7 +1172,7 @@ public abstract class Expressions {
   public static <T, F extends Function<? extends T>> FunctionExpression<F>
       lambda(Class<F> type, BlockStatement body,
       Iterable<? extends ParameterExpression> parameters) {
-    return new FunctionExpression<F>(type, body, toList(parameters));
+    return new FunctionExpression<>(type, body, toList(parameters));
   }
 
   /**
@@ -1605,8 +1607,14 @@ public abstract class Expressions {
    */
   public static UnaryExpression makeUnary(ExpressionType expressionType,
       Expression expression) {
-    return new UnaryExpression(expressionType, expression.getType(),
-        expression);
+    Type type = expression.getType();
+    switch (expressionType) {
+    case Negate:
+      if (type == byte.class || type == short.class) {
+        type = int.class;
+      }
+    }
+    return new UnaryExpression(expressionType, type, expression);
   }
 
   /**
@@ -1908,8 +1916,7 @@ public abstract class Expressions {
    * constructor that takes no arguments.
    */
   public static NewExpression new_(Constructor constructor) {
-    return new_(
-        constructor.getDeclaringClass(), Collections.<Expression>emptyList());
+    return new_(constructor.getDeclaringClass(), ImmutableList.of());
   }
 
   /**
@@ -1917,7 +1924,7 @@ public abstract class Expressions {
    * parameterless constructor of the specified type.
    */
   public static NewExpression new_(Type type) {
-    return new_(type, Collections.<Expression>emptyList());
+    return new_(type, ImmutableList.of());
   }
 
   /**
@@ -2831,8 +2838,7 @@ public abstract class Expressions {
    * finally block and no catch statements.
    */
   public static TryStatement tryFinally(Statement body, Statement finally_) {
-    return new TryStatement(body, Collections.<CatchBlock>emptyList(),
-        finally_);
+    return new TryStatement(body, ImmutableList.of(), finally_);
   }
 
   /**
@@ -2934,6 +2940,9 @@ public abstract class Expressions {
    */
   public static DeclarationStatement declare(int modifiers, String name,
       Expression initializer) {
+    assert initializer != null
+        : "empty initializer for variable declaration with name '" + name + "', modifiers "
+        + modifiers + ". Please use declare(int, ParameterExpression, initializer) instead";
     return declare(modifiers, parameter(initializer.getType(), name),
         initializer);
   }
@@ -3017,21 +3026,21 @@ public abstract class Expressions {
    * Creates an empty fluent list.
    */
   public static <T> FluentList<T> list() {
-    return new FluentArrayList<T>();
+    return new FluentArrayList<>();
   }
 
   /**
    * Creates a fluent list with given elements.
    */
-  public static <T> FluentList<T> list(T... ts) {
-    return new FluentArrayList<T>(Arrays.asList(ts));
+  @SafeVarargs public static <T> FluentList<T> list(T... ts) {
+    return new FluentArrayList<>(Arrays.asList(ts));
   }
 
   /**
    * Creates a fluent list with elements from the given collection.
    */
   public static <T> FluentList<T> list(Iterable<T> ts) {
-    return new FluentArrayList<T>(toList(ts));
+    return new FluentArrayList<>(toList(ts));
   }
 
   // ~ Private helper methods ------------------------------------------------
@@ -3063,7 +3072,7 @@ public abstract class Expressions {
     if (iterable instanceof List) {
       return (List<T>) iterable;
     }
-    final List<T> list = new ArrayList<T>();
+    final List<T> list = new ArrayList<>();
     for (T parameter : iterable) {
       list.add(parameter);
     }
@@ -3108,7 +3117,7 @@ public abstract class Expressions {
     if (statements.isEmpty()) {
       return statements; // short cut
     }
-    final List<Statement> statements1 = new ArrayList<Statement>();
+    final List<Statement> statements1 = new ArrayList<>();
     for (Statement statement : statements) {
       Statement newStatement = statement.accept(shuttle);
       if (newStatement instanceof GotoStatement) {
@@ -3128,7 +3137,7 @@ public abstract class Expressions {
     if (nodes.isEmpty()) {
       return nodes; // short cut
     }
-    final List<Node> statements1 = new ArrayList<Node>();
+    final List<Node> statements1 = new ArrayList<>();
     for (Node node : nodes) {
       statements1.add(node.accept(shuttle));
     }
@@ -3140,7 +3149,7 @@ public abstract class Expressions {
     if (parameterExpressions.isEmpty()) {
       return Collections.emptyList(); // short cut
     }
-    final List<Expression> parameterExpressions1 = new ArrayList<Expression>();
+    final List<Expression> parameterExpressions1 = new ArrayList<>();
     for (ParameterExpression parameterExpression : parameterExpressions) {
       parameterExpressions1.add(parameterExpression.accept(shuttle));
     }
@@ -3152,8 +3161,7 @@ public abstract class Expressions {
     if (declarations == null || declarations.isEmpty()) {
       return declarations; // short cut
     }
-    final List<DeclarationStatement> declarations1 =
-        new ArrayList<DeclarationStatement>();
+    final List<DeclarationStatement> declarations1 = new ArrayList<>();
     for (DeclarationStatement declaration : declarations) {
       declarations1.add(declaration.accept(shuttle));
     }
@@ -3165,8 +3173,7 @@ public abstract class Expressions {
     if (memberDeclarations == null || memberDeclarations.isEmpty()) {
       return memberDeclarations; // short cut
     }
-    final List<MemberDeclaration> memberDeclarations1 =
-        new ArrayList<MemberDeclaration>();
+    final List<MemberDeclaration> memberDeclarations1 = new ArrayList<>();
     for (MemberDeclaration memberDeclaration : memberDeclarations) {
       memberDeclarations1.add(memberDeclaration.accept(shuttle));
     }

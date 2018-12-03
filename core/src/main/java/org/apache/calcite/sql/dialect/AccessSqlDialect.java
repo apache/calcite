@@ -31,6 +31,10 @@ public class AccessSqlDialect extends SqlDialect {
   public AccessSqlDialect(Context context) {
     super(context);
   }
+
+  @Override public boolean supportsWindowFunctions() {
+    return false;
+  }
 }
 
 // End AccessSqlDialect.java

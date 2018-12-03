@@ -63,14 +63,14 @@ public class CoreQuidemTest extends QuidemTest {
       // Oracle as the JDBC data source.
       return;
     }
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
       checkRun(path);
     }
   }
 
   /** Override settings for "sql/scalar.iq". */
   public void testSqlScalar() throws Exception {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
       checkRun(path);
     }
   }
@@ -80,7 +80,7 @@ public class CoreQuidemTest extends QuidemTest {
 
   // Do not disable this test; just remember not to commit changes to dummy.iq
   public void testSqlDummy() throws Exception {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
       checkRun(path);
     }
   }

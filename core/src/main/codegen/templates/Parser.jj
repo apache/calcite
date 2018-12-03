@@ -33,7 +33,6 @@ package ${parser.package};
 import ${importStr};
 </#list>
 
-
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
@@ -65,6 +64,13 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlJdbcDataTypeName;
 import org.apache.calcite.sql.SqlJdbcFunctionCall;
 import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlJsonConstructorNullClause;
+import org.apache.calcite.sql.SqlJsonEncoding;
+import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;
+import org.apache.calcite.sql.SqlJsonEmptyOrError;
+import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
+import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
+import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMatchRecognize;
@@ -106,8 +112,6 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
-
-import com.google.common.collect.Lists;
 
 import org.slf4j.Logger;
 
@@ -241,17 +245,6 @@ void debug_message1() {
 JAVACODE String unquotedIdentifier() {
     return SqlParserUtil.strip(getToken(0).image, null, null, null,
         unquotedCasing);
-}
-
-String NonReservedKeyWord() :
-{
-    String kw;
-}
-{
-    kw = CommonNonReservedKeyWord()
-    {
-        return kw;
-    }
 }
 
 /**
@@ -1011,7 +1004,7 @@ SqlNode SqlStmtEof() :
  */
 SqlSelect SqlSelect() :
 {
-    final List<SqlLiteral> keywords = Lists.newArrayList();
+    final List<SqlLiteral> keywords = new ArrayList<SqlLiteral>();
     final SqlNodeList keywordList;
     List<SqlNode> selectList;
     final SqlNode fromClause;
@@ -1262,7 +1255,7 @@ SqlNode NamedRoutineCall(
     ExprContext exprContext) :
 {
     SqlIdentifier name;
-    final List<SqlNode> list = Lists.newArrayList();
+    final List<SqlNode> list = new ArrayList<SqlNode>();
     final Span s;
 }
 {
@@ -1291,7 +1284,7 @@ SqlNode NamedRoutineCall(
  */
 SqlNode SqlInsert() :
 {
-    final List<SqlLiteral> keywords = Lists.newArrayList();
+    final List<SqlLiteral> keywords = new ArrayList<SqlLiteral>();
     final SqlNodeList keywordList;
     SqlNode table;
     SqlNodeList extendList = null;
@@ -1499,7 +1492,7 @@ SqlUpdate WhenMatchedClause(SqlNode table, SqlIdentifier alias) :
 SqlInsert WhenNotMatchedClause(SqlNode table) :
 {
     final Span insertSpan, valuesSpan;
-    final List<SqlLiteral> keywords = Lists.newArrayList();
+    final List<SqlLiteral> keywords = new ArrayList<SqlLiteral>();
     final SqlNodeList keywordList;
     SqlNodeList insertColumnList = null;
     SqlNode rowConstructor;
@@ -1617,6 +1610,10 @@ SqlLiteral JoinType() :
         <FULL> [ <OUTER> ] <JOIN> { joinType = JoinType.FULL; }
     |
         <CROSS> <JOIN> { joinType = JoinType.CROSS; }
+<#list parser.joinTypes as method>
+    |
+        joinType = ${method}()
+</#list>
     )
     {
         return joinType.symbol(getPos());
@@ -1982,7 +1979,7 @@ SqlNode TableRef2(boolean lateral) :
 SqlNodeList ExtendList() :
 {
     final Span s;
-    List<SqlNode> list = Lists.newArrayList();
+    List<SqlNode> list = new ArrayList<SqlNode>();
 }
 {
     <LPAREN> { s = span(); }
@@ -2206,7 +2203,7 @@ SqlNode WhereOpt() :
  */
 SqlNodeList GroupByOpt() :
 {
-    List<SqlNode> list = Lists.newArrayList();
+    List<SqlNode> list = new ArrayList<SqlNode>();
     final Span s;
 }
 {
@@ -2222,7 +2219,7 @@ SqlNodeList GroupByOpt() :
 
 List<SqlNode> GroupingElementList() :
 {
-    List<SqlNode> list = Lists.newArrayList();
+    List<SqlNode> list = new ArrayList<SqlNode>();
     SqlNode e;
 }
 {
@@ -3003,6 +3000,7 @@ void Expression2b(ExprContext exprContext, List<Object> list) :
 {
     SqlNode e;
     SqlOperator op;
+    String p;
 }
 {
     (
@@ -3014,6 +3012,15 @@ void Expression2b(ExprContext exprContext, List<Object> list) :
     e = Expression3(exprContext) {
         list.add(e);
     }
+    (
+        <DOT>
+        p = Identifier() {
+            list.add(
+                new SqlParserUtil.ToTreeListItem(
+                    SqlStdOperatorTable.DOT, getPos()));
+            list.add(new SqlIdentifier(p, getPos()));
+        }
+    )*
 }
 
 /**
@@ -3034,6 +3041,7 @@ List<Object> Expression2(ExprContext exprContext) :
 {
     final List<Object> list = new ArrayList();
     List<Object> list2;
+    final List<Object> list3 = new ArrayList();
     SqlNodeList nodeList;
     SqlNode e;
     SqlOperator op;
@@ -3109,9 +3117,10 @@ List<Object> Expression2(ExprContext exprContext) :
                         <ASYMMETRIC>
                     ]
                 )
-                e = Expression3(ExprContext.ACCEPT_SUB_QUERY) {
+                Expression2b(ExprContext.ACCEPT_SUB_QUERY, list3) {
                     list.add(new SqlParserUtil.ToTreeListItem(op, s.pos()));
-                    list.add(e);
+                    list.addAll(list3);
+                    list3.clear();
                 }
             |
                 {
@@ -3242,7 +3251,8 @@ SqlNode Expression3(ExprContext exprContext) :
     }
     list = ParenthesizedSimpleIdentifierList() {
         if (exprContext != ExprContext.ACCEPT_ALL
-            && exprContext != ExprContext.ACCEPT_CURSOR)
+            && exprContext != ExprContext.ACCEPT_CURSOR
+            && !this.conformance.allowExplicitRowValueConstructor())
         {
             throw SqlUtil.newContextException(s.end(list),
                 RESOURCE.illegalRowExpression());
@@ -3527,13 +3537,13 @@ SqlAlter SqlAlter() :
     <ALTER> { s = span(); }
     scope = Scope()
     (
-        alterNode = SqlSetOption(s, scope)
-
 <#-- additional literal parser methods are included here -->
 <#list parser.alterStatementParserMethods as method>
-    |
         alterNode = ${method}(s, scope)
+    |
 </#list>
+
+        alterNode = SqlSetOption(s, scope)
     )
     {
         return alterNode;
@@ -4080,12 +4090,16 @@ SqlIntervalQualifier IntervalQualifier() :
 TimeUnit TimeUnit() :
 {}
 {
-    <SECOND> { return TimeUnit.SECOND; }
+    <MICROSECOND> { return TimeUnit.MICROSECOND; }
+|   <MILLISECOND> { return TimeUnit.MILLISECOND; }
+|   <SECOND> { return TimeUnit.SECOND; }
 |   <MINUTE> { return TimeUnit.MINUTE; }
 |   <HOUR> { return TimeUnit.HOUR; }
 |   <DAY> { return TimeUnit.DAY; }
 |   <DOW> { return TimeUnit.DOW; }
 |   <DOY> { return TimeUnit.DOY; }
+|   <ISODOW> { return TimeUnit.ISODOW; }
+|   <ISOYEAR> { return TimeUnit.ISOYEAR; }
 |   <WEEK> { return TimeUnit.WEEK; }
 |   <MONTH> { return TimeUnit.MONTH; }
 |   <QUARTER> { return TimeUnit.QUARTER; }
@@ -4101,7 +4115,8 @@ TimeUnit TimestampInterval() :
 {
     <FRAC_SECOND> { return TimeUnit.MICROSECOND; }
 |   <MICROSECOND> { return TimeUnit.MICROSECOND; }
-|   <SQL_TSI_FRAC_SECOND> { return TimeUnit.MICROSECOND; }
+|   <NANOSECOND> { return TimeUnit.NANOSECOND; }
+|   <SQL_TSI_FRAC_SECOND> { return TimeUnit.NANOSECOND; }
 |   <SQL_TSI_MICROSECOND> { return TimeUnit.MICROSECOND; }
 |   <SECOND> { return TimeUnit.SECOND; }
 |   <SQL_TSI_SECOND> { return TimeUnit.SECOND; }
@@ -4796,7 +4811,526 @@ SqlNode BuiltinFunctionCall() :
         node = ExtendedBuiltinFunctionCall() { return node; }
     |
         node = MatchRecognizeFunctionCall() { return node; }
+    |
+        node = JsonExistsFunctionCall() { return node; }
+    |
+        node = JsonValueFunctionCall() { return node; }
+    |
+        node = JsonQueryFunctionCall() { return node; }
+    |
+        node = JsonObjectFunctionCall() { return node; }
+    |
+        node = JsonObjectAggFunctionCall() { return node; }
+    |
+        node = JsonArrayFunctionCall() { return node; }
+    |
+        node = JsonArrayAggFunctionCall() { return node; }
     )
+}
+
+SqlJsonEncoding JsonRepresentation() :
+{
+
+}
+{
+    <JSON>
+    [
+        // Encoding is currently ignored.
+        <ENCODING>
+        (
+            <UTF8> { return SqlJsonEncoding.UTF8; }
+            |
+            <UTF16> { return SqlJsonEncoding.UTF16; }
+            |
+            <UTF32> { return SqlJsonEncoding.UTF32; }
+        )
+    ]
+    {
+        return SqlJsonEncoding.UTF8;
+    }
+}
+
+void JsonInputClause() :
+{
+
+}
+{
+    <FORMAT> JsonRepresentation()
+}
+
+SqlDataTypeSpec JsonReturningClause() :
+{
+    SqlDataTypeSpec dt;
+}
+{
+    <RETURNING> dt = DataType() { return dt; }
+}
+
+SqlDataTypeSpec JsonOutputClause() :
+{
+    SqlDataTypeSpec dataType;
+}
+{
+    dataType = JsonReturningClause()
+    [
+        <FORMAT> JsonRepresentation()
+    ]
+    {
+        return dataType;
+    }
+}
+
+SqlNode JsonValueExpression(boolean implicitFormatJson) :
+{
+    SqlNode e;
+    List<SqlNode> args = new ArrayList<SqlNode>();
+    Span span;
+}
+{
+    e = Expression(ExprContext.ACCEPT_NON_QUERY) {
+        args.add(e);
+        span = Span.of(e);
+    }
+    [
+        JsonInputClause() {
+            return SqlStdOperatorTable.JSON_VALUE_EXPRESSION.createCall(span.end(this), args);
+        }
+    ]
+    {
+        if (implicitFormatJson) {
+            return SqlStdOperatorTable.JSON_VALUE_EXPRESSION.createCall(span.end(this), args);
+        }
+        return SqlStdOperatorTable.JSON_STRUCTURED_VALUE_EXPRESSION.createCall(span.end(this), args);
+    }
+}
+
+SqlNode JsonPathSpec() :
+{
+    SqlNode e;
+}
+{
+    e = StringLiteral() {
+        return e;
+    }
+}
+
+SqlNode JsonApiCommonSyntax() :
+{
+    SqlNode e;
+    List<SqlNode> args = new ArrayList<SqlNode>();
+    Span span;
+}
+{
+    e = JsonValueExpression(true) {
+        args.add(e);
+        span = Span.of(e);
+    }
+    <COMMA>
+    e = Expression(ExprContext.ACCEPT_NON_QUERY) {
+        args.add(e);
+    }
+    [
+        <PASSING> e = JsonValueExpression(false) {
+            args.add(e);
+        }
+        <AS> e = SimpleIdentifier() {
+            args.add(e);
+        }
+        (
+            <COMMA>
+            e = JsonValueExpression(false) {
+                        args.add(e);
+            }
+            <AS> e = SimpleIdentifier() {
+                        args.add(e);
+            }
+        )*
+    ]
+    {
+        return SqlStdOperatorTable.JSON_API_COMMON_SYNTAX.createCall(span.end(this), args);
+    }
+
+}
+
+SqlJsonExistsErrorBehavior JsonExistsErrorBehavior() :
+{
+
+}
+{
+    <TRUE> { return SqlJsonExistsErrorBehavior.TRUE; }
+    |
+    <FALSE> { return SqlJsonExistsErrorBehavior.FALSE; }
+    |
+    <UNKNOWN> { return SqlJsonExistsErrorBehavior.UNKNOWN; }
+    |
+    <ERROR> { return SqlJsonExistsErrorBehavior.ERROR; }
+}
+
+SqlCall JsonExistsFunctionCall() :
+{
+    List<SqlNode> args;
+    SqlNode e;
+    final Span span;
+    SqlJsonExistsErrorBehavior errorBehavior;
+}
+{
+    <JSON_EXISTS> { span = span(); }
+    <LPAREN> e = JsonApiCommonSyntax() {
+        args = new ArrayList<SqlNode>();
+        args.add(e);
+    }
+    [
+        errorBehavior = JsonExistsErrorBehavior() { args.add(SqlLiteral.createSymbol(errorBehavior, getPos())); }
+        <ON> <ERROR>
+    ]
+    <RPAREN> {
+        return SqlStdOperatorTable.JSON_EXISTS.createCall(span.end(this), args);
+    }
+}
+
+List<SqlNode> JsonValueEmptyOrErrorBehavior() :
+{
+    final List<SqlNode> list = new ArrayList<SqlNode>();
+    final SqlNode e;
+}
+{
+    (
+        <ERROR> {
+            list.add(SqlLiteral.createSymbol(SqlJsonValueEmptyOrErrorBehavior.ERROR, getPos()));
+            list.add(SqlLiteral.createNull(getPos()));
+        }
+    |
+        <NULL> {
+            list.add(SqlLiteral.createSymbol(SqlJsonValueEmptyOrErrorBehavior.NULL, getPos()));
+            list.add(SqlLiteral.createNull(getPos()));
+        }
+    |
+        <DEFAULT_> e = Expression(ExprContext.ACCEPT_NON_QUERY) {
+            list.add(SqlLiteral.createSymbol(SqlJsonValueEmptyOrErrorBehavior.DEFAULT, getPos()));
+            list.add(e);
+        }
+    )
+    <ON>
+    (
+        <EMPTY> {
+            list.add(SqlLiteral.createSymbol(SqlJsonEmptyOrError.EMPTY, getPos()));
+        }
+    |
+        <ERROR> {
+            list.add(SqlLiteral.createSymbol(SqlJsonEmptyOrError.ERROR, getPos()));
+        }
+    )
+    { return list; }
+}
+
+SqlCall JsonValueFunctionCall() :
+{
+    final SqlNode[] args = new SqlNode[6];
+    SqlNode e;
+    final Span span;
+    List<SqlNode> behavior;
+}
+{
+    <JSON_VALUE> { span = span(); }
+    <LPAREN> e = JsonApiCommonSyntax() {
+        args[0] = e;
+    }
+    [
+        e = JsonReturningClause() {
+            args[5] = e;
+        }
+    ]
+    (
+        behavior = JsonValueEmptyOrErrorBehavior() {
+            final SqlJsonEmptyOrError symbol =
+                ((SqlLiteral) behavior.get(2)).getValueAs(SqlJsonEmptyOrError.class);
+            switch (symbol) {
+            case EMPTY:
+                args[1] = behavior.get(0);
+                args[2] = behavior.get(1);
+                break;
+            case ERROR:
+                args[3] = behavior.get(0);
+                args[4] = behavior.get(1);
+                break;
+            }
+        }
+    )*
+    <RPAREN> {
+        return SqlStdOperatorTable.JSON_VALUE.createCall(span.end(this), args);
+    }
+}
+
+List<SqlNode> JsonQueryEmptyOrErrorBehavior() :
+{
+    final List<SqlNode> list = new ArrayList<SqlNode>();
+    SqlNode e;
+}
+{
+    (
+        <ERROR> {
+            list.add(SqlLiteral.createSymbol(SqlJsonQueryEmptyOrErrorBehavior.ERROR, getPos()));
+        }
+    |
+        <NULL> {
+            list.add(SqlLiteral.createSymbol(SqlJsonQueryEmptyOrErrorBehavior.NULL, getPos()));
+        }
+    |
+        <EMPTY> <ARRAY> {
+            list.add(SqlLiteral.createSymbol(SqlJsonQueryEmptyOrErrorBehavior.EMPTY_ARRAY, getPos()));
+        }
+    |
+        <EMPTY> <OBJECT> {
+            list.add(SqlLiteral.createSymbol(SqlJsonQueryEmptyOrErrorBehavior.EMPTY_OBJECT, getPos()));
+        }
+    )
+    <ON>
+    (
+        <EMPTY> {
+            list.add(SqlLiteral.createSymbol(SqlJsonEmptyOrError.EMPTY, getPos()));
+        }
+    |
+        <ERROR> {
+            list.add(SqlLiteral.createSymbol(SqlJsonEmptyOrError.ERROR, getPos()));
+        }
+    )
+    { return list; }
+}
+
+SqlNode JsonQueryWrapperBehavior() :
+{
+    SqlNode e;
+}
+{
+    <WITHOUT> [<ARRAY>] {
+        return SqlLiteral.createSymbol(SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY, getPos());
+    }
+|
+    LOOKAHEAD(2)
+    <WITH> <CONDITIONAL> [<ARRAY>] {
+        return SqlLiteral.createSymbol(SqlJsonQueryWrapperBehavior.WITH_CONDITIONAL_ARRAY, getPos());
+    }
+|
+    <WITH> [<UNCONDITIONAL>] [<ARRAY>] {
+        return SqlLiteral.createSymbol(SqlJsonQueryWrapperBehavior.WITH_UNCONDITIONAL_ARRAY, getPos());
+    }
+}
+
+SqlCall JsonQueryFunctionCall() :
+{
+    final SqlNode[] args = new SqlNode[4];
+    SqlNode e;
+    final Span span;
+    List<SqlNode> behavior;
+}
+{
+    <JSON_QUERY> { span = span(); }
+    <LPAREN> e = JsonApiCommonSyntax() {
+        args[0] = e;
+    }
+    [
+        e = JsonQueryWrapperBehavior() <WRAPPER> {
+            args[1] = e;
+        }
+    ]
+    (
+        behavior = JsonQueryEmptyOrErrorBehavior() {
+            final SqlJsonEmptyOrError symbol =
+                ((SqlLiteral) behavior.get(1)).getValueAs(SqlJsonEmptyOrError.class);
+            switch (symbol) {
+            case EMPTY:
+                args[2] = behavior.get(0);
+                break;
+            case ERROR:
+                args[3] = behavior.get(0);
+                break;
+            }
+        }
+    )*
+    <RPAREN> {
+        return SqlStdOperatorTable.JSON_QUERY.createCall(span.end(this), args);
+    }
+}
+
+SqlNode JsonName() :
+{
+    final SqlNode e;
+}
+{
+     e = Expression(ExprContext.ACCEPT_NON_QUERY) {
+        return e;
+     }
+}
+
+List<SqlNode> JsonNameAndValue() :
+{
+    final List<SqlNode> list = new ArrayList<SqlNode>();
+    SqlNode e;
+    boolean kvMode = false;
+}
+{
+    [
+        <KEY> { kvMode = true; }
+    ]
+    e = JsonName() {
+        list.add(e);
+    }
+    (
+        <VALUE>
+    |
+        <COLON> {
+            if (kvMode) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.illegalColon());
+            }
+        }
+    )
+    e = JsonValueExpression(false) {
+        list.add(e);
+    }
+    {
+        return list;
+    }
+}
+
+SqlNode JsonConstructorNullClause() :
+{
+}
+{
+    <NULL> <ON> <NULL> {
+        return SqlLiteral.createSymbol(SqlJsonConstructorNullClause.NULL_ON_NULL, getPos());
+    }
+|
+    <ABSENT> <ON> <NULL> {
+        return SqlLiteral.createSymbol(SqlJsonConstructorNullClause.ABSENT_ON_NULL, getPos());
+    }
+}
+
+SqlCall JsonObjectFunctionCall() :
+{
+    final List<SqlNode> nvArgs = new ArrayList<SqlNode>();
+    final SqlNode[] otherArgs = new SqlNode[1];
+    SqlNode e;
+    List<SqlNode> list;
+    final Span span;
+}
+{
+    <JSON_OBJECT> { span = span(); }
+    <LPAREN> [
+        list = JsonNameAndValue() {
+            nvArgs.addAll(list);
+        }
+        (
+            <COMMA>
+            list = JsonNameAndValue() {
+                nvArgs.addAll(list);
+            }
+        )*
+    ]
+    [
+        e = JsonConstructorNullClause() {
+            otherArgs[0] = e;
+        }
+    ]
+    <RPAREN> {
+        final List<SqlNode> args = new ArrayList();
+        args.addAll(Arrays.asList(otherArgs));
+        args.addAll(nvArgs);
+        return SqlStdOperatorTable.JSON_OBJECT.createCall(span.end(this), args);
+    }
+}
+
+SqlCall JsonObjectAggFunctionCall() :
+{
+    final SqlNode[] args = new SqlNode[2];
+    List<SqlNode> list;
+    final Span span;
+    SqlJsonConstructorNullClause nullClause =
+        SqlJsonConstructorNullClause.NULL_ON_NULL;
+    final SqlNode e;
+}
+{
+    <JSON_OBJECTAGG> { span = span(); }
+    <LPAREN> list = JsonNameAndValue() {
+        args[0] = list.get(0);
+        args[1] = list.get(1);
+    }
+    [
+        e = JsonConstructorNullClause() {
+            nullClause = (SqlJsonConstructorNullClause) ((SqlLiteral) e).getValue();
+        }
+    ]
+    <RPAREN> {
+        switch (nullClause) {
+        case ABSENT_ON_NULL:
+          return SqlStdOperatorTable.JSON_OBJECTAGG_ABSENT_ON_NULL.createCall(span.end(this), args);
+        case NULL_ON_NULL:
+          return SqlStdOperatorTable.JSON_OBJECTAGG_NULL_ON_NULL.createCall(span.end(this), args);
+        default:
+          return SqlStdOperatorTable.JSON_OBJECTAGG_NULL_ON_NULL.createCall(span.end(this), args);
+        }
+    }
+}
+
+SqlCall JsonArrayFunctionCall() :
+{
+    final List<SqlNode> elements = new ArrayList<SqlNode>();
+    final SqlNode[] otherArgs = new SqlNode[1];
+    SqlNode e;
+    final Span span;
+}
+{
+    <JSON_ARRAY> { span = span(); }
+    <LPAREN> [
+        e = JsonValueExpression(false) {
+            elements.add(e);
+        }
+        (
+            <COMMA>
+            e = JsonValueExpression(false) {
+                elements.add(e);
+            }
+        )*
+    ]
+    [
+        e = JsonConstructorNullClause() {
+            otherArgs[0] = e;
+        }
+    ]
+    <RPAREN> {
+        final List<SqlNode> args = new ArrayList();
+        args.addAll(Arrays.asList(otherArgs));
+        args.addAll(elements);
+        return SqlStdOperatorTable.JSON_ARRAY.createCall(span.end(this), args);
+    }
+}
+
+SqlCall JsonArrayAggFunctionCall() :
+{
+    final SqlNode arg;
+    List<SqlNode> list;
+    final Span span;
+    SqlJsonConstructorNullClause nullClause =
+        SqlJsonConstructorNullClause.ABSENT_ON_NULL;
+    SqlNode e;
+}
+{
+    <JSON_ARRAYAGG> { span = span(); }
+    <LPAREN> arg = JsonValueExpression(false)
+    [
+        e = JsonConstructorNullClause() {
+            nullClause = (SqlJsonConstructorNullClause) ((SqlLiteral) e).getValue();
+        }
+    ]
+    <RPAREN> {
+        switch (nullClause) {
+        case ABSENT_ON_NULL:
+          return SqlStdOperatorTable.JSON_ARRAYAGG_ABSENT_ON_NULL.createCall(span.end(this), arg);
+        case NULL_ON_NULL:
+          return SqlStdOperatorTable.JSON_ARRAYAGG_NULL_ON_NULL.createCall(span.end(this), arg);
+        default:
+          return SqlStdOperatorTable.JSON_ARRAYAGG_ABSENT_ON_NULL.createCall(span.end(this), arg);
+        }
+    }
 }
 
 /**
@@ -4980,6 +5514,8 @@ SqlNode NamedFunctionCall() :
     final SqlNode filter;
     final SqlNode over;
     SqlLiteral quantifier = null;
+    SqlNodeList orderList = null;
+    final Span withinGroupSpan;
 }
 {
     (
@@ -5008,9 +5544,18 @@ SqlNode NamedFunctionCall() :
         }
     )
     {
-        call = createCall(qualifiedName, s.end(this), funcType, quantifier,
-            args);
+        call = createCall(qualifiedName, s.end(this), funcType, quantifier, args);
     }
+    [
+        <WITHIN> { withinGroupSpan = span(); }
+        <GROUP>
+        <LPAREN>
+        orderList = OrderBy(true)
+        <RPAREN> {
+            call = SqlStdOperatorTable.WITHIN_GROUP.createCall(
+                withinGroupSpan.end(this), call, orderList);
+        }
+    ]
     [
         <FILTER> { filterSpan = span(); }
         <LPAREN>
@@ -5157,12 +5702,14 @@ SqlIdentifier ReservedFunctionName() :
     |   <MINUTE>
     |   <MOD>
     |   <MONTH>
+    |   <NTH_VALUE>
     |   <NTILE>
     |   <NULLIF>
     |   <OCTET_LENGTH>
     |   <PERCENT_RANK>
     |   <POWER>
     |   <RANK>
+    |   <REGR_COUNT>
     |   <REGR_SXX>
     |   <REGR_SYY>
     |   <ROW_NUMBER>
@@ -5325,31 +5872,32 @@ SqlBinaryOperator BinaryQueryOperator() :
  */
 SqlBinaryOperator BinaryMultisetOperator() :
 {
-    SqlBinaryOperator op;
 }
 {
     // If both the ALL or DISTINCT keywords are missing, DISTINCT is implicit
     <MULTISET>
     (
-        <UNION> { op = SqlStdOperatorTable.MULTISET_UNION; }
+        <UNION>
         [
-            <ALL> { op = SqlStdOperatorTable.MULTISET_UNION_ALL; }
-        |   <DISTINCT> { op = SqlStdOperatorTable.MULTISET_UNION; }
+            <ALL>
+        |   <DISTINCT> { return SqlStdOperatorTable.MULTISET_UNION_DISTINCT; }
         ]
+        { return SqlStdOperatorTable.MULTISET_UNION; }
     |
-        <INTERSECT> { op = SqlStdOperatorTable.MULTISET_INTERSECT; }
+        <INTERSECT>
         [
-            <ALL> { op = SqlStdOperatorTable.MULTISET_INTERSECT_ALL; }
-        |   <DISTINCT> { op = SqlStdOperatorTable.MULTISET_INTERSECT; }
+            <ALL>
+        |   <DISTINCT> { return SqlStdOperatorTable.MULTISET_INTERSECT_DISTINCT; }
         ]
+        { return SqlStdOperatorTable.MULTISET_INTERSECT; }
     |
-        <EXCEPT> { op = SqlStdOperatorTable.MULTISET_EXCEPT; }
+        <EXCEPT>
         [
-            <ALL> { op = SqlStdOperatorTable.MULTISET_EXCEPT_ALL; }
-        |   <DISTINCT> { op = SqlStdOperatorTable.MULTISET_EXCEPT; }
+            <ALL>
+        |   <DISTINCT> { return SqlStdOperatorTable.MULTISET_EXCEPT_DISTINCT; }
         ]
+        { return SqlStdOperatorTable.MULTISET_EXCEPT; }
     )
-    { return op; }
 }
 
 /**
@@ -5389,7 +5937,8 @@ SqlBinaryOperator BinaryRowOperator() :
 |   LOOKAHEAD(2) <IS> <DISTINCT> <FROM> { return SqlStdOperatorTable.IS_DISTINCT_FROM; }
 |   <IS> <NOT> <DISTINCT> <FROM> { return SqlStdOperatorTable.IS_NOT_DISTINCT_FROM; }
 |   <MEMBER> <OF> { return SqlStdOperatorTable.MEMBER_OF; }
-|   <SUBMULTISET> <OF> { return SqlStdOperatorTable.SUBMULTISET_OF; }
+|   LOOKAHEAD(2) <SUBMULTISET> <OF> { return SqlStdOperatorTable.SUBMULTISET_OF; }
+|   <NOT> <SUBMULTISET> <OF> { return SqlStdOperatorTable.NOT_SUBMULTISET_OF; }
 |   <CONTAINS> { return SqlStdOperatorTable.CONTAINS; }
 |   <OVERLAPS> { return SqlStdOperatorTable.OVERLAPS; }
 |   <EQUALS> { return SqlStdOperatorTable.PERIOD_EQUALS; }
@@ -5428,6 +5977,13 @@ SqlPostfixOperator PostfixRowOperator() :
         |   <TRUE> { return SqlStdOperatorTable.IS_NOT_TRUE; }
         |   <FALSE> { return SqlStdOperatorTable.IS_NOT_FALSE; }
         |   <UNKNOWN> { return SqlStdOperatorTable.IS_NOT_UNKNOWN; }
+        |   <A> <SET> { return SqlStdOperatorTable.IS_NOT_A_SET; }
+        |   <EMPTY> { return SqlStdOperatorTable.IS_NOT_EMPTY; }
+        |   LOOKAHEAD(2) <JSON> <VALUE> { return SqlStdOperatorTable.IS_NOT_JSON_VALUE; }
+        |   LOOKAHEAD(2) <JSON> <OBJECT> { return SqlStdOperatorTable.IS_NOT_JSON_OBJECT; }
+        |   LOOKAHEAD(2) <JSON> <ARRAY> { return SqlStdOperatorTable.IS_NOT_JSON_ARRAY; }
+        |   LOOKAHEAD(2) <JSON> <SCALAR> { return SqlStdOperatorTable.IS_NOT_JSON_SCALAR; }
+        |   <JSON> { return SqlStdOperatorTable.IS_NOT_JSON_VALUE; }
         )
     |
         (
@@ -5435,6 +5991,12 @@ SqlPostfixOperator PostfixRowOperator() :
         |   <TRUE> { return SqlStdOperatorTable.IS_TRUE; }
         |   <FALSE> { return SqlStdOperatorTable.IS_FALSE; }
         |   <UNKNOWN> { return SqlStdOperatorTable.IS_UNKNOWN; }
+        |   <EMPTY> { return SqlStdOperatorTable.IS_EMPTY; }
+        |   LOOKAHEAD(2) <JSON> <VALUE> { return SqlStdOperatorTable.IS_JSON_VALUE; }
+        |   LOOKAHEAD(2) <JSON> <OBJECT> { return SqlStdOperatorTable.IS_JSON_OBJECT; }
+        |   LOOKAHEAD(2) <JSON> <ARRAY> { return SqlStdOperatorTable.IS_JSON_ARRAY; }
+        |   LOOKAHEAD(2) <JSON> <SCALAR> { return SqlStdOperatorTable.IS_JSON_SCALAR; }
+        |   <JSON> { return SqlStdOperatorTable.IS_JSON_VALUE; }
         )
     )
 }
@@ -5447,6 +6009,7 @@ SqlPostfixOperator PostfixRowOperator() :
 {
     < A: "A" >
 |   < ABS: "ABS" >
+|   < ABSENT: "ABSENT" >
 |   < ABSOLUTE: "ABSOLUTE" >
 |   < ACTION: "ACTION" >
 |   < ADA: "ADA" >
@@ -5533,6 +6096,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < COMMIT: "COMMIT" >
 |   < COMMITTED: "COMMITTED" >
 |   < CONDITION: "CONDITION" >
+|   < CONDITIONAL: "CONDITIONAL" >
 |   < CONDITION_NUMBER: "CONDITION_NUMBER" >
 |   < CONNECT: "CONNECT" >
 |   < CONNECTION: "CONNECTION" >
@@ -5616,12 +6180,14 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < ELEMENT: "ELEMENT" >
 |   < ELSE: "ELSE" >
 |   < EMPTY: "EMPTY" >
+|   < ENCODING: "ENCODING">
 |   < END: "END" >
 |   < END_EXEC: "END-EXEC" >
 |   < END_FRAME: "END_FRAME" >
 |   < END_PARTITION: "END_PARTITION" >
 |   < EPOCH: "EPOCH" >
 |   < EQUALS: "EQUALS" >
+|   < ERROR: "ERROR" >
 |   < ESCAPE: "ESCAPE" >
 |   < EVERY: "EVERY" >
 |   < EXCEPT: "EXCEPT" >
@@ -5646,6 +6212,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < FLOOR: "FLOOR" >
 |   < FOLLOWING: "FOLLOWING" >
 |   < FOR: "FOR" >
+|   < FORMAT: "FORMAT" >
 |   < FOREIGN: "FOREIGN" >
 |   < FORTRAN: "FORTRAN" >
 |   < FOUND: "FOUND" >
@@ -5699,10 +6266,19 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < INTO: "INTO" >
 |   < INVOKER: "INVOKER" >
 |   < IS: "IS" >
+|   < ISODOW: "ISODOW" >
+|   < ISOYEAR: "ISOYEAR" >
 |   < ISOLATION: "ISOLATION" >
 |   < JAVA: "JAVA" >
 |   < JOIN: "JOIN" >
 |   < JSON: "JSON" >
+|   < JSON_ARRAY: "JSON_ARRAY">
+|   < JSON_ARRAYAGG: "JSON_ARRAYAGG">
+|   < JSON_EXISTS: "JSON_EXISTS" >
+|   < JSON_VALUE: "JSON_VALUE" >
+|   < JSON_OBJECT: "JSON_OBJECT">
+|   < JSON_OBJECTAGG: "JSON_OBJECTAGG">
+|   < JSON_QUERY: "JSON_QUERY" >
 |   < K: "K" >
 |   < KEY: "KEY" >
 |   < KEY_MEMBER: "KEY_MEMBER" >
@@ -5746,6 +6322,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < MESSAGE_TEXT: "MESSAGE_TEXT" >
 |   < METHOD: "METHOD" >
 |   < MICROSECOND: "MICROSECOND" >
+|   < MILLISECOND: "MILLISECOND" >
 |   < MILLENNIUM: "MILLENNIUM" >
 |   < MIN: "MIN" >
 |   < MINUTE: "MINUTE" >
@@ -5759,6 +6336,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < MUMPS: "MUMPS" >
 |   < NAME: "NAME" >
 |   < NAMES: "NAMES" >
+|   < NANOSECOND: "NANOSECOND" >
 |   < NATIONAL: "NATIONAL" >
 |   < NATURAL: "NATURAL" >
 |   < NCHAR: "NCHAR" >
@@ -5816,6 +6394,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < PARTIAL: "PARTIAL" >
 |   < PARTITION: "PARTITION" >
 |   < PASCAL: "PASCAL" >
+|   < PASSING: "PASSING" >
 |   < PASSTHROUGH: "PASSTHROUGH" >
 |   < PAST: "PAST" >
 |   < PATH: "PATH" >
@@ -5877,6 +6456,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < RETURNED_LENGTH: "RETURNED_LENGTH" >
 |   < RETURNED_OCTET_LENGTH: "RETURNED_OCTET_LENGTH" >
 |   < RETURNED_SQLSTATE: "RETURNED_SQLSTATE" >
+|   < RETURNING: "RETURNING" >
 |   < RETURNS: "RETURNS" >
 |   < REVOKE: "REVOKE" >
 |   < RIGHT: "RIGHT" >
@@ -5893,6 +6473,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < ROWS: "ROWS" >
 |   < RUNNING: "RUNNING" >
 |   < SAVEPOINT: "SAVEPOINT" >
+|   < SCALAR: "SCALAR" >
 |   < SCALE: "SCALE" >
 |   < SCHEMA: "SCHEMA" >
 |   < SCHEMA_NAME: "SCHEMA_NAME" >
@@ -6043,6 +6624,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < UESCAPE: "UESCAPE" >
 |   < UNBOUNDED: "UNBOUNDED" >
 |   < UNCOMMITTED: "UNCOMMITTED" >
+|   < UNCONDITIONAL: "UNCONDITIONAL" >
 |   < UNDER: "UNDER" >
 |   < UNION: "UNION" >
 |   < UNIQUE: "UNIQUE" >
@@ -6059,6 +6641,9 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < USER_DEFINED_TYPE_NAME: "USER_DEFINED_TYPE_NAME" >
 |   < USER_DEFINED_TYPE_SCHEMA: "USER_DEFINED_TYPE_SCHEMA" >
 |   < USING: "USING" >
+|   < UTF8: "UTF8" >
+|   < UTF16: "UTF16" >
+|   < UTF32: "UTF32" >
 |   < VALUE: "VALUE" >
 |   < VALUES: "VALUES" >
 |   < VALUE_OF: "VALUE_OF" >
@@ -6091,324 +6676,80 @@ SqlPostfixOperator PostfixRowOperator() :
 </#list>
 }
 
-/*
- * Abstract production:
- *
- *   String NonReservedKeyWord()
- *
- * Parses non-reserved keywords (e.g. keywords that may be used as
- * identifiers).  Should use CommonNonReservedKeyWord as a base, but
- * may add other key words.
- */
-
 /**
- * Parses a non-reserved keyword for use as an identifier.  Specializations
- * of this parser can use this as a base for implementing the
- * NonReservedKeyWord() production.
+ * Parses a non-reserved keyword for use as an identifier.
  *
- * <p>When adding keywords to this list, be sure that they are not reserved
- * by the SQL:2003 standard (see productions for "non-reserved word"
- * and "reserved word" in reference below).
+ * <p>The method is broken up into several sub-methods; without this
+ * decomposition, parsers such as Babel with more than ~1,000 non-reserved
+ * keywords would generate such deeply nested 'if' statements that javac would
+ * fail with a {@link StackOverflowError}.
+ *
+ * <p>The list is generated from the FMPP config data. To add or remove
+ * keywords, modify config.fmpp. For parsers except Babel, make sure that
+ * keywords are not reserved by the SQL standard.
  *
  * @see Glossary#SQL2003 SQL:2003 Part 2 Section 5.2
  */
-String CommonNonReservedKeyWord() :
+String NonReservedKeyWord() :
 {
 }
 {
     (
-        <A>
-    |   <ABSOLUTE>
-    |   <ACTION>
-    |   <ADA>
-    |   <ADD>
-    |   <ADMIN>
-    |   <AFTER>
-    |   <ALWAYS>
-    |   <APPLY>
-    |   <ASC>
-    |   <ASSERTION>
-    |   <ASSIGNMENT>
-    |   <ATTRIBUTE>
-    |   <ATTRIBUTES>
-    |   <BEFORE>
-    |   <BERNOULLI>
-    |   <BREADTH>
-    |   <C>
-    |   <CASCADE>
-    |   <CATALOG>
-    |   <CATALOG_NAME>
-    |   <CENTURY>
-    |   <CHAIN>
-    |   <CHARACTER_SET_CATALOG>
-    |   <CHARACTER_SET_NAME>
-    |   <CHARACTER_SET_SCHEMA>
-    |   <CHARACTERISTICS>
-    |   <CHARACTERS>
-    |   <CLASS_ORIGIN>
-    |   <COBOL>
-    |   <COLLATION>
-    |   <COLLATION_CATALOG>
-    |   <COLLATION_NAME>
-    |   <COLLATION_SCHEMA>
-    |   <COLUMN_NAME>
-    |   <COMMAND_FUNCTION>
-    |   <COMMAND_FUNCTION_CODE>
-    |   <COMMITTED>
-    |   <CONDITION_NUMBER>
-    |   <CONNECTION>
-    |   <CONNECTION_NAME>
-    |   <CONSTRAINT_CATALOG>
-    |   <CONSTRAINT_NAME>
-    |   <CONSTRAINT_SCHEMA>
-    |   <CONSTRAINTS>
-    |   <CONSTRUCTOR>
-    |   <CONTINUE>
-    |   <CURSOR_NAME>
-    |   <DATA>
-    |   <DATABASE>
-    |   <DATETIME_INTERVAL_CODE>
-    |   <DATETIME_INTERVAL_PRECISION>
-    |   <DECADE>
-    |   <DEFAULTS>
-    |   <DEFERRABLE>
-    |   <DEFERRED>
-    |   <DEFINED>
-    |   <DEFINER>
-    |   <DEGREE>
-    |   <DEPTH>
-    |   <DERIVED>
-    |   <DESC>
-    |   <DESCRIPTION>
-    |   <DESCRIPTOR>
-    |   <DIAGNOSTICS>
-    |   <DISPATCH>
-    |   <DOMAIN>
-    |   <DOW>
-    |   <DOY>
-    |   <DYNAMIC_FUNCTION>
-    |   <DYNAMIC_FUNCTION_CODE>
-    |   <EPOCH>
-    |   <EXCEPTION>
-    |   <EXCLUDE>
-    |   <EXCLUDING>
-    |   <FINAL>
-    |   <FIRST>
-    |   <FOLLOWING>
-    |   <FORTRAN>
-    |   <FOUND>
-    |   <FRAC_SECOND>
-    |   <G>
-    |   <GENERAL>
-    |   <GENERATED>
-    |   <GEOMETRY>
-    |   <GO>
-    |   <GOTO>
-    |   <GRANTED>
-    |   <HIERARCHY>
-    |   <IMMEDIATE>
-    |   <IMMEDIATELY>
-    |   <IMPLEMENTATION>
-    |   <INCLUDING>
-    |   <INCREMENT>
-    |   <INITIALLY>
-    |   <INPUT>
-    |   <INSTANCE>
-    |   <INSTANTIABLE>
-    |   <INVOKER>
-    |   <ISOLATION>
-    |   <JAVA>
-    |   <JSON>
-    |   <K>
-    |   <KEY>
-    |   <KEY_MEMBER>
-    |   <KEY_TYPE>
-    |   <LABEL>
-    |   <LAST>
-    |   <LENGTH>
-    |   <LEVEL>
-    |   <LIBRARY>
-    |   <LOCATOR>
-    |   <M>
-    |   <MAP>
-    |   <MATCHED>
-    |   <MAXVALUE>
-    |   <MICROSECOND>
-    |   <MESSAGE_LENGTH>
-    |   <MESSAGE_OCTET_LENGTH>
-    |   <MESSAGE_TEXT>
-    |   <MILLENNIUM>
-    |   <MINVALUE>
-    |   <MORE_>
-    |   <MUMPS>
-    |   <NAME>
-    |   <NAMES>
-    |   <NESTING>
-    |   <NORMALIZED>
-    |   <NULLABLE>
-    |   <NULLS>
-    |   <NUMBER>
-    |   <OBJECT>
-    |   <OCTETS>
-    |   <OPTION>
-    |   <OPTIONS>
-    |   <ORDERING>
-    |   <ORDINALITY>
-    |   <OTHERS>
-    |   <OUTPUT>
-    |   <OVERRIDING>
-    |   <PAD>
-    |   <PARAMETER_MODE>
-    |   <PARAMETER_NAME>
-    |   <PARAMETER_ORDINAL_POSITION>
-    |   <PARAMETER_SPECIFIC_CATALOG>
-    |   <PARAMETER_SPECIFIC_NAME>
-    |   <PARAMETER_SPECIFIC_SCHEMA>
-    |   <PARTIAL>
-    |   <PASCAL>
-    |   <PASSTHROUGH>
-    |   <PAST>
-    |   <PATH>
-    |   <PLACING>
-    |   <PLAN>
-    |   <PLI>
-    |   <PRECEDING>
-    |   <PRESERVE>
-    |   <PRIOR>
-    |   <PRIVILEGES>
-    |   <PUBLIC>
-    |   <QUARTER>
-    |   <READ>
-    |   <RELATIVE>
-    |   <REPEATABLE>
-    |   <REPLACE>
-    |   <RESTART>
-    |   <RESTRICT>
-    |   <RETURNED_CARDINALITY>
-    |   <RETURNED_LENGTH>
-    |   <RETURNED_OCTET_LENGTH>
-    |   <RETURNED_SQLSTATE>
-    |   <ROLE>
-    |   <ROUTINE>
-    |   <ROUTINE_CATALOG>
-    |   <ROUTINE_NAME>
-    |   <ROUTINE_SCHEMA>
-    |   <ROW_COUNT>
-    |   <SCALE>
-    |   <SCHEMA>
-    |   <SCHEMA_NAME>
-    |   <SCOPE_CATALOGS>
-    |   <SCOPE_NAME>
-    |   <SCOPE_SCHEMA>
-    |   <SECTION>
-    |   <SECURITY>
-    |   <SELF>
-    |   <SEQUENCE>
-    |   <SERIALIZABLE>
-    |   <SERVER>
-    |   <SERVER_NAME>
-    |   <SESSION>
-    |   <SETS>
-    |   <SIMPLE>
-    |   <SIZE>
-    |   <SOURCE>
-    |   <SPACE>
-    |   <SPECIFIC_NAME>
-    |   <SQL_BIGINT>
-    |   <SQL_BINARY>
-    |   <SQL_BIT>
-    |   <SQL_BLOB>
-    |   <SQL_BOOLEAN>
-    |   <SQL_CHAR>
-    |   <SQL_CLOB>
-    |   <SQL_DATE>
-    |   <SQL_DECIMAL>
-    |   <SQL_DOUBLE>
-    |   <SQL_FLOAT>
-    |   <SQL_INTEGER>
-    |   <SQL_INTERVAL_DAY>
-    |   <SQL_INTERVAL_DAY_TO_HOUR>
-    |   <SQL_INTERVAL_DAY_TO_MINUTE>
-    |   <SQL_INTERVAL_DAY_TO_SECOND>
-    |   <SQL_INTERVAL_HOUR>
-    |   <SQL_INTERVAL_HOUR_TO_MINUTE>
-    |   <SQL_INTERVAL_HOUR_TO_SECOND>
-    |   <SQL_INTERVAL_MINUTE>
-    |   <SQL_INTERVAL_MINUTE_TO_SECOND>
-    |   <SQL_INTERVAL_MONTH>
-    |   <SQL_INTERVAL_SECOND>
-    |   <SQL_INTERVAL_YEAR>
-    |   <SQL_INTERVAL_YEAR_TO_MONTH>
-    |   <SQL_LONGVARBINARY>
-    |   <SQL_LONGVARNCHAR>
-    |   <SQL_LONGVARCHAR>
-    |   <SQL_NCHAR>
-    |   <SQL_NCLOB>
-    |   <SQL_NUMERIC>
-    |   <SQL_NVARCHAR>
-    |   <SQL_REAL>
-    |   <SQL_SMALLINT>
-    |   <SQL_TIME>
-    |   <SQL_TIMESTAMP>
-    |   <SQL_TINYINT>
-    |   <SQL_TSI_DAY>
-    |   <SQL_TSI_FRAC_SECOND>
-    |   <SQL_TSI_HOUR>
-    |   <SQL_TSI_MICROSECOND>
-    |   <SQL_TSI_MINUTE>
-    |   <SQL_TSI_MONTH>
-    |   <SQL_TSI_QUARTER>
-    |   <SQL_TSI_SECOND>
-    |   <SQL_TSI_WEEK>
-    |   <SQL_TSI_YEAR>
-    |   <SQL_VARBINARY>
-    |   <SQL_VARCHAR>
-    |   <STATE>
-    |   <STATEMENT>
-    |   <STRUCTURE>
-    |   <STYLE>
-    |   <SUBCLASS_ORIGIN>
-    |   <SUBSTITUTE>
-    |   <TABLE_NAME>
-    |   <TEMPORARY>
-    |   <TIES>
-    |   <TIMESTAMPADD>
-    |   <TIMESTAMPDIFF>
-    |   <TOP_LEVEL_COUNT>
-    |   <TRANSACTION>
-    |   <TRANSACTIONS_ACTIVE>
-    |   <TRANSACTIONS_COMMITTED>
-    |   <TRANSACTIONS_ROLLED_BACK>
-    |   <TRANSFORM>
-    |   <TRANSFORMS>
-    |   <TRIGGER_CATALOG>
-    |   <TRIGGER_NAME>
-    |   <TRIGGER_SCHEMA>
-    |   <TYPE>
-    |   <UNBOUNDED>
-    |   <UNCOMMITTED>
-    |   <UNDER>
-    |   <UNNAMED>
-    |   <USAGE>
-    |   <USER_DEFINED_TYPE_CATALOG>
-    |   <USER_DEFINED_TYPE_CODE>
-    |   <USER_DEFINED_TYPE_NAME>
-    |   <USER_DEFINED_TYPE_SCHEMA>
-    |   <VERSION>
-    |   <VIEW>
-    |   <WEEK>
-    |   <WRAPPER>
-    |   <WORK>
-    |   <WRITE>
-    |   <XML>
-    |   <ZONE>
-<#list parser.nonReservedKeywords as keyword>
-    |   <${keyword}>
-</#list>
+        NonReservedKeyWord0of3()
+    |   NonReservedKeyWord1of3()
+    |   NonReservedKeyWord2of3()
     )
     {
         return unquotedIdentifier();
     }
+}
+
+/** @see #NonReservedKeyWord */
+void NonReservedKeyWord0of3() :
+{
+}
+{
+    (
+<#list parser.nonReservedKeywords as keyword>
+<#if keyword?index == 0>
+        <${keyword}>
+<#elseif keyword?index % 3 == 0>
+    |   <${keyword}>
+</#if>
+</#list>
+    )
+}
+
+/** @see #NonReservedKeyWord */
+void NonReservedKeyWord1of3() :
+{
+}
+{
+    (
+<#list parser.nonReservedKeywords as keyword>
+<#if keyword?index == 1>
+        <${keyword}>
+<#elseif keyword?index % 3 == 1>
+    |   <${keyword}>
+</#if>
+</#list>
+    )
+}
+
+/** @see #NonReservedKeyWord */
+void NonReservedKeyWord2of3() :
+{
+}
+{
+    (
+<#list parser.nonReservedKeywords as keyword>
+<#if keyword?index == 2>
+        <${keyword}>
+<#elseif keyword?index % 3 == 2>
+    |   <${keyword}>
+</#if>
+</#list>
+    )
 }
 
 /* LITERALS */

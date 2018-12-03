@@ -44,7 +44,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.prepare.CalciteCatalogReader;
-import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
@@ -57,6 +57,7 @@ import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.advise.SqlAdvisor;
 import org.apache.calcite.sql.advise.SqlAdvisorValidator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidatorWithHints;
 import org.apache.calcite.tools.RelRunner;
@@ -66,16 +67,17 @@ import org.apache.calcite.util.Holder;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 
 import java.io.Serializable;
 import java.lang.reflect.Type;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -119,12 +121,21 @@ abstract class CalciteConnectionImpl
     if (typeFactory != null) {
       this.typeFactory = typeFactory;
     } else {
-      final RelDataTypeSystem typeSystem =
+      RelDataTypeSystem typeSystem =
           cfg.typeSystem(RelDataTypeSystem.class, RelDataTypeSystem.DEFAULT);
+      if (cfg.conformance().shouldConvertRaggedUnionTypesToVarying()) {
+        typeSystem =
+            new DelegatingTypeSystem(typeSystem) {
+              @Override public boolean
+              shouldConvertRaggedUnionTypesToVarying() {
+                return true;
+              }
+            };
+      }
       this.typeFactory = new JavaTypeFactoryImpl(typeSystem);
     }
     this.rootSchema =
-        Preconditions.checkNotNull(rootSchema != null
+        Objects.requireNonNull(rootSchema != null
             ? rootSchema
             : CalciteSchema.createRootSchema(true));
     Preconditions.checkArgument(this.rootSchema.isRoot(), "must be root schema");
@@ -161,18 +172,15 @@ abstract class CalciteConnectionImpl
 
   @Override public <T> T unwrap(Class<T> iface) throws SQLException {
     if (iface == RelRunner.class) {
-      return iface.cast(
-          new RelRunner() {
-            public PreparedStatement prepare(RelNode rel) {
-              try {
-                return prepareStatement_(CalcitePrepare.Query.of(rel),
-                    ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
-                    getHoldability());
-              } catch (SQLException e) {
-                throw new RuntimeException(e);
-              }
-            }
-          });
+      return iface.cast((RelRunner) rel -> {
+        try {
+          return prepareStatement_(CalcitePrepare.Query.of(rel),
+              ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+              getHoldability());
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+      });
     }
     return super.unwrap(iface);
   }
@@ -277,7 +285,7 @@ abstract class CalciteConnectionImpl
 
   public <T> Enumerable<T> enumerable(Meta.StatementHandle handle,
       CalcitePrepare.CalciteSignature<T> signature) throws SQLException {
-    Map<String, Object> map = Maps.newLinkedHashMap();
+    Map<String, Object> map = new LinkedHashMap<>();
     AvaticaStatement statement = lookupStatement(handle);
     final List<TypedValue> parameterValues =
         TROJAN.getParameterValues(statement);
@@ -335,7 +343,7 @@ abstract class CalciteConnectionImpl
 
   /** Implementation of Server. */
   private static class CalciteServerImpl implements CalciteServer {
-    final Map<Integer, CalciteServerStatement> statementMap = Maps.newHashMap();
+    final Map<Integer, CalciteServerStatement> statementMap = new HashMap<>();
 
     public void removeStatement(Meta.StatementHandle h) {
       statementMap.remove(h.id);
@@ -436,17 +444,31 @@ abstract class CalciteConnectionImpl
 
     private SqlAdvisor getSqlAdvisor() {
       final CalciteConnectionImpl con = (CalciteConnectionImpl) queryProvider;
-      final String schemaName = con.getSchema();
+      final String schemaName;
+      try {
+        schemaName = con.getSchema();
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
       final List<String> schemaPath =
           schemaName == null
-              ? ImmutableList.<String>of()
+              ? ImmutableList.of()
               : ImmutableList.of(schemaName);
       final SqlValidatorWithHints validator =
           new SqlAdvisorValidator(SqlStdOperatorTable.instance(),
           new CalciteCatalogReader(rootSchema,
               schemaPath, typeFactory, con.config()),
           typeFactory, SqlConformanceEnum.DEFAULT);
-      return new SqlAdvisor(validator);
+      final CalciteConnectionConfig config = con.config();
+      // This duplicates org.apache.calcite.prepare.CalcitePrepareImpl.prepare2_
+      final SqlParser.Config parserConfig = SqlParser.configBuilder()
+          .setQuotedCasing(config.quotedCasing())
+          .setUnquotedCasing(config.unquotedCasing())
+          .setQuoting(config.quoting())
+          .setConformance(config.conformance())
+          .setCaseSensitive(config.caseSensitive())
+          .build();
+      return new SqlAdvisor(validator, parserConfig);
     }
 
     public SchemaPlus getRootSchema() {
@@ -469,7 +491,7 @@ abstract class CalciteConnectionImpl
     private final CalciteSchema rootSchema;
 
     ContextImpl(CalciteConnectionImpl connection) {
-      this.connection = Preconditions.checkNotNull(connection);
+      this.connection = Objects.requireNonNull(connection);
       long now = System.currentTimeMillis();
       SchemaVersion schemaVersion = new LongSchemaVersion(now);
       this.mutableRootSchema = connection.rootSchema;
@@ -489,9 +511,14 @@ abstract class CalciteConnectionImpl
     }
 
     public List<String> getDefaultSchemaPath() {
-      final String schemaName = connection.getSchema();
+      final String schemaName;
+      try {
+        schemaName = connection.getSchema();
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
       return schemaName == null
-          ? ImmutableList.<String>of()
+          ? ImmutableList.of()
           : ImmutableList.of(schemaName);
     }
 
@@ -504,7 +531,7 @@ abstract class CalciteConnectionImpl
     }
 
     public DataContext getDataContext() {
-      return connection.createDataContext(ImmutableMap.<String, Object>of(),
+      return connection.createDataContext(ImmutableMap.of(),
           rootSchema);
     }
 
@@ -556,7 +583,7 @@ abstract class CalciteConnectionImpl
     private final AtomicBoolean cancelFlag = new AtomicBoolean();
 
     CalciteServerStatementImpl(CalciteConnectionImpl connection) {
-      this.connection = Preconditions.checkNotNull(connection);
+      this.connection = Objects.requireNonNull(connection);
     }
 
     public Context createPrepareContext() {

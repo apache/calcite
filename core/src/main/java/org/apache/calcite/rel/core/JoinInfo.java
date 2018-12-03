@@ -25,10 +25,9 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.mapping.IntPair;
 
-import com.google.common.base.Preconditions;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /** An analyzed join condition.
  *
@@ -47,16 +46,16 @@ public abstract class JoinInfo {
 
   /** Creates a JoinInfo. */
   protected JoinInfo(ImmutableIntList leftKeys, ImmutableIntList rightKeys) {
-    this.leftKeys = Preconditions.checkNotNull(leftKeys);
-    this.rightKeys = Preconditions.checkNotNull(rightKeys);
+    this.leftKeys = Objects.requireNonNull(leftKeys);
+    this.rightKeys = Objects.requireNonNull(rightKeys);
     assert leftKeys.size() == rightKeys.size();
   }
 
   /** Creates a {@code JoinInfo} by analyzing a condition. */
   public static JoinInfo of(RelNode left, RelNode right, RexNode condition) {
-    final List<Integer> leftKeys = new ArrayList<Integer>();
-    final List<Integer> rightKeys = new ArrayList<Integer>();
-    final List<Boolean> filterNulls = new ArrayList<Boolean>();
+    final List<Integer> leftKeys = new ArrayList<>();
+    final List<Integer> rightKeys = new ArrayList<>();
+    final List<Boolean> filterNulls = new ArrayList<>();
     RexNode remaining =
         RelOptUtil.splitJoinCondition(left, right, condition, leftKeys,
             rightKeys, filterNulls);
@@ -126,7 +125,7 @@ public abstract class JoinInfo {
     protected NonEquiJoinInfo(ImmutableIntList leftKeys,
         ImmutableIntList rightKeys, RexNode remaining) {
       super(leftKeys, rightKeys);
-      this.remaining = Preconditions.checkNotNull(remaining);
+      this.remaining = Objects.requireNonNull(remaining);
       assert !remaining.isAlwaysTrue();
     }
 

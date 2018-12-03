@@ -24,6 +24,7 @@ import org.apache.calcite.model.JsonLattice;
 import org.apache.calcite.model.JsonMapSchema;
 import org.apache.calcite.model.JsonRoot;
 import org.apache.calcite.model.JsonTable;
+import org.apache.calcite.model.JsonTypeAttribute;
 import org.apache.calcite.model.JsonView;
 
 import com.fasterxml.jackson.core.JsonParser;
@@ -32,6 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -61,6 +63,17 @@ public class ModelTest {
         + "   schemas: [\n"
         + "     {\n"
         + "       name: 'FoodMart',\n"
+        + "       types: [\n"
+        + "         {\n"
+        + "           name: 'mytype1',\n"
+        + "           attributes: [\n"
+        + "             {\n"
+        + "               name: 'f1',\n"
+        + "               type: 'BIGINT'\n"
+        + "             }\n"
+        + "           ]\n"
+        + "         }\n"
+        + "       ],\n"
         + "       tables: [\n"
         + "         {\n"
         + "           name: 'time_by_day',\n"
@@ -87,6 +100,10 @@ public class ModelTest {
     assertEquals(1, root.schemas.size());
     final JsonMapSchema schema = (JsonMapSchema) root.schemas.get(0);
     assertEquals("FoodMart", schema.name);
+    assertEquals(1, schema.types.size());
+    final List<JsonTypeAttribute> attributes = schema.types.get(0).attributes;
+    assertEquals("f1", attributes.get(0).name);
+    assertEquals("BIGINT", attributes.get(0).type);
     assertEquals(2, schema.tables.size());
     final JsonTable table0 = schema.tables.get(0);
     assertEquals("time_by_day", table0.name);
@@ -326,11 +343,38 @@ public class ModelTest {
     final JsonView table1 = (JsonView) schema.tables.get(0);
     try {
       String s = table1.getSql();
-      fail("exprcted error, got " + s);
+      fail("expected error, got " + s);
     } catch (RuntimeException e) {
       assertThat(e.getMessage(),
           equalTo("each element of a string list must be a string; found: 2"));
     }
+  }
+
+  @Test public void testYamlInlineDetection() throws Exception {
+    // yaml model with different line endings
+    final String yamlModel = "version: 1.0\r\n"
+        + "schemas: \n"
+        + "- type: custom\r\n"
+        + "  name: 'MyCustomSchema'\n"
+        + "  factory: " + JdbcTest.MySchemaFactory.class.getName() + "\r\n";
+    CalciteAssert.model(yamlModel).doWithConnection(calciteConnection -> null);
+    // with a comment
+    CalciteAssert.model("\n  \r\n# comment\n " + yamlModel)
+        .doWithConnection(calciteConnection -> null);
+    // if starts with { => treated as json
+    CalciteAssert.model("  { " + yamlModel + " }")
+        .connectThrows("Unexpected character ('s' (code 115)): "
+            + "was expecting comma to separate Object entries");
+    // if starts with /* => treated as json
+    CalciteAssert.model("  /* " + yamlModel)
+        .connectThrows("Unexpected end-of-input in a comment");
+  }
+
+  @Test public void testYamlFileDetection() throws Exception {
+    final URL inUrl = ModelTest.class.getResource("/empty-model.yaml");
+    CalciteAssert.that()
+        .withModel(inUrl)
+        .doWithConnection(calciteConnection -> null);
   }
 }
 

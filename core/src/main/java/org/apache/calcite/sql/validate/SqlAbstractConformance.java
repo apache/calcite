@@ -23,6 +23,10 @@ package org.apache.calcite.sql.validate;
  * and behaves the same as in {@link SqlConformanceEnum#DEFAULT}.
  */
 public abstract class SqlAbstractConformance implements SqlConformance {
+  public boolean isLiberal() {
+    return SqlConformanceEnum.DEFAULT.isLiberal();
+  }
+
   public boolean isGroupByAlias() {
     return SqlConformanceEnum.DEFAULT.isGroupByAlias();
   }
@@ -71,6 +75,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.allowNiladicParentheses();
   }
 
+  public boolean allowExplicitRowValueConstructor() {
+    return SqlConformanceEnum.DEFAULT.allowExplicitRowValueConstructor();
+  }
+
   public boolean allowExtend() {
     return SqlConformanceEnum.DEFAULT.allowExtend();
   }
@@ -85,6 +93,14 @@ public abstract class SqlAbstractConformance implements SqlConformance {
 
   public boolean allowGeometry() {
     return SqlConformanceEnum.DEFAULT.allowGeometry();
+  }
+
+  public boolean shouldConvertRaggedUnionTypesToVarying() {
+    return SqlConformanceEnum.DEFAULT.shouldConvertRaggedUnionTypesToVarying();
+  }
+
+  public boolean allowExtendedTrim() {
+    return SqlConformanceEnum.DEFAULT.allowExtendedTrim();
   }
 }
 

@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -86,7 +87,7 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
       Class<? extends RelNode> inputClass,
       RelBuilderFactory relBuilderFactory, String description) {
     super(
-        operand(aggregateClass, null, Aggregate.IS_SIMPLE,
+        operandJ(aggregateClass, null, Aggregate::isSimple,
             operand(inputClass, any())),
         relBuilderFactory, description);
   }
@@ -153,7 +154,7 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
           aggCall.adaptTo(input, aggCall.getArgList(), aggCall.filterArg,
               groupCount, newGroupCount));
     }
-    relBuilder.aggregate(relBuilder.groupKey(newGroupSet, null), newAggCalls);
+    relBuilder.aggregate(relBuilder.groupKey(newGroupSet), newAggCalls);
 
     // Create a projection back again.
     List<Pair<RexNode, String>> projects = new ArrayList<>();
@@ -164,14 +165,23 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
       if (i >= groupCount) {
         // Aggregate expressions' names and positions are unchanged.
         expr = relBuilder.field(i - map.size());
-      } else if (map.containsKey(i)) {
-        // Re-generate the constant expression in the project.
-        expr = map.get(i);
       } else {
-        // Project the aggregation expression, in its original
-        // position.
-        expr = relBuilder.field(source);
-        ++source;
+        int pos = aggregate.getGroupSet().nth(i);
+        if (map.containsKey(pos)) {
+          // Re-generate the constant expression in the project.
+          RelDataType originalType =
+              aggregate.getRowType().getFieldList().get(projects.size()).getType();
+          if (!originalType.equals(map.get(pos).getType())) {
+            expr = rexBuilder.makeCast(originalType, map.get(pos), true);
+          } else {
+            expr = map.get(pos);
+          }
+        } else {
+          // Project the aggregation expression, in its original
+          // position.
+          expr = relBuilder.field(source);
+          ++source;
+        }
       }
       projects.add(Pair.of(expr, field.getName()));
     }

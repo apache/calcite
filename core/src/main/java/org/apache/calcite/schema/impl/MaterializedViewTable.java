@@ -30,12 +30,11 @@ import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TranslatableTable;
 
-import com.google.common.base.Preconditions;
-
 import java.lang.reflect.Type;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Table that is a materialized view.
@@ -107,7 +106,7 @@ public class MaterializedViewTable extends ViewTable {
       super(schema, viewSql,
           viewSchemaPath != null ? viewSchemaPath : schema.path(null), viewPath,
           Boolean.TRUE);
-      this.key = Preconditions.checkNotNull(
+      this.key = Objects.requireNonNull(
           MaterializationService.instance().defineMaterialization(
               schema, null, viewSql, schemaPath, suggestedTableName, true,
               existing));

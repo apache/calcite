@@ -50,7 +50,7 @@ public class MethodCallExpression extends Expression {
 
   MethodCallExpression(Method method, Expression targetExpression,
       List<Expression> expressions) {
-    this(method.getGenericReturnType(), method, targetExpression, expressions);
+    this(method.getReturnType(), method, targetExpression, expressions);
   }
 
   @Override public Expression accept(Shuttle shuttle) {

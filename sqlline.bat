@@ -23,6 +23,6 @@
 :: Copy dependency jars on first call. (To force jar refresh, remove target\dependencies)
 if not exist target\dependencies (call mvn -B dependency:copy-dependencies -DoverWriteReleases=false -DoverWriteSnapshots=false -DoverWriteIfNewer=true -DoutputDirectory=target\dependencies)
 
-java -Xmx1G -cp ".\target\dependencies\*;core\target\dependencies\*;cassandra\target\dependencies\*;druid\target\dependencies\*;elasticsearch2\target\dependencies\*;elasticsearch5\target\dependencies\*;file\target\dependencies\*;mongodb\target\dependencies\*;server\target\dependencies\*;spark\target\dependencies\*;splunk\target\dependencies\*" sqlline.SqlLine --verbose=true %*
+java -Xmx1G -cp ".\target\dependencies\*;core\target\dependencies\*;cassandra\target\dependencies\*;druid\target\dependencies\*;elasticsearch2\target\dependencies\*;elasticsearch5\target\dependencies\*;geode\target\dependencies\*;file\target\dependencies\*;mongodb\target\dependencies\*;server\target\dependencies\*;spark\target\dependencies\*;splunk\target\dependencies\*" sqlline.SqlLine --verbose=true %*
 
 :: End sqlline.bat

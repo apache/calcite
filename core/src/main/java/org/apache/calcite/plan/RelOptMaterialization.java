@@ -43,11 +43,11 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Records that a particular query is materialized by a particular table.
@@ -104,7 +104,7 @@ public class RelOptMaterialization {
 
               final RelOptCluster cluster = scan.getCluster();
               final RelNode scan2 =
-                  starRelOptTable.toRel(RelOptUtil.getContext(cluster));
+                  starRelOptTable.toRel(ViewExpanders.simpleContext(cluster));
               return RelOptUtil.createProject(scan2,
                   Mappings.asList(mapping.inverse()));
             }
@@ -158,7 +158,7 @@ public class RelOptMaterialization {
               final RelNode project = RelOptUtil.createProject(
                   LogicalTableScan.create(cluster, leftRelOptTable),
                   Mappings.asList(mapping.inverse()));
-              final List<RexNode> conditions = Lists.newArrayList();
+              final List<RexNode> conditions = new ArrayList<>();
               if (left.condition != null) {
                 conditions.add(left.condition);
               }
@@ -182,7 +182,7 @@ public class RelOptMaterialization {
               final RelNode project = RelOptUtil.createProject(
                   LogicalTableScan.create(cluster, rightRelOptTable),
                   Mappings.asList(mapping.inverse()));
-              final List<RexNode> conditions = Lists.newArrayList();
+              final List<RexNode> conditions = new ArrayList<>();
               if (left.condition != null) {
                 conditions.add(
                     RexUtil.apply(mapping,
@@ -208,8 +208,8 @@ public class RelOptMaterialization {
         false,
         DefaultRelMetadataProvider.INSTANCE);
     return program.run(null, rel2, null,
-        ImmutableList.<RelOptMaterialization>of(),
-        ImmutableList.<RelOptLattice>of());
+        ImmutableList.of(),
+        ImmutableList.of());
   }
 
   /** A table scan and optional project mapping and filter condition. */
@@ -222,7 +222,7 @@ public class RelOptMaterialization {
         Mappings.TargetMapping mapping, TableScan scan) {
       this.condition = condition;
       this.mapping = mapping;
-      this.scan = Preconditions.checkNotNull(scan);
+      this.scan = Objects.requireNonNull(scan);
     }
 
     static ProjectFilterTable of(RelNode node) {
@@ -285,8 +285,8 @@ public class RelOptMaterialization {
               SqlExplainLevel.DIGEST_ATTRIBUTES));
     }
     final RelNode rel2 = program.run(null, rel, null,
-        ImmutableList.<RelOptMaterialization>of(),
-        ImmutableList.<RelOptLattice>of());
+        ImmutableList.of(),
+        ImmutableList.of());
     if (CalcitePrepareImpl.DEBUG) {
       System.out.println(
           RelOptUtil.dumpPlan("after", rel2, SqlExplainFormat.TEXT,

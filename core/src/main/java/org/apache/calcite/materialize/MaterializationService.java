@@ -18,7 +18,6 @@ package org.apache.calcite.materialize;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.clone.CloneSchema;
-import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteMetaImpl;
@@ -38,11 +37,9 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -52,6 +49,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Set;
 
 /**
  * Manages the collection of materialized tables known to the system,
@@ -63,27 +61,20 @@ public class MaterializationService {
 
   /** For testing. */
   private static final ThreadLocal<MaterializationService> THREAD_INSTANCE =
-      new ThreadLocal<MaterializationService>() {
-        @Override protected MaterializationService initialValue() {
-          return new MaterializationService();
-        }
-      };
+      ThreadLocal.withInitial(MaterializationService::new);
 
   private static final Comparator<Pair<CalciteSchema.TableEntry, TileKey>> C =
-      new Comparator<Pair<CalciteSchema.TableEntry, TileKey>>() {
-        public int compare(Pair<CalciteSchema.TableEntry, TileKey> o0,
-            Pair<CalciteSchema.TableEntry, TileKey> o1) {
-          // We prefer rolling up from the table with the fewest rows.
-          final Table t0 = o0.left.getTable();
-          final Table t1 = o1.left.getTable();
-          int c = Double.compare(t0.getStatistic().getRowCount(),
-              t1.getStatistic().getRowCount());
-          if (c != 0) {
-            return c;
-          }
-          // Tie-break based on table name.
-          return o0.left.name.compareTo(o1.left.name);
+      (o0, o1) -> {
+        // We prefer rolling up from the table with the fewest rows.
+        final Table t0 = o0.left.getTable();
+        final Table t1 = o1.left.getTable();
+        int c = Double.compare(t0.getStatistic().getRowCount(),
+            t1.getStatistic().getRowCount());
+        if (c != 0) {
+          return c;
         }
+        // Tie-break based on table name.
+        return o0.left.name.compareTo(o1.left.name);
       };
 
   private final MaterializationActor actor = new MaterializationActor();
@@ -207,7 +198,7 @@ public class MaterializationService {
     // Step 2. Look for a match of the tile with the same dimensionality and an
     // acceptable list of measures.
     final TileKey tileKey0 =
-        new TileKey(lattice, groupSet, ImmutableList.<Lattice.Measure>of());
+        new TileKey(lattice, groupSet, ImmutableList.of());
     for (TileKey tileKey1 : actor.tilesByDimensionality.get(tileKey0)) {
       assert tileKey1.dimensions.equals(groupSet);
       if (allSatisfiable(measureList, tileKey1)) {
@@ -267,8 +258,8 @@ public class MaterializationService {
     // whether they were current, create a wider tile that contains their
     // measures plus the currently requested measures. Then we can obsolete all
     // other tiles.
-    final List<TileKey> obsolete = Lists.newArrayList();
-    final LinkedHashSet<Lattice.Measure> measureSet = Sets.newLinkedHashSet();
+    final List<TileKey> obsolete = new ArrayList<>();
+    final Set<Lattice.Measure> measureSet = new LinkedHashSet<>();
     for (TileKey tileKey1 : actor.tilesByDimensionality.get(tileKey0)) {
       measureSet.addAll(tileKey1.measures);
       obsolete.add(tileKey1);
@@ -380,12 +371,7 @@ public class MaterializationService {
       return CloneSchema.createCloneTable(connection.getTypeFactory(),
           RelDataTypeImpl.proto(calciteSignature.rowType),
           calciteSignature.getCollationList(),
-          Lists.transform(calciteSignature.columns,
-              new Function<ColumnMetaData, ColumnMetaData.Rep>() {
-                public ColumnMetaData.Rep apply(ColumnMetaData column) {
-                  return column.type.rep;
-                }
-              }),
+          Lists.transform(calciteSignature.columns, column -> column.type.rep),
           new AbstractQueryable<Object>() {
             public Enumerator<Object> enumerator() {
               final DataContext dataContext =

@@ -20,13 +20,17 @@ import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
 
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
+import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -40,6 +44,9 @@ import static org.junit.Assert.fail;
 public class ServerTest {
 
   static final String URL = "jdbc:calcite:";
+
+  @Rule
+  public ExpectedException thrown = ExpectedException.none();
 
   static Connection connect() throws SQLException {
     return DriverManager.getConnection(URL,
@@ -76,6 +83,45 @@ public class ServerTest {
         assertThat(r.getInt(1), is(1));
         assertThat(r.next(), is(false));
       }
+    }
+  }
+
+  @Test public void testCreateType() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      boolean b = s.execute("create type mytype1 as BIGINT");
+      assertThat(b, is(false));
+      b = s.execute("create or replace type mytype2 as (i int not null, jj mytype1)");
+      assertThat(b, is(false));
+      b = s.execute("create type mytype3 as (i int not null, jj mytype2)");
+      assertThat(b, is(false));
+      b = s.execute("create or replace type mytype1 as DOUBLE");
+      assertThat(b, is(false));
+      b = s.execute("create table t (c mytype1 NOT NULL)");
+      assertThat(b, is(false));
+      b = s.execute("create type mytype4 as BIGINT");
+      assertThat(b, is(false));
+      int x = s.executeUpdate("insert into t values 12.0");
+      assertThat(x, is(1));
+      x = s.executeUpdate("insert into t values 3.0");
+      assertThat(x, is(1));
+      try (ResultSet r = s.executeQuery("select CAST(c AS mytype4) from t")) {
+        assertThat(r.next(), is(true));
+        assertThat(r.getInt(1), is(12));
+        assertThat(r.next(), is(true));
+        assertThat(r.getInt(1), is(3));
+        assertThat(r.next(), is(false));
+      }
+    }
+  }
+
+  @Test public void testDropType() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      boolean b = s.execute("create type mytype1 as BIGINT");
+      assertThat(b, is(false));
+      b = s.execute("drop type mytype1");
+      assertThat(b, is(false));
     }
   }
 
@@ -120,7 +166,7 @@ public class ServerTest {
             + "EnumerableTableModify(table=[[T]], operation=[INSERT], flattened=[false])\n"
             + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], proj#0..1=[{exprs}], J=[$t3])\n"
             + "    EnumerableValues(tuples=[[{ 3, 4 }]])\n";
-        assertThat(r.getString(1), is(plan));
+        assertThat(r.getString(1), isLinux(plan));
         assertThat(r.next(), is(false));
       }
 
@@ -261,11 +307,11 @@ public class ServerTest {
       }
 
       final String plan = ""
-          + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], proj#0..1=[{exprs}], $f2=[$t3])\n"
+          + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], proj#0..1=[{exprs}], J=[$t3])\n"
           + "  EnumerableTableScan(table=[[T]])\n";
       try (ResultSet r = s.executeQuery("explain plan for " + sql)) {
         assertThat(r.next(), is(true));
-        assertThat(r.getString(1), is(plan));
+        assertThat(r.getString(1), isLinux(plan));
       }
     }
   }

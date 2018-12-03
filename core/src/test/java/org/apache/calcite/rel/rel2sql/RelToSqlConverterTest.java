@@ -17,8 +17,6 @@
 package org.apache.calcite.rel.rel2sql;
 
 import org.apache.calcite.config.NullCollation;
-import org.apache.calcite.plan.RelOptLattice;
-import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
@@ -26,35 +24,44 @@ import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rules.UnionMergeRule;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlDialect.Context;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
+import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
-import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
 
 import java.util.List;
+import java.util.function.Function;
 
-import junit.framework.AssertionFailedError;
+import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -78,16 +85,16 @@ public class RelToSqlConverterTest {
   private Sql sql(String sql) {
     return new Sql(CalciteAssert.SchemaSpec.JDBC_FOODMART, sql,
         CalciteSqlDialect.DEFAULT, DEFAULT_REL_CONFIG,
-        ImmutableList.<Function<RelNode, RelNode>>of());
+        ImmutableList.of());
   }
 
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
-      SqlParser.Config parserConfig, CalciteAssert.SchemaSpec schemaSpec,
+      SqlParser.Config parserConfig, SchemaPlus schema,
       SqlToRelConverter.Config sqlToRelConf, Program... programs) {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
-        .defaultSchema(CalciteAssert.addSchema(rootSchema, schemaSpec))
+        .defaultSchema(schema)
         .traitDefs(traitDefs)
         .sqlToRelConverterConfig(sqlToRelConf)
         .programs(programs)
@@ -95,11 +102,40 @@ public class RelToSqlConverterTest {
     return Frameworks.getPlanner(config);
   }
 
+  private static JethroDataSqlDialect jethroDataSqlDialect() {
+    Context dummyContext = SqlDialect.EMPTY_CONTEXT
+        .withDatabaseProduct(SqlDialect.DatabaseProduct.JETHRO)
+        .withDatabaseMajorVersion(1)
+        .withDatabaseMinorVersion(0)
+        .withDatabaseVersion("1.0")
+        .withIdentifierQuoteString("\"")
+        .withNullCollation(NullCollation.HIGH)
+        .withJethroInfo(JethroDataSqlDialect.JethroInfo.EMPTY);
+    return new JethroDataSqlDialect(dummyContext);
+  }
+
   private static MysqlSqlDialect mySqlDialect(NullCollation nullCollation) {
     return new MysqlSqlDialect(SqlDialect.EMPTY_CONTEXT
         .withDatabaseProduct(SqlDialect.DatabaseProduct.MYSQL)
         .withIdentifierQuoteString("`")
         .withNullCollation(nullCollation));
+  }
+
+  /** Creates a RelBuilder. */
+  private static RelBuilder relBuilder() {
+    return RelBuilder.create(RelBuilderTest.config().build());
+  }
+
+  /** Converts a relational expression to SQL. */
+  private String toSql(RelNode root) {
+    return toSql(root, SqlDialect.DatabaseProduct.CALCITE.getDialect());
+  }
+
+  /** Converts a relational expression to SQL in a given dialect. */
+  private static String toSql(RelNode root, SqlDialect dialect) {
+    final RelToSqlConverter converter = new RelToSqlConverter(dialect);
+    final SqlNode sqlNode = converter.visitChild(0, root).asStatement();
+    return sqlNode.toSqlString(dialect).getSql();
   }
 
   @Test public void testSimpleSelectStarFromProductTable() {
@@ -141,6 +177,37 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\", \"product_id\"";
     sql(query).ok(expected);
+  }
+
+  @Test public void testSelectQueryWithGroupByEmpty() {
+    final String sql0 = "select count(*) from \"product\" group by ()";
+    final String sql1 = "select count(*) from \"product\"";
+    final String expected = "SELECT COUNT(*)\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedMySql = "SELECT COUNT(*)\n"
+        + "FROM `foodmart`.`product`";
+    sql(sql0)
+        .ok(expected)
+        .withMysql()
+        .ok(expectedMySql);
+    sql(sql1)
+        .ok(expected)
+        .withMysql()
+        .ok(expectedMySql);
+  }
+
+  @Test public void testSelectQueryWithGroupByEmpty2() {
+    final String query = "select 42 as c from \"product\" group by ()";
+    final String expected = "SELECT 42 AS \"C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ()";
+    final String expectedMySql = "SELECT 42 AS `C`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ()";
+    sql(query)
+        .ok(expected)
+        .withMysql()
+        .ok(expectedMySql);
   }
 
   @Test public void testSelectQueryWithMinAggregateFunction() {
@@ -201,6 +268,45 @@ public class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1174">[CALCITE-1174]
+   * When generating SQL, translate SUM0(x) to COALESCE(SUM(x), 0)</a>. */
+  @Test public void testSum0BecomesCoalesce() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .aggregate(builder.groupKey(),
+            builder.aggregateCall(SqlStdOperatorTable.SUM0, builder.field(3))
+                .as("s"))
+        .build();
+    final String expectedMysql = "SELECT COALESCE(SUM(`MGR`), 0) AS `s`\n"
+        + "FROM `scott`.`EMP`";
+    assertThat(toSql(root, SqlDialect.DatabaseProduct.MYSQL.getDialect()),
+        isLinux(expectedMysql));
+    final String expectedPostgresql = "SELECT COALESCE(SUM(\"MGR\"), 0) AS \"s\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, SqlDialect.DatabaseProduct.POSTGRESQL.getDialect()),
+        isLinux(expectedPostgresql));
+  }
+
+  /** As {@link #testSum0BecomesCoalesce()} but for windowed aggregates. */
+  @Test public void testWindowedSum0BecomesCoalesce() {
+    final String query = "select\n"
+        + "  AVG(\"net_weight\") OVER (order by \"product_id\" rows 3 preceding)\n"
+        + "from \"foodmart\".\"product\"";
+    final String expectedPostgresql = "SELECT CASE WHEN (COUNT(\"net_weight\")"
+        + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW)) > 0 "
+        + "THEN CAST(COALESCE(SUM(\"net_weight\")"
+        + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 0)"
+        + " AS DOUBLE PRECISION) "
+        + "ELSE NULL END / (COUNT(\"net_weight\")"
+        + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW))\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query)
+        .withPostgresql()
+        .ok(expectedPostgresql);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1946">[CALCITE-1946]
    * JDBC adapter should generate sub-SELECT if dialect does not support nested
    * aggregate functions</a>. */
@@ -239,6 +345,45 @@ public class RelToSqlConverterTest {
         .ok(expectedVertica)
         .withPostgresql()
         .ok(expectedPostgresql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2628">[CALCITE-2628]
+   * JDBC adapter throws NullPointerException while generating GROUP BY query
+   * for MySQL</a>.
+   *
+   * <p>MySQL does not support nested aggregates, so {@link RelToSqlConverter}
+   * performs some extra checks, looking for aggregates in the input
+   * sub-query, and these would fail with {@code NullPointerException}
+   * and {@code ClassCastException} in some cases. */
+  @Test public void testNestedAggregatesMySqlTable() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .aggregate(builder.groupKey(),
+            builder.count(false, "c", builder.field(3)))
+        .build();
+    final SqlDialect dialect = SqlDialect.DatabaseProduct.MYSQL.getDialect();
+    final String expectedSql = "SELECT COUNT(`MGR`) AS `c`\n"
+        + "FROM `scott`.`EMP`";
+    assertThat(toSql(root, dialect), isLinux(expectedSql));
+  }
+
+  /** As {@link #testNestedAggregatesMySqlTable()}, but input is a sub-query,
+   * not a table. */
+  @Test public void testNestedAggregatesMySqlStar() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(builder.equals(builder.field("DEPTNO"), builder.literal(10)))
+        .aggregate(builder.groupKey(),
+            builder.count(false, "c", builder.field(3)))
+        .build();
+    final SqlDialect dialect = SqlDialect.DatabaseProduct.MYSQL.getDialect();
+    final String expectedSql = "SELECT COUNT(`MGR`) AS `c`\n"
+        + "FROM `scott`.`EMP`\n"
+        + "WHERE `DEPTNO` = 10";
+    assertThat(toSql(root, dialect), isLinux(expectedSql));
   }
 
   @Test public void testSelectQueryWithGroupByAndProjectList1() {
@@ -342,6 +487,93 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testHiveSelectCharset() {
+    String query = "select \"hire_date\", cast(\"hire_date\" as varchar(10)) "
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expected = "SELECT hire_date, CAST(hire_date AS VARCHAR(10))\n"
+        + "FROM foodmart.reserve_employee";
+    sql(query).withHive().ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2715">[CALCITE-2715]
+   * MS SQL Server does not support character set as part of data type</a>. */
+  @Test public void testMssqlCharacterSet() {
+    String query = "select \"hire_date\", cast(\"hire_date\" as varchar(10))\n"
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expected = "SELECT [hire_date], CAST([hire_date] AS VARCHAR(10))\n"
+        + "FROM [foodmart].[reserve_employee]";
+    sql(query).withMssql().ok(expected);
+  }
+
+  /**
+   * Tests that IN can be un-parsed.
+   *
+   * <p>This cannot be tested using "sql", because because Calcite's SQL parser
+   * replaces INs with ORs or sub-queries.
+   */
+  @Test public void testUnparseIn1() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition =
+        builder.call(SqlStdOperatorTable.IN, builder.field("DEPTNO"),
+            builder.literal(21));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+    final String sql = toSql(root);
+    final String expectedSql = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"DEPTNO\" IN (21)";
+    assertThat(sql, isLinux(expectedSql));
+  }
+
+  @Test public void testUnparseIn2() {
+    final RelBuilder builder = relBuilder();
+    final RelNode rel = builder
+        .scan("EMP")
+        .filter(
+            builder.call(SqlStdOperatorTable.IN, builder.field("DEPTNO"),
+                builder.literal(20), builder.literal(21)))
+        .build();
+    final String sql = toSql(rel);
+    final String expectedSql = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"DEPTNO\" IN (20, 21)";
+    assertThat(sql, isLinux(expectedSql));
+  }
+
+  @Test public void testUnparseInStruct1() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition =
+        builder.call(SqlStdOperatorTable.IN,
+            builder.call(SqlStdOperatorTable.ROW, builder.field("DEPTNO"),
+                builder.field("JOB")),
+            builder.call(SqlStdOperatorTable.ROW, builder.literal(1),
+                builder.literal("PRESIDENT")));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+    final String sql = toSql(root);
+    final String expectedSql = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE ROW(\"DEPTNO\", \"JOB\") IN (ROW(1, 'PRESIDENT'))";
+    assertThat(sql, isLinux(expectedSql));
+  }
+
+  @Test public void testUnparseInStruct2() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode condition =
+        builder.call(SqlStdOperatorTable.IN,
+            builder.call(SqlStdOperatorTable.ROW, builder.field("DEPTNO"),
+                builder.field("JOB")),
+            builder.call(SqlStdOperatorTable.ROW, builder.literal(1),
+                builder.literal("PRESIDENT")),
+            builder.call(SqlStdOperatorTable.ROW, builder.literal(2),
+                builder.literal("PRESIDENT")));
+    final RelNode root = relBuilder().scan("EMP").filter(condition).build();
+    final String sql = toSql(root);
+    final String expectedSql = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE ROW(\"DEPTNO\", \"JOB\") IN (ROW(1, 'PRESIDENT'), ROW(2, 'PRESIDENT'))";
+    assertThat(sql, isLinux(expectedSql));
+  }
+
   @Test public void testSelectQueryWithLimitClause() {
     String query = "select \"product_id\"  from \"product\" limit 100 offset 10";
     final String expected = "SELECT product_id\n"
@@ -420,6 +652,16 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.product\n"
         + "ORDER BY product_id IS NULL DESC, product_id DESC";
     sql(query).dialect(hive2_1_0_Dialect).ok(expected);
+  }
+
+  @Test public void testJethroDataSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
+    final String query = "select \"product_id\" from \"product\"\n"
+        + "order by \"product_id\" desc nulls first";
+
+    final String expected = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY \"product_id\", \"product_id\" DESC";
+    sql(query).dialect(jethroDataSqlDialect()).ok(expected);
   }
 
   @Test public void testMySqlSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
@@ -637,12 +879,91 @@ public class RelToSqlConverterTest {
   @Test public void testSimpleJoin() {
     String query = "select *\n"
         + "from \"sales_fact_1997\" as s\n"
+        + "join \"customer\" as c on s.\"customer_id\" = c.\"customer_id\"\n"
+        + "join \"product\" as p on s.\"product_id\" = p.\"product_id\"\n"
+        + "join \"product_class\" as pc\n"
+        + "  on p.\"product_class_id\" = pc.\"product_class_id\"\n"
+        + "where c.\"city\" = 'San Francisco'\n"
+        + "and pc.\"product_department\" = 'Snacks'\n";
+    final String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+        + "INNER JOIN \"foodmart\".\"customer\" "
+        + "ON \"sales_fact_1997\".\"customer_id\" = \"customer\""
+        + ".\"customer_id\"\n"
+        + "INNER JOIN \"foodmart\".\"product\" "
+        + "ON \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\"\n"
+        + "INNER JOIN \"foodmart\".\"product_class\" "
+        + "ON \"product\".\"product_class_id\" = \"product_class\""
+        + ".\"product_class_id\"\n"
+        + "WHERE \"customer\".\"city\" = 'San Francisco' AND "
+        + "\"product_class\".\"product_department\" = 'Snacks'";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testSimpleJoinUsing() {
+    String query = "select *\n"
+        + "from \"sales_fact_1997\" as s\n"
         + "  join \"customer\" as c using (\"customer_id\")\n"
         + "  join \"product\" as p using (\"product_id\")\n"
         + "  join \"product_class\" as pc using (\"product_class_id\")\n"
         + "where c.\"city\" = 'San Francisco'\n"
         + "and pc.\"product_department\" = 'Snacks'\n";
-    final String expected = "SELECT *\nFROM \"foodmart\".\"sales_fact_1997\"\n"
+    final String expected = "SELECT"
+        + " \"product\".\"product_class_id\","
+        + " \"sales_fact_1997\".\"product_id\","
+        + " \"sales_fact_1997\".\"customer_id\","
+        + " \"sales_fact_1997\".\"time_id\","
+        + " \"sales_fact_1997\".\"promotion_id\","
+        + " \"sales_fact_1997\".\"store_id\","
+        + " \"sales_fact_1997\".\"store_sales\","
+        + " \"sales_fact_1997\".\"store_cost\","
+        + " \"sales_fact_1997\".\"unit_sales\","
+        + " \"customer\".\"account_num\","
+        + " \"customer\".\"lname\","
+        + " \"customer\".\"fname\","
+        + " \"customer\".\"mi\","
+        + " \"customer\".\"address1\","
+        + " \"customer\".\"address2\","
+        + " \"customer\".\"address3\","
+        + " \"customer\".\"address4\","
+        + " \"customer\".\"city\","
+        + " \"customer\".\"state_province\","
+        + " \"customer\".\"postal_code\","
+        + " \"customer\".\"country\","
+        + " \"customer\".\"customer_region_id\","
+        + " \"customer\".\"phone1\","
+        + " \"customer\".\"phone2\","
+        + " \"customer\".\"birthdate\","
+        + " \"customer\".\"marital_status\","
+        + " \"customer\".\"yearly_income\","
+        + " \"customer\".\"gender\","
+        + " \"customer\".\"total_children\","
+        + " \"customer\".\"num_children_at_home\","
+        + " \"customer\".\"education\","
+        + " \"customer\".\"date_accnt_opened\","
+        + " \"customer\".\"member_card\","
+        + " \"customer\".\"occupation\","
+        + " \"customer\".\"houseowner\","
+        + " \"customer\".\"num_cars_owned\","
+        + " \"customer\".\"fullname\","
+        + " \"product\".\"brand_name\","
+        + " \"product\".\"product_name\","
+        + " \"product\".\"SKU\","
+        + " \"product\".\"SRP\","
+        + " \"product\".\"gross_weight\","
+        + " \"product\".\"net_weight\","
+        + " \"product\".\"recyclable_package\","
+        + " \"product\".\"low_fat\","
+        + " \"product\".\"units_per_case\","
+        + " \"product\".\"cases_per_pallet\","
+        + " \"product\".\"shelf_width\","
+        + " \"product\".\"shelf_height\","
+        + " \"product\".\"shelf_depth\","
+        + " \"product_class\".\"product_subcategory\","
+        + " \"product_class\".\"product_category\","
+        + " \"product_class\".\"product_department\","
+        + " \"product_class\".\"product_family\"\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
         + "INNER JOIN \"foodmart\".\"customer\" "
         + "ON \"sales_fact_1997\".\"customer_id\" = \"customer\""
         + ".\"customer_id\"\n"
@@ -679,6 +1000,18 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"department\",\n"
         + "\"foodmart\".\"employee\"";
     sql(query).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2652">[CALCITE-2652]
+   * SqlNode to SQL conversion fails if the join condition references a BOOLEAN
+   * column</a>. */
+  @Test public void testJoinOnBoolean() {
+    final String sql = "SELECT 1\n"
+        + "from emps\n"
+        + "join emp on (emp.deptno = emps.empno and manager)";
+    final String s = sql(sql).schema(CalciteAssert.SchemaSpec.POST).exec();
+    assertThat(s, notNullValue()); // sufficient that conversion did not throw
   }
 
   @Test public void testCartesianProductWithInnerJoinSyntax() {
@@ -1074,9 +1407,128 @@ public class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  @Test public void testUnparseSqlIntervalQualifierDb2() {
+    String queryDatePlus = "select  * from \"employee\" where  \"hire_date\" + "
+        + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
+    String expectedDatePlus = "SELECT *\n"
+        + "FROM foodmart.employee AS employee\n"
+        + "WHERE (employee.hire_date + 19800 SECOND)"
+        + " > TIMESTAMP '2005-10-17 00:00:00'";
+
+    sql(queryDatePlus)
+        .withDb2()
+        .ok(expectedDatePlus);
+
+    String queryDateMinus = "select  * from \"employee\" where  \"hire_date\" - "
+        + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
+    String expectedDateMinus = "SELECT *\n"
+        + "FROM foodmart.employee AS employee\n"
+        + "WHERE (employee.hire_date - 19800 SECOND)"
+        + " > TIMESTAMP '2005-10-17 00:00:00'";
+
+    sql(queryDateMinus)
+        .withDb2()
+        .ok(expectedDateMinus);
+  }
+
+  @Test public void testUnparseSqlIntervalQualifierMySql() {
+    final String sql0 = "select  * from \"employee\" where  \"hire_date\" - "
+        + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
+    final String expect0 = "SELECT *\n"
+        + "FROM `foodmart`.`employee`\n"
+        + "WHERE (`hire_date` - INTERVAL '19800' SECOND)"
+        + " > TIMESTAMP '2005-10-17 00:00:00'";
+    sql(sql0).withMysql().ok(expect0);
+
+    final String sql1 = "select  * from \"employee\" where  \"hire_date\" + "
+        + "INTERVAL '10' HOUR > TIMESTAMP '2005-10-17 00:00:00' ";
+    final String expect1 = "SELECT *\n"
+        + "FROM `foodmart`.`employee`\n"
+        + "WHERE (`hire_date` + INTERVAL '10' HOUR)"
+        + " > TIMESTAMP '2005-10-17 00:00:00'";
+    sql(sql1).withMysql().ok(expect1);
+
+    final String sql2 = "select  * from \"employee\" where  \"hire_date\" + "
+        + "INTERVAL '1-2' year to month > TIMESTAMP '2005-10-17 00:00:00' ";
+    final String expect2 = "SELECT *\n"
+        + "FROM `foodmart`.`employee`\n"
+        + "WHERE (`hire_date` + INTERVAL '1-2' YEAR_MONTH)"
+        + " > TIMESTAMP '2005-10-17 00:00:00'";
+    sql(sql2).withMysql().ok(expect2);
+
+    final String sql3 = "select  * from \"employee\" "
+        + "where  \"hire_date\" + INTERVAL '39:12' MINUTE TO SECOND"
+        + " > TIMESTAMP '2005-10-17 00:00:00' ";
+    final String expect3 = "SELECT *\n"
+        + "FROM `foodmart`.`employee`\n"
+        + "WHERE (`hire_date` + INTERVAL '39:12' MINUTE_SECOND)"
+        + " > TIMESTAMP '2005-10-17 00:00:00'";
+    sql(sql3).withMysql().ok(expect3);
+  }
+
+  @Test public void testUnparseSqlIntervalQualifierMsSql() {
+    String queryDatePlus = "select  * from \"employee\" where  \"hire_date\" +"
+        + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
+    String expectedDatePlus = "SELECT *\n"
+        + "FROM [foodmart].[employee]\n"
+        + "WHERE DATEADD(SECOND, 19800, [hire_date]) > '2005-10-17 00:00:00'";
+
+    sql(queryDatePlus)
+        .withMssql()
+        .ok(expectedDatePlus);
+
+    String queryDateMinus = "select  * from \"employee\" where  \"hire_date\" -"
+        + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
+    String expectedDateMinus = "SELECT *\n"
+        + "FROM [foodmart].[employee]\n"
+        + "WHERE DATEADD(SECOND, -19800, [hire_date]) > '2005-10-17 00:00:00'";
+
+    sql(queryDateMinus)
+        .withMssql()
+        .ok(expectedDateMinus);
+
+    String queryDateMinusNegate = "select  * from \"employee\" "
+        + "where  \"hire_date\" -INTERVAL '-19800' SECOND(5)"
+        + " > TIMESTAMP '2005-10-17 00:00:00' ";
+    String expectedDateMinusNegate = "SELECT *\n"
+        + "FROM [foodmart].[employee]\n"
+        + "WHERE DATEADD(SECOND, 19800, [hire_date]) > '2005-10-17 00:00:00'";
+
+    sql(queryDateMinusNegate)
+        .withMssql()
+        .ok(expectedDateMinusNegate);
+  }
+
   @Test public void testFloorMysqlWeek() {
     String query = "SELECT floor(\"hire_date\" TO WEEK) FROM \"employee\"";
     String expected = "SELECT STR_TO_DATE(DATE_FORMAT(`hire_date` , '%x%v-1'), '%x%v-%w')\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query)
+        .withMysql()
+        .ok(expected);
+  }
+
+  @Test public void testFloorMysqlHour() {
+    String query = "SELECT floor(\"hire_date\" TO HOUR) FROM \"employee\"";
+    String expected = "SELECT DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:00:00')\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query)
+        .withMysql()
+        .ok(expected);
+  }
+
+  @Test public void testFloorMysqlMinute() {
+    String query = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
+    String expected = "SELECT DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:00')\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query)
+        .withMysql()
+        .ok(expected);
+  }
+
+  @Test public void testFloorMysqlSecond() {
+    String query = "SELECT floor(\"hire_date\" TO SECOND) FROM \"employee\"";
+    String expected = "SELECT DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:%s')\n"
         + "FROM `foodmart`.`employee`";
     sql(query)
         .withMysql()
@@ -1100,9 +1552,9 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"\n"
         + "GROUP BY DATE_TRUNC('MINUTE', \"hire_date\")";
     final String expectedMysql = "SELECT"
-        + " DATE_FORMAT(`hire_date`, '%Y-%m-%d %k:%i:00')\n"
+        + " DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:00')\n"
         + "FROM `foodmart`.`employee`\n"
-        + "GROUP BY DATE_FORMAT(`hire_date`, '%Y-%m-%d %k:%i:00')";
+        + "GROUP BY DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:00')";
     sql(query)
         .withHsqldb()
         .ok(expected)
@@ -1527,9 +1979,12 @@ public class RelToSqlConverterTest {
         + "  from (\n"
         + "select *\n"
         + "from \"sales_fact_1997\" as s\n"
-        + "join \"customer\" as c using (\"customer_id\")\n"
-        + "join \"product\" as p using (\"product_id\")\n"
-        + "join \"product_class\" as pc using (\"product_class_id\")\n"
+        + "join \"customer\" as c\n"
+        + "  on s.\"customer_id\" = c.\"customer_id\"\n"
+        + "join \"product\" as p\n"
+        + "  on s.\"product_id\" = p.\"product_id\"\n"
+        + "join \"product_class\" as pc\n"
+        + "  on p.\"product_class_id\" = pc.\"product_class_id\"\n"
         + "where c.\"city\" = 'San Francisco'\n"
         + "and pc.\"product_department\" = 'Snacks'"
         + ") match_recognize\n"
@@ -2261,9 +2716,208 @@ public class RelToSqlConverterTest {
         .ok(expectedOracle);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2118">[CALCITE-2118]
+   * RelToSqlConverter should only generate "*" if field names match</a>. */
+  @Test public void testPreserveAlias() {
+    final String sql = "select \"warehouse_class_id\" as \"id\",\n"
+        + " \"description\"\n"
+        + "from \"warehouse_class\"";
+    final String expected = ""
+        + "SELECT \"warehouse_class_id\" AS \"id\", \"description\"\n"
+        + "FROM \"foodmart\".\"warehouse_class\"";
+    sql(sql).ok(expected);
+
+    final String sql2 = "select \"warehouse_class_id\", \"description\"\n"
+        + "from \"warehouse_class\"";
+    final String expected2 = "SELECT *\n"
+        + "FROM \"foodmart\".\"warehouse_class\"";
+    sql(sql2).ok(expected2);
+  }
+
+  @Test public void testPreservePermutation() {
+    final String sql = "select \"description\", \"warehouse_class_id\"\n"
+        + "from \"warehouse_class\"";
+    final String expected = "SELECT \"description\", \"warehouse_class_id\"\n"
+        + "FROM \"foodmart\".\"warehouse_class\"";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testFieldNamesWithAggregateSubQuery() {
+    final String query = "select mytable.\"city\",\n"
+        + "  sum(mytable.\"store_sales\") as \"my-alias\"\n"
+        + "from (select c.\"city\", s.\"store_sales\"\n"
+        + "  from \"sales_fact_1997\" as s\n"
+        + "    join \"customer\" as c using (\"customer_id\")\n"
+        + "  group by c.\"city\", s.\"store_sales\") AS mytable\n"
+        + "group by mytable.\"city\"";
+
+    final String expected = "SELECT \"t0\".\"city\","
+        + " SUM(\"t0\".\"store_sales\") AS \"my-alias\"\n"
+        + "FROM (SELECT \"customer\".\"city\","
+        + " \"sales_fact_1997\".\"store_sales\"\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+        + "INNER JOIN \"foodmart\".\"customer\""
+        + " ON \"sales_fact_1997\".\"customer_id\""
+        + " = \"customer\".\"customer_id\"\n"
+        + "GROUP BY \"customer\".\"city\","
+        + " \"sales_fact_1997\".\"store_sales\") AS \"t0\"\n"
+        + "GROUP BY \"t0\".\"city\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testUnparseSelectMustUseDialect() {
+    final String query = "select * from \"product\"";
+    final String expected = "SELECT *\n"
+        + "FROM foodmart.product";
+
+    final boolean[] callsUnparseCallOnSqlSelect = {false};
+    final SqlDialect dialect = new SqlDialect(SqlDialect.EMPTY_CONTEXT) {
+      @Override public void unparseCall(SqlWriter writer, SqlCall call,
+          int leftPrec, int rightPrec) {
+        if (call instanceof SqlSelect) {
+          callsUnparseCallOnSqlSelect[0] = true;
+        }
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+    };
+    sql(query).dialect(dialect).ok(expected);
+
+    assertThat("Dialect must be able to customize unparseCall() for SqlSelect",
+        callsUnparseCallOnSqlSelect[0], is(true));
+  }
+
+  @Test public void testWithinGroup1() {
+    final String query = "select \"product_class_id\", collect(\"net_weight\") "
+        + "within group (order by \"net_weight\" desc) "
+        + "from \"product\" group by \"product_class_id\"";
+    final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
+        + "WITHIN GROUP (ORDER BY \"net_weight\" DESC)\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testWithinGroup2() {
+    final String query = "select \"product_class_id\", collect(\"net_weight\") "
+        + "within group (order by \"low_fat\", \"net_weight\" desc nulls last) "
+        + "from \"product\" group by \"product_class_id\"";
+    final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
+        + "WITHIN GROUP (ORDER BY \"low_fat\", \"net_weight\" DESC NULLS LAST)\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testWithinGroup3() {
+    final String query = "select \"product_class_id\", collect(\"net_weight\") "
+        + "within group (order by \"net_weight\" desc), "
+        + "min(\"low_fat\")"
+        + "from \"product\" group by \"product_class_id\"";
+    final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
+        + "WITHIN GROUP (ORDER BY \"net_weight\" DESC), MIN(\"low_fat\")\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testWithinGroup4() {
+    // filter in AggregateCall is not unparsed
+    final String query = "select \"product_class_id\", collect(\"net_weight\") "
+        + "within group (order by \"net_weight\" desc) filter (where \"net_weight\" > 0)"
+        + "from \"product\" group by \"product_class_id\"";
+    final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
+        + "WITHIN GROUP (ORDER BY \"net_weight\" DESC)\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonExists() {
+    String query = "select json_exists(\"product_name\", 'lax $') from \"product\"";
+    final String expected = "SELECT JSON_EXISTS(\"product_name\" FORMAT JSON, 'lax $')\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonValue() {
+    String query = "select json_value(\"product_name\", 'lax $') from \"product\"";
+    // todo translate to JSON_VALUE rather than CAST
+    final String expected = "SELECT CAST(JSON_VALUE_ANY(\"product_name\" FORMAT JSON, "
+        + "'lax $' NULL ON EMPTY NULL ON ERROR) AS VARCHAR(2000) CHARACTER SET \"ISO-8859-1\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonQuery() {
+    String query = "select json_query(\"product_name\", 'lax $') from \"product\"";
+    final String expected = "SELECT JSON_QUERY(\"product_name\" FORMAT JSON, 'lax $' "
+        + "WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonArray() {
+    String query = "select json_array(\"product_name\", \"product_name\") from \"product\"";
+    final String expected = "SELECT JSON_ARRAY(\"product_name\", \"product_name\" ABSENT ON NULL)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonArrayAgg() {
+    String query = "select json_arrayagg(\"product_name\") from \"product\"";
+    final String expected = "SELECT JSON_ARRAYAGG(\"product_name\" ABSENT ON NULL)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonObject() {
+    String query = "select json_object(\"product_name\": \"product_id\") from \"product\"";
+    final String expected = "SELECT "
+        + "JSON_OBJECT(KEY \"product_name\" VALUE \"product_id\" NULL ON NULL)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonObjectAgg() {
+    String query = "select json_objectagg(\"product_name\": \"product_id\") from \"product\"";
+    final String expected = "SELECT "
+        + "JSON_OBJECTAGG(KEY \"product_name\" VALUE \"product_id\" NULL ON NULL)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonPredicate() {
+    String query = "select "
+        + "\"product_name\" is json, "
+        + "\"product_name\" is json value, "
+        + "\"product_name\" is json object, "
+        + "\"product_name\" is json array, "
+        + "\"product_name\" is json scalar, "
+        + "\"product_name\" is not json, "
+        + "\"product_name\" is not json value, "
+        + "\"product_name\" is not json object, "
+        + "\"product_name\" is not json array, "
+        + "\"product_name\" is not json scalar "
+        + "from \"product\"";
+    final String expected = "SELECT "
+        + "\"product_name\" IS JSON VALUE, "
+        + "\"product_name\" IS JSON VALUE, "
+        + "\"product_name\" IS JSON OBJECT, "
+        + "\"product_name\" IS JSON ARRAY, "
+        + "\"product_name\" IS JSON SCALAR, "
+        + "\"product_name\" IS NOT JSON VALUE, "
+        + "\"product_name\" IS NOT JSON VALUE, "
+        + "\"product_name\" IS NOT JSON OBJECT, "
+        + "\"product_name\" IS NOT JSON ARRAY, "
+        + "\"product_name\" IS NOT JSON SCALAR\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
   /** Fluid interface to run tests. */
-  private static class Sql {
-    private CalciteAssert.SchemaSpec schemaSpec;
+  static class Sql {
+    private final SchemaPlus schema;
     private final String sql;
     private final SqlDialect dialect;
     private final List<Function<RelNode, RelNode>> transforms;
@@ -2272,7 +2926,18 @@ public class RelToSqlConverterTest {
     Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect,
         SqlToRelConverter.Config config,
         List<Function<RelNode, RelNode>> transforms) {
-      this.schemaSpec = schemaSpec;
+      final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+      this.schema = CalciteAssert.addSchema(rootSchema, schemaSpec);
+      this.sql = sql;
+      this.dialect = dialect;
+      this.transforms = ImmutableList.copyOf(transforms);
+      this.config = config;
+    }
+
+    Sql(SchemaPlus schema, String sql, SqlDialect dialect,
+        SqlToRelConverter.Config config,
+        List<Function<RelNode, RelNode>> transforms) {
+      this.schema = schema;
       this.sql = sql;
       this.dialect = dialect;
       this.transforms = ImmutableList.copyOf(transforms);
@@ -2280,7 +2945,7 @@ public class RelToSqlConverterTest {
     }
 
     Sql dialect(SqlDialect dialect) {
-      return new Sql(schemaSpec, sql, dialect, config, transforms);
+      return new Sql(schema, sql, dialect, config, transforms);
     }
 
     Sql withDb2() {
@@ -2316,30 +2981,27 @@ public class RelToSqlConverterTest {
     }
 
     Sql config(SqlToRelConverter.Config config) {
-      return new Sql(schemaSpec, sql, dialect, config, transforms);
+      return new Sql(schema, sql, dialect, config, transforms);
     }
 
     Sql optimize(final RuleSet ruleSet, final RelOptPlanner relOptPlanner) {
-      return new Sql(schemaSpec, sql, dialect, config,
-          FlatLists.append(transforms, new Function<RelNode, RelNode>() {
-            public RelNode apply(RelNode r) {
-              Program program = Programs.of(ruleSet);
-              return program.run(relOptPlanner, r, r.getTraitSet(),
-                  ImmutableList.<RelOptMaterialization>of(),
-                  ImmutableList.<RelOptLattice>of());
-            }
+      return new Sql(schema, sql, dialect, config,
+          FlatLists.append(transforms, r -> {
+            Program program = Programs.of(ruleSet);
+            return program.run(relOptPlanner, r, r.getTraitSet(),
+                ImmutableList.of(), ImmutableList.of());
           }));
     }
 
     Sql ok(String expectedQuery) {
-      assertThat(exec(), is(expectedQuery));
+      assertThat(exec(), isLinux(expectedQuery));
       return this;
     }
 
     Sql throws_(String errorMessage) {
       try {
         final String s = exec();
-        throw new AssertionFailedError("Expected exception with message `"
+        throw new AssertionError("Expected exception with message `"
             + errorMessage + "` but nothing was thrown; got " + s);
       } catch (Exception e) {
         assertThat(e.getMessage(), is(errorMessage));
@@ -2349,7 +3011,7 @@ public class RelToSqlConverterTest {
 
     String exec() {
       final Planner planner =
-          getPlanner(null, SqlParser.Config.DEFAULT, schemaSpec, config);
+          getPlanner(null, SqlParser.Config.DEFAULT, schema, config);
       try {
         SqlNode parse = planner.parse(sql);
         SqlNode validate = planner.validate(parse);
@@ -2357,10 +3019,7 @@ public class RelToSqlConverterTest {
         for (Function<RelNode, RelNode> transform : transforms) {
           rel = transform.apply(rel);
         }
-        final RelToSqlConverter converter =
-            new RelToSqlConverter(dialect);
-        final SqlNode sqlNode = converter.visitChild(0, rel).asStatement();
-        return Util.toLinux(sqlNode.toSqlString(dialect).getSql());
+        return toSql(rel, dialect);
       } catch (RuntimeException e) {
         throw e;
       } catch (Exception e) {

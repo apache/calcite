@@ -34,7 +34,7 @@ public class MulticastRelOptListener implements RelOptListener {
    * Creates a new empty multicast listener.
    */
   public MulticastRelOptListener() {
-    listeners = new ArrayList<RelOptListener>();
+    listeners = new ArrayList<>();
   }
 
   //~ Methods ----------------------------------------------------------------

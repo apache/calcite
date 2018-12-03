@@ -32,8 +32,8 @@ import java.util.StringTokenizer;
 public class JavaCompilerArgs {
   //~ Instance fields --------------------------------------------------------
 
-  List<String> argsList = new ArrayList<String>();
-  List<String> fileNameList = new ArrayList<String>();
+  List<String> argsList = new ArrayList<>();
+  List<String> fileNameList = new ArrayList<>();
 
   ClassLoader classLoader;
 
@@ -56,12 +56,12 @@ public class JavaCompilerArgs {
    * dir</i> -verbose [<i>file</i>...]"</code>
    */
   public void setString(String args) {
-    List<String> list = new ArrayList<String>();
+    List<String> list = new ArrayList<>();
     StringTokenizer tok = new StringTokenizer(args);
     while (tok.hasMoreTokens()) {
       list.add(tok.nextToken());
     }
-    setStringArray(list.toArray(new String[list.size()]));
+    setStringArray(list.toArray(new String[0]));
   }
 
   /**
@@ -90,7 +90,7 @@ public class JavaCompilerArgs {
 
   public String[] getStringArray() {
     argsList.addAll(fileNameList);
-    return argsList.toArray(new String[argsList.size()]);
+    return argsList.toArray(new String[0]);
   }
 
   public void addFile(String fileName) {
@@ -98,7 +98,7 @@ public class JavaCompilerArgs {
   }
 
   public String[] getFileNames() {
-    return fileNameList.toArray(new String[fileNameList.size()]);
+    return fileNameList.toArray(new String[0]);
   }
 
   public void setVerbose(boolean verbose) {

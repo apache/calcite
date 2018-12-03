@@ -19,8 +19,7 @@ package org.apache.calcite.util;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptPlanner;
 
-import com.google.common.base.Preconditions;
-
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -36,7 +35,7 @@ public class CancelFlag {
   public final AtomicBoolean atomicBoolean;
 
   public CancelFlag(AtomicBoolean atomicBoolean) {
-    this.atomicBoolean = Preconditions.checkNotNull(atomicBoolean);
+    this.atomicBoolean = Objects.requireNonNull(atomicBoolean);
   }
 
   //~ Methods ----------------------------------------------------------------

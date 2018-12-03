@@ -34,8 +34,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -103,8 +103,8 @@ public class FilterAggregateTransposeRule extends RelOptRule {
       adjustments[j] = i - j;
       j++;
     }
-    final List<RexNode> pushedConditions = Lists.newArrayList();
-    final List<RexNode> remainingConditions = Lists.newArrayList();
+    final List<RexNode> pushedConditions = new ArrayList<>();
+    final List<RexNode> remainingConditions = new ArrayList<>();
 
     for (RexNode condition : conditions) {
       ImmutableBitSet rCols = RelOptUtil.InputFinder.bits(condition);

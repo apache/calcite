@@ -42,6 +42,7 @@ import com.google.common.collect.ImmutableSortedSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -98,18 +99,18 @@ public abstract class Match extends SingleRel {
       boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
       RexNode interval) {
     super(cluster, traitSet, input);
-    this.rowType = Preconditions.checkNotNull(rowType);
-    this.pattern = Preconditions.checkNotNull(pattern);
+    this.rowType = Objects.requireNonNull(rowType);
+    this.pattern = Objects.requireNonNull(pattern);
     Preconditions.checkArgument(patternDefinitions.size() > 0);
     this.strictStart = strictStart;
     this.strictEnd = strictEnd;
     this.patternDefinitions = ImmutableMap.copyOf(patternDefinitions);
     this.measures = ImmutableMap.copyOf(measures);
-    this.after = Preconditions.checkNotNull(after);
+    this.after = Objects.requireNonNull(after);
     this.subsets = copyMap(subsets);
     this.allRows = allRows;
     this.partitionKeys = ImmutableList.copyOf(partitionKeys);
-    this.orderKeys = Preconditions.checkNotNull(orderKeys);
+    this.orderKeys = Objects.requireNonNull(orderKeys);
     this.interval = interval;
 
     final AggregateFinder aggregateFinder = new AggregateFinder();
@@ -250,6 +251,9 @@ public abstract class Match extends SingleRel {
       case COUNT:
         aggFunction = SqlStdOperatorTable.COUNT;
         break;
+      case ANY_VALUE:
+        aggFunction = SqlStdOperatorTable.ANY_VALUE;
+        break;
       default:
         for (RexNode rex : call.getOperands()) {
           rex.accept(this);
@@ -273,7 +277,7 @@ public abstract class Match extends SingleRel {
           }
           boolean update = true;
           for (RexMRAggCall rex : set) {
-            if (rex.toString().equals(aggCall.toString())) {
+            if (rex.equals(aggCall)) {
               update = false;
               break;
             }

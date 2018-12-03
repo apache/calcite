@@ -84,7 +84,7 @@ public class TableAccessMap {
     // input rel, because we use it for cached statements, and we don't
     // want to retain any rel references after preparation completes.
 
-    accessMap = new HashMap<List<String>, Mode>();
+    accessMap = new HashMap<>();
     RelOptUtil.go(
         new TableRelVisitor(),
         rel);
@@ -97,7 +97,7 @@ public class TableAccessMap {
    * @param mode  access mode for the table
    */
   public TableAccessMap(List<String> table, Mode mode) {
-    accessMap = new HashMap<List<String>, Mode>();
+    accessMap = new HashMap<>();
     accessMap.put(table, mode);
   }
 

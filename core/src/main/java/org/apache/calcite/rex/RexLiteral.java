@@ -211,8 +211,8 @@ public class RexLiteral extends RexNode {
       RelDataType type,
       SqlTypeName typeName) {
     this.value = value;
-    this.type = Preconditions.checkNotNull(type);
-    this.typeName = Preconditions.checkNotNull(typeName);
+    this.type = Objects.requireNonNull(type);
+    this.typeName = Objects.requireNonNull(typeName);
     Preconditions.checkArgument(valueMatchesType(value, typeName, true));
     Preconditions.checkArgument((value == null) == type.isNullable());
     Preconditions.checkArgument(typeName != SqlTypeName.ANY);
@@ -752,12 +752,36 @@ public class RexLiteral extends RexNode {
    * translator wants it.
    */
   public Object getValue3() {
+    if (value == null) {
+      return null;
+    }
     switch (typeName) {
     case DECIMAL:
       assert value instanceof BigDecimal;
       return value;
     default:
       return getValue2();
+    }
+  }
+
+  /**
+   * Returns the value of this literal, in the form that {@link RexInterpreter}
+   * wants it.
+   */
+  public Comparable getValue4() {
+    if (value == null) {
+      return null;
+    }
+    switch (typeName) {
+    case TIMESTAMP:
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      return getValueAs(Long.class);
+    case DATE:
+    case TIME:
+    case TIME_WITH_LOCAL_TIME_ZONE:
+      return getValueAs(Integer.class);
+    default:
+      return value;
     }
   }
 
@@ -868,6 +892,9 @@ public class RexLiteral extends RexNode {
       if (clazz == Long.class) {
         // Milliseconds since 1970-01-01 00:00:00
         return clazz.cast(((TimestampString) value).getMillisSinceEpoch());
+      } else if (clazz == Calendar.class) {
+        // Note: Nanos are ignored
+        return clazz.cast(((TimestampString) value).toCalendar());
       }
       break;
     case INTERVAL_YEAR:
@@ -966,7 +993,7 @@ public class RexLiteral extends RexNode {
   }
 
   private static boolean equals(Object o1, Object o2) {
-    return (o1 == null) ? (o2 == null) : o1.equals(o2);
+    return Objects.equals(o1, o2);
   }
 
   public <R> R accept(RexVisitor<R> visitor) {

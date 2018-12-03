@@ -21,7 +21,7 @@ package org.apache.calcite.plan;
  * a trait definition. For example, a {@code CallingConvention.JAVA} is a trait
  * of the {@link ConventionTraitDef} trait definition.
  *
- * <h3><a name="EqualsHashCodeNote">Note about equals() and hashCode()</a></h3>
+ * <h3><a id="EqualsHashCodeNote">Note about equals() and hashCode()</a></h3>
  *
  * <p>If all instances of RelTrait for a particular RelTraitDef are defined in
  * an {@code enum} and no new RelTraits can be introduced at runtime, you need

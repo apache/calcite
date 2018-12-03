@@ -31,8 +31,8 @@ import java.util.Set;
  */
 public class TopologicalOrderIterator<V, E extends DefaultEdge>
     implements Iterator<V> {
-  final Map<V, int[]> countMap = new HashMap<V, int[]>();
-  final List<V> empties = new ArrayList<V>();
+  final Map<V, int[]> countMap = new HashMap<>();
+  final List<V> empties = new ArrayList<>();
   private final DefaultDirectedGraph<V, E> graph;
 
   public TopologicalOrderIterator(DirectedGraph<V, E> graph) {
@@ -42,11 +42,7 @@ public class TopologicalOrderIterator<V, E extends DefaultEdge>
 
   public static <V, E extends DefaultEdge> Iterable<V> of(
       final DirectedGraph<V, E> graph) {
-    return new Iterable<V>() {
-      public Iterator<V> iterator() {
-        return new TopologicalOrderIterator<V, E>(graph);
-      }
-    };
+    return () -> new TopologicalOrderIterator<>(graph);
   }
 
   private void populate(Map<V, int[]> countMap, List<V> empties) {

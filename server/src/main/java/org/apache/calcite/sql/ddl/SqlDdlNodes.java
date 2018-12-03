@@ -21,6 +21,7 @@ import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDrop;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -69,6 +70,13 @@ public class SqlDdlNodes {
         library, optionList);
   }
 
+  /** Creates a CREATE TYPE. */
+  public static SqlCreateType createType(SqlParserPos pos, boolean replace,
+      SqlIdentifier name, SqlNodeList attributeList,
+      SqlDataTypeSpec dataTypeSpec) {
+    return new SqlCreateType(pos, replace, name, attributeList, dataTypeSpec);
+  }
+
   /** Creates a CREATE TABLE. */
   public static SqlCreateTable createTable(SqlParserPos pos, boolean replace,
       boolean ifNotExists, SqlIdentifier name, SqlNodeList columnList,
@@ -91,10 +99,24 @@ public class SqlDdlNodes {
         columnList, query);
   }
 
+  /** Creates a CREATE FUNCTION. */
+  public static SqlCreateFunction createFunction(
+      SqlParserPos pos, boolean replace, boolean ifNotExists,
+      SqlIdentifier name, SqlNode className, SqlNodeList usingList) {
+    return new SqlCreateFunction(pos, replace, ifNotExists, name,
+        className, usingList);
+  }
+
   /** Creates a DROP [ FOREIGN ] SCHEMA. */
   public static SqlDropSchema dropSchema(SqlParserPos pos, boolean foreign,
       boolean ifExists, SqlIdentifier name) {
     return new SqlDropSchema(pos, foreign, ifExists, name);
+  }
+
+  /** Creates a DROP TYPE. */
+  public static SqlDropType dropType(SqlParserPos pos, boolean ifExists,
+      SqlIdentifier name) {
+    return new SqlDropType(pos, ifExists, name);
   }
 
   /** Creates a DROP TABLE. */
@@ -115,10 +137,22 @@ public class SqlDdlNodes {
     return new SqlDropMaterializedView(pos, ifExists, name);
   }
 
+  /** Creates a DROP FUNCTION. */
+  public static SqlDrop dropFunction(SqlParserPos pos,
+      boolean ifExists, SqlIdentifier name) {
+    return new SqlDropFunction(pos, ifExists, name);
+  }
+
   /** Creates a column declaration. */
   public static SqlNode column(SqlParserPos pos, SqlIdentifier name,
       SqlDataTypeSpec dataType, SqlNode expression, ColumnStrategy strategy) {
     return new SqlColumnDeclaration(pos, name, dataType, expression, strategy);
+  }
+
+  /** Creates a attribute definition. */
+  public static SqlNode attribute(SqlParserPos pos, SqlIdentifier name,
+      SqlDataTypeSpec dataType, SqlNode expression, SqlCollation collation) {
+    return new SqlAttributeDefinition(pos, name, dataType, expression, collation);
   }
 
   /** Creates a CHECK constraint. */
@@ -215,6 +249,13 @@ public class SqlDdlNodes {
         | RelConversionException | SQLException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  /** File type for CREATE FUNCTION. */
+  public enum FileType {
+    FILE,
+    JAR,
+    ARCHIVE
   }
 }
 

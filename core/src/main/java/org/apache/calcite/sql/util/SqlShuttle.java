@@ -71,7 +71,7 @@ public class SqlShuttle extends SqlBasicVisitor<SqlNode> {
     boolean update = false;
     List<SqlNode> exprs = nodeList.getList();
     int exprCount = exprs.size();
-    List<SqlNode> newList = new ArrayList<SqlNode>(exprCount);
+    List<SqlNode> newList = new ArrayList<>(exprCount);
     for (SqlNode operand : exprs) {
       SqlNode clonedOperand;
       if (operand == null) {
@@ -108,7 +108,7 @@ public class SqlShuttle extends SqlBasicVisitor<SqlNode> {
       this.call = call;
       this.update = false;
       final List<SqlNode> operands = call.getOperandList();
-      this.clonedOperands = operands.toArray(new SqlNode[operands.size()]);
+      this.clonedOperands = operands.toArray(new SqlNode[0]);
       this.alwaysCopy = alwaysCopy;
     }
 

@@ -134,7 +134,7 @@ public final class MultiJoin extends AbstractRelNode {
    * Returns a deep copy of {@link #joinFieldRefCountsMap}.
    */
   private Map<Integer, int[]> cloneJoinFieldRefCountsMap() {
-    Map<Integer, int[]> clonedMap = new HashMap<Integer, int[]>();
+    Map<Integer, int[]> clonedMap = new HashMap<>();
     for (int i = 0; i < inputs.size(); i++) {
       clonedMap.put(i, joinFieldRefCountsMap.get(i).toIntArray());
     }
@@ -142,9 +142,9 @@ public final class MultiJoin extends AbstractRelNode {
   }
 
   public RelWriter explainTerms(RelWriter pw) {
-    List<String> joinTypeNames = new ArrayList<String>();
-    List<String> outerJoinConds = new ArrayList<String>();
-    List<String> projFieldObjects = new ArrayList<String>();
+    List<String> joinTypeNames = new ArrayList<>();
+    List<String> outerJoinConds = new ArrayList<>();
+    List<String> projFieldObjects = new ArrayList<>();
     for (int i = 0; i < inputs.size(); i++) {
       joinTypeNames.add(joinTypes.get(i).name());
       if (outerJoinConditions.get(i) == null) {

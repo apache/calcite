@@ -21,8 +21,8 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -34,21 +34,21 @@ public class ValuesNode implements Node {
   private final int fieldCount;
   private final ImmutableList<Row> rows;
 
-  public ValuesNode(Interpreter interpreter, Values rel) {
-    this.sink = interpreter.sink(rel);
+  public ValuesNode(Compiler compiler, Values rel) {
+    this.sink = compiler.sink(rel);
     this.fieldCount = rel.getRowType().getFieldCount();
-    this.rows = createRows(interpreter, rel.getTuples());
+    this.rows = createRows(compiler, rel.getTuples());
   }
 
-  private ImmutableList<Row> createRows(Interpreter interpreter,
+  private ImmutableList<Row> createRows(Compiler compiler,
       ImmutableList<ImmutableList<RexLiteral>> tuples) {
-    final List<RexNode> nodes = Lists.newArrayList();
+    final List<RexNode> nodes = new ArrayList<>();
     for (ImmutableList<RexLiteral> tuple : tuples) {
       nodes.addAll(tuple);
     }
-    final Scalar scalar = interpreter.compile(nodes, null);
+    final Scalar scalar = compiler.compile(nodes, null);
     final Object[] values = new Object[nodes.size()];
-    final Context context = interpreter.createContext();
+    final Context context = compiler.createContext();
     scalar.execute(context, values);
     final ImmutableList.Builder<Row> rows = ImmutableList.builder();
     Object[] subValues = new Object[fieldCount];

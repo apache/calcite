@@ -21,7 +21,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import org.hamcrest.Matcher;
-
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -76,7 +75,7 @@ public class SqlLineTest {
     } else {
       args.add("--run=" + scriptFile.getAbsolutePath());
     }
-    return run(args.toArray(new String[args.size()]));
+    return run(args.toArray(new String[0]));
   }
 
   /**

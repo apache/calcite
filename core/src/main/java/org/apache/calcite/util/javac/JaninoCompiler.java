@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util.javac;
 
+import org.apache.calcite.prepare.CalcitePrepareImpl;
+
 import org.codehaus.janino.JavaSourceClassLoader;
 import org.codehaus.janino.util.ClassFile;
 import org.codehaus.janino.util.resource.MapResourceFinder;
@@ -43,7 +45,6 @@ public class JaninoCompiler implements JavaCompiler {
   //~ Constructors -----------------------------------------------------------
 
   public JaninoCompiler() {
-    args = new JaninoCompilerArgs();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -65,7 +66,7 @@ public class JaninoCompiler implements JavaCompiler {
       parentClassLoader = classLoader;
     }
 
-    Map<String, byte[]> sourceMap = new HashMap<String, byte[]>();
+    Map<String, byte[]> sourceMap = new HashMap<>();
     sourceMap.put(
         ClassFile.getSourceResourceName(args.fullClassName),
         args.source.getBytes(StandardCharsets.UTF_8));
@@ -77,6 +78,10 @@ public class JaninoCompiler implements JavaCompiler {
             sourceFinder,
             null,
             args.destdir == null ? null : new File(args.destdir));
+    if (CalcitePrepareImpl.DEBUG) {
+      // Add line numbers to the generated janino class
+      classLoader.setDebuggingInfo(true, true, true);
+    }
     try {
       classLoader.loadClass(args.fullClassName);
     } catch (ClassNotFoundException ex) {

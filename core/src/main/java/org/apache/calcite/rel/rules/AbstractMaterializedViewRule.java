@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptMaterializations;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -25,7 +26,9 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.SubstitutionVisitor;
-import org.apache.calcite.plan.volcano.VolcanoPlanner;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.core.Aggregate;
@@ -35,6 +38,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -44,17 +48,22 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
 import org.apache.calcite.util.graph.DefaultEdge;
@@ -67,11 +76,13 @@ import org.apache.calcite.util.trace.CalciteLogger;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.commons.lang3.tuple.Triple;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
@@ -101,37 +112,54 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       new CalciteLogger(LoggerFactory.getLogger(AbstractMaterializedViewRule.class));
 
   public static final MaterializedViewProjectFilterRule INSTANCE_PROJECT_FILTER =
-      new MaterializedViewProjectFilterRule(RelFactories.LOGICAL_BUILDER, true);
+      new MaterializedViewProjectFilterRule(RelFactories.LOGICAL_BUILDER,
+          true, null, true);
 
   public static final MaterializedViewOnlyFilterRule INSTANCE_FILTER =
-      new MaterializedViewOnlyFilterRule(RelFactories.LOGICAL_BUILDER, true);
+      new MaterializedViewOnlyFilterRule(RelFactories.LOGICAL_BUILDER,
+          true, null, true);
 
   public static final MaterializedViewProjectJoinRule INSTANCE_PROJECT_JOIN =
-      new MaterializedViewProjectJoinRule(RelFactories.LOGICAL_BUILDER, true);
+      new MaterializedViewProjectJoinRule(RelFactories.LOGICAL_BUILDER,
+          true, null, true);
 
   public static final MaterializedViewOnlyJoinRule INSTANCE_JOIN =
-      new MaterializedViewOnlyJoinRule(RelFactories.LOGICAL_BUILDER, true);
+      new MaterializedViewOnlyJoinRule(RelFactories.LOGICAL_BUILDER,
+          true, null, true);
 
   public static final MaterializedViewProjectAggregateRule INSTANCE_PROJECT_AGGREGATE =
-      new MaterializedViewProjectAggregateRule(RelFactories.LOGICAL_BUILDER, true);
+      new MaterializedViewProjectAggregateRule(RelFactories.LOGICAL_BUILDER,
+          true, null);
 
   public static final MaterializedViewOnlyAggregateRule INSTANCE_AGGREGATE =
-      new MaterializedViewOnlyAggregateRule(RelFactories.LOGICAL_BUILDER, true);
+      new MaterializedViewOnlyAggregateRule(RelFactories.LOGICAL_BUILDER,
+          true, null);
 
   //~ Instance fields --------------------------------------------------------
 
   /** Whether to generate rewritings containing union if the query results
    * are contained within the view results. */
-  private final boolean generateUnionRewriting;
+  protected final boolean generateUnionRewriting;
+
+  /** If we generate union rewriting, we might want to pull up projections
+   * from the query itself to maximize rewriting opportunities. */
+  protected final HepProgram unionRewritingPullProgram;
+
+  /** Whether we should create the rewriting in the minimal subtree of plan
+   * operators. */
+  protected final boolean fastBailOut;
 
   //~ Constructors -----------------------------------------------------------
 
   /** Creates a AbstractMaterializedViewRule. */
   protected AbstractMaterializedViewRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory, String description,
-      boolean generateUnionRewriting) {
+      boolean generateUnionRewriting, HepProgram unionRewritingPullProgram,
+      boolean fastBailOut) {
     super(operand, relBuilderFactory, description);
     this.generateUnionRewriting = generateUnionRewriting;
+    this.unionRewritingPullProgram = unionRewritingPullProgram;
+    this.fastBailOut = fastBailOut;
   }
 
   /**
@@ -181,12 +209,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         Util.first(planner.getExecutor(), RexUtil.EXECUTOR);
     final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
     final RexSimplify simplify =
-        new RexSimplify(rexBuilder, predicates, true, executor);
+        new RexSimplify(rexBuilder, predicates, executor);
 
     final List<RelOptMaterialization> materializations =
-        (planner instanceof VolcanoPlanner)
-            ? ((VolcanoPlanner) planner).getMaterializations()
-            : ImmutableList.<RelOptMaterialization>of();
+        planner.getMaterializations();
 
     if (!materializations.isEmpty()) {
       // 1. Explore query plan to recognize whether preconditions to
@@ -219,9 +245,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
           // Bail out
           return;
         }
-        final RexNode pred = simplify.simplify(
-            RexUtil.composeConjunction(
-                rexBuilder, queryPredicateList.pulledUpPredicates, false));
+        final RexNode pred =
+            simplify.simplifyUnknownAsFalse(
+                RexUtil.composeConjunction(rexBuilder,
+                    queryPredicateList.pulledUpPredicates));
         final Triple<RexNode, RexNode, RexNode> queryPreds =
             splitPredicates(rexBuilder, pred);
 
@@ -265,9 +292,9 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             // Skip it
             continue;
           }
-          final RexNode viewPred = simplify.simplify(
-              RexUtil.composeConjunction(
-                  rexBuilder, viewPredicateList.pulledUpPredicates, false));
+          final RexNode viewPred = simplify.simplifyUnknownAsFalse(
+              RexUtil.composeConjunction(rexBuilder,
+                  viewPredicateList.pulledUpPredicates));
           final Triple<RexNode, RexNode, RexNode> viewPreds =
               splitPredicates(rexBuilder, viewPred);
 
@@ -398,12 +425,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                 continue;
               }
               RexNode compensationColumnsEquiPred = compensationPreds.getLeft();
-              RexNode otherCompensationPred = RexUtil.composeConjunction(
-                  rexBuilder,
-                  ImmutableList.of(
-                      compensationPreds.getMiddle(),
-                      compensationPreds.getRight()),
-                  false);
+              RexNode otherCompensationPred =
+                  RexUtil.composeConjunction(rexBuilder,
+                      ImmutableList.of(compensationPreds.getMiddle(),
+                          compensationPreds.getRight()));
               assert !compensationColumnsEquiPred.isAlwaysTrue()
                   || !otherCompensationPred.isAlwaysTrue();
 
@@ -420,7 +445,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               // We trigger the unifying method. This method will either create a Project
               // or an Aggregate operator on top of the view. It will also compute the
               // output expressions for the query.
-              final RelNode unionInputView = rewriteView(call.builder(), rexBuilder, mq,
+              final RelNode unionInputView = rewriteView(call.builder(), rexBuilder, simplify, mq,
                   matchModality, true, view, topProject, node, topViewProject, viewNode,
                   queryToViewTableMapping, currQEC);
               if (unionInputView == null) {
@@ -438,12 +463,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               call.transformTo(result);
             } else if (compensationPreds != null) {
               RexNode compensationColumnsEquiPred = compensationPreds.getLeft();
-              RexNode otherCompensationPred = RexUtil.composeConjunction(
-                  rexBuilder,
-                  ImmutableList.of(
-                      compensationPreds.getMiddle(),
-                      compensationPreds.getRight()),
-                  false);
+              RexNode otherCompensationPred =
+                  RexUtil.composeConjunction(rexBuilder,
+                      ImmutableList.of(compensationPreds.getMiddle(),
+                          compensationPreds.getRight()));
 
               // a. Compute final compensation predicate.
               if (!compensationColumnsEquiPred.isAlwaysTrue()
@@ -457,7 +480,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                 // since we want to enforce the rest
                 if (!compensationColumnsEquiPred.isAlwaysTrue()) {
                   compensationColumnsEquiPred = rewriteExpression(rexBuilder, mq,
-                      viewNode, viewExprs, queryToViewTableMapping.inverse(), queryBasedVEC,
+                      view, viewNode, viewExprs, queryToViewTableMapping.inverse(), queryBasedVEC,
                       false, compensationColumnsEquiPred);
                   if (compensationColumnsEquiPred == null) {
                     // Skip it
@@ -467,7 +490,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                 // For the rest, we use the query equivalence classes
                 if (!otherCompensationPred.isAlwaysTrue()) {
                   otherCompensationPred = rewriteExpression(rexBuilder, mq,
-                      viewNode, viewExprs, queryToViewTableMapping.inverse(), currQEC,
+                      view, viewNode, viewExprs, queryToViewTableMapping.inverse(), currQEC,
                       true, otherCompensationPred);
                   if (otherCompensationPred == null) {
                     // Skip it
@@ -475,12 +498,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                   }
                 }
               }
-              final RexNode viewCompensationPred = RexUtil.composeConjunction(
-                  rexBuilder,
-                  ImmutableList.of(
-                      compensationColumnsEquiPred,
-                      otherCompensationPred),
-                  false);
+              final RexNode viewCompensationPred =
+                  RexUtil.composeConjunction(rexBuilder,
+                      ImmutableList.of(compensationColumnsEquiPred,
+                          otherCompensationPred));
 
               // b. Generate final rewriting if possible.
               // First, we add the compensation predicate (if any) on top of the view.
@@ -488,12 +509,23 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               // Project or an Aggregate operator on top of the view. It will also compute
               // the output expressions for the query.
               RelBuilder builder = call.builder();
-              builder.push(view);
+              RelNode viewWithFilter;
               if (!viewCompensationPred.isAlwaysTrue()) {
-                builder.filter(simplify.simplify(viewCompensationPred));
+                RexNode newPred =
+                    simplify.simplifyUnknownAsFalse(viewCompensationPred);
+                viewWithFilter = builder.push(view).filter(newPred).build();
+                // We add (and push) the filter to the view plan before triggering the rewriting.
+                // This is useful in case some of the columns can be folded to same value after
+                // filter is added.
+                Pair<RelNode, RelNode> pushedNodes =
+                    pushFilterToOriginalViewPlan(builder, topViewProject, viewNode, newPred);
+                topViewProject = (Project) pushedNodes.left;
+                viewNode = pushedNodes.right;
+              } else {
+                viewWithFilter = builder.push(view).build();
               }
-              final RelNode result = rewriteView(builder, rexBuilder, mq, matchModality, false,
-                  builder.build(), topProject, node, topViewProject, viewNode,
+              final RelNode result = rewriteView(builder, rexBuilder, simplify, mq, matchModality,
+                  false, viewWithFilter, topProject, node, topViewProject, viewNode,
                   queryToViewTableMapping, currQEC);
               if (result == null) {
                 // Skip it
@@ -545,18 +577,31 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       RelNode topProject, RelNode unionInputQuery, RelNode unionInputView);
 
   /**
-   * This method is responsible for rewriting the query using the given view query.
+   * Rewrites the query using the given view query.
    *
    * <p>The input node is a Scan on the view table and possibly a compensation Filter
    * on top. If a rewriting can be produced, we return that rewriting. If it cannot
    * be produced, we will return null.
    */
   protected abstract RelNode rewriteView(RelBuilder relBuilder, RexBuilder rexBuilder,
-      RelMetadataQuery mq, MatchModality matchModality, boolean unionRewriting, RelNode input,
+      RexSimplify simplify, RelMetadataQuery mq, MatchModality matchModality,
+      boolean unionRewriting, RelNode input,
       Project topProject, RelNode node,
       Project topViewProject, RelNode viewNode,
       BiMap<RelTableRef, RelTableRef> queryToViewTableMapping,
       EquivalenceClasses queryEC);
+
+  /**
+   * Once we create a compensation predicate, this method is responsible for pushing
+   * the resulting filter through the view nodes. This might be useful for rewritings
+   * containing Aggregate operators, as some of the grouping columns might be removed,
+   * which results in additional matching possibilities.
+   *
+   * <p>The method will return a pair of nodes: the new top project on the left and
+   * the new node on the right.
+   */
+  protected abstract Pair<RelNode, RelNode> pushFilterToOriginalViewPlan(RelBuilder builder,
+      RelNode topViewProject, RelNode viewNode, RexNode cond);
 
   //~ Instances Join ---------------------------------------------------------
 
@@ -566,8 +611,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
     /** Creates a MaterializedViewJoinRule. */
     protected MaterializedViewJoinRule(RelOptRuleOperand operand,
         RelBuilderFactory relBuilderFactory, String description,
-        boolean generateUnionRewriting) {
-      super(operand, relBuilderFactory, description, generateUnionRewriting);
+        boolean generateUnionRewriting, HepProgram unionRewritingPullProgram,
+        boolean fastBailOut) {
+      super(operand, relBuilderFactory, description, generateUnionRewriting,
+          unionRewritingPullProgram, fastBailOut);
     }
 
     @Override protected boolean isValidPlan(Project topProject, RelNode node,
@@ -596,9 +643,11 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       // ((A JOIN B) JOIN D) JOIN C
       // But not at:
       // (((A JOIN B) JOIN D) JOIN C) JOIN E
-      for (RelNode joinInput : node.getInputs()) {
-        if (mq.getTableReferences(joinInput).containsAll(viewTableRefs)) {
-          return null;
+      if (fastBailOut) {
+        for (RelNode joinInput : node.getInputs()) {
+          if (mq.getTableReferences(joinInput).containsAll(viewTableRefs)) {
+            return null;
+          }
         }
       }
 
@@ -661,13 +710,30 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         RelNode node,
         BiMap<RelTableRef, RelTableRef> viewToQueryTableMapping,
         EquivalenceClasses viewEC, EquivalenceClasses queryEC) {
+      // Our target node is the node below the root, which should have the maximum
+      // number of available expressions in the tree in order to maximize our
+      // number of rewritings.
+      // We create a project on top. If the program is available, we execute
+      // it to maximize rewriting opportunities. For instance, a program might
+      // pull up all the expressions that are below the aggregate so we can
+      // introduce compensation filters easily. This is important depending on
+      // the planner strategy.
+      RelNode newNode = node;
+      RelNode target = node;
+      if (unionRewritingPullProgram != null) {
+        final HepPlanner tmpPlanner = new HepPlanner(unionRewritingPullProgram);
+        tmpPlanner.setRoot(newNode);
+        newNode = tmpPlanner.findBestExp();
+        target = newNode.getInput(0);
+      }
+
       // All columns required by compensating predicates must be contained
       // in the query.
-      List<RexNode> queryExprs = extractReferences(rexBuilder, node);
+      List<RexNode> queryExprs = extractReferences(rexBuilder, target);
 
       if (!compensationColumnsEquiPred.isAlwaysTrue()) {
         compensationColumnsEquiPred = rewriteExpression(rexBuilder, mq,
-            node, queryExprs, viewToQueryTableMapping.inverse(), queryEC, false,
+            target, target, queryExprs, viewToQueryTableMapping.inverse(), queryEC, false,
             compensationColumnsEquiPred);
         if (compensationColumnsEquiPred == null) {
           // Skip it
@@ -677,7 +743,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       // For the rest, we use the query equivalence classes
       if (!otherCompensationPred.isAlwaysTrue()) {
         otherCompensationPred = rewriteExpression(rexBuilder, mq,
-            node, queryExprs, viewToQueryTableMapping.inverse(), viewEC, true,
+            target, target, queryExprs, viewToQueryTableMapping.inverse(), viewEC, true,
             otherCompensationPred);
         if (otherCompensationPred == null) {
           // Skip it
@@ -685,20 +751,23 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         }
       }
       final RexNode queryCompensationPred = RexUtil.not(
-          RexUtil.composeConjunction(
-              rexBuilder,
-              ImmutableList.of(
-                  compensationColumnsEquiPred,
-                  otherCompensationPred),
-              false));
+          RexUtil.composeConjunction(rexBuilder,
+              ImmutableList.of(compensationColumnsEquiPred,
+                  otherCompensationPred)));
 
       // Generate query rewriting.
-      relBuilder.push(node);
-      relBuilder.filter(simplify.simplify(queryCompensationPred));
-      if (topProject != null) {
-        return topProject.copy(topProject.getTraitSet(), ImmutableList.of(relBuilder.build()));
+      RelNode rewrittenPlan = relBuilder
+          .push(target)
+          .filter(simplify.simplifyUnknownAsFalse(queryCompensationPred))
+          .build();
+      if (unionRewritingPullProgram != null) {
+        rewrittenPlan = newNode.copy(
+            newNode.getTraitSet(), ImmutableList.of(rewrittenPlan));
       }
-      return relBuilder.build();
+      if (topProject != null) {
+        return topProject.copy(topProject.getTraitSet(), ImmutableList.of(rewrittenPlan));
+      }
+      return rewrittenPlan;
     }
 
     @Override protected RelNode createUnion(RelBuilder relBuilder, RexBuilder rexBuilder,
@@ -725,6 +794,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
     @Override protected RelNode rewriteView(
         RelBuilder relBuilder,
         RexBuilder rexBuilder,
+        RexSimplify simplify,
         RelMetadataQuery mq,
         MatchModality matchModality,
         boolean unionRewriting,
@@ -746,12 +816,16 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
           return null;
         }
         assert s.size() == 1;
-        exprsLineage.add(s.iterator().next());
+        // Rewrite expr. Take first element from the corresponding equivalence class
+        // (no need to swap the table references following the table mapping)
+        exprsLineage.add(
+            RexUtil.swapColumnReferences(rexBuilder,
+                s.iterator().next(), queryEC.getEquivalenceClassesMap()));
       }
       List<RexNode> viewExprs = topViewProject == null
           ? extractReferences(rexBuilder, viewNode)
           : topViewProject.getChildExps();
-      List<RexNode> rewrittenExprs = rewriteExpressions(rexBuilder, mq, viewNode, viewExprs,
+      List<RexNode> rewrittenExprs = rewriteExpressions(rexBuilder, mq, input, viewNode, viewExprs,
           queryToViewTableMapping.inverse(), queryEC, true, exprsLineage);
       if (rewrittenExprs == null) {
         return null;
@@ -759,20 +833,28 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       return relBuilder
           .push(input)
           .project(rewrittenExprs)
+          .convert(topProject != null ? topProject.getRowType() : node.getRowType(), false)
           .build();
+    }
+
+    @Override public Pair<RelNode, RelNode> pushFilterToOriginalViewPlan(RelBuilder builder,
+        RelNode topViewProject, RelNode viewNode, RexNode cond) {
+      // Nothing to do
+      return Pair.of(topViewProject, viewNode);
     }
   }
 
   /** Rule that matches Project on Join. */
   public static class MaterializedViewProjectJoinRule extends MaterializedViewJoinRule {
     public MaterializedViewProjectJoinRule(RelBuilderFactory relBuilderFactory,
-            boolean generateUnionRewriting) {
+            boolean generateUnionRewriting, HepProgram unionRewritingPullProgram,
+            boolean fastBailOut) {
       super(
           operand(Project.class,
               operand(Join.class, any())),
           relBuilderFactory,
           "MaterializedViewJoinRule(Project-Join)",
-          generateUnionRewriting);
+          generateUnionRewriting, unionRewritingPullProgram, fastBailOut);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -785,13 +867,14 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
   /** Rule that matches Project on Filter. */
   public static class MaterializedViewProjectFilterRule extends MaterializedViewJoinRule {
     public MaterializedViewProjectFilterRule(RelBuilderFactory relBuilderFactory,
-            boolean generateUnionRewriting) {
+            boolean generateUnionRewriting, HepProgram unionRewritingPullProgram,
+            boolean fastBailOut) {
       super(
           operand(Project.class,
               operand(Filter.class, any())),
           relBuilderFactory,
           "MaterializedViewJoinRule(Project-Filter)",
-          generateUnionRewriting);
+          generateUnionRewriting, unionRewritingPullProgram, fastBailOut);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -804,12 +887,13 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
   /** Rule that matches Join. */
   public static class MaterializedViewOnlyJoinRule extends MaterializedViewJoinRule {
     public MaterializedViewOnlyJoinRule(RelBuilderFactory relBuilderFactory,
-            boolean generateUnionRewriting) {
+            boolean generateUnionRewriting, HepProgram unionRewritingPullProgram,
+            boolean fastBailOut) {
       super(
           operand(Join.class, any()),
           relBuilderFactory,
           "MaterializedViewJoinRule(Join)",
-          generateUnionRewriting);
+          generateUnionRewriting, unionRewritingPullProgram, fastBailOut);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -821,12 +905,13 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
   /** Rule that matches Filter. */
   public static class MaterializedViewOnlyFilterRule extends MaterializedViewJoinRule {
     public MaterializedViewOnlyFilterRule(RelBuilderFactory relBuilderFactory,
-            boolean generateUnionRewriting) {
+            boolean generateUnionRewriting, HepProgram unionRewritingPullProgram,
+            boolean fastBailOut) {
       super(
           operand(Filter.class, any()),
           relBuilderFactory,
           "MaterializedViewJoinRule(Filter)",
-          generateUnionRewriting);
+          generateUnionRewriting, unionRewritingPullProgram, fastBailOut);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -840,11 +925,40 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
   /** Materialized view rewriting for aggregate */
   private abstract static class MaterializedViewAggregateRule
           extends AbstractMaterializedViewRule {
+
+    private static final ImmutableList<TimeUnitRange> SUPPORTED_DATE_TIME_ROLLUP_UNITS =
+        ImmutableList.of(TimeUnitRange.YEAR, TimeUnitRange.QUARTER, TimeUnitRange.MONTH,
+            TimeUnitRange.DAY, TimeUnitRange.HOUR, TimeUnitRange.MINUTE,
+            TimeUnitRange.SECOND, TimeUnitRange.MILLISECOND, TimeUnitRange.MICROSECOND);
+
+    //~ Instance fields --------------------------------------------------------
+
+    /** Instance of rule to push filter through project. */
+    protected final RelOptRule filterProjectTransposeRule;
+
+    /** Instance of rule to push filter through aggregate. */
+    protected final RelOptRule filterAggregateTransposeRule;
+
+    /** Instance of rule to pull up constants into aggregate. */
+    protected final RelOptRule aggregateProjectPullUpConstantsRule;
+
+    /** Instance of rule to merge project operators. */
+    protected final RelOptRule projectMergeRule;
+
+
     /** Creates a MaterializedViewAggregateRule. */
     protected MaterializedViewAggregateRule(RelOptRuleOperand operand,
         RelBuilderFactory relBuilderFactory, String description,
-        boolean generateUnionRewriting) {
-      super(operand, relBuilderFactory, description, generateUnionRewriting);
+        boolean generateUnionRewriting, HepProgram unionRewritingPullProgram) {
+      super(operand, relBuilderFactory, description, generateUnionRewriting,
+          unionRewritingPullProgram, false);
+      this.filterProjectTransposeRule = new FilterProjectTransposeRule(
+          Filter.class, Project.class, true, true, relBuilderFactory);
+      this.filterAggregateTransposeRule = new FilterAggregateTransposeRule(
+          Filter.class, relBuilderFactory, Aggregate.class);
+      this.aggregateProjectPullUpConstantsRule = new AggregateProjectPullUpConstantsRule(
+          Aggregate.class, Filter.class, relBuilderFactory, "AggFilterPullUpConstants");
+      this.projectMergeRule = new ProjectMergeRule(true, relBuilderFactory);
     }
 
     @Override protected boolean isValidPlan(Project topProject, RelNode node,
@@ -920,14 +1034,14 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         relBuilder.join(JoinRelType.INNER, rexBuilder.makeLiteral(true));
         offset += newRel.getRowType().getFieldCount();
       }
-      // Modify aggregate: add grouping columns and shift aggregation arguments
+      // Modify aggregate: add grouping columns
       ImmutableBitSet.Builder groupSet = ImmutableBitSet.builder();
       groupSet.addAll(aggregateViewNode.getGroupSet());
       groupSet.addAll(
           ImmutableBitSet.range(
               aggregateViewNode.getInput().getRowType().getFieldCount(),
               aggregateViewNode.getInput().getRowType().getFieldCount() + offset));
-      final RelNode newViewNode = aggregateViewNode.copy(
+      final Aggregate newViewNode = aggregateViewNode.copy(
           aggregateViewNode.getTraitSet(), relBuilder.build(), aggregateViewNode.indicator,
           groupSet.build(), null, aggregateViewNode.getAggCallList());
 
@@ -935,9 +1049,19 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       List<RexNode> nodes = new ArrayList<>();
       List<String> fieldNames = new ArrayList<>();
       if (topViewProject != null) {
-        // Insert existing expressions, then append rest of columns
-        nodes.addAll(topViewProject.getChildExps());
-        fieldNames.addAll(topViewProject.getRowType().getFieldNames());
+        // Insert existing expressions (and shift aggregation arguments),
+        // then append rest of columns
+        Mappings.TargetMapping shiftMapping = Mappings.createShiftMapping(
+            newViewNode.getRowType().getFieldCount(),
+            0, 0, aggregateViewNode.getGroupCount(),
+            newViewNode.getGroupCount(), aggregateViewNode.getGroupCount(),
+            aggregateViewNode.getAggCallList().size());
+        for (int i = 0; i < topViewProject.getChildExps().size(); i++) {
+          nodes.add(
+              topViewProject.getChildExps().get(i).accept(
+                  new RexPermuteInputsShuttle(shiftMapping, newViewNode)));
+          fieldNames.add(topViewProject.getRowType().getFieldNames().get(i));
+        }
         for (int i = aggregateViewNode.getRowType().getFieldCount();
                 i < newViewNode.getRowType().getFieldCount(); i++) {
           int idx = i - aggregateViewNode.getAggCallList().size();
@@ -977,14 +1101,29 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         BiMap<RelTableRef, RelTableRef> queryToViewTableMapping,
         EquivalenceClasses viewEC, EquivalenceClasses queryEC) {
       Aggregate aggregate = (Aggregate) node;
-      // All columns required by compensating predicates must be contained
-      // in the query.
-      RelNode aggregateInput = aggregate.getInput(0);
-      List<RexNode> queryExprs = extractReferences(rexBuilder, aggregateInput);
 
+      // Our target node is the node below the root, which should have the maximum
+      // number of available expressions in the tree in order to maximize our
+      // number of rewritings.
+      // If the program is available, we execute it to maximize rewriting opportunities.
+      // For instance, a program might pull up all the expressions that are below the
+      // aggregate so we can introduce compensation filters easily. This is important
+      // depending on the planner strategy.
+      RelNode newAggregateInput = aggregate.getInput(0);
+      RelNode target = aggregate.getInput(0);
+      if (unionRewritingPullProgram != null) {
+        final HepPlanner tmpPlanner = new HepPlanner(unionRewritingPullProgram);
+        tmpPlanner.setRoot(newAggregateInput);
+        newAggregateInput = tmpPlanner.findBestExp();
+        target = newAggregateInput.getInput(0);
+      }
+
+      // We need to check that all columns required by compensating predicates
+      // are contained in the query.
+      List<RexNode> queryExprs = extractReferences(rexBuilder, target);
       if (!compensationColumnsEquiPred.isAlwaysTrue()) {
         compensationColumnsEquiPred = rewriteExpression(rexBuilder, mq,
-            aggregateInput, queryExprs, queryToViewTableMapping, queryEC, false,
+            target, target, queryExprs, queryToViewTableMapping, queryEC, false,
             compensationColumnsEquiPred);
         if (compensationColumnsEquiPred == null) {
           // Skip it
@@ -994,7 +1133,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       // For the rest, we use the query equivalence classes
       if (!otherCompensationPred.isAlwaysTrue()) {
         otherCompensationPred = rewriteExpression(rexBuilder, mq,
-            aggregateInput, queryExprs, queryToViewTableMapping, viewEC, true,
+            target, target, queryExprs, queryToViewTableMapping, viewEC, true,
             otherCompensationPred);
         if (otherCompensationPred == null) {
           // Skip it
@@ -1002,18 +1141,22 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         }
       }
       final RexNode queryCompensationPred = RexUtil.not(
-          RexUtil.composeConjunction(
-              rexBuilder,
-              ImmutableList.of(
-                  compensationColumnsEquiPred,
-                  otherCompensationPred),
-              false));
+          RexUtil.composeConjunction(rexBuilder,
+              ImmutableList.of(compensationColumnsEquiPred,
+                  otherCompensationPred)));
 
       // Generate query rewriting.
-      relBuilder.push(aggregateInput);
-      relBuilder.filter(simplify.simplify(queryCompensationPred));
-      return aggregate.copy(
-          aggregate.getTraitSet(), ImmutableList.of(relBuilder.build()));
+      RelNode rewrittenPlan = relBuilder
+          .push(target)
+          .filter(simplify.simplifyUnknownAsFalse(queryCompensationPred))
+          .build();
+      if (unionRewritingPullProgram != null) {
+        return aggregate.copy(aggregate.getTraitSet(),
+            ImmutableList.of(
+                newAggregateInput.copy(newAggregateInput.getTraitSet(),
+                    ImmutableList.of(rewrittenPlan))));
+      }
+      return aggregate.copy(aggregate.getTraitSet(), ImmutableList.of(rewrittenPlan));
     }
 
     @Override protected RelNode createUnion(RelBuilder relBuilder, RexBuilder rexBuilder,
@@ -1045,17 +1188,25 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
           // Cannot ROLLUP distinct
           return null;
         }
+        SqlAggFunction rollupAgg =
+            getRollup(aggCall.getAggregation());
+        if (rollupAgg == null) {
+          // Cannot rollup this aggregate, bail out
+          return null;
+        }
+        final RexInputRef operand =
+            rexBuilder.makeInputRef(relBuilder.peek(),
+                aggregate.getGroupCount() + i);
         aggregateCalls.add(
-            relBuilder.aggregateCall(
-                SubstitutionVisitor.getRollup(aggCall.getAggregation()),
-                aggCall.isDistinct(), aggCall.isApproximate(), null,
-                aggCall.name,
-                rexBuilder.makeInputRef(relBuilder.peek(),
-                    aggregate.getGroupCount() + i)));
+            // TODO: handle aggregate ordering
+            relBuilder.aggregateCall(rollupAgg, operand)
+                .distinct(aggCall.isDistinct())
+                .approximate(aggCall.isApproximate())
+                .as(aggCall.name));
       }
       RelNode prevNode = relBuilder.peek();
       RelNode result = relBuilder
-          .aggregate(relBuilder.groupKey(groupSet, null), aggregateCalls)
+          .aggregate(relBuilder.groupKey(groupSet), aggregateCalls)
           .build();
       if (prevNode == result && groupSet.cardinality() != result.getRowType().getFieldCount()) {
         // Aggregate was not inserted but we need to prune columns
@@ -1075,6 +1226,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
     @Override protected RelNode rewriteView(
         RelBuilder relBuilder,
         RexBuilder rexBuilder,
+        RexSimplify simplify,
         RelMetadataQuery mq,
         MatchModality matchModality,
         boolean unionRewriting,
@@ -1093,7 +1245,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       if (topProject != null && !unionRewriting) {
         // We have a Project on top, gather only what is needed
         final RelOptUtil.InputFinder inputFinder =
-            new RelOptUtil.InputFinder(new LinkedHashSet<RelDataTypeField>());
+            new RelOptUtil.InputFinder(new LinkedHashSet<>());
         for (RexNode e : topProject.getChildExps()) {
           e.accept(inputFinder);
         }
@@ -1121,24 +1273,39 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       }
 
       // Create mapping from query columns to view columns
-      Multimap<Integer, Integer> m = generateMapping(rexBuilder, mq, queryAggregate.getInput(),
-          viewAggregate.getInput(), indexes.build(), queryToViewTableMapping, queryEC);
+      List<RexNode> rollupNodes = new ArrayList<>();
+      Multimap<Integer, Integer> m = generateMapping(rexBuilder, simplify, mq,
+          queryAggregate.getInput(), viewAggregate.getInput(), indexes.build(),
+          queryToViewTableMapping, queryEC, rollupNodes);
       if (m == null) {
         // Bail out
         return null;
       }
 
       // We could map all expressions. Create aggregate mapping.
+      int viewAggregateAdditionalFieldCount = rollupNodes.size();
+      int viewInputFieldCount = viewAggregate.getInput().getRowType().getFieldCount();
+      int viewInputDifferenceViewFieldCount =
+          viewAggregate.getRowType().getFieldCount() - viewInputFieldCount;
+      int viewAggregateTotalFieldCount =
+          viewAggregate.getRowType().getFieldCount() + rollupNodes.size();
+      boolean forceRollup = false;
       Mapping aggregateMapping = Mappings.create(MappingType.FUNCTION,
-          queryAggregate.getRowType().getFieldCount(), viewAggregate.getRowType().getFieldCount());
+          queryAggregate.getRowType().getFieldCount(), viewAggregateTotalFieldCount);
       for (int i = 0; i < queryAggregate.getGroupCount(); i++) {
         Collection<Integer> c = m.get(queryAggregate.getGroupSet().nth(i));
         for (int j : c) {
-          int targetIdx = viewAggregate.getGroupSet().indexOf(j);
-          if (targetIdx == -1) {
-            continue;
+          if (j >= viewAggregate.getInput().getRowType().getFieldCount()) {
+            // This is one of the rollup columns
+            aggregateMapping.set(i, j + viewInputDifferenceViewFieldCount);
+            forceRollup = true;
+          } else {
+            int targetIdx = viewAggregate.getGroupSet().indexOf(j);
+            if (targetIdx == -1) {
+              continue;
+            }
+            aggregateMapping.set(i, targetIdx);
           }
-          aggregateMapping.set(i, targetIdx);
           break;
         }
         if (aggregateMapping.getTargetOpt(i) == -1) {
@@ -1163,7 +1330,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         }
         for (int j = 0; j < viewAggregate.getAggCallList().size(); j++) {
           AggregateCall viewAggCall = viewAggregate.getAggCallList().get(j);
-          if (queryAggCall.getAggregation() != viewAggCall.getAggregation()
+          if (queryAggCall.getAggregation().getKind() != viewAggCall.getAggregation().getKind()
               || queryAggCall.isDistinct() != viewAggCall.isDistinct()
               || queryAggCall.getArgList().size() != viewAggCall.getArgList().size()
               || queryAggCall.getType() != viewAggCall.getType()
@@ -1184,12 +1351,23 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         }
       }
 
+      // If we reach here, to simplify things, we create an identity topViewProject
+      // if not present
+      if (topViewProject == null) {
+        topViewProject = (Project) relBuilder.push(viewNode)
+            .project(relBuilder.fields(), ImmutableList.of(), true).build();
+      }
+
       // Generate result rewriting
+      final List<RexNode> additionalViewExprs = new ArrayList<>();
       Mapping rewritingMapping = null;
-      RelNode result = relBuilder
-          .push(input)
-          .build();
-      if (queryAggregate.getGroupCount() != viewAggregate.getGroupCount()
+      RelNode result = relBuilder.push(input).build();
+      // We create view expressions that will be used in a Project on top of the
+      // view in case we need to rollup the expression
+      final List<RexNode> inputViewExprs = new ArrayList<>();
+      inputViewExprs.addAll(relBuilder.push(result).fields());
+      relBuilder.clear();
+      if (forceRollup || queryAggregate.getGroupCount() != viewAggregate.getGroupCount()
           || matchModality == MatchModality.VIEW_PARTIAL) {
         if (containsDistinctAgg) {
           // Cannot rollup DISTINCT aggregate
@@ -1197,8 +1375,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         }
         // Target is coarser level of aggregation. Generate an aggregate.
         rewritingMapping = Mappings.create(MappingType.FUNCTION,
-            topViewProject != null ? topViewProject.getRowType().getFieldCount()
-                : viewAggregate.getRowType().getFieldCount(),
+            topViewProject.getRowType().getFieldCount() + viewAggregateAdditionalFieldCount,
             queryAggregate.getRowType().getFieldCount());
         final ImmutableBitSet.Builder groupSetB = ImmutableBitSet.builder();
         for (int i = 0; i < queryAggregate.getGroupCount(); i++) {
@@ -1207,9 +1384,44 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             // No matching group by column, we bail out
             return null;
           }
-          if (topViewProject != null) {
-            boolean added = false;
-            for (int k = 0; k < topViewProject.getChildExps().size(); k++) {
+          boolean added = false;
+          if (targetIdx >= viewAggregate.getRowType().getFieldCount()) {
+            RexNode targetNode = rollupNodes.get(
+                targetIdx - viewInputFieldCount - viewInputDifferenceViewFieldCount);
+            // We need to rollup this expression
+            final Multimap<RexNode, Integer> exprsLineage = ArrayListMultimap.create();
+            final ImmutableBitSet refs = RelOptUtil.InputFinder.bits(targetNode);
+            for (int childTargetIdx : refs) {
+              added = false;
+              for (int k = 0; k < topViewProject.getChildExps().size() && !added; k++) {
+                RexNode n = topViewProject.getChildExps().get(k);
+                if (!n.isA(SqlKind.INPUT_REF)) {
+                  continue;
+                }
+                final int ref = ((RexInputRef) n).getIndex();
+                if (ref == childTargetIdx) {
+                  exprsLineage.put(
+                      new RexInputRef(ref, targetNode.getType()), k);
+                  added = true;
+                }
+              }
+              if (!added) {
+                // No matching column needed for computed expression, bail out
+                return null;
+              }
+            }
+            // We create the new node pointing to the index
+            groupSetB.set(inputViewExprs.size());
+            rewritingMapping.set(inputViewExprs.size(), i);
+            additionalViewExprs.add(
+                new RexInputRef(targetIdx, targetNode.getType()));
+            // We need to create the rollup expression
+            inputViewExprs.add(
+                shuttleReferences(rexBuilder, targetNode, exprsLineage));
+            added = true;
+          } else {
+            // This expression should be referenced directly
+            for (int k = 0; k < topViewProject.getChildExps().size() && !added; k++) {
               RexNode n = topViewProject.getChildExps().get(k);
               if (!n.isA(SqlKind.INPUT_REF)) {
                 continue;
@@ -1219,16 +1431,12 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                 groupSetB.set(k);
                 rewritingMapping.set(k, i);
                 added = true;
-                break;
               }
             }
-            if (!added) {
-              // No matching group by column, we bail out
-              return null;
-            }
-          } else {
-            groupSetB.set(targetIdx);
-            rewritingMapping.set(targetIdx, i);
+          }
+          if (!added) {
+            // No matching group by column, we bail out
+            return null;
           }
         }
         final ImmutableBitSet groupSet = groupSetB.build();
@@ -1239,50 +1447,51 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             continue;
           }
           int sourceIdx = queryAggregate.getGroupCount() + i;
-          int targetIdx = aggregateMapping.getTargetOpt(sourceIdx);
-          if (targetIdx == -1) {
+          int targetIdx =
+              aggregateMapping.getTargetOpt(sourceIdx);
+          if (targetIdx < 0) {
             // No matching aggregation column, we bail out
             return null;
           }
           AggregateCall queryAggCall = queryAggregate.getAggCallList().get(i);
-          if (topViewProject != null) {
-            boolean added = false;
-            for (int k = 0; k < topViewProject.getChildExps().size(); k++) {
-              RexNode n = topViewProject.getChildExps().get(k);
-              if (!n.isA(SqlKind.INPUT_REF)) {
-                continue;
-              }
-              int ref = ((RexInputRef) n).getIndex();
-              if (ref == targetIdx) {
-                aggregateCalls.add(
-                    relBuilder.aggregateCall(
-                        SubstitutionVisitor.getRollup(queryAggCall.getAggregation()),
-                        queryAggCall.isDistinct(), queryAggCall.isApproximate(),
-                        null, queryAggCall.name,
-                        rexBuilder.makeInputRef(input, k)));
-                rewritingMapping.set(k, sourceIdx);
-                added = true;
-                break;
-              }
+          boolean added = false;
+          for (int k = 0; k < topViewProject.getChildExps().size() && !added; k++) {
+            RexNode n = topViewProject.getChildExps().get(k);
+            if (!n.isA(SqlKind.INPUT_REF)) {
+              continue;
             }
-            if (!added) {
-              // No matching aggregation column, we bail out
-              return null;
+            int ref = ((RexInputRef) n).getIndex();
+            if (ref == targetIdx) {
+              SqlAggFunction rollupAgg =
+                  getRollup(queryAggCall.getAggregation());
+              if (rollupAgg == null) {
+                // Cannot rollup this aggregate, bail out
+                return null;
+              }
+              final RexInputRef operand = rexBuilder.makeInputRef(input, k);
+              aggregateCalls.add(
+                  // TODO: handle aggregate ordering
+                  relBuilder.aggregateCall(rollupAgg, operand)
+                      .approximate(queryAggCall.isApproximate())
+                      .distinct(queryAggCall.isDistinct())
+                      .as(queryAggCall.name));
+              rewritingMapping.set(k, sourceIdx);
+              added = true;
             }
-          } else {
-            aggregateCalls.add(
-                relBuilder.aggregateCall(
-                    SubstitutionVisitor.getRollup(queryAggCall.getAggregation()),
-                    queryAggCall.isDistinct(), queryAggCall.isApproximate(),
-                    null, queryAggCall.name,
-                    rexBuilder.makeInputRef(input, targetIdx)));
-            rewritingMapping.set(targetIdx, sourceIdx);
+          }
+          if (!added) {
+            // No matching aggregation column, we bail out
+            return null;
           }
         }
+        // Create aggregate on top of input
         RelNode prevNode = result;
+        relBuilder.push(result);
+        if (inputViewExprs.size() != result.getRowType().getFieldCount()) {
+          relBuilder.project(inputViewExprs);
+        }
         result = relBuilder
-            .push(result)
-            .aggregate(relBuilder.groupKey(groupSet, null), aggregateCalls)
+            .aggregate(relBuilder.groupKey(groupSet), aggregateCalls)
             .build();
         if (prevNode == result && groupSet.cardinality() != result.getRowType().getFieldCount()) {
           // Aggregate was not inserted but we need to prune columns
@@ -1314,65 +1523,257 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       // and we have introduced already an operator on top of the input node,
       // we use the mapping to resolve the position of the expression in the
       // node.
+      final RelDataType topRowType;
       final List<RexNode> topExprs = new ArrayList<>();
       if (topProject != null && !unionRewriting) {
         topExprs.addAll(topProject.getChildExps());
+        topRowType = topProject.getRowType();
       } else {
         // Add all
         for (int pos = 0; pos < queryAggregate.getRowType().getFieldCount(); pos++) {
           topExprs.add(rexBuilder.makeInputRef(queryAggregate, pos));
         }
+        topRowType = queryAggregate.getRowType();
       }
       // Available in view.
-      final List<String> viewExprs = new ArrayList<>();
-      if (topViewProject != null) {
-        for (int i = 0; i < topViewProject.getChildExps().size(); i++) {
-          viewExprs.add(topViewProject.getChildExps().get(i).toString());
-        }
-      } else {
-        // Add all
-        for (int i = 0; i < viewAggregate.getRowType().getFieldCount(); i++) {
-          viewExprs.add(rexBuilder.makeInputRef(viewAggregate, i).toString());
-        }
+      final Multimap<RexNode, Integer> viewExprs = ArrayListMultimap.create();
+      int numberViewExprs = 0;
+      for (RexNode viewExpr : topViewProject.getChildExps()) {
+        viewExprs.put(viewExpr, numberViewExprs++);
+      }
+      for (RexNode additionalViewExpr : additionalViewExprs) {
+        viewExprs.put(additionalViewExpr, numberViewExprs++);
       }
       final List<RexNode> rewrittenExprs = new ArrayList<>(topExprs.size());
       for (RexNode expr : topExprs) {
+        // First map through the aggregate
         RexNode rewrittenExpr = shuttleReferences(rexBuilder, expr, aggregateMapping);
         if (rewrittenExpr == null) {
           // Cannot map expression
           return null;
         }
-        int pos = viewExprs.indexOf(rewrittenExpr.toString());
-        if (pos == -1) {
+        // Next map through the last project
+        rewrittenExpr =
+            shuttleReferences(rexBuilder, rewrittenExpr, viewExprs, result, rewritingMapping);
+        if (rewrittenExpr == null) {
           // Cannot map expression
           return null;
         }
-        if (rewritingMapping != null) {
-          pos = rewritingMapping.getTargetOpt(pos);
-          if (pos == -1) {
-            // Cannot map expression
-            return null;
-          }
-        }
-        rewrittenExprs.add(rexBuilder.makeInputRef(result, pos));
+        rewrittenExprs.add(rewrittenExpr);
       }
       return relBuilder
           .push(result)
           .project(rewrittenExprs)
+          .convert(topRowType, false)
           .build();
+    }
+
+    /**
+     * Mapping from node expressions to target expressions.
+     *
+     * <p>If any of the expressions cannot be mapped, we return null.
+     */
+    protected Multimap<Integer, Integer> generateMapping(
+        RexBuilder rexBuilder,
+        RexSimplify simplify,
+        RelMetadataQuery mq,
+        RelNode node,
+        RelNode target,
+        ImmutableBitSet positions,
+        BiMap<RelTableRef, RelTableRef> tableMapping,
+        EquivalenceClasses sourceEC,
+        List<RexNode> additionalExprs) {
+      Preconditions.checkArgument(additionalExprs.isEmpty());
+      Multimap<Integer, Integer> m = ArrayListMultimap.create();
+      Map<RexTableInputRef, Set<RexTableInputRef>> equivalenceClassesMap =
+          sourceEC.getEquivalenceClassesMap();
+      Multimap<RexNode, Integer> exprsLineage = ArrayListMultimap.create();
+      List<RexNode> timestampExprs = new ArrayList<>();
+      for (int i = 0; i < target.getRowType().getFieldCount(); i++) {
+        Set<RexNode> s = mq.getExpressionLineage(target, rexBuilder.makeInputRef(target, i));
+        if (s == null) {
+          // Bail out
+          continue;
+        }
+        // We only support project - filter - join, thus it should map to
+        // a single expression
+        final RexNode e = Iterables.getOnlyElement(s);
+        // Rewrite expr to be expressed on query tables
+        final RexNode simplified = simplify.simplifyUnknownAsFalse(e);
+        RexNode expr = RexUtil.swapTableColumnReferences(rexBuilder,
+            simplified,
+            tableMapping.inverse(),
+            equivalenceClassesMap);
+        exprsLineage.put(expr, i);
+        SqlTypeName sqlTypeName = expr.getType().getSqlTypeName();
+        if (sqlTypeName == SqlTypeName.TIMESTAMP
+            || sqlTypeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+          timestampExprs.add(expr);
+        }
+      }
+
+      // If this is a column of TIMESTAMP (WITH LOCAL TIME ZONE)
+      // type, we add the possible rollup columns too.
+      // This way we will be able to match FLOOR(ts to HOUR) to
+      // FLOOR(ts to DAY) via FLOOR(FLOOR(ts to HOUR) to DAY)
+      for (RexNode timestampExpr : timestampExprs) {
+        for (TimeUnitRange value : SUPPORTED_DATE_TIME_ROLLUP_UNITS) {
+          // CEIL
+          RexNode ceilExpr =
+              rexBuilder.makeCall(getCeilSqlFunction(value),
+                  timestampExpr, rexBuilder.makeFlag(value));
+          // References self-row
+          RexNode rewrittenCeilExpr =
+              shuttleReferences(rexBuilder, ceilExpr, exprsLineage);
+          if (rewrittenCeilExpr != null) {
+            // We add the CEIL expression to the additional expressions, replacing the child
+            // expression by the position that it references
+            additionalExprs.add(rewrittenCeilExpr);
+            // Then we simplify the expression and we add it to the expressions lineage so we
+            // can try to find a match
+            final RexNode simplified =
+                simplify.simplifyUnknownAsFalse(ceilExpr);
+            exprsLineage.put(simplified,
+                target.getRowType().getFieldCount() + additionalExprs.size() - 1);
+          }
+          // FLOOR
+          RexNode floorExpr =
+              rexBuilder.makeCall(getFloorSqlFunction(value),
+                  timestampExpr, rexBuilder.makeFlag(value));
+          // References self-row
+          RexNode rewrittenFloorExpr =
+              shuttleReferences(rexBuilder, floorExpr, exprsLineage);
+          if (rewrittenFloorExpr != null) {
+            // We add the FLOOR expression to the additional expressions, replacing the child
+            // expression by the position that it references
+            additionalExprs.add(rewrittenFloorExpr);
+            // Then we simplify the expression and we add it to the expressions lineage so we
+            // can try to find a match
+            final RexNode simplified =
+                simplify.simplifyUnknownAsFalse(floorExpr);
+            exprsLineage.put(simplified,
+                target.getRowType().getFieldCount() + additionalExprs.size() - 1);
+          }
+        }
+      }
+
+      for (int i : positions) {
+        Set<RexNode> s = mq.getExpressionLineage(node, rexBuilder.makeInputRef(node, i));
+        if (s == null) {
+          // Bail out
+          return null;
+        }
+        // We only support project - filter - join, thus it should map to
+        // a single expression
+        final RexNode e = Iterables.getOnlyElement(s);
+        // Rewrite expr to be expressed on query tables
+        final RexNode simplified = simplify.simplifyUnknownAsFalse(e);
+        RexNode targetExpr = RexUtil.swapColumnReferences(rexBuilder,
+            simplified, equivalenceClassesMap);
+        final Collection<Integer> c = exprsLineage.get(targetExpr);
+        if (!c.isEmpty()) {
+          for (Integer j : c) {
+            m.put(i, j);
+          }
+        } else {
+          // If we did not find the expression, try to navigate it
+          RexNode rewrittenTargetExpr =
+              shuttleReferences(rexBuilder, targetExpr, exprsLineage);
+          if (rewrittenTargetExpr == null) {
+            // Some expressions were not present
+            return null;
+          }
+          m.put(i, target.getRowType().getFieldCount() + additionalExprs.size());
+          additionalExprs.add(rewrittenTargetExpr);
+        }
+      }
+      return m;
+    }
+
+    /**
+     * Get ceil function datetime.
+     */
+    protected SqlFunction getCeilSqlFunction(TimeUnitRange flag) {
+      return SqlStdOperatorTable.CEIL;
+    }
+
+    /**
+     * Get floor function datetime.
+     */
+    protected SqlFunction getFloorSqlFunction(TimeUnitRange flag) {
+      return SqlStdOperatorTable.FLOOR;
+    }
+
+    /**
+     * Get rollup aggregation function.
+     */
+    protected SqlAggFunction getRollup(SqlAggFunction aggregation) {
+      if (aggregation == SqlStdOperatorTable.SUM
+          || aggregation == SqlStdOperatorTable.MIN
+          || aggregation == SqlStdOperatorTable.MAX
+          || aggregation == SqlStdOperatorTable.SUM0
+          || aggregation == SqlStdOperatorTable.ANY_VALUE) {
+        return aggregation;
+      } else if (aggregation == SqlStdOperatorTable.COUNT) {
+        return SqlStdOperatorTable.SUM0;
+      } else {
+        return null;
+      }
+    }
+
+    @Override public Pair<RelNode, RelNode> pushFilterToOriginalViewPlan(RelBuilder builder,
+        RelNode topViewProject, RelNode viewNode, RexNode cond) {
+      // We add (and push) the filter to the view plan before triggering the rewriting.
+      // This is useful in case some of the columns can be folded to same value after
+      // filter is added.
+      HepProgramBuilder pushFiltersProgram = new HepProgramBuilder();
+      if (topViewProject != null) {
+        pushFiltersProgram.addRuleInstance(filterProjectTransposeRule);
+      }
+      pushFiltersProgram
+          .addRuleInstance(this.filterAggregateTransposeRule)
+          .addRuleInstance(this.aggregateProjectPullUpConstantsRule)
+          .addRuleInstance(this.projectMergeRule);
+      final HepPlanner tmpPlanner = new HepPlanner(pushFiltersProgram.build());
+      // Now that the planner is created, push the node
+      RelNode topNode = builder
+          .push(topViewProject != null ? topViewProject : viewNode)
+          .filter(cond).build();
+      tmpPlanner.setRoot(topNode);
+      topNode = tmpPlanner.findBestExp();
+      RelNode resultTopViewProject = null;
+      RelNode resultViewNode = null;
+      while (topNode != null) {
+        if (topNode instanceof Project) {
+          if (resultTopViewProject != null) {
+            // Both projects could not be merged, we will bail out
+            return Pair.of(topViewProject, viewNode);
+          }
+          resultTopViewProject = topNode;
+          topNode = topNode.getInput(0);
+        } else if (topNode instanceof Aggregate) {
+          resultViewNode = topNode;
+          topNode = null;
+        } else {
+          // We move to the child
+          topNode = topNode.getInput(0);
+        }
+      }
+      return Pair.of(resultTopViewProject, resultViewNode);
     }
   }
 
   /** Rule that matches Project on Aggregate. */
   public static class MaterializedViewProjectAggregateRule extends MaterializedViewAggregateRule {
+
     public MaterializedViewProjectAggregateRule(RelBuilderFactory relBuilderFactory,
-            boolean generateUnionRewriting) {
+            boolean generateUnionRewriting, HepProgram unionRewritingPullProgram) {
       super(
           operand(Project.class,
               operand(Aggregate.class, any())),
           relBuilderFactory,
           "MaterializedViewAggregateRule(Project-Aggregate)",
-          generateUnionRewriting);
+          generateUnionRewriting, unionRewritingPullProgram);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -1384,13 +1785,14 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
 
   /** Rule that matches Aggregate. */
   public static class MaterializedViewOnlyAggregateRule extends MaterializedViewAggregateRule {
+
     public MaterializedViewOnlyAggregateRule(RelBuilderFactory relBuilderFactory,
-            boolean generateUnionRewriting) {
+            boolean generateUnionRewriting, HepProgram unionRewritingPullProgram) {
       super(
           operand(Aggregate.class, any()),
           relBuilderFactory,
           "MaterializedViewAggregateRule(Aggregate)",
-          generateUnionRewriting);
+          generateUnionRewriting, unionRewritingPullProgram);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -1432,8 +1834,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       return ImmutableList.of();
     }
     List<BiMap<RelTableRef, RelTableRef>> result =
-        ImmutableList.<BiMap<RelTableRef, RelTableRef>>of(
-            HashBiMap.<RelTableRef, RelTableRef>create());
+        ImmutableList.of(
+            HashBiMap.create());
     for (Entry<RelTableRef, Collection<RelTableRef>> e : multiMapTables.asMap().entrySet()) {
       if (e.getValue().size() == 1) {
         // Only one reference, we can just add it to every map
@@ -1450,7 +1852,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         for (BiMap<RelTableRef, RelTableRef> m : result) {
           if (!m.containsValue(target)) {
             final BiMap<RelTableRef, RelTableRef> newM =
-                HashBiMap.<RelTableRef, RelTableRef>create(m);
+                HashBiMap.create(m);
             newM.put(e.getKey(), target);
             newResult.add(newM);
           }
@@ -1461,17 +1863,27 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
     return result;
   }
 
-  /** Currently we only support TableScan - Project - Filter - Join */
+  /** Currently we only support TableScan - Project - Filter - Inner Join */
   private static boolean isValidRelNodePlan(RelNode node, RelMetadataQuery mq) {
     final Multimap<Class<? extends RelNode>, RelNode> m =
             mq.getNodeTypes(node);
-    for (Class<? extends RelNode> c : m.keySet()) {
+    for (Entry<Class<? extends RelNode>, Collection<RelNode>> e : m.asMap().entrySet()) {
+      Class<? extends RelNode> c = e.getKey();
       if (!TableScan.class.isAssignableFrom(c)
               && !Project.class.isAssignableFrom(c)
               && !Filter.class.isAssignableFrom(c)
-              && !Join.class.isAssignableFrom(c)) {
+              && (!Join.class.isAssignableFrom(c)
+              || SemiJoin.class.isAssignableFrom(c))) {
         // Skip it
         return false;
+      }
+      if (Join.class.isAssignableFrom(c)) {
+        for (RelNode n : e.getValue()) {
+          if (((Join) n).getJoinType() != JoinRelType.INNER) {
+            // Skip it
+            return false;
+          }
+        }
       }
     }
     return true;
@@ -1532,10 +1944,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         residualPreds.add(e);
       }
     }
-    return ImmutableTriple.<RexNode, RexNode, RexNode>of(
-        RexUtil.composeConjunction(rexBuilder, equiColumnsPreds, false),
-        RexUtil.composeConjunction(rexBuilder, rangePreds, false),
-        RexUtil.composeConjunction(rexBuilder, residualPreds, false));
+    return ImmutableTriple.of(
+        RexUtil.composeConjunction(rexBuilder, equiColumnsPreds),
+        RexUtil.composeConjunction(rexBuilder, rangePreds),
+        RexUtil.composeConjunction(rexBuilder, residualPreds));
   }
 
   /**
@@ -1563,7 +1975,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       Multimap<RexTableInputRef, RexTableInputRef> compensationEquiColumns) {
     // Create UK-FK graph with view tables
     final DirectedGraph<RelTableRef, Edge> graph =
-        DefaultDirectedGraph.create(Edge.FACTORY);
+        DefaultDirectedGraph.create(Edge::new);
     final Multimap<List<String>, RelTableRef> tableVNameToTableRefs =
         ArrayListMultimap.create();
     final Set<RelTableRef> extraTableRefs = new HashSet<>();
@@ -1598,8 +2010,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                 parentTRef.getTable().getRowType().getFieldList().get(uniqueKeyPos).getType());
             if (!foreignKeyColumnType.isNullable()
                 && sourceEC.getEquivalenceClassesMap().containsKey(uniqueKeyColumnRef)
-                && sourceEC.getEquivalenceClassesMap().get(uniqueKeyColumnRef).contains(
-                    foreignKeyColumnRef)) {
+                && sourceEC.getEquivalenceClassesMap().get(uniqueKeyColumnRef)
+                    .contains(foreignKeyColumnRef)) {
               equiColumns.put(foreignKeyColumnRef, uniqueKeyColumnRef);
             } else {
               canBeRewritten = false;
@@ -1712,8 +2124,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       return null;
     }
 
-    return ImmutableTriple.<RexNode, RexNode, RexNode>of(
-        compensationColumnsEquiPred, compensationRangePred, compensationResidualPred);
+    return ImmutableTriple.of(compensationColumnsEquiPred,
+        compensationRangePred, compensationResidualPred);
   }
 
   /**
@@ -1827,13 +2239,14 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
   private static RexNode rewriteExpression(
       RexBuilder rexBuilder,
       RelMetadataQuery mq,
+      RelNode targetNode,
       RelNode node,
       List<RexNode> nodeExprs,
       BiMap<RelTableRef, RelTableRef> tableMapping,
       EquivalenceClasses ec,
       boolean swapTableColumn,
       RexNode exprToRewrite) {
-    List<RexNode> rewrittenExprs = rewriteExpressions(rexBuilder, mq, node, nodeExprs,
+    List<RexNode> rewrittenExprs = rewriteExpressions(rexBuilder, mq, targetNode, node, nodeExprs,
         tableMapping, ec, swapTableColumn, ImmutableList.of(exprToRewrite));
     if (rewrittenExprs == null) {
       return null;
@@ -1857,6 +2270,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
   private static List<RexNode> rewriteExpressions(
       RexBuilder rexBuilder,
       RelMetadataQuery mq,
+      RelNode targetNode,
       RelNode node,
       List<RexNode> nodeExprs,
       BiMap<RelTableRef, RelTableRef> tableMapping,
@@ -1875,7 +2289,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
     List<RexNode> rewrittenExprs = new ArrayList<>(exprsToRewrite.size());
     for (RexNode exprToRewrite : exprsToRewrite) {
       RexNode rewrittenExpr = replaceWithOriginalReferences(
-          rexBuilder, nodeExprs, nodeLineage, exprToRewrite);
+          rexBuilder, targetNode, nodeLineage, exprToRewrite);
       if (RexUtil.containsTableInputRef(rewrittenExpr) != null) {
         // Some expressions were not present in view output
         return null;
@@ -1896,8 +2310,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       BiMap<RelTableRef, RelTableRef> tableMapping,
       EquivalenceClasses ec,
       List<RexNode> nodeExprs) {
-    Map<String, Integer> exprsLineage = new HashMap<>();
-    Map<String, Integer> exprsLineageLosslessCasts = new HashMap<>();
+    final Map<RexNode, Integer> exprsLineage = new HashMap<>();
+    final Map<RexNode, Integer> exprsLineageLosslessCasts = new HashMap<>();
     for (int i = 0; i < nodeExprs.size(); i++) {
       final Set<RexNode> s = mq.getExpressionLineage(node, nodeExprs.get(i));
       if (s == null) {
@@ -1911,12 +2325,12 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       // mapping, then we take first element from the corresponding equivalence class
       final RexNode e = RexUtil.swapTableColumnReferences(rexBuilder,
           s.iterator().next(), tableMapping, ec.getEquivalenceClassesMap());
-      exprsLineage.put(e.toString(), i);
+      exprsLineage.put(e, i);
       if (RexUtil.isLosslessCast(e)) {
-        exprsLineageLosslessCasts.put(((RexCall) e).getOperands().get(0).toString(), i);
+        exprsLineageLosslessCasts.put(((RexCall) e).getOperands().get(0), i);
       }
     }
-    return NodeLineage.of(exprsLineage, exprsLineageLosslessCasts);
+    return new NodeLineage(exprsLineage, exprsLineageLosslessCasts);
   }
 
   /**
@@ -1930,8 +2344,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       BiMap<RelTableRef, RelTableRef> tableMapping,
       EquivalenceClasses ec,
       List<RexNode> nodeExprs) {
-    Map<String, Integer> exprsLineage = new HashMap<>();
-    Map<String, Integer> exprsLineageLosslessCasts = new HashMap<>();
+    final Map<RexNode, Integer> exprsLineage = new HashMap<>();
+    final Map<RexNode, Integer> exprsLineageLosslessCasts = new HashMap<>();
     for (int i = 0; i < nodeExprs.size(); i++) {
       final Set<RexNode> s = mq.getExpressionLineage(node, nodeExprs.get(i));
       if (s == null) {
@@ -1940,77 +2354,17 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       }
       // We only support project - filter - join, thus it should map to
       // a single expression
-      assert s.size() == 1;
+      final RexNode node2 = Iterables.getOnlyElement(s);
       // Rewrite expr. First we take first element from the corresponding equivalence class,
       // then we swap the table references following the table mapping
-      final RexNode e = RexUtil.swapColumnTableReferences(
-          rexBuilder, s.iterator().next(), ec.getEquivalenceClassesMap(), tableMapping);
-      exprsLineage.put(e.toString(), i);
+      final RexNode e = RexUtil.swapColumnTableReferences(rexBuilder, node2,
+          ec.getEquivalenceClassesMap(), tableMapping);
+      exprsLineage.put(e, i);
       if (RexUtil.isLosslessCast(e)) {
-        exprsLineageLosslessCasts.put(((RexCall) e).getOperands().get(0).toString(), i);
+        exprsLineageLosslessCasts.put(((RexCall) e).getOperands().get(0), i);
       }
     }
-    return NodeLineage.of(exprsLineage, exprsLineageLosslessCasts);
-  }
-
-  /**
-   * Mapping from node expressions to target expressions.
-   *
-   * <p>If any of the expressions cannot be mapped, we return null.
-   */
-  private static Multimap<Integer, Integer> generateMapping(
-      RexBuilder rexBuilder,
-      RelMetadataQuery mq,
-      RelNode node,
-      RelNode target,
-      ImmutableBitSet positions,
-      BiMap<RelTableRef, RelTableRef> tableMapping,
-      EquivalenceClasses sourceEC) {
-    Map<RexTableInputRef, Set<RexTableInputRef>> equivalenceClassesMap =
-            sourceEC.getEquivalenceClassesMap();
-    Multimap<String, Integer> exprsLineage = ArrayListMultimap.create();
-    for (int i = 0; i < target.getRowType().getFieldCount(); i++) {
-      Set<RexNode> s = mq.getExpressionLineage(target, rexBuilder.makeInputRef(target, i));
-      if (s == null) {
-        // Bail out
-        continue;
-      }
-      // We only support project - filter - join, thus it should map to
-      // a single expression
-      assert s.size() == 1;
-      // Rewrite expr to be expressed on query tables
-      exprsLineage.put(
-          RexUtil.swapTableColumnReferences(
-              rexBuilder,
-              s.iterator().next(),
-              tableMapping.inverse(),
-              equivalenceClassesMap).toString(),
-          i);
-    }
-
-    Multimap<Integer, Integer> m = ArrayListMultimap.create();
-    for (int i : positions) {
-      Set<RexNode> s = mq.getExpressionLineage(node, rexBuilder.makeInputRef(node, i));
-      if (s == null) {
-        // Bail out
-        return null;
-      }
-      // We only support project - filter - join, thus it should map to
-      // a single expression
-      assert s.size() == 1;
-      // Rewrite expr to be expressed on query tables
-      Collection<Integer> c = exprsLineage.get(
-          RexUtil.swapColumnReferences(
-              rexBuilder, s.iterator().next(), equivalenceClassesMap).toString());
-      if (c == null) {
-        // Bail out
-        return null;
-      }
-      for (Integer j : c) {
-        m.put(i, j);
-      }
-    }
-    return m;
+    return new NodeLineage(exprsLineage, exprsLineageLosslessCasts);
   }
 
   /**
@@ -2020,8 +2374,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
    * point to.
    */
   private static RexNode replaceWithOriginalReferences(final RexBuilder rexBuilder,
-      final List<RexNode> nodeExprs, final NodeLineage nodeLineage,
-      final RexNode exprToRewrite) {
+      final RelNode node, final NodeLineage nodeLineage, final RexNode exprToRewrite) {
     // Currently we allow the following:
     // 1) compensation pred can be directly map to expression
     // 2) all references in compensation pred can be map to expressions
@@ -2039,17 +2392,16 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
           }
 
           private RexNode replace(RexNode e) {
-            Integer pos = nodeLineage.exprsLineage.get(e.toString());
+            Integer pos = nodeLineage.exprsLineage.get(e);
             if (pos != null) {
               // Found it
-              return rexBuilder.makeInputRef(e.getType(), pos);
+              return rexBuilder.makeInputRef(node, pos);
             }
-            pos = nodeLineage.exprsLineageLosslessCasts.get(e.toString());
+            pos = nodeLineage.exprsLineageLosslessCasts.get(e);
             if (pos != null) {
               // Found it
               return rexBuilder.makeCast(
-                  e.getType(), rexBuilder.makeInputRef(
-                      nodeExprs.get(pos).getType(), pos));
+                  e.getType(), rexBuilder.makeInputRef(node, pos));
             }
             return null;
           }
@@ -2084,6 +2436,95 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
   }
 
   /**
+   * Replaces all the possible sub-expressions by input references
+   * to the input node.
+   */
+  private static RexNode shuttleReferences(final RexBuilder rexBuilder,
+      final RexNode expr, final Multimap<RexNode, Integer> exprsLineage) {
+    return shuttleReferences(rexBuilder, expr,
+        exprsLineage, null, null);
+  }
+
+  /**
+   * Replaces all the possible sub-expressions by input references
+   * to the input node. If available, it uses the rewriting mapping
+   * to change the position to reference. Takes the reference type
+   * from the input node.
+   */
+  private static RexNode shuttleReferences(final RexBuilder rexBuilder,
+      final RexNode expr, final Multimap<RexNode, Integer> exprsLineage,
+      final RelNode node, final Mapping rewritingMapping) {
+    try {
+      RexShuttle visitor =
+          new RexShuttle() {
+            @Override public RexNode visitTableInputRef(RexTableInputRef ref) {
+              Collection<Integer> c = exprsLineage.get(ref);
+              if (c.isEmpty()) {
+                // Cannot map expression
+                throw Util.FoundOne.NULL;
+              }
+              int pos = c.iterator().next();
+              if (rewritingMapping != null) {
+                pos = rewritingMapping.getTargetOpt(pos);
+                if (pos == -1) {
+                  // Cannot map expression
+                  throw Util.FoundOne.NULL;
+                }
+              }
+              if (node != null) {
+                return rexBuilder.makeInputRef(node, pos);
+              }
+              return rexBuilder.makeInputRef(ref.getType(), pos);
+            }
+
+            @Override public RexNode visitInputRef(RexInputRef inputRef) {
+              Collection<Integer> c = exprsLineage.get(inputRef);
+              if (c.isEmpty()) {
+                // Cannot map expression
+                throw Util.FoundOne.NULL;
+              }
+              int pos = c.iterator().next();
+              if (rewritingMapping != null) {
+                pos = rewritingMapping.getTargetOpt(pos);
+                if (pos == -1) {
+                  // Cannot map expression
+                  throw Util.FoundOne.NULL;
+                }
+              }
+              if (node != null) {
+                return rexBuilder.makeInputRef(node, pos);
+              }
+              return rexBuilder.makeInputRef(inputRef.getType(), pos);
+            }
+
+            @Override public RexNode visitCall(final RexCall call) {
+              Collection<Integer> c = exprsLineage.get(call);
+              if (c.isEmpty()) {
+                // Cannot map expression
+                return super.visitCall(call);
+              }
+              int pos = c.iterator().next();
+              if (rewritingMapping != null) {
+                pos = rewritingMapping.getTargetOpt(pos);
+                if (pos == -1) {
+                  // Cannot map expression
+                  return super.visitCall(call);
+                }
+              }
+              if (node != null) {
+                return rexBuilder.makeInputRef(node, pos);
+              }
+              return rexBuilder.makeInputRef(call.getType(), pos);
+            }
+          };
+      return visitor.apply(expr);
+    } catch (Util.FoundOne ex) {
+      Util.swallow(ex, null);
+      return null;
+    }
+  }
+
+  /**
    * Class representing an equivalence class, i.e., a set of equivalent columns
    */
   private static class EquivalenceClasses {
@@ -2109,8 +2550,9 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         // Both present, we need to merge
         if (c1.size() < c2.size()) {
           // We swap them to merge
-          c1 = c2;
-          p1 = p2;
+          Set<RexTableInputRef> c2Temp = c2;
+          c2 = c1;
+          c1 = c2Temp;
         }
         for (RexTableInputRef newRef : c2) {
           c1.add(newRef);
@@ -2170,34 +2612,21 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
     }
   }
 
-  /**
-   * Class to encapsulate expression lineage details
-   */
+  /** Expression lineage details. */
   private static class NodeLineage {
-    private final Map<String, Integer> exprsLineage;
-    private final Map<String, Integer> exprsLineageLosslessCasts;
+    private final Map<RexNode, Integer> exprsLineage;
+    private final Map<RexNode, Integer> exprsLineageLosslessCasts;
 
-    private NodeLineage(Map<String, Integer> exprsLineage,
-        Map<String, Integer> exprsLineageLosslessCasts) {
-      this.exprsLineage = Collections.unmodifiableMap(exprsLineage);
-      this.exprsLineageLosslessCasts = Collections.unmodifiableMap(exprsLineageLosslessCasts);
-    }
-
-    protected static NodeLineage of(
-        Map<String, Integer> exprsLineage, Map<String, Integer> exprsLineageLosslessCasts) {
-      return new NodeLineage(exprsLineage, exprsLineageLosslessCasts);
+    private NodeLineage(Map<RexNode, Integer> exprsLineage,
+        Map<RexNode, Integer> exprsLineageLosslessCasts) {
+      this.exprsLineage = ImmutableMap.copyOf(exprsLineage);
+      this.exprsLineageLosslessCasts =
+          ImmutableMap.copyOf(exprsLineageLosslessCasts);
     }
   }
 
   /** Edge for graph */
   private static class Edge extends DefaultEdge {
-    public static final DirectedGraph.EdgeFactory<RelTableRef, Edge> FACTORY =
-        new DirectedGraph.EdgeFactory<RelTableRef, Edge>() {
-          public Edge createEdge(RelTableRef source, RelTableRef target) {
-            return new Edge(source, target);
-          }
-        };
-
     final Multimap<RexTableInputRef, RexTableInputRef> equiColumns =
         ArrayListMultimap.create();
 

@@ -16,15 +16,16 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.Smalls;
-
-import com.google.common.base.Function;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -85,22 +86,22 @@ public class TableFunctionTest {
   /**
    * Tests a table function with literal arguments.
    */
-  @Test public void testTableFunction()
-      throws SQLException, ClassNotFoundException {
-    Connection connection =
-        DriverManager.getConnection("jdbc:calcite:");
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableFunction table =
-        TableFunctionImpl.create(Smalls.GENERATE_STRINGS_METHOD);
-    schema.add("GenerateStrings", table);
-    ResultSet resultSet = connection.createStatement().executeQuery("select *\n"
-        + "from table(\"s\".\"GenerateStrings\"(5)) as t(n, c)\n"
-        + "where char_length(c) > 3");
-    assertThat(CalciteAssert.toString(resultSet),
-        equalTo("N=4; C=abcd\n"));
+  @Test public void testTableFunction() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+      final TableFunction table =
+          TableFunctionImpl.create(Smalls.GENERATE_STRINGS_METHOD);
+      schema.add("GenerateStrings", table);
+      final String sql = "select *\n"
+          + "from table(\"s\".\"GenerateStrings\"(5)) as t(n, c)\n"
+          + "where char_length(c) > 3";
+      ResultSet resultSet = connection.createStatement().executeQuery(sql);
+      assertThat(CalciteAssert.toString(resultSet),
+          equalTo("N=4; C=abcd\n"));
+    }
   }
 
   /**
@@ -379,22 +380,18 @@ public class TableFunctionTest {
     final String q = "select *\n"
         + "from table(\"s\".\"fibonacci\"())";
     with().query(q)
-        .returns(
-            new Function<ResultSet, Void>() {
-              public Void apply(ResultSet r) {
-                try {
-                  final List<Long> numbers = new ArrayList<>();
-                  while (r.next() && numbers.size() < 13) {
-                    numbers.add(r.getLong(1));
-                  }
-                  assertThat(numbers.toString(),
-                      is("[1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233]"));
-                  return null;
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                }
-              }
-            });
+        .returns(r -> {
+          try {
+            final List<Long> numbers = new ArrayList<>();
+            while (r.next() && numbers.size() < 13) {
+              numbers.add(r.getLong(1));
+            }
+            assertThat(numbers.toString(),
+                is("[1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233]"));
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   @Test public void testUserDefinedTableFunction7() {
@@ -408,6 +405,57 @@ public class TableFunctionTest {
     final String q = "select count(*) as c\n"
         + "from table(\"s\".\"fibonacci2\"(20))";
     with().query(q).returnsUnordered("C=7");
+  }
+
+  @Test public void testCrossApply() {
+    final String q1 = "select *\n"
+        + "from (values 2, 5) as t (c)\n"
+        + "cross apply table(\"s\".\"fibonacci2\"(c))";
+    final String q2 = "select *\n"
+        + "from (values 2, 5) as t (c)\n"
+        + "cross apply table(\"s\".\"fibonacci2\"(t.c))";
+    for (String q : new String[] {q1, q2}) {
+      with()
+          .with(CalciteConnectionProperty.CONFORMANCE,
+              SqlConformanceEnum.LENIENT)
+          .query(q)
+          .returnsUnordered("C=2; N=1",
+              "C=2; N=1",
+              "C=2; N=2",
+              "C=5; N=1",
+              "C=5; N=1",
+              "C=5; N=2",
+              "C=5; N=3",
+              "C=5; N=5");
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2382">[CALCITE-2382]
+   * Sub-query lateral joined to table function</a>. */
+  @Test public void testInlineViewLateralTableFunction() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+      final TableFunction table =
+          TableFunctionImpl.create(Smalls.GENERATE_STRINGS_METHOD);
+      schema.add("GenerateStrings", table);
+      Table tbl = new ScannableTableTest.SimpleTable();
+      schema.add("t", tbl);
+
+      final String sql = "select *\n"
+          + "from (select 5 as f0 from \"s\".\"t\") \"a\",\n"
+          + "  lateral table(\"s\".\"GenerateStrings\"(f0)) as t(n, c)\n"
+          + "where char_length(c) > 3";
+      ResultSet resultSet = connection.createStatement().executeQuery(sql);
+      final String expected = "F0=5; N=4; C=abcd\n"
+          + "F0=5; N=4; C=abcd\n"
+          + "F0=5; N=4; C=abcd\n"
+          + "F0=5; N=4; C=abcd\n";
+      assertThat(CalciteAssert.toString(resultSet), equalTo(expected));
+    }
   }
 }
 

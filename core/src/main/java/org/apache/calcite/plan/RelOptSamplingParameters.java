@@ -84,7 +84,7 @@ public class RelOptSamplingParameters {
   }
 
   /**
-   * If {@link #isRepeatable()} returns <tt>true</tt>, this method returns a
+   * If {@link #isRepeatable()} returns <code>true</code>, this method returns a
    * user-specified seed value. Samples of the same, unmodified relation
    * should be identical if the sampling mode, sampling percentage and
    * repeatable seed are the same.

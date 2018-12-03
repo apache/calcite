@@ -26,7 +26,6 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
-import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -100,8 +99,7 @@ public class EnumerableCorrelate extends Correlate
 
     Expression selector =
         EnumUtils.joinSelector(
-            joinType.returnsJustFirstInput() ? joinType.toJoinType()
-                : JoinRelType.INNER, physType,
+            joinType, physType,
             ImmutableList.of(leftResult.physType, rightResult.physType));
 
     builder.append(

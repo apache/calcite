@@ -17,7 +17,6 @@
 package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptListener;
@@ -41,7 +40,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -145,6 +143,13 @@ public class RelSubset extends AbstractRelNode {
   }
 
   public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    if (inputs.isEmpty()) {
+      final RelTraitSet traitSet1 = traitSet.simplify();
+      if (traitSet1.equals(this.traitSet)) {
+        return this;
+      }
+      return set.getOrCreateSubset(getCluster(), traitSet1);
+    }
     throw new UnsupportedOperationException();
   }
 
@@ -272,9 +277,9 @@ public class RelSubset extends AbstractRelNode {
           "rowtype of set", getRowType(), Litmus.THROW);
     }
     set.addInternal(rel);
-    Set<CorrelationId> variablesSet = RelOptUtil.getVariablesSet(rel);
-    Set<CorrelationId> variablesStopped = rel.getVariablesSet();
     if (false) {
+      Set<CorrelationId> variablesSet = RelOptUtil.getVariablesSet(rel);
+      Set<CorrelationId> variablesStopped = rel.getVariablesSet();
       Set<CorrelationId> variablesPropagated =
           Util.minus(variablesSet, variablesStopped);
       assert set.variablesPropagated.containsAll(variablesPropagated);
@@ -380,18 +385,9 @@ public class RelSubset extends AbstractRelNode {
    * @return all the rels in the subset
    */
   public Iterable<RelNode> getRels() {
-    return new Iterable<RelNode>() {
-      public Iterator<RelNode> iterator() {
-        return Linq4j.asEnumerable(set.rels)
-            .where(
-                new Predicate1<RelNode>() {
-                  public boolean apply(RelNode v1) {
-                    return v1.getTraitSet().satisfies(traitSet);
-                  }
-                })
-            .iterator();
-      }
-    };
+    return () -> Linq4j.asEnumerable(set.rels)
+        .where(v1 -> v1.getTraitSet().satisfies(traitSet))
+        .iterator();
   }
 
   /**

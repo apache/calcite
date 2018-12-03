@@ -20,20 +20,16 @@ limitations under the License.
 -->
 <suppressions>
   <!-- Suppress checks on generated files. -->
-  <suppress checks="Header" files="CalciteResource.properties"/>
   <suppress checks="Header" files="LICENSE"/>
   <suppress checks="Header" files="NOTICE"/>
-  <suppress checks=".*" files="org-apache-calcite-jdbc.properties"/>
   <suppress checks=".*" files="Foo.java"/>
   <suppress checks=".*" files=".*[/\\]target[/\\]maven-archiver[/\\]pom.properties"/>
   <suppress checks=".*" files=".*[/\\]target[/\\]generated-sources[/\\].*"/>
   <suppress checks=".*" files=".*[/\\]target[/\\]generated-test-sources[/\\].*"/>
+  <suppress checks=".*" files=".*[/\\]target[/\\]embeddedCassandra[/\\]log4j-embedded-cassandra.properties"/>
   <suppress checks=".*" files="git.properties"/>
-  <suppress checks=".*" files="trace.properties"/>
   <suppress checks=".*" files="release.properties"/>
-  <suppress checks=".*" files="log4j.properties"/>
   <suppress checks=".*" files="auth-users.properties"/>
-  <suppress checks=".*" files="pom.properties"/>
 
   <!-- This file triggers https://github.com/checkstyle/checkstyle/issues/92,
        through no fault of its own. -->

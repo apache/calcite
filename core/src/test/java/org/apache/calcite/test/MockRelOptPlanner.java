@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.plan.AbstractRelOptPlanner;
+import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptCostImpl;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
@@ -53,8 +54,8 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
   //~ Methods ----------------------------------------------------------------
 
   /** Creates MockRelOptPlanner. */
-  public MockRelOptPlanner() {
-    super(RelOptCostImpl.FACTORY, null);
+  public MockRelOptPlanner(Context context) {
+    super(RelOptCostImpl.FACTORY, context);
     setExecutor(new RexExecutorImpl(Schemas.createDataContext(null, null)));
   }
 
@@ -75,7 +76,7 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
 
   public List<RelOptRule> getRules() {
     return rule == null
-        ? ImmutableList.<RelOptRule>of() : ImmutableList.of(rule);
+        ? ImmutableList.of() : ImmutableList.of(rule);
   }
 
   public boolean addRule(RelOptRule rule) {
@@ -125,7 +126,7 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
           new MockRuleCall(
               this,
               rule.getOperand(),
-              bindings.toArray(new RelNode[bindings.size()]));
+              bindings.toArray(new RelNode[0]));
       if (rule.matches(call)) {
         rule.onMatch(call);
       }
@@ -228,7 +229,7 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
           planner,
           operand,
           rels,
-          Collections.<RelNode, List<RelNode>>emptyMap());
+          Collections.emptyMap());
     }
 
     // implement RelOptRuleCall

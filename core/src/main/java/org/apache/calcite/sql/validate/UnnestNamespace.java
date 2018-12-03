@@ -18,9 +18,9 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlUnnestOperator;
-import org.apache.calcite.sql.type.MultisetSqlType;
 
 /**
  * Namespace for UNNEST.
@@ -47,6 +47,18 @@ class UnnestNamespace extends AbstractNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public SqlValidatorTable getTable() {
+    final SqlNode toUnnest = unnest.operand(0);
+    if (toUnnest instanceof SqlIdentifier) {
+      // When operand of SqlIdentifier type does not have struct, fake a table
+      // for UnnestNamespace
+      final SqlIdentifier id = (SqlIdentifier) toUnnest;
+      final SqlQualified qualified = this.scope.fullyQualify(id);
+      return qualified.namespace.getTable();
+    }
+    return null;
+  }
+
   protected RelDataType validateImpl(RelDataType targetRowType) {
     // Validate the call and its arguments, and infer the return type.
     validator.validateCall(unnest, scope);
@@ -54,22 +66,6 @@ class UnnestNamespace extends AbstractNamespace {
         unnest.getOperator().validateOperands(validator, scope, unnest);
 
     return toStruct(type, unnest);
-  }
-
-  /**
-   * Returns the type of the argument to UNNEST.
-   */
-  private RelDataType inferReturnType() {
-    final SqlNode operand = unnest.operand(0);
-    RelDataType type = validator.getValidatedNodeType(operand);
-
-    // If sub-query, pick out first column.
-    // TODO: Handle this using usual sub-select validation.
-    if (type.isStruct()) {
-      type = type.getFieldList().get(0).getType();
-    }
-    MultisetSqlType t = (MultisetSqlType) type;
-    return t.getComponentType();
   }
 
   public SqlNode getNode() {

@@ -46,6 +46,10 @@ public class HsqldbSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsWindowFunctions() {
+    return false;
+  }
+
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     switch (call.getKind()) {
@@ -69,6 +73,11 @@ public class HsqldbSqlDialect extends SqlDialect {
     }
   }
 
+  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
+      SqlNode fetch) {
+    unparseFetchUsingLimit(writer, offset, fetch);
+  }
+
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
     final SqlNode operand = ((SqlBasicCall) aggCall).operand(0);
     final SqlLiteral nullLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
@@ -85,12 +94,10 @@ public class HsqldbSqlDialect extends SqlDialect {
             SqlStdOperatorTable.COUNT.createCall(SqlParserPos.ZERO, operand),
             SqlNodeList.of(
                 SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO),
-                SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)
-            ),
+                SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),
             SqlNodeList.of(
                 nullLiteral,
-                SqlStdOperatorTable.MIN.createCall(SqlParserPos.ZERO, operand)
-            ),
+                SqlStdOperatorTable.MIN.createCall(SqlParserPos.ZERO, operand)),
             SqlStdOperatorTable.SCALAR_QUERY.createCall(SqlParserPos.ZERO,
                 SqlStdOperatorTable.UNION_ALL
                     .createCall(SqlParserPos.ZERO, unionOperand, unionOperand)));

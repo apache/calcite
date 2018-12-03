@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Util;
 
@@ -44,7 +45,8 @@ public class SqlCoalesceFunction extends SqlFunction {
     // strategies are used.
     super("COALESCE",
         SqlKind.COALESCE,
-        ReturnTypes.LEAST_RESTRICTIVE,
+        ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
+            SqlTypeTransforms.LEAST_NULLABLE),
         null,
         OperandTypes.SAME_VARIADIC,
         SqlFunctionCategory.SYSTEM);

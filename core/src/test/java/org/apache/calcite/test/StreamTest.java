@@ -21,7 +21,6 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -37,11 +36,8 @@ import org.apache.calcite.schema.TableFactory;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.ImmutableBitSet;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -51,6 +47,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -246,36 +243,29 @@ public class StreamTest {
         .withDefaultSchema(INFINITE_STREAM_SCHEMA_NAME)
         .query("select stream * from orders")
         .explainContains(explain)
-        .returns(
-            new Function<ResultSet, Void>() {
-              public Void apply(final ResultSet resultSet) {
-                int n = 0;
-                try {
-                  while (resultSet.next()) {
-                    if (++n == 5) {
-                      new Thread(
-                          new Runnable() {
-                            @Override public void run() {
-                              try {
-                                Thread.sleep(3);
-                                resultSet.getStatement().cancel();
-                              } catch (InterruptedException | SQLException e) {
-                                // ignore
-                              }
-                            }
-                          }).start();
-                    }
+        .returns(resultSet -> {
+          int n = 0;
+          try {
+            while (resultSet.next()) {
+              if (++n == 5) {
+                new Thread(() -> {
+                  try {
+                    Thread.sleep(3);
+                    resultSet.getStatement().cancel();
+                  } catch (InterruptedException | SQLException e) {
+                    // ignore
                   }
-                  fail("expected cancel, got end-of-data");
-                } catch (SQLException e) {
-                  assertThat(e.getMessage(), is("Statement canceled"));
-                }
-                // With a 3 millisecond delay, typically n is between 200 - 400
-                // before cancel takes effect.
-                assertTrue("n is " + n, n > 5);
-                return null;
+                }).start();
               }
-            });
+            }
+            fail("expected cancel, got end-of-data");
+          } catch (SQLException e) {
+            assertThat(e.getMessage(), is("Statement canceled"));
+          }
+          // With a 3 millisecond delay, typically n is between 200 - 400
+          // before cancel takes effect.
+          assertTrue("n is " + n, n > 5);
+        });
   }
 
   @Test public void testStreamToRelationJoin() {
@@ -285,12 +275,11 @@ public class StreamTest {
             + "orders.rowtime as rowtime, orders.id as orderId, products.supplier as supplierId "
             + "from orders join products on orders.product = products.id")
         .convertContains("LogicalDelta\n"
-            + "  LogicalProject(ROWTIME=[$0], ORDERID=[$1], SUPPLIERID=[$5])\n"
-            + "    LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], ID0=[$5], SUPPLIER=[$6])\n"
-            + "      LogicalJoin(condition=[=($4, $5)], joinType=[inner])\n"
-            + "        LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], PRODUCT0=[CAST($2):VARCHAR(32) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL])\n"
-            + "          LogicalTableScan(table=[[STREAM_JOINS, ORDERS]])\n"
-            + "        LogicalTableScan(table=[[STREAM_JOINS, PRODUCTS]])\n")
+            + "  LogicalProject(ROWTIME=[$0], ORDERID=[$1], SUPPLIERID=[$6])\n"
+            + "    LogicalJoin(condition=[=($4, $5)], joinType=[inner])\n"
+            + "      LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], PRODUCT0=[CAST($2):VARCHAR(32) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL])\n"
+            + "        LogicalTableScan(table=[[STREAM_JOINS, ORDERS]])\n"
+            + "      LogicalTableScan(table=[[STREAM_JOINS, PRODUCTS]])\n")
         .explainContains(""
             + "EnumerableCalc(expr#0..6=[{inputs}], proj#0..1=[{exprs}], SUPPLIERID=[$t6])\n"
             + "  EnumerableJoin(condition=[=($4, $5)], joinType=[inner])\n"
@@ -332,26 +321,23 @@ public class StreamTest {
         .query(sql);
   }
 
-  private Function<ResultSet, Void> startsWith(String... rows) {
+  private Consumer<ResultSet> startsWith(String... rows) {
     final ImmutableList<String> rowList = ImmutableList.copyOf(rows);
-    return new Function<ResultSet, Void>() {
-      public Void apply(ResultSet input) {
-        try {
-          final CalciteAssert.ResultSetFormatter formatter =
-              new CalciteAssert.ResultSetFormatter();
-          final ResultSetMetaData metaData = input.getMetaData();
-          for (String expectedRow : rowList) {
-            if (!input.next()) {
-              throw new AssertionError("input ended too soon");
-            }
-            formatter.rowToString(input, metaData);
-            String actualRow = formatter.string();
-            assertThat(actualRow, equalTo(expectedRow));
+    return resultSet -> {
+      try {
+        final CalciteAssert.ResultSetFormatter formatter =
+            new CalciteAssert.ResultSetFormatter();
+        final ResultSetMetaData metaData = resultSet.getMetaData();
+        for (String expectedRow : rowList) {
+          if (!resultSet.next()) {
+            throw new AssertionError("input ended too soon");
           }
-          return null;
-        } catch (SQLException e) {
-          throw new RuntimeException(e);
+          formatter.rowToString(resultSet, metaData);
+          String actualRow = formatter.string();
+          assertThat(actualRow, equalTo(expectedRow));
         }
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
       }
     };
   }
@@ -361,24 +347,19 @@ public class StreamTest {
    * functions.
    */
   private abstract static class BaseOrderStreamTable implements ScannableTable {
-    protected final RelProtoDataType protoRowType = new RelProtoDataType() {
-      public RelDataType apply(RelDataTypeFactory a0) {
-        return a0.builder()
-            .add("ROWTIME", SqlTypeName.TIMESTAMP)
-            .add("ID", SqlTypeName.INTEGER)
-            .add("PRODUCT", SqlTypeName.VARCHAR, 10)
-            .add("UNITS", SqlTypeName.INTEGER)
-            .build();
-      }
-    };
+    protected final RelProtoDataType protoRowType = a0 -> a0.builder()
+        .add("ROWTIME", SqlTypeName.TIMESTAMP)
+        .add("ID", SqlTypeName.INTEGER)
+        .add("PRODUCT", SqlTypeName.VARCHAR, 10)
+        .add("UNITS", SqlTypeName.INTEGER)
+        .build();
 
     public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return protoRowType.apply(typeFactory);
     }
 
     public Statistic getStatistic() {
-      return Statistics.of(100d,
-        ImmutableList.<ImmutableBitSet>of(),
+      return Statistics.of(100d, ImmutableList.of(),
         RelCollations.createSingleton(0));
     }
 
@@ -391,8 +372,7 @@ public class StreamTest {
     }
 
     @Override public boolean rolledUpColumnValidInsideAgg(String column,
-                                                          SqlCall call, SqlNode parent,
-                                                          CalciteConnectionConfig config) {
+        SqlCall call, SqlNode parent, CalciteConnectionConfig config) {
       return false;
     }
   }
@@ -447,8 +427,7 @@ public class StreamTest {
     }
 
     @Override public boolean rolledUpColumnValidInsideAgg(String column,
-                                                          SqlCall call, SqlNode parent,
-                                                          CalciteConnectionConfig config) {
+        SqlCall call, SqlNode parent, CalciteConnectionConfig config) {
       return false;
     }
   }
@@ -468,38 +447,28 @@ public class StreamTest {
     }
   }
 
-  public static final Function0<Object[]> ROW_GENERATOR =
-      new Function0<Object[]>() {
-        private int counter = 0;
-        private Iterator<String> items =
-            Iterables.cycle("paint", "paper", "brush").iterator();
-
-        @Override public Object[] apply() {
-          return new Object[]{System.currentTimeMillis(), counter++, items.next(), 10};
-        }
-      };
-
   /**
    * Table representing an infinitely larger ORDERS stream.
    */
   public static class InfiniteOrdersTable extends BaseOrderStreamTable
       implements StreamableTable {
     public Enumerable<Object[]> scan(DataContext root) {
-      return Linq4j.asEnumerable(new Iterable<Object[]>() {
-        @Override public Iterator<Object[]> iterator() {
-          return new Iterator<Object[]>() {
-            public boolean hasNext() {
-              return true;
-            }
+      return Linq4j.asEnumerable(() -> new Iterator<Object[]>() {
+        private final String[] items = {"paint", "paper", "brush"};
+        private int counter = 0;
 
-            public Object[] next() {
-              return ROW_GENERATOR.apply();
-            }
+        public boolean hasNext() {
+          return true;
+        }
 
-            public void remove() {
-              throw new UnsupportedOperationException();
-            }
-          };
+        public Object[] next() {
+          final int index = counter++;
+          return new Object[]{
+              System.currentTimeMillis(), index, items[index % items.length], 10};
+        }
+
+        public void remove() {
+          throw new UnsupportedOperationException();
         }
       });
     }
@@ -547,14 +516,10 @@ public class StreamTest {
       this.rows = rows;
     }
 
-    private final RelProtoDataType protoRowType = new RelProtoDataType() {
-      public RelDataType apply(RelDataTypeFactory a0) {
-        return a0.builder()
-            .add("ID", SqlTypeName.VARCHAR, 32)
-            .add("SUPPLIER", SqlTypeName.INTEGER)
-            .build();
-      }
-    };
+    private final RelProtoDataType protoRowType = a0 -> a0.builder()
+        .add("ID", SqlTypeName.VARCHAR, 32)
+        .add("SUPPLIER", SqlTypeName.INTEGER)
+        .build();
 
     public Enumerable<Object[]> scan(DataContext root) {
       return Linq4j.asEnumerable(rows);
@@ -565,7 +530,7 @@ public class StreamTest {
     }
 
     public Statistic getStatistic() {
-      return Statistics.of(200d, ImmutableList.<ImmutableBitSet>of());
+      return Statistics.of(200d, ImmutableList.of());
     }
 
     public Schema.TableType getJdbcTableType() {
@@ -577,8 +542,7 @@ public class StreamTest {
     }
 
     @Override public boolean rolledUpColumnValidInsideAgg(String column,
-                                                          SqlCall call, SqlNode parent,
-                                                          CalciteConnectionConfig config) {
+        SqlCall call, SqlNode parent, CalciteConnectionConfig config) {
       return false;
     }
   }

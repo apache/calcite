@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Scrapes HTML tables from URLs using Jsoup.
@@ -65,7 +66,7 @@ public class FileReader implements Iterable<Elements> {
       if (proto.equals("file")) {
         doc = Jsoup.parse(source.file(), this.charset.name());
       } else {
-        doc = Jsoup.connect(source.path()).get();
+        doc = Jsoup.parse(source.url(), (int) TimeUnit.SECONDS.toMillis(20));
       }
     } catch (IOException e) {
       throw new FileReaderException("Cannot read " + source.path(), e);

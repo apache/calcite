@@ -48,12 +48,12 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Modifier;
@@ -62,6 +62,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Function;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Window} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -166,7 +167,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     Expression source_ = builder.append("source", result.block);
 
     final List<Expression> translatedConstants =
-        new ArrayList<Expression>(constants.size());
+        new ArrayList<>(constants.size());
     for (RexLiteral constant : constants) {
       translatedConstants.add(
           RexToLixTranslator.translateLiteral(constant, constant.getType(),
@@ -205,7 +206,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       final Expression collectionExpr = partitionIterator.left;
       final Expression iterator_ = partitionIterator.right;
 
-      List<AggImpState> aggs = new ArrayList<AggImpState>();
+      List<AggImpState> aggs = new ArrayList<>();
       List<AggregateCall> aggregateCalls = group.getAggregateCalls(this);
       for (int aggIdx = 0; aggIdx < aggregateCalls.size(); aggIdx++) {
         AggregateCall call = aggregateCalls.get(aggIdx);
@@ -273,9 +274,9 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
       final RexToLixTranslator translator =
           RexToLixTranslator.forAggregation(typeFactory, builder4,
-              inputGetter);
+              inputGetter, implementor.getConformance());
 
-      final List<Expression> outputRow = new ArrayList<Expression>();
+      final List<Expression> outputRow = new ArrayList<>();
       int fieldCountWithAggResults =
           inputPhysType.getRowType().getFieldCount();
       for (int i = 0; i < fieldCountWithAggResults; i++) {
@@ -422,30 +423,26 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       final PhysType inputPhysTypeFinal = inputPhysType;
       final Function<BlockBuilder, WinAggFrameResultContext>
           resultContextBuilder =
-          getBlockBuilderWinAggFrameResultContextFunction(typeFactory, result,
-              translatedConstants, comparator_, rows_, i_, startX, endX,
-              minX, maxX,
+          getBlockBuilderWinAggFrameResultContextFunction(typeFactory,
+              implementor.getConformance(), result, translatedConstants,
+              comparator_, rows_, i_, startX, endX, minX, maxX,
               hasRows, frameRowCount, partitionRowCount,
               jDecl, inputPhysTypeFinal);
 
-      final Function<AggImpState, List<RexNode>> rexArguments =
-          new Function<AggImpState, List<RexNode>>() {
-            public List<RexNode> apply(AggImpState agg) {
-              List<Integer> argList = agg.call.getArgList();
-              List<RelDataType> inputTypes =
-                  EnumUtils.fieldRowTypes(
-                      result.physType.getRowType(),
-                      constants,
-                      argList);
-              List<RexNode> args = new ArrayList<RexNode>(
-                  inputTypes.size());
-              for (int i = 0; i < argList.size(); i++) {
-                Integer idx = argList.get(i);
-                args.add(new RexInputRef(idx, inputTypes.get(i)));
-              }
-              return args;
-            }
-          };
+      final Function<AggImpState, List<RexNode>> rexArguments = agg -> {
+        List<Integer> argList = agg.call.getArgList();
+        List<RelDataType> inputTypes =
+            EnumUtils.fieldRowTypes(
+                result.physType.getRowType(),
+                constants,
+                argList);
+        List<RexNode> args = new ArrayList<>(inputTypes.size());
+        for (int i = 0; i < argList.size(); i++) {
+          Integer idx = argList.get(i);
+          args.add(new RexInputRef(idx, inputTypes.get(i)));
+        }
+        return args;
+      };
 
       implementAdd(aggs, builder7, resultContextBuilder, rexArguments, jDecl);
 
@@ -522,8 +519,8 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
   private Function<BlockBuilder, WinAggFrameResultContext>
       getBlockBuilderWinAggFrameResultContextFunction(
-      final JavaTypeFactory typeFactory, final Result result,
-      final List<Expression> translatedConstants,
+      final JavaTypeFactory typeFactory, final SqlConformance conformance,
+      final Result result, final List<Expression> translatedConstants,
       final Expression comparator_,
       final Expression rows_, final ParameterExpression i_,
       final Expression startX, final Expression endX,
@@ -532,107 +529,101 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       final Expression partitionRowCount,
       final DeclarationStatement jDecl,
       final PhysType inputPhysType) {
-    return new Function<BlockBuilder,
-        WinAggFrameResultContext>() {
-      public WinAggFrameResultContext apply(
-          final BlockBuilder block) {
-        return new WinAggFrameResultContext() {
-          public RexToLixTranslator rowTranslator(Expression rowIndex) {
-            Expression row =
-                getRow(rowIndex);
-            final RexToLixTranslator.InputGetter inputGetter =
-                new WindowRelInputGetter(row, inputPhysType,
-                    result.physType.getRowType().getFieldCount(),
-                    translatedConstants);
+    return block -> new WinAggFrameResultContext() {
+      public RexToLixTranslator rowTranslator(Expression rowIndex) {
+        Expression row =
+            getRow(rowIndex);
+        final RexToLixTranslator.InputGetter inputGetter =
+            new WindowRelInputGetter(row, inputPhysType,
+                result.physType.getRowType().getFieldCount(),
+                translatedConstants);
 
-            return RexToLixTranslator.forAggregation(typeFactory,
-                block, inputGetter);
-          }
+        return RexToLixTranslator.forAggregation(typeFactory,
+            block, inputGetter, conformance);
+      }
 
-          public Expression computeIndex(Expression offset,
-              WinAggImplementor.SeekType seekType) {
-            Expression index;
-            if (seekType == WinAggImplementor.SeekType.AGG_INDEX) {
-              index = jDecl.parameter;
-            } else if (seekType == WinAggImplementor.SeekType.SET) {
-              index = i_;
-            } else if (seekType == WinAggImplementor.SeekType.START) {
-              index = startX;
-            } else if (seekType == WinAggImplementor.SeekType.END) {
-              index = endX;
-            } else {
-              throw new IllegalArgumentException("SeekSet " + seekType
-                  + " is not supported");
-            }
-            if (!Expressions.constant(0).equals(offset)) {
-              index = block.append("idx", Expressions.add(index, offset));
-            }
-            return index;
-          }
+      public Expression computeIndex(Expression offset,
+          WinAggImplementor.SeekType seekType) {
+        Expression index;
+        if (seekType == WinAggImplementor.SeekType.AGG_INDEX) {
+          index = jDecl.parameter;
+        } else if (seekType == WinAggImplementor.SeekType.SET) {
+          index = i_;
+        } else if (seekType == WinAggImplementor.SeekType.START) {
+          index = startX;
+        } else if (seekType == WinAggImplementor.SeekType.END) {
+          index = endX;
+        } else {
+          throw new IllegalArgumentException("SeekSet " + seekType
+              + " is not supported");
+        }
+        if (!Expressions.constant(0).equals(offset)) {
+          index = block.append("idx", Expressions.add(index, offset));
+        }
+        return index;
+      }
 
-          private Expression checkBounds(Expression rowIndex,
-              Expression minIndex, Expression maxIndex) {
-            if (rowIndex == i_ || rowIndex == startX || rowIndex == endX) {
-              // No additional bounds check required
-              return hasRows;
-            }
+      private Expression checkBounds(Expression rowIndex,
+          Expression minIndex, Expression maxIndex) {
+        if (rowIndex == i_ || rowIndex == startX || rowIndex == endX) {
+          // No additional bounds check required
+          return hasRows;
+        }
 
-            //noinspection UnnecessaryLocalVariable
-            Expression res = block.append("rowInFrame",
-                Expressions.foldAnd(
-                    ImmutableList.of(hasRows,
-                        Expressions.greaterThanOrEqual(rowIndex, minIndex),
-                        Expressions.lessThanOrEqual(rowIndex, maxIndex))));
+        //noinspection UnnecessaryLocalVariable
+        Expression res = block.append("rowInFrame",
+            Expressions.foldAnd(
+                ImmutableList.of(hasRows,
+                    Expressions.greaterThanOrEqual(rowIndex, minIndex),
+                    Expressions.lessThanOrEqual(rowIndex, maxIndex))));
 
-            return res;
-          }
+        return res;
+      }
 
-          public Expression rowInFrame(Expression rowIndex) {
-            return checkBounds(rowIndex, startX, endX);
-          }
+      public Expression rowInFrame(Expression rowIndex) {
+        return checkBounds(rowIndex, startX, endX);
+      }
 
-          public Expression rowInPartition(Expression rowIndex) {
-            return checkBounds(rowIndex, minX, maxX);
-          }
+      public Expression rowInPartition(Expression rowIndex) {
+        return checkBounds(rowIndex, minX, maxX);
+      }
 
-          public Expression compareRows(Expression a, Expression b) {
-            return Expressions.call(comparator_,
-                BuiltInMethod.COMPARATOR_COMPARE.method,
-                getRow(a), getRow(b));
-          }
+      public Expression compareRows(Expression a, Expression b) {
+        return Expressions.call(comparator_,
+            BuiltInMethod.COMPARATOR_COMPARE.method,
+            getRow(a), getRow(b));
+      }
 
-          public Expression getRow(Expression rowIndex) {
-            return block.append(
-                "jRow",
-                RexToLixTranslator.convert(
-                    Expressions.arrayIndex(rows_, rowIndex),
-                    inputPhysType.getJavaRowType()));
-          }
+      public Expression getRow(Expression rowIndex) {
+        return block.append(
+            "jRow",
+            RexToLixTranslator.convert(
+                Expressions.arrayIndex(rows_, rowIndex),
+                inputPhysType.getJavaRowType()));
+      }
 
-          public Expression index() {
-            return i_;
-          }
+      public Expression index() {
+        return i_;
+      }
 
-          public Expression startIndex() {
-            return startX;
-          }
+      public Expression startIndex() {
+        return startX;
+      }
 
-          public Expression endIndex() {
-            return endX;
-          }
+      public Expression endIndex() {
+        return endX;
+      }
 
-          public Expression hasRows() {
-            return hasRows;
-          }
+      public Expression hasRows() {
+        return hasRows;
+      }
 
-          public Expression getFrameRowCount() {
-            return frameRowCount;
-          }
+      public Expression getFrameRowCount() {
+        return frameRowCount;
+      }
 
-          public Expression getPartitionRowCount() {
-            return partitionRowCount;
-          }
-        };
+      public Expression getPartitionRowCount() {
+        return partitionRowCount;
       }
     };
   }
@@ -812,8 +803,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
             .substring("ID$0$".length()) + aggName;
       }
       List<Type> state = agg.implementor.getStateType(agg.context);
-      final List<Expression> decls =
-          new ArrayList<Expression>(state.size());
+      final List<Expression> decls = new ArrayList<>(state.size());
       for (int i = 0; i < state.size(); i++) {
         Type type = state.get(i);
         ParameterExpression pe =

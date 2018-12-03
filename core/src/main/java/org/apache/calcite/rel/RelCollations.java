@@ -18,13 +18,17 @@ package org.apache.calcite.rel;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Utilities concerning {@link org.apache.calcite.rel.RelCollation}
@@ -37,7 +41,7 @@ public class RelCollations {
    */
   public static final RelCollation EMPTY =
       RelCollationTraitDef.INSTANCE.canonize(
-          new RelCollationImpl(ImmutableList.<RelFieldCollation>of()));
+          new RelCollationImpl(ImmutableList.of()));
 
   /**
    * A collation that cannot be replicated by applying a sort. The only
@@ -56,11 +60,23 @@ public class RelCollations {
   private RelCollations() {}
 
   public static RelCollation of(RelFieldCollation... fieldCollations) {
-    return new RelCollationImpl(ImmutableList.copyOf(fieldCollations));
+    return of(ImmutableList.copyOf(fieldCollations));
   }
 
   public static RelCollation of(List<RelFieldCollation> fieldCollations) {
-    return new RelCollationImpl(ImmutableList.copyOf(fieldCollations));
+    if (Util.isDistinct(ordinals(fieldCollations))) {
+      return new RelCollationImpl(ImmutableList.copyOf(fieldCollations));
+    }
+    // Remove field collations whose field has already been seen
+    final ImmutableList.Builder<RelFieldCollation> builder =
+        ImmutableList.builder();
+    final Set<Integer> set = new HashSet<>();
+    for (RelFieldCollation fieldCollation : fieldCollations) {
+      if (set.add(fieldCollation.getFieldIndex())) {
+        builder.add(fieldCollation);
+      }
+    }
+    return new RelCollationImpl(builder.build());
   }
 
   /**
@@ -110,12 +126,13 @@ public class RelCollations {
 
   /** Returns the indexes of the field collations in a given collation. */
   public static List<Integer> ordinals(RelCollation collation) {
-    return Lists.transform(collation.getFieldCollations(),
-        new Function<RelFieldCollation, Integer>() {
-          public Integer apply(RelFieldCollation input) {
-            return input.getFieldIndex();
-          }
-        });
+    return ordinals(collation.getFieldCollations());
+  }
+
+  /** Returns the indexes of the fields in a list of field collations. */
+  public static List<Integer> ordinals(
+      List<RelFieldCollation> fieldCollations) {
+    return Lists.transform(fieldCollations, RelFieldCollation::getFieldIndex);
   }
 
   /** Returns whether a collation indicates that the collection is sorted on
@@ -127,6 +144,11 @@ public class RelCollations {
    */
   public static boolean contains(RelCollation collation,
       Iterable<Integer> keys) {
+    return contains(collation, Util.distinctList(keys));
+  }
+
+  private static boolean contains(RelCollation collation,
+      List<Integer> keys) {
     final int n = collation.getFieldCollations().size();
     final Iterator<Integer> iterator = keys.iterator();
     for (int i = 0; i < n; i++) {
@@ -146,8 +168,9 @@ public class RelCollations {
    * is sorted on the given list of keys. */
   public static boolean contains(List<RelCollation> collations,
       ImmutableIntList keys) {
+    final List<Integer> distinctKeys = Util.distinctList(keys);
     for (RelCollation collation : collations) {
-      if (contains(collation, keys)) {
+      if (contains(collation, distinctKeys)) {
         return true;
       }
     }
@@ -164,6 +187,24 @@ public class RelCollations {
       fieldCollations.add(fc.shift(offset));
     }
     return new RelCollationImpl(fieldCollations.build());
+  }
+
+  /** Creates a copy of this collation that changes the ordinals of input
+   * fields. */
+  public static RelCollation permute(RelCollation collation,
+      Map<Integer, Integer> mapping) {
+    return of(
+        Util.transform(collation.getFieldCollations(),
+            fc -> fc.copy(mapping.get(fc.getFieldIndex()))));
+  }
+
+  /** Creates a copy of this collation that changes the ordinals of input
+   * fields. */
+  public static RelCollation permute(RelCollation collation,
+      Mappings.TargetMapping mapping) {
+    return of(
+        Util.transform(collation.getFieldCollations(),
+            fc -> fc.copy(mapping.getTarget(fc.getFieldIndex()))));
   }
 }
 

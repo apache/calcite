@@ -1,0 +1,246 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use CALCITE_AS_ADMIN
+!set outputformat mysql
+
+# count returns number of rows in table
+SELECT COUNT(*) as C1 FROM chinook.album;
++-----+
+| C1  |
++-----+
+| 347 |
++-----+
+(1 row)
+
+!ok
+
+SELECT ar.name as NAME, COUNT(tr.trackid) AS TRACKS_COUNT, SUM(tr.milliseconds) AS MS_TOTAL
+FROM chinook.artist AS ar
+JOIN chinook.album AS al ON ar.artistid = al.artistid
+JOIN chinook.track as tr ON al.albumid = tr.albumid
+GROUP BY ar.name;
+
++---------------------------------------------------------------------------------------+--------------+-----------+
+| NAME                                                                                  | TRACKS_COUNT | MS_TOTAL  |
++---------------------------------------------------------------------------------------+--------------+-----------+
+| AC/DC                                                                                 |           18 |   4853674 |
+| Aaron Copland & London Symphony Orchestra                                             |            1 |    198064 |
+| Aaron Goldberg                                                                        |            1 |    266936 |
+| Academy of St. Martin in the Fields & Sir Neville Marriner                            |            2 |    465201 |
+| Academy of St. Martin in the Fields Chamber Ensemble & Sir Neville Marriner           |            1 |    348971 |
+| Academy of St. Martin in the Fields, John Birch, Sir Neville Marriner & Sylvia McNair |            1 |    258924 |
+| Academy of St. Martin in the Fields, Sir Neville Marriner & Thurston Dart             |            1 |    225933 |
+| Accept                                                                                |            4 |   1200650 |
+| Adrian Leaper & Doreen de Feis                                                        |            1 |    567494 |
+| Aerosmith                                                                             |           15 |   4411709 |
+| Aisha Duo                                                                             |            2 |    553888 |
+| Alanis Morissette                                                                     |           13 |   3450925 |
+| Alberto Turco & Nova Schola Gregoriana                                                |            1 |    245317 |
+| Alice In Chains                                                                       |           12 |   3249365 |
+| Amy Winehouse                                                                         |           23 |   5579857 |
+| Anne-Sophie Mutter, Herbert Von Karajan & Wiener Philharmoniker                       |            1 |    199086 |
+| Antal Doráti & London Symphony Orchestra                                              |            1 |    412000 |
+| Antônio Carlos Jobim                                                                  |           31 |   7128385 |
+| Apocalyptica                                                                          |            8 |   2671407 |
+| Aquaman                                                                               |            1 |   2484567 |
+| Audioslave                                                                            |           40 |  10655588 |
+| BackBeat                                                                              |           12 |   1615722 |
+| Barry Wordsworth & BBC Concert Orchestra                                              |            1 |    250031 |
+| Battlestar Galactica                                                                  |           20 |  55409291 |
+| Battlestar Galactica (Classic)                                                        |           24 |  70213784 |
+| Berliner Philharmoniker & Hans Rosbaud                                                |            1 |    406000 |
+| Berliner Philharmoniker & Herbert Von Karajan                                         |            3 |    851101 |
+| Berliner Philharmoniker, Claudio Abbado & Sabine Meyer                                |            1 |    394482 |
+| Billy Cobham                                                                          |            8 |   2680524 |
+| Black Label Society                                                                   |           18 |   5507674 |
+| Black Sabbath                                                                         |           17 |   4896722 |
+| Body Count                                                                            |           17 |   3192389 |
+| Boston Symphony Orchestra & Seiji Ozawa                                               |            1 |    156710 |
+| Britten Sinfonia, Ivor Bolton & Lesley Garrett                                        |            1 |    338243 |
+| Bruce Dickinson                                                                       |           11 |   3694022 |
+| Buddy Guy                                                                             |           11 |   2636849 |
+| C. Monteverdi, Nigel Rogers - Chiaroscuro; London Baroque; London Cornett & Sackbu    |            1 |     66639 |
+| Caetano Veloso                                                                        |           21 |   4779093 |
+| Cake                                                                                  |            1 |    234013 |
+| Calexico                                                                              |            1 |    215386 |
+| Charles Dutoit & L'Orchestre Symphonique de Montréal                                  |            1 |    385506 |
+| Chicago Symphony Chorus, Chicago Symphony Orchestra & Sir Georg Solti                 |            1 |    274504 |
+| Chicago Symphony Orchestra & Fritz Reiner                                             |            1 |    545203 |
+| Chico Buarque                                                                         |           34 |   7875643 |
+| Chico Science & Nação Zumbi                                                           |           36 |   7255443 |
+| Choir Of Westminster Abbey & Simon Preston                                            |            1 |    240666 |
+| Chor der Wiener Staatsoper, Herbert Von Karajan & Wiener Philharmoniker               |            1 |    132932 |
+| Chris Cornell                                                                         |           14 |   3292399 |
+| Christopher O'Riley                                                                   |            1 |    101293 |
+| Cidade Negra                                                                          |           31 |   7376311 |
+| Cláudio Zoli                                                                          |           10 |   2559734 |
+| Creedence Clearwater Revival                                                          |           40 |   8586509 |
+| Cássia Eller                                                                          |           30 |   6879099 |
+| David Coverdale                                                                       |           12 |   3618267 |
+| Deep Purple                                                                           |           92 |  32259613 |
+| Def Leppard                                                                           |           16 |   4401077 |
+| Dennis Chambers                                                                       |            9 |   3440820 |
+| Djavan                                                                                |           26 |   7284962 |
+| Dread Zeppelin                                                                        |            1 |    310774 |
+| Ed Motta                                                                              |           14 |   3409704 |
+| Edo de Waart & San Francisco Symphony                                                 |            1 |    254930 |
+| Elis Regina                                                                           |           14 |   3095920 |
+| Emanuel Ax, Eugene Ormandy & Philadelphia Orchestra                                   |            1 |    560342 |
+| Emerson String Quartet                                                                |            1 |    139200 |
+| English Concert & Trevor Pinnock                                                      |            2 |    391788 |
+| Equale Brass Ensemble, John Eliot Gardiner & Munich Monteverdi Orchestra and Choir    |            1 |    142081 |
+| Eric Clapton                                                                          |           48 |  12486478 |
+| Eugene Ormandy                                                                        |            3 |   1335536 |
+| Faith No More                                                                         |           52 |  13211898 |
+| Falamansa                                                                             |           14 |   2842456 |
+| Felix Schmidt, London Symphony Orchestra & Rafael Frühbeck de Burgos                  |            1 |    483133 |
+| Foo Fighters                                                                          |           44 |  11124565 |
+| Frank Sinatra                                                                         |           24 |   4539941 |
+| Frank Zappa & Captain Beefheart                                                       |            9 |   2465929 |
+| Fretwork                                                                              |            1 |    253281 |
+| Funk Como Le Gusta                                                                    |           16 |   4165844 |
+| Gene Krupa                                                                            |           22 |   4637011 |
+| Gerald Moore                                                                          |            1 |    261849 |
+| Gilberto Gil                                                                          |           32 |   7719246 |
+| Godsmack                                                                              |           12 |   2846138 |
+| Gonzaguinha                                                                           |           14 |   2935452 |
+| Green Day                                                                             |           34 |   7083399 |
+| Guns N' Roses                                                                         |           42 |  12355529 |
+| Gustav Mahler                                                                         |            1 |    223583 |
+| Göteborgs Symfoniker & Neeme Järvi                                                    |            1 |    286998 |
+| Habib Koité and Bamada                                                                |            2 |    586442 |
+| Herbert Von Karajan, Mirella Freni & Wiener Philharmoniker                            |            1 |    277639 |
+| Heroes                                                                                |           23 |  59780268 |
+| Hilary Hahn, Jeffrey Kahane, Los Angeles Chamber Orchestra & Margaret Batjer          |            1 |    193722 |
+| House Of Pain                                                                         |           19 |   3269060 |
+| Incognito                                                                             |           13 |   4421323 |
+| Iron Maiden                                                                           |          213 |  71844745 |
+| Itzhak Perlman                                                                        |            1 |    265541 |
+| JET                                                                                   |           13 |   2919830 |
+| James Brown                                                                           |           20 |   4211242 |
+| James Levine                                                                          |            1 |    243436 |
+| Jamiroquai                                                                            |           32 |  10475399 |
+| Jimi Hendrix                                                                          |           17 |   3618056 |
+| Joe Satriani                                                                          |           10 |   2259724 |
+| Jorge Ben                                                                             |           14 |   4571265 |
+| Jota Quest                                                                            |           12 |   3016355 |
+| João Suplicy                                                                          |           14 |   3065723 |
+| Judas Priest                                                                          |           16 |   3973111 |
+| Julian Bream                                                                          |            1 |    285673 |
+| Karsh Kale                                                                            |            2 |    693207 |
+| Kent Nagano and Orchestre de l'Opéra de Lyon                                          |            1 |    376510 |
+| Kiss                                                                                  |           35 |   7980393 |
+| Led Zeppelin                                                                          |          114 |  40121414 |
+| Legião Urbana                                                                         |           31 |   8166856 |
+| Lenny Kravitz                                                                         |           57 |  15065731 |
+| Leonard Bernstein & New York Philharmonic                                             |            1 |    596519 |
+| Les Arts Florissants & William Christie                                               |            1 |    110266 |
+| London Symphony Orchestra & Sir Charles Mackerras                                     |            1 |    304226 |
+| Lost                                                                                  |           92 | 238278582 |
+| Luciana Souza/Romero Lubambo                                                          |            1 |    172710 |
+| Luciano Pavarotti                                                                     |            1 |    176911 |
+| Lulu Santos                                                                           |           28 |   6468346 |
+| Marcos Valle                                                                          |           17 |   3701306 |
+| Marillion                                                                             |           10 |   2477370 |
+| Marisa Monte                                                                          |           18 |   3433813 |
+| Martin Roscoe                                                                         |            1 |    333669 |
+| Marvin Gaye                                                                           |           18 |   3488122 |
+| Maurizio Pollini                                                                      |            1 |    391000 |
+| Mela Tenenbaum, Pro Musica Prague & Richard Kapp                                      |            1 |    493573 |
+| Men At Work                                                                           |           10 |   2602784 |
+| Metallica                                                                             |          112 |  38916130 |
+| Michael Tilson Thomas & San Francisco Symphony                                        |            2 |    836982 |
+| Michele Campanella                                                                    |            1 |     51780 |
+| Miles Davis                                                                           |           37 |  12130621 |
+| Milton Nascimento                                                                     |           26 |   5918107 |
+| Motörhead                                                                             |           15 |   2735483 |
+| Mônica Marianno                                                                       |           12 |   2645702 |
+| Mötley Crüe                                                                           |           17 |   4435165 |
+| Nash Ensemble                                                                         |            1 |    221331 |
+| Nicolaus Esterhazy Sinfonia                                                           |            1 |    356426 |
+| Nirvana                                                                               |           29 |   5800447 |
+| O Rappa                                                                               |           17 |   4428843 |
+| O Terço                                                                               |           15 |   3594651 |
+| Olodum                                                                                |           14 |   3019828 |
+| Orchestra of The Age of Enlightenment                                                 |            1 |    307244 |
+| Orchestre Révolutionnaire et Romantique & John Eliot Gardiner                         |            1 |    392462 |
+| Os Mutantes                                                                           |           14 |   3351947 |
+| Os Paralamas Do Sucesso                                                               |           49 |  10647198 |
+| Otto Klemperer & Philharmonia Orchestra                                               |            1 |    339567 |
+| Ozzy Osbourne                                                                         |           32 |  10441129 |
+| Page & Plant                                                                          |           12 |   3649040 |
+| Passengers                                                                            |           14 |   3489692 |
+| Paul D'Ianno                                                                          |           10 |   2547615 |
+| Pearl Jam                                                                             |           67 |  16502824 |
+| Philharmonia Orchestra & Sir Neville Marriner                                         |            1 |    387826 |
+| Philip Glass Ensemble                                                                 |            1 |    206005 |
+| Pink Floyd                                                                            |            9 |   2572638 |
+| Planet Hemp                                                                           |           16 |   2967110 |
+| Queen                                                                                 |           45 |  10428501 |
+| R.E.M.                                                                                |           41 |   9965537 |
+| R.E.M. Feat. Kate Pearson                                                             |           11 |   2650117 |
+| Raimundos                                                                             |           10 |   1738470 |
+| Raul Seixas                                                                           |           14 |   2833311 |
+| Red Hot Chili Peppers                                                                 |           48 |  11952485 |
+| Richard Marlow & The Choir of Trinity College, Cambridge                              |            1 |    501503 |
+| Roger Norrington, London Classical Players                                            |            1 |    364296 |
+| Royal Philharmonic Orchestra & Sir Thomas Beecham                                     |            1 |    306687 |
+| Rush                                                                                  |           14 |   4548694 |
+| Santana                                                                               |           27 |  12847973 |
+| Scholars Baroque Ensemble                                                             |            1 |    582029 |
+| Scorpions                                                                             |           12 |   3448442 |
+| Sergei Prokofiev & Yuri Temirkanov                                                    |            1 |    254001 |
+| Sir Georg Solti & Wiener Philharmoniker                                               |            1 |    189008 |
+| Sir Georg Solti, Sumi Jo & Wiener Philharmoniker                                      |            1 |    174813 |
+| Skank                                                                                 |           23 |   5887990 |
+| Smashing Pumpkins                                                                     |           34 |   8662239 |
+| Soundgarden                                                                           |           17 |   4752029 |
+| Spyro Gyra                                                                            |           21 |   5974246 |
+| Stevie Ray Vaughan & Double Trouble                                                   |           10 |   2468671 |
+| Stone Temple Pilots                                                                   |           12 |   3218749 |
+| System Of A Down                                                                      |           11 |   2172650 |
+| Temple of the Dog                                                                     |           10 |   3316905 |
+| Terry Bozzio, Tony Levin & Steve Stevens                                              |            7 |   4030534 |
+| The 12 Cellists of The Berlin Philharmonic                                            |            1 |    289388 |
+| The Black Crowes                                                                      |           19 |   6266088 |
+| The Clash                                                                             |           18 |   3864679 |
+| The Cult                                                                              |           30 |   7715643 |
+| The Doors                                                                             |           11 |   2669734 |
+| The King's Singers                                                                    |            2 |    202962 |
+| The Office                                                                            |           53 |  74928465 |
+| The Police                                                                            |           14 |   3578900 |
+| The Posies                                                                            |            2 |    411967 |
+| The Rolling Stones                                                                    |           41 |  10114436 |
+| The Tea Party                                                                         |           26 |   7006577 |
+| The Who                                                                               |           20 |   4580064 |
+| Tim Maia                                                                              |           30 |   5515219 |
+| Titãs                                                                                 |           38 |   7732518 |
+| Ton Koopman                                                                           |            1 |    153901 |
+| Toquinho & Vinícius                                                                   |           15 |   3293850 |
+| U2                                                                                    |          135 |  35421983 |
+| UB40                                                                                  |           14 |   3523466 |
+| Van Halen                                                                             |           52 |  12297219 |
+| Various Artists                                                                       |           56 |  13995811 |
+| Velvet Revolver                                                                       |           13 |   3417071 |
+| Vinícius De Moraes                                                                    |           15 |   3254721 |
+| Wilhelm Kempff                                                                        |            1 |    120463 |
+| Yehudi Menuhin                                                                        |            1 |    299350 |
+| Yo-Yo Ma                                                                              |            1 |    143288 |
+| Zeca Pagodinho                                                                        |           19 |   4065140 |
++---------------------------------------------------------------------------------------+--------------+-----------+
+(204 rows)
+
+!ok

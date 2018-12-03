@@ -30,7 +30,7 @@ import java.util.List;
  * Relational expression representing a scan of a table in a JDBC data source.
  */
 public class JdbcTableScan extends TableScan implements JdbcRel {
-  final JdbcTable jdbcTable;
+  protected final JdbcTable jdbcTable;
 
   protected JdbcTableScan(
       RelOptCluster cluster,

@@ -21,6 +21,8 @@ import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.AggregateFunction;
 import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.Schema;
@@ -38,12 +40,13 @@ import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.sql.SqlDialectFactory;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -63,6 +66,12 @@ import javax.sql.DataSource;
  * Reads a model and creates schema objects accordingly.
  */
 public class ModelHandler {
+  private static final ObjectMapper JSON_MAPPER = new ObjectMapper()
+      .configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
+      .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true)
+      .configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+  private static final ObjectMapper YAML_MAPPER = new YAMLMapper();
+
   private final CalciteConnection connection;
   private final Deque<Pair<String, SchemaPlus>> schemaStack = new ArrayDeque<>();
   private final String modelUri;
@@ -74,15 +83,18 @@ public class ModelHandler {
     super();
     this.connection = connection;
     this.modelUri = uri;
-    final ObjectMapper mapper = new ObjectMapper();
-    mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
-    mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
-    mapper.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+
     JsonRoot root;
+    ObjectMapper mapper;
     if (uri.startsWith("inline:")) {
-      root = mapper.readValue(
-          uri.substring("inline:".length()), JsonRoot.class);
+      // trim here is to correctly autodetect if it is json or not in case of leading spaces
+      String inline = uri.substring("inline:".length()).trim();
+      mapper = (inline.startsWith("/*") || inline.startsWith("{"))
+          ? JSON_MAPPER
+          : YAML_MAPPER;
+      root = mapper.readValue(inline, JsonRoot.class);
     } else {
+      mapper = uri.endsWith(".yaml") || uri.endsWith(".yml") ? YAML_MAPPER : JSON_MAPPER;
       root = mapper.readValue(new File(uri), JsonRoot.class);
     }
     visit(root);
@@ -471,6 +483,33 @@ public class ModelHandler {
     return schema;
   }
 
+  public void visit(final JsonType jsonType) {
+    checkRequiredAttributes(jsonType, "name");
+    try {
+      final SchemaPlus schema = currentMutableSchema("type");
+      schema.add(jsonType.name, typeFactory -> {
+        if (jsonType.type != null) {
+          return typeFactory.createSqlType(SqlTypeName.get(jsonType.type));
+        } else {
+          final RelDataTypeFactory.Builder builder = typeFactory.builder();
+          for (JsonTypeAttribute jsonTypeAttribute : jsonType.attributes) {
+            final SqlTypeName typeName =
+                SqlTypeName.get(jsonTypeAttribute.type);
+            RelDataType type = typeFactory.createSqlType(typeName);
+            if (type == null) {
+              type = currentSchema().getType(jsonTypeAttribute.type)
+                  .apply(typeFactory);
+            }
+            builder.add(jsonTypeAttribute.name, type);
+          }
+          return builder.build();
+        }
+      });
+    } catch (Exception e) {
+      throw new RuntimeException("Error instantiating " + jsonType, e);
+    }
+  }
+
   public void visit(JsonFunction jsonFunction) {
     // "name" is not required - a class can have several functions
     checkRequiredAttributes(jsonFunction, "className");
@@ -478,11 +517,8 @@ public class ModelHandler {
       final SchemaPlus schema = currentMutableSchema("function");
       final List<String> path =
           Util.first(jsonFunction.path, currentSchemaPath());
-      create(schema,
-          jsonFunction.name,
-          path,
-          jsonFunction.className,
-          jsonFunction.methodName);
+      addFunctions(schema, jsonFunction.name, path, jsonFunction.className,
+          jsonFunction.methodName, false);
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonFunction, e);
     }
@@ -491,8 +527,10 @@ public class ModelHandler {
   public void visit(JsonMeasure jsonMeasure) {
     checkRequiredAttributes(jsonMeasure, "agg");
     assert latticeBuilder != null;
+    final boolean distinct = false; // no distinct field in JsonMeasure.yet
     final Lattice.Measure measure =
-        latticeBuilder.resolveMeasure(jsonMeasure.agg, jsonMeasure.args);
+        latticeBuilder.resolveMeasure(jsonMeasure.agg, distinct,
+            jsonMeasure.args);
     if (tileBuilder != null) {
       tileBuilder.addMeasure(measure);
     } else if (latticeBuilder != null) {
@@ -520,7 +558,10 @@ public class ModelHandler {
    * {@link JsonCustomSchema#operand}, as extra context for the adapter. */
   public enum ExtraOperand {
     /** URI of model, e.g. "target/test-classes/model.json",
-     * "http://localhost/foo/bar.json", "inline:{...}". */
+     * "http://localhost/foo/bar.json", "inline:{...}",
+     * "target/test-classes/model.yaml",
+     * "http://localhost/foo/bar.yaml", "inline:..."
+     * */
     MODEL_URI("modelUri"),
 
     /** Base directory from which to read files. */

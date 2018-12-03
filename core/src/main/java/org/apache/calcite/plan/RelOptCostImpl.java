@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.plan;
 
-import org.apache.calcite.runtime.Utilities;
-
 /**
  * RelOptCostImpl provides a default implementation for the {@link RelOptCost}
  * interface. It it defined in terms of a single scalar quantity; somewhat
@@ -70,12 +68,19 @@ public class RelOptCostImpl implements RelOptCost {
   }
 
   @Override public int hashCode() {
-    return Utilities.hashCode(getRows());
+    return Double.hashCode(getRows());
   }
 
   // implement RelOptCost
   public boolean equals(RelOptCost other) {
     return getRows() == other.getRows();
+  }
+
+  @Override public boolean equals(Object obj) {
+    if (obj instanceof RelOptCostImpl) {
+      return equals((RelOptCost) obj);
+    }
+    return false;
   }
 
   // implement RelOptCost

@@ -20,6 +20,12 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 
+import com.mongodb.AuthenticationMechanism;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoCredential;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -27,7 +33,6 @@ import java.util.Map;
  *
  * <p>Allows a custom schema to be included in a model.json file.</p>
  */
-@SuppressWarnings("UnusedDeclaration")
 public class MongoSchemaFactory implements SchemaFactory {
   // public constructor, per factory contract
   public MongoSchemaFactory() {
@@ -35,10 +40,46 @@ public class MongoSchemaFactory implements SchemaFactory {
 
   public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
-    Map map = (Map) operand;
-    String host = (String) map.get("host");
-    String database = (String) map.get("database");
-    return new MongoSchema(host, database);
+    final String host = (String) operand.get("host");
+    final String database = (String) operand.get("database");
+    final String authMechanismName = (String) operand.get("authMechanism");
+
+    final MongoClientOptions.Builder options = MongoClientOptions.builder();
+
+    final List<MongoCredential> credentials = new ArrayList<>();
+    if (authMechanismName != null) {
+      final MongoCredential credential = createCredentials(operand);
+      credentials.add(credential);
+    }
+
+    return new MongoSchema(host, database, credentials, options.build());
+  }
+
+  private MongoCredential createCredentials(Map<String, Object> map) {
+    final String authMechanismName = (String) map.get("authMechanism");
+    final AuthenticationMechanism authenticationMechanism =
+        AuthenticationMechanism.fromMechanismName(authMechanismName);
+    final String username = (String) map.get("username");
+    final String authDatabase = (String) map.get("authDatabase");
+    final String password = (String) map.get("password");
+
+    switch (authenticationMechanism) {
+    case PLAIN:
+      return MongoCredential.createPlainCredential(username, authDatabase,
+          password.toCharArray());
+    case SCRAM_SHA_1:
+      return MongoCredential.createScramSha1Credential(username, authDatabase,
+          password.toCharArray());
+    case GSSAPI:
+      return MongoCredential.createGSSAPICredential(username);
+    case MONGODB_CR:
+      return MongoCredential.createMongoCRCredential(username, authDatabase,
+          password.toCharArray());
+    case MONGODB_X509:
+      return MongoCredential.createMongoX509Credential(username);
+    }
+    throw new IllegalArgumentException("Unsupported authentication mechanism "
+        + authMechanismName);
   }
 }
 

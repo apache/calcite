@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlCollation;
@@ -35,15 +36,15 @@ import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import java.nio.charset.Charset;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -64,7 +65,7 @@ public abstract class SqlTypeUtil {
     assert argTypes.size() >= 2;
 
     // Filter out ANY elements.
-    List<RelDataType> argTypes2 = Lists.newArrayList();
+    List<RelDataType> argTypes2 = new ArrayList<>();
     for (RelDataType t : argTypes) {
       if (!isAny(t)) {
         argTypes2.add(t);
@@ -143,7 +144,7 @@ public abstract class SqlTypeUtil {
       List<SqlNode> operands) {
     // NOTE: Do not use an AbstractList. Don't want to be lazy. We want
     // errors.
-    List<RelDataType> types = new ArrayList<RelDataType>();
+    List<RelDataType> types = new ArrayList<>();
     for (SqlNode operand : operands) {
       types.add(validator.deriveType(scope, operand));
     }
@@ -200,7 +201,7 @@ public abstract class SqlTypeUtil {
       final RelDataTypeFactory typeFactory,
       final List<RelDataType> argTypes,
       RelDataType type) {
-    Preconditions.checkNotNull(type);
+    Objects.requireNonNull(type);
     if (containsNullable(argTypes)) {
       type = typeFactory.createTypeWithNullability(type, true);
     }
@@ -859,8 +860,8 @@ public abstract class SqlTypeUtil {
     // where internally a cast across character repertoires is OK.  Should
     // probably clean that up.
 
-    SqlTypeAssignmentRules rules = SqlTypeAssignmentRules.instance();
-    return rules.canCastFrom(toTypeName, fromTypeName, coerce);
+    SqlTypeAssignmentRules rules = SqlTypeAssignmentRules.instance(coerce);
+    return rules.canCastFrom(toTypeName, fromTypeName);
   }
 
   /**
@@ -884,7 +885,7 @@ public abstract class SqlTypeUtil {
     if (!recordType.isStruct()) {
       return recordType;
     }
-    List<RelDataTypeField> fieldList = new ArrayList<RelDataTypeField>();
+    List<RelDataTypeField> fieldList = new ArrayList<>();
     boolean nested =
         flattenFields(
             typeFactory,
@@ -894,8 +895,8 @@ public abstract class SqlTypeUtil {
     if (!nested) {
       return recordType;
     }
-    List<RelDataType> types = new ArrayList<RelDataType>();
-    List<String> fieldNames = new ArrayList<String>();
+    List<RelDataType> types = new ArrayList<>();
+    List<String> fieldNames = new ArrayList<>();
     int i = -1;
     for (RelDataTypeField field : fieldList) {
       ++i;
@@ -962,6 +963,15 @@ public abstract class SqlTypeUtil {
                     field.getType().getComponentType(),
                     null),
                 -1);
+        if (field.getType() instanceof ArraySqlType) {
+          flattenedCollectionType =
+              typeFactory.createArrayType(
+                  flattenRecordType(
+                      typeFactory,
+                      field.getType().getComponentType(),
+                      null),
+                  -1);
+        }
         field =
             new RelDataTypeFieldImpl(
                 field.getName(),
@@ -1172,8 +1182,8 @@ public abstract class SqlTypeUtil {
   public static RelDataType createEmptyStructType(
       RelDataTypeFactory typeFactory) {
     return typeFactory.createStructType(
-        ImmutableList.<RelDataType>of(),
-        ImmutableList.<String>of());
+        ImmutableList.of(),
+        ImmutableList.of());
   }
 
   /** Returns whether a type is flat. It is not flat if it is a record type that
@@ -1215,23 +1225,9 @@ public abstract class SqlTypeUtil {
       }
       return true;
     }
-    RelDataTypeFamily family1 = null;
-    RelDataTypeFamily family2 = null;
 
-    // REVIEW jvs 2-June-2005:  This is needed to keep
-    // the Saffron type system happy.
-    if (type1.getSqlTypeName() != null) {
-      family1 = type1.getSqlTypeName().getFamily();
-    }
-    if (type2.getSqlTypeName() != null) {
-      family2 = type2.getSqlTypeName().getFamily();
-    }
-    if (family1 == null) {
-      family1 = type1.getFamily();
-    }
-    if (family2 == null) {
-      family2 = type2.getFamily();
-    }
+    final RelDataTypeFamily family1 = family(type1);
+    final RelDataTypeFamily family2 = family(type2);
     if (family1 == family2) {
       return true;
     }
@@ -1257,6 +1253,113 @@ public abstract class SqlTypeUtil {
     }
 
     return false;
+  }
+
+  /** Returns the least restrictive type T, such that a value of type T can be
+   * compared with values of type {@code type0} and {@code type1} using
+   * {@code =}. */
+  public static RelDataType leastRestrictiveForComparison(
+      RelDataTypeFactory typeFactory, RelDataType type1, RelDataType type2) {
+    final RelDataType type =
+        typeFactory.leastRestrictive(ImmutableList.of(type1, type2));
+    if (type != null) {
+      return type;
+    }
+    final RelDataTypeFamily family1 = family(type1);
+    final RelDataTypeFamily family2 = family(type2);
+
+    // If one of the arguments is of type 'ANY', we can compare.
+    if (family1 == SqlTypeFamily.ANY) {
+      return type2;
+    }
+    if (family2 == SqlTypeFamily.ANY) {
+      return type1;
+    }
+
+    // If one of the arguments is of type 'NULL', we can compare.
+    if (family1 == SqlTypeFamily.NULL) {
+      return type2;
+    }
+    if (family2 == SqlTypeFamily.NULL) {
+      return type1;
+    }
+
+    // We can implicitly convert from character to date, numeric, etc.
+    if (family1 == SqlTypeFamily.CHARACTER
+        && canConvertStringInCompare(family2)) {
+      return type2;
+    }
+    if (family2 == SqlTypeFamily.CHARACTER
+        && canConvertStringInCompare(family1)) {
+      return type1;
+    }
+
+    return null;
+  }
+
+  protected static RelDataTypeFamily family(RelDataType type) {
+    // REVIEW jvs 2-June-2005:  This is needed to keep
+    // the Saffron type system happy.
+    RelDataTypeFamily family = null;
+    if (type.getSqlTypeName() != null) {
+      family = type.getSqlTypeName().getFamily();
+    }
+    if (family == null) {
+      family = type.getFamily();
+    }
+    return family;
+  }
+
+  /**
+   * Returns whether all types in a collection have the same family, as
+   * determined by {@link #isSameFamily(RelDataType, RelDataType)}.
+   *
+   * @param types Types to check
+   * @return true if all types are of the same family
+   */
+  public static boolean areSameFamily(Iterable<RelDataType> types) {
+    final List<RelDataType> typeList = ImmutableList.copyOf(types);
+    if (Sets.newHashSet(RexUtil.families(typeList)).size() < 2) {
+      return true;
+    }
+    for (Pair<RelDataType, RelDataType> adjacent : Pair.adjacents(typeList)) {
+      if (!isSameFamily(adjacent.left, adjacent.right)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Returns whether two types are scalar types of the same family, or struct types whose fields
+   * are pairwise of the same family.
+   *
+   * @param type1 First type
+   * @param type2 Second type
+   * @return Whether types have the same family
+   */
+  private static boolean isSameFamily(RelDataType type1, RelDataType type2) {
+    if (type1.isStruct() != type2.isStruct()) {
+      return false;
+    }
+
+    if (type1.isStruct()) {
+      int n = type1.getFieldCount();
+      if (n != type2.getFieldCount()) {
+        return false;
+      }
+      for (Pair<RelDataTypeField, RelDataTypeField> pair
+          : Pair.zip(type1.getFieldList(), type2.getFieldList())) {
+        if (!isSameFamily(pair.left.getType(), pair.right.getType())) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    final RelDataTypeFamily family1 = family(type1);
+    final RelDataTypeFamily family2 = family(type2);
+    return family1 == family2;
   }
 
   /** Returns whether a character data type can be implicitly converted to a
@@ -1321,6 +1424,8 @@ public abstract class SqlTypeUtil {
   public static boolean isArray(RelDataType type) {
     return type.getSqlTypeName() == SqlTypeName.ARRAY;
   }
+
+
 }
 
 // End SqlTypeUtil.java

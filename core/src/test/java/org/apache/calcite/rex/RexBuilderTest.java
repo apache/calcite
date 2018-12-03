@@ -16,12 +16,15 @@
  */
 package org.apache.calcite.rex;
 
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
@@ -29,11 +32,13 @@ import org.apache.calcite.util.Util;
 
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.TimeZone;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -362,6 +367,19 @@ public class RexBuilderTest {
     assertThat(literal.getValueAs(DateString.class), notNullValue());
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2306">[CALCITE-2306]
+   * AssertionError in {@link RexLiteral#getValue3} with null literal of type
+   * DECIMAL</a>. */
+  @Test public void testDecimalLiteral() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    final RexLiteral literal = builder.makeExactLiteral(null, type);
+    assertThat(literal.getValue3(), nullValue());
+  }
+
   /** Tests {@link DateString} year range. */
   @Test public void testDateStringYearError() {
     try {
@@ -473,6 +491,52 @@ public class RexBuilderTest {
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(), containsString("Second out of range: [60]"));
     }
+  }
+
+  /**
+   * Test string literal encoding.
+   */
+  @Test public void testStringLiteral() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType varchar =
+        typeFactory.createSqlType(SqlTypeName.VARCHAR);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+
+    final NlsString latin1 = new NlsString("foobar", "LATIN1", SqlCollation.IMPLICIT);
+    final NlsString utf8 = new NlsString("foobar", "UTF8", SqlCollation.IMPLICIT);
+
+    RexNode literal = builder.makePreciseStringLiteral("foobar");
+    assertEquals("'foobar'", literal.toString());
+    literal = builder.makePreciseStringLiteral(
+        new ByteString(new byte[] { 'f', 'o', 'o', 'b', 'a', 'r'}),
+        "UTF8",
+        SqlCollation.IMPLICIT);
+    assertEquals("_UTF8'foobar'", literal.toString());
+    literal = builder.makePreciseStringLiteral(
+        new ByteString("\u82f1\u56fd".getBytes(StandardCharsets.UTF_8)),
+        "UTF8",
+        SqlCollation.IMPLICIT);
+    assertEquals("_UTF8'\u82f1\u56fd'", literal.toString());
+    // Test again to check decode cache.
+    literal = builder.makePreciseStringLiteral(
+        new ByteString("\u82f1".getBytes(StandardCharsets.UTF_8)),
+        "UTF8",
+        SqlCollation.IMPLICIT);
+    assertEquals("_UTF8'\u82f1'", literal.toString());
+    try {
+      literal = builder.makePreciseStringLiteral(
+          new ByteString("\u82f1\u56fd".getBytes(StandardCharsets.UTF_8)),
+          "GB2312",
+          SqlCollation.IMPLICIT);
+      fail("expected exception, got " + literal);
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(), containsString("Failed to encode"));
+    }
+    literal = builder.makeLiteral(latin1, varchar, false);
+    assertEquals("_LATIN1'foobar'", literal.toString());
+    literal = builder.makeLiteral(utf8, varchar, false);
+    assertEquals("_UTF8'foobar'", literal.toString());
   }
 
 }

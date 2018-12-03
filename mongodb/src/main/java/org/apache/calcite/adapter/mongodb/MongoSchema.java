@@ -19,38 +19,59 @@ package org.apache.calcite.adapter.mongodb;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import com.mongodb.DB;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoCredential;
+import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoDatabase;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Schema mapped onto a directory of MONGO files. Each table in the schema
  * is a MONGO file in that directory.
  */
 public class MongoSchema extends AbstractSchema {
-  final DB mongoDb;
+  final MongoDatabase mongoDb;
 
   /**
    * Creates a MongoDB schema.
    *
    * @param host Mongo host, e.g. "localhost"
+   * @param credentialsList Optional credentials (empty list for none)
+   * @param options Mongo connection options
    * @param database Mongo database name, e.g. "foodmart"
    */
-  public MongoSchema(String host, String database) {
+  MongoSchema(String host, String database,
+      List<MongoCredential> credentialsList, MongoClientOptions options) {
     super();
     try {
-      MongoClient mongo = new MongoClient(host);
-      this.mongoDb = mongo.getDB(database);
+      final MongoClient mongo =
+          new MongoClient(new ServerAddress(host), credentialsList, options);
+      this.mongoDb = mongo.getDatabase(database);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
 
+  /**
+   * Allows tests to inject their instance of the database.
+   *
+   * @param mongoDb existing mongo database instance
+   */
+  @VisibleForTesting
+  MongoSchema(MongoDatabase mongoDb) {
+    super();
+    this.mongoDb = Objects.requireNonNull(mongoDb, "mongoDb");
+  }
+
   @Override protected Map<String, Table> getTableMap() {
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
-    for (String collectionName : mongoDb.getCollectionNames()) {
+    for (String collectionName : mongoDb.listCollectionNames()) {
       builder.put(collectionName, new MongoTable(collectionName));
     }
     return builder.build();

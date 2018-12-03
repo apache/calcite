@@ -82,7 +82,7 @@ public class RelMdDistinctRowCount
 
   public Double getDistinctRowCount(Union rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey, RexNode predicate) {
-    Double rowCount = 0.0;
+    double rowCount = 0.0;
     int[] adjustments = new int[rel.getRowType().getFieldCount()];
     RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
     for (RelNode input : rel.getInputs()) {
@@ -215,10 +215,10 @@ public class RelMdDistinctRowCount
         return 1D;
       }
     }
-    Double selectivity = RelMdUtil.guessSelectivity(predicate);
+    double selectivity = RelMdUtil.guessSelectivity(predicate);
 
     // assume half the rows are duplicates
-    Double nRows = rel.estimateRowCount(mq) / 2;
+    double nRows = rel.estimateRowCount(mq) / 2;
     return RelMdUtil.numDistinctVals(nRows, nRows * selectivity);
   }
 

@@ -16,14 +16,13 @@
  */
 package org.apache.calcite.util;
 
-import com.google.common.collect.Maps;
-
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.SortedMap;
+import java.util.TreeMap;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
@@ -192,11 +191,11 @@ public class BitSetsTest {
    * Tests the method {@link BitSets#closure(java.util.SortedMap)}
    */
   @Test public void testClosure() {
-    final SortedMap<Integer, BitSet> empty = Maps.newTreeMap();
+    final SortedMap<Integer, BitSet> empty = new TreeMap<>();
     assertThat(BitSets.closure(empty), equalTo(empty));
 
     // Map with an an entry for each position.
-    final SortedMap<Integer, BitSet> map = Maps.newTreeMap();
+    final SortedMap<Integer, BitSet> map = new TreeMap<>();
     map.put(0, BitSets.of(3));
     map.put(1, BitSets.of());
     map.put(2, BitSets.of(7));
@@ -217,7 +216,7 @@ public class BitSetsTest {
     assertThat("argument modified", map.toString(), equalTo(original));
 
     // Now a similar map with missing entries. Same result.
-    final SortedMap<Integer, BitSet> map2 = Maps.newTreeMap();
+    final SortedMap<Integer, BitSet> map2 = new TreeMap<>();
     map2.put(0, BitSets.of(3));
     map2.put(2, BitSets.of(7));
     map2.put(3, BitSets.of(4, 12));

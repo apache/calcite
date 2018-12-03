@@ -39,7 +39,6 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 import java.util.AbstractList;
@@ -140,7 +139,12 @@ public class MongoToEnumerableConverter
   }
 
   /** E.g. {@code constantArrayList("x", "y")} returns
-   * "Arrays.asList('x', 'y')". */
+   * "Arrays.asList('x', 'y')".
+   *
+   * @param values List of values
+   * @param clazz Type of values
+   * @return expression
+   */
   private static <T> MethodCallExpression constantArrayList(List<T> values,
       Class clazz) {
     return Expressions.call(
@@ -151,12 +155,7 @@ public class MongoToEnumerableConverter
   /** E.g. {@code constantList("x", "y")} returns
    * {@code {ConstantExpression("x"), ConstantExpression("y")}}. */
   private static <T> List<Expression> constantList(List<T> values) {
-    return Lists.transform(values,
-        new Function<T, Expression>() {
-          public Expression apply(T a0) {
-            return Expressions.constant(a0);
-          }
-        });
+    return Lists.transform(values, Expressions::constant);
   }
 }
 

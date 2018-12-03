@@ -17,6 +17,7 @@
 package org.apache.calcite.schema;
 
 import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.rel.type.RelProtoDataType;
 
 import java.util.Collection;
 import java.util.Set;
@@ -67,6 +68,21 @@ public interface Schema {
    * @return Names of the tables in this schema
    */
   Set<String> getTableNames();
+
+  /**
+   * Returns a type with a given name, or null if not found.
+   *
+   * @param name Table name
+   * @return Table, or null
+   */
+  RelProtoDataType getType(String name);
+
+  /**
+   * Returns the names of the types in this schema.
+   *
+   * @return Names of the tables in this schema
+   */
+  Set<String> getTypeNames();
 
   /**
    * Returns a list of functions in this schema with the given name, or

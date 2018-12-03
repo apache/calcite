@@ -19,8 +19,8 @@ package org.apache.calcite.interpreter;
 import org.apache.calcite.rel.core.Union;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -32,18 +32,18 @@ public class UnionNode implements Node {
   private final Sink sink;
   private final Union rel;
 
-  public UnionNode(Interpreter interpreter, Union rel) {
+  public UnionNode(Compiler compiler, Union rel) {
     ImmutableList.Builder<Source> builder = ImmutableList.builder();
     for (int i = 0; i < rel.getInputs().size(); i++) {
-      builder.add(interpreter.source(rel, i));
+      builder.add(compiler.source(rel, i));
     }
     this.sources = builder.build();
-    this.sink = interpreter.sink(rel);
+    this.sink = compiler.sink(rel);
     this.rel = rel;
   }
 
   public void run() throws InterruptedException {
-    final Set<Row> rows = rel.all ? null : Sets.<Row>newHashSet();
+    final Set<Row> rows = rel.all ? null : new HashSet<>();
     for (Source source : sources) {
       Row row;
       while ((row = source.receive()) != null) {

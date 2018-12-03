@@ -35,7 +35,6 @@ import org.apache.calcite.rel.core.TableModify.Operation;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.ResultSetEnumerable;
@@ -54,8 +53,6 @@ import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import java.sql.SQLException;
@@ -63,6 +60,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Queryable that gets its data from a table within a JDBC connection.
@@ -74,7 +72,7 @@ import java.util.List;
  * The resulting queryable can then be converted to a SQL query, which can be
  * executed efficiently on the JDBC server.</p>
  */
-class JdbcTable extends AbstractQueryableTable
+public class JdbcTable extends AbstractQueryableTable
     implements TranslatableTable, ScannableTable, ModifiableTable {
   private RelProtoDataType protoRowType;
   private final JdbcSchema jdbcSchema;
@@ -90,7 +88,7 @@ class JdbcTable extends AbstractQueryableTable
     this.jdbcCatalogName = jdbcCatalogName;
     this.jdbcSchemaName = jdbcSchemaName;
     this.jdbcTableName = tableName;
-    this.jdbcTableType = Preconditions.checkNotNull(jdbcTableType);
+    this.jdbcTableType = Objects.requireNonNull(jdbcTableType);
   }
 
   public String toString() {
@@ -121,17 +119,14 @@ class JdbcTable extends AbstractQueryableTable
   private List<Pair<ColumnMetaData.Rep, Integer>> fieldClasses(
       final JavaTypeFactory typeFactory) {
     final RelDataType rowType = protoRowType.apply(typeFactory);
-    return Lists.transform(rowType.getFieldList(),
-        new Function<RelDataTypeField, Pair<ColumnMetaData.Rep, Integer>>() {
-          public Pair<ColumnMetaData.Rep, Integer> apply(RelDataTypeField f) {
-            final RelDataType type = f.getType();
-            final Class clazz = (Class) typeFactory.getJavaClass(type);
-            final ColumnMetaData.Rep rep =
-                Util.first(ColumnMetaData.Rep.of(clazz),
-                    ColumnMetaData.Rep.OBJECT);
-            return Pair.of(rep, type.getSqlTypeName().getJdbcOrdinal());
-          }
-        });
+    return Lists.transform(rowType.getFieldList(), f -> {
+      final RelDataType type = f.getType();
+      final Class clazz = (Class) typeFactory.getJavaClass(type);
+      final ColumnMetaData.Rep rep =
+          Util.first(ColumnMetaData.Rep.of(clazz),
+              ColumnMetaData.Rep.OBJECT);
+      return Pair.of(rep, type.getSqlTypeName().getJdbcOrdinal());
+    });
   }
 
   SqlString generateSql() {

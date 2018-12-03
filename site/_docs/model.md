@@ -1,6 +1,6 @@
 ---
 layout: docs
-title: JSON models
+title: JSON/YAML models
 permalink: /docs/model.html
 ---
 <!--
@@ -22,7 +22,7 @@ limitations under the License.
 {% endcomment %}
 -->
 
-Calcite models can be represented as JSON files.
+Calcite models can be represented as JSON/YAML files.
 This page describes the structure of those files.
 
 Models can also be built programmatically using the `Schema` SPI.
@@ -31,12 +31,21 @@ Models can also be built programmatically using the `Schema` SPI.
 
 ### Root
 
+#### JSON
 {% highlight json %}
 {
   version: '1.0',
   defaultSchema: 'mongo',
   schemas: [ Schema... ]
 }
+{% endhighlight %}
+
+#### YAML
+{% highlight yaml %}
+version: 1.0
+defaultSchema: mongo
+schemas:
+- [Schema...]
 {% endhighlight %}
 
 `version` (required string) must have value `1.0`.
@@ -51,6 +60,7 @@ become the default schema for connections to Calcite that use this model.
 
 Occurs within `root.schemas`.
 
+#### JSON
 {% highlight json %}
 {
   name: 'foodmart',
@@ -58,6 +68,16 @@ Occurs within `root.schemas`.
   cache: true,
   materializations: [ Materialization... ]
 }
+{% endhighlight %}
+
+#### YAML
+{% highlight yaml %}
+name: foodmart
+path:
+  lib
+cache: true
+materializations:
+- [ Materialization... ]
 {% endhighlight %}
 
 `name` (required string) is the name of the schema.
@@ -73,8 +93,16 @@ resolve functions used in this schema. If specified it must be a list,
 and each element of the list must be either a string or a list of
 strings. For example,
 
+#### JSON
 {% highlight json %}
   path: [ ['usr', 'lib'], 'lib' ]
+{% endhighlight %}
+
+#### YAML
+{% highlight yaml %}
+path:
+- [usr, lib]
+- lib
 {% endhighlight %}
 
 declares a path with two elements: the schema '/usr/lib' and the
@@ -102,7 +130,7 @@ A particular schema implementation can override the
 `Schema.contentsHaveChangedSince` method to tell Calcite
 when it should consider its cache to be out of date.
 
-Tables, functions and sub-schemas explicitly created in a schema are
+Tables, functions, types, and sub-schemas explicitly created in a schema are
 not affected by this caching mechanism. They always appear in the schema
 immediately, and are never flushed.
 
@@ -110,13 +138,27 @@ immediately, and are never flushed.
 
 Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
 
+#### JSON
 {% highlight json %}
 {
   name: 'foodmart',
   type: 'map',
   tables: [ Table... ],
-  functions: [ Function... ]
+  functions: [ Function... ],
+  types: [ Type... ]
 }
+{% endhighlight %}
+
+#### YAML
+{% highlight yaml %}
+name: foodmart
+type: map
+tables:
+- [ Table... ]
+functions:
+- [ Function... ]
+types:
+- [ Type... ]
 {% endhighlight %}
 
 `name`, `type`, `path`, `cache`, `materializations` inherited from
@@ -128,10 +170,13 @@ defines the tables in this schema.
 `functions` (optional list of <a href="#function">Function</a> elements)
 defines the functions in this schema.
 
+`types` defines the types in this schema.
+
 ### Custom Schema
 
 Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
 
+#### JSON
 {% highlight json %}
 {
   name: 'mongo',
@@ -142,6 +187,16 @@ Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
     database: 'test'
   }
 }
+{% endhighlight %}
+
+#### YAML
+{% highlight yaml %}
+name: mongo
+type: custom
+factory: org.apache.calcite.adapter.mongodb.MongoSchemaFactory
+operand:
+  host: localhost
+  database: test
 {% endhighlight %}
 
 `name`, `type`, `path`, `cache`, `materializations` inherited from
@@ -158,7 +213,7 @@ factory.
 ### JDBC Schema
 
 Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
-
+#### JSON
 {% highlight json %}
 {
   name: 'foodmart',
@@ -170,6 +225,18 @@ Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
   jdbcCatalog: TODO,
   jdbcSchema: TODO
 }
+{% endhighlight %}
+
+#### YAML
+{% highlight yaml %}
+name: foodmart
+type: jdbc
+jdbcDriver: TODO
+jdbcUrl: TODO
+jdbcUser: TODO
+jdbcPassword: TODO
+jdbcCatalog: TODO
+jdbcSchema: TODO
 {% endhighlight %}
 
 `name`, `type`, `path`, `cache`, `materializations` inherited from
@@ -195,12 +262,20 @@ data source.
 
 Occurs within `root.schemas.materializations`.
 
+#### JSON
 {% highlight json %}
 {
   view: 'V',
   table: 'T',
   sql: 'select deptno, count(*) as c, sum(sal) as s from emp group by deptno'
 }
+{% endhighlight %}
+
+#### YAML
+{% highlight yaml %}
+view: V
+table: T
+sql: select deptno, count(*) as c, sum(sal) as s from emp group by deptno
 {% endhighlight %}
 
 `view` (optional string) is the name of the view; null means that the table
@@ -217,11 +292,19 @@ Calcite will create and populate an in-memory table.
 
 Occurs within `root.schemas.tables`.
 
+#### JSON
 {% highlight json %}
 {
   name: 'sales_fact',
   columns: [ Column... ]
 }
+{% endhighlight %}
+
+#### YAML
+{% highlight yaml %}
+name: sales_fact
+columns:
+  [ Column... ]
 {% endhighlight %}
 
 `name` (required string) is the name of this table. Must be unique within the schema.
@@ -238,6 +321,7 @@ some kinds of table, optional for others such as View)
 
 Like base class <a href="#table">Table</a>, occurs within `root.schemas.tables`.
 
+#### JSON
 {% highlight json %}
 {
   name: 'female_emps',
@@ -245,6 +329,14 @@ Like base class <a href="#table">Table</a>, occurs within `root.schemas.tables`.
   sql: "select * from emps where gender = 'F'",
   modifiable: true
 }
+{% endhighlight %}
+
+#### YAML
+{% highlight yaml %}
+name: female_emps
+type: view
+sql: select * from emps where gender = 'F'
+modifiable: true
 {% endhighlight %}
 
 `name`, `type`, `columns` inherited from <a href="#table">Table</a>.
@@ -284,6 +376,7 @@ Errors regarding modifiable views:
 
 Like base class <a href="#table">Table</a>, occurs within `root.schemas.tables`.
 
+#### JSON
 {% highlight json %}
 {
   name: 'female_emps',
@@ -293,6 +386,15 @@ Like base class <a href="#table">Table</a>, occurs within `root.schemas.tables`.
     todo: 'TODO'
   }
 }
+{% endhighlight %}
+
+#### YAML
+{% highlight yaml %}
+name: female_emps
+type: custom
+factory: TODO
+operand:
+  todo: TODO
 {% endhighlight %}
 
 `name`, `type`, `columns` inherited from <a href="#table">Table</a>.
@@ -311,11 +413,18 @@ Information about whether a table allows streaming.
 
 Occurs within `root.schemas.tables.stream`.
 
+#### JSON
 {% highlight json %}
 {
   stream: true,
   history: false
 }
+{% endhighlight %}
+
+#### YAML
+{% highlight yaml %}
+stream: true
+history: false
 {% endhighlight %}
 
 `stream` (optional; default true) is whether the table allows streaming.
@@ -327,10 +436,16 @@ available.
 
 Occurs within `root.schemas.tables.columns`.
 
+#### JSON
 {% highlight json %}
 {
   name: 'empno'
 }
+{% endhighlight %}
+
+#### YAML
+{% highlight yaml %}
+name: empno
 {% endhighlight %}
 
 `name` (required string) is the name of this column.
@@ -339,6 +454,7 @@ Occurs within `root.schemas.tables.columns`.
 
 Occurs within `root.schemas.functions`.
 
+#### JSON
 {% highlight json %}
 {
   name: 'MY_PLUS',
@@ -346,6 +462,14 @@ Occurs within `root.schemas.functions`.
   methodName: 'apply',
   path: []
 }
+{% endhighlight %}
+
+#### YAML
+{% highlight yaml %}
+name: MY_PLUS
+className: com.example.functions.MyPlusFunction
+methodName: apply
+path: {}
 {% endhighlight %}
 
 `name` (required string) is the name of this function.
@@ -370,10 +494,46 @@ if found, creates an aggregate function.
 
 `path` (optional list of string) is the path for resolving this function.
 
+### Type
+
+Occurs within `root.schemas.types`.
+
+#### JSON
+{% highlight json %}
+{
+  name: 'mytype1',
+  type: 'BIGINT',
+  attributes: [
+    {
+      name: 'f1',
+      type: 'BIGINT'
+    }
+  ]
+}
+{% endhighlight %}
+
+#### YAML
+{% highlight yaml %}
+name: mytype1
+type: BIGINT
+attributes:
+- name: f1
+  type: BIGINT
+{% endhighlight %}
+
+`name` (required string) is the name of this type.
+
+`type` (optional) is the SQL type.
+
+`attributes` (optional) is the attribute list of this type.
+If `attributes` and `type` both exist at the same level,
+`type` takes precedence.
+
 ### Lattice
 
 Occurs within `root.schemas.lattices`.
 
+#### JSON
 {% highlight json %}
 {
   name: 'star',
@@ -405,6 +565,30 @@ Occurs within `root.schemas.lattices`.
 }
 {% endhighlight %}
 
+#### YAML
+{% highlight yaml %}
+name: star
+sql: >
+  select 1 from "foodmart"."sales_fact_1997" as "s"',
+  join "foodmart"."product" as "p" using ("product_id")',
+  join "foodmart"."time_by_day" as "t" using ("time_id")',
+  join "foodmart"."product_class" as "pc" on "p"."product_class_id" = "pc"."product_class_id"
+auto: false
+algorithm: true
+algorithmMaxMillis: 10000
+rowCountEstimate: 86837
+defaultMeasures:
+- agg: count
+tiles:
+- dimensions: [ 'the_year', ['t', 'quarter'] ]
+  measures:
+  - agg: sum
+    args: unit_sales
+  - agg: sum
+    args: store_sales
+  - agg: 'count'
+{% endhighlight %}
+
 `name` (required string) is the name of this lattice.
 
 `sql` (required string, or list of strings that will be concatenated as a
@@ -433,8 +617,14 @@ Any tile defined in `tiles` can still define its own measures, including
 measures not on this list. If not specified, the default list of measures is
 just 'count(*)':
 
+#### JSON
 {% highlight json %}
 [ { name: 'count' } ]
+{% endhighlight %}
+
+#### YAML
+{% highlight yaml %}
+name: count
 {% endhighlight %}
 
 `statisticProvider` (optional name of a class that implements
@@ -471,6 +661,17 @@ Occurs within `root.schemas.lattices.tiles`.
 }
 {% endhighlight %}
 
+#### YAML
+{% highlight yaml %}
+dimensions: [ 'the_year', ['t', 'quarter'] ]
+measures:
+- agg: sum
+  args: unit_sales
+- agg: sum
+  args: store_sales
+- agg: count
+{% endhighlight %}
+
 `dimensions` (list of strings or string lists, required, but may be empty)
 defines the dimensionality of this tile.
 Each dimension is a column from the lattice, like a `GROUP BY` clause.
@@ -487,11 +688,18 @@ lattice's default measure list.
 Occurs within `root.schemas.lattices.defaultMeasures`
 and `root.schemas.lattices.tiles.measures`.
 
+#### JSON
 {% highlight json %}
 {
   agg: 'sum',
   args: [ 'unit_sales' ]
 }
+{% endhighlight %}
+
+#### YAML
+{% highlight yaml %}
+agg: sum
+args: unit_sales
 {% endhighlight %}
 
 `agg` is the name of an aggregate function (usually 'count', 'sum', 'min',

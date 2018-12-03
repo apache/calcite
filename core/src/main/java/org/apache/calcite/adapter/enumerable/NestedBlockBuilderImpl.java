@@ -32,9 +32,9 @@ import java.util.Map;
  * @see org.apache.calcite.adapter.enumerable.StrictAggImplementor#implementAdd(AggContext, AggAddContext)
  */
 public class NestedBlockBuilderImpl implements NestedBlockBuilder {
-  private final List<BlockBuilder> blocks = new ArrayList<BlockBuilder>();
+  private final List<BlockBuilder> blocks = new ArrayList<>();
   private final List<Map<RexNode, Boolean>> nullables =
-      new ArrayList<Map<RexNode, Boolean>>();
+      new ArrayList<>();
 
   /**
    * Constructs nested block builders starting of a given code block.
@@ -52,7 +52,7 @@ public class NestedBlockBuilderImpl implements NestedBlockBuilder {
    */
   public final BlockBuilder nestBlock() {
     BlockBuilder block = new BlockBuilder(true, currentBlock());
-    nestBlock(block, Collections.<RexNode, Boolean>emptyMap());
+    nestBlock(block, Collections.emptyMap());
     return block;
   }
 
@@ -63,7 +63,7 @@ public class NestedBlockBuilderImpl implements NestedBlockBuilder {
    * @see #exitBlock()
    */
   public final void nestBlock(BlockBuilder block) {
-    nestBlock(block, Collections.<RexNode, Boolean>emptyMap());
+    nestBlock(block, Collections.emptyMap());
   }
 
   /**
@@ -77,13 +77,13 @@ public class NestedBlockBuilderImpl implements NestedBlockBuilder {
       Map<RexNode, Boolean> nullables) {
     blocks.add(block);
     Map<RexNode, Boolean> prev = this.nullables.isEmpty()
-        ? Collections.<RexNode, Boolean>emptyMap()
+        ? Collections.emptyMap()
         : this.nullables.get(this.nullables.size() - 1);
     Map<RexNode, Boolean> next;
     if (nullables == null || nullables.isEmpty()) {
       next = prev;
     } else {
-      next = new HashMap<RexNode, Boolean>(nullables);
+      next = new HashMap<>(nullables);
       next.putAll(prev);
       next = Collections.unmodifiableMap(next);
     }

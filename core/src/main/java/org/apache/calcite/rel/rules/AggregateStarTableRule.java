@@ -16,17 +16,19 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.TileKey;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptLattice;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.SubstitutionVisitor;
+import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.RelNode;
@@ -46,8 +48,8 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.AbstractSourceMapping;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -60,14 +62,14 @@ import java.util.List;
 public class AggregateStarTableRule extends RelOptRule {
   public static final AggregateStarTableRule INSTANCE =
       new AggregateStarTableRule(
-          operand(Aggregate.class, null, Aggregate.IS_SIMPLE,
+          operandJ(Aggregate.class, null, Aggregate::isSimple,
               some(operand(StarTable.StarTableScan.class, none()))),
           RelFactories.LOGICAL_BUILDER,
           "AggregateStarTableRule");
 
   public static final AggregateStarTableRule INSTANCE2 =
       new AggregateStarTableRule(
-          operand(Aggregate.class, null, Aggregate.IS_SIMPLE,
+          operandJ(Aggregate.class, null, Aggregate::isSimple,
               operand(Project.class,
                   operand(StarTable.StarTableScan.class, none()))),
           RelFactories.LOGICAL_BUILDER,
@@ -113,14 +115,22 @@ public class AggregateStarTableRule extends RelOptRule {
 
   protected void apply(RelOptRuleCall call, Project postProject,
       final Aggregate aggregate, StarTable.StarTableScan scan) {
+    final RelOptPlanner planner = call.getPlanner();
+    final CalciteConnectionConfig config =
+        planner.getContext().unwrap(CalciteConnectionConfig.class);
+    if (config == null || !config.createMaterializations()) {
+      // Disable this rule if we if materializations are disabled - in
+      // particular, if we are in a recursive statement that is being used to
+      // populate a materialization
+      return;
+    }
     final RelOptCluster cluster = scan.getCluster();
     final RelOptTable table = scan.getTable();
-    final RelOptLattice lattice = call.getPlanner().getLattice(table);
+    final RelOptLattice lattice = planner.getLattice(table);
     final List<Lattice.Measure> measures =
         lattice.lattice.toMeasures(aggregate.getAggCallList());
     final Pair<CalciteSchema.TableEntry, TileKey> pair =
-        lattice.getAggregate(
-            call.getPlanner(), aggregate.getGroupSet(), measures);
+        lattice.getAggregate(planner, aggregate.getGroupSet(), measures);
     if (pair == null) {
       return;
     }
@@ -138,7 +148,7 @@ public class AggregateStarTableRule extends RelOptRule {
             aggregateTableRowType,
             tableEntry,
             rowCount);
-    relBuilder.push(aggregateRelOptTable.toRel(RelOptUtil.getContext(cluster)));
+    relBuilder.push(aggregateRelOptTable.toRel(ViewExpanders.simpleContext(cluster)));
     if (tileKey == null) {
       if (CalcitePrepareImpl.DEBUG) {
         System.out.println("Using materialization "
@@ -154,7 +164,7 @@ public class AggregateStarTableRule extends RelOptRule {
             + aggregate.getGroupSet());
       }
       assert tileKey.dimensions.contains(aggregate.getGroupSet());
-      final List<AggregateCall> aggCalls = Lists.newArrayList();
+      final List<AggregateCall> aggCalls = new ArrayList<>();
       ImmutableBitSet.Builder groupSet = ImmutableBitSet.builder();
       for (int key : aggregate.getGroupSet()) {
         groupSet.set(tileKey.dimensions.indexOf(key));
@@ -226,13 +236,14 @@ public class AggregateStarTableRule extends RelOptRule {
       }
       return AggregateCall.create(roll, false,
           aggregateCall.isApproximate(), ImmutableList.of(offset + i), -1,
+          aggregateCall.collation,
           groupCount, relBuilder.peek(), null, aggregateCall.name);
     }
 
     // Second, try to satisfy the aggregation based on group set columns.
   tryGroup:
     {
-      List<Integer> newArgs = Lists.newArrayList();
+      List<Integer> newArgs = new ArrayList<>();
       for (Integer arg : aggregateCall.getArgList()) {
         int z = tileKey.dimensions.indexOf(arg);
         if (z < 0) {
@@ -241,7 +252,7 @@ public class AggregateStarTableRule extends RelOptRule {
         newArgs.add(z);
       }
       return AggregateCall.create(aggregation, false,
-          aggregateCall.isApproximate(), newArgs, -1,
+          aggregateCall.isApproximate(), newArgs, -1, aggregateCall.collation,
           groupCount, relBuilder.peek(), null, aggregateCall.name);
     }
 

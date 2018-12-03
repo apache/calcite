@@ -57,12 +57,33 @@ public class DruidTableFactory implements TableFactory {
     final Map<String, SqlTypeName> fieldBuilder = new LinkedHashMap<>();
     final Map<String, List<ComplexMetric>> complexMetrics = new HashMap<>();
     final String timestampColumnName;
-    if (operand.get("timestampColumn") != null) {
-      timestampColumnName = (String) operand.get("timestampColumn");
+    final SqlTypeName timestampColumnType;
+    final Object timestampInfo = operand.get("timestampColumn");
+    if (timestampInfo != null) {
+      if (timestampInfo instanceof Map) {
+        Map map = (Map) timestampInfo;
+        if (!(map.get("name") instanceof String)) {
+          throw new IllegalArgumentException("timestampColumn array must have name");
+        }
+        timestampColumnName = (String) map.get("name");
+        if (!(map.get("type") instanceof String)
+            || map.get("type").equals("timestamp with local time zone")) {
+          timestampColumnType = SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE;
+        } else if (map.get("type").equals("timestamp")) {
+          timestampColumnType = SqlTypeName.TIMESTAMP;
+        } else {
+          throw new IllegalArgumentException("unexpected type for timestampColumn array");
+        }
+      } else {
+        // String (for backwards compatibility)
+        timestampColumnName = (String) timestampInfo;
+        timestampColumnType = SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE;
+      }
     } else {
       timestampColumnName = DruidTable.DEFAULT_TIMESTAMP_COLUMN;
+      timestampColumnType = SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE;
     }
-    fieldBuilder.put(timestampColumnName, SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+    fieldBuilder.put(timestampColumnName, timestampColumnType);
     final Object dimensionsRaw = operand.get("dimensions");
     if (dimensionsRaw instanceof List) {
       // noinspection unchecked
@@ -78,7 +99,7 @@ public class DruidTableFactory implements TableFactory {
       // noinspection unchecked
       final List<String> complexMetricList = (List<String>) complexMetricsRaw;
       for (String metric : complexMetricList) {
-        complexMetrics.put(metric, new ArrayList<ComplexMetric>());
+        complexMetrics.put(metric, new ArrayList<>());
       }
     }
 

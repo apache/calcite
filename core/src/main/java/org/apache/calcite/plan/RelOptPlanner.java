@@ -172,6 +172,11 @@ public interface RelOptPlanner {
   void addMaterialization(RelOptMaterialization materialization);
 
   /**
+   * Returns the materializations that have been registered with the planner.
+   */
+  List<RelOptMaterialization> getMaterializations();
+
+  /**
    * Defines a lattice.
    *
    * <p>The lattice may have materializations; it is not necessary to call

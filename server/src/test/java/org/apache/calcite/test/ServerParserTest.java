@@ -92,6 +92,21 @@ public class ServerParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testCreateTypeWithAttributeList() {
+    sql("create type x.mytype1 as (i int not null, j varchar(5) null)")
+        .ok("CREATE TYPE `X`.`MYTYPE1` AS (`I` INTEGER NOT NULL, `J` VARCHAR(5))");
+  }
+
+  @Test public void testCreateTypeWithBaseType() {
+    sql("create type mytype1 as varchar(5)")
+        .ok("CREATE TYPE `MYTYPE1` AS VARCHAR(5)");
+  }
+
+  @Test public void testCreateOrReplaceTypeWith() {
+    sql("create or replace type mytype1 as varchar(5)")
+        .ok("CREATE OR REPLACE TYPE `MYTYPE1` AS VARCHAR(5)");
+  }
+
   @Test public void testCreateTable() {
     sql("create table x (i int not null, j varchar(5) null)")
         .ok("CREATE TABLE `X` (`I` INTEGER NOT NULL, `J` VARCHAR(5))");
@@ -195,6 +210,29 @@ public class ServerParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testCreateOrReplaceFunction() {
+    final String sql = "create or replace function if not exists x.udf\n"
+        + " as 'org.apache.calcite.udf.TableFun.demoUdf'\n"
+        + "using jar 'file:/path/udf/udf-0.0.1-SNAPSHOT.jar',\n"
+        + " jar 'file:/path/udf/udf2-0.0.1-SNAPSHOT.jar',\n"
+        + " file 'file:/path/udf/logback.xml'";
+    final String expected = "CREATE OR REPLACE FUNCTION"
+        + " IF NOT EXISTS `X`.`UDF`"
+        + " AS 'org.apache.calcite.udf.TableFun.demoUdf'"
+        + " USING JAR 'file:/path/udf/udf-0.0.1-SNAPSHOT.jar',"
+        + " JAR 'file:/path/udf/udf2-0.0.1-SNAPSHOT.jar',"
+        + " FILE 'file:/path/udf/logback.xml'";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testCreateOrReplaceFunction2() {
+    final String sql = "create function \"my Udf\"\n"
+        + " as 'org.apache.calcite.udf.TableFun.demoUdf'";
+    final String expected = "CREATE FUNCTION `my Udf`"
+        + " AS 'org.apache.calcite.udf.TableFun.demoUdf'";
+    sql(sql).ok(expected);
+  }
+
   @Test public void testDropSchema() {
     sql("drop schema x")
         .ok("DROP SCHEMA `X`");
@@ -208,6 +246,21 @@ public class ServerParserTest extends SqlParserTest {
   @Test public void testDropForeignSchema() {
     sql("drop foreign schema x")
         .ok("DROP FOREIGN SCHEMA `X`");
+  }
+
+  @Test public void testDropType() {
+    sql("drop type X")
+        .ok("DROP TYPE `X`");
+  }
+
+  @Test public void testDropTypeIfExists() {
+    sql("drop type if exists X")
+        .ok("DROP TYPE IF EXISTS `X`");
+  }
+
+  @Test public void testDropTypeTrailingIfExistsFails() {
+    sql("drop type X ^if^ exists")
+        .fails("(?s)Encountered \"if\" at.*");
   }
 
   @Test public void testDropTable() {
@@ -238,6 +291,18 @@ public class ServerParserTest extends SqlParserTest {
   @Test public void testDropMaterializedViewIfExists() {
     sql("drop materialized view if exists x")
         .ok("DROP MATERIALIZED VIEW IF EXISTS `X`");
+  }
+
+  @Test public void testDropFunction() {
+    final String sql = "drop function x.udf";
+    final String expected = "DROP FUNCTION `X`.`UDF`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testDropFunctionIfExists() {
+    final String sql = "drop function if exists \"my udf\"";
+    final String expected = "DROP FUNCTION IF EXISTS `my udf`";
+    sql(sql).ok(expected);
   }
 
 }

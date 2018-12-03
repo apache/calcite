@@ -28,12 +28,11 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 
-import com.google.common.collect.Lists;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -130,7 +129,7 @@ public class InterpreterTest {
 
   private static void assertRows(Interpreter interpreter,
       boolean unordered, String... rows) {
-    final List<String> list = Lists.newArrayList();
+    final List<String> list = new ArrayList<>();
     for (Object[] row : interpreter) {
       list.add(Arrays.toString(row));
     }
@@ -176,10 +175,36 @@ public class InterpreterTest {
         "[6, George]");
   }
 
-  @Test public void testAggregate() throws Exception {
+  @Test public void testAggregateCount() throws Exception {
     rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
     SqlNode parse =
         planner.parse("select  count(*) from \"beatles\"");
+
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.rel(validate).rel;
+
+    final Interpreter interpreter = new Interpreter(dataContext, convert);
+    assertRows(interpreter,
+        "[4]");
+  }
+
+  @Test public void testAggregateMax() throws Exception {
+    rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
+    SqlNode parse =
+        planner.parse("select  max(\"i\") from \"beatles\"");
+
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.rel(validate).rel;
+
+    final Interpreter interpreter = new Interpreter(dataContext, convert);
+    assertRows(interpreter,
+        "[6]");
+  }
+
+  @Test public void testAggregateMin() throws Exception {
+    rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
+    SqlNode parse =
+        planner.parse("select  min(\"i\") from \"beatles\"");
 
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.rel(validate).rel;

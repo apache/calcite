@@ -50,7 +50,7 @@ baseurl:
 # The base path where the Avatica's website is deployed
 avaticaBaseurl: /avatica
 
-gems:
+plugins:
     - jekyll-redirect-from
 
 # End _config.yml

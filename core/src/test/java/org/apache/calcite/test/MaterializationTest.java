@@ -37,6 +37,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSimplify;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.QueryableTable;
@@ -45,6 +46,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.JdbcTest.Department;
 import org.apache.calcite.test.JdbcTest.Dependent;
 import org.apache.calcite.test.JdbcTest.Employee;
+import org.apache.calcite.test.JdbcTest.Event;
 import org.apache.calcite.test.JdbcTest.Location;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
@@ -53,7 +55,6 @@ import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.mapping.IntPair;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
@@ -62,11 +63,13 @@ import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -82,11 +85,11 @@ import static org.junit.Assert.assertTrue;
  * and checks that the materialization is used.
  */
 public class MaterializationTest {
-  private static final Function<ResultSet, Void> CONTAINS_M0 =
+  private static final Consumer<ResultSet> CONTAINS_M0 =
       CalciteAssert.checkResultContains(
           "EnumerableTableScan(table=[[hr, m0]])");
 
-  private static final Function<ResultSet, Void> CONTAINS_LOCATIONS =
+  private static final Consumer<ResultSet> CONTAINS_LOCATIONS =
       CalciteAssert.checkResultContains(
           "EnumerableTableScan(table=[[hr, locations]])");
 
@@ -119,8 +122,8 @@ public class MaterializationTest {
       new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   private final RexBuilder rexBuilder = new RexBuilder(typeFactory);
   private final RexSimplify simplify =
-      new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
-          RexUtil.EXECUTOR);
+      new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, RexUtil.EXECUTOR)
+          .withParanoid(true);
 
   @Test public void testScan() {
     CalciteAssert.that()
@@ -163,7 +166,7 @@ public class MaterializationTest {
   }
 
   @Test public void testFilterQueryOnProjectView() {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
           .withMaterializations(
@@ -182,7 +185,7 @@ public class MaterializationTest {
    * definition. */
   private void checkMaterialize(String materialize, String query) {
     checkMaterialize(materialize, query, HR_FKUK_MODEL, CONTAINS_M0,
-        RuleSets.ofList(ImmutableList.<RelOptRule>of()));
+        RuleSets.ofList(ImmutableList.of()));
   }
 
   /** Checks that a given query can use a materialized view with a given
@@ -194,14 +197,14 @@ public class MaterializationTest {
   /** Checks that a given query can use a materialized view with a given
    * definition. */
   private void checkMaterialize(String materialize, String query, String model,
-      Function<ResultSet, Void> explainChecker) {
+      Consumer<ResultSet> explainChecker) {
     checkMaterialize(materialize, query, model, explainChecker,
-        RuleSets.ofList(ImmutableList.<RelOptRule>of()));
+        RuleSets.ofList(ImmutableList.of()));
   }
 
 
   private void checkMaterialize(String materialize, String query, String model,
-      Function<ResultSet, Void> explainChecker, final RuleSet rules) {
+      Consumer<ResultSet> explainChecker, final RuleSet rules) {
     checkThatMaterialize(materialize, query, "m0", false, model, explainChecker,
         rules).sameResultWithMaterializationsDisabled();
   }
@@ -210,8 +213,8 @@ public class MaterializationTest {
    * definition. */
   private CalciteAssert.AssertQuery checkThatMaterialize(String materialize,
       String query, String name, boolean existing, String model,
-      Function<ResultSet, Void> explainChecker, final RuleSet rules) {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+      Consumer<ResultSet> explainChecker, final RuleSet rules) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.AssertQuery that = CalciteAssert.that()
           .withMaterializations(model, existing, name, materialize)
@@ -220,12 +223,9 @@ public class MaterializationTest {
 
       // Add any additional rules required for the test
       if (rules.iterator().hasNext()) {
-        that.withHook(Hook.PLANNER, new Function<RelOptPlanner, Void>() {
-          public Void apply(RelOptPlanner planner) {
-            for (RelOptRule rule : rules) {
-              planner.addRule(rule);
-            }
-            return null;
+        that.withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          for (RelOptRule rule : rules) {
+            planner.addRule(rule);
           }
         });
       }
@@ -238,7 +238,7 @@ public class MaterializationTest {
    * definition. */
   private void checkNoMaterialize(String materialize, String query,
       String model) {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
           .withMaterializations(model, "m0", materialize)
@@ -324,7 +324,7 @@ public class MaterializationTest {
    * FilterToProjectUnifyRule.invert(MutableRel, MutableRel, MutableProject)
    * works incorrectly</a>. */
   @Test public void testFilterQueryOnProjectView8() {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       final String m = "select \"salary\", \"commission\",\n"
           + "\"deptno\", \"empid\", \"name\" from \"emps\"";
@@ -757,13 +757,13 @@ public class MaterializationTest {
 
   private void checkNotSatisfiable(RexNode e) {
     assertFalse(SubstitutionVisitor.mayBeSatisfiable(e));
-    final RexNode simple = simplify.simplify(e);
+    final RexNode simple = simplify.simplifyUnknownAs(e, RexUnknownAs.UNKNOWN);
     assertFalse(RexLiteral.booleanValue(simple));
   }
 
   private void checkSatisfiable(RexNode e, String s) {
     assertTrue(SubstitutionVisitor.mayBeSatisfiable(e));
-    final RexNode simple = simplify.simplify(e);
+    final RexNode simple = simplify.simplifyUnknownAs(e, RexUnknownAs.UNKNOWN);
     assertEquals(s, simple.toString());
   }
 
@@ -780,7 +780,7 @@ public class MaterializationTest {
     final RexNode x_eq_1 =
         rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, x, i1); // $0 = 1
     final RexNode x_eq_1_b =
-        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, x, i1); // $0 = 1 again
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, i1, x); // 1 = $0
     final RexNode x_eq_2 =
         rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, x, i2); // $0 = 2
     final RexNode y_eq_2 =
@@ -791,7 +791,14 @@ public class MaterializationTest {
     RexNode newFilter;
 
     // Example 1.
-    // TODO:
+    //   condition: x = 1 or y = 2
+    //   target:    y = 2 or 1 = x
+    // yields
+    //   residue:   true
+    newFilter = SubstitutionVisitor.splitFilter(simplify,
+        rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2),
+        rexBuilder.makeCall(SqlStdOperatorTable.OR, y_eq_2, x_eq_1_b));
+    assertThat(newFilter.isAlwaysTrue(), equalTo(true));
 
     // Example 2.
     //   condition: x = 1,
@@ -1057,7 +1064,7 @@ public class MaterializationTest {
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
             "EnumerableAggregate(group=[{1}])\n"
-                + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[10], expr#3=[>($t1, $t2)], "
+                + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[10], expr#3=[<($t2, $t1)], "
                 + "proj#0..1=[{exprs}], $condition=[$t3])\n"
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1130,7 +1137,7 @@ public class MaterializationTest {
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
             "EnumerableAggregate(group=[{1}], S=[$SUM0($3)])\n"
-                + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[>($t1, $t4)], "
+                + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
                 + "proj#0..3=[{exprs}], $condition=[$t5])\n"
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1143,10 +1150,10 @@ public class MaterializationTest {
             + "from \"emps\" where \"deptno\" > 10 group by \"deptno\"",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], "
-                + "deptno=[$t0], S=[$t3])\n"
+            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)],"
+                + " deptno=[$t0], $f1=[$t3])\n"
                 + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($3)])\n"
-                + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[>($t1, $t4)], "
+                + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
                 + "proj#0..3=[{exprs}], $condition=[$t5])\n"
                 + "      EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1169,9 +1176,9 @@ public class MaterializationTest {
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
             "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t0, $t2)], "
-                + "expr#4=[+($t1, $t2)], EXPR$0=[$t3], S=[$t4])\n"
+                + "expr#4=[+($t1, $t2)], $f0=[$t3], $f1=[$t4])\n"
                 + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($3)])\n"
-                + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[>($t1, $t4)], "
+                + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
                 + "proj#0..3=[{exprs}], $condition=[$t5])\n"
                 + "      EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1187,6 +1194,97 @@ public class MaterializationTest {
             + "from \"emps\" where \"deptno\" > 10 group by \"deptno\"");
   }
 
+  @Test public void testAggregateMaterializationAggregateFuncs9() {
+    checkMaterialize(
+        "select \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to month), count(*) + 1 as c, sum(\"empid\") as s\n"
+            + "from \"emps\" group by \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to month)",
+        "select floor(cast('1997-01-20 12:34:56' as timestamp) to year), sum(\"empid\") as s\n"
+            + "from \"emps\" group by floor(cast('1997-01-20 12:34:56' as timestamp) to year)");
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs10() {
+    checkMaterialize(
+        "select \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to month), count(*) + 1 as c, sum(\"empid\") as s\n"
+            + "from \"emps\" group by \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to month)",
+        "select floor(cast('1997-01-20 12:34:56' as timestamp) to year), sum(\"empid\") + 1 as s\n"
+            + "from \"emps\" group by floor(cast('1997-01-20 12:34:56' as timestamp) to year)");
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs11() {
+    checkMaterialize(
+        "select \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to second), count(*) + 1 as c, sum(\"empid\") as s\n"
+            + "from \"emps\" group by \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to second)",
+        "select floor(cast('1997-01-20 12:34:56' as timestamp) to minute), sum(\"empid\") as s\n"
+            + "from \"emps\" group by floor(cast('1997-01-20 12:34:56' as timestamp) to minute)");
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs12() {
+    checkMaterialize(
+        "select \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to second), count(*) + 1 as c, sum(\"empid\") as s\n"
+            + "from \"emps\" group by \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to second)",
+        "select floor(cast('1997-01-20 12:34:56' as timestamp) to month), sum(\"empid\") as s\n"
+            + "from \"emps\" group by floor(cast('1997-01-20 12:34:56' as timestamp) to month)");
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs13() {
+    checkMaterialize(
+        "select \"empid\", cast('1997-01-20 12:34:56' as timestamp), count(*) + 1 as c, sum(\"empid\") as s\n"
+            + "from \"emps\" group by \"empid\", cast('1997-01-20 12:34:56' as timestamp)",
+        "select floor(cast('1997-01-20 12:34:56' as timestamp) to year), sum(\"empid\") as s\n"
+            + "from \"emps\" group by floor(cast('1997-01-20 12:34:56' as timestamp) to year)");
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs14() {
+    checkMaterialize(
+        "select \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to month), count(*) + 1 as c, sum(\"empid\") as s\n"
+            + "from \"emps\" group by \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to month)",
+        "select floor(cast('1997-01-20 12:34:56' as timestamp) to hour), sum(\"empid\") as s\n"
+            + "from \"emps\" group by floor(cast('1997-01-20 12:34:56' as timestamp) to hour)");
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs15() {
+    checkMaterialize(
+        "select \"eventid\", floor(cast(\"ts\" as timestamp) to second), count(*) + 1 as c, sum(\"eventid\") as s\n"
+            + "from \"events\" group by \"eventid\", floor(cast(\"ts\" as timestamp) to second)",
+        "select floor(cast(\"ts\" as timestamp) to minute), sum(\"eventid\") as s\n"
+            + "from \"events\" group by floor(cast(\"ts\" as timestamp) to minute)");
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs16() {
+    checkMaterialize(
+        "select \"eventid\", cast(\"ts\" as timestamp), count(*) + 1 as c, sum(\"eventid\") as s\n"
+            + "from \"events\" group by \"eventid\", cast(\"ts\" as timestamp)",
+        "select floor(cast(\"ts\" as timestamp) to year), sum(\"eventid\") as s\n"
+            + "from \"events\" group by floor(cast(\"ts\" as timestamp) to year)");
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs17() {
+    checkMaterialize(
+        "select \"eventid\", floor(cast(\"ts\" as timestamp) to month), count(*) + 1 as c, sum(\"eventid\") as s\n"
+            + "from \"events\" group by \"eventid\", floor(cast(\"ts\" as timestamp) to month)",
+        "select floor(cast(\"ts\" as timestamp) to hour), sum(\"eventid\") as s\n"
+            + "from \"events\" group by floor(cast(\"ts\" as timestamp) to hour)",
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableTableScan(table=[[hr, events]])"));
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs18() {
+    checkMaterialize(
+        "select \"empid\", \"deptno\", count(*) + 1 as c, sum(\"empid\") as s\n"
+            + "from \"emps\" group by \"empid\", \"deptno\"",
+        "select \"empid\"*\"deptno\", sum(\"empid\") as s\n"
+            + "from \"emps\" group by \"empid\"*\"deptno\"");
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs19() {
+    checkMaterialize(
+        "select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s\n"
+            + "from \"emps\" group by \"empid\", \"deptno\"",
+        "select \"empid\" + 10, count(*) + 1 as c\n"
+            + "from \"emps\" group by \"empid\" + 10");
+  }
+
   @Test public void testJoinAggregateMaterializationNoAggregateFuncs1() {
     checkMaterialize(
         "select \"empid\", \"depts\".\"deptno\" from \"emps\"\n"
@@ -1197,7 +1295,7 @@ public class MaterializationTest {
             + "group by \"empid\", \"depts\".\"deptno\"",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[>($t1, $t2)], "
+            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[<($t2, $t1)], "
                 + "empid=[$t0], $condition=[$t3])\n"
                 + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1212,7 +1310,7 @@ public class MaterializationTest {
             + "group by \"empid\", \"depts\".\"deptno\"",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[>($t0, $t2)], "
+            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[<($t2, $t0)], "
                 + "empid=[$t1], $condition=[$t3])\n"
                 + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1239,7 +1337,7 @@ public class MaterializationTest {
             + "group by \"empid\", \"depts\".\"deptno\"",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[>($t1, $t2)], "
+            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[<($t2, $t1)], "
                 + "empid=[$t0], $condition=[$t3])\n"
                 + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1254,7 +1352,7 @@ public class MaterializationTest {
             + "group by \"depts\".\"deptno\", \"emps\".\"empid\"",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[15], expr#3=[>($t1, $t2)], "
+            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[15], expr#3=[<($t2, $t1)], "
                 + "deptno=[$t0], $condition=[$t3])\n"
                 + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1270,7 +1368,7 @@ public class MaterializationTest {
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
             "EnumerableAggregate(group=[{0}])\n"
-                + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[15], expr#3=[>($t1, $t2)], "
+                + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[15], expr#3=[<($t2, $t1)], "
                 + "proj#0..1=[{exprs}], $condition=[$t3])\n"
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1297,7 +1395,7 @@ public class MaterializationTest {
             "EnumerableUnion(all=[true])",
             "EnumerableAggregate(group=[{2}])",
             "EnumerableTableScan(table=[[hr, m0]])",
-            "expr#5=[10], expr#6=[>($t0, $t5)], expr#7=[11], expr#8=[<=($t0, $t7)]"));
+            "expr#5=[10], expr#6=[>($t0, $t5)], expr#7=[11], expr#8=[>=($t7, $t0)]"));
   }
 
   @Test public void testJoinAggregateMaterializationNoAggregateFuncs8() {
@@ -1364,8 +1462,8 @@ public class MaterializationTest {
         CalciteAssert.checkResultContains(
             "EnumerableAggregate(group=[{4}])\n"
                 + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[=($t2, $t3)], "
-                + "expr#6=[CAST($t0):VARCHAR CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"], "
-                + "expr#7=[CAST($t1):VARCHAR CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"], "
+                + "expr#6=[CAST($t1):VARCHAR CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"], "
+                + "expr#7=[CAST($t0):VARCHAR CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"], "
                 + "expr#8=[=($t6, $t7)], expr#9=[AND($t5, $t8)], proj#0..4=[{exprs}], $condition=[$t9])\n"
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1423,7 +1521,7 @@ public class MaterializationTest {
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
             "EnumerableAggregate(group=[{1}], S=[$SUM0($3)])\n"
-                + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[>($t1, $t4)], "
+                + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
                 + "proj#0..3=[{exprs}], $condition=[$t5])\n"
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1441,7 +1539,7 @@ public class MaterializationTest {
             "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], "
                 + "deptno=[$t0], S=[$t3])\n"
                 + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($3)])\n"
-                + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[>($t1, $t4)], "
+                + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
                 + "proj#0..3=[{exprs}], $condition=[$t5])\n"
                 + "      EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1646,7 +1744,7 @@ public class MaterializationTest {
             + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..2=[{inputs}], empid0=[$t1])\n"
+            "EnumerableCalc(expr#0..2=[{inputs}], empid=[$t1])\n"
                 + "  EnumerableJoin(condition=[=($0, $2)], joinType=[inner])\n"
                 + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):VARCHAR CHARACTER SET \"ISO-8859-1\" "
                 + "COLLATE \"ISO-8859-1$en_US$primary\"], name=[$t1])\n"
@@ -1707,7 +1805,16 @@ public class MaterializationTest {
         CalciteAssert.checkResultContains(
             "EnumerableUnion(all=[true])",
             "EnumerableTableScan(table=[[hr, m0]])",
-            "expr#5=[10], expr#6=[>($t0, $t5)], expr#7=[30], expr#8=[<=($t0, $t7)]"));
+            "expr#5=[10], expr#6=[>($t0, $t5)], expr#7=[30], expr#8=[>=($t7, $t0)]"));
+  }
+
+  @Test public void testJoinMaterialization11() {
+    checkNoMaterialize(
+        "select \"empid\" from \"emps\"\n"
+            + "join \"depts\" using (\"deptno\")",
+        "select \"empid\" from \"emps\"\n"
+            + "where \"deptno\" in (select \"deptno\" from \"depts\")",
+        HR_FKUK_MODEL);
   }
 
   @Test public void testJoinMaterializationUKFK1() {
@@ -1773,7 +1880,7 @@ public class MaterializationTest {
             + "where \"emps\".\"empid\" = 1",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..1=[{inputs}], empid=[$t0])\n"
+            "EnumerableCalc(expr#0..1=[{inputs}], empid0=[$t0])\n"
                 + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
 
@@ -1789,7 +1896,7 @@ public class MaterializationTest {
             + "where \"emps\".\"empid\" = 1",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..1=[{inputs}], empid=[$t0])\n"
+            "EnumerableCalc(expr#0..1=[{inputs}], empid0=[$t0])\n"
                 + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
 
@@ -1819,6 +1926,20 @@ public class MaterializationTest {
         HR_FKUK_MODEL);
   }
 
+  @Test public void testJoinMaterializationUKFK9() {
+    checkMaterialize(
+        "select * from \"emps\"\n"
+            + "join \"dependents\" using (\"empid\")",
+        "select \"emps\".\"empid\", \"dependents\".\"empid\", \"emps\".\"deptno\"\n"
+            + "from \"emps\"\n"
+            + "join \"dependents\" using (\"empid\")"
+            + "join \"depts\" \"a\" on (\"emps\".\"deptno\"=\"a\".\"deptno\")\n"
+            + "where \"emps\".\"name\" = 'Bill'",
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
   @Test public void testViewMaterialization() {
     checkThatMaterialize(
         "select \"depts\".\"name\"\n"
@@ -1832,7 +1953,7 @@ public class MaterializationTest {
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
             "EnumerableValues(tuples=[[{ 'noname' }]])"),
-        RuleSets.ofList(ImmutableList.<RelOptRule>of()))
+        RuleSets.ofList(ImmutableList.of()))
         .returnsValue("noname");
   }
 
@@ -1855,19 +1976,14 @@ public class MaterializationTest {
         + "from \"emps\" where \"deptno\" = 10";
 
     final List<List<List<String>>> substitutedNames = new ArrayList<>();
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
           .withMaterializations(HR_FKUK_MODEL,
               "m0", m)
           .query(q)
-          .withHook(Hook.SUB,
-              new Function<RelNode, Void>() {
-                public Void apply(RelNode input) {
-                  substitutedNames.add(new TableNameVisitor().run(input));
-                  return null;
-                }
-              })
+          .withHook(Hook.SUB, (Consumer<RelNode>) r ->
+              substitutedNames.add(new TableNameVisitor().run(r)))
           .enableMaterializations(true)
           .explainContains("hr, m0");
     } catch (Exception e) {
@@ -1881,21 +1997,18 @@ public class MaterializationTest {
    * Pre-populated materializations</a>. */
   @Test public void testPrePopulated() {
     String q = "select \"deptno\" from \"emps\"";
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
           .withMaterializations(
-              HR_FKUK_MODEL,
-              new Function<JsonBuilder, List<Object>>() {
-                public List<Object> apply(JsonBuilder builder) {
-                  final Map<String, Object> map = builder.map();
-                  map.put("table", "locations");
-                  String sql = "select `deptno` as `empid`, '' as `name`\n"
-                      + "from `emps`";
-                  final String sql2 = sql.replaceAll("`", "\"");
-                  map.put("sql", sql2);
-                  return ImmutableList.<Object>of(map);
-                }
+              HR_FKUK_MODEL, builder -> {
+                final Map<String, Object> map = builder.map();
+                map.put("table", "locations");
+                String sql = "select `deptno` as `empid`, '' as `name`\n"
+                    + "from `emps`";
+                final String sql2 = sql.replaceAll("`", "\"");
+                map.put("sql", sql2);
+                return ImmutableList.of(map);
               })
           .query(q)
           .enableMaterializations(true)
@@ -1905,7 +2018,7 @@ public class MaterializationTest {
   }
 
   @Test public void testViewSchemaPath() {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       final String m = "select empno, deptno from emp";
       final String q = "select deptno from scott.emp";
@@ -1958,7 +2071,7 @@ public class MaterializationTest {
     String q = "select *\n"
         + "from (select * from \"emps\" where \"empid\" < 300)\n"
         + "join (select \"deptno\", count(*) as c from \"emps\" group by \"deptno\") using (\"deptno\")";
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
           .withMaterializations(HR_FKUK_MODEL,
@@ -1976,7 +2089,7 @@ public class MaterializationTest {
     final String q = "select *\n"
         + "from \"emps\"\n"
         + "join \"depts\" using (\"deptno\") where \"empid\" < 300 ";
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
           .withMaterializations(HR_FKUK_MODEL,
@@ -1994,7 +2107,7 @@ public class MaterializationTest {
         + "from \"emps\"\n"
         + "join \"depts\" using (\"deptno\") where \"empid\" < 300 "
         + "and \"depts\".\"deptno\" > 200";
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
           .withMaterializations(HR_FKUK_MODEL,
@@ -2097,7 +2210,7 @@ public class MaterializationTest {
         {{"hr", "m1"}, {"hr", "m0"}},
         {{"hr", "m1"}, {"hr", "m1"}}};
 
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       final List<List<List<String>>> substitutedNames = new ArrayList<>();
       CalciteAssert.that()
@@ -2105,16 +2218,11 @@ public class MaterializationTest {
               "m0", "select * from \"emps\" where \"empid\" < 300",
               "m1", "select * from \"emps\" where \"empid\" < 600")
           .query(q)
-          .withHook(Hook.SUB,
-              new Function<RelNode, Void>() {
-                public Void apply(RelNode input) {
-                  substitutedNames.add(new TableNameVisitor().run(input));
-                  return null;
-                }
-              })
+          .withHook(Hook.SUB, (Consumer<RelNode>) r ->
+              substitutedNames.add(new TableNameVisitor().run(r)))
           .enableMaterializations(true)
           .sameResultWithMaterializationsDisabled();
-      Collections.sort(substitutedNames, CASE_INSENSITIVE_LIST_LIST_COMPARATOR);
+      substitutedNames.sort(CASE_INSENSITIVE_LIST_LIST_COMPARATOR);
       assertThat(substitutedNames, is(list3(expectedNames)));
     }
   }
@@ -2141,7 +2249,7 @@ public class MaterializationTest {
         {{"hr", "m2"}, {"hr", "m1"}},
         {{"hr", "m2"}, {"hr", "m2"}}};
 
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       final List<List<List<String>>> substitutedNames = new ArrayList<>();
       CalciteAssert.that()
@@ -2150,16 +2258,11 @@ public class MaterializationTest {
               "m1", "select * from \"emps\" where \"empid\" < 600",
               "m2", "select * from \"m1\"")
           .query(q)
-          .withHook(Hook.SUB,
-              new Function<RelNode, Void>() {
-                public Void apply(RelNode input) {
-                  substitutedNames.add(new TableNameVisitor().run(input));
-                  return null;
-                }
-              })
+          .withHook(Hook.SUB, (Consumer<RelNode>) r ->
+              substitutedNames.add(new TableNameVisitor().run(r)))
           .enableMaterializations(true)
           .sameResultWithMaterializationsDisabled();
-      Collections.sort(substitutedNames, CASE_INSENSITIVE_LIST_LIST_COMPARATOR);
+      substitutedNames.sort(CASE_INSENSITIVE_LIST_LIST_COMPARATOR);
       assertThat(substitutedNames, is(list3(expectedNames)));
     }
   }
@@ -2219,7 +2322,7 @@ public class MaterializationTest {
     public final Department[] depts = {
         new Department(10, "Sales", Arrays.asList(emps[0], emps[2], emps[3]),
             new Location(-122, 38)),
-        new Department(30, "Marketing", Collections.<Employee>emptyList(),
+        new Department(30, "Marketing", ImmutableList.of(),
             new Location(0, 52)),
         new Department(20, "HR", Collections.singletonList(emps[1]), null),
     };
@@ -2230,6 +2333,12 @@ public class MaterializationTest {
     public final Dependent[] locations = {
         new Dependent(10, "San Francisco"),
         new Dependent(20, "San Diego"),
+    };
+    public final Event[] events = {
+        new Event(100, new Timestamp(0)),
+        new Event(200, new Timestamp(0)),
+        new Event(150, new Timestamp(0)),
+        new Event(110, null),
     };
 
     public final RelReferentialConstraint rcs0 =

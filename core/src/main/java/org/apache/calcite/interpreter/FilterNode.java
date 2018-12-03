@@ -28,12 +28,12 @@ public class FilterNode extends AbstractSingleNode<Filter> {
   private final Scalar condition;
   private final Context context;
 
-  public FilterNode(Interpreter interpreter, Filter rel) {
-    super(interpreter, rel);
+  public FilterNode(Compiler compiler, Filter rel) {
+    super(compiler, rel);
     this.condition =
-        interpreter.compile(ImmutableList.of(rel.getCondition()),
+        compiler.compile(ImmutableList.of(rel.getCondition()),
             rel.getRowType());
-    this.context = interpreter.createContext();
+    this.context = compiler.createContext();
   }
 
   public void run() throws InterruptedException {

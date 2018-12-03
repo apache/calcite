@@ -180,7 +180,8 @@ public class EnumerableThetaJoin extends Join implements EnumerableRel {
                 new RexToLixTranslator.InputGetterImpl(
                     ImmutableList.of(Pair.of((Expression) left_, leftPhysType),
                         Pair.of((Expression) right_, rightPhysType))),
-                implementor.allCorrelateVariables)));
+                implementor.allCorrelateVariables,
+                implementor.getConformance())));
     return Expressions.lambda(Predicate2.class, builder.toBlock(), left_,
         right_);
   }

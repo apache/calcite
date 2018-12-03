@@ -17,14 +17,10 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.config.Lex;
-import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.test.CalciteAssert.AssertThat;
 import org.apache.calcite.test.CalciteAssert.DatabaseInstance;
 
-import com.google.common.base.Function;
-
 import org.hsqldb.jdbcDriver;
-
 import org.junit.Test;
 
 import java.sql.Connection;
@@ -419,6 +415,30 @@ public class JdbcAdapterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2206">[CALCITE-2206]
+   * JDBC adapter incorrectly pushes windowed aggregates down to HSQLDB</a>. */
+  @Test public void testOverNonSupportedDialect() {
+    final String sql = "select \"store_id\", \"account_id\", \"exp_date\",\n"
+        + " \"time_id\", \"category_id\", \"currency_id\", \"amount\",\n"
+        + " last_value(\"time_id\") over () as \"last_version\"\n"
+        + "from \"expense_fact\"";
+    final String explain = "PLAN="
+        + "EnumerableWindow(window#0=[window(partition {} "
+        + "order by [] range between UNBOUNDED PRECEDING and "
+        + "UNBOUNDED FOLLOWING aggs [LAST_VALUE($3)])])\n"
+        + "  JdbcToEnumerableConverter\n"
+        + "    JdbcTableScan(table=[[foodmart, expense_fact]])\n";
+    CalciteAssert
+        .model(JdbcTest.FOODMART_MODEL)
+        .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB)
+        .query(sql)
+        .explainContains(explain)
+        .runs()
+        .planHasSql("SELECT *\n"
+            + "FROM \"foodmart\".\"expense_fact\"");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1506">[CALCITE-1506]
    * Push OVER Clause to underlying SQL via JDBC adapter</a>.
    *
@@ -443,6 +463,23 @@ public class JdbcAdapterTest {
             + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
             + " LAST_VALUE(\"time_id\") OVER (RANGE BETWEEN UNBOUNDED"
             + " PRECEDING AND UNBOUNDED FOLLOWING) AS \"last_version\"\n"
+            + "FROM \"foodmart\".\"expense_fact\"");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2305">[CALCITE-2305]
+   * JDBC adapter generates invalid casts on PostgreSQL, because PostgreSQL does
+   * not have TINYINT and DOUBLE types</a>. */
+  @Test public void testCast() {
+    CalciteAssert
+        .model(JdbcTest.FOODMART_MODEL)
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.POSTGRESQL)
+        .query("select cast(\"store_id\" as TINYINT),"
+            + "cast(\"store_id\" as DOUBLE)"
+            + " from \"expense_fact\"")
+        .runs()
+        .planHasSql("SELECT CAST(\"store_id\" AS SMALLINT),"
+            + " CAST(\"store_id\" AS DOUBLE PRECISION)\n"
             + "FROM \"foodmart\".\"expense_fact\"");
   }
 
@@ -581,19 +618,15 @@ public class JdbcAdapterTest {
             "jdbcSchema: null");
     CalciteAssert.model(
         model)
-        .doWithConnection(
-            new Function<CalciteConnection, Void>() {
-              public Void apply(CalciteConnection connection) {
-                try {
-                  final ResultSet resultSet =
-                      connection.getMetaData().getTables(null, null, "%", null);
-                  assertFalse(CalciteAssert.toString(resultSet).isEmpty());
-                  return null;
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                }
-              }
-            });
+        .doWithConnection(connection -> {
+          try {
+            final ResultSet resultSet =
+                connection.getMetaData().getTables(null, null, "%", null);
+            assertFalse(CalciteAssert.toString(resultSet).isEmpty());
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   /** Test case for
@@ -679,19 +712,15 @@ public class JdbcAdapterTest {
         CalciteAssert.model(JdbcTest.FOODMART_MODEL)
             .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB
                 || CalciteAssert.DB == DatabaseInstance.POSTGRESQL);
-    that.doWithConnection(
-        new Function<CalciteConnection, Void>() {
-          public Void apply(CalciteConnection connection) {
-            try (LockWrapper ignore = exclusiveCleanDb(connection)) {
-              that.query(sql)
-                  .explainContains(explain)
-                  .planUpdateHasSql(jdbcSql, 1);
-              return null;
-            } catch (SQLException e) {
-              throw new RuntimeException(e);
-            }
-          }
-        });
+    that.doWithConnection(connection -> {
+      try (LockWrapper ignore = exclusiveCleanDb(connection)) {
+        that.query(sql)
+            .explainContains(explain)
+            .planUpdateHasSql(jdbcSql, 1);
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+    });
   }
 
   @Test public void testTableModifyInsertMultiValues() throws Exception {
@@ -715,19 +744,15 @@ public class JdbcAdapterTest {
         CalciteAssert.model(JdbcTest.FOODMART_MODEL)
             .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB
                 || CalciteAssert.DB == DatabaseInstance.POSTGRESQL);
-    that.doWithConnection(
-        new Function<CalciteConnection, Void>() {
-          public Void apply(CalciteConnection connection) {
-            try (LockWrapper ignore = exclusiveCleanDb(connection)) {
-              that.query(sql)
-                  .explainContains(explain)
-                  .planUpdateHasSql(jdbcSql, 2);
-              return null;
-            } catch (SQLException e) {
-              throw new RuntimeException(e);
-            }
-          }
-        });
+    that.doWithConnection(connection -> {
+      try (LockWrapper ignore = exclusiveCleanDb(connection)) {
+        that.query(sql)
+            .explainContains(explain)
+            .planUpdateHasSql(jdbcSql, 2);
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+    });
   }
 
   @Test public void testTableModifyInsertWithSubQuery() throws Exception {
@@ -735,37 +760,34 @@ public class JdbcAdapterTest {
         .model(JdbcTest.FOODMART_MODEL)
         .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB);
 
-    that.doWithConnection(new Function<CalciteConnection, Void>() {
-      public Void apply(CalciteConnection connection) {
-        try (LockWrapper ignore = exclusiveCleanDb(connection)) {
-          final String sql = "INSERT INTO \"foodmart\".\"expense_fact\"(\n"
-              + " \"store_id\", \"account_id\", \"exp_date\", \"time_id\","
-              + " \"category_id\", \"currency_id\", \"amount\")\n"
-              + "SELECT  \"store_id\", \"account_id\", \"exp_date\","
-              + " \"time_id\" + 1, \"category_id\", \"currency_id\","
-              + " \"amount\"\n"
-              + "FROM \"foodmart\".\"expense_fact\"\n"
-              + "WHERE \"store_id\" = 666";
-          final String explain = "PLAN=JdbcToEnumerableConverter\n"
-              + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[INSERT], flattened=[false])\n"
-              + "    JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2], time_id=[+($3, 1)], category_id=[$4], currency_id=[$5], amount=[$6])\n"
-              + "      JdbcFilter(condition=[=($0, 666)])\n"
-              + "        JdbcTableScan(table=[[foodmart, expense_fact]])\n";
-          final String jdbcSql = "INSERT INTO \"foodmart\".\"expense_fact\""
-              + " (\"store_id\", \"account_id\", \"exp_date\", \"time_id\","
-              + " \"category_id\", \"currency_id\", \"amount\")\n"
-              + "(SELECT \"store_id\", \"account_id\", \"exp_date\","
-              + " \"time_id\" + 1 AS \"time_id\", \"category_id\","
-              + " \"currency_id\", \"amount\"\n"
-              + "FROM \"foodmart\".\"expense_fact\"\n"
-              + "WHERE \"store_id\" = 666)";
-          that.query(sql)
-              .explainContains(explain)
-              .planUpdateHasSql(jdbcSql, 1);
-          return null;
-        } catch (SQLException e) {
-          throw new RuntimeException(e);
-        }
+    that.doWithConnection(connection -> {
+      try (LockWrapper ignore = exclusiveCleanDb(connection)) {
+        final String sql = "INSERT INTO \"foodmart\".\"expense_fact\"(\n"
+            + " \"store_id\", \"account_id\", \"exp_date\", \"time_id\","
+            + " \"category_id\", \"currency_id\", \"amount\")\n"
+            + "SELECT  \"store_id\", \"account_id\", \"exp_date\","
+            + " \"time_id\" + 1, \"category_id\", \"currency_id\","
+            + " \"amount\"\n"
+            + "FROM \"foodmart\".\"expense_fact\"\n"
+            + "WHERE \"store_id\" = 666";
+        final String explain = "PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[INSERT], flattened=[false])\n"
+            + "    JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2], time_id=[+($3, 1)], category_id=[$4], currency_id=[$5], amount=[$6])\n"
+            + "      JdbcFilter(condition=[=($0, 666)])\n"
+            + "        JdbcTableScan(table=[[foodmart, expense_fact]])\n";
+        final String jdbcSql = "INSERT INTO \"foodmart\".\"expense_fact\""
+            + " (\"store_id\", \"account_id\", \"exp_date\", \"time_id\","
+            + " \"category_id\", \"currency_id\", \"amount\")\n"
+            + "(SELECT \"store_id\", \"account_id\", \"exp_date\","
+            + " \"time_id\" + 1 AS \"time_id\", \"category_id\","
+            + " \"currency_id\", \"amount\"\n"
+            + "FROM \"foodmart\".\"expense_fact\"\n"
+            + "WHERE \"store_id\" = 666)";
+        that.query(sql)
+            .explainContains(explain)
+            .planUpdateHasSql(jdbcSql, 1);
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
       }
     });
   }
@@ -775,27 +797,25 @@ public class JdbcAdapterTest {
         .model(JdbcTest.FOODMART_MODEL)
         .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB);
 
-    that.doWithConnection(new Function<CalciteConnection, Void>() {
-      public Void apply(CalciteConnection connection) {
-        try (LockWrapper ignore = exclusiveCleanDb(connection)) {
-          final String sql = "UPDATE \"foodmart\".\"expense_fact\"\n"
-              + " SET \"account_id\"=888\n"
-              + " WHERE \"store_id\"=666\n";
-          final String explain = "PLAN=JdbcToEnumerableConverter\n"
-              + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[UPDATE], updateColumnList=[[account_id]], sourceExpressionList=[[888]], flattened=[false])\n"
-              + "    JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2], time_id=[$3], category_id=[$4], currency_id=[$5], amount=[$6], EXPR$0=[888])\n"
-              + "      JdbcFilter(condition=[=($0, 666)])\n"
-              + "        JdbcTableScan(table=[[foodmart, expense_fact]])";
-          final String jdbcSql = "UPDATE \"foodmart\".\"expense_fact\""
-              + " SET \"account_id\" = 888\n"
-              + "WHERE \"store_id\" = 666";
-          that.query(sql)
-              .explainContains(explain)
-              .planUpdateHasSql(jdbcSql, 1);
-          return null;
-        } catch (SQLException e) {
-          throw new RuntimeException(e);
-        }
+    that.doWithConnection(connection -> {
+      try (LockWrapper ignore = exclusiveCleanDb(connection)) {
+        final String sql = "UPDATE \"foodmart\".\"expense_fact\"\n"
+            + " SET \"account_id\"=888\n"
+            + " WHERE \"store_id\"=666\n";
+        final String explain = "PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[UPDATE], updateColumnList=[[account_id]], sourceExpressionList=[[888]], flattened=[false])\n"
+            + "    JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2], time_id=[$3], category_id=[$4], currency_id=[$5], amount=[$6], EXPR$0=[888])\n"
+            + "      JdbcFilter(condition=[=($0, 666)])\n"
+            + "        JdbcTableScan(table=[[foodmart, expense_fact]])";
+        final String jdbcSql = "UPDATE \"foodmart\".\"expense_fact\""
+            + " SET \"account_id\" = 888\n"
+            + "WHERE \"store_id\" = 666";
+        that.query(sql)
+            .explainContains(explain)
+            .planUpdateHasSql(jdbcSql, 1);
+        return null;
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
       }
     });
   }
@@ -805,24 +825,21 @@ public class JdbcAdapterTest {
         .model(JdbcTest.FOODMART_MODEL)
         .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB);
 
-    that.doWithConnection(new Function<CalciteConnection, Void>() {
-      public Void apply(CalciteConnection connection) {
-        try (LockWrapper ignore = exclusiveCleanDb(connection)) {
-          final String sql = "DELETE FROM \"foodmart\".\"expense_fact\"\n"
-              + "WHERE \"store_id\"=666\n";
-          final String explain = "PLAN=JdbcToEnumerableConverter\n"
-              + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[DELETE], flattened=[false])\n"
-              + "    JdbcFilter(condition=[=($0, 666)])\n"
-              + "      JdbcTableScan(table=[[foodmart, expense_fact]]";
-          final String jdbcSql = "DELETE FROM \"foodmart\".\"expense_fact\"\n"
-              + "WHERE \"store_id\" = 666";
-          that.query(sql)
-              .explainContains(explain)
-              .planUpdateHasSql(jdbcSql, 1);
-          return null;
-        } catch (SQLException e) {
-          throw new RuntimeException(e);
-        }
+    that.doWithConnection(connection -> {
+      try (LockWrapper ignore = exclusiveCleanDb(connection)) {
+        final String sql = "DELETE FROM \"foodmart\".\"expense_fact\"\n"
+            + "WHERE \"store_id\"=666\n";
+        final String explain = "PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[DELETE], flattened=[false])\n"
+            + "    JdbcFilter(condition=[=($0, 666)])\n"
+            + "      JdbcTableScan(table=[[foodmart, expense_fact]]";
+        final String jdbcSql = "DELETE FROM \"foodmart\".\"expense_fact\"\n"
+            + "WHERE \"store_id\" = 666";
+        that.query(sql)
+            .explainContains(explain)
+            .planUpdateHasSql(jdbcSql, 1);
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
       }
     });
   }
@@ -838,6 +855,17 @@ public class JdbcAdapterTest {
         .runs()
         .returnsCount(10)
         .typeIs("[employee_id INTEGER NOT NULL, position_id INTEGER]");
+  }
+
+  @Test public void pushBindParameters() throws Exception {
+    final String sql = "select empno, ename from emp where empno = ?";
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query(sql)
+        .consumesPreparedStatement(p -> {
+          p.setInt(1, 7566);
+        })
+        .returnsCount(1)
+        .planHasSql("SELECT \"EMPNO\", \"ENAME\"\nFROM \"SCOTT\".\"EMP\"\nWHERE \"EMPNO\" = ?");
   }
 
   /** Acquires a lock, and releases it when closed. */

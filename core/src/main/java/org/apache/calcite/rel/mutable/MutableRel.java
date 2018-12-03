@@ -22,10 +22,10 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 
 import com.google.common.base.Equivalence;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import java.util.List;
+import java.util.Objects;
 
 /** Mutable equivalent of {@link RelNode}.
  *
@@ -69,9 +69,9 @@ public abstract class MutableRel {
 
   protected MutableRel(RelOptCluster cluster,
       RelDataType rowType, MutableRelType type) {
-    this.cluster = Preconditions.checkNotNull(cluster);
-    this.rowType = Preconditions.checkNotNull(rowType);
-    this.type = Preconditions.checkNotNull(type);
+    this.cluster = Objects.requireNonNull(cluster);
+    this.rowType = Objects.requireNonNull(rowType);
+    this.type = Objects.requireNonNull(type);
   }
 
   public MutableRel getParent() {

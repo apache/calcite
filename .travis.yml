@@ -17,6 +17,14 @@
 # limitations under the License.
 #
 language: java
+matrix:
+  fast_finish: true
+  include:
+    - env: IMAGE=maven:3-jdk-12
+    - env: IMAGE=maven:3-jdk-11 JDOC=Y RAT=Y
+    - env: IMAGE=maven:3-jdk-10
+    - env: IMAGE=maven:3-jdk-9
+    - env: IMAGE=maven:3-jdk-8 JDOC=Y
 branches:
   only:
     - master
@@ -24,20 +32,26 @@ branches:
     - javadoc
     - /^branch-.*$/
     - /^[0-9]+-.*$/
+env:
+  global:
+  - DOCKERRUN="docker run -it --rm -v $PWD:/src -v $HOME/.m2:/root/.m2 -w /src"
+services:
+  - docker
+before_install:
+  - docker pull $IMAGE
 install:
-  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
+  # Print the Maven version, skip tests and javadoc
+  - $DOCKERRUN $IMAGE mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Djavax.net.ssl.trustStorePassword=changeit -B -V
 script:
+  # Print surefire output to the console instead of files
   - unset _JAVA_OPTIONS
-  - mvn -Dsurefire.useFile=false -Dsurefire.parallel= test
+  - if [ $JDOC = "Y" ]; then export JDOC=javadoc:javadoc; fi
+  - if [ $RAT = "Y" ]; then export RAT="apache-rat:check -Drat.consoleOutput"; fi
+  - $DOCKERRUN $IMAGE mvn -Dcheckstyle.skip -Dsurefire.useFile=false -Dsurefire.threadCount=1 -Dsurefire.perCoreThreadCount=false -Djavax.net.ssl.trustStorePassword=changeit test $JDOC $RAT
 git:
   depth: 10000
-sudo: false
+sudo: required
 cache:
   directories:
     - $HOME/.m2
-matrix:
-  fast_finish: true
-  include:
-    - jdk: openjdk7
-    - jdk: oraclejdk8
 # End .travis.yml

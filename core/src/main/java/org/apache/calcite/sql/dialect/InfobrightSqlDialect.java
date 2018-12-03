@@ -31,6 +31,11 @@ public class InfobrightSqlDialect extends SqlDialect {
   public InfobrightSqlDialect(Context context) {
     super(context);
   }
+
+  @Override public boolean supportsWindowFunctions() {
+    return false;
+  }
+
 }
 
 // End InfobrightSqlDialect.java

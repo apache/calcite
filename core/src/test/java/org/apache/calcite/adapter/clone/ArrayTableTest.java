@@ -37,7 +37,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class ArrayTableTest {
   @Test public void testPrimitiveArray() {
-    long[] values = new long[]{0, 0};
+    long[] values = {0, 0};
     ArrayTable.BitSlicedPrimitiveArray.orLong(4, values, 0, 0x0F);
     assertEquals(0x0F, values[0]);
     ArrayTable.BitSlicedPrimitiveArray.orLong(4, values, 2, 0x0F);

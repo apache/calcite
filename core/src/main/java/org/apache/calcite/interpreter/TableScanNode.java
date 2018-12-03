@@ -20,7 +20,6 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Function1;
-import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.core.TableScan;
@@ -59,12 +58,12 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * {@link org.apache.calcite.rel.core.TableScan}.
  */
 public class TableScanNode implements Node {
-  private TableScanNode(Interpreter interpreter, TableScan rel,
+  private TableScanNode(Compiler compiler, TableScan rel,
       Enumerable<Row> enumerable) {
-    interpreter.enumerable(rel, enumerable);
+    compiler.enumerable(rel, enumerable);
   }
 
-  public void run() throws InterruptedException {
+  public void run() {
     // nothing to do
   }
 
@@ -73,56 +72,56 @@ public class TableScanNode implements Node {
    * <p>Tries various table SPIs, and negotiates with the table which filters
    * and projects it can implement. Adds to the Enumerable implementations of
    * any filters and projects that cannot be implemented by the table. */
-  static TableScanNode create(Interpreter interpreter, TableScan rel,
+  static TableScanNode create(Compiler compiler, TableScan rel,
       ImmutableList<RexNode> filters, ImmutableIntList projects) {
     final RelOptTable relOptTable = rel.getTable();
     final ProjectableFilterableTable pfTable =
         relOptTable.unwrap(ProjectableFilterableTable.class);
     if (pfTable != null) {
-      return createProjectableFilterable(interpreter, rel, filters, projects,
+      return createProjectableFilterable(compiler, rel, filters, projects,
           pfTable);
     }
     final FilterableTable filterableTable =
         relOptTable.unwrap(FilterableTable.class);
     if (filterableTable != null) {
-      return createFilterable(interpreter, rel, filters, projects,
+      return createFilterable(compiler, rel, filters, projects,
           filterableTable);
     }
     final ScannableTable scannableTable =
         relOptTable.unwrap(ScannableTable.class);
     if (scannableTable != null) {
-      return createScannable(interpreter, rel, filters, projects,
+      return createScannable(compiler, rel, filters, projects,
           scannableTable);
     }
     //noinspection unchecked
     final Enumerable<Row> enumerable = relOptTable.unwrap(Enumerable.class);
     if (enumerable != null) {
-      return createEnumerable(interpreter, rel, enumerable, null, filters,
+      return createEnumerable(compiler, rel, enumerable, null, filters,
           projects);
     }
     final QueryableTable queryableTable =
         relOptTable.unwrap(QueryableTable.class);
     if (queryableTable != null) {
-      return createQueryable(interpreter, rel, filters, projects,
+      return createQueryable(compiler, rel, filters, projects,
           queryableTable);
     }
     throw new AssertionError("cannot convert table " + relOptTable
         + " to enumerable");
   }
 
-  private static TableScanNode createScannable(Interpreter interpreter,
-      TableScan rel, ImmutableList<RexNode> filters, ImmutableIntList projects,
+  private static TableScanNode createScannable(Compiler compiler, TableScan rel,
+      ImmutableList<RexNode> filters, ImmutableIntList projects,
       ScannableTable scannableTable) {
     final Enumerable<Row> rowEnumerable =
-        Enumerables.toRow(scannableTable.scan(interpreter.getDataContext()));
-    return createEnumerable(interpreter, rel, rowEnumerable, null, filters,
+        Enumerables.toRow(scannableTable.scan(compiler.getDataContext()));
+    return createEnumerable(compiler, rel, rowEnumerable, null, filters,
         projects);
   }
 
-  private static TableScanNode createQueryable(Interpreter interpreter,
+  private static TableScanNode createQueryable(Compiler compiler,
       TableScan rel, ImmutableList<RexNode> filters, ImmutableIntList projects,
       QueryableTable queryableTable) {
-    final DataContext root = interpreter.getDataContext();
+    final DataContext root = compiler.getDataContext();
     final RelOptTable relOptTable = rel.getTable();
     final Type elementType = queryableTable.getElementType();
     SchemaPlus schema = root.getRootSchema();
@@ -144,33 +143,30 @@ public class TableScanNode implements Node {
         }
       }
       final List<Field> fields = fieldBuilder.build();
-      rowEnumerable = queryable.select(
-          new Function1<Object, Row>() {
-            public Row apply(Object o) {
-              final Object[] values = new Object[fields.size()];
-              for (int i = 0; i < fields.size(); i++) {
-                Field field = fields.get(i);
-                try {
-                  values[i] = field.get(o);
-                } catch (IllegalAccessException e) {
-                  throw new RuntimeException(e);
-                }
-              }
-              return new Row(values);
-            }
-          });
+      rowEnumerable = queryable.select(o -> {
+        final Object[] values = new Object[fields.size()];
+        for (int i = 0; i < fields.size(); i++) {
+          Field field = fields.get(i);
+          try {
+            values[i] = field.get(o);
+          } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+          }
+        }
+        return new Row(values);
+      });
     } else {
       rowEnumerable =
           Schemas.queryable(root, Row.class, relOptTable.getQualifiedName());
     }
-    return createEnumerable(interpreter, rel, rowEnumerable, null, filters,
+    return createEnumerable(compiler, rel, rowEnumerable, null, filters,
         projects);
   }
 
-  private static TableScanNode createFilterable(Interpreter interpreter,
+  private static TableScanNode createFilterable(Compiler compiler,
       TableScan rel, ImmutableList<RexNode> filters, ImmutableIntList projects,
       FilterableTable filterableTable) {
-    final DataContext root = interpreter.getDataContext();
+    final DataContext root = compiler.getDataContext();
     final List<RexNode> mutableFilters = Lists.newArrayList(filters);
     final Enumerable<Object[]> enumerable =
         filterableTable.scan(root, mutableFilters);
@@ -180,14 +176,14 @@ public class TableScanNode implements Node {
       }
     }
     final Enumerable<Row> rowEnumerable = Enumerables.toRow(enumerable);
-    return createEnumerable(interpreter, rel, rowEnumerable, null,
+    return createEnumerable(compiler, rel, rowEnumerable, null,
         mutableFilters, projects);
   }
 
-  private static TableScanNode createProjectableFilterable(
-      Interpreter interpreter, TableScan rel, ImmutableList<RexNode> filters,
-      ImmutableIntList projects, ProjectableFilterableTable pfTable) {
-    final DataContext root = interpreter.getDataContext();
+  private static TableScanNode createProjectableFilterable(Compiler compiler,
+      TableScan rel, ImmutableList<RexNode> filters, ImmutableIntList projects,
+      ProjectableFilterableTable pfTable) {
+    final DataContext root = compiler.getDataContext();
     final ImmutableIntList originalProjects = projects;
     for (;;) {
       final List<RexNode> mutableFilters = Lists.newArrayList(filters);
@@ -234,19 +230,19 @@ public class TableScanNode implements Node {
         // project the leading columns.
         rejectedProjects = ImmutableIntList.identity(originalProjects.size());
       }
-      return createEnumerable(interpreter, rel, rowEnumerable, projects,
+      return createEnumerable(compiler, rel, rowEnumerable, projects,
           mutableFilters, rejectedProjects);
     }
   }
 
-  private static TableScanNode createEnumerable(
-      Interpreter interpreter, TableScan rel,
-      Enumerable<Row> enumerable, final ImmutableIntList acceptedProjects,
-      List<RexNode> rejectedFilters, final ImmutableIntList rejectedProjects) {
+  private static TableScanNode createEnumerable(Compiler compiler,
+      TableScan rel, Enumerable<Row> enumerable,
+      final ImmutableIntList acceptedProjects, List<RexNode> rejectedFilters,
+      final ImmutableIntList rejectedProjects) {
     if (!rejectedFilters.isEmpty()) {
       final RexNode filter =
           RexUtil.composeConjunction(rel.getCluster().getRexBuilder(),
-              rejectedFilters, false);
+              rejectedFilters);
       // Re-map filter for the projects that have been applied already
       final RexNode filter2;
       final RelDataType inputRowType;
@@ -267,17 +263,13 @@ public class TableScanNode implements Node {
         inputRowType = builder.build();
       }
       final Scalar condition =
-          interpreter.compile(
-              ImmutableList.of(filter2), inputRowType);
-      final Context context = interpreter.createContext();
-      enumerable = enumerable.where(
-          new Predicate1<Row>() {
-            @Override public boolean apply(Row row) {
-              context.values = row.getValues();
-              Boolean b = (Boolean) condition.execute(context);
-              return b != null && b;
-            }
-          });
+          compiler.compile(ImmutableList.of(filter2), inputRowType);
+      final Context context = compiler.createContext();
+      enumerable = enumerable.where(row -> {
+        context.values = row.getValues();
+        Boolean b = (Boolean) condition.execute(context);
+        return b != null && b;
+      });
     }
     if (rejectedProjects != null) {
       enumerable = enumerable.select(
@@ -292,7 +284,7 @@ public class TableScanNode implements Node {
             }
           });
     }
-    return new TableScanNode(interpreter, rel, enumerable);
+    return new TableScanNode(compiler, rel, enumerable);
   }
 }
 

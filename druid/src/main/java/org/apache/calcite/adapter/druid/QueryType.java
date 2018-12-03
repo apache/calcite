@@ -21,7 +21,8 @@ public enum QueryType {
   SELECT("select"),
   TOP_N("topN"),
   GROUP_BY("groupBy"),
-  TIMESERIES("timeseries");
+  TIMESERIES("timeseries"),
+  SCAN("scan");
 
   private final String queryName;
 

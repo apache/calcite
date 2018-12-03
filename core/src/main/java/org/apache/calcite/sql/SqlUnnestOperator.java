@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql;
 
-
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.ArraySqlType;
@@ -26,7 +25,6 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
-
 
 /**
  * The <code>UNNEST</code> operator.
@@ -61,13 +59,24 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
   //~ Methods ----------------------------------------------------------------
 
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-    final RelDataTypeFactory.Builder builder =
-        opBinding.getTypeFactory().builder();
+    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    final RelDataTypeFactory.Builder builder = typeFactory.builder();
     for (Integer operand : Util.range(opBinding.getOperandCount())) {
       RelDataType type = opBinding.getOperandType(operand);
+      if (type.getSqlTypeName() == SqlTypeName.ANY) {
+        // Unnest Operator in schema less systems returns one column as the output
+        // $unnest is a place holder to specify that one column with type ANY is output.
+        return builder
+            .add("$unnest",
+                SqlTypeName.ANY)
+            .nullable(true)
+            .build();
+      }
+
       if (type.isStruct()) {
         type = type.getFieldList().get(0).getType();
       }
+
       assert type instanceof ArraySqlType || type instanceof MultisetSqlType
           || type instanceof MapSqlType;
       if (type instanceof MapSqlType) {

@@ -18,7 +18,6 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
-import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
@@ -26,12 +25,11 @@ import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.function.Predicate;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -62,7 +60,7 @@ public abstract class OperandTypes {
    */
   public static FamilyOperandTypeChecker family(SqlTypeFamily... families) {
     return new FamilyOperandTypeChecker(ImmutableList.copyOf(families),
-        Predicates.<Integer>alwaysFalse());
+        i -> false);
   }
 
   /**
@@ -79,7 +77,7 @@ public abstract class OperandTypes {
    * corresponding family.
    */
   public static FamilyOperandTypeChecker family(List<SqlTypeFamily> families) {
-    return family(families, Predicates.<Integer>alwaysFalse());
+    return family(families, i -> false);
   }
 
   /**
@@ -205,11 +203,7 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker NUMERIC_OPTIONAL_INTEGER =
       family(ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER),
           // Second operand optional (operand index 0, 1)
-          new PredicateImpl<Integer>() {
-            public boolean test(Integer number) {
-              return number == 1;
-            }
-          });
+          number -> number == 1);
 
   public static final SqlSingleOperandTypeChecker NUMERIC_INTEGER =
       family(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER);
@@ -288,7 +282,7 @@ public abstract class OperandTypes {
    */
   public static final SqlSingleOperandTypeChecker POSITIVE_INTEGER_LITERAL =
       new FamilyOperandTypeChecker(ImmutableList.of(SqlTypeFamily.INTEGER),
-          Predicates.<Integer>alwaysFalse()) {
+          i -> false) {
         public boolean checkSingleOperandType(
             SqlCallBinding callBinding,
             SqlNode node,
@@ -480,11 +474,11 @@ public abstract class OperandTypes {
       // TODO:  compatibility check
       OperandTypes.or(NUMERIC_NUMERIC, INTERVAL_SAME_SAME, DATETIME_INTERVAL);
 
-  public static final SqlSingleOperandTypeChecker MINUS_DATE_OPERATOR =
+  public static final FamilyOperandTypeChecker MINUS_DATE_OPERATOR =
       new FamilyOperandTypeChecker(
           ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME,
               SqlTypeFamily.DATETIME_INTERVAL),
-          Predicates.<Integer>alwaysFalse()) {
+          i -> false) {
         public boolean checkOperandTypes(
             SqlCallBinding callBinding,
             boolean throwOnFailure) {

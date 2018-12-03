@@ -21,7 +21,7 @@ package org.apache.calcite.adapter.druid;
  *
  * <p>Extraction functions define the transformation applied to each dimension value.
  */
-public interface ExtractionFunction extends DruidQuery.Json {
+public interface ExtractionFunction extends DruidJson {
 }
 
 // End ExtractionFunction.java

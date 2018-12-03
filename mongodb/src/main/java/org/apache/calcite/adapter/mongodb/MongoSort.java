@@ -59,7 +59,7 @@ public class MongoSort extends Sort implements MongoRel {
   public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
     if (!collation.getFieldCollations().isEmpty()) {
-      final List<String> keys = new ArrayList<String>();
+      final List<String> keys = new ArrayList<>();
       final List<RelDataTypeField> fields = getRowType().getFieldList();
       for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
         final String name =

@@ -20,6 +20,8 @@ import org.apache.calcite.avatica.ConnectionConfigImpl;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.model.JsonSchema;
+import org.apache.calcite.prepare.CalciteCatalogReader;
+import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -27,8 +29,8 @@ import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.Properties;
 
 /** Implementation of {@link CalciteConnectionConfig}. */
@@ -61,6 +63,10 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean();
   }
 
+  @Override public boolean nullEqualToEmpty() {
+    return CalciteConnectionProperty.NULL_EQUAL_TO_EMPTY.wrap(properties).getBoolean();
+  }
+
   public boolean autoTemp() {
     return CalciteConnectionProperty.AUTO_TEMP.wrap(properties).getBoolean();
   }
@@ -86,22 +92,29 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     if (fun == null || fun.equals("") || fun.equals("standard")) {
       return defaultOperatorTable;
     }
-    final List<SqlOperatorTable> tables = new ArrayList<>();
+    final Collection<SqlOperatorTable> tables = new LinkedHashSet<>();
     for (String s : fun.split(",")) {
-      tables.add(operatorTable(s));
+      operatorTable(s, tables);
     }
+    tables.add(SqlStdOperatorTable.instance());
     return operatorTableClass.cast(
         ChainedSqlOperatorTable.of(
-            tables.toArray(new SqlOperatorTable[tables.size()])));
+            tables.toArray(new SqlOperatorTable[0])));
   }
 
-  private static SqlOperatorTable operatorTable(String s) {
+  private static void operatorTable(String s,
+        Collection<SqlOperatorTable> tables) {
     switch (s) {
     case "standard":
-      return SqlStdOperatorTable.instance();
+      tables.add(SqlStdOperatorTable.instance());
+      return;
     case "oracle":
-      return ChainedSqlOperatorTable.of(OracleSqlOperatorTable.instance(),
-          SqlStdOperatorTable.instance());
+      tables.add(OracleSqlOperatorTable.instance());
+      return;
+    case "spatial":
+      tables.add(
+          CalciteCatalogReader.operatorTable(GeoFunctions.class.getName()));
+      return;
     default:
       throw new IllegalArgumentException("Unknown operator table: " + s);
     }

@@ -37,8 +37,6 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
-
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -57,6 +55,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -73,17 +72,20 @@ class DruidConnectionImpl implements DruidConnection {
 
   public static final String DEFAULT_RESPONSE_TIMESTAMP_COLUMN = "timestamp";
   private static final SimpleDateFormat UTC_TIMESTAMP_FORMAT;
+  private static final SimpleDateFormat TIMESTAMP_FORMAT;
 
   static {
     final TimeZone utc = DateTimeUtils.UTC_ZONE;
     UTC_TIMESTAMP_FORMAT =
         new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ROOT);
     UTC_TIMESTAMP_FORMAT.setTimeZone(utc);
+    TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
+    TIMESTAMP_FORMAT.setTimeZone(utc);
   }
 
   DruidConnectionImpl(String url, String coordinatorUrl) {
-    this.url = Preconditions.checkNotNull(url);
-    this.coordinatorUrl = Preconditions.checkNotNull(coordinatorUrl);
+    this.url = Objects.requireNonNull(url);
+    this.coordinatorUrl = Objects.requireNonNull(coordinatorUrl);
   }
 
   /** Executes a query request.
@@ -124,7 +126,7 @@ class DruidConnectionImpl implements DruidConnection {
       try {
         final byte[] bytes = AvaticaUtils.readFullyToBytes(in);
         System.out.println("Response: "
-            + new String(bytes, StandardCharsets.UTF_8));
+            + new String(bytes, StandardCharsets.UTF_8)); // CHECKSTYLE: IGNORE 0
         in = new ByteArrayInputStream(bytes);
       } catch (IOException e) {
         throw new RuntimeException(e);
@@ -133,13 +135,17 @@ class DruidConnectionImpl implements DruidConnection {
 
     int posTimestampField = -1;
     for (int i = 0; i < fieldTypes.size(); i++) {
+      /*@TODO This need to be revisited. The logic seems implying that only
+      one column of type timestamp is present, this is not necessarily true,
+      see https://issues.apache.org/jira/browse/CALCITE-2175
+      */
       if (fieldTypes.get(i) == ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP) {
         posTimestampField = i;
         break;
       }
     }
 
-    try (final JsonParser parser = factory.createParser(in)) {
+    try (JsonParser parser = factory.createParser(in)) {
       switch (queryType) {
       case TIMESERIES:
         if (parser.nextToken() == JsonToken.START_ARRAY) {
@@ -249,6 +255,39 @@ class DruidConnectionImpl implements DruidConnection {
             expect(parser, JsonToken.END_OBJECT);
           }
         }
+        break;
+
+      case SCAN:
+        if (parser.nextToken() == JsonToken.START_ARRAY) {
+          while (parser.nextToken() == JsonToken.START_OBJECT) {
+            expectScalarField(parser, "segmentId");
+
+            expect(parser, JsonToken.FIELD_NAME);
+            if (parser.getCurrentName().equals("columns")) {
+              expect(parser, JsonToken.START_ARRAY);
+              while (parser.nextToken() != JsonToken.END_ARRAY) {
+                // Skip the columns list
+              }
+            }
+            if (parser.nextToken() == JsonToken.FIELD_NAME
+                && parser.getCurrentName().equals("events")
+                && parser.nextToken() == JsonToken.START_ARRAY) {
+              // Events is Array of Arrays where each array is a row
+              while (parser.nextToken() == JsonToken.START_ARRAY) {
+                for (String field : fieldNames) {
+                  parseFieldForName(fieldNames, fieldTypes, posTimestampField, rowBuilder, parser,
+                      field);
+                }
+                expect(parser, JsonToken.END_ARRAY);
+                Row row = rowBuilder.build();
+                sink.send(row);
+                rowBuilder.reset();
+                page.totalRowCount += 1;
+              }
+            }
+            expect(parser, JsonToken.END_OBJECT);
+          }
+        }
       }
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException(e);
@@ -270,7 +309,12 @@ class DruidConnectionImpl implements DruidConnection {
   private void parseField(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
       int posTimestampField, Row.RowBuilder rowBuilder, JsonParser parser) throws IOException {
     final String fieldName = parser.getCurrentName();
+    parseFieldForName(fieldNames, fieldTypes, posTimestampField, rowBuilder, parser, fieldName);
+  }
 
+  private void parseFieldForName(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
+      int posTimestampField, Row.RowBuilder rowBuilder, JsonParser parser, String fieldName)
+      throws IOException {
     // Move to next token, which is name's value
     JsonToken token = parser.nextToken();
 
@@ -287,25 +331,41 @@ class DruidConnectionImpl implements DruidConnection {
     }
 
     if (isTimestampColumn || ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP == type) {
-      try {
-        final Date parse;
-        // synchronized block to avoid race condition
+      final int fieldPos = posTimestampField != -1 ? posTimestampField : i;
+      if (token == JsonToken.VALUE_NUMBER_INT) {
+        rowBuilder.set(posTimestampField, parser.getLongValue());
+        return;
+      } else {
+        // We don't have any way to figure out the format of time upfront since we only have
+        // org.apache.calcite.avatica.ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP as type to represent
+        // both timestamp and timestamp with local timezone.
+        // Logic where type is inferred can be found at DruidQuery.DruidQueryNode.getPrimitive()
+        // Thus need to guess via try and catch
         synchronized (UTC_TIMESTAMP_FORMAT) {
-          parse = UTC_TIMESTAMP_FORMAT.parse(parser.getText());
+          // synchronized block to avoid race condition
+          try {
+            // First try to parse as Timestamp with timezone.
+            rowBuilder
+                .set(fieldPos, UTC_TIMESTAMP_FORMAT.parse(parser.getText()).getTime());
+          } catch (ParseException e) {
+            // swallow the exception and try timestamp format
+            try {
+              rowBuilder
+                  .set(fieldPos, TIMESTAMP_FORMAT.parse(parser.getText()).getTime());
+            } catch (ParseException e2) {
+              // unknown format should not happen
+              throw new RuntimeException(e2);
+            }
+          }
         }
-        if (posTimestampField != -1) {
-          rowBuilder.set(posTimestampField, parse.getTime());
-        }
-      } catch (ParseException e) {
-        // ignore bad value
+        return;
       }
-      return;
     }
 
     switch (token) {
     case VALUE_NUMBER_INT:
       if (type == null) {
-        type = ColumnMetaData.Rep.INTEGER;
+        type = ColumnMetaData.Rep.LONG;
       }
       // fall through
     case VALUE_NUMBER_FLOAT:
@@ -356,6 +416,7 @@ class DruidConnectionImpl implements DruidConnection {
           case "NaN":
             throw new RuntimeException("/ by zero");
           }
+          rowBuilder.set(i, Long.valueOf(s));
           break;
         case FLOAT:
         case PRIMITIVE_FLOAT:
@@ -373,10 +434,12 @@ class DruidConnectionImpl implements DruidConnection {
             rowBuilder.set(i, Double.NaN);
             return;
           }
+          rowBuilder.set(i, Double.valueOf(s));
+          break;
         }
+      } else {
+        rowBuilder.set(i, s);
       }
-      rowBuilder.set(i, s);
-      break;
     }
   }
 
@@ -420,7 +483,7 @@ class DruidConnectionImpl implements DruidConnection {
     }
     expect(parser, JsonToken.START_OBJECT);
     while (parser.nextToken() != JsonToken.END_OBJECT) {
-        // empty
+      // empty
     }
   }
 
@@ -583,7 +646,7 @@ class DruidConnectionImpl implements DruidConnection {
         final byte[] bytes = AvaticaUtils.readFullyToBytes(in);
         in.close();
         System.out.println("Response: "
-            + new String(bytes, StandardCharsets.UTF_8));
+            + new String(bytes, StandardCharsets.UTF_8)); // CHECKSTYLE: IGNORE 0
         in = new ByteArrayInputStream(bytes);
       } catch (IOException e) {
         throw new RuntimeException(e);
@@ -650,15 +713,14 @@ class DruidConnectionImpl implements DruidConnection {
     }
   }
 
-
   /** Result of a "segmentMetadata" call, populated by Jackson. */
   @SuppressWarnings({ "WeakerAccess", "unused" })
   private static class JsonSegmentMetadata {
     public String id;
     public List<String> intervals;
     public Map<String, JsonColumn> columns;
-    public int size;
-    public int numRows;
+    public long size;
+    public long numRows;
     public Map<String, JsonAggregator> aggregators;
   }
 

@@ -22,30 +22,59 @@ limitations under the License.
 This directory contains the code for the Apache Calcite web site,
 [calcite.apache.org](https://calcite.apache.org/).
 
-## Setup
+You can build the site manually using your environment or use the docker compose file.
 
-Note that the site can currently only be built with Ruby 2.1.x.
+## Manually
+
+### Setup your environment
+
+Site generation currently works best with ruby-2.5.1.
 
 1. `cd site`
 2. `svn co https://svn.apache.org/repos/asf/calcite/site target`
-3. `sudo apt-get install rubygems ruby2.1-dev zlib1g-dev` (linux)
-4. `sudo gem install bundler github-pages jekyll jekyll-oembed`
+3. `sudo apt-get install rubygems ruby2.5-dev zlib1g-dev` (linux)
+4. `sudo gem install bundler`
 5. `bundle install`
 
-## Add javadoc
+### Add javadoc
 
 1. `cd ..`
 2. `mvn -DskipTests site`
 3. `rm -rf site/target/apidocs site/target/testapidocs`
 4. `mv target/site/apidocs target/site/testapidocs site/target`
 
-## Running locally
+### Running locally
 
 Before opening a pull request, you can preview your contributions by
 running from within the directory:
 
 1. `bundle exec jekyll serve`
 2. Open [http://localhost:4000](http://localhost:4000)
+
+## Using docker
+
+### Setup your environment
+
+1. Install [docker](https://docs.docker.com/install/)
+2. Install [docker-compose](https://docs.docker.com/compose/install/)
+
+### Build site
+1. `cd site`
+2. `docker-compose run build-site`
+
+### Generate javadoc
+1. `cd site`
+2. `docker-compose run generate-javadoc`
+
+### Running development mode locally
+You can preview your work while working on the site.
+
+1. `cd site`
+2. `docker-compose run --service-ports dev`
+
+The web server will be started on [http://localhost:4000](http://localhost:4000)
+
+As you make changes to the site, the site will automatically rebuild.
 
 ## Pushing to site
 
@@ -66,3 +95,22 @@ generate files to `site/target/avatica`, which becomes an
 [avatica](http://calcite.apache.org/avatica)
 sub-directory when deployed. See
 [Avatica site README](../avatica/site/README.md).
+
+## Site branch
+
+We want to deploy project changes (for example, new committers, PMC
+members or upcoming talks) immediately, but we want to deploy
+documentation of project features only when that feature appears in a
+release. For this reason, we generally edit the site on the "site" git
+branch.
+
+Before making a release, release manager must ensure that "site" is in
+sync with "master". Immediately after a release, the release manager
+will publish the site, including all of the features that have just
+been released. When making an edit to the site, a Calcite committer
+must commit the change to the git "master" branch (as well as
+subversion, to publish the site, of course). If the edit is to appear
+on the site immediately, the committer should then cherry-pick the
+change into the "site" branch.  If there have been no feature-related
+changes on the site since the release, then "site" should be a
+fast-forward merge of "master".

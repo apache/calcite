@@ -31,6 +31,8 @@ import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
 
@@ -76,9 +78,11 @@ public class RexExecutorImpl implements RexExecutor {
         Expressions.declare(
             Modifier.FINAL, root_,
             Expressions.convert_(root0_, DataContext.class)));
+    final SqlConformance conformance = SqlConformanceEnum.DEFAULT;
+    final RexProgram program = programBuilder.getProgram();
     final List<Expression> expressions =
-        RexToLixTranslator.translateProjects(programBuilder.getProgram(),
-        javaTypeFactory, blockBuilder, null, root_, getter, null);
+        RexToLixTranslator.translateProjects(program, javaTypeFactory,
+            conformance, blockBuilder, null, root_, getter, null);
     blockBuilder.add(
         Expressions.return_(null,
             Expressions.newArrayInit(Object[].class, expressions)));
@@ -116,11 +120,8 @@ public class RexExecutorImpl implements RexExecutor {
   public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
       List<RexNode> reducedValues) {
     final String code = compile(rexBuilder, constExps,
-        new RexToLixTranslator.InputGetter() {
-          public Expression field(BlockBuilder list, int index,
-              Type storageType) {
-            throw new UnsupportedOperationException();
-          }
+        (list, index, storageType) -> {
+          throw new UnsupportedOperationException();
         });
 
     final RexExecutable executable = new RexExecutable(code, constExps);

@@ -30,7 +30,7 @@ provides a full SQL interface.
 Calcite-example-CSV is a fully functional adapter for
 Calcite that reads
 text files in
-<a href="http://en.wikipedia.org/wiki/Comma-separated_values">CSV
+<a href="https://en.wikipedia.org/wiki/Comma-separated_values">CSV
 (comma-separated values)</a> format. It is remarkable that a couple of
 hundred lines of Java code are sufficient to provide full SQL query
 capability.
@@ -53,12 +53,12 @@ several important concepts:
 
 ## Download and build
 
-You need Java (1.7 or higher; 1.8 preferred), git and maven (3.2.1 or later).
+You need Java (version 8, 9 or 10) and git.
 
 {% highlight bash %}
 $ git clone https://github.com/apache/calcite.git
 $ cd calcite
-$ mvn install -DskipTests -Dcheckstyle.skip=true
+$ ./mvnw install -DskipTests -Dcheckstyle.skip=true
 $ cd example/csv
 {% endhighlight %}
 
@@ -91,7 +91,7 @@ sqlline> !tables
 {% endhighlight %}
 
 (JDBC experts, note: sqlline's <code>!tables</code> command is just executing
-<a href="http://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html#getTables(java.lang.String, java.lang.String, java.lang.String, java.lang.String[])"><code>DatabaseMetaData.getTables()</code></a>
+<a href="https://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html#getTables(java.lang.String, java.lang.String, java.lang.String, java.lang.String[])"><code>DatabaseMetaData.getTables()</code></a>
 behind the scenes.
 It has other commands to query JDBC metadata, such as <code>!columns</code> and <code>!describe</code>.)
 
@@ -633,7 +633,7 @@ For example, this schema reads from a MySQL "foodmart" database:
 (The FoodMart database will be familiar to those of you who have used
 the Mondrian OLAP engine, because it is Mondrian's main test data
 set. To load the data set, follow <a
-href="http://mondrian.pentaho.com/documentation/installation.php#2_Set_up_test_data">Mondrian's
+href="https://mondrian.pentaho.com/documentation/installation.php#2_Set_up_test_data">Mondrian's
 installation instructions</a>.)
 
 <b>Current limitations</b>: The JDBC adapter currently only pushes

@@ -92,6 +92,14 @@ public class JoinScope extends ListScope {
   public SqlValidatorScope getUsingScope() {
     return usingScope;
   }
+
+  @Override public boolean isWithin(SqlValidatorScope scope2) {
+    if (this == scope2) {
+      return true;
+    }
+    // go from the JOIN to the enclosing SELECT
+    return usingScope.isWithin(scope2);
+  }
 }
 
 // End JoinScope.java

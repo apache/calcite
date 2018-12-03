@@ -21,20 +21,25 @@
 
 # Build classpath on first call.
 # (To force rebuild, remove target/fullclasspath.txt.)
-cd $(dirname $0)
-if [ ! -f target/fullclasspath.txt ]; then
+
+root=$(cd "$(dirname "$(readlink $0)")"; pwd)
+
+if [ ! -f ${root}/target/fullclasspath.txt ]; then
+  (
+    cd ${root}
     mvn dependency:build-classpath -Dmdep.outputFile=target/classpath.txt
     awk -v RS=: -v ORS=: '{if (!m[$0]) {m[$0]=1; print}}' \
         target/classpath.txt \
         */target/classpath.txt > target/fullclasspath.txt
+  )
 fi
 
 CP=
 for module in core file plus; do
-  CP=${CP}${module}/target/classes:
-  CP=${CP}${module}/target/test-classes:
+  CP=${CP}${root}/${module}/target/classes:
+  CP=${CP}${root}/${module}/target/test-classes:
 done
-CP="${CP}$(cat target/fullclasspath.txt)"
+CP="${CP}$(cat ${root}/target/fullclasspath.txt)"
 
 VM_OPTS=
 export JAVA_OPTS=-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl

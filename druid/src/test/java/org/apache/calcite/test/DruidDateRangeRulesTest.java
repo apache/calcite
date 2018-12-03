@@ -26,17 +26,13 @@ import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Ordering;
-import com.google.common.collect.RangeSet;
 
 import org.hamcrest.Matcher;
 import org.joda.time.Interval;
 import org.junit.Test;
 
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
@@ -132,11 +128,11 @@ public class DruidDateRangeRulesTest {
     c.set(2011, Calendar.JANUARY, 1);
     final TimestampString to = TimestampString.fromCalendarFields(c);
 
-    // dt >= 2010-01-01 AND dt < 2011-01-01
+    // d >= 2010-01-01 AND d < 2011-01-01
     checkDateRangeNoSimplify(f,
         f.and(
-            f.ge(f.dt, f.cast(f.timeStampDataType, f.timestampLiteral(from))),
-            f.lt(f.dt, f.cast(f.timeStampDataType, f.timestampLiteral(to)))),
+            f.ge(f.d, f.cast(f.timestampDataType, f.timestampLiteral(from))),
+            f.lt(f.d, f.cast(f.timestampDataType, f.timestampLiteral(to)))),
         is("[2010-01-01T00:00:00.000Z/2011-01-01T00:00:00.000Z]"));
   }
 
@@ -145,40 +141,18 @@ public class DruidDateRangeRulesTest {
   // HiveRexExecutorImpl is used in Hive
   private void checkDateRangeNoSimplify(Fixture f, RexNode e,
       Matcher<String> intervalMatcher) {
-    final Map<String, RangeSet<Calendar>> operandRanges = new HashMap<>();
-    // We rely on the collection being sorted (so YEAR comes before MONTH
-    // before HOUR) and unique. A predicate on MONTH is not useful if there is
-    // no predicate on YEAR. Then when we apply the predicate on DAY it doesn't
-    // generate hundreds of ranges we'll later throw away.
-    final List<TimeUnitRange> timeUnits =
-        Ordering.natural().sortedCopy(DateRangeRules.extractTimeUnits(e));
-    for (TimeUnitRange timeUnit : timeUnits) {
-      e = e.accept(
-          new DateRangeRules.ExtractShuttle(f.rexBuilder, timeUnit,
-              operandRanges));
-    }
+    e = DateRangeRules.replaceTimeUnits(f.rexBuilder, e, "UTC");
     final List<Interval> intervals =
-        DruidDateTimeUtils.createInterval(e, "UTC");
+        DruidDateTimeUtils.createInterval(e);
     assertThat(intervals, notNullValue());
     assertThat(intervals.toString(), intervalMatcher);
   }
 
   private void checkDateRange(Fixture f, RexNode e, Matcher<String> intervalMatcher) {
-    final Map<String, RangeSet<Calendar>> operandRanges = new HashMap<>();
-    // We rely on the collection being sorted (so YEAR comes before MONTH
-    // before HOUR) and unique. A predicate on MONTH is not useful if there is
-    // no predicate on YEAR. Then when we apply the predicate on DAY it doesn't
-    // generate hundreds of ranges we'll later throw away.
-    final List<TimeUnitRange> timeUnits =
-        Ordering.natural().sortedCopy(DateRangeRules.extractTimeUnits(e));
-    for (TimeUnitRange timeUnit : timeUnits) {
-      e = e.accept(
-          new DateRangeRules.ExtractShuttle(f.rexBuilder, timeUnit,
-              operandRanges));
-    }
+    e = DateRangeRules.replaceTimeUnits(f.rexBuilder, e, "UTC");
     final RexNode e2 = f.simplify.simplify(e);
     List<Interval> intervals =
-        DruidDateTimeUtils.createInterval(e2, "UTC");
+        DruidDateTimeUtils.createInterval(e2);
     if (intervals == null) {
       throw new AssertionError("null interval");
     }

@@ -1,0 +1,63 @@
+# select.iq - Babel test for non-standard clauses in SELECT
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use scott
+!set outputformat mysql
+
+# ORDER BY column not in SELECT clause
+SELECT ename
+FROM emp, dept
+ORDER BY emp.deptno;
+
+SELECT "EMP"."ENAME"
+FROM "scott"."EMP" AS "EMP",
+        "scott"."DEPT" AS "DEPT"
+ORDER BY "EMP"."DEPTNO"
+!explain-validated-on all
+
+# LEFT SEMI JOIN (Hive only)
+SELECT *
+FROM emp LEFT SEMI JOIN dept ON emp.deptno = dept.deptno;
+
+SELECT "EMP"."EMPNO", "EMP"."ENAME", "EMP"."JOB", "EMP"."MGR", "EMP"."HIREDATE", "EMP"."SAL", "EMP"."COMM", "EMP"."DEPTNO", "DEPT"."DEPTNO" AS "DEPTNO0", "DEPT"."DNAME", "DEPT"."LOC"
+FROM "scott"."EMP" AS "EMP"
+    LEFT SEMI JOIN "scott"."DEPT" AS "DEPT" ON "EMP"."DEPTNO" = "DEPT"."DEPTNO"
+!explain-validated-on hive
+
+# Test CONNECT BY (Oracle only)
+!if (false) {
+SELECT *
+FROM emp
+START WITH mgr IS NULL
+CONNECT BY empno = PRIOR mgr;
+select(...)
+!explain-validated-on oracle
+!}
+
+# WITH RECURSIVE (Oracle, MySQL 8 onwards)
+!if (false) {
+WITH RECURSIVE t(n) AS (
+    VALUES (1)
+  UNION ALL
+    SELECT n+1 FROM t WHERE n < 100
+)
+SELECT sum(n) FROM t;
+select(...)
+!explain-validated-on mysql8+ oracle
+!}
+
+# End select.iq

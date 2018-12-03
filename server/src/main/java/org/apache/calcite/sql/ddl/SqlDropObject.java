@@ -34,8 +34,8 @@ import java.util.List;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * Base class for parse trees of {@code DROP TABLE}, {@code DROP VIEW} and
- * {@code DROP MATERIALIZED VIEW} statements.
+ * Base class for parse trees of {@code DROP TABLE}, {@code DROP VIEW},
+ * {@code DROP MATERIALIZED VIEW} and {@code DROP TYPE} statements.
  */
 abstract class SqlDropObject extends SqlDrop
     implements SqlExecutableStatement {
@@ -49,7 +49,7 @@ abstract class SqlDropObject extends SqlDrop
   }
 
   public List<SqlNode> getOperandList() {
-    return ImmutableList.<SqlNode>of(name);
+    return ImmutableList.of(name);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
@@ -84,6 +84,14 @@ abstract class SqlDropObject extends SqlDrop
             RESOURCE.viewNotFound(name.getSimple()));
       }
       break;
+    case DROP_TYPE:
+      existed = schema.removeType(name.getSimple());
+      if (!existed && !ifExists) {
+        throw SqlUtil.newContextException(name.getParserPosition(),
+            RESOURCE.typeNotFound(name.getSimple()));
+      }
+      break;
+    case OTHER_DDL:
     default:
       throw new AssertionError(getKind());
     }

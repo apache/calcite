@@ -32,12 +32,12 @@ import org.apache.calcite.util.Glossary;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 import java.io.Reader;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -391,7 +391,7 @@ public abstract class SqlAbstractParserImpl {
     // preserve the correct syntax (i.e. don't quote builtin function
     /// name when regenerating SQL).
     if (funName.isSimple()) {
-      final List<SqlOperator> list = Lists.newArrayList();
+      final List<SqlOperator> list = new ArrayList<>();
       opTab.lookupOperatorOverloads(funName, funcType, SqlSyntax.FUNCTION, list);
       if (list.size() == 1) {
         fun = list.get(0);
@@ -570,20 +570,20 @@ public abstract class SqlAbstractParserImpl {
    * Default implementation of the {@link Metadata} interface.
    */
   public static class MetadataImpl implements Metadata {
-    private final Set<String> reservedFunctionNames = new HashSet<String>();
-    private final Set<String> contextVariableNames = new HashSet<String>();
-    private final Set<String> nonReservedKeyWordSet = new HashSet<String>();
+    private final Set<String> reservedFunctionNames = new HashSet<>();
+    private final Set<String> contextVariableNames = new HashSet<>();
+    private final Set<String> nonReservedKeyWordSet = new HashSet<>();
 
     /**
      * Set of all tokens.
      */
-    private final SortedSet<String> tokenSet = new TreeSet<String>();
+    private final SortedSet<String> tokenSet = new TreeSet<>();
 
     /**
      * Immutable list of all tokens, in alphabetical order.
      */
     private final List<String> tokenList;
-    private final Set<String> reservedWords = new HashSet<String>();
+    private final Set<String> reservedWords = new HashSet<>();
     private final String sql92ReservedWords;
 
     /**
@@ -597,7 +597,7 @@ public abstract class SqlAbstractParserImpl {
       initList(sqlParser, nonReservedKeyWordSet, "NonReservedKeyWord");
       tokenList = ImmutableList.copyOf(tokenSet);
       sql92ReservedWords = constructSql92ReservedWordList();
-      Set<String> reservedWordSet = new TreeSet<String>();
+      Set<String> reservedWordSet = new TreeSet<>();
       reservedWordSet.addAll(tokenSet);
       reservedWordSet.removeAll(nonReservedKeyWordSet);
       reservedWords.addAll(reservedWordSet);
@@ -670,7 +670,7 @@ public abstract class SqlAbstractParserImpl {
      */
     private String constructSql92ReservedWordList() {
       StringBuilder sb = new StringBuilder();
-      TreeSet<String> jdbcReservedSet = new TreeSet<String>();
+      TreeSet<String> jdbcReservedSet = new TreeSet<>();
       jdbcReservedSet.addAll(tokenSet);
       jdbcReservedSet.removeAll(SQL_92_RESERVED_WORD_SET);
       jdbcReservedSet.removeAll(nonReservedKeyWordSet);

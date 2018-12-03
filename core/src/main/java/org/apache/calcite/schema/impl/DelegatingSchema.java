@@ -17,6 +17,7 @@
 package org.apache.calcite.schema.impl;
 
 import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
@@ -64,6 +65,14 @@ public class DelegatingSchema implements Schema {
 
   public Set<String> getTableNames() {
     return schema.getTableNames();
+  }
+
+  public RelProtoDataType getType(String name) {
+    return schema.getType(name);
+  }
+
+  public Set<String> getTypeNames() {
+    return schema.getTypeNames();
   }
 
   public Collection<Function> getFunctions(String name) {

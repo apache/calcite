@@ -49,7 +49,7 @@ public class BinarySearch {
    */
   public static <T> int lowerBound(T[] a, T key, Comparator<T> comparator) {
     return lowerBound(a, key, 0, a.length - 1,
-        Functions.<T>identitySelector(), comparator);
+        Functions.identitySelector(), comparator);
   }
 
   /**
@@ -68,7 +68,7 @@ public class BinarySearch {
    */
   public static <T> int upperBound(T[] a, T key, Comparator<T> comparator) {
     return upperBound(a, key, 0, a.length - 1,
-        Functions.<T>identitySelector(), comparator);
+        Functions.identitySelector(), comparator);
   }
 
   /**
@@ -136,7 +136,7 @@ public class BinarySearch {
   public static <T> int lowerBound(T[] a, T key, int imin, int imax,
       Comparator<T> comparator) {
     return lowerBound(a, key, imin, imax,
-        Functions.<T>identitySelector(), comparator);
+        Functions.identitySelector(), comparator);
   }
 
   /**
@@ -158,7 +158,7 @@ public class BinarySearch {
   public static <T> int upperBound(T[] a, T key, int imin, int imax,
       Comparator<T> comparator) {
     return upperBound(a, key, imin, imax,
-        Functions.<T>identitySelector(), comparator);
+        Functions.identitySelector(), comparator);
   }
 
   /**

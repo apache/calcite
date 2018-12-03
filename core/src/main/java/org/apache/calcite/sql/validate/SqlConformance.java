@@ -62,10 +62,17 @@ public interface SqlConformance {
   SqlConformanceEnum PRAGMATIC_2003 = SqlConformanceEnum.PRAGMATIC_2003;
 
   /**
+   * Whether this dialect supports features from a wide variety of
+   * dialects. This is enabled for the Babel parser, disabled otherwise.
+   */
+  boolean isLiberal();
+
+  /**
    * Whether to allow aliases from the {@code SELECT} clause to be used as
    * column names in the {@code GROUP BY} clause.
    *
    * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
    * {@link SqlConformanceEnum#LENIENT},
    * {@link SqlConformanceEnum#MYSQL_5};
    * false otherwise.
@@ -77,6 +84,7 @@ public interface SqlConformance {
    * in the select list'.
    *
    * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
    * {@link SqlConformanceEnum#LENIENT},
    * {@link SqlConformanceEnum#MYSQL_5};
    * false otherwise.
@@ -88,6 +96,7 @@ public interface SqlConformance {
    * column names in the {@code HAVING} clause.
    *
    * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
    * {@link SqlConformanceEnum#LENIENT},
    * {@link SqlConformanceEnum#MYSQL_5};
    * false otherwise.
@@ -100,6 +109,7 @@ public interface SqlConformance {
    *
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#DEFAULT},
+   * {@link SqlConformanceEnum#BABEL},
    * {@link SqlConformanceEnum#LENIENT},
    * {@link SqlConformanceEnum#MYSQL_5},
    * {@link SqlConformanceEnum#ORACLE_10},
@@ -118,6 +128,7 @@ public interface SqlConformance {
    *
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#DEFAULT},
+   * {@link SqlConformanceEnum#BABEL},
    * {@link SqlConformanceEnum#LENIENT},
    * {@link SqlConformanceEnum#MYSQL_5},
    * {@link SqlConformanceEnum#ORACLE_10},
@@ -156,6 +167,7 @@ public interface SqlConformance {
    * the parser.
    *
    * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
    * {@link SqlConformanceEnum#LENIENT},
    * {@link SqlConformanceEnum#MYSQL_5},
    * {@link SqlConformanceEnum#ORACLE_10};
@@ -169,6 +181,7 @@ public interface SqlConformance {
    * {@code mod} function.
    *
    * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
    * {@link SqlConformanceEnum#LENIENT},
    * {@link SqlConformanceEnum#MYSQL_5};
    * false otherwise.
@@ -180,6 +193,7 @@ public interface SqlConformance {
    * the parser.
    *
    * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
    * {@link SqlConformanceEnum#LENIENT},
    * {@link SqlConformanceEnum#ORACLE_10};
    * {@link SqlConformanceEnum#ORACLE_12};
@@ -207,6 +221,7 @@ public interface SqlConformance {
    * </ul>
    *
    * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
    * {@link SqlConformanceEnum#LENIENT},
    * {@link SqlConformanceEnum#SQL_SERVER_2008};
    * {@link SqlConformanceEnum#ORACLE_12};
@@ -228,6 +243,7 @@ public interface SqlConformance {
    * column is not declared {@code NOT NULL}.
    *
    * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
    * {@link SqlConformanceEnum#LENIENT},
    * {@link SqlConformanceEnum#PRAGMATIC_99},
    * {@link SqlConformanceEnum#PRAGMATIC_2003};
@@ -254,11 +270,30 @@ public interface SqlConformance {
    * not.
    *
    * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
    * {@link SqlConformanceEnum#LENIENT},
    * {@link SqlConformanceEnum#MYSQL_5};
    * false otherwise.
    */
   boolean allowNiladicParentheses();
+
+  /**
+   * Whether to allow SQL syntax "{@code ROW(expr1, expr2, expr3)}".
+   * <p>The equivalent syntax in standard SQL is
+   * "{@code (expr1, expr2, expr3)}".
+   *
+   * <p>Standard SQL does not allow this because the type is not
+   * well-defined. However, PostgreSQL allows this behavior.
+   *
+   * <p>Standard SQL allows row expressions in other contexts, for instance
+   * inside {@code VALUES} clause.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#DEFAULT},
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  boolean allowExplicitRowValueConstructor();
 
   /**
    * Whether to allow mixing table columns with extended columns in
@@ -275,6 +310,7 @@ public interface SqlConformance {
    * </blockquote>
    *
    * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
    * {@link SqlConformanceEnum#LENIENT};
    * false otherwise.
    */
@@ -290,6 +326,7 @@ public interface SqlConformance {
    * <p>MySQL and CUBRID allow this behavior.
    *
    * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
    * {@link SqlConformanceEnum#LENIENT},
    * {@link SqlConformanceEnum#MYSQL_5};
    * false otherwise.
@@ -300,12 +337,62 @@ public interface SqlConformance {
    * Whether to allow geo-spatial extensions, including the GEOMETRY type.
    *
    * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
    * {@link SqlConformanceEnum#LENIENT},
    * {@link SqlConformanceEnum#MYSQL_5},
    * {@link SqlConformanceEnum#SQL_SERVER_2008};
    * false otherwise.
    */
   boolean allowGeometry();
+
+  /**
+   * Whether the least restrictive type of a number of CHAR types of different
+   * lengths should be a VARCHAR type. And similarly BINARY to VARBINARY.
+   *
+   * <p>For example, consider the query
+   *
+   * <blockquote><pre>SELECT 'abcde' UNION SELECT 'xyz'</pre></blockquote>
+   *
+   * <p>The input columns have types {@code CHAR(5)} and {@code CHAR(3)}, and
+   * we need a result type that is large enough for both:
+   * <ul>
+   * <li>Under strict SQL:2003 behavior, its column has type {@code CHAR(5)},
+   *     and the value in the second row will have trailing spaces.
+   * <li>With lenient behavior, its column has type {@code VARCHAR(5)}, and the
+   *     values have no trailing spaces.
+   * </ul>
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#PRAGMATIC_99},
+   * {@link SqlConformanceEnum#PRAGMATIC_2003},
+   * {@link SqlConformanceEnum#MYSQL_5};
+   * {@link SqlConformanceEnum#ORACLE_10};
+   * {@link SqlConformanceEnum#ORACLE_12};
+   * {@link SqlConformanceEnum#SQL_SERVER_2008};
+   * false otherwise.
+   */
+  boolean shouldConvertRaggedUnionTypesToVarying();
+
+  /**
+   * Whether TRIM should support more than one trim character.
+   *
+   * <p>For example, consider the query
+   *
+   * <blockquote><pre>SELECT TRIM('eh' FROM 'hehe__hehe')</pre></blockquote>
+   *
+   * <p>Under strict behavior, if the length of trim character is not 1,
+   * TRIM throws an exception, and the query fails.
+   * However many implementations (in databases such as MySQL and SQL Server)
+   * trim all the characters, resulting in a return value of '__'.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#LENIENT},
+   * {@link SqlConformanceEnum#MYSQL_5},
+   * {@link SqlConformanceEnum#SQL_SERVER_2008};
+   * false otherwise.
+   */
+  boolean allowExtendedTrim();
 }
 
 // End SqlConformance.java

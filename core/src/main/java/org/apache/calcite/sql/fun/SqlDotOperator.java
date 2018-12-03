@@ -39,6 +39,7 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Static;
 
 import java.util.Arrays;
@@ -92,14 +93,22 @@ public class SqlDotOperator extends SqlSpecialOperator {
 
   @Override public RelDataType deriveType(SqlValidator validator,
       SqlValidatorScope scope, SqlCall call) {
-    RelDataType nodeType = validator.deriveType(scope, call.getOperandList().get(0));
+    final SqlNode operand = call.getOperandList().get(0);
+    final RelDataType nodeType =
+        validator.deriveType(scope, operand);
     assert nodeType != null;
+    if (!nodeType.isStruct()) {
+      throw SqlUtil.newContextException(operand.getParserPosition(),
+          Static.RESOURCE.incompatibleTypes());
+    }
 
-    final String fieldName = call.getOperandList().get(1).toString();
-    RelDataTypeField field =
+    final SqlNode fieldId = call.operand(1);
+    final String fieldName = fieldId.toString();
+    final RelDataTypeField field =
         nodeType.getField(fieldName, false, false);
     if (field == null) {
-      throw SqlUtil.newContextException(SqlParserPos.ZERO, Static.RESOURCE.unknownField(fieldName));
+      throw SqlUtil.newContextException(fieldId.getParserPosition(),
+          Static.RESOURCE.unknownField(fieldName));
     }
     RelDataType type = field.getType();
 
@@ -129,6 +138,8 @@ public class SqlDotOperator extends SqlSpecialOperator {
         callBinding.getValidator().deriveType(callBinding.getScope(), left);
     if (type.getSqlTypeName() != SqlTypeName.ROW) {
       return false;
+    } else if (type.getSqlIdentifier().isStar()) {
+      return false;
     }
     final RelDataType operandType = callBinding.getOperandType(0);
     final SqlSingleOperandTypeChecker checker = getChecker(operandType);
@@ -143,6 +154,10 @@ public class SqlDotOperator extends SqlSpecialOperator {
     default:
       throw new AssertionError(operandType.getSqlTypeName());
     }
+  }
+
+  @Override public boolean validRexOperands(final int count, final Litmus litmus) {
+    return litmus.fail("DOT is valid only for SqlCall not for RexCall");
   }
 
   @Override public String getAllowedSignatures(String name) {

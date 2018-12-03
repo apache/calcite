@@ -19,8 +19,8 @@ package org.apache.calcite.test;
 import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.Util;
 
-import org.incava.util.diff.Diff;
-import org.incava.util.diff.Difference;
+import org.incava.diff.Diff;
+import org.incava.diff.Difference;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -385,8 +385,8 @@ public abstract class DiffTestCase {
    * Returns a string containing the difference between the two sets of lines.
    */
   public static String diffLines(List<String> lines1, List<String> lines2) {
-    Diff differencer = new Diff(lines1, lines2);
-    List<Difference> differences = differencer.diff();
+    final Diff<String> differencer = new Diff<>(lines1, lines2);
+    final List<Difference> differences = differencer.execute();
     StringWriter sw = new StringWriter();
     int offset = 0;
     for (Difference d : differences) {
@@ -473,7 +473,7 @@ public abstract class DiffTestCase {
    */
   protected static String fileContents(File file) {
     byte[] buf = new byte[2048];
-    try (final FileInputStream reader = new FileInputStream(file)) {
+    try (FileInputStream reader = new FileInputStream(file)) {
       int readCount;
       final ByteArrayOutputStream writer = new ByteArrayOutputStream();
       while ((readCount = reader.read(buf)) >= 0) {

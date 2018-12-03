@@ -20,8 +20,8 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.rel.RelNode;
 
-import com.google.common.collect.Maps;
-
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,17 +35,17 @@ public interface InterpretableRel extends RelNode {
   /** Context when a {@link RelNode} is being converted to an interpreter
    * {@link Node}. */
   class InterpreterImplementor {
-    public final Interpreter interpreter;
+    public final Compiler compiler;
     public final Map<String, Object> internalParameters =
-        Maps.newLinkedHashMap();
+        new LinkedHashMap<>();
     public final CalcitePrepare.SparkHandler spark;
     public final DataContext dataContext;
-    public final Map<RelNode, List<Sink>> relSinks = Maps.newHashMap();
+    public final Map<RelNode, List<Sink>> relSinks = new HashMap<>();
 
-    public InterpreterImplementor(Interpreter interpreter,
+    public InterpreterImplementor(Compiler compiler,
         CalcitePrepare.SparkHandler spark,
         DataContext dataContext) {
-      this.interpreter = interpreter;
+      this.compiler = compiler;
       this.spark = spark;
       this.dataContext = dataContext;
     }

@@ -241,7 +241,7 @@ public class OptimizeShuttle extends Shuttle {
       break;
     case Equal:
       if (isConstantNull(expression1)
-          && Primitive.is(expression0.getType())) {
+          && isKnownNotNull(expression0)) {
         return FALSE_EXPR;
       }
       // a == true  -> a
@@ -253,7 +253,7 @@ public class OptimizeShuttle extends Shuttle {
       break;
     case NotEqual:
       if (isConstantNull(expression1)
-          && Primitive.is(expression0.getType())) {
+          && isKnownNotNull(expression0)) {
         return TRUE_EXPR;
       }
       // a != true  -> !a

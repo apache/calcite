@@ -213,6 +213,11 @@ public enum SqlKind {
   FILTER,
 
   /**
+   * WITHIN_GROUP operator
+   */
+  WITHIN_GROUP,
+
+  /**
    * Window specification
    */
   WINDOW,
@@ -722,6 +727,26 @@ public enum SqlKind {
   MULTISET_QUERY_CONSTRUCTOR,
 
   /**
+   * The JSON value expression.
+   */
+  JSON_VALUE_EXPRESSION,
+
+  /**
+   * The JSON API common syntax.
+   */
+  JSON_API_COMMON_SYNTAX,
+
+  /**
+   * The {@code JSON_ARRAYAGG} aggregate function.
+   */
+  JSON_ARRAYAGG,
+
+  /**
+   * The {@code JSON_OBJECTAGG} aggregate function.
+   */
+  JSON_OBJECTAGG,
+
+  /**
    * The "UNNEST" operator.
    */
   UNNEST,
@@ -810,14 +835,11 @@ public enum SqlKind {
   /** The {@code GROUP_ID()} function. */
   GROUP_ID,
 
-  /**
-   * the internal permute function in match_recognize cluse
-   */
+  /** The internal "permute" function in a MATCH_RECOGNIZE clause. */
   PATTERN_PERMUTE,
 
-  /**
-   * the special patterns to exclude enclosing pattern from output in match_recognize clause
-   */
+  /** The special patterns to exclude enclosing pattern from output in a
+   * MATCH_RECOGNIZE clause. */
   PATTERN_EXCLUDED,
 
   // Aggregate functions
@@ -849,11 +871,17 @@ public enum SqlKind {
   /** The {@code LAST_VALUE} aggregate function. */
   LAST_VALUE,
 
+  /** The {@code ANY_VALUE} aggregate function. */
+  ANY_VALUE,
+
   /** The {@code COVAR_POP} aggregate function. */
   COVAR_POP,
 
   /** The {@code COVAR_SAMP} aggregate function. */
   COVAR_SAMP,
+
+  /** The {@code REGR_COUNT} aggregate function. */
+  REGR_COUNT,
 
   /** The {@code REGR_SXX} aggregate function. */
   REGR_SXX,
@@ -878,6 +906,9 @@ public enum SqlKind {
 
   /** The {@code NTILE} aggregate function. */
   NTILE,
+
+  /** The {@code NTH_VALUE} aggregate function. */
+  NTH_VALUE,
 
   /** The {@code COLLECT} aggregate function. */
   COLLECT,
@@ -940,6 +971,9 @@ public enum SqlKind {
 
   /** Column declaration. */
   COLUMN_DECL,
+
+  /** Attribute definition. */
+  ATTRIBUTE_DEF,
 
   /** {@code CHECK} constraint. */
   CHECK,
@@ -1019,6 +1053,18 @@ public enum SqlKind {
   /** {@code DROP INDEX} DDL statement. */
   DROP_INDEX,
 
+  /** {@code CREATE TYPE} DDL statement. */
+  CREATE_TYPE,
+
+  /** {@code DROP TYPE} DDL statement. */
+  DROP_TYPE,
+
+  /** {@code CREATE FUNCTION} DDL statement. */
+  CREATE_FUNCTION,
+
+  /** {@code DROP FUNCTION} DDL statement. */
+  DROP_FUNCTION,
+
   /** DDL statement not handled above.
    *
    * <p><b>Note to other projects</b>: If you are extending Calcite's SQL parser
@@ -1049,10 +1095,10 @@ public enum SqlKind {
    */
   public static final EnumSet<SqlKind> AGGREGATE =
       EnumSet.of(COUNT, SUM, SUM0, MIN, MAX, LEAD, LAG, FIRST_VALUE,
-          LAST_VALUE, COVAR_POP, COVAR_SAMP, REGR_SXX, REGR_SYY,
+          LAST_VALUE, COVAR_POP, COVAR_SAMP, REGR_COUNT, REGR_SXX, REGR_SYY,
           AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
           FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
-          CUME_DIST);
+          CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG);
 
   /**
    * Category consisting of all DML operators.
@@ -1085,6 +1131,7 @@ public enum SqlKind {
           DROP_MATERIALIZED_VIEW,
           CREATE_SEQUENCE, ALTER_SEQUENCE, DROP_SEQUENCE,
           CREATE_INDEX, ALTER_INDEX, DROP_INDEX,
+          CREATE_TYPE, DROP_TYPE,
           SET_OPTION, OTHER_DDL);
 
   /**
@@ -1135,7 +1182,8 @@ public enum SqlKind {
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, EXTRACT,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
-                  VALUES, WITH, WITH_ITEM, SKIP_TO_FIRST, SKIP_TO_LAST),
+                  VALUES, WITH, WITH_ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
+                  JSON_VALUE_EXPRESSION, JSON_API_COMMON_SYNTAX),
               AGGREGATE, DML, DDL));
 
   /**
@@ -1162,6 +1210,15 @@ public enum SqlKind {
    */
   public static final Set<SqlKind> AVG_AGG_FUNCTIONS =
       EnumSet.of(AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP);
+
+  /**
+   * Category of SqlCovarAggFunction.
+   *
+   * <p>Consists of {@link #COVAR_POP}, {@link #COVAR_SAMP}, {@link #REGR_SXX},
+   * {@link #REGR_SYY}.
+   */
+  public static final Set<SqlKind> COVAR_AVG_AGG_FUNCTIONS =
+      EnumSet.of(COVAR_POP, COVAR_SAMP, REGR_COUNT, REGR_SXX, REGR_SYY);
 
   /**
    * Category of comparison operators.
@@ -1286,6 +1343,11 @@ public enum SqlKind {
       return IS_NOT_FALSE;
     case IS_NOT_FALSE:
       return IS_NOT_TRUE;
+     // (NOT x) IS NULL => x IS NULL
+     // Similarly (NOT x) IS NOT NULL => x IS NOT NULL
+    case IS_NOT_NULL:
+    case IS_NULL:
+      return this;
     default:
       return this.negate();
     }

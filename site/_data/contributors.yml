@@ -15,8 +15,10 @@
 #
 # Database of contributors to Apache Calcite.
 # Pages such as developer.md use this data.
+# List must be sorted by first name, last name.
 #
 - name: Alan Gates
+  emeritus: 2018/05/04
   apacheId: gates
   githubId: alanfgates
   org: Hortonworks
@@ -26,6 +28,11 @@
   githubId: amansinha100
   org: MapR
   role: PMC
+- name: Andrei Sereda
+  apacheId: sereda
+  githubId: asereda-gs
+  org:
+  role: Committer
 - name: Ashutosh Chauhan
   apacheId: hashutosh
   githubId: ashutoshc
@@ -41,11 +48,16 @@
   githubId: beikov
   org: Blazebit
   role: Committer
+- name: Edmon Begoli
+  apacheId: ebegoli
+  githubId: ebegoli
+  org: Oak Ridge National Laboratory
+  role: Committer
 - name: Francis Chuang
   apacheId: francischuang
   githubId: F21
   org: Boostport
-  role: Committer
+  role: PMC
 - name: Gian Merlino
   apacheId: gian
   githubId: gianm
@@ -89,7 +101,7 @@
 - name: Julian Hyde
   apacheId: jhyde
   githubId: julianhyde
-  org: Hortonworks
+  org: Looker
   role: PMC
   homepage: http://people.apache.org/~jhyde
 - name: Kevin Liew
@@ -97,11 +109,16 @@
   githubId: kliewkliew
   org:
   role: Committer
+- name: Kevin Risden
+  apacheId: krisden
+  githubId: risdenk
+  org:
+  role: PMC
 - name: Laurent Goujon
   apacheId: laurent
   githubId: laurentgo
   org: Dremio
-  role: Committer
+  role: PMC
 - name: Maryann Xue
   apacheId: maryannxue
   githubId: maryannxue
@@ -110,9 +127,9 @@
 - name: Michael Mior
   apacheId: mmior
   githubId: michaelmior
-  org: University of Waterloo
+  org: Rochester Institute of Technology
   role: PMC Chair
-  homepage: http://michael.mior.ca/
+  homepage: https://michael.mior.ca/
 - name: Milinda Pathirage
   apacheId: milinda
   githubId: milinda
@@ -122,16 +139,29 @@
 - name: MinJi Kim
   apacheId: minji
   githubId: minji-kim
-  org: Dremio
+  org: Oracle
   role: Committer
-  avatar: http://web.mit.edu/minjikim/www/minji.png
-  homepage: http://web.mit.edu/minjikim/www/
 - name: Nick Dimiduk
   apacheId: ndimiduk
   githubId: ndimiduk
   org:
   role: PMC
   homepage: http://www.n10k.com
+- name: Nishant Bangarwa
+  apacheId: nishant
+  githubId: nishantmonu51
+  org: Hortonworks
+  role: Committer
+- name: Sergey Nuyanzin
+  apacheId: snuyanzin
+  githubId: snuyanzin
+  org: EPAM
+  role: Committer
+- name: Shuyi Chen
+  apacheId: shuyichen
+  githubId: suez1224
+  org: Uber
+  role: Committer
 - name: Slim Bouguerra
   apacheId: bslim
   githubId: b-slim
@@ -153,6 +183,16 @@
   githubId: vlsi
   org: NetCracker
   role: PMC
+- name: Volodymyr Vysotskyi
+  apacheId: volodymyr
+  githubId: vvysotskyi
+  org:
+  role: PMC
+- name: Zhen Wang
+  apacheId: zhenw
+  githubId: zinking
+  org:
+  role: Committer
 - name: Zhiqiang He
   apacheId: zhiqianghe
   githubId: Zhiqiang-He

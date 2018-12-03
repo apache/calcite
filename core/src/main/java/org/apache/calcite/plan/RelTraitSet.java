@@ -19,7 +19,6 @@ package org.apache.calcite.plan;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 
 import java.util.AbstractList;
@@ -27,6 +26,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * RelTraitSet represents an ordered set of {@link RelTrait}s.
@@ -539,8 +539,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
 
   /** Cache of trait sets. */
   private static class Cache {
-    final Map<List<RelTrait>, RelTraitSet> map =
-        new HashMap<List<RelTrait>, RelTraitSet>();
+    final Map<List<RelTrait>, RelTraitSet> map = new HashMap<>();
 
     Cache() {
     }
@@ -551,7 +550,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
         return traitSet1;
       }
       final RelTraitSet traitSet =
-          new RelTraitSet(this, traits.toArray(new RelTrait[traits.size()]));
+          new RelTraitSet(this, traits.toArray(new RelTrait[0]));
       map.put(traits, traitSet);
       return traitSet;
     }

@@ -30,6 +30,7 @@ import org.apache.calcite.test.DiffTestCase;
 import org.apache.calcite.test.SqlValidatorTestCase;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ConversionUtil;
+import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -48,8 +49,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.URL;
-import java.net.URLDecoder;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -61,9 +61,8 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 /**
@@ -84,7 +83,7 @@ public class SqlParserTest {
    * the SQL:92, SQL:99, SQL:2003, SQL:2011, SQL:2014 standards and in Calcite.
    *
    * <p>The standard keywords are derived from
-   * <a href="http://developer.mimer.com/validator/sql-reserved-words.tml">Mimer</a>
+   * <a href="https://developer.mimer.com/wp-content/uploads/2018/05/Standard-SQL-Reserved-Words-Summary.pdf">Mimer</a>
    * and from the specification.
    *
    * <p>If a new <b>reserved</b> keyword is added to the parser, include it in
@@ -293,6 +292,13 @@ public class SqlParserTest {
       "ISOLATION",                     "92", "99",
       "ITERATE",                             "99", "2003",
       "JOIN",                          "92", "99", "2003", "2011", "2014", "c",
+      "JSON_ARRAY",                                                        "c",
+      "JSON_ARRAYAGG",                                                     "c",
+      "JSON_EXISTS",                                                       "c",
+      "JSON_OBJECT",                                                       "c",
+      "JSON_OBJECTAGG",                                                    "c",
+      "JSON_QUERY",                                                        "c",
+      "JSON_VALUE",                                                        "c",
       "KEEP",                                              "2011",
       "KEY",                           "92", "99",
       "LAG",                                               "2011", "2014", "c",
@@ -550,11 +556,7 @@ public class SqlParserTest {
   private static final String ANY = "(?s).*";
 
   private static final ThreadLocal<boolean[]> LINUXIFY =
-      new ThreadLocal<boolean[]>() {
-        @Override protected boolean[] initialValue() {
-          return new boolean[] {true};
-        }
-      };
+      ThreadLocal.withInitial(() -> new boolean[] {true});
 
   Quoting quoting = Quoting.DOUBLE_QUOTE;
   Casing unquotedCasing = Casing.TO_UPPER;
@@ -648,7 +650,15 @@ public class SqlParserTest {
     return keywords("c");
   }
 
-  private static SortedSet<String> keywords(String dialect) {
+  /** Returns whether a word is reserved in this parser. This method can be
+   * used to disable tests that behave differently with different collections
+   * of reserved words. */
+  protected boolean isReserved(String word) {
+    SqlAbstractParserImpl.Metadata metadata = getSqlParser("").getMetadata();
+    return metadata.isReservedWord(word.toUpperCase(Locale.ROOT));
+  }
+
+  protected static SortedSet<String> keywords(String dialect) {
     final ImmutableSortedSet.Builder<String> builder =
         ImmutableSortedSet.naturalOrder();
     String r = null;
@@ -719,6 +729,28 @@ public class SqlParserTest {
         "SELECT *\n"
             + "FROM `EMP` AS `E` (`EMPNO`, `GENDER`)\n"
             + "INNER JOIN `DEPT` AS `D` (`DEPTNO`, `DNAME`) ON (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)");
+  }
+
+  /** Test case that does not reproduce but is related to
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2637">[CALCITE-2637]
+   * Prefix '-' operator failed between BETWEEN and AND</a>. */
+  @Test public void testBetweenAnd() {
+    final String sql = "select * from emp\n"
+        + "where deptno between - DEPTNO + 1 and 5";
+    final String expected = "SELECT *\n"
+        + "FROM `EMP`\n"
+        + "WHERE (`DEPTNO` BETWEEN ASYMMETRIC ((- `DEPTNO`) + 1) AND 5)";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testBetweenAnd2() {
+    final String sql = "select * from emp\n"
+        + "where deptno between - DEPTNO + 1 and - empno - 3";
+    final String expected = "SELECT *\n"
+        + "FROM `EMP`\n"
+        + "WHERE (`DEPTNO` BETWEEN ASYMMETRIC ((- `DEPTNO`) + 1)"
+        + " AND ((- `EMPNO`) - 3))";
+    sql(sql).ok(expected);
   }
 
   @Ignore
@@ -1016,6 +1048,55 @@ public class SqlParserTest {
         "SELECT `T`.`R`.`EXPR$1`.`EXPR$2`\n"
             + "FROM (SELECT (ROW((ROW(1, 2)), (ROW(3, 4, 5, 6)))) AS `R`\n"
             + "FROM `SALES`.`DEPTS`) AS `T`");
+
+    // Conformance DEFAULT and LENIENT support explicit row value constructor
+    conformance = SqlConformanceEnum.DEFAULT;
+    final String selectRow = "select ^row(t1a, t2a)^ from t1";
+    final String expected = "SELECT (ROW(`T1A`, `T2A`))\n"
+        + "FROM `T1`";
+    sql(selectRow).sansCarets().ok(expected);
+    conformance = SqlConformanceEnum.LENIENT;
+    sql(selectRow).sansCarets().ok(expected);
+
+    final String pattern = "ROW expression encountered in illegal context";
+    conformance = SqlConformanceEnum.MYSQL_5;
+    sql(selectRow).fails(pattern);
+    conformance = SqlConformanceEnum.ORACLE_12;
+    sql(selectRow).fails(pattern);
+    conformance = SqlConformanceEnum.STRICT_2003;
+    sql(selectRow).fails(pattern);
+    conformance = SqlConformanceEnum.SQL_SERVER_2008;
+    sql(selectRow).fails(pattern);
+
+    final String whereRow = "select 1 from t2 where ^row (x, y)^ < row (a, b)";
+    final String whereExpected = "SELECT 1\n"
+        + "FROM `T2`\n"
+        + "WHERE ((ROW(`X`, `Y`)) < (ROW(`A`, `B`)))";
+    conformance = SqlConformanceEnum.DEFAULT;
+    sql(whereRow).sansCarets().ok(whereExpected);
+    conformance = SqlConformanceEnum.SQL_SERVER_2008;
+    sql(whereRow).fails(pattern);
+
+    final String whereRow2 = "select 1 from t2 where ^(x, y)^ < (a, b)";
+    conformance = SqlConformanceEnum.DEFAULT;
+    sql(whereRow2).sansCarets().ok(whereExpected);
+
+    // After this point, SqlUnparserTest has problems.
+    // We generate ROW in a dialect that does not allow ROW in all contexts.
+    // So bail out.
+    assumeFalse(isUnparserTest());
+    conformance = SqlConformanceEnum.SQL_SERVER_2008;
+    sql(whereRow2).sansCarets().ok(whereExpected);
+  }
+
+  /** Whether this is a sub-class that tests un-parsing as well as parsing. */
+  protected boolean isUnparserTest() {
+    return false;
+  }
+
+  @Test public void testRowWitDot() {
+    check("select (1,2).a from c.t", "SELECT ((ROW(1, 2)).`A`)\nFROM `C`.`T`");
+    check("select row(1,2).a from c.t", "SELECT ((ROW(1, 2)).`A`)\nFROM `C`.`T`");
   }
 
   @Test public void testPeriod() {
@@ -1074,6 +1155,12 @@ public class SqlParserTest {
 
     check(
         "select * from t where x is distinct from (4,5,6)",
+        "SELECT *\n"
+            + "FROM `T`\n"
+            + "WHERE (`X` IS DISTINCT FROM (ROW(4, 5, 6)))");
+
+    check(
+        "select * from t where x is distinct from row (4,5,6)",
         "SELECT *\n"
             + "FROM `T`\n"
             + "WHERE (`X` IS DISTINCT FROM (ROW(4, 5, 6)))");
@@ -1288,10 +1375,12 @@ public class SqlParserTest {
         "values a similar to b like c similar to d escape e escape f",
         "VALUES (ROW((`A` SIMILAR TO (`B` LIKE (`C` SIMILAR TO `D` ESCAPE `E`) ESCAPE `F`))))");
 
-    // FIXME should fail at "escape"
-    checkFails(
-        "select * from t ^where^ escape 'e'",
-        "(?s).*Encountered \"where escape\" at .*");
+    if (isReserved("ESCAPE")) {
+      // FIXME should fail at "escape"
+      checkFails(
+          "select * from t ^where^ escape 'e'",
+          "(?s).*Encountered \"where escape\" at .*");
+    }
 
     // LIKE with +
     check(
@@ -1304,15 +1393,19 @@ public class SqlParserTest {
         "VALUES (ROW((`A` LIKE (`B` || `C`) ESCAPE `D`)))");
 
     // ESCAPE with no expression
-    // FIXME should fail at "escape"
-    checkFails(
-        "values a ^like^ escape d",
-        "(?s).*Encountered \"like escape\" at .*");
+    if (isReserved("ESCAPE")) {
+      // FIXME should fail at "escape"
+      checkFails(
+          "values a ^like^ escape d",
+          "(?s).*Encountered \"like escape\" at .*");
+    }
 
     // ESCAPE with no expression
-    checkFails(
-        "values a like b || c ^escape^ and false",
-        "(?s).*Encountered \"escape and\" at line 1, column 22.*");
+    if (isReserved("ESCAPE")) {
+      checkFails(
+          "values a like b || c ^escape^ and false",
+          "(?s).*Encountered \"escape and\" at line 1, column 22.*");
+    }
 
     // basic SIMILAR TO
     check(
@@ -1424,6 +1517,10 @@ public class SqlParserTest {
     check("select count(1), count(distinct 2) from emp",
         "SELECT COUNT(1), COUNT(DISTINCT 2)\n"
             + "FROM `EMP`");
+  }
+
+  @Test public void testFunctionCallWithDot() {
+    checkExp("foo(a,b).c", "(`FOO`(`A`, `B`).`C`)");
   }
 
   @Test public void testFunctionInFunction() {
@@ -2382,11 +2479,6 @@ public class SqlParserTest {
     sql("select emp.* as foo from emp")
         .ok("SELECT `EMP`.* AS `FOO`\n"
                 + "FROM `EMP`");
-  }
-
-  @Test public void testTableStarColumnFails() {
-    sql("select emp.*^.^xx from emp")
-        .fails("(?s).*Encountered \".\" .*");
   }
 
   @Test public void testNotExists() {
@@ -3477,23 +3569,33 @@ public class SqlParserTest {
   @Test public void testUpsertValues() {
     final String expected = "UPSERT INTO `EMPS`\n"
         + "VALUES (ROW(1, 'Fredkin'))";
-    sql("upsert into emps values (1,'Fredkin')")
-        .ok(expected)
-        .node(not(isDdl()));
+    final String sql = "upsert into emps values (1,'Fredkin')";
+    if (isReserved("UPSERT")) {
+      sql(sql)
+          .ok(expected)
+          .node(not(isDdl()));
+    }
   }
 
   @Test public void testUpsertSelect() {
-    sql("upsert into emps select * from emp as e")
-        .ok("UPSERT INTO `EMPS`\n"
-                + "(SELECT *\n"
-                + "FROM `EMP` AS `E`)");
+    final String sql = "upsert into emps select * from emp as e";
+    final String expected = "UPSERT INTO `EMPS`\n"
+        + "(SELECT *\n"
+        + "FROM `EMP` AS `E`)";
+    if (isReserved("UPSERT")) {
+      sql(sql).ok(expected);
+    }
   }
 
   @Test public void testExplainUpsert() {
-    sql("explain plan for upsert into emps1 values (1, 2)")
-        .ok("EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
-            + "UPSERT INTO `EMPS1`\n"
-            + "VALUES (ROW(1, 2))");
+    final String sql = "explain plan for upsert into emps1 values (1, 2)";
+    final String expected = "EXPLAIN PLAN INCLUDING ATTRIBUTES"
+        + " WITH IMPLEMENTATION FOR\n"
+        + "UPSERT INTO `EMPS1`\n"
+        + "VALUES (ROW(1, 2))";
+    if (isReserved("UPSERT")) {
+      sql(sql).ok(expected);
+    }
   }
 
   @Test public void testDelete() {
@@ -3625,6 +3727,7 @@ public class SqlParserTest {
     checkExp(
         "_iso-8859-1'bye' \n\n--\n-- this is a comment\n' bye'",
         "_ISO-8859-1'bye'\n' bye'");
+    checkExp("_utf8'hi'", "_UTF8'hi'");
 
     // newline in string literal
     checkExp("'foo\rbar'", "'foo\rbar'");
@@ -3739,9 +3842,11 @@ public class SqlParserTest {
     checkExp(
         "nullif(v1,v2)",
         "(NULLIF(`V1`, `V2`))");
-    checkExpFails(
-        "1 + ^nullif^ + 3",
-        "(?s)Encountered \"nullif \\+\" at line 1, column 5.*");
+    if (isReserved("NULLIF")) {
+      checkExpFails(
+          "1 + ^nullif^ + 3",
+          "(?s)Encountered \"nullif \\+\" at line 1, column 5.*");
+    }
   }
 
   @Test public void testCoalesce() {
@@ -3797,6 +3902,24 @@ public class SqlParserTest {
 
   @Test public void testReplace() {
     checkExp("replace('x', 'y', 'z')", "REPLACE('x', 'y', 'z')");
+  }
+
+  @Test public void testDateLiteral() {
+    final String expected = "SELECT DATE '1980-01-01'\n"
+        + "FROM `T`";
+    sql("select date '1980-01-01' from t").ok(expected);
+    final String expected1 = "SELECT TIME '00:00:00'\n"
+        + "FROM `T`";
+    sql("select time '00:00:00' from t").ok(expected1);
+    final String expected2 = "SELECT TIMESTAMP '1980-01-01 00:00:00'\n"
+        + "FROM `T`";
+    sql("select timestamp '1980-01-01 00:00:00' from t").ok(expected2);
+    final String expected3 = "SELECT INTERVAL '3' DAY\n"
+        + "FROM `T`";
+    sql("select interval '3' day from t").ok(expected3);
+    final String expected4 = "SELECT INTERVAL '5:6' HOUR TO MINUTE\n"
+        + "FROM `T`";
+    sql("select interval '5:6' hour to minute from t").ok(expected4);
   }
 
   // check date/time functions.
@@ -4250,34 +4373,34 @@ public class SqlParserTest {
   }
 
   @Test public void testMultisetUnion() {
-    checkExp("a multiset union b", "(`A` MULTISET UNION `B`)");
+    checkExp("a multiset union b", "(`A` MULTISET UNION ALL `B`)");
     checkExp("a multiset union all b", "(`A` MULTISET UNION ALL `B`)");
-    checkExp("a multiset union distinct b", "(`A` MULTISET UNION `B`)");
+    checkExp("a multiset union distinct b", "(`A` MULTISET UNION DISTINCT `B`)");
   }
 
   @Test public void testMultisetExcept() {
-    checkExp("a multiset EXCEPT b", "(`A` MULTISET EXCEPT `B`)");
+    checkExp("a multiset EXCEPT b", "(`A` MULTISET EXCEPT ALL `B`)");
     checkExp("a multiset EXCEPT all b", "(`A` MULTISET EXCEPT ALL `B`)");
-    checkExp("a multiset EXCEPT distinct b", "(`A` MULTISET EXCEPT `B`)");
+    checkExp("a multiset EXCEPT distinct b", "(`A` MULTISET EXCEPT DISTINCT `B`)");
   }
 
   @Test public void testMultisetIntersect() {
-    checkExp("a multiset INTERSECT b", "(`A` MULTISET INTERSECT `B`)");
+    checkExp("a multiset INTERSECT b", "(`A` MULTISET INTERSECT ALL `B`)");
     checkExp(
         "a multiset INTERSECT all b",
         "(`A` MULTISET INTERSECT ALL `B`)");
     checkExp(
         "a multiset INTERSECT distinct b",
-        "(`A` MULTISET INTERSECT `B`)");
+        "(`A` MULTISET INTERSECT DISTINCT `B`)");
   }
 
   @Test public void testMultisetMixed() {
     checkExp(
         "multiset[1] MULTISET union b",
-        "((MULTISET[1]) MULTISET UNION `B`)");
+        "((MULTISET[1]) MULTISET UNION ALL `B`)");
     checkExp(
         "a MULTISET union b multiset intersect c multiset except d multiset union e",
-        "(((`A` MULTISET UNION (`B` MULTISET INTERSECT `C`)) MULTISET EXCEPT `D`) MULTISET UNION `E`)");
+        "(((`A` MULTISET UNION ALL (`B` MULTISET INTERSECT ALL `C`)) MULTISET EXCEPT ALL `D`) MULTISET UNION ALL `E`)");
   }
 
   @Test public void testMapItem() {
@@ -6502,6 +6625,7 @@ public class SqlParserTest {
         "(?s)Encountered \"to year\" at line 1, column 19.\n"
             + "Was expecting one of:\n"
             + "    <EOF> \n"
+            + "    \"\\.\" \\.\\.\\.\n"
             + "    \"NOT\" \\.\\.\\..*");
     checkExpFails("interval '1-2' year ^to^ day", ANY);
     checkExpFails("interval '1-2' year ^to^ hour", ANY);
@@ -6873,8 +6997,8 @@ public class SqlParserTest {
   @Test public void testTimestampAddAndDiff() {
     Map<String, List<String>> tsi = ImmutableMap.<String, List<String>>builder()
         .put("MICROSECOND",
-            Arrays.asList("FRAC_SECOND", "MICROSECOND",
-                "SQL_TSI_FRAC_SECOND", "SQL_TSI_MICROSECOND"))
+            Arrays.asList("FRAC_SECOND", "MICROSECOND", "SQL_TSI_MICROSECOND"))
+        .put("NANOSECOND", Arrays.asList("NANOSECOND", "SQL_TSI_FRAC_SECOND"))
         .put("SECOND", Arrays.asList("SECOND", "SQL_TSI_SECOND"))
         .put("MINUTE", Arrays.asList("MINUTE", "SQL_TSI_MINUTE"))
         .put("HOUR", Arrays.asList("HOUR", "SQL_TSI_HOUR"))
@@ -7034,39 +7158,39 @@ public class SqlParserTest {
 
   @Test public void testMetadata() {
     SqlAbstractParserImpl.Metadata metadata = getSqlParser("").getMetadata();
-    assertTrue(metadata.isReservedFunctionName("ABS"));
-    assertFalse(metadata.isReservedFunctionName("FOO"));
+    assertThat(metadata.isReservedFunctionName("ABS"), is(true));
+    assertThat(metadata.isReservedFunctionName("FOO"), is(false));
 
-    assertTrue(metadata.isContextVariableName("CURRENT_USER"));
-    assertTrue(metadata.isContextVariableName("CURRENT_CATALOG"));
-    assertTrue(metadata.isContextVariableName("CURRENT_SCHEMA"));
-    assertFalse(metadata.isContextVariableName("ABS"));
-    assertFalse(metadata.isContextVariableName("FOO"));
+    assertThat(metadata.isContextVariableName("CURRENT_USER"), is(true));
+    assertThat(metadata.isContextVariableName("CURRENT_CATALOG"), is(true));
+    assertThat(metadata.isContextVariableName("CURRENT_SCHEMA"), is(true));
+    assertThat(metadata.isContextVariableName("ABS"), is(false));
+    assertThat(metadata.isContextVariableName("FOO"), is(false));
 
-    assertTrue(metadata.isNonReservedKeyword("A"));
-    assertTrue(metadata.isNonReservedKeyword("KEY"));
-    assertFalse(metadata.isNonReservedKeyword("SELECT"));
-    assertFalse(metadata.isNonReservedKeyword("FOO"));
-    assertFalse(metadata.isNonReservedKeyword("ABS"));
+    assertThat(metadata.isNonReservedKeyword("A"), is(true));
+    assertThat(metadata.isNonReservedKeyword("KEY"), is(true));
+    assertThat(metadata.isNonReservedKeyword("SELECT"), is(false));
+    assertThat(metadata.isNonReservedKeyword("FOO"), is(false));
+    assertThat(metadata.isNonReservedKeyword("ABS"), is(false));
 
-    assertTrue(metadata.isKeyword("ABS"));
-    assertTrue(metadata.isKeyword("CURRENT_USER"));
-    assertTrue(metadata.isKeyword("CURRENT_CATALOG"));
-    assertTrue(metadata.isKeyword("CURRENT_SCHEMA"));
-    assertTrue(metadata.isKeyword("KEY"));
-    assertTrue(metadata.isKeyword("SELECT"));
-    assertTrue(metadata.isKeyword("HAVING"));
-    assertTrue(metadata.isKeyword("A"));
-    assertFalse(metadata.isKeyword("BAR"));
+    assertThat(metadata.isKeyword("ABS"), is(true));
+    assertThat(metadata.isKeyword("CURRENT_USER"), is(true));
+    assertThat(metadata.isKeyword("CURRENT_CATALOG"), is(true));
+    assertThat(metadata.isKeyword("CURRENT_SCHEMA"), is(true));
+    assertThat(metadata.isKeyword("KEY"), is(true));
+    assertThat(metadata.isKeyword("SELECT"), is(true));
+    assertThat(metadata.isKeyword("HAVING"), is(true));
+    assertThat(metadata.isKeyword("A"), is(true));
+    assertThat(metadata.isKeyword("BAR"), is(false));
 
-    assertTrue(metadata.isReservedWord("SELECT"));
-    assertTrue(metadata.isReservedWord("CURRENT_CATALOG"));
-    assertTrue(metadata.isReservedWord("CURRENT_SCHEMA"));
-    assertFalse(metadata.isReservedWord("KEY"));
+    assertThat(metadata.isReservedWord("SELECT"), is(true));
+    assertThat(metadata.isReservedWord("CURRENT_CATALOG"), is(true));
+    assertThat(metadata.isReservedWord("CURRENT_SCHEMA"), is(true));
+    assertThat(metadata.isReservedWord("KEY"), is(false));
 
     String jdbcKeywords = metadata.getJdbcKeywords();
-    assertTrue(jdbcKeywords.contains(",COLLECT,"));
-    assertTrue(!jdbcKeywords.contains(",SELECT,"));
+    assertThat(jdbcKeywords.contains(",COLLECT,"), is(true));
+    assertThat(!jdbcKeywords.contains(",SELECT,"), is(true));
   }
 
   /**
@@ -7110,14 +7234,15 @@ public class SqlParserTest {
     assumeTrue("don't run this test for sub-classes", isNotSubclass());
     // inUrl = "file:/home/x/calcite/core/target/test-classes/hsqldb-model.json"
     String path = "hsqldb-model.json";
-    final URL inUrl = SqlParserTest.class.getResource("/" + path);
-    // URL will convert spaces to %20, undo that
-    String x = URLDecoder.decode(inUrl.getFile(), "UTF-8");
-    assert x.endsWith(path);
-    x = x.substring(0, x.length() - path.length());
-    assert x.endsWith("core/target/test-classes/");
-    x = x.substring(0, x.length() - "core/target/test-classes/".length());
-    final File base = new File(x);
+    File hsqlDbModel = Sources.of(SqlParserTest.class.getResource("/" + path)).file();
+    assert hsqlDbModel.getAbsolutePath().endsWith(
+        Paths.get("core", "target", "test-classes", "hsqldb-model.json").toString())
+        : hsqlDbModel.getAbsolutePath()
+        + " should end with core/target/test-classes/hsqldb-model.json";
+    // skip hsqldb-model.json, test-classes, target, core
+    // The assertion above protects us from walking over unrelated paths
+    final File base = hsqlDbModel.getAbsoluteFile()
+        .getParentFile().getParentFile().getParentFile().getParentFile();
     final File inFile = new File(base, "site/_docs/reference.md");
     final File outFile = new File(base, "core/target/surefire/reference.md");
     outFile.getParentFile().mkdirs();
@@ -8109,6 +8234,204 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testWithinGroupClause1() {
+    final String sql = "select col1,\n"
+        + " collect(col2) within group (order by col3)\n"
+        + "from t\n"
+        + "order by col1 limit 10";
+    final String expected = "SELECT `COL1`,"
+        + " (COLLECT(`COL2`) WITHIN GROUP (ORDER BY `COL3`))\n"
+        + "FROM `T`\n"
+        + "ORDER BY `COL1`\n"
+        + "FETCH NEXT 10 ROWS ONLY";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testWithinGroupClause2() {
+    final String sql = "select collect(col2) within group (order by col3)\n"
+        + "from t\n"
+        + "order by col1 limit 10";
+    final String expected = "SELECT"
+        + " (COLLECT(`COL2`) WITHIN GROUP (ORDER BY `COL3`))\n"
+        + "FROM `T`\n"
+        + "ORDER BY `COL1`\n"
+        + "FETCH NEXT 10 ROWS ONLY";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testWithinGroupClause3() {
+    final String sql = "select collect(col2) within group (^)^ "
+        + "from t order by col1 limit 10";
+    sql(sql).fails("(?s).*Encountered \"\\)\" at line 1, column 36\\..*");
+  }
+
+  @Test public void testWithinGroupClause4() {
+    final String sql = "select col1,\n"
+        + " collect(col2) within group (order by col3, col4)\n"
+        + "from t\n"
+        + "order by col1 limit 10";
+    final String expected = "SELECT `COL1`,"
+        + " (COLLECT(`COL2`) WITHIN GROUP (ORDER BY `COL3`, `COL4`))\n"
+        + "FROM `T`\n"
+        + "ORDER BY `COL1`\n"
+        + "FETCH NEXT 10 ROWS ONLY";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testWithinGroupClause5() {
+    final String sql = "select col1,\n"
+        + " collect(col2) within group (\n"
+        + "  order by col3 desc nulls first, col4 asc nulls last)\n"
+        + "from t\n"
+        + "order by col1 limit 10";
+    final String expected = "SELECT `COL1`, (COLLECT(`COL2`) "
+        + "WITHIN GROUP (ORDER BY `COL3` DESC NULLS FIRST, `COL4` NULLS LAST))\n"
+        + "FROM `T`\n"
+        + "ORDER BY `COL1`\n"
+        + "FETCH NEXT 10 ROWS ONLY";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testJsonExists() {
+    checkExp("json_exists('{\"foo\": \"bar\"}', 'lax $.foo')",
+        "JSON_EXISTS('{\"foo\": \"bar\"}' FORMAT JSON, 'lax $.foo')");
+    checkExp("json_exists('{\"foo\": \"bar\"}', 'lax $.foo' error on error)",
+        "JSON_EXISTS('{\"foo\": \"bar\"}' FORMAT JSON, 'lax $.foo' ERROR ON ERROR)");
+  }
+
+  @Test public void testJsonValue() {
+    checkExp("json_value('{\"foo\": \"100\"}', 'lax $.foo' "
+            + "returning integer)",
+        "JSON_VALUE('{\"foo\": \"100\"}' FORMAT JSON, 'lax $.foo' "
+            + "RETURNING INTEGER NULL ON EMPTY NULL ON ERROR)");
+    checkExp("json_value('{\"foo\": \"100\"}', 'lax $.foo' "
+            + "returning integer default 10 on empty error on error)",
+        "JSON_VALUE('{\"foo\": \"100\"}' FORMAT JSON, 'lax $.foo' "
+            + "RETURNING INTEGER DEFAULT 10 ON EMPTY ERROR ON ERROR)");
+  }
+
+  @Test public void testJsonQuery() {
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITHOUT ARRAY WRAPPER)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITH WRAPPER)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITH UNCONDITIONAL ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITH UNCONDITIONAL WRAPPER)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITH UNCONDITIONAL ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITH CONDITIONAL WRAPPER)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITH CONDITIONAL ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' NULL ON EMPTY)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' ERROR ON EMPTY)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER ERROR ON EMPTY NULL ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY ARRAY ON EMPTY)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER EMPTY ARRAY ON EMPTY NULL ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY OBJECT ON EMPTY)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER EMPTY OBJECT ON EMPTY NULL ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' NULL ON ERROR)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' ERROR ON ERROR)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY ERROR ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY ARRAY ON ERROR)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY EMPTY ARRAY ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY OBJECT ON ERROR)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY EMPTY OBJECT ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY ARRAY ON EMPTY "
+            + "EMPTY OBJECT ON ERROR)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER EMPTY ARRAY ON EMPTY EMPTY OBJECT ON ERROR)");
+  }
+
+  @Test public void testJsonObject() {
+    checkExp("json_object('foo': 'bar')",
+        "JSON_OBJECT(KEY 'foo' VALUE 'bar' NULL ON NULL)");
+    checkExp("json_object('foo': 'bar', 'foo2': 'bar2')",
+        "JSON_OBJECT(KEY 'foo' VALUE 'bar', KEY 'foo2' VALUE 'bar2' NULL ON NULL)");
+    checkExp("json_object('foo' value 'bar')",
+        "JSON_OBJECT(KEY 'foo' VALUE 'bar' NULL ON NULL)");
+    checkExp("json_object(key 'foo' value 'bar')",
+        "JSON_OBJECT(KEY 'foo' VALUE 'bar' NULL ON NULL)");
+    checkExp("json_object('foo': null)",
+        "JSON_OBJECT(KEY 'foo' VALUE NULL NULL ON NULL)");
+    checkExp("json_object('foo': null absent on null)",
+        "JSON_OBJECT(KEY 'foo' VALUE NULL ABSENT ON NULL)");
+    checkExp("json_object('foo': json_object('foo': 'bar') format json)",
+        "JSON_OBJECT(KEY 'foo' VALUE "
+            + "JSON_OBJECT(KEY 'foo' VALUE 'bar' NULL ON NULL) "
+            + "FORMAT JSON NULL ON NULL)");
+  }
+
+  @Test public void testJsonObjectAgg() {
+    checkExp("json_objectagg(k_column: v_column)",
+        "JSON_OBJECTAGG(KEY `K_COLUMN` VALUE `V_COLUMN` NULL ON NULL)");
+    checkExp("json_objectagg(k_column value v_column)",
+        "JSON_OBJECTAGG(KEY `K_COLUMN` VALUE `V_COLUMN` NULL ON NULL)");
+    checkExp("json_objectagg(key k_column value v_column)",
+        "JSON_OBJECTAGG(KEY `K_COLUMN` VALUE `V_COLUMN` NULL ON NULL)");
+    checkExp("json_objectagg(k_column: null)",
+        "JSON_OBJECTAGG(KEY `K_COLUMN` VALUE NULL NULL ON NULL)");
+    checkExp("json_objectagg(k_column: null absent on null)",
+        "JSON_OBJECTAGG(KEY `K_COLUMN` VALUE NULL ABSENT ON NULL)");
+    checkExp("json_objectagg(k_column: json_object(k_column: v_column) format json)",
+        "JSON_OBJECTAGG(KEY `K_COLUMN` VALUE "
+            + "JSON_OBJECT(KEY `K_COLUMN` VALUE `V_COLUMN` NULL ON NULL) "
+            + "FORMAT JSON NULL ON NULL)");
+  }
+
+  @Test public void testJsonArray() {
+    checkExp("json_array('foo')",
+        "JSON_ARRAY('foo' ABSENT ON NULL)");
+    checkExp("json_array(null)",
+        "JSON_ARRAY(NULL ABSENT ON NULL)");
+    checkExp("json_array(null null on null)",
+        "JSON_ARRAY(NULL NULL ON NULL)");
+    checkExp("json_array(json_array('foo', 'bar') format json)",
+        "JSON_ARRAY(JSON_ARRAY('foo', 'bar' ABSENT ON NULL) FORMAT JSON ABSENT ON NULL)");
+  }
+
+  @Test public void testJsonArrayAgg() {
+    checkExp("json_arrayagg(\"column\")",
+        "JSON_ARRAYAGG(`column` ABSENT ON NULL)");
+    checkExp("json_arrayagg(\"column\" null on null)",
+        "JSON_ARRAYAGG(`column` NULL ON NULL)");
+    checkExp("json_arrayagg(json_array(\"column\") format json)",
+        "JSON_ARRAYAGG(JSON_ARRAY(`column` ABSENT ON NULL) FORMAT JSON ABSENT ON NULL)");
+  }
+
+  @Test public void testJsonPredicate() {
+    checkExp("'{}' is json",
+        "('{}' IS JSON VALUE)");
+    checkExp("'{}' is json value",
+        "('{}' IS JSON VALUE)");
+    checkExp("'{}' is json object",
+        "('{}' IS JSON OBJECT)");
+    checkExp("'[]' is json array",
+        "('[]' IS JSON ARRAY)");
+    checkExp("'100' is json scalar",
+        "('100' IS JSON SCALAR)");
+    checkExp("'{}' is not json",
+        "('{}' IS NOT JSON VALUE)");
+    checkExp("'{}' is not json value",
+        "('{}' IS NOT JSON VALUE)");
+    checkExp("'{}' is not json object",
+        "('{}' IS NOT JSON OBJECT)");
+    checkExp("'[]' is not json array",
+        "('[]' IS NOT JSON ARRAY)");
+    checkExp("'100' is not json scalar",
+        "('100' IS NOT JSON SCALAR)");
+  }
+
   //~ Inner Interfaces -------------------------------------------------------
 
   /**
@@ -8355,6 +8678,13 @@ public class SqlParserTest {
     /** Flags that this is an expression, not a whole query. */
     public Sql expression() {
       return expression ? this : new Sql(sql, true);
+    }
+
+    /** Removes the carets from the SQL string. Useful if you want to run
+     * a test once at a conformance level where it fails, then run it again
+     * at a conformance level where it succeeds. */
+    public Sql sansCarets() {
+      return new Sql(sql.replace("^", ""), expression);
     }
   }
 

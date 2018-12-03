@@ -27,18 +27,16 @@ import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -109,15 +107,11 @@ public class RelMetadataQuery {
   private BuiltInMetadata.UniqueKeys.Handler uniqueKeysHandler;
 
   public static final ThreadLocal<JaninoRelMetadataProvider> THREAD_PROVIDERS =
-      new ThreadLocal<JaninoRelMetadataProvider>() {
-        protected JaninoRelMetadataProvider initialValue() {
-          return JaninoRelMetadataProvider.DEFAULT;
-        }
-      };
+      ThreadLocal.withInitial(() -> JaninoRelMetadataProvider.DEFAULT);
 
   protected RelMetadataQuery(JaninoRelMetadataProvider metadataProvider,
       RelMetadataQuery prototype) {
-    this.metadataProvider = Preconditions.checkNotNull(metadataProvider);
+    this.metadataProvider = Objects.requireNonNull(metadataProvider);
     this.collationHandler = prototype.collationHandler;
     this.columnOriginHandler = prototype.columnOriginHandler;
     this.expressionLineageHandler = prototype.expressionLineageHandler;
@@ -146,13 +140,9 @@ public class RelMetadataQuery {
   protected static <H> H initialHandler(Class<H> handlerClass) {
     return handlerClass.cast(
         Proxy.newProxyInstance(RelMetadataQuery.class.getClassLoader(),
-            new Class[] {handlerClass},
-            new InvocationHandler() {
-              public Object invoke(Object proxy, Method method, Object[] args)
-                  throws Throwable {
-                final RelNode r = (RelNode) args[0];
-                throw new JaninoRelMetadataProvider.NoHandler(r.getClass());
-              }
+            new Class[] {handlerClass}, (proxy, method, args) -> {
+              final RelNode r = (RelNode) args[0];
+              throw new JaninoRelMetadataProvider.NoHandler(r.getClass());
             }));
   }
 
@@ -422,6 +412,9 @@ public class RelMetadataQuery {
     // Determine the simple origin of the first column in the
     // RelNode.  If it's simple, then that means that the underlying
     // table is also simple, even if the column itself is derived.
+    if (rel.getRowType().getFieldCount() == 0) {
+      return null;
+    }
     final Set<RelColumnOrigin> colOrigins = getColumnOrigins(rel, 0);
     if (colOrigins == null || colOrigins.size() == 0) {
       return null;
@@ -656,7 +649,7 @@ public class RelMetadataQuery {
   public List<Double> getAverageColumnSizesNotNull(RelNode rel) {
     final List<Double> averageColumnSizes = getAverageColumnSizes(rel);
     return averageColumnSizes == null
-        ? Collections.<Double>nCopies(rel.getRowType().getFieldCount(), null)
+        ? Collections.nCopies(rel.getRowType().getFieldCount(), null)
         : averageColumnSizes;
   }
 

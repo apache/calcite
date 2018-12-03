@@ -22,7 +22,6 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -31,12 +30,12 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
 import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
 import org.apache.calcite.rel.rules.ProjectSortTransposeRule;
-import org.apache.calcite.rel.rules.PushProjector;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -49,14 +48,10 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.type.SqlTypeFamily;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -64,9 +59,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.commons.lang3.tuple.Triple;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 import org.joda.time.Interval;
@@ -110,15 +103,17 @@ public class DruidRules {
       new DruidFilterAggregateTransposeRule(RelFactories.LOGICAL_BUILDER);
   public static final DruidPostAggregationProjectRule POST_AGGREGATION_PROJECT =
       new DruidPostAggregationProjectRule(RelFactories.LOGICAL_BUILDER);
+  public static final DruidAggregateExtractProjectRule PROJECT_EXTRACT_RULE =
+      new DruidAggregateExtractProjectRule(RelFactories.LOGICAL_BUILDER);
+  public static final DruidHavingFilterRule DRUID_HAVING_FILTER_RULE =
+      new DruidHavingFilterRule(RelFactories.LOGICAL_BUILDER);
 
   public static final List<RelOptRule> RULES =
       ImmutableList.of(FILTER,
           PROJECT_FILTER_TRANSPOSE,
-          // Disabled, per
-          //   [CALCITE-1706] DruidAggregateFilterTransposeRule
-          //   causes very fine-grained aggregations to be pushed to Druid
-          // AGGREGATE_FILTER_TRANSPOSE,
+          AGGREGATE_FILTER_TRANSPOSE,
           AGGREGATE_PROJECT,
+          PROJECT_EXTRACT_RULE,
           PROJECT,
           POST_AGGREGATION_PROJECT,
           AGGREGATE,
@@ -126,62 +121,8 @@ public class DruidRules {
           FILTER_PROJECT_TRANSPOSE,
           PROJECT_SORT_TRANSPOSE,
           SORT,
-          SORT_PROJECT_TRANSPOSE);
-
-  /** Predicate that returns whether Druid can not handle an aggregate. */
-  private static final Predicate<Triple<Aggregate, RelNode, DruidQuery>> BAD_AGG =
-      new PredicateImpl<Triple<Aggregate, RelNode, DruidQuery>>() {
-        public boolean test(Triple<Aggregate, RelNode, DruidQuery> triple) {
-          final Aggregate aggregate = triple.getLeft();
-          final RelNode node = triple.getMiddle();
-          final DruidQuery query = triple.getRight();
-
-          final CalciteConnectionConfig config = query.getConnectionConfig();
-          for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
-            switch (aggregateCall.getAggregation().getKind()) {
-            case COUNT:
-              // Druid can handle 2 scenarios:
-              // 1. count(distinct col) when approximate results
-              //    are acceptable and col is not a metric
-              // 2. count(*)
-              if (checkAggregateOnMetric(ImmutableBitSet.of(aggregateCall.getArgList()),
-                      node, query)) {
-                return true;
-              }
-              if ((aggregateCall.isDistinct()
-                      && (aggregateCall.isApproximate()
-                          || config.approximateDistinctCount()))
-                  || aggregateCall.getArgList().isEmpty()) {
-                continue;
-              }
-              return true;
-            case SUM:
-            case SUM0:
-            case MIN:
-            case MAX:
-              final RelDataType type = aggregateCall.getType();
-              final SqlTypeName sqlTypeName = type.getSqlTypeName();
-              if (SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(sqlTypeName)
-                      || SqlTypeFamily.INTEGER.getTypeNames().contains(sqlTypeName)) {
-                continue;
-              } else if (SqlTypeFamily.EXACT_NUMERIC.getTypeNames().contains(sqlTypeName)) {
-                // Decimal
-                assert sqlTypeName == SqlTypeName.DECIMAL;
-                if (type.getScale() == 0 || config.approximateDecimal()) {
-                  // If scale is zero or we allow approximating decimal, we can proceed
-                  continue;
-                }
-              }
-              // Cannot handle this aggregate function
-              return true;
-            default:
-              // Cannot handle this aggregate function
-              return true;
-            }
-          }
-          return false;
-        }
-      };
+          SORT_PROJECT_TRANSPOSE,
+          DRUID_HAVING_FILTER_RULE);
 
   /**
    * Rule to push a {@link org.apache.calcite.rel.core.Filter} into a {@link DruidQuery}.
@@ -216,13 +157,13 @@ public class DruidRules {
       final RelOptPredicateList predicates =
           call.getMetadataQuery().getPulledUpPredicates(filter.getInput());
       final RexSimplify simplify =
-          new RexSimplify(rexBuilder, predicates, true, executor);
-      final RexNode cond = simplify.simplify(filter.getCondition());
-      if (!canPush(cond)) {
-        return;
-      }
+          new RexSimplify(rexBuilder, predicates, executor);
+      final RexNode cond =
+          simplify.simplifyUnknownAsFalse(filter.getCondition());
       for (RexNode e : RelOptUtil.conjunctions(cond)) {
-        if (query.isValidFilter(e)) {
+        DruidJsonFilter druidJsonFilter = DruidJsonFilter
+            .toDruidFilters(e, filter.getInput().getRowType(), query);
+        if (druidJsonFilter != null) {
           validPreds.add(e);
         } else {
           nonValidPreds.add(e);
@@ -230,36 +171,33 @@ public class DruidRules {
       }
 
       // Timestamp
-      int timestampFieldIdx = -1;
-      for (int i = 0; i < query.getRowType().getFieldCount(); i++) {
-        if (query.druidTable.timestampFieldName.equals(
-                query.getRowType().getFieldList().get(i).getName())) {
-          timestampFieldIdx = i;
-          break;
-        }
-      }
-
+      int timestampFieldIdx =
+          query.getRowType().getFieldNames()
+              .indexOf(query.druidTable.timestampFieldName);
+      RelNode newDruidQuery = query;
       final Triple<List<RexNode>, List<RexNode>, List<RexNode>> triple =
           splitFilters(rexBuilder, query, validPreds, nonValidPreds, timestampFieldIdx);
       if (triple.getLeft().isEmpty() && triple.getMiddle().isEmpty()) {
-        // We can't push anything useful to Druid.
+        // it sucks, nothing to push
         return;
       }
       final List<RexNode> residualPreds = new ArrayList<>(triple.getRight());
       List<Interval> intervals = null;
       if (!triple.getLeft().isEmpty()) {
+        final String timeZone = cluster.getPlanner().getContext()
+            .unwrap(CalciteConnectionConfig.class).timeZone();
+        assert timeZone != null;
         intervals = DruidDateTimeUtils.createInterval(
-            RexUtil.composeConjunction(rexBuilder, triple.getLeft(), false),
-            cluster.getPlanner().getContext().unwrap(CalciteConnectionConfig.class).timeZone());
+            RexUtil.composeConjunction(rexBuilder, triple.getLeft()));
         if (intervals == null || intervals.isEmpty()) {
-          // Case we have an filter with extract that can not be written as interval push down
+          // Case we have a filter with extract that can not be written as interval push down
           triple.getMiddle().addAll(triple.getLeft());
         }
       }
-      RelNode newDruidQuery = query;
+
       if (!triple.getMiddle().isEmpty()) {
         final RelNode newFilter = filter.copy(filter.getTraitSet(), Util.last(query.rels),
-            RexUtil.composeConjunction(rexBuilder, triple.getMiddle(), false));
+            RexUtil.composeConjunction(rexBuilder, triple.getMiddle()));
         newDruidQuery = DruidQuery.extendQuery(query, newFilter);
       }
       if (intervals != null && !intervals.isEmpty()) {
@@ -292,36 +230,44 @@ public class DruidRules {
       for (RexNode conj : validPreds) {
         final RelOptUtil.InputReferencedVisitor visitor = new RelOptUtil.InputReferencedVisitor();
         conj.accept(visitor);
-        if (visitor.inputPosReferenced.contains(timestampFieldIdx)) {
-          if (visitor.inputPosReferenced.size() != 1) {
-            // Complex predicate, transformation currently not supported
-            nonPushableNodes.add(conj);
-          } else {
-            timeRangeNodes.add(conj);
-          }
+        if (visitor.inputPosReferenced.contains(timestampFieldIdx)
+            && visitor.inputPosReferenced.size() == 1) {
+          timeRangeNodes.add(conj);
         } else {
-          boolean filterOnMetrics = false;
-          for (Integer i : visitor.inputPosReferenced) {
-            if (input.druidTable.isMetric(input.getRowType().getFieldList().get(i).getName())) {
-              // Filter on metrics, not supported in Druid
-              filterOnMetrics = true;
-              break;
-            }
-          }
-          if (filterOnMetrics) {
-            nonPushableNodes.add(conj);
-          } else {
-            pushableNodes.add(conj);
-          }
+          pushableNodes.add(conj);
         }
       }
       return ImmutableTriple.of(timeRangeNodes, pushableNodes, nonPushableNodes);
     }
+  }
 
-    /** Returns whether we can push an expression to Druid. */
-    private static boolean canPush(RexNode cond) {
-      // Druid cannot implement "where false"
-      return !cond.isAlwaysFalse();
+  /**
+   * Rule to Push a Having {@link Filter} into a {@link DruidQuery}
+   */
+  public static class DruidHavingFilterRule extends RelOptRule {
+
+    public DruidHavingFilterRule(RelBuilderFactory relBuilderFactory) {
+      super(operand(Filter.class, operand(DruidQuery.class, none())),
+          relBuilderFactory, null);
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      final Filter filter = call.rel(0);
+      final DruidQuery query = call.rel(1);
+
+      if (!DruidQuery.isValidSignature(query.signature() + 'h')) {
+        return;
+      }
+
+      final RexNode cond = filter.getCondition();
+      final DruidJsonFilter druidJsonFilter = DruidJsonFilter
+          .toDruidFilters(cond, query.getTopNode().getRowType(), query);
+      if (druidJsonFilter != null) {
+        final RelNode newFilter = filter
+            .copy(filter.getTraitSet(), Util.last(query.rels), filter.getCondition());
+        final DruidQuery newDruidQuery = DruidQuery.extendQuery(query, newFilter);
+        call.transformTo(newDruidQuery);
+      }
     }
   }
 
@@ -349,14 +295,16 @@ public class DruidRules {
         return;
       }
 
-      if (canProjectAll(project.getProjects())) {
+      if (DruidQuery.computeProjectAsScan(project, query.getTable().getRowType(), query)
+          != null) {
         // All expressions can be pushed to Druid in their entirety.
         final RelNode newProject = project.copy(project.getTraitSet(),
-                ImmutableList.of(Util.last(query.rels)));
+            ImmutableList.of(Util.last(query.rels)));
         RelNode newNode = DruidQuery.extendQuery(query, newProject);
         call.transformTo(newNode);
         return;
       }
+
       final Pair<List<RexNode>, List<RexNode>> pair =
           splitProjects(rexBuilder, query, project.getProjects());
       if (pair == null) {
@@ -382,15 +330,6 @@ public class DruidRules {
       final RelNode newProject2 = project.copy(project.getTraitSet(), newQuery, above,
               project.getRowType());
       call.transformTo(newProject2);
-    }
-
-    private static boolean canProjectAll(List<RexNode> nodes) {
-      for (RexNode e : nodes) {
-        if (!(e instanceof RexInputRef)) {
-          return false;
-        }
-      }
-      return true;
     }
 
     private static Pair<List<RexNode>, List<RexNode>> splitProjects(final RexBuilder rexBuilder,
@@ -448,183 +387,37 @@ public class DruidRules {
     public void onMatch(RelOptRuleCall call) {
       Project project = call.rel(0);
       DruidQuery query = call.rel(1);
-      final RelOptCluster cluster = project.getCluster();
-      final RexBuilder rexBuilder = cluster.getRexBuilder();
       if (!DruidQuery.isValidSignature(query.signature() + 'o')) {
         return;
       }
-      Pair<ImmutableMap<String, String>, Boolean> scanned = scanProject(query, project);
+      boolean hasRexCalls = false;
+      for (RexNode rexNode : project.getChildExps()) {
+        if (rexNode instanceof RexCall) {
+          hasRexCalls = true;
+          break;
+        }
+      }
       // Only try to push down Project when there will be Post aggregators in result DruidQuery
-      if (scanned.right) {
-        Pair<Project, Project> splitProjectAggregate = splitProject(rexBuilder, query,
-                project, scanned.left, cluster);
-        Project inner = splitProjectAggregate.left;
-        Project outer = splitProjectAggregate.right;
-        DruidQuery newQuery = DruidQuery.extendQuery(query, inner);
-        // When all project get pushed into DruidQuery, the project can be replaced by DruidQuery.
-        if (outer != null) {
-          Project newProject = outer.copy(outer.getTraitSet(), newQuery, outer.getProjects(),
-              outer.getRowType());
-          call.transformTo(newProject);
-        } else {
-          call.transformTo(newQuery);
-        }
-      }
-    }
+      if (hasRexCalls) {
 
-    /**
-     * Similar to split Project in DruidProjectRule. It used the name mapping from scanProject
-     * to render the correct field names of inner project so that the outer project can correctly
-     * refer to them. For RexNode that can be parsed into post aggregator, they will get pushed in
-     * before input reference, then outer project can simply refer to those pushed in RexNode to
-     * get result.
-     * @param rexBuilder builder from cluster
-     * @param query matched Druid Query
-     * @param project matched project takes in druid
-     * @param nameMap Result nameMapping from scanProject
-     * @param cluster cluster that provide builder for row type.
-     * @return Triple object contains inner project, outer project and required
-     *         Json Post Aggregation objects to be pushed down into Druid Query.
-     */
-    public Pair<Project, Project> splitProject(final RexBuilder rexBuilder,
-        DruidQuery query, Project project, ImmutableMap<String, String> nameMap,
-        final RelOptCluster cluster) {
-      //Visit & Build Inner Project
-      final List<RexNode> innerRex = new ArrayList<>();
-      final RelDataTypeFactory.Builder typeBuilder =
-          cluster.getTypeFactory().builder();
-      final RelOptUtil.InputReferencedVisitor visitor =
-          new RelOptUtil.InputReferencedVisitor();
-      final List<Integer> positions = new ArrayList<>();
-      final List<RelDataType> innerTypes = new ArrayList<>();
-      // Similar logic to splitProject in DruidProject Rule
-      // However, post aggregation will also be output of DruidQuery and they will be
-      // added before other input.
-      int offset = 0;
-      for (Pair<RexNode, String> pair : project.getNamedProjects()) {
-        RexNode rex = pair.left;
-        String name = pair.right;
-        String fieldName = nameMap.get(name);
-        if (fieldName == null) {
-          rex.accept(visitor);
+        final RelNode topNode = query.getTopNode();
+        final Aggregate topAgg;
+        if (topNode instanceof Aggregate) {
+          topAgg = (Aggregate) topNode;
         } else {
-          final RexNode node = rexBuilder.copy(rex);
-          innerRex.add(node);
-          positions.add(offset++);
-          typeBuilder.add(nameMap.get(name), node.getType());
-          innerTypes.add(node.getType());
+          topAgg = (Aggregate) ((Filter) topNode).getInput();
         }
-      }
-      // Other referred input will be added into the inner project rex list.
-      positions.addAll(visitor.inputPosReferenced);
-      for (int i : visitor.inputPosReferenced) {
-        final RexNode node = rexBuilder.makeInputRef(Util.last(query.rels), i);
-        innerRex.add(node);
-        typeBuilder.add(query.getRowType().getFieldNames().get(i), node.getType());
-        innerTypes.add(node.getType());
-      }
-      Project innerProject = project.copy(project.getTraitSet(), Util.last(query.rels), innerRex,
-          typeBuilder.build());
-      // If the whole project is pushed, we do not need to do anything else.
-      if (project.getNamedProjects().size() == nameMap.size()) {
-        return new Pair<>(innerProject, null);
-      }
-      // Build outer Project when some projects are left in outer project.
-      offset = 0;
-      final List<RexNode> outerRex = new ArrayList<>();
-      for (Pair<RexNode, String> pair : project.getNamedProjects()) {
-        RexNode rex = pair.left;
-        String name = pair.right;
-        if (!nameMap.containsKey(name)) {
-          outerRex.add(
-              rex.accept(
-                  new RexShuttle() {
-                    @Override public RexNode visitInputRef(RexInputRef ref) {
-                      final int j = positions.indexOf(ref.getIndex());
-                      return rexBuilder.makeInputRef(innerTypes.get(j), j);
-                    }
-                  }));
-        } else {
-          outerRex.add(
-              rexBuilder.makeInputRef(rex.getType(),
-                  positions.indexOf(offset++)));
-        }
-      }
-      Project outerProject = project.copy(project.getTraitSet(), innerProject,
-          outerRex, project.getRowType());
-      return new Pair<>(innerProject, outerProject);
-    }
 
-    /**
-     * Scans the project.
-     *
-     * <p>Takes Druid Query as input to figure out which expression can be
-     * pushed down. Also returns a map to show the correct field name in Druid
-     * Query for columns get pushed in.
-     *
-     * @param query matched Druid Query
-     * @param project Matched project that takes in Druid Query
-     * @return Pair that shows how name map with each other.
-     */
-    public Pair<ImmutableMap<String, String>, Boolean> scanProject(
-        DruidQuery query, Project project) {
-      List<String> aggNamesWithGroup = query.getRowType().getFieldNames();
-      final ImmutableMap.Builder<String, String> mapBuilder = ImmutableMap.builder();
-      int j = 0;
-      boolean ret = false;
-      for (Pair<RexNode, String> namedProject : project.getNamedProjects()) {
-        RexNode rex = namedProject.left;
-        String name = namedProject.right;
-        // Find out the corresponding fieldName for DruidQuery to fetch result
-        // in DruidConnectionImpl, give specific name for post aggregator
-        if (rex instanceof RexCall) {
-          if (checkPostAggregatorExist(rex)) {
-            String postAggName = "postagg#" + j++;
-            mapBuilder.put(name, postAggName);
-            ret = true;
-          }
-        } else if (rex instanceof RexInputRef) {
-          String fieldName = aggNamesWithGroup.get(((RexInputRef) rex).getIndex());
-          mapBuilder.put(name, fieldName);
-        }
-      }
-      return new Pair<>(mapBuilder.build(), ret);
-    }
-
-    /**
-     * Recursively check whether the rexNode can be parsed into post aggregator in druid query
-     * Have to fulfill conditions below:
-     * 1. Arithmetic operation +, -, /, * or CAST in SQL
-     * 2. Simple input reference refer to the result of Aggregate or Grouping
-     * 3. A constant
-     * 4. All input referred should also be able to be parsed
-     * @param rexNode input RexNode to be recursively checked
-     * @return a boolean shows whether this rexNode can be parsed or not.
-     */
-    public boolean checkPostAggregatorExist(RexNode rexNode) {
-      if (rexNode instanceof RexCall) {
-        for (RexNode ele : ((RexCall) rexNode).getOperands()) {
-          boolean inputRex = checkPostAggregatorExist(ele);
-          if (!inputRex) {
-            return false;
+        for (RexNode rexNode : project.getProjects()) {
+          if (DruidExpressions.toDruidExpression(rexNode, topAgg.getRowType(), query) == null) {
+            return;
           }
         }
-        switch (rexNode.getKind()) {
-        case PLUS:
-        case MINUS:
-        case DIVIDE:
-        case TIMES:
-        //case CAST:
-          return true;
-        default:
-          return false;
-        }
-      } else if (rexNode instanceof RexInputRef || rexNode instanceof RexLiteral) {
-        // Do not have to check the source of input because the signature checking ensure
-        // the input of project must be Aggregate.
-        return true;
+        final RelNode newProject = project
+            .copy(project.getTraitSet(), ImmutableList.of(Util.last(query.rels)));
+        final DruidQuery newQuery = DruidQuery.extendQuery(query, newProject);
+        call.transformTo(newQuery);
       }
-      return false;
     }
   }
 
@@ -646,30 +439,30 @@ public class DruidRules {
     public void onMatch(RelOptRuleCall call) {
       final Aggregate aggregate = call.rel(0);
       final DruidQuery query = call.rel(1);
+      final RelNode topDruidNode = query.getTopNode();
+      final Project project = topDruidNode instanceof Project ? (Project) topDruidNode : null;
       if (!DruidQuery.isValidSignature(query.signature() + 'a')) {
         return;
       }
+
       if (aggregate.indicator
-              || aggregate.getGroupSets().size() != 1
-              || BAD_AGG.apply(ImmutableTriple.of(aggregate, (RelNode) aggregate, query))
-              || !validAggregate(aggregate, query)) {
+          || aggregate.getGroupSets().size() != 1) {
         return;
       }
-      final RelNode newAggregate = aggregate.copy(aggregate.getTraitSet(),
-              ImmutableList.of(Util.last(query.rels)));
+      if (DruidQuery
+          .computeProjectGroupSet(project, aggregate.getGroupSet(), query.table.getRowType(), query)
+          == null) {
+        return;
+      }
+      final List<String> aggNames = Util
+          .skip(aggregate.getRowType().getFieldNames(), aggregate.getGroupSet().cardinality());
+      if (DruidQuery.computeDruidJsonAgg(aggregate.getAggCallList(), aggNames, project, query)
+          == null) {
+        return;
+      }
+      final RelNode newAggregate = aggregate
+          .copy(aggregate.getTraitSet(), ImmutableList.of(query.getTopNode()));
       call.transformTo(DruidQuery.extendQuery(query, newAggregate));
-    }
-
-    /* Check whether agg functions reference timestamp */
-    private static boolean validAggregate(Aggregate aggregate, DruidQuery query) {
-      ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
-      for (AggregateCall aggCall : aggregate.getAggCallList()) {
-        builder.addAll(aggCall.getArgList());
-      }
-      if (checkAggregateOnMetric(aggregate.getGroupSet(), aggregate, query)) {
-        return false;
-      }
-      return !checkTimestampRefOnQuery(builder.build(), query.getTopNode(), query);
     }
   }
 
@@ -699,37 +492,26 @@ public class DruidRules {
       if (!DruidQuery.isValidSignature(query.signature() + 'p' + 'a')) {
         return;
       }
-
-      int timestampIdx = validProject(project, query);
-      List<Integer> filterRefs = getFilterRefs(aggregate.getAggCallList());
-
-      if (timestampIdx == -1 && filterRefs.size() == 0) {
-        return;
-      }
-
-      // Check that the filters that the Aggregate calls refer to are valid filters can be pushed
-      // into Druid
-      for (Integer i : filterRefs) {
-        RexNode filterNode = project.getProjects().get(i);
-        if (!query.isValidFilter(filterNode, project.getInput()) || filterNode.isAlwaysFalse()) {
-          return;
-        }
-      }
-
       if (aggregate.indicator
-              || aggregate.getGroupSets().size() != 1
-              || BAD_AGG.apply(ImmutableTriple.of(aggregate, (RelNode) project, query))
-              || !validAggregate(aggregate, timestampIdx, filterRefs.size())) {
+          || aggregate.getGroupSets().size() != 1) {
         return;
       }
-      if (checkAggregateOnMetric(aggregate.getGroupSet(), project, query)) {
+      if (DruidQuery
+          .computeProjectGroupSet(project, aggregate.getGroupSet(), query.table.getRowType(), query)
+          == null) {
+        return;
+      }
+      final List<String> aggNames = Util
+          .skip(aggregate.getRowType().getFieldNames(), aggregate.getGroupSet().cardinality());
+      if (DruidQuery.computeDruidJsonAgg(aggregate.getAggCallList(), aggNames, project, query)
+          == null) {
         return;
       }
       final RelNode newProject = project.copy(project.getTraitSet(),
               ImmutableList.of(Util.last(query.rels)));
       final RelNode newAggregate = aggregate.copy(aggregate.getTraitSet(),
               ImmutableList.of(newProject));
-
+      List<Integer> filterRefs = getFilterRefs(aggregate.getAggCallList());
       final DruidQuery query2;
       if (filterRefs.size() > 0) {
         query2 = optimizeFilteredAggregations(call, query, (Project) newProject,
@@ -782,7 +564,7 @@ public class DruidRules {
       final RelOptPredicateList predicates =
           call.getMetadataQuery().getPulledUpPredicates(scan);
       final RexSimplify simplify =
-          new RexSimplify(builder, predicates, true, executor);
+          new RexSimplify(builder, predicates, executor);
 
       // if the druid query originally contained a filter
       boolean containsFilter = false;
@@ -813,13 +595,12 @@ public class DruidRules {
 
       // Erase references to filters
       for (AggregateCall aggCall : aggregate.getAggCallList()) {
-        int newFilterArg = aggCall.filterArg;
-        if (!aggCall.hasFilter()
-                || (uniqueFilterRefs.size() == 1 && allHaveFilters) // filters get extracted
-                || project.getProjects().get(newFilterArg).isAlwaysTrue()) {
-          newFilterArg = -1;
+        if ((uniqueFilterRefs.size() == 1
+                && allHaveFilters) // filters get extracted
+            || project.getProjects().get(aggCall.filterArg).isAlwaysTrue()) {
+          aggCall = aggCall.copy(aggCall.getArgList(), -1, aggCall.collation);
         }
-        newCalls.add(aggCall.copy(aggCall.getArgList(), newFilterArg));
+        newCalls.add(aggCall);
       }
       aggregate = aggregate.copy(aggregate.getTraitSet(), aggregate.getInput(),
               aggregate.indicator, aggregate.getGroupSet(), aggregate.getGroupSets(),
@@ -832,7 +613,7 @@ public class DruidRules {
 
       // Simplify the filter as much as possible
       RexNode tempFilterNode = filterNode;
-      filterNode = simplify.simplify(filterNode);
+      filterNode = simplify.simplifyUnknownAsFalse(filterNode);
 
       // It's possible that after simplification that the expression is now always false.
       // Druid cannot handle such a filter.
@@ -876,7 +657,7 @@ public class DruidRules {
      * the given {@link Filter}, and any extra nodes.
      */
     private static List<RelNode> constructNewNodes(List<RelNode> oldNodes,
-        boolean addFilter, int startIndex, RelNode filter, RelNode ... trailingNodes) {
+        boolean addFilter, int startIndex, RelNode filter, RelNode... trailingNodes) {
       List<RelNode> newNodes = new ArrayList<>();
 
       // The first item should always be the Table scan, so any filter would go after that
@@ -923,78 +704,6 @@ public class DruidRules {
       return refs;
     }
 
-    /* To be a valid Project, we allow it to contain references, and a single call
-     * to a FLOOR function on the timestamp column OR valid time EXTRACT on the timestamp column.
-     * Returns the reference to the timestamp, if any. */
-    private static int validProject(Project project, DruidQuery query) {
-      List<RexNode> nodes = project.getProjects();
-      int idxTimestamp = -1;
-      boolean hasFloor = false;
-      for (int i = 0; i < nodes.size(); i++) {
-        final RexNode e = nodes.get(i);
-        if (e instanceof RexCall) {
-          // It is a call, check that it is EXTRACT and follow-up conditions
-          final RexCall call = (RexCall) e;
-          if (DruidDateTimeUtils.extractGranularity(call) == null) {
-            return -1;
-          }
-          if (idxTimestamp != -1 && hasFloor) {
-            // Already one usage of timestamp column
-            return -1;
-          }
-          switch (call.getKind()) {
-          case FLOOR:
-            hasFloor = true;
-            if (!(call.getOperands().get(0) instanceof RexInputRef)) {
-              return -1;
-            }
-            final RexInputRef ref = (RexInputRef) call.getOperands().get(0);
-            if (!(checkTimestampRefOnQuery(ImmutableBitSet.of(ref.getIndex()),
-                query.getTopNode(),
-                query))) {
-              return -1;
-            }
-            idxTimestamp = i;
-            break;
-          case EXTRACT:
-            idxTimestamp = RelOptUtil.InputFinder.bits(call).asList().get(0);
-            break;
-          default:
-            throw new AssertionError();
-          }
-          continue;
-        }
-        if (!(e instanceof RexInputRef)) {
-          // It needs to be a reference
-          return -1;
-        }
-        final RexInputRef ref = (RexInputRef) e;
-        if (checkTimestampRefOnQuery(ImmutableBitSet.of(ref.getIndex()),
-                query.getTopNode(), query)) {
-          if (idxTimestamp != -1) {
-            // Already one usage of timestamp column
-            return -1;
-          }
-          idxTimestamp = i;
-        }
-      }
-      return idxTimestamp;
-    }
-
-    private static boolean validAggregate(Aggregate aggregate, int idx, int numFilterRefs) {
-      if (numFilterRefs > 0 && idx < 0) {
-        return true;
-      }
-      if (!aggregate.getGroupSet().get(idx)) {
-        return false;
-      }
-      for (AggregateCall aggCall : aggregate.getAggCallList()) {
-        if (aggCall.getArgList().contains(idx)) {
-          return false;
-        }
-      }
-      return true;
-    }
   }
 
   /**
@@ -1062,139 +771,20 @@ public class DruidRules {
         return;
       }
       // Either it is:
-      // - a sort and limit on a dimension/metric part of the druid group by query or
-      // - a sort without limit on the time column on top of
-      //     Agg operator (transformable to timeseries query), or
-      // - a simple limit on top of other operator than Agg
-      if (!validSortLimit(sort, query)) {
-        return;
-      }
-      final RelNode newSort = sort.copy(sort.getTraitSet(),
-              ImmutableList.of(Util.last(query.rels)));
-      call.transformTo(DruidQuery.extendQuery(query, newSort));
-    }
-
-    /** Checks whether sort is valid. */
-    private static boolean validSortLimit(Sort sort, DruidQuery query) {
+      // - a pure limit above a query of type scan
+      // - a sort and limit on a dimension/metric part of the druid group by query
       if (sort.offset != null && RexLiteral.intValue(sort.offset) != 0) {
         // offset not supported by Druid
-        return false;
+        return;
       }
-      // Use a different logic to push down Sort RelNode because the top node could be a Project now
-      RelNode topNode = query.getTopNode();
-      Aggregate topAgg;
-      if (topNode instanceof Project && ((Project) topNode).getInput() instanceof Aggregate) {
-        topAgg = (Aggregate) ((Project) topNode).getInput();
-      } else if (topNode instanceof Aggregate) {
-        topAgg = (Aggregate) topNode;
-      } else {
-        // If it is going to be a Druid select operator, we push the limit if
-        // it does not contain a sort specification (required by Druid)
-        return RelOptUtil.isPureLimit(sort);
+      if (query.getQueryType() == QueryType.SCAN && !RelOptUtil.isPureLimit(sort)) {
+        return;
       }
-      final ImmutableBitSet.Builder positionsReferenced = ImmutableBitSet.builder();
-      for (RelFieldCollation col : sort.collation.getFieldCollations()) {
-        int idx = col.getFieldIndex();
-        if (idx >= topAgg.getGroupCount()) {
-          continue;
-        }
-        //has the indexes of the columns used for sorts
-        positionsReferenced.set(topAgg.getGroupSet().nth(idx));
-      }
-      // Case it is a timeseries query
-      if (checkIsFlooringTimestampRefOnQuery(topAgg.getGroupSet(), topAgg.getInput(), query)
-          && topAgg.getGroupCount() == 1) {
-        // do not push if it has a limit or more than one sort key or we have sort by
-        // metric/dimension
-        return !RelOptUtil.isLimit(sort) && sort.collation.getFieldCollations().size() == 1
-            && checkTimestampRefOnQuery(positionsReferenced.build(), topAgg.getInput(), query);
-      }
-      return true;
-    }
-  }
 
-  /** Returns true if any of the grouping key is a floor operator over the timestamp column. */
-  private static boolean checkIsFlooringTimestampRefOnQuery(ImmutableBitSet set, RelNode top,
-      DruidQuery query) {
-    if (top instanceof Project) {
-      ImmutableBitSet.Builder newSet = ImmutableBitSet.builder();
-      final Project project = (Project) top;
-      for (int index : set) {
-        RexNode node = project.getProjects().get(index);
-        if (node instanceof RexCall) {
-          RexCall call = (RexCall) node;
-          assert DruidDateTimeUtils.extractGranularity(call) != null;
-          if (call.getKind() == SqlKind.FLOOR) {
-            newSet.addAll(RelOptUtil.InputFinder.bits(call));
-          }
-        }
-      }
-      top = project.getInput();
-      set = newSet.build();
+      final RelNode newSort = sort
+          .copy(sort.getTraitSet(), ImmutableList.of(Util.last(query.rels)));
+      call.transformTo(DruidQuery.extendQuery(query, newSort));
     }
-    // Check if any references the timestamp column
-    for (int index : set) {
-      if (query.druidTable.timestampFieldName.equals(
-          top.getRowType().getFieldNames().get(index))) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  /** Checks whether any of the references leads to the timestamp column. */
-  private static boolean checkTimestampRefOnQuery(ImmutableBitSet set, RelNode top,
-      DruidQuery query) {
-    if (top instanceof Project) {
-      ImmutableBitSet.Builder newSet = ImmutableBitSet.builder();
-      final Project project = (Project) top;
-      for (int index : set) {
-        RexNode node = project.getProjects().get(index);
-        if (node instanceof RexInputRef) {
-          newSet.set(((RexInputRef) node).getIndex());
-        } else if (node instanceof RexCall) {
-          RexCall call = (RexCall) node;
-          assert DruidDateTimeUtils.extractGranularity(call) != null;
-          // when we have extract from time columnthe rexCall is in the form of /Reinterpret$0
-          newSet.addAll(RelOptUtil.InputFinder.bits(call));
-        }
-      }
-      top = project.getInput();
-      set = newSet.build();
-    }
-
-    // Check if any references the timestamp column
-    for (int index : set) {
-      if (query.druidTable.timestampFieldName.equals(
-              top.getRowType().getFieldNames().get(index))) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  /** Checks whether any of the references leads to a metric column. */
-  private static boolean checkAggregateOnMetric(ImmutableBitSet set, RelNode topProject,
-      DruidQuery query) {
-    if (topProject instanceof Project) {
-      ImmutableBitSet.Builder newSet = ImmutableBitSet.builder();
-      final Project project = (Project) topProject;
-      for (int index : set) {
-        RexNode node = project.getProjects().get(index);
-        ImmutableBitSet setOfBits = RelOptUtil.InputFinder.bits(node);
-        newSet.addAll(setOfBits);
-      }
-      set = newSet.build();
-    }
-    for (int index : set) {
-      if (query.druidTable.isMetric(query.getTopNode().getRowType().getFieldNames().get(index))) {
-        return true;
-      }
-    }
-
-    return false;
   }
 
   /**
@@ -1216,7 +806,7 @@ public class DruidRules {
           operand(Project.class,
               operand(Filter.class,
                   operand(DruidQuery.class, none()))),
-          PushProjector.ExprCondition.FALSE,
+              expr -> false,
           relBuilderFactory);
     }
   }
@@ -1289,6 +879,30 @@ public class DruidRules {
           relBuilderFactory);
     }
   }
+
+  /**
+   * Rule to extract a {@link org.apache.calcite.rel.core.Project} from
+   * {@link org.apache.calcite.rel.core.Aggregate} on top of
+   * {@link org.apache.calcite.adapter.druid.DruidQuery} based on the fields
+   * used in the aggregate.
+   */
+  public static class DruidAggregateExtractProjectRule
+      extends AggregateExtractProjectRule {
+
+    /**
+     * Creates a DruidAggregateExtractProjectRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
+    public DruidAggregateExtractProjectRule(
+        RelBuilderFactory relBuilderFactory) {
+      super(
+          operand(Aggregate.class,
+              operand(DruidQuery.class, none())),
+          relBuilderFactory);
+    }
+  }
+
 }
 
 // End DruidRules.java
