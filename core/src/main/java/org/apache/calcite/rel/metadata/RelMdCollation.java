@@ -282,26 +282,30 @@ public class RelMdCollation
       collations.add(RelCollations.of(fieldCollations));
     }
 
-    final List<RelFieldCollation> fieldCollationsForRexCalls =
-        new ArrayList<>();
-    for (Map.Entry<Integer, SqlMonotonicity> entry
-        : targetsWithMonotonicity.entrySet()) {
-      final SqlMonotonicity value = entry.getValue();
-      switch (value) {
-      case NOT_MONOTONIC:
-      case CONSTANT:
-        break;
-      default:
-        fieldCollationsForRexCalls.add(
-            new RelFieldCollation(entry.getKey(),
-                RelFieldCollation.Direction.of(value)));
-        break;
-      }
-    }
-
-    if (!fieldCollationsForRexCalls.isEmpty()) {
-      collations.add(RelCollations.of(fieldCollationsForRexCalls));
-    }
+    // FIXME: Combining collations currently doesn't work.
+    // Projecting monotonic functions on a column which is to be sorted results in a collation for
+    // each of the calculated columns. Combining those collations somehow removes them all, which
+    // generates a query without sort.
+//    final List<RelFieldCollation> fieldCollationsForRexCalls =
+//        new ArrayList<>();
+//    for (Map.Entry<Integer, SqlMonotonicity> entry
+//        : targetsWithMonotonicity.entrySet()) {
+//      final SqlMonotonicity value = entry.getValue();
+//      switch (value) {
+//      case NOT_MONOTONIC:
+//      case CONSTANT:
+//        break;
+//      default:
+//        fieldCollationsForRexCalls.add(
+//            new RelFieldCollation(entry.getKey(),
+//                RelFieldCollation.Direction.of(value)));
+//        break;
+//      }
+//    }
+//
+//    if (!fieldCollationsForRexCalls.isEmpty()) {
+//      collations.add(RelCollations.of(fieldCollationsForRexCalls));
+//    }
 
     return ImmutableList.copyOf(collations);
   }
