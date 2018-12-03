@@ -70,7 +70,6 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -743,13 +742,13 @@ public abstract class SqlImplementor {
     }
 
     private SqlNode createLeftCall(SqlOperator op, List<SqlNode> nodeList) {
-      if (nodeList.size() == 2) {
-        return op.createCall(new SqlNodeList(nodeList, POS));
+      SqlNode node = op.createCall(
+              new SqlNodeList(ImmutableList.of(nodeList.get(0), nodeList.get(1)), POS)
+      );
+      for (SqlNode n: nodeList.subList(2, nodeList.size())) {
+        node = op.createCall(new SqlNodeList(ImmutableList.of(node, n), POS));
       }
-      final List<SqlNode> butLast = Util.skipLast(nodeList);
-      final SqlNode last = nodeList.get(nodeList.size() - 1);
-      final SqlNode call = createLeftCall(op, butLast);
-      return op.createCall(new SqlNodeList(ImmutableList.of(call, last), POS));
+      return node;
     }
 
     private List<SqlNode> toSql(RexProgram program, List<RexNode> operandList) {
