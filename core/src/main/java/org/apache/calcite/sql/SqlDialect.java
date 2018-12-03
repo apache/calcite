@@ -23,6 +23,7 @@ import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
@@ -133,6 +134,7 @@ public class SqlDialect {
   private final String identifierEscapedQuote;
   private final DatabaseProduct databaseProduct;
   protected final NullCollation nullCollation;
+  private final RelDataTypeSystem dataTypeSystem;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -190,6 +192,7 @@ public class SqlDialect {
    */
   public SqlDialect(Context context) {
     this.nullCollation = Objects.requireNonNull(context.nullCollation());
+    this.dataTypeSystem = Objects.requireNonNull(context.dataTypeSystem());
     this.databaseProduct =
         Objects.requireNonNull(context.databaseProduct());
     String identifierQuoteString = context.identifierQuoteString();
@@ -214,7 +217,7 @@ public class SqlDialect {
   /** Creates an empty context. Use {@link #EMPTY_CONTEXT} if possible. */
   protected static Context emptyContext() {
     return new ContextImpl(DatabaseProduct.UNKNOWN, null, null, -1, -1, null,
-        NullCollation.HIGH, JethroDataSqlDialect.JethroInfo.EMPTY);
+        NullCollation.HIGH, RelDataTypeSystemImpl.DEFAULT, JethroDataSqlDialect.JethroInfo.EMPTY);
   }
 
   /**
@@ -289,6 +292,11 @@ public class SqlDialect {
     } else {
       return DatabaseProduct.UNKNOWN;
     }
+  }
+
+  /** Returns the type system implementation for this dialect. */
+  public RelDataTypeSystem getTypeSystem() {
+    return dataTypeSystem;
   }
 
   /**
@@ -684,9 +692,18 @@ public class SqlDialect {
 
   public SqlNode getCastSpec(RelDataType type) {
     if (type instanceof BasicSqlType) {
+      int precision = type.getPrecision();
+      switch (type.getSqlTypeName()) {
+      case VARCHAR:
+        // if needed, adjust varchar length to max length supported by the system
+        int maxPrecision = getTypeSystem().getMaxPrecision(type.getSqlTypeName());
+        if (type.getPrecision() > maxPrecision) {
+          precision = maxPrecision;
+        }
+      }
       return new SqlDataTypeSpec(
           new SqlIdentifier(type.getSqlTypeName().name(), SqlParserPos.ZERO),
-              type.getPrecision(),
+              precision,
               type.getScale(),
               type.getCharset() != null
                   && supportsCharSet()
@@ -1037,6 +1054,8 @@ public class SqlDialect {
     Context withIdentifierQuoteString(String identifierQuoteString);
     @Nonnull NullCollation nullCollation();
     Context withNullCollation(@Nonnull NullCollation nullCollation);
+    @Nonnull RelDataTypeSystem dataTypeSystem();
+    Context withDataTypeSystem(@Nonnull RelDataTypeSystem dataTypeSystem);
     JethroDataSqlDialect.JethroInfo jethroInfo();
     Context withJethroInfo(JethroDataSqlDialect.JethroInfo jethroInfo);
   }
@@ -1050,12 +1069,14 @@ public class SqlDialect {
     private final int databaseMinorVersion;
     private final String identifierQuoteString;
     private final NullCollation nullCollation;
+    private final RelDataTypeSystem dataTypeSystem;
     private final JethroDataSqlDialect.JethroInfo jethroInfo;
 
     private ContextImpl(DatabaseProduct databaseProduct,
         String databaseProductName, String databaseVersion,
         int databaseMajorVersion, int databaseMinorVersion,
         String identifierQuoteString, NullCollation nullCollation,
+        RelDataTypeSystem dataTypeSystem,
         JethroDataSqlDialect.JethroInfo jethroInfo) {
       this.databaseProduct = Objects.requireNonNull(databaseProduct);
       this.databaseProductName = databaseProductName;
@@ -1064,6 +1085,7 @@ public class SqlDialect {
       this.databaseMinorVersion = databaseMinorVersion;
       this.identifierQuoteString = identifierQuoteString;
       this.nullCollation = Objects.requireNonNull(nullCollation);
+      this.dataTypeSystem = Objects.requireNonNull(dataTypeSystem);
       this.jethroInfo = Objects.requireNonNull(jethroInfo);
     }
 
@@ -1075,7 +1097,7 @@ public class SqlDialect {
         @Nonnull DatabaseProduct databaseProduct) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo);
     }
 
     public String databaseProductName() {
@@ -1085,7 +1107,7 @@ public class SqlDialect {
     public Context withDatabaseProductName(String databaseProductName) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo);
     }
 
     public String databaseVersion() {
@@ -1095,7 +1117,7 @@ public class SqlDialect {
     public Context withDatabaseVersion(String databaseVersion) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo);
     }
 
     public int databaseMajorVersion() {
@@ -1105,7 +1127,7 @@ public class SqlDialect {
     public Context withDatabaseMajorVersion(int databaseMajorVersion) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo);
     }
 
     public int databaseMinorVersion() {
@@ -1115,7 +1137,7 @@ public class SqlDialect {
     public Context withDatabaseMinorVersion(int databaseMinorVersion) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo);
     }
 
     public String identifierQuoteString() {
@@ -1125,7 +1147,7 @@ public class SqlDialect {
     public Context withIdentifierQuoteString(String identifierQuoteString) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo);
     }
 
     @Nonnull public NullCollation nullCollation() {
@@ -1135,7 +1157,17 @@ public class SqlDialect {
     public Context withNullCollation(@Nonnull NullCollation nullCollation) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo);
+    }
+
+    @Nonnull public RelDataTypeSystem dataTypeSystem() {
+      return dataTypeSystem;
+    }
+
+    public Context withDataTypeSystem(@Nonnull RelDataTypeSystem dataTypeSystem) {
+      return new ContextImpl(databaseProduct, databaseProductName,
+          databaseVersion, databaseMajorVersion, databaseMinorVersion,
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo);
     }
 
     @Nonnull public JethroDataSqlDialect.JethroInfo jethroInfo() {
@@ -1145,7 +1177,7 @@ public class SqlDialect {
     public Context withJethroInfo(JethroDataSqlDialect.JethroInfo jethroInfo) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo);
     }
   }
 }
