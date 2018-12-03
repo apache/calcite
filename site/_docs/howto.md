@@ -31,15 +31,15 @@ adapters.
 
 ## Building from a source distribution
 
-Prerequisite is Java (JDK 8, 9 or 10) on your path.
+Prerequisite is Java (JDK 8, 9, 10 or 11) on your path.
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
 then build using the included maven wrapper:
 
 {% highlight bash %}
-$ tar xvfz calcite-1.17.0-source.tar.gz
-$ cd calcite-1.17.0
+$ tar xvfz calcite-1.18.0-source.tar.gz
+$ cd calcite-1.18.0
 $ ./mvnw install
 {% endhighlight %}
 
@@ -49,7 +49,7 @@ tests.
 ## Building from git
 
 Prerequisites are git
-and Java (JDK 8, 9 or 10) on your path.
+and Java (JDK 8, 9, 10 or 11) on your path.
 
 Create a local copy of the github repository,
 `cd` to its root directory,
@@ -486,18 +486,18 @@ Follow the instructions [here](http://www.apache.org/dev/publishing-maven-artifa
 Before you start:
 
 * Set up signing keys as described above.
-* Make sure you are using JDK 8 (not 9 or 10).
+* Make sure you are using JDK 11.
 * Make sure build and tests succeed with `-Dcalcite.test.db=hsqldb` (the default)
 
 {% highlight bash %}
-# Set passphrase variable without putting it into shell history
-read -s GPG_PASSPHRASE
+# Tell GPG how to read a password from your terminal
+export GPG_TTY=$(tty)
 
 # Make sure that there are no junk files in the sandbox
 git clean -xn
 ./mvnw clean
 
-./mvnw -Papache-release -Dgpg.passphrase=${GPG_PASSPHRASE} install
+./mvnw -Papache-release install
 {% endhighlight %}
 
 When the dry-run has succeeded, change `install` to `deploy`.
@@ -581,31 +581,31 @@ If any of the steps fail, clean up (see below), fix the problem, and
 start again from the top.
 
 {% highlight bash %}
-# Set passphrase variable without putting it into shell history
-read -s GPG_PASSPHRASE
+# Tell GPG how to read a password from your terminal
+export GPG_TTY=$(tty)
 
 # Make sure that there are no junk files in the sandbox
 git clean -xn
 ./mvnw clean
 
 # Do a dry run of the release:prepare step, which sets version numbers
-# (accept the default tag name of calcite-X.Y.Z)
-# Note X.Y.Z is the current version we're trying to release, and X.Y+1.Z is the next development version.
-# For example, if I am currently building a release for 1.16.0, X.Y.Z would be 1.16.0 and X.Y+1.Z would be 1.17.0.
-./mvnw -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
+# (accept the default tag name of calcite-X.Y.Z).
+# Note X.Y.Z is the current version we're trying to release (e.g. 1.8.0),
+# and X.(Y+1).Z is the next development version (e.g. 1.9.0).
+./mvnw -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.(Y+1).Z-SNAPSHOT -Papache-release release:prepare 2>&1 | tee /tmp/prepare-dry.log
 
 # If you have multiple GPG keys, you can select the key used to sign the release by adding `-Dgpg.keyname=${GPG_KEY_ID}` to `-Darguments`:
-./mvnw -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE} -Dgpg.keyname=${GPG_KEY_ID}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
+./mvnw -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.(Y+1).Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.keyname=${GPG_KEY_ID}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
 {% endhighlight %}
 
 Check the artifacts.
 Note that when performing the dry run `SNAPSHOT` will appear in any file or directory names given below.
 The version will be automatically changed when performing the release for real.
 
-* In the `target` directory should be these 6 files, among others:
-  * apache-calcite-X.Y.Z-src.tar.gz
-  * apache-calcite-X.Y.Z-src.tar.gz.asc
-  * apache-calcite-X.Y.Z-src.tar.gz.sha256
+* In the `target` directory should be these 3 files, among others:
+  * `apache-calcite-X.Y.Z-src.tar.gz`
+  * `apache-calcite-X.Y.Z-src.tar.gz.asc`
+  * `apache-calcite-X.Y.Z-src.tar.gz.sha256`
 * Note that the file names start `apache-calcite-`.
 * In the source distro `.tar.gz` (currently there is
   no binary distro), check that all files belong to a directory called
@@ -632,13 +632,13 @@ For this step you'll have to add the [Apache servers](https://maven.apache.org/d
 # Prepare sets the version numbers, creates a tag, and pushes it to git
 # Note X.Y.Z is the current version we're trying to release, and X.Y+1.Z is the next development version.
 # For example, if I am currently building a release for 1.16.0, X.Y.Z would be 1.16.0 and X.Y+1.Z would be 1.17.0.
-./mvnw -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare.log
+./mvnw -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release release:prepare 2>&1 | tee /tmp/prepare.log
 
 # If you have multiple GPG keys, you can select the key used to sign the release by adding `-Dgpg.keyname=${GPG_KEY_ID}` to `-Darguments`:
-./mvnw -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE} -Dgpg.keyname=${GPG_KEY_ID}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
+./mvnw -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.keyname=${GPG_KEY_ID}" release:prepare 2>&1 | tee /tmp/prepare.log
 
 # Perform checks out the tagged version, builds, and deploys to the staging repository
-./mvnw -DskipTests -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:perform 2>&1 | tee /tmp/perform.log
+./mvnw -DskipTests -Papache-release release:perform 2>&1 | tee /tmp/perform.log
 {% endhighlight %}
 
 Verify the staged artifacts in the Nexus repository:

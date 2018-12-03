@@ -58,7 +58,7 @@ limitations under the License.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <top.dir>${project.basedir}</top.dir>
     <version.major>1</version.major>
-    <version.minor>17</version.minor>
+    <version.minor>18</version.minor>
 
     <!-- Don't fail the build for vulnerabilities below this threshold. -->
     <failBuildOnCVSS>8</failBuildOnCVSS>
@@ -793,6 +793,11 @@ limitations under the License.
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-release-plugin</artifactId>
         <dependencies>
+          <dependency>
+            <groupId>org.apache.maven.scm</groupId>
+            <artifactId>maven-scm-api</artifactId>
+            <version>${maven-scm-provider.version}</version>
+          </dependency>
           <dependency>
             <groupId>org.apache.maven.scm</groupId>
             <artifactId>maven-scm-provider-gitexe</artifactId>
