@@ -625,6 +625,15 @@ public class RelToSqlConverterTest {
     sql(query).withMysql().ok(expected);
   }
 
+
+  @Test public void testMySQLCastToIntegerShouldBeCastToSigned() {
+    final String query = "select \"employee_id\", cast(\"salary_paid\" * 10000 as integer)\n "
+        + "from \"salary\"";
+    final String expected = "SELECT `employee_id`, CAST(`salary_paid` * 10000 AS SIGNED)\n"
+        + "FROM `foodmart`.`salary`";
+    sql(query).withMysql().ok(expected);
+  }
+
   @Test public void testHiveSelectQueryWithOrderByDescAndHighNullsWithVersionGreaterThanOrEq21() {
     final HiveSqlDialect hive2_1Dialect =
         new HiveSqlDialect(SqlDialect.EMPTY_CONTEXT
