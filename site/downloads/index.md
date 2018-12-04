@@ -50,14 +50,17 @@ Release          | Date       | Commit   | Download
 {% endcomment %}{% capture d1 %}{{ post.date | date: "%F"}}{% endcapture %}{% comment %}
 {% endcomment %}{% capture d2 %}2017-08-31{% endcapture %}{% comment %}
 {% endcomment %}{% capture d3 %}2018-06-01{% endcapture %}{% comment %}
-{% endcomment %}{% if d1 > d2 %}{% comment %}
+{% endcomment %}{% capture d4 %}2018-12-01{% endcapture %}{% comment %}
+{% endcomment %}{% if d1 > d4 %}{% comment %}
+{% endcomment %}{% assign digest = "sha512" %}{% comment %}
+{% endcomment %}{% elsif d1 > d2 %}{% comment %}
 {% endcomment %}{% assign digest = "sha256" %}{% comment %}
 {% endcomment %}{% else %}{% comment %}
 {% endcomment %}{% assign digest = "md5" %}{% comment %}
 {% endcomment %}{% endif %}{% comment %}
 {% endcomment %}<a href="{{ site.baseurl }}/docs/history.html#{{ post.tag }}">{{ post.version }}</a>{% comment %}
 {% endcomment %} | {{ post.date | date_to_string }}{% comment %}
-{% endcomment %} | <a href="https://github.com/apache/calcite/commit/{{ post.sha }}">{{ post.sha }}</a>{% comment %}
+{% endcomment %} | {{ post.sha }}{% comment %}
 {% endcomment %} | <a href="{{ p }}/{{ v }}-src.tar.gz{{ q }}">tar</a>{% comment %}
 {% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.tar.gz.{{ digest }}">digest</a>{% comment %}
 {% endcomment %} <a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.tar.gz.asc">pgp</a>){% comment %}
