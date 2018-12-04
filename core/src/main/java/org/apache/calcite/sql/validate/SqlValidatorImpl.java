@@ -1792,29 +1792,27 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     } else if (node instanceof SqlCall) {
       final SqlCall call = (SqlCall) node;
-      final SqlOperandTypeInference operandTypeInference =
-          call.getOperator().getOperandTypeInference();
       final SqlCallBinding callBinding = new SqlCallBinding(this, scope, call);
       final List<SqlNode> operands = callBinding.operands();
-      int inferOperandSize;
-      // [CALCITE-2468] For AS operator, alias operand should not be inferred
+      // [CALCITE-2468] For AS operator, only infer the operand not the alias.
       if (call.getOperator().kind == SqlKind.AS) {
-        inferOperandSize = operands.size() - 1;
+        inferUnknownTypes(inferredType, scope, operands.get(0));
       } else {
-        inferOperandSize = operands.size();
-      }
-      final RelDataType[] operandTypes = new RelDataType[inferOperandSize];
-      Arrays.fill(operandTypes, unknownType);
-      // TODO:  eventually should assert(operandTypeInference != null)
-      // instead; for now just eat it
-      if (operandTypeInference != null) {
-        operandTypeInference.inferOperandTypes(
-            callBinding,
-            inferredType,
-            operandTypes);
-      }
-      for (int i = 0; i < inferOperandSize; ++i) {
-        inferUnknownTypes(operandTypes[i], scope, operands.get(i));
+        final SqlOperandTypeInference operandTypeInference =
+            call.getOperator().getOperandTypeInference();
+        final RelDataType[] operandTypes = new RelDataType[operands.size()];
+        Arrays.fill(operandTypes, unknownType);
+        // TODO:  eventually should assert(operandTypeInference != null)
+        // instead; for now just eat it
+        if (operandTypeInference != null) {
+          operandTypeInference.inferOperandTypes(
+              callBinding,
+              inferredType,
+              operandTypes);
+        }
+        for (int i = 0; i < operands.size(); ++i) {
+          inferUnknownTypes(operandTypes[i], scope, operands.get(i));
+        }
       }
     }
   }
