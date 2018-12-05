@@ -34,7 +34,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUnknownAs;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.server.CalciteServerStatement;
@@ -345,14 +344,11 @@ public class RexImplicationCheckerTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2041">[CALCITE-2041]
    * When simplifying a nullable expression, allow the result to change type to
-   * NOT NULL</a> and
-   * {@link org.apache.calcite.rex.RexUtil.ExprSimplifier#matchNullability}. */
+   * NOT NULL</a> and match nullability.
+   *
+   * @see RexSimplify#simplifyPreservingType(RexNode, RexUnknownAs, boolean) */
   @Test public void testSimplifyCastMatchNullability() {
     final Fixture f = new Fixture();
-    final RexUtil.ExprSimplifier defaultSimplifier =
-        new RexUtil.ExprSimplifier(f.simplify, RexUnknownAs.UNKNOWN, true);
-    final RexUtil.ExprSimplifier nonMatchingNullabilitySimplifier =
-        new RexUtil.ExprSimplifier(f.simplify, RexUnknownAs.UNKNOWN, false);
 
     // The cast is nullable, while the literal is not nullable. When we simplify
     // it, we end up with the literal. If defaultSimplifier is used, a CAST is
@@ -361,9 +357,13 @@ public class RexImplicationCheckerTest {
     // nonMatchingNullabilitySimplifier is used, the CAST is not added and the
     // simplified expression only consists of the literal.
     final RexNode e = f.cast(f.intRelDataType, f.literal(2014));
-    assertThat(defaultSimplifier.apply(e).toString(),
+    assertThat(
+        f.simplify.simplifyPreservingType(e, RexUnknownAs.UNKNOWN, true)
+            .toString(),
         is("CAST(2014):JavaType(class java.lang.Integer)"));
-    assertThat(nonMatchingNullabilitySimplifier.apply(e).toString(),
+    assertThat(
+        f.simplify.simplifyPreservingType(e, RexUnknownAs.UNKNOWN, false)
+            .toString(),
         is("2014"));
 
     // In this case, the cast is not nullable. Thus, in both cases, the
@@ -371,9 +371,13 @@ public class RexImplicationCheckerTest {
     RelDataType notNullIntRelDataType = f.typeFactory.createJavaType(int.class);
     final RexNode e2 = f.cast(notNullIntRelDataType,
         f.cast(notNullIntRelDataType, f.literal(2014)));
-    assertThat(defaultSimplifier.apply(e2).toString(),
+    assertThat(
+        f.simplify.simplifyPreservingType(e2, RexUnknownAs.UNKNOWN, true)
+            .toString(),
         is("2014"));
-    assertThat(nonMatchingNullabilitySimplifier.apply(e2).toString(),
+    assertThat(
+        f.simplify.simplifyPreservingType(e2, RexUnknownAs.UNKNOWN, false)
+            .toString(),
         is("2014"));
   }
 
@@ -385,8 +389,6 @@ public class RexImplicationCheckerTest {
     final ImmutableList<TimeUnitRange> timeUnitRanges =
         ImmutableList.of(TimeUnitRange.YEAR, TimeUnitRange.MONTH);
     final Fixture f = new Fixture();
-    final RexUtil.ExprSimplifier defaultSimplifier =
-        new RexUtil.ExprSimplifier(f.simplify, RexUnknownAs.UNKNOWN, true);
 
     final RexNode literalTs =
         f.timestampLiteral(new TimestampString("2010-10-10 00:00:00"));
@@ -404,12 +406,18 @@ public class RexImplicationCheckerTest {
         final RexNode outerCeilCall = f.rexBuilder.makeCall(
             SqlStdOperatorTable.CEIL, innerCeilCall,
             f.rexBuilder.makeFlag(timeUnitRanges.get(j)));
-        final RexCall floorSimplifiedExpr = (RexCall) defaultSimplifier.apply(outerFloorCall);
+        final RexCall floorSimplifiedExpr =
+            (RexCall) f.simplify.simplifyPreservingType(outerFloorCall,
+                RexUnknownAs.UNKNOWN, true);
         assertThat(floorSimplifiedExpr.getKind(), is(SqlKind.FLOOR));
-        assertThat(((RexLiteral) floorSimplifiedExpr.getOperands().get(1)).getValue().toString(),
+        assertThat(((RexLiteral) floorSimplifiedExpr.getOperands().get(1))
+                .getValue().toString(),
             is(timeUnitRanges.get(j).toString()));
-        assertThat(floorSimplifiedExpr.getOperands().get(0).toString(), is(literalTs.toString()));
-        final RexCall ceilSimplifiedExpr = (RexCall) defaultSimplifier.apply(outerCeilCall);
+        assertThat(floorSimplifiedExpr.getOperands().get(0).toString(),
+            is(literalTs.toString()));
+        final RexCall ceilSimplifiedExpr =
+            (RexCall) f.simplify.simplifyPreservingType(outerCeilCall,
+                RexUnknownAs.UNKNOWN, true);
         assertThat(ceilSimplifiedExpr.getKind(), is(SqlKind.CEIL));
         assertThat(((RexLiteral) ceilSimplifiedExpr.getOperands().get(1)).getValue().toString(),
             is(timeUnitRanges.get(j).toString()));
@@ -432,9 +440,13 @@ public class RexImplicationCheckerTest {
         final RexNode outerCeilCall = f.rexBuilder.makeCall(
             SqlStdOperatorTable.CEIL, innerCeilCall,
             f.rexBuilder.makeFlag(timeUnitRanges.get(j)));
-        final RexCall floorSimplifiedExpr = (RexCall) defaultSimplifier.apply(outerFloorCall);
+        final RexCall floorSimplifiedExpr =
+            (RexCall) f.simplify.simplifyPreservingType(outerFloorCall,
+                RexUnknownAs.UNKNOWN, true);
         assertThat(floorSimplifiedExpr.toString(), is(outerFloorCall.toString()));
-        final RexCall ceilSimplifiedExpr = (RexCall) defaultSimplifier.apply(outerCeilCall);
+        final RexCall ceilSimplifiedExpr =
+            (RexCall) f.simplify.simplifyPreservingType(outerCeilCall,
+                RexUnknownAs.UNKNOWN, true);
         assertThat(ceilSimplifiedExpr.toString(), is(outerCeilCall.toString()));
       }
     }

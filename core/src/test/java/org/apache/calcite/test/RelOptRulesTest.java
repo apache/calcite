@@ -4208,6 +4208,21 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "case when MGR > 0 then deptno / MGR else null end > 1";
     checkPlanning(program, sql);
   }
+
+  /** Test case for
+  * <a href="https://issues.apache.org/jira/browse/CALCITE-2726">[CALCITE-2726]
+  * ReduceExpressionRule may oversimplify filter conditions containing nulls</a>.
+  */
+  @Test public void testNoOversimplificationBelowIsNull() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .build();
+
+    String sql =
+        "select * from emp where ( (empno=1 and mgr=1) or (empno=null and mgr=1) ) is null";
+    checkPlanning(program, sql);
+  }
+
 }
 
 // End RelOptRulesTest.java
