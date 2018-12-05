@@ -164,15 +164,16 @@ public class RexSimplify {
    * <p>This is useful if you are simplifying expressions in a
    * {@link Project}. */
   public RexNode simplifyPreservingType(RexNode e) {
-    return simplifyPreservingType(e, defaultUnknownAs);
+    return simplifyPreservingType(e, defaultUnknownAs, true);
   }
 
-  public RexNode simplifyPreservingType(RexNode e, RexUnknownAs unknownAs) {
+  public RexNode simplifyPreservingType(RexNode e, RexUnknownAs unknownAs,
+      boolean matchNullability) {
     final RexNode e2 = simplifyUnknownAs(e, unknownAs);
     if (e2.getType() == e.getType()) {
       return e2;
     }
-    final RexNode e3 = rexBuilder.makeCast(e.getType(), e2, true);
+    final RexNode e3 = rexBuilder.makeCast(e.getType(), e2, matchNullability);
     if (e3.equals(e)) {
       return e;
     }

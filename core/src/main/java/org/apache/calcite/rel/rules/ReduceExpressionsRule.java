@@ -54,7 +54,6 @@ import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.rex.RexUtil.ExprSimplifier;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -542,11 +541,9 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     boolean reduced = reduceExpressionsInternal(rel, simplify, unknownAs,
         expList, predicates);
 
-    final ExprSimplifier simplifier =
-        new ExprSimplifier(simplify, unknownAs, matchNullability);
     boolean simplified = false;
     for (int i = 0; i < expList.size(); i++) {
-      RexNode expr2 = simplify.simplifyPreservingType(expList.get(i), unknownAs);
+      RexNode expr2 = simplify.simplifyPreservingType(expList.get(i), unknownAs, matchNullability);
       if (!expr2.equals(expList.get(i))) {
         expList.set(i, expr2);
         simplified = true;
