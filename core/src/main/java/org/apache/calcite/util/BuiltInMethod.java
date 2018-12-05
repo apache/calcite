@@ -121,6 +121,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
+import java.util.function.Consumer;
 import javax.sql.DataSource;
 
 /**
@@ -163,13 +164,13 @@ public enum BuiltInMethod {
       DataContext.class),
   HASH_JOIN(ExtendedEnumerable.class, "hashJoin", Enumerable.class, Function1.class,
       Function1.class, Function2.class),
-  MATCH(Enumerables.class, "match2", Enumerable.class, Function1.class,
+  MATCH(Enumerables.class, "match", Enumerable.class, Function1.class,
       Matcher.class, Enumerables.Emitter.class),
   AUTOMATON_BUILD(AutomatonBuilder.class, "build"),
   MATCHER_BUILDER(Matcher.class, "builder", Automaton.class),
   MATCHER_BUILDER_BUILD(Matcher.Builder.class, "build"),
   EMITTER_EMIT(Enumerables.Emitter.class, "emit", List.class, List.class,
-      int.class),
+      int.class, Consumer.class),
   MERGE_JOIN(EnumerableDefaults.class, "mergeJoin", Enumerable.class,
       Enumerable.class, Function1.class, Function1.class, Function2.class,
       boolean.class, boolean.class),
@@ -242,6 +243,7 @@ public enum BuiltInMethod {
   ENUMERATOR_RESET(Enumerator.class, "reset"),
   ENUMERABLE_ENUMERATOR(Enumerable.class, "enumerator"),
   ENUMERABLE_FOREACH(Enumerable.class, "foreach", Function1.class),
+  ITERABLE_FOR_EACH(Iterable.class, "forEach", Consumer.class),
   TYPED_GET_ELEMENT_TYPE(ArrayBindable.class, "getElementType"),
   BINDABLE_BIND(Bindable.class, "bind", DataContext.class),
   RESULT_SET_GET_DATE2(ResultSet.class, "getDate", int.class, Calendar.class),

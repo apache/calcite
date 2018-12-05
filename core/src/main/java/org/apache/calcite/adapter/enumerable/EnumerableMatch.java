@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.linq4j.tree.BlockBuilder;
-import org.apache.calcite.linq4j.tree.Blocks;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
@@ -39,6 +38,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.function.Consumer;
 
 import static org.apache.calcite.adapter.enumerable.EnumUtils.NO_EXPRS;
 
@@ -89,9 +89,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     final EnumerableRel input = (EnumerableRel) getInput();
     final Result result = implementor.visitChild(this, 0, input, pref);
     final PhysType physType =
-        PhysTypeImpl.of(
-            implementor.getTypeFactory(),
-            getRowType(),
+        PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(),
             result.format);
     final Expression inputExp =
         builder.append("input", result.block);
@@ -123,15 +121,20 @@ public class EnumerableMatch extends Match implements EnumerableRel {
         Expressions.parameter(List.class, "rowStates");
     final ParameterExpression match_ =
         Expressions.parameter(int.class, "match");
+    final ParameterExpression consumer_ =
+        Expressions.parameter(Consumer.class, "consumer");
+    final BlockBuilder builder2 = new BlockBuilder();
+    builder2.add(
+        Expressions.statement(
+            Expressions.call(rows_, BuiltInMethod.ITERABLE_FOR_EACH.method,
+                consumer_)));
     final Expression emitter_ =
-        Expressions.new_(Types.of(Enumerables.Emitter.class),
-            NO_EXPRS,
+        Expressions.new_(Types.of(Enumerables.Emitter.class), NO_EXPRS,
             Expressions.list(
                 EnumUtils.overridingMethodDecl(
                     BuiltInMethod.EMITTER_EMIT.method,
-                    ImmutableList.of(rows_, rowStates_, match_),
-                    Blocks.toFunctionBlock(
-                        Expressions.constant(null)))));
+                    ImmutableList.of(rows_, rowStates_, match_, consumer_),
+                    builder2.toBlock())));
     builder.add(
         Expressions.return_(null,
             Expressions.call(BuiltInMethod.MATCH.method,

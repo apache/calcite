@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 /** Workspace that matches patterns against an automaton.
@@ -70,20 +71,24 @@ public class Matcher<E> {
   }
 
   public List<List<E>> match(Iterable<E> rows) {
-    final ImmutableList.Builder<List<E>> resultMatches =
+    final ImmutableList.Builder<List<E>> resultMatchBuilder =
         ImmutableList.builder();
-    final PartitionState<E> partitionState = new PartitionState<>();
+    final Consumer<List<E>> resultMatchConsumer = resultMatchBuilder::add;
+    final PartitionState<E> partitionState = createPartitionState();
     for (E row : rows) {
-      matchOne(partitionState, resultMatches, row);
+      matchOne(row, partitionState, resultMatchConsumer);
     }
-    return resultMatches.build();
+    return resultMatchBuilder.build();
+  }
+
+  public PartitionState<E> createPartitionState() {
+    return new PartitionState<>();
   }
 
   /** Feeds a single input row into the given partition state,
    * and writes the resulting output rows (if any). */
-  protected void matchOne(PartitionState<E> partitionState,
-      ImmutableList.Builder<List<E>> resultMatches,
-      E row) {
+  protected void matchOne(E row, PartitionState<E> partitionState,
+      Consumer<List<E>> resultMatches) {
     // Add this row to the states.
     partitionState.bufferedRows.add(row);
     partitionState.stateSets.add(startSet);
@@ -122,7 +127,7 @@ public class Matcher<E> {
           partitionState.stateSets.set(i++, emptyStateSet);
         }
       } else if (nextStateSet.get(automaton.endState.id)) {
-        resultMatches.add(
+        resultMatches.accept(
             ImmutableList.copyOf(
                 partitionState.bufferedRows.subList(i,
                     partitionState.bufferedRows.size())));
@@ -170,7 +175,7 @@ public class Matcher<E> {
   /** Builds a Matcher.
    *
    * @param <E> Type of rows matched by this automaton */
-  static public class Builder<E> {
+  public static class Builder<E> {
     final Automaton automaton;
     final Map<String, Predicate<E>> symbolPredicates = new HashMap<>();
 
