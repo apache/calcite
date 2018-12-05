@@ -4216,7 +4216,6 @@ public class RelOptRulesTest extends RelOptTestBase {
 
     String sql =
         "select * from emp where ( (empno=1 and mgr=1) or (empno=null and mgr=1) ) is null";
-    //        "select * from emp where ( (empno=null and mgr=1) ) is null";
     checkPlanning(program, sql);
   }
 
