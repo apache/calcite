@@ -4208,6 +4208,18 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "case when MGR > 0 then deptno / MGR else null end > 1";
     checkPlanning(program, sql);
   }
+
+  @Test public void testIncorrectlyRemovedCondition() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .build();
+
+    String sql =
+        "select * from emp where ( (empno=1 and mgr=1) or (empno=null and mgr=1) ) is null";
+    //        "select * from emp where ( (empno=null and mgr=1) ) is null";
+    checkPlanning(program, sql);
+  }
+
 }
 
 // End RelOptRulesTest.java

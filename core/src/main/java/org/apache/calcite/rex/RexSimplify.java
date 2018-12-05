@@ -167,7 +167,7 @@ public class RexSimplify {
     return simplifyPreservingType(e, defaultUnknownAs);
   }
 
-  private RexNode simplifyPreservingType(RexNode e, RexUnknownAs unknownAs) {
+  public RexNode simplifyPreservingType(RexNode e, RexUnknownAs unknownAs) {
     final RexNode e2 = simplifyUnknownAs(e, unknownAs);
     if (e2.getType() == e.getType()) {
       return e2;

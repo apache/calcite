@@ -546,7 +546,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         new ExprSimplifier(simplify, unknownAs, matchNullability);
     boolean simplified = false;
     for (int i = 0; i < expList.size(); i++) {
-      RexNode expr2 = simplifier.apply(expList.get(i));
+      RexNode expr2 = simplify.simplifyPreservingType(expList.get(i), unknownAs);
       if (!expr2.equals(expList.get(i))) {
         expList.set(i, expr2);
         simplified = true;
