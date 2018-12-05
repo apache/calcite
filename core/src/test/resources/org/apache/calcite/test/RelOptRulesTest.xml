@@ -2595,25 +2595,6 @@ LogicalFilter(condition=[IS TRUE(=($7, 20))])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testIncorrectlyRemovedCondition">
-        <Resource name="sql">
-            <![CDATA[select * from emp where ( (empno=1 and mgr=1) or (empno=null and mgr=1) ) is null]]>
-        </Resource>
-        <Resource name="planBefore">
-            <![CDATA[
-LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  LogicalFilter(condition=[IS NULL(OR(AND(=($0, 1), =($3, 1)), AND(=($0, null), =($3, 1))))])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-        </Resource>
-        <Resource name="planAfter">
-            <![CDATA[
-LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  LogicalFilter(condition=[IS NULL(OR(AND(=($0, 1), =($3, 1)), AND(null, =($3, 1))))])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-        </Resource>
-    </TestCase>
     <TestCase name="testInferringPredicatesWithNotOperatorInJoinCondition">
         <Resource name="sql">
             <![CDATA[select * from sales.emp d
@@ -3130,6 +3111,25 @@ LogicalProject(EXPR$0=[CAST(/($2, $3)):INTEGER NOT NULL])
       LogicalAggregate(group=[{0}], agg#0=[SUM($1)], agg#1=[MIN($2)], agg#2=[AVG($2)])
         LogicalProject(DEPTNO=[$7], SAL=[$5], EMPNO=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testNoOversimplificationBelowIsNull">
+        <Resource name="sql">
+            <![CDATA[select * from emp where ( (empno=1 and mgr=1) or (empno=null and mgr=1) ) is null]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NULL(OR(AND(=($0, 1), =($3, 1)), AND(=($0, null), =($3, 1))))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NULL(OR(AND(=($0, 1), =($3, 1)), AND(null, =($3, 1))))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>

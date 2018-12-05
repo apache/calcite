@@ -4209,7 +4209,11 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(program, sql);
   }
 
-  @Test public void testIncorrectlyRemovedCondition() {
+  /** Test case for
+  * <a href="https://issues.apache.org/jira/browse/CALCITE-2726">[CALCITE-2726]
+  * ReduceExpressionRule may oversimplify filter conditions containing nulls</a>.
+  */
+  @Test public void testNoOversimplificationBelowIsNull() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
         .build();
