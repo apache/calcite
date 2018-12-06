@@ -1812,7 +1812,6 @@ SqlNode TableRef2(boolean lateral) :
     SqlNode tableRef;
     SqlNode over;
     SqlNodeList extendList = null;
-    String alias;
     final SqlIdentifier id;
     final Span s, s2;
     SqlNodeList args;
@@ -1897,9 +1896,7 @@ SqlNode TableRef2(boolean lateral) :
         tableRef = ExtendedTableRef()
     )
     [
-        [ <AS> ] alias = Identifier() {
-            id = new SqlIdentifier(alias, getPos());
-        }
+        [ <AS> ] id = SimpleIdentifier()
         [ columnAliasList = ParenthesizedSimpleIdentifierList() ]
         {
             if (columnAliasList == null) {
@@ -3007,7 +3004,7 @@ void Expression2b(ExprContext exprContext, List<Object> list) :
 {
     SqlNode e;
     SqlOperator op;
-    String p;
+    SqlIdentifier p;
 }
 {
     (
@@ -3021,11 +3018,11 @@ void Expression2b(ExprContext exprContext, List<Object> list) :
     }
     (
         <DOT>
-        p = Identifier() {
+        p = SimpleIdentifier() {
             list.add(
                 new SqlParserUtil.ToTreeListItem(
                     SqlStdOperatorTable.DOT, getPos()));
-            list.add(new SqlIdentifier(p, getPos()));
+            list.add(p);
         }
     )*
 }
@@ -3052,7 +3049,7 @@ List<Object> Expression2(ExprContext exprContext) :
     SqlNodeList nodeList;
     SqlNode e;
     SqlOperator op;
-    String p;
+    SqlIdentifier p;
     final Span s = span();
 }
 {
@@ -3177,11 +3174,11 @@ List<Object> Expression2(ExprContext exprContext) :
                 }
                 (
                     <DOT>
-                    p = Identifier() {
+                    p = SimpleIdentifier() {
                         list.add(
                             new SqlParserUtil.ToTreeListItem(
                                 SqlStdOperatorTable.DOT, getPos()));
-                        list.add(new SqlIdentifier(p, getPos()));
+                        list.add(p);
                     }
                 )*
             |
@@ -4157,20 +4154,22 @@ SqlDynamicParam DynamicParam() :
     }
 }
 
-
 /**
- * Parses a simple identifier as a string.
+ * Parses a dot(maybe) split identifier segment. Each time it reads an identifier it writes one element
+ * to each list, and the quotes list records whether the identifier was quoted.
  */
-String Identifier() :
+void IdentifierSegment(List<String> names, List<SqlParserPos> positions, List<Boolean> quotes) :
 {
     String id;
     char unicodeEscapeChar = BACKSLASH;
+    boolean isEscaped = true;
 }
 {
     (
         <IDENTIFIER>
         {
             id = unquotedIdentifier();
+            isEscaped = false;
         }
     |
         <QUOTED_IDENTIFIER> {
@@ -4202,17 +4201,38 @@ String Identifier() :
         {
             SqlLiteral lit = SqlLiteral.createCharString(id, "UTF16", getPos());
             lit = lit.unescapeUnicode(unicodeEscapeChar);
-            return lit.toValue();
+            id = lit.toValue();
         }
     |
-        id = NonReservedKeyWord()
+        id = NonReservedKeyWord() {
+            isEscaped = false;
+        }
     )
     {
         if (id.length() > this.identifierMaxLength) {
             throw SqlUtil.newContextException(getPos(),
                 RESOURCE.identifierTooLong(id, this.identifierMaxLength));
         }
-        return id;
+        names.add(id);
+        if (quotes != null) {
+            quotes.add(isEscaped);
+        }
+        if (positions != null) {
+            positions.add(getPos().setQuoted(isEscaped));
+        }
+    }
+}
+
+/**
+ * Parses a simple identifier as a String.
+ */
+String Identifier() :
+{
+    List<String> names = new ArrayList<String>();
+}
+{
+    IdentifierSegment(names, null, null) {
+        return names.get(0);
     }
 }
 
@@ -4221,11 +4241,12 @@ String Identifier() :
  */
 SqlIdentifier SimpleIdentifier() :
 {
-    final String p;
+    List<String> names = new ArrayList<String>();
+    List<SqlParserPos> positions = new ArrayList<SqlParserPos>();
 }
 {
-    p = Identifier() {
-        return new SqlIdentifier(p, getPos());
+    IdentifierSegment(names, positions, null) {
+        return new SqlIdentifier(names.get(0), positions.get(0));
     }
 }
 
@@ -4270,21 +4291,14 @@ SqlIdentifier CompoundIdentifier() :
 {
     List<String> list = new ArrayList<String>();
     List<SqlParserPos> posList = new ArrayList<SqlParserPos>();
-    String p;
+    List<Boolean> quotes = new ArrayList<Boolean>();
     boolean star = false;
 }
 {
-    p = Identifier()
-    {
-        posList.add(getPos());
-        list.add(p);
-    }
+    IdentifierSegment(list, posList, quotes)
     (
         <DOT>
-        p = Identifier() {
-            list.add(p);
-            posList.add(getPos());
-        }
+        IdentifierSegment(list, posList, quotes)
     )*
     (
         <DOT>

@@ -51,6 +51,8 @@ public class SqlParserPos implements Serializable {
   private final int columnNumber;
   private final int endLineNumber;
   private final int endColumnNumber;
+  // Flag to indicate if this SqlParserPos is quoted, default to be false.
+  private boolean quoted = false;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -123,6 +125,17 @@ public class SqlParserPos implements Serializable {
    */
   public int getEndColumnNum() {
     return endColumnNumber;
+  }
+
+  /** Mark this SqlParserPos as quoted and return itself. **/
+  public SqlParserPos setQuoted(boolean quoted) {
+    this.quoted = quoted;
+    return this;
+  }
+
+  /** @return true if this SqlParserPos is quoted. **/
+  public boolean isQuoted() {
+    return quoted;
   }
 
   @Override public String toString() {

@@ -358,6 +358,22 @@ public class SqlIdentifier extends SqlNode {
     return names.size() == 1 && !isStar();
   }
 
+  /**
+   * Returns whether this id is escaped by quoting.
+   */
+  public boolean isQuoted() {
+    if (componentPositions != null) {
+      for (SqlParserPos pos : componentPositions) {
+        // if all the component pos is quoted, we think this SqlIdentifier is quoted.
+        if (!pos.isQuoted()) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+
   public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     // for "star" column, whether it's static or dynamic return not_monotonic directly.
     if (Util.last(names).equals("") || DynamicRecordType.isDynamicStarColName(Util.last(names))) {
