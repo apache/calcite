@@ -301,8 +301,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
           // Extract view table references
           final Set<RelTableRef> viewTableRefs = mq.getTableReferences(viewNode);
           if (viewTableRefs == null) {
-            // Bail out
-            return;
+            // Skip it
+            continue;
           }
 
           // Extract view tables
