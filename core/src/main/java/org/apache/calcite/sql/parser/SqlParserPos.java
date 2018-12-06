@@ -125,6 +125,24 @@ public class SqlParserPos implements Serializable {
     return endColumnNumber;
   }
 
+  /** Returns a {@code SqlParserPos} the same as this but quoted. */
+  public SqlParserPos withQuoting(boolean quoted) {
+    if (isQuoted() == quoted) {
+      return this;
+    } else if (quoted) {
+      return new QuotedParserPos(lineNumber, columnNumber, endLineNumber,
+          endColumnNumber);
+    } else {
+      return new SqlParserPos(lineNumber, columnNumber, endLineNumber,
+          endColumnNumber);
+    }
+  }
+
+  /** @return true if this SqlParserPos is quoted. **/
+  public boolean isQuoted() {
+    return false;
+  }
+
   @Override public String toString() {
     return RESOURCE.parserContext(lineNumber, columnNumber).str();
   }
@@ -291,6 +309,19 @@ public class SqlParserPos implements Serializable {
   public boolean startsAt(SqlParserPos pos) {
     return lineNumber == pos.lineNumber
         && columnNumber == pos.columnNumber;
+  }
+
+  /** Parser position for an identifier segment that is quoted. */
+  private static class QuotedParserPos extends SqlParserPos {
+    QuotedParserPos(int startLineNumber, int startColumnNumber,
+        int endLineNumber, int endColumnNumber) {
+      super(startLineNumber, startColumnNumber, endLineNumber,
+          endColumnNumber);
+    }
+
+    @Override public boolean isQuoted() {
+      return true;
+    }
   }
 }
 

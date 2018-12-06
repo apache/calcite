@@ -54,6 +54,7 @@ import org.apache.calcite.sql.test.SqlTypeNameTest;
 import org.apache.calcite.sql.type.SqlTypeFactoryTest;
 import org.apache.calcite.sql.type.SqlTypeUtilTest;
 import org.apache.calcite.sql.validate.LexCaseSensitiveTest;
+import org.apache.calcite.sql.validate.LexEscapeTest;
 import org.apache.calcite.sql.validate.SqlValidatorUtilTest;
 import org.apache.calcite.test.enumerable.EnumerableCorrelateTest;
 import org.apache.calcite.test.fuzzer.RexProgramFuzzyTest;
@@ -154,6 +155,7 @@ import org.junit.runners.Suite;
     EnumerableCorrelateTest.class,
     LookupOperatorOverloadsTest.class,
     LexCaseSensitiveTest.class,
+    LexEscapeTest.class,
     CollationConversionTest.class,
     TraitConversionTest.class,
     ComboRuleTest.class,
