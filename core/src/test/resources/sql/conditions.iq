@@ -271,4 +271,16 @@ from ax where ((s,t) in (('a','a'),(null, 'bb'))) is null;
 
 !ok
 
+with ax(s) as (values (1),(0))
+select case when s=0 then false else 100/s > 0 end from ax;
+
++--------+
+| EXPR$0 |
++--------+
+| false  |
+| true   |
++--------+
+(2 rows)
+
+!ok
 # End conditions.iq
