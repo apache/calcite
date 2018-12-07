@@ -127,7 +127,7 @@ limitations under the License.
     <owasp-dependency-check.version>3.3.2</owasp-dependency-check.version>
     <pig.version>0.16.0</pig.version>
     <aggdesigner.version>6.0</aggdesigner.version>
-    <postgresql.version>9.3-1102-jdbc3</postgresql.version>
+    <postgresql.version>9.3-1102-jdbc41</postgresql.version>
     <quidem.version>0.9</quidem.version>
     <scala.version>2.10.3</scala.version>
     <scott-data-hsqldb.version>0.1</scott-data-hsqldb.version>
