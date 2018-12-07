@@ -874,7 +874,7 @@ public class RexSimplify {
     }
 
     @Override public Boolean visitLocalRef(RexLocalRef localRef) {
-      return true;
+      return false;
     }
 
     @Override public Boolean visitLiteral(RexLiteral literal) {

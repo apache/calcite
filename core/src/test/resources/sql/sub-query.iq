@@ -1038,7 +1038,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
-EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[false], expr#6=[AND($t4, $t5)], expr#7=[=($t2, $t5)], expr#8=[null], expr#9=[IS NULL($t8)], expr#10=[OR($t7, $t9)], expr#11=[IS TRUE($t10)], expr#12=[null], expr#13=[CAST($t12):BOOLEAN], expr#14=[NOT($t4)], expr#15=[AND($t11, $t13, $t14)], expr#16=[IS NOT NULL($t2)], expr#17=[true], expr#18=[IS NOT TRUE($t10)], expr#19=[AND($t16, $t17, $t18, $t14)], expr#20=[NOT($t16)], expr#21=[AND($t5, $t18, $t14, $t20)], expr#22=[OR($t6, $t15, $t19, $t21)], expr#23=[NOT($t22)], SAL=[$t1], EXPR$1=[$t23])
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[false], expr#6=[=($t2, $t5)], expr#7=[null], expr#8=[null], expr#9=[IS NULL($t8)], expr#10=[IS NOT NULL($t2)], expr#11=[true], expr#12=[CASE($t4, $t5, $t6, $t7, $t9, $t7, $t10, $t11, $t5)], expr#13=[NOT($t12)], SAL=[$t1], EXPR$1=[$t13])
   EnumerableJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
@@ -1074,7 +1074,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
-EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[false], expr#6=[AND($t4, $t5)], expr#7=[=($t2, $t5)], expr#8=[IS TRUE($t7)], expr#9=[null], expr#10=[CAST($t9):BOOLEAN], expr#11=[NOT($t4)], expr#12=[AND($t8, $t10, $t11)], expr#13=[IS NOT NULL($t2)], expr#14=[true], expr#15=[IS NOT TRUE($t7)], expr#16=[AND($t13, $t14, $t15, $t11)], expr#17=[NOT($t13)], expr#18=[AND($t5, $t15, $t11, $t17)], expr#19=[OR($t6, $t12, $t16, $t18)], expr#20=[NOT($t19)], SAL=[$t1], EXPR$1=[$t20])
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[false], expr#6=[=($t2, $t5)], expr#7=[null], expr#8=[IS NOT NULL($t2)], expr#9=[true], expr#10=[CASE($t4, $t5, $t6, $t7, $t8, $t9, $t5)], expr#11=[NOT($t10)], SAL=[$t1], EXPR$1=[$t11])
   EnumerableJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
@@ -1110,7 +1110,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
-EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[false], expr#6=[AND($t4, $t5)], expr#7=[=($t2, $t5)], expr#8=[null], expr#9=[IS NULL($t8)], expr#10=[OR($t7, $t9)], expr#11=[IS TRUE($t10)], expr#12=[null], expr#13=[CAST($t12):BOOLEAN], expr#14=[NOT($t4)], expr#15=[AND($t11, $t13, $t14)], expr#16=[IS NOT NULL($t2)], expr#17=[true], expr#18=[IS NOT TRUE($t10)], expr#19=[AND($t16, $t17, $t18, $t14)], expr#20=[NOT($t16)], expr#21=[AND($t5, $t18, $t14, $t20)], expr#22=[OR($t6, $t15, $t19, $t21)], expr#23=[NOT($t22)], SAL=[$t1], EXPR$1=[$t23])
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[false], expr#6=[=($t2, $t5)], expr#7=[null], expr#8=[null], expr#9=[IS NULL($t8)], expr#10=[IS NOT NULL($t2)], expr#11=[true], expr#12=[CASE($t4, $t5, $t6, $t7, $t9, $t7, $t10, $t11, $t5)], expr#13=[NOT($t12)], SAL=[$t1], EXPR$1=[$t13])
   EnumerableJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
@@ -1146,7 +1146,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
-EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[false], expr#6=[AND($t4, $t5)], expr#7=[=($t2, $t5)], expr#8=[null], expr#9=[IS NULL($t8)], expr#10=[OR($t7, $t9)], expr#11=[IS TRUE($t10)], expr#12=[null], expr#13=[CAST($t12):BOOLEAN], expr#14=[NOT($t4)], expr#15=[AND($t11, $t13, $t14)], expr#16=[IS NOT NULL($t2)], expr#17=[true], expr#18=[IS NOT TRUE($t10)], expr#19=[AND($t16, $t17, $t18, $t14)], expr#20=[NOT($t16)], expr#21=[AND($t5, $t18, $t14, $t20)], expr#22=[OR($t6, $t15, $t19, $t21)], expr#23=[NOT($t22)], SAL=[$t1], EXPR$1=[$t23])
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[false], expr#6=[=($t2, $t5)], expr#7=[null], expr#8=[null], expr#9=[IS NULL($t8)], expr#10=[IS NOT NULL($t2)], expr#11=[true], expr#12=[CASE($t4, $t5, $t6, $t7, $t9, $t7, $t10, $t11, $t5)], expr#13=[NOT($t12)], SAL=[$t1], EXPR$1=[$t13])
   EnumerableJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
@@ -1182,7 +1182,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
-EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[false], expr#6=[AND($t4, $t5)], expr#7=[=($t2, $t5)], expr#8=[null], expr#9=[IS NULL($t8)], expr#10=[OR($t7, $t9)], expr#11=[IS TRUE($t10)], expr#12=[null], expr#13=[CAST($t12):BOOLEAN], expr#14=[NOT($t4)], expr#15=[AND($t11, $t13, $t14)], expr#16=[IS NOT NULL($t2)], expr#17=[true], expr#18=[IS NOT TRUE($t10)], expr#19=[AND($t16, $t17, $t18, $t14)], expr#20=[NOT($t16)], expr#21=[AND($t5, $t18, $t14, $t20)], expr#22=[OR($t6, $t15, $t19, $t21)], expr#23=[NOT($t22)], SAL=[$t1], EXPR$1=[$t23])
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[false], expr#6=[=($t2, $t5)], expr#7=[null], expr#8=[null], expr#9=[IS NULL($t8)], expr#10=[IS NOT NULL($t2)], expr#11=[true], expr#12=[CASE($t4, $t5, $t6, $t7, $t9, $t7, $t10, $t11, $t5)], expr#13=[NOT($t12)], SAL=[$t1], EXPR$1=[$t13])
   EnumerableJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
@@ -1218,7 +1218,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
-EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t2)], expr#4=[true], expr#5=[AND($t3, $t4)], expr#6=[false], expr#7=[NOT($t3)], expr#8=[AND($t6, $t7)], expr#9=[OR($t5, $t8)], expr#10=[NOT($t9)], SAL=[$t1], EXPR$1=[$t10])
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t2)], expr#4=[true], expr#5=[false], expr#6=[CASE($t3, $t4, $t5)], expr#7=[NOT($t6)], SAL=[$t1], EXPR$1=[$t7])
   EnumerableJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
@@ -1252,7 +1252,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
-EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[false], expr#6=[AND($t4, $t5)], expr#7=[=($t2, $t5)], expr#8=[IS TRUE($t7)], expr#9=[null], expr#10=[CAST($t9):BOOLEAN], expr#11=[NOT($t4)], expr#12=[AND($t8, $t10, $t11)], expr#13=[IS NOT NULL($t2)], expr#14=[true], expr#15=[IS NOT TRUE($t7)], expr#16=[AND($t13, $t14, $t15, $t11)], expr#17=[NOT($t13)], expr#18=[AND($t5, $t15, $t11, $t17)], expr#19=[OR($t6, $t12, $t16, $t18)], expr#20=[NOT($t19)], SAL=[$t1], EXPR$1=[$t20])
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[false], expr#6=[=($t2, $t5)], expr#7=[null], expr#8=[IS NOT NULL($t2)], expr#9=[true], expr#10=[CASE($t4, $t5, $t6, $t7, $t8, $t9, $t5)], expr#11=[NOT($t10)], SAL=[$t1], EXPR$1=[$t11])
   EnumerableJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
