@@ -367,6 +367,42 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2730">[CALCITE-2730]
+   * RelBuilder incorrectly simplifies a filter with duplicate conjunction to
+   * empty</a>. */
+  @Test public void testScanFilterDuplicateAnd() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE deptno > 20 AND deptno > 20 AND deptno > 20
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.scan("EMP");
+    final RexNode condition = builder.call(SqlStdOperatorTable.GREATER_THAN,
+        builder.field("DEPTNO"),
+        builder.literal(20));
+    final RexNode condition2 = builder.call(SqlStdOperatorTable.LESS_THAN,
+        builder.field("DEPTNO"),
+        builder.literal(30));
+    final RelNode root = builder.filter(condition, condition, condition)
+        .build();
+    final String expected = "LogicalFilter(condition=[>($7, 20)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE deptno > 20 AND deptno < 30 AND deptno > 20
+    final RelNode root2 = builder.scan("EMP")
+        .filter(condition, condition2, condition, condition)
+        .build();
+    final String expected2 = ""
+        + "LogicalFilter(condition=[AND(>($7, 20), <($7, 30))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root2, hasTree(expected2));
+  }
+
   @Test public void testBadFieldName() {
     final RelBuilder builder = RelBuilder.create(config().build());
     try {

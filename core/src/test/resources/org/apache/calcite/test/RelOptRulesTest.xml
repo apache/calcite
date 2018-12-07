@@ -5794,7 +5794,8 @@ LogicalProject(DEPTNO=[$0], ENAME=[$1])
   LogicalProject(DEPTNO=[$9], ENAME=[$1])
     LogicalJoin(condition=[=($7, $9)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
