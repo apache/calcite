@@ -1698,7 +1698,7 @@ public class RexSimplify {
                 (List<RexNode>) ImmutableList.of(term)));
         // remove
         for (RexNode e : p.right) {
-          Collections.replaceAll(terms, e, rexBuilder.makeLiteral(true));
+          terms.replaceAll(t -> t == e ? rexBuilder.makeLiteral(true) : t);
         }
         break;
       case LESS_THAN: {
@@ -1858,7 +1858,7 @@ public class RexSimplify {
         ImmutableList.Builder<RexNode> newBounds = ImmutableList.builder();
         for (RexNode e : p.right) {
           if (isUpperBound(e)) {
-            Collections.replaceAll(terms, e, rexBuilder.makeLiteral(true));
+            terms.replaceAll(t -> t == e ? rexBuilder.makeLiteral(true) : t);
           } else {
             newBounds.add(e);
           }
@@ -1870,7 +1870,7 @@ public class RexSimplify {
         ImmutableList.Builder<RexNode> newBounds = ImmutableList.builder();
         for (RexNode e : p.right) {
           if (isLowerBound(e)) {
-            Collections.replaceAll(terms, e, rexBuilder.makeLiteral(true));
+            terms.replaceAll(t -> t == e ? rexBuilder.makeLiteral(true) : t);
           } else {
             newBounds.add(e);
           }

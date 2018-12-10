@@ -367,15 +367,21 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2730">[CALCITE-2730]
+   * RelBuilder simplifies a filter with duplicate conjunction to empty</a>. */
   @Test public void testScanFilterDuplicateAnd() {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
-    //   WHERE deptno = 20 AND deptno = 20
+    //   WHERE deptno = 20 AND deptno = 20 AND deptno = 20
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
         builder.scan("EMP")
             .filter(
+                builder.call(SqlStdOperatorTable.GREATER_THAN,
+                    builder.field("DEPTNO"),
+                    builder.literal(20)),
                 builder.call(SqlStdOperatorTable.GREATER_THAN,
                     builder.field("DEPTNO"),
                     builder.literal(20)),
