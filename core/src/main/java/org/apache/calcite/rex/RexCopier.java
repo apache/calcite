@@ -90,11 +90,11 @@ class RexCopier extends RexShuttle {
   }
 
   public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
-    throw new UnsupportedOperationException();
+    return new RexDynamicParam(copy(dynamicParam.getType()), dynamicParam.getIndex());
   }
 
   public RexNode visitRangeRef(RexRangeRef rangeRef) {
-    throw new UnsupportedOperationException();
+    return new RexRangeRef(copy(rangeRef.getType()), rangeRef.getOffset());
   }
 }
 
