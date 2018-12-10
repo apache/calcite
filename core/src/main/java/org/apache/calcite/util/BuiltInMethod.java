@@ -142,6 +142,8 @@ public enum BuiltInMethod {
       SchemaPlus.class, Class.class, String.class),
   REFLECTIVE_SCHEMA_GET_TARGET(ReflectiveSchema.class, "getTarget"),
   DATA_CONTEXT_GET(DataContext.class, "get", String.class),
+  DATA_CONTEXT_GET_BINDABLE_PARAM(DataContext.class, "getBindableParameterLocalValue",
+      int.class),
   DATA_CONTEXT_GET_ROOT_SCHEMA(DataContext.class, "getRootSchema"),
   JDBC_SCHEMA_DATA_SOURCE(JdbcSchema.class, "getDataSource"),
   ROW_VALUE(Row.class, "getObject", int.class),

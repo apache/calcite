@@ -295,7 +295,7 @@ abstract class CalciteConnectionImpl
     }
 
     for (Ord<TypedValue> o : Ord.zip(parameterValues)) {
-      map.put("?" + o.i, o.e.toLocal());
+      map.put("?" + o.i, o.e);
     }
     map.putAll(signature.internalParameters);
     final AtomicBoolean cancelFlag;

@@ -130,8 +130,8 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
       final RexDynamicParam param = (RexDynamicParam) offset;
       return Expressions.convert_(
           Expressions.call(DataContext.ROOT,
-              BuiltInMethod.DATA_CONTEXT_GET.method,
-              Expressions.constant("?" + param.getIndex())),
+              BuiltInMethod.DATA_CONTEXT_GET_BINDABLE_PARAM.method,
+              Expressions.constant(param.getIndex())),
           Integer.class);
     } else {
       return Expressions.constant(RexLiteral.intValue(offset));

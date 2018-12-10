@@ -24,6 +24,7 @@ import org.hsqldb.jdbcDriver;
 import org.junit.Test;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -857,7 +858,18 @@ public class JdbcAdapterTest {
         .typeIs("[employee_id INTEGER NOT NULL, position_id INTEGER]");
   }
 
-  @Test public void pushBindParameters() throws Exception {
+  @Test public void testPushingBindParametersWithTypeInt() throws Exception {
+    final String sql = "select empno, ename from emp where hiredate < ?";
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query(sql)
+        .consumesPreparedStatement(p -> {
+          p.setDate(1, Date.valueOf("2018-12-01"));
+        })
+        .returnsCount(14)
+        .planHasSql("SELECT \"EMPNO\", \"ENAME\"\nFROM \"SCOTT\".\"EMP\"\nWHERE \"HIREDATE\" < ?");
+  }
+
+  @Test public void testPushingBindParametersWithTypeTimestamp() throws Exception {
     final String sql = "select empno, ename from emp where empno = ?";
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query(sql)
