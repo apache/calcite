@@ -376,19 +376,11 @@ public class RelBuilderTest {
     //   FROM emp
     //   WHERE deptno = 20 AND deptno = 20 AND deptno = 20
     final RelBuilder builder = RelBuilder.create(config().build());
-    RelNode root =
-        builder.scan("EMP")
-            .filter(
-                builder.call(SqlStdOperatorTable.GREATER_THAN,
-                    builder.field("DEPTNO"),
-                    builder.literal(20)),
-                builder.call(SqlStdOperatorTable.GREATER_THAN,
-                    builder.field("DEPTNO"),
-                    builder.literal(20)),
-                builder.call(SqlStdOperatorTable.GREATER_THAN,
-                    builder.field("DEPTNO"),
-                    builder.literal(20)))
-            .build();
+    builder.scan("EMP");
+    RexNode condition = builder.call(SqlStdOperatorTable.GREATER_THAN,
+        builder.field("DEPTNO"),
+        builder.literal(20));
+    RelNode root = builder.filter(condition, condition, condition).build();
     final String expected = "LogicalFilter(condition=[>($7, 20)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));

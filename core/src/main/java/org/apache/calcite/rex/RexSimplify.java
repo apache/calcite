@@ -1687,6 +1687,7 @@ public class RexSimplify {
       boolean removeUpperBound = false;
       boolean removeLowerBound = false;
       Range<C> r = p.left;
+      final RexLiteral trueLiteral = rexBuilder.makeLiteral(true);
       switch (comparison) {
       case EQUALS:
         if (!r.contains(v0)) {
@@ -1698,7 +1699,7 @@ public class RexSimplify {
                 (List<RexNode>) ImmutableList.of(term)));
         // remove
         for (RexNode e : p.right) {
-          terms.replaceAll(t -> t == e ? rexBuilder.makeLiteral(true) : t);
+          RexUtil.replaceFirst(terms, e, trueLiteral);
         }
         break;
       case LESS_THAN: {
@@ -1732,10 +1733,7 @@ public class RexSimplify {
           removeUpperBound = true;
         } else {
           // Remove this term as it is contained in current upper bound
-          final int index = terms.indexOf(term);
-          if (index >= 0) {
-            terms.set(index, rexBuilder.makeLiteral(true));
-          }
+          RexUtil.replaceFirst(terms, term, trueLiteral);
         }
         break;
       }
@@ -1769,10 +1767,7 @@ public class RexSimplify {
           removeUpperBound = true;
         } else {
           // Remove this term as it is contained in current upper bound
-          final int index = terms.indexOf(term);
-          if (index >= 0) {
-            terms.set(index, rexBuilder.makeLiteral(true));
-          }
+          RexUtil.replaceFirst(terms, term, trueLiteral);
         }
         break;
       }
@@ -1807,10 +1802,7 @@ public class RexSimplify {
           removeLowerBound = true;
         } else {
           // Remove this term as it is contained in current lower bound
-          final int index = terms.indexOf(term);
-          if (index >= 0) {
-            terms.set(index, rexBuilder.makeLiteral(true));
-          }
+          RexUtil.replaceFirst(terms, term, trueLiteral);
         }
         break;
       }
@@ -1844,10 +1836,7 @@ public class RexSimplify {
           removeLowerBound = true;
         } else {
           // Remove this term as it is contained in current lower bound
-          final int index = terms.indexOf(term);
-          if (index >= 0) {
-            terms.set(index, rexBuilder.makeLiteral(true));
-          }
+          RexUtil.replaceFirst(terms, term, trueLiteral);
         }
         break;
       }
@@ -1858,7 +1847,7 @@ public class RexSimplify {
         ImmutableList.Builder<RexNode> newBounds = ImmutableList.builder();
         for (RexNode e : p.right) {
           if (isUpperBound(e)) {
-            terms.replaceAll(t -> t == e ? rexBuilder.makeLiteral(true) : t);
+            RexUtil.replaceFirst(terms, e, trueLiteral);
           } else {
             newBounds.add(e);
           }
@@ -1870,7 +1859,7 @@ public class RexSimplify {
         ImmutableList.Builder<RexNode> newBounds = ImmutableList.builder();
         for (RexNode e : p.right) {
           if (isLowerBound(e)) {
-            terms.replaceAll(t -> t == e ? rexBuilder.makeLiteral(true) : t);
+            RexUtil.replaceFirst(terms, e, trueLiteral);
           } else {
             newBounds.add(e);
           }

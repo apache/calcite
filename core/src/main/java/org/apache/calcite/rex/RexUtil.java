@@ -1645,6 +1645,19 @@ public class RexUtil {
     return count > 0;
   }
 
+  /**
+   * Replaces the first occurrences of one specified value in a list with another.
+   * (This method has no effect on the size of the list.)
+   **/
+  public static boolean replaceFirst(List<RexNode> list, RexNode oldVal, RexNode newVal) {
+    int index = list.indexOf(oldVal);
+    if (index < 0) {
+      return false;
+    }
+    list.set(index, newVal);
+    return true;
+  }
+
   /** Returns whether two {@link RexNode}s are structurally equal.
    *
    * <p>This method considers structure, not semantics. 'x &lt; y' is not
