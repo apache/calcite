@@ -423,4 +423,42 @@ SqlDrop SqlDropFunction(Span s, boolean replace) :
     }
 }
 
+boolean IfLocalOpt() :
+{
+}
+{
+    <LOCAL> { return true; }
+|
+    { return false; }
+}
+
+boolean IfOverwriteOpt() :
+{
+}
+{
+    <OVERWRITE> { return true; }
+|
+    { return false; }
+}
+
+SqlLoadData SqlLoadData() :
+{
+    SqlParserPos pos;
+    boolean local;
+    SqlNode filepath;
+    boolean overwrite;
+    SqlIdentifier id;
+}
+{
+    { pos = getPos(); }
+    <LOAD> <DATA>
+    local = IfLocalOpt()
+    <INFILE>  filepath = StringLiteral()
+    overwrite = IfOverwriteOpt()
+    <INTO> <TABLE> id = CompoundIdentifier()
+    {
+        return SqlDmlNodes.loadData(pos, local, filepath, overwrite, id);
+    }
+}
+
 // End parserImpls.ftl

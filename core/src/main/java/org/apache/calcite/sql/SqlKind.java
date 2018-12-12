@@ -1065,6 +1065,9 @@ public enum SqlKind {
   /** {@code DROP FUNCTION} DDL statement. */
   DROP_FUNCTION,
 
+  /** {@code LOAD DATA} DML statement. */
+  LOAD_DATA,
+
   /** DDL statement not handled above.
    *
    * <p><b>Note to other projects</b>: If you are extending Calcite's SQL parser

@@ -25,8 +25,8 @@ data: {
         "org.apache.calcite.sql.SqlCreate"
         "org.apache.calcite.sql.SqlDrop"
         "org.apache.calcite.sql.ddl.SqlDdlNodes"
-        "java.util.Map"
-        "java.util.HashMap"
+        "org.apache.calcite.sql.dml.SqlDmlNodes"
+        "org.apache.calcite.sql.dml.SqlLoadData"
       ]
 
       # List of keywords.
@@ -38,6 +38,9 @@ data: {
         "JAR"
         "FILE"
         "ARCHIVE"
+        "LOAD"
+        "INFILE"
+        "OVERWRITE"
       ]
 
       # List of keywords from "keywords" section that are not reserved.
@@ -352,6 +355,9 @@ data: {
         "JAR"
         "FILE"
         "ARCHIVE"
+        "LOAD"
+        "INFILE"
+        "OVERWRITE"
       ]
 
       # List of additional join types. Each is a method with no arguments.
@@ -361,6 +367,7 @@ data: {
 
       # List of methods for parsing custom SQL statements.
       statementParserMethods: [
+        "SqlLoadData()"
       ]
 
       # List of methods for parsing custom literals.
