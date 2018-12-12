@@ -2740,6 +2740,34 @@ public class RelToSqlConverterTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testMatchRecognizeIn() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "    partition by \"product_class_id\", \"brand_name\" \n"
+        + "    order by \"product_class_id\" asc, \"brand_name\" desc \n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" in (0, 1),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "PARTITION BY \"product_class_id\", \"brand_name\"\n"
+        + "ORDER BY \"product_class_id\", \"brand_name\" DESC\n"
+        + "ONE ROW PER MATCH\n"
+        + "AFTER MATCH SKIP TO NEXT ROW\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) = "
+        + "0 OR PREV(\"DOWN\".\"net_weight\", 0) = 1, "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
   @Test public void testValues() {
     final String sql = "select \"a\"\n"
         + "from (values (1, 'x'), (2, 'yy')) as t(\"a\", \"b\")";

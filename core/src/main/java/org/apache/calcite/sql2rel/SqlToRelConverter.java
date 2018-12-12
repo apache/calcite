@@ -2255,6 +2255,7 @@ public class SqlToRelConverter {
     final ImmutableMap.Builder<String, RexNode> definitionNodes =
         ImmutableMap.builder();
     for (SqlNode def : matchRecognize.getPatternDefList()) {
+      replaceSubQueries(matchBb, def, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
       List<SqlNode> operands = ((SqlCall) def).getOperandList();
       String alias = ((SqlIdentifier) operands.get(1)).getSimple();
       RexNode rex = matchBb.convertExpression(operands.get(0));
