@@ -90,6 +90,7 @@ import org.apache.calcite.rel.rules.ProjectWindowTransposeRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.rules.PushProjector;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule;
+import org.apache.calcite.rel.rules.ReduceExpressionsRule.ProjectReduceExpressionsRule;
 import org.apache.calcite.rel.rules.SemiJoinFilterTransposeRule;
 import org.apache.calcite.rel.rules.SemiJoinJoinTransposeRule;
 import org.apache.calcite.rel.rules.SemiJoinProjectTransposeRule;
@@ -134,6 +135,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.plan.RelOptRule.none;
 import static org.apache.calcite.plan.RelOptRule.operand;
@@ -284,6 +286,38 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "THEN substring(ename, 1, cast(2 as int)) ELSE NULL end from emp"
         + " group by deptno, ename, case when 1=2 then substring(ename,1, cast(2 as int))  else null end";
     sql(sql).with(hepPlanner).checkUnchanged();
+  }
+
+  @Test public void testReduceDynamic() {
+    testDynamic(true).get();
+  }
+
+  @Test public void testNoReduceDynamic() {
+    testDynamic(false).get();
+  }
+
+  /**
+   * Test reduction or not of a dynamic function.
+   *
+   * @param allowReduce Whether to allow dynamic functions to be reduced.
+   * @return The supplier to be executed in the context of the original test to ensure correct
+   *         test name mapping.
+   */
+  private Supplier<Void> testDynamic(boolean allowReduce) {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    RelOptRule rule = new ProjectReduceExpressionsRule(
+        LogicalProject.class,
+        ReduceExpressionsRule.DEFAULT_OPTIONS.treatDynamicCallsAsNonConstant(!allowReduce),
+        RelFactories.LOGICAL_BUILDER);
+    builder.addRuleInstance(rule);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    final String sql = "select USER from emp";
+
+    // return a supplier to be executed in the context of the original test method.
+    return () -> {
+      checkPlanning(tester, null, hepPlanner, sql, !allowReduce);
+      return null;
+    };
   }
 
   @Test public void testProjectToWindowRuleForMultipleWindows() {

@@ -92,6 +92,30 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
   /**
+   * Default reduction options used for project and calc.
+   *
+   * <ul>
+   * <li>Match nullability of expressions: true
+   * <li>Treat unknown values as false: false
+   * <li>Treat dynamic calls as non constant: true
+   * </ul>
+   */
+  public static final ReductionOptions DEFAULT_OPTIONS =
+      new ReductionOptions(true, false, true);
+
+  /**
+   * Default reduction options used for filter and join.
+   *
+   * <ul>
+   * <li>Match nullability of expressions: true
+   * <li>Treat unknown values as false: true
+   * <li>Treat dynamic calls as non constant: true
+   * </ul>
+   */
+  public static final ReductionOptions DEFAULT_FILTER_OPTIONS =
+      new ReductionOptions(true, true, true);
+
+  /**
    * Regular expression that matches the description of all instances of this
    * rule and {@link ValuesReduceRule} also. Use
    * it to prevent the planner from invoking these rules.
@@ -104,7 +128,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    * {@link org.apache.calcite.rel.logical.LogicalFilter}.
    */
   public static final ReduceExpressionsRule FILTER_INSTANCE =
-      new FilterReduceExpressionsRule(LogicalFilter.class, true,
+      new FilterReduceExpressionsRule(LogicalFilter.class,
+          DEFAULT_FILTER_OPTIONS,
           RelFactories.LOGICAL_BUILDER);
 
   /**
@@ -112,7 +137,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    * {@link org.apache.calcite.rel.logical.LogicalProject}.
    */
   public static final ReduceExpressionsRule PROJECT_INSTANCE =
-      new ProjectReduceExpressionsRule(LogicalProject.class, true,
+      new ProjectReduceExpressionsRule(LogicalProject.class,
+          DEFAULT_OPTIONS,
           RelFactories.LOGICAL_BUILDER);
 
   /**
@@ -120,7 +146,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    * {@link org.apache.calcite.rel.core.Join}.
    */
   public static final ReduceExpressionsRule JOIN_INSTANCE =
-      new JoinReduceExpressionsRule(Join.class, true,
+      new JoinReduceExpressionsRule(Join.class,
+          DEFAULT_FILTER_OPTIONS,
           RelFactories.LOGICAL_BUILDER);
 
   /**
@@ -131,7 +158,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       new CalcReduceExpressionsRule(LogicalCalc.class, true,
           RelFactories.LOGICAL_BUILDER);
 
-  protected final boolean matchNullability;
+  protected final ReductionOptions options;
 
   /**
    * Rule that reduces constants inside a {@link org.apache.calcite.rel.core.Filter}.
@@ -145,9 +172,16 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       this(filterClass, true, relBuilderFactory);
     }
 
+    @Deprecated // to be removed before 2.0
     public FilterReduceExpressionsRule(Class<? extends Filter> filterClass,
         boolean matchNullability, RelBuilderFactory relBuilderFactory) {
-      super(filterClass, matchNullability, relBuilderFactory,
+      this(filterClass, DEFAULT_FILTER_OPTIONS.matchNullability(matchNullability),
+          relBuilderFactory);
+    }
+
+    public FilterReduceExpressionsRule(Class<? extends Filter> filterClass,
+        ReductionOptions options, RelBuilderFactory relBuilderFactory) {
+      super(filterClass, options, relBuilderFactory,
           "ReduceExpressionsRule(Filter)");
     }
 
@@ -160,8 +194,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       final RelMetadataQuery mq = call.getMetadataQuery();
       final RelOptPredicateList predicates =
           mq.getPulledUpPredicates(filter.getInput());
-      if (reduceExpressions(filter, expList, predicates, true,
-          matchNullability)) {
+      if (reduceExpressions(filter, expList, predicates, options)) {
         assert expList.size() == 1;
         newConditionExp = expList.get(0);
         reduced = true;
@@ -272,9 +305,19 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       this(projectClass, true, relBuilderFactory);
     }
 
+    @Deprecated // to be removed before 2.0
     public ProjectReduceExpressionsRule(Class<? extends Project> projectClass,
         boolean matchNullability, RelBuilderFactory relBuilderFactory) {
-      super(projectClass, matchNullability, relBuilderFactory,
+      this(projectClass,
+          DEFAULT_OPTIONS.matchNullability(matchNullability).unknownAsFalse(false),
+          relBuilderFactory);
+    }
+
+    public ProjectReduceExpressionsRule(
+        Class<? extends Project> projectClass,
+        ReductionOptions options,
+        RelBuilderFactory relBuilderFactory) {
+      super(projectClass, options, relBuilderFactory,
           "ReduceExpressionsRule(Project)");
     }
 
@@ -285,8 +328,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           mq.getPulledUpPredicates(project.getInput());
       final List<RexNode> expList =
           Lists.newArrayList(project.getProjects());
-      if (reduceExpressions(project, expList, predicates, false,
-          matchNullability)) {
+      if (reduceExpressions(project, expList, predicates, options)) {
         call.transformTo(
             call.builder()
                 .push(project.getInput())
@@ -306,12 +348,20 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     @Deprecated // to be removed before 2.0
     public JoinReduceExpressionsRule(Class<? extends Join> joinClass,
         RelBuilderFactory relBuilderFactory) {
-      this(joinClass, true, relBuilderFactory);
+      this(joinClass, DEFAULT_FILTER_OPTIONS, relBuilderFactory);
+    }
+
+    @Deprecated // to be removed before 2.0
+    public JoinReduceExpressionsRule(Class<? extends Join> joinClass,
+        boolean matchNullability, RelBuilderFactory relBuilderFactory) {
+      this(joinClass,
+          DEFAULT_FILTER_OPTIONS.matchNullability(matchNullability),
+          relBuilderFactory);
     }
 
     public JoinReduceExpressionsRule(Class<? extends Join> joinClass,
-        boolean matchNullability, RelBuilderFactory relBuilderFactory) {
-      super(joinClass, matchNullability, relBuilderFactory,
+        ReductionOptions options, RelBuilderFactory relBuilderFactory) {
+      super(joinClass, options, relBuilderFactory,
           "ReduceExpressionsRule(Join)");
     }
 
@@ -328,8 +378,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       final RelOptPredicateList predicates =
           leftPredicates.union(rexBuilder,
               rightPredicates.shift(rexBuilder, fieldCount));
-      if (!reduceExpressions(join, expList, predicates, true,
-          matchNullability)) {
+      if (!reduceExpressions(join, expList, predicates, options)) {
         return;
       }
       if (join instanceof EquiJoin) {
@@ -362,12 +411,22 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     @Deprecated // to be removed before 2.0
     public CalcReduceExpressionsRule(Class<? extends Calc> calcClass,
         RelBuilderFactory relBuilderFactory) {
-      this(calcClass, true, relBuilderFactory);
+      this(calcClass, DEFAULT_OPTIONS, relBuilderFactory);
+    }
+
+    @Deprecated // to be removed before 2.0
+    public CalcReduceExpressionsRule(Class<? extends Calc> calcClass,
+        boolean matchNullability, RelBuilderFactory relBuilderFactory) {
+      this(calcClass,
+          DEFAULT_OPTIONS.matchNullability(matchNullability),
+          relBuilderFactory);
     }
 
     public CalcReduceExpressionsRule(Class<? extends Calc> calcClass,
-        boolean matchNullability, RelBuilderFactory relBuilderFactory) {
-      super(calcClass, matchNullability, relBuilderFactory,
+        ReductionOptions options, RelBuilderFactory relBuilderFactory) {
+      super(calcClass,
+          options,
+          relBuilderFactory,
           "ReduceExpressionsRule(Calc)");
     }
 
@@ -388,8 +447,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         expandedExprList.add(expr.accept(shuttle));
       }
       final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
-      if (reduceExpressions(calc, expandedExprList, predicates, false,
-          matchNullability)) {
+      if (reduceExpressions(calc, expandedExprList, predicates, options)) {
         final RexProgramBuilder builder =
             new RexProgramBuilder(
                 calc.getInput().getRowType(),
@@ -462,11 +520,25 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    * @param matchNullability Whether to add a CAST when a nullable expression
    *                         reduces to a NOT NULL literal
    */
+  @Deprecated // to be removed before 2.0
   protected ReduceExpressionsRule(Class<? extends RelNode> clazz,
       boolean matchNullability, RelBuilderFactory relBuilderFactory,
       String description) {
+    this(clazz,
+        DEFAULT_OPTIONS.matchNullability(matchNullability)
+          .treatDynamicCallsAsNonConstant(true)
+          .unknownAsFalse(false),
+        relBuilderFactory,
+        description);
+  }
+
+  protected ReduceExpressionsRule(
+      Class<? extends RelNode> clazz,
+      ReductionOptions options,
+      RelBuilderFactory relBuilderFactory,
+      String description) {
     super(operand(clazz, any()), relBuilderFactory, description);
-    this.matchNullability = matchNullability;
+    this.options = options;
   }
 
   @Deprecated // to be removed before 2.0
@@ -485,50 +557,43 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    * @param predicates Constraints known to hold on input expressions
    * @return whether reduction found something to change, and succeeded
    */
+  @Deprecated // to be removed before 2.0
   protected static boolean reduceExpressions(RelNode rel, List<RexNode> expList,
       RelOptPredicateList predicates) {
-    return reduceExpressions(rel, expList, predicates, false, true);
+    return reduceExpressions(rel, expList, predicates,
+        DEFAULT_OPTIONS.matchNullability(true).unknownAsFalse(false));
   }
 
   @Deprecated // to be removed before 2.0
   protected static boolean reduceExpressions(RelNode rel, List<RexNode> expList,
       RelOptPredicateList predicates, boolean unknownAsFalse) {
-    return reduceExpressions(rel, expList, predicates, unknownAsFalse, true);
+    return reduceExpressions(rel, expList, predicates,
+        DEFAULT_OPTIONS.matchNullability(true).unknownAsFalse(unknownAsFalse));
+  }
+
+  @Deprecated
+  protected static boolean reduceExpressions(RelNode rel, List<RexNode> expList,
+      RelOptPredicateList predicates, boolean unknownAsFalse,
+      boolean matchNullability) {
+    return reduceExpressions(rel, expList, predicates,
+        DEFAULT_OPTIONS.matchNullability(matchNullability)
+          .treatDynamicCallsAsNonConstant(true)
+          .matchNullability(matchNullability)
+        );
   }
 
   /**
    * Reduces a list of expressions.
    *
-   * <p>The {@code matchNullability} flag comes into play when reducing a
-   * expression whose type is nullable. Suppose we are reducing an expression
-   * {@code CASE WHEN 'a' = 'a' THEN 1 ELSE NULL END}. Before reduction the
-   * type is {@code INTEGER} (nullable), but after reduction the literal 1 has
-   * type {@code INTEGER NOT NULL}.
-   *
-   * <p>In some situations it is more important to preserve types; in this
-   * case you should use {@code matchNullability = true} (which used to be
-   * the default behavior of this method), and it will cast the literal to
-   * {@code INTEGER} (nullable).
-   *
-   * <p>In other situations, you would rather propagate the new stronger type,
-   * because it may allow further optimizations later; pass
-   * {@code matchNullability = false} and no cast will be added, but you may
-   * need to adjust types elsewhere in the expression tree.
-   *
    * @param rel     Relational expression
    * @param expList List of expressions, modified in place
    * @param predicates Constraints known to hold on input expressions
-   * @param unknownAsFalse Whether UNKNOWN will be treated as FALSE
-   * @param matchNullability Whether Calcite should add a CAST to a literal
-   *                         resulting from simplification and expression if the
-   *                         expression had nullable type and the literal is
-   *                         NOT NULL
+   * @param options ReductionOptions to use
    *
    * @return whether reduction found something to change, and succeeded
    */
   protected static boolean reduceExpressions(RelNode rel, List<RexNode> expList,
-      RelOptPredicateList predicates, boolean unknownAsFalse,
-      boolean matchNullability) {
+      RelOptPredicateList predicates, ReductionOptions options) {
     final RelOptCluster cluster = rel.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     final RexExecutor executor =
@@ -537,15 +602,15 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         new RexSimplify(rexBuilder, predicates, executor);
 
     // Simplify predicates in place
-    final RexUnknownAs unknownAs = RexUnknownAs.falseIf(unknownAsFalse);
+    final RexUnknownAs unknownAs = RexUnknownAs.falseIf(options.unknownAsFalse);
     final boolean reduced = reduceExpressionsInternal(rel, simplify, unknownAs,
-        expList, predicates);
+        expList, predicates, options.treatDynamicCallsAsNonConstant);
 
     boolean simplified = false;
     for (int i = 0; i < expList.size(); i++) {
       final RexNode expr2 =
           simplify.simplifyPreservingType(expList.get(i), unknownAs,
-              matchNullability);
+              options.matchNullability);
       if (!expr2.equals(expList.get(i))) {
         expList.set(i, expr2);
         simplified = true;
@@ -557,7 +622,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
 
   protected static boolean reduceExpressionsInternal(RelNode rel,
       RexSimplify simplify, RexUnknownAs unknownAs, List<RexNode> expList,
-      RelOptPredicateList predicates) {
+      RelOptPredicateList predicates, boolean treatDynamicCallsAsNonConstant) {
     boolean changed = false;
     // Replace predicates on CASE to CASE on predicates.
     changed |= new CaseShuttle().mutate(expList);
@@ -567,7 +632,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     List<Boolean> addCasts = new ArrayList<>();
     final List<RexNode> removableCasts = new ArrayList<>();
     findReducibleExps(rel.getCluster().getTypeFactory(), expList,
-        predicates.constantMap, constExps, addCasts, removableCasts);
+        predicates.constantMap, constExps, addCasts, removableCasts,
+        treatDynamicCallsAsNonConstant);
     if (constExps.isEmpty() && removableCasts.isEmpty()) {
       return changed;
     }
@@ -659,10 +725,10 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
   protected static void findReducibleExps(RelDataTypeFactory typeFactory,
       List<RexNode> exps, ImmutableMap<RexNode, RexNode> constants,
       List<RexNode> constExps, List<Boolean> addCasts,
-      List<RexNode> removableCasts) {
+      List<RexNode> removableCasts, boolean treatDynamicCallsAsNonConstant) {
     ReducibleExprLocator gardener =
         new ReducibleExprLocator(typeFactory, constants, constExps,
-            addCasts, removableCasts);
+            addCasts, removableCasts, treatDynamicCallsAsNonConstant);
     for (RexNode exp : exps) {
       gardener.analyze(exp);
     }
@@ -828,6 +894,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
 
     private final RelDataTypeFactory typeFactory;
 
+    private final boolean treatDynamicCallsAsNonConstant;
+
     private final List<Constancy> stack = new ArrayList<>();
 
     private final ImmutableMap<RexNode, RexNode> constants;
@@ -842,7 +910,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
 
     ReducibleExprLocator(RelDataTypeFactory typeFactory,
         ImmutableMap<RexNode, RexNode> constants, List<RexNode> constExprs,
-        List<Boolean> addCasts, List<RexNode> removableCasts) {
+        List<Boolean> addCasts, List<RexNode> removableCasts,
+        boolean treatDynamicCallsAsNonConstant) {
       // go deep
       super(true);
       this.typeFactory = typeFactory;
@@ -850,6 +919,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       this.constExprs = constExprs;
       this.addCasts = addCasts;
       this.removableCasts = removableCasts;
+      this.treatDynamicCallsAsNonConstant = treatDynamicCallsAsNonConstant;
     }
 
     public void analyze(RexNode exp) {
@@ -962,10 +1032,10 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       // be non-deterministic.
       if (!call.getOperator().isDeterministic()) {
         callConstancy = Constancy.NON_CONSTANT;
-      } else if (call.getOperator().isDynamicFunction()) {
-        // We can reduce the call to a constant, but we can't
-        // cache the plan if the function is dynamic.
-        // For now, treat it same as non-deterministic.
+      } else if (treatDynamicCallsAsNonConstant
+          && call.getOperator().isDynamicFunction()) {
+        // In some circumstances,, we should avoid caching the plan if we have dynamic functions.
+        // If desired, treat this situation the same as a non-deterministic function.
         callConstancy = Constancy.NON_CONSTANT;
       }
 
@@ -1068,6 +1138,117 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         }
       }
     }
+  }
+
+  /**
+   * An immutable object capturing the set of options to be used for reducing
+   * expressions.
+   */
+  public static final class ReductionOptions {
+    private final boolean matchNullability;
+    private final boolean unknownAsFalse;
+    private final boolean treatDynamicCallsAsNonConstant;
+
+    private ReductionOptions(
+        boolean matchNullability,
+        boolean unknownAsFalse,
+        boolean treatDynamicCallsAsNonConstant) {
+      this.matchNullability = matchNullability;
+      this.unknownAsFalse = unknownAsFalse;
+      this.treatDynamicCallsAsNonConstant = treatDynamicCallsAsNonConstant;
+    }
+
+    /**
+     * Update the options to control dynamic treatment.
+     *
+     * @param treatDynamicCallsAsNonConstant Whether to treat dynamic functions as
+     *                                       non-constants (defaults to true)
+     * @return A new set of ReductionOptions
+     */
+    public ReductionOptions treatDynamicCallsAsNonConstant(
+        boolean treatDynamicCallsAsNonConstant) {
+      return new ReductionOptions(
+          this.matchNullability,
+          this.unknownAsFalse,
+          treatDynamicCallsAsNonConstant);
+    }
+
+    /**
+     * <p> Update the options to control nullability matching.
+     *
+     * <p>The {@code matchNullability} flag comes into play when reducing a
+     * expression whose type is nullable. Suppose we are reducing an expression
+     * {@code CASE WHEN 'a' = 'a' THEN 1 ELSE NULL END}. Before reduction the
+     * type is {@code INTEGER} (nullable), but after reduction the literal 1 has
+     * type {@code INTEGER NOT NULL}.
+     *
+     * <p>In some situations it is more important to preserve types; in this
+     * case you should use {@code matchNullability = true} (which used to be
+     * the default behavior of this method), and it will cast the literal to
+     * {@code INTEGER} (nullable).
+     *
+     * <p>In other situations, you would rather propagate the new stronger type,
+     * because it may allow further optimizations later; pass
+     * {@code matchNullability = false} and no cast will be added, but you may
+     * need to adjust types elsewhere in the expression tree.
+     *
+     * @param matchNullability Whether Calcite should add a CAST to a literal
+     *                         resulting from simplification and expression if the
+     *                         expression had nullable type and the literal is
+     *                         NOT NULL
+     * @return A new set of ReductionOptions
+     */
+    public ReductionOptions matchNullability(
+        boolean matchNullability) {
+      return new ReductionOptions(
+          matchNullability,
+          this.unknownAsFalse,
+          this.treatDynamicCallsAsNonConstant);
+    }
+
+    /**
+     * Update the options to control behavior around UNKNOWN handling.
+     *
+     * @param unknownAsFalse Whether UNKNOWN will be treated as FALSE
+     * @return A new set of ReductionOptions
+     */
+    public ReductionOptions unknownAsFalse(boolean unknownAsFalse) {
+      return new ReductionOptions(
+          this.matchNullability,
+          unknownAsFalse,
+          this.treatDynamicCallsAsNonConstant
+          );
+    }
+
+    /**
+     * Whether Calcite should add a CAST to a literal resulting from simplification and
+     * expression if the expression had nullable type and the literal is NOT NULL
+     *
+     * @return True if reduction should cast for nullabilities.
+     */
+    public boolean isMatchNullability() {
+      return matchNullability;
+    }
+
+    /**
+     * Whether UNKNOWN will be treated as false. Typically used in the context of a filter
+     * reduction
+     *
+     * @return If Unknown (null) values are treated as false.
+     */
+    public boolean isUnknownAsFalse() {
+      return unknownAsFalse;
+    }
+
+    /**
+     * Whether to treat dynamic calls as non-constant for purposes of reduction.
+     *
+     * @return True if dynamic calls should be treated as non-constant.
+     */
+    public boolean isTreatDynamicCallsAsNonConstant() {
+      return treatDynamicCallsAsNonConstant;
+    }
+
   }
 }
 

@@ -6842,6 +6842,28 @@ LogicalAggregate(group=[{0, 1, 2}])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testReduceDynamic">
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(USER=['sa'])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(USER=[USER])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testNoReduceDynamic">
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(USER=[USER])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>             
     <TestCase name="testReduceNullableToNotNull">
         <Resource name="sql">
             <![CDATA[select
