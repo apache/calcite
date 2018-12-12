@@ -723,6 +723,8 @@ limitations under the License.
              change the maven.compiler.{source,target} property -->
         <configuration>
           <compilerArgument>-Xlint:deprecation</compilerArgument>
+          <source>1.8</source>
+          <target>1.8</target>
         </configuration>
       </plugin>
       <plugin>
