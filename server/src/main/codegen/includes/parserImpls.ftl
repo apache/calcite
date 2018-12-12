@@ -445,7 +445,7 @@ SqlLoadData SqlLoadData() :
 {
     SqlParserPos pos;
     boolean local;
-    SqlNode filepath;
+    SqlNode filePath;
     boolean overwrite;
     SqlIdentifier id;
 }
@@ -453,11 +453,11 @@ SqlLoadData SqlLoadData() :
     { pos = getPos(); }
     <LOAD> <DATA>
     local = IfLocalOpt()
-    <INFILE>  filepath = StringLiteral()
+    <INFILE>  filePath = StringLiteral()
     overwrite = IfOverwriteOpt()
     <INTO> <TABLE> id = CompoundIdentifier()
     {
-        return SqlDmlNodes.loadData(pos, local, filepath, overwrite, id);
+        return SqlDmlNodes.loadData(pos, local, filePath, overwrite, id);
     }
 }
 

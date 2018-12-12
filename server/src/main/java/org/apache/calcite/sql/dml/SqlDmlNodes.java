@@ -27,9 +27,9 @@ public class SqlDmlNodes {
   private SqlDmlNodes() {}
 
   /** Creates a LOAD DATA. */
-  public static SqlLoadData loadData(SqlParserPos pos, boolean local, SqlNode filepath,
+  public static SqlLoadData loadData(SqlParserPos pos, boolean local, SqlNode filePath,
       boolean overwrite, SqlIdentifier name) {
-    return new SqlLoadData(pos, local, filepath, overwrite, name);
+    return new SqlLoadData(pos, local, filePath, overwrite, name);
   }
 
 }

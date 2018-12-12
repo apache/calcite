@@ -37,15 +37,15 @@ public class SqlLoadData extends SqlCall {
       new SqlSpecialOperator("LOAD DATA", SqlKind.LOAD_DATA);
 
   boolean local;
-  private final SqlNode filepath;
+  private final SqlNode filePath;
   boolean overwrite;
   private final SqlIdentifier name;
 
-  public SqlLoadData(SqlParserPos pos, boolean local, SqlNode filepath,
+  public SqlLoadData(SqlParserPos pos, boolean local, SqlNode filePath,
         boolean overwrite, SqlIdentifier name) {
     super(pos);
     this.local = local;
-    this.filepath = filepath;
+    this.filePath = filePath;
     this.overwrite = overwrite;
     this.name = name;
   }
@@ -55,13 +55,13 @@ public class SqlLoadData extends SqlCall {
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(filepath, name);
+    return ImmutableNullableList.of(filePath, name);
   }
 
   @Override  public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     writer.keyword(getLocal() ? "LOAD DATA LOCAL" : "LOAD DATA");
     writer.keyword("INFILE");
-    filepath.unparse(writer, 0, 0);
+    filePath.unparse(writer, 0, 0);
     writer.keyword(getOverwrite() ? "OVERWRITE INTO TABLE" : "INTO TABLE");
     name.unparse(writer, 0, 0);
   }
