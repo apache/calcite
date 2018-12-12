@@ -3027,6 +3027,26 @@ LogicalAggregate(group=[{0}])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testMatchRecognizeIn">
+        <Resource name="sql">
+            <![CDATA[select *
+  from emp match_recognize
+  (
+    partition by job, sal
+    order by job asc, sal desc, empno
+    pattern (strt down+ up+)
+    define
+      down as down.mgr in (0, 1),
+      up as up.mgr > prev(up.mgr)) as mr]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalMatch(partition=[[$2, $5]], order=[[2, 5 DESC, 0]], outputFields=[[EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, SLACKER]], allRows=[false], after=[FLAG(SKIP TO NEXT ROW)], pattern=[(('STRT', PATTERN_QUANTIFIER('DOWN', 1, -1, false)), PATTERN_QUANTIFIER('UP', 1, -1, false))], isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], patternDefinitions=[[OR(=(PREV(DOWN.$3, 0), 0), =(PREV(DOWN.$3, 0), 1)), >(PREV(UP.$3, 0), PREV(UP.$3, 1))]], inputFields=[[EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, SLACKER]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testAggNoDuplicateColumnNames">
         <Resource name="sql">
             <![CDATA[SELECT  empno, EXPR$2, COUNT(empno) FROM (
