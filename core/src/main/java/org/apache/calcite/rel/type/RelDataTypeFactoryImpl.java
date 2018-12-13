@@ -651,6 +651,14 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       }
       return typeName;
     }
+
+    @Override public int getPrecision() {
+      if (java.sql.Timestamp.class == clazz) {
+        // Timestamp class can hold fractions up to nano seconds.
+        return 9;
+      }
+      return super.getPrecision();
+    }
   }
 
   /** Key to the data type cache. */

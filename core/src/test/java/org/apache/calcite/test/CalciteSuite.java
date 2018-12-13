@@ -184,6 +184,7 @@ import org.junit.runners.Suite;
     CalciteRemoteDriverTest.class,
     StreamTest.class,
     SortRemoveRuleTest.class,
+    ObjectArrayTableTest.class,
 
     // test cases
     TableInRootSchemaTest.class,

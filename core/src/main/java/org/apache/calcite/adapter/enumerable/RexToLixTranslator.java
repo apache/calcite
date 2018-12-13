@@ -1020,6 +1020,18 @@ public class RexToLixTranslator {
       } else {
         return Expressions.convert_(operand, toType);
       }
+    } else if (fromType == java.sql.Time.class) {
+      if (toBox == Primitive.INT) {
+        return Expressions.call(BuiltInMethod.TIME_TO_INT.method, operand);
+      } else {
+        return Expressions.convert_(operand, toType);
+      }
+    } else if (fromType == java.sql.Timestamp.class) {
+      if (toBox == Primitive.LONG) {
+        return Expressions.call(BuiltInMethod.TIMESTAMP_TO_LONG.method, operand);
+      } else {
+        return Expressions.convert_(operand, toType);
+      }
     } else if (toType == java.sql.Date.class) {
       // E.g. from "int" or "Integer" to "java.sql.Date",
       // generate "SqlFunctions.internalToDate".
