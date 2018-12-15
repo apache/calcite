@@ -73,6 +73,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
@@ -1949,6 +1950,20 @@ public class SqlFunctions {
   @NonDeterministic
   public static TimeZone timeZone(DataContext root) {
     return (TimeZone) DataContext.Variable.TIME_ZONE.get(root);
+  }
+
+  /** SQL {@code USER} function. */
+  @NonDeterministic
+  public static String user(DataContext root) {
+    return Optional.ofNullable((String) DataContext.Variable.USER.get(root))
+        .orElse("sa");
+  }
+
+  /** SQL {@code SYSTEM_USER} function. */
+  @NonDeterministic
+  public static String systemUser(DataContext root) {
+    return Optional.ofNullable((String) DataContext.Variable.SYSTEM_USER.get(root))
+        .orElse(System.getProperty("user.name"));
   }
 
   /** SQL {@code TRANSLATE(string, search_chars, replacement_chars)}

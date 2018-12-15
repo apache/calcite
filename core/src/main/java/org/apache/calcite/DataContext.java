@@ -100,7 +100,17 @@ public interface DataContext {
     /** Time zone in which the current statement is executing. Required;
      * defaults to the time zone of the JVM if the connection does not specify a
      * time zone. */
-    TIME_ZONE("timeZone", TimeZone.class);
+    TIME_ZONE("timeZone", TimeZone.class),
+
+    /**
+     * The query user.
+     */
+    USER("user", String.class),
+
+    /**
+     * The system user.
+     */
+    SYSTEM_USER("systemUser", String.class);
 
     public final String camelName;
     public final Class clazz;

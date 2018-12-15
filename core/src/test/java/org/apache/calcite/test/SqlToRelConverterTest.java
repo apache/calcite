@@ -26,6 +26,7 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -2878,7 +2879,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         new CalciteConnectionConfigImpl(properties);
     TesterImpl tester = new TesterImpl(getDiffRepos(), false, false, true, false,
         null, null, SqlToRelConverter.Config.DEFAULT,
-        SqlConformanceEnum.DEFAULT, Contexts.of(connectionConfig));
+        SqlConformanceEnum.DEFAULT, Contexts.of(connectionConfig), RexUtil.EXECUTOR);
     sql(sql).with(tester).ok();
   }
 

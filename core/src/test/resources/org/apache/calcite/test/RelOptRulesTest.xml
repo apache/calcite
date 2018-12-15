@@ -6845,7 +6845,7 @@ LogicalAggregate(group=[{0, 1, 2}])
     <TestCase name="testReduceDynamic">
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(USER=['sa'])
+LogicalProject(USER=['happyCalciteUser'])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>

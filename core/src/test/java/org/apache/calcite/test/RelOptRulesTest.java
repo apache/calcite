@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
@@ -109,6 +110,9 @@ import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexExecutor;
+import org.apache.calcite.rex.RexExecutorImpl;
+import org.apache.calcite.rex.RexExecutorTest;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SemiJoinType;
@@ -305,17 +309,23 @@ public class RelOptRulesTest extends RelOptTestBase {
    */
   private Supplier<Void> testDynamic(boolean allowReduce) {
     HepProgramBuilder builder = new HepProgramBuilder();
+
     RelOptRule rule = new ProjectReduceExpressionsRule(
         LogicalProject.class,
         ReduceExpressionsRule.DEFAULT_OPTIONS.treatDynamicCallsAsNonConstant(!allowReduce),
         RelFactories.LOGICAL_BUILDER);
     builder.addRuleInstance(rule);
     HepPlanner hepPlanner = new HepPlanner(builder.build());
+    DataContext context = new RexExecutorTest.SingleValueDataContext(
+        DataContext.Variable.USER.camelName, "happyCalciteUser");
+    RexExecutor executor = new RexExecutorImpl(context);
+    hepPlanner.setExecutor(executor);
+
     final String sql = "select USER from emp";
 
     // return a supplier to be executed in the context of the original test method.
     return () -> {
-      checkPlanning(tester, null, hepPlanner, sql, !allowReduce);
+      checkPlanning(tester.withExecutor(executor), null, hepPlanner, sql, !allowReduce);
       return null;
     };
   }
