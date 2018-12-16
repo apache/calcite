@@ -72,7 +72,7 @@ completely empty until `ReflectiveSchema.create` registers a Java
 object as a schema and its collection fields `emps` and `depts` as
 tables.
 
-Calcite does not want to own data; it does not even have favorite data
+Calcite does not want to own data; it does not even have a favorite data
 format. This example used in-memory data sets, and processed them
 using operators such as `groupBy` and `join` from the linq4j
 library. But Calcite can also process data in other data formats, such
