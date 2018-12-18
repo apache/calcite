@@ -185,6 +185,13 @@ public abstract class RelTraitDef<T extends RelTrait> {
    * Returns the default member of this trait.
    */
   public abstract T getDefault();
+
+  /**
+   * Recompute the trait of a given rel.
+   */
+  public RelNode recompute(RelNode rel) {
+    return rel;
+  }
 }
 
 // End RelTraitDef.java

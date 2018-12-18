@@ -91,6 +91,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * VolcanoPlanner optimizes queries by transforming expressions selectively
@@ -1431,6 +1432,39 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   /**
+   * Computes the trait set for the input <code>RelNode</code>,
+   * and return a new <code>RelNode</code> within the new trait set.
+   *
+   * @return Trait set of the relational expression
+   */
+  public RelNode recomputeTraitSet(RelNode originalRel) {
+    RelTraitSet traitSet = originalRel.getTraitSet();
+    List<RelTraitDef> traitDefs
+        = traitSet.stream().map(RelTrait::getTraitDef)
+        .collect(Collectors.toList());
+    RelNode rel = originalRel;
+    for (RelTraitDef traitDef : traitDefs) {
+      rel = traitDef.recompute(rel);
+    }
+    return rel;
+  }
+
+  private RelNode onRegister(final RelNode rel) {
+    final List<RelNode> oldInputs = rel.getInputs();
+    final RelNode registered = rel.onRegister(this);
+    final List<RelNode> inputs = registered.getInputs();
+    if (Util.equalShallow(inputs, oldInputs)) {
+      return registered;
+    }
+    RelNode tempRel = registered;
+    if (rel.getTraitSet().containsIfApplicable(Convention.NONE)) {
+      // recompute trait of logical algebras
+      tempRel = recomputeTraitSet(tempRel);
+    }
+    return tempRel;
+  }
+
+  /**
    * Registers a new expression <code>exp</code> and queues up rule matches.
    * If <code>set</code> is not null, makes the expression part of that
    * equivalence set. If an identical expression is already registered, we
@@ -1473,7 +1507,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
 
     // Ensure that its sub-expressions are registered.
-    rel = rel.onRegister(this);
+    rel = onRegister(rel);
 
     // Record its provenance. (Rule call may be null.)
     if (ruleCallStack.isEmpty()) {

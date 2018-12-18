@@ -548,6 +548,7 @@ from emps order by emps."AGE";
 # [CALCITE-2402] COVAR_POP, REGR_COUNT functions
 # SUM(x, y) = SUM(x) WHERE y IS NOT NULL
 # COVAR_POP(x, y) = (SUM(x * y) - SUM(x, y) * SUM(y, x) / REGR_COUNT(x, y)) / REGR_COUNT(x, y)
+!if (fixed.calcite2648) {
 select emps."AGE", emps."DEPTNO", emps."GENDER",
  sum(emps."AGE" * emps."DEPTNO") over(partition by emps."GENDER") as "sum(age * deptno)",
  regr_count(emps."AGE", emps."DEPTNO") over(partition by emps."GENDER") as "regr_count(age, deptno)",
@@ -565,10 +566,12 @@ from emps order by emps."GENDER";
 (5 rows)
 
 !ok
+!}
 
 # [CALCITE-2402] COVAR_SAMP functions
 # SUM(x, y) = SUM(x) WHERE y IS NOT NULL
 # COVAR_SAMP(x, y) = (SUM(x * y) - SUM(x, y) * SUM(y, x) / REGR_COUNT(x, y)) / (REGR_COUNT(x, y) - 1)
+!if (fixed.calcite2648) {
 select emps."AGE", emps."DEPTNO", emps."GENDER",
  covar_samp(emps."AGE", emps."AGE") over() as "var_samp",
  covar_samp(emps."DEPTNO", emps."AGE") over() as "covar_samp",
@@ -586,10 +589,12 @@ from emps order by emps."AGE";
 (5 rows)
 
 !ok
+!}
 
 # [CALCITE-2402] VAR_POP, VAR_SAMP functions
 # VAR_POP(x) = (SUM(x * x) - SUM(x) * SUM(x) / COUNT(x)) / COUNT(x)
 # VAR_SAMP(x) = (SUM(x * x) - SUM(x) * SUM(x) / COUNT(x)) / (COUNT(x) - 1)
+!if (fixed.calcite2648) {
 select emps."AGE", emps."DEPTNO", emps."GENDER",
  var_pop(emps."AGE") over() as "var_pop",
  var_pop(emps."AGE") over(partition by emps."AGE") as "var_pop by age",
@@ -608,6 +613,7 @@ from emps order by emps."AGE";
 (5 rows)
 
 !ok
+!}
 
 # [CALCITE-2402] REGR_SXX, REGR_SXY, REGR_SYY functions
 # SUM(x, y) = SUM(x) WHERE y IS NOT NULL
@@ -640,6 +646,7 @@ from emps order by emps."AGE";
 # REGR_SYY(x, y) = REGR_COUNT(x, y) * COVAR_POP(x, x)
 ## COVAR_POP(x, y) = (SUM(x * y) - SUM(x, y) * SUM(y, x) / REGR_COUNT(x, y)) / REGR_COUNT(x, y)
 ## COVAR_POP(y, y) = (SUM(y * y, x) - SUM(y, x) * SUM(y, x) / REGR_COUNT(x, y)) / REGR_COUNT(x, y)
+!if (fixed.calcite2648) {
 select emps."AGE", emps."DEPTNO", emps."GENDER",
  regr_sxx(emps."AGE", emps."DEPTNO") over(partition by emps."GENDER") as "regr_sxx(age, deptno)",
  regr_syy(emps."AGE", emps."DEPTNO") over(partition by emps."GENDER") as "regr_syy(age, deptno)"
@@ -656,5 +663,6 @@ from emps order by emps."GENDER";
 (5 rows)
 
 !ok
+!}
 
 # End winagg.iq

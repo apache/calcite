@@ -22,6 +22,8 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
 
+import java.util.Objects;
+
 /**
  * Definition of the ordering trait.
  *
@@ -57,6 +59,16 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
 
   public RelCollation getDefault() {
     return RelCollations.EMPTY;
+  }
+
+  @Override public RelNode recompute(RelNode rel) {
+    RelTraitSet traitSet = rel.getTraitSet();
+    RelTraitSet newTraitSet = traitSet.replaceIfs(INSTANCE,
+        () -> rel.getCluster().getMetadataQuery().collations(rel));
+    if (Objects.equals(newTraitSet, traitSet)) {
+      return rel;
+    }
+    return rel.copy(newTraitSet, rel.getInputs());
   }
 
   public RelNode convert(

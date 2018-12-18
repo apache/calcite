@@ -6786,6 +6786,22 @@ public class JdbcTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2593">[CALCITE-2593]
+   * Sometimes fails to plan when a RelNode transform multiple collations to single collation</a>.
+   */
+  @Test public void testMultipleCollationsToSingle() {
+    CalciteAssert.that()
+        .query("select y from (values (1, false), (2, true)) as t(x, y) order by y")
+        .returns("Y=false\n"
+            + "Y=true\n");
+
+    CalciteAssert.that()
+        .query("select sum(x + 1) filter (where y) as s "
+            + "from (values (1, false), (2, true)) as t(x, y)")
+        .returns("S=3\n");
+  }
+
   private static String sums(int n, boolean c) {
     final StringBuilder b = new StringBuilder();
     for (int i = 0; i < n; i++) {
