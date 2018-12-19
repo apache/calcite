@@ -1401,6 +1401,42 @@ public class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2625">[CALCITE-2625]
+   * Removing Window Boundaries from SqlWindow of Aggregate Function which do not allow Framing</a>
+   * */
+  @Test public void testRowNumberFunctionForPrintingOfFrameBoundary() {
+    String query = "SELECT row_number() over (order by \"hire_date\") FROM \"employee\"";
+    String expected = "SELECT ROW_NUMBER() OVER (ORDER BY \"hire_date\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testRankFunctionForPrintingOfFrameBoundary() {
+    String query = "SELECT rank() over (order by \"hire_date\") FROM \"employee\"";
+    String expected = "SELECT RANK() OVER (ORDER BY \"hire_date\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testLeadFunctionForPrintingOfFrameBoundary() {
+    String query = "SELECT lead(\"employee_id\",1,'NA') over "
+        + "(partition by \"hire_date\" order by \"employee_id\") FROM \"employee\"";
+    String expected = "SELECT LEAD(\"employee_id\", 1, 'NA') OVER "
+        + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testLagFunctionForPrintingOfFrameBoundary() {
+    String query = "SELECT lag(\"employee_id\",1,'NA') over "
+        + "(partition by \"hire_date\" order by \"employee_id\") FROM \"employee\"";
+    String expected = "SELECT LAG(\"employee_id\", 1, 'NA') OVER "
+        + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query).ok(expected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1798">[CALCITE-1798]
    * Generate dialect-specific SQL for FLOOR operator</a>. */
   @Test public void testFloor() {
