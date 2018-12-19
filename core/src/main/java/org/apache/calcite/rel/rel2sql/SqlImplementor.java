@@ -663,11 +663,6 @@ public abstract class SqlImplementor {
       final SqlLiteral isRows =
           SqlLiteral.createBoolean(rexWindow.isRows(), POS);
 
-      final SqlNode lowerBound =
-          createSqlWindowBound(rexWindow.getLowerBound());
-      final SqlNode upperBound =
-          createSqlWindowBound(rexWindow.getUpperBound());
-
       // null defaults to true.
       // During parsing the allowPartial == false (e.g. disallow partial)
       // is expand into CASE expression and is handled as a such.
@@ -675,11 +670,21 @@ public abstract class SqlImplementor {
       // "disallow partial" and set the allowPartial = false.
       final SqlLiteral allowPartial = null;
 
+      SqlAggFunction sqlAggregateFunction = rexOver.getAggOperator();
+
+      SqlNode lowerBound = null;
+      SqlNode upperBound = null;
+
+      if (sqlAggregateFunction.allowsFraming()) {
+        lowerBound = createSqlWindowBound(rexWindow.getLowerBound());
+        upperBound = createSqlWindowBound(rexWindow.getUpperBound());
+      }
+
       final SqlWindow sqlWindow = SqlWindow.create(null, null, partitionList,
           orderList, isRows, lowerBound, upperBound, allowPartial, POS);
 
       final List<SqlNode> nodeList = toSql(program, rexOver.getOperands());
-      return createOverCall(rexOver.getAggOperator(), nodeList, sqlWindow);
+      return createOverCall(sqlAggregateFunction, nodeList, sqlWindow);
     }
 
     private SqlCall createOverCall(SqlAggFunction op, List<SqlNode> operands,
