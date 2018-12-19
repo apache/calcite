@@ -43,7 +43,7 @@ public class SqlPositionFunction extends SqlFunction {
   public SqlPositionFunction() {
     super(
         "POSITION",
-        SqlKind.OTHER_FUNCTION,
+        SqlKind.POSITION,
         ReturnTypes.INTEGER_NULLABLE,
         null,
         OTC_CUSTOM,

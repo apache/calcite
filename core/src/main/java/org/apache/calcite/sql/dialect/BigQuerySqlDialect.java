@@ -17,7 +17,13 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.SqlWriter;
 
 /**
  * A <code>SqlDialect</code> implementation for Google BigQuery's "Standard SQL"
@@ -34,6 +40,53 @@ public class BigQuerySqlDialect extends SqlDialect {
   public BigQuerySqlDialect(SqlDialect.Context context) {
     super(context);
   }
+
+  @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,
+      final int rightPrec) {
+    switch (call.getKind()) {
+    case POSITION:
+      final SqlWriter.Frame frame = writer.startFunCall("STRPOS");
+      writer.sep(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      if (3 == call.operandCount()) {
+        throw new RuntimeException("3rd operand Not Supported for Function STRPOS in Big Query");
+      }
+      writer.endFunCall(frame);
+      break;
+    case UNION:
+      if (!((SqlSetOperator) call.getOperator()).isAll()) {
+        SqlSyntax.BINARY.unparse(writer, UNION_DISTINCT, call, leftPrec, rightPrec);
+      }
+      break;
+    case EXCEPT:
+      if (!((SqlSetOperator) call.getOperator()).isAll()) {
+        SqlSyntax.BINARY.unparse(writer, EXCEPT_DISTINCT, call, leftPrec, rightPrec);
+      }
+      break;
+    case INTERSECT:
+      if (!((SqlSetOperator) call.getOperator()).isAll()) {
+        SqlSyntax.BINARY.unparse(writer, INTERSECT_DISTINCT, call, leftPrec, rightPrec);
+      }
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  /**
+   * List of BigQuery Specific Operators needed to form Syntactically Correct SQL.
+   */
+  private static final SqlOperator UNION_DISTINCT = new SqlSetOperator(
+      "UNION DISTINCT", SqlKind.UNION, 14, false);
+
+  private static final SqlSetOperator EXCEPT_DISTINCT =
+      new SqlSetOperator("EXCEPT DISTINCT", SqlKind.EXCEPT, 14, false);
+
+  private static final SqlSetOperator INTERSECT_DISTINCT =
+      new SqlSetOperator("INTERSECT DISTINCT", SqlKind.INTERSECT, 18, false);
+
 }
 
 // End BigQuerySqlDialect.java

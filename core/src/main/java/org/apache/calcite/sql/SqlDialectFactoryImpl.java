@@ -19,6 +19,7 @@ package org.apache.calcite.sql;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.dialect.AccessSqlDialect;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
+import org.apache.calcite.sql.dialect.BigQuerySqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.Db2SqlDialect;
 import org.apache.calcite.sql.dialect.DerbySqlDialect;
@@ -179,6 +180,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
     switch (databaseProduct) {
     case ACCESS:
       return AccessSqlDialect.DEFAULT;
+    case BIG_QUERY:
+      return BigQuerySqlDialect.DEFAULT;
     case CALCITE:
       return CalciteSqlDialect.DEFAULT;
     case DB2:

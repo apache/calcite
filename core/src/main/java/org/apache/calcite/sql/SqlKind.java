@@ -118,6 +118,11 @@ public enum SqlKind {
   OTHER_FUNCTION,
 
   /**
+   * POSITION Function
+   */
+  POSITION,
+
+  /**
    * EXPLAIN statement
    */
   EXPLAIN,
@@ -1178,7 +1183,7 @@ public enum SqlKind {
               EnumSet.of(AS, ARGUMENT_ASSIGNMENT, DEFAULT,
                   RUNNING, FINAL, LAST, FIRST, PREV, NEXT,
                   DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
-                  SELECT, JOIN, OTHER_FUNCTION, CAST, TRIM, FLOOR, CEIL,
+                  SELECT, JOIN, OTHER_FUNCTION, POSITION, CAST, TRIM, FLOOR, CEIL,
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, EXTRACT,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
@@ -1200,7 +1205,7 @@ public enum SqlKind {
    * functions {@link #ROW}, {@link #TRIM}, {@link #CAST}, {@link #JDBC_FN}.
    */
   public static final Set<SqlKind> FUNCTION =
-      EnumSet.of(OTHER_FUNCTION, ROW, TRIM, LTRIM, RTRIM, CAST, JDBC_FN);
+      EnumSet.of(OTHER_FUNCTION, ROW, TRIM, LTRIM, RTRIM, CAST, JDBC_FN, POSITION);
 
   /**
    * Category of SqlAvgAggFunction.

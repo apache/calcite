@@ -610,6 +610,54 @@ public class RelToSqlConverterTest {
     sql(query).withHive().ok(expected);
   }
 
+  @Test public void testPositionFunctionForHive() {
+    final String query = "select position('A' IN 'ABC') from \"product\"";
+    final String expected = "SELECT INSTR('ABC', 'A')\n"
+        + "FROM foodmart.product";
+    sql(query).withHive().ok(expected);
+  }
+
+  @Test public void testPositionFunctionForBigQuery() {
+    final String query = "select position('A' IN 'ABC') from \"product\"";
+    final String expected = "SELECT STRPOS('ABC', 'A')\n"
+        + "FROM foodmart.product";
+    sql(query).withBigquery().ok(expected);
+  }
+
+  @Test public void testModFunctionForHive() {
+    final String query = "select mod(11,3) from \"product\"";
+    final String expected = "SELECT 11 % 3\n"
+        + "FROM foodmart.product";
+    sql(query).withHive().ok(expected);
+  }
+
+  @Test public void testUnionOperatorForBigQuery() {
+    final String query = "select mod(11,3) from \"product\"\n"
+        + "UNION select 1 from \"product\"";
+    final String expected = "SELECT MOD(11, 3)\n"
+        + "FROM foodmart.product\n"
+        + "UNION DISTINCT\nSELECT 1\nFROM foodmart.product";
+    sql(query).withBigquery().ok(expected);
+  }
+
+  @Test public void testIntersectOperatorForBigQuery() {
+    final String query = "select mod(11,3) from \"product\"\n"
+        + "INTERSECT select 1 from \"product\"";
+    final String expected = "SELECT MOD(11, 3)\n"
+        + "FROM foodmart.product\n"
+        + "INTERSECT DISTINCT\nSELECT 1\nFROM foodmart.product";
+    sql(query).withBigquery().ok(expected);
+  }
+
+  @Test public void testExceptOperatorForBigQuery() {
+    final String query = "select mod(11,3) from \"product\"\n"
+        + "EXCEPT select 1 from \"product\"";
+    final String expected = "SELECT MOD(11, 3)\n"
+        + "FROM foodmart.product\n"
+        + "EXCEPT DISTINCT\nSELECT 1\nFROM foodmart.product";
+    sql(query).withBigquery().ok(expected);
+  }
+
   @Test public void testHiveSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls first";
@@ -3062,6 +3110,10 @@ public class RelToSqlConverterTest {
 
     Sql withVertica() {
       return dialect(SqlDialect.DatabaseProduct.VERTICA.getDialect());
+    }
+
+    Sql withBigquery() {
+      return dialect(SqlDialect.DatabaseProduct.BIG_QUERY.getDialect());
     }
 
     Sql withPostgresqlModifiedTypeSystem() {
