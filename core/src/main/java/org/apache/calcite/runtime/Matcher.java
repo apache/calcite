@@ -21,6 +21,7 @@ import org.apache.calcite.util.CircularArrayList;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,16 +30,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeSet;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
 /** Workspace that matches patterns against an automaton.
  *
  * @param <E> Type of rows matched by this automaton */
 public class Matcher<E> {
   private final Automaton automaton;
-  private final ImmutableList<Predicate<E>> predicates;
+  private final ImmutableList<BiPredicate<E, List<E>>> predicates;
 
   // The following members are work space. They can be shared among partitions,
   // but only one thread can use them at a time. Putting them here saves the
@@ -52,7 +52,7 @@ public class Matcher<E> {
 
   /** Creates a Matcher; use {@link #builder}. */
   private Matcher(Automaton automaton,
-      ImmutableList<Predicate<E>> predicates) {
+      ImmutableList<BiPredicate<E, List<E>>> predicates) {
     this.automaton = Objects.requireNonNull(automaton);
     this.predicates = Objects.requireNonNull(predicates);
     final ImmutableBitSet.Builder startSetBuilder =
@@ -96,8 +96,8 @@ public class Matcher<E> {
     // Compute the set of symbols whose predicates that evaluate to true
     // for this row.
     rowSymbols.clear();
-    for (Ord<Predicate<E>> predicate : Ord.zip(predicates)) {
-      if (predicate.e.test(row)) {
+    for (Ord<BiPredicate<E, List<E>>> predicate : Ord.zip(predicates)) {
+      if (predicate.e.test(row, partitionState.bufferedRows)) {
         rowSymbols.add(predicate.i);
       }
     }
@@ -147,10 +147,6 @@ public class Matcher<E> {
     }
   }
 
-  void matchTwo(E e, CircularArrayList<E> recentRows, int matchCount) {
-    // TODO
-  }
-
   /** State for each partition.
    *
    * @param <E> Row type */
@@ -177,29 +173,37 @@ public class Matcher<E> {
    * @param <E> Type of rows matched by this automaton */
   public static class Builder<E> {
     final Automaton automaton;
-    final Map<String, Predicate<E>> symbolPredicates = new HashMap<>();
+    final Map<String, BiPredicate<E, List<E>>> symbolPredicates =
+        new HashMap<>();
 
     Builder(Automaton automaton) {
       this.automaton = automaton;
     }
 
-    Builder<E> add(String symbolName, Predicate<E> predicate) {
+    /** Associates a predicate with a symbol. */
+    public Builder<E> add(String symbolName,
+        BiPredicate<E, List<E>> predicate) {
       symbolPredicates.put(symbolName, predicate);
       return this;
     }
 
     public Matcher<E> build() {
-      final Set<String> graphSymbolNames =
-          new TreeSet<>(automaton.symbolNames);
-      if (!symbolPredicates.keySet().equals(graphSymbolNames)) {
-        throw new IllegalArgumentException("not all symbols in the graph ["
-            + graphSymbolNames + "] have predicates ["
-            + symbolPredicates.keySet() + "]");
+      final Set<String> predicateSymbolsNotInGraph =
+          Sets.newTreeSet(symbolPredicates.keySet());
+      predicateSymbolsNotInGraph.removeAll(automaton.symbolNames);
+      if (!predicateSymbolsNotInGraph.isEmpty()) {
+        throw new IllegalArgumentException("not all predicate symbols ["
+            + predicateSymbolsNotInGraph + "] are in graph ["
+            + automaton.symbolNames + "]");
       }
-      final ImmutableList.Builder<Predicate<E>> builder =
+      final ImmutableList.Builder<BiPredicate<E, List<E>>> builder =
           ImmutableList.builder();
       for (String symbolName : automaton.symbolNames) {
-        builder.add(symbolPredicates.get(symbolName));
+        // If a symbol does not have a predicate, it defaults to true.
+        // By convention, "STRT" is used for the start symbol, but it could be
+        // anything.
+        builder.add(
+            symbolPredicates.getOrDefault(symbolName, (e, list) -> true));
       }
       return new Matcher<>(automaton, builder.build());
     }

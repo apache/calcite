@@ -75,13 +75,13 @@ import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.runtime.Automaton;
-import org.apache.calcite.runtime.AutomatonBuilder;
 import org.apache.calcite.runtime.BinarySearch;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Enumerables;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.JsonFunctions;
 import org.apache.calcite.runtime.Matcher;
+import org.apache.calcite.runtime.Pattern;
 import org.apache.calcite.runtime.RandomFunction;
 import org.apache.calcite.runtime.ResultSetEnumerable;
 import org.apache.calcite.runtime.SortedMultiMap;
@@ -121,7 +121,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import javax.sql.DataSource;
 
 /**
@@ -166,8 +168,14 @@ public enum BuiltInMethod {
       Function1.class, Function2.class),
   MATCH(Enumerables.class, "match", Enumerable.class, Function1.class,
       Matcher.class, Enumerables.Emitter.class),
-  AUTOMATON_BUILD(AutomatonBuilder.class, "build"),
+  PATTERN_BUILDER(Utilities.class, "patternBuilder"),
+  PATTERN_BUILDER_SYMBOL(Pattern.PatternBuilder.class, "symbol", String.class),
+  PATTERN_BUILDER_SEQ(Pattern.PatternBuilder.class, "seq"),
+  PATTERN_BUILDER_BUILD(Pattern.PatternBuilder.class, "build"),
+  PATTERN_TO_AUTOMATON(Pattern.PatternBuilder.class, "automaton"),
   MATCHER_BUILDER(Matcher.class, "builder", Automaton.class),
+  MATCHER_BUILDER_ADD(Matcher.Builder.class, "add", String.class,
+      BiPredicate.class),
   MATCHER_BUILDER_BUILD(Matcher.Builder.class, "build"),
   EMITTER_EMIT(Enumerables.Emitter.class, "emit", List.class, List.class,
       int.class, Consumer.class),
@@ -244,6 +252,8 @@ public enum BuiltInMethod {
   ENUMERABLE_ENUMERATOR(Enumerable.class, "enumerator"),
   ENUMERABLE_FOREACH(Enumerable.class, "foreach", Function1.class),
   ITERABLE_FOR_EACH(Iterable.class, "forEach", Consumer.class),
+  PREDICATE_TEST(Predicate.class, "test", Object.class),
+  BI_PREDICATE_TEST(BiPredicate.class, "test", Object.class, Object.class),
   TYPED_GET_ELEMENT_TYPE(ArrayBindable.class, "getElementType"),
   BINDABLE_BIND(Bindable.class, "bind", DataContext.class),
   RESULT_SET_GET_DATE2(ResultSet.class, "getDate", int.class, Calendar.class),

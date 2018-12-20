@@ -16,9 +16,11 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.MemberDeclaration;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
@@ -27,17 +29,20 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.runtime.AutomatonBuilder;
 import org.apache.calcite.runtime.Enumerables;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
 import static org.apache.calcite.adapter.enumerable.EnumUtils.NO_EXPRS;
@@ -106,11 +111,54 @@ public class EnumerableMatch extends Match implements EnumerableRel {
                 partitionKeys.asList(),
                 keyPhysType.getFormat()));
 
+    final Expression patternBuilder_ = builder.append("patternBuilder",
+        Expressions.call(BuiltInMethod.PATTERN_BUILDER.method));
     final Expression automaton_ = builder.append("automaton",
-        Expressions.call(Expressions.new_(AutomatonBuilder.class),
-            BuiltInMethod.AUTOMATON_BUILD.method));
-    final Expression matcherBuilder_ = builder.append("matcherBuilder",
+        Expressions.call(foo(patternBuilder_, pattern),
+            BuiltInMethod.PATTERN_TO_AUTOMATON.method));
+    Expression matcherBuilder_ = builder.append("matcherBuilder",
         Expressions.call(BuiltInMethod.MATCHER_BUILDER.method, automaton_));
+    for (Map.Entry<String, RexNode> entry : patternDefinitions.entrySet()) {
+      final ParameterExpression rows_ =
+          Expressions.parameter(List.class, "rows"); // "List<E> rows"
+      final BlockBuilder builder2 = new BlockBuilder();
+      builder2.add(Expressions.return_(null, Expressions.constant(true)));
+      final List<MemberDeclaration> memberDeclarations = new ArrayList<>();
+      // Add a predicate method:
+      //
+      //   public boolean test(E row, List<E> rows) {
+      //     return ...;
+      //   }
+      memberDeclarations.add(
+          EnumUtils.overridingMethodDecl(BuiltInMethod.BI_PREDICATE_TEST.method,
+              ImmutableList.of(row_, rows_), builder2.toBlock()));
+      if (EnumerableRules.BRIDGE_METHODS) {
+        // Add a bridge method:
+        //
+        //   public boolean test(Object row, Object rows) {
+        //     return this.test(row, (List) rows);
+        //   }
+        final ParameterExpression rowsO_ =
+            Expressions.parameter(Object.class, "rows");
+        BlockBuilder bridgeBody = new BlockBuilder();
+        bridgeBody.add(
+            Expressions.return_(null,
+                Expressions.call(
+                    Expressions.parameter(Comparable.class, "this"),
+                    BuiltInMethod.BI_PREDICATE_TEST.method,
+                    row_, Expressions.convert_(rowsO_, List.class))));
+        memberDeclarations.add(
+            EnumUtils.overridingMethodDecl(
+                BuiltInMethod.BI_PREDICATE_TEST.method,
+                ImmutableList.of(row_, rowsO_), bridgeBody.toBlock()));
+      }
+      final Expression predicate_ =
+          Expressions.new_(Types.of(BiPredicate.class), NO_EXPRS,
+              memberDeclarations);
+      matcherBuilder_ = Expressions.call(matcherBuilder_,
+          BuiltInMethod.MATCHER_BUILDER_ADD.method,
+          Expressions.constant(entry.getKey()), predicate_);
+    }
     final Expression matcher_ = builder.append("matcher",
         Expressions.call(matcherBuilder_,
             BuiltInMethod.MATCHER_BUILDER_BUILD.method));
@@ -140,6 +188,30 @@ public class EnumerableMatch extends Match implements EnumerableRel {
             Expressions.call(BuiltInMethod.MATCH.method,
                 inputExp, keySelector_, matcher_, emitter_)));
     return implementor.result(physType, builder.toBlock());
+  }
+
+  private Expression foo(Expression patternBuilder_, RexNode pattern) {
+    switch (pattern.getKind()) {
+    case LITERAL:
+      final String symbol = ((RexLiteral) pattern).getValueAs(String.class);
+      return Expressions.call(patternBuilder_,
+          BuiltInMethod.PATTERN_BUILDER_SYMBOL.method,
+          Expressions.constant(symbol));
+
+    case PATTERN_CONCAT:
+      final RexCall concat = (RexCall) pattern;
+      for (Ord<RexNode> operand : Ord.zip(concat.operands)) {
+        patternBuilder_ = foo(patternBuilder_, operand.e);
+        if (operand.i > 0) {
+          patternBuilder_ = Expressions.call(patternBuilder_,
+              BuiltInMethod.PATTERN_BUILDER_SEQ.method);
+        }
+      }
+      return patternBuilder_;
+
+    default:
+      throw new AssertionError("unknown kind: " + pattern);
+    }
   }
 }
 

@@ -24,7 +24,7 @@ import java.util.Stack;
 import java.util.stream.Collectors;
 
 /** Regular expression, to be compiled into an {@link Automaton}. */
-interface Pattern {
+public interface Pattern {
   default Automaton toAutomaton() {
     return new AutomatonBuilder().add(this).build();
   }
@@ -71,7 +71,7 @@ interface Pattern {
     }
 
     /** Returns the resulting pattern. */
-    Pattern build() {
+    public Pattern build() {
       if (stack.size() != 1) {
         throw new AssertionError("expected stack to have one item, but was "
             + stack);
@@ -79,18 +79,23 @@ interface Pattern {
       return stack.pop();
     }
 
+    /** Returns the resulting automaton. */
+    public Automaton automaton() {
+      return new AutomatonBuilder().add(build()).build();
+    }
+
     /** Creates a pattern that matches symbol,
      * and pushes it onto the stack.
      *
      * @see SymbolPattern */
-    PatternBuilder symbol(String symbolName) {
+    public PatternBuilder symbol(String symbolName) {
       return push(new SymbolPattern(symbolName));
     }
 
     /** Creates a pattern that matches the two patterns at the top of the
      * stack in sequence,
      * and pushes it onto the stack. */
-    PatternBuilder seq() {
+    public PatternBuilder seq() {
       final Pattern pattern1 = stack.pop();
       final Pattern pattern0 = stack.pop();
       return push(new OpPattern(Op.SEQ, pattern0, pattern1));
@@ -99,21 +104,21 @@ interface Pattern {
     /** Creates a pattern that matches the patterns at the top
      * of the stack zero or more times,
      * and pushes it onto the stack. */
-    PatternBuilder star() {
+    public PatternBuilder star() {
       return push(new OpPattern(Op.STAR, stack.pop()));
     }
 
     /** Creates a pattern that matches the patterns at the top
      * of the stack one or more times,
      * and pushes it onto the stack. */
-    PatternBuilder plus() {
+    public PatternBuilder plus() {
       return push(new OpPattern(Op.PLUS, stack.pop()));
     }
 
     /** Creates a pattern that matches either of the two patterns at the top
      * of the stack,
      * and pushes it onto the stack. */
-    PatternBuilder or() {
+    public PatternBuilder or() {
       final Pattern pattern1 = stack.pop();
       final Pattern pattern0 = stack.pop();
       return push(new OpPattern(Op.OR, pattern0, pattern1));
@@ -131,6 +136,10 @@ interface Pattern {
 
     AbstractPattern(Op op) {
       this.op = Objects.requireNonNull(op);
+    }
+
+    public Automaton toAutomaton() {
+      return new AutomatonBuilder().add(this).build();
     }
   }
 

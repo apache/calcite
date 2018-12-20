@@ -42,12 +42,12 @@ public class AutomatonBuilder {
 
   /** Adds a pattern as a start-to-end transition. */
   AutomatonBuilder add(Pattern pattern) {
-    return add((Pattern.AbstractPattern) pattern, startState, endState);
+    return add(pattern, startState, endState);
   }
 
   private AutomatonBuilder add(Pattern pattern, State fromState,
       State toState) {
-    Pattern.AbstractPattern p = (Pattern.AbstractPattern) pattern;
+    final Pattern.AbstractPattern p = (Pattern.AbstractPattern) pattern;
     switch (p.op) {
     case SEQ:
       final Pattern.OpPattern pSeq = (Pattern.OpPattern) p;

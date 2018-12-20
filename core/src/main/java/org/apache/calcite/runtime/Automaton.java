@@ -37,6 +37,7 @@ public class Automaton {
   private final ImmutableList<EpsilonTransition> epsilonTransitions;
   final ImmutableList<String> symbolNames;
 
+  /** Use an {@link AutomatonBuilder}. */
   Automaton(State startState, State endState,
       ImmutableList<SymbolTransition> transitions,
       ImmutableList<EpsilonTransition> epsilonTransitions,
