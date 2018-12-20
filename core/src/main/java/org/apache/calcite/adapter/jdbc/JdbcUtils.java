@@ -157,45 +157,7 @@ final class JdbcUtils {
      * @param i Ordinal of column (1-based, per JDBC)
      */
     private Object value(int i) throws SQLException {
-      // MySQL returns timestamps shifted into local time. Using
-      // getTimestamp(int, Calendar) with a UTC calendar should prevent this,
-      // but does not. So we shift explicitly.
-      switch (types[i]) {
-      case Types.TIMESTAMP:
-        return shift(resultSet.getTimestamp(i + 1));
-      case Types.TIME:
-        return shift(resultSet.getTime(i + 1));
-      case Types.DATE:
-        return shift(resultSet.getDate(i + 1));
-      }
       return reps[i].jdbcGet(resultSet, i + 1);
-    }
-
-    private static Timestamp shift(Timestamp v) {
-      if (v == null) {
-        return null;
-      }
-      long time = v.getTime();
-      int offset = TimeZone.getDefault().getOffset(time);
-      return new Timestamp(time + offset);
-    }
-
-    private static Time shift(Time v) {
-      if (v == null) {
-        return null;
-      }
-      long time = v.getTime();
-      int offset = TimeZone.getDefault().getOffset(time);
-      return new Time((time + offset) % DateTimeUtils.MILLIS_PER_DAY);
-    }
-
-    private static Date shift(Date v) {
-      if (v == null) {
-        return null;
-      }
-      long time = v.getTime();
-      int offset = TimeZone.getDefault().getOffset(time);
-      return new Date(time + offset);
     }
   }
 
