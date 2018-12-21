@@ -254,6 +254,7 @@ public enum BuiltInMethod {
   ITERABLE_FOR_EACH(Iterable.class, "forEach", Consumer.class),
   PREDICATE_TEST(Predicate.class, "test", Object.class),
   BI_PREDICATE_TEST(BiPredicate.class, "test", Object.class, Object.class),
+  CONSUMER_ACCEPT(Consumer.class, "accept", Object.class),
   TYPED_GET_ELEMENT_TYPE(ArrayBindable.class, "getElementType"),
   BINDABLE_BIND(Bindable.class, "bind", DataContext.class),
   RESULT_SET_GET_DATE2(ResultSet.class, "getDate", int.class, Calendar.class),

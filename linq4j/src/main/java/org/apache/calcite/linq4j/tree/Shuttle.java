@@ -88,6 +88,19 @@ public class Shuttle {
         : Expressions.for_(declarations, condition, post, body);
   }
 
+  public Shuttle preVisit(ForEachStatement forEachStatement) {
+    return this;
+  }
+
+  public ForEachStatement visit(ForEachStatement forEachStatement,
+      ParameterExpression parameter, Expression iterable, Statement body) {
+    return parameter.equals(forEachStatement.parameter)
+        && iterable.equals(forEachStatement.iterable)
+        && body == forEachStatement.body
+        ? forEachStatement
+        : Expressions.forEach(parameter, iterable, body);
+  }
+
   public Shuttle preVisit(ThrowStatement throwStatement) {
     return this;
   }

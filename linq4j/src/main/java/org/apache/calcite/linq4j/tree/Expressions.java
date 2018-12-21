@@ -1398,6 +1398,14 @@ public abstract class Expressions {
   }
 
   /**
+   * Creates a ForEachExpression with the given body.
+   */
+  public static ForEachStatement forEach(
+      ParameterExpression parameter, Expression iterable, Statement body) {
+    return new ForEachStatement(parameter, iterable, body);
+  }
+
+  /**
    * Creates a BinaryExpression, given the left and right operands,
    * by calling an appropriate factory method.
    */

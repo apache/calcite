@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -35,10 +36,12 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Enumerables;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
@@ -111,58 +114,17 @@ public class EnumerableMatch extends Match implements EnumerableRel {
                 partitionKeys.asList(),
                 keyPhysType.getFormat()));
 
-    final Expression patternBuilder_ = builder.append("patternBuilder",
-        Expressions.call(BuiltInMethod.PATTERN_BUILDER.method));
-    final Expression automaton_ = builder.append("automaton",
-        Expressions.call(foo(patternBuilder_, pattern),
-            BuiltInMethod.PATTERN_TO_AUTOMATON.method));
-    Expression matcherBuilder_ = builder.append("matcherBuilder",
-        Expressions.call(BuiltInMethod.MATCHER_BUILDER.method, automaton_));
-    for (Map.Entry<String, RexNode> entry : patternDefinitions.entrySet()) {
-      final ParameterExpression rows_ =
-          Expressions.parameter(List.class, "rows"); // "List<E> rows"
-      final BlockBuilder builder2 = new BlockBuilder();
-      builder2.add(Expressions.return_(null, Expressions.constant(true)));
-      final List<MemberDeclaration> memberDeclarations = new ArrayList<>();
-      // Add a predicate method:
-      //
-      //   public boolean test(E row, List<E> rows) {
-      //     return ...;
-      //   }
-      memberDeclarations.add(
-          EnumUtils.overridingMethodDecl(BuiltInMethod.BI_PREDICATE_TEST.method,
-              ImmutableList.of(row_, rows_), builder2.toBlock()));
-      if (EnumerableRules.BRIDGE_METHODS) {
-        // Add a bridge method:
-        //
-        //   public boolean test(Object row, Object rows) {
-        //     return this.test(row, (List) rows);
-        //   }
-        final ParameterExpression rowsO_ =
-            Expressions.parameter(Object.class, "rows");
-        BlockBuilder bridgeBody = new BlockBuilder();
-        bridgeBody.add(
-            Expressions.return_(null,
-                Expressions.call(
-                    Expressions.parameter(Comparable.class, "this"),
-                    BuiltInMethod.BI_PREDICATE_TEST.method,
-                    row_, Expressions.convert_(rowsO_, List.class))));
-        memberDeclarations.add(
-            EnumUtils.overridingMethodDecl(
-                BuiltInMethod.BI_PREDICATE_TEST.method,
-                ImmutableList.of(row_, rowsO_), bridgeBody.toBlock()));
-      }
-      final Expression predicate_ =
-          Expressions.new_(Types.of(BiPredicate.class), NO_EXPRS,
-              memberDeclarations);
-      matcherBuilder_ = Expressions.call(matcherBuilder_,
-          BuiltInMethod.MATCHER_BUILDER_ADD.method,
-          Expressions.constant(entry.getKey()), predicate_);
-    }
-    final Expression matcher_ = builder.append("matcher",
-        Expressions.call(matcherBuilder_,
-            BuiltInMethod.MATCHER_BUILDER_BUILD.method));
+    final Expression matcher_ = implementMatcher(builder, row_);
+    final Expression emitter_ = implementEmitter(implementor, physType);
+    builder.add(
+        Expressions.return_(null,
+            Expressions.call(BuiltInMethod.MATCH.method,
+                inputExp, keySelector_, matcher_, emitter_)));
+    return implementor.result(physType, builder.toBlock());
+  }
 
+  private Expression implementEmitter(EnumerableRelImplementor implementor,
+      PhysType physType, PhysType inputPhysType) {
     final ParameterExpression rows_ =
         Expressions.parameter(List.class, "rows");
     final ParameterExpression rowStates_ =
@@ -171,26 +133,106 @@ public class EnumerableMatch extends Match implements EnumerableRel {
         Expressions.parameter(int.class, "match");
     final ParameterExpression consumer_ =
         Expressions.parameter(Consumer.class, "consumer");
+
+    final ParameterExpression row_ =
+        Expressions.parameter(Object.class, "row");
     final BlockBuilder builder2 = new BlockBuilder();
+    final List<Expression> arguments =
+        RexToLixTranslator.translateProjects(null,
+            (JavaTypeFactory) getCluster().getTypeFactory(),
+            implementor.getConformance(), builder2, physType,
+            implementor.getRootExpression(),
+            new RexToLixTranslator.InputGetterImpl(
+                Collections.singletonList(
+                    Pair.of(row_, inputPhysType))),
+            implementor.allCorrelateVariables);
+    for (RexNode measure : measures.values()) {
+      arguments.add(impl);
+    }
     builder2.add(
         Expressions.statement(
-            Expressions.call(rows_, BuiltInMethod.ITERABLE_FOR_EACH.method,
-                consumer_)));
-    final Expression emitter_ =
-        Expressions.new_(Types.of(Enumerables.Emitter.class), NO_EXPRS,
-            Expressions.list(
-                EnumUtils.overridingMethodDecl(
-                    BuiltInMethod.EMITTER_EMIT.method,
-                    ImmutableList.of(rows_, rowStates_, match_, consumer_),
-                    builder2.toBlock())));
-    builder.add(
-        Expressions.return_(null,
-            Expressions.call(BuiltInMethod.MATCH.method,
-                inputExp, keySelector_, matcher_, emitter_)));
-    return implementor.result(physType, builder.toBlock());
+            Expressions.call(consumer_, BuiltInMethod.CONSUMER_ACCEPT.method,
+                physType.record(arguments))));
+
+    final BlockBuilder builder = new BlockBuilder();
+    builder.add(Expressions.forEach(row_, rows_, builder2.toBlock()));
+
+    return Expressions.new_(
+        Types.of(Enumerables.Emitter.class), NO_EXPRS,
+        Expressions.list(
+            EnumUtils.overridingMethodDecl(
+                BuiltInMethod.EMITTER_EMIT.method,
+                ImmutableList.of(rows_, rowStates_, match_, consumer_),
+                builder.toBlock())));
   }
 
-  private Expression foo(Expression patternBuilder_, RexNode pattern) {
+  private Expression implementMatcher(BlockBuilder builder,
+      ParameterExpression row_) {
+    final Expression patternBuilder_ = builder.append("patternBuilder",
+        Expressions.call(BuiltInMethod.PATTERN_BUILDER.method));
+    final Expression automaton_ = builder.append("automaton",
+        Expressions.call(
+            implementPattern(patternBuilder_, pattern),
+            BuiltInMethod.PATTERN_TO_AUTOMATON.method));
+    Expression matcherBuilder_ = builder.append("matcherBuilder",
+        Expressions.call(BuiltInMethod.MATCHER_BUILDER.method, automaton_));
+    for (Map.Entry<String, RexNode> entry : patternDefinitions.entrySet()) {
+      final Expression predicate_ = implementPredicate(row_);
+      matcherBuilder_ = Expressions.call(matcherBuilder_,
+          BuiltInMethod.MATCHER_BUILDER_ADD.method,
+          Expressions.constant(entry.getKey()), predicate_);
+    }
+    return builder.append("matcher",
+        Expressions.call(matcherBuilder_,
+            BuiltInMethod.MATCHER_BUILDER_BUILD.method));
+  }
+
+  /** Generates code for a predicate. */
+  private Expression implementPredicate(ParameterExpression row_) {
+    final ParameterExpression rows_ =
+        Expressions.parameter(List.class, "rows"); // "List<E> rows"
+    final BlockBuilder builder2 = new BlockBuilder();
+    builder2.add(Expressions.return_(null, Expressions.constant(true)));
+    final List<MemberDeclaration> memberDeclarations = new ArrayList<>();
+    // Add a predicate method:
+    //
+    //   public boolean test(E row, List<E> rows) {
+    //     return ...;
+    //   }
+    memberDeclarations.add(
+        EnumUtils.overridingMethodDecl(
+            BuiltInMethod.BI_PREDICATE_TEST.method,
+            ImmutableList.of(row_, rows_), builder2.toBlock()));
+    if (EnumerableRules.BRIDGE_METHODS) {
+      // Add a bridge method:
+      //
+      //   public boolean test(Object row, Object rows) {
+      //     return this.test(row, (List) rows);
+      //   }
+      final ParameterExpression rowsO_ =
+          Expressions.parameter(Object.class, "rows");
+      BlockBuilder bridgeBody = new BlockBuilder();
+      bridgeBody.add(
+          Expressions.return_(null,
+              Expressions.call(
+                  Expressions.parameter(Comparable.class, "this"),
+                  BuiltInMethod.BI_PREDICATE_TEST.method,
+                  row_, Expressions.convert_(rowsO_, List.class))));
+      memberDeclarations.add(
+          EnumUtils.overridingMethodDecl(
+              BuiltInMethod.BI_PREDICATE_TEST.method,
+              ImmutableList.of(row_, rowsO_), bridgeBody.toBlock()));
+    }
+    return Expressions.new_(Types.of(BiPredicate.class), NO_EXPRS,
+        memberDeclarations);
+  }
+
+  /** Generates code for a pattern.
+   *
+   * <p>For example, for the pattern {@code (A B)}, generates
+   * {@code patternBuilder.symbol("A").symbol("B").seq()}. */
+  private Expression implementPattern(Expression patternBuilder_,
+      RexNode pattern) {
     switch (pattern.getKind()) {
     case LITERAL:
       final String symbol = ((RexLiteral) pattern).getValueAs(String.class);
@@ -201,7 +243,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     case PATTERN_CONCAT:
       final RexCall concat = (RexCall) pattern;
       for (Ord<RexNode> operand : Ord.zip(concat.operands)) {
-        patternBuilder_ = foo(patternBuilder_, operand.e);
+        patternBuilder_ = implementPattern(patternBuilder_, operand.e);
         if (operand.i > 0) {
           patternBuilder_ = Expressions.call(patternBuilder_,
               BuiltInMethod.PATTERN_BUILDER_SEQ.method);

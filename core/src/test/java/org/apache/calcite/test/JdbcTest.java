@@ -6878,24 +6878,25 @@ public class JdbcTest {
   @Test public void testMatch() {
     final String sql = "select *\n"
         + "from \"hr\".\"emps\" match_recognize (\n"
-        + "  order by \"empid\"\n"
+        + "  order by \"empid\" desc\n"
+        + "  measures \"commission\" as c,\n"
+        + "    \"empid\" as empid\n"
         + "  pattern (s up)\n"
         + "  define up as up.\"commission\" > prev(up.\"commission\"))";
     final String convert = ""
-        + "LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
-        + "commission=[$4])\n"
-        + "  LogicalMatch(partition=[{}], order=[[0]], outputFields=[[empid, "
-        + "deptno, name, salary, commission]], allRows=[false], "
+        + "LogicalProject(C=[$0], EMPID=[$1])\n"
+        + "  LogicalMatch(partition=[{}], order=[[0 DESC]], "
+        + "outputFields=[[C, EMPID]], allRows=[false], "
         + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('S', 'UP')], "
         + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
         + "patternDefinitions=[[>(PREV(UP.$4, 0), PREV(UP.$4, 1))]], "
         + "inputFields=[[empid, deptno, name, salary, commission]])\n"
         + "    EnumerableTableScan(table=[[hr, emps]])\n";
     final String plan = "PLAN="
-        + "EnumerableMatch(partition=[{}], order=[[0]], "
-        + "outputFields=[[empid, deptno, name, salary, commission]], allRows=[false], "
-        + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('S', 'UP')], isStrictStarts=[false], "
-        + "isStrictEnds=[false], subsets=[[]], "
+        + "EnumerableMatch(partition=[{}], order=[[0 DESC]], "
+        + "outputFields=[[C, EMPID]], allRows=[false], "
+        + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('S', 'UP')], "
+        + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
         + "patternDefinitions=[[>(PREV(UP.$4, 0), PREV(UP.$4, 1))]], "
         + "inputFields=[[empid, deptno, name, salary, commission]])\n"
         + "  EnumerableTableScan(table=[[hr, emps]])";
@@ -6904,7 +6905,7 @@ public class JdbcTest {
         .query(sql)
         .convertContains(convert)
         .explainContains(plan)
-        .returns("EXPR$0=[250, 500, 1000]\n");
+        .returns("C=1000; EMPID=100");
   }
 
   @Test public void testJsonType() {
@@ -7052,6 +7053,34 @@ public class JdbcTest {
   // Disable checkstyle, so it doesn't complain about fields like "customer_id".
   //CHECKSTYLE: OFF
 
+  /** A schema that contains two tables by reflection.
+   *
+   * <p>Here is the SQL to create equivalent tables in Oracle:
+   *
+   * <blockquote>
+   * <pre>
+   * CREATE TABLE "emps" (
+   *   "empid" INTEGER NOT NULL,
+   *   "deptno" INTEGER NOT NULL,
+   *   "name" VARCHAR2(10) NOT NULL,
+   *   "salary" NUMBER(6, 2) NOT NULL,
+   *   "commission" INTEGER);
+   * INSERT INTO "emps" VALUES (100, 10, 'Bill', 10000, 1000);
+   * INSERT INTO "emps" VALUES (200, 20, 'Eric', 8000, 500);
+   * INSERT INTO "emps" VALUES (150, 10, 'Sebastian', 7000, null);
+   * INSERT INTO "emps" VALUES (110, 10, 'Theodore', 11500, 250);
+   *
+   * CREATE TABLE "depts" (
+   *   "deptno" INTEGER NOT NULL,
+   *   "name" VARCHAR2(10) NOT NULL,
+   *   "employees" ARRAY OF "Employee",
+   *   "location" "Location");
+   * INSERT INTO "depts" VALUES (10, 'Sales', null, (-122, 38));
+   * INSERT INTO "depts" VALUES (30, 'Marketing', null, (0, 52));
+   * INSERT INTO "depts" VALUES (40, 'HR', null, null);
+   * </pre>
+   * </blockquote>
+   */
   public static class HrSchema {
     @Override public String toString() {
       return "HrSchema";

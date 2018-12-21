@@ -89,6 +89,12 @@ public class VisitorImpl<R> implements Visitor<R> {
     return forStatement.body.accept(this);
   }
 
+  public R visit(ForEachStatement forEachStatement) {
+    R r0 = forEachStatement.parameter.accept(this);
+    R r1 = forEachStatement.iterable.accept(this);
+    return forEachStatement.body.accept(this);
+  }
+
   public R visit(FunctionExpression functionExpression) {
     @SuppressWarnings("unchecked") final List<Node> parameterList =
         functionExpression.parameterList;
