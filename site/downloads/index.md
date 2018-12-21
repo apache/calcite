@@ -57,7 +57,7 @@ Release          | Date       | Commit   | Download
 {% endcomment %}{% endif %}{% comment %}
 {% endcomment %}<a href="{{ site.baseurl }}/docs/history.html#{{ post.tag }}">{{ post.version }}</a>{% comment %}
 {% endcomment %} | {{ post.date | date_to_string }}{% comment %}
-{% endcomment %} | <a href="https://github.com/apache/calcite/commit/{{ post.sha }}">{{ post.sha }}</a>{% comment %}
+{% endcomment %} | <a href="https://github.com/apache/calcite/commit/{{ post.sha }}">{{ post.sha | slice: 0, 7 }}</a>{% comment %}
 {% endcomment %} | <a href="{{ p }}/{{ v }}-src.tar.gz{{ q }}">tar</a>{% comment %}
 {% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.tar.gz.{{ digest }}">digest</a>{% comment %}
 {% endcomment %} <a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.tar.gz.asc">pgp</a>){% comment %}
@@ -70,7 +70,11 @@ Release          | Date       | Commit   | Download
 {% endcomment %}
 {% endfor %}
 
-Choose a source distribution in either *tar* or *zip* format.
+To download a source distribution for a particular release, click on
+the *tar* link (for older releases, *zip* format is also available).
+
+The commit hash links to github, which contains the release's version
+control history but does not contain the definitive source artifacts.
 
 For fast downloads, current source distributions are hosted on mirror servers;
 older source distributions are in the
@@ -84,8 +88,10 @@ For security, hash and signature files are always hosted at
 
 # Verify the integrity of the files
 
-You must verify the integrity of the downloaded file using the PGP signature (.asc file) or a hash (.sha256, .md5 for older
-releases). For more information why this must be done, please read [Verifying Apache Software Foundation Releases](https://www.apache.org/info/verification.html).
+You must verify the integrity of the downloaded file using the PGP
+signature (.asc file) or a hash (.sha256; .md5 for older releases).
+For more information why this must be done, please read
+[Verifying Apache Software Foundation Releases](https://www.apache.org/info/verification.html).
 
 To verify the signature using GPG or PGP, please do the following:
 
