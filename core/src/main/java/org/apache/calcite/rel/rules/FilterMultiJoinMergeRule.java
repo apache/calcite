@@ -20,7 +20,13 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Planner rule that merges a
@@ -52,6 +58,12 @@ public class FilterMultiJoinMergeRule extends RelOptRule {
     LogicalFilter filter = call.rel(0);
     MultiJoin multiJoin = call.rel(1);
 
+    // Create a new post-join filter condition
+    List<RexNode> filters = new ArrayList<>();
+    filters.add(filter.getCondition());
+    filters.add(multiJoin.getPostJoinFilter());
+
+    final RexBuilder rexBuilder = multiJoin.getCluster().getRexBuilder();
     MultiJoin newMultiJoin =
         new MultiJoin(
             multiJoin.getCluster(),
@@ -63,7 +75,7 @@ public class FilterMultiJoinMergeRule extends RelOptRule {
             multiJoin.getJoinTypes(),
             multiJoin.getProjFields(),
             multiJoin.getJoinFieldRefCountsMap(),
-            filter.getCondition());
+            RexUtil.composeConjunction(rexBuilder, filters, true));
 
     call.transformTo(newMultiJoin);
   }
