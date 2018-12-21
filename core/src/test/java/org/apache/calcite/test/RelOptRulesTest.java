@@ -65,6 +65,7 @@ import org.apache.calcite.rel.rules.DateRangeRules;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterMergeRule;
+import org.apache.calcite.rel.rules.FilterMultiJoinMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.FilterRemoveIsNotDistinctFromRule;
 import org.apache.calcite.rel.rules.FilterSetOpTransposeRule;
@@ -82,6 +83,7 @@ import org.apache.calcite.rel.rules.ProjectCorrelateTransposeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
 import org.apache.calcite.rel.rules.ProjectJoinTransposeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
+import org.apache.calcite.rel.rules.ProjectMultiJoinMergeRule;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.rules.ProjectSetOpTransposeRule;
 import org.apache.calcite.rel.rules.ProjectToCalcRule;
@@ -1689,6 +1691,18 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(program,
         "select e1.ename from emp e1, dept d, emp e2 "
             + "where e1.deptno = d.deptno and d.deptno = e2.deptno");
+  }
+
+  @Test public void testManyFiltersOnTopOfMultiJoinShouldCollapse() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(JoinToMultiJoinRule.INSTANCE)
+        .addRuleCollection(
+            Arrays.asList(FilterMultiJoinMergeRule.INSTANCE, ProjectMultiJoinMergeRule.INSTANCE))
+        .build();
+    checkPlanning(program,
+        "select * from (select * from emp e1 left outer join dept d on e1.deptno = d.deptno "
+            + "where d.deptno > 3) where ename LIKE 'bar'");
   }
 
   @Test public void testReduceConstants() throws Exception {
