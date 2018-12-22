@@ -26,8 +26,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 /**
- * Base class for functions such as "PI", "USER", "CURRENT_ROLE", and
- * "CURRENT_PATH".
+ * Base class for functions such as "USER", "CURRENT_ROLE", and "CURRENT_PATH".
  */
 public class SqlBaseContextVariable extends SqlFunction {
   //~ Constructors -----------------------------------------------------------

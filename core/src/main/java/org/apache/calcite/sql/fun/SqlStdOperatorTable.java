@@ -43,6 +43,7 @@ import org.apache.calcite.sql.SqlRankFunction;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlValuesOperator;
@@ -1658,8 +1659,17 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction PI =
-      new SqlBaseContextVariable("PI", ReturnTypes.DOUBLE,
-          SqlFunctionCategory.NUMERIC);
+      new SqlFunction(
+          "PI",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.NUMERIC) {
+        public SqlSyntax getSyntax() {
+          return SqlSyntax.FUNCTION_ID;
+        }
+      };
 
   /** {@code FIRST} function to be used within {@code MATCH_RECOGNIZE}. */
   public static final SqlFunction FIRST =
