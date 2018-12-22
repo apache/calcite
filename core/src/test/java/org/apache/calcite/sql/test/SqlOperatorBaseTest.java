@@ -5031,6 +5031,12 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalarApprox("PI", "DOUBLE NOT NULL", 3.1415d, 0.0001d);
     tester.checkFails("^PI()^",
         "No match found for function signature PI\\(\\)", false);
+
+    // assert that PI function is not dynamic [CALCITE-2750]
+    assertEquals(
+        "PI operator should not be identified as dynamic function",
+        SqlStdOperatorTable.PI.isDynamicFunction(),
+        false);
   }
 
   @Test public void testRadiansFunc() {
