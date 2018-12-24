@@ -47,10 +47,9 @@ A basic example of a model file is given below:
     {
       "type": "custom",
       "name": "elasticsearch",
-      "factory": "org.apache.calcite.adapter.elasticsearch2.Elasticsearch2SchemaFactory",
+      "factory": "org.apache.calcite.adapter.elasticsearch.ElasticsearchSchemaFactory",
       "operand": {
         "coordinates": "{'127.0.0.1': 9300}",
-        "userConfig": "{'bulk.flush.max.actions': 10, 'bulk.flush.max.size.mb': 1}",
         "index": "usa"
       }
     }
@@ -58,8 +57,7 @@ A basic example of a model file is given below:
 }
 {% endhighlight %}
 
-This adapter is targeted for Elasticsearch 2.x. To use Calcite with Elasticsearch 5.x+ you can use the factory
-of the adapter targeted for Elasticsearch 5.x: `org.apache.calcite.adapter.elasticsearch5.Elasticsearch5SchemaFactory`
+This adapter is targeted for Elasticsearch versions 2 or older. 
 
 Assuming this file is stored as `model.json`, you can connect to
 Elasticsearch via [`sqlline`](https://github.com/julianhyde/sqlline) as
@@ -134,6 +132,9 @@ The final source json given to Elasticsearch is below:
 }
 {% endhighlight %}
 
-This is the initial version of the Calcite Elasticsearch adapter.
-Work is in progress to introduce new features like aggregations into
-it.
+### Use of Scrolling API
+For queries without aggregate functions (like `COUNT`, `MAX` etc.) elastic adapter 
+uses [scroll API](https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html), by default. 
+This ensures that consistent and full data-set is returned to end user (lazily and in batches). Please note that
+scroll is automatically cleared (removed) when all query resuts are consumed.
+
