@@ -57,8 +57,6 @@ A basic example of a model file is given below:
 }
 {% endhighlight %}
 
-This adapter is targeted for Elasticsearch versions 2 or older. 
-
 Assuming this file is stored as `model.json`, you can connect to
 Elasticsearch via [`sqlline`](https://github.com/julianhyde/sqlline) as
 follows:
@@ -137,4 +135,8 @@ For queries without aggregate functions (like `COUNT`, `MAX` etc.) elastic adapt
 uses [scroll API](https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html), by default. 
 This ensures that consistent and full data-set is returned to end user (lazily and in batches). Please note that
 scroll is automatically cleared (removed) when all query resuts are consumed.
+
+### Supported versions
+Currently this adapter supports ElasticSearch versions 2.x (or newer). Generally
+we try to follow official [support schedule](https://www.elastic.co/support/eol).
 
