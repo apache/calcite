@@ -38,6 +38,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,11 +122,12 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       List<Map.Entry<String, RelFieldCollation.Direction>> sort,
       List<String> groupBy,
       List<Map.Entry<String, String>> aggregations,
+      List<Map.Entry<String, String>> mappings,
       Long offset, Long fetch) throws IOException {
 
     if (!aggregations.isEmpty() || !groupBy.isEmpty()) {
       // process aggregations separately
-      return aggregate(ops, fields, sort, groupBy, aggregations, offset, fetch);
+      return aggregate(ops, fields, sort, groupBy, aggregations, mappings, offset, fetch);
     }
 
     final ObjectNode query = mapper.createObjectNode();
@@ -151,7 +153,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
     }
 
     final Function1<ElasticsearchJson.SearchHit, Object> getter =
-        ElasticsearchEnumerators.getter(fields);
+        ElasticsearchEnumerators.getter(fields, ImmutableMap.copyOf(mappings));
 
     Iterable<ElasticsearchJson.SearchHit> iter;
     if (offset == null) {
@@ -170,6 +172,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       List<Map.Entry<String, RelFieldCollation.Direction>> sort,
       List<String> groupBy,
       List<Map.Entry<String, String>> aggregations,
+      List<Map.Entry<String, String>> mapping,
       Long offset, Long fetch) throws IOException {
 
     if (!groupBy.isEmpty() && offset != null) {
@@ -290,7 +293,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
     }
 
     final Function1<ElasticsearchJson.SearchHit, Object> getter =
-        ElasticsearchEnumerators.getter(fields);
+        ElasticsearchEnumerators.getter(fields, ImmutableMap.copyOf(mapping));
 
     ElasticsearchJson.SearchHits hits =
         new ElasticsearchJson.SearchHits(total, result.stream()
@@ -356,9 +359,10 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
          List<Map.Entry<String, RelFieldCollation.Direction>> sort,
          List<String> groupBy,
          List<Map.Entry<String, String>> aggregations,
+         List<Map.Entry<String, String>> mappings,
          Long offset, Long fetch) {
       try {
-        return getTable().find(ops, fields, sort, groupBy, aggregations, offset, fetch);
+        return getTable().find(ops, fields, sort, groupBy, aggregations, mappings, offset, fetch);
       } catch (IOException e) {
         throw new UncheckedIOException("Failed to query " + getTable().indexName, e);
       }

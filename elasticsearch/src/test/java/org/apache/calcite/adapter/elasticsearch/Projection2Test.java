@@ -31,11 +31,17 @@ import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.regex.PatternSyntaxException;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * Checks renaming of fields (also upper, lower cases) during projections
@@ -72,7 +78,8 @@ public class Projection2Test {
             "select _MAP['a'] AS \"a\", "
                 + " _MAP['b.a']  AS \"b.a\", "
                 +  " _MAP['b.b'] AS \"b.b\", "
-                +  " _MAP['b.c.a'] AS \"b.c.a\" "
+                +  " _MAP['b.c.a'] AS \"b.c.a\", "
+                +  " _MAP['_id'] AS \"id\" " // _id field is implicit
                 +  " from \"elastic\".\"%s\"", NAME);
 
         ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
@@ -102,6 +109,135 @@ public class Projection2Test {
             .returns("EXPR$0=1; EXPR$1=2; EXPR$2=3; EXPR$3=foo; EXPR$4=null; EXPR$5=null\n");
   }
 
+  /**
+   * Test that {@code _id} field is available when queried explicitly.
+   * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-id-field.html">ID Field</a>
+   */
+  @Test
+  public void projectionWithIdField() {
+
+    final CalciteAssert.AssertThat factory = CalciteAssert.that().with(newConnectionFactory());
+
+    factory
+        .query("select \"id\" from view")
+        .returns(regexMatch("id=\\p{Graph}+"));
+
+    factory
+        .query("select \"id\", \"id\" from view")
+        .returns(regexMatch("id=\\p{Graph}+; id=\\p{Graph}+"));
+
+    factory
+        .query("select \"id\", \"a\" from view")
+        .returns(regexMatch("id=\\p{Graph}+; a=1"));
+
+    factory
+        .query("select \"a\", \"id\" from view")
+        .returns(regexMatch("a=1; id=\\p{Graph}+"));
+
+    // single _id column
+    final String sql1 = String.format(Locale.ROOT, "select _MAP['_id'] "
+        + " from \"elastic\".\"%s\"", NAME);
+    factory
+        .query(sql1)
+        .returns(regexMatch("EXPR$0=\\p{Graph}+"));
+
+    // multiple columns: _id and a
+    final String sql2 = String.format(Locale.ROOT, "select _MAP['_id'], _MAP['a'] "
+        + " from \"elastic\".\"%s\"", NAME);
+    factory
+        .query(sql2)
+        .returns(regexMatch("EXPR$0=\\p{Graph}+; EXPR$1=1"));
+
+    // multiple _id columns
+    final String sql3 = String.format(Locale.ROOT, "select _MAP['_id'], _MAP['_id'] "
+        + " from \"elastic\".\"%s\"", NAME);
+    factory
+        .query(sql3)
+        .returns(regexMatch("EXPR$0=\\p{Graph}+; EXPR$1=\\p{Graph}+"));
+
+    // _id column with same alias
+    final String sql4 = String.format(Locale.ROOT, "select _MAP['_id'] as \"_id\" "
+        + " from \"elastic\".\"%s\"", NAME);
+    factory
+        .query(sql4)
+        .returns(regexMatch("_id=\\p{Graph}+"));
+
+    // _id field not available implicitly
+    final String sql5 = String.format(Locale.ROOT, "select * from \"elastic\".\"%s\"", NAME);
+    factory
+        .query(sql5)
+        .returns(regexMatch("_MAP={a=1, b={a=2, b=3, c={a=foo}}}"));
+  }
+
+  /**
+   * Allows values to contain regular expressions instead of exact values.
+   * <pre>
+   *   {@code
+   *      key1=foo1; key2=\\w+; key4=\\d{3,4}
+   *   }
+   * </pre>
+   * @param lines lines with regexp
+   * @return consumer to be used in {@link org.apache.calcite.test.CalciteAssert.AssertQuery}
+   */
+  private static Consumer<ResultSet> regexMatch(String...lines) {
+    return rset -> {
+      try {
+        final int columnCount = rset.getMetaData().getColumnCount();
+        final StringBuilder actual = new StringBuilder();
+        int processedRows = 0;
+        boolean fail = false;
+        while (rset.next()) {
+          if (processedRows >= lines.length) {
+            fail = true;
+          }
+
+          for (int i = 1; i <= columnCount; i++) {
+            final String name = rset.getMetaData().getColumnName(i);
+            final String value = rset.getString(i);
+            actual.append(name).append('=').append(value);
+            if (i < columnCount) {
+              actual.append("; ");
+            }
+
+            // don't re-check if already failed
+            if (!fail) {
+              // splitting string of type: key1=val1; key2=val2
+              final String keyValue = lines[processedRows].split("; ")[i - 1];
+              final String[] parts = keyValue.split("=", 2);
+              final String expectedName = parts[0];
+              final String expectedValue = parts[1];
+
+              boolean valueMatches = expectedValue.equals(value);
+
+              if (!valueMatches) {
+                // try regex
+                try {
+                  valueMatches = value != null && value.matches(expectedValue);
+                } catch (PatternSyntaxException ignore) {
+                  // probably not a regular expression
+                }
+              }
+
+              fail = !(name.equals(expectedName) && valueMatches);
+            }
+
+          }
+
+          processedRows++;
+        }
+
+        // also check that processed same number of rows
+        fail &= processedRows == lines.length;
+
+        if (fail) {
+          assertEquals(String.join("\n", Arrays.asList(lines)), actual.toString());
+          fail("Should have failed on previous line, but for some reason didn't");
+        }
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+    };
+  }
 }
 
 // End Projection2Test.java

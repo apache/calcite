@@ -30,6 +30,11 @@ interface ElasticsearchConstants {
   String FIELDS = "fields";
   String SOURCE_PAINLESS = "params._source";
   String SOURCE_GROOVY = "_source";
+
+  /**
+   * Attribute which uniquely identifies a document (ID)
+   * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-id-field.html">ID Field</a>
+   */
   String ID = "_id";
   String UID = "_uid";
 
