@@ -82,6 +82,15 @@ class ElasticsearchRules {
     return null;
   }
 
+  static boolean isItem(RexNode node) {
+    final Boolean result = node.accept(new RexVisitorImpl<Boolean>(false) {
+      @Override public Boolean visitCall(final RexCall call) {
+        return isItem(call) != null;
+      }
+    });
+    return Boolean.TRUE.equals(result);
+  }
+
   static List<String> elasticsearchFieldNames(final RelDataType rowType) {
     return SqlValidatorUtil.uniquify(
         new AbstractList<String>() {
@@ -102,7 +111,8 @@ class ElasticsearchRules {
   }
 
   static String stripQuotes(String s) {
-    return s.startsWith("\"") && s.endsWith("\"") ? s.substring(1, s.length() - 1) : s;
+    return s.length() > 1 && s.startsWith("\"") && s.endsWith("\"")
+        ? s.substring(1, s.length() - 1) : s;
   }
 
   /**

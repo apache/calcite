@@ -20,6 +20,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.Pair;
 
 import java.util.ArrayList;
@@ -65,6 +66,15 @@ public interface ElasticsearchRel extends RelNode {
     final List<String> groupBy = new ArrayList<>();
 
     /**
+     * Keeps mapping between calcite expression identifier (like {@code EXPR$0}) and
+     * original item call like {@code _MAP['foo.bar']} ({@code foo.bar} really).
+     * This information otherwise might be lost during query translation.
+     *
+     * @see SqlStdOperatorTable#ITEM
+     */
+    final List<Map.Entry<String, String>> expressionItemMap = new ArrayList<>();
+
+    /**
      * Starting index (default {@code 0}). Equivalent to {@code start} in ES query.
      * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-from-size.html">From/Size</a>
      */
@@ -97,6 +107,12 @@ public interface ElasticsearchRel extends RelNode {
       Objects.requireNonNull(field, "field");
       Objects.requireNonNull(expression, "expression");
       aggregations.add(new Pair<>(field, expression));
+    }
+
+    void addExpressionItemMapping(String expressionId, String item) {
+      Objects.requireNonNull(expressionId, "expressionId");
+      Objects.requireNonNull(item, "item");
+      expressionItemMap.add(new Pair<>(expressionId, item));
     }
 
     void offset(long offset) {
