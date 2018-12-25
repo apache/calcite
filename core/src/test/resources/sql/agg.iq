@@ -2699,4 +2699,60 @@ EnumerableAggregate(group=[{0}], EXPR$1=[JSON_OBJECTAGG_NULL_ON_NULL($1, $2)], E
         EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
+select listagg(ename) as combined_name from emp;
++------------------------------------------------+
+| COMBINED_NAME                                  |
++------------------------------------------------+
+| Jane,Bob,Eric,Susan,Alice,Adam,Eve,Grace,Wilma |
++------------------------------------------------+
+(1 row)
+
+!ok
+
+select listagg(ename) within group(order by gender, ename) as combined_name from emp;
++------------------------------------------------+
+| COMBINED_NAME                                  |
++------------------------------------------------+
+| Alice,Eve,Grace,Jane,Susan,Wilma,Adam,Bob,Eric |
++------------------------------------------------+
+(1 row)
+
+!ok
+
+EnumerableAggregate(group=[{}], COMBINED_NAME=[LISTAGG($0) WITHIN GROUP ([1, 0])])
+  EnumerableUnion(all=[true])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Jane'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Bob'], expr#2=['M'], EXPR$0=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eric'], expr#2=['M'], EXPR$0=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Susan'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Alice'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Adam'], expr#2=['M'], EXPR$0=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eve'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Grace'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Wilma'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
+      EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+select
+  listagg(ename) within group(order by deptno, ename) as default_listagg_sep,
+  listagg(ename, '; ') within group(order by deptno, ename desc) as custom_listagg_sep
+from emp group by gender;
++----------------------------------+---------------------------------------+
+| DEFAULT_LISTAGG_SEP              | CUSTOM_LISTAGG_SEP                    |
++----------------------------------+---------------------------------------+
+| Bob,Eric,Adam                    | Bob; Eric; Adam                       |
+| Jane,Alice,Susan,Eve,Grace,Wilma | Jane; Susan; Alice; Eve; Grace; Wilma |
++----------------------------------+---------------------------------------+
+(2 rows)
+
+!ok
+
 # End agg.iq
