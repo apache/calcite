@@ -2625,7 +2625,7 @@ public class RelBuilderTest {
             measuresBuilder.build(), after, subsets, false,
             partitionKeysBuilder.build(), orderKeysBuilder.build(), interval)
         .build();
-    final String expected = "LogicalMatch(partition=[{7}], order=[[0]], "
+    final String expected = "LogicalMatch(partition=[[7]], order=[[0]], "
         + "outputFields=[[$7, 'start_nw', 'bottom_nw']], allRows=[false], "
         + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[(('STRT', "
         + "PATTERN_QUANTIFIER('DOWN', 1, -1, false)), "

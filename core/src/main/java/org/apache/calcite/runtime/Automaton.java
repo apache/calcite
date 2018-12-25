@@ -16,19 +16,21 @@
  */
 package org.apache.calcite.runtime;
 
+import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
 import java.util.Objects;
 
-/** A finite-state automaton.
+/** A nondeterministic finite-state automaton (NFA).
  *
- * <p>It is used to implement the {@link org.apache.calcite.rel.core.Match}
+ * <p>It is used to implement the {@link Match}
  * relational expression (for the {@code MATCH_RECOGNIZE} clause in SQL).
  *
  * @see Pattern
  * @see AutomatonBuilder
+ * @see DeterministicAutomaton
  */
 public class Automaton {
   final State startState;
@@ -77,6 +79,14 @@ public class Automaton {
     }
   }
 
+  public ImmutableList<SymbolTransition> getTransitions() {
+    return this.transitions;
+  }
+
+  public ImmutableList<EpsilonTransition> getEpsilonTransitions() {
+    return this.epsilonTransitions;
+  }
+
   /** Node in the finite-state automaton. A state has a number of
    * transitions to other states, each labeled with the symbol that
    * causes that transition. */
@@ -85,6 +95,22 @@ public class Automaton {
 
     State(int id) {
       this.id = id;
+    }
+
+    @Override public boolean equals(Object o) {
+      return o == this
+          || o instanceof State
+          && ((State) o).id == id;
+    }
+
+    @Override public int hashCode() {
+      return Objects.hash(id);
+    }
+
+    @Override public String toString() {
+      return "State{"
+          + "id=" + id
+          + '}';
     }
   }
 

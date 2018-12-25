@@ -103,7 +103,8 @@ public class VisitorImpl<R> implements Visitor<R> {
   }
 
   public R visit(GotoStatement gotoStatement) {
-    return gotoStatement.expression.accept(this);
+    return gotoStatement.expression == null ? null
+        : gotoStatement.expression.accept(this);
   }
 
   public R visit(IndexExpression indexExpression) {

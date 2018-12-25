@@ -36,6 +36,7 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.ExtendedEnumerable;
 import org.apache.calcite.linq4j.JoinType;
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.MemoryFactory;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.EqualityComparer;
@@ -167,7 +168,7 @@ public enum BuiltInMethod {
   HASH_JOIN(ExtendedEnumerable.class, "hashJoin", Enumerable.class, Function1.class,
       Function1.class, Function2.class),
   MATCH(Enumerables.class, "match", Enumerable.class, Function1.class,
-      Matcher.class, Enumerables.Emitter.class),
+      Matcher.class, Enumerables.Emitter.class, int.class, int.class),
   PATTERN_BUILDER(Utilities.class, "patternBuilder"),
   PATTERN_BUILDER_SYMBOL(Pattern.PatternBuilder.class, "symbol", String.class),
   PATTERN_BUILDER_SEQ(Pattern.PatternBuilder.class, "seq"),
@@ -175,10 +176,10 @@ public enum BuiltInMethod {
   PATTERN_TO_AUTOMATON(Pattern.PatternBuilder.class, "automaton"),
   MATCHER_BUILDER(Matcher.class, "builder", Automaton.class),
   MATCHER_BUILDER_ADD(Matcher.Builder.class, "add", String.class,
-      BiPredicate.class),
+      Predicate.class),
   MATCHER_BUILDER_BUILD(Matcher.Builder.class, "build"),
   EMITTER_EMIT(Enumerables.Emitter.class, "emit", List.class, List.class,
-      int.class, Consumer.class),
+      List.class, int.class, Consumer.class),
   MERGE_JOIN(EnumerableDefaults.class, "mergeJoin", Enumerable.class,
       Enumerable.class, Function1.class, Function1.class, Function2.class,
       boolean.class, boolean.class),
@@ -245,6 +246,8 @@ public enum BuiltInMethod {
   AS_ENUMERABLE2(Linq4j.class, "asEnumerable", Iterable.class),
   ENUMERABLE_TO_LIST(ExtendedEnumerable.class, "toList"),
   AS_LIST(Primitive.class, "asList", Object.class),
+  MEMORY_GET0(MemoryFactory.Memory.class, "get"),
+  MEMORY_GET1(MemoryFactory.Memory.class, "get", int.class),
   ENUMERATOR_CURRENT(Enumerator.class, "current"),
   ENUMERATOR_MOVE_NEXT(Enumerator.class, "moveNext"),
   ENUMERATOR_CLOSE(Enumerator.class, "close"),

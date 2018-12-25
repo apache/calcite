@@ -192,7 +192,7 @@ public abstract class Match extends SingleRel {
 
   @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
-        .item("partition", getPartitionKeys())
+        .item("partition", getPartitionKeys().asList())
         .item("order", getOrderKeys())
         .item("outputFields", getRowType().getFieldNames())
         .item("allRows", isAllRows())

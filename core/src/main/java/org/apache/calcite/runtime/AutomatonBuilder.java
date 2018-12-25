@@ -70,6 +70,15 @@ public class AutomatonBuilder {
       final Pattern.SymbolPattern pSymbol = (Pattern.SymbolPattern) p;
       return symbol(fromState, toState, pSymbol.name);
 
+    case OR:
+      final Pattern.OpPattern pOr = (Pattern.OpPattern) p;
+      return or(fromState, toState, pOr.patterns.get(0), pOr.patterns.get(1));
+
+    case OPTIONAL:
+      // Rewrite as {0,1}
+      final Pattern.OpPattern pOptional = (Pattern.OpPattern) p;
+      return optional(fromState, toState, pOptional.patterns.get(0));
+
     default:
       throw new AssertionError("unknown op " + p.op);
     }
@@ -131,6 +140,21 @@ public class AutomatonBuilder {
       add(pattern, prevState, nextState);
       prevState = nextState;
     }
+    return this;
+  }
+
+  /** Adds a transition for the 'or' pattern. */
+  AutomatonBuilder or(State fromState, State toState, Pattern left,
+      Pattern right) {
+    //
+    //             left
+    //         / -------->  toState
+    //  fromState
+    //         \ --------> toState
+    //             right
+
+    add(left, fromState, toState);
+    add(right, fromState, toState);
     return this;
   }
 
@@ -200,6 +224,12 @@ public class AutomatonBuilder {
       prevState = s;
     }
     transitionList.add(new EpsilonTransition(prevState, toState));
+    return this;
+  }
+
+  private AutomatonBuilder optional(State fromState, State toState, Pattern pattern) {
+    add(pattern, fromState, toState);
+    transitionList.add(new EpsilonTransition(fromState, toState));
     return this;
   }
 }

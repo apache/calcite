@@ -90,8 +90,8 @@ public class AggregateFilterTransposeRule extends RelOptRule {
       // the rule fires forever: A-F => A-F-A => A-A-F-A => A-A-A-F-A => ...
       return;
     }
-    boolean allColumnsInAggregate = aggregate.getGroupSet().
-        contains(filterColumns);
+    final boolean allColumnsInAggregate =
+        aggregate.getGroupSet().contains(filterColumns);
     final Aggregate newAggregate =
         aggregate.copy(aggregate.getTraitSet(), input,
             newGroupSet, null, aggregate.getAggCallList());

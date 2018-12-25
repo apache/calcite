@@ -31,20 +31,21 @@ import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Planner rule that copies a {@link org.apache.calcite.rel.core.Sort} past a
- * {@link org.apache.calcite.rel.core.Join} without its limit and offset.
- * The original {@link org.apache.calcite.rel.core.Sort} is preserved but
- * can be potentially removed by {@link org.apache.calcite.rel.rules.SortRemoveRule} if redundant.
+ * {@link org.apache.calcite.rel.core.Join} without its limit and offset. The
+ * original {@link org.apache.calcite.rel.core.Sort} is preserved but can be
+ * potentially removed by {@link org.apache.calcite.rel.rules.SortRemoveRule} if
+ * redundant.
  *
- * Some examples where {@link org.apache.calcite.rel.rules.SortJoinCopyRule} can be useful are:
- * allowing a {@link org.apache.calcite.rel.core.Sort} to be incorporated in an index scan,
- * facilitating the use of operators requiring sorted inputs,
- * and allowing the sort to be performed on a possibly smaller result.
+ * <p>Some examples where {@link org.apache.calcite.rel.rules.SortJoinCopyRule}
+ * can be useful: allowing a {@link org.apache.calcite.rel.core.Sort} to be
+ * incorporated in an index scan; facilitating the use of operators requiring
+ * sorted inputs; and allowing the sort to be performed on a possibly smaller
+ * result.
  */
 public class SortJoinCopyRule extends RelOptRule {
 

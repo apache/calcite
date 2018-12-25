@@ -583,10 +583,17 @@ public enum ExpressionType {
    */
   Declaration,
 
+  /**
+   * For loop.
+   */
   For,
 
+  /** For-each loop, "for (Type i : expression) body". */
   ForEach,
 
+  /**
+   * While loop.
+   */
   While;
 
   final String op;

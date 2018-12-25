@@ -26,9 +26,7 @@ public class ForEachStatement extends Statement {
   public final Expression iterable;
   public final Statement body;
 
-  /**
-   * Cache the hash code for the expression
-   */
+  /** Cache the hash code for the expression */
   private int hash;
 
   public ForEachStatement(ParameterExpression parameter, Expression iterable,
@@ -52,6 +50,8 @@ public class ForEachStatement extends Statement {
 
   @Override void accept0(ExpressionWriter writer) {
     writer.append("for (")
+        .append(parameter.type)
+        .append(" ")
         .append(parameter)
         .append(" : ")
         .append(iterable)

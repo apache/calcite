@@ -17,7 +17,6 @@
 package org.apache.calcite.sql.parser.parserextensiontesting;
 
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.parser.SqlParserTest;
 
@@ -36,12 +35,12 @@ public class ExtensionSqlParserTest extends SqlParserTest {
     return ExtensionSqlParserImpl.FACTORY;
   }
 
-  @Test public void testAlterSystemExtension() throws SqlParseException {
+  @Test public void testAlterSystemExtension() {
     check("alter system upload jar '/path/to/jar'",
         "ALTER SYSTEM UPLOAD JAR '/path/to/jar'");
   }
 
-  @Test public void testAlterSystemExtensionWithoutAlter() throws SqlParseException {
+  @Test public void testAlterSystemExtensionWithoutAlter() {
     // We need to include the scope for custom alter operations
     checkFails("^upload^ jar '/path/to/jar'",
         "(?s).*Encountered \"upload\" at .*");
