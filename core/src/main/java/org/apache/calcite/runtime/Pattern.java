@@ -38,6 +38,10 @@ public interface Pattern {
   enum Op {
     /** A leaf pattern, consisting of a single symbol. */
     SYMBOL(0, 0),
+    /** Anchor for start "^" */
+    ANCHOR_START(0,0),
+    /** Anchor for end "$" */
+    ANCHOR_END(0,0),
     /** Pattern that matches one pattern followed by another. */
     SEQ(2, -1),
     /** Pattern that matches one pattern or another. */
@@ -48,7 +52,9 @@ public interface Pattern {
     PLUS(1, 1),
     /** Pattern that matches a pattern repeated between {@code minRepeat}
      * and {@code maxRepeat} times. */
-    REPEAT(1, 1);
+    REPEAT(1, 1),
+    /** Pattern that machtes a pattern one time or zero times */
+    OPTIONAL(1, 1);
 
     private final int minArity;
     private final int maxArity;
@@ -119,6 +125,9 @@ public interface Pattern {
      * of the stack,
      * and pushes it onto the stack. */
     public PatternBuilder or() {
+      if (stack.size() < 2) {
+        throw new AssertionError("Expecting stack to have at least 2 items, but has " + stack.size());
+      }
       final Pattern pattern1 = stack.pop();
       final Pattern pattern0 = stack.pop();
       return push(new OpPattern(Op.OR, pattern0, pattern1));
@@ -127,6 +136,19 @@ public interface Pattern {
     public PatternBuilder repeat(int minRepeat, int maxRepeat) {
       final Pattern pattern = stack.pop();
       return push(new RepeatPattern(minRepeat, maxRepeat, pattern));
+    }
+
+    public PatternBuilder optional() {
+      final Pattern pattern = stack.pop();
+      return push(new OpPattern(Op.OPTIONAL, pattern));
+    }
+
+    public PatternBuilder anchor_start() {
+      return push(new OpPattern(Op.ANCHOR_START));
+    }
+
+    public PatternBuilder anchor_end() {
+      return push(new OpPattern(Op.ANCHOR_END));
     }
   }
 
@@ -179,6 +201,10 @@ public interface Pattern {
         return "(" + patterns.get(0) + ")*";
       case PLUS:
         return "(" + patterns.get(0) + ")+";
+      case OR:
+          return patterns.get(0) + "|" + patterns.get(1);
+      case OPTIONAL:
+        return patterns.get(0) + "?";
       default:
         throw new AssertionError("unknown op " + op);
       }
@@ -205,6 +231,7 @@ public interface Pattern {
     }
 
   }
+
 }
 
 // End Pattern.java

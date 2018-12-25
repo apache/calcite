@@ -89,6 +89,44 @@ public class AutomatonTest {
     assertThat(matcher.match(rows).toString(), is(expected));
   }
 
+  @Test public void testOr() {
+    // pattern(a+ b)
+    final Pattern p = Pattern.builder()
+            .symbol("a")
+            .symbol("b")
+            .or().build();
+    assertThat(p.toString(), is("a|b"));
+
+    final String[] rows = {"", "a", "", "b", "", "ab", "a", "ab", "b", "b"};
+    final Matcher<String> matcher =
+            Matcher.<String>builder(p.toAutomaton())
+                    .add("a", (s, list) -> s.contains("a"))
+                    .add("b", (s, list) -> s.contains("b"))
+                    .build();
+    final String expected = "[[a], [b], [ab], [a], [ab], [b], [b]]";
+    assertThat(matcher.match(rows).toString(), is(expected));
+  }
+
+  @Test public void testOptional() {
+    // pattern(a+ b)
+    final Pattern p = Pattern.builder()
+            .symbol("a")
+            .symbol("b").optional().seq()
+            .symbol("c").seq()
+            .build();
+    assertThat(p.toString(), is("a b? c"));
+
+    final String rows = "acabcabbc";
+    final Matcher<Character> matcher =
+            Matcher.<Character>builder(p.toAutomaton())
+                    .add("a", (s, list) -> s == 'a')
+                    .add("b", (s, list) -> s == 'b')
+                    .add("c", (s, list) -> s == 'c')
+                    .build();
+    final String expected = "[[a, c], [a, b, c]]";
+    assertThat(matcher.match(chars(rows)).toString(), is(expected));
+  }
+
   @Test public void testRepeat() {
     // pattern(a b{0, 2} c)
     checkRepeat(0, 2, "a (b){0, 2} c", "[[a, c], [a, b, c], [a, b, b, c]]");
