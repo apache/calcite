@@ -1535,6 +1535,7 @@ and `LISTAGG`).
 | Operator syntax                    | Description
 |:---------------------------------- |:-----------
 | COLLECT( [ ALL &#124; DISTINCT ] value)       | Returns a multiset of the values
+| LISTAGG( [ ALL &#124; DISTINCT ] value [, separator]) | Returns values concatenated into a string, delimited by separator (default ',')
 | COUNT( [ ALL &#124; DISTINCT ] value [, value ]*) | Returns the number of input rows for which *value* is not null (wholly not null if *value* is composite)
 | COUNT(*)                           | Returns the number of input rows
 | FUSION(multiset)                   | Returns the multiset union of *multiset* across all input values
@@ -1558,7 +1559,6 @@ and `LISTAGG`).
 
 Not implemented:
 
-* LISTAGG(string)
 * REGR_AVGX(numeric1, numeric2)
 * REGR_AVGY(numeric1, numeric2)
 * REGR_INTERCEPT(numeric1, numeric2)

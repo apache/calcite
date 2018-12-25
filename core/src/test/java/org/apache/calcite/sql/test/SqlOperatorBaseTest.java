@@ -6195,6 +6195,27 @@ public abstract class SqlOperatorBaseTest {
     tester.checkAgg("collect(DISTINCT x)", values, 2, (double) 0);
   }
 
+  @Test public void testListaggFunc() {
+    tester.setFor(SqlStdOperatorTable.LISTAGG, VM_FENNEL, VM_JAVA);
+    tester.checkFails("listagg(^*^)", "Unknown identifier '\\*'", false);
+    tester.checkFails("^listagg(12)^",
+        "Cannot apply 'LISTAGG' to arguments of type .*'\n.*'", false);
+    tester.checkFails("^listagg(cast(12 as double))^",
+        "Cannot apply 'LISTAGG' to arguments of type .*'\n.*'", false);
+    tester.checkFails("^listagg()^",
+        "Invalid number of arguments to function 'LISTAGG'. Was expecting 1 arguments",
+        false);
+    tester.checkFails("^listagg('1', '2', '3')^",
+        "Invalid number of arguments to function 'LISTAGG'. Was expecting 1 arguments",
+        false);
+    checkAggType(tester, "listagg('test')", "CHAR(4) NOT NULL");
+    checkAggType(tester, "listagg('test', ', ')", "CHAR(4) NOT NULL");
+    final String[] values1 = {"'hello'", "CAST(null AS CHAR)", "'world'", "'!'"};
+    tester.checkAgg("listagg(x)", values1, "hello,world,!", (double) 0);
+    final String[] values2 = {"0", "1", "2", "3"};
+    tester.checkAgg("listagg(cast(x as CHAR))", values2, "0,1,2,3", (double) 0);
+  }
+
   @Test public void testFusionFunc() {
     tester.setFor(SqlStdOperatorTable.FUSION, VM_FENNEL, VM_JAVA);
   }
