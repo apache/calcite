@@ -99,6 +99,11 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
       // don't traverse into queries
       return null;
     }
+    if (call.getKind() == SqlKind.WITHIN_GROUP) {
+      if (aggregate) {
+        return found(call);
+      }
+    }
     if (call.getKind() == SqlKind.OVER) {
       if (over) {
         return found(call);

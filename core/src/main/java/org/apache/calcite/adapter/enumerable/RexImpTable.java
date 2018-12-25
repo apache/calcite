@@ -173,6 +173,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LEAD;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LIKE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LISTAGG;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LOCALTIME;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LOCALTIMESTAMP;
@@ -246,6 +247,8 @@ public class RexImpTable {
       Expressions.constant(false);
   public static final ConstantExpression TRUE_EXPR =
       Expressions.constant(true);
+  public static final ConstantExpression COMMA_EXPR =
+      Expressions.constant(",");
   public static final MemberExpression BOXED_FALSE_EXPR =
       Expressions.field(null, Boolean.class, "FALSE");
   public static final MemberExpression BOXED_TRUE_EXPR =
@@ -505,6 +508,7 @@ public class RexImpTable {
     aggMap.put(ANY_VALUE, minMax);
     aggMap.put(SINGLE_VALUE, constructorSupplier(SingleValueImplementor.class));
     aggMap.put(COLLECT, constructorSupplier(CollectImplementor.class));
+    aggMap.put(LISTAGG, constructorSupplier(ListaggImplementor.class));
     aggMap.put(FUSION, constructorSupplier(FusionImplementor.class));
     final Supplier<GroupingImplementor> grouping =
         constructorSupplier(GroupingImplementor.class);
@@ -1331,6 +1335,31 @@ public class RexImpTable {
               Expressions.call(add.accumulator().get(0),
                   BuiltInMethod.COLLECTION_ADD.method,
                   add.arguments().get(0))));
+    }
+  }
+
+  /** Implementor for the {@code LISTAGG} aggregate function. */
+  static class ListaggImplementor extends StrictAggImplementor {
+    @Override protected void implementNotNullReset(AggContext info,
+        AggResetContext reset) {
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(0), NULL_EXPR)));
+    }
+
+    @Override public void implementNotNullAdd(AggContext info,
+        AggAddContext add) {
+      final Expression accValue = add.accumulator().get(0);
+      final Expression arg0 = add.arguments().get(0);
+      final Expression arg1 = add.arguments().size() == 2
+          ? add.arguments().get(1) : COMMA_EXPR;
+      final Expression result = Expressions.condition(
+          Expressions.equal(NULL_EXPR, accValue),
+          arg0,
+          Expressions.call(BuiltInMethod.STRING_CONCAT.method, accValue,
+              Expressions.call(BuiltInMethod.STRING_CONCAT.method, arg1, arg0)));
+
+      add.currentBlock().add(Expressions.statement(Expressions.assign(accValue, result)));
     }
   }
 

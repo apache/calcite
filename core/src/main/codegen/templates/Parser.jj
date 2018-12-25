@@ -5690,6 +5690,7 @@ SqlIdentifier ReservedFunctionName() :
     |   <LAG>
     |   <LEAD>
     |   <LAST_VALUE>
+    |   <LISTAGG>
     |   <LN>
     |   <LOCALTIME>
     |   <LOCALTIMESTAMP>
@@ -6296,6 +6297,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < LIKE: "LIKE" >
 |   < LIKE_REGEX: "LIKE_REGEX" >
 |   < LIMIT: "LIMIT" >
+|   < LISTAGG: "LISTAGG" >
 |   < LN: "LN" >
 |   < LOCAL: "LOCAL" >
 |   < LOCALTIME: "LOCALTIME" >

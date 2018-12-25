@@ -910,6 +910,9 @@ public enum SqlKind {
   /** The {@code NTH_VALUE} aggregate function. */
   NTH_VALUE,
 
+  /** The {@code LISTAGG} aggregate function. */
+  LISTAGG,
+
   /** The {@code COLLECT} aggregate function. */
   COLLECT,
 
@@ -1097,7 +1100,7 @@ public enum SqlKind {
       EnumSet.of(COUNT, SUM, SUM0, MIN, MAX, LEAD, LAG, FIRST_VALUE,
           LAST_VALUE, COVAR_POP, COVAR_SAMP, REGR_COUNT, REGR_SXX, REGR_SYY,
           AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
-          FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
+          LISTAGG, FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
           CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG);
 
   /**
