@@ -52,6 +52,8 @@ public class ForEachStatement extends Statement {
 
   @Override void accept0(ExpressionWriter writer) {
     writer.append("for (")
+        .append(parameter.type)
+        .append(" ")
         .append(parameter)
         .append(" : ")
         .append(iterable)

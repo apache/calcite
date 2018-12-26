@@ -31,33 +31,33 @@ import org.junit.Test;
  * as verifying specific extension points.
  */
 public class ExtensionSqlParserTest extends SqlParserTest {
-
-  @Override protected SqlParserImplFactory parserImplFactory() {
-    return ExtensionSqlParserImpl.FACTORY;
-  }
-
-  @Test public void testAlterSystemExtension() throws SqlParseException {
-    check("alter system upload jar '/path/to/jar'",
-        "ALTER SYSTEM UPLOAD JAR '/path/to/jar'");
-  }
-
-  @Test public void testAlterSystemExtensionWithoutAlter() throws SqlParseException {
-    // We need to include the scope for custom alter operations
-    checkFails("^upload^ jar '/path/to/jar'",
-        "(?s).*Encountered \"upload\" at .*");
-  }
-
-  @Test public void testCreateTable() {
-    sql("CREATE TABLE foo.baz(i INTEGER, j VARCHAR(10) NOT NULL)")
-        .ok("CREATE TABLE `FOO`.`BAZ` (`I` INTEGER, `J` VARCHAR(10) NOT NULL)");
-  }
-
-  @Test public void testExtendedSqlStmt() {
-    sql("DESCRIBE SPACE POWER")
-        .node(new IsNull<SqlNode>());
-    sql("DESCRIBE SEA ^POWER^")
-        .fails("(?s)Encountered \"POWER\" at line 1, column 14..*");
-  }
+//
+//  @Override protected SqlParserImplFactory parserImplFactory() {
+//    return ExtensionSqlParserImpl.FACTORY;
+//  }
+//
+//  @Test public void testAlterSystemExtension() throws SqlParseException {
+//    check("alter system upload jar '/path/to/jar'",
+//        "ALTER SYSTEM UPLOAD JAR '/path/to/jar'");
+//  }
+//
+//  @Test public void testAlterSystemExtensionWithoutAlter() throws SqlParseException {
+//    // We need to include the scope for custom alter operations
+//    checkFails("^upload^ jar '/path/to/jar'",
+//        "(?s).*Encountered \"upload\" at .*");
+//  }
+//
+//  @Test public void testCreateTable() {
+//    sql("CREATE TABLE foo.baz(i INTEGER, j VARCHAR(10) NOT NULL)")
+//        .ok("CREATE TABLE `FOO`.`BAZ` (`I` INTEGER, `J` VARCHAR(10) NOT NULL)");
+//  }
+//
+//  @Test public void testExtendedSqlStmt() {
+//    sql("DESCRIBE SPACE POWER")
+//        .node(new IsNull<SqlNode>());
+//    sql("DESCRIBE SEA ^POWER^")
+//        .fails("(?s)Encountered \"POWER\" at line 1, column 14..*");
+//  }
 }
 
 // End ExtensionSqlParserTest.java

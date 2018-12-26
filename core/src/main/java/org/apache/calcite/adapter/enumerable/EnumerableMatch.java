@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -30,9 +31,8 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.*;
 import org.apache.calcite.runtime.Enumerables;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.adapter.enumerable.EnumUtils.NO_EXPRS;
 
@@ -97,7 +98,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     final EnumerableRel input = (EnumerableRel) getInput();
     final Result result = implementor.visitChild(this, 0, input, pref);
     final PhysType physType =
-        PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(),
+        PhysTypeImpl.of(implementor.getTypeFactory(), input.getRowType(),
             result.format);
     final Expression inputExp =
         builder.append("input", result.block);
@@ -114,8 +115,20 @@ public class EnumerableMatch extends Match implements EnumerableRel {
                 partitionKeys.asList(),
                 keyPhysType.getFormat()));
 
+    // ...
+    List<Map.Entry<String, RelDataType>> types = measures.entrySet().stream()
+            .collect(Collectors.toMap(
+                    e -> e.getKey(),
+                    e -> e.getValue().getType()
+            )).entrySet().stream()
+            .collect(Collectors.toList());
+
+    final PhysType emitType = PhysTypeImpl.of(implementor.getTypeFactory(),
+            implementor.getTypeFactory().createStructType(types),
+            result.format);
+
     final Expression matcher_ = implementMatcher(builder, row_);
-    final Expression emitter_ = implementEmitter(implementor, physType);
+    final Expression emitter_ = implementEmitter(implementor, emitType, physType);
     builder.add(
         Expressions.return_(null,
             Expressions.call(BuiltInMethod.MATCH.method,
@@ -135,27 +148,29 @@ public class EnumerableMatch extends Match implements EnumerableRel {
         Expressions.parameter(Consumer.class, "consumer");
 
     final ParameterExpression row_ =
-        Expressions.parameter(Object.class, "row");
+        Expressions.parameter(inputPhysType.getJavaRowType(), "row");
     final BlockBuilder builder2 = new BlockBuilder();
+    RexBuilder rexBuilder = new RexBuilder(implementor.getTypeFactory());
+    RexProgramBuilder rexProgramBuilder = new RexProgramBuilder(inputPhysType.getRowType(), rexBuilder);
+    for (Map.Entry<String, RexNode> entry : measures.entrySet()) {
+      rexProgramBuilder.addProject(entry.getValue(), entry.getKey());
+    }
     final List<Expression> arguments =
-        RexToLixTranslator.translateProjects(null,
-            (JavaTypeFactory) getCluster().getTypeFactory(),
+        RexToLixTranslator.translateProjects(rexProgramBuilder.getProgram(),
+    (JavaTypeFactory) getCluster().getTypeFactory(),
             implementor.getConformance(), builder2, physType,
             implementor.getRootExpression(),
             new RexToLixTranslator.InputGetterImpl(
                 Collections.singletonList(
                     Pair.of(row_, inputPhysType))),
             implementor.allCorrelateVariables);
-    for (RexNode measure : measures.values()) {
-      arguments.add(impl);
-    }
     builder2.add(
         Expressions.statement(
             Expressions.call(consumer_, BuiltInMethod.CONSUMER_ACCEPT.method,
                 physType.record(arguments))));
 
     final BlockBuilder builder = new BlockBuilder();
-    builder.add(Expressions.forEach(row_, rows_, builder2.toBlock()));
+//    builder.add(Expressions.forEach(row_, rows_, builder2.toBlock()));
 
     return Expressions.new_(
         Types.of(Enumerables.Emitter.class), NO_EXPRS,

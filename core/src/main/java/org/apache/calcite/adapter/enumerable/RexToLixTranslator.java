@@ -664,7 +664,9 @@ public class RexToLixTranslator {
       nullAs = RexImpTable.NullAs.NOT_POSSIBLE;
     }
     switch (expr.getKind()) {
-    case INPUT_REF: {
+    case INPUT_REF:
+    case PATTERN_INPUT_REF:
+      {
       final int index = ((RexInputRef) expr).getIndex();
       Expression x = inputGetter.field(list, index, storageType);
 

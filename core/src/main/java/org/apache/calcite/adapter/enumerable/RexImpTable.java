@@ -595,6 +595,9 @@ public class RexImpTable {
     winAggMap.put(NTILE, constructorSupplier(NtileImplementor.class));
     winAggMap.put(COUNT, constructorSupplier(CountWinImplementor.class));
     winAggMap.put(REGR_COUNT, constructorSupplier(CountWinImplementor.class));
+
+    // Functions for MATCH_RECOGNIZE
+    defineMethod(FINAL, BuiltInMethod.IDENTITY_SELECTOR.method, NullPolicy.ANY);
   }
 
   private <T> Supplier<T> constructorSupplier(Class<T> klass) {
