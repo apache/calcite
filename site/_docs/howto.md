@@ -741,7 +741,7 @@ Thanks to everyone who has contributed to this release.
 https://github.com/apache/calcite/blob/XXXX/site/_docs/history.md
 
 The commit to be voted upon:
-https://git-wip-us.apache.org/repos/asf/calcite/commit/NNNNNN
+https://gitbox.apache.org/repos/asf?p=calcite.git;a=commit;h=NNNNNN
 
 Its hash is XXXX.
 
