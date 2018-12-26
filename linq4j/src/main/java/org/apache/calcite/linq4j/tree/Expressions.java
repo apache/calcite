@@ -592,7 +592,7 @@ public abstract class Expressions {
    * Creates a GotoExpression representing a continue statement.
    */
   public static GotoStatement continue_(LabelTarget labelTarget) {
-    throw Extensions.todo();
+    return new GotoStatement(GotoExpressionKind.Continue, null, null);
   }
 
   /**

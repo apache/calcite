@@ -40,6 +40,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -133,7 +135,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
         Expressions.return_(null,
             Expressions.call(BuiltInMethod.MATCH.method,
                 inputExp, keySelector_, matcher_, emitter_)));
-    return implementor.result(physType, builder.toBlock());
+    return implementor.result(emitType, builder.toBlock());
   }
 
   private Expression implementEmitter(EnumerableRelImplementor implementor,
@@ -150,6 +152,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     final ParameterExpression row_ =
         Expressions.parameter(inputPhysType.getJavaRowType(), "row");
     final BlockBuilder builder2 = new BlockBuilder();
+
     RexBuilder rexBuilder = new RexBuilder(implementor.getTypeFactory());
     RexProgramBuilder rexProgramBuilder = new RexProgramBuilder(inputPhysType.getRowType(), rexBuilder);
     for (Map.Entry<String, RexNode> entry : measures.entrySet()) {
@@ -164,13 +167,34 @@ public class EnumerableMatch extends Match implements EnumerableRel {
                 Collections.singletonList(
                     Pair.of(row_, inputPhysType))),
             implementor.allCorrelateVariables);
+
+    final ParameterExpression result_ = Expressions.parameter(physType.getJavaRowType());
+    // final ParameterExpression result__ = Expressions.parameter(physType.getJavaRowType());
+
+    builder2.add(Expressions.declare(Modifier.FINAL, result_, Expressions.new_(physType.getJavaRowType())));
+    for (int i = 0; i < arguments.size(); i++) {
+      builder2.add(Expressions.statement(Expressions.assign(physType.fieldReference(result_, i), arguments.get(i))));
+    }
+    // builder2.add(Expressions.declare(Modifier.PUBLIC, result__, physType.record(arguments)));
     builder2.add(
         Expressions.statement(
-            Expressions.call(consumer_, BuiltInMethod.CONSUMER_ACCEPT.method,
-                physType.record(arguments))));
+            Expressions.call(consumer_, BuiltInMethod.CONSUMER_ACCEPT.method, result_)
+        ));
 
     final BlockBuilder builder = new BlockBuilder();
-//    builder.add(Expressions.forEach(row_, rows_, builder2.toBlock()));
+
+    builder.add(Expressions.forEach(row_, rows_,
+            Expressions.block(
+                    // Add NULL Check for the Rows as they are allowed to be null
+                    Expressions.ifThen(
+                            Expressions.equal(row_, Expressions.constant(null)),
+                            Expressions.continue_(null)),
+                    Expressions.ifThen(
+                            Expressions.equal(Expressions.field(row_, "commission"), Expressions.constant(null)),
+                            Expressions.continue_(null)),
+                    builder2.toBlock()
+            )
+    ));
 
     return Expressions.new_(
         Types.of(Enumerables.Emitter.class), NO_EXPRS,
