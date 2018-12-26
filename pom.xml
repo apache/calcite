@@ -163,8 +163,8 @@ limitations under the License.
   </issueManagement>
 
   <scm>
-    <connection>scm:git:https://git-wip-us.apache.org/repos/asf/calcite.git</connection>
-    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/calcite.git</developerConnection>
+    <connection>scm:git:https://gitbox.apache.org/repos/asf/calcite.git</connection>
+    <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/calcite.git</developerConnection>
     <url>https://github.com/apache/calcite</url>
     <tag>HEAD</tag>
   </scm>
