@@ -28,6 +28,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.fun.SqlBitOpAggFunction;
 import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumAggFunction;
@@ -253,6 +254,10 @@ public abstract class Match extends SingleRel {
         break;
       case ANY_VALUE:
         aggFunction = SqlStdOperatorTable.ANY_VALUE;
+        break;
+      case BIT_AND:
+      case BIT_OR:
+        aggFunction = new SqlBitOpAggFunction(call.getKind());
         break;
       default:
         for (RexNode rex : call.getOperands()) {
