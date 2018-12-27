@@ -123,7 +123,9 @@ public class Enumerables {
                       k -> matcher.createPartitionState());
               matcher.matchOne(e, partitionState,
                   // TODO 26.12.18 jf: add row states (whatever this is?)
-                  list -> emitter.emit(list, null, matchCounter.getAndIncrement(), emitRows::add));
+                  list -> {
+                    emitter.emit(list, null, null, matchCounter.getAndIncrement(), emitRows::add);
+                  });
 /*
               recentRows.add(e);
               int earliestRetainedRow = Integer.MAX_VALUE;
@@ -199,7 +201,7 @@ public class Enumerables {
    * @param <E> element type
    * @param <TResult> result type */
   public interface Emitter<E, TResult> {
-    void emit(List<E> rows, List<Integer> rowStates, int match,
+    void emit(List<E> rows, List<Integer> rowStates, List<String> rowSymbols, int match,
         Consumer<TResult> consumer);
   }
 }

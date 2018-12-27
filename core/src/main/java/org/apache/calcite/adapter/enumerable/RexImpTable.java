@@ -598,6 +598,17 @@ public class RexImpTable {
 
     // Functions for MATCH_RECOGNIZE
     defineMethod(FINAL, "abs", NullPolicy.ANY);
+    final Method dummy;
+    try {
+      dummy = RexImpTable.class.getMethod("dummy", Object.class, Object.class);
+      defineMethod(PREV, dummy, NullPolicy.ANY);
+    } catch (NoSuchMethodException e) {
+      e.printStackTrace();
+    }
+  }
+
+  public static boolean dummy(Object a, Object b) {
+    return true;
   }
 
   private <T> Supplier<T> constructorSupplier(Class<T> klass) {

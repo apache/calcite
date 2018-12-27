@@ -16,9 +16,11 @@
  */
 package org.apache.calcite.runtime;
 
+import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
 import java.util.AbstractList;
+import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -181,6 +183,29 @@ public class AutomatonTest {
             .build();
     assertThat(matcher.match(chars(rows)).toString(),
         is("[[a, b, a, c], [a, b, a, b, a, c], [a, b, a, c]]"));
+  }
+
+  @Test
+  public void testResultWithLabels() {
+    // pattern(a)
+    final Pattern p = Pattern.builder()
+            .symbol("A")
+            .symbol("B").seq()
+            .build();
+    assertThat(p.toString(), is("A B"));
+
+    final String[] rows = {"", "a", "ab", "a", "b"};
+    final Matcher<String> matcher =
+            Matcher.<String>builder(p.toAutomaton())
+                    .add("A", (s, list) -> s.contains("a"))
+                    .add("B", (s, list) -> s.contains("b"))
+                    .build();
+    final Matcher.PartitionState<String> partitionState = matcher.createPartitionState();
+    final ImmutableList.Builder<List<Matcher.Tuple<String>>> builder = ImmutableList.builder();
+    for (String row : rows) {
+      matcher.matchOneWithSymbols(row, partitionState, builder::add);
+    }
+    assertThat(builder.build().toString(), is("[[(A, a), (B, ab)], [(A, a), (B, b)]]"));
   }
 
   /** Converts a string into an iterable collection of its characters. */

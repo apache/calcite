@@ -232,8 +232,12 @@ public class EnumerablesTest {
     Enumerables.Emitter<Emp, String> emitter = new Enumerables.Emitter<Emp, String>() {
 
       @Override
-      public void emit(List rows, List rowStates, int match, Consumer consumer) {
-        consumer.accept(String.format("%s %s %d", rows, rowStates, match));
+      public void emit(List<Emp> rows, List<Integer> rowStates, List<String> rowSymbols, int match, Consumer<String> consumer) {
+        for (int i = 0; i < rows.size(); i++) {
+          if ("A".equals(rowSymbols.get(i))) {
+            consumer.accept(String.format("%s %s %d", rows, rowStates, match));
+          }
+        }
       }
     };
 
