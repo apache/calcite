@@ -39,9 +39,9 @@ public interface Pattern {
     /** A leaf pattern, consisting of a single symbol. */
     SYMBOL(0, 0),
     /** Anchor for start "^" */
-    ANCHOR_START(0,0),
+    ANCHOR_START(0, 0),
     /** Anchor for end "$" */
-    ANCHOR_END(0,0),
+    ANCHOR_END(0, 0),
     /** Pattern that matches one pattern followed by another. */
     SEQ(2, -1),
     /** Pattern that matches one pattern or another. */
@@ -194,19 +194,19 @@ public interface Pattern {
 
     @Override public String toString() {
       switch (op) {
-      case SEQ:
-        return patterns.stream().map(Object::toString)
-            .collect(Collectors.joining(" "));
-      case STAR:
-        return "(" + patterns.get(0) + ")*";
-      case PLUS:
-        return "(" + patterns.get(0) + ")+";
-      case OR:
+        case SEQ:
+          return patterns.stream().map(Object::toString)
+              .collect(Collectors.joining(" "));
+        case STAR:
+          return "(" + patterns.get(0) + ")*";
+        case PLUS:
+          return "(" + patterns.get(0) + ")+";
+        case OR:
           return patterns.get(0) + "|" + patterns.get(1);
-      case OPTIONAL:
-        return patterns.get(0) + "?";
-      default:
-        throw new AssertionError("unknown op " + op);
+        case OPTIONAL:
+          return patterns.get(0) + "?";
+        default:
+          throw new AssertionError("unknown op " + op);
       }
     }
 
@@ -231,7 +231,6 @@ public interface Pattern {
     }
 
   }
-
 }
 
 // End Pattern.java
