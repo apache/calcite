@@ -16,15 +16,10 @@
  */
 package org.apache.calcite.runtime;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import org.apache.calcite.runtime.mr.Tuple;
+import com.google.common.collect.ImmutableList;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import com.google.common.collect.ImmutableList;
-
 import java.util.Objects;
-import java.util.Set;
 
 /** A finite-state automaton.
  *

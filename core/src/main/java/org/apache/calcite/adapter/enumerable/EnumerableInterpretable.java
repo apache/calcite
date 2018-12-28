@@ -117,7 +117,6 @@ public class EnumerableInterpretable extends ConverterImpl
     }
 
     Hook.JAVA_PLAN.run(s);
-    System.out.println(s);
 
     try {
       if (spark != null && spark.enabled()) {
