@@ -18,15 +18,17 @@ package org.apache.calcite.runtime;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 
 /** A finite-state automaton (Nondeterministic).
  *
- * <p>It is used to implement the {@link org.apache.calcite.rel.core.Match}
+ * <p>It is used to implement the {@link Match}
  * relational expression (for the {@code MATCH_RECOGNIZE} clause in SQL).
  *
  * @see Pattern
@@ -77,6 +79,14 @@ public class Automaton {
         }
       }
     }
+  }
+
+  public ImmutableList<SymbolTransition> getTransitions() {
+    return this.transitions;
+  }
+
+  public ImmutableList<EpsilonTransition> getEpsilonTransitions() {
+    return this.epsilonTransitions;
   }
 
   /** Node in the finite-state automaton. A state has a number of
@@ -143,141 +153,6 @@ public class Automaton {
     }
   }
 
-  /**
-   * A deterministic finite automaton (DFA) which can be constructed from the nondeterministic {@link Automaton}.
-   */
-  public static class DeterministicAutomaton {
-
-    final MultiState startState;
-    private final Automaton automaton;
-     private final ImmutableSet<MultiState> endStates;
-    // private final ImmutableList<SymbolTransition> transitions;
-
-    DeterministicAutomaton(Automaton automaton) {
-      this.automaton = automaton;
-      // Construct the DFA from NFA
-      // Calculate eps closure of start state
-      this.startState = epsilonClosure(automaton.startState);
-      final HashSet<MultiState> traversedStates = new HashSet<>();
-      // Add transitions
-      final State state = automaton.startState;
-      final MultiState closure = epsilonClosure(state);
-      traversedStates.add(closure);
-      // Calculate ...
-      final ImmutableList.Builder<Transition> transitionsBuilder = ImmutableList.builder();
-
-      traverse(closure, transitionsBuilder, traversedStates);
-
-      // Calculate final States
-      final ImmutableSet.Builder<MultiState> endStateBuilder = ImmutableSet.builder();
-      traversedStates.stream()
-          .filter(ms -> ms.contains(automaton.endState))
-          .forEach(endStateBuilder::add);
-      this.endStates = endStateBuilder.build();
-
-      System.out.println("New States are:");
-      traversedStates.forEach(System.out::println);
-
-      System.out.println("End States are:");
-      endStates.forEach(System.out::println);
-    }
-
-    private void traverse(MultiState start, ImmutableList.Builder<Transition> transitionsBuilder, HashSet<MultiState> traversedStates) {
-      traversedStates.add(start);
-      final HashSet<MultiState> newStates = new HashSet<>();
-      for (int symbol = 0; symbol < automaton.symbolNames.size(); symbol++) {
-        final Optional<MultiState> next = addTransitions(start, symbol, transitionsBuilder);
-        next.ifPresent(newStates::add);
-      }
-      // Remove all already known states
-      newStates.removeAll(traversedStates);
-      // If we have really new States, then traverse them
-      newStates.forEach(s -> traverse(s, transitionsBuilder, traversedStates));
-    }
-
-    private Optional<MultiState> addTransitions(MultiState start, int symbol,
-                                                ImmutableList.Builder<Transition> transitionsBuilder) {
-      final ImmutableSet.Builder<State> builder = ImmutableSet.builder();
-      for (SymbolTransition transition : this.automaton.transitions) {
-        // Consider only transitions for the given symbol
-        if (transition.symbol != symbol) {
-          continue;
-        }
-        // Consider only those emitting from current state
-        if (!start.contains(transition.fromState)) {
-          continue;
-        }
-        // ...
-        builder.addAll(epsilonClosure(transition.toState).states);
-      }
-      final ImmutableSet<State> stateSet = builder.build();
-      if (stateSet.isEmpty()) {
-        return Optional.empty();
-      }
-      final MultiState next = new MultiState(builder.build());
-      System.out.println(start + "-" + automaton.symbolNames.get(symbol) + "-> " + next);
-      final Transition transition = new Transition(start, next, symbol);
-      // Add the state to the list and add the transition in the table
-      transitionsBuilder.add(transition);
-      return Optional.of(next);
-    }
-
-    private MultiState epsilonClosure(State state) {
-      final ImmutableSet.Builder<State> builder = ImmutableSet.builder();
-      builder.add(state);
-      automaton.epsilonTransitions.stream()
-          .filter(t -> t.fromState.equals(state))
-          .map(t -> t.toState)
-          .forEach(builder::add);
-      return new MultiState(builder.build());
-    }
-
-    static class Transition {
-      MultiState fromState;
-      MultiState toState;
-      int symbol;
-
-      public Transition(MultiState fromState, MultiState toState, int symbol) {
-        this.fromState = fromState;
-        this.toState = toState;
-        this.symbol = symbol;
-      }
-    }
-
-    static class MultiState {
-
-      private ImmutableSet<State> states;
-
-      public MultiState(State... states) {
-        this.states = ImmutableSet.copyOf(states);
-      }
-
-      public MultiState(ImmutableSet<State> states) {
-        this.states = states;
-      }
-
-      public boolean contains(State state) {
-        return states.contains(state);
-      }
-
-      @Override public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        MultiState that = (MultiState) o;
-        return Objects.equals(states, that.states);
-      }
-
-      @Override public int hashCode() {
-        return Objects.hash(states);
-      }
-
-      @Override public String toString() {
-        return "MultiState{" +
-            "states=" + states +
-            '}';
-      }
-    }
-  }
 }
 
 // End Automaton.java
