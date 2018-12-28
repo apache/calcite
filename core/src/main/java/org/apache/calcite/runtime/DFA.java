@@ -99,7 +99,7 @@ public class DFA {
       return Optional.empty();
     }
     final MultiState next = new MultiState(builder.build());
-    final Transition transition = new Transition(start, next, symbol);
+    final Transition transition = new Transition(start, next, symbol, automaton.symbolNames.get(symbol));
     // Add the state to the list and add the transition in the table
     transitionsBuilder.add(transition);
     return Optional.of(next);
@@ -116,14 +116,32 @@ public class DFA {
   }
 
   static class Transition {
-    MultiState fromState;
-    MultiState toState;
-    int symbol;
+    private MultiState fromState;
+    private MultiState toState;
+    private int symbolId;
+    private String symbol;
 
-    public Transition(MultiState fromState, MultiState toState, int symbol) {
+    public Transition(MultiState fromState, MultiState toState, int symbolId, String symbol) {
       this.fromState = fromState;
       this.toState = toState;
+      this.symbolId = symbolId;
       this.symbol = symbol;
+    }
+
+    public MultiState getFromState() {
+      return fromState;
+    }
+
+    public MultiState getToState() {
+      return toState;
+    }
+
+    public int getSymbolId() {
+      return symbolId;
+    }
+
+    public String getSymbol() {
+      return symbol;
     }
   }
 

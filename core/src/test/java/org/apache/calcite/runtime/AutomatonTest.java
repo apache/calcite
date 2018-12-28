@@ -94,9 +94,9 @@ public class AutomatonTest {
   @Test public void testOr() {
     // pattern(a+ b)
     final Pattern p = Pattern.builder()
-            .symbol("a")
-            .symbol("b")
-            .or().build();
+        .symbol("a")
+        .symbol("b").or()
+        .build();
     assertThat(p.toString(), is("a|b"));
 
     final String[] rows = {"", "a", "", "b", "", "ab", "a", "ab", "b", "b"};
@@ -105,7 +105,7 @@ public class AutomatonTest {
                     .add("a", (s, list) -> s.contains("a"))
                     .add("b", (s, list) -> s.contains("b"))
                     .build();
-    final String expected = "[[a], [b], [ab], [a], [ab], [b], [b]]";
+    final String expected = "[[a], [b], [ab], [ab], [a], [ab], [ab], [b], [b]]";
     assertThat(matcher.match(rows).toString(), is(expected));
   }
 
@@ -203,7 +203,7 @@ public class AutomatonTest {
     final Matcher.PartitionState<String> partitionState = matcher.createPartitionState();
     final ImmutableList.Builder<List<Matcher.Tuple<String>>> builder = ImmutableList.builder();
     for (String row : rows) {
-      matcher.matchOneWithSymbols(row, partitionState, builder::add);
+      matcher.matchOneWithSymbols(row, partitionState);
     }
     assertThat(builder.build().toString(), is("[[(A, a), (B, ab)], [(A, a), (B, b)]]"));
   }

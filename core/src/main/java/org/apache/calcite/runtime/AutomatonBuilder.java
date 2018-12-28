@@ -77,7 +77,7 @@ public class AutomatonBuilder {
     case OPTIONAL:
       // Rewrite as {0,1}
       final Pattern.OpPattern pOptional = (Pattern.OpPattern) p;
-      return repeat(fromState, toState, pOptional.patterns.get(0), 0, 1);
+      return optional(fromState, toState, pOptional.patterns.get(0));
 
     default:
       throw new AssertionError("unknown op " + p.op);
@@ -225,6 +225,12 @@ public class AutomatonBuilder {
       prevState = s;
     }
     transitionList.add(new EpsilonTransition(prevState, toState));
+    return this;
+  }
+
+  private AutomatonBuilder optional(State fromState, State toState, Pattern pattern) {
+    add(pattern, fromState, toState);
+    transitionList.add(new EpsilonTransition(fromState, toState));
     return this;
   }
 }

@@ -26,7 +26,7 @@ public class DFATest {
     // Result should have three states
     // 0 -A-> 1 -A-> 2
     // 1 and 2 should be final
-    assertThat(da.getTransitions().size(), equalTo(3));
+    assertThat(da.getTransitions().size(), equalTo(2));
     assertThat(da.getEndStates().size(), equalTo(2));
   }
 
@@ -67,4 +67,25 @@ public class DFATest {
     assertThat(da.getTransitions().size(), equalTo(3));
     assertThat(da.getEndStates().size(), equalTo(2));
   }
+
+  @Test public void convertAutomaton4() {
+    final Pattern.PatternBuilder builder = Pattern.builder();
+    final Pattern pattern = builder
+        .symbol("A")
+        .symbol("B").optional().seq()
+        .symbol("A").seq()
+        .build();
+    final Automaton automaton = pattern.toAutomaton();
+
+    final DFA da =
+        new DFA(automaton);;
+
+    // Result should have two transitions
+    // 0 -A-> 1 -B-> 2 (which again goes to 2 on a "B")
+    // 1 should be final
+    assertThat(da.getTransitions().size(), equalTo(3));
+    assertThat(da.getEndStates().size(), equalTo(2));
+  }
+
+
 }
