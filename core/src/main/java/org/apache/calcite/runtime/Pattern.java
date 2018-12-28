@@ -69,8 +69,7 @@ public interface Pattern {
   class PatternBuilder {
     final Stack<Pattern> stack = new Stack<>();
 
-    private PatternBuilder() {
-    }
+    private PatternBuilder() {}
 
     private PatternBuilder push(Pattern item) {
       stack.push(item);
@@ -91,50 +90,40 @@ public interface Pattern {
       return new AutomatonBuilder().add(build()).build();
     }
 
-    /**
-     * Creates a pattern that matches symbol,
+    /** Creates a pattern that matches symbol,
      * and pushes it onto the stack.
      *
-     * @see SymbolPattern
-     */
+     * @see SymbolPattern */
     public PatternBuilder symbol(String symbolName) {
       return push(new SymbolPattern(symbolName));
     }
 
-    /**
-     * Creates a pattern that matches the two patterns at the top of the
+    /** Creates a pattern that matches the two patterns at the top of the
      * stack in sequence,
-     * and pushes it onto the stack.
-     */
+     * and pushes it onto the stack. */
     public PatternBuilder seq() {
       final Pattern pattern1 = stack.pop();
       final Pattern pattern0 = stack.pop();
       return push(new OpPattern(Op.SEQ, pattern0, pattern1));
     }
 
-    /**
-     * Creates a pattern that matches the patterns at the top
+    /** Creates a pattern that matches the patterns at the top
      * of the stack zero or more times,
-     * and pushes it onto the stack.
-     */
+     * and pushes it onto the stack. */
     public PatternBuilder star() {
       return push(new OpPattern(Op.STAR, stack.pop()));
     }
 
-    /**
-     * Creates a pattern that matches the patterns at the top
+    /** Creates a pattern that matches the patterns at the top
      * of the stack one or more times,
-     * and pushes it onto the stack.
-     */
+     * and pushes it onto the stack. */
     public PatternBuilder plus() {
       return push(new OpPattern(Op.PLUS, stack.pop()));
     }
 
-    /**
-     * Creates a pattern that matches either of the two patterns at the top
+    /** Creates a pattern that matches either of the two patterns at the top
      * of the stack,
-     * and pushes it onto the stack.
-     */
+     * and pushes it onto the stack. */
     public PatternBuilder or() {
       if (stack.size() < 2) {
         throw new AssertionError("Expecting stack to have at least 2 items, but has " + stack.size());
@@ -205,28 +194,26 @@ public interface Pattern {
 
     @Override public String toString() {
       switch (op) {
-        case SEQ:
-          return patterns.stream().map(Object::toString)
-              .collect(Collectors.joining(" "));
-        case STAR:
-          return "(" + patterns.get(0) + ")*";
-        case PLUS:
-          return "(" + patterns.get(0) + ")+";
-        case OR:
-          return patterns.get(0) + "|" + patterns.get(1);
-        case OPTIONAL:
-          return patterns.get(0) + "?";
-        default:
-          throw new AssertionError("unknown op " + op);
+      case SEQ:
+        return patterns.stream().map(Object::toString)
+            .collect(Collectors.joining(" "));
+      case STAR:
+        return "(" + patterns.get(0) + ")*";
+      case PLUS:
+        return "(" + patterns.get(0) + ")+";
+      case OR:
+        return patterns.get(0) + "|" + patterns.get(1);
+      case OPTIONAL:
+        return patterns.get(0) + "?";
+      default:
+        throw new AssertionError("unknown op " + op);
       }
     }
 
   }
 
-  /**
-   * Pattern that matches a pattern repeated between {@code minRepeat}
-   * and {@code maxRepeat} times.
-   */
+  /** Pattern that matches a pattern repeated between {@code minRepeat}
+   * and {@code maxRepeat} times. */
   class RepeatPattern extends OpPattern {
     final int minRepeat;
     final int maxRepeat;
