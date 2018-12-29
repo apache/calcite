@@ -22,6 +22,8 @@ import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * A deterministic finite automaton (DFA) which can be constructed from the nondeterministic {@link Automaton}.
@@ -106,13 +108,22 @@ public class DFA {
   }
 
   private MultiState epsilonClosure(Automaton.State state) {
-    final ImmutableSet.Builder<Automaton.State> builder = ImmutableSet.builder();
-    builder.add(state);
-    automaton.getEpsilonTransitions().stream()
+    final HashSet<Automaton.State> closure = new HashSet<>();
+    finder(state, closure);
+    return new MultiState(ImmutableSet.copyOf(closure));
+  }
+
+  private void finder(Automaton.State state, Set<Automaton.State> closure) {
+    closure.add(state);
+    final Set<Automaton.State> newStates = automaton.getEpsilonTransitions().stream()
         .filter(t -> t.fromState.equals(state))
         .map(t -> t.toState)
-        .forEach(builder::add);
-    return new MultiState(builder.build());
+        .collect(Collectors.toSet());
+    newStates.removeAll(closure);
+    // Recursively call all "new" states
+    for (Automaton.State s : newStates) {
+      finder(s, closure);
+    }
   }
 
   static class Transition {

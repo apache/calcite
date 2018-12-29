@@ -70,7 +70,7 @@ public class AutomatonTest {
             .add("a", (s, list) -> s.contains("a"))
             .add("b", (s, list) -> s.contains("b"))
             .build();
-    final String expected = "[[b], [ab], [a, ab], [ab], [b], [b]]";
+    final String expected = "[[b], [ab], [ab], [ab, a, ab], [a, ab], [b], [ab, b], [ab, a, ab, b], [a, ab, b], [b]]";
     assertThat(matcher.match(rows).toString(), is(expected));
   }
 
@@ -87,7 +87,7 @@ public class AutomatonTest {
             .add("a", (s, list) -> s.contains("a"))
             .add("b", (s, list) -> s.contains("b"))
             .build();
-    final String expected = "[[ab, a, ab], [a, ab], [ab, b]]";
+    final String expected = "[[ab, a, ab], [a, ab], [ab, b], [ab, a, ab, b], [a, ab, b]]";
     assertThat(matcher.match(rows).toString(), is(expected));
   }
 
@@ -182,7 +182,7 @@ public class AutomatonTest {
             .add("c", (c, list) -> c == 'c')
             .build();
     assertThat(matcher.match(chars(rows)).toString(),
-        is("[[a, b, a, c], [a, b, a, b, a, c], [a, b, a, c]]"));
+        is("[[a, b, a, c], [a, b, a, c], [a, b, a, b, a, c]]"));
   }
 
   @Test
@@ -201,9 +201,9 @@ public class AutomatonTest {
                     .add("B", (s, list) -> s.contains("b"))
                     .build();
     final Matcher.PartitionState<String> partitionState = matcher.createPartitionState();
-    final ImmutableList.Builder<List<Matcher.Tuple<String>>> builder = ImmutableList.builder();
+    final ImmutableList.Builder<Matcher.PartialMatch<String>> builder = ImmutableList.builder();
     for (String row : rows) {
-      matcher.matchOneWithSymbols(row, partitionState);
+      builder.addAll(matcher.matchOneWithSymbols(row, partitionState));
     }
     assertThat(builder.build().toString(), is("[[(A, a), (B, ab)], [(A, a), (B, b)]]"));
   }

@@ -135,7 +135,6 @@ public class Matcher<E> {
             .collect(Collectors.toList());
 
         for (DFA.Transition transition : transitions) {
-          System.out.println("Start new Partial Match for row " + row + " with symbol " + transition.getSymbol());
           final PartialMatch<E> newMatch = new PartialMatch<>(-1L,
               ImmutableList.of(transition.getSymbol()), ImmutableList.of(row), transition.getToState());
           newMatches.add(newMatch);
@@ -335,12 +334,20 @@ public class Matcher<E> {
     }
 
     @Override public String toString() {
-      return "PartialMatch{" +
-          "startRow=" + startRow +
-          ", symbols=" + symbols +
-          ", rows=" + rows +
-          ", currentState=" + currentState +
-          '}';
+      final StringBuilder sb = new StringBuilder();
+      sb.append("[");
+      for (int i = 0; i < rows.size(); i++) {
+        if (i > 0) {
+          sb.append(", ");
+        }
+        sb.append("(");
+        sb.append(symbols.get(i));
+        sb.append(", ");
+        sb.append(rows.get(i));
+        sb.append(")");
+      }
+      sb.append("]");
+      return sb.toString();
     }
   }
 
