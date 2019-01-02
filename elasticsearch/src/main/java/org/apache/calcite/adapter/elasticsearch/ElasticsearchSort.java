@@ -30,6 +30,9 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Implementation of {@link org.apache.calcite.rel.core.Sort}
@@ -58,7 +61,21 @@ public class ElasticsearchSort extends Sort implements ElasticsearchRel {
 
     for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
       final String name = fields.get(fieldCollation.getFieldIndex()).getName();
-      implementor.addSort(name, fieldCollation.getDirection());
+      // TODO there should be a better way to extract original ITEM
+      if (name.toUpperCase(Locale.ROOT).startsWith("EXPR$")) {
+        Optional<String> item = implementor.expressionItemMap.stream()
+            .filter(m -> name.equals(m.getKey()))
+            .map(Map.Entry::getValue).findAny();
+
+        if (!item.isPresent()) {
+          final String message = String.format(Locale.ROOT, "No mapping found for %s", name);
+          throw new IllegalStateException(message);
+        }
+
+        item.ifPresent(m -> implementor.addSort(m, fieldCollation.getDirection()));
+      } else {
+        implementor.addSort(name, fieldCollation.getDirection());
+      }
     }
 
     if (offset != null) {
