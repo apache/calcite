@@ -38,6 +38,7 @@ import org.apache.calcite.rel.rel2sql.RelToSqlConverterTest;
 import org.apache.calcite.rel.rules.DateRangeRulesTest;
 import org.apache.calcite.rex.RexBuilderTest;
 import org.apache.calcite.rex.RexExecutorTest;
+import org.apache.calcite.rex.RexSqlStandardConvertletTableTest;
 import org.apache.calcite.runtime.BinarySearchTest;
 import org.apache.calcite.runtime.EnumerablesTest;
 import org.apache.calcite.sql.SqlSetOptionOperatorTest;
@@ -122,6 +123,7 @@ import org.junit.runners.Suite;
     InduceGroupingTypeTest.class,
     RelOptPlanReaderTest.class,
     RexBuilderTest.class,
+    RexSqlStandardConvertletTableTest.class,
     SqlTypeFactoryTest.class,
     SqlTypeUtilTest.class,
     SqlValidatorUtilTest.class,
