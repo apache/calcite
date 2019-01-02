@@ -203,7 +203,7 @@ class CsvEnumerator<E> implements Enumerator<E> {
         }
         try {
           current = rowConverter.convertRow(strings);
-        } catch(Exception e) {
+        } catch (Exception e) {
           continue;
         }
         return true;
