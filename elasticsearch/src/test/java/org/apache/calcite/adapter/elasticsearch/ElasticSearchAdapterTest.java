@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.elasticsearch;
 
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
@@ -45,6 +46,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -195,31 +197,10 @@ public class ElasticSearchAdapterTest {
         + "    ElasticsearchProject(city=[CAST(ITEM($0, 'city')):VARCHAR(20) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"], longitude=[CAST(ITEM(ITEM($0, 'loc'), 0)):FLOAT], latitude=[CAST(ITEM(ITEM($0, 'loc'), 1)):FLOAT], pop=[CAST(ITEM($0, 'pop')):INTEGER], state=[CAST(ITEM($0, 'state')):VARCHAR(2) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"], id=[CAST(ITEM($0, 'id')):VARCHAR(5) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"])\n"
         + "      ElasticsearchTableScan(table=[[elastic, zips]])";
 
-    Consumer<ResultSet> checker = rset -> {
-      try {
-        final List<String> states = new ArrayList<>();
-        while (rset.next()) {
-          states.add(rset.getString("state"));
-        }
-        for (int i = 0; i < states.size() - 1; i++) {
-          String current = states.get(i);
-          String next = states.get(i + 1);
-          if (current.compareTo(next) > 0) {
-            final String message = String.format(Locale.ROOT,
-                "Not sorted: %s (index:%d) > %s (index:%d) count: %d",
-                current, i, next, i + 1, states.size());
-            throw new AssertionError(message);
-          }
-        }
-      } catch (SQLException e) {
-        throw new RuntimeException(e);
-      }
-    };
-
     calciteAssert()
         .query("select * from zips order by state")
         .returnsCount(ZIPS_SIZE)
-        .returns(checker)
+        .returns(sortedResultSetChecker("state", RelFieldCollation.Direction.ASCENDING))
         .explainContains(explain);
   }
 
@@ -237,6 +218,81 @@ public class ElasticSearchAdapterTest {
                 "sort: [ {state: 'asc'}, {pop: 'asc'}]",
                 "from: 2",
                 "size: 3"));
+  }
+
+  /**
+   * Throws {@code AssertionError} if result set is not sorted by {@code column}.
+   * {@code null}s are ignored.
+   *
+   * @param column column to be extracted (as comparable object).
+   * @param direction ascending / descending
+   * @return consumer which throws exception
+   */
+  private static Consumer<ResultSet> sortedResultSetChecker(String column,
+      RelFieldCollation.Direction direction) {
+    Objects.requireNonNull(column, "column");
+    return rset -> {
+      try {
+        final List<Comparable<?>> states = new ArrayList<>();
+        while (rset.next()) {
+          Object object = rset.getObject(column);
+          if (object != null && !(object instanceof Comparable)) {
+            final String message = String.format(Locale.ROOT, "%s is not comparable", object);
+            throw new IllegalStateException(message);
+          }
+          if (object != null) {
+            states.add((Comparable) object);
+          }
+        }
+        for (int i = 0; i < states.size() - 1; i++) {
+          final Comparable current = states.get(i);
+          final Comparable next = states.get(i + 1);
+          final int cmp = current.compareTo(next);
+          if (direction == RelFieldCollation.Direction.ASCENDING ? cmp > 0 : cmp < 0) {
+            final String message = String.format(Locale.ROOT,
+                "Column %s NOT sorted (%s): %s (index:%d) > %s (index:%d) count: %d",
+                column,
+                direction,
+                current, i, next, i + 1, states.size());
+            throw new AssertionError(message);
+          }
+        }
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+    };
+  }
+
+  /**
+   * Sorting directly on items without a view.
+   *
+   * Queries of type: {@code select _MAP['a'] from elastic order by _MAP['b']}
+   */
+  @Test public void testSortNoSchema() {
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select * from elastic.zips order by _MAP['city']")
+        .returnsCount(ZIPS_SIZE);
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select _MAP['state'] from elastic.zips order by _MAP['city']")
+        .returnsCount(ZIPS_SIZE);
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select _MAP['city'] as city, _MAP['state'] from elastic.zips "
+            + "order by _MAP['city'] asc")
+        .returns(sortedResultSetChecker("city", RelFieldCollation.Direction.ASCENDING))
+        .returnsCount(ZIPS_SIZE);
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select _MAP['city'] as city, _MAP['state'] from elastic.zips "
+            + "order by _MAP['city'] desc")
+        .returns(sortedResultSetChecker("city", RelFieldCollation.Direction.DESCENDING))
+        .returnsCount(ZIPS_SIZE);
+
   }
 
   /**
