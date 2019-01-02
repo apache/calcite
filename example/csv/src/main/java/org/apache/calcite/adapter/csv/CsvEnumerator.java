@@ -177,7 +177,7 @@ class CsvEnumerator<E> implements Enumerator<E> {
         if (cancelFlag.get()) {
           return false;
         }
-        final String[] strings = reader.readNext(); 
+        final String[] strings = reader.readNext();
         if (strings == null) {
           if (reader instanceof CsvStreamReader) {
             try {
@@ -201,7 +201,11 @@ class CsvEnumerator<E> implements Enumerator<E> {
             }
           }
         }
-        try { current = rowConverter.convertRow(strings); } catch(Exception e) { continue;}
+        try {
+          current = rowConverter.convertRow(strings);
+        } catch(Exception e) {
+          continue;
+        }
         return true;
       }
     } catch (IOException e) {
@@ -333,7 +337,7 @@ class CsvEnumerator<E> implements Enumerator<E> {
       this.stream = stream;
     }
 
-    public Object[] convertRow(String[] strings) {  
+    public Object[] convertRow(String[] strings) {
       if (stream) {
         return convertStreamRow(strings);
       } else {
