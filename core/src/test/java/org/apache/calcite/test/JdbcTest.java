@@ -481,6 +481,22 @@ public class JdbcTest {
         .returns(expected3);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2593">[CALCITE-2593]
+   * Sometimes fails to plan when a RelNode transform multiple collations to single collation</a>.
+   */
+  @Test public void testMultipleCollationsToSingle() {
+    CalciteAssert.that()
+        .query("select y from (values (1, false), (2, true)) as t(x, y) order by y")
+        .returns("Y=false\n"
+            + "Y=true\n");
+
+    CalciteAssert.that()
+        .query("select sum(x + 1) filter (where y) as s "
+            + "from (values (1, false), (2, true)) as t(x, y)")
+        .returns("S=3\n");
+  }
+
   /** Tests a JDBC connection that provides a model that contains a table
    *  macro. */
   @Test public void testTableMacroInModel() throws Exception {

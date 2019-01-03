@@ -513,6 +513,10 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
 
   /** Returns whether there are any composite traits in this set. */
   public boolean allSimple() {
+    if (true) {
+      // See {@link #simplify}
+      return true;
+    }
     for (RelTrait trait : traits) {
       if (trait instanceof RelCompositeTrait) {
         return false;
@@ -524,6 +528,10 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
   /** Returns a trait set similar to this one but with all composite traits
    * flattened. */
   public RelTraitSet simplify() {
+    if (true) {
+      // See CALCITE-2593. Simplification of [[0, 1], [1]] to [] loses information
+      return this;
+    }
     RelTraitSet x = this;
     for (int i = 0; i < traits.length; i++) {
       final RelTrait trait = traits[i];
