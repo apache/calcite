@@ -79,7 +79,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
 import org.hamcrest.Matcher;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -439,9 +438,6 @@ public class PlannerTest {
 
   /** Tests that outer order by is not removed since window function
    * might reorder the rows in-between */
-  @Ignore("Node [rel#22:Subset#3.ENUMERABLE.[2]] could not be implemented; planner state:\n"
-      + "\n"
-      + "Root: rel#22:Subset#3.ENUMERABLE.[2]")
   @Test public void testDuplicateSortPlanWithOver() throws Exception {
     runDuplicateSortCheck("select emp_cnt, empid+deptno from ( "
         + "select empid, deptno, count(*) over (partition by deptno) emp_cnt from ( "
@@ -450,14 +446,12 @@ public class PlannerTest {
         + "   order by emps.deptno) "
         + ")"
         + "order by deptno",
-        "EnumerableProject(EXPR$0=[$0])\n"
-        + "  EnumerableSort(sort0=[$1], dir0=[ASC])\n"
-        + "    EnumerableProject(EXPR$0=[+($0, $1)], deptno=[$1])\n"
-        + "      EnumerableProject(empid=[$0], deptno=[$1], $2=[$2])\n"
-        + "        EnumerableWindow(window#0=[window(partition {1} order by [] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [COUNT()])])\n"
-        + "          EnumerableSort(sort0=[$1], dir0=[ASC])\n"
-        + "            EnumerableProject(empid=[$0], deptno=[$1])\n"
-        + "              EnumerableTableScan(table=[[hr, emps]])\n");
+        "EnumerableSort(sort0=[$2], dir0=[ASC])\n"
+        + "  EnumerableProject(emp_cnt=[$2], EXPR$1=[+($0, $1)], deptno=[$1])\n"
+        + "    EnumerableWindow(window#0=[window(partition {1} order by [] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [COUNT()])])\n"
+        + "      EnumerableSort(sort0=[$1], dir0=[ASC])\n"
+        + "        EnumerableProject(empid=[$0], deptno=[$1])\n"
+        + "          EnumerableTableScan(table=[[hr, emps]])\n");
   }
 
   @Test public void testDuplicateSortPlanWithRemovedOver() throws Exception {

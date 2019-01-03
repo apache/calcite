@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.logical.LogicalCalc;
@@ -111,7 +112,10 @@ public abstract class CalcRelSplitter {
     }
     this.program = calc.getProgram();
     this.cluster = calc.getCluster();
-    this.traits = calc.getTraitSet();
+    // Note: current implementation assumes each LogicalWindow would partition and sort rows
+    // accordingly, so we ignore input collations for now
+    // See CALCITE-2648
+    this.traits = calc.getTraitSet().replace(RelCollations.EMPTY);
     this.typeFactory = calc.getCluster().getTypeFactory();
     this.child = calc.getInput();
     this.relTypes = relTypes;

@@ -41,6 +41,7 @@ import org.apache.calcite.rex.RexCallBinding;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.util.BuiltInMethod;
@@ -208,6 +209,11 @@ public class RelMdCollation
   /** Helper method to determine a {@link Project}'s collation. */
   public static List<RelCollation> project(RelMetadataQuery mq,
       RelNode input, List<? extends RexNode> projects) {
+    if (RexOver.containsOver(projects, null)) {
+      // If project has OVER expressions, then its collation is not known,
+      // so we assume there's no collation
+      return ImmutableList.of();
+    }
     final SortedSet<RelCollation> collations = new TreeSet<>();
     final List<RelCollation> inputCollations = mq.collations(input);
     if (inputCollations == null || inputCollations.isEmpty()) {
@@ -272,12 +278,11 @@ public class RelMdCollation
    * {@link org.apache.calcite.rel.core.Window}'s collation.
    *
    * <p>A Window projects the fields of its input first, followed by the output
-   * from each of its windows. Assuming (quite reasonably) that the
-   * implementation does not re-order its input rows, then any collations of its
-   * input are preserved. */
+   * from each of its windows. Window might have its own order by and partition by clauses
+   * so the implementation might want to reorder input rows. */
   public static List<RelCollation> window(RelMetadataQuery mq, RelNode input,
       ImmutableList<Window.Group> groups) {
-    return mq.collations(input);
+    return ImmutableList.of();
   }
 
   /** Helper method to determine a

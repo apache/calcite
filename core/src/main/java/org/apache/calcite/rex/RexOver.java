@@ -149,7 +149,7 @@ public class RexOver extends RexCall {
   /**
    * Returns whether an expression list contains an OVER clause.
    */
-  public static boolean containsOver(List<RexNode> exprs, RexNode condition) {
+  public static boolean containsOver(List<? extends RexNode> exprs, RexNode condition) {
     try {
       RexUtil.apply(FINDER, exprs, condition);
       return false;

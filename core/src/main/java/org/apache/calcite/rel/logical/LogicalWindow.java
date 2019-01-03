@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.type.RelDataType;
@@ -92,7 +93,10 @@ public final class LogicalWindow extends Window {
    */
   public static LogicalWindow create(RelTraitSet traitSet, RelNode input,
       List<RexLiteral> constants, RelDataType rowType, List<Group> groups) {
-    return new LogicalWindow(input.getCluster(), traitSet, input, constants,
+    // See CALCITE-2648: we assume LogicalWindow keeps no collation since
+    // there might be multiple conflicting order by groups.
+    return new LogicalWindow(input.getCluster(),
+        traitSet.replace(RelCollations.EMPTY), input, constants,
         rowType, groups);
   }
 
