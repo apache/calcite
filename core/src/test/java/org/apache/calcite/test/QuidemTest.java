@@ -55,6 +55,7 @@ import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Function;
 
 import static org.junit.Assert.fail;
 
@@ -77,8 +78,8 @@ public abstract class QuidemTest {
     case "jdk18":
       return System.getProperty("java.version").startsWith("1.8");
     case "fixed":
-      // Quidem requires a Guava function
-      return (com.google.common.base.Function<String, Object>) v -> {
+      // Quidem requires a Java 8 function
+      return (Function<String, Object>) v -> {
         switch (v) {
         case "calcite1045":
           return Bug.CALCITE_1045_FIXED;
