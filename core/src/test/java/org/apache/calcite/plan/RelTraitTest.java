@@ -19,6 +19,7 @@ package org.apache.calcite.plan;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 
 import com.google.common.collect.ImmutableList;
 
@@ -56,6 +57,61 @@ public class RelTraitTest {
   @Test public void compositeTwo() {
     assertCanonical("composite with two elements",
         () -> ImmutableList.of(RelCollations.of(0), RelCollations.of(1)));
+  }
+
+  private void assertSatisfies(RelTrait a, RelTrait b) {
+    Assert.assertTrue(a + ".satisfies(" + b + ")", a.satisfies(b));
+    if (!a.equals(b)) {
+      // a should be "the same or stricter" than b, so b cannot be stricter than a at the same time
+      Assert.assertTrue(b + ".NOTsatisfies(" + a + ")", !b.satisfies(a));
+    }
+  }
+
+  /**
+   * Tests for {@link RelCompositeTrait#satisfies(RelTrait)}.
+   */
+  @Test public void compositeSatisfies() {
+    //noinspection unchecked
+    RelCompositeTrait<RelCollation> abc_bc_c = (RelCompositeTrait) RelCompositeTrait.of(COLLATION,
+        ImmutableList.of(
+            RelCollations.of(
+                new RelFieldCollation(0),
+                new RelFieldCollation(1),
+                new RelFieldCollation(2)),
+            RelCollations.of(
+                new RelFieldCollation(1),
+                new RelFieldCollation(2)),
+            RelCollations.of(
+                new RelFieldCollation(2))));
+
+    // A composite trait must satisfy its sub-traits
+    for (RelCollation collation : abc_bc_c.traitList()) {
+      assertSatisfies(abc_bc_c, collation);
+    }
+
+    // A trait must satisfy to itself
+    assertSatisfies(abc_bc_c, abc_bc_c);
+
+    //noinspection unchecked
+    RelCompositeTrait<RelCollation> bc_c = (RelCompositeTrait) RelCompositeTrait.of(COLLATION,
+        ImmutableList.of(
+            RelCollations.of(
+                new RelFieldCollation(1),
+                new RelFieldCollation(2)),
+            RelCollations.of(
+                new RelFieldCollation(2))));
+
+    assertSatisfies(abc_bc_c, bc_c);
+
+    //noinspection unchecked
+    RelCompositeTrait<RelCollation> b_c = (RelCompositeTrait) RelCompositeTrait.of(COLLATION,
+        ImmutableList.of(
+            RelCollations.of(
+                new RelFieldCollation(1)),
+            RelCollations.of(
+                new RelFieldCollation(2))));
+
+    assertSatisfies(abc_bc_c, b_c);
   }
 }
 

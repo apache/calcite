@@ -89,6 +89,21 @@ class RelCompositeTrait<T extends RelMultipleTrait> implements RelTrait {
   }
 
   public boolean satisfies(RelTrait trait) {
+    if (trait instanceof RelCompositeTrait) {
+      if (equals(trait)) {
+        return true;
+      }
+      //noinspection unchecked
+      RelCompositeTrait<T> other = (RelCompositeTrait<T>) trait;
+      // This trait should be the same or stricter, so this trait should satisfy each component
+      for (T t : other.traits) {
+        if (!satisfies(t)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    // This trait might be stricter, so at least one component should satisfy given trait
     for (T t : traits) {
       if (t.satisfies(trait)) {
         return true;
