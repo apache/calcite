@@ -33,10 +33,22 @@ import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexDynamicParam;
+import org.apache.calcite.rex.RexFieldAccess;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.rex.RexRangeRef;
+import org.apache.calcite.rex.RexSubQuery;
+import org.apache.calcite.rex.RexTableInputRef;
+import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.runtime.Enumerables;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
@@ -44,6 +56,7 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Modifier;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -133,10 +146,22 @@ public class EnumerableMatch extends Match implements EnumerableRel {
 
     final Expression matcher_ = implementMatcher(implementor, physType, builder, row_);
     final Expression emitter_ = implementEmitter(implementor, emitType, physType);
+
+    final MaxHistoryFutureVisitor visitor = new MaxHistoryFutureVisitor();
+    patternDefinitions.values().forEach(pd -> pd.accept(visitor));
+
+    // Fetch
+    // Calculate how many steps we need to look back or forward
+    int history = visitor.getHistory();
+    int future = visitor.getFuture();
+
+    System.out.println("History: " + history);
+    System.out.println("Future: " + future);
+
     builder.add(
         Expressions.return_(null,
             Expressions.call(BuiltInMethod.MATCH.method,
-                inputExp, keySelector_, matcher_, emitter_)));
+                inputExp, keySelector_, matcher_, emitter_, Expressions.constant(history), Expressions.constant(future))));
     return implementor.result(emitType, builder.toBlock());
   }
 
@@ -211,6 +236,11 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     Expression matcherBuilder_ = builder.append("matcherBuilder",
         Expressions.call(BuiltInMethod.MATCHER_BUILDER.method, automaton_));
     final BlockBuilder builder2 = new BlockBuilder();
+
+
+    // Wrap a MemoryEnumerable around
+
+
     for (Map.Entry<String, RexNode> entry : patternDefinitions.entrySet()) {
       // Translate REX to Expressions
       RexBuilder rexBuilder = new RexBuilder(implementor.getTypeFactory());
@@ -311,6 +341,76 @@ public class EnumerableMatch extends Match implements EnumerableRel {
 
     default:
       throw new AssertionError("unknown kind: " + pattern);
+    }
+  }
+
+  private static class MaxHistoryFutureVisitor implements RexVisitor<Integer> {
+
+    private int history = 0;
+    private int future = 0;
+
+    public int getHistory() {
+      return history;
+    }
+
+    public int getFuture() {
+      return future;
+    }
+
+    @Override public Integer visitInputRef(RexInputRef inputRef) {
+      return null;
+    }
+
+    @Override public Integer visitLocalRef(RexLocalRef localRef) {
+      return null;
+    }
+
+    @Override public Integer visitLiteral(RexLiteral literal) {
+      return null;
+    }
+
+    @Override public Integer visitCall(RexCall call) {
+      call.operands.forEach(o -> o.accept(this));
+      if (call.op == SqlStdOperatorTable.PREV) {
+        final int prev = (int) ((BigDecimal) ((RexLiteral) call.getOperands().get(1)).getValue()).longValue();
+        this.history = Math.max(this.history, prev);
+      } else if (call.op == SqlStdOperatorTable.NEXT) {
+        final int next = (int) ((BigDecimal) ((RexLiteral) call.getOperands().get(1)).getValue()).longValue();
+        this.future = Math.max(this.future, next);
+      }
+      return null;
+    }
+
+    @Override public Integer visitOver(RexOver over) {
+      return null;
+    }
+
+    @Override public Integer visitCorrelVariable(RexCorrelVariable correlVariable) {
+      return null;
+    }
+
+    @Override public Integer visitDynamicParam(RexDynamicParam dynamicParam) {
+      return null;
+    }
+
+    @Override public Integer visitRangeRef(RexRangeRef rangeRef) {
+      return null;
+    }
+
+    @Override public Integer visitFieldAccess(RexFieldAccess fieldAccess) {
+      return null;
+    }
+
+    @Override public Integer visitSubQuery(RexSubQuery subQuery) {
+      return null;
+    }
+
+    @Override public Integer visitTableInputRef(RexTableInputRef fieldRef) {
+      return null;
+    }
+
+    @Override public Integer visitPatternFieldRef(RexPatternFieldRef fieldRef) {
+      return null;
     }
   }
 }

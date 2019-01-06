@@ -20,6 +20,8 @@ import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.MemoryFactory;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.util.CircularArrayList;
 
@@ -76,11 +78,12 @@ public class Enumerables {
       Enumerable<E> enumerable,
       final Function1<E, TKey> keySelector,
       Matcher<E> matcher,
-      Emitter<E, TResult> emitter) {
+      Emitter<E, TResult> emitter, int history, int future) {
     return new AbstractEnumerable<TResult>() {
       public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
-          final Enumerator<E> inputEnumerator = enumerable.enumerator();
+          final Enumerator<MemoryFactory.Memory<E>> inputEnumerator =
+              Linq4j.withMemory(enumerable, history, future).enumerator();
 
           // State of each partition.
           final Map<TKey, Matcher.PartitionState<E>> partitionStates =
@@ -116,7 +119,7 @@ public class Enumerables {
                 return false;
               }
               ++inputRow;
-              final E e = inputEnumerator.current();
+              final E e = inputEnumerator.current().get();
               final TKey key = keySelector.apply(e);
               final Matcher.PartitionState<E> partitionState =
                   partitionStates.computeIfAbsent(key,

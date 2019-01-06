@@ -167,7 +167,7 @@ public enum BuiltInMethod {
   HASH_JOIN(ExtendedEnumerable.class, "hashJoin", Enumerable.class, Function1.class,
       Function1.class, Function2.class),
   MATCH(Enumerables.class, "match", Enumerable.class, Function1.class,
-      Matcher.class, Enumerables.Emitter.class),
+      Matcher.class, Enumerables.Emitter.class, int.class, int.class),
   PATTERN_BUILDER(Utilities.class, "patternBuilder"),
   PATTERN_BUILDER_SYMBOL(Pattern.PatternBuilder.class, "symbol", String.class),
   PATTERN_BUILDER_SEQ(Pattern.PatternBuilder.class, "seq"),

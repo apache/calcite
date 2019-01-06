@@ -241,7 +241,7 @@ public class EnumerablesTest {
       }
     };
 
-    Enumerable<String> matches = Enumerables.match(emps, emp -> 0L, matcher, emitter);
+    Enumerable<String> matches = Enumerables.match(emps, emp -> 0L, matcher, emitter, 0, 0);
     assertThat(matches.toList().toString(),
             equalTo("[[Emp(20, Theodore), Emp(10, Fred)] null 1, [Emp(20, Sebastian), Emp(30, Joe)] null 2]"));
   }
