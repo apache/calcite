@@ -178,7 +178,7 @@ public enum BuiltInMethod {
       BiPredicate.class),
   MATCHER_BUILDER_BUILD(Matcher.Builder.class, "build"),
   EMITTER_EMIT(Enumerables.Emitter.class, "emit", List.class, List.class,
-      int.class, Consumer.class),
+      List.class, int.class, Consumer.class),
   MERGE_JOIN(EnumerableDefaults.class, "mergeJoin", Enumerable.class,
       Enumerable.class, Function1.class, Function1.class, Function2.class,
       boolean.class, boolean.class),

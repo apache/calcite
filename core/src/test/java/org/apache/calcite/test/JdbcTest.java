@@ -6876,17 +6876,19 @@ public class JdbcTest {
   }
 
   @Test public void testMatchSimple() {
+    Hook.JAVA_PLAN.add((Consumer<Object>) s -> System.out.println(s));
     final String sql = "select *\n"
             + "from \"hr\".\"emps\" match_recognize (\n"
             + "  order by \"empid\" desc\n"
             + "  measures up.\"commission\" as c,\n"
-            + "    up.\"empid\" as empid\n"
+            + "    up.\"empid\" as empid,\n"
+            + "    2 as two\n"
             + "  pattern (up s)\n"
             + "  define up as up.\"empid\" = 100)";
     final String convert = ""
-            + "LogicalProject(C=[$0], EMPID=[$1])\n"
+            + "LogicalProject(C=[$0], EMPID=[$1], TWO=[$2])\n"
             + "  LogicalMatch(partition=[{}], order=[[0 DESC]], "
-            + "outputFields=[[C, EMPID]], allRows=[false], "
+            + "outputFields=[[C, EMPID, TWO]], allRows=[false], "
             + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('UP', 'S')], "
             + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
             + "patternDefinitions=[[=(CAST(PREV(UP.$0, 0)):INTEGER NOT NULL, 100)]], "
@@ -6894,7 +6896,7 @@ public class JdbcTest {
             + "    EnumerableTableScan(table=[[hr, emps]])\n";
     final String plan = "PLAN="
             + "EnumerableMatch(partition=[{}], order=[[0 DESC]], "
-            + "outputFields=[[C, EMPID]], allRows=[false], "
+            + "outputFields=[[C, EMPID, TWO]], allRows=[false], "
             + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('UP', 'S')], "
             + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
             + "patternDefinitions=[[=(CAST(PREV(UP.$0, 0)):INTEGER NOT NULL, 100)]], "

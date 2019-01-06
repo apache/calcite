@@ -16,11 +16,10 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
-import com.fasterxml.jackson.databind.deser.impl.CreatorCandidate;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.MemberDeclaration;
@@ -44,7 +43,6 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -148,6 +146,8 @@ public class EnumerableMatch extends Match implements EnumerableRel {
         Expressions.parameter(List.class, "rows");
     final ParameterExpression rowStates_ =
         Expressions.parameter(List.class, "rowStates");
+    final ParameterExpression symbols_ =
+        Expressions.parameter(List.class, "symbols");
     final ParameterExpression match_ =
         Expressions.parameter(int.class, "match");
     final ParameterExpression consumer_ =
@@ -188,16 +188,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     final BlockBuilder builder = new BlockBuilder();
 
     builder.add(Expressions.forEach(row_, rows_,
-            Expressions.block(
-                    // Add NULL Check for the Rows as they are allowed to be null
-                    Expressions.ifThen(
-                            Expressions.equal(row_, Expressions.constant(null)),
-                            Expressions.continue_(null)),
-                    Expressions.ifThen(
-                            Expressions.equal(Expressions.field(row_, "commission"), Expressions.constant(null)),
-                            Expressions.continue_(null)),
                     builder2.toBlock()
-            )
     ));
 
     return Expressions.new_(
@@ -205,7 +196,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
         Expressions.list(
             EnumUtils.overridingMethodDecl(
                 BuiltInMethod.EMITTER_EMIT.method,
-                ImmutableList.of(rows_, rowStates_, match_, consumer_),
+                ImmutableList.of(rows_, rowStates_, symbols_, match_, consumer_),
                 builder.toBlock())));
   }
 
@@ -225,21 +216,25 @@ public class EnumerableMatch extends Match implements EnumerableRel {
       RexBuilder rexBuilder = new RexBuilder(implementor.getTypeFactory());
       RexProgramBuilder rexProgramBuilder = new RexProgramBuilder(physType.getRowType(), rexBuilder);
 
-      rexProgramBuilder.addProject(entry.getValue(), "asdf");
+      rexProgramBuilder.addCondition(entry.getValue());
 
-      RexToLixTranslator.translateProjects(rexProgramBuilder.getProgram(),
-              (JavaTypeFactory) getCluster().getTypeFactory(),
-              implementor.getConformance(), builder2, physType,
-              implementor.getRootExpression(),
-              new RexToLixTranslator.InputGetterImpl(
-                      Collections.singletonList(
-                              Pair.of(row_, physType))),
-              implementor.allCorrelateVariables);
+      final Expression condition = RexToLixTranslator.translateCondition(rexProgramBuilder.getProgram(),
+          (JavaTypeFactory) getCluster().getTypeFactory(),
+          builder2,
+          new RexToLixTranslator.InputGetterImpl(
+              Collections.singletonList(
+                  Pair.of(row_, physType))),
+          implementor.allCorrelateVariables,
+          implementor.getConformance());
 
-      final Expression predicate_ = implementPredicate(physType, row_);
+
+      builder2.add(Expressions.return_(null, condition));
+      final Expression predicate_ = implementPredicate(physType, row_, builder2.toBlock());
+
       matcherBuilder_ = Expressions.call(matcherBuilder_,
           BuiltInMethod.MATCHER_BUILDER_ADD.method,
-          Expressions.constant(entry.getKey()), predicate_);
+          Expressions.constant(entry.getKey()),
+          predicate_);
     }
     return builder.append("matcher",
         Expressions.call(matcherBuilder_,
@@ -247,13 +242,9 @@ public class EnumerableMatch extends Match implements EnumerableRel {
   }
 
   /** Generates code for a predicate. */
-  private Expression implementPredicate(PhysType physType, ParameterExpression row_) {
+  private Expression implementPredicate(PhysType physType, ParameterExpression row_, BlockStatement body) {
     final ParameterExpression rows_ =
         Expressions.parameter(List.class, "rows"); // "List<E> rows"
-    final BlockBuilder builder2 = new BlockBuilder();
-    builder2.add(Expressions.return_(null,
-            Expressions.equal(Expressions.field(row_, "empid"), Expressions.constant(100))
-            ));
     final List<MemberDeclaration> memberDeclarations = new ArrayList<>();
 
     // Implement the Predicate here based on the pattern definition
@@ -267,7 +258,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     memberDeclarations.add(
         EnumUtils.overridingMethodDecl(
             BuiltInMethod.BI_PREDICATE_TEST.method,
-            ImmutableList.of(row_, rows_), builder2.toBlock()));
+            ImmutableList.of(row_, rows_), body));
     if (EnumerableRules.BRIDGE_METHODS) {
       // Add a bridge method:
       //
