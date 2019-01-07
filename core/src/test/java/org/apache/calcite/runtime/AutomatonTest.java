@@ -17,6 +17,7 @@
 package org.apache.calcite.runtime;
 
 import com.google.common.collect.ImmutableList;
+import org.apache.calcite.linq4j.MemoryFactory;
 import org.junit.Test;
 
 import java.util.AbstractList;
@@ -35,7 +36,7 @@ public class AutomatonTest {
     final String[] rows = {"", "a", "", "a"};
     final Matcher<String> matcher =
         Matcher.<String>builder(p.toAutomaton())
-            .add("a", (s, list) -> s.contains("a"))
+            .add("a", (s) -> s.get().contains("a"))
             .build();
     final String expected = "[[a], [a]]";
     assertThat(matcher.match(rows).toString(), is(expected));
@@ -50,8 +51,8 @@ public class AutomatonTest {
     final String[] rows = {"", "a", "", "ab", "a", "ab", "b", "b"};
     final Matcher<String> matcher =
         Matcher.<String>builder(p.toAutomaton())
-            .add("a", (s, list) -> s.contains("a"))
-            .add("b", (s, list) -> s.contains("b"))
+            .add("a", (s) -> s.get().contains("a"))
+            .add("b", (s) -> s.get().contains("b"))
             .build();
     final String expected = "[[a, ab], [ab, b]]";
     assertThat(matcher.match(rows).toString(), is(expected));
@@ -67,8 +68,8 @@ public class AutomatonTest {
     final String[] rows = {"", "a", "", "b", "", "ab", "a", "ab", "b", "b"};
     final Matcher<String> matcher =
         Matcher.<String>builder(p.toAutomaton())
-            .add("a", (s, list) -> s.contains("a"))
-            .add("b", (s, list) -> s.contains("b"))
+            .add("a", (s) -> s.get().contains("a"))
+            .add("b", (s) -> s.get().contains("b"))
             .build();
     final String expected = "[[b], [ab], [ab], [ab, a, ab], [a, ab], [b], [ab, b], [ab, a, ab, b], [a, ab, b], [b]]";
     assertThat(matcher.match(rows).toString(), is(expected));
@@ -84,8 +85,8 @@ public class AutomatonTest {
     final String[] rows = {"", "a", "", "b", "", "ab", "a", "ab", "b", "b"};
     final Matcher<String> matcher =
         Matcher.<String>builder(p.toAutomaton())
-            .add("a", (s, list) -> s.contains("a"))
-            .add("b", (s, list) -> s.contains("b"))
+            .add("a", (s) -> s.get().contains("a"))
+            .add("b", (s) -> s.get().contains("b"))
             .build();
     final String expected = "[[ab, a, ab], [a, ab], [ab, b], [ab, a, ab, b], [a, ab, b]]";
     assertThat(matcher.match(rows).toString(), is(expected));
@@ -102,8 +103,8 @@ public class AutomatonTest {
     final String[] rows = {"", "a", "", "b", "", "ab", "a", "ab", "b", "b"};
     final Matcher<String> matcher =
             Matcher.<String>builder(p.toAutomaton())
-                    .add("a", (s, list) -> s.contains("a"))
-                    .add("b", (s, list) -> s.contains("b"))
+                    .add("a", (s) -> s.get().contains("a"))
+                    .add("b", (s) -> s.get().contains("b"))
                     .build();
     final String expected = "[[a], [b], [ab], [ab], [a], [ab], [ab], [b], [b]]";
     assertThat(matcher.match(rows).toString(), is(expected));
@@ -121,9 +122,9 @@ public class AutomatonTest {
     final String rows = "acabcabbc";
     final Matcher<Character> matcher =
             Matcher.<Character>builder(p.toAutomaton())
-                    .add("a", (s, list) -> s == 'a')
-                    .add("b", (s, list) -> s == 'b')
-                    .add("c", (s, list) -> s == 'c')
+                    .add("a", (s) -> s.get() == 'a')
+                    .add("b", (s) -> s.get() == 'b')
+                    .add("c", (s) -> s.get() == 'c')
                     .build();
     final String expected = "[[a, c], [a, b, c]]";
     assertThat(matcher.match(chars(rows)).toString(), is(expected));
@@ -157,9 +158,9 @@ public class AutomatonTest {
     final String rows = "acabcabbcabbbcabbbbcabdbc";
     final Matcher<Character> matcher =
         Matcher.<Character>builder(p.toAutomaton())
-            .add("a", (c, list) -> c == 'a')
-            .add("b", (c, list) -> c == 'b')
-            .add("c", (c, list) -> c == 'c')
+            .add("a", (s) -> s.get() == 'a')
+            .add("b", (s) -> s.get() == 'b')
+            .add("c", (s) -> s.get() == 'c')
             .build();
     assertThat(matcher.match(chars(rows)).toString(), is(expected));
   }
@@ -177,9 +178,9 @@ public class AutomatonTest {
     final String rows = "acabcabbcabbbcabbbbcabdbcabacababcababac";
     final Matcher<Character> matcher =
         Matcher.<Character>builder(p.toAutomaton())
-            .add("a", (c, list) -> c == 'a')
-            .add("b", (c, list) -> c == 'b')
-            .add("c", (c, list) -> c == 'c')
+            .add("a", (s) -> s.get() == 'a')
+            .add("b", (s) -> s.get() == 'b')
+            .add("c", (s) -> s.get() == 'c')
             .build();
     assertThat(matcher.match(chars(rows)).toString(),
         is("[[a, b, a, c], [a, b, a, c], [a, b, a, b, a, c]]"));
@@ -197,13 +198,15 @@ public class AutomatonTest {
     final String[] rows = {"", "a", "ab", "a", "b"};
     final Matcher<String> matcher =
             Matcher.<String>builder(p.toAutomaton())
-                    .add("A", (s, list) -> s.contains("a"))
-                    .add("B", (s, list) -> s.contains("b"))
+                    .add("A", (s) -> s.get().contains("a"))
+                    .add("B", (s) -> s.get().contains("b"))
                     .build();
     final Matcher.PartitionState<String> partitionState = matcher.createPartitionState();
     final ImmutableList.Builder<Matcher.PartialMatch<String>> builder = ImmutableList.builder();
+    MemoryFactory<String> memoryFactory = new MemoryFactory<>(0, 0);
     for (String row : rows) {
-      builder.addAll(matcher.matchOneWithSymbols(row, partitionState));
+      memoryFactory.add(row);
+      builder.addAll(matcher.matchOneWithSymbols(memoryFactory.create(), partitionState));
     }
     assertThat(builder.build().toString(), is("[[(A, a), (B, ab)], [(A, a), (B, b)]]"));
   }

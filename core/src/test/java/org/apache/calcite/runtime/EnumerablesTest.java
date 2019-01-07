@@ -31,6 +31,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Consumer;
 
 import static com.google.common.collect.Lists.newArrayList;
@@ -225,8 +226,8 @@ public class EnumerablesTest {
 
     final Matcher<Emp> matcher =
             Matcher.<Emp>builder(p.toAutomaton())
-                    .add("A", (s, list) -> s.deptno == 20)
-                    .add("B", (s, list) -> s.deptno != 20)
+                    .add("A", (s) -> s.get().deptno == 20)
+                    .add("B", (s) -> s.get().deptno != 20)
                     .build();
 
     Enumerables.Emitter<Emp, String> emitter = new Enumerables.Emitter<Emp, String>() {
@@ -235,7 +236,7 @@ public class EnumerablesTest {
       public void emit(List<Emp> rows, List<Integer> rowStates, List<String> rowSymbols, int match, Consumer<String> consumer) {
         for (int i = 0; i < rows.size(); i++) {
           if ("A".equals(rowSymbols.get(i))) {
-            consumer.accept(String.format("%s %s %d", rows, rowStates, match));
+            consumer.accept(String.format(Locale.ENGLISH, "%s %s %d", rows, rowStates, match));
           }
         }
       }

@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.MemoryFactory;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
@@ -64,6 +65,7 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static org.apache.calcite.adapter.enumerable.EnumUtils.NO_EXPRS;
@@ -272,10 +274,15 @@ public class EnumerableMatch extends Match implements EnumerableRel {
   }
 
   /** Generates code for a predicate. */
-  private Expression implementPredicate(PhysType physType, ParameterExpression row_, BlockStatement body) {
-    final ParameterExpression rows_ =
-        Expressions.parameter(List.class, "rows"); // "List<E> rows"
+  private Expression implementPredicate(PhysType physType, ParameterExpression rows_, BlockStatement body) {
     final List<MemberDeclaration> memberDeclarations = new ArrayList<>();
+    ParameterExpression row_ = Expressions.parameter(MemoryFactory.Memory.class, "row_");
+    try {
+      Expressions.assign(row_,
+        Expressions.call(rows_, MemoryFactory.Memory.class.getMethod("get")));
+    } catch (NoSuchMethodException e) {
+      throw new RuntimeException();
+    }
 
     // Implement the Predicate here based on the pattern definition
 
@@ -287,8 +294,8 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     //   }
     memberDeclarations.add(
         EnumUtils.overridingMethodDecl(
-            BuiltInMethod.BI_PREDICATE_TEST.method,
-            ImmutableList.of(row_, rows_), body));
+            BuiltInMethod.PREDICATE_TEST.method,
+            ImmutableList.of(row_), body));
     if (EnumerableRules.BRIDGE_METHODS) {
       // Add a bridge method:
       //
@@ -304,14 +311,14 @@ public class EnumerableMatch extends Match implements EnumerableRel {
           Expressions.return_(null,
               Expressions.call(
                   Expressions.parameter(Comparable.class, "this"),
-                  BuiltInMethod.BI_PREDICATE_TEST.method,
-                  Expressions.convert_(row0_, physType.getJavaRowType()), Expressions.convert_(rowsO_, List.class))));
+                  BuiltInMethod.PREDICATE_TEST.method,
+                  Expressions.convert_(row0_, physType.getJavaRowType()))));
       memberDeclarations.add(
           EnumUtils.overridingMethodDecl(
-              BuiltInMethod.BI_PREDICATE_TEST.method,
-              ImmutableList.of(row0_, rowsO_), bridgeBody.toBlock()));
+              BuiltInMethod.PREDICATE_TEST.method,
+              ImmutableList.of(row0_), bridgeBody.toBlock()));
     }
-    return Expressions.new_(Types.of(BiPredicate.class), NO_EXPRS,
+    return Expressions.new_(Types.of(Predicate.class), NO_EXPRS,
         memberDeclarations);
   }
 

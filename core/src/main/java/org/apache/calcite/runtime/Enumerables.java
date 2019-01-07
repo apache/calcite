@@ -119,12 +119,12 @@ public class Enumerables {
                 return false;
               }
               ++inputRow;
-              final E e = inputEnumerator.current().get();
-              final TKey key = keySelector.apply(e);
+              final MemoryFactory.Memory<E> rows = inputEnumerator.current();
+              final TKey key = keySelector.apply(rows.get());
               final Matcher.PartitionState<E> partitionState =
                   partitionStates.computeIfAbsent(key,
                       k -> matcher.createPartitionState());
-              matcher.matchOne(e, partitionState,
+              matcher.matchOne(rows, partitionState,
                   // TODO 26.12.18 jf: add row states (whatever this is?)
                   list -> {
                     emitter.emit(list, null, null, matchCounter.getAndIncrement(), emitRows::add);

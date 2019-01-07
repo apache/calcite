@@ -39,12 +39,14 @@ import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.ImplementableAggFunction;
 import org.apache.calcite.schema.ImplementableFunction;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlJsonArrayAggAggFunction;
@@ -284,6 +286,8 @@ public class RexImpTable {
       new HashMap<>();
   private final Map<SqlAggFunction, Supplier<? extends WinAggImplementor>> winAggMap =
       new HashMap<>();
+  private final Map<SqlMatchRecognize.SqlMatchRecognizeOperator, Supplier<? extends MatchRecognizeImplementor>> matchRecognizeMap =
+          new HashMap<>();
 
   RexImpTable() {
     defineMethod(ROW, BuiltInMethod.ARRAY.method, NullPolicy.ANY);
@@ -600,13 +604,21 @@ public class RexImpTable {
 
     // Functions for MATCH_RECOGNIZE
     defineMethod(FINAL, "abs", NullPolicy.ANY);
-    final Method dummy;
-    try {
-      dummy = RexImpTable.class.getMethod("dummy", Object.class, Object.class);
-      defineMethod(PREV, dummy, NullPolicy.ANY);
-    } catch (NoSuchMethodException e) {
-      e.printStackTrace();
-    }
+    map.put(PREV, new CallImplementor() {
+      @Override
+      public Expression implement(RexToLixTranslator translator, RexCall call, NullAs nullAs) {
+        RexPatternFieldRef fieldRef = (RexPatternFieldRef) call.getOperands().get(0);
+        Expression offset = translator.translate(call.getOperands().get(1));
+        return offset;
+      }
+    });
+//    final Method dummy;
+//    try {
+//      dummy = RexImpTable.class.getMethod("dummy", Object.class, Object.class);
+//      defineMethod(PREV, dummy, NullPolicy.ANY);
+//    } catch (NoSuchMethodException e) {
+//      e.printStackTrace();
+//    }
   }
 
   public static int dummy(Object a, Object b) {

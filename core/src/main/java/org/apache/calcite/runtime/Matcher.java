@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import org.apache.calcite.linq4j.MemoryFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -44,7 +46,7 @@ import java.util.stream.Collectors;
  */
 public class Matcher<E> {
   private final Automaton automaton;
-  private final ImmutableMap<String, BiPredicate<E, List<E>>> predicates;
+  private final ImmutableMap<String, Predicate<MemoryFactory.Memory<E>>> predicates;
 
   // The following members are work space. They can be shared among partitions,
   // but only one thread can use them at a time. Putting them here saves the
@@ -59,7 +61,7 @@ public class Matcher<E> {
    * Creates a Matcher; use {@link #builder}.
    */
   private Matcher(Automaton automaton,
-                  ImmutableMap<String, BiPredicate<E, List<E>>> predicates) {
+                  ImmutableMap<String, Predicate<MemoryFactory.Memory<E>>> predicates) {
     this.automaton = Objects.requireNonNull(automaton);
     this.predicates = Objects.requireNonNull(predicates);
     final ImmutableBitSet.Builder startSetBuilder =
@@ -84,8 +86,10 @@ public class Matcher<E> {
         ImmutableList.builder();
     final Consumer<List<E>> resultMatchConsumer = resultMatchBuilder::add;
     final PartitionState<E> partitionState = createPartitionState();
+    MemoryFactory<E> factory = new MemoryFactory<>(0, 0);
     for (E row : rows) {
-      matchOne(row, partitionState, resultMatchConsumer);
+      factory.add(row);
+      matchOne(factory.create(), partitionState, resultMatchConsumer);
     }
     return resultMatchBuilder.build();
   }
@@ -100,20 +104,20 @@ public class Matcher<E> {
    * <p>
    * This method ignores the symbols that caused a transition.
    */
-  protected void matchOne(E row, PartitionState<E> partitionState,
+  protected void matchOne(MemoryFactory.Memory<E> rows, PartitionState<E> partitionState,
                           Consumer<List<E>> resultMatches) {
-    List<PartialMatch<E>> matches = matchOneWithSymbols(row, partitionState);
+    List<PartialMatch<E>> matches = matchOneWithSymbols(rows, partitionState);
     for (PartialMatch<E> pm : matches) {
       resultMatches.accept(pm.rows);
     }
   }
 
-  protected List<PartialMatch<E>> matchOneWithSymbols(E row, PartitionState<E> partitionState) {
+  protected List<PartialMatch<E>> matchOneWithSymbols(MemoryFactory.Memory<E> rows, PartitionState<E> partitionState) {
     final HashSet<PartialMatch<E>> newMatches = new HashSet<>();
-    for (Map.Entry<String, BiPredicate<E, List<E>>> predicate : predicates.entrySet()) {
+    for (Map.Entry<String, Predicate<MemoryFactory.Memory<E>>> predicate : predicates.entrySet()) {
       for (PartialMatch<E> pm : partitionState.getPartialMatches()) {
         // Remove this match
-        if (predicate.getValue().test(row, pm.getRows())) {
+        if (predicate.getValue().test(rows)) {
           // Check if we have transitions from here
           final List<DFA.Transition> transitions = dfa.getTransitions().stream()
               .filter(t -> predicate.getKey().equals(t.getSymbol()))
@@ -122,13 +126,13 @@ public class Matcher<E> {
 
           for (DFA.Transition transition : transitions) {
             // System.out.println("Append new transition to ");
-            final PartialMatch<E> newMatch = pm.append(transition.getSymbol(), row, transition.getToState());
+            final PartialMatch<E> newMatch = pm.append(transition.getSymbol(), rows.get(), transition.getToState());
             newMatches.add(newMatch);
           }
         }
       }
       // Check if a new Match starts here
-      if (predicate.getValue().test(row, Collections.emptyList())) {
+      if (predicate.getValue().test(rows)) {
         final List<DFA.Transition> transitions = dfa.getTransitions().stream()
             .filter(t -> predicate.getKey().equals(t.getSymbol()))
             .filter(t -> dfa.startState.equals(t.getFromState()))
@@ -136,7 +140,7 @@ public class Matcher<E> {
 
         for (DFA.Transition transition : transitions) {
           final PartialMatch<E> newMatch = new PartialMatch<>(-1L,
-              ImmutableList.of(transition.getSymbol()), ImmutableList.of(row), transition.getToState());
+              ImmutableList.of(transition.getSymbol()), ImmutableList.of(rows.get()), transition.getToState());
           newMatches.add(newMatch);
         }
       }
@@ -159,87 +163,6 @@ public class Matcher<E> {
       }
     }
     return builder.build();
-
-    // TODO CHeck if one is final and... deal with it...
-//        // Add this row to the states.
-//        partitionState.bufferedRows.add(row);
-//        partitionState.stateSets.add(
-//                startSet.toList().stream()
-//                        .map(i -> new Tuple<>(null, i))
-//                        .collect(Collectors.toList())
-//        );
-//
-//        // Compute the set of symbols whose predicates that evaluate to true
-//        // for this row.
-//        rowSymbols.clear();
-//        for (Ord<BiPredicate<E, List<E>>> predicate : Ord.zip(predicates)) {
-//            if (predicate.e.test(row, partitionState.bufferedRows)) {
-//                rowSymbols.add(predicate.i);
-//            }
-//        }
-//
-//        // TODO: Should we short-cut if symbols is empty?
-//        // TODO: Merge states with epsilon-successors
-//
-//        // Now process the states of partialMatches, oldest first, and compute the
-//        // successors based on the predicates that are true for the current
-//        // row.
-//        for (int i = 0; i < partitionState.stateSets.size(); ) {
-//            final List<Tuple<Integer>> stateSet = partitionState.stateSets.get(i);
-//            ImmutableList.Builder<Tuple<Integer>> nextStateBuilder =
-//                    ImmutableList.builder();
-//            for (int symbol : rowSymbols) {
-//                for (Tuple<Integer> state : stateSet) {
-//                    final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
-//                    automaton.successors(state.row, symbol, builder);
-//                    // Convert to List
-//                    for (Integer bit : builder.build()) {
-//                        nextStateBuilder.add(new Tuple<>(automaton.symbolNames.get(symbol), bit));
-//                    }
-//                }
-//            }
-//            final ImmutableList<Tuple<Integer>> nextStateSet = nextStateBuilder.build();
-//            if (nextStateSet.isEmpty()) {
-//                if (i == 0) {
-//                    // Don't add the stateSet if it is empty and would be the oldest.
-//                    // The first item in stateSets must not be empty.
-//                    partitionState.bufferedRows.remove(0);
-//                    partitionState.stateSets.remove(0);
-//                } else {
-//                    partitionState.stateSets.set(i++, emptyStateSet);
-//                }
-//            } else if (contains(nextStateSet, automaton.endState.id)) {
-//                final ImmutableList<E> list = ImmutableList.copyOf(
-//                        partitionState.bufferedRows.subList(i,
-//                                partitionState.bufferedRows.size()));
-//                final ImmutableList.Builder<Tuple<E>> builder = ImmutableList.builder();
-//                for (int j = i; j < partitionState.bufferedRows.size(); j++) {
-//                    builder.add(new Tuple<>("", partitionState.bufferedRows.get(j)));
-//                }
-//                resultMatches.accept(builder.build());
-//                if (i == 0) {
-//                    // Don't add the stateSet if it is empty and would be the oldest.
-//                    // The first item in stateSets must not be empty.
-//                    partitionState.bufferedRows.remove(0);
-//                    partitionState.stateSets.remove(0);
-//                } else {
-//                    // Set state to empty so that it is not considered for any
-//                    // further partialMatches, and will be removed when it is the oldest.
-//                    partitionState.stateSets.set(i++, emptyStateSet);
-//                }
-//            } else {
-//                partitionState.stateSets.set(i++, nextStateSet);
-//            }
-//        }
-  }
-
-  private static boolean contains(ImmutableList<Tuple<Integer>> list, int id) {
-    for (Tuple<Integer> tuple : list) {
-      if (tuple.row == id) {
-        return true;
-      }
-    }
-    return false;
   }
 
   /**
@@ -358,7 +281,7 @@ public class Matcher<E> {
    */
   public static class Builder<E> {
     final Automaton automaton;
-    final Map<String, BiPredicate<E, List<E>>> symbolPredicates =
+    final Map<String, Predicate<MemoryFactory.Memory<E>>> symbolPredicates =
         new HashMap<>();
 
     Builder(Automaton automaton) {
@@ -369,7 +292,7 @@ public class Matcher<E> {
      * Associates a predicate with a symbol.
      */
     public Builder<E> add(String symbolName,
-                          BiPredicate<E, List<E>> predicate) {
+                          Predicate<MemoryFactory.Memory<E>> predicate) {
       symbolPredicates.put(symbolName, predicate);
       return this;
     }
@@ -383,14 +306,14 @@ public class Matcher<E> {
             + predicateSymbolsNotInGraph + "] are in graph ["
             + automaton.symbolNames + "]");
       }
-      final ImmutableMap.Builder<String, BiPredicate<E, List<E>>> builder =
+      final ImmutableMap.Builder<String, Predicate<MemoryFactory.Memory<E>>> builder =
           ImmutableMap.builder();
       for (String symbolName : automaton.symbolNames) {
         // If a symbol does not have a predicate, it defaults to true.
         // By convention, "STRT" is used for the start symbol, but it could be
         // anything.
         builder.put(symbolName,
-            symbolPredicates.getOrDefault(symbolName, (e, list) -> true));
+            symbolPredicates.getOrDefault(symbolName, (e) -> true));
       }
       return new Matcher<>(automaton, builder.build());
     }

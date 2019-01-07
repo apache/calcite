@@ -175,7 +175,7 @@ public enum BuiltInMethod {
   PATTERN_TO_AUTOMATON(Pattern.PatternBuilder.class, "automaton"),
   MATCHER_BUILDER(Matcher.class, "builder", Automaton.class),
   MATCHER_BUILDER_ADD(Matcher.Builder.class, "add", String.class,
-      BiPredicate.class),
+      Predicate.class),
   MATCHER_BUILDER_BUILD(Matcher.Builder.class, "build"),
   EMITTER_EMIT(Enumerables.Emitter.class, "emit", List.class, List.class,
       List.class, int.class, Consumer.class),
