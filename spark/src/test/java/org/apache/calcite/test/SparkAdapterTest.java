@@ -622,11 +622,13 @@ public class SparkAdapterTest {
         + "where x > 1";
 
     final String plan = "PLAN="
-        + "EnumerableUnion(all=[false])\n"
-        + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[>($t0, $t2)], X=[$t0], $condition=[$t3])\n"
-        + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
-        + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[>($t0, $t2)], X=[$t0], $condition=[$t3])\n"
-        + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
+        + "EnumerableAggregate(group=[{0}])\n"
+        + "  EnumerableUnion(all=[true])\n"
+        + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[>($t0, $t2)], X=[$t0], $condition=[$t3])\n"
+        + "      EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
+        + "    EnumerableAggregate(group=[{0}])\n"
+        + "      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[>($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
+        + "        EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
 
     final String expectedResult = "X=2";
 

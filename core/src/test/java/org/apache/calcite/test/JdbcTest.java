@@ -2552,11 +2552,14 @@ public class JdbcTest {
         .query(
             "select \"deptno\", \"deptno\" from \"hr\".\"depts\" union select \"deptno\", \"empid\" from \"hr\".\"emps\"")
         .explainContains(""
-            + "PLAN=EnumerableUnion(all=[false])\n"
-            + "  EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0], deptno0=[$t0])\n"
-            + "    EnumerableTableScan(table=[[hr, depts]])\n"
-            + "  EnumerableCalc(expr#0..4=[{inputs}], deptno=[$t1], empid=[$t0])\n"
-            + "    EnumerableTableScan(table=[[hr, emps]])\n")
+            + "PLAN=EnumerableAggregate(group=[{0, 1}])\n"
+            + "  EnumerableUnion(all=[true])\n"
+            + "    EnumerableCalc(expr#0=[{inputs}], deptno=[$t0], deptno0=[$t0])\n"
+            + "      EnumerableAggregate(group=[{0}])\n"
+            + "        EnumerableTableScan(table=[[hr, depts]])\n"
+            + "    EnumerableCalc(expr#0..1=[{inputs}], deptno=[$t1], empid=[$t0])\n"
+            + "      EnumerableAggregate(group=[{0, 1}])\n"
+            + "        EnumerableTableScan(table=[[hr, emps]])\n")
         .returnsUnordered(
             "deptno=10; deptno=110",
             "deptno=10; deptno=10",
@@ -3328,7 +3331,14 @@ public class JdbcTest {
     CalciteAssert.hr()
         .query(sql)
         .explainContains(""
-            + "PLAN=EnumerableUnion(all=[false])")
+            + "PLAN=EnumerableAggregate(group=[{0, 1}])\n"
+            + "  EnumerableUnion(all=[true])\n"
+            + "    EnumerableAggregate(group=[{0, 2}])\n"
+            + "      EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t1):INTEGER NOT NULL], expr#6=[10], expr#7=[=($t5, $t6)], proj#0..4=[{exprs}], $condition=[$t7])\n"
+            + "        EnumerableTableScan(table=[[hr, emps]])\n"
+            + "    EnumerableAggregate(group=[{0, 2}])\n"
+            + "      EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], expr#6=[>=($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "        EnumerableTableScan(table=[[hr, emps]])")
         .returnsUnordered("empid=100; name=Bill",
             "empid=110; name=Theodore",
             "empid=150; name=Sebastian",

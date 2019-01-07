@@ -75,10 +75,12 @@ import org.apache.calcite.rel.rules.AbstractMaterializedViewRule;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
 import org.apache.calcite.rel.rules.AggregateStarTableRule;
+import org.apache.calcite.rel.rules.AggregateUnionTransposeRule;
 import org.apache.calcite.rel.rules.AggregateValuesRule;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
+import org.apache.calcite.rel.rules.FilterSetOpTransposeRule;
 import org.apache.calcite.rel.rules.FilterTableScanRule;
 import org.apache.calcite.rel.rules.JoinAssociateRule;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
@@ -226,6 +228,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
               : ProjectMergeRule.INSTANCE,
           FilterTableScanRule.INSTANCE,
           ProjectFilterTransposeRule.INSTANCE,
+          ProjectMergeRule.INSTANCE,
           FilterProjectTransposeRule.INSTANCE,
           FilterJoinRule.FILTER_ON_JOIN,
           JoinPushExpressionsRule.INSTANCE,
@@ -537,6 +540,11 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       planner.addRule(AbstractMaterializedViewRule.INSTANCE_JOIN);
       planner.addRule(AbstractMaterializedViewRule.INSTANCE_PROJECT_AGGREGATE);
       planner.addRule(AbstractMaterializedViewRule.INSTANCE_AGGREGATE);
+    } else {
+      // See [CALCITE-2223]. Enabling the rules with materializations might result in infinite
+      // planning. E.g. org.apache.calcite.test.MaterializationTest.testJoinMaterialization10
+      planner.addRule(FilterSetOpTransposeRule.INSTANCE);
+      planner.addRule(AggregateUnionTransposeRule.INSTANCE);
     }
     if (enableBindable) {
       for (RelOptRule rule : Bindables.RULES) {
