@@ -51,7 +51,7 @@ import java.util.Set;
  * and optionally use a condition to filter rows.
  *
  * <p>Programs are immutable. It may help to use a {@link RexProgramBuilder},
- * which has the same relationship to {@link RexProgram} as {@link StringBuffer}
+ * which has the same relationship to {@link RexProgram} as {@link StringBuilder}
  * has to {@link String}.
  *
  * <p>A program can contain aggregate functions. If it does, the arguments to
