@@ -71,8 +71,8 @@ public class AutomatonBuilder {
       return symbol(fromState, toState, pSymbol.name);
 
     case OR:
-        final Pattern.OpPattern pOr = (Pattern.OpPattern) p;
-        return or(fromState, toState, pOr.patterns.get(0), pOr.patterns.get(1));
+      final Pattern.OpPattern pOr = (Pattern.OpPattern) p;
+      return or(fromState, toState, pOr.patterns.get(0), pOr.patterns.get(1));
 
     case OPTIONAL:
       // Rewrite as {0,1}

@@ -17,14 +17,10 @@
 package org.apache.calcite.runtime;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Optional;
 
 /** A finite-state automaton (Nondeterministic).
  *
@@ -100,8 +96,12 @@ public class Automaton {
     }
 
     @Override public boolean equals(Object o) {
-      if (this == o) return true;
-      if (o == null || getClass() != o.getClass()) return false;
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
       State state = (State) o;
       return id == state.id;
     }
@@ -111,9 +111,9 @@ public class Automaton {
     }
 
     @Override public String toString() {
-      return "State{" +
-          "id=" + id +
-          '}';
+      return "State{"
+          + "id=" + id
+          + '}';
     }
   }
 
