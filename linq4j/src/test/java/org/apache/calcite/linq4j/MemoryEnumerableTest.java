@@ -46,12 +46,12 @@ public class MemoryEnumerableTest {
 
     assertEquals(100, results.size());
     // First entry
-    assertEquals(0, (int)results.get(0).get());
-    assertEquals(1, (int)results.get(0).get(1));
+    assertEquals(0, (int) results.get(0).get());
+    assertEquals(1, (int) results.get(0).get(1));
     assertNull(results.get(0).get(-2));
     // Last entry
-    assertEquals(99, (int)results.get(99).get());
-    assertEquals(97, (int)results.get(99).get(-2));
+    assertEquals(99, (int) results.get(99).get());
+    assertEquals(97, (int) results.get(99).get(-2));
     assertNull(results.get(99).get(1));
   }
 
