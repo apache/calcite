@@ -5,7 +5,9 @@
  * The ASF licenses this file to you under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -47,6 +49,12 @@ public class MemoryFactory<E> {
     return new Memory<>(history, future, offset, values.clone());
   }
 
+  /**
+   * Class that represents a "Memory Segment".
+   * This means a "window" around a record which can be browsed
+   * using the {@link #get()} or {@link #get(int)} methods.
+   * @param <E> Row type
+   */
   public static class Memory<E> {
 
     private final int history;
@@ -71,12 +79,16 @@ public class MemoryFactory<E> {
 
     public E get(int position) {
       if (position < 0 && position < -1 * history) {
-        throw new IllegalArgumentException("History can only go back " + history + " points in time, you wanted " + Math.abs(position));
+        throw new IllegalArgumentException("History can only go back " + history
+            + " points in time, you wanted " + Math.abs(position));
       }
       if (position > 0 && position > future) {
-        throw new IllegalArgumentException("Future can only see next " + future + " points in time, you wanted " + position);
+        throw new IllegalArgumentException("Future can only see next " + future
+            + " points in time, you wanted " + position);
       }
       return (E) this.values[this.offset.plus(position - 1 - future).get()];
     }
   }
 }
+
+// End MemoryFactory.java

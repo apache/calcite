@@ -82,16 +82,13 @@ public class Enumerables {
     return new AbstractEnumerable<TResult>() {
       public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
-          final Enumerator<MemoryFactory.Memory<E>> inputEnumerator =
-              Linq4j.withMemory(enumerable, history, future).enumerator();
+          final Enumerator<E> inputEnumerator = enumerable.enumerator();
 
           // State of each partition.
           final Map<TKey, Matcher.PartitionState<E>> partitionStates =
               new HashMap<>();
 
           int inputRow = -1;
-
-          final CircularArrayList<E> recentRows = new CircularArrayList<>();
 
           final Deque<TResult> emitRows = new ArrayDeque<>();
 
@@ -119,12 +116,16 @@ public class Enumerables {
                 return false;
               }
               ++inputRow;
-              final MemoryFactory.Memory<E> rows = inputEnumerator.current();
-              final TKey key = keySelector.apply(rows.get());
+              final E row = inputEnumerator.current();
+              final TKey key = keySelector.apply(row);
               final Matcher.PartitionState<E> partitionState =
                   partitionStates.computeIfAbsent(key,
-                      k -> matcher.createPartitionState());
-              matcher.matchOne(rows, partitionState,
+                      k -> matcher.createPartitionState(history, future));
+
+              partitionState.getMemoryFactory().add(row);
+
+
+              matcher.matchOne(partitionState.getRows(), partitionState,
                   // TODO 26.12.18 jf: add row states (whatever this is?)
                   list -> {
                     emitter.emit(list, null, null, matchCounter.getAndIncrement(), emitRows::add);

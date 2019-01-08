@@ -604,21 +604,13 @@ public class RexImpTable {
 
     // Functions for MATCH_RECOGNIZE
     defineMethod(FINAL, "abs", NullPolicy.ANY);
-    map.put(PREV, new CallImplementor() {
-      @Override
-      public Expression implement(RexToLixTranslator translator, RexCall call, NullAs nullAs) {
-        RexPatternFieldRef fieldRef = (RexPatternFieldRef) call.getOperands().get(0);
-        Expression offset = translator.translate(call.getOperands().get(1));
-        return offset;
-      }
-    });
-//    final Method dummy;
-//    try {
-//      dummy = RexImpTable.class.getMethod("dummy", Object.class, Object.class);
-//      defineMethod(PREV, dummy, NullPolicy.ANY);
-//    } catch (NoSuchMethodException e) {
-//      e.printStackTrace();
-//    }
+    final Method dummy;
+    try {
+      dummy = RexImpTable.class.getMethod("dummy", Object.class, Object.class);
+      defineMethod(PREV, dummy, NullPolicy.ANY);
+    } catch (NoSuchMethodException e) {
+      e.printStackTrace();
+    }
   }
 
   public static int dummy(Object a, Object b) {

@@ -398,9 +398,9 @@ public abstract class Linq4j {
   }
 
   /** Wraps an MemoryEnumerable around the input to serve present and future values. */
-  public static <T> MemoryEnumerable<T> withMemory(final Enumerable<T> inüut,
+  public static <T> MemoryEnumerable<T> withMemory(final Enumerable<T> input,
       final int history, final int future) {
-    return new MemoryEnumerable<>(inüut, history, future);
+    return new MemoryEnumerable<>(input, history, future);
   }
 
   /**

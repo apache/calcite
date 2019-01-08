@@ -1233,13 +1233,13 @@ public class ExpressionTest {
             )
     );
     assertEquals(
-            "{\n" +
-                    "  for (int i : list) {\n" +
-                    "    if (1 < 2) {\n" +
-                    "      break;\n" +
-                    "    }\n" +
-                    "  }\n" +
-                    "}\n",
+        "{\n"
+            + "  for (int i : list) {\n"
+            + "    if (1 < 2) {\n"
+            + "      break;\n"
+            + "    }\n"
+            + "  }\n"
+            + "}\n",
             Expressions.toString(builder.toBlock()));
   }
 

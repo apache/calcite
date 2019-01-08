@@ -85,17 +85,16 @@ public class Matcher<E> {
     final ImmutableList.Builder<List<E>> resultMatchBuilder =
         ImmutableList.builder();
     final Consumer<List<E>> resultMatchConsumer = resultMatchBuilder::add;
-    final PartitionState<E> partitionState = createPartitionState();
-    MemoryFactory<E> factory = new MemoryFactory<>(0, 0);
+    final PartitionState<E> partitionState = createPartitionState(0, 0);
     for (E row : rows) {
-      factory.add(row);
-      matchOne(factory.create(), partitionState, resultMatchConsumer);
+      partitionState.getMemoryFactory().add(row);
+      matchOne(partitionState.getRows(), partitionState, resultMatchConsumer);
     }
     return resultMatchBuilder.build();
   }
 
-  public PartitionState<E> createPartitionState() {
-    return new PartitionState<>();
+  public PartitionState<E> createPartitionState(int history, int future) {
+    return new PartitionState<>(history, future);
   }
 
   /**
@@ -173,6 +172,11 @@ public class Matcher<E> {
   static class PartitionState<E> {
 
     private final Set<PartialMatch<E>> partialMatches = new HashSet<>();
+    private final MemoryFactory<E> memoryFactory ;
+
+    public PartitionState(int history, int future) {
+      this.memoryFactory = new MemoryFactory<>(history, future);
+    }
 
     public void addPartialMatches(Collection<PartialMatch<E>> matches) {
       partialMatches.addAll(matches);
@@ -188,6 +192,14 @@ public class Matcher<E> {
 
     public void clearPartitions() {
       partialMatches.clear();
+    }
+
+    public MemoryFactory.Memory<E> getRows() {
+      return memoryFactory.create();
+    }
+
+    public MemoryFactory<E> getMemoryFactory() {
+      return this.memoryFactory;
     }
   }
 

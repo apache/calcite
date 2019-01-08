@@ -201,7 +201,7 @@ public class AutomatonTest {
                     .add("A", (s) -> s.get().contains("a"))
                     .add("B", (s) -> s.get().contains("b"))
                     .build();
-    final Matcher.PartitionState<String> partitionState = matcher.createPartitionState();
+    final Matcher.PartitionState<String> partitionState = matcher.createPartitionState(0, 0);
     final ImmutableList.Builder<Matcher.PartialMatch<String>> builder = ImmutableList.builder();
     MemoryFactory<String> memoryFactory = new MemoryFactory<>(0, 0);
     for (String row : rows) {
