@@ -27,7 +27,7 @@ limitations under the License.
   <groupId>org.apache.calcite</groupId>
   <artifactId>calcite</artifactId>
   <packaging>pom</packaging>
-  <version>1.18.0</version>
+  <version>1.18.0-1019</version>
 
   <!-- More project information. -->
   <name>Calcite</name>

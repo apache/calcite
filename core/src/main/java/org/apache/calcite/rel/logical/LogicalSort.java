@@ -26,6 +26,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.Litmus;
 
 /**
  * Sub-class of {@link org.apache.calcite.rel.core.Sort} not
@@ -36,6 +37,7 @@ public final class LogicalSort extends Sort {
       RelNode input, RelCollation collation, RexNode offset, RexNode fetch) {
     super(cluster, traitSet, input, collation, offset, fetch);
     assert traitSet.containsIfApplicable(Convention.NONE);
+//    assert inputsSatisfy(Convention.NONE, Litmus.THROW);
   }
 
   /**
