@@ -17,7 +17,7 @@
 package org.apache.calcite.sql.util;
 
 import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.util.UnmodifiableArrayList;
+import org.apache.calcite.util.Util;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -176,7 +176,7 @@ public class SqlBuilder {
    * @return This builder
    */
   public SqlBuilder identifier(String... names) {
-    dialect.quoteIdentifier(buf, UnmodifiableArrayList.of(names));
+    dialect.quoteIdentifier(buf, Util.unmodifiableList(names));
     return this;
   }
 

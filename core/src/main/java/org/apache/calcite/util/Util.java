@@ -78,6 +78,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1977,6 +1978,20 @@ public class Util {
         return start + index;
       }
     };
+  }
+
+  	/**
+	 * Accepts an array of elements and wraps in an unmodifiable List. This method
+	 * is "quick" in that it simply wraps the supplied array, no copies are made.
+	 * The returned List is backed by the supplied array, so changes in the array
+	 * are reflected in the List.
+	 * 
+	 * @param elems The array to wrap
+	 * @return An unmodifiable List backed by the array
+	 */
+  public static <T> List<T> unmodifiableList(T[] elems) {
+    Objects.requireNonNull(elems);
+    return Collections.unmodifiableList(Arrays.asList(elems));
   }
 
   /**

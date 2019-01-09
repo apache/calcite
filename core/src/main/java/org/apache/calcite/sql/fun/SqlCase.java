@@ -23,7 +23,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.util.UnmodifiableArrayList;
+import org.apache.calcite.util.ImmutableNullableList;
 
 import java.util.List;
 
@@ -102,7 +102,7 @@ public class SqlCase extends SqlCall {
   }
 
   public List<SqlNode> getOperandList() {
-    return UnmodifiableArrayList.of(value, whenList, thenList, elseExpr);
+    return ImmutableNullableList.of(value, whenList, thenList, elseExpr);
   }
 
   @Override public void setOperand(int i, SqlNode operand) {

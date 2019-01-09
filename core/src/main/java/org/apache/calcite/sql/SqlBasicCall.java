@@ -17,7 +17,7 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.util.UnmodifiableArrayList;
+import org.apache.calcite.util.Util;
 
 import java.util.List;
 import java.util.Objects;
@@ -76,7 +76,7 @@ public class SqlBasicCall extends SqlCall {
   }
 
   public List<SqlNode> getOperandList() {
-    return UnmodifiableArrayList.of(operands); // not immutable, but quick
+    return Util.unmodifiableList(operands);
   }
 
   @SuppressWarnings("unchecked")

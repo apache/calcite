@@ -129,42 +129,42 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
   public static <E> List<E> of(E e1, E e2) {
     // Only we can see the varargs array. Therefore the list is immutable.
     //noinspection unchecked
-    return UnmodifiableArrayList.of(e1, e2);
+    return construct(e1, e2);
   }
 
   /** Creates an immutable list of 3 elements. */
   public static <E> List<E> of(E e1, E e2, E e3) {
     // Only we can see the varargs array. Therefore the list is immutable.
     //noinspection unchecked
-    return UnmodifiableArrayList.of(e1, e2, e3);
+    return construct(e1, e2, e3);
   }
 
   /** Creates an immutable list of 4 elements. */
   public static <E> List<E> of(E e1, E e2, E e3, E e4) {
     // Only we can see the varargs array. Therefore the list is immutable.
     //noinspection unchecked
-    return UnmodifiableArrayList.of(e1, e2, e3, e4);
+    return construct(e1, e2, e3, e4);
   }
 
   /** Creates an immutable list of 5 elements. */
   public static <E> List<E> of(E e1, E e2, E e3, E e4, E e5) {
     // Only we can see the varargs array. Therefore the list is immutable.
     //noinspection unchecked
-    return UnmodifiableArrayList.of(e1, e2, e3, e4, e5);
+    return construct(e1, e2, e3, e4, e5);
   }
 
   /** Creates an immutable list of 6 elements. */
   public static <E> List<E> of(E e1, E e2, E e3, E e4, E e5, E e6) {
     // Only we can see the varargs array. Therefore the list is immutable.
     //noinspection unchecked
-    return UnmodifiableArrayList.of(e1, e2, e3, e4, e5, e6);
+    return construct(e1, e2, e3, e4, e5, e6);
   }
 
   /** Creates an immutable list of 7 elements. */
   public static <E> List<E> of(E e1, E e2, E e3, E e4, E e5, E e6, E e7) {
     // Only we can see the varargs array. Therefore the list is immutable.
     //noinspection unchecked
-    return UnmodifiableArrayList.of(e1, e2, e3, e4, e5, e6, e7);
+    return construct(e1, e2, e3, e4, e5, e6, e7);
   }
 
   /** Creates an immutable list of 8 or more elements. */
@@ -181,7 +181,12 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
     array[7] = e8;
     System.arraycopy(others, 0, array, 8, others.length);
     //noinspection unchecked
-    return new ImmutableNullableList<>((E[]) array);
+    return construct((E[]) array);
+  }
+
+  /** Views the array as an immutable list which can contain nulls. */
+  private static <E> List<E> construct(Object... elements) {
+    return (List<E>) Util.unmodifiableList(elements);
   }
 
   @Override public E get(int index) {

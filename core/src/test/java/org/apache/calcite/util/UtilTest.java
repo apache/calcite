@@ -1722,11 +1722,11 @@ public class UtilTest {
     assertThat(ImmutableNullableList.copyOf(ab0c), equalTo(ab0cList));
   }
 
-  /** Test for {@link org.apache.calcite.util.UnmodifiableArrayList}. */
-  @Test public void testUnmodifiableArrayList() {
+  /** Test for {@link org.apache.calcite.util.Util#unmodifiableList}. */
+  @Test public void testUnmodifiableList() {
     final String[] strings = {"a", null, "c"};
     final List<String> arrayList = Arrays.asList(strings);
-    final List<String> list = UnmodifiableArrayList.of(strings);
+    final List<String> list = Util.unmodifiableList(strings);
     assertThat(list.size(), equalTo(arrayList.size()));
     assertThat(list, equalTo(arrayList));
     assertThat(list.hashCode(), equalTo(arrayList.hashCode()));
