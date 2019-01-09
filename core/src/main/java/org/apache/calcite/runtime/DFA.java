@@ -26,7 +26,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * A deterministic finite automaton (DFA) which can be constructed from the nondeterministic {@link Automaton}.
+ * A deterministic finite automaton (DFA) which can be constructed from the
+ * nondeterministic {@link Automaton}.
  */
 public class DFA {
 
@@ -68,7 +69,8 @@ public class DFA {
     return transitions;
   }
 
-  private void traverse(MultiState start, ImmutableList.Builder<Transition> transitionsBuilder, HashSet<MultiState> traversedStates) {
+  private void traverse(MultiState start, ImmutableList.Builder<Transition> transitionsBuilder,
+                        HashSet<MultiState> traversedStates) {
     traversedStates.add(start);
     final HashSet<MultiState> newStates = new HashSet<>();
     for (int symbol = 0; symbol < automaton.symbolNames.size(); symbol++) {
@@ -82,7 +84,7 @@ public class DFA {
   }
 
   private Optional<MultiState> addTransitions(MultiState start, int symbol,
-                                              ImmutableList.Builder<Transition> transitionsBuilder) {
+                                          ImmutableList.Builder<Transition> transitionsBuilder) {
     final ImmutableSet.Builder<Automaton.State> builder = ImmutableSet.builder();
     for (Automaton.SymbolTransition transition : this.automaton.getTransitions()) {
       // Consider only transitions for the given symbol
@@ -101,7 +103,8 @@ public class DFA {
       return Optional.empty();
     }
     final MultiState next = new MultiState(builder.build());
-    final Transition transition = new Transition(start, next, symbol, automaton.symbolNames.get(symbol));
+    final Transition transition =
+        new Transition(start, next, symbol, automaton.symbolNames.get(symbol));
     // Add the state to the list and add the transition in the table
     transitionsBuilder.add(transition);
     return Optional.of(next);
@@ -126,13 +129,14 @@ public class DFA {
     }
   }
 
+  /** Class reperesenting a Transition */
   static class Transition {
     private MultiState fromState;
     private MultiState toState;
     private int symbolId;
     private String symbol;
 
-    public Transition(MultiState fromState, MultiState toState, int symbolId, String symbol) {
+    Transition(MultiState fromState, MultiState toState, int symbolId, String symbol) {
       this.fromState = fromState;
       this.toState = toState;
       this.symbolId = symbolId;
@@ -156,15 +160,19 @@ public class DFA {
     }
   }
 
+  /**
+   * Class representing a DFA State, i.e., a state consisting of (possibly) multiple states
+   * from the underlying eps-NFA.
+   */
   static class MultiState {
 
     private ImmutableSet<Automaton.State> states;
 
-    public MultiState(Automaton.State... states) {
+    MultiState(Automaton.State... states) {
       this.states = ImmutableSet.copyOf(states);
     }
 
-    public MultiState(ImmutableSet<Automaton.State> states) {
+    MultiState(ImmutableSet<Automaton.State> states) {
       this.states = states;
     }
 
@@ -173,8 +181,12 @@ public class DFA {
     }
 
     @Override public boolean equals(Object o) {
-      if (this == o) return true;
-      if (o == null || getClass() != o.getClass()) return false;
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
       MultiState that = (MultiState) o;
       return Objects.equals(states, that.states);
     }
@@ -188,3 +200,5 @@ public class DFA {
     }
   }
 }
+
+// End DFA.java

@@ -126,7 +126,8 @@ public interface Pattern {
      * and pushes it onto the stack. */
     public PatternBuilder or() {
       if (stack.size() < 2) {
-        throw new AssertionError("Expecting stack to have at least 2 items, but has " + stack.size());
+        throw new AssertionError("Expecting stack to have at least 2 items, but has "
+            + stack.size());
       }
       final Pattern pattern1 = stack.pop();
       final Pattern pattern0 = stack.pop();
@@ -143,13 +144,6 @@ public interface Pattern {
       return push(new OpPattern(Op.OPTIONAL, pattern));
     }
 
-    public PatternBuilder anchor_start() {
-      return push(new OpPattern(Op.ANCHOR_START));
-    }
-
-    public PatternBuilder anchor_end() {
-      return push(new OpPattern(Op.ANCHOR_END));
-    }
   }
 
   /** Base class for implementations of {@link Pattern}. */

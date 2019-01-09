@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Enumerator that keeps some recent and some "future" values.
- * @param <E> Type of rows
+ * @param <E> Row value
  */
 public class MemoryEnumerator<E> implements Enumerator<MemoryFactory.Memory<E>> {
 
