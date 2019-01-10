@@ -449,7 +449,7 @@ public class GeoFunctions {
       String value = style.substring(equals + 1, space);
       switch (name) {
       case "quad_segs":
-        quadSegCount = Integer.valueOf(value);
+        quadSegCount = Integer.parseInt(value);
         break;
       case "endcap":
         endCapStyle = CapStyle.of(value);
