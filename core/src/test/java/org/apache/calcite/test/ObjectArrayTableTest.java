@@ -39,10 +39,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Locale;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import static java.lang.String.format;
 
 /**
  * Test for querying Java Object array table.
@@ -241,6 +244,35 @@ public class ObjectArrayTableTest {
     });
 
   }
+
+  /**
+   * Test to confirm java.sql.Timestamp can be casted to Timestamp with different precision.
+   * The cast should be done the same as with TIMESTAMP literal.
+   */
+  @Test public void testCastTimestampToTimestamp() throws SQLException {
+
+    withJavaSqlDateTypes(connection -> {
+
+      Statement statement = connection.createStatement();
+      final String sql = "select %s as EXPECTED, %s as ACTUAL from \"java_sql_date_types\"";
+
+      for (int i = 3; i >= 0; i--) {
+        final String castTo = format(Locale.ROOT, "TIMESTAMP(%d)", i);
+
+        final String expected = format(Locale.ROOT,
+            "cast(TIMESTAMP '2018-12-14 18:29:34.123' as %s)", castTo);
+        final String actual = format(Locale.ROOT, "cast(\"ts\" as %s)", castTo);
+        final ResultSet resultSet = statement.executeQuery(
+            format(Locale.ROOT, sql, expected, actual));
+        resultSet.next();
+        assertEquals(format(Locale.ROOT, "cast(java.sql.Timestamp as %s)", castTo),
+            resultSet.getTimestamp(1), resultSet.getTimestamp(2));
+      }
+
+    });
+
+  }
+
 }
 
 // End ObjectArrayTableTest.java

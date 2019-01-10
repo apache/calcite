@@ -870,8 +870,18 @@ public class RexImpTable {
     if (type instanceof RelDataTypeFactoryImpl.JavaType) {
       final SqlTypeName typeName = type.getSqlTypeName();
       if (typeName != null && typeName != SqlTypeName.OTHER) {
+
+        final RelDataType sqlType;
+        if (typeName.allowsScale()) {
+          sqlType = typeFactory.createSqlType(typeName, type.getPrecision(), type.getScale());
+        } else if (typeName.allowsPrecNoScale()) {
+          sqlType = typeFactory.createSqlType(typeName, type.getPrecision());
+        } else {
+          sqlType = typeFactory.createSqlType(typeName);
+        }
+
         return typeFactory.createTypeWithNullability(
-            typeFactory.createSqlType(typeName),
+            sqlType,
             type.isNullable());
       }
     }

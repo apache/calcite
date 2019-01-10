@@ -535,17 +535,17 @@ public class RexToLixTranslator {
       }
       break;
     case TIMESTAMP:
-      int targetScale = targetType.getScale();
-      if (targetScale == RelDataType.SCALE_NOT_SPECIFIED) {
-        targetScale = 0;
+      int targetTimestampPrecision = targetType.getPrecision();
+      if (targetTimestampPrecision == RelDataType.PRECISION_NOT_SPECIFIED) {
+        targetTimestampPrecision = 0;
       }
-      if (targetScale < sourceType.getScale()) {
+      if (targetTimestampPrecision < sourceType.getPrecision()) {
         convert =
             Expressions.call(
                 BuiltInMethod.ROUND_LONG.method,
                 convert,
                 Expressions.constant(
-                    (long) Math.pow(10, 3 - targetScale)));
+                    (long) Math.pow(10, 3 - targetTimestampPrecision)));
       }
       break;
     case INTERVAL_YEAR:
