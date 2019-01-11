@@ -27,16 +27,17 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexDigestIncludeType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Relational expression whose value is a sequence of zero or more literal row
@@ -92,16 +93,6 @@ public abstract class Values extends AbstractRelNode {
   public Values(RelInput input) {
     this(input.getCluster(), input.getRowType("type"),
         input.getTuples("tuples"), input.getTraitSet());
-  }
-
-  /**
-   * Helps render tuples as strings.
-   */
-  private static Object apply(ImmutableList<RexLiteral> tuple) {
-    String s = tuple.toString();
-    assert s.startsWith("[");
-    assert s.endsWith("]");
-    return "{ " + s.substring(1, s.length() - 1) + " }";
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -184,14 +175,23 @@ public abstract class Values extends AbstractRelNode {
     // A little adapter just to get the tuples to come out
     // with curly brackets instead of square brackets.  Plus
     // more whitespace for readability.
-    return super.explainTerms(pw)
+    RelWriter relWriter = super.explainTerms(pw)
         // For rel digest, include the row type since a rendered
         // literal may leave the type ambiguous (e.g. "null").
         .itemIf("type", rowType,
             pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES)
-        .itemIf("type", rowType.getFieldList(), pw.nest())
-        .itemIf("tuples", Lists.transform(tuples, Values::apply), !pw.nest())
-        .itemIf("tuples", tuples, pw.nest());
+        .itemIf("type", rowType.getFieldList(), pw.nest());
+    if (pw.nest()) {
+      pw.item("tuples", tuples);
+    } else {
+      pw.item("tuples",
+          tuples.stream()
+              .map(row -> row.stream()
+                  .map(lit -> lit.computeDigest(RexDigestIncludeType.NO_TYPE))
+                  .collect(Collectors.joining(", ", "{ ", " }")))
+              .collect(Collectors.joining(", ", "[", "]")));
+    }
+    return relWriter;
   }
 }
 
