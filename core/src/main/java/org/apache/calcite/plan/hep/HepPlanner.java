@@ -37,6 +37,7 @@ import org.apache.calcite.rel.convert.TraitMatchingRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.BreadthFirstIterator;
@@ -76,7 +77,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   private RelTraitSet requestedRootTraits;
 
-  private final Map<String, HepRelVertex> mapDigestToVertex = new HashMap<>();
+  private final Map<Pair<String, RelDataType>, HepRelVertex> mapDigestToVertex = new HashMap<>();
 
   // NOTE jvs 24-Apr-2006:  We use LinkedHashSet
   // in order to provide deterministic behavior.
@@ -494,7 +495,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
   /** Returns whether the vertex is valid. */
   private boolean belongsToDag(HepRelVertex vertex) {
     String digest = vertex.getCurrentRel().getDigest();
-    return mapDigestToVertex.get(digest) != null;
+    Pair<String, RelDataType> key = Pair.of(digest, vertex.getCurrentRel().getRowType());
+    return mapDigestToVertex.get(key) != null;
   }
 
   private HepRelVertex applyRule(
@@ -823,7 +825,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
     if (!noDag) {
       // Now, check if an equivalent vertex already exists in graph.
       String digest = rel.getDigest();
-      HepRelVertex equivVertex = mapDigestToVertex.get(digest);
+      Pair<String, RelDataType> key = Pair.of(digest, rel.getRowType());
+      HepRelVertex equivVertex = mapDigestToVertex.get(key);
       if (equivVertex != null) {
         // Use existing vertex.
         return equivVertex;
@@ -890,10 +893,12 @@ public class HepPlanner extends AbstractRelOptPlanner {
       notifyDiscard(vertex.getCurrentRel());
     }
     String oldDigest = vertex.getCurrentRel().toString();
-    if (mapDigestToVertex.get(oldDigest) == vertex) {
-      mapDigestToVertex.remove(oldDigest);
+    Pair<String, RelDataType> oldKey = Pair.of(oldDigest, vertex.getCurrentRel().getRowType());
+    if (mapDigestToVertex.get(oldKey) == vertex) {
+      mapDigestToVertex.remove(oldKey);
     }
     String newDigest = rel.getDigest();
+    Pair<String, RelDataType> newKey = Pair.of(newDigest, rel.getRowType());
     // When a transformation happened in one rule apply, support
     // vertex2 replace vertex1, but the current relNode of
     // vertex1 and vertex2 is same,
@@ -901,7 +906,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     // otherwise the digest will be removed wrongly in the mapDigestToVertex
     //  when collectGC
     // so it must update the digest that map to vertex
-    mapDigestToVertex.put(newDigest, vertex);
+    mapDigestToVertex.put(newKey, vertex);
     if (rel != vertex.getCurrentRel()) {
       vertex.replaceRel(rel);
     }
@@ -966,7 +971,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     graphSizeLastGC = graph.vertexSet().size();
 
     // Clean up digest map too.
-    Iterator<Map.Entry<String, HepRelVertex>> digestIter =
+    Iterator<Map.Entry<Pair<String, RelDataType>, HepRelVertex>> digestIter =
         mapDigestToVertex.entrySet().iterator();
     while (digestIter.hasNext()) {
       HepRelVertex vertex = digestIter.next().getValue();

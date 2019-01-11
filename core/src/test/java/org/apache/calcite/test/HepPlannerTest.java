@@ -30,10 +30,15 @@ import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.rules.CalcMergeRule;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
 import org.apache.calcite.rel.rules.FilterToCalcRule;
+import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule;
 import org.apache.calcite.rel.rules.UnionToDistinctRule;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.tools.RelBuilder;
 
 import com.google.common.collect.ImmutableList;
 
@@ -240,6 +245,56 @@ public class HepPlannerTest extends RelOptTestBase {
 
     assertThat(bestRel.getInput(0).equals(bestRel.getInput(1)), is(true));
     assertThat(listener.getApplyTimes() == 1, is(true));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2454">[CALCITE-2454]
+   * HepPlanner should not pick cached RelNode when type mismatch while digest matches</a>. */
+  @Test public void testRelNodeCacheWithDigest() {
+    HepProgramBuilder programBuilder = HepProgram.builder();
+    programBuilder.addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE); // dummy rules.
+    programBuilder.addRuleInstance(ReduceExpressionsRule.CALC_INSTANCE);
+    programBuilder.addRuleInstance(ProjectMergeRule.INSTANCE);
+    HepPlanner planner = new HepPlanner(programBuilder.build());
+
+    RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    RelDataTypeFactory typeFactory = relBuilder.getTypeFactory();
+    RelDataType longType = typeFactory.createSqlType(SqlTypeName.BIGINT);
+    RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    RelDataType doubleType = typeFactory.createSqlType(SqlTypeName.DOUBLE);
+
+    RelNode values = relBuilder
+        .values(new String[] {"f1", "f2", "f3"}, 1, 2, 3)
+        .build();
+
+    // schema: 1, 2, 3.0D | int, bigint, double
+    RelNode p1 = relBuilder
+        .push(values)
+        .project(relBuilder.getRexBuilder().makeLiteral(1, intType, false),
+            relBuilder.getRexBuilder().makeLiteral(2, longType, false),
+            relBuilder.getRexBuilder().makeLiteral(3.0D, doubleType, false))
+        .build();
+    // schema: 1, 2, 3.0D | bigint, int, double
+    RelNode p2 = relBuilder
+        .push(values)
+        .project(relBuilder.getRexBuilder().makeLiteral(1, longType, false),
+            relBuilder.getRexBuilder().makeLiteral(2, intType, false),
+            relBuilder.getRexBuilder().makeLiteral(3.0D, doubleType, false))
+        .build();
+    RelNode r = relBuilder
+        .push(p1)
+        .push(p2)
+        .union(true)
+        .build();
+    planner.setRoot(r);
+    RelNode bestRel = planner.findBestExp();
+
+    assertThat(r.getInput(0).getRowType().equals(r.getInput(1).getRowType()),
+        is(false));
+    // Hep should not replace rel node with same digest but different row type.
+    assertThat("The two inputs should have different row types after planner promotion.",
+        bestRel.getInput(0).getRowType().equals(bestRel.getInput(1).getRowType()),
+        is(false));
   }
 
   @Test public void testSubprogram() throws Exception {
