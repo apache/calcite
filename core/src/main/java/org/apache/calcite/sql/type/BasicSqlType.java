@@ -204,12 +204,14 @@ public class BasicSqlType extends AbstractSqlType {
     if (!withDetail) {
       return;
     }
-    if (wrappedCharset != null) {
+    if (wrappedCharset != null
+        && !SqlCollation.IMPLICIT.getCharset().equals(wrappedCharset.getCharset())) {
       sb.append(" CHARACTER SET \"");
       sb.append(wrappedCharset.getCharset().name());
       sb.append("\"");
     }
-    if (collation != null) {
+    if (collation != null
+        && collation != SqlCollation.IMPLICIT && collation != SqlCollation.COERCIBLE) {
       sb.append(" COLLATE \"");
       sb.append(collation.getCollationName());
       sb.append("\"");

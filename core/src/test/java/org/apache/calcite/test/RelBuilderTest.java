@@ -34,6 +34,7 @@ import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -491,7 +492,7 @@ public class RelBuilderTest {
             .build();
     final String expected = ""
         + "LogicalProject(DEPTNO=[$7], COMM=[CAST($6):SMALLINT NOT NULL],"
-        + " $f2=[OR(=($7, 20), AND(null, =($7, 10), IS NULL($6),"
+        + " $f2=[OR(=($7, 20), AND(null:NULL, =($7, 10), IS NULL($6),"
         + " IS NULL($7)), =($7, 30))], n2=[IS NULL($2)],"
         + " nn2=[IS NOT NULL($3)], $f5=[20], COMM0=[$6], C=[$6])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
@@ -564,6 +565,34 @@ public class RelBuilderTest {
     final String expected = "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
+  }
+
+  private void project1(int value, SqlTypeName sqlTypeName, String message, String expected) {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RexBuilder rex = builder.getRexBuilder();
+    RelNode actual =
+        builder.values(new String[]{"x"}, 42)
+            .empty()
+            .project(
+                rex.makeLiteral(value,
+                    rex.getTypeFactory().createSqlType(sqlTypeName), false))
+            .build();
+    assertThat(message, actual, hasTree(expected));
+  }
+
+  @Test public void testProject1asInt() {
+    project1(1, SqlTypeName.INTEGER,
+        "project(1 as INT) might omit type of 1 in the output plan as"
+            + " it is convention to omit INTEGER for integer literals",
+        "LogicalProject($f0=[1])\n"
+            + "  LogicalValues(tuples=[[]])\n");
+  }
+
+  @Test public void testProject1asBigInt() {
+    project1(1, SqlTypeName.BIGINT, "project(1 as BIGINT) should contain"
+            + " type of 1 in the output plan since the convention is to omit type of INTEGER",
+        "LogicalProject($f0=[1:BIGINT])\n"
+            + "  LogicalValues(tuples=[[]])\n");
   }
 
   @Test public void testRename() {
@@ -666,7 +695,7 @@ public class RelBuilderTest {
             .convert(rowType, false)
             .build();
     final String expected = ""
-        + "LogicalProject(DEPTNO=[CAST($0):BIGINT NOT NULL], DNAME=[CAST($1):VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL], LOC=[CAST($2):VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL])\n"
+        + "LogicalProject(DEPTNO=[CAST($0):BIGINT NOT NULL], DNAME=[CAST($1):VARCHAR(10) NOT NULL], LOC=[CAST($2):VARCHAR(10) NOT NULL])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(root, hasTree(expected));
   }
@@ -684,7 +713,7 @@ public class RelBuilderTest {
             .convert(rowType, true)
             .build();
     final String expected = ""
-        + "LogicalProject(a=[CAST($0):BIGINT NOT NULL], b=[CAST($1):VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL], c=[CAST($2):VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL])\n"
+        + "LogicalProject(a=[CAST($0):BIGINT NOT NULL], b=[CAST($1):VARCHAR(10) NOT NULL], c=[CAST($2):VARCHAR(10) NOT NULL])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(root, hasTree(expected));
   }
@@ -1753,7 +1782,7 @@ public class RelBuilderTest {
         "LogicalValues(tuples=[[{ null, 1, 'abc' }, { false, null, 'longer string' }]])\n";
     assertThat(root, hasTree(expected));
     final String expectedType =
-        "RecordType(BOOLEAN a, INTEGER expr$1, CHAR(13) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL c) NOT NULL";
+        "RecordType(BOOLEAN a, INTEGER expr$1, CHAR(13) NOT NULL c) NOT NULL";
     assertThat(root.getRowType().getFullTypeString(), is(expectedType));
   }
 
@@ -1826,7 +1855,7 @@ public class RelBuilderTest {
         "LogicalValues(tuples=[[{ null, null }, { 1, null }]])\n";
     assertThat(root, hasTree(expected));
     final String expectedType =
-        "RecordType(BIGINT NOT NULL a, VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL a) NOT NULL";
+        "RecordType(BIGINT NOT NULL a, VARCHAR(10) NOT NULL a) NOT NULL";
     assertThat(root.getRowType().getFullTypeString(), is(expectedType));
   }
 
