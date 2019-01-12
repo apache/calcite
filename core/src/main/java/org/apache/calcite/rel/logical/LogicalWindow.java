@@ -22,6 +22,8 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.type.RelDataType;
@@ -82,12 +84,6 @@ public final class LogicalWindow extends Window {
       rowType, groups);
   }
 
-  public static LogicalWindow create(RelNode input, List<RexLiteral> constants,
-                                     RelDataType rowType, List<Group> groups) {
-    final RelTraitSet traitSet = input.getCluster().traitSetOf(Convention.NONE);
-    return create(traitSet, input, constants, rowType, groups);
-  }
-
   /**
    * Creates a LogicalWindow.
    *
@@ -101,12 +97,6 @@ public final class LogicalWindow extends Window {
       List<RexLiteral> constants, RelDataType rowType, List<Group> groups) {
     return new LogicalWindow(input.getCluster(), traitSet, input, constants,
         rowType, groups);
-  }
-
-  public static RelNode create(RelOptCluster cluster, RelBuilder relBuilder, RelNode child,
-                               final RexProgram program) {
-    final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
-    return create(cluster, traitSet, relBuilder, child, program);
   }
 
   /**
@@ -268,8 +258,8 @@ public final class LogicalWindow extends Window {
         };
 
     final LogicalWindow window =
-        LogicalWindow.create(traitSet, child, constants, intermediateRowType,
-            groups);
+        LogicalWindow.create(child.getCluster().traitSetOf(Convention.NONE),
+            child, constants, intermediateRowType, groups);
 
     // The order that the "over" calls occur in the groups and
     // partitions may not match the order in which they occurred in the
@@ -287,10 +277,22 @@ public final class LogicalWindow extends Window {
       final RexInputRef ref = (RexInputRef) refToWindow.get(index);
       projectList.add(ref);
     }
-
-    return relBuilder.push(window)
+    RelNode sorted = requireSorted(window,
+        child.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE));
+    return relBuilder.push(sorted)
         .project(projectList, outRowType.getFieldNames())
         .build();
+  }
+
+  private static RelNode requireSorted(LogicalWindow window, List<RelCollation> collations) {
+    if (collations == null || collations.isEmpty() || collations.size() != 1) {
+      return window;
+    }
+    RelCollation collation = collations.get(0);
+    if (Objects.equals(collation, RelCollations.EMPTY)) {
+      return window;
+    }
+    return LogicalSort.create(window, collation, null, null);
   }
 
   private static List<RexNode> toInputRefs(

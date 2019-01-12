@@ -81,7 +81,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
 import org.hamcrest.Matcher;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -481,9 +480,6 @@ public class PlannerTest {
 
   /** Tests that outer order by is not removed since window function
    * might reorder the rows in-between */
-  @Ignore("Node [rel#22:Subset#3.ENUMERABLE.[2]] could not be implemented; planner state:\n"
-      + "\n"
-      + "Root: rel#22:Subset#3.ENUMERABLE.[2]")
   @Test public void testDuplicateSortPlanWithOver() throws Exception {
     runDuplicateSortCheck("select emp_cnt, empid+deptno from ( "
         + "select empid, deptno, count(*) over (partition by deptno) emp_cnt from ( "
@@ -492,14 +488,32 @@ public class PlannerTest {
         + "   order by emps.deptno) "
         + ")"
         + "order by deptno",
-        "EnumerableProject(EXPR$0=[$0])\n"
+        "EnumerableProject(emp_cnt=[$2], EXPR$1=[+($0, $1)], deptno=[$1])\n"
         + "  EnumerableSort(sort0=[$1], dir0=[ASC])\n"
-        + "    EnumerableProject(EXPR$0=[+($0, $1)], deptno=[$1])\n"
-        + "      EnumerableProject(empid=[$0], deptno=[$1], $2=[$2])\n"
-        + "        EnumerableWindow(window#0=[window(partition {1} order by [] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [COUNT()])])\n"
-        + "          EnumerableSort(sort0=[$1], dir0=[ASC])\n"
-        + "            EnumerableProject(empid=[$0], deptno=[$1])\n"
-        + "              EnumerableTableScan(table=[[hr, emps]])\n");
+        + "    EnumerableWindow(window#0=[window(partition {1} order by [] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [COUNT()])])\n"
+        + "      EnumerableSort(sort0=[$1], dir0=[ASC])\n"
+        + "        EnumerableProject(empid=[$0], deptno=[$1])\n"
+        + "          EnumerableTableScan(table=[[hr, emps]])\n");
+  }
+
+  @Test public void testDuplicateSortPlanWithOver2() throws Exception {
+    runDuplicateSortCheck("select emp_cnt, empid+deptno, empid_2, emp_num from ( "
+        + "select empid, deptno, "
+        + "count(*) over (partition by deptno) emp_cnt, "
+        + "empid + 1 as empid_2, "
+        + "row_number() over (partition by deptno) emp_num from ( "
+        + "  select empid, deptno "
+        + "    from emps "
+        + "   order by emps.deptno) "
+        + ")"
+        + "order by deptno",
+        "EnumerableProject(emp_cnt=[$3], EXPR$1=[$1], empid_2=[$2], emp_num=[$4], deptno=[$0])\n"
+        + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+        + "    EnumerableWindow(window#0=[window(partition {0} order by [] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [COUNT()])], window#1=[window(partition {0} order by [] rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])\n"
+        + "      EnumerableProject(deptno=[$1], $1=[+($0, $1)], $2=[+($0, 1)])\n"
+        + "        EnumerableSort(sort0=[$1], dir0=[ASC])\n"
+        + "          EnumerableProject(empid=[$0], deptno=[$1])\n"
+        + "            EnumerableTableScan(table=[[hr, emps]])\n");
   }
 
   @Test public void testDuplicateSortPlanWithRemovedOver() throws Exception {

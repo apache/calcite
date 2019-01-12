@@ -22,15 +22,11 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelCollationTraitDef;
-import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalCalc;
-import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalWindow;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexDynamicParam;
@@ -60,7 +56,6 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -201,30 +196,30 @@ public abstract class ProjectToWindowRule extends RelOptRule {
   static class WindowedAggRelSplitter extends CalcRelSplitter {
     private static final RelType[] REL_TYPES = {
         new RelType("CalcRelType") {
-            protected boolean canImplement(RexFieldAccess field) {
-              return true;
-            }
+          protected boolean canImplement(RexFieldAccess field) {
+            return true;
+          }
 
-            protected boolean canImplement(RexDynamicParam param) {
-              return true;
-            }
+          protected boolean canImplement(RexDynamicParam param) {
+            return true;
+          }
 
-            protected boolean canImplement(RexLiteral literal) {
-              return true;
-            }
+          protected boolean canImplement(RexLiteral literal) {
+            return true;
+          }
 
-            protected boolean canImplement(RexCall call) {
-              return !(call instanceof RexOver);
-            }
+          protected boolean canImplement(RexCall call) {
+            return !(call instanceof RexOver);
+          }
 
-            protected RelNode makeRel(RelOptCluster cluster,
-                RelTraitSet traitSet, RelBuilder relBuilder, RelNode input,
-                RexProgram program) {
-              assert !program.containsAggs();
-              program = program.normalize(cluster.getRexBuilder(), null);
-              return super.makeRel(cluster, traitSet, relBuilder, input,
-                  program);
-            }
+          protected RelNode makeRel(RelOptCluster cluster,
+              RelTraitSet traitSet, RelBuilder relBuilder, RelNode input,
+              RexProgram program) {
+            assert !program.containsAggs();
+            program = program.normalize(cluster.getRexBuilder(), null);
+            return super.makeRel(cluster, traitSet, relBuilder, input,
+                program);
+          }
         },
         new RelType("WinAggRelType") {
           protected boolean canImplement(RexFieldAccess field) {
@@ -251,17 +246,8 @@ public abstract class ProjectToWindowRule extends RelOptRule {
               RelBuilder relBuilder, RelNode input, RexProgram program) {
             Preconditions.checkArgument(program.getCondition() == null,
                 "WindowedAggregateRel cannot accept a condition");
-            List<RelCollation> collations
-                = traitSet.getTraits(RelCollationTraitDef.INSTANCE);
-            RelNode window = LogicalWindow.create(cluster, relBuilder, input, program);
-            if (collations == null || collations.isEmpty() || collations.size() != 1) {
-              return window;
-            }
-            RelCollation collation = collations.get(0);
-            if (Objects.equals(collation, RelCollations.EMPTY)) {
-              return window;
-            }
-            return LogicalSort.create(window, collation, null, null);
+            return LogicalWindow.create(cluster, traitSet, relBuilder, input,
+                program);
           }
         }
     };
