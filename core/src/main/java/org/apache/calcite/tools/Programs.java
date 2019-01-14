@@ -187,7 +187,7 @@ public class Programs {
       final RelMetadataProvider metadataProvider) {
     return (planner, rel, requiredOutputTraits, materializations, lattices) -> {
       final HepPlanner hepPlanner = new HepPlanner(hepProgram,
-          null, noDag, null, RelOptCostImpl.FACTORY);
+          null, noDag, null, RelOptCostImpl.FACTORY, null);
 
       List<RelMetadataProvider> list = new ArrayList<>();
       if (metadataProvider != null) {

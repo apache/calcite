@@ -153,6 +153,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   final DruidTable druidTable;
   final ImmutableList<Interval> intervals;
   final ImmutableList<RelNode> rels;
+  DataContext dataContext;
   /**
    * This operator map provides DruidSqlOperatorConverter instance to convert a Calcite RexNode to
    * Druid Expression when possible.
@@ -270,7 +271,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       break;
     case EXTRACT:
       granularity = DruidDateTimeUtils
-          .extractGranularity(rexNode, druidQuery.getTimeZone());
+          .extractGranularity(rexNode, druidQuery.getTimeZone().getID());
       if (granularity == null) {
         // unknown Granularity
         return Pair.of(null, null);
@@ -291,7 +292,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         // Use local time zone at the extraction level
         extractionFunction =
           TimeExtractionFunction.createExtractFromGranularity(
-              granularity, druidQuery.getTimeZone());
+              granularity, druidQuery.getTimeZone().getID());
         columnName = extractColumnName(extractValueNode, rowType, druidQuery);
       } else {
         return Pair.of(null, null);
@@ -299,7 +300,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       break;
     case FLOOR:
       granularity = DruidDateTimeUtils
-          .extractGranularity(rexNode, druidQuery.getTimeZone());
+          .extractGranularity(rexNode, druidQuery.getTimeZone().getID());
       if (granularity == null) {
         // unknown Granularity
         return Pair.of(null, null);
@@ -334,7 +335,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       if (toTypeName == SqlTypeName.DATE || toTypeName == SqlTypeName.TIMESTAMP
           || toTypeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
         extractionFunction = TimeExtractionFunction.translateCastToTimeExtract(rexNode,
-            TimeZone.getTimeZone(druidQuery.getTimeZone()));
+            druidQuery.getTimeZone());
         if (extractionFunction == null) {
           // no extraction Function means cast is not valid thus bail out
           return Pair.of(null, null);
@@ -714,12 +715,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     return getCluster().getPlanner().getContext().unwrap(CalciteConnectionConfig.class);
   }
 
-  protected String getTimeZone() {
-    String timeZone = getConnectionConfig().timeZone();
-    TimeZone tz = timeZone == null
-            ? TimeZone.getDefault()
-            : TimeZone.getTimeZone(timeZone);
-    return tz.getID();
+  protected TimeZone getTimeZone() {
+    DataContext dataContext = getCluster().getPlanner().getDataContext();
+    TimeZone tz = DataContext.Variable.TIME_ZONE.get(dataContext);
+    return tz;
   }
 
   /**
@@ -851,13 +850,13 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           columnPrefix =
               EXTRACT_COLUMN_NAME_PREFIX + "_" + Objects
                   .requireNonNull(DruidDateTimeUtils
-                      .extractGranularity(project, druidQuery.getTimeZone())
+                      .extractGranularity(project, druidQuery.getTimeZone().getID())
                       .getType().lowerName);
         } else if (project.getKind() == SqlKind.FLOOR) {
           columnPrefix =
               FLOOR_COLUMN_NAME_PREFIX + "_" + Objects
                   .requireNonNull(DruidDateTimeUtils
-                      .extractGranularity(project, druidQuery.getTimeZone())
+                      .extractGranularity(project, druidQuery.getTimeZone().getID())
                       .getType().lowerName);
         } else {
           columnPrefix = "extract";

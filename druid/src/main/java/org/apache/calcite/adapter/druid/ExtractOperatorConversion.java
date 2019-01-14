@@ -76,8 +76,7 @@ public class ExtractOperatorConversion implements DruidSqlOperatorConverter {
 
     final TimeZone tz;
     if (arg.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
-      String localTz = query.getConnectionConfig().timeZone();
-      tz = localTz == null ? TimeZone.getDefault() : TimeZone.getTimeZone(localTz);
+      tz = query.getTimeZone();
     } else {
       tz = DateTimeUtils.UTC_ZONE;
     }

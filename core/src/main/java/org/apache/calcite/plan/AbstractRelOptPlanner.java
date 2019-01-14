@@ -16,11 +16,13 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexExecutor;
+import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.util.CancelFlag;
 import org.apache.calcite.util.Util;
 
@@ -69,6 +71,9 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   /** External context. Never null. */
   protected final Context context;
 
+  /** External dataContext. Never null*/
+  protected final DataContext dataContext;
+
   private RexExecutor executor;
 
   //~ Constructors -----------------------------------------------------------
@@ -77,13 +82,18 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    * Creates an AbstractRelOptPlanner.
    */
   protected AbstractRelOptPlanner(RelOptCostFactory costFactory,
-      Context context) {
+      Context context, DataContext dataContext) {
     assert costFactory != null;
     this.costFactory = costFactory;
     if (context == null) {
       context = Contexts.empty();
     }
     this.context = context;
+
+    if (dataContext == null) {
+      dataContext = Schemas.createDataContext(null, null);
+    }
+    this.dataContext = dataContext;
 
     final CancelFlag cancelFlag = context.unwrap(CancelFlag.class);
     this.cancelFlag = cancelFlag != null ? cancelFlag.atomicBoolean
@@ -101,6 +111,10 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   public Context getContext() {
     return context;
+  }
+
+  @Override public DataContext getDataContext() {
+    return dataContext;
   }
 
   public RelOptCostFactory getCostFactory() {

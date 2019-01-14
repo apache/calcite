@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan.hep;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.plan.AbstractRelOptPlanner;
@@ -111,7 +112,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
    * @param program program controlling rule application
    */
   public HepPlanner(HepProgram program) {
-    this(program, null, false, null, RelOptCostImpl.FACTORY);
+    this(program, null, false, null, RelOptCostImpl.FACTORY, null);
   }
 
   /**
@@ -121,7 +122,18 @@ public class HepPlanner extends AbstractRelOptPlanner {
    * @param context to carry while planning
    */
   public HepPlanner(HepProgram program, Context context) {
-    this(program, context, false, null, RelOptCostImpl.FACTORY);
+    this(program, context, false, null, RelOptCostImpl.FACTORY, null);
+  }
+
+  /**
+   * Creates a new HepPlanner that allows DAG.
+   *
+   * @param program program controlling rule application
+   * @param context to carry while planning
+   * @param dataContext to carry while planning
+   */
+  public HepPlanner(HepProgram program, Context context, DataContext dataContext) {
+    this(program, context, false, null, RelOptCostImpl.FACTORY, dataContext);
   }
 
   /**
@@ -138,8 +150,9 @@ public class HepPlanner extends AbstractRelOptPlanner {
       Context context,
       boolean noDag,
       Function2<RelNode, RelNode, Void> onCopyHook,
-      RelOptCostFactory costFactory) {
-    super(costFactory, context);
+      RelOptCostFactory costFactory,
+      DataContext dataContext) {
+    super(costFactory, context, dataContext);
     this.mainProgram = program;
     this.onCopyHook = Util.first(onCopyHook, Functions.ignore2());
     this.noDag = noDag;

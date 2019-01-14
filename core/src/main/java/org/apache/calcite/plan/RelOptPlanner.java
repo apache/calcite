@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
@@ -115,6 +116,13 @@ public interface RelOptPlanner {
    * context that returns null for each requested interface
    */
   Context getContext();
+
+  /**
+   * Provides the DataContext created when this planner was constructed
+   * @return Never null; either an externally defined dataContext, or a dummy
+   * data context
+   */
+  DataContext getDataContext();
 
   /**
    * Sets the exclusion filter to use for this planner. Rules which match the
