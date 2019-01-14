@@ -411,7 +411,7 @@ public class TraitPropagationTest {
               prepareContext.config());
     final RexBuilder rexBuilder = new RexBuilder(typeFactory);
     final RelOptPlanner planner = new VolcanoPlanner(config.getCostFactory(),
-        config.getContext(), prepareContext.getDataContext());
+        config.getContext());
 
     // set up rules before we generate cluster
     planner.clearRelTraitDefs();

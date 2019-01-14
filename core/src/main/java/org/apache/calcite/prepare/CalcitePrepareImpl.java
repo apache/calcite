@@ -519,7 +519,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       externalContext = Contexts.of(prepareContext.config());
     }
     final VolcanoPlanner planner =
-        new VolcanoPlanner(costFactory, externalContext, prepareContext.getDataContext());
+        new VolcanoPlanner(costFactory, externalContext);
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     if (ENABLE_COLLATION_TRAIT) {
       planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);

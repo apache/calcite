@@ -304,8 +304,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         context,
         true,
         createCopyHook(),
-        RelOptCostImpl.FACTORY,
-        null);
+        RelOptCostImpl.FACTORY);
   }
 
   public RelNode removeCorrelationViaRule(RelNode root) {

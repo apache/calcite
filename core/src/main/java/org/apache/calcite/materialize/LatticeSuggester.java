@@ -115,7 +115,7 @@ public class LatticeSuggester {
   public List<Lattice> addQuery(RelNode r) {
     // Push filters into joins and towards leaves
     final HepPlanner planner =
-        new HepPlanner(PROGRAM, null, true, null, RelOptCostImpl.FACTORY, null);
+        new HepPlanner(PROGRAM, null, true, null, RelOptCostImpl.FACTORY);
     planner.setRoot(r);
     final RelNode r2 = planner.findBestExp();
 

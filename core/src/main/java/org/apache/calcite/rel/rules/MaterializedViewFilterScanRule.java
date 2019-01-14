@@ -80,7 +80,7 @@ public class MaterializedViewFilterScanRule extends RelOptRule {
             materialization.queryRel.getRowType(), false)) {
           RelNode target = materialization.queryRel;
           final HepPlanner hepPlanner =
-              new HepPlanner(program, planner.getContext(), planner.getDataContext());
+              new HepPlanner(program, planner.getContext());
           hepPlanner.setRoot(target);
           target = hepPlanner.findBestExp();
           List<RelNode> subs = new MaterializedViewSubstitutionVisitor(target, root)

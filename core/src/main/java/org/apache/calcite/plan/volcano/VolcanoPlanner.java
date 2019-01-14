@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.plan.volcano;
 
-import org.apache.calcite.DataContext;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -258,7 +257,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * calling conventions.
    */
   public VolcanoPlanner() {
-    this(null, null, null);
+    this(null, null);
   }
 
   /**
@@ -267,25 +266,16 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * calling conventions.
    */
   public VolcanoPlanner(Context externalContext) {
-    this(null, externalContext, null);
-  }
-
-  /**
-   * Creates a uninitialized <code>VolcanoPlanner</code>. To fully initialize
-   * it, the caller must register the desired set of relations, rules, and
-   * calling conventions.
-   */
-  public VolcanoPlanner(Context externalContext, DataContext dataContext) {
-    this(null, externalContext, dataContext);
+    this(null, externalContext);
   }
 
   /**
    * Creates a {@code VolcanoPlanner} with a given cost factory.
    */
   public VolcanoPlanner(RelOptCostFactory costFactory, //
-      Context externalContext, DataContext dataContext) {
+      Context externalContext) {
     super(costFactory == null ? VolcanoCost.FACTORY : costFactory, //
-        externalContext, dataContext);
+        externalContext);
     this.zeroCost = this.costFactory.makeZeroCost();
   }
 

@@ -325,7 +325,7 @@ public class DruidAdapterIT2 {
   }
 
   @Test public void testLimit() {
-    final String sql = "select extract(day from \"timestamp\"), \"gender\", \"state_province\"\n"
+    final String sql = "select \"gender\", \"state_province\"\n"
         + "from \"foodmart\" fetch next 3 rows only";
     final String druidQuery = "{'queryType':'scan','dataSource':'foodmart',"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
