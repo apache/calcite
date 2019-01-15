@@ -556,6 +556,28 @@ public class RexBuilderTest {
     checkBigDecimalLiteral(builder, "-73786976294838206464");
   }
 
+  /** Tests {@link RexCopier#visitDynamicParam(RexDynamicParam)} */
+  @Test public void testCopyDynamicParam() {
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+    final RexDynamicParam node = builder.makeDynamicParam(type, 1);
+    final RexDynamicParam copiedNode = (RexDynamicParam) builder.copy(node);
+    assertThat(copiedNode.getType(), is(node.getType()));
+    assertThat(copiedNode.getIndex(), is(node.getIndex()));
+  }
+
+  /** Tests {@link RexCopier#visitRangeRef(RexRangeRef)} */
+  @Test public void testCopyRange() {
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+    final RexRangeRef node = builder.makeRangeReference(type, 10, false);
+    final RexRangeRef copiedNode = (RexRangeRef) builder.copy(node);
+    assertThat(copiedNode.getType(), is(node.getType()));
+    assertThat(copiedNode.getOffset(), is(node.getOffset()));
+  }
+
   private void checkBigDecimalLiteral(RexBuilder builder, String val) {
     final RexLiteral literal = builder.makeExactLiteral(new BigDecimal(val));
     assertThat("builder.makeExactLiteral(new BigDecimal(" + val
