@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.MemoryFactory;
 import org.apache.calcite.linq4j.Ord;
@@ -54,17 +55,16 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.collect.ImmutableList;
-
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
-import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -127,7 +127,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     final PhysType keyPhysType =
         inputPhysType.project(partitionKeys.asList(), JavaRowFormat.LIST);
     final ParameterExpression row_ =
-        Expressions.parameter(inputPhysType.getJavaRowType(), "row");
+        Expressions.parameter(inputPhysType.getJavaRowType(), "row_");
     final Expression keySelector_ =
         builder.append("keySelector",
             inputPhysType.generateSelector(row_,
@@ -157,9 +157,6 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     int history = visitor.getHistory();
     int future = visitor.getFuture();
 
-    System.out.println("History: " + history);
-    System.out.println("Future: " + future);
-
     builder.add(
         Expressions.return_(null,
             Expressions.call(BuiltInMethod.MATCH.method,
@@ -170,7 +167,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
   private Expression implementEmitter(EnumerableRelImplementor implementor,
       PhysType physType, PhysType inputPhysType) {
     final ParameterExpression rows_ =
-        Expressions.parameter(List.class, "rows");
+        Expressions.parameter(Types.of(List.class, inputPhysType.getJavaRowType()), "rows");
     final ParameterExpression rowStates_ =
         Expressions.parameter(List.class, "rowStates");
     final ParameterExpression symbols_ =
@@ -250,12 +247,13 @@ public class EnumerableMatch extends Match implements EnumerableRel {
 
       rexProgramBuilder.addCondition(entry.getValue());
 
+      final RexToLixTranslator.InputGetter inputGetter1 = new PrevInputGetter(row_, physType);
+
+
       final Expression condition = RexToLixTranslator.translateCondition(rexProgramBuilder.getProgram(),
           (JavaTypeFactory) getCluster().getTypeFactory(),
           builder2,
-          new RexToLixTranslator.InputGetterImpl(
-              Collections.singletonList(
-                  Pair.of(row_, physType))),
+          inputGetter1,
           implementor.allCorrelateVariables,
           implementor.getConformance());
 
@@ -276,7 +274,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
   /** Generates code for a predicate. */
   private Expression implementPredicate(PhysType physType, ParameterExpression rows_, BlockStatement body) {
     final List<MemberDeclaration> memberDeclarations = new ArrayList<>();
-    ParameterExpression row_ = Expressions.parameter(MemoryFactory.Memory.class, "row_");
+    ParameterExpression row_ = Expressions.parameter(Types.of(MemoryFactory.Memory.class, physType.getJavaRowType()), "row_");
     try {
       Expressions.assign(row_,
         Expressions.call(rows_, MemoryFactory.Memory.class.getMethod("get")));
@@ -312,7 +310,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
               Expressions.call(
                   Expressions.parameter(Comparable.class, "this"),
                   BuiltInMethod.PREDICATE_TEST.method,
-                  Expressions.convert_(row0_, physType.getJavaRowType()))));
+                  Expressions.convert_(row0_, Types.of(MemoryFactory.Memory.class, physType.getJavaRowType())))));
       memberDeclarations.add(
           EnumUtils.overridingMethodDecl(
               BuiltInMethod.PREDICATE_TEST.method,
@@ -419,6 +417,51 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     @Override public Integer visitPatternFieldRef(RexPatternFieldRef fieldRef) {
       return null;
     }
+  }
+
+  public static class PrevInputGetter implements RexToLixTranslator.InputGetter {
+
+    private Expression offset;
+    private final ParameterExpression row_;
+    private final Function<Expression, RexToLixTranslator.InputGetter> generator;
+    private final PhysType physType;
+
+    public PrevInputGetter(ParameterExpression row_, PhysType physType) {
+      this.row_ = row_;
+      generator = e -> new RexToLixTranslator.InputGetterImpl(
+          Collections.singletonList(
+              Pair.of(e, physType)));
+      this.physType = physType;
+    }
+
+    public void setOffset(Expression offset) {
+      this.offset = offset;
+    }
+
+    @Override public Expression field(BlockBuilder list, int index, Type storageType) {
+      try {
+        final ParameterExpression row = Expressions.parameter(physType.getJavaRowType());
+        final ParameterExpression tmp = Expressions.parameter(Object.class);
+        list.add(
+            Expressions.declare(0, tmp,
+                Expressions.call(row_,
+                    MemoryFactory.Memory.class.getMethod("get", int.class),
+                    offset)
+            ));
+        list.add(
+            Expressions.declare(0, row,
+                Expressions.convert_(tmp, physType.getJavaRowType())
+            ));
+//        list.add(
+//            Expressions.assign(row,
+//                ));
+        return generator.apply(row).field(list, index, storageType);
+      } catch (NoSuchMethodException e) {
+        e.printStackTrace();
+        return null;
+      }
+    }
+
   }
 }
 

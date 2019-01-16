@@ -98,7 +98,7 @@ public class RexToLixTranslator {
   private final RexProgram program;
   final SqlConformance conformance;
   private final Expression root;
-  private final RexToLixTranslator.InputGetter inputGetter;
+  final RexToLixTranslator.InputGetter inputGetter;
   private final BlockBuilder list;
   private final Map<? extends RexNode, Boolean> exprNullableMap;
   private final RexToLixTranslator parent;
@@ -665,6 +665,13 @@ public class RexToLixTranslator {
     }
     switch (expr.getKind()) {
     case INPUT_REF:
+      {
+      final int index = ((RexInputRef) expr).getIndex();
+      Expression x = inputGetter.field(list, index, storageType);
+
+      Expression input = list.append("inp" + index + "_", x); // safe to share
+      return handleNullUnboxingIfNecessary(input, nullAs, storageType);
+    }
     case PATTERN_INPUT_REF:
       {
       final int index = ((RexInputRef) expr).getIndex();
@@ -924,9 +931,10 @@ public class RexToLixTranslator {
       // (boxed or not) when hint was provided.
       // It is favourable to get the type matching desired type
       if (desiredType == null && !isNullable(rex)) {
-        assert !Primitive.isBox(translate.getType())
-            : "Not-null boxed primitive should come back as primitive: "
-            + rex + ", " + translate.getType();
+        // TODO Remove this!!!
+        // assert !Primitive.isBox(translate.getType())
+        //    : "Not-null boxed primitive should come back as primitive: "
+        //    + rex + ", " + translate.getType();
       }
     }
     return list;

@@ -286,8 +286,6 @@ public class RexImpTable {
       new HashMap<>();
   private final Map<SqlAggFunction, Supplier<? extends WinAggImplementor>> winAggMap =
       new HashMap<>();
-  private final Map<SqlMatchRecognize.SqlMatchRecognizeOperator, Supplier<? extends MatchRecognizeImplementor>> matchRecognizeMap =
-          new HashMap<>();
 
   RexImpTable() {
     defineMethod(ROW, BuiltInMethod.ARRAY.method, NullPolicy.ANY);
@@ -604,13 +602,23 @@ public class RexImpTable {
 
     // Functions for MATCH_RECOGNIZE
     defineMethod(FINAL, "abs", NullPolicy.ANY);
-    final Method dummy;
-    try {
-      dummy = RexImpTable.class.getMethod("dummy", Object.class, Object.class);
-      defineMethod(PREV, dummy, NullPolicy.ANY);
-    } catch (NoSuchMethodException e) {
-      e.printStackTrace();
-    }
+//    final Method dummy;
+//    try {
+      map.put(PREV, new CallImplementor() {
+
+        @Override public Expression implement(RexToLixTranslator translator, RexCall call, NullAs nullAs) {
+          final RexNode node = call.getOperands().get(0);
+          final RexNode offset = call.getOperands().get(1);
+          final Expression offs = Expressions.multiply(translator.translate(offset), Expressions.constant(-1));
+          ((EnumerableMatch.PrevInputGetter)translator.inputGetter).setOffset(offs);
+          return translator.translate(node);
+        }
+      });
+//      dummy = RexImpTable.class.getMethod("dummy", Object.class, Object.class);
+//      defineMethod(PREV, dummy, NullPolicy.ANY);
+//    } catch (NoSuchMethodException e) {
+//      e.printStackTrace();
+//    }
   }
 
   public static int dummy(Object a, Object b) {
