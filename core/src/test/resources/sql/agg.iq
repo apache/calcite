@@ -2568,4 +2568,115 @@ select json_object('deptno': deptno, 'employees': json_arrayagg(json_object('ena
 
 !ok
 
+# [CALCITE-2786] Add order by clause support for JSON_ARRAYAGG
+select gender,
+json_arrayagg(deptno order by deptno),
+json_arrayagg(deptno order by deptno desc)
+from emp group by gender;
++--------+------------------+------------------+
+| GENDER | EXPR$1           | EXPR$2           |
++--------+------------------+------------------+
+| F      | [10,30,30,50,60] | [60,50,30,30,10] |
+| M      | [10,20,50]       | [50,20,10]       |
++--------+------------------+------------------+
+(2 rows)
+
+!ok
+EnumerableAggregate(group=[{0}], EXPR$1=[JSON_ARRAYAGG_ABSENT_ON_NULL($1) WITHIN GROUP ([2])], EXPR$2=[JSON_ARRAYAGG_ABSENT_ON_NULL($1) WITHIN GROUP ([2 DESC])])
+  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[JSON_STRUCTURED_VALUE_EXPRESSION($t0)], GENDER=[$t1], $f1=[$t2], DEPTNO=[$t0])
+    EnumerableUnion(all=[true])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[20], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[60], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[null], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+        EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+# [CALCITE-2787] Json aggregate calls with different null clause get incorrectly merged
+# during converting from SQL to relational algebra
+select gender,
+json_arrayagg(deptno),
+json_arrayagg(deptno null on null)
+from emp group by gender;
++--------+------------------+-----------------------+
+| GENDER | EXPR$1           | EXPR$2                |
++--------+------------------+-----------------------+
+| F      | [10,30,30,50,60] | [10,30,30,50,60,null] |
+| M      | [10,20,50]       | [10,20,50]            |
++--------+------------------+-----------------------+
+(2 rows)
+
+!ok
+EnumerableAggregate(group=[{0}], EXPR$1=[JSON_ARRAYAGG_ABSENT_ON_NULL($1)], EXPR$2=[JSON_ARRAYAGG_NULL_ON_NULL($1)])
+  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[JSON_STRUCTURED_VALUE_EXPRESSION($t0)], GENDER=[$t1], $f1=[$t2])
+    EnumerableUnion(all=[true])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[20], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[60], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[null], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+        EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+select gender,
+json_objectagg(ename: deptno),
+json_objectagg(ename: deptno absent on null)
+from emp group by gender;
++--------+--------------------------------------------------------------------+-------------------------------------------------------+
+| GENDER | EXPR$1                                                             | EXPR$2                                                |
++--------+--------------------------------------------------------------------+-------------------------------------------------------+
+| F      | {"Eve":50,"Grace":60,"Wilma":null,"Susan":30,"Alice":30,"Jane":10} | {"Eve":50,"Grace":60,"Susan":30,"Alice":30,"Jane":10} |
+| M      | {"Adam":50,"Bob":10,"Eric":20}                                     | {"Adam":50,"Bob":10,"Eric":20}                        |
++--------+--------------------------------------------------------------------+-------------------------------------------------------+
+(2 rows)
+
+!ok
+EnumerableAggregate(group=[{0}], EXPR$1=[JSON_OBJECTAGG_NULL_ON_NULL($1, $2)], EXPR$2=[JSON_OBJECTAGG_ABSENT_ON_NULL($1, $2)])
+  EnumerableCalc(expr#0..2=[{inputs}], expr#3=[JSON_STRUCTURED_VALUE_EXPRESSION($t1)], GENDER=[$t2], ENAME=[$t0], $f2=[$t3])
+    EnumerableUnion(all=[true])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=['Jane'], expr#2=[10], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=['Bob'], expr#2=[10], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=['Eric'], expr#2=[20], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=['Susan'], expr#2=[30], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=['Alice'], expr#2=[30], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=['Adam'], expr#2=[50], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=['Eve'], expr#2=[50], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=['Grace'], expr#2=[60], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+        EnumerableValues(tuples=[[{ 0 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=['Wilma'], expr#2=[null], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+        EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
 # End agg.iq
