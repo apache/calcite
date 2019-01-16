@@ -736,6 +736,7 @@ limitations under the License.
             <configuration>
               <configLocation>${top.dir}/src/main/config/checkstyle/checker.xml</configLocation>
               <suppressionsLocation>${top.dir}/src/main/config/checkstyle/suppressions.xml</suppressionsLocation>
+              <propertyExpansion>base_dir=${top.dir}</propertyExpansion>
               <consoleOutput>true</consoleOutput>
               <failOnViolation>true</failOnViolation>
               <includeTestSourceDirectory>true</includeTestSourceDirectory>
