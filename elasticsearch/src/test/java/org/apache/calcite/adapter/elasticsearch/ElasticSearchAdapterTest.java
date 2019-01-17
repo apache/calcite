@@ -31,7 +31,6 @@ import com.google.common.io.Resources;
 
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -647,29 +646,27 @@ public class ElasticSearchAdapterTest {
   }
 
   /**
-   * Checks
-   * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html">Cardinality</a>
-   * aggregation {@code approx_count_distinct}
+   * Test of {@link org.apache.calcite.sql.fun.SqlStdOperatorTable#APPROX_COUNT_DISTINCT} which
+   * will be translated to
+   * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html">Cardinality Aggregation</a>
+   * (approximate counts using HyperLogLog++ algorithm).
    */
   @Test
-  @Ignore
   public void approximateCount() throws Exception {
-    // approx_count_distinct is converted into two aggregations. needs investigation
-    // ElasticsearchAggregate(group=[{1}], EXPR$0=[COUNT($0)])\r
-    //  ElasticsearchAggregate(group=[{0, 1}])\r
     calciteAssert()
-        .query("select approx_count_distinct(city), state from zips group by state "
-            + "order by state limit 3")
+        .query("select state, approx_count_distinct(city), approx_count_distinct(pop) from zips"
+            + " group by state order by state limit 3")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
             "size:0",
-            "aggregations:{'g_state':{terms:{field:state, size:3, "
+            "aggregations:{'g_state':{terms:{field:'state', missing:'__MISSING__', size:3, "
                 + "order:{'_key':'asc'}}",
-            "aggregations:{'EXPR$0':{cardinality:{field:city}} }}}"))
-        .returnsOrdered("EXPR$0=3; state=AK",
-            "EXPR$0=3; state=AL",
-            "EXPR$0=3; state=AR");
-
+            "aggregations:{'EXPR$1':{cardinality:{field:'city'}}",
+                "'EXPR$2':{cardinality:{field:'pop'}} "
+                + " }}}"))
+        .returnsOrdered("state=AK; EXPR$1=3; EXPR$2=3",
+            "state=AL; EXPR$1=3; EXPR$2=3",
+            "state=AR; EXPR$1=3; EXPR$2=3");
   }
 
 }
