@@ -70,6 +70,8 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   <T> T typeSystem(Class<T> typeSystemClass, T defaultTypeSystem);
   /** @see CalciteConnectionProperty#CONFORMANCE */
   SqlConformance conformance();
+  /** @see org.apache.calcite.config.CalciteConnectionProperty#TIME_ZONE */
+  @Override String timeZone();
 }
 
 // End CalciteConnectionConfig.java

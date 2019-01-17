@@ -129,7 +129,11 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    * generates code that implements the Enumerable interface. */
   SPARK("spark", Type.BOOLEAN, false, false),
 
-  /** Time zone, for example 'gmt-3'. Default is the JVM's time zone. */
+  /**
+   * Returns the time zone from the connect string, for example 'gmt-3'.
+   * If the time zone is not set then the JVM time zone is returned.
+   * Never null
+   */
   TIME_ZONE("timeZone", Type.STRING, TimeZone.getDefault().getID(), false),
 
   /** If the planner should try de-correlating as much as it is possible.
