@@ -25,6 +25,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.type.RelDataType;
 
 import java.util.List;
@@ -78,6 +79,10 @@ public class ElasticsearchTableScan extends TableScan implements ElasticsearchRe
     for (RelOptRule rule: ElasticsearchRules.RULES) {
       planner.addRule(rule);
     }
+
+    // remove this rule otherwise elastic can't correctly interpret approx_count_distinct()
+    // it is converted to cardinality aggregation in Elastic
+    planner.removeRule(AggregateExpandDistinctAggregatesRule.INSTANCE);
   }
 
   @Override public void implement(Implementor implementor) {

@@ -299,6 +299,36 @@ public class AggregationTest {
             "cat5=null; EXPR$1=0.0",
             "cat5=2; EXPR$1=7.0");
   }
+
+  /**
+   * Validate {@link org.apache.calcite.sql.fun.SqlStdOperatorTable#APPROX_COUNT_DISTINCT}.
+   */
+  @Test
+  public void approximateCountDistinct() {
+    // approx_count_distinct counts distinct *non-null* values
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select approx_count_distinct(cat1) from view")
+        .returnsUnordered("EXPR$0=2");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select approx_count_distinct(cat2) from view")
+        .returnsUnordered("EXPR$0=2");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select cat1, approx_count_distinct(val1) from view group by cat1")
+        .returnsUnordered("cat1=a; EXPR$1=1",
+                          "cat1=b; EXPR$1=1",
+                          "cat1=null; EXPR$1=0");
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select cat1, approx_count_distinct(val2) from view group by cat1")
+        .returnsUnordered("cat1=a; EXPR$1=0",
+                          "cat1=b; EXPR$1=1",
+                          "cat1=null; EXPR$1=1");
+  }
 }
 
 // End AggregationTest.java
