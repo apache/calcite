@@ -54,6 +54,7 @@ public class CodesFunction {
           return Linq4j.<String[]>emptyEnumerable().asQueryable();
         }
         return Linq4j.asEnumerable(new String[][]{
+            new String[]{"ORIGINAL", name},
             new String[]{"HASHCODE", "" + name.hashCode()},
             new String[]{"BASE64",
                 Base64.getEncoder().encodeToString(name.getBytes(StandardCharsets.UTF_8))}

@@ -307,7 +307,7 @@ public class ServerTest {
       }
 
       final String plan = ""
-          + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], proj#0..1=[{exprs}], J=[$t3])\n"
+          + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], proj#0..1=[{exprs}], $f2=[$t3])\n"
           + "  EnumerableTableScan(table=[[T]])\n";
       try (ResultSet r = s.executeQuery("explain plan for " + sql)) {
         assertThat(r.next(), is(true));
