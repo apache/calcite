@@ -2395,6 +2395,40 @@ public class UtilTest {
         isIterable(Arrays.asList("John", "Paul", "Ringo")));
   }
 
+  /** Tests {@link Util#select(List, List)}. */
+  @Test public void testSelect() {
+    final List<String> beatles =
+        Arrays.asList("John", "Paul", "George", "Ringo");
+    final List<String> nullBeatles =
+        Arrays.asList("John", "Paul", null, "Ringo");
+
+    final List<Integer> emptyOrdinals = Collections.emptyList();
+    assertThat(Util.select(beatles, emptyOrdinals).isEmpty(), is(true));
+    assertThat(Util.select(beatles, emptyOrdinals).toString(), is("[]"));
+
+    final List<Integer> ordinal0 = Collections.singletonList(0);
+    assertThat(Util.select(beatles, ordinal0).isEmpty(), is(false));
+    assertThat(Util.select(beatles, ordinal0).toString(), is("[John]"));
+
+    final List<Integer> ordinal20 = Arrays.asList(2, 0);
+    assertThat(Util.select(beatles, ordinal20).isEmpty(), is(false));
+    assertThat(Util.select(beatles, ordinal20).toString(),
+        is("[George, John]"));
+
+    final List<Integer> ordinal232 = Arrays.asList(2, 3, 2);
+    assertThat(Util.select(beatles, ordinal232).isEmpty(), is(false));
+    assertThat(Util.select(beatles, ordinal232).toString(),
+        is("[George, Ringo, George]"));
+    assertThat(Util.select(beatles, ordinal232),
+        isIterable(Arrays.asList("George", "Ringo", "George")));
+
+    assertThat(Util.select(nullBeatles, ordinal232).isEmpty(), is(false));
+    assertThat(Util.select(nullBeatles, ordinal232).toString(),
+        is("[null, Ringo, null]"));
+    assertThat(Util.select(nullBeatles, ordinal232),
+        isIterable(Arrays.asList(null, "Ringo", null)));
+  }
+
   @Test public void testEquivalenceSet() {
     final EquivalenceSet<String> c = new EquivalenceSet<>();
     assertThat(c.size(), is(0));

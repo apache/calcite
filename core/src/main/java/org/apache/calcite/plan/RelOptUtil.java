@@ -3014,16 +3014,7 @@ public abstract class RelOptUtil {
         return relBuilder.getRexBuilder().makeInputRef(child, pos);
       }
     };
-    final List<String> names = new AbstractList<String>() {
-      public int size() {
-        return posList.size();
-      }
-
-      public String get(int index) {
-        final int pos = posList.get(index);
-        return fieldNames.get(pos);
-      }
-    };
+    final List<String> names = Util.select(fieldNames, posList);
     return relBuilder
         .push(child)
         .projectNamed(exprs, names, false)

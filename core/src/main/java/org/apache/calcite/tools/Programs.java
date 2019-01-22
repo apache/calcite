@@ -194,6 +194,12 @@ public class Programs {
         list.add(metadataProvider);
       }
       hepPlanner.registerMetadataProviders(list);
+      for (RelOptMaterialization materialization : materializations) {
+        hepPlanner.addMaterialization(materialization);
+      }
+      for (RelOptLattice lattice : lattices) {
+        hepPlanner.addLattice(lattice);
+      }
       RelMetadataProvider plannerChain =
           ChainedRelMetadataProvider.of(list);
       rel.getCluster().setMetadataProvider(plannerChain);

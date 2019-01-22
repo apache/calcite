@@ -2402,6 +2402,20 @@ public class Util {
     return new FilteringIterator<>(iterator, predicate);
   }
 
+  /** Returns a view of a list, picking the elements of a list with the given
+   * set of ordinals. */
+  public static <E> List<E> select(List<E> list, List<Integer> ordinals) {
+    return new AbstractList<E>() {
+      @Override public int size() {
+        return ordinals.size();
+      }
+
+      @Override public E get(int index) {
+        return list.get(ordinals.get(index));
+      }
+    };
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**
