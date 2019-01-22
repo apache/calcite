@@ -29,13 +29,13 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 /**
  * The <code>TIMESTAMPADD</code> function, which adds an interval to a
- * timestamp.
+ * datetime (TIMESTAMP, TIME or DATE).
  *
  * <p>The SQL syntax is
  *
  * <blockquote>
  * <code>TIMESTAMPADD(<i>timestamp interval</i>, <i>quantity</i>,
- * <i>timestamp</i>)</code>
+ * <i>datetime</i>)</code>
  * </blockquote>
  *
  * <p>The interval time unit can one of the following literals:<ul>
@@ -51,7 +51,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
  * <li>YEAR (and synonym  SQL_TSI_YEAR)
  * </ul>
  *
- * <p>Returns modified timestamp.
+ * <p>Returns modified datetime.
  */
 public class SqlTimestampAddFunction extends SqlFunction {
 
@@ -85,7 +85,11 @@ public class SqlTimestampAddFunction extends SqlFunction {
             MICROSECOND_PRECISION);
         break;
       default:
-        type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
+        if (operandType2.getSqlTypeName() == SqlTypeName.TIME) {
+          type = typeFactory.createSqlType(SqlTypeName.TIME);
+        } else {
+          type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
+        }
       }
       break;
     default:

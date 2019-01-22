@@ -129,7 +129,7 @@ public class CassandraRules {
       // Get field names from the scan operation
       CassandraTableScan scan = call.rel(1);
       Pair<List<String>, List<String>> keyFields = scan.cassandraTable.getKeyFields();
-      Set<String> partitionKeys = new HashSet<String>(keyFields.left);
+      Set<String> partitionKeys = new HashSet<>(keyFields.left);
       List<String> fieldNames = CassandraRules.cassandraFieldNames(filter.getInput().getRowType());
 
       List<RexNode> disjunctions = RelOptUtil.disjunctions(condition);

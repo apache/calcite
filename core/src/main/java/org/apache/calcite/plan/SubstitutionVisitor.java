@@ -61,7 +61,6 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
@@ -179,7 +178,7 @@ public class SubstitutionVisitor {
         Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR);
     final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
     this.simplify =
-        new RexSimplify(cluster.getRexBuilder(), predicates, false, executor);
+        new RexSimplify(cluster.getRexBuilder(), predicates, executor);
     this.rules = rules;
     this.query = Holder.of(MutableRels.toMutable(query_));
     this.target = MutableRels.toMutable(target_);
@@ -270,35 +269,36 @@ public class SubstitutionVisitor {
   @VisibleForTesting
   public static RexNode splitFilter(final RexSimplify simplify,
       RexNode condition, RexNode target) {
-    RexNode condition2 = canonizeNode(simplify.rexBuilder, condition);
-    RexNode target2 = canonizeNode(simplify.rexBuilder, target);
+    final RexBuilder rexBuilder = simplify.rexBuilder;
+    RexNode condition2 = canonizeNode(rexBuilder, condition);
+    RexNode target2 = canonizeNode(rexBuilder, target);
 
     // First, try splitting into ORs.
     // Given target    c1 OR c2 OR c3 OR c4
     // and condition   c2 OR c4
     // residue is      c2 OR c4
     // Also deals with case target [x] condition [x] yields residue [true].
-    RexNode z = splitOr(simplify.rexBuilder, condition2, target2);
+    RexNode z = splitOr(rexBuilder, condition2, target2);
     if (z != null) {
       return z;
     }
 
-    if (isEquivalent(simplify.rexBuilder, condition2, target2)) {
-      return simplify.rexBuilder.makeLiteral(true);
+    if (isEquivalent(rexBuilder, condition2, target2)) {
+      return rexBuilder.makeLiteral(true);
     }
 
-    RexNode x = andNot(simplify.rexBuilder, target2, condition2);
+    RexNode x = andNot(rexBuilder, target2, condition2);
     if (mayBeSatisfiable(x)) {
-      RexNode x2 = RexUtil.composeConjunction(simplify.rexBuilder,
-          ImmutableList.of(condition2, target2), false);
-      RexNode r = canonizeNode(simplify.rexBuilder,
-          simplify.withUnknownAsFalse(true).simplify(x2));
-      if (!r.isAlwaysFalse() && isEquivalent(simplify.rexBuilder, condition2, r)) {
+      RexNode x2 = RexUtil.composeConjunction(rexBuilder,
+          ImmutableList.of(condition2, target2));
+      RexNode r = canonizeNode(rexBuilder,
+          simplify.simplifyUnknownAsFalse(x2));
+      if (!r.isAlwaysFalse() && isEquivalent(rexBuilder, condition2, r)) {
         List<RexNode> conjs = RelOptUtil.conjunctions(r);
         for (RexNode e : RelOptUtil.conjunctions(target2)) {
           removeAll(conjs, e);
         }
-        return RexUtil.composeConjunction(simplify.rexBuilder, conjs, false);
+        return RexUtil.composeConjunction(rexBuilder, conjs);
       }
     }
     return null;
@@ -1246,15 +1246,8 @@ public class SubstitutionVisitor {
     ImmutableList<ImmutableBitSet> groupSets =
         Mappings.apply2(mapping, aggregate.groupSets);
     List<AggregateCall> aggregateCalls =
-        apply(mapping, aggregate.aggCalls);
+        Util.transform(aggregate.aggCalls, call -> call.transform(mapping));
     return MutableAggregate.of(input, groupSet, groupSets, aggregateCalls);
-  }
-
-  private static List<AggregateCall> apply(final Mapping mapping,
-      List<AggregateCall> aggCallList) {
-    return Lists.transform(aggCallList,
-        call -> call.copy(Mappings.apply2(mapping, call.getArgList()),
-            Mappings.apply(mapping, call.filterArg)));
   }
 
   public static MutableRel unifyAggregates(MutableAggregate query,
@@ -1303,7 +1296,8 @@ public class SubstitutionVisitor {
             AggregateCall.create(getRollup(aggregateCall.getAggregation()),
                 aggregateCall.isDistinct(), aggregateCall.isApproximate(),
                 ImmutableList.of(target.groupSet.cardinality() + i), -1,
-                aggregateCall.type, aggregateCall.name));
+                aggregateCall.collation, aggregateCall.type,
+                aggregateCall.name));
       }
       result = MutableAggregate.of(target, groupSet.build(), null,
           aggregateCalls);
@@ -1368,13 +1362,13 @@ public class SubstitutionVisitor {
   /** Builds a shuttle that stores a list of expressions, and can map incoming
    * expressions to references to them. */
   protected static RexShuttle getRexShuttle(MutableProject target) {
-    final Map<String, Integer> map = new HashMap<>();
+    final Map<RexNode, Integer> map = new HashMap<>();
     for (RexNode e : target.projects) {
-      map.put(e.toString(), map.size());
+      map.put(e, map.size());
     }
     return new RexShuttle() {
       @Override public RexNode visitInputRef(RexInputRef ref) {
-        final Integer integer = map.get(ref.getName());
+        final Integer integer = map.get(ref);
         if (integer != null) {
           return new RexInputRef(integer, ref.getType());
         }
@@ -1382,7 +1376,7 @@ public class SubstitutionVisitor {
       }
 
       @Override public RexNode visitCall(RexCall call) {
-        final Integer integer = map.get(call.toString());
+        final Integer integer = map.get(call);
         if (integer != null) {
           return new RexInputRef(integer, call.getType());
         }

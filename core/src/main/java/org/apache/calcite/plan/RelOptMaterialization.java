@@ -104,7 +104,7 @@ public class RelOptMaterialization {
 
               final RelOptCluster cluster = scan.getCluster();
               final RelNode scan2 =
-                  starRelOptTable.toRel(RelOptUtil.getContext(cluster));
+                  starRelOptTable.toRel(ViewExpanders.simpleContext(cluster));
               return RelOptUtil.createProject(scan2,
                   Mappings.asList(mapping.inverse()));
             }

@@ -192,7 +192,7 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
           majorVertex.cost
           * minorVertex.cost
           * RelMdUtil.guessSelectivity(
-              RexUtil.composeConjunction(rexBuilder, conditions, false));
+              RexUtil.composeConjunction(rexBuilder, conditions));
       final Vertex newVertex =
           new JoinVertex(v, majorFactor, minorFactor, newFactors,
               cost, ImmutableList.copyOf(conditions));
@@ -260,8 +260,7 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
         final RexVisitor<RexNode> shuttle =
             new RexPermuteInputsShuttle(mapping, left, right);
         final RexNode condition =
-            RexUtil.composeConjunction(rexBuilder, joinVertex.conditions,
-                false);
+            RexUtil.composeConjunction(rexBuilder, joinVertex.conditions);
 
         final RelNode join = relBuilder.push(left)
             .push(right)

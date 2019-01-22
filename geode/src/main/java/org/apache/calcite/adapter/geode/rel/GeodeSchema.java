@@ -17,45 +17,40 @@
 package org.apache.calcite.adapter.geode.rel;
 
 import org.apache.calcite.adapter.geode.util.GeodeUtils;
-import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
-import org.apache.calcite.util.trace.CalciteTrace;
 
+import org.apache.geode.cache.GemFireCache;
 import org.apache.geode.cache.Region;
-import org.apache.geode.cache.client.ClientCache;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.slf4j.Logger;
-
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.apache.calcite.adapter.geode.util.GeodeUtils.createClientCache;
-import static org.apache.calcite.adapter.geode.util.GeodeUtils.createRelDataType;
 
 /**
  * Schema mapped onto a Geode Region.
  */
 public class GeodeSchema extends AbstractSchema {
 
-  protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
-
-  final ClientCache clientCache;
-  private final SchemaPlus parentSchema;
-  private String[] regionNames;
+  final GemFireCache cache;
+  private final List<String> regionNames;
   private ImmutableMap<String, Table> tableMap;
 
-  public GeodeSchema(String locatorHost, int locatorPort,
-      String[] regionNames, String pdxAutoSerializerPackageExp,
-      SchemaPlus parentSchema) {
-    super();
-    this.regionNames = regionNames;
-    this.parentSchema = parentSchema;
+  GeodeSchema(String locatorHost, int locatorPort,
+      Iterable<String> regionNames, String pdxAutoSerializerPackageExp) {
+    this(createClientCache(locatorHost, locatorPort, pdxAutoSerializerPackageExp, true),
+        regionNames);
+  }
 
-    this.clientCache = createClientCache(locatorHost, locatorPort,
-        pdxAutoSerializerPackageExp, true);
+  GeodeSchema(final GemFireCache cache, final Iterable<String> regionNames) {
+    super();
+    this.cache = Objects.requireNonNull(cache, "clientCache");
+    this.regionNames = ImmutableList.copyOf(Objects.requireNonNull(regionNames, "regionNames"));
   }
 
   @Override protected Map<String, Table> getTableMap() {
@@ -64,17 +59,9 @@ public class GeodeSchema extends AbstractSchema {
 
       final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
 
-      // Extract the first entity of each Regions and use it to build a table types
       for (String regionName : regionNames) {
-        Region region = GeodeUtils.createRegionProxy(clientCache, regionName);
-
-        Iterator regionIterator = region.keySetOnServer().iterator();
-
-        Object firstRegionEntry = region.get(regionIterator.next());
-        // TODO: how to handle empty Regions? JMX?
-        Table table = new GeodeTable(this, regionName, createRelDataType(firstRegionEntry),
-            clientCache);
-
+        Region region = GeodeUtils.createRegion(cache, regionName);
+        Table table = new GeodeTable(region);
         builder.put(regionName, table);
       }
 

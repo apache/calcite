@@ -53,6 +53,8 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexMultisetUtil;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -183,10 +185,10 @@ public abstract class SparkRules {
               JavaRowFormat.CUSTOM);
       final Type rowClass = physType.getJavaRowType();
 
-      final List<Expression> expressions = new ArrayList<Expression>();
+      final List<Expression> expressions = new ArrayList<>();
       final List<RelDataTypeField> fields = rowType.getFieldList();
       for (List<RexLiteral> tuple : tuples) {
-        final List<Expression> literals = new ArrayList<Expression>();
+        final List<Expression> literals = new ArrayList<>();
         for (Pair<RelDataTypeField, RexLiteral> pair
             : Pair.zip(fields, tuple)) {
           literals.add(
@@ -346,7 +348,7 @@ public abstract class SparkRules {
                 new RexToLixTranslator.InputGetterImpl(
                     Collections.singletonList(
                         Pair.of((Expression) e_, result.physType))),
-                null);
+                null, implementor.getConformance());
         builder2.add(
             Expressions.ifThen(
                 Expressions.not(condition),
@@ -355,10 +357,12 @@ public abstract class SparkRules {
                         BuiltInMethod.COLLECTIONS_EMPTY_LIST.method))));
       }
 
+      final SqlConformance conformance = SqlConformanceEnum.DEFAULT;
       List<Expression> expressions =
           RexToLixTranslator.translateProjects(
               program,
               typeFactory,
+              conformance,
               builder2,
               null,
               DataContext.ROOT,

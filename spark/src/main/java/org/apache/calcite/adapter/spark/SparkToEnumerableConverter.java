@@ -34,6 +34,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.sql.validate.SqlConformance;
 
 import java.util.List;
 
@@ -114,6 +115,10 @@ public class SparkToEnumerableConverter
 
     public JavaTypeFactory getTypeFactory() {
       return implementor.getTypeFactory();
+    }
+
+    public SqlConformance getConformance() {
+      return implementor.getConformance();
     }
   }
 }

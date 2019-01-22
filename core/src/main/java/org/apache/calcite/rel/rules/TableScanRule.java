@@ -19,7 +19,7 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalTableScan;
@@ -53,7 +53,7 @@ public class TableScanRule extends RelOptRule {
     final LogicalTableScan oldRel = call.rel(0);
     RelNode newRel =
         oldRel.getTable().toRel(
-            RelOptUtil.getContext(oldRel.getCluster()));
+            ViewExpanders.simpleContext(oldRel.getCluster()));
     call.transformTo(newRel);
   }
 }

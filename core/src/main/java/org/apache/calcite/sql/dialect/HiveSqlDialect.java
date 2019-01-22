@@ -66,9 +66,8 @@ public class HiveSqlDialect extends SqlDialect {
 
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,
       final int rightPrec) {
-    switch (call.getOperator().getName()) {
-
-    case "POSITION":
+    switch (call.getKind()) {
+    case POSITION:
       final SqlWriter.Frame frame = writer.startFunCall("INSTR");
       writer.sep(",");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
@@ -79,12 +78,10 @@ public class HiveSqlDialect extends SqlDialect {
       }
       writer.endFunCall(frame);
       break;
-
-    case "MOD":
+    case MOD:
       SqlOperator op = SqlStdOperatorTable.PERCENT_REMAINDER;
       SqlSyntax.BINARY.unparse(writer, op, call, leftPrec, rightPrec);
       break;
-
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }

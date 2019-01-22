@@ -38,7 +38,6 @@ import org.apache.calcite.test.Matchers;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
-import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
@@ -970,7 +969,8 @@ public class UtilTest {
   }
 
   /**
-   * Unit test for {@link Util#quotientList(java.util.List, int, int)}.
+   * Unit test for {@link Util#quotientList(java.util.List, int, int)}
+   * and {@link Util#pairs(List)}.
    */
   @Test public void testQuotientList() {
     List<String> beatles = Arrays.asList("john", "paul", "george", "ringo");
@@ -1018,6 +1018,16 @@ public class UtilTest {
 
     final List list5 = Util.quotientList(beatles, 10, 5);
     assertEquals(0, list5.size());
+
+    final List<Pair<String, String>> list6 = Util.pairs(beatles);
+    assertThat(list6.size(), is(2));
+    assertThat(list6.get(0).left, is("john"));
+    assertThat(list6.get(0).right, is("paul"));
+    assertThat(list6.get(1).left, is("george"));
+    assertThat(list6.get(1).right, is("ringo"));
+
+    final List<Pair<String, String>> list7 = Util.pairs(empty);
+    assertThat(list7.size(), is(0));
   }
 
   @Test public void testImmutableIntList() {
@@ -1114,6 +1124,12 @@ public class UtilTest {
     final List<String> anb0 = Arrays.asList("A", null, "B");
     assertEquals(anb, anb0);
     assertEquals(anb.hashCode(), anb0.hashCode());
+    assertEquals(anb + ".indexOf(null)", 1, anb.indexOf(null));
+    assertEquals(anb + ".lastIndexOf(null)", 1, anb.lastIndexOf(null));
+    assertEquals(anb + ".indexOf(B)", 2, anb.indexOf("B"));
+    assertEquals(anb + ".lastIndexOf(A)", 0, anb.lastIndexOf("A"));
+    assertEquals(anb + ".indexOf(Z)", -1, anb.indexOf("Z"));
+    assertEquals(anb + ".lastIndexOf(Z)", -1, anb.lastIndexOf("Z"));
 
     // Comparisons
     assertThat(emp, instanceOf(Comparable.class));
@@ -1572,6 +1588,7 @@ public class UtilTest {
     checkHash(Double.MIN_VALUE);
   }
 
+  @SuppressWarnings("deprecation")
   public void checkHash(double v) {
     assertThat(Double.valueOf(v).hashCode(), is(Utilities.hashCode(v)));
     final long long_ = (long) v;
@@ -1641,18 +1658,6 @@ public class UtilTest {
     assertThat(checkNav(treeSet3, "FOO").size(), equalTo(3));
     assertThat(checkNav(treeSet3, "FoO").size(), equalTo(3));
     assertThat(checkNav(treeSet3, "BAR").size(), equalTo(1));
-
-    final ImmutableSortedSet<String> treeSet4 =
-        ImmutableSortedSet.copyOf(comparator, treeSet);
-    final NavigableSet<String> navigableSet4 =
-        Compatible.INSTANCE.navigableSet(treeSet4);
-    assertThat(treeSet4.size(), equalTo(5));
-    assertThat(navigableSet4.size(), equalTo(5));
-    assertThat(navigableSet4, equalTo((SortedSet<String>) treeSet4));
-    assertThat(checkNav(navigableSet4, "foo").size(), equalTo(3));
-    assertThat(checkNav(navigableSet4, "FOO").size(), equalTo(3));
-    assertThat(checkNav(navigableSet4, "FoO").size(), equalTo(3));
-    assertThat(checkNav(navigableSet4, "BAR").size(), equalTo(1));
   }
 
   private NavigableSet<String> checkNav(NavigableSet<String> set, String s) {

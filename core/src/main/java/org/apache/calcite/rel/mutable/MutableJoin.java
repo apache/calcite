@@ -66,8 +66,7 @@ public class MutableJoin extends MutableBiRel {
     return obj == this
         || obj instanceof MutableJoin
         && joinType == ((MutableJoin) obj).joinType
-        && condition.toString().equals(
-            ((MutableJoin) obj).condition.toString())
+        && condition.equals(((MutableJoin) obj).condition)
         && Objects.equals(variablesSet,
             ((MutableJoin) obj).variablesSet)
         && left.equals(((MutableJoin) obj).left)
@@ -75,8 +74,7 @@ public class MutableJoin extends MutableBiRel {
   }
 
   @Override public int hashCode() {
-    return Objects.hash(left, right,
-        condition.toString(), joinType, variablesSet);
+    return Objects.hash(left, right, condition, joinType, variablesSet);
   }
 
   @Override public StringBuilder digest(StringBuilder buf) {

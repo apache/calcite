@@ -42,12 +42,16 @@ public class PrimitiveTest {
     assertTrue(Primitive.INT.assignableFrom(Primitive.INT));
     assertTrue(Primitive.INT.assignableFrom(Primitive.SHORT));
     assertFalse(Primitive.INT.assignableFrom(Primitive.LONG));
+    assertFalse(Primitive.INT.assignableFrom(Primitive.FLOAT));
+    assertFalse(Primitive.INT.assignableFrom(Primitive.DOUBLE));
 
     assertTrue(Primitive.LONG.assignableFrom(Primitive.BYTE));
     assertTrue(Primitive.LONG.assignableFrom(Primitive.SHORT));
     assertTrue(Primitive.LONG.assignableFrom(Primitive.CHAR));
     assertTrue(Primitive.LONG.assignableFrom(Primitive.INT));
     assertTrue(Primitive.LONG.assignableFrom(Primitive.LONG));
+    assertFalse(Primitive.LONG.assignableFrom(Primitive.FLOAT));
+    assertFalse(Primitive.LONG.assignableFrom(Primitive.DOUBLE));
 
     // SHORT and CHAR cannot be assigned to each other
 
@@ -56,12 +60,24 @@ public class PrimitiveTest {
     assertFalse(Primitive.SHORT.assignableFrom(Primitive.CHAR));
     assertFalse(Primitive.SHORT.assignableFrom(Primitive.INT));
     assertFalse(Primitive.SHORT.assignableFrom(Primitive.LONG));
+    assertFalse(Primitive.SHORT.assignableFrom(Primitive.FLOAT));
+    assertFalse(Primitive.SHORT.assignableFrom(Primitive.DOUBLE));
 
     assertFalse(Primitive.CHAR.assignableFrom(Primitive.BYTE));
     assertFalse(Primitive.CHAR.assignableFrom(Primitive.SHORT));
     assertTrue(Primitive.CHAR.assignableFrom(Primitive.CHAR));
     assertFalse(Primitive.CHAR.assignableFrom(Primitive.INT));
     assertFalse(Primitive.CHAR.assignableFrom(Primitive.LONG));
+    assertFalse(Primitive.CHAR.assignableFrom(Primitive.FLOAT));
+    assertFalse(Primitive.CHAR.assignableFrom(Primitive.DOUBLE));
+
+    assertTrue(Primitive.DOUBLE.assignableFrom(Primitive.BYTE));
+    assertTrue(Primitive.DOUBLE.assignableFrom(Primitive.SHORT));
+    assertTrue(Primitive.DOUBLE.assignableFrom(Primitive.CHAR));
+    assertTrue(Primitive.DOUBLE.assignableFrom(Primitive.INT));
+    assertTrue(Primitive.DOUBLE.assignableFrom(Primitive.LONG));
+    assertTrue(Primitive.DOUBLE.assignableFrom(Primitive.FLOAT));
+    assertTrue(Primitive.DOUBLE.assignableFrom(Primitive.DOUBLE));
 
     // cross-family assignments
 

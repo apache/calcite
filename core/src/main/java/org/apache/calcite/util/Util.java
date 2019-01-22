@@ -1571,7 +1571,7 @@ public class Util {
    * @return A list whose members are of the desired type.
    */
   public static <E> List<E> cast(List<? super E> list, Class<E> clazz) {
-    return new CastingList<E>(list, clazz);
+    return new CastingList<>(list, clazz);
   }
 
   /**
@@ -1846,6 +1846,17 @@ public class Util {
         return size;
       }
     };
+  }
+
+  /** Given a list with N elements
+   * [e<sub>0</sub>, e<sub>1</sub>, ..., e<sub>N-1</sub>]
+   * (where N is even), returns a list of the N / 2 elements
+   * [ (e<sub>0</sub>, e<sub>1</sub>),
+   * (e<sub>2</sub>, e<sub>3</sub>), ... ]. */
+  public static <E> List<Pair<E, E>> pairs(final List<E> list) {
+    //noinspection unchecked
+    return Pair.zip(quotientList(list, 2, 0),
+        quotientList(list, 2, 1));
   }
 
   /** Returns the first value if it is not null,

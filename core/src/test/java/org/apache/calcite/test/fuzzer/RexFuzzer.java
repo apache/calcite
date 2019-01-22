@@ -107,10 +107,6 @@ public class RexFuzzer extends RexProgramBuilderBase {
     nullableIntType = typeFactory.createTypeWithNullability(intType, true);
   }
 
-  private int getInputRefId(int base, boolean nullable) {
-    return base + (nullable ? 100 : 0);
-  }
-
   public RexNode getExpression(Random r, int depth) {
     return getComparableExpression(r, depth);
   }
@@ -155,7 +151,7 @@ public class RexFuzzer extends RexProgramBuilderBase {
   }
 
   public RexNode getBoolExpression(Random r, int depth) {
-    int v = depth <= 0 ? 0 : r.nextInt(6);
+    int v = depth <= 0 ? 0 : r.nextInt(7);
     switch (v) {
     case 0:
       return getSimpleBool(r);
@@ -171,6 +167,9 @@ public class RexFuzzer extends RexProgramBuilderBase {
           getIntExpression(r, depth - 1));
     case 5:
       return fuzzOperator(r, BOOL_TO_BOOL_MULTI_ARG, r.nextInt(3) + 2,
+          x -> getBoolExpression(x, depth - 1));
+    case 6:
+      return fuzzCase(r, depth - 1,
           x -> getBoolExpression(x, depth - 1));
     }
     throw new AssertionError("should not reach here");
@@ -195,7 +194,7 @@ public class RexFuzzer extends RexProgramBuilderBase {
   }
 
   public RexNode getIntExpression(Random r, int depth) {
-    int v = depth <= 0 ? 0 : r.nextInt(4);
+    int v = depth <= 0 ? 0 : r.nextInt(5);
     switch (v) {
     case 0:
       return getSimpleInt(r);
@@ -207,8 +206,46 @@ public class RexFuzzer extends RexProgramBuilderBase {
     case 3:
       return fuzzOperator(r, ANY_SAME_TYPE_MULTI_ARG, r.nextInt(3) + 2,
           x -> getIntExpression(x, depth - 1));
+    case 4:
+      return fuzzCase(r, depth - 1,
+          x -> getIntExpression(x, depth - 1));
     }
     throw new AssertionError("should not reach here");
+  }
+
+  public RexNode fuzzCase(Random r, int depth, Function<Random, RexNode> resultFactory) {
+    boolean caseArgWhen = r.nextBoolean();
+    int caseBranches = 1 + (depth <= 0 ? 0 : r.nextInt(3));
+    List<RexNode> args = new ArrayList<>(caseBranches + 1);
+
+    Function<Random, RexNode> exprFactory;
+    if (!caseArgWhen) {
+      exprFactory = x -> getBoolExpression(x, depth - 1);
+    } else {
+      int type = r.nextInt(2);
+      RexNode arg;
+      Function<Random, RexNode> baseExprFactory;
+      switch (type) {
+      case 0:
+        baseExprFactory = x -> getBoolExpression(x, depth - 1);
+        break;
+      case 1:
+        baseExprFactory = x -> getIntExpression(x, depth - 1);
+        break;
+      default:
+        throw new AssertionError("should not reach here: " + type);
+      }
+      arg = baseExprFactory.apply(r);
+      // emulate  case when arg=2 then .. when arg=4 then ...
+      exprFactory = x -> eq(arg, baseExprFactory.apply(x));
+    }
+
+    for (int i = 0; i < caseBranches; i++) {
+      args.add(exprFactory.apply(r)); // when
+      args.add(resultFactory.apply(r)); // then
+    }
+    args.add(resultFactory.apply(r)); // else
+    return case_(args);
   }
 
 }

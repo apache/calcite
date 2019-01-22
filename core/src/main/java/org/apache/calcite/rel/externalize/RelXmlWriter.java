@@ -95,7 +95,7 @@ public class RelXmlWriter extends RelWriterImpl {
 
     xmlOutput.endBeginTag("RelNode");
 
-    final List<RelNode> inputs = new ArrayList<RelNode>();
+    final List<RelNode> inputs = new ArrayList<>();
     for (Pair<String, Object> pair : values) {
       if (pair.right instanceof RelNode) {
         inputs.add((RelNode) pair.right);

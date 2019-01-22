@@ -18,9 +18,9 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.RelWriter;
@@ -123,6 +123,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Supplier;
+import javax.annotation.Nonnull;
 
 /**
  * <code>RelOptUtil</code> defines static utility methods for use in optimizing
@@ -376,7 +377,7 @@ public abstract class RelOptUtil {
         + "set type is " + expectedRowType.getFullTypeString()
         + "\nexpression type is " + actualRowType.getFullTypeString()
         + "\nset is " + equivalenceClass.toString()
-        + "\nexpression is " + newRel.toString();
+        + "\nexpression is " + RelOptUtil.toString(newRel);
     throw new AssertionError(s);
   }
 
@@ -475,6 +476,7 @@ public abstract class RelOptUtil {
               false,
               ImmutableList.of(0),
               -1,
+              RelCollations.EMPTY,
               0,
               ret,
               null,
@@ -567,6 +569,7 @@ public abstract class RelOptUtil {
             false,
             ImmutableList.of(projectedKeyCount),
             -1,
+            RelCollations.EMPTY,
             projectedKeyCount,
             ret,
             null,
@@ -765,15 +768,14 @@ public abstract class RelOptUtil {
   public static RelNode createSingleValueAggRel(
       RelOptCluster cluster,
       RelNode rel) {
-    // assert (rel.getRowType().getFieldCount() == 1);
     final int aggCallCnt = rel.getRowType().getFieldCount();
     final List<AggregateCall> aggCalls = new ArrayList<>();
 
     for (int i = 0; i < aggCallCnt; i++) {
       aggCalls.add(
-          AggregateCall.create(
-              SqlStdOperatorTable.SINGLE_VALUE, false, false,
-              ImmutableList.of(i), -1, 0, rel, null, null));
+          AggregateCall.create(SqlStdOperatorTable.SINGLE_VALUE, false, false,
+              ImmutableList.of(i), -1, RelCollations.EMPTY, 0, rel, null,
+              null));
     }
 
     return LogicalAggregate.create(rel, ImmutableBitSet.of(), null, aggCalls);
@@ -858,7 +860,7 @@ public abstract class RelOptUtil {
    * @return remaining join filters that are not equijoins; may return a
    * {@link RexLiteral} true, but never null
    */
-  public static RexNode splitJoinCondition(
+  public static @Nonnull RexNode splitJoinCondition(
       RelNode left,
       RelNode right,
       RexNode condition,
@@ -877,7 +879,7 @@ public abstract class RelOptUtil {
         nonEquiList);
 
     return RexUtil.composeConjunction(
-        left.getCluster().getRexBuilder(), nonEquiList, false);
+        left.getCluster().getRexBuilder(), nonEquiList);
   }
 
   @Deprecated // to be removed before 2.0
@@ -963,7 +965,7 @@ public abstract class RelOptUtil {
    *                      returned
    * @return What's left, never null
    */
-  public static RexNode splitJoinCondition(
+  public static @Nonnull RexNode splitJoinCondition(
       List<RelDataTypeField> sysFieldList,
       List<RelNode> inputs,
       RexNode condition,
@@ -983,7 +985,7 @@ public abstract class RelOptUtil {
 
     // Convert the remainders into a list that are AND'ed together.
     return RexUtil.composeConjunction(
-        inputs.get(0).getCluster().getRexBuilder(), nonEquiList, false);
+        inputs.get(0).getCluster().getRexBuilder(), nonEquiList);
   }
 
   @Deprecated // to be removed before 2.0
@@ -1250,7 +1252,7 @@ public abstract class RelOptUtil {
   }
 
   /** Builds an equi-join condition from a set of left and right keys. */
-  public static RexNode createEquiJoinCondition(
+  public static @Nonnull RexNode createEquiJoinCondition(
       final RelNode left, final List<Integer> leftKeys,
       final RelNode right, final List<Integer> rightKeys,
       final RexBuilder rexBuilder) {
@@ -1272,8 +1274,7 @@ public abstract class RelOptUtil {
           @Override public int size() {
             return leftKeys.size();
           }
-        },
-        false);
+        });
   }
 
   public static SqlOperator op(SqlKind kind, SqlOperator operator) {
@@ -1926,38 +1927,26 @@ public abstract class RelOptUtil {
       RexNode x,
       RexNode y,
       boolean neg) {
-    SqlOperator nullOp;
-    SqlOperator eqOp;
+
     if (neg) {
-      nullOp = SqlStdOperatorTable.IS_NULL;
-      eqOp = SqlStdOperatorTable.EQUALS;
+      // x is not distinct from y
+      // x=y IS TRUE or ((x is null) and (y is null)),
+      return rexBuilder.makeCall(SqlStdOperatorTable.OR,
+          rexBuilder.makeCall(SqlStdOperatorTable.AND,
+              rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, x),
+              rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, y)),
+          rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE,
+              rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, x, y)));
     } else {
-      nullOp = SqlStdOperatorTable.IS_NOT_NULL;
-      eqOp = SqlStdOperatorTable.NOT_EQUALS;
+      // x is distinct from y
+      // x=y IS NOT TRUE and ((x is not null) or (y is not null)),
+      return rexBuilder.makeCall(SqlStdOperatorTable.AND,
+          rexBuilder.makeCall(SqlStdOperatorTable.OR,
+              rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, x),
+              rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, y)),
+          rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_TRUE,
+              rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, x, y)));
     }
-    // By the time the ELSE is reached, x and y are known to be not null;
-    // therefore the whole CASE is not null.
-    RexNode[] whenThenElse = {
-        // when x is null
-        rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, x),
-
-        // then return y is [not] null
-        rexBuilder.makeCall(nullOp, y),
-
-        // when y is null
-        rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, y),
-
-        // then return x is [not] null
-        rexBuilder.makeCall(nullOp, x),
-
-        // else return x compared to y
-        rexBuilder.makeCall(eqOp,
-            rexBuilder.makeNotNull(x),
-            rexBuilder.makeNotNull(y))
-    };
-    return rexBuilder.makeCall(
-        SqlStdOperatorTable.CASE,
-        whenThenElse);
   }
 
   /**
@@ -2702,7 +2691,7 @@ public abstract class RelOptUtil {
     //noinspection unchecked
     return (T) rel.copy(
         rel.getTraitSet().replace(trait),
-        (List) rel.getInputs());
+        rel.getInputs());
   }
 
   /**
@@ -2791,20 +2780,9 @@ public abstract class RelOptUtil {
     return query;
   }
 
-  /** Returns a simple
-   * {@link org.apache.calcite.plan.RelOptTable.ToRelContext}. */
-  public static RelOptTable.ToRelContext getContext(
-      final RelOptCluster cluster) {
-    return new RelOptTable.ToRelContext() {
-      public RelOptCluster getCluster() {
-        return cluster;
-      }
-
-      public RelRoot expandView(RelDataType rowType, String queryString,
-          List<String> schemaPath, List<String> viewPath) {
-        throw new UnsupportedOperationException();
-      }
-    };
+  @Deprecated // to be removed before 2.0
+  public static RelOptTable.ToRelContext getContext(RelOptCluster cluster) {
+    return ViewExpanders.simpleContext(cluster);
   }
 
   /** Returns the number of {@link org.apache.calcite.rel.core.Join} nodes in a
@@ -3425,10 +3403,8 @@ public abstract class RelOptUtil {
         new RexImplicationChecker(rexBuilder, (RexExecutorImpl) executor,
             rowType);
     final RexNode first =
-        RexUtil.composeConjunction(rexBuilder, predicates.pulledUpPredicates,
-            false);
-    final RexNode second =
-        RexUtil.composeConjunction(rexBuilder, list, false);
+        RexUtil.composeConjunction(rexBuilder, predicates.pulledUpPredicates);
+    final RexNode second = RexUtil.composeConjunction(rexBuilder, list);
     // Suppose we have EMP(empno INT NOT NULL, mgr INT),
     // and predicates [empno > 0, mgr > 0].
     // We make first: "empno > 0 AND mgr > 0"

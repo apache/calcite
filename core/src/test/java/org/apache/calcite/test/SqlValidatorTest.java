@@ -22,11 +22,14 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
@@ -53,6 +56,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
@@ -63,11 +67,16 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import static org.apache.calcite.sql.parser.SqlParser.configBuilder;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Concrete child class of {@link SqlValidatorTestCase}, containing lots of unit
@@ -1257,6 +1266,26 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkColumnType("select t.r.\"EXPR$1\".\"EXPR$2\"\n"
             + "from (select ((1,2),(3,4,5)) r from dept) t",
         "INTEGER NOT NULL");
+  }
+
+  @Test public void testRowWitValidDot() {
+    checkColumnType("select ((1,2),(3,4,5)).\"EXPR$1\".\"EXPR$2\"\n from dept",
+        "INTEGER NOT NULL");
+    checkColumnType("select row(1,2).\"EXPR$1\" from dept",
+        "INTEGER NOT NULL");
+    checkColumnType("select t.a.\"EXPR$1\" from (select row(1,2) as a from (values (1))) as t",
+        "INTEGER NOT NULL");
+  }
+
+  @Test public void testRowWithInvalidDotOperation() {
+    final String sql = "select t.^s.\"EXPR$1\"^ from (\n"
+        + "  select 1 AS s from (values (1))) as t";
+    checkExpFails(sql,
+        "(?s).*Column 'S\\.EXPR\\$1' not found in table 'T'.*");
+    checkExpFails("select ^array[1, 2, 3]^.\"EXPR$1\" from dept",
+        "(?s).*Incompatible types.*");
+    checkExpFails("select ^'mystr'^.\"EXPR$1\" from dept",
+        "(?s).*Incompatible types.*");
   }
 
   @Test public void testMultiset() {
@@ -4818,8 +4847,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testStarDotIdFails() {
     // Fails in parser
+    sql("select emp.^*^.\"EXPR$1\" from emp")
+        .fails("(?s).*Unknown field '\\*'");
     sql("select emp.^*^.foo from emp")
-        .fails("(?s).*Encountered \".\" at .*");
+        .fails("(?s).*Unknown field '\\*'");
     // Parser does not allow star dot identifier.
     sql("select ^*^.foo from emp")
         .fails("(?s).*Encountered \".\" at .*");
@@ -7116,6 +7147,40 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("FILTER must not contain aggregate expression");
   }
 
+  @Test public void testWithinGroup() {
+    sql("select deptno,\n"
+        + " collect(empno) within group(order by 1)\n"
+        + "from emp\n"
+        + "group by deptno").ok();
+    sql("select collect(empno) within group(order by 1)\n"
+        + "from emp\n"
+        + "group by ()").ok();
+    sql("select deptno,\n"
+        + " collect(empno) within group(order by deptno)\n"
+        + "from emp\n"
+        + "group by deptno").ok();
+    sql("select deptno,\n"
+        + " collect(empno) within group(order by deptno, hiredate desc)\n"
+        + "from emp\n"
+        + "group by deptno").ok();
+    sql("select deptno,\n"
+        + " collect(empno) within group(\n"
+        + "  order by cast(deptno as varchar), hiredate desc)\n"
+        + "from emp\n"
+        + "group by deptno").ok();
+    sql("select collect(empno) within group(order by 1)\n"
+        + "from emp\n"
+        + "group by deptno").ok();
+    sql("select collect(empno) within group(order by 1)\n"
+        + "from emp").ok();
+    sql("select ^power(deptno, 1) within group(order by 1)^ from emp")
+        .fails("(?s).*WITHIN GROUP not allowed with POWER function.*");
+    sql("select ^collect(empno)^ within group(order by count(*))\n"
+        + "from emp\n"
+        + "group by deptno")
+        .fails("WITHIN GROUP must not contain aggregate expression");
+  }
+
   @Test public void testCorrelatingVariables() {
     // reference to unqualified correlating column
     check("select * from emp where exists (\n"
@@ -7932,7 +7997,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testArrayOfRecordType() {
-    sql("SELECT name, dept_nested.employees[1].ne as ne from dept_nested")
+    sql("SELECT name, dept_nested.employees[1].^ne^ as ne from dept_nested")
         .fails("Unknown field 'NE'");
     sql("SELECT name, dept_nested.employees[1].ename as ename from dept_nested")
         .type("RecordType(VARCHAR(10) NOT NULL NAME, VARCHAR(10) ENAME) NOT NULL");
@@ -8642,9 +8707,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "DEFAULT -\n"
         + "DOT -\n"
         + "ITEM -\n"
+        + "JSON_API_COMMON_SYNTAX -\n"
+        + "JSON_STRUCTURED_VALUE_EXPRESSION -\n"
+        + "JSON_VALUE_EXPRESSION -\n"
         + "NEXT_VALUE -\n"
         + "PATTERN_EXCLUDE -\n"
         + "PATTERN_PERMUTE -\n"
+        + "WITHIN GROUP left\n"
         + "\n"
         + "PATTERN_QUANTIFIER -\n"
         + "\n"
@@ -8715,9 +8784,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "IS A SET post\n"
         + "IS EMPTY post\n"
         + "IS FALSE post\n"
+        + "IS JSON ARRAY post\n"
+        + "IS JSON OBJECT post\n"
+        + "IS JSON SCALAR post\n"
+        + "IS JSON VALUE post\n"
         + "IS NOT A SET post\n"
         + "IS NOT EMPTY post\n"
         + "IS NOT FALSE post\n"
+        + "IS NOT JSON ARRAY post\n"
+        + "IS NOT JSON OBJECT post\n"
+        + "IS NOT JSON SCALAR post\n"
+        + "IS NOT JSON VALUE post\n"
         + "IS NOT NULL post\n"
         + "IS NOT TRUE post\n"
         + "IS NOT UNKNOWN post\n"
@@ -10630,6 +10707,126 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from emp_r join dept_r on (^emp_r.slackingmin^ = dept_r.slackingmin)")
             .fails(onError);
   }
+
+  @Test public void testJsonExists() {
+    checkExp("json_exists('{}', 'lax $')");
+    checkExpType("json_exists('{}', 'lax $')", "BOOLEAN");
+  }
+
+  @Test public void testJsonValue() {
+    checkExp("json_value('{\"foo\":\"bar\"}', 'lax $.foo')");
+    checkExpType("json_value('{\"foo\":\"bar\"}', 'lax $.foo')", "VARCHAR(2000)");
+    checkExpType("json_value('{\"foo\":100}', 'lax $.foo')", "VARCHAR(2000)");
+    checkExpType("json_value('{\"foo\":100}', 'lax $.foo'"
+        + "returning integer)", "INTEGER");
+    checkExpType("json_value('{\"foo\":100}', 'lax $.foo'"
+        + "returning integer default 0 on empty default 0 on error)", "INTEGER");
+    checkExpType("json_value('{\"foo\":100}', 'lax $.foo'"
+        + "returning integer default null on empty default null on error)", "INTEGER");
+
+    checkExpFails("^json_value('{\"foo\":true}', 'lax $.foo'"
+            + "returning boolean default 100 on empty default 100 on error)^",
+        "(?s).*cannot convert value of type INTEGER to type BOOLEAN*");
+
+    // test type inference of default value
+    checkExpType("json_value('{\"foo\":100}', 'lax $.foo' default 'empty' on empty)",
+        "VARCHAR(2000)");
+    checkExpFails("^json_value('{\"foo\":100}', 'lax $.foo' returning boolean"
+        + " default 100 on empty)^", "(?s).*Cast function cannot convert value.*");
+  }
+
+  @Test public void testJsonQuery() {
+    checkExp("json_query('{\"foo\":\"bar\"}', 'lax $')");
+    checkExpType("json_query('{\"foo\":\"bar\"}', 'lax $')", "VARCHAR(2000)");
+    checkExpType("json_query('{\"foo\":\"bar\"}', 'strict $')", "VARCHAR(2000)");
+    checkExpType("json_query('{\"foo\":\"bar\"}', 'strict $' WITH WRAPPER)",
+        "VARCHAR(2000)");
+    checkExpType("json_query('{\"foo\":\"bar\"}', 'strict $' EMPTY OBJECT ON EMPTY)",
+        "VARCHAR(2000)");
+    checkExpType("json_query('{\"foo\":\"bar\"}', 'strict $' EMPTY ARRAY ON ERROR)",
+        "VARCHAR(2000)");
+    checkExpType("json_query('{\"foo\":\"bar\"}', 'strict $' EMPTY OBJECT ON EMPTY "
+            + "EMPTY ARRAY ON ERROR EMPTY ARRAY ON EMPTY NULL ON ERROR)",
+        "VARCHAR(2000)");
+  }
+
+  @Test public void testJsonArray() {
+    checkExp("json_array()");
+    checkExp("json_array('foo', 'bar')");
+    checkExpType("json_array('foo', 'bar')", "VARCHAR(2000) NOT NULL");
+  }
+
+  @Test public void testJsonArrayAgg() {
+    check("select json_arrayagg(ename) from emp");
+    checkExpType("json_arrayagg('foo')", "VARCHAR(2000) NOT NULL");
+  }
+
+  @Test public void testJsonObject() {
+    checkExp("json_object()");
+    checkExp("json_object('foo': 'bar')");
+    checkExpType("json_object('foo': 'bar')", "VARCHAR(2000) NOT NULL");
+    checkExpFails("^json_object(100: 'bar')^",
+        "(?s).*Expected a character type*");
+  }
+
+  @Test public void testJsonObjectAgg() {
+    check("select json_objectagg(ename: empno) from emp");
+    checkFails("select ^json_objectagg(empno: ename)^ from emp",
+        "(?s).*Cannot apply.*");
+    checkExpType("json_objectagg('foo': 'bar')", "VARCHAR(2000) NOT NULL");
+  }
+
+  @Test public void testJsonPredicate() {
+    checkExpType("'{}' is json", "BOOLEAN NOT NULL");
+    checkExpType("'{}' is json value", "BOOLEAN NOT NULL");
+    checkExpType("'{}' is json object", "BOOLEAN NOT NULL");
+    checkExpType("'[]' is json array", "BOOLEAN NOT NULL");
+    checkExpType("'100' is json scalar", "BOOLEAN NOT NULL");
+    checkExpType("'{}' is not json", "BOOLEAN NOT NULL");
+    checkExpType("'{}' is not json value", "BOOLEAN NOT NULL");
+    checkExpType("'{}' is not json object", "BOOLEAN NOT NULL");
+    checkExpType("'[]' is not json array", "BOOLEAN NOT NULL");
+    checkExpType("'100' is not json scalar", "BOOLEAN NOT NULL");
+    checkExpFails("^100 is json value^", "(?s).*Cannot apply.*");
+  }
+
+  @Test public void testValidatorReportsOriginalQueryUsingReader()
+      throws Exception {
+    final String sql = "select a from b";
+    final SqlParser.Config config = configBuilder().build();
+    final String messagePassingSqlString;
+    try {
+      final SqlParser sqlParserReader = SqlParser.create(sql, config);
+      final SqlNode node = sqlParserReader.parseQuery();
+      final SqlValidator validator = tester.getValidator();
+      final SqlNode x = validator.validate(node);
+      fail("expecting an error, got " + x);
+      return;
+    } catch (CalciteContextException error) {
+      // we want the exception to report column and line
+      assertThat(error.getMessage(),
+          is("At line 1, column 15: Object 'B' not found"));
+      messagePassingSqlString = error.getMessage();
+      // the error does not contain the original query (even using a String)
+      assertNull(error.getOriginalStatement());
+    }
+
+    // parse SQL text using a java.io.Reader and not a java.lang.String
+    try {
+      final SqlParser sqlParserReader =
+          SqlParser.create(new StringReader(sql), config);
+      final SqlNode node = sqlParserReader.parseQuery();
+      final SqlValidator validator = tester.getValidator();
+      final SqlNode x = validator.validate(node);
+      fail("expecting an error, got " + x);
+    } catch (CalciteContextException error) {
+      // we want exactly the same error as with java.lang.String input
+      assertThat(error.getMessage(), is(messagePassingSqlString));
+      // the error does not contain the original query (using a Reader)
+      assertThat(error.getOriginalStatement(), nullValue());
+    }
+  }
+
 }
 
 // End SqlValidatorTest.java

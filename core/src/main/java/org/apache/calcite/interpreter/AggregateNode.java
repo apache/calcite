@@ -37,6 +37,8 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
@@ -221,11 +223,14 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
             }
 
             public RexToLixTranslator rowTranslator() {
+              final SqlConformance conformance =
+                  SqlConformanceEnum.DEFAULT; // TODO: get this from implementor
               return RexToLixTranslator.forAggregation(typeFactory,
                   currentBlock(),
                   new RexToLixTranslator.InputGetterImpl(
                       Collections.singletonList(
-                          Pair.of((Expression) inParameter, inputPhysType))))
+                          Pair.of((Expression) inParameter, inputPhysType))),
+                  conformance)
                   .setNullable(currentNullables());
             }
           };

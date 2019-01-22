@@ -281,11 +281,10 @@ order by empno limit 10;
 !ok
 EnumerableCalc(expr#0..10=[{inputs}], expr#11=[COALESCE($t7, $t8)], DEPTNO=[$t11], EMPNO=[$t0], ENAME=[$t1], JOB=[$t2], MGR=[$t3], HIREDATE=[$t4], SAL=[$t5], COMM=[$t6], DNAME=[$t9], LOC=[$t10])
   EnumerableLimit(fetch=[10])
-    EnumerableSort(sort0=[$0], dir0=[ASC])
-      EnumerableJoin(condition=[=($7, $8)], joinType=[left])
-        EnumerableLimit(fetch=[10])
-          EnumerableTableScan(table=[[scott, EMP]])
-        EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableJoin(condition=[=($7, $8)], joinType=[left])
+      EnumerableLimit(fetch=[10])
+        EnumerableTableScan(table=[[scott, EMP]])
+      EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # End join.iq

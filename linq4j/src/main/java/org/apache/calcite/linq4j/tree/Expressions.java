@@ -1120,7 +1120,7 @@ public abstract class Expressions {
     // default constructor, etc.?
 
     //noinspection unchecked
-    return new FunctionExpression<F>(function);
+    return new FunctionExpression<>(function);
   }
 
   /**
@@ -1133,7 +1133,7 @@ public abstract class Expressions {
     final List<ParameterExpression> parameterList = toList(parameters);
     @SuppressWarnings("unchecked")
     Class<F> type = deduceType(parameterList, body.getType());
-    return new FunctionExpression<F>(type, body, parameterList);
+    return new FunctionExpression<>(type, body, parameterList);
   }
 
   /**
@@ -1172,7 +1172,7 @@ public abstract class Expressions {
   public static <T, F extends Function<? extends T>> FunctionExpression<F>
       lambda(Class<F> type, BlockStatement body,
       Iterable<? extends ParameterExpression> parameters) {
-    return new FunctionExpression<F>(type, body, toList(parameters));
+    return new FunctionExpression<>(type, body, toList(parameters));
   }
 
   /**
@@ -3026,21 +3026,21 @@ public abstract class Expressions {
    * Creates an empty fluent list.
    */
   public static <T> FluentList<T> list() {
-    return new FluentArrayList<T>();
+    return new FluentArrayList<>();
   }
 
   /**
    * Creates a fluent list with given elements.
    */
-  public static <T> FluentList<T> list(T... ts) {
-    return new FluentArrayList<T>(Arrays.asList(ts));
+  @SafeVarargs public static <T> FluentList<T> list(T... ts) {
+    return new FluentArrayList<>(Arrays.asList(ts));
   }
 
   /**
    * Creates a fluent list with elements from the given collection.
    */
   public static <T> FluentList<T> list(Iterable<T> ts) {
-    return new FluentArrayList<T>(toList(ts));
+    return new FluentArrayList<>(toList(ts));
   }
 
   // ~ Private helper methods ------------------------------------------------
@@ -3072,7 +3072,7 @@ public abstract class Expressions {
     if (iterable instanceof List) {
       return (List<T>) iterable;
     }
-    final List<T> list = new ArrayList<T>();
+    final List<T> list = new ArrayList<>();
     for (T parameter : iterable) {
       list.add(parameter);
     }
@@ -3117,7 +3117,7 @@ public abstract class Expressions {
     if (statements.isEmpty()) {
       return statements; // short cut
     }
-    final List<Statement> statements1 = new ArrayList<Statement>();
+    final List<Statement> statements1 = new ArrayList<>();
     for (Statement statement : statements) {
       Statement newStatement = statement.accept(shuttle);
       if (newStatement instanceof GotoStatement) {
@@ -3137,7 +3137,7 @@ public abstract class Expressions {
     if (nodes.isEmpty()) {
       return nodes; // short cut
     }
-    final List<Node> statements1 = new ArrayList<Node>();
+    final List<Node> statements1 = new ArrayList<>();
     for (Node node : nodes) {
       statements1.add(node.accept(shuttle));
     }
@@ -3149,7 +3149,7 @@ public abstract class Expressions {
     if (parameterExpressions.isEmpty()) {
       return Collections.emptyList(); // short cut
     }
-    final List<Expression> parameterExpressions1 = new ArrayList<Expression>();
+    final List<Expression> parameterExpressions1 = new ArrayList<>();
     for (ParameterExpression parameterExpression : parameterExpressions) {
       parameterExpressions1.add(parameterExpression.accept(shuttle));
     }
@@ -3161,8 +3161,7 @@ public abstract class Expressions {
     if (declarations == null || declarations.isEmpty()) {
       return declarations; // short cut
     }
-    final List<DeclarationStatement> declarations1 =
-        new ArrayList<DeclarationStatement>();
+    final List<DeclarationStatement> declarations1 = new ArrayList<>();
     for (DeclarationStatement declaration : declarations) {
       declarations1.add(declaration.accept(shuttle));
     }
@@ -3174,8 +3173,7 @@ public abstract class Expressions {
     if (memberDeclarations == null || memberDeclarations.isEmpty()) {
       return memberDeclarations; // short cut
     }
-    final List<MemberDeclaration> memberDeclarations1 =
-        new ArrayList<MemberDeclaration>();
+    final List<MemberDeclaration> memberDeclarations1 = new ArrayList<>();
     for (MemberDeclaration memberDeclaration : memberDeclarations) {
       memberDeclarations1.add(memberDeclaration.accept(shuttle));
     }

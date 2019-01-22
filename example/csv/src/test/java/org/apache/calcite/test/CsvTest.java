@@ -512,8 +512,8 @@ public class CsvTest {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
 
-    try (Connection connection
-        = DriverManager.getConnection("jdbc:calcite:", info)) {
+    try (Connection connection =
+        DriverManager.getConnection("jdbc:calcite:", info)) {
       ResultSet res = connection.getMetaData().getColumns(null, null,
           "DATE", "JOINEDAT");
       res.next();
@@ -560,8 +560,8 @@ public class CsvTest {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
 
-    try (Connection connection
-        = DriverManager.getConnection("jdbc:calcite:", info)) {
+    try (Connection connection =
+        DriverManager.getConnection("jdbc:calcite:", info)) {
       Statement statement = connection.createStatement();
       final String sql = "select * from \"DATE\"\n"
           + "where EMPNO >= 140 and EMPNO < 200";

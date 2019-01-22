@@ -115,7 +115,7 @@ public class LogicVisitor implements RexBiVisitor<Logic, Logic> {
   }
 
   private Logic end(RexNode node, Logic arg) {
-    if (RexUtil.eq(node, seek)) {
+    if (node.equals(seek)) {
       logicCollection.add(arg);
     }
     return arg;

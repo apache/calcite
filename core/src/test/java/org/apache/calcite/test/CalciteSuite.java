@@ -16,10 +16,13 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.TestKtTest;
 import org.apache.calcite.adapter.clone.ArrayTableTest;
 import org.apache.calcite.jdbc.CalciteRemoteDriverTest;
+import org.apache.calcite.materialize.LatticeSuggesterTest;
 import org.apache.calcite.plan.RelOptPlanReaderTest;
 import org.apache.calcite.plan.RelOptUtilTest;
+import org.apache.calcite.plan.RelTraitTest;
 import org.apache.calcite.plan.RelWriterTest;
 import org.apache.calcite.plan.volcano.CollationConversionTest;
 import org.apache.calcite.plan.volcano.ComboRuleTest;
@@ -33,8 +36,10 @@ import org.apache.calcite.rel.RelCollationTest;
 import org.apache.calcite.rel.RelDistributionTest;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverterTest;
 import org.apache.calcite.rel.rules.DateRangeRulesTest;
+import org.apache.calcite.rel.rules.SortRemoveRuleTest;
 import org.apache.calcite.rex.RexBuilderTest;
 import org.apache.calcite.rex.RexExecutorTest;
+import org.apache.calcite.rex.RexSqlStandardConvertletTableTest;
 import org.apache.calcite.runtime.BinarySearchTest;
 import org.apache.calcite.runtime.EnumerablesTest;
 import org.apache.calcite.sql.SqlSetOptionOperatorTest;
@@ -81,6 +86,7 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     // very fast tests (under 0.1s)
+    TestKtTest.class,
     ArrayTableTest.class,
     BitSetsTest.class,
     ImmutableBitSetTest.class,
@@ -96,6 +102,7 @@ import org.junit.runners.Suite;
     FilteratorTest.class,
     PermutationTestCase.class,
     SqlFunctionsTest.class,
+    SqlJsonFunctionsTest.class,
     SqlTypeNameTest.class,
     ModelTest.class,
     SqlValidatorFeatureTest.class,
@@ -103,6 +110,7 @@ import org.junit.runners.Suite;
     InterpreterTest.class,
     TestUtilTest.class,
     VolcanoPlannerTest.class,
+    RelTraitTest.class,
     HepPlannerTest.class,
     TraitPropagationTest.class,
     RelDistributionTest.class,
@@ -116,6 +124,7 @@ import org.junit.runners.Suite;
     InduceGroupingTypeTest.class,
     RelOptPlanReaderTest.class,
     RexBuilderTest.class,
+    RexSqlStandardConvertletTableTest.class,
     SqlTypeFactoryTest.class,
     SqlTypeUtilTest.class,
     SqlValidatorUtilTest.class,
@@ -166,6 +175,7 @@ import org.junit.runners.Suite;
     CalciteSqlOperatorTest.class,
     RexProgramFuzzyTest.class,
     ProfilerTest.class,
+    LatticeSuggesterTest.class,
     LatticeTest.class,
     ReflectiveSchemaTest.class,
     SqlAdvisorJdbcTest.class,
@@ -173,6 +183,7 @@ import org.junit.runners.Suite;
     CoreQuidemTest.class,
     CalciteRemoteDriverTest.class,
     StreamTest.class,
+    SortRemoveRuleTest.class,
 
     // test cases
     TableInRootSchemaTest.class,

@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.Nonnull;
 
 /**
  * An expression formed by a call to an operator with zero or more expressions
@@ -65,8 +66,8 @@ public class RexCall extends RexNode {
 
   //~ Methods ----------------------------------------------------------------
 
-  protected String computeDigest(boolean withType) {
-    StringBuilder sb = new StringBuilder(op.getName());
+  protected @Nonnull String computeDigest(boolean withType) {
+    final StringBuilder sb = new StringBuilder(op.getName());
     if ((operands.size() == 0)
         && (op.getSyntax() == SqlSyntax.FUNCTION_ID)) {
       // Don't print params for empty arg list. For example, we want
@@ -77,8 +78,7 @@ public class RexCall extends RexNode {
         if (i > 0) {
           sb.append(", ");
         }
-        RexNode operand = operands.get(i);
-        sb.append(operand.toString());
+        sb.append(operands.get(i));
       }
       sb.append(")");
     }
@@ -92,13 +92,13 @@ public class RexCall extends RexNode {
     return sb.toString();
   }
 
-  public String toString() {
+  @Override public final @Nonnull String toString() {
     // This data race is intentional
     String localDigest = digest;
     if (localDigest == null) {
       localDigest = computeDigest(
           isA(SqlKind.CAST) || isA(SqlKind.NEW_SPECIFICATION));
-      digest = localDigest;
+      digest = Objects.requireNonNull(localDigest);
     }
     return localDigest;
   }
@@ -121,11 +121,12 @@ public class RexCall extends RexNode {
     switch (getKind()) {
     case IS_NOT_NULL:
       return !operands.get(0).getType().isNullable();
-    case IS_NOT_FALSE:
-    case NOT:
-      return operands.get(0).isAlwaysFalse();
     case IS_NOT_TRUE:
     case IS_FALSE:
+    case NOT:
+      return operands.get(0).isAlwaysFalse();
+    case IS_NOT_FALSE:
+    case IS_TRUE:
     case CAST:
       return operands.get(0).isAlwaysTrue();
     default:
@@ -138,6 +139,7 @@ public class RexCall extends RexNode {
     case IS_NULL:
       return !operands.get(0).getType().isNullable();
     case IS_NOT_TRUE:
+    case IS_FALSE:
     case NOT:
       return operands.get(0).isAlwaysTrue();
     case IS_NOT_FALSE:
@@ -170,6 +172,16 @@ public class RexCall extends RexNode {
    */
   public RexCall clone(RelDataType type, List<RexNode> operands) {
     return new RexCall(type, op, operands);
+  }
+
+  @Override public boolean equals(Object obj) {
+    return obj == this
+        || obj instanceof RexCall
+        && toString().equals(obj.toString());
+  }
+
+  @Override public int hashCode() {
+    return toString().hashCode();
   }
 }
 

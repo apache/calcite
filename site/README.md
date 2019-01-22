@@ -33,7 +33,9 @@ Site generation currently works best with ruby-2.5.1.
 1. `cd site`
 2. `svn co https://svn.apache.org/repos/asf/calcite/site target`
 3. `sudo apt-get install rubygems ruby2.5-dev zlib1g-dev` (linux)
+   `Use RubyInstaller to install rubygems as recommended at https://www.ruby-lang.org/en/downloads/` (Windows)
 4. `sudo gem install bundler`
+   `gem install bundler` (Windows)
 5. `bundle install`
 
 ### Add javadoc
@@ -41,7 +43,9 @@ Site generation currently works best with ruby-2.5.1.
 1. `cd ..`
 2. `mvn -DskipTests site`
 3. `rm -rf site/target/apidocs site/target/testapidocs`
+   `rmdir site\target\apidocs site\target\testapidocs /S /Q` (Windows)
 4. `mv target/site/apidocs target/site/testapidocs site/target`
+   `for /d %a in (target\site\apidocs* target\site\testapidocs*) do move %a site\target` (Windows)
 
 ### Running locally
 

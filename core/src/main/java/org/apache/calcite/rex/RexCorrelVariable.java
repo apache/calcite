@@ -54,6 +54,18 @@ public class RexCorrelVariable extends RexVariable {
   @Override public SqlKind getKind() {
     return SqlKind.CORREL_VARIABLE;
   }
+
+  @Override public boolean equals(Object obj) {
+    return this == obj
+        || obj instanceof RexCorrelVariable
+        && digest.equals(((RexCorrelVariable) obj).digest)
+        && type.equals(((RexCorrelVariable) obj).type)
+        && id.equals(((RexCorrelVariable) obj).id);
+  }
+
+  @Override public int hashCode() {
+    return Objects.hash(digest, type, id);
+  }
 }
 
 // End RexCorrelVariable.java

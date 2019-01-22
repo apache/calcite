@@ -27,8 +27,17 @@ import java.util.List;
  * Builtin methods in the Elasticsearch adapter.
  */
 enum ElasticsearchMethod {
-  ELASTICSEARCH_QUERYABLE_FIND(AbstractElasticsearchTable.ElasticsearchQueryable.class,
-      "find", List.class, List.class);
+
+  ELASTICSEARCH_QUERYABLE_FIND(ElasticsearchTable.ElasticsearchQueryable.class,
+      "find",
+      List.class, // ops  - projections and other stuff
+      List.class, // fields
+      List.class, // sort
+      List.class, // groupBy
+      List.class, // aggregations
+      List.class, // expression mapping
+      Long.class, // offset
+      Long.class); // fetch
 
   public final Method method;
 

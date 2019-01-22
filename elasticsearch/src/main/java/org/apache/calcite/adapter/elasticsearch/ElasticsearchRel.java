@@ -18,10 +18,15 @@ package org.apache.calcite.adapter.elasticsearch;
 
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.util.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * Relational expression that uses Elasticsearch calling convention.
@@ -39,19 +44,90 @@ public interface ElasticsearchRel extends RelNode {
    * {@link ElasticsearchRel} nodes into an Elasticsearch query.
    */
   class Implementor {
+
     final List<String> list = new ArrayList<>();
 
-    RelOptTable table;
-    AbstractElasticsearchTable elasticsearchTable;
+    /**
+     * Sorting clauses.
+     * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-sort.html">Sort</a>
+     */
+    final List<Map.Entry<String, RelFieldCollation.Direction>> sort = new ArrayList<>();
 
-    public void add(String findOp) {
+    /**
+     * Elastic aggregation ({@code MIN / MAX / COUNT} etc.) statements (functions).
+     * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations.html">aggregations</a>
+     */
+    final List<Map.Entry<String, String>> aggregations = new ArrayList<>();
+
+    /**
+     * Allows bucketing documents together. Similar to {@code select ... from table group by field1}
+     * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/6.3/search-aggregations-bucket.html">Bucket Aggregrations</a>
+     */
+    final List<String> groupBy = new ArrayList<>();
+
+    /**
+     * Keeps mapping between calcite expression identifier (like {@code EXPR$0}) and
+     * original item call like {@code _MAP['foo.bar']} ({@code foo.bar} really).
+     * This information otherwise might be lost during query translation.
+     *
+     * @see SqlStdOperatorTable#ITEM
+     */
+    final List<Map.Entry<String, String>> expressionItemMap = new ArrayList<>();
+
+    /**
+     * Starting index (default {@code 0}). Equivalent to {@code start} in ES query.
+     * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-from-size.html">From/Size</a>
+     */
+    Long offset;
+
+    /**
+     * Number of records to return. Equivalent to {@code size} in ES query.
+     * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-from-size.html">From/Size</a>
+     */
+    Long fetch;
+
+    RelOptTable table;
+    ElasticsearchTable elasticsearchTable;
+
+    void add(String findOp) {
       list.add(findOp);
     }
 
-    public void visitChild(int ordinal, RelNode input) {
+    void addGroupBy(String field) {
+      Objects.requireNonNull(field, "field");
+      groupBy.add(field);
+    }
+
+    void addSort(String field, RelFieldCollation.Direction direction) {
+      Objects.requireNonNull(field, "field");
+      sort.add(new Pair<>(field, direction));
+    }
+
+    void addAggregation(String field, String expression) {
+      Objects.requireNonNull(field, "field");
+      Objects.requireNonNull(expression, "expression");
+      aggregations.add(new Pair<>(field, expression));
+    }
+
+    void addExpressionItemMapping(String expressionId, String item) {
+      Objects.requireNonNull(expressionId, "expressionId");
+      Objects.requireNonNull(item, "item");
+      expressionItemMap.add(new Pair<>(expressionId, item));
+    }
+
+    void offset(long offset) {
+      this.offset = offset;
+    }
+
+    void fetch(long fetch) {
+      this.fetch = fetch;
+    }
+
+    void visitChild(int ordinal, RelNode input) {
       assert ordinal == 0;
       ((ElasticsearchRel) input).implement(this);
     }
+
   }
 }
 

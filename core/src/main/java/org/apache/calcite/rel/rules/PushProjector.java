@@ -503,7 +503,7 @@ public class PushProjector {
     }
     int refIdx = offset - 1;
     List<Pair<RexNode, String>> newProjects =
-        new ArrayList<Pair<RexNode, String>>();
+        new ArrayList<>();
     List<RelDataTypeField> destFields =
         projChild.getRowType().getFieldList();
 
@@ -700,11 +700,15 @@ public class PushProjector {
         final ImmutableBitSet exprArgs = RelOptUtil.InputFinder.bits(call);
         if (exprArgs.cardinality() > 0) {
           if (leftFields.contains(exprArgs) && isStrong(exprArgs, call)) {
-            addExpr(preserveLeft, call);
+            if (!preserveLeft.contains(call)) {
+              preserveLeft.add(call);
+            }
             return true;
           } else if (rightFields.contains(exprArgs) && isStrong(exprArgs, call)) {
             assert preserveRight != null;
-            addExpr(preserveRight, call);
+            if (!preserveRight.contains(call)) {
+              preserveRight.add(call);
+            }
             return true;
           }
         }
@@ -721,22 +725,6 @@ public class PushProjector {
       return null;
     }
 
-    /**
-     * Adds an expression to a list if the same expression isn't already in
-     * the list. Expressions are identical if their digests are the same.
-     *
-     * @param exprList current list of expressions
-     * @param newExpr  new expression to be added
-     */
-    private void addExpr(List<RexNode> exprList, RexNode newExpr) {
-      String newExprString = newExpr.toString();
-      for (RexNode expr : exprList) {
-        if (newExprString.compareTo(expr.toString()) == 0) {
-          return;
-        }
-      }
-      exprList.add(newExpr);
-    }
   }
 
   /**
@@ -804,29 +792,18 @@ public class PushProjector {
         int adjust1,
         List<RexNode> rexList2,
         int adjust2) {
-      int match = findExprInList(rex, rexList1);
+      int match = rexList1.indexOf(rex);
       if (match >= 0) {
         return match + adjust1;
       }
 
       if (rexList2 != null) {
-        match = findExprInList(rex, rexList2);
+        match = rexList2.indexOf(rex);
         if (match >= 0) {
           return match + adjust2;
         }
       }
 
-      return -1;
-    }
-
-    private int findExprInList(RexNode rex, List<RexNode> rexList) {
-      int match = 0;
-      for (RexNode rexElement : rexList) {
-        if (rexElement.toString().compareTo(rex.toString()) == 0) {
-          return match;
-        }
-        match++;
-      }
       return -1;
     }
   }

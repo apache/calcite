@@ -1381,8 +1381,9 @@ public class JdbcTest {
 
   /** Janino bug
    * <a href="https://jira.codehaus.org/browse/JANINO-169">[JANINO-169]</a>
-   * running queries against the JDBC adapter. As of janino-2.7.3 bug is
-   * open but we have a workaround in EnumerableRelImplementor. */
+   * running queries against the JDBC adapter. The bug is not present with
+   * janino-3.0.9 so the workaround in EnumerableRelImplementor was removed.
+   */
   @Test public void testJanino169() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
@@ -2163,8 +2164,7 @@ public class JdbcTest {
 
   private CalciteAssert.AssertQuery withFoodMartQuery(int id)
       throws IOException {
-    final FoodmartTest.FoodMartQuerySet set =
-        FoodmartTest.FoodMartQuerySet.instance();
+    final FoodMartQuerySet set = FoodMartQuerySet.instance();
     return CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query(set.queries.get(id).sql);
@@ -2182,8 +2182,7 @@ public class JdbcTest {
    */
   @Ignore
   @Test public void testNoCalcBetweenJoins() throws IOException {
-    final FoodmartTest.FoodMartQuerySet set =
-        FoodmartTest.FoodMartQuerySet.instance();
+    final FoodMartQuerySet set = FoodMartQuerySet.instance();
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query(set.queries.get(16).sql)
@@ -2272,8 +2271,8 @@ public class JdbcTest {
   @Ignore // DO NOT CHECK IN
   @Test public void testFoodmartLattice() throws IOException {
     // 8: select ... from customer, sales, time ... group by ...
-    final FoodmartTest.FoodmartQuery query =
-        FoodmartTest.FoodMartQuerySet.instance().queries.get(8);
+    final FoodMartQuerySet set = FoodMartQuerySet.instance();
+    final FoodMartQuerySet.FoodmartQuery query = set.queries.get(8);
     CalciteAssert.that()
         .with(CalciteAssert.Config.JDBC_FOODMART_WITH_LATTICE)
         .withDefaultSchema("foodmart")
@@ -2428,7 +2427,7 @@ public class JdbcTest {
             + ": org.apache.calcite.runtime.SqlFunctions.substring("
             + "org.apache.calcite.runtime.SqlFunctions.trim(true, true, \" \", "
             + "org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
-            + "inp1_ * 0 + 1)), (v5 ? 4 : 5) - 2);")
+            + "inp1_ * 0 + 1), true), (v5 ? 4 : 5) - 2);")
         .returns("T=ill\n"
             + "T=ric\n"
             + "T=ebastian\n"
@@ -2465,7 +2464,7 @@ public class JdbcTest {
             + ": org.apache.calcite.runtime.SqlFunctions.substring("
             + "org.apache.calcite.runtime.SqlFunctions.trim(true, true, \" \", "
             + "org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
-            + "inp1_ * 0 + 1)), $L4J$C$5_2);")
+            + "inp1_ * 0 + 1), true), $L4J$C$5_2);")
         .returns("T=ll\n"
             + "T=ic\n"
             + "T=bastian\n"
@@ -3474,7 +3473,7 @@ public class JdbcTest {
         .typeIs(
             "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, S REAL, FIVE INTEGER NOT NULL, M REAL, C BIGINT NOT NULL]")
         .explainContains(""
-            + "EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0], expr#9=[>($t4, $t8)], expr#10=[CAST($t5):JavaType(class java.lang.Float)], expr#11=[null], expr#12=[CASE($t9, $t10, $t11)], expr#13=[5], deptno=[$t1], empid=[$t0], S=[$t12], FIVE=[$t13], M=[$t6], C=[$t7])\n"
+            + "EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0], expr#9=[>($t4, $t8)], expr#10=[null], expr#11=[CASE($t9, $t5, $t10)], expr#12=[5], deptno=[$t1], empid=[$t0], S=[$t11], FIVE=[$t12], M=[$t6], C=[$t7])\n"
             + "  EnumerableWindow(window#0=[window(partition {1} order by [0] rows between $4 PRECEDING and CURRENT ROW aggs [COUNT($3), $SUM0($3), MIN($2), COUNT()])])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[+($t3, $t0)], proj#0..1=[{exprs}], salary=[$t3], $3=[$t5])\n"
             + "      EnumerableTableScan(table=[[hr, emps]])\n")
@@ -6657,6 +6656,134 @@ public class JdbcTest {
     assertThat(resultSet.next(), is(false));
 
     connection.close();
+  }
+
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2224">[CALCITE-2224]
+   * WITHIN GROUP clause for aggregate functions</a>. */
+  @Test public void testWithinGroupClause1() {
+    final String sql = "select X,\n"
+        + " collect(Y) within group (order by Y desc) as \"SET\"\n"
+        + "from (values (1, 'a'), (1, 'b'),\n"
+        + "             (3, 'c'), (3, 'd')) AS t(X, Y)\n"
+        + "group by X\n"
+        + "limit 10";
+    CalciteAssert.that().query(sql)
+        .returnsUnordered("X=1; SET=[b, a]",
+            "X=3; SET=[d, c]");
+  }
+
+  @Test public void testWithinGroupClause2() {
+    final String sql = "select X,\n"
+        + " collect(Y) within group (order by Y desc) as SET_1,\n"
+        + " collect(Y) within group (order by Y asc) as SET_2\n"
+        + "from (values (1, 'a'), (1, 'b'), (3, 'c'), (3, 'd')) AS t(X, Y)\n"
+        + "group by X\n"
+        + "limit 10";
+    CalciteAssert
+        .that()
+        .query(sql)
+        .returnsUnordered("X=1; SET_1=[b, a]; SET_2=[a, b]",
+            "X=3; SET_1=[d, c]; SET_2=[c, d]");
+  }
+
+  @Test public void testWithinGroupClause3() {
+    final String sql = "select"
+        + " collect(Y) within group (order by Y desc) as SET_1,\n"
+        + " collect(Y) within group (order by Y asc) as SET_2\n"
+        + "from (values (1, 'a'), (1, 'b'), (3, 'c'), (3, 'd')) AS t(X, Y)\n"
+        + "limit 10";
+    CalciteAssert.that().query(sql)
+        .returns("SET_1=[d, c, b, a]; SET_2=[a, b, c, d]\n");
+  }
+
+  @Test public void testWithinGroupClause4() {
+    final String sql = "select"
+        + " collect(Y) within group (order by Y desc) as SET_1,\n"
+        + " collect(Y) within group (order by Y asc) as SET_2\n"
+        + "from (values (1, 'a'), (1, 'b'), (3, 'c'), (3, 'd')) AS t(X, Y)\n"
+        + "group by X\n"
+        + "limit 10";
+    CalciteAssert.that().query(sql)
+        .returnsUnordered("SET_1=[b, a]; SET_2=[a, b]",
+            "SET_1=[d, c]; SET_2=[c, d]");
+  }
+
+  @Test public void testWithinGroupClause5() {
+    CalciteAssert
+        .that()
+        .query("select collect(array[X, Y])\n"
+            + " within group (order by Y desc) as \"SET\"\n"
+            + "from (values ('b', 'a'), ('a', 'b'), ('a', 'c'),\n"
+            + "             ('a', 'd')) AS t(X, Y)\n"
+            + "limit 10")
+        .returns("SET=[[a, d], [a, c], [a, b], [b, a]]\n");
+  }
+
+  @Test public void testWithinGroupClause6() {
+    final String sql = "select collect(\"commission\")"
+        + " within group (order by \"commission\")\n"
+        + "from \"hr\".\"emps\"";
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.REGULAR)
+        .query(sql)
+        .explainContains("EnumerableAggregate(group=[{}], "
+            + "EXPR$0=[COLLECT($4) WITHIN GROUP ([4])])")
+        .returns("EXPR$0=[250, 500, 1000]\n");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2609">[CALCITE-2609]
+   * Dynamic parameters ("?") pushed to underlying JDBC schema, causing
+   * error</a>.
+   */
+  @Test public void testQueryWithParameter() throws Exception {
+    String hsqldbMemUrl = "jdbc:hsqldb:mem:.";
+    try (Connection baseConnection = DriverManager.getConnection(hsqldbMemUrl);
+         Statement baseStmt = baseConnection.createStatement()) {
+      baseStmt.execute("CREATE TABLE T3 (\n"
+          + "ID INTEGER,\n"
+          + "VALS DOUBLE)");
+      baseStmt.execute("INSERT INTO T3 VALUES (1, 1.0)");
+      baseStmt.execute("INSERT INTO T3 VALUES (2, null)");
+      baseStmt.execute("INSERT INTO T3 VALUES (null, 2.0)");
+      baseStmt.close();
+      baseConnection.commit();
+
+      Properties info = new Properties();
+      final String model = "inline:"
+          + "{\n"
+          + "  version: '1.0',\n"
+          + "  defaultSchema: 'BASEJDBC',\n"
+          + "  schemas: [\n"
+          + "     {\n"
+          + "       type: 'jdbc',\n"
+          + "       name: 'BASEJDBC',\n"
+          + "       jdbcDriver: '" + jdbcDriver.class.getName() + "',\n"
+          + "       jdbcUrl: '" + hsqldbMemUrl + "',\n"
+          + "       jdbcCatalog: null,\n"
+          + "       jdbcSchema: null\n"
+          + "     }\n"
+          + "  ]\n"
+          + "}";
+      info.put("model", model);
+
+      Connection calciteConnection =
+          DriverManager.getConnection("jdbc:calcite:", info);
+
+      final String sql = "select * from t3 where vals = ?";
+      try (PreparedStatement ps =
+               calciteConnection.prepareStatement(sql)) {
+        ParameterMetaData pmd = ps.getParameterMetaData();
+        assertThat(pmd.getParameterCount(), is(1));
+        assertThat(pmd.getParameterType(1), is(Types.DOUBLE));
+        ps.setDouble(1, 1.0);
+        ps.executeQuery();
+      }
+      calciteConnection.close();
+    }
   }
 
   private static String sums(int n, boolean c) {

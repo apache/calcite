@@ -48,6 +48,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
@@ -166,7 +167,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     Expression source_ = builder.append("source", result.block);
 
     final List<Expression> translatedConstants =
-        new ArrayList<Expression>(constants.size());
+        new ArrayList<>(constants.size());
     for (RexLiteral constant : constants) {
       translatedConstants.add(
           RexToLixTranslator.translateLiteral(constant, constant.getType(),
@@ -205,7 +206,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       final Expression collectionExpr = partitionIterator.left;
       final Expression iterator_ = partitionIterator.right;
 
-      List<AggImpState> aggs = new ArrayList<AggImpState>();
+      List<AggImpState> aggs = new ArrayList<>();
       List<AggregateCall> aggregateCalls = group.getAggregateCalls(this);
       for (int aggIdx = 0; aggIdx < aggregateCalls.size(); aggIdx++) {
         AggregateCall call = aggregateCalls.get(aggIdx);
@@ -273,9 +274,9 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
       final RexToLixTranslator translator =
           RexToLixTranslator.forAggregation(typeFactory, builder4,
-              inputGetter);
+              inputGetter, implementor.getConformance());
 
-      final List<Expression> outputRow = new ArrayList<Expression>();
+      final List<Expression> outputRow = new ArrayList<>();
       int fieldCountWithAggResults =
           inputPhysType.getRowType().getFieldCount();
       for (int i = 0; i < fieldCountWithAggResults; i++) {
@@ -422,9 +423,9 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       final PhysType inputPhysTypeFinal = inputPhysType;
       final Function<BlockBuilder, WinAggFrameResultContext>
           resultContextBuilder =
-          getBlockBuilderWinAggFrameResultContextFunction(typeFactory, result,
-              translatedConstants, comparator_, rows_, i_, startX, endX,
-              minX, maxX,
+          getBlockBuilderWinAggFrameResultContextFunction(typeFactory,
+              implementor.getConformance(), result, translatedConstants,
+              comparator_, rows_, i_, startX, endX, minX, maxX,
               hasRows, frameRowCount, partitionRowCount,
               jDecl, inputPhysTypeFinal);
 
@@ -435,8 +436,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
                 result.physType.getRowType(),
                 constants,
                 argList);
-        List<RexNode> args = new ArrayList<RexNode>(
-            inputTypes.size());
+        List<RexNode> args = new ArrayList<>(inputTypes.size());
         for (int i = 0; i < argList.size(); i++) {
           Integer idx = argList.get(i);
           args.add(new RexInputRef(idx, inputTypes.get(i)));
@@ -519,8 +519,8 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
   private Function<BlockBuilder, WinAggFrameResultContext>
       getBlockBuilderWinAggFrameResultContextFunction(
-      final JavaTypeFactory typeFactory, final Result result,
-      final List<Expression> translatedConstants,
+      final JavaTypeFactory typeFactory, final SqlConformance conformance,
+      final Result result, final List<Expression> translatedConstants,
       final Expression comparator_,
       final Expression rows_, final ParameterExpression i_,
       final Expression startX, final Expression endX,
@@ -539,7 +539,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
                 translatedConstants);
 
         return RexToLixTranslator.forAggregation(typeFactory,
-            block, inputGetter);
+            block, inputGetter, conformance);
       }
 
       public Expression computeIndex(Expression offset,
@@ -803,8 +803,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
             .substring("ID$0$".length()) + aggName;
       }
       List<Type> state = agg.implementor.getStateType(agg.context);
-      final List<Expression> decls =
-          new ArrayList<Expression>(state.size());
+      final List<Expression> decls = new ArrayList<>(state.size());
       for (int i = 0; i < state.size(); i++) {
         Type type = state.get(i);
         ParameterExpression pe =

@@ -104,10 +104,7 @@ public class RexShuttle implements RexVisitor<RexNode> {
       // To do that, we would need to take a RexBuilder and
       // watch out for special operators like CAST and NEW where
       // the type is embedded in the original call.
-      return new RexCall(
-          call.getType(),
-          call.getOperator(),
-          clonedOperands);
+      return call.clone(call.getType(), clonedOperands);
     } else {
       return call;
     }

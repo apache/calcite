@@ -47,6 +47,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.Reader;
 import java.io.Writer;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.sql.Connection;
@@ -54,6 +55,7 @@ import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Function;
 
 import static org.junit.Assert.fail;
 
@@ -76,8 +78,8 @@ public abstract class QuidemTest {
     case "jdk18":
       return System.getProperty("java.version").startsWith("1.8");
     case "fixed":
-      // Quidem requires a Guava function
-      return (com.google.common.base.Function<String, Object>) v -> {
+      // Quidem requires a Java 8 function
+      return (Function<String, Object>) v -> {
         switch (v) {
         case "calcite1045":
           return Bug.CALCITE_1045_FIXED;
@@ -192,7 +194,18 @@ public abstract class QuidemTest {
 
   @Test public void test() throws Exception {
     if (method != null) {
-      method.invoke(this);
+      try {
+        method.invoke(this);
+      } catch (InvocationTargetException e) {
+        Throwable cause = e.getCause();
+        if (cause instanceof Exception) {
+          throw (Exception) cause;
+        }
+        if (cause instanceof Error) {
+          throw (Error) cause;
+        }
+        throw e;
+      }
     } else {
       checkRun(path);
     }

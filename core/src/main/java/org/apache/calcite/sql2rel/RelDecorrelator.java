@@ -101,11 +101,9 @@ import com.google.common.collect.SortedSetMultimap;
 import org.slf4j.Logger;
 
 import java.math.BigDecimal;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -1121,6 +1119,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     int oldLeftFieldCount = oldLeft.getRowType().getFieldCount();
 
     int oldRightFieldCount = oldRight.getRowType().getFieldCount();
+    //noinspection AssertWithSideEffects
     assert rel.getRowType().getFieldCount()
         == oldLeftFieldCount + oldRightFieldCount;
 
@@ -1134,8 +1133,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     final RexNode condition =
-        RexUtil.composeConjunction(relBuilder.getRexBuilder(), conditions,
-            false);
+        RexUtil.composeConjunction(relBuilder.getRexBuilder(), conditions);
     RelNode newJoin =
         LogicalJoin.create(leftFrame.r, rightFrame.r, condition,
             ImmutableSet.of(), rel.getJoinType().toJoinType());
@@ -1180,6 +1178,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     int newLeftFieldCount = leftFrame.r.getRowType().getFieldCount();
 
     int oldRightFieldCount = oldRight.getRowType().getFieldCount();
+    //noinspection AssertWithSideEffects
     assert rel.getRowType().getFieldCount()
         == oldLeftFieldCount + oldRightFieldCount;
 
@@ -2671,8 +2670,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     final Holder<Integer> offset = Holder.of(0);
     int corrIdGenerator = 0;
-
-    final Deque<RelNode> stack = new ArrayDeque<>();
 
     /** Creates a CorelMap by iterating over a {@link RelNode} tree. */
     CorelMap build(RelNode... rels) {

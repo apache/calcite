@@ -93,7 +93,7 @@ public class CassandraToEnumerableConverter
                       }
                     }),
                 Pair.class));
-    List<Map.Entry<String, String>> selectList = new ArrayList<Map.Entry<String, String>>();
+    List<Map.Entry<String, String>> selectList = new ArrayList<>();
     for (Map.Entry<String, String> entry
             : Pair.zip(cassandraImplementor.selectFields.keySet(),
                 cassandraImplementor.selectFields.values())) {

@@ -23,7 +23,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 /**
  * Registers dynamic tables.
  *
- * Non thread-safe.
+ * <p>Not thread-safe.
  */
 public class MockCatalogReaderDynamic extends MockCatalogReader {
   /**

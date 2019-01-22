@@ -70,7 +70,7 @@ public class LexCaseSensitiveTest {
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.rel(validate).rel;
     RelTraitSet traitSet =
-        planner.getEmptyTraitSet().replace(EnumerableConvention.INSTANCE);
+        convert.getTraitSet().replace(EnumerableConvention.INSTANCE);
     RelNode transform = planner.transform(0, traitSet, convert);
     assertThat(transform, instanceOf(EnumerableProject.class));
     List<String> fieldNames = transform.getRowType().getFieldNames();

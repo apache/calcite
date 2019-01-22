@@ -196,9 +196,9 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     // "DOT"
     registerOp(SqlStdOperatorTable.DOT,
-        (cx, call) -> cx.getRexBuilder().makeCall(SqlStdOperatorTable.DOT,
+        (cx, call) -> cx.getRexBuilder().makeFieldAccess(
             cx.convertExpression(call.operand(0)),
-            cx.getRexBuilder().makeLiteral(call.operand(1).toString())));
+            call.operand(1).toString(), false));
     // "AS" has no effect, so expand "x AS id" into "x".
     registerOp(SqlStdOperatorTable.AS,
         (cx, call) -> cx.convertExpression(call.operand(0)));
@@ -208,6 +208,20 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             SqlStdOperatorTable.POWER.createCall(SqlParserPos.ZERO,
                 call.operand(0),
                 SqlLiteral.createExactNumeric("0.5", SqlParserPos.ZERO))));
+
+    // Convert json_value('{"foo":"bar"}', 'lax $.foo', returning varchar(2000))
+    // to cast(json_value('{"foo":"bar"}', 'lax $.foo') as varchar(2000))
+    registerOp(
+        SqlStdOperatorTable.JSON_VALUE,
+        (cx, call) -> {
+          SqlNode expanded =
+              SqlStdOperatorTable.CAST.createCall(SqlParserPos.ZERO,
+                  SqlStdOperatorTable.JSON_VALUE_ANY.createCall(
+                      SqlParserPos.ZERO, call.operand(0), call.operand(1),
+                      call.operand(2), call.operand(3), call.operand(4), null),
+              call.operand(5));
+          return cx.convertExpression(expanded);
+        });
 
     // REVIEW jvs 24-Apr-2006: This only seems to be working from within a
     // windowed agg.  I have added an optimizer rule
@@ -620,21 +634,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     final List<RexNode> exprs = convertExpressionList(cx, operands,
         SqlOperandTypeChecker.Consistency.NONE);
 
-    RelDataType int8Type =
-        cx.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-    final RexNode[] casts = new RexNode[2];
-    casts[0] =
-        rexBuilder.makeCast(
-            cx.getTypeFactory().createTypeWithNullability(
-                int8Type,
-                exprs.get(0).getType().isNullable()),
-            exprs.get(0));
-    casts[1] =
-        rexBuilder.makeCast(
-            cx.getTypeFactory().createTypeWithNullability(
-                int8Type,
-                exprs.get(1).getType().isNullable()),
-            exprs.get(1));
     final RelDataType resType =
         cx.getValidator().getValidatedNodeType(call);
     return rexBuilder.makeCall(resType, op, exprs.subList(0, 2));
@@ -1418,7 +1417,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
           final RexNode expr2 = exprs.get(j);
           andList.add(rexBuilder.makeCall(op, expr, expr2));
         }
-        list.add(RexUtil.composeConjunction(rexBuilder, andList, false));
+        list.add(RexUtil.composeConjunction(rexBuilder, andList));
         list.add(expr);
       }
       list.add(exprs.get(exprs.size() - 1));

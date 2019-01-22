@@ -18,7 +18,12 @@ package org.apache.calcite.util.mapping;
 
 import org.apache.calcite.runtime.Utilities;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
+
 import java.util.AbstractList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -27,6 +32,44 @@ import java.util.List;
  * @see Mapping#iterator()
  */
 public class IntPair {
+  /** Function that swaps source and target fields of an {@link IntPair}. */
+  public static final Function<IntPair, IntPair> SWAP =
+      new Function<IntPair, IntPair>() {
+        public IntPair apply(IntPair pair) {
+          return of(pair.target, pair.source);
+        }
+      };
+
+  /** Ordering that compares pairs lexicographically: first by their source,
+   * then by their target. */
+  public static final Ordering<IntPair> ORDERING =
+      Ordering.from(
+          new Comparator<IntPair>() {
+            public int compare(IntPair o1, IntPair o2) {
+              int c = Integer.compare(o1.source, o2.source);
+              if (c == 0) {
+                c = Integer.compare(o1.target, o2.target);
+              }
+              return c;
+            }
+          });
+
+  /** Function that returns the left (source) side of a pair. */
+  public static final Function<IntPair, Integer> LEFT =
+      new Function<IntPair, Integer>() {
+        public Integer apply(IntPair pair) {
+          return pair.source;
+        }
+      };
+
+  /** Function that returns the right (target) side of a pair. */
+  public static final Function<IntPair, Integer> RIGHT =
+      new Function<IntPair, Integer>() {
+        public Integer apply(IntPair pair) {
+          return pair.target;
+        }
+      };
+
   //~ Instance fields --------------------------------------------------------
 
   public final int source;
@@ -109,6 +152,16 @@ public class IntPair {
         return size;
       }
     };
+  }
+
+  /** Returns the left side of a list of pairs. */
+  public static List<Integer> left(final List<IntPair> pairs) {
+    return Lists.transform(pairs, LEFT);
+  }
+
+  /** Returns the right side of a list of pairs. */
+  public static List<Integer> right(final List<IntPair> pairs) {
+    return Lists.transform(pairs, RIGHT);
   }
 }
 

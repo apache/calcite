@@ -63,11 +63,11 @@ public class TableFunctionReturnTypeInference
 
   public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
-    columnMappings = new HashSet<RelColumnMapping>();
+    columnMappings = new HashSet<>();
     RelDataType unexpandedOutputType =
         protoType.apply(opBinding.getTypeFactory());
-    List<RelDataType> expandedOutputTypes = new ArrayList<RelDataType>();
-    List<String> expandedFieldNames = new ArrayList<String>();
+    List<RelDataType> expandedOutputTypes = new ArrayList<>();
+    List<String> expandedFieldNames = new ArrayList<>();
     for (RelDataTypeField field : unexpandedOutputType.getFieldList()) {
       RelDataType fieldType = field.getType();
       String fieldName = field.getName();
@@ -96,7 +96,7 @@ public class TableFunctionReturnTypeInference
 
       // Translate to actual argument type.
       boolean isRowOp = false;
-      List<String> columnNames = new ArrayList<String>();
+      List<String> columnNames = new ArrayList<>();
       RelDataType cursorType = opBinding.getCursorOperand(paramOrdinal);
       if (cursorType == null) {
         isRowOp = true;

@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.RandomAccess;
 
 /**
@@ -39,9 +40,7 @@ public abstract class Linq4j {
       Class... parameterTypes) {
     try {
       return Class.forName(className).getMethod(methodName, parameterTypes);
-    } catch (NoSuchMethodException e) {
-      return null;
-    } catch (ClassNotFoundException e) {
+    } catch (NoSuchMethodException | ClassNotFoundException e) {
       return null;
     }
   }
@@ -405,7 +404,7 @@ public abstract class Linq4j {
    */
   @Deprecated // to be removed before 2.0
   public static <T> boolean equals(T t0, T t1) {
-    return t0 == t1 || t0 != null && t0.equals(t1);
+    return Objects.equals(t0, t1);
   }
 
   /**

@@ -241,7 +241,7 @@ public abstract class RelDataTypeImpl
   /**
    * Generates a string representation of this type.
    *
-   * @param sb         StringBuffer into which to generate the string
+   * @param sb         StringBuilder into which to generate the string
    * @param withDetail when true, all detail information needed to compute a
    *                   unique digest (and return from getFullTypeString) should
    *                   be included;

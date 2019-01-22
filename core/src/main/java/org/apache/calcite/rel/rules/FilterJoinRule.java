@@ -227,8 +227,7 @@ public abstract class FilterJoinRule extends RelOptRule {
             .addAll(RelOptUtil.getFieldTypeList(rightRel.getRowType())).build();
     final RexNode joinFilter =
         RexUtil.composeConjunction(rexBuilder,
-            RexUtil.fixUp(rexBuilder, joinFilters, fieldTypes),
-            false);
+            RexUtil.fixUp(rexBuilder, joinFilters, fieldTypes));
 
     // If nothing actually got pushed and there is nothing leftover,
     // then this rule is a no-op

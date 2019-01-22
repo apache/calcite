@@ -47,19 +47,15 @@ A basic example of a model file is given below:
     {
       "type": "custom",
       "name": "elasticsearch",
-      "factory": "org.apache.calcite.adapter.elasticsearch2.Elasticsearch2SchemaFactory",
+      "factory": "org.apache.calcite.adapter.elasticsearch.ElasticsearchSchemaFactory",
       "operand": {
         "coordinates": "{'127.0.0.1': 9300}",
-        "userConfig": "{'bulk.flush.max.actions': 10, 'bulk.flush.max.size.mb': 1}",
         "index": "usa"
       }
     }
   ]
 }
 {% endhighlight %}
-
-This adapter is targeted for Elasticsearch 2.x. To use Calcite with Elasticsearch 5.x+ you can use the factory
-of the adapter targeted for Elasticsearch 5.x: `org.apache.calcite.adapter.elasticsearch5.Elasticsearch5SchemaFactory`
 
 Assuming this file is stored as `model.json`, you can connect to
 Elasticsearch via [`sqlline`](https://github.com/julianhyde/sqlline) as
@@ -79,7 +75,7 @@ For example, in the example dataset there is an Elasticsearch type
 named `zips` under index named `usa`.
 
 We can issue a simple query to fetch the names of all the states
-stored in the type `zips`. By default, Elasticsearch returns only 10 rows:
+stored in the type `zips`. 
 
 {% highlight sql %}
 sqlline> SELECT * from "zips";
@@ -134,6 +130,19 @@ The final source json given to Elasticsearch is below:
 }
 {% endhighlight %}
 
-This is the initial version of the Calcite Elasticsearch adapter.
-Work is in progress to introduce new features like aggregations into
-it.
+You can also query elastic search index without prior view definition:
+
+{% highlight sql %}
+sqlline> SELECT _MAP['city'], _MAP['state'] from "elasticsearch"."zips" order by _MAP['state'];
+{% endhighlight %}
+
+### Use of Scrolling API
+For queries without aggregate functions (like `COUNT`, `MAX` etc.) elastic adapter 
+uses [scroll API](https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html), by default. 
+This ensures that consistent and full data-set is returned to end user (lazily and in batches). Please note that
+scroll is automatically cleared (removed) when all query resuts are consumed.
+
+### Supported versions
+Currently this adapter supports ElasticSearch versions 2.x (or newer). Generally
+we try to follow official [support schedule](https://www.elastic.co/support/eol).
+

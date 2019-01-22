@@ -17,12 +17,17 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Window;
@@ -56,13 +61,14 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
-import org.junit.Ignore;
+import org.hamcrest.Matcher;
 import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -120,6 +126,30 @@ public class RelBuilderTest {
             CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.SCOTT))
         .traitDefs((List<RelTraitDef>) null)
         .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2));
+  }
+
+  /** Creates a config builder that will contain a view, "MYVIEW", and also
+   * the SCOTT JDBC schema, whose tables implement
+   * {@link org.apache.calcite.schema.TranslatableTable}. */
+  static Frameworks.ConfigBuilder expandingConfig(Connection connection)
+      throws SQLException {
+    final CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    final SchemaPlus root = calciteConnection.getRootSchema();
+    CalciteAssert.SchemaSpec spec = CalciteAssert.SchemaSpec.SCOTT;
+    CalciteAssert.addSchema(root, spec);
+    final String viewSql =
+        String.format(Locale.ROOT, "select * from \"%s\".\"%s\" where 1=1",
+            spec.schemaName, "EMP");
+
+    // create view
+    ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
+        Collections.singletonList("test"), Arrays.asList("test", "view"), false);
+
+    // register view (in root schema)
+    root.add("MYVIEW", macro);
+
+    return Frameworks.newConfigBuilder().defaultSchema(root);
   }
 
   @Test public void testScan() {
@@ -337,6 +367,42 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2730">[CALCITE-2730]
+   * RelBuilder incorrectly simplifies a filter with duplicate conjunction to
+   * empty</a>. */
+  @Test public void testScanFilterDuplicateAnd() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE deptno > 20 AND deptno > 20 AND deptno > 20
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.scan("EMP");
+    final RexNode condition = builder.call(SqlStdOperatorTable.GREATER_THAN,
+        builder.field("DEPTNO"),
+        builder.literal(20));
+    final RexNode condition2 = builder.call(SqlStdOperatorTable.LESS_THAN,
+        builder.field("DEPTNO"),
+        builder.literal(30));
+    final RelNode root = builder.filter(condition, condition, condition)
+        .build();
+    final String expected = "LogicalFilter(condition=[>($7, 20)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE deptno > 20 AND deptno < 30 AND deptno > 20
+    final RelNode root2 = builder.scan("EMP")
+        .filter(condition, condition2, condition, condition)
+        .build();
+    final String expected2 = ""
+        + "LogicalFilter(condition=[AND(>($7, 20), <($7, 30))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root2, hasTree(expected2));
+  }
+
   @Test public void testBadFieldName() {
     final RelBuilder builder = RelBuilder.create(config().build());
     try {
@@ -371,8 +437,8 @@ public class RelBuilderTest {
       fail("expected error, got " + call);
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(),
-          is("cannot derive type: +; "
-              + "operands: [$1: VARCHAR(10), $3: SMALLINT]"));
+          is("Cannot infer return type for +; "
+              + "operand types: [VARCHAR(10), SMALLINT]"));
     }
   }
 
@@ -477,7 +543,6 @@ public class RelBuilderTest {
                     builder.literal(20)))
             .aggregate(builder.groupKey(0, 1, 2),
                 builder.aggregateCall(SqlStdOperatorTable.SUM,
-                    false, false, null, null,
                     builder.field(0)))
             .project(builder.field("c"),
                 builder.field("a"))
@@ -633,8 +698,7 @@ public class RelBuilderTest {
     RelNode root =
         builder.scan("EMP")
             .aggregate(builder.groupKey(),
-                builder.aggregateCall(SqlStdOperatorTable.COUNT, true, false,
-                    null, "C", builder.field("DEPTNO")))
+                builder.count(true, "C", builder.field("DEPTNO")))
             .build();
     final String expected = ""
         + "LogicalAggregate(group=[{}], C=[COUNT(DISTINCT $7)])\n"
@@ -656,12 +720,10 @@ public class RelBuilderTest {
                         builder.field(4),
                         builder.field(3)),
                     builder.field(1)),
-                builder.aggregateCall(SqlStdOperatorTable.COUNT, false, false,
-                    null, "C"),
-                builder.aggregateCall(SqlStdOperatorTable.SUM, false, false,
-                    null, "S",
+                builder.countStar("C"),
+                builder.sum(
                     builder.call(SqlStdOperatorTable.PLUS, builder.field(3),
-                        builder.literal(1))))
+                        builder.literal(1))).as("S"))
             .build();
     final String expected = ""
         + "LogicalAggregate(group=[{1, 8}], C=[COUNT()], S=[SUM($9)])\n"
@@ -683,12 +745,9 @@ public class RelBuilderTest {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
         builder.scan("EMP")
-            .aggregate(
-                builder.groupKey(builder.field(1)),
-                builder.aggregateCall(SqlStdOperatorTable.COUNT, false, false,
-                    null, "C"))
-            .aggregate(
-                builder.groupKey(builder.field(0)))
+            .aggregate(builder.groupKey(builder.field(1)),
+                builder.count().as("C"))
+            .aggregate(builder.groupKey(builder.field(0)))
             .build();
     final String expected = ""
         + "LogicalProject(ENAME=[$0])\n"
@@ -710,8 +769,7 @@ public class RelBuilderTest {
         builder.scan("EMP")
             .aggregate(
                 builder.groupKey(builder.field(1)),
-                builder.aggregateCall(SqlStdOperatorTable.COUNT, false, false,
-                    null, "C"))
+                builder.count().as("C"))
             .filter(
                 builder.call(SqlStdOperatorTable.GREATER_THAN, builder.field(1),
                     builder.literal(3)))
@@ -738,9 +796,11 @@ public class RelBuilderTest {
                 builder.groupKey(ImmutableBitSet.of(7),
                     ImmutableList.of(ImmutableBitSet.of(7),
                         ImmutableBitSet.of())),
-                builder.aggregateCall(SqlStdOperatorTable.COUNT, false, false,
-                    builder.call(SqlStdOperatorTable.GREATER_THAN,
-                        builder.field("EMPNO"), builder.literal(100)), "C"))
+                builder.count()
+                    .filter(
+                        builder.call(SqlStdOperatorTable.GREATER_THAN,
+                            builder.field("EMPNO"), builder.literal(100)))
+                    .as("C"))
             .build();
     final String expected = ""
         + "LogicalAggregate(group=[{7}], groups=[[{7}, {}]], C=[COUNT() FILTER $8])\n"
@@ -760,8 +820,9 @@ public class RelBuilderTest {
           builder.scan("EMP")
               .aggregate(
                   builder.groupKey(builder.field("DEPTNO")),
-                  builder.aggregateCall(SqlStdOperatorTable.SUM, false, false,
-                      builder.field("COMM"), "C", builder.field("SAL")))
+                  builder.sum(builder.field("SAL"))
+                      .filter(builder.field("COMM"))
+                      .as("C"))
               .build();
       fail("expected error, got " + root);
     } catch (CalciteException e) {
@@ -780,10 +841,11 @@ public class RelBuilderTest {
         builder.scan("EMP")
             .aggregate(
                 builder.groupKey(builder.field("DEPTNO")),
-                builder.aggregateCall(SqlStdOperatorTable.SUM, false, false,
-                    builder.call(SqlStdOperatorTable.LESS_THAN,
-                        builder.field("COMM"), builder.literal(100)), "C",
-                    builder.field("SAL")))
+                builder.sum(builder.field("SAL"))
+                    .filter(
+                        builder.call(SqlStdOperatorTable.LESS_THAN,
+                            builder.field("COMM"), builder.literal(100)))
+                    .as("C"))
             .build();
     final String expected = ""
         + "LogicalAggregate(group=[{7}], C=[SUM($5) FILTER $8])\n"
@@ -838,7 +900,7 @@ public class RelBuilderTest {
     try {
       RelNode root =
           builder.scan("EMP")
-              .aggregate(builder.groupKey(ImmutableBitSet.of(17), null))
+              .aggregate(builder.groupKey(ImmutableBitSet.of(17)))
               .build();
       fail("expected error, got " + root);
     } catch (IllegalArgumentException e) {
@@ -884,8 +946,8 @@ public class RelBuilderTest {
     RelNode root =
         builder.scan("EMP")
             .aggregate(builder.groupKey(6, 7),
-                builder.aggregateCall(SqlStdOperatorTable.GROUPING, false,
-                    false, null, "g", builder.field("DEPTNO")))
+                builder.aggregateCall(SqlStdOperatorTable.GROUPING,
+                    builder.field("DEPTNO")).as("g"))
             .build();
     final String expected = ""
         + "LogicalAggregate(group=[{6, 7}], g=[GROUPING($7)])\n"
@@ -899,8 +961,10 @@ public class RelBuilderTest {
       RelNode root =
           builder.scan("EMP")
               .aggregate(builder.groupKey(6, 7),
-                  builder.aggregateCall(SqlStdOperatorTable.GROUPING, true,
-                      false, null, "g", builder.field("DEPTNO")))
+                  builder.aggregateCall(SqlStdOperatorTable.GROUPING,
+                      builder.field("DEPTNO"))
+                      .distinct(true)
+                      .as("g"))
               .build();
       fail("expected error, got " + root);
     } catch (IllegalArgumentException e) {
@@ -914,9 +978,10 @@ public class RelBuilderTest {
       RelNode root =
           builder.scan("EMP")
               .aggregate(builder.groupKey(6, 7),
-                  builder.aggregateCall(SqlStdOperatorTable.GROUPING, false,
-                      false, builder.literal(true), "g",
-                      builder.field("DEPTNO")))
+                  builder.aggregateCall(SqlStdOperatorTable.GROUPING,
+                      builder.field("DEPTNO"))
+                      .filter(builder.literal(true))
+                      .as("g"))
               .build();
       fail("expected error, got " + root);
     } catch (IllegalArgumentException e) {
@@ -1454,8 +1519,7 @@ public class RelBuilderTest {
             .project(builder.field("DEPTNO"),
                 builder.literal(20))
             .aggregate(builder.groupKey(builder.field("EMP_alias", "DEPTNO")),
-                builder.aggregateCall(SqlStdOperatorTable.SUM, false, false,
-                    null, null, builder.field(1)))
+                builder.sum(builder.field(1)))
             .project(builder.alias(builder.field(1), "sum"),
                 builder.field("EMP_alias", "DEPTNO"))
             .build();
@@ -2029,7 +2093,7 @@ public class RelBuilderTest {
       builder.call(SqlStdOperatorTable.PLUS, Lists.newArrayList(arg0, arg1));
       fail("Invalid combination of parameter types");
     } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), containsString("cannot derive type"));
+      assertThat(e.getMessage(), containsString("Cannot infer return type"));
     }
 
     // test for b) call(operator, RexNode...)
@@ -2037,7 +2101,7 @@ public class RelBuilderTest {
       builder.call(SqlStdOperatorTable.PLUS, arg0, arg1);
       fail("Invalid combination of parameter types");
     } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), containsString("cannot derive type"));
+      assertThat(e.getMessage(), containsString("Cannot infer return type"));
     }
   }
 
@@ -2162,43 +2226,118 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  @Test public void testRelBuilderToString() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.scan("EMP");
+
+    // One entry on the stack, a single-node tree
+    final String expected1 = "LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(Util.toLinux(builder.toString()), is(expected1));
+
+    // One entry on the stack, a two-node tree
+    builder.filter(builder.equals(builder.field(2), builder.literal(3)));
+    final String expected2 = "LogicalFilter(condition=[=($2, 3)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(Util.toLinux(builder.toString()), is(expected2));
+
+    // Two entries on the stack
+    builder.scan("DEPT");
+    final String expected3 = "LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "LogicalFilter(condition=[=($2, 3)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(Util.toLinux(builder.toString()), is(expected3));
+  }
+
   /**
    * Ensures that relational algebra ({@link RelBuilder}) works with SQL views.
    *
    * <p>This test currently fails (thus ignored).
    */
-  @Ignore("https://issues.apache.org/jira/browse/CALCITE-2441")
-  @Test public void testExpandViewInRelBuilder() throws Exception {
-    final Connection connection = DriverManager.getConnection("jdbc:calcite:");
-    final SchemaPlus root = connection.unwrap(CalciteConnection.class).getRootSchema();
-    CalciteAssert.SchemaSpec spec = CalciteAssert.SchemaSpec.SCOTT;
-    CalciteAssert.addSchema(root, spec);
-    final String viewSql =
-        String.format(Locale.ROOT, "select * from \"%s\".\"%s\" where 1=1",
-            spec.schemaName, "EMP");
+  @Test public void testExpandViewInRelBuilder() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      final Frameworks.ConfigBuilder configBuilder =
+          expandingConfig(connection);
+      final RelOptTable.ViewExpander viewExpander =
+          (RelOptTable.ViewExpander) Frameworks.getPlanner(configBuilder.build());
+      final RelFactories.TableScanFactory tableScanFactory =
+          RelFactories.expandingScanFactory(viewExpander,
+              RelFactories.DEFAULT_TABLE_SCAN_FACTORY);
+      configBuilder.context(Contexts.of(tableScanFactory));
+      final RelBuilder builder = RelBuilder.create(configBuilder.build());
+      RelNode node = builder.scan("MYVIEW").build();
 
-    // create view
-    ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
-        Collections.singletonList("test"), Arrays.asList("test", "view"), false);
-
-    // register view (in root schema)
-    root.add("MYVIEW", macro);
-
-    FrameworkConfig config = Frameworks.newConfigBuilder().defaultSchema(root).build();
-    RelNode node = RelBuilder.create(config).scan("MYVIEW").build();
-
-    int count = 0;
-    try (PreparedStatement statement =
-             connection.unwrap(RelRunner.class).prepare(node);
-        ResultSet resultSet = statement.executeQuery()) {
-      while (resultSet.next()) {
-        count++;
+      int count = 0;
+      try (PreparedStatement statement =
+               connection.unwrap(RelRunner.class).prepare(node);
+           ResultSet resultSet = statement.executeQuery()) {
+        while (resultSet.next()) {
+          count++;
+        }
       }
-    }
 
-    assertTrue(count > 1);
+      assertTrue(count > 1);
+    }
   }
 
+  @Test public void testExpandTable() throws SQLException {
+    final RelOptTable.ViewExpander viewExpander =
+        (rowType, queryString, schemaPath, viewPath) -> null;
+    final RelFactories.TableScanFactory tableScanFactory =
+        RelFactories.expandingScanFactory(viewExpander,
+            RelFactories.DEFAULT_TABLE_SCAN_FACTORY);
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      // First, use a non-expanding RelBuilder. Plan contains LogicalTableScan.
+      final Frameworks.ConfigBuilder configBuilder =
+          expandingConfig(connection);
+      final RelBuilder builder = RelBuilder.create(configBuilder.build());
+      final String expected = "LogicalFilter(condition=[>($2, 10)])\n"
+          + "  LogicalTableScan(table=[[JDBC_SCOTT, EMP]])\n";
+      checkExpandTable(builder, hasTree(expected));
+
+      // Next, use an expanding RelBuilder. Plan contains JdbcTableScan,
+      // because RelBuilder.scan has called RelOptTable.toRel.
+      final FrameworkConfig config = configBuilder
+          .context(Contexts.of(tableScanFactory)).build();
+      final RelBuilder builder2 = RelBuilder.create(config);
+      final String expected2 = "LogicalFilter(condition=[>($2, 10)])\n"
+          + "  JdbcTableScan(table=[[JDBC_SCOTT, EMP]])\n";
+      checkExpandTable(builder2, hasTree(expected2));
+    }
+  }
+
+  private void checkExpandTable(RelBuilder builder, Matcher<RelNode> matcher) {
+    final RelNode root =
+        builder.scan("JDBC_SCOTT", "EMP")
+            .filter(
+                builder.call(SqlStdOperatorTable.GREATER_THAN, builder.field(2),
+                    builder.literal(10)))
+            .build();
+    assertThat(root, matcher);
+  }
+
+  @Test public void testExchange() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root = builder.scan("EMP")
+        .exchange(RelDistributions.hash(Lists.newArrayList(0)))
+        .build();
+    final String expected =
+        "LogicalExchange(distribution=[hash[0]])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test public void testSortExchange() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .sortExchange(RelDistributions.hash(Lists.newArrayList(0)),
+                RelCollations.of(0))
+            .build();
+    final String expected =
+        "LogicalSortExchange(distribution=[hash[0]], collation=[[0]])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
 }
 
 // End RelBuilderTest.java

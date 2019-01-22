@@ -171,7 +171,7 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
       return "yyyy-MM-dd";
     } else if (sqlTypeName == SqlTypeName.TIMESTAMP) {
       return "yyyy-MM-dd HH:mm:ss";
-    } else if (sqlTypeName == sqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+    } else if (sqlTypeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
       return "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
     } else {
       return null;

@@ -52,20 +52,22 @@ class RelCompositeTrait<T extends RelMultipleTrait> implements RelTrait {
 
   /** Creates a RelCompositeTrait. The constituent traits are canonized. */
   @SuppressWarnings("unchecked")
-  static <T extends RelMultipleTrait> RelCompositeTrait<T> of(RelTraitDef def,
+  static <T extends RelMultipleTrait> RelTrait of(RelTraitDef def,
       List<T> traitList) {
     final RelCompositeTrait<T> compositeTrait;
     if (traitList.isEmpty()) {
-      compositeTrait = new EmptyCompositeTrait<T>(def);
+      return def.getDefault();
+    } else if (traitList.size() == 1) {
+      return def.canonize(traitList.get(0));
     } else {
       final RelMultipleTrait[] traits =
           traitList.toArray(new RelMultipleTrait[0]);
       for (int i = 0; i < traits.length; i++) {
         traits[i] = (T) def.canonize(traits[i]);
       }
-      compositeTrait = new RelCompositeTrait<T>(def, (T[]) traits);
+      compositeTrait = new RelCompositeTrait<>(def, (T[]) traits);
     }
-    return def.canonizeComposite(compositeTrait);
+    return def.canonize(compositeTrait);
   }
 
   public RelTraitDef getTraitDef() {
@@ -103,48 +105,14 @@ class RelCompositeTrait<T extends RelMultipleTrait> implements RelTrait {
     return ImmutableList.copyOf(traits);
   }
 
-  RelCompositeTrait<T> canonize(RelTraitDef<T> traitDef) {
-    T[] newTraits = null;
-    for (int i = 0; i < traits.length; i++) {
-      final T trait = traits[i];
-      final T trait2 = traitDef.canonize(trait);
-      if (trait2 != trait) {
-        if (newTraits == null) {
-          newTraits = traits.clone();
-        }
-        newTraits[i] = trait2;
-      }
-    }
-    if (newTraits == null) {
-      return this;
-    }
-    assert false;
-    // TODO: cache duplicate composites
-    return new RelCompositeTrait<T>(traitDef, newTraits);
-  }
-
+  /** Returns the {@code i}th trait. */
   public T trait(int i) {
     return traits[i];
   }
 
+  /** Returns the number of traits. */
   public int size() {
     return traits.length;
-  }
-
-  /** Composite trait with 0 elements.
-   *
-   * @param <T> trait type */
-  private static class EmptyCompositeTrait<T extends RelMultipleTrait>
-      extends RelCompositeTrait<T> {
-    private EmptyCompositeTrait(RelTraitDef traitDef) {
-      //noinspection unchecked
-      super(traitDef, (T[]) new RelMultipleTrait[0]);
-    }
-
-    @Override public boolean satisfies(RelTrait trait) {
-      //noinspection unchecked
-      return ((T) trait).isTop();
-    }
   }
 }
 

@@ -47,12 +47,12 @@ public enum Primitive {
       Integer.MAX_VALUE, Integer.SIZE),
   LONG(Long.TYPE, Long.class, 2, 0L, Long.MIN_VALUE, null, null,
       Long.MAX_VALUE, Long.SIZE),
-  FLOAT(Float.TYPE, Float.class, 3, 0F, -Float.MAX_VALUE, -Float.MIN_VALUE,
+  FLOAT(Float.TYPE, Float.class, 2, 0F, -Float.MAX_VALUE, -Float.MIN_VALUE,
       Float.MIN_VALUE, Float.MAX_VALUE, Float.SIZE),
-  DOUBLE(Double.TYPE, Double.class, 3, 0D, -Double.MAX_VALUE, -Double.MIN_VALUE,
+  DOUBLE(Double.TYPE, Double.class, 2, 0D, -Double.MAX_VALUE, -Double.MIN_VALUE,
       Double.MIN_VALUE, Double.MAX_VALUE, Double.SIZE),
-  VOID(Void.TYPE, Void.class, 4, null, null, null, null, null, -1),
-  OTHER(null, null, 5, null, null, null, null, null, -1);
+  VOID(Void.TYPE, Void.class, 3, null, null, null, null, null, -1),
+  OTHER(null, null, 4, null, null, null, null, null, -1);
 
   public final Class primitiveClass;
   public final Class boxClass;

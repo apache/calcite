@@ -32,13 +32,13 @@ import java.util.Properties;
  */
 public class CalciteConnectionProvider {
 
-  private static final String DRIVER_URL = "jdbc:calcite:";
+  public static final String DRIVER_URL = "jdbc:calcite:";
 
   public Connection connection() throws IOException, SQLException {
     return DriverManager.getConnection(DRIVER_URL, provideConnectionInfo());
   }
 
-  private Properties provideConnectionInfo() throws IOException {
+  public Properties provideConnectionInfo() throws IOException {
     Properties info = new Properties();
     info.setProperty("lex", "MYSQL");
     info.setProperty("model", "inline:" + provideSchema());

@@ -74,7 +74,7 @@ public class Benchmark {
    */
   public static class Statistician {
     private final String desc;
-    private final List<Long> durations = new ArrayList<Long>();
+    private final List<Long> durations = new ArrayList<>();
 
     public Statistician(String desc) {
       super();

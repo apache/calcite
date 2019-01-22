@@ -25,6 +25,7 @@ limitations under the License.
   </Appenders>
 
   <Loggers>
+    <Logger name="org.elasticsearch" level="WARN"/>
     <Root level="INFO" additivity="false">
       <AppenderRef ref="console" />
     </Root>

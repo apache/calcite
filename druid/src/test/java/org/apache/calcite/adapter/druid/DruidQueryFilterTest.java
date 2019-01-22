@@ -59,8 +59,7 @@ public class DruidQueryFilterTest {
         .thenReturn(
             new DruidTable(Mockito.mock(DruidSchema.class), "dataSource", null,
                 ImmutableSet.of(), "timestamp", null, null,
-                null
-            ));
+                null));
   }
   @Test public void testInFilter() throws IOException {
     final Fixture f = new Fixture();

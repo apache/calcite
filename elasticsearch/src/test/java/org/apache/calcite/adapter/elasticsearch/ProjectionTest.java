@@ -69,10 +69,10 @@ public class ProjectionTest {
 
         // add calcite view programmatically
         final String viewSql = String.format(Locale.ROOT,
-            "select cast(_MAP['A'] AS varchar(2)) AS \"a\", "
-                + " cast(_MAP['b'] AS varchar(2)) AS \"b\", "
-                +  " cast(_MAP['cCC'] AS varchar(2)) AS \"c\", "
-                +  " cast(_MAP['DDd'] AS varchar(2)) AS \"d\" "
+            "select cast(_MAP['A'] AS varchar(2)) AS a,"
+                + " cast(_MAP['b'] AS varchar(2)) AS b, "
+                +  " cast(_MAP['cCC'] AS varchar(2)) AS c, "
+                +  " cast(_MAP['DDd'] AS varchar(2)) AS d "
                 +  " from \"elastic\".\"%s\"", NAME);
 
         ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
@@ -89,8 +89,35 @@ public class ProjectionTest {
     CalciteAssert.that()
             .with(newConnectionFactory())
             .query("select * from view")
-            .returns("a=aa; b=bb; c=cc; d=dd\n");
+            .returns("A=aa; B=bb; C=cc; D=dd\n");
+
+    CalciteAssert.that()
+            .with(newConnectionFactory())
+            .query("select a, b, c, d from view")
+            .returns("A=aa; B=bb; C=cc; D=dd\n");
+
+    CalciteAssert.that()
+            .with(newConnectionFactory())
+            .query("select d, c, b, a from view")
+            .returns("D=dd; C=cc; B=bb; A=aa\n");
+
+    CalciteAssert.that()
+            .with(newConnectionFactory())
+            .query("select a from view")
+            .returns("A=aa\n");
+
+    CalciteAssert.that()
+            .with(newConnectionFactory())
+            .query("select a, b from view")
+            .returns("A=aa; B=bb\n");
+
+    CalciteAssert.that()
+            .with(newConnectionFactory())
+            .query("select b, a from view")
+            .returns("B=bb; A=aa\n");
+
   }
+
 }
 
 // End ProjectionTest.java

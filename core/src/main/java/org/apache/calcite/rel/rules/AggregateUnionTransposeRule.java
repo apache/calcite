@@ -127,7 +127,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
       relBuilder.push(input);
       if (!alreadyUnique) {
         ++transformCount;
-        relBuilder.aggregate(relBuilder.groupKey(aggRel.getGroupSet(), null),
+        relBuilder.aggregate(relBuilder.groupKey(aggRel.getGroupSet()),
             aggRel.getAggCallList());
       }
     }
@@ -173,8 +173,12 @@ public class AggregateUnionTransposeRule extends RelOptRule {
       AggregateCall newCall =
           AggregateCall.create(aggFun, origCall.isDistinct(),
               origCall.isApproximate(),
-              ImmutableList.of(groupCount + ord.i), -1, groupCount, input,
-              aggType, origCall.getName());
+              ImmutableList.of(groupCount + ord.i), -1,
+              origCall.collation,
+              groupCount,
+              input,
+              aggType,
+              origCall.getName());
       newCalls.add(newCall);
     }
     return newCalls;

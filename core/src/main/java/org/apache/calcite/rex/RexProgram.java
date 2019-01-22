@@ -51,7 +51,7 @@ import java.util.Set;
  * and optionally use a condition to filter rows.
  *
  * <p>Programs are immutable. It may help to use a {@link RexProgramBuilder},
- * which has the same relationship to {@link RexProgram} as {@link StringBuffer}
+ * which has the same relationship to {@link RexProgram} as {@link StringBuilder}
  * has to {@link String}.
  *
  * <p>A program can contain aggregate functions. If it does, the arguments to
@@ -790,7 +790,7 @@ public class RexProgram {
   public RexProgram normalize(RexBuilder rexBuilder, boolean simplify) {
     final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
     return normalize(rexBuilder, simplify
-        ? new RexSimplify(rexBuilder, predicates, false, RexUtil.EXECUTOR)
+        ? new RexSimplify(rexBuilder, predicates, RexUtil.EXECUTOR)
         : null);
   }
 

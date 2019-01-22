@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util.graph;
 
+import java.util.Objects;
+
 /**
  * Default implementation of Edge.
  */
@@ -24,8 +26,8 @@ public class DefaultEdge {
   public final Object target;
 
   public DefaultEdge(Object source, Object target) {
-    this.source = source;
-    this.target = target;
+    this.source = Objects.requireNonNull(source);
+    this.target = Objects.requireNonNull(target);
   }
 
   @Override public int hashCode() {

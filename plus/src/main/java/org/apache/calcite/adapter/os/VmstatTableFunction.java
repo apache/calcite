@@ -90,7 +90,7 @@ public class VmstatTableFunction {
                       return 0;
                     }
                     if (value.endsWith(".")) {
-                      return Long.parseLong(value.substring(0, value.length()));
+                      return Long.parseLong(value);
                     }
                     return Long.parseLong(value);
                   }

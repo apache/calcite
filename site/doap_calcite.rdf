@@ -43,9 +43,10 @@ limitations under the License.
     <category rdf:resource="http://projects.apache.org/category/big-data" />
     <category rdf:resource="http://projects.apache.org/category/hadoop" />
     <category rdf:resource="http://projects.apache.org/category/sql" />
+    <category rdf:resource="http://projects.apache.org/category/geospatial" />
     <repository>
       <GitRepository>
-        <location rdf:resource="https://git-wip-us.apache.org/repos/asf/calcite.git"/>
+        <location rdf:resource="https://gitbox.apache.org/repos/asf/calcite.git"/>
         <browse rdf:resource="https://github.com/apache/calcite"/>
       </GitRepository>
     </repository>

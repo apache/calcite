@@ -144,7 +144,7 @@ public abstract class SqlTypeUtil {
       List<SqlNode> operands) {
     // NOTE: Do not use an AbstractList. Don't want to be lazy. We want
     // errors.
-    List<RelDataType> types = new ArrayList<RelDataType>();
+    List<RelDataType> types = new ArrayList<>();
     for (SqlNode operand : operands) {
       types.add(validator.deriveType(scope, operand));
     }
@@ -885,7 +885,7 @@ public abstract class SqlTypeUtil {
     if (!recordType.isStruct()) {
       return recordType;
     }
-    List<RelDataTypeField> fieldList = new ArrayList<RelDataTypeField>();
+    List<RelDataTypeField> fieldList = new ArrayList<>();
     boolean nested =
         flattenFields(
             typeFactory,
@@ -895,8 +895,8 @@ public abstract class SqlTypeUtil {
     if (!nested) {
       return recordType;
     }
-    List<RelDataType> types = new ArrayList<RelDataType>();
-    List<String> fieldNames = new ArrayList<String>();
+    List<RelDataType> types = new ArrayList<>();
+    List<String> fieldNames = new ArrayList<>();
     int i = -1;
     for (RelDataTypeField field : fieldList) {
       ++i;
