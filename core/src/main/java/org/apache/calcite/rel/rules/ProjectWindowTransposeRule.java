@@ -148,7 +148,7 @@ public class ProjectWindowTransposeRule extends RelOptRule {
       for (RelFieldCollation relFieldCollation : group.orderKeys.getFieldCollations()) {
         final int index = relFieldCollation.getFieldIndex();
         orderKeys.add(
-            relFieldCollation.copy(
+            relFieldCollation.withFieldIndex(
                 getAdjustedIndex(index, beReferred, windowInputColumn)));
       }
 

@@ -276,7 +276,7 @@ public class RelMdCollation
         if (integers.isEmpty()) {
           continue loop; // cannot do this collation
         }
-        fieldCollations.add(ifc.copy(integers.iterator().next()));
+        fieldCollations.add(ifc.withFieldIndex(integers.iterator().next()));
       }
       assert !fieldCollations.isEmpty();
       collations.add(RelCollations.of(fieldCollations));

@@ -565,8 +565,7 @@ public class RexProgram {
         if (target < 0) {
           continue loop;
         }
-        fieldCollations.add(
-            fieldCollation.copy(target));
+        fieldCollations.add(fieldCollation.withFieldIndex(target));
       }
 
       // Success -- all of the source fields of this key are mapped

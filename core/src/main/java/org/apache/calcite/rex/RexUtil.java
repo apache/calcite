@@ -1220,7 +1220,7 @@ public class RexUtil {
     if (target < 0) {
       return null;
     }
-    return fieldCollation.copy(target);
+    return fieldCollation.withFieldIndex(target);
   }
 
   /**
