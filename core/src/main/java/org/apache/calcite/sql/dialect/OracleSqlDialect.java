@@ -48,6 +48,10 @@ public class OracleSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean hasDualTable() {
+    return true;
+  }
+
   @Override public boolean supportsAliasedValues() {
     return false;
   }

@@ -30,24 +30,19 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 /**
- * A <code>SqlDialect</code> implementation for the Apache Hive database.
+ * A <code>SqlDialect</code> implementation for the APACHE SPARK database.
  */
-public class HiveSqlDialect extends SqlDialect {
+public class SparkSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT =
-      new HiveSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.HIVE)
+      new SparkSqlDialect(EMPTY_CONTEXT
+          .withDatabaseProduct(DatabaseProduct.SPARK)
           .withNullCollation(NullCollation.LOW));
 
-  private final boolean emulateNullDirection;
-
-  /** Creates a HiveSqlDialect. */
-  public HiveSqlDialect(Context context) {
+  /**
+   * Creates a SparkSqlDialect.
+   */
+  public SparkSqlDialect(SqlDialect.Context context) {
     super(context);
-    // Since 2.1.0, Hive natively supports "NULLS FIRST" and "NULLS LAST".
-    // See https://issues.apache.org/jira/browse/HIVE-12994.
-    emulateNullDirection = (context.databaseMajorVersion() < 2)
-        || (context.databaseMajorVersion() == 2
-        && context.databaseMinorVersion() < 1);
   }
 
   @Override protected boolean allowsAs() {
@@ -58,23 +53,20 @@ public class HiveSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsCharSet() {
+    return false;
+  }
+
+
   @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
       SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
 
-  @Override public SqlNode emulateNullDirection(SqlNode node,
-      boolean nullsFirst, boolean desc) {
-    if (emulateNullDirection) {
-      return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
-    }
-
-    return null;
-  }
-
-  @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,
-      final int rightPrec) {
+  @Override public void unparseCall(final SqlWriter writer, final SqlCall call,
+      final int leftPrec, final int rightPrec) {
     switch (call.getKind()) {
+
     case POSITION:
       final SqlWriter.Frame frame = writer.startFunCall("INSTR");
       writer.sep(",");
@@ -125,10 +117,6 @@ public class HiveSqlDialect extends SqlDialect {
     }
   }
 
-  @Override public boolean supportsCharSet() {
-    return false;
-  }
-
   @Override public void unparseSqlIntervalLiteral(SqlWriter writer,
       SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
     SqlIntervalLiteral.IntervalValue interval =
@@ -168,4 +156,5 @@ public class HiveSqlDialect extends SqlDialect {
     }
   }
 }
-// End HiveSqlDialect.java
+
+// End SparkSqlDialect.java

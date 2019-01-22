@@ -2407,7 +2407,7 @@ SqlWindow WindowSpecification() :
     {
         return SqlWindow.create(
             null, id, partitionList, orderList,
-            isRows, lowerBound, upperBound, allowPartial, s.end(this), true);
+            isRows, lowerBound, upperBound, allowPartial, s.end(this));
     }
 }
 
