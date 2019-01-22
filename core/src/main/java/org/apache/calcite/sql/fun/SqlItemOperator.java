@@ -48,7 +48,7 @@ class SqlItemOperator extends SqlSpecialOperator {
           OperandTypes.family(SqlTypeFamily.ANY));
 
   SqlItemOperator() {
-    super("ITEM", SqlKind.OTHER_FUNCTION, 100, true, null, null, null);
+    super("ITEM", SqlKind.ITEM, 100, true, null, null, null);
   }
 
   @Override public ReduceResult reduceExpr(int ordinal,

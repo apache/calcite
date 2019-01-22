@@ -184,6 +184,7 @@ class PredicateAnalyzer {
         case CAST:
         case LIKE:
         case OTHER_FUNCTION:
+        case ITEM:
           return true;
         case CASE:
         case SIMILAR:

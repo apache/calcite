@@ -54,7 +54,7 @@ public class SqlSubstringFunction extends SqlFunction {
   SqlSubstringFunction() {
     super(
         "SUBSTRING",
-        SqlKind.OTHER_FUNCTION,
+        SqlKind.SUBSTRING,
         ReturnTypes.ARG0_NULLABLE_VARYING,
         null,
         null,
