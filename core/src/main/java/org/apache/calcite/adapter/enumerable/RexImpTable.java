@@ -2547,6 +2547,7 @@ public class RexImpTable {
       assert operands.size() == 1;
       switch (nullAs) {
       case IS_NOT_NULL:
+        return BOXED_TRUE_EXPR;
       case IS_NULL:
         return BOXED_FALSE_EXPR;
       }
