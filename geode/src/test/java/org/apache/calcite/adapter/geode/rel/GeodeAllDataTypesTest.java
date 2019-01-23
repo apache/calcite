@@ -65,6 +65,7 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
             .put("timestampValue", Timestamp.valueOf("2018-02-03 02:22:33"))
             .put("stringValue", "abc")
             .put("floatValue", 1.5678)
+            .put("enumValue", GeodeTestEnum.GEODE_TEST_ENUM_KEY_1)
             .build(),
         ImmutableMap.<String, Object>builder()
             .put("booleanValue", false)
@@ -73,6 +74,7 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
             .put("timestampValue", Timestamp.valueOf("2018-02-04 04:22:33"))
             .put("stringValue", "def")
             .put("floatValue", 3.5678)
+            .put("enumValue", GeodeTestEnum.GEODE_TEST_ENUM_KEY_2)
             .build(),
         ImmutableMap.<String, Object>builder()
             .put("booleanValue", true)
@@ -81,6 +83,7 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
             .put("timestampValue", Timestamp.valueOf("2018-02-05 04:22:33"))
             .put("stringValue", "ghi")
             .put("floatValue", 8.9267)
+            .put("enumValue", GeodeTestEnum.GEODE_TEST_ENUM_KEY_3)
             .build());
   }
 
@@ -306,6 +309,44 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
                 + "IN SET(TIME '03:22:23', TIME '07:22:23') OR timestampValue "
                 + "IN SET(TIMESTAMP '2018-02-05 04:22:33', TIMESTAMP '2017-02-05 04:22:33') "
                 + "OR booleanValue IN SET(true, false, null)"));
+  }
+
+  @Test
+  public void testSqlSingleEnumWhereFilter() {
+    calciteAssert()
+        .query("SELECT enumValue['name'] as enumValueName "
+            + "FROM geode.allDataTypesRegion WHERE enumValue['name'] = 'GEODE_TEST_ENUM_KEY_1'")
+        .returnsCount(1)
+        .queryContains(
+            GeodeAssertions.query("SELECT enumValue.name AS enumValueName FROM /allDataTypesRegion "
+                + "WHERE enumValue.name = 'GEODE_TEST_ENUM_KEY_1'"));
+  }
+
+  @Test
+  public void testSqlMultipleEnumWhereFilter() {
+    calciteAssert()
+        .query("SELECT enumValue['name'] as enumValueName "
+            + "FROM geode.allDataTypesRegion WHERE enumValue['name'] = 'GEODE_TEST_ENUM_KEY_1' "
+            + "OR enumValue['name'] = 'GEODE_TEST_ENUM_KEY_2'")
+        .returnsCount(2)
+        .queryContains(
+            GeodeAssertions.query("SELECT enumValue.name AS enumValueName FROM /allDataTypesRegion "
+                + "WHERE enumValue.name IN SET('GEODE_TEST_ENUM_KEY_1', 'GEODE_TEST_ENUM_KEY_2')"));
+  }
+
+  /**
+   * Creating GeodeTestEnum Class for testing purpose
+   */
+  public enum GeodeTestEnum {
+    GEODE_TEST_ENUM_KEY_1("VALUE1"),
+    GEODE_TEST_ENUM_KEY_2("VALUE2"),
+    GEODE_TEST_ENUM_KEY_3("VALUE3");
+
+    private final String enumKeyValue;
+
+    GeodeTestEnum(String enumKeyValue) {
+      this.enumKeyValue = enumKeyValue;
+    }
   }
 }
 

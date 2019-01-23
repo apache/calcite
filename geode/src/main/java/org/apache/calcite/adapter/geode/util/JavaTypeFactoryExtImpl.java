@@ -52,7 +52,14 @@ public class JavaTypeFactoryExtImpl
     for (Field field : type.getDeclaredFields()) {
       if (!Modifier.isStatic(field.getModifiers())) {
         // FIXME: watch out for recursion
-        final Type fieldType = field.getType();
+        Type fieldType = field.getType();
+        // Ensure enums are treated as Map type for filtering purposes
+        if (fieldType instanceof Class) {
+          final Class clazz = (Class) fieldType;
+          if (Enum.class.isAssignableFrom(clazz)) {
+            fieldType = Map.class;
+          }
+        }
         list.add(
             new RelDataTypeFieldImpl(
                 field.getName(),
@@ -79,6 +86,11 @@ public class JavaTypeFactoryExtImpl
         // RelDataType boza = createPdxType((PdxInstance) field);
       } else {
         fieldType = field.getClass();
+        Class clazz = (Class) fieldType;
+        // Ensure enums are treated as Map type for filtering purposes
+        if (Enum.class.isAssignableFrom(clazz)) {
+          fieldType = Map.class;
+        }
       }
 
       list.add(
