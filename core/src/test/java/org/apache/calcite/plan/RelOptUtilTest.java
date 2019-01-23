@@ -188,6 +188,58 @@ public class RelOptUtilTest {
         REL_BUILDER.literal(true));
   }
 
+  /**
+   * Test {@link RelOptUtil#splitJoinCondition(RelNode, RelNode, RexNode, List, List, List)}
+   * where the join condition contains an expanded version of IS NOT DISTINCT using CASE
+   */
+  @Test public void testSplitJoinConditionExpandedIsNotDistinctFromUsingCase() {
+    int leftJoinIndex = EMP_SCAN.getRowType().getFieldNames().indexOf("DEPTNO");
+    int rightJoinIndex = DEPT_ROW.getFieldNames().indexOf("DEPTNO");
+
+    RexInputRef leftKeyInputRef = RexInputRef.of(leftJoinIndex, EMP_DEPT_JOIN_REL_FIELDS);
+    RexInputRef rightKeyInputRef =
+        RexInputRef.of(EMP_ROW.getFieldCount() + rightJoinIndex, EMP_DEPT_JOIN_REL_FIELDS);
+    RexNode joinCond = RelOptUtil.isDistinctFrom(
+        REL_BUILDER.getRexBuilder(),
+        leftKeyInputRef,
+        rightKeyInputRef,
+        true);
+
+
+    splitJoinConditionHelper(
+        joinCond,
+        Collections.singletonList(leftJoinIndex),
+        Collections.singletonList(rightJoinIndex),
+        Collections.singletonList(false),
+        REL_BUILDER.literal(true));
+  }
+
+  /**
+   * Test {@link RelOptUtil#splitJoinCondition(RelNode, RelNode, RexNode, List, List, List)}
+   * where the join condition contains an expanded version of IS NOT DISTINCT using CASE
+   */
+  @Test public void testSplitJoinConditionExpandedIsNotDistinctFromUsingCase2() {
+    int leftJoinIndex = EMP_SCAN.getRowType().getFieldNames().indexOf("DEPTNO");
+    int rightJoinIndex = DEPT_ROW.getFieldNames().indexOf("DEPTNO");
+
+    RexInputRef leftKeyInputRef = RexInputRef.of(leftJoinIndex, EMP_DEPT_JOIN_REL_FIELDS);
+    RexInputRef rightKeyInputRef =
+        RexInputRef.of(EMP_ROW.getFieldCount() + rightJoinIndex, EMP_DEPT_JOIN_REL_FIELDS);
+    RexNode joinCond = REL_BUILDER.call(SqlStdOperatorTable.CASE,
+        REL_BUILDER.call(SqlStdOperatorTable.IS_NULL, leftKeyInputRef),
+        REL_BUILDER.call(SqlStdOperatorTable.IS_NULL, rightKeyInputRef),
+        REL_BUILDER.call(SqlStdOperatorTable.IS_NULL, rightKeyInputRef),
+        REL_BUILDER.call(SqlStdOperatorTable.IS_NULL, leftKeyInputRef),
+        REL_BUILDER.call(SqlStdOperatorTable.EQUALS, leftKeyInputRef, rightKeyInputRef));
+
+    splitJoinConditionHelper(
+        joinCond,
+        Collections.singletonList(leftJoinIndex),
+        Collections.singletonList(rightJoinIndex),
+        Collections.singletonList(false),
+        REL_BUILDER.literal(true));
+  }
+
   private static void splitJoinConditionHelper(RexNode joinCond, List<Integer> expLeftKeys,
       List<Integer> expRightKeys, List<Boolean> expFilterNulls, RexNode expRemaining) {
     List<Integer> actLeftKeys = new ArrayList<>();
@@ -197,7 +249,7 @@ public class RelOptUtilTest {
     RexNode actRemaining = RelOptUtil.splitJoinCondition(EMP_SCAN, DEPT_SCAN, joinCond, actLeftKeys,
         actRightKeys, actFilterNulls);
 
-    assertEquals(expRemaining.toString(), actRemaining.toString());
+    assertEquals(expRemaining, actRemaining);
     assertEquals(expFilterNulls, actFilterNulls);
     assertEquals(expLeftKeys, actLeftKeys);
     assertEquals(expRightKeys, actRightKeys);
