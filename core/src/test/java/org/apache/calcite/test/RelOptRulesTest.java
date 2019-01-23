@@ -5183,6 +5183,16 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "from sales.dept group by name";
     sql(sql).with(program).check();
   }
+
+  /** Test case for
+  * <a href="https://issues.apache.org/jira/browse/CALCITE-2803">[CALCITE-2803]
+  * Identify expanded IS NOT DISTINCT FROM expression when pushing project past join</a>.
+  */
+  @Test public void testPushProjectWithIsNotDistinctFromPastJoin() {
+    checkPlanning(ProjectJoinTransposeRule.INSTANCE,
+        "select e.sal + b.comm from emp e inner join bonus b "
+            + "on e.ename IS NOT DISTINCT FROM b.ename and e.deptno = 10");
+  }
 }
 
 // End RelOptRulesTest.java
