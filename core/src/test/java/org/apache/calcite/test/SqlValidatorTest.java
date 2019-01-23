@@ -6566,7 +6566,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         tester.withConformance(SqlConformanceEnum.LENIENT);
     final SqlTester strict =
         tester.withConformance(SqlConformanceEnum.STRICT_2003);
-
     sql("select count(empno) as e from emp having ^e^ > 10")
         .tester(strict).fails("Column 'E' not found in any table")
         .tester(lenient).sansCarets().ok();
@@ -6585,10 +6584,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select count(empno) as deptno from emp having ^deptno^ > 10")
         .tester(strict).fails("Expression 'DEPTNO' is not being grouped")
         .tester(lenient).sansCarets().ok();
-    // Alias in aggregate is not allowed.
-    sql("select empno as e from emp having max(^e^) > 10")
+    sql("select empno as e from emp group by empno having max(^e^) > 10")
         .tester(strict).fails("Column 'E' not found in any table")
-        .tester(lenient).fails("Column 'E' not found in any table");
+        .tester(lenient).sansCarets().ok();
     sql("select count(empno) as e from emp having ^e^ > 10")
         .tester(strict).fails("Column 'E' not found in any table")
         .tester(lenient).sansCarets().ok();

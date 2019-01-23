@@ -301,6 +301,19 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         .conformance(SqlConformanceEnum.LENIENT).ok();
   }
 
+  @Test public void testHavingAggregateByAliasEqualToColumnName() {
+    sql("select x+10 as x\n"
+      + "from (values(1),(2)) as t(x)\n"
+      + "group by x\n"
+      + "having max(x)>1")
+      .conformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test public void testAliasInHavingAggregate() {
+    sql("select empno as e from emp group by e having count(e) > 1")
+      .conformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
   @Test public void testGroupJustOneAgg() {
     // just one agg
     final String sql =

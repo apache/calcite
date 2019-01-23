@@ -117,6 +117,34 @@ LogicalFilter(condition=[>($0, 1)])
             <![CDATA[select count(empno) as e from emp having e > 1]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAliasInHavingAggregate">
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(E=[$0])
+  LogicalFilter(condition=[>($1, 1)])
+    LogicalAggregate(group=[{0}], agg#0=[COUNT()])
+      LogicalProject(E=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="sql">
+            <![CDATA[select empno as e from emp group by e having count(e) > 1]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testHavingAggregateByAliasEqualToColumnName">
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(X=[$0])
+  LogicalFilter(condition=[>($1, 1)])
+    LogicalAggregate(group=[{0}], agg#0=[MAX($0)])
+      LogicalProject(X=[+($0, 10)])
+        LogicalValues(tuples=[[{ 1 }, { 2 }]])
+]]>
+        </Resource>
+        <Resource name="sql">
+            <![CDATA[select x+10 as x from (values(1),(2)) as t(x) group by x having max(x)>1]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testAllValueList">
         <Resource name="sql">
             <![CDATA[select empno from emp where deptno > all (10, 20)]]>
