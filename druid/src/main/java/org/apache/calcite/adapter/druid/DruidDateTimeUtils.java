@@ -62,8 +62,7 @@ public class DruidDateTimeUtils {
    */
   @Nullable
   public static List<Interval> createInterval(RexNode e) {
-    final List<Range<Long>> ranges =
-        extractRanges(e, false);
+    final List<Range<Long>> ranges = extractRanges(e, false);
     if (ranges == null) {
       // We did not succeed, bail out
       return null;
@@ -72,11 +71,8 @@ public class DruidDateTimeUtils {
     for (Range r : ranges) {
       condensedRanges.add(r);
     }
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Inferred ranges on interval : " + condensedRanges);
-    }
-    return toInterval(
-        ImmutableList.<Range>copyOf(condensedRanges.asRanges()));
+    LOGGER.debug("Inferred ranges on interval : {}", condensedRanges);
+    return toInterval(ImmutableList.<Range<Long>>copyOf(condensedRanges.asRanges()));
   }
 
   protected static List<Interval> toInterval(
@@ -177,16 +173,18 @@ public class DruidDateTimeUtils {
     case GREATER_THAN_OR_EQUAL:
     {
       final Long value;
+      SqlKind kind = call.getKind();
       if (call.getOperands().get(0) instanceof RexInputRef
           && literalValue(call.getOperands().get(1)) != null) {
         value = literalValue(call.getOperands().get(1));
       } else if (call.getOperands().get(1) instanceof RexInputRef
           && literalValue(call.getOperands().get(0)) != null) {
         value = literalValue(call.getOperands().get(0));
+        kind = kind.reverse();
       } else {
         return null;
       }
-      switch (call.getKind()) {
+      switch (kind) {
       case LESS_THAN:
         return ImmutableList.of(withNot ? Range.atLeast(value) : Range.lessThan(value));
       case LESS_THAN_OR_EQUAL:
