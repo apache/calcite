@@ -10830,24 +10830,28 @@ LogicalProject(NAME=[$0], EXPR$1=[CAST(POWER(/(-($1, /(*($2, $2), $3)), $3), 0.5
     </TestCase>
     <TestCase name="testPushProjectWithIsNotDistinctFromPastJoin">
         <Resource name="sql">
-            <![CDATA[select e.sal + b.comm from emp e inner join bonus b on e.ename IS NOT DISTINCT FROM b.ename]]>
+            <![CDATA[select e.sal + b.comm from emp e inner join bonus b on (e.ename || e.job) IS NOT DISTINCT FROM (b.ename || b.job) and e.deptno = 10]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-LogicalProject(EXPR$0=[+($5, $12)])
-  LogicalJoin(condition=[AND(OR(AND(IS NULL($1), IS NULL($9)), IS TRUE(=($1, $9))), =($7, 10))], joinType=[inner])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+LogicalProject(EXPR$0=[+($5, $13)])
+  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($9, $14), =($7, 10))], joinType=[inner])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[||($1, $2)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], $f4=[||($0, $1)])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
 ]]>
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(EXPR$0=[+($1, $4)])
-  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($0, $3), $2)], joinType=[inner])
-    LogicalProject(ENAME=[$1], SAL=[$5], ==[=($7, 10)])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(ENAME=[$0], COMM=[$3])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+LogicalProject(EXPR$0=[+($0, $3)])
+  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($1, $4), $2)], joinType=[inner])
+    LogicalProject(SAL=[$5], $f9=[$9], ==[=($7, 10)])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[||($1, $2)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(COMM=[$3], $f4=[$4])
+      LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], $f4=[||($0, $1)])
+        LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
 ]]>
         </Resource>
     </TestCase>
