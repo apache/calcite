@@ -226,7 +226,7 @@ public class CassandraAdapterTest {
         .with(TWISSANDRA)
         .query("select \"tweet_id\" from \"tweets\" where \"username\"='JmuhsAaMdw'")
         .enableMaterializations(true)
-        .explainContains("CassandraTableScan(table=[[twissandra, tweets_by_user]])");
+        .explainContains("CassandraTableScan(table=[[twissandra, Tweets_By_User]])");
   }
 }
 
