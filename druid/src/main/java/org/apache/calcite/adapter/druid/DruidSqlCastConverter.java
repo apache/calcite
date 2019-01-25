@@ -61,7 +61,7 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
       //case chars to dates
       return castCharToDateTime(toType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
               ? timeZone : DateTimeUtils.UTC_ZONE,
-          operandExpression, toType, nullEqualToEmpty ? "" : null);
+          operandExpression, toType, fromType);
     } else if (SqlTypeName.DATETIME_TYPES.contains(fromType)
         && SqlTypeName.CHAR_TYPES.contains(toType)) {
       //case dates to chars
@@ -79,7 +79,7 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
           timeZone,
           castDateTimeToChar(DateTimeUtils.UTC_ZONE, operandExpression, fromType),
           toType,
-          nullEqualToEmpty ? "" : null);
+          fromType);
     } else if (fromType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
         && SqlTypeName.DATETIME_TYPES.contains(toType)) {
       if (toType != SqlTypeName.DATE && timeZone.equals(DateTimeUtils.UTC_ZONE)) {
@@ -92,7 +92,7 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
           DateTimeUtils.UTC_ZONE,
           castDateTimeToChar(timeZone, operandExpression, fromType),
           toType,
-          nullEqualToEmpty ? "" : null);
+          fromType);
     } else {
       // Handle other casts.
       final DruidType fromExprType = DruidExpressions.EXPRESSION_TYPES.get(fromType);
@@ -129,13 +129,13 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
   private static String castCharToDateTime(
       TimeZone timeZone,
       String operand,
-      final SqlTypeName toType, String format) {
+      final SqlTypeName toType, final SqlTypeName fromType) {
     // Cast strings to date times by parsing them from SQL format.
     final String timestampExpression = DruidExpressions.functionCall(
         "timestamp_parse",
         ImmutableList.of(
             operand,
-            DruidExpressions.stringLiteral(format),
+            DruidExpressions.stringLiteral(dateTimeFormatString(fromType)),
             DruidExpressions.stringLiteral(timeZone.getID())));
 
     if (toType == SqlTypeName.DATE) {

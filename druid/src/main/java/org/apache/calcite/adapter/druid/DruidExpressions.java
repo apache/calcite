@@ -159,7 +159,7 @@ public class DruidExpressions {
   }
 
   public static String fromColumn(String columnName) {
-    return DruidQuery.format("\"%s\"", columnName);
+    return DruidQuery.format("%s", columnName);
   }
 
   public static String nullLiteral() {
