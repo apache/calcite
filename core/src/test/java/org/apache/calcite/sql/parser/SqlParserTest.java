@@ -1128,9 +1128,11 @@ public class SqlParserTest {
     return false;
   }
 
-  @Test public void testRowWitDot() {
+  @Test public void testRowWithDot() {
     check("select (1,2).a from c.t", "SELECT ((ROW(1, 2)).`A`)\nFROM `C`.`T`");
     check("select row(1,2).a from c.t", "SELECT ((ROW(1, 2)).`A`)\nFROM `C`.`T`");
+    check("select tbl.foo(0).col.bar from tbl",
+        "SELECT ((`TBL`.`FOO`(0).`COL`).`BAR`)\nFROM `TBL`");
   }
 
   @Test public void testPeriod() {
@@ -7524,6 +7526,24 @@ public class SqlParserTest {
     checkExpFails(
         "\"SUBSTRING\"('a' ^from^ 1)",
         "(?s).*Encountered \"from\" at .*");
+  }
+
+  /**
+   * Tests that applying member function of a specific type as a suffix function
+   */
+  @Test public void testMemberFunction() {
+    check("SELECT myColumn.func(a, b) FROM tbl",
+        "SELECT `MYCOLUMN`.`FUNC`(`A`, `B`)\n"
+            + "FROM `TBL`");
+    check("SELECT myColumn.mySubField.func() FROM tbl",
+        "SELECT `MYCOLUMN`.`MYSUBFIELD`.`FUNC`()\n"
+            + "FROM `TBL`");
+    check("SELECT tbl.myColumn.mySubField.func() FROM tbl",
+        "SELECT `TBL`.`MYCOLUMN`.`MYSUBFIELD`.`FUNC`()\n"
+            + "FROM `TBL`");
+    check("SELECT tbl.foo(0).col.bar(2, 3) FROM tbl",
+        "SELECT ((`TBL`.`FOO`(0).`COL`).`BAR`(2, 3))\n"
+            + "FROM `TBL`");
   }
 
   @Test public void testUnicodeLiteral() {
