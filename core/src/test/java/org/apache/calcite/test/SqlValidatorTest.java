@@ -1240,6 +1240,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     }
   }
 
+  /**
+   * Not able to parse member function yet.
+   */
+  @Test public void testInvalidMemberFunction() {
+    checkExpFails("myCol.^func()^",
+        "(?s).*No match found for function signature FUNC().*");
+    checkExpFails("myCol.mySubschema.^memberFunc()^",
+        "(?s).*No match found for function signature MEMBERFUNC().*");
+  }
+
   @Test public void testRowtype() {
     check("values (1),(2),(1)");
     checkResultType(
@@ -1267,7 +1277,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "INTEGER NOT NULL");
   }
 
-  @Test public void testRowWitValidDot() {
+  @Test public void testRowWithValidDot() {
     checkColumnType("select ((1,2),(3,4,5)).\"EXPR$1\".\"EXPR$2\"\n from dept",
         "INTEGER NOT NULL");
     checkColumnType("select row(1,2).\"EXPR$1\" from dept",
