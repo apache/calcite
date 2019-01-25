@@ -1334,14 +1334,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     if (shouldSkipRel(rel)) {
       return;
     }
-    // If relation is self-referencing, just ignore it
-    RelSubset relSubset = getSubset(rel);
-    for (RelNode input : rel.getInputs()) {
-      RelSubset inputSubset = getSubset(input);
-      if (relSubset.equals(inputSubset)) {
-        return;
-      }
-    }
 
     for (RelOptRuleOperand operand : classOperands.get(rel.getClass())) {
       if (operand.matches(rel)) {

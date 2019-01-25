@@ -107,12 +107,6 @@ class RuleQueue {
    */
   private final Map<VolcanoPlannerPhase, Set<String>> phaseRuleMapping;
 
-
-  /**
-   * Queue that is used in {@link #checkDuplicateSubsets(Deque, RelOptRuleOperand, RelNode[])}.
-   */
-  private final Deque<RelSubset> subSetsQueue = new ArrayDeque<>();
-
   //~ Constructors -----------------------------------------------------------
 
   RuleQueue(VolcanoPlanner planner) {
