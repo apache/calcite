@@ -215,6 +215,9 @@ public class RelSubset extends AbstractRelNode {
   Set<RelSubset> getParentSubsets(VolcanoPlanner planner) {
     final Set<RelSubset> list = new LinkedHashSet<>();
     for (RelNode parent : set.getParentRels()) {
+      if (planner.shouldSkipRel(parent)) {
+        continue;
+      }
       for (RelSubset rel : inputSubsets(parent)) {
         if (rel.set == set && rel.getTraitSet().equals(traitSet)) {
           list.add(planner.getSubset(parent));

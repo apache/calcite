@@ -1227,7 +1227,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       LOGGER.trace("Rename #{} from '{}' to '{}'", rel.getId(), oldDigest, newDigest);
       final Pair<String, RelDataType> key = key(rel);
       final RelNode equivRel = mapDigestToRel.put(key, rel);
-      if (equivRel != null) {
+      if (equivRel == null) {
+        // We have just changed the inputs for "rel", so it might now create a cycle
+        checkCycles(rel);
+      } else {
         assert equivRel != rel;
 
         // There's already an equivalent with the same name, and we
@@ -1638,6 +1641,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     RelSubset subset = set.add(rel);
     mapRel2Subset.put(rel, subset);
 
+    checkCycles(rel);
+
     // While a tree of RelNodes is being registered, sometimes nodes' costs
     // improve and the subset doesn't hear about it. You can end up with
     // a subset with a single rel of cost 99 which thinks its best cost is
@@ -1648,6 +1653,45 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     subset.propagateCostImprovements(this, mq, rel, new HashSet<>());
 
     return subset;
+  }
+
+  /**
+   * This is a half-baked O(N^N) implementation that verifies if added {@link RelNode} would
+   * create a cycle. In case the cycle is detected, the relation is ignored by further rules.
+   */
+  private void checkCycles(RelNode rel) {
+    if (shouldSkipRel(rel)) {
+      // Save time if the node is already skipped somehow
+      return;
+    }
+
+    // If a cycle is created, just stop using the relation
+    RelSubset relSubset = getSubset(rel);
+    Deque<RelSubset> queue = new ArrayDeque<>(relSubset.getParentSubsets(this));
+
+    Set<RelNode> cycle = new HashSet<>(rel.getInputs());
+    cycle.add(rel);
+    cycle.add(relSubset);
+
+    Set<RelSubset> seen = new HashSet<>();
+    seen.add(relSubset);
+    while (!queue.isEmpty()) {
+      RelSubset next = queue.pop();
+      if (cycle.contains(next)) {
+        // Cycle detected, so we mark this relation as "not interesting"
+        // It is kept in the tree, however we don't use in for further rules
+        setImportance(rel, 0);
+        break;
+      }
+      for (RelSubset parentSubset : next.getParentSubsets(this)) {
+        if (seen.contains(parentSubset)) {
+          continue;
+        }
+        seen.add(parentSubset);
+        queue.add(parentSubset);
+      }
+      seen.add(next);
+    }
   }
 
   private RelSubset registerSubset(
