@@ -4473,6 +4473,30 @@ public abstract class SqlOperatorBaseTest {
         "{\"foo\":{\"foo\":\"bar\"}}", "VARCHAR(2000) NOT NULL");
   }
 
+  @Test public void testJsonType() {
+    tester.setFor(SqlStdOperatorTable.JSON_TYPE);
+    tester.checkString("json_type('\"1\"')",
+            "STRING", "VARCHAR(20) NOT NULL");
+    tester.checkString("json_type('1')",
+            "INTEGER", "VARCHAR(20) NOT NULL");
+    tester.checkString("json_type('11.45')",
+            "DOUBLE", "VARCHAR(20) NOT NULL");
+    tester.checkString("json_type('true')",
+            "BOOLEAN", "VARCHAR(20) NOT NULL");
+    tester.checkString("json_type('null')",
+            "NULL", "VARCHAR(20) NOT NULL");
+    tester.checkString("json_type(cast(null as varchar(1)))",
+            "NULL", "VARCHAR(20) NOT NULL");
+    tester.checkString("json_type('{\"a\": [10, true]}')",
+            "OBJECT", "VARCHAR(20) NOT NULL");
+    tester.checkString("json_type('{}')",
+            "OBJECT", "VARCHAR(20) NOT NULL");
+    tester.checkString("json_type('[10, true]')",
+            "ARRAY", "VARCHAR(20) NOT NULL");
+    tester.checkString("json_type('\"2019-01-27 21:24:00\"')",
+            "STRING", "VARCHAR(20) NOT NULL");
+  }
+
   @Test public void testJsonObjectAgg() {
     checkAggType(tester, "json_objectagg('foo': 'bar')", "VARCHAR(2000) NOT NULL");
     tester.checkFails("^json_objectagg(100: 'bar')^",
