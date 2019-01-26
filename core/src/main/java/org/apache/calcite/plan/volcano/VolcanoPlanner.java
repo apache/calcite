@@ -1656,6 +1656,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       // Save time if the node is already skipped somehow
       return;
     }
+    if (rel instanceof Converter) {
+      // Converter cycles seem to be harmless
+      return;
+    }
 
     // If a cycle is created, just stop using the relation
     RelSubset relSubset = getSubset(rel);
