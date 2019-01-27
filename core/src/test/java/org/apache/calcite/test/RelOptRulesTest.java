@@ -3216,6 +3216,46 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).with(program).check();
   }
 
+  /**
+   * Once the bottom aggregate pulled through union, we need to add a Project
+   * if the new input contains a different type from the union.
+   */
+  @Test public void testPullAggregateThroughUnionAndAddProjects() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateUnionAggregateRule.INSTANCE)
+        .build();
+
+    final String sql = "select job, deptno from"
+        + " (select job, deptno from emp as e1"
+        + " group by job, deptno"
+        + "  union all"
+        + " select job, deptno from emp as e2"
+        + " group by job, deptno)"
+        + " group by job, deptno";
+    sql(sql).with(program).check();
+  }
+
+  /**
+   * Make sure the union alias is preserved when the bottom aggregate is
+   * pulled up through union.
+   */
+  @Test public void testPullAggregateThroughUnionWithAlias() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateUnionAggregateRule.INSTANCE)
+        .build();
+
+    final String sql = "select job, c from"
+        + " (select job, deptno c from emp as e1"
+        + " group by job, deptno"
+        + "  union all"
+        + " select job, deptno from emp as e2"
+        + " group by job, deptno)"
+        + " group by job, c";
+    sql(sql).with(program).check();
+  }
+
   private void transitiveInference(RelOptRule... extraRules) throws Exception {
     final DiffRepository diffRepos = getDiffRepos();
     final String sql = diffRepos.expand(null, "${sql}");
