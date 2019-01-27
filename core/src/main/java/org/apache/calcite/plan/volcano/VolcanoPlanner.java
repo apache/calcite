@@ -1648,45 +1648,100 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   /**
-   * This is a half-baked O(N^N) implementation that verifies if added {@link RelNode} would
-   * create a cycle. In case the cycle is detected, the relation is ignored by further rules.
+   * Excludes input {@code RelNode} from use in rules in case it creates cycles in the planning
+   * cluster. {@link AbstractConverter} are allowed to form cycles since no rules should use
+   * on {@link AbstractConverter} operands.
    */
   private void checkCycles(RelNode rel) {
     if (shouldSkipRel(rel)) {
       // Save time if the node is already skipped somehow
       return;
     }
-    if (rel instanceof Converter) {
-      // Converter cycles seem to be harmless
+    if (rel instanceof AbstractConverter) {
+      // AbstractConverter cycles seem to be harmless
       return;
     }
+    if (relCreatesCycle(rel)) {
+      // Cycle detected, so we mark this relation as "not interesting"
+      // It is kept in the tree, however we don't use in for further rules
+      setImportance(rel, 0);
+    }
+  }
 
+  /**
+   * Verifies if adding {@code RelNode rel} to planning cluster (the set of {@code RelNodes})
+   * would create a cycle. In case the relation causes a cycle, it is marked with
+   * {@link #setImportance(RelNode, double)}, so the node does not participate in further rules.
+   * <p>The algorithm is go up the tree and check if we happen to hit the subset of the source node.
+   * It might take {@code O(N)} where {@code N} is the total number of {@code RelNode} relations.
+   */
+  private boolean relCreatesCycle(RelNode rel) {
     // If a cycle is created, just stop using the relation
     RelSubset relSubset = getSubset(rel);
-    Deque<RelSubset> queue = new ArrayDeque<>(relSubset.getParentSubsets(this));
 
-    Set<RelNode> cycle = new HashSet<>(rel.getInputs());
-    cycle.add(rel);
-    cycle.add(relSubset);
+    // enum could be used, however variables allow to co-locate use with definition
+    final String inProgress = "in progress";
+    final String done = "done";
+    final String shouldNotReach = "should not reach";
+    Map<RelSubset, String> visitedNodes = new HashMap<>();
 
-    Set<RelSubset> seen = new HashSet<>();
-    seen.add(relSubset);
-    while (!queue.isEmpty()) {
-      RelSubset next = queue.pop();
-      if (cycle.contains(next)) {
-        // Cycle detected, so we mark this relation as "not interesting"
-        // It is kept in the tree, however we don't use in for further rules
-        setImportance(rel, 0);
-        break;
+    for (RelNode input : rel.getInputs()) {
+      if (input == relSubset) {
+        // Avoid creating queue below for simple self-referencing rel node
+        return true;
       }
-      for (RelSubset parentSubset : next.getParentSubsets(this)) {
-        if (seen.contains(parentSubset)) {
+      assert input instanceof RelSubset
+          : "input of a registered node " + rel + " should be RelSubset. Actual input is " + input;
+      visitedNodes.put((RelSubset) input, shouldNotReach);
+    }
+    visitedNodes.put(relSubset, shouldNotReach);
+
+    // Nested loops below perform walk over parent relations
+    // The idea is to avoid processing the same parent multiple times (via visitedNodes), and
+    // stop as soon as we hit relSubset or a child of the source rel node
+    Deque<RelSubset> queue = new ArrayDeque<>();
+    do {
+      RelSubset next = queue.poll();
+      if (next == null) {
+        // the first execution
+        next = relSubset;
+      } else if (shouldNotReach.equals(visitedNodes.get(next))) {
+        return true;
+      }
+      // subset.getParentRels() verifies that "subset" satisfies one of parent's inputs
+      for (RelNode parent : next.getParentRels()) {
+        if (shouldSkipRel(parent) || parent instanceof AbstractConverter) {
           continue;
         }
-        seen.add(parentSubset);
-        queue.add(parentSubset);
+        RelSubset parentSubset = getSubset(parent);
+        String status = visitedNodes.get(parentSubset);
+        if (shouldNotReach.equals(status)) {
+          return true;
+        } else if (status == null) {
+          visitedNodes.put(parentSubset, inProgress);
+          queue.add(parentSubset);
+        }
       }
-      seen.add(next);
+      visitedNodes.put(next, done);
+    } while (!queue.isEmpty());
+
+    return false;
+  }
+
+  /**
+   * Collects all the parent {@link RelSubset} instances for a given {@code subset}.
+   * The method ignores relations with {@code importance=0}, and it ignores
+   * {@link AbstractConverter} relations since those can't be implemented anyway,
+   * so we don't care if those form cycles.
+   */
+  private void getParentSubsets(RelSubset subset, Deque<RelSubset> queue) {
+    // subset.getParentRels() verifies that "subset" satisfies one of parent's inputs
+    for (RelNode parent : subset.getParentRels()) {
+      if (shouldSkipRel(parent) || parent instanceof AbstractConverter) {
+        continue;
+      }
+      RelSubset parentSubset = getSubset(parent);
+      queue.add(parentSubset);
     }
   }
 
