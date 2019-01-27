@@ -292,6 +292,13 @@ public class ElasticSearchAdapterTest {
         .returns(sortedResultSetChecker("city", RelFieldCollation.Direction.DESCENDING))
         .returnsCount(ZIPS_SIZE);
 
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select max(_MAP['pop']), min(_MAP['pop']), _MAP['state'] from elastic.zips "
+            + "group by _MAP['state'] order by _MAP['state'] limit 3")
+        .returnsOrdered("EXPR$0=32383.0; EXPR$1=23238.0; EXPR$2=AK",
+             "EXPR$0=44165.0; EXPR$1=42124.0; EXPR$2=AL",
+             "EXPR$0=53532.0; EXPR$1=37428.0; EXPR$2=AR");
   }
 
   /**

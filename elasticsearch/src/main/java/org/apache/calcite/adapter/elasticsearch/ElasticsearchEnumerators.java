@@ -42,12 +42,20 @@ class ElasticsearchEnumerators {
       final Class fieldClass,
       final Map<String, String> mapping) {
     return hit -> {
+      final String key;
+      if (hit.sourceOrFields().containsKey(fieldName)) {
+        key = fieldName;
+      } else {
+        key = mapping.getOrDefault(fieldName, fieldName);
+      }
+
       final Object value;
-      if (ElasticsearchConstants.ID.equals(mapping.get(fieldName))) {
+      if (ElasticsearchConstants.ID.equals(key)
+          || ElasticsearchConstants.ID.equals(mapping.getOrDefault(fieldName, fieldName))) {
         // is the original projection on _id field ?
         value = hit.id();
       } else {
-        value = hit.valueOrNull(fieldName);
+        value = hit.valueOrNull(key);
       }
       return convert(value, fieldClass);
     };
@@ -67,13 +75,21 @@ class ElasticsearchEnumerators {
       Object[] objects = new Object[fields.size()];
       for (int i = 0; i < fields.size(); i++) {
         final Map.Entry<String, Class> field = fields.get(i);
-        final Object value;
+        final String key;
+        if (hit.sourceOrFields().containsKey(field.getKey())) {
+          key = field.getKey();
+        } else {
+          key = mapping.getOrDefault(field.getKey(), field.getKey());
+        }
 
-        if (ElasticsearchConstants.ID.equals(mapping.get(field.getKey()))) {
+        final Object value;
+        if (ElasticsearchConstants.ID.equals(key)
+            || ElasticsearchConstants.ID.equals(mapping.get(field.getKey()))
+            || ElasticsearchConstants.ID.equals(field.getKey())) {
           // is the original projection on _id field ?
           value = hit.id();
         } else {
-          value = hit.valueOrNull(field.getKey());
+          value = hit.valueOrNull(key);
         }
 
         final Class type = field.getValue();
