@@ -5401,10 +5401,10 @@ LogicalProject(X=[$0], EXPR$1=[$2], Y=[$1])
 LogicalAggregate(group=[{0, 1}])
   LogicalUnion(all=[true])
     LogicalAggregate(group=[{0, 1}])
-      LogicalProject(DEPTNO=[$7], JOB=[$2])
+      LogicalProject(JOB=[$2], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{0, 1}])
-      LogicalProject(DEPTNO=[$7], JOB=[$2])
+      LogicalProject(JOB=[$2], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -5412,9 +5412,9 @@ LogicalAggregate(group=[{0, 1}])
             <![CDATA[
 LogicalAggregate(group=[{0, 1}])
   LogicalUnion(all=[true])
-    LogicalProject(DEPTNO=[$7], JOB=[$2])
+    LogicalProject(JOB=[$2], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(DEPTNO=[$7], JOB=[$2])
+    LogicalProject(JOB=[$2], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
