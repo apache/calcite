@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.RelFactories;
@@ -96,6 +97,23 @@ public class AggregateUnionAggregateRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
+  /**
+   * Returns an input with the same row type with the input Aggregate,
+   * create a Project node if needed.
+   */
+  private RelNode getInputWithSameRowType(Aggregate bottomAggRel) {
+    if (RelOptUtil.areRowTypesEqual(
+            bottomAggRel.getRowType(),
+            bottomAggRel.getInput(0).getRowType(),
+            false)) {
+      return bottomAggRel.getInput(0);
+    } else {
+      return RelOptUtil.createProject(
+          bottomAggRel.getInput(),
+          bottomAggRel.getGroupSet().asList());
+    }
+  }
+
   public void onMatch(RelOptRuleCall call) {
     final Aggregate topAggRel = call.rel(0);
     final Union union = call.rel(1);
@@ -111,11 +129,11 @@ public class AggregateUnionAggregateRule extends RelOptRule {
       // Aggregate is the second input
       bottomAggRel = call.rel(3);
       relBuilder.push(call.rel(2))
-          .push(call.rel(3).getInput(0));
+          .push(getInputWithSameRowType(bottomAggRel));
     } else if (call.rel(2) instanceof Aggregate) {
       // Aggregate is the first input
       bottomAggRel = call.rel(2);
-      relBuilder.push(call.rel(2).getInput(0))
+      relBuilder.push(getInputWithSameRowType(bottomAggRel))
           .push(call.rel(3));
     } else {
       return;
@@ -128,6 +146,7 @@ public class AggregateUnionAggregateRule extends RelOptRule {
     }
 
     relBuilder.union(true);
+    relBuilder.rename(union.getRowType().getFieldNames());
     relBuilder.aggregate(relBuilder.groupKey(topAggRel.getGroupSet()),
         topAggRel.getAggCallList());
     call.transformTo(relBuilder.build());
