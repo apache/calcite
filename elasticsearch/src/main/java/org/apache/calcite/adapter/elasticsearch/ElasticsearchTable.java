@@ -122,7 +122,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       List<Map.Entry<String, RelFieldCollation.Direction>> sort,
       List<String> groupBy,
       List<Map.Entry<String, String>> aggregations,
-      List<Map.Entry<String, String>> mappings,
+      Map<String, String> mappings,
       Long offset, Long fetch) throws IOException {
 
     if (!aggregations.isEmpty() || !groupBy.isEmpty()) {
@@ -172,7 +172,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       List<Map.Entry<String, RelFieldCollation.Direction>> sort,
       List<String> groupBy,
       List<Map.Entry<String, String>> aggregations,
-      List<Map.Entry<String, String>> mapping,
+      Map<String, String> mapping,
       Long offset, Long fetch) throws IOException {
 
     if (!groupBy.isEmpty() && offset != null) {
@@ -359,7 +359,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
          List<Map.Entry<String, RelFieldCollation.Direction>> sort,
          List<String> groupBy,
          List<Map.Entry<String, String>> aggregations,
-         List<Map.Entry<String, String>> mappings,
+         Map<String, String> mappings,
          Long offset, Long fetch) {
       try {
         return getTable().find(ops, fields, sort, groupBy, aggregations, mappings, offset, fetch);

@@ -113,9 +113,10 @@ public class ElasticsearchAggregate extends Aggregate implements ElasticsearchRe
 
   @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
-    List<String> inputFields = fieldNames(getInput().getRowType());
+    final List<String> inputFields = fieldNames(getInput().getRowType());
     for (int group : groupSet) {
-      implementor.addGroupBy(inputFields.get(group));
+      final String name = inputFields.get(group);
+      implementor.addGroupBy(implementor.expressionItemMap.getOrDefault(name, name));
     }
 
     final ObjectMapper mapper = implementor.elasticsearchTable.mapper;
@@ -130,7 +131,7 @@ public class ElasticsearchAggregate extends Aggregate implements ElasticsearchRe
       final ObjectNode field = aggregation.with(toElasticAggregate(aggCall));
 
       final String name = names.isEmpty() ? ElasticsearchConstants.ID : names.get(0);
-      field.put("field", name);
+      field.put("field", implementor.expressionItemMap.getOrDefault(name, name));
       if (aggCall.getAggregation().getKind() == SqlKind.ANY_VALUE) {
         field.put("size", 1);
       }
