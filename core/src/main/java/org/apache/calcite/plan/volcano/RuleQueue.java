@@ -17,10 +17,12 @@
 package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelNodes;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.ChunkList;
+import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.HashMultimap;
@@ -32,9 +34,11 @@ import org.slf4j.Logger;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -103,6 +107,11 @@ class RuleQueue {
    * may be invoked in their corresponding phase.
    */
   private final Map<VolcanoPlannerPhase, Set<String>> phaseRuleMapping;
+
+  /**
+   * Queue that is used in {@link #checkDuplicateSubsets(Deque, RelOptRuleOperand, RelNode[])}.
+   */
+  private final Deque<RelSubset> subSetsQueue = new ArrayDeque<>();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -471,6 +480,11 @@ class RuleQueue {
         match = matchList.remove(bestPos);
       }
 
+      if (skipMatch(match)) {
+        LOGGER.debug("Skip match: {}", match);
+      } else {
+        break;
+      }
       break;
     }
 
@@ -479,6 +493,76 @@ class RuleQueue {
 
     LOGGER.debug("Pop match: {}", match);
     return match;
+  }
+
+  /** Returns whether to skip a match. This happens if any of the
+   * {@link RelNode}s have importance zero. */
+  private boolean skipMatch(VolcanoRuleMatch match) {
+    for (RelNode rel : match.rels) {
+      if (planner.shouldSkipRel(rel)) {
+        return true;
+      }
+    }
+
+    // If the same subset appears more than once along any path from root
+    // operand to a leaf operand, we have matched a cycle. A relational
+    // expression that consumes its own output can never be implemented, and
+    // furthermore, if we fire rules on it we may generate lots of garbage.
+    // For example, if
+    //   Project(A, X = X + 0)
+    // is in the same subset as A, then we would generate
+    //   Project(A, X = X + 0 + 0)
+    //   Project(A, X = X + 0 + 0 + 0)
+    // also in the same subset. They are valid but useless.
+    final Deque<RelSubset> subsets = subSetsQueue;
+    subsets.clear(); // just in case
+    try {
+      checkDuplicateSubsets(subsets, match.rule.getOperand(), match.rels);
+    } catch (Util.FoundOne e) {
+      subsets.clear(); // just in case
+      return true;
+    }
+    return false;
+  }
+
+  /** Recursively checks whether there are any duplicate subsets along any path
+   * from root of the operand tree to one of the leaves.
+   *
+   * <p>It is OK for a match to have duplicate subsets if they are not on the
+   * same path. For example,
+   *
+   * <blockquote><pre>
+   *   Join
+   *  /   \
+   * X     X
+   * </pre></blockquote>
+   *
+   * <p>is a valid match.
+   *
+   * @throws org.apache.calcite.util.Util.FoundOne on match
+   */
+  private void checkDuplicateSubsets(Deque<RelSubset> subsets,
+      RelOptRuleOperand operand, RelNode[] rels) {
+    RelNode rel = rels[operand.ordinalInRule];
+    final RelSubset subset = planner.getSubset(rel);
+    if (subsets.contains(subset)) {
+      throw Util.FoundOne.NULL;
+    }
+    subsets.push(subset);
+    // If rel consumes one of its parents subsets, then the expression is not implementable
+    for (RelNode input : rel.getInputs()) {
+      final RelSubset inputSubset = planner.getSubset(input);
+      if (subsets.contains(inputSubset)) {
+        throw Util.FoundOne.NULL;
+      }
+    }
+    if (!operand.getChildOperands().isEmpty()) {
+      for (RelOptRuleOperand childOperand : operand.getChildOperands()) {
+        checkDuplicateSubsets(subsets, childOperand, rels);
+      }
+    }
+    final RelSubset x = subsets.pop();
+    assert x == subset;
   }
 
   /**
