@@ -2955,17 +2955,16 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   @Test public void testPullAggregateThroughUnion() {
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .addRuleInstance(AggregateUnionAggregateRule.INSTANCE)
         .build();
 
-    final String sql = "select job, deptno from"
-        + " (select job, deptno from emp as e1"
-        + " group by job, deptno"
+    final String sql = "select deptno, job from"
+        + " (select deptno, job from emp as e1"
+        + " group by deptno,job"
         + "  union all"
-        + " select job, deptno from emp as e2"
-        + " group by job, deptno)"
-        + " group by job, deptno";
+        + " select deptno, job from emp as e2"
+        + " group by deptno,job)"
+        + " group by deptno,job";
     sql(sql).with(program).check();
   }
 
@@ -2982,6 +2981,24 @@ public class RelOptRulesTest extends RelOptTestBase {
         + " select deptno, job from emp as e2"
         + " group by deptno,job)"
         + " group by deptno,job";
+    sql(sql).with(program).check();
+  }
+
+  @Test public void testPullAggregateThroughUnionAndAddProjects() {
+    // Once the bottom aggregate pulled through union, we need to add a Project
+    // if the new input contains a different type from the union.
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateUnionAggregateRule.INSTANCE)
+        .build();
+
+    final String sql = "select job, deptno from"
+        + " (select job, deptno from emp as e1"
+        + " group by job, deptno"
+        + "  union all"
+        + " select job, deptno from emp as e2"
+        + " group by job, deptno)"
+        + " group by job, deptno";
     sql(sql).with(program).check();
   }
 
