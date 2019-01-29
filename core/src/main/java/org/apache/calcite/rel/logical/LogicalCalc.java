@@ -60,7 +60,7 @@ import java.util.Set;
  *     merges two {@code LogicalCalc}s
  * </ul>
  */
-public final class LogicalCalc extends Calc {
+public final class LogicalCalc extends Calc implements LogicalRel {
   //~ Static fields/initializers ---------------------------------------------
 
   //~ Constructors -----------------------------------------------------------

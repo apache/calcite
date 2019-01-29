@@ -124,6 +124,9 @@ public class FilterProjectTransposeRule extends RelOptRule {
       boolean copyProject,
       RelBuilderFactory relBuilderFactory) {
     super(operand, relBuilderFactory, null);
+    if (copyFilter && copyProject) {
+      matchAnyTraitSet();
+    }
     this.copyFilter = copyFilter;
     this.copyProject = copyProject;
   }

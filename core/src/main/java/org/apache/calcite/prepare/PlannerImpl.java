@@ -47,7 +47,6 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
-import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Pair;
@@ -235,10 +234,8 @@ public class PlannerImpl implements Planner, ViewExpander {
     root =
         sqlToRelConverter.convertQuery(validatedSqlNode, false, true);
     root = root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));
-    final RelBuilder relBuilder =
-        config.getRelBuilderFactory().create(cluster, null);
     root = root.withRel(
-        RelDecorrelator.decorrelateQuery(root.rel, relBuilder));
+        RelDecorrelator.decorrelateQuery(root.rel, config.getRelBuilderFactory()));
     state = State.STATE_5_CONVERTED;
     return root;
   }
@@ -310,10 +307,8 @@ public class PlannerImpl implements Planner, ViewExpander {
         sqlToRelConverter.convertQuery(sqlNode, true, false);
     final RelRoot root2 =
         root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));
-    final RelBuilder relBuilder =
-        config.getRelBuilderFactory().create(cluster, null);
     return root2.withRel(
-        RelDecorrelator.decorrelateQuery(root.rel, relBuilder));
+        RelDecorrelator.decorrelateQuery(root.rel, config.getRelBuilderFactory()));
   }
 
   // CalciteCatalogReader is stateless; no need to store one

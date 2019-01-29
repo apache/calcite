@@ -17,8 +17,11 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
+
+import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.Objects;
@@ -37,6 +40,7 @@ import java.util.function.Predicate;
  */
 public class RelOptRuleOperand {
   //~ Instance fields --------------------------------------------------------
+  protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   private RelOptRuleOperand parent;
   private RelOptRule rule;
@@ -191,6 +195,10 @@ public class RelOptRuleOperand {
     return clazz;
   }
 
+  RelTrait getMatchedTrait() {
+    return trait;
+  }
+
   /**
    * Returns the child operands.
    *
@@ -208,8 +216,27 @@ public class RelOptRuleOperand {
     if (!clazz.isInstance(rel)) {
       return false;
     }
-    if ((trait != null) && !rel.getTraitSet().contains(trait)) {
+    RelTraitSet relTraitSet = rel.getTraitSet();
+    if ((trait != null) && !relTraitSet.contains(trait)) {
       return false;
+    }
+    // If a rule uses implicit trait restrictions (see getImplicitTraits) for the root operand,
+    // then verify it
+    if (rule.hasImplicitTraits() && rule.getOperand() == this && trait == null
+        && !relTraitSet.isEmpty()) {
+      // TODO: cache after rule is initialized
+      RelTraitSet implicitTraits = rel.getCluster().getPlanner().getImplicitTraits(rule);
+      for (RelTrait implicitTrait : implicitTraits) {
+        RelTrait relTrait = relTraitSet.getTrait(implicitTrait.getTraitDef());
+        if (relTrait != null && !relTrait.satisfies(implicitTrait)) {
+          if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace(
+                "Rel {} does not match rule {} since the relation does not match"
+                    + " implicit traits {}", rel, rule, implicitTraits);
+          }
+          return false;
+        }
+      }
     }
     return predicate.test(rel);
   }

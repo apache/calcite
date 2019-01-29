@@ -19,6 +19,7 @@ package org.apache.calcite.tools;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.RelFactories;
 
 /** A partially-created RelBuilder.
@@ -36,6 +37,10 @@ import org.apache.calcite.rel.core.RelFactories;
 public interface RelBuilderFactory {
   /** Creates a RelBuilder. */
   RelBuilder create(RelOptCluster cluster, RelOptSchema schema);
+
+  default RelTraitSet getImplicitTraits() {
+    return null;
+  }
 }
 
 // End RelBuilderFactory.java

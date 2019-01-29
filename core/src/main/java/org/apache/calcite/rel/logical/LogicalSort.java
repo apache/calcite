@@ -32,7 +32,7 @@ import org.apache.calcite.util.Litmus;
  * Sub-class of {@link org.apache.calcite.rel.core.Sort} not
  * targeted at any particular engine or calling convention.
  */
-public final class LogicalSort extends Sort {
+public final class LogicalSort extends Sort implements LogicalRel {
   private LogicalSort(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RelCollation collation, RexNode offset, RexNode fetch) {
     super(cluster, traitSet, input, collation, offset, fetch);

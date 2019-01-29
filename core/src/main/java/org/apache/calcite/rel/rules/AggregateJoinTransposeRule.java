@@ -26,8 +26,6 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.logical.LogicalAggregate;
-import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
@@ -63,17 +61,19 @@ import java.util.TreeMap;
  */
 public class AggregateJoinTransposeRule extends RelOptRule {
   public static final AggregateJoinTransposeRule INSTANCE =
-      new AggregateJoinTransposeRule(LogicalAggregate.class, LogicalJoin.class,
-          RelFactories.LOGICAL_BUILDER, false);
+      new AggregateJoinTransposeRule(RelFactories.LOGICAL_BUILDER, false);
 
   /** Extended instance of the rule that can push down aggregate functions. */
   public static final AggregateJoinTransposeRule EXTENDED =
-      new AggregateJoinTransposeRule(LogicalAggregate.class, LogicalJoin.class,
-          RelFactories.LOGICAL_BUILDER, true);
+      new AggregateJoinTransposeRule(RelFactories.LOGICAL_BUILDER, true);
 
   private final boolean allowFunctions;
 
   /** Creates an AggregateJoinTransposeRule. */
+  public AggregateJoinTransposeRule(RelBuilderFactory relBuilderFactory, boolean allowFunctions) {
+    this(Aggregate.class, Join.class, relBuilderFactory, allowFunctions);
+  }
+
   public AggregateJoinTransposeRule(Class<? extends Aggregate> aggregateClass,
       Class<? extends Join> joinClass, RelBuilderFactory relBuilderFactory,
       boolean allowFunctions) {

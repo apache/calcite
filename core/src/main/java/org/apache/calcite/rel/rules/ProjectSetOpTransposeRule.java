@@ -22,7 +22,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SetOp;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -63,7 +62,7 @@ public class ProjectSetOpTransposeRule extends RelOptRule {
       RelBuilderFactory relBuilderFactory) {
     super(
         operand(
-            LogicalProject.class,
+            Project.class,
             operand(SetOp.class, any())),
         relBuilderFactory, null);
     this.preserveExprCondition = preserveExprCondition;
@@ -73,7 +72,7 @@ public class ProjectSetOpTransposeRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    LogicalProject origProj = call.rel(0);
+    Project origProj = call.rel(0);
     SetOp setOp = call.rel(1);
 
     // cannot push project past a distinct

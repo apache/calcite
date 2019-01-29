@@ -42,7 +42,7 @@ import java.util.Set;
  * Sub-class of {@link org.apache.calcite.rel.core.Filter}
  * not targeted at any particular engine or calling convention.
  */
-public final class LogicalFilter extends Filter {
+public final class LogicalFilter extends Filter implements LogicalRel {
   private final ImmutableSet<CorrelationId> variablesSet;
 
   //~ Constructors -----------------------------------------------------------

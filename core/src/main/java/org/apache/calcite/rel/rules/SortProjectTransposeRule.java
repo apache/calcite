@@ -33,6 +33,7 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCallBinding;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -96,6 +97,12 @@ public class SortProjectTransposeRule extends RelOptRule {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+
+  @Override public boolean matches(RelOptRuleCall call) {
+    return super.matches(call)
+        && !RexOver.containsOver(((Project) call.rel(1)).getProjects(), null);
+  }
 
   public void onMatch(RelOptRuleCall call) {
     final Sort sort = call.rel(0);

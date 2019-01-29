@@ -54,6 +54,7 @@ public class CalcMergeRule extends RelOptRule {
             Calc.class,
             operand(Calc.class, any())),
         relBuilderFactory, null);
+    matchAnyTraitSet();
   }
 
   //~ Methods ----------------------------------------------------------------

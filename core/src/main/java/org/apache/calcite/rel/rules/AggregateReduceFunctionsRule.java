@@ -24,7 +24,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -94,10 +93,13 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
 
   /** The singleton. */
   public static final AggregateReduceFunctionsRule INSTANCE =
-      new AggregateReduceFunctionsRule(operand(LogicalAggregate.class, any()),
-          RelFactories.LOGICAL_BUILDER);
+      new AggregateReduceFunctionsRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
+
+  public AggregateReduceFunctionsRule(RelBuilderFactory relBuilderFactory) {
+    super(operand(Aggregate.class, any()), relBuilderFactory, null);
+  }
 
   /** Creates an AggregateReduceFunctionsRule. */
   public AggregateReduceFunctionsRule(RelOptRuleOperand operand,

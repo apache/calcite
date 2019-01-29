@@ -24,8 +24,13 @@ import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.util.CancelFlag;
 import org.apache.calcite.util.Util;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -71,6 +77,15 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   private RexExecutor executor;
 
+  private static final RelTraitSet EMPTY_TRAIT_SET = RelTraitSet.createEmpty();
+
+  private final Map<Class<? extends RelNode>, RelTraitSet> implicitTraits = new HashMap<>();
+
+  private final LoadingCache<RelOptRule, RelTraitSet> implicitTraitSetCache =
+      CacheBuilder.newBuilder()
+          .build(CacheLoader.from(this::computeImplicitTraitsForRule));
+
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -97,7 +112,10 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   //~ Methods ----------------------------------------------------------------
 
-  public void clear() {}
+  public void clear() {
+    implicitTraitSetCache.invalidateAll();
+    implicitTraitSetCache.cleanUp();
+  }
 
   public Context getContext() {
     return context;
@@ -130,7 +148,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   protected void mapRuleDescription(RelOptRule rule) {
     // Check that there isn't a rule with the same description,
     // also validating description string.
-
+    verifyRule(rule);
     final String description = rule.toString();
     assert description != null;
     assert !description.contains("$")
@@ -163,6 +181,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   protected void unmapRuleDescription(RelOptRule rule) {
     String description = rule.toString();
     mapDescToRule.remove(description);
+    implicitTraitSetCache.invalidate(rule);
   }
 
   /**
@@ -226,7 +245,15 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     if (classes.add(clazz)) {
       onNewClass(node);
     }
-    for (RelTrait trait : node.getTraitSet()) {
+    RelTraitSet traitSet = node.getTraitSet();
+    for (RelTrait expectedTrait : implicitTraits.get(clazz)) {
+      if (!traitSet.containsIfApplicable(expectedTrait)) {
+        RelTrait actualTrait = traitSet.getTrait(expectedTrait.getTraitDef());
+        throw new IllegalStateException("Node " + node + " should have trait " + expectedTrait
+            + ", however actual trait is " + actualTrait);
+      }
+    }
+    for (RelTrait trait : traitSet) {
       if (traits.add(trait)) {
         trait.register(this);
       }
@@ -235,7 +262,105 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   /** Called when a new class of {@link RelNode} is seen. */
   protected void onNewClass(RelNode node) {
+    identifyImplicitTraits(node.getClass());
     node.register(this);
+  }
+
+  @Override public RelTraitSet getImplicitTraits(RelOptRule rule) {
+    return implicitTraitSetCache.getUnchecked(rule);
+  }
+
+  private RelTraitSet computeImplicitTraitsForRule(RelOptRule rule) {
+    RelTraitSet builderTraits = rule.relBuilderFactory.getImplicitTraits();
+    Class<? extends RelNode> matchedClass = rule.getOperand().getMatchedClass();
+    RelTraitSet relImplicitTraits = getImplicitTraits(matchedClass);
+    if (builderTraits == null && relImplicitTraits.isEmpty()) {
+      throw new IllegalStateException("Rule " + rule
+          + " should specify desired traits for the root operand " + matchedClass
+          + ". Either pass a trait in the constructor parameter of a rule or"
+          + " use @ImplicitTrait for RelNode class");
+    }
+    // We don't really want to have "default" traits, so emptyTraitSet does not work here
+    RelTraitSet result = RelTraitSet.createEmpty();
+    if (builderTraits != null) {
+      for (RelTrait builderTrait : builderTraits) {
+        result = result.plus(builderTrait);
+      }
+    }
+    if (relImplicitTraits != null) {
+      for (RelTrait builderTrait : relImplicitTraits) {
+        result = result.plus(builderTrait);
+      }
+    }
+    return result;
+  }
+
+  protected RelTraitSet getImplicitTraits(Class<? extends RelNode> nodeClass) {
+    RelTraitSet relTraits = implicitTraits.get(nodeClass);
+    if (relTraits != null) {
+      return relTraits;
+    }
+    identifyImplicitTraits(nodeClass);
+    return implicitTraits.get(nodeClass);
+  }
+
+  private void identifyImplicitTraits(Class<? extends RelNode> nodeClass) {
+    RelTraitSet result = EMPTY_TRAIT_SET;
+    for (Annotation annotation : getAnnotation(nodeClass, ImplicitTrait.class)) {
+      Class<? extends Supplier<? extends RelTrait>> factory = ((ImplicitTrait) annotation).value();
+      Supplier<? extends RelTrait> supplier;
+      try {
+        supplier = factory.getDeclaredConstructor().newInstance();
+      } catch (InstantiationException | IllegalAccessException | NoSuchMethodException e) {
+        throw new IllegalArgumentException(
+            "Unable to identify RelTrait from AlwaysHasTrait annotation of "
+                + nodeClass + " class", e);
+      } catch (InvocationTargetException e) {
+        throw new IllegalArgumentException(
+            "Unable to identify RelTrait from AlwaysHasTrait annotation of "
+                + nodeClass + " class", e.getTargetException());
+      }
+      result = result.plus(supplier.get());
+    }
+    implicitTraits.put(nodeClass, result);
+  }
+
+  private Annotation[] getAnnotation(Class<?> klass,
+      Class<? extends Annotation> annotation) {
+    while (klass != null) {
+      Annotation[] value = klass.getDeclaredAnnotationsByType(annotation);
+      if (value.length != 0) {
+        return value;
+      }
+      // Note: the order of getInterfaces is not specified, so we check all of them and bail out
+      // in case multiple interfaces declare the annotation
+      for (Class<?> anInterface : klass.getInterfaces()) {
+        Annotation[] val = getAnnotation(anInterface, annotation);
+        if (val.length == 0) {
+          continue;
+        }
+        if (value.length > 0) {
+          throw new IllegalArgumentException(annotation
+              + " should be declared for a single interface only");
+        }
+        value = val;
+      }
+      if (value.length > 0) {
+        return value;
+      }
+      klass = klass.getSuperclass();
+    }
+    return new Annotation[0];
+  }
+
+  protected void verifyRule(RelOptRule rule) {
+    // If a rule uses implicit trait restrictions (see getImplicitTraits) for the root operand,
+    // then verify it
+    if (!rule.hasImplicitTraits()) {
+      return;
+    }
+    // Verify rule: it will throw exception in case no implicit traits detected
+    getImplicitTraits(rule);
   }
 
   public RelTraitSet emptyTraitSet() {

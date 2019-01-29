@@ -39,7 +39,7 @@ import java.util.List;
  * Sub-class of {@link org.apache.calcite.rel.core.Values}
  * not targeted at any particular engine or calling convention.
  */
-public class LogicalValues extends Values {
+public class LogicalValues extends Values implements LogicalRel {
   //~ Constructors -----------------------------------------------------------
 
   /**

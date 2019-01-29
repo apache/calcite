@@ -65,6 +65,8 @@ public abstract class RelOptRule {
    */
   public final List<RelOptRuleOperand> operands;
 
+  private boolean hasImplicitTraits;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -106,7 +108,18 @@ public abstract class RelOptRule {
     }
     this.description = description;
     this.operands = flattenOperands(operand);
+    // When root operand have explicit trait, we assume it is good enough
+    // Otherwise the rule will try to deduce implicit traits from matching class and relbuilder
+    this.hasImplicitTraits = operand.getMatchedTrait() == null;
     assignSolveOrder();
+  }
+
+  public void matchAnyTraitSet() {
+    hasImplicitTraits = false;
+  }
+
+  public boolean hasImplicitTraits() {
+    return hasImplicitTraits;
   }
 
   //~ Methods for creating operands ------------------------------------------

@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreter;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.interpreter.Bindables;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -77,7 +78,7 @@ public abstract class FilterTableScanRule extends RelOptRule {
               operand(EnumerableInterpreter.class,
                   operandJ(TableScan.class, null, FilterTableScanRule::test,
                       none()))),
-          RelFactories.LOGICAL_BUILDER,
+          EnumerableRules.REL_BUILDER_FACTORY,
           "FilterTableScanRule:interpreter") {
         public void onMatch(RelOptRuleCall call) {
           final Filter filter = call.rel(0);

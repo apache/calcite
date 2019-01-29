@@ -55,7 +55,11 @@ import java.util.TreeSet;
  */
 public class AggregateProjectMergeRule extends RelOptRule {
   public static final AggregateProjectMergeRule INSTANCE =
-      new AggregateProjectMergeRule(Aggregate.class, Project.class, RelFactories.LOGICAL_BUILDER);
+      new AggregateProjectMergeRule(RelFactories.LOGICAL_BUILDER);
+
+  public AggregateProjectMergeRule(RelBuilderFactory relBuilderFactory) {
+    this(Aggregate.class, Project.class, relBuilderFactory);
+  }
 
   public AggregateProjectMergeRule(
       Class<? extends Aggregate> aggregateClass,

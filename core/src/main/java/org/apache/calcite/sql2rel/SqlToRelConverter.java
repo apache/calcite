@@ -3034,7 +3034,7 @@ public class SqlToRelConverter {
   }
 
   protected RelNode decorrelateQuery(RelNode rootRel) {
-    return RelDecorrelator.decorrelateQuery(rootRel, relBuilder);
+    return RelDecorrelator.decorrelateQuery(rootRel, config.getRelBuilderFactory());
   }
 
   /**

@@ -140,6 +140,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
   //~ Instance fields --------------------------------------------------------
 
   private final RelBuilder relBuilder;
+  private final RelBuilderFactory relBuilderFactory;
 
   // map built during translation
   private CorelMap cm;
@@ -165,9 +166,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
   private RelDecorrelator(
       CorelMap cm,
       Context context,
+      RelBuilderFactory relBuilderFactory,
       RelBuilder relBuilder) {
     this.cm = cm;
     this.context = context;
+    this.relBuilderFactory = relBuilderFactory;
     this.relBuilder = relBuilder;
   }
 
@@ -175,9 +178,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   @Deprecated // to be removed before 2.0
   public static RelNode decorrelateQuery(RelNode rootRel) {
-    final RelBuilder relBuilder =
-        RelFactories.LOGICAL_BUILDER.create(rootRel.getCluster(), null);
-    return decorrelateQuery(rootRel, relBuilder);
+    return decorrelateQuery(rootRel, RelFactories.LOGICAL_BUILDER);
   }
 
   /** Decorrelates a query.
@@ -192,15 +193,31 @@ public class RelDecorrelator implements ReflectiveVisitor {
    */
   public static RelNode decorrelateQuery(RelNode rootRel,
       RelBuilder relBuilder) {
+    return decorrelateQuery(rootRel, (cluster, context) -> relBuilder);
+  }
+
+  /** Decorrelates a query.
+   *
+   * <p>This is the main entry point to {@code RelDecorrelator}.
+   *
+   * @param rootRel           Root node of the query
+   * @param relBuilderFactory BuilderFactory for relational expressions
+   *
+   * @return Equivalent query with all
+   * {@link org.apache.calcite.rel.logical.LogicalCorrelate} instances removed
+   */
+  public static RelNode decorrelateQuery(RelNode rootRel,
+      RelBuilderFactory relBuilderFactory) {
     final CorelMap corelMap = new CorelMapBuilder().build(rootRel);
     if (!corelMap.hasCorrelation()) {
       return rootRel;
     }
 
     final RelOptCluster cluster = rootRel.getCluster();
+    final RelBuilder relBuilder = relBuilderFactory.create(rootRel.getCluster(), null);
     final RelDecorrelator decorrelator =
         new RelDecorrelator(corelMap,
-            cluster.getPlanner().getContext(), relBuilder);
+            cluster.getPlanner().getContext(), relBuilderFactory, relBuilder);
 
     RelNode newRootRel = decorrelator.removeCorrelationViaRule(rootRel);
 
@@ -224,13 +241,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
   }
 
-  private RelBuilderFactory relBuilderFactory() {
-    return RelBuilder.proto(relBuilder);
-  }
-
   private RelNode decorrelate(RelNode root) {
     // first adjust count() expression if any
-    final RelBuilderFactory f = relBuilderFactory();
+    final RelBuilderFactory f = relBuilderFactory;
     HepProgram program = HepProgram.builder()
         .addRuleInstance(new AdjustProjectForCountAggregateRule(false, f))
         .addRuleInstance(new AdjustProjectForCountAggregateRule(true, f))
@@ -308,7 +321,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
   }
 
   public RelNode removeCorrelationViaRule(RelNode root) {
-    final RelBuilderFactory f = relBuilderFactory();
+    final RelBuilderFactory f = relBuilderFactory;
     HepProgram program = HepProgram.builder()
         .addRuleInstance(new RemoveSingleAggregateRule(f))
         .addRuleInstance(new RemoveCorrelationForScalarProjectRule(f))

@@ -520,7 +520,8 @@ public class VolcanoPlannerTraitTest {
     }
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      assert traitSet.comprises(EnumerableConvention.INSTANCE);
+      assert traitSet.comprises(EnumerableConvention.INSTANCE)
+          : traitSet.toString() + " should be just ENUMERABLE";
       return new IterSingleRel(
           getCluster(),
           sole(inputs));
@@ -718,7 +719,8 @@ public class VolcanoPlannerTraitTest {
     IterSinglePhysMergeRule() {
       super(
           operand(IterSingleRel.class,
-              operand(PhysToIteratorConverter.class, any())));
+              EnumerableConvention.INSTANCE,
+              some(operand(PhysToIteratorConverter.class, any()))));
     }
 
     @Override public void onMatch(RelOptRuleCall call) {

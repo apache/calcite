@@ -63,6 +63,13 @@ public class AggregateRemoveRule extends RelOptRule {
         relBuilderFactory, null);
   }
 
+  /**
+   * Creates an AggregateRemoveRule.
+   */
+  public AggregateRemoveRule(RelBuilderFactory relBuilderFactory) {
+    this(Aggregate.class, relBuilderFactory);
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {

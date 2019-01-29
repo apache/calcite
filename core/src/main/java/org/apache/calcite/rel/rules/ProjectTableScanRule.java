@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreter;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.interpreter.Bindables;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -75,7 +76,7 @@ public abstract class ProjectTableScanRule extends RelOptRule {
               operand(EnumerableInterpreter.class,
                   operandJ(TableScan.class, null, ProjectTableScanRule::test,
                       none()))),
-          RelFactories.LOGICAL_BUILDER,
+          EnumerableRules.REL_BUILDER_FACTORY,
           "ProjectScanRule:interpreter") {
         @Override public void onMatch(RelOptRuleCall call) {
           final Project project = call.rel(0);

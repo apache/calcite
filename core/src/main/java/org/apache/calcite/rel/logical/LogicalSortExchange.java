@@ -30,7 +30,7 @@ import org.apache.calcite.rel.core.SortExchange;
  * Sub-class of {@link org.apache.calcite.rel.core.SortExchange} not
  * targeted at any particular engine or calling convention.
  */
-public class LogicalSortExchange extends SortExchange {
+public class LogicalSortExchange extends SortExchange implements LogicalRel {
   private LogicalSortExchange(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RelDistribution distribution, RelCollation collation) {
     super(cluster, traitSet, input, distribution, collation);

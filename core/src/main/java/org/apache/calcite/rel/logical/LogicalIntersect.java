@@ -30,7 +30,7 @@ import java.util.List;
  * Sub-class of {@link org.apache.calcite.rel.core.Intersect}
  * not targeted at any particular engine or calling convention.
  */
-public final class LogicalIntersect extends Intersect {
+public final class LogicalIntersect extends Intersect implements LogicalRel {
   //~ Constructors -----------------------------------------------------------
 
   /**

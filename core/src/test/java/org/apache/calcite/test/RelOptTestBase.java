@@ -33,7 +33,6 @@ import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql2rel.RelDecorrelator;
-import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Closer;
 
 import com.google.common.collect.ImmutableList;
@@ -208,9 +207,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
       final String planMid = NL + RelOptUtil.toString(r);
       diffRepos.assertEquals("planMid", "${planMid}", planMid);
       SqlToRelTestBase.assertValid(r);
-      final RelBuilder relBuilder =
-          RelFactories.LOGICAL_BUILDER.create(cluster, null);
-      r = RelDecorrelator.decorrelateQuery(r, relBuilder);
+      r = RelDecorrelator.decorrelateQuery(r, RelFactories.LOGICAL_BUILDER);
     }
     final String planAfter = NL + RelOptUtil.toString(r);
     if (unchanged) {

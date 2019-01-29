@@ -500,13 +500,14 @@ from
 !ok
 
 # NTH_VALUE
+select * from (
 select emp."ENAME", emp."DEPTNO",
- nth_value(emp."DEPTNO", 1) over() as "first_value",
- nth_value(emp."DEPTNO", 2) over() as "second_value",
- nth_value(emp."DEPTNO", 5) over() as "fifth_value",
- nth_value(emp."DEPTNO", 8) over() as "eighth_value",
- nth_value(emp."DEPTNO", 10) over() as "tenth_value"
-from emp order by emp."ENAME";
+ nth_value(emp."DEPTNO", 1) over( order by emp."DEPTNO") as "first_value",
+ nth_value(emp."DEPTNO", 2) over( order by emp."DEPTNO") as "second_value",
+ nth_value(emp."DEPTNO", 5) over( order by emp."DEPTNO") as "fifth_value",
+ nth_value(emp."DEPTNO", 8) over( order by emp."DEPTNO") as "eighth_value",
+ nth_value(emp."DEPTNO", 10) over( order by emp."DEPTNO") as "tenth_value"
+from emp) emp order by emp."ENAME";
 +-------+--------+-------------+--------------+-------------+--------------+-------------+
 | ENAME | DEPTNO | first_value | second_value | fifth_value | eighth_value | tenth_value |
 +-------+--------+-------------+--------------+-------------+--------------+-------------+

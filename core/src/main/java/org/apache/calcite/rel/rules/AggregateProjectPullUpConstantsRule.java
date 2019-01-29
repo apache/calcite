@@ -22,9 +22,8 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.logical.LogicalAggregate;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -62,23 +61,28 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
 
   /** The singleton. */
   public static final AggregateProjectPullUpConstantsRule INSTANCE =
-      new AggregateProjectPullUpConstantsRule(LogicalAggregate.class,
-          LogicalProject.class, RelFactories.LOGICAL_BUILDER,
+      new AggregateProjectPullUpConstantsRule(
+          Project.class, RelFactories.LOGICAL_BUILDER,
           "AggregateProjectPullUpConstantsRule");
 
   /** More general instance that matches any relational expression. */
   public static final AggregateProjectPullUpConstantsRule INSTANCE2 =
-      new AggregateProjectPullUpConstantsRule(LogicalAggregate.class,
+      new AggregateProjectPullUpConstantsRule(
           RelNode.class, RelFactories.LOGICAL_BUILDER,
           "AggregatePullUpConstantsRule");
 
   //~ Constructors -----------------------------------------------------------
 
+  public AggregateProjectPullUpConstantsRule(Class<? extends RelNode> inputClass,
+      RelBuilderFactory relBuilderFactory, String description) {
+    this(Aggregate.class, inputClass, relBuilderFactory, description);
+  }
+
   /**
    * Creates an AggregateProjectPullUpConstantsRule.
    *
    * @param aggregateClass Aggregate class
-   * @param inputClass Input class, such as {@link LogicalProject}
+   * @param inputClass Input class, such as {@link Project}
    * @param relBuilderFactory Builder for relational expressions
    * @param description Description, or null to guess description
    */

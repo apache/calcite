@@ -525,6 +525,7 @@ public class VolcanoPlannerTest {
 
     SubsetRule(List<String> buf) {
       super(operand(TestSingleRel.class, operand(RelSubset.class, any())));
+      matchAnyTraitSet();
       this.buf = buf;
     }
 

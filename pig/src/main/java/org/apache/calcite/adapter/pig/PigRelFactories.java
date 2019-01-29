@@ -20,6 +20,7 @@ import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -38,7 +39,8 @@ import java.util.Set;
 public class PigRelFactories {
 
   public static final Context ALL_PIG_REL_FACTORIES =
-      Contexts.of(PigTableScanFactory.INSTANCE,
+      Contexts.of(RelTraitSet.createEmpty().plus(PigRel.CONVENTION),
+          PigTableScanFactory.INSTANCE,
           PigFilterFactory.INSTANCE,
           PigAggregateFactory.INSTANCE,
           PigJoinFactory.INSTANCE);

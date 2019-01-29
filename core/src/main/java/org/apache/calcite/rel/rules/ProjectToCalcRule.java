@@ -19,9 +19,9 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalCalc;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -53,13 +53,13 @@ public class ProjectToCalcRule extends RelOptRule {
    * @param relBuilderFactory Builder for relational expressions
    */
   public ProjectToCalcRule(RelBuilderFactory relBuilderFactory) {
-    super(operand(LogicalProject.class, any()), relBuilderFactory, null);
+    super(operand(Project.class, any()), relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    final LogicalProject project = call.rel(0);
+    final Project project = call.rel(0);
     final RelNode input = project.getInput();
     final RexProgram program =
         RexProgram.create(
@@ -68,6 +68,7 @@ public class ProjectToCalcRule extends RelOptRule {
             null,
             project.getRowType(),
             project.getCluster().getRexBuilder());
+    // There's no support for Calc in relBuilder yet :(
     final LogicalCalc calc = LogicalCalc.create(input, program);
     call.transformTo(calc);
   }

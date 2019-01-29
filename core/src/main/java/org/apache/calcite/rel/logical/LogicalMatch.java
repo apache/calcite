@@ -34,7 +34,7 @@ import java.util.SortedSet;
  * Sub-class of {@link Match}
  * not targeted at any particular engine or calling convention.
  */
-public class LogicalMatch extends Match {
+public class LogicalMatch extends Match implements LogicalRel {
 
   /**
    * Creates a LogicalMatch.

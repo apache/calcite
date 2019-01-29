@@ -40,7 +40,7 @@ import java.util.List;
  * <li>{@link org.apache.calcite.rel.rules.AggregateReduceFunctionsRule}.
  * </ul>
  */
-public final class LogicalAggregate extends Aggregate {
+public final class LogicalAggregate extends Aggregate implements LogicalRel {
   //~ Constructors -----------------------------------------------------------
 
   /**

@@ -30,7 +30,7 @@ import java.util.List;
  * Sub-class of {@link org.apache.calcite.rel.core.Union}
  * not targeted at any particular engine or calling convention.
  */
-public final class LogicalUnion extends Union {
+public final class LogicalUnion extends Union implements LogicalRel {
   //~ Constructors -----------------------------------------------------------
 
   /**

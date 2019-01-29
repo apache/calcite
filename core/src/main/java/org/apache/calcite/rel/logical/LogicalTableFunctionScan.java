@@ -37,7 +37,7 @@ import java.util.Set;
  * Sub-class of {@link org.apache.calcite.rel.core.TableFunctionScan}
  * not targeted at any particular engine or calling convention.
  */
-public class LogicalTableFunctionScan extends TableFunctionScan {
+public class LogicalTableFunctionScan extends TableFunctionScan implements LogicalRel {
   //~ Constructors -----------------------------------------------------------
 
   /**

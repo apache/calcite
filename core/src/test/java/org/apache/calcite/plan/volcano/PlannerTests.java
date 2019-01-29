@@ -17,6 +17,7 @@
 package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.ImplicitTrait;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -34,6 +35,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * Common classes and utility methods for Volcano planner tests.
@@ -56,6 +58,13 @@ class PlannerTests {
           return true;
         }
       };
+
+  /** Returns Convention.NONE. © Captain Obvious */
+  public static class PhysConventionFactory implements Supplier<Convention> {
+    @Override public Convention get() {
+      return PHYS_CALLING_CONVENTION;
+    }
+  }
 
   static RelOptCluster newCluster(VolcanoPlanner planner) {
     final RelDataTypeFactory typeFactory =
@@ -131,6 +140,7 @@ class PlannerTests {
   }
 
   /** Relational expression with zero inputs and convention PHYS. */
+  @ImplicitTrait(PhysConventionFactory.class)
   static class PhysLeafRel extends TestLeafRel {
     PhysLeafRel(RelOptCluster cluster, String label) {
       super(cluster, cluster.traitSetOf(PHYS_CALLING_CONVENTION), label);
@@ -149,6 +159,7 @@ class PlannerTests {
   }
 
   /** Relational expression with one input and convention PHYS. */
+  @ImplicitTrait(PhysConventionFactory.class)
   static class PhysSingleRel extends TestSingleRel {
     PhysSingleRel(RelOptCluster cluster, RelNode input) {
       super(cluster, cluster.traitSetOf(PHYS_CALLING_CONVENTION), input);

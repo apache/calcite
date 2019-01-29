@@ -56,7 +56,7 @@ import java.util.Objects;
  * Sub-class of {@link org.apache.calcite.rel.core.Window}
  * not targeted at any particular engine or calling convention.
  */
-public final class LogicalWindow extends Window {
+public final class LogicalWindow extends Window implements LogicalRel {
   /**
    * Creates a LogicalWindow.
    *

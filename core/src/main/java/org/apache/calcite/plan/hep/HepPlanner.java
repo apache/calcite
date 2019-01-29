@@ -143,6 +143,20 @@ public class HepPlanner extends AbstractRelOptPlanner {
       RelOptCostFactory costFactory) {
     super(costFactory, context);
     this.mainProgram = program;
+    for (HepInstruction instruction : program.instructions) {
+      if (instruction instanceof HepInstruction.RuleInstance) {
+        HepInstruction.RuleInstance ruleInstance = (HepInstruction.RuleInstance) instruction;
+        RelOptRule rule = ruleInstance.rule;
+        // null is possible for #addRuleByDescription
+        if (rule != null) {
+          verifyRule(rule);
+        }
+      } else if (instruction instanceof HepInstruction.RuleCollection) {
+        for (RelOptRule rule : ((HepInstruction.RuleCollection) instruction).rules) {
+          verifyRule(rule);
+        }
+      }
+    }
     this.onCopyHook = Util.first(onCopyHook, Functions.ignore2());
     this.noDag = noDag;
   }

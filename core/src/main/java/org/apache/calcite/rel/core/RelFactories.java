@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.core;
 
 import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
@@ -103,7 +104,9 @@ public class RelFactories {
    * create logical relational expressions for everything. */
   public static final RelBuilderFactory LOGICAL_BUILDER =
       RelBuilder.proto(
-          Contexts.of(DEFAULT_PROJECT_FACTORY,
+          Contexts.of(
+              RelTraitSet.createEmpty().plus(Convention.NONE),
+              DEFAULT_PROJECT_FACTORY,
               DEFAULT_FILTER_FACTORY,
               DEFAULT_JOIN_FACTORY,
               DEFAULT_SEMI_JOIN_FACTORY,

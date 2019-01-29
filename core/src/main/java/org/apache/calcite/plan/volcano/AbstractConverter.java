@@ -111,6 +111,7 @@ public class AbstractConverter extends ConverterImpl {
      */
     public ExpandConversionRule(RelBuilderFactory relBuilderFactory) {
       super(operand(AbstractConverter.class, any()), relBuilderFactory, null);
+      matchAnyTraitSet();
     }
 
     public void onMatch(RelOptRuleCall call) {

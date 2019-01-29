@@ -17,16 +17,28 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.linq4j.tree.BlockStatement;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.ImplicitTrait;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
+
+import java.util.function.Supplier;
 
 /**
  * A relational expression of one of the
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention} calling
  * conventions.
  */
+@ImplicitTrait(EnumerableRel.ConventionFactory.class)
 public interface EnumerableRel
     extends RelNode {
+  /** Returns EnumerableConvention.INSTANCE. © Captain Obvious */
+  class ConventionFactory implements Supplier<Convention> {
+    @Override public Convention get() {
+      return EnumerableConvention.INSTANCE;
+    }
+  }
+
   RelFactories.FilterFactory FILTER_FACTORY = EnumerableFilter::create;
 
   RelFactories.ProjectFactory PROJECT_FACTORY = EnumerableProject::create;

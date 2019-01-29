@@ -41,7 +41,7 @@ import org.apache.calcite.util.Litmus;
  *
  * @see org.apache.calcite.rel.core.CorrelationId
  */
-public final class LogicalCorrelate extends Correlate {
+public final class LogicalCorrelate extends Correlate implements LogicalRel {
   //~ Instance fields --------------------------------------------------------
 
   //~ Constructors -----------------------------------------------------------

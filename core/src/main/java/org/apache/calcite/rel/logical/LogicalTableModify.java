@@ -31,7 +31,7 @@ import java.util.List;
  * Sub-class of {@link org.apache.calcite.rel.core.TableModify}
  * not targeted at any particular engine or calling convention.
  */
-public final class LogicalTableModify extends TableModify {
+public final class LogicalTableModify extends TableModify implements LogicalRel {
   //~ Constructors -----------------------------------------------------------
 
   /**

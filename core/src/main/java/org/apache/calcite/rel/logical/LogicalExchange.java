@@ -30,7 +30,7 @@ import org.apache.calcite.rel.core.Exchange;
  * Sub-class of {@link Exchange} not
  * targeted at any particular engine or calling convention.
  */
-public final class LogicalExchange extends Exchange {
+public final class LogicalExchange extends Exchange implements LogicalRel {
   private LogicalExchange(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RelDistribution distribution) {
     super(cluster, traitSet, input, distribution);

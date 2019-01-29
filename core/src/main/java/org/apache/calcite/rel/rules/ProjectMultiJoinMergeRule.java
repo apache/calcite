@@ -41,6 +41,8 @@ public class ProjectMultiJoinMergeRule extends RelOptRule {
   /** Creates a ProjectMultiJoinMergeRule. */
   public ProjectMultiJoinMergeRule(RelBuilderFactory relBuilderFactory) {
     super(
+        // org.apache.calcite.plan.RelOptUtil.projectMultiJoin requires LogicalProject
+        // for some reason
         operand(LogicalProject.class,
             operand(MultiJoin.class, any())), relBuilderFactory, null);
   }

@@ -56,7 +56,7 @@ import java.util.List;
  * <p>can. It is the optimizer's responsibility to find these ways, by applying
  * transformation rules.</p>
  */
-public final class LogicalTableScan extends TableScan {
+public final class LogicalTableScan extends TableScan implements LogicalRel {
   //~ Constructors -----------------------------------------------------------
 
   /**

@@ -60,10 +60,14 @@ public class AggregateFilterTransposeRule extends RelOptRule {
       new AggregateFilterTransposeRule();
 
   private AggregateFilterTransposeRule() {
+    this(RelFactories.LOGICAL_BUILDER);
+  }
+
+  private AggregateFilterTransposeRule(RelBuilderFactory relBuilderFactory) {
     this(
         operand(Aggregate.class,
             operand(Filter.class, any())),
-        RelFactories.LOGICAL_BUILDER);
+        relBuilderFactory);
   }
 
   /** Creates an AggregateFilterTransposeRule. */

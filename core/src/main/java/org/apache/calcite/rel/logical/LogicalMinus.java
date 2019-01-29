@@ -30,7 +30,7 @@ import java.util.List;
  * Sub-class of {@link org.apache.calcite.rel.core.Minus}
  * not targeted at any particular engine or calling convention.
  */
-public final class LogicalMinus extends Minus {
+public final class LogicalMinus extends Minus implements LogicalRel {
   //~ Constructors -----------------------------------------------------------
 
   /**

@@ -21,6 +21,7 @@ import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexExecutor;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.CancelFlag;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -317,6 +318,13 @@ public interface RelOptPlanner {
    * @param node Relational expression
    */
   void registerClass(RelNode node);
+
+  /**
+   * Returns implicit traits for the rule. Implicit traits come from matching class
+   * (or its superclass or its interfaces) via {@link ImplicitTrait} annotation, then
+   * from {@link RelBuilderFactory#getImplicitTraits()}.
+   */
+  RelTraitSet getImplicitTraits(RelOptRule rule);
 
   /**
    * Creates an empty trait set. It contains all registered traits, and the

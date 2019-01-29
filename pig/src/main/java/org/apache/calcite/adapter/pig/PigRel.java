@@ -17,15 +17,24 @@
 package org.apache.calcite.adapter.pig;
 
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.ImplicitTrait;
 import org.apache.calcite.rel.RelNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * Relational expression that uses the Pig calling convention.
  */
+@ImplicitTrait(PigRel.ConventionFactory.class)
 public interface PigRel extends RelNode {
+  /** Returns PigRel.CONVENTION. © Captain Obvious */
+  class ConventionFactory implements Supplier<Convention> {
+    @Override public Convention get() {
+      return CONVENTION;
+    }
+  }
 
   /**
    * Converts this node to a Pig Latin statement.

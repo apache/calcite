@@ -39,7 +39,7 @@ import java.util.List;
  * Sub-class of {@link org.apache.calcite.rel.core.Project} not
  * targeted at any particular engine or calling convention.
  */
-public final class LogicalProject extends Project {
+public final class LogicalProject extends Project implements LogicalRel {
   //~ Constructors -----------------------------------------------------------
 
   /**

@@ -52,7 +52,7 @@ import java.util.Set;
  *
  * </ul>
  */
-public final class LogicalJoin extends Join {
+public final class LogicalJoin extends Join implements LogicalRel {
   //~ Instance fields --------------------------------------------------------
 
   // NOTE jvs 14-Mar-2006:  Normally we don't use state like this

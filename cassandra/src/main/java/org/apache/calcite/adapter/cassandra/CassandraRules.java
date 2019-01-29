@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.cassandra;
 
 import org.apache.calcite.adapter.enumerable.EnumerableLimit;
+import org.apache.calcite.adapter.enumerable.EnumerableSort;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
@@ -272,7 +273,7 @@ public class CassandraRules {
 
     private CassandraSortRule() {
       super(
-          operandJ(Sort.class, null,
+          operandJ(EnumerableSort.class, null,
               // Limits are handled by CassandraLimit
               sort -> sort.offset == null && sort.fetch == null, CASSANDRA_OP),
           "CassandraSortRule");

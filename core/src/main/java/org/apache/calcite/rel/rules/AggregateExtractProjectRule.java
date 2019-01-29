@@ -62,6 +62,7 @@ public class AggregateExtractProjectRule extends RelOptRule {
     // Predicate prevents matching against an Aggregate whose input
     // is already a Project. Prevents this rule firing repeatedly.
     this(
+        // TODO: consider if inputClass customization is required
         operand(aggregateClass,
             operandJ(inputClass, null, r -> !(r instanceof Project), any())),
         relBuilderFactory);

@@ -18,7 +18,6 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
@@ -40,8 +39,7 @@ public final class JoinExtractFilterRule extends AbstractJoinExtractFilterRule {
 
   /** The singleton. */
   public static final JoinExtractFilterRule INSTANCE =
-      new JoinExtractFilterRule(LogicalJoin.class,
-          RelFactories.LOGICAL_BUILDER);
+      new JoinExtractFilterRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -51,6 +49,13 @@ public final class JoinExtractFilterRule extends AbstractJoinExtractFilterRule {
   public JoinExtractFilterRule(Class<? extends Join> clazz,
       RelBuilderFactory relBuilderFactory) {
     super(operand(clazz, any()), relBuilderFactory, null);
+  }
+
+  /**
+   * Creates a JoinExtractFilterRule.
+   */
+  public JoinExtractFilterRule(RelBuilderFactory relBuilderFactory) {
+    this(Join.class, relBuilderFactory);
   }
 
   //~ Methods ----------------------------------------------------------------

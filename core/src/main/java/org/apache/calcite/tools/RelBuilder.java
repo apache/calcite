@@ -20,11 +20,13 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistribution;
@@ -239,11 +241,22 @@ public class RelBuilder {
   /** Creates a {@link RelBuilderFactory}, a partially-created RelBuilder.
    * Just add a {@link RelOptCluster} and a {@link RelOptSchema} */
   public static RelBuilderFactory proto(final Context context) {
-    return (cluster, schema) -> new RelBuilder(context, cluster, schema);
+    return new RelBuilderFactory() {
+      @Override public RelBuilder create(RelOptCluster cluster, RelOptSchema schema) {
+        return new RelBuilder(context, cluster, schema);
+      }
+
+      @Override public RelTraitSet getImplicitTraits() {
+        return context.unwrap(RelTraitSet.class);
+      }
+    };
   }
 
   /** Creates a {@link RelBuilderFactory} that uses a given set of factories. */
   public static RelBuilderFactory proto(Object... factories) {
+    if (factories.length == 0) {
+      return proto(Contexts.of(RelTraitSet.createEmpty().plus(Convention.NONE)));
+    }
     return proto(Contexts.of(factories));
   }
 
