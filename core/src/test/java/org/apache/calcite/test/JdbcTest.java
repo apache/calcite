@@ -6980,6 +6980,36 @@ public class JdbcTest {
     }
   }
 
+  public static class HierarchySchema {
+    @Override public String toString() {
+      return "HierarchySchema";
+    }
+
+    public final Employee[] emps = {
+            new Employee(1, 10, "Emp1", 10000, 1000),
+            new Employee(2, 10, "Emp2", 8000, 500),
+            new Employee(3, 10, "Emp3", 7000, null),
+            new Employee(4, 10, "Emp4", 8000, 500),
+            new Employee(5, 10, "Emp5", 7000, null),
+    };
+    public final Department[] depts = {
+            new Department(10, "Dept", Arrays.asList(emps[0], emps[1], emps[2], emps[3], emps[4]),
+                    new Location(-122, 38)),
+    };
+
+    //      Emp1
+    //      /  \
+    //    Emp2  Emp4
+    //    /  \
+    // Emp3   Emp5
+    public final Hierarchy[] hierarchies = {
+      new Hierarchy(1, 2),
+      new Hierarchy(2, 3),
+      new Hierarchy(2, 5),
+      new Hierarchy(1, 4),
+    };
+  }
+
   public static class Employee {
     public final int empid;
     public final int deptno;
@@ -7075,6 +7105,27 @@ public class JdbcTest {
           || obj instanceof Dependent
           && empid == ((Dependent) obj).empid
           && Objects.equals(name, ((Dependent) obj).name);
+    }
+  }
+
+  public static class Hierarchy {
+    public final int managerid;
+    public final int subordinateid;
+
+    public Hierarchy(int managerid, int subordinateid) {
+      this.managerid = managerid;
+      this.subordinateid = subordinateid;
+    }
+
+    @Override public String toString() {
+      return "Hierarchy [managerid: " + managerid + ", subordinateid: " + subordinateid + "]";
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof Hierarchy
+          && managerid == ((Hierarchy) obj).managerid
+          && subordinateid == ((Hierarchy) obj).subordinateid;
     }
   }
 

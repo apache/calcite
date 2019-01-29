@@ -25,6 +25,7 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistribution;
@@ -44,12 +45,16 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.Spool;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalRepeatUnion;
+import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.logical.LogicalTableSpool;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -68,6 +73,7 @@ import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.TransientTable;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -1703,6 +1709,61 @@ public class RelBuilder {
    */
   public RelBuilder minus(boolean all, int n) {
     return setOp(all, SqlKind.EXCEPT, n);
+  }
+
+  /**
+   * Creates a {@link LogicalTableScan} on a {@link TransientTable} (used e.g. to accumulate
+   * results in repeat union operation), using as its row type the top of the stack's row type.
+   * Returns this builder.
+   */
+  @Experimental
+  public RelBuilder transientScan(String tableName) {
+    return this.transientScan(tableName, this.peek().getRowType());
+  }
+
+  /**
+   * Creates a {@link LogicalTableScan} on a {@link TransientTable} (used e.g. to accumulate
+   * results in repeat union operation).
+   * Returns this builder.
+   * @param tableName table name
+   * @param rowType row type of the table
+   */
+  @Experimental
+  public RelBuilder transientScan(String tableName, RelDataType rowType) {
+    TransientTable transientTable = new TransientTable(tableName, rowType);
+    RelOptTable relOptTable = RelOptTableImpl.create(
+        relOptSchema,
+        rowType,
+        transientTable,
+        ImmutableList.of(tableName));
+    RelNode scan = scanFactory.createScan(cluster, relOptTable);
+    push(scan);
+    rename(rowType.getFieldNames());
+    return this;
+  }
+
+  /**
+   * Creates a {@link LogicalRepeatUnion} with no maxRep, i.e. repeatUnion(tableName, -1).
+   * @param tableName transient table name associated to the repeat union
+   */
+  @Experimental
+  public RelBuilder repeatUnion(String tableName) {
+    return this.repeatUnion(tableName, -1);
+  }
+
+  /**
+   * Creates a {@link LogicalRepeatUnion} of the two most recent relational expressions
+   * on the stack. Warning: if these relational expressions are not correctly defined,
+   * this operation might lead to an infinite loop.
+   * Returns this builder.
+   * @param tableName transient table name associated to the repeat union
+   * @param maxRep maximum number of iterations, -1 means no limit
+   */
+  @Experimental
+  public RelBuilder repeatUnion(String tableName, int maxRep) {
+    RelNode iter = LogicalTableSpool.create(build(), Spool.Type.LAZY, Spool.Type.LAZY, tableName);
+    RelNode seed = LogicalTableSpool.create(build(), Spool.Type.LAZY, Spool.Type.LAZY, tableName);
+    return this.push(LogicalRepeatUnion.create(seed, iter, maxRep));
   }
 
   /** Creates a {@link Join}. */
