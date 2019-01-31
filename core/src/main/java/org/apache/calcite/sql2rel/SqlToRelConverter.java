@@ -789,9 +789,9 @@ public class SqlToRelConverter {
       List<SqlNode> orderExprList,
       SqlNode offset,
       SqlNode fetch) {
-    if (select.getOrderList() == null
+    if (!bb.top || select.getOrderList() == null
         || select.getOrderList().getList().isEmpty()) {
-      assert collation.getFieldCollations().isEmpty();
+      assert !bb.top || collation.getFieldCollations().isEmpty();
       if ((offset == null
             || (offset instanceof SqlLiteral
                 && ((SqlLiteral) offset).bigDecimalValue().equals(BigDecimal.ZERO)))
@@ -2944,6 +2944,17 @@ public class SqlToRelConverter {
     if (orderList == null) {
       return;
     }
+
+    if (!bb.top) {
+      SqlNode offset = select.getOffset();
+      if ((offset == null
+          || (offset instanceof SqlLiteral
+          && ((SqlLiteral) offset).bigDecimalValue().equals(BigDecimal.ZERO)))
+          && select.getFetch() == null) {
+        return;
+      }
+    }
+
     for (SqlNode orderItem : orderList) {
       collationList.add(
           convertOrderItem(select, orderItem, extraOrderExprs,

@@ -81,7 +81,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
 import org.hamcrest.Matcher;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -437,7 +436,7 @@ public class PlannerTest {
 
   /** Unit test that parses, validates, converts and
    * plans for query using two duplicate order by.
-   * The duplicate order by should be removed by SortRemoveRule. */
+   * The duplicate order by should be removed by SqlToRelConverter. */
   @Test public void testDuplicateSortPlan() throws Exception {
     runDuplicateSortCheck(
         "select empid from ( "
@@ -445,28 +444,26 @@ public class PlannerTest {
         + "from emps "
         + "order by emps.deptno) "
         + "order by deptno",
-        "EnumerableProject(empid=[$0], deptno=[$1])\n"
-        + "  EnumerableSort(sort0=[$1], dir0=[ASC])\n"
-        + "    EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
-        + "      EnumerableTableScan(table=[[hr, emps]])\n");
+        "EnumerableSort(sort0=[$1], dir0=[ASC])\n"
+        + "  EnumerableProject(empid=[$0], deptno=[$1])\n"
+        + "    EnumerableTableScan(table=[[hr, emps]])\n");
   }
 
   /** Unit test that parses, validates, converts and
    * plans for query using two duplicate order by.
-   * The duplicate order by should be removed by SortRemoveRule*/
+   * The duplicate order by should be removed by SqlToRelConverter. */
   @Test public void testDuplicateSortPlanWithExpr() throws Exception {
     runDuplicateSortCheck("select empid+deptno from ( "
         + "select empid, deptno "
         + "from emps "
         + "order by emps.deptno) "
         + "order by deptno",
-        "EnumerableProject(EXPR$0=[+($0, $1)], deptno=[$1])\n"
-        + "  EnumerableSort(sort0=[$1], dir0=[ASC])\n"
-        + "    EnumerableProject(empid=[$0], deptno=[$1])\n"
-        + "      EnumerableTableScan(table=[[hr, emps]])\n");
+        "EnumerableSort(sort0=[$1], dir0=[ASC])\n"
+        + "  EnumerableProject(EXPR$0=[+($0, $1)], deptno=[$1])\n"
+        + "    EnumerableTableScan(table=[[hr, emps]])\n");
   }
 
-  @Test public void testTwoSortDontRemove() throws Exception {
+  @Test public void testTwoSortRemoveInnerSort() throws Exception {
     runDuplicateSortCheck("select empid+deptno from ( "
         + "select empid, deptno "
         + "from emps "
@@ -474,16 +471,11 @@ public class PlannerTest {
         + "order by deptno",
         "EnumerableSort(sort0=[$1], dir0=[ASC])\n"
         + "  EnumerableProject(EXPR$0=[+($0, $1)], deptno=[$1])\n"
-        + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n"
-        + "      EnumerableProject(empid=[$0], deptno=[$1])\n"
-        + "        EnumerableTableScan(table=[[hr, emps]])\n");
+        + "    EnumerableTableScan(table=[[hr, emps]])\n");
   }
 
   /** Tests that outer order by is not removed since window function
    * might reorder the rows in-between */
-  @Ignore("Node [rel#22:Subset#3.ENUMERABLE.[2]] could not be implemented; planner state:\n"
-      + "\n"
-      + "Root: rel#22:Subset#3.ENUMERABLE.[2]")
   @Test public void testDuplicateSortPlanWithOver() throws Exception {
     runDuplicateSortCheck("select emp_cnt, empid+deptno from ( "
         + "select empid, deptno, count(*) over (partition by deptno) emp_cnt from ( "
@@ -492,14 +484,10 @@ public class PlannerTest {
         + "   order by emps.deptno) "
         + ")"
         + "order by deptno",
-        "EnumerableProject(EXPR$0=[$0])\n"
-        + "  EnumerableSort(sort0=[$1], dir0=[ASC])\n"
-        + "    EnumerableProject(EXPR$0=[+($0, $1)], deptno=[$1])\n"
-        + "      EnumerableProject(empid=[$0], deptno=[$1], $2=[$2])\n"
-        + "        EnumerableWindow(window#0=[window(partition {1} order by [] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [COUNT()])])\n"
-        + "          EnumerableSort(sort0=[$1], dir0=[ASC])\n"
-        + "            EnumerableProject(empid=[$0], deptno=[$1])\n"
-        + "              EnumerableTableScan(table=[[hr, emps]])\n");
+        "EnumerableSort(sort0=[$2], dir0=[ASC])\n"
+        + "  EnumerableProject(emp_cnt=[$5], EXPR$1=[+($0, $1)], deptno=[$1])\n"
+        + "    EnumerableWindow(window#0=[window(partition {1} order by [] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [COUNT()])])\n"
+        + "      EnumerableTableScan(table=[[hr, emps]])\n");
   }
 
   @Test public void testDuplicateSortPlanWithRemovedOver() throws Exception {
@@ -510,10 +498,9 @@ public class PlannerTest {
         + "   order by emps.deptno) "
         + ")"
         + "order by deptno",
-        "EnumerableProject(EXPR$0=[+($0, $1)], deptno=[$1])\n"
-        + "  EnumerableSort(sort0=[$1], dir0=[ASC])\n"
-        + "    EnumerableProject(empid=[$0], deptno=[$1])\n"
-        + "      EnumerableTableScan(table=[[hr, emps]])\n");
+        "EnumerableSort(sort0=[$1], dir0=[ASC])\n"
+        + "  EnumerableProject(EXPR$0=[+($0, $1)], deptno=[$1])\n"
+        + "    EnumerableTableScan(table=[[hr, emps]])\n");
   }
 
   // If proper "SqlParseException, ValidationException, RelConversionException"
@@ -566,9 +553,7 @@ public class PlannerTest {
     assertThat(toString(transform),
         equalTo("EnumerableSort(sort0=[$1], dir0=[ASC])\n"
             + "  EnumerableProject(empid=[$0], deptno=[$1])\n"
-            + "    EnumerableSort(sort0=[$1], dir0=[ASC])\n"
-            + "      EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
-            + "        EnumerableTableScan(table=[[hr, emps]])\n"));
+            + "    EnumerableTableScan(table=[[hr, emps]])\n"));
   }
 
   /** Unit test that parses, validates, converts and plans. Planner is
@@ -1188,9 +1173,7 @@ public class PlannerTest {
     assertThat(plan,
         equalTo("LogicalSort(sort0=[$0], dir0=[ASC])\n"
         + "  LogicalProject(psPartkey=[$0])\n"
-        + "    LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
-        + "      LogicalProject(psPartkey=[$0], psSupplyCost=[$1])\n"
-        + "        EnumerableTableScan(table=[[tpch, partsupp]])\n"));
+        + "    EnumerableTableScan(table=[[tpch, partsupp]])\n"));
   }
 
   /** Test case for
