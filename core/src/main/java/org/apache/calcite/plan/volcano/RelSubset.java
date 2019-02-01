@@ -28,8 +28,10 @@ import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -40,6 +42,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -412,6 +415,45 @@ public class RelSubset extends AbstractRelNode {
   //~ Inner Classes ----------------------------------------------------------
 
   /**
+   * Identifies the leaf-most non-implementable nodes.
+   */
+  static class DeadEndFinder {
+    final Set<RelSubset> deadEnds = new HashSet<>();
+    private final Set<RelNode> visitedNodes = new HashSet<>();
+
+    private void visit(RelNode p) {
+      if (!visitedNodes.add(p)) {
+        return;
+      }
+      if (!(p instanceof RelSubset)) {
+        for (RelNode oldInput : p.getInputs()) {
+          visit(oldInput);
+        }
+        return;
+      }
+      RelSubset subset = (RelSubset) p;
+      RelNode cheapest = subset.getBest();
+      if (cheapest != null) {
+        // Subset is implementable, and we are looking for bad ones, so stop here
+        return;
+      }
+
+      boolean isEmpty = true;
+      for (RelNode rel : subset.getRels()) {
+        if (rel instanceof AbstractConverter) {
+          // Converters are not implementable
+          continue;
+        }
+        isEmpty = false;
+        visit(rel);
+      }
+      if (isEmpty) {
+        deadEnds.add(subset);
+      }
+    }
+  }
+
+  /**
    * Visitor which walks over a tree of {@link RelSet}s, replacing each node
    * with the cheapest implementation of the expression.
    */
@@ -435,8 +477,48 @@ public class RelSubset extends AbstractRelNode {
           // out why we reached impasse.
           StringWriter sw = new StringWriter();
           final PrintWriter pw = new PrintWriter(sw);
-          pw.println("Node [" + subset.getDescription()
-              + "] could not be implemented; planner state:\n");
+
+          DeadEndFinder finder = new DeadEndFinder();
+          finder.visit(subset);
+          pw.println("Node ");
+          pw.print(subset.getDescription());
+          pw.print(" is not implementable. It means there's not enough rules to produce the node"
+              + " with desired properties");
+          if (finder.deadEnds.isEmpty()) {
+            pw.print(" All the inputs have relevant nodes, however the cost is still infinite.");
+          } else {
+            pw.println();
+            if (finder.deadEnds.size() == 1) {
+              pw.println("There is 1 empty subset:");
+            }
+            if (finder.deadEnds.size() > 1) {
+              pw.println("There are " + finder.deadEnds.size() + " empty subsets:");
+            }
+            int i = 0;
+            int rest = finder.deadEnds.size();
+            for (RelSubset deadEnd : finder.deadEnds) {
+              pw.print("Leaf ");
+              pw.print(i);
+              pw.print(": ");
+              pw.println(deadEnd);
+              RelNode original = deadEnd.getOriginal();
+              original.explain(
+                  new RelWriterImpl(pw, SqlExplainLevel.EXPPLAN_ATTRIBUTES, true));
+              i++;
+              rest--;
+              if (rest > 0) {
+                pw.println();
+              }
+              if (i >= 10 && rest > 1) {
+                pw.print("The rest ");
+                pw.print(rest);
+                pw.println(" leafs are omitted.");
+                break;
+              }
+            }
+          }
+          pw.println();
+
           planner.dump(pw);
           pw.flush();
           final String dump = sw.toString();
