@@ -1053,6 +1053,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlAggFunction VARIANCE =
       new SqlAvgAggFunction("VARIANCE", SqlKind.VAR_SAMP);
 
+  /**
+   * <code>BIT_AND</code> aggregate function.
+   */
+  public static final SqlAggFunction BIT_AND =
+      new SqlBitOpAggFunction(SqlKind.BIT_AND);
+
+  /**
+   * <code>BIT_OR</code> aggregate function.
+   */
+  public static final SqlAggFunction BIT_OR =
+      new SqlBitOpAggFunction(SqlKind.BIT_OR);
+
   //-------------------------------------------------------------
   // WINDOW Aggregate Functions
   //-------------------------------------------------------------

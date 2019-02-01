@@ -2504,6 +2504,29 @@ EnumerableAggregate(group=[{0}], EMPNOS=[COLLECT($1) WITHIN GROUP ([2])])
     EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+# BIT_AND, BIT_OR aggregate functions
+select bit_and(deptno), bit_or(deptno) from "scott".emp;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|      0 |     30 |
++--------+--------+
+(1 row)
+
+!ok
+
+select deptno, bit_and(empno), bit_or(empno) from "scott".emp group by deptno;
++--------+--------+--------+
+| DEPTNO | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|     10 |   7686 |   7935 |
+|     20 |   7168 |   8191 |
+|     30 |   7168 |   8191 |
++--------+--------+--------+
+(3 rows)
+
+!ok
+
 # [CALCITE-2266] JSON_OBJECTAGG, JSON_ARRAYAGG
 
 !use post
