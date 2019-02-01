@@ -328,6 +328,8 @@ public enum BuiltInMethod {
   NOT(SqlFunctions.class, "not", Boolean.class),
   LESSER(SqlFunctions.class, "lesser", Comparable.class, Comparable.class),
   GREATER(SqlFunctions.class, "greater", Comparable.class, Comparable.class),
+  BIT_AND(SqlFunctions.class, "bitAnd", long.class, long.class),
+  BIT_OR(SqlFunctions.class, "bitOr", long.class, long.class),
   MODIFIABLE_TABLE_GET_MODIFIABLE_COLLECTION(ModifiableTable.class,
       "getModifiableCollection"),
   SCANNABLE_TABLE_SCAN(ScannableTable.class, "scan", DataContext.class),
