@@ -22,6 +22,7 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.Matchers;
+import org.apache.calcite.test.SlowTests;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Util;
@@ -34,6 +35,7 @@ import com.google.common.collect.Ordering;
 import org.hamcrest.Matcher;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -57,6 +59,7 @@ import static org.junit.Assert.assertThat;
 /**
  * Unit tests for {@link Profiler}.
  */
+@Category(SlowTests.class)
 public class ProfilerTest {
   @Test public void testProfileZeroRows() throws Exception {
     final String sql = "select * from \"scott\".dept where false";

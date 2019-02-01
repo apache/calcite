@@ -60,6 +60,7 @@ import com.google.common.collect.Ordering;
 
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
@@ -84,6 +85,7 @@ import static org.junit.Assert.assertTrue;
  * query and one or more materializations (what Oracle calls materialized views)
  * and checks that the materialization is used.
  */
+@Category(SlowTests.class)
 public class MaterializationTest {
   private static final Consumer<ResultSet> CONTAINS_M0 =
       CalciteAssert.checkResultContains(
