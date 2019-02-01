@@ -131,8 +131,8 @@ public class GeodeUtils {
         region = ((ClientCache) cache)
             .createClientRegionFactory(ClientRegionShortcut.PROXY)
             .create(regionName);
-      } catch (IllegalStateException e) {
-        // means this is a server cache (probably part of embedded testing)
+      } catch (Exception e) {
+        // means this is a server cache (probably part of embedded testing or passed as JNDI object)
         region = cache.getRegion(regionName);
       }
 

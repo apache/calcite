@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
+import org.apache.calcite.adapter.geode.util.GeodeUtils;
+
+import org.apache.geode.cache.GemFireCache;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +28,10 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
+import java.util.Hashtable;
 import java.util.Properties;
+import javax.naming.Context;
+import javax.naming.InitialContext;
 
 /**
  * Example of using Geode via JDBC.
@@ -48,27 +55,7 @@ public class RelationalJdbcExample {
   private RelationalJdbcExample() {
   }
 
-  public static void main(String[] args) throws Exception {
-
-    final String geodeModelJson =
-        "inline:"
-            + "{\n"
-            + "  version: '1.0',\n"
-            + "  schemas: [\n"
-            + "     {\n"
-            + "       type: 'custom',\n"
-            + "       name: 'TEST',\n"
-            + "       factory: 'org.apache.calcite.adapter.geode.rel.GeodeSchemaFactory',\n"
-            + "       operand: {\n"
-            + "         locatorHost: 'localhost', \n"
-            + "         locatorPort: '10334', \n"
-            + "         regions: 'BookMaster,BookCustomer,BookInventory,BookOrder', \n"
-            + "         pdxSerializablePackagePath: 'org.apache.calcite.adapter.geode.domain.*' \n"
-            + "       }\n"
-            + "     }\n"
-            + "   ]\n"
-            + "}";
-
+  private static void runExampleForGivenGeodeModelJson(String geodeModelJson) throws Exception {
     Class.forName("org.apache.calcite.jdbc.Driver");
 
     Properties info = new Properties();
@@ -94,9 +81,80 @@ public class RelationalJdbcExample {
       LOGGER.info("Result entry: " + buf.toString());
       buf.setLength(0);
     }
+
+    GeodeUtils.closeClientCache();
     resultSet.close();
     statement.close();
     connection.close();
+  }
+
+  private static void runExampleWithLocatorHostPort() throws Exception {
+    final String geodeModelJson =
+        "inline:"
+            + "{\n"
+            + "  version: '1.0',\n"
+            + "  schemas: [\n"
+            + "     {\n"
+            + "       type: 'custom',\n"
+            + "       name: 'TEST',\n"
+            + "       factory: 'org.apache.calcite.adapter.geode.rel.GeodeSchemaFactory',\n"
+            + "       operand: {\n"
+            + "         locatorHost: 'localhost', \n"
+            + "         locatorPort: '10334', \n"
+            + "         regions: 'BookMaster,BookCustomer,BookInventory,BookOrder', \n"
+            + "         pdxSerializablePackagePath: 'org.apache.calcite.adapter.geode.domain.*' \n"
+            + "       }\n"
+            + "     }\n"
+            + "   ]\n"
+            + "}";
+
+    runExampleForGivenGeodeModelJson(geodeModelJson);
+  }
+
+  private static void runExampleWithJndiClientCacheObject() throws Exception {
+    Hashtable env = new Hashtable();
+    env.put(Context.INITIAL_CONTEXT_FACTORY, GeodeSchemaFactory.GEODE_JNDI_INITIAL_CONTEXT_FACTORY);
+    Context context = new InitialContext(env);
+    GemFireCache gemFireCache = GeodeUtils.createClientCache("localhost", 10334,
+        "org.apache.calcite.adapter.geode.domain.*", true);
+    context.bind("java:/TestClientCacheObject", gemFireCache);
+    final String geodeModelJson =
+        "inline:"
+            + "{\n"
+            + "  version: '1.0',\n"
+            + "  schemas: [\n"
+            + "     {\n"
+            + "       type: 'custom',\n"
+            + "       name: 'TEST',\n"
+            + "       factory: 'org.apache.calcite.adapter.geode.rel.GeodeSchemaFactory',\n"
+            + "       operand: {\n"
+            + "         geodeClientCacheObjectKey: 'java:/TestClientCacheObject', \n"
+            + "         regions: 'BookMaster,BookCustomer,BookInventory,BookOrder' \n"
+            + "       }\n"
+            + "     }\n"
+            + "   ]\n"
+            + "}";
+
+    runExampleForGivenGeodeModelJson(geodeModelJson);
+  }
+
+  private static void doExample(int i) throws Exception {
+    switch (i) {
+    case 0:
+      runExampleWithLocatorHostPort();
+      break;
+    case 1:
+      runExampleWithJndiClientCacheObject();
+      break;
+    default:
+      throw new AssertionError("unknown example " + i);
+    }
+  }
+
+  public static void main(String[] args) throws Exception {
+    for (int i = 0; i < 2; i++) {
+      doExample(i);
+    }
   }
 }
 
