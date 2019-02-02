@@ -105,6 +105,7 @@ public class Programs {
 
   public static final ImmutableSet<RelOptRule> RULE_SET =
       ImmutableSet.of(
+          EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
           EnumerableRules.ENUMERABLE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_SEMI_JOIN_RULE,
