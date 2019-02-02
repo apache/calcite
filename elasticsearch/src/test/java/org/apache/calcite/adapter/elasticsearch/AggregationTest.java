@@ -256,7 +256,30 @@ public class AggregationTest {
         .query("select cat2, any_value(cat3) from view group by cat2")
         .returnsUnordered("cat2=g; EXPR$1=y", // EXPR$1=null is also valid
             "cat2=h; EXPR$1=z");
+  }
 
+  @Test
+  public void anyValueWithOtherAgg() {
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select cat1, any_value(cat2), max(val1) from view group by cat1")
+        .returnsUnordered("cat1=a; EXPR$1=g; EXPR$2=1.0",
+            "cat1=null; EXPR$1=g; EXPR$2=null",
+            "cat1=b; EXPR$1=h; EXPR$2=7.0");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select max(val1), cat1, any_value(cat2) from view group by cat1")
+        .returnsUnordered("EXPR$0=1.0; cat1=a; EXPR$2=g",
+            "EXPR$0=null; cat1=null; EXPR$2=g",
+            "EXPR$0=7.0; cat1=b; EXPR$2=h");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select any_value(cat2), cat1, max(val1) from view group by cat1")
+        .returnsUnordered("EXPR$0=g; cat1=a; EXPR$2=1.0",
+            "EXPR$0=g; cat1=null; EXPR$2=null",
+            "EXPR$0=h; cat1=b; EXPR$2=7.0");
   }
 
   @Test
