@@ -33,6 +33,7 @@ import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
+import org.apache.calcite.rel.logical.LogicalMultiJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalSortExchange;
@@ -48,8 +49,10 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.ImmutableIntList;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import java.util.List;
 import java.util.Map;
@@ -69,6 +72,8 @@ public class RelFactories {
       new FilterFactoryImpl();
 
   public static final JoinFactory DEFAULT_JOIN_FACTORY = new JoinFactoryImpl();
+
+  public static final MultiJoinFactory DEFAULT_MULTI_JOIN_FACTORY = new MultiJoinFactoryImpl();
 
   public static final CorrelateFactory DEFAULT_CORRELATE_FACTORY =
       new CorrelateFactoryImpl();
@@ -109,6 +114,7 @@ public class RelFactories {
               DEFAULT_PROJECT_FACTORY,
               DEFAULT_FILTER_FACTORY,
               DEFAULT_JOIN_FACTORY,
+              DEFAULT_MULTI_JOIN_FACTORY,
               DEFAULT_SEMI_JOIN_FACTORY,
               DEFAULT_SORT_FACTORY,
               DEFAULT_EXCHANGE_FACTORY,
@@ -345,6 +351,61 @@ public class RelFactories {
         boolean semiJoinDone) {
       return createJoin(left, right, condition,
           CorrelationId.setOf(variablesStopped), joinType, semiJoinDone);
+    }
+  }
+
+  /**
+   * Can create a multijoin of the appropriate type for a rule's calling convention.
+   *
+   * <p>The result is typically a {@link org.apache.calcite.rel.rules.MultiJoin}.
+   */
+  public interface MultiJoinFactory {
+    /**
+     * Creates a multijoin.
+     *
+     * @param inputs                inputs into this multi-join
+     * @param joinFilter            join filter applicable to this join node
+     * @param rowType               row type of the join result of this node
+     * @param isFullOuterJoin       true if the join is a full outer join
+     * @param outerJoinConditions   outer join condition associated with each join
+     *                              input, if the input is null-generating in a
+     *                              left or right outer join; null otherwise
+     * @param joinTypes             the join type corresponding to each input; if
+     *                              an input is null-generating in a left or right
+     *                              outer join, the entry indicates the type of
+     *                              outer join; otherwise, the entry is set to
+     *                              INNER
+     * @param projFields            fields that will be projected from each input;
+     *                              if null, projection information is not
+     *                              available yet so it's assumed that all fields
+     *                              from the input are projected
+     * @param joinFieldRefCountsMap counters of the number of times each field
+     *                              is referenced in join conditions, indexed by
+     *                              the input #
+     * @param postJoinFilter        filter to be applied after the joins are
+     */
+    RelNode createMultiJoin(List<RelNode> inputs,
+        RexNode joinFilter, RelDataType rowType,
+        boolean isFullOuterJoin, List<RexNode> outerJoinConditions,
+        List<JoinRelType> joinTypes,
+        List<ImmutableBitSet> projFields,
+        ImmutableMap<Integer, ImmutableIntList> joinFieldRefCountsMap,
+        RexNode postJoinFilter);
+  }
+
+  /**
+   * Implementation of {@link RelFactories.MultiJoinFactory} that
+   * returns a vanilla {@link LogicalMultiJoin}.
+   */
+  private static class MultiJoinFactoryImpl implements MultiJoinFactory {
+    /** Creates MultiJoin **/
+    @Override public RelNode createMultiJoin(List<RelNode> inputs, RexNode joinFilter,
+        RelDataType rowType, boolean isFullOuterJoin, List<RexNode> outerJoinConditions,
+        List<JoinRelType> joinTypes, List<ImmutableBitSet> projFields,
+        ImmutableMap<Integer, ImmutableIntList> joinFieldRefCountsMap, RexNode postJoinFilter) {
+      return LogicalMultiJoin
+          .create(inputs, joinFilter, rowType, isFullOuterJoin, outerJoinConditions, joinTypes,
+              projFields, joinFieldRefCountsMap, postJoinFilter);
     }
   }
 

@@ -18,8 +18,11 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
@@ -41,7 +44,7 @@ public class FilterMultiJoinMergeRule extends RelOptRule {
    */
   public FilterMultiJoinMergeRule(RelBuilderFactory relBuilderFactory) {
     super(
-        operand(LogicalFilter.class,
+        operand(Filter.class,
             operand(MultiJoin.class, any())),
         relBuilderFactory, null);
   }
@@ -49,23 +52,31 @@ public class FilterMultiJoinMergeRule extends RelOptRule {
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    LogicalFilter filter = call.rel(0);
+    Filter filter = call.rel(0);
     MultiJoin multiJoin = call.rel(1);
 
-    MultiJoin newMultiJoin =
-        new MultiJoin(
-            multiJoin.getCluster(),
-            multiJoin.getInputs(),
-            multiJoin.getJoinFilter(),
-            multiJoin.getRowType(),
-            multiJoin.isFullOuterJoin(),
-            multiJoin.getOuterJoinConditions(),
-            multiJoin.getJoinTypes(),
-            multiJoin.getProjFields(),
-            multiJoin.getJoinFieldRefCountsMap(),
-            filter.getCondition());
+    RexProgramBuilder programBuilder =
+        new RexProgramBuilder(
+            filter.getRowType(),
+            filter.getCluster().getRexBuilder());
+    programBuilder.addIdentity();
+    programBuilder.addCondition(filter.getCondition());
+    programBuilder.addCondition(multiJoin.getPostJoinFilter());
+    RexProgram mergedProgram = programBuilder.getProgram();
 
-    call.transformTo(newMultiJoin);
+    RelBuilder builder = call.builder();
+    builder.pushAll(multiJoin.getInputs());
+    builder.multiJoin(
+        multiJoin.getJoinFilter(),
+        multiJoin.getRowType(),
+        multiJoin.isFullOuterJoin(),
+        multiJoin.getOuterJoinConditions(),
+        multiJoin.getJoinTypes(),
+        multiJoin.getProjFields(),
+        multiJoin.getJoinFieldRefCountsMap(),
+        mergedProgram.expandLocalRef(mergedProgram.getCondition()));
+
+    call.transformTo(builder.build());
   }
 }
 

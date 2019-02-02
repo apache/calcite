@@ -140,6 +140,7 @@ public class RelBuilder {
   private final RelFactories.SortExchangeFactory sortExchangeFactory;
   private final RelFactories.SetOpFactory setOpFactory;
   private final RelFactories.JoinFactory joinFactory;
+  private final RelFactories.MultiJoinFactory multiJoinFactory;
   private final RelFactories.SemiJoinFactory semiJoinFactory;
   private final RelFactories.CorrelateFactory correlateFactory;
   private final RelFactories.ValuesFactory valuesFactory;
@@ -181,6 +182,9 @@ public class RelBuilder {
     this.joinFactory =
         Util.first(context.unwrap(RelFactories.JoinFactory.class),
             RelFactories.DEFAULT_JOIN_FACTORY);
+    this.multiJoinFactory =
+        Util.first(context.unwrap(RelFactories.MultiJoinFactory.class),
+            RelFactories.DEFAULT_MULTI_JOIN_FACTORY);
     this.semiJoinFactory =
         Util.first(context.unwrap(RelFactories.SemiJoinFactory.class),
             RelFactories.DEFAULT_SEMI_JOIN_FACTORY);
@@ -1708,6 +1712,26 @@ public class RelBuilder {
               field(2, 1, fieldName)));
     }
     return join(joinType, conditions);
+  }
+
+  /** Creates a {@link org.apache.calcite.rel.rules.MultiJoin} */
+  public RelBuilder multiJoin(RexNode joinFilter, RelDataType rowType,
+      boolean isFullOuterJoin, List<RexNode> outerJoinConditions,
+      List<JoinRelType> joinTypes,
+      List<ImmutableBitSet> projFields,
+      ImmutableMap<Integer, ImmutableIntList> joinFieldRefCountsMap,
+      RexNode postJoinFilter) {
+    List<RelNode> inputs = new ArrayList<>(joinTypes.size());
+    for (int i = 0; i < joinTypes.size(); i++) {
+      inputs.add(build());
+    }
+    Collections.reverse(inputs);
+    stack.push(
+        new Frame(
+            multiJoinFactory.createMultiJoin(inputs, joinFilter, rowType, isFullOuterJoin,
+                outerJoinConditions, joinTypes, projFields, joinFieldRefCountsMap,
+                postJoinFilter)));
+    return this;
   }
 
   /** Creates a {@link SemiJoin}. */

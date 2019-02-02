@@ -25,6 +25,7 @@ import org.apache.calcite.plan.RelOptQuery;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
@@ -178,6 +179,20 @@ public abstract class AbstractRelNode implements RelNode {
   public RelNode getInput(int i) {
     List<RelNode> inputs = getInputs();
     return inputs.get(i);
+  }
+
+  public boolean inputsSatisfy(RelTrait trait, Litmus litmus) {
+    RelTraitDef traitDef = trait.getTraitDef();
+    List<RelNode> inputs = getInputs();
+    for (int i = 0; i < inputs.size(); i++) {
+      RelNode input = inputs.get(i);
+      RelTrait inputTrait = input.getTraitSet().getTrait(traitDef);
+      if (inputTrait != null && !inputTrait.satisfies(trait)) {
+        litmus.fail("Input #{} {} of {} does not satisfy required trait {}", i, input, this, trait);
+        return false;
+      }
+    }
+    return true;
   }
 
   @SuppressWarnings("deprecation")

@@ -17,7 +17,6 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
@@ -26,7 +25,6 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.ImmutableNullableList;
@@ -44,18 +42,18 @@ import java.util.Map;
  * A MultiJoin represents a join of N inputs, whereas regular Joins
  * represent strictly binary joins.
  */
-public final class MultiJoin extends AbstractRelNode {
+public abstract class MultiJoin extends AbstractRelNode {
   //~ Instance fields --------------------------------------------------------
 
-  private final List<RelNode> inputs;
-  private final RexNode joinFilter;
-  private final RelDataType rowType;
-  private final boolean isFullOuterJoin;
-  private final List<RexNode> outerJoinConditions;
-  private final ImmutableList<JoinRelType> joinTypes;
-  private final List<ImmutableBitSet> projFields;
+  protected final List<RelNode> inputs;
+  protected final RexNode joinFilter;
+  protected final RelDataType rowType;
+  protected final boolean isFullOuterJoin;
+  protected final List<RexNode> outerJoinConditions;
+  protected final ImmutableList<JoinRelType> joinTypes;
+  protected final List<ImmutableBitSet> projFields;
   public final ImmutableMap<Integer, ImmutableIntList> joinFieldRefCountsMap;
-  private final RexNode postJoinFilter;
+  protected final RexNode postJoinFilter;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -63,6 +61,7 @@ public final class MultiJoin extends AbstractRelNode {
    * Constructs a MultiJoin.
    *
    * @param cluster               cluster that join belongs to
+   * @param traitSet              Trait set
    * @param inputs                inputs into this multi-join
    * @param joinFilter            join filter applicable to this join node
    * @param rowType               row type of the join result of this node
@@ -86,6 +85,7 @@ public final class MultiJoin extends AbstractRelNode {
    */
   public MultiJoin(
       RelOptCluster cluster,
+      RelTraitSet traitSet,
       List<RelNode> inputs,
       RexNode joinFilter,
       RelDataType rowType,
@@ -95,7 +95,7 @@ public final class MultiJoin extends AbstractRelNode {
       List<ImmutableBitSet> projFields,
       ImmutableMap<Integer, ImmutableIntList> joinFieldRefCountsMap,
       RexNode postJoinFilter) {
-    super(cluster, cluster.traitSetOf(Convention.NONE));
+    super(cluster, traitSet);
     this.inputs = Lists.newArrayList(inputs);
     this.joinFilter = joinFilter;
     this.rowType = rowType;
@@ -113,21 +113,6 @@ public final class MultiJoin extends AbstractRelNode {
 
   @Override public void replaceInput(int ordinalInParent, RelNode p) {
     inputs.set(ordinalInParent, p);
-  }
-
-  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    assert traitSet.containsIfApplicable(Convention.NONE);
-    return new MultiJoin(
-        getCluster(),
-        inputs,
-        joinFilter,
-        rowType,
-        isFullOuterJoin,
-        outerJoinConditions,
-        joinTypes,
-        projFields,
-        joinFieldRefCountsMap,
-        postJoinFilter);
   }
 
   /**
@@ -181,30 +166,6 @@ public final class MultiJoin extends AbstractRelNode {
 
   @Override public List<RexNode> getChildExps() {
     return ImmutableList.of(joinFilter);
-  }
-
-  public RelNode accept(RexShuttle shuttle) {
-    RexNode joinFilter = shuttle.apply(this.joinFilter);
-    List<RexNode> outerJoinConditions = shuttle.apply(this.outerJoinConditions);
-    RexNode postJoinFilter = shuttle.apply(this.postJoinFilter);
-
-    if (joinFilter == this.joinFilter
-        && outerJoinConditions == this.outerJoinConditions
-        && postJoinFilter == this.postJoinFilter) {
-      return this;
-    }
-
-    return new MultiJoin(
-        getCluster(),
-        inputs,
-        joinFilter,
-        rowType,
-        isFullOuterJoin,
-        outerJoinConditions,
-        joinTypes,
-        projFields,
-        joinFieldRefCountsMap,
-        postJoinFilter);
   }
 
   /**

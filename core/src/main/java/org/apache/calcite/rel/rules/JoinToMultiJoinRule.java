@@ -30,6 +30,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
@@ -172,20 +173,19 @@ public class JoinToMultiJoinRule extends RelOptRule {
         combinePostJoinFilters(origJoin, left, right);
 
     final RexBuilder rexBuilder = origJoin.getCluster().getRexBuilder();
-    RelNode multiJoin =
-        new MultiJoin(
-            origJoin.getCluster(),
-            newInputs,
-            RexUtil.composeConjunction(rexBuilder, newJoinFilters),
-            origJoin.getRowType(),
-            origJoin.getJoinType() == JoinRelType.FULL,
-            Pair.right(joinSpecs),
-            Pair.left(joinSpecs),
-            projFieldsList,
-            newJoinFieldRefCountsMap,
-            RexUtil.composeConjunction(rexBuilder, newPostJoinFilters, true));
+    final RelBuilder builder = call.builder();
+    builder.pushAll(newInputs);
+    builder.multiJoin(
+        RexUtil.composeConjunction(rexBuilder, newJoinFilters),
+        origJoin.getRowType(),
+        origJoin.getJoinType() == JoinRelType.FULL,
+        Pair.right(joinSpecs),
+        Pair.left(joinSpecs),
+        projFieldsList,
+        newJoinFieldRefCountsMap,
+        RexUtil.composeConjunction(rexBuilder, newPostJoinFilters, true));
 
-    call.transformTo(multiJoin);
+    call.transformTo(builder.build());
   }
 
   /**

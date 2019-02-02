@@ -2631,16 +2631,36 @@ public abstract class RelOptUtil {
   /**
    * Creates a new {@link org.apache.calcite.rel.rules.MultiJoin} to reflect
    * projection references from a
-   * {@link org.apache.calcite.rel.logical.LogicalProject} that is on top of the
+   * {@link Project} that is on top of the
    * {@link org.apache.calcite.rel.rules.MultiJoin}.
    *
    * @param multiJoin the original MultiJoin
    * @param project   the LogicalProject on top of the MultiJoin
    * @return the new MultiJoin
    */
+  @Deprecated
   public static MultiJoin projectMultiJoin(
       MultiJoin multiJoin,
       LogicalProject project) {
+    return (MultiJoin) projectMultiJoin(
+        RelFactories.LOGICAL_BUILDER.create(multiJoin.getCluster(), null),
+        multiJoin, project);
+  }
+
+  /**
+   * Creates a new {@link org.apache.calcite.rel.rules.MultiJoin} to reflect
+   * projection references from a
+   * {@link Project} that is on top of the
+   * {@link org.apache.calcite.rel.rules.MultiJoin}.
+   *
+   * @param multiJoin the original MultiJoin
+   * @param project   the LogicalProject on top of the MultiJoin
+   * @return the new MultiJoin
+   */
+  public static RelNode projectMultiJoin(
+      RelBuilder relBuilder,
+      MultiJoin multiJoin,
+      Project project) {
     // Locate all input references in the projection expressions as well
     // the post-join filter.  Since the filter effectively sits in
     // between the LogicalProject and the MultiJoin, the projection needs
@@ -2673,10 +2693,8 @@ public abstract class RelOptUtil {
 
     // create a new MultiJoin containing the new field bitmaps
     // for each input
-    return new MultiJoin(
-        multiJoin.getCluster(),
-        multiJoin.getInputs(),
-        multiJoin.getJoinFilter(),
+    relBuilder.pushAll(multiJoin.getInputs());
+    relBuilder.multiJoin(multiJoin.getJoinFilter(),
         multiJoin.getRowType(),
         multiJoin.isFullOuterJoin(),
         multiJoin.getOuterJoinConditions(),
@@ -2684,6 +2702,7 @@ public abstract class RelOptUtil {
         Lists.transform(newProjFields, ImmutableBitSet::fromBitSet),
         multiJoin.getJoinFieldRefCountsMap(),
         multiJoin.getPostJoinFilter());
+    return relBuilder.build();
   }
 
   public static <T extends RelNode> T addTrait(
