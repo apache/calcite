@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.prepare;
 
-import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.materialize.Lattice;
@@ -35,7 +34,6 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.rel.type.RelRecordType;
-import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ModifiableTable;
@@ -268,22 +266,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       return ((TranslatableTable) table).toRel(context, this);
     }
     final RelOptCluster cluster = context.getCluster();
-    if (Hook.ENABLE_BINDABLE.get(false)) {
-      return LogicalTableScan.create(cluster, this);
-    }
-    if (CalcitePrepareImpl.ENABLE_ENUMERABLE
-        && table instanceof QueryableTable) {
-      return EnumerableTableScan.create(cluster, this);
-    }
-    if (table instanceof ScannableTable
-        || table instanceof FilterableTable
-        || table instanceof ProjectableFilterableTable) {
-      return LogicalTableScan.create(cluster, this);
-    }
-    if (CalcitePrepareImpl.ENABLE_ENUMERABLE) {
-      return EnumerableTableScan.create(cluster, this);
-    }
-    throw new AssertionError();
+    return LogicalTableScan.create(cluster, this);
   }
 
   public List<RelCollation> getCollationList() {
