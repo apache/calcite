@@ -29,6 +29,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
 
@@ -59,6 +60,7 @@ public class LogicalValues extends Values implements LogicalRel {
       RelDataType rowType,
       ImmutableList<ImmutableList<RexLiteral>> tuples) {
     super(cluster, rowType, tuples, traitSet);
+    assert inputsSatisfy(Convention.NONE, Litmus.THROW);
   }
 
   @Deprecated // to be removed before 2.0

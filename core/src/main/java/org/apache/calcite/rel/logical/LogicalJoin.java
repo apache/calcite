@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -98,6 +99,7 @@ public final class LogicalJoin extends Join implements LogicalRel {
     super(cluster, traitSet, left, right, condition, variablesSet, joinType);
     this.semiJoinDone = semiJoinDone;
     this.systemFieldList = Objects.requireNonNull(systemFieldList);
+    assert inputsSatisfy(Convention.NONE, Litmus.THROW);
   }
 
   @Deprecated // to be removed before 2.0

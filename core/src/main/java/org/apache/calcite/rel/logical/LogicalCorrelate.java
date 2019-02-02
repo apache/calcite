@@ -72,6 +72,7 @@ public final class LogicalCorrelate extends Correlate implements LogicalRel {
         requiredColumns,
         joinType);
     assert !CalcitePrepareImpl.DEBUG || isValid(Litmus.THROW, null);
+    assert inputsSatisfy(Convention.NONE, Litmus.THROW);
   }
 
   @Deprecated // to be removed before 2.0

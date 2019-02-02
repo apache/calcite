@@ -24,6 +24,7 @@ import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.Litmus;
 
 import java.util.List;
 
@@ -45,6 +46,7 @@ public final class LogicalTableModify extends TableModify implements LogicalRel 
       List<RexNode> sourceExpressionList, boolean flattened) {
     super(cluster, traitSet, table, schema, input, operation, updateColumnList,
         sourceExpressionList, flattened);
+    assert inputsSatisfy(Convention.NONE, Litmus.THROW);
   }
 
   @Deprecated // to be removed before 2.0

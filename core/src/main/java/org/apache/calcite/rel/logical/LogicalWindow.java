@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.logical;
 
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
@@ -73,6 +74,7 @@ public final class LogicalWindow extends Window implements LogicalRel {
       RelNode input, List<RexLiteral> constants, RelDataType rowType,
       List<Group> groups) {
     super(cluster, traitSet, input, constants, rowType, groups);
+    assert inputsSatisfy(Convention.NONE, Litmus.THROW);
   }
 
   @Override public LogicalWindow copy(RelTraitSet traitSet,

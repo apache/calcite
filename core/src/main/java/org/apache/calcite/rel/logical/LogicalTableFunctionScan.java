@@ -28,6 +28,7 @@ import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.Litmus;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -60,6 +61,7 @@ public class LogicalTableFunctionScan extends TableFunctionScan implements Logic
       Set<RelColumnMapping> columnMappings) {
     super(cluster, traitSet, inputs, rexCall, elementType, rowType,
         columnMappings);
+    assert inputsSatisfy(Convention.NONE, Litmus.THROW);
   }
 
   @Deprecated // to be removed before 2.0

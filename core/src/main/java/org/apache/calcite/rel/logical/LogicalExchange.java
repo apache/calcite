@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Exchange;
+import org.apache.calcite.util.Litmus;
 
 /**
  * Sub-class of {@link Exchange} not
@@ -35,6 +36,7 @@ public final class LogicalExchange extends Exchange implements LogicalRel {
       RelNode input, RelDistribution distribution) {
     super(cluster, traitSet, input, distribution);
     assert traitSet.containsIfApplicable(Convention.NONE);
+    assert inputsSatisfy(Convention.NONE, Litmus.THROW);
   }
 
   /**

@@ -31,6 +31,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 import java.util.List;
@@ -61,6 +62,7 @@ public final class LogicalProject extends Project implements LogicalRel {
       RelDataType rowType) {
     super(cluster, traitSet, input, projects, rowType);
     assert traitSet.containsIfApplicable(Convention.NONE);
+    assert inputsSatisfy(Convention.NONE, Litmus.THROW);
   }
 
   @Deprecated // to be removed before 2.0

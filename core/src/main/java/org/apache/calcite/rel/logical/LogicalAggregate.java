@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Litmus;
 
 import java.util.List;
 
@@ -63,6 +64,7 @@ public final class LogicalAggregate extends Aggregate implements LogicalRel {
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     super(cluster, traitSet, child, indicator, groupSet, groupSets, aggCalls);
+    assert inputsSatisfy(Convention.NONE, Litmus.THROW);
   }
 
   @Deprecated // to be removed before 2.0

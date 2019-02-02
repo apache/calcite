@@ -23,6 +23,7 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Minus;
+import org.apache.calcite.util.Litmus;
 
 import java.util.List;
 
@@ -41,6 +42,7 @@ public final class LogicalMinus extends Minus implements LogicalRel {
   public LogicalMinus(RelOptCluster cluster, RelTraitSet traitSet,
       List<RelNode> inputs, boolean all) {
     super(cluster, traitSet, inputs, all);
+    assert inputsSatisfy(Convention.NONE, Litmus.THROW);
   }
 
   @Deprecated // to be removed before 2.0

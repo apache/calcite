@@ -68,6 +68,7 @@ public final class LogicalFilter extends Filter implements LogicalRel {
     super(cluster, traitSet, child, condition);
     this.variablesSet = Objects.requireNonNull(variablesSet);
     assert isValid(Litmus.THROW, null);
+    assert inputsSatisfy(Convention.NONE, Litmus.THROW);
   }
 
   @Deprecated // to be removed before 2.0

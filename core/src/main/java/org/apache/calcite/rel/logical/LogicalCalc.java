@@ -33,6 +33,7 @@ import org.apache.calcite.rel.rules.FilterToCalcRule;
 import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 import java.util.List;
@@ -72,6 +73,7 @@ public final class LogicalCalc extends Calc implements LogicalRel {
       RelNode child,
       RexProgram program) {
     super(cluster, traitSet, child, program);
+    assert inputsSatisfy(Convention.NONE, Litmus.THROW);
   }
 
   @Deprecated // to be removed before 2.0

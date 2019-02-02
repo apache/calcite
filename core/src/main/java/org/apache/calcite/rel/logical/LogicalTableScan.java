@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
 
@@ -67,6 +68,7 @@ public final class LogicalTableScan extends TableScan implements LogicalRel {
   public LogicalTableScan(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table) {
     super(cluster, traitSet, table);
+    assert inputsSatisfy(Convention.NONE, Litmus.THROW);
   }
 
   @Deprecated // to be removed before 2.0

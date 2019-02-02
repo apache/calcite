@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.SortExchange;
+import org.apache.calcite.util.Litmus;
 
 /**
  * Sub-class of {@link org.apache.calcite.rel.core.SortExchange} not
@@ -34,6 +35,7 @@ public class LogicalSortExchange extends SortExchange implements LogicalRel {
   private LogicalSortExchange(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RelDistribution distribution, RelCollation collation) {
     super(cluster, traitSet, input, distribution, collation);
+    assert inputsSatisfy(Convention.NONE, Litmus.THROW);
   }
 
   /**

@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.Litmus;
 
 import java.util.List;
 import java.util.Map;
@@ -65,6 +66,7 @@ public class LogicalMatch extends Match implements LogicalRel {
     super(cluster, traitSet, input, rowType, pattern, strictStart, strictEnd,
         patternDefinitions, measures, after, subsets, allRows, partitionKeys,
         orderKeys, interval);
+    assert inputsSatisfy(Convention.NONE, Litmus.THROW);
   }
 
   /**
