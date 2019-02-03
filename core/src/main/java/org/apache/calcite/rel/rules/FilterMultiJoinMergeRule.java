@@ -61,7 +61,9 @@ public class FilterMultiJoinMergeRule extends RelOptRule {
             filter.getCluster().getRexBuilder());
     programBuilder.addIdentity();
     programBuilder.addCondition(filter.getCondition());
-    programBuilder.addCondition(multiJoin.getPostJoinFilter());
+    if (multiJoin.getPostJoinFilter() != null) {
+      programBuilder.addCondition(multiJoin.getPostJoinFilter());
+    }
     RexProgram mergedProgram = programBuilder.getProgram();
 
     RelBuilder builder = call.builder();
