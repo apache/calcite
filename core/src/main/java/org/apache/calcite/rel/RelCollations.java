@@ -65,7 +65,8 @@ public class RelCollations {
 
   public static RelCollation of(List<RelFieldCollation> fieldCollations) {
     if (Util.isDistinct(ordinals(fieldCollations))) {
-      return new RelCollationImpl(ImmutableList.copyOf(fieldCollations));
+      return RelCollationTraitDef.INSTANCE.canonize(
+          new RelCollationImpl(ImmutableList.copyOf(fieldCollations)));
     }
     // Remove field collations whose field has already been seen
     final ImmutableList.Builder<RelFieldCollation> builder =
@@ -76,7 +77,8 @@ public class RelCollations {
         builder.add(fieldCollation);
       }
     }
-    return new RelCollationImpl(builder.build());
+    return RelCollationTraitDef.INSTANCE.canonize(
+        new RelCollationImpl(builder.build()));
   }
 
   /**
@@ -186,7 +188,7 @@ public class RelCollations {
     for (RelFieldCollation fc : collation.getFieldCollations()) {
       fieldCollations.add(fc.shift(offset));
     }
-    return new RelCollationImpl(fieldCollations.build());
+    return RelCollationTraitDef.INSTANCE.canonize(new RelCollationImpl(fieldCollations.build()));
   }
 
   /** Creates a copy of this collation that changes the ordinals of input
