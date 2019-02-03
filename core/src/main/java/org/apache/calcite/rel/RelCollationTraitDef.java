@@ -16,11 +16,16 @@
  */
 package org.apache.calcite.rel;
 
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.volcano.RelSubset;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.util.Util;
 
 /**
  * Definition of the ordering trait.
@@ -39,6 +44,9 @@ import org.apache.calcite.rel.logical.LogicalSort;
 public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
   public static final RelCollationTraitDef INSTANCE =
       new RelCollationTraitDef();
+
+  private static final boolean FAIL_ON_SORT_CONV =
+      Util.getBooleanProperty("calcite.collation.conv.fail", false);
 
   private RelCollationTraitDef() {
   }
@@ -72,7 +80,17 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
     // Create a logical sort, then ask the planner to convert its remaining
     // traits (e.g. convert it to an EnumerableSortRel if rel is enumerable
     // convention)
-    final Sort sort = LogicalSort.create(rel, toCollation, null, null);
+    VolcanoPlanner volcano = (VolcanoPlanner) planner;
+    RelTraitSet plus = rel.getTraitSet().plus(Convention.NONE);
+    RelSubset logical = volcano.getSubset(rel, plus, true);
+    if (logical == null) {
+      if (!FAIL_ON_SORT_CONV) {
+        return null;
+      }
+      throw new IllegalStateException("Traitset " + plus + " does not exist for " + rel + "\n"
+          + RelOptUtil.toString(rel));
+    }
+    final Sort sort = LogicalSort.create(logical, toCollation, null, null);
     RelNode newRel = planner.register(sort, rel);
     final RelTraitSet newTraitSet = rel.getTraitSet().replace(toCollation);
     if (!newRel.getTraitSet().equals(newTraitSet)) {
