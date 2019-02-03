@@ -680,7 +680,8 @@ public class CalciteAssert {
       statement.close();
       connection.close();
     } catch (Throwable e) {
-      throw new RuntimeException(message, e);
+      e.addSuppressed(new RuntimeException(message));
+      throw e;
     }
   }
 
