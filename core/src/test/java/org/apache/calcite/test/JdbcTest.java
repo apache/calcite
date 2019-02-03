@@ -3288,9 +3288,9 @@ public class JdbcTest {
               + "  LogicalProject(DUMMY=[0])\n"
               + "    LogicalJoin(condition=[true], joinType=[inner])\n"
               + "      LogicalProject(DUMMY=[0])\n"
-              + "        EnumerableTableScan(table=[[hr, emps]])\n"
+              + "        LogicalTableScan(table=[[hr, emps]])\n"
               + "      LogicalProject(DUMMY=[0])\n"
-              + "        EnumerableTableScan(table=[[hr, depts]])");
+              + "        LogicalTableScan(table=[[hr, depts]])");
     }
   }
 
@@ -4183,7 +4183,7 @@ public class JdbcTest {
           .convertContains("LogicalProject(name=[$1], EXPR$1=[+($2, 1)])\n"
               + "  LogicalAggregate(group=[{0, 1}], agg#0=[COUNT($2)])\n"
               + "    LogicalProject(deptno=[$1], name=[$2], commission=[$4])\n"
-              + "      EnumerableTableScan(table=[[hr, emps]])\n");
+              + "      LogicalTableScan(table=[[hr, emps]])\n");
     }
   }
 
@@ -4201,7 +4201,7 @@ public class JdbcTest {
               + "LogicalProject(name=[$2], EXPR$1=[+(COUNT($3) OVER (PARTITION BY $1 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), 1)])\n"
               + "  LogicalFilter(condition=[>($0, 10)])\n"
               + "    LogicalProject(empid=[$0], deptno=[$1], name=[$2], commission=[$4])\n"
-              + "      EnumerableTableScan(table=[[hr, emps]])\n");
+              + "      LogicalTableScan(table=[[hr, emps]])\n");
     }
   }
 
@@ -4508,9 +4508,9 @@ public class JdbcTest {
         + "LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
         + "  LogicalFilter(condition=[EXISTS({\n"
         + "LogicalFilter(condition=[=($cor0.deptno, $0)])\n"
-        + "  EnumerableTableScan(table=[[hr, depts]])\n"
+        + "  LogicalTableScan(table=[[hr, depts]])\n"
         + "})], variablesSet=[[$cor0]])\n"
-        + "    EnumerableTableScan(table=[[hr, emps]])\n";
+        + "    LogicalTableScan(table=[[hr, emps]])\n";
     CalciteAssert.hr().query(sql).convertContains(plan)
         .returnsUnordered(
             "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000",
