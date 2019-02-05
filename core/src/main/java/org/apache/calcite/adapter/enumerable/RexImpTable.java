@@ -2613,9 +2613,9 @@ public class RexImpTable {
       if (op == CURRENT_USER
           || op == SESSION_USER
           || op == USER) {
-        return Expressions.constant("sa");
+        return Expressions.call(BuiltInMethod.USER.method, root);
       } else if (op == SYSTEM_USER) {
-        return Expressions.constant(System.getProperty("user.name"));
+        return Expressions.call(BuiltInMethod.SYSTEM_USER.method, root);
       } else if (op == CURRENT_PATH
           || op == CURRENT_ROLE
           || op == CURRENT_CATALOG) {

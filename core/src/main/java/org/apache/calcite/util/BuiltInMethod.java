@@ -413,6 +413,8 @@ public enum BuiltInMethod {
   LOCAL_TIMESTAMP(SqlFunctions.class, "localTimestamp", DataContext.class),
   LOCAL_TIME(SqlFunctions.class, "localTime", DataContext.class),
   TIME_ZONE(SqlFunctions.class, "timeZone", DataContext.class),
+  USER(SqlFunctions.class, "user", DataContext.class),
+  SYSTEM_USER(SqlFunctions.class, "systemUser", DataContext.class),
   BOOLEAN_TO_STRING(SqlFunctions.class, "toString", boolean.class),
   JDBC_ARRAY_TO_LIST(SqlFunctions.class, "arrayToList", java.sql.Array.class),
   OBJECT_TO_STRING(Object.class, "toString"),

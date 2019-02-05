@@ -2388,17 +2388,17 @@ public class JdbcTest {
   @Test public void testReuseExpressionWhenNullChecking3() {
     CalciteAssert.hr()
         .query(
-            "select substring(\"name\", \"deptno\"+case when user <> 'sa' then 1 end) from \"hr\".\"emps\"")
+            "select substring(\"name\", \"deptno\"+case when CURRENT_PATH <> '' then 1 end) from \"hr\".\"emps\"")
         .planContains(
             "final String inp2_ = current.name;")
         .planContains("static final boolean "
-            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_ne_sa_sa_ = "
-            + "org.apache.calcite.runtime.SqlFunctions.ne(\"sa\", \"sa\");")
+            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_ne_ = "
+            + "org.apache.calcite.runtime.SqlFunctions.ne(\"\", \"\");")
         .planContains("static final boolean "
-            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_ne_sa_sa_ = "
-            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_ne_sa_sa_;")
+            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_ne_ = "
+            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_ne_;")
         .planContains("return inp2_ == null "
-            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_ne_sa_sa_ ? (String) null"
+            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_ne_ ? (String) null"
             + " : org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
             + "current.deptno + 1);");
   }
@@ -2407,7 +2407,7 @@ public class JdbcTest {
     CalciteAssert.hr()
         .query("select substring(trim(\n"
             + "substring(\"name\",\n"
-            + "  \"deptno\"*0+case when user = 'sa' then 1 end)\n"
+            + "  \"deptno\"*0+case when CURRENT_PATH = '' then 1 end)\n"
             + "), case when \"empid\">\"deptno\" then 4\n" /* diff from 5 */
             + "   else\n"
             + "     case when \"deptno\"*8>8 then 5 end\n"
@@ -2419,13 +2419,13 @@ public class JdbcTest {
         .planContains(
             "final int inp1_ = current.deptno;")
         .planContains("static final boolean "
-            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ = "
-            + "org.apache.calcite.runtime.SqlFunctions.eq(\"sa\", \"sa\");")
+            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_ = "
+            + "org.apache.calcite.runtime.SqlFunctions.eq(\"\", \"\");")
         .planContains("static final boolean "
-            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ = "
-            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_;")
+            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_ = "
+            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_;")
         .planContains("return inp2_ == null "
-            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ "
+            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_ "
             + "|| !v5 && inp1_ * 8 <= 8 "
             + "? (String) null "
             + ": org.apache.calcite.runtime.SqlFunctions.substring("
@@ -2442,7 +2442,7 @@ public class JdbcTest {
     CalciteAssert.hr()
         .query("select substring(trim(\n"
             + "substring(\"name\",\n"
-            + "  \"deptno\"*0+case when user = 'sa' then 1 end)\n"
+            + "  \"deptno\"*0+case when CURRENT_PATH = '' then 1 end)\n"
             + "), case when \"empid\">\"deptno\" then 5\n" /* diff from 4 */
             + "   else\n"
             + "     case when \"deptno\"*8>8 then 5 end\n"
@@ -2456,13 +2456,13 @@ public class JdbcTest {
         .planContains(
             "static final int $L4J$C$5_2 = 5 - 2;")
         .planContains("static final boolean "
-            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ = "
-            + "org.apache.calcite.runtime.SqlFunctions.eq(\"sa\", \"sa\");")
+            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_ = "
+            + "org.apache.calcite.runtime.SqlFunctions.eq(\"\", \"\");")
         .planContains("static final boolean "
-            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ = "
-            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_;")
+            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_ = "
+            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_;")
         .planContains("return inp2_ == null "
-            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ "
+            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_ "
             + "|| current.empid <= inp1_ && inp1_ * 8 <= 8 "
             + "? (String) null "
             + ": org.apache.calcite.runtime.SqlFunctions.substring("
