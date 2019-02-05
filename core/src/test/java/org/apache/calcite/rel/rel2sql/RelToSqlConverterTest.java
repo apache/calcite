@@ -35,7 +35,6 @@ import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.dialect.BigQuerySqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
@@ -702,9 +701,11 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT LENGTH('xyz')\n"
         + "FROM foodmart.product";
     sql(query)
-        .dialect(HiveSqlDialect.DEFAULT)
-        .dialect(BigQuerySqlDialect.DEFAULT)
-        .dialect(SparkSqlDialect.DEFAULT)
+        .withHive()
+        .ok(expected)
+        .withBigquery()
+        .ok(expected)
+        .withSpark()
         .ok(expected);
   }
 
@@ -714,9 +715,11 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT LENGTH('xyz')\n"
         + "FROM foodmart.product";
     sql(query)
-        .dialect(HiveSqlDialect.DEFAULT)
-        .dialect(BigQuerySqlDialect.DEFAULT)
-        .dialect(SparkSqlDialect.DEFAULT)
+        .withHive()
+        .ok(expected)
+        .withBigquery()
+        .ok(expected)
+        .withSpark()
         .ok(expected);
   }
 
