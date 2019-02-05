@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
@@ -117,7 +118,7 @@ public class MultiJoinProjectTransposeRule extends JoinProjectTransposeRule {
   }
 
   // override JoinProjectTransposeRule
-  protected LogicalProject getRightChild(RelOptRuleCall call) {
+  protected Project getRightChild(RelOptRuleCall call) {
     if (call.rels.length == 4) {
       return call.rel(2);
     } else {
@@ -128,7 +129,7 @@ public class MultiJoinProjectTransposeRule extends JoinProjectTransposeRule {
   // override JoinProjectTransposeRule
   protected RelNode getProjectChild(
       RelOptRuleCall call,
-      LogicalProject project,
+      Project project,
       boolean leftChild) {
     // locate the appropriate MultiJoin based on which rule was fired
     // and which projection we're dealing with

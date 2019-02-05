@@ -21,10 +21,12 @@ import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
@@ -37,6 +39,7 @@ import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
@@ -52,13 +55,17 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMdCollation;
+import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
 import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
@@ -129,6 +136,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -137,12 +145,15 @@ import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.catalog.MockCatalogReader;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -1908,11 +1919,11 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addMatchOrder(HepMatchOrder.BOTTOM_UP)
         .addRuleInstance(JoinToMultiJoinRule.INSTANCE)
         .addRuleCollection(
-            Arrays.asList(FilterMultiJoinMergeRule.INSTANCE, ProjectMultiJoinMergeRule.INSTANCE))
+        Arrays.asList(FilterMultiJoinMergeRule.INSTANCE, ProjectMultiJoinMergeRule.INSTANCE))
         .build();
     checkPlanning(program,
         "select * from (select * from emp e1 left outer join dept d on e1.deptno = d.deptno "
-            + "where d.deptno > 3) where ename LIKE 'bar'");
+          + "where d.deptno > 3) where ename LIKE 'bar'");
   }
 
   @Test public void testReduceConstants() throws Exception {
@@ -5405,12 +5416,12 @@ public class RelOptRulesTest extends RelOptTestBase {
     RelNode root = builder
         .scan("EMP")
         .filter(
-            builder.call(SqlStdOperatorTable.EQUALS,
-                builder.field("EMPNO"), builder.literal(10)))
+        builder.call(SqlStdOperatorTable.EQUALS,
+          builder.field("EMPNO"), builder.literal(10)))
         .exchange(RelDistributions.hash(ImmutableList.of(0)))
         .project(builder.field(0), builder.field(1))
         .sortExchange(RelDistributions.hash(ImmutableList.of(0, 1)),
-            RelCollations.of(new RelFieldCollation(0), new RelFieldCollation(1)))
+        RelCollations.of(new RelFieldCollation(0), new RelFieldCollation(1)))
         .build();
 
     HepProgram preProgram = new HepProgramBuilder().build();
@@ -5630,6 +5641,155 @@ public class RelOptRulesTest extends RelOptTestBase {
     String planAfter = NL + RelOptUtil.toString(relAfter);
     getDiffRepos().assertEquals("planAfter", "${planAfter}", planAfter);
   }
+
+  @Test public void testFilterAndProjectWithMultiJoin() throws Exception {
+    final Tester tester = new TesterImpl(getDiffRepos(),
+        false, false, true, false,
+        null, null, SqlToRelConverter.Config.DEFAULT,
+        SqlConformanceEnum.DEFAULT, Contexts.empty());
+
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleCollection(Arrays.asList(MyFilterRule.INSTANCE, MyProjectRule.INSTANCE))
+        .build();
+
+    final FilterMultiJoinMergeRule filterMultiJoinMergeRule =
+        new FilterMultiJoinMergeRule(MyFilter.class, RelFactories.LOGICAL_BUILDER);
+
+    final ProjectMultiJoinMergeRule projectMultiJoinMergeRule =
+        new ProjectMultiJoinMergeRule(MyProject.class, RelFactories.LOGICAL_BUILDER);
+
+    HepProgram program = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(JoinToMultiJoinRule.INSTANCE)
+        .addRuleCollection(Arrays.asList(filterMultiJoinMergeRule, projectMultiJoinMergeRule))
+        .build();
+
+    checkPlanning(tester, preProgram, new HepPlanner(program),
+        "select * from (select * from emp e1 left outer join dept d on e1.deptno = d.deptno "
+            + "where d.deptno > 3)", false);
+  }
 }
+
+/**
+ * Custom implementation of {@link Filter} for use
+ * in test case to verify that {@link FilterMultiJoinMergeRule}
+ * can be created with any {@link Filter} and not limited to
+ * {@link org.apache.calcite.rel.logical.LogicalFilter}
+ */
+class MyFilter extends Filter {
+
+  MyFilter(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      RelNode child,
+      RexNode condition) {
+    super(cluster, traitSet, child, condition);
+  }
+
+  public MyFilter copy(RelTraitSet traitSet, RelNode input,
+      RexNode condition) {
+    return new MyFilter(getCluster(), traitSet, input, condition);
+  }
+
+  /** Creates a MyFilter. */
+  public static MyFilter create(final RelNode input, RexNode condition) {
+    final RelOptCluster cluster = input.getCluster();
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
+    final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE)
+        .replaceIfs(RelCollationTraitDef.INSTANCE,
+          () -> RelMdCollation.filter(mq, input))
+        .replaceIf(RelDistributionTraitDef.INSTANCE,
+          () -> RelMdDistribution.filter(mq, input));
+    return new MyFilter(cluster, traitSet, input, condition);
+  }
+}
+
+/**
+ * Rule to transform {@link LogicalFilter} into
+ * custom MyFilter
+ */
+class MyFilterRule extends RelOptRule {
+  static final MyFilterRule INSTANCE =
+      new MyFilterRule(LogicalFilter.class, RelFactories.LOGICAL_BUILDER);
+
+  private MyFilterRule(Class<? extends Filter> clazz,
+      RelBuilderFactory relBuilderFactory) {
+    super(RelOptRule.operand(clazz, RelOptRule.any()), relBuilderFactory, null);
+  }
+
+  @Override public void onMatch(RelOptRuleCall call) {
+    final LogicalFilter logicalFilter = call.rel(0);
+    final MyFilter myFilter = MyFilter.create(logicalFilter.getInput(),
+        logicalFilter.getCondition());
+    call.transformTo(myFilter);
+  }
+}
+
+/**
+ * Custom implementation of {@link Project} for use
+ * in test case to verify that {@link ProjectMultiJoinMergeRule}
+ * can be created with any {@link Project} and not limited to
+ * {@link org.apache.calcite.rel.logical.LogicalProject}
+ */
+class MyProject extends Project {
+  MyProject(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      RelNode input,
+      List<? extends RexNode> projects,
+      RelDataType rowType) {
+    super(cluster, traitSet, input, projects, rowType);
+  }
+
+  public MyProject copy(RelTraitSet traitSet, RelNode input,
+      List<RexNode> projects, RelDataType rowType) {
+    return new MyProject(getCluster(), traitSet, input, projects, rowType);
+  }
+
+  /** Creates a MyProject. */
+  public static MyProject create(final RelNode input,
+      final List<? extends RexNode> projects, List<String> fieldNames) {
+    final RelOptCluster cluster = input.getCluster();
+    final RelDataType rowType =
+        RexUtil.createStructType(cluster.getTypeFactory(), projects,
+          fieldNames, SqlValidatorUtil.F_SUGGESTER);
+    return create(input, projects, rowType);
+  }
+
+  /** Creates a MyProject. */
+  public static MyProject create(final RelNode input,
+      final List<? extends RexNode> projects, RelDataType rowType) {
+    final RelOptCluster cluster = input.getCluster();
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
+    final RelTraitSet traitSet =
+        cluster.traitSet().replace(Convention.NONE)
+          .replaceIfs(RelCollationTraitDef.INSTANCE,
+            () -> RelMdCollation.project(mq, input, projects));
+    return new MyProject(cluster, traitSet, input, projects, rowType);
+  }
+}
+
+/**
+ * Rule to transform {@link LogicalProject} into custom
+ * MyProject
+ */
+class MyProjectRule extends RelOptRule {
+  static final MyProjectRule INSTANCE =
+      new MyProjectRule(LogicalProject.class, RelFactories.LOGICAL_BUILDER);
+
+  private MyProjectRule(Class<? extends Project> clazz,
+      RelBuilderFactory relBuilderFactory) {
+    super(RelOptRule.operand(clazz, RelOptRule.any()), relBuilderFactory, null);
+  }
+
+  @Override public void onMatch(RelOptRuleCall call) {
+    final LogicalProject logicalProject = call.rel(0);
+    final MyProject myProject = MyProject.create(logicalProject.getInput(),
+        logicalProject.getChildExps(), logicalProject.getRowType());
+    call.transformTo(myProject);
+  }
+}
+
 
 // End RelOptRulesTest.java

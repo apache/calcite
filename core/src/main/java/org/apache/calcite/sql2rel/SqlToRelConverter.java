@@ -987,9 +987,9 @@ public class SqlToRelConverter {
       return;
     }
 
-    final RelFactories.FilterFactory factory =
+    final RelFactories.FilterFactory filterFactory =
         RelFactories.DEFAULT_FILTER_FACTORY;
-    final RelNode filter = factory.createFilter(bb.root, convertedWhere2);
+    final RelNode filter = filterFactory.createFilter(bb.root, convertedWhere2);
     final RelNode r;
     final CorrelationUse p = getCorrelationUse(bb, filter);
     if (p != null) {
