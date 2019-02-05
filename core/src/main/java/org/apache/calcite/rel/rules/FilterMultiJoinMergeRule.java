@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rex.RexBuilder;
@@ -30,8 +31,7 @@ import java.util.List;
 
 /**
  * Planner rule that merges a
- * {@link org.apache.calcite.rel.logical.LogicalFilter}
- * into a {@link MultiJoin},
+ * {@link Filter} into a {@link MultiJoin},
  * creating a richer {@code MultiJoin}.
  *
  * @see org.apache.calcite.rel.rules.ProjectMultiJoinMergeRule
@@ -43,19 +43,32 @@ public class FilterMultiJoinMergeRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a FilterMultiJoinMergeRule.
+   * Creates a FilterMultiJoinMergeRule that uses {@link Filter}
+   * of type {@link LogicalFilter}
+   * @param relBuilderFactory builder factory for relational expressions
    */
   public FilterMultiJoinMergeRule(RelBuilderFactory relBuilderFactory) {
+    this(LogicalFilter.class, relBuilderFactory);
+  }
+
+  /**
+   * Creates a FilterMultiJoinMergeRule that uses a generic
+   * {@link Filter}
+   * @param filterClass filter class
+   * @param relBuilderFactory builder factory for relational expressions
+   */
+  public FilterMultiJoinMergeRule(Class<? extends Filter> filterClass,
+      RelBuilderFactory relBuilderFactory) {
     super(
-        operand(LogicalFilter.class,
-            operand(MultiJoin.class, any())),
-        relBuilderFactory, null);
+      operand(filterClass,
+        operand(MultiJoin.class, any())),
+      relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    LogicalFilter filter = call.rel(0);
+    Filter filter = call.rel(0);
     MultiJoin multiJoin = call.rel(1);
 
     // Create a new post-join filter condition

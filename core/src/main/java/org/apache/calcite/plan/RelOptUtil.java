@@ -2770,16 +2770,16 @@ public abstract class RelOptUtil {
   /**
    * Creates a new {@link org.apache.calcite.rel.rules.MultiJoin} to reflect
    * projection references from a
-   * {@link org.apache.calcite.rel.logical.LogicalProject} that is on top of the
+   * {@link Project} that is on top of the
    * {@link org.apache.calcite.rel.rules.MultiJoin}.
    *
    * @param multiJoin the original MultiJoin
-   * @param project   the LogicalProject on top of the MultiJoin
+   * @param project   the Project on top of the MultiJoin
    * @return the new MultiJoin
    */
   public static MultiJoin projectMultiJoin(
       MultiJoin multiJoin,
-      LogicalProject project) {
+      Project project) {
     // Locate all input references in the projection expressions as well
     // the post-join filter.  Since the filter effectively sits in
     // between the LogicalProject and the MultiJoin, the projection needs
