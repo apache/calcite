@@ -10976,4 +10976,25 @@ EnumerableUnion(all=[true])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testFilterAndProjectWithMultiJoin">
+        <Resource name="sql">
+            <![CDATA[select * from (select * from emp e1 left outer join dept d on e1.deptno = d.deptno where d.deptno > 3) where ename LIKE 'bar']]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+MyProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  MyFilter(condition=[>($9, 3)])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+MultiJoin(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[INNER, LEFT]], outerJoinConditions=[[NULL, =($7, $9)]], projFields=[[{0, 1, 2, 3, 4, 5, 6, 7, 8}, {0, 1}]], postJoinFilter=[>($9, 3)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
