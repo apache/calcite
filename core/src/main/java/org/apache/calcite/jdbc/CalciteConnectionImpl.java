@@ -412,6 +412,8 @@ abstract class CalciteConnectionImpl
       final TimeZone timeZone = connection.getTimeZone();
       final long localOffset = timeZone.getOffset(time);
       final long currentOffset = localOffset;
+      final String user = "sa";
+      final String systemUser = System.getProperty("user.name");
 
       // Give a hook chance to alter standard input, output, error streams.
       final Holder<Object[]> streamHolder =
@@ -423,6 +425,8 @@ abstract class CalciteConnectionImpl
           .put(Variable.CURRENT_TIMESTAMP.camelName, time + currentOffset)
           .put(Variable.LOCAL_TIMESTAMP.camelName, time + localOffset)
           .put(Variable.TIME_ZONE.camelName, timeZone)
+          .put(Variable.USER.camelName, user)
+          .put(Variable.SYSTEM_USER.camelName, systemUser)
           .put(Variable.STDIN.camelName, streamHolder.get()[0])
           .put(Variable.STDOUT.camelName, streamHolder.get()[1])
           .put(Variable.STDERR.camelName, streamHolder.get()[2]);

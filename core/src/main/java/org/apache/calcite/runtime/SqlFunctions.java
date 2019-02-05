@@ -62,6 +62,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
@@ -2015,6 +2016,18 @@ public class SqlFunctions {
   @NonDeterministic
   public static TimeZone timeZone(DataContext root) {
     return (TimeZone) DataContext.Variable.TIME_ZONE.get(root);
+  }
+
+  /** SQL {@code USER} function. */
+  @Deterministic
+  public static String user(DataContext root) {
+    return Objects.requireNonNull(DataContext.Variable.USER.get(root));
+  }
+
+  /** SQL {@code SYSTEM_USER} function. */
+  @Deterministic
+  public static String systemUser(DataContext root) {
+    return Objects.requireNonNull(DataContext.Variable.SYSTEM_USER.get(root));
   }
 
   /** SQL {@code TRANSLATE(string, search_chars, replacement_chars)}
