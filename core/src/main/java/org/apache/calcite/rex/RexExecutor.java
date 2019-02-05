@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rex;
 
+import org.apache.calcite.rel.type.RelDataType;
+
 import java.util.List;
 
 /** Can reduce expressions, writing a literal for each into a list. */
@@ -32,6 +34,22 @@ public interface RexExecutor {
    * @param reducedValues List to which reduced expressions are appended
    */
   void reduce(RexBuilder rexBuilder, List<RexNode> constExps, List<RexNode> reducedValues);
+
+  /**
+   * Checks if condition first implies (&rArr;) condition second.
+   *
+   * <p>This reduces to SAT problem which is NP-Complete.
+   * When this method says first implies second then it is definitely true.
+   * But it cannot prove that first does not imply second.
+   *
+   * @param rexBuilder Rex builder
+   * @param rowType row type
+   * @param first first condition
+   * @param second second condition
+   * @return true if it can prove first &rArr; second; otherwise false i.e.,
+   * it doesn't know if implication holds
+   */
+  boolean implies(RexBuilder rexBuilder, RelDataType rowType, RexNode first, RexNode second);
 }
 
 // End RexExecutor.java

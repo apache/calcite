@@ -37,7 +37,6 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutor;
-import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -1407,14 +1406,10 @@ public class SubstitutionVisitor {
       return false;
     }
 
-    RexExecutorImpl rexImpl =
-        (RexExecutorImpl) (rel.cluster.getPlanner().getExecutor());
-    RexImplicationChecker rexImplicationChecker =
-        new RexImplicationChecker(
-            rel.cluster.getRexBuilder(), rexImpl, rel.rowType);
+    RexExecutor rex = rel.cluster.getPlanner().getExecutor();
 
-    return rexImplicationChecker.implies(((MutableFilter) rel0).condition,
-        ((MutableFilter) rel).condition);
+    return rex.implies(rel.cluster.getRexBuilder(), rel.rowType,
+                       ((MutableFilter) rel0).condition, ((MutableFilter) rel).condition);
   }
 
   /** Returns whether two relational expressions have the same row-type. */
