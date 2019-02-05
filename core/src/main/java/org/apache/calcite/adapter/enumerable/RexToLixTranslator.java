@@ -729,8 +729,8 @@ public class RexToLixTranslator {
     }
     return nullAs.handle(
         convert(
-            Expressions.call(root, BuiltInMethod.DATA_CONTEXT_GET.method,
-                Expressions.constant("?" + expr.getIndex())),
+            Expressions.call(root, BuiltInMethod.DATA_CONTEXT_GET_BINDABLE_PARAM.method,
+                Expressions.constant(expr.getIndex())),
             storageType));
   }
 

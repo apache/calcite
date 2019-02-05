@@ -17,6 +17,7 @@
 package org.apache.calcite;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.remote.TypedValue;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
@@ -62,6 +63,14 @@ public interface DataContext {
    * @param name Name of variable
    */
   Object get(String name);
+
+  default Object getBindableParameterLocalValue(int i) {
+    Object o = get("?" + i);
+    if (o == null) {
+      return null;
+    }
+    return ((TypedValue) o).toLocal();
+  }
 
   /** Variable that may be asked for in a call to {@link DataContext#get}. */
   enum Variable {

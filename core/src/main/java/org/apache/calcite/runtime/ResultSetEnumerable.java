@@ -18,6 +18,7 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.avatica.SqlType;
+import org.apache.calcite.avatica.remote.TypedValue;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -30,27 +31,21 @@ import org.apache.calcite.util.Static;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.math.BigDecimal;
-import java.net.URL;
-import java.sql.Blob;
-import java.sql.Clob;
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.Date;
-import java.sql.NClob;
 import java.sql.PreparedStatement;
-import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
-import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import javax.sql.DataSource;
 
 /**
@@ -128,20 +123,26 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
     this(dataSource, sql, rowBuilderFactory, null);
   }
 
-  /** Creates an ResultSetEnumerable. */
+  /**
+   * Creates an ResultSetEnumerable.
+   */
   public static Enumerable<Object> of(DataSource dataSource, String sql) {
     return of(dataSource, sql, AUTO_ROW_BUILDER_FACTORY);
   }
 
-  /** Creates an ResultSetEnumerable that retrieves columns as specific
-   * Java types. */
+  /**
+   * Creates an ResultSetEnumerable that retrieves columns as specific
+   * Java types.
+   */
   public static Enumerable<Object> of(DataSource dataSource, String sql,
-      Primitive[] primitives) {
+                                      Primitive[] primitives) {
     return of(dataSource, sql, primitiveRowBuilderFactory(primitives));
   }
 
-  /** Executes a SQL query and returns the results as an enumerator, using a
-   * row builder to convert JDBC column values into rows. */
+  /**
+   * Executes a SQL query and returns the results as an enumerator, using a
+   * row builder to convert JDBC column values into rows.
+   */
   public static <T> Enumerable<T> of(
       DataSource dataSource,
       String sql,
@@ -149,11 +150,13 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
     return new ResultSetEnumerable<>(dataSource, sql, rowBuilderFactory);
   }
 
-  /** Executes a SQL query and returns the results as an enumerator, using a
+  /**
+   * Executes a SQL query and returns the results as an enumerator, using a
    * row builder to convert JDBC column values into rows.
    *
    * <p>It uses a {@link PreparedStatement} for computing the query result,
-   * and that means that it can bind parameters. */
+   * and that means that it can bind parameters.
+   */
   public static <T> Enumerable<T> of(
       DataSource dataSource,
       String sql,
@@ -162,69 +165,81 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
     return new ResultSetEnumerable<>(dataSource, sql, rowBuilderFactory, consumer);
   }
 
-  /** Called from generated code that proposes to create a
-   * {@code ResultSetEnumerable} over a prepared statement. */
+  /**
+   * Called from generated code that proposes to create a
+   * {@code ResultSetEnumerable} over a prepared statement.
+   */
   public static PreparedStatementEnricher createEnricher(Integer[] indexes,
-      DataContext context) {
+                                                         DataContext context) {
     return preparedStatement -> {
       for (int i = 0; i < indexes.length; i++) {
         final int index = indexes[i];
         setDynamicParam(preparedStatement, i + 1,
-            context.get("?" + index));
+            (TypedValue) context.get("?" + index));
       }
     };
   }
 
-  /** Assigns a value to a dynamic parameter in a prepared statement, calling
-   * the appropriate {@code setXxx} method based on the type of the value. */
+  /**
+   * Assigns a value to a dynamic parameter in a prepared statement, calling
+   * the appropriate {@code setXxx} method based on the type of the value.
+   */
   private static void setDynamicParam(PreparedStatement preparedStatement,
-      int i, Object value) throws SQLException {
+                                      int i, TypedValue value) throws SQLException {
     if (value == null) {
       preparedStatement.setObject(i, null, SqlType.ANY.id);
-    } else if (value instanceof Timestamp) {
-      preparedStatement.setTimestamp(i, (Timestamp) value);
-    } else if (value instanceof Time) {
-      preparedStatement.setTime(i, (Time) value);
-    } else if (value instanceof String) {
-      preparedStatement.setString(i, (String) value);
-    } else if (value instanceof Integer) {
-      preparedStatement.setInt(i, (Integer) value);
-    } else if (value instanceof Double) {
-      preparedStatement.setDouble(i, (Double) value);
-    } else if (value instanceof java.sql.Array) {
-      preparedStatement.setArray(i, (java.sql.Array) value);
-    } else if (value instanceof BigDecimal) {
-      preparedStatement.setBigDecimal(i, (BigDecimal) value);
-    } else if (value instanceof Boolean) {
-      preparedStatement.setBoolean(i, (Boolean) value);
-    } else if (value instanceof Blob) {
-      preparedStatement.setBlob(i, (Blob) value);
-    } else if (value instanceof Byte) {
-      preparedStatement.setByte(i, (Byte) value);
-    } else if (value instanceof NClob) {
-      preparedStatement.setNClob(i, (NClob) value);
-    } else if (value instanceof Clob) {
-      preparedStatement.setClob(i, (Clob) value);
-    } else if (value instanceof byte[]) {
-      preparedStatement.setBytes(i, (byte[]) value);
-    } else if (value instanceof Date) {
-      preparedStatement.setDate(i, (Date) value);
-    } else if (value instanceof Float) {
-      preparedStatement.setFloat(i, (Float) value);
-    } else if (value instanceof Long) {
-      preparedStatement.setLong(i, (Long) value);
-    } else if (value instanceof Ref) {
-      preparedStatement.setRef(i, (Ref) value);
-    } else if (value instanceof RowId) {
-      preparedStatement.setRowId(i, (RowId) value);
-    } else if (value instanceof Short) {
-      preparedStatement.setShort(i, (Short) value);
-    } else if (value instanceof URL) {
-      preparedStatement.setURL(i, (URL) value);
-    } else if (value instanceof SQLXML) {
-      preparedStatement.setSQLXML(i, (SQLXML) value);
-    } else {
-      preparedStatement.setObject(i, value);
+      return;
+    }
+    switch (value.type) {
+    case PRIMITIVE_BOOLEAN:
+    case BOOLEAN:
+      preparedStatement.setBoolean(i, (Boolean) value.value);
+      break;
+    case PRIMITIVE_BYTE:
+    case BYTE:
+      preparedStatement.setByte(i, (Byte) value.value);
+      break;
+    case PRIMITIVE_CHAR:
+    case CHARACTER:
+    case STRING:
+      preparedStatement.setString(i, Objects.toString(value.value));
+      break;
+    case PRIMITIVE_SHORT:
+    case SHORT:
+      preparedStatement.setShort(i, (Short) value.value);
+      break;
+    case PRIMITIVE_INT:
+    case INTEGER:
+      preparedStatement.setInt(i, (Integer) value.value);
+      break;
+    case PRIMITIVE_LONG:
+    case LONG:
+      preparedStatement.setLong(i, (Long) value.value);
+      break;
+    case PRIMITIVE_FLOAT:
+    case FLOAT:
+      preparedStatement.setFloat(i, (Float) value.value);
+      break;
+    case PRIMITIVE_DOUBLE:
+    case DOUBLE:
+      preparedStatement.setDouble(i, (Double) value.value);
+      break;
+    case ARRAY:
+      preparedStatement.setArray(i, (Array) value.value);
+      break;
+    case JAVA_SQL_TIME:
+      preparedStatement.setTime(i, new Time(((Number) value.value).longValue()));
+      break;
+    case JAVA_SQL_TIMESTAMP:
+      preparedStatement.setTimestamp(i, new Timestamp(((Number) value.value).longValue()));
+      break;
+    case JAVA_SQL_DATE:
+    case JAVA_UTIL_DATE:
+      preparedStatement.setDate(i, new Date(((Number) value.value).longValue() * 86400000L));
+      break;
+    case OBJECT:
+      preparedStatement.setObject(i, value.value);
+      break;
     }
   }
 
@@ -310,10 +325,12 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
     }
   }
 
-  /** Implementation of {@link Enumerator} that reads from a
+  /**
+   * Implementation of {@link Enumerator} that reads from a
    * {@link ResultSet}.
    *
-   * @param <T> element type */
+   * @param <T> element type
+   */
   private static class ResultSetEnumerator<T> implements Enumerator<T> {
     private final Function0<T> rowBuilder;
     private ResultSet resultSet;
