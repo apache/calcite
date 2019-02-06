@@ -79,6 +79,7 @@ import org.apache.calcite.rel.rules.JoinPushExpressionsRule;
 import org.apache.calcite.rel.rules.JoinPushTransitivePredicatesRule;
 import org.apache.calcite.rel.rules.JoinToMultiJoinRule;
 import org.apache.calcite.rel.rules.JoinUnionTransposeRule;
+import org.apache.calcite.rel.rules.LoptOptimizeJoinRule;
 import org.apache.calcite.rel.rules.ProjectCorrelateTransposeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
 import org.apache.calcite.rel.rules.ProjectJoinTransposeRule;
@@ -4290,6 +4291,20 @@ public class RelOptRulesTest extends RelOptTestBase {
     String sql =
         "select * from emp where ( (empno=1 and mgr=1) or (empno=null and mgr=1) ) is null";
     checkPlanning(program, sql);
+  }
+
+  @Test public void testConvertMultiJoinRuleLoptOptimizeJoinRuleNonOptimized() throws Exception {
+    HepProgram preProgram = new HepProgramBuilder()
+            .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+            .addRuleInstance(JoinToMultiJoinRule.INSTANCE)
+            .build();
+    HepProgram program = new HepProgramBuilder()
+            .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+            .addRuleInstance(LoptOptimizeJoinRule.UNOPTIMIZED)
+            .build();
+    checkPlanning(tester, preProgram, new HepPlanner(program),
+                  "select e1.ename from emp e1 full outer join dept d on e1.deptno = d.deptno "
+                          + "full outer join emp e2 on d.deptno = e2.deptno");
   }
 
 }

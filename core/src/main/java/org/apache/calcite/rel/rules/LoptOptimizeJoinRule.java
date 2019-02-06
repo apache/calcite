@@ -67,18 +67,24 @@ import java.util.TreeSet;
  */
 public class LoptOptimizeJoinRule extends RelOptRule {
   public static final LoptOptimizeJoinRule INSTANCE =
-      new LoptOptimizeJoinRule(RelFactories.LOGICAL_BUILDER);
+      new LoptOptimizeJoinRule(RelFactories.LOGICAL_BUILDER, false);
+
+  public static final LoptOptimizeJoinRule UNOPTIMIZED =
+          new LoptOptimizeJoinRule(RelFactories.LOGICAL_BUILDER, true);
+
+  private final boolean findOnlyOneOrdering;
 
   /** Creates a LoptOptimizeJoinRule. */
-  public LoptOptimizeJoinRule(RelBuilderFactory relBuilderFactory) {
+  public LoptOptimizeJoinRule(RelBuilderFactory relBuilderFactory, boolean findOnlyOneOrdering) {
     super(operand(MultiJoin.class, any()), relBuilderFactory, null);
+    this.findOnlyOneOrdering = findOnlyOneOrdering;
   }
 
   @Deprecated // to be removed before 2.0
   public LoptOptimizeJoinRule(RelFactories.JoinFactory joinFactory,
       RelFactories.ProjectFactory projectFactory,
       RelFactories.FilterFactory filterFactory) {
-    this(RelBuilder.proto(joinFactory, projectFactory, filterFactory));
+    this(RelBuilder.proto(joinFactory, projectFactory, filterFactory), false);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -463,6 +469,9 @@ public class LoptOptimizeJoinRule extends RelOptRule {
       RelNode newProject =
           createTopProject(call.builder(), multiJoin, joinTree, fieldNames);
       plans.add(newProject);
+      if (findOnlyOneOrdering) {
+        break;
+      }
     }
 
     // transform the selected plans; note that we wait till then the end to
