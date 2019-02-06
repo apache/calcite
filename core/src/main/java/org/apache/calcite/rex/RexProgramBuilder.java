@@ -24,12 +24,11 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Preconditions;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Workspace for constructing a {@link RexProgram}.
@@ -44,7 +43,7 @@ public class RexProgramBuilder {
   private final RexBuilder rexBuilder;
   private final RelDataType inputRowType;
   private final List<RexNode> exprList = new ArrayList<>();
-  private final Map<Pair<String, String>, RexLocalRef> exprMap =
+  private final Map<Pair<RexNode, String>, RexLocalRef> exprMap =
       new HashMap<>();
   private final List<RexLocalRef> localRefList = new ArrayList<>();
   private final List<RexLocalRef> projectRefList = new ArrayList<>();
@@ -67,8 +66,8 @@ public class RexProgramBuilder {
    */
   private RexProgramBuilder(RelDataType inputRowType, RexBuilder rexBuilder,
       RexSimplify simplify) {
-    this.inputRowType = Preconditions.checkNotNull(inputRowType);
-    this.rexBuilder = Preconditions.checkNotNull(rexBuilder);
+    this.inputRowType = Objects.requireNonNull(inputRowType);
+    this.rexBuilder = Objects.requireNonNull(rexBuilder);
     this.simplify = simplify; // may be null
     this.validating = assertionsAreEnabled();
 
@@ -159,6 +158,7 @@ public class RexProgramBuilder {
    */
   private static boolean assertionsAreEnabled() {
     boolean assertionsEnabled = false;
+    //noinspection AssertWithSideEffects
     assert assertionsEnabled = true;
     return assertionsEnabled;
   }
@@ -325,12 +325,11 @@ public class RexProgramBuilder {
    */
   private RexLocalRef registerInternal(RexNode expr, boolean force) {
     final RexSimplify simplify =
-        new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
-            RexUtil.EXECUTOR);
-    expr = simplify.simplify(expr);
+        new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, RexUtil.EXECUTOR);
+    expr = simplify.simplifyPreservingType(expr);
 
     RexLocalRef ref;
-    final Pair<String, String> key;
+    final Pair<RexNode, String> key;
     if (expr instanceof RexLocalRef) {
       key = null;
       ref = (RexLocalRef) expr;
@@ -550,7 +549,7 @@ public class RexProgramBuilder {
       boolean simplify_) {
     RexSimplify simplify = null;
     if (simplify_) {
-      simplify = new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
+      simplify = new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY,
           RexUtil.EXECUTOR);
     }
     return new RexProgramBuilder(rexBuilder, inputRowType, exprList,

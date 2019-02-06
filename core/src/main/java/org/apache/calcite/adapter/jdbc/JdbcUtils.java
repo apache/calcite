@@ -127,16 +127,14 @@ final class JdbcUtils {
 
     public static Function1<ResultSet, Function0<Object[]>> factory(
         final List<Pair<ColumnMetaData.Rep, Integer>> list) {
-      return new Function1<ResultSet, Function0<Object[]>>() {
-        public Function0<Object[]> apply(ResultSet resultSet) {
-          try {
-            return new ObjectArrayRowBuilder(
-                resultSet,
-                Pair.left(list).toArray(new ColumnMetaData.Rep[list.size()]),
-                Ints.toArray(Pair.right(list)));
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
+      return resultSet -> {
+        try {
+          return new ObjectArrayRowBuilder(
+              resultSet,
+              Pair.left(list).toArray(new ColumnMetaData.Rep[list.size()]),
+              Ints.toArray(Pair.right(list)));
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
         }
       };
     }
@@ -212,17 +210,18 @@ final class JdbcUtils {
     public static final DataSourcePool INSTANCE = new DataSourcePool();
 
     private final LoadingCache<List<String>, BasicDataSource> cache =
-        CacheBuilder.newBuilder().softValues().build(
-            new CacheLoader<List<String>, BasicDataSource>() {
-              @Override public BasicDataSource load(@Nonnull List<String> key) {
-                BasicDataSource dataSource = new BasicDataSource();
-                dataSource.setUrl(key.get(0));
-                dataSource.setUsername(key.get(1));
-                dataSource.setPassword(key.get(2));
-                dataSource.setDriverClassName(key.get(3));
-                return dataSource;
-              }
-            });
+        CacheBuilder.newBuilder().softValues()
+            .build(CacheLoader.from(DataSourcePool::dataSource));
+
+    private static @Nonnull BasicDataSource dataSource(
+          @Nonnull List<String> key) {
+      BasicDataSource dataSource = new BasicDataSource();
+      dataSource.setUrl(key.get(0));
+      dataSource.setUsername(key.get(1));
+      dataSource.setPassword(key.get(2));
+      dataSource.setDriverClassName(key.get(3));
+      return dataSource;
+    }
 
     public DataSource get(String url, String driverClassName,
         String username, String password) {

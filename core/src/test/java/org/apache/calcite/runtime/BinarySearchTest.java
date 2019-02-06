@@ -30,10 +30,10 @@ public class BinarySearchTest {
   private void search(int key, int lower, int upper, Integer... array) {
     Assert.assertEquals(
         "lower bound of " + key + " in " + Arrays.toString(array), lower,
-        BinarySearch.lowerBound(array, key, Ordering.<Integer>natural()));
+        BinarySearch.lowerBound(array, key, Ordering.natural()));
     Assert.assertEquals(
         "upper bound of " + key + " in " + Arrays.toString(array), upper,
-        BinarySearch.upperBound(array, key, Ordering.<Integer>natural()));
+        BinarySearch.upperBound(array, key, Ordering.natural()));
   }
 
   @Test

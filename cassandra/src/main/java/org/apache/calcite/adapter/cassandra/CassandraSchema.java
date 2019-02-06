@@ -19,7 +19,6 @@ package org.apache.calcite.adapter.cassandra;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.rel.RelFieldCollation;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -50,7 +49,6 @@ import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.MaterializedViewMetadata;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TableMetadata;
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -58,6 +56,7 @@ import org.slf4j.Logger;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -74,6 +73,8 @@ public class CassandraSchema extends AbstractSchema {
 
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
+  private static final int DEFAULT_CASSANDRA_PORT = 9042;
+
   /**
    * Creates a Cassandra schema.
    *
@@ -81,7 +82,19 @@ public class CassandraSchema extends AbstractSchema {
    * @param keyspace Cassandra keyspace name, e.g. "twissandra"
    */
   public CassandraSchema(String host, String keyspace, SchemaPlus parentSchema, String name) {
-    this(host, keyspace, null, null, parentSchema, name);
+    this(host, DEFAULT_CASSANDRA_PORT, keyspace, null, null, parentSchema, name);
+  }
+
+  /**
+   * Creates a Cassandra schema.
+   *
+   * @param host Cassandra host, e.g. "localhost"
+   * @param port Cassandra port, e.g. 9042
+   * @param keyspace Cassandra keyspace name, e.g. "twissandra"
+   */
+  public CassandraSchema(String host, int port, String keyspace,
+          SchemaPlus parentSchema, String name) {
+    this(host, port, keyspace, null, null, parentSchema, name);
   }
 
   /**
@@ -94,16 +107,32 @@ public class CassandraSchema extends AbstractSchema {
    */
   public CassandraSchema(String host, String keyspace, String username, String password,
         SchemaPlus parentSchema, String name) {
+    this(host, DEFAULT_CASSANDRA_PORT, keyspace, null, null, parentSchema, name);
+  }
+
+  /**
+   * Creates a Cassandra schema.
+   *
+   * @param host Cassandra host, e.g. "localhost"
+   * @param port Cassandra port, e.g. 9042
+   * @param keyspace Cassandra keyspace name, e.g. "twissandra"
+   * @param username Cassandra username
+   * @param password Cassandra password
+   */
+  public CassandraSchema(String host, int port, String keyspace, String username, String password,
+        SchemaPlus parentSchema, String name) {
     super();
 
     this.keyspace = keyspace;
     try {
       Cluster cluster;
+      List<InetSocketAddress> contactPoints = new ArrayList<>(1);
+      contactPoints.add(new InetSocketAddress(host, port));
       if (username != null && password != null) {
-        cluster = Cluster.builder().addContactPoint(host)
+        cluster = Cluster.builder().addContactPointsWithPorts(contactPoints)
             .withCredentials(username, password).build();
       } else {
-        cluster = Cluster.builder().addContactPoint(host).build();
+        cluster = Cluster.builder().addContactPointsWithPorts(contactPoints).build();
       }
 
       this.session = cluster.connect(keyspace);
@@ -113,20 +142,17 @@ public class CassandraSchema extends AbstractSchema {
     this.parentSchema = parentSchema;
     this.name = name;
 
-    this.hook = Hook.TRIMMED.add(new Function<RelNode, Void>() {
-      public Void apply(RelNode node) {
-        CassandraSchema.this.addMaterializedViews();
-        return null;
-      }
+    this.hook = Hook.TRIMMED.add(node -> {
+      CassandraSchema.this.addMaterializedViews();
     });
   }
 
   RelProtoDataType getRelDataType(String columnFamily, boolean view) {
     List<ColumnMetadata> columns;
     if (view) {
-      columns = getKeyspace().getMaterializedView(columnFamily).getColumns();
+      columns = getKeyspace().getMaterializedView("\"" + columnFamily + "\"").getColumns();
     } else {
-      columns = getKeyspace().getTable(columnFamily).getColumns();
+      columns = getKeyspace().getTable("\"" + columnFamily + "\"").getColumns();
     }
 
     // Temporary type factory, just for the duration of this method. Allowable
@@ -171,25 +197,25 @@ public class CassandraSchema extends AbstractSchema {
   Pair<List<String>, List<String>> getKeyFields(String columnFamily, boolean view) {
     AbstractTableMetadata table;
     if (view) {
-      table = getKeyspace().getMaterializedView(columnFamily);
+      table = getKeyspace().getMaterializedView("\"" + columnFamily + "\"");
     } else {
-      table = getKeyspace().getTable(columnFamily);
+      table = getKeyspace().getTable("\"" + columnFamily + "\"");
     }
 
     List<ColumnMetadata> partitionKey = table.getPartitionKey();
-    List<String> pKeyFields = new ArrayList<String>();
+    List<String> pKeyFields = new ArrayList<>();
     for (ColumnMetadata column : partitionKey) {
       pKeyFields.add(column.getName());
     }
 
     List<ColumnMetadata> clusteringKey = table.getClusteringColumns();
-    List<String> cKeyFields = new ArrayList<String>();
+    List<String> cKeyFields = new ArrayList<>();
     for (ColumnMetadata column : clusteringKey) {
       cKeyFields.add(column.getName());
     }
 
-    return Pair.of((List<String>) ImmutableList.copyOf(pKeyFields),
-        (List<String>) ImmutableList.copyOf(cKeyFields));
+    return Pair.of(ImmutableList.copyOf(pKeyFields),
+        ImmutableList.copyOf(cKeyFields));
   }
 
   /** Get the collation of all clustering key columns.
@@ -199,13 +225,13 @@ public class CassandraSchema extends AbstractSchema {
   public List<RelFieldCollation> getClusteringOrder(String columnFamily, boolean view) {
     AbstractTableMetadata table;
     if (view) {
-      table = getKeyspace().getMaterializedView(columnFamily);
+      table = getKeyspace().getMaterializedView("\"" + columnFamily + "\"");
     } else {
-      table = getKeyspace().getTable(columnFamily);
+      table = getKeyspace().getTable("\"" + columnFamily + "\"");
     }
 
     List<ClusteringOrder> clusteringOrder = table.getClusteringOrder();
-    List<RelFieldCollation> keyCollations = new ArrayList<RelFieldCollation>();
+    List<RelFieldCollation> keyCollations = new ArrayList<>();
 
     int i = 0;
     for (ClusteringOrder order : clusteringOrder) {
@@ -237,7 +263,7 @@ public class CassandraSchema extends AbstractSchema {
       StringBuilder queryBuilder = new StringBuilder("SELECT ");
 
       // Add all the selected columns to the query
-      List<String> columnNames = new ArrayList<String>();
+      List<String> columnNames = new ArrayList<>();
       for (ColumnMetadata column : view.getColumns()) {
         columnNames.add("\"" + column.getName() + "\"");
       }

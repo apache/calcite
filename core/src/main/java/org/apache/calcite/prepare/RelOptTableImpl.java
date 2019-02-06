@@ -60,15 +60,14 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.AbstractList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Implementation of {@link org.apache.calcite.plan.RelOptTable}.
@@ -97,7 +96,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       Function<Class, Expression> expressionFunction,
       Double rowCount) {
     this.schema = schema;
-    this.rowType = Preconditions.checkNotNull(rowType);
+    this.rowType = Objects.requireNonNull(rowType);
     this.names = ImmutableList.copyOf(names);
     this.table = table; // may be null
     this.expressionFunction = expressionFunction; // may be null
@@ -109,29 +108,23 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       RelDataType rowType,
       List<String> names,
       Expression expression) {
-    //noinspection unchecked
-    final Function<Class, Expression> expressionFunction =
-        (Function) Functions.constant(expression);
     return new RelOptTableImpl(schema, rowType, names, null,
-        expressionFunction, null);
+        c -> expression, null);
   }
 
   public static RelOptTableImpl create(RelOptSchema schema, RelDataType rowType,
       Table table, Path path) {
     final SchemaPlus schemaPlus = MySchemaPlus.create(path);
-    Function<Class, Expression> expressionFunction =
-        getClassExpressionFunction(schemaPlus, Util.last(path).left, table);
     return new RelOptTableImpl(schema, rowType, Pair.left(path), table,
-        expressionFunction, table.getStatistic().getRowCount());
+        getClassExpressionFunction(schemaPlus, Util.last(path).left, table),
+        table.getStatistic().getRowCount());
   }
 
   public static RelOptTableImpl create(RelOptSchema schema, RelDataType rowType,
       final CalciteSchema.TableEntry tableEntry, Double rowCount) {
     final Table table = tableEntry.getTable();
-    Function<Class, Expression> expressionFunction =
-        getClassExpressionFunction(tableEntry, table);
     return new RelOptTableImpl(schema, rowType, tableEntry.path(),
-        table, expressionFunction, rowCount);
+        table, getClassExpressionFunction(tableEntry, table), rowCount);
   }
 
   /**
@@ -152,28 +145,18 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       final SchemaPlus schema, final String tableName, final Table table) {
     if (table instanceof QueryableTable) {
       final QueryableTable queryableTable = (QueryableTable) table;
-      return new Function<Class, Expression>() {
-        public Expression apply(Class clazz) {
-          return queryableTable.getExpression(schema, tableName, clazz);
-        }
-      };
+      return clazz -> queryableTable.getExpression(schema, tableName, clazz);
     } else if (table instanceof ScannableTable
         || table instanceof FilterableTable
         || table instanceof ProjectableFilterableTable) {
-      return new Function<Class, Expression>() {
-        public Expression apply(Class clazz) {
-          return Schemas.tableExpression(schema, Object[].class, tableName,
-              table.getClass());
-        }
-      };
+      return clazz -> Schemas.tableExpression(schema, Object[].class, tableName,
+          table.getClass());
     } else if (table instanceof StreamableTable) {
       return getClassExpressionFunction(schema, tableName,
           ((StreamableTable) table).stream());
     } else {
-      return new Function<Class, Expression>() {
-        public Expression apply(Class input) {
-          throw new UnsupportedOperationException();
-        }
+      return input -> {
+        throw new UnsupportedOperationException();
       };
     }
   }
@@ -349,14 +332,13 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
   }
 
   public SqlMonotonicity getMonotonicity(String columnName) {
-    final int i = rowType.getFieldNames().indexOf(columnName);
-    if (i >= 0) {
-      for (RelCollation collation : table.getStatistic().getCollations()) {
-        final RelFieldCollation fieldCollation =
-            collation.getFieldCollations().get(0);
-        if (fieldCollation.getFieldIndex() == i) {
-          return fieldCollation.direction.monotonicity();
-        }
+    for (RelCollation collation : table.getStatistic().getCollations()) {
+      final RelFieldCollation fieldCollation =
+          collation.getFieldCollations().get(0);
+      final int fieldIndex = fieldCollation.getFieldIndex();
+      if (fieldIndex < rowType.getFieldCount()
+          && rowType.getFieldNames().get(fieldIndex).equals(columnName)) {
+        return fieldCollation.direction.monotonicity();
       }
     }
     return SqlMonotonicity.NOT_MONOTONIC;

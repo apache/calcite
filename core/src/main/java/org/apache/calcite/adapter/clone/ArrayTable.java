@@ -40,11 +40,11 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Type;
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -72,7 +72,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
   }
 
   public Statistic getStatistic() {
-    final List<ImmutableBitSet> keys = Lists.newArrayList();
+    final List<ImmutableBitSet> keys = new ArrayList<>();
     final Content content = supplier.get();
     for (Ord<Column> ord : Ord.zip(content.columns)) {
       if (ord.e.cardinality == content.size) {
@@ -280,7 +280,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
     public Object freeze(ColumnLoader.ValueSet valueSet, int[] sources) {
       // We assume the values have been canonized.
       final List<Comparable> list = permuteList(valueSet.values, sources);
-      return list.toArray(new Comparable[list.size()]);
+      return list.toArray(new Comparable[0]);
     }
 
     public Object permute(Object dataSet, int[] sources) {
@@ -816,7 +816,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
       this(columns, size,
           sortField >= 0
               ? RelCollations.createSingleton(sortField)
-              : ImmutableList.<RelCollation>of());
+              : ImmutableList.of());
     }
 
     @SuppressWarnings("unchecked")

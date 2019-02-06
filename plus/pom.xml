@@ -20,12 +20,12 @@ limitations under the License.
   <parent>
     <groupId>org.apache.calcite</groupId>
     <artifactId>calcite</artifactId>
-    <version>1.17.0-SNAPSHOT</version>
+    <version>1.19.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>calcite-plus</artifactId>
   <packaging>jar</packaging>
-  <version>1.17.0-SNAPSHOT</version>
+  <version>1.19.0-SNAPSHOT</version>
   <name>Calcite Plus</name>
   <description>Miscellaneous extras for Calcite</description>
 
@@ -56,6 +56,14 @@ limitations under the License.
       <artifactId>avatica-core</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.apache.calcite.avatica</groupId>
+      <artifactId>avatica-server</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-server</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
     </dependency>
@@ -63,6 +71,17 @@ limitations under the License.
       <groupId>io.airlift.tpch</groupId>
       <artifactId>tpch</artifactId>
       <type>jar</type>
+    </dependency>
+    <dependency>
+      <groupId>com.teradata.tpcds</groupId>
+      <artifactId>tpcds</artifactId>
+      <type>jar</type>
+      <exclusions>
+        <exclusion>
+          <artifactId>airline</artifactId>
+          <groupId>io.airlift</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -82,6 +101,12 @@ limitations under the License.
       <groupId>net.hydromatic</groupId>
       <artifactId>tpcds</artifactId>
       <type>jar</type>
+      <exclusions>
+        <exclusion>
+          <artifactId>airline</artifactId>
+          <groupId>io.airlift</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
@@ -102,6 +127,17 @@ limitations under the License.
     <plugins>
       <!-- Sorted by groupId, artifactId. Put versions in
            pluginManagement in the root POM, not here. -->
+
+      <!-- Base is 1.7, but we require 1.8 for com.teradata.tpcds. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.8</source>
+          <target>1.8</target>
+          <compilerArgument>-Xlint:deprecation</compilerArgument>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
@@ -119,6 +155,7 @@ limitations under the License.
               <!-- ignore "unused but declared" warnings -->
               <ignoredUnusedDeclaredDependencies>
                 <ignoredUnusedDeclaredDependency>net.hydromatic:chinook-data-hsqldb</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.eclipse.jetty:jetty-server</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.hsqldb:hsqldb</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.incava:java-diff</ignoredUnusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>

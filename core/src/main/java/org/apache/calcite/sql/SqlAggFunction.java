@@ -24,8 +24,11 @@ import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.Optionality;
 
 import java.util.List;
+import java.util.Objects;
+import javax.annotation.Nonnull;
 
 /**
  * Abstract base class for the definition of an aggregate function: an operator
@@ -34,6 +37,7 @@ import java.util.List;
 public abstract class SqlAggFunction extends SqlFunction implements Context {
   private final boolean requiresOrder;
   private final boolean requiresOver;
+  private final Optionality requiresGroupOrder;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -48,7 +52,8 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlFunctionCategory funcType) {
     // We leave sqlIdentifier as null to indicate that this is a builtin.
     this(name, null, kind, returnTypeInference, operandTypeInference,
-        operandTypeChecker, funcType, false, false);
+        operandTypeChecker, funcType, false, false,
+        Optionality.FORBIDDEN);
   }
 
   /** Creates a user-defined SqlAggFunction. */
@@ -62,7 +67,24 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType) {
     this(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
-        operandTypeChecker, funcType, false, false);
+        operandTypeChecker, funcType, false, false,
+        Optionality.FORBIDDEN);
+  }
+
+  @Deprecated // to be removed before 2.0
+  protected SqlAggFunction(
+      String name,
+      SqlIdentifier sqlIdentifier,
+      SqlKind kind,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
+      SqlFunctionCategory funcType,
+      boolean requiresOrder,
+      boolean requiresOver) {
+    this(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
+        operandTypeChecker, funcType, requiresOrder, requiresOver,
+        Optionality.FORBIDDEN);
   }
 
   /** Creates a built-in or user-defined SqlAggFunction or window function.
@@ -78,11 +100,13 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType,
       boolean requiresOrder,
-      boolean requiresOver) {
+      boolean requiresOver,
+      Optionality requiresGroupOrder) {
     super(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
         operandTypeChecker, null, funcType);
     this.requiresOrder = requiresOrder;
     this.requiresOver = requiresOver;
+    this.requiresGroupOrder = Objects.requireNonNull(requiresGroupOrder);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -105,11 +129,38 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlValidatorScope scope,
       SqlValidatorScope operandScope) {
     super.validateCall(call, validator, scope, operandScope);
-    validator.validateAggregateParams(call, null, scope);
+    validator.validateAggregateParams(call, null, null, scope);
   }
 
   @Override public final boolean requiresOrder() {
     return requiresOrder;
+  }
+
+  /** Returns whether this aggregate function must, may, or must not contain a
+   * {@code WITHIN GROUP (ORDER ...)} clause.
+   *
+   * <p>Cases:<ul>
+   *
+   * <li>If {@link Optionality#MANDATORY},
+   * then {@code AGG(x) WITHIN GROUP (ORDER BY 1)} is valid,
+   * and {@code AGG(x)} is invalid.
+   *
+   * <li>If {@link Optionality#OPTIONAL},
+   * then {@code AGG(x) WITHIN GROUP (ORDER BY 1)}
+   * and {@code AGG(x)} are both valid.
+   *
+   * <li>If {@link Optionality#IGNORED},
+   * then {@code AGG(x)} is valid,
+   * and {@code AGG(x) WITHIN GROUP (ORDER BY 1)} is valid but is
+   * treated the same as {@code AGG(x)}.
+   *
+   * <li>If {@link Optionality#FORBIDDEN},
+   * then {@code AGG(x) WITHIN GROUP (ORDER BY 1)} is invalid,
+   * and {@code AGG(x)} is valid.
+   * </ul>
+   */
+  public @Nonnull Optionality requiresGroupOrder() {
+    return requiresGroupOrder;
   }
 
   @Override public final boolean requiresOver() {

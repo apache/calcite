@@ -49,7 +49,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -433,20 +433,9 @@ public class RelMdUtil {
       RexBuilder rexBuilder,
       RexNode pred1,
       RexNode pred2) {
-    final List<RexNode> unionList = new ArrayList<>();
-    final Set<String> strings = new HashSet<>();
-
-    for (RexNode rex : RelOptUtil.conjunctions(pred1)) {
-      if (strings.add(rex.toString())) {
-        unionList.add(rex);
-      }
-    }
-    for (RexNode rex2 : RelOptUtil.conjunctions(pred2)) {
-      if (strings.add(rex2.toString())) {
-        unionList.add(rex2);
-      }
-    }
-
+    final Set<RexNode> unionList = new LinkedHashSet<>();
+    unionList.addAll(RelOptUtil.conjunctions(pred1));
+    unionList.addAll(RelOptUtil.conjunctions(pred2));
     return RexUtil.composeConjunction(rexBuilder, unionList, true);
   }
 
@@ -463,23 +452,9 @@ public class RelMdUtil {
       RexBuilder rexBuilder,
       RexNode pred1,
       RexNode pred2) {
-    final List<RexNode> list1 = RelOptUtil.conjunctions(pred1);
-    final List<RexNode> list2 = RelOptUtil.conjunctions(pred2);
-    final List<RexNode> minusList = new ArrayList<>();
-
-    for (RexNode rex1 : list1) {
-      boolean add = true;
-      for (RexNode rex2 : list2) {
-        if (rex2.toString().compareTo(rex1.toString()) == 0) {
-          add = false;
-          break;
-        }
-      }
-      if (add) {
-        minusList.add(rex1);
-      }
-    }
-
+    final List<RexNode> minusList =
+        new ArrayList<>(RelOptUtil.conjunctions(pred1));
+    minusList.removeAll(RelOptUtil.conjunctions(pred2));
     return RexUtil.composeConjunction(rexBuilder, minusList, true);
   }
 

@@ -26,9 +26,11 @@ import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
 
@@ -45,11 +47,14 @@ public class SqlCountAggFunction extends SqlAggFunction {
   //~ Constructors -----------------------------------------------------------
 
   public SqlCountAggFunction(String name) {
+    this(name, SqlValidator.STRICT ? OperandTypes.ANY : OperandTypes.ONE_OR_MORE);
+  }
+
+  public SqlCountAggFunction(String name,
+      SqlOperandTypeChecker sqlOperandTypeChecker) {
     super(name, null, SqlKind.COUNT, ReturnTypes.BIGINT, null,
-        SqlValidator.STRICT
-            ? OperandTypes.ANY
-            : OperandTypes.ONE_OR_MORE,
-        SqlFunctionCategory.NUMERIC, false, false);
+        sqlOperandTypeChecker, SqlFunctionCategory.NUMERIC, false, false,
+        Optionality.FORBIDDEN);
   }
 
   //~ Methods ----------------------------------------------------------------

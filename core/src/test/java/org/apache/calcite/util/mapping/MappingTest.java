@@ -204,7 +204,7 @@ public class MappingTest {
     assertThat(mapping.inverse().toString(), equalTo("[1, 2, 3, 0]"));
 
     // empty is OK
-    final Mapping empty = Mappings.bijection(Collections.<Integer>emptyList());
+    final Mapping empty = Mappings.bijection(Collections.emptyList());
     assertThat(empty.size(), equalTo(0));
     assertThat(empty.iterator().hasNext(), equalTo(false));
     assertThat(empty.toString(), equalTo("[]"));

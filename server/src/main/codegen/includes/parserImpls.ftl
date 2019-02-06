@@ -70,7 +70,7 @@ SqlCreate SqlCreateForeignSchema(Span s, boolean replace) :
 SqlNodeList Options() :
 {
     final Span s;
-    final List<SqlNode> list = Lists.newArrayList();
+    final List<SqlNode> list = new ArrayList<SqlNode>();
 }
 {
     <OPTIONS> { s = span(); } <LPAREN>
@@ -102,7 +102,7 @@ void Option(List<SqlNode> list) :
 SqlNodeList TableElementList() :
 {
     final Span s;
-    final List<SqlNode> list = Lists.newArrayList();
+    final List<SqlNode> list = new ArrayList<SqlNode>();
 }
 {
     <LPAREN> { s = span(); }
@@ -194,7 +194,7 @@ void TableElement(List<SqlNode> list) :
 SqlNodeList AttributeDefList() :
 {
     final Span s;
-    final List<SqlNode> list = Lists.newArrayList();
+    final List<SqlNode> list = new ArrayList<SqlNode>();
 }
 {
     <LPAREN> { s = span(); }
@@ -303,6 +303,53 @@ SqlCreate SqlCreateMaterializedView(Span s, boolean replace) :
     }
 }
 
+private void FunctionJarDef(SqlNodeList usingList) :
+{
+    final SqlDdlNodes.FileType fileType;
+    final SqlNode uri;
+}
+{
+    (
+        <ARCHIVE> { fileType = SqlDdlNodes.FileType.ARCHIVE; }
+    |
+        <FILE> { fileType = SqlDdlNodes.FileType.FILE; }
+    |
+        <JAR> { fileType = SqlDdlNodes.FileType.JAR; }
+    ) {
+        usingList.add(SqlLiteral.createSymbol(fileType, getPos()));
+    }
+    uri = StringLiteral() {
+        usingList.add(uri);
+    }
+}
+
+SqlCreate SqlCreateFunction(Span s, boolean replace) :
+{
+    final boolean ifNotExists;
+    final SqlIdentifier id;
+    final SqlNode className;
+    SqlNodeList usingList = SqlNodeList.EMPTY;
+}
+{
+    <FUNCTION> ifNotExists = IfNotExistsOpt()
+    id = CompoundIdentifier()
+    <AS>
+    className = StringLiteral()
+    [
+        <USING> {
+            usingList = new SqlNodeList(getPos());
+        }
+        FunctionJarDef(usingList)
+        (
+            <COMMA>
+            FunctionJarDef(usingList)
+        )*
+    ] {
+        return SqlDdlNodes.createFunction(s.end(this), replace, ifNotExists,
+            id, className, usingList);
+    }
+}
+
 SqlDrop SqlDropSchema(Span s, boolean replace) :
 {
     final boolean ifExists;
@@ -361,6 +408,18 @@ SqlDrop SqlDropMaterializedView(Span s, boolean replace) :
 {
     <MATERIALIZED> <VIEW> ifExists = IfExistsOpt() id = CompoundIdentifier() {
         return SqlDdlNodes.dropMaterializedView(s.end(this), ifExists, id);
+    }
+}
+
+SqlDrop SqlDropFunction(Span s, boolean replace) :
+{
+    final boolean ifExists;
+    final SqlIdentifier id;
+}
+{
+    <FUNCTION> ifExists = IfExistsOpt()
+    id = CompoundIdentifier() {
+        return SqlDdlNodes.dropFunction(s.end(this), ifExists, id);
     }
 }
 

@@ -44,8 +44,7 @@ public enum SparkMethod {
 
   public final Method method;
 
-  private static final HashMap<Method, SparkMethod> MAP =
-      new HashMap<Method, SparkMethod>();
+  private static final HashMap<Method, SparkMethod> MAP = new HashMap<>();
 
   static {
     for (SparkMethod method : SparkMethod.values()) {

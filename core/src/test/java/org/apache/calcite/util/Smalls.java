@@ -27,14 +27,11 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Deterministic;
-import org.apache.calcite.linq4j.function.Function1;
-import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.linq4j.function.SemiStrict;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.QueryableTable;
@@ -66,7 +63,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-
 
 /**
  * Holder for various classes and functions used in tests as user-defined
@@ -303,11 +299,7 @@ public class Smalls {
       public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
           SchemaPlus schema, String tableName) {
         final Enumerable<Integer> enumerable =
-            a.select(new Function1<Object[], Integer>() {
-              public Integer apply(Object[] a0) {
-                return offset + ((Integer) a0[0]);
-              }
-            });
+            a.select(a0 -> offset + ((Integer) a0[0]));
         //noinspection unchecked
         return (Queryable) enumerable.asQueryable();
       }
@@ -330,11 +322,7 @@ public class Smalls {
       public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
           SchemaPlus schema, String tableName) {
         final Enumerable<Integer> enumerable =
-            a.zip(b, new Function2<Object[], IntString, Integer>() {
-              public Integer apply(Object[] v0, IntString v1) {
-                return ((Integer) v0[1]) + v1.n + offset;
-              }
-            });
+            a.zip(b, (v0, v1) -> ((Integer) v0[1]) + v1.n + offset);
         //noinspection unchecked
         return (Queryable) enumerable.asQueryable();
       }
@@ -342,39 +330,26 @@ public class Smalls {
   }
 
   public static TranslatableTable view(String s) {
-    return new ViewTable(Object.class,
-        new RelProtoDataType() {
-          public RelDataType apply(RelDataTypeFactory typeFactory) {
-            return typeFactory.builder().add("c", SqlTypeName.INTEGER)
-                .build();
-          }
-        }, "values (1), (3), " + s, ImmutableList.<String>of(), Arrays.asList("view"));
+    return new ViewTable(Object.class, typeFactory ->
+        typeFactory.builder().add("c", SqlTypeName.INTEGER).build(),
+        "values (1), (3), " + s, ImmutableList.of(), Arrays.asList("view"));
   }
 
   public static TranslatableTable strView(String s) {
-    return new ViewTable(Object.class,
-        new RelProtoDataType() {
-          public RelDataType apply(RelDataTypeFactory typeFactory) {
-            return typeFactory.builder().add("c", SqlTypeName.VARCHAR, 100)
-                    .build();
-          }
-        }, "values (" + CalciteSqlDialect.DEFAULT.quoteStringLiteral(s) + ")",
-        ImmutableList.<String>of(), Arrays.asList("view"));
+    return new ViewTable(Object.class, typeFactory ->
+        typeFactory.builder().add("c", SqlTypeName.VARCHAR, 100).build(),
+        "values (" + CalciteSqlDialect.DEFAULT.quoteStringLiteral(s) + ")",
+        ImmutableList.of(), Arrays.asList("view"));
   }
 
   public static TranslatableTable str(Object o, Object p) {
     assertThat(RexLiteral.validConstant(o, Litmus.THROW), is(true));
     assertThat(RexLiteral.validConstant(p, Litmus.THROW), is(true));
-    return new ViewTable(Object.class,
-        new RelProtoDataType() {
-          public RelDataType apply(RelDataTypeFactory typeFactory) {
-            return typeFactory.builder().add("c", SqlTypeName.VARCHAR, 100)
-                .build();
-          }
-        },
+    return new ViewTable(Object.class, typeFactory ->
+        typeFactory.builder().add("c", SqlTypeName.VARCHAR, 100).build(),
         "values " + CalciteSqlDialect.DEFAULT.quoteStringLiteral(o.toString())
             + ", " + CalciteSqlDialect.DEFAULT.quoteStringLiteral(p.toString()),
-        ImmutableList.<String>of(), Arrays.asList("view"));
+        ImmutableList.of(), Arrays.asList("view"));
   }
 
   /** Class with int and String fields. */
@@ -833,6 +808,13 @@ public class Smalls {
         }
         sb.append('(').append(s).append(')');
       }
+    }
+  }
+
+  /** A table function that returns a {@link QueryableTable}. */
+  public static class SimpleTableFunction {
+    public QueryableTable eval(Integer s) {
+      return generateStrings(s);
     }
   }
 

@@ -19,7 +19,6 @@ package org.apache.calcite.util;
 import org.apache.calcite.runtime.Utilities;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 
 import org.junit.Test;
 
@@ -30,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -154,7 +154,7 @@ public class ImmutableBitSetTest {
 
   @Test public void testCompare2() {
     final List<ImmutableBitSet> sorted = getSortedList();
-    Collections.sort(sorted, ImmutableBitSet.COMPARATOR);
+    sorted.sort(ImmutableBitSet.COMPARATOR);
     assertThat(sorted.toString(),
         equalTo("[{0, 1, 3}, {0, 1}, {1, 1000}, {1}, {1}, {2, 3}, {}]"));
   }
@@ -390,12 +390,12 @@ public class ImmutableBitSetTest {
   /** Tests the method
    * {@link org.apache.calcite.util.BitSets#closure(java.util.SortedMap)}. */
   @Test public void testClosure() {
-    final SortedMap<Integer, ImmutableBitSet> empty = Maps.newTreeMap();
+    final SortedMap<Integer, ImmutableBitSet> empty = new TreeMap<>();
     assertThat(ImmutableBitSet.closure(empty), equalTo(empty));
 
     // Currently you need an entry for each position, otherwise you get an NPE.
     // We should fix that.
-    final SortedMap<Integer, ImmutableBitSet> map = Maps.newTreeMap();
+    final SortedMap<Integer, ImmutableBitSet> map = new TreeMap<>();
     map.put(0, ImmutableBitSet.of(3));
     map.put(1, ImmutableBitSet.of());
     map.put(2, ImmutableBitSet.of(7));
@@ -416,7 +416,7 @@ public class ImmutableBitSetTest {
     assertThat("argument modified", map.toString(), equalTo(original));
 
     // Now a similar map with missing entries. Same result.
-    final SortedMap<Integer, ImmutableBitSet> map2 = Maps.newTreeMap();
+    final SortedMap<Integer, ImmutableBitSet> map2 = new TreeMap<>();
     map2.put(0, ImmutableBitSet.of(3));
     map2.put(2, ImmutableBitSet.of(7));
     map2.put(3, ImmutableBitSet.of(4, 12));

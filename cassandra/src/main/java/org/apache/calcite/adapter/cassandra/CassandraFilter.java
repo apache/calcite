@@ -65,7 +65,7 @@ public class CassandraFilter extends Filter implements CassandraRel {
 
     this.partitionKeys = partitionKeys;
     this.singlePartition = false;
-    this.clusteringKeys = new ArrayList<String>(clusteringKeys);
+    this.clusteringKeys = new ArrayList<>(clusteringKeys);
     this.implicitFieldCollations = implicitFieldCollations;
 
     Translator translator =
@@ -124,7 +124,7 @@ public class CassandraFilter extends Filter implements CassandraRel {
         List<RelFieldCollation> implicitFieldCollations) {
       this.rowType = rowType;
       this.fieldNames = CassandraRules.cassandraFieldNames(rowType);
-      this.partitionKeys = new HashSet<String>(partitionKeys);
+      this.partitionKeys = new HashSet<>(partitionKeys);
       this.clusteringKeys = clusteringKeys;
       this.restrictedClusteringKeys = 0;
       this.implicitFieldCollations = implicitFieldCollations;
@@ -149,7 +149,7 @@ public class CassandraFilter extends Filter implements CassandraRel {
       }
 
       // Pull out the correct fields along with their original collations
-      List<RelFieldCollation> fieldCollations = new ArrayList<RelFieldCollation>();
+      List<RelFieldCollation> fieldCollations = new ArrayList<>();
       for (int i = restrictedClusteringKeys; i < clusteringKeys.size(); i++) {
         int fieldIndex = fieldNames.indexOf(clusteringKeys.get(i));
         RelFieldCollation.Direction direction = implicitFieldCollations.get(i).getDirection();
@@ -192,7 +192,7 @@ public class CassandraFilter extends Filter implements CassandraRel {
      * @return CQL string for the predicate
      */
     private String translateAnd(RexNode condition) {
-      List<String> predicates = new ArrayList<String>();
+      List<String> predicates = new ArrayList<>();
       for (RexNode node : RelOptUtil.conjunctions(condition)) {
         predicates.add(translateMatch2(node));
       }

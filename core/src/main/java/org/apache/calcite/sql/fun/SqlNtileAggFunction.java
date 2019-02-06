@@ -21,6 +21,7 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.util.Optionality;
 
 /**
  * <code>NTILE</code> aggregate function
@@ -37,7 +38,8 @@ public class SqlNtileAggFunction extends SqlAggFunction {
         OperandTypes.POSITIVE_INTEGER_LITERAL,
         SqlFunctionCategory.NUMERIC,
         false,
-        true);
+        true,
+        Optionality.FORBIDDEN);
   }
 
 }

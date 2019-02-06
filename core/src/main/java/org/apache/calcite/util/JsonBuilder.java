@@ -33,14 +33,14 @@ public class JsonBuilder {
    */
   public Map<String, Object> map() {
     // Use LinkedHashMap to preserve order.
-    return new LinkedHashMap<String, Object>();
+    return new LinkedHashMap<>();
   }
 
   /**
    * Creates a JSON object (represented by a {@link List}).
    */
   public List<Object> list() {
-    return new ArrayList<Object>();
+    return new ArrayList<>();
   }
 
   /**

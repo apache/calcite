@@ -19,21 +19,20 @@ package org.apache.calcite.adapter.druid;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.Compatible;
 
-import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
-import javax.annotation.Nonnull;
 
 /**
  * Schema mapped onto a Druid instance.
@@ -55,8 +54,8 @@ public class DruidSchema extends AbstractSchema {
    */
   public DruidSchema(String url, String coordinatorUrl,
       boolean discoverTables) {
-    this.url = Preconditions.checkNotNull(url);
-    this.coordinatorUrl = Preconditions.checkNotNull(coordinatorUrl);
+    this.url = Objects.requireNonNull(url);
+    this.coordinatorUrl = Objects.requireNonNull(coordinatorUrl);
     this.discoverTables = discoverTables;
   }
 
@@ -69,26 +68,26 @@ public class DruidSchema extends AbstractSchema {
       final DruidConnectionImpl connection = new DruidConnectionImpl(url, coordinatorUrl);
       Set<String> tableNames = connection.tableNames();
 
-      tableMap = Compatible.INSTANCE.asMap(
-              ImmutableSet.copyOf(tableNames),
-              CacheBuilder.newBuilder()
-                .build(new CacheLoader<String, Table>() {
-                  @Override public Table load(@Nonnull String tableName) throws Exception {
-                    final Map<String, SqlTypeName> fieldMap = new LinkedHashMap<>();
-                    final Set<String> metricNameSet = new LinkedHashSet<>();
-                    final Map<String, List<ComplexMetric>> complexMetrics = new HashMap<>();
-
-                    connection.metadata(tableName, DruidTable.DEFAULT_TIMESTAMP_COLUMN,
-                            null, fieldMap, metricNameSet, complexMetrics);
-
-                    return DruidTable.create(DruidSchema.this, tableName, null,
-                            fieldMap, metricNameSet, DruidTable.DEFAULT_TIMESTAMP_COLUMN,
-                            complexMetrics);
-                  }
-                }));
+      tableMap = Maps.asMap(
+          ImmutableSet.copyOf(tableNames),
+          CacheBuilder.newBuilder()
+              .build(CacheLoader.from(name -> table(name, connection))));
     }
 
     return tableMap;
+  }
+
+  private Table table(String tableName, DruidConnectionImpl connection) {
+    final Map<String, SqlTypeName> fieldMap = new LinkedHashMap<>();
+    final Set<String> metricNameSet = new LinkedHashSet<>();
+    final Map<String, List<ComplexMetric>> complexMetrics = new HashMap<>();
+
+    connection.metadata(tableName, DruidTable.DEFAULT_TIMESTAMP_COLUMN,
+        null, fieldMap, metricNameSet, complexMetrics);
+
+    return DruidTable.create(DruidSchema.this, tableName, null,
+        fieldMap, metricNameSet, DruidTable.DEFAULT_TIMESTAMP_COLUMN,
+        complexMetrics);
   }
 }
 

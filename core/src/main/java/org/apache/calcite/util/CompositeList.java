@@ -69,7 +69,7 @@ public class CompositeList<T> extends AbstractList<T> {
    */
   public static <T> CompositeList<T> ofCopy(Iterable<List<T>> lists) {
     final ImmutableList<List<T>> list = ImmutableList.copyOf(lists);
-    return new CompositeList<T>(list);
+    return new CompositeList<>(list);
   }
 
   /**

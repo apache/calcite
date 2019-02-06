@@ -45,12 +45,15 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import java.lang.reflect.Method;
@@ -62,6 +65,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.apache.calcite.sql.fun.OracleSqlOperatorTable.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
@@ -75,7 +79,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
  */
 public class RexToLixTranslator {
   public static final Map<Method, SqlOperator> JAVA_TO_SQL_METHOD_MAP =
-      Util.<Method, SqlOperator>mapOf(
+      Util.mapOf(
           findMethod(String.class, "toUpperCase"), UPPER,
           findMethod(
               SqlFunctions.class, "substring", String.class, Integer.TYPE,
@@ -90,6 +94,7 @@ public class RexToLixTranslator {
   final JavaTypeFactory typeFactory;
   final RexBuilder builder;
   private final RexProgram program;
+  final SqlConformance conformance;
   private final Expression root;
   private final RexToLixTranslator.InputGetter inputGetter;
   private final BlockBuilder list;
@@ -106,57 +111,26 @@ public class RexToLixTranslator {
     }
   }
 
-  private RexToLixTranslator(RexProgram program, JavaTypeFactory typeFactory,
-      Expression root, InputGetter inputGetter, BlockBuilder list) {
-    this(program, typeFactory, root, inputGetter, list,
-        Collections.<RexNode, Boolean>emptyMap(),
-        new RexBuilder(typeFactory));
-  }
-
-  private RexToLixTranslator(
-      RexProgram program,
-      JavaTypeFactory typeFactory,
-      Expression root,
-      InputGetter inputGetter,
-      BlockBuilder list,
-      Map<RexNode, Boolean> exprNullableMap,
-      RexBuilder builder) {
-    this(program, typeFactory, root, inputGetter, list, exprNullableMap,
-        builder, null);
-  }
-
-  private RexToLixTranslator(
-      RexProgram program,
+  private RexToLixTranslator(RexProgram program,
       JavaTypeFactory typeFactory,
       Expression root,
       InputGetter inputGetter,
       BlockBuilder list,
       Map<? extends RexNode, Boolean> exprNullableMap,
       RexBuilder builder,
-      RexToLixTranslator parent) {
-    this(program, typeFactory, root, inputGetter, list, exprNullableMap,
-        builder, parent, null);
-  }
-
-  private RexToLixTranslator(
-      RexProgram program,
-      JavaTypeFactory typeFactory,
-      Expression root,
-      InputGetter inputGetter,
-      BlockBuilder list,
-      Map<? extends RexNode, Boolean> exprNullableMap,
-      RexBuilder builder,
+      SqlConformance conformance,
       RexToLixTranslator parent,
       Function1<String, InputGetter> correlates) {
-    this.program = program;
-    this.typeFactory = typeFactory;
-    this.root = root;
+    this.program = program; // may be null
+    this.typeFactory = Objects.requireNonNull(typeFactory);
+    this.conformance = Objects.requireNonNull(conformance);
+    this.root = Objects.requireNonNull(root);
     this.inputGetter = inputGetter;
-    this.list = list;
-    this.exprNullableMap = exprNullableMap;
-    this.builder = builder;
-    this.parent = parent;
-    this.correlates = correlates;
+    this.list = Objects.requireNonNull(list);
+    this.exprNullableMap = Objects.requireNonNull(exprNullableMap);
+    this.builder = Objects.requireNonNull(builder);
+    this.parent = parent; // may be null
+    this.correlates = correlates; // may be null
   }
 
   /**
@@ -165,6 +139,7 @@ public class RexToLixTranslator {
    *
    * @param program Program to be translated
    * @param typeFactory Type factory
+   * @param conformance SQL conformance
    * @param list List of statements, populated with declarations
    * @param outputPhysType Output type, or null
    * @param root Root expression
@@ -174,12 +149,9 @@ public class RexToLixTranslator {
    * @return Sequence of expressions, optional condition
    */
   public static List<Expression> translateProjects(RexProgram program,
-      JavaTypeFactory typeFactory,
-      BlockBuilder list,
-      PhysType outputPhysType,
-      Expression root,
-      InputGetter inputGetter,
-      Function1<String, InputGetter> correlates) {
+      JavaTypeFactory typeFactory, SqlConformance conformance,
+      BlockBuilder list, PhysType outputPhysType, Expression root,
+      InputGetter inputGetter, Function1<String, InputGetter> correlates) {
     List<Type> storageTypes = null;
     if (outputPhysType != null) {
       final RelDataType rowType = outputPhysType.getRowType();
@@ -188,16 +160,20 @@ public class RexToLixTranslator {
         storageTypes.add(outputPhysType.getJavaFieldType(i));
       }
     }
-    return new RexToLixTranslator(program, typeFactory, root, inputGetter, list)
+    return new RexToLixTranslator(program, typeFactory, root, inputGetter,
+        list, Collections.emptyMap(), new RexBuilder(typeFactory), conformance,
+        null, null)
         .setCorrelates(correlates)
         .translateList(program.getProjectList(), storageTypes);
   }
 
   /** Creates a translator for translating aggregate functions. */
   public static RexToLixTranslator forAggregation(JavaTypeFactory typeFactory,
-      BlockBuilder list, InputGetter inputGetter) {
+      BlockBuilder list, InputGetter inputGetter, SqlConformance conformance) {
     final ParameterExpression root = DataContext.ROOT;
-    return new RexToLixTranslator(null, typeFactory, root, inputGetter, list);
+    return new RexToLixTranslator(null, typeFactory, root, inputGetter, list,
+        Collections.emptyMap(), new RexBuilder(typeFactory), conformance, null,
+        null);
   }
 
   Expression translate(RexNode expr) {
@@ -595,6 +571,18 @@ public class RexToLixTranslator {
     return scaleIntervalToNumber(sourceType, targetType, convert);
   }
 
+  private Expression handleNullUnboxingIfNecessary(
+      Expression input,
+      RexImpTable.NullAs nullAs,
+      Type storageType) {
+    if (RexImpTable.NullAs.NOT_POSSIBLE == nullAs && input.type.equals(storageType)) {
+      // When we asked for not null input that would be stored as box, avoid
+      // unboxing which may occur in the handleNull method below.
+      return input;
+    }
+    return handleNull(input, nullAs);
+  }
+
   /** Adapts an expression with "normal" result to one that adheres to
    * this particular policy. Wraps the result expression into a new
    * parameter if need be.
@@ -648,18 +636,13 @@ public class RexToLixTranslator {
       nullAs = RexImpTable.NullAs.NOT_POSSIBLE;
     }
     switch (expr.getKind()) {
-    case INPUT_REF:
+    case INPUT_REF: {
       final int index = ((RexInputRef) expr).getIndex();
       Expression x = inputGetter.field(list, index, storageType);
 
       Expression input = list.append("inp" + index + "_", x); // safe to share
-      if (nullAs == RexImpTable.NullAs.NOT_POSSIBLE
-          && input.type.equals(storageType)) {
-        // When we asked for not null input that would be stored as box, avoid
-        // unboxing via nullAs.handle below.
-        return input;
-      }
-      return handleNull(input, nullAs);
+      return handleNullUnboxingIfNecessary(input, nullAs, storageType);
+    }
     case LOCAL_REF:
       return translate(
           deref(expr),
@@ -679,21 +662,32 @@ public class RexToLixTranslator {
     case CORREL_VARIABLE:
       throw new RuntimeException("Cannot translate " + expr + ". Correlated"
           + " variables should always be referenced by field access");
-    case FIELD_ACCESS:
+    case FIELD_ACCESS: {
       RexFieldAccess fieldAccess = (RexFieldAccess) expr;
       RexNode target = deref(fieldAccess.getReferenceExpr());
-      // only $cor.field access is supported
-      if (!(target instanceof RexCorrelVariable)) {
-        throw new RuntimeException(
-            "cannot translate expression " + expr);
+      int fieldIndex = fieldAccess.getField().getIndex();
+      String fieldName = fieldAccess.getField().getName();
+      switch (target.getKind()) {
+      case CORREL_VARIABLE:
+        if (correlates == null) {
+          throw new RuntimeException("Cannot translate " + expr + " since "
+              + "correlate variables resolver is not defined");
+        }
+        InputGetter getter =
+            correlates.apply(((RexCorrelVariable) target).getName());
+        Expression y = getter.field(list, fieldIndex, storageType);
+        Expression input = list.append("corInp" + fieldIndex + "_", y); // safe to share
+        return handleNullUnboxingIfNecessary(input, nullAs, storageType);
+      default:
+        RexNode rxIndex = builder.makeLiteral(fieldIndex, typeFactory.createType(int.class), true);
+        RexNode rxName = builder.makeLiteral(fieldName, typeFactory.createType(String.class), true);
+        RexCall accessCall = (RexCall) builder.makeCall(
+            fieldAccess.getType(),
+            SqlStdOperatorTable.STRUCT_ACCESS,
+            ImmutableList.of(target, rxIndex, rxName));
+        return translateCall(accessCall, nullAs);
       }
-      if (correlates == null) {
-        throw new RuntimeException("Cannot translate " + expr + " since "
-            + "correlate variables resolver is not defined");
-      }
-      InputGetter getter =
-          correlates.apply(((RexCorrelVariable) target).getName());
-      return getter.field(list, fieldAccess.getField().getIndex(), storageType);
+    }
     default:
       if (expr instanceof RexCall) {
         return translateCall((RexCall) expr, nullAs);
@@ -908,23 +902,23 @@ public class RexToLixTranslator {
     return list;
   }
 
-  public static Expression translateCondition(
-      RexProgram program,
-      JavaTypeFactory typeFactory,
-      BlockBuilder list,
-      InputGetter inputGetter,
-      Function1<String, InputGetter> correlates) {
+  public static Expression translateCondition(RexProgram program,
+      JavaTypeFactory typeFactory, BlockBuilder list, InputGetter inputGetter,
+      Function1<String, InputGetter> correlates, SqlConformance conformance) {
     if (program.getCondition() == null) {
       return RexImpTable.TRUE_EXPR;
     }
     final ParameterExpression root = DataContext.ROOT;
     RexToLixTranslator translator =
-        new RexToLixTranslator(program, typeFactory, root, inputGetter, list);
+        new RexToLixTranslator(program, typeFactory, root, inputGetter, list,
+            Collections.emptyMap(), new RexBuilder(typeFactory), conformance,
+            null, null);
     translator = translator.setCorrelates(correlates);
     return translator.translate(
         program.getCondition(),
         RexImpTable.NullAs.FALSE);
   }
+
   public static Expression convert(Expression operand, Type toType) {
     final Type fromType = operand.getType();
     return convert(operand, fromType, toType);
@@ -1215,7 +1209,7 @@ public class RexToLixTranslator {
       return this;
     }
     return new RexToLixTranslator(program, typeFactory, root, inputGetter, list,
-        nullable, builder, this, correlates);
+        nullable, builder, conformance, this, correlates);
   }
 
   public RexToLixTranslator setBlock(BlockBuilder block) {
@@ -1223,7 +1217,7 @@ public class RexToLixTranslator {
       return this;
     }
     return new RexToLixTranslator(program, typeFactory, root, inputGetter,
-        block, ImmutableMap.<RexNode, Boolean>of(), builder, this, correlates);
+        block, ImmutableMap.of(), builder, conformance, this, correlates);
   }
 
   public RexToLixTranslator setCorrelates(
@@ -1232,7 +1226,15 @@ public class RexToLixTranslator {
       return this;
     }
     return new RexToLixTranslator(program, typeFactory, root, inputGetter, list,
-        Collections.<RexNode, Boolean>emptyMap(), builder, this, correlates);
+        Collections.emptyMap(), builder, conformance, this, correlates);
+  }
+
+  private RexToLixTranslator withConformance(SqlConformance conformance) {
+    if (conformance == this.conformance) {
+      return this;
+    }
+    return new RexToLixTranslator(program, typeFactory, root, inputGetter, list,
+        Collections.emptyMap(), builder, conformance, this, correlates);
   }
 
   public RelDataType nullifyType(RelDataType type, boolean nullable) {

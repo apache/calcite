@@ -63,7 +63,7 @@ public class CassandraSort extends Sort implements CassandraRel {
     implementor.visitChild(0, getInput());
 
     List<RelFieldCollation> sortCollations = collation.getFieldCollations();
-    List<String> fieldOrder = new ArrayList<String>();
+    List<String> fieldOrder = new ArrayList<>();
     if (!sortCollations.isEmpty()) {
       // Construct a series of order clauses from the desired collation
       final List<RelDataTypeField> fields = getRowType().getFieldList();

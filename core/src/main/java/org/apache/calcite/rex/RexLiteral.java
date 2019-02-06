@@ -211,8 +211,8 @@ public class RexLiteral extends RexNode {
       RelDataType type,
       SqlTypeName typeName) {
     this.value = value;
-    this.type = Preconditions.checkNotNull(type);
-    this.typeName = Preconditions.checkNotNull(typeName);
+    this.type = Objects.requireNonNull(type);
+    this.typeName = Objects.requireNonNull(typeName);
     Preconditions.checkArgument(valueMatchesType(value, typeName, true));
     Preconditions.checkArgument((value == null) == type.isNullable());
     Preconditions.checkArgument(typeName != SqlTypeName.ANY);
@@ -993,7 +993,7 @@ public class RexLiteral extends RexNode {
   }
 
   private static boolean equals(Object o1, Object o2) {
-    return (o1 == null) ? (o2 == null) : o1.equals(o2);
+    return Objects.equals(o1, o2);
   }
 
   public <R> R accept(RexVisitor<R> visitor) {

@@ -18,7 +18,6 @@ package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Ordering;
 
 import org.junit.Assert;
@@ -37,6 +36,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
@@ -50,34 +50,30 @@ public class SqlTest {
   // helper functions
 
   private Fluent sql(String model, String sql) {
-    return new Fluent(model, sql, new Function<ResultSet, Void>() {
-      public Void apply(ResultSet input) {
-        throw new AssertionError();
-      }
+    return new Fluent(model, sql, input -> {
+      throw new AssertionError();
     });
   }
 
-  private Function<ResultSet, Void> expect(String... expectedLines) {
+  private static Function<ResultSet, Void> expect(String... expectedLines) {
     final StringBuilder b = new StringBuilder();
     for (String s : expectedLines) {
       b.append(s).append('\n');
     }
     final String expected = b.toString();
-    return new Function<ResultSet, Void>() {
-      public Void apply(ResultSet resultSet) {
-        try {
-          String actual = SqlTest.toString(resultSet);
-          if (!expected.equals(actual)) {
-            System.out.println("Assertion failure:");
-            System.out.println("\tExpected: '" + expected + "'");
-            System.out.println("\tActual: '" + actual + "'");
-          }
-          assertEquals(expected, actual);
-        } catch (SQLException e) {
-          throw new RuntimeException(e);
+    return resultSet -> {
+      try {
+        String actual = toString(resultSet);
+        if (!expected.equals(actual)) {
+          System.out.println("Assertion failure:");
+          System.out.println("\tExpected: '" + expected + "'");
+          System.out.println("\tActual: '" + actual + "'");
         }
-        return null;
+        assertEquals(expected, actual);
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
       }
+      return null;
     };
   }
 
@@ -86,18 +82,16 @@ public class SqlTest {
   private static Function<ResultSet, Void> expectUnordered(String... expected) {
     final List<String> expectedLines =
         Ordering.natural().immutableSortedCopy(Arrays.asList(expected));
-    return new Function<ResultSet, Void>() {
-      public Void apply(ResultSet resultSet) {
-        try {
-          final List<String> lines = new ArrayList<>();
-          SqlTest.collect(lines, resultSet);
-          Collections.sort(lines);
-          Assert.assertEquals(expectedLines, lines);
-        } catch (SQLException e) {
-          throw new RuntimeException(e);
-        }
-        return null;
+    return resultSet -> {
+      try {
+        final List<String> lines = new ArrayList<>();
+        SqlTest.collect(lines, resultSet);
+        Collections.sort(lines);
+        Assert.assertEquals(expectedLines, lines);
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
       }
+      return null;
     };
   }
 
@@ -259,21 +253,19 @@ public class SqlTest {
    * "EmptyFileHasNoColumns". */
   @Test public void testCsvSalesEmpty() throws SQLException {
     final String sql = "select * from sales.\"EMPTY\"";
-    checkSql(sql, "sales-csv", new Function<ResultSet, Void>() {
-      public Void apply(ResultSet resultSet) {
-        try {
-          assertThat(resultSet.getMetaData().getColumnCount(), is(1));
-          assertThat(resultSet.getMetaData().getColumnName(1),
-              is("EmptyFileHasNoColumns"));
-          assertThat(resultSet.getMetaData().getColumnType(1),
-              is(Types.BOOLEAN));
-          String actual = SqlTest.toString(resultSet);
-          assertThat(actual, is(""));
-        } catch (SQLException e) {
-          throw new RuntimeException(e);
-        }
-        return null;
+    checkSql(sql, "sales-csv", resultSet -> {
+      try {
+        assertThat(resultSet.getMetaData().getColumnCount(), is(1));
+        assertThat(resultSet.getMetaData().getColumnName(1),
+            is("EmptyFileHasNoColumns"));
+        assertThat(resultSet.getMetaData().getColumnType(1),
+            is(Types.BOOLEAN));
+        String actual = toString(resultSet);
+        assertThat(actual, is(""));
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
       }
+      return null;
     });
   }
 

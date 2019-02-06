@@ -31,6 +31,7 @@ public class AggImpState {
   public AggContext context;
   public Expression result;
   public List<Expression> state;
+  public Expression accumulatorAdder;
 
   public AggImpState(int aggIdx, AggregateCall call, boolean windowContext) {
     this.aggIdx = aggIdx;

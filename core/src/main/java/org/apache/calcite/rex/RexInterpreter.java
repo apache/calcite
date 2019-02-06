@@ -88,7 +88,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
   }
 
   public Comparable visitLiteral(RexLiteral literal) {
-    return Util.first(literal.getValue4(), NullSentinel.INSTANCE);
+    return Util.first(literal.getValue4(), N);
   }
 
   public Comparable visitOver(RexOver over) {
@@ -129,8 +129,18 @@ public class RexInterpreter implements RexVisitor<Comparable> {
       values.add(operand.accept(this));
     }
     switch (call.getKind()) {
+    case IS_NOT_DISTINCT_FROM:
+      if (containsNull(values)) {
+        return values.get(0).equals(values.get(1));
+      }
+      // falls through EQUALS
     case EQUALS:
       return compare(values, c -> c == 0);
+    case IS_DISTINCT_FROM:
+      if (containsNull(values)) {
+        return !values.get(0).equals(values.get(1));
+      }
+      // falls through NOT_EQUALS
     case NOT_EQUALS:
       return compare(values, c -> c != 0);
     case GREATER_THAN:
@@ -163,9 +173,23 @@ public class RexInterpreter implements RexVisitor<Comparable> {
       return values.get(0).equals(false);
     case IS_NOT_FALSE:
       return !values.get(0).equals(false);
+    case PLUS_PREFIX:
+      return values.get(0);
+    case MINUS_PREFIX:
+      return containsNull(values) ? N
+          : number(values.get(0)).negate();
     case PLUS:
       return containsNull(values) ? N
           : number(values.get(0)).add(number(values.get(1)));
+    case MINUS:
+      return containsNull(values) ? N
+          : number(values.get(0)).subtract(number(values.get(1)));
+    case TIMES:
+      return containsNull(values) ? N
+          : number(values.get(0)).multiply(number(values.get(1)));
+    case DIVIDE:
+      return containsNull(values) ? N
+          : number(values.get(0)).divide(number(values.get(1)));
     case CAST:
       return cast(call, values);
     case COALESCE:
@@ -322,7 +346,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
 
   private boolean containsNull(List<Comparable> values) {
     for (Comparable value : values) {
-      if (value == NullSentinel.INSTANCE) {
+      if (value == N) {
         return true;
       }
     }

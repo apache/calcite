@@ -16,8 +16,7 @@
  */
 package org.apache.calcite.test;
 
-import java.io.File;
-import java.net.URISyntaxException;
+import org.apache.calcite.util.Sources;
 
 /**
  * Common methods inheritable by all Pig-specific test classes.
@@ -25,11 +24,7 @@ import java.net.URISyntaxException;
 public abstract class AbstractPigTest {
 
   protected String getFullPathForTestDataFile(String fileName) {
-    try {
-      return new File(getClass().getResource("/" + fileName).toURI()).getAbsolutePath();
-    } catch (URISyntaxException e) {
-      throw new RuntimeException(e);
-    }
+    return Sources.of(getClass().getResource("/" + fileName)).file().getAbsolutePath();
   }
 }
 

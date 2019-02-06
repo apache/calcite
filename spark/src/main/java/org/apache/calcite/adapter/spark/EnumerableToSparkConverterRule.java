@@ -23,7 +23,7 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-import com.google.common.base.Predicates;
+import java.util.function.Predicate;
 
 /**
  * Rule to convert a relational expression from
@@ -40,7 +40,7 @@ public class EnumerableToSparkConverterRule extends ConverterRule {
    * @param relBuilderFactory Builder for relational expressions
    */
   public EnumerableToSparkConverterRule(RelBuilderFactory relBuilderFactory) {
-    super(RelNode.class, Predicates.<RelNode>alwaysTrue(),
+    super(RelNode.class, (Predicate<RelNode>) r -> true,
         EnumerableConvention.INSTANCE, SparkRel.CONVENTION, relBuilderFactory,
         "EnumerableToSparkConverterRule");
   }

@@ -15,6 +15,7 @@
 #
 # Database of contributors to Apache Calcite.
 # Pages such as developer.md use this data.
+# List must be sorted by first name, last name.
 #
 - name: Alan Gates
   emeritus: 2018/05/04
@@ -27,6 +28,11 @@
   githubId: amansinha100
   org: MapR
   role: PMC
+- name: Andrei Sereda
+  apacheId: sereda
+  githubId: asereda-gs
+  org:
+  role: Committer
 - name: Ashutosh Chauhan
   apacheId: hashutosh
   githubId: ashutoshc
@@ -51,7 +57,7 @@
   apacheId: francischuang
   githubId: F21
   org: Boostport
-  role: PMC
+  role: PMC Chair
 - name: Gian Merlino
   apacheId: gian
   githubId: gianm
@@ -95,7 +101,7 @@
 - name: Julian Hyde
   apacheId: jhyde
   githubId: julianhyde
-  org: Hortonworks
+  org: Looker
   role: PMC
   homepage: http://people.apache.org/~jhyde
 - name: Kevin Liew
@@ -107,7 +113,7 @@
   apacheId: krisden
   githubId: risdenk
   org:
-  role: Committer
+  role: PMC
 - name: Laurent Goujon
   apacheId: laurent
   githubId: laurentgo
@@ -121,9 +127,9 @@
 - name: Michael Mior
   apacheId: mmior
   githubId: michaelmior
-  org: University of Waterloo
-  role: PMC Chair
-  homepage: http://michael.mior.ca/
+  org: Rochester Institute of Technology
+  role: PMC
+  homepage: https://michael.mior.ca/
 - name: Milinda Pathirage
   apacheId: milinda
   githubId: milinda
@@ -145,6 +151,11 @@
   apacheId: nishant
   githubId: nishantmonu51
   org: Hortonworks
+  role: Committer
+- name: Sergey Nuyanzin
+  apacheId: snuyanzin
+  githubId: snuyanzin
+  org: EPAM
   role: Committer
 - name: Shuyi Chen
   apacheId: shuyichen
@@ -176,7 +187,7 @@
   apacheId: volodymyr
   githubId: vvysotskyi
   org:
-  role: Committer
+  role: PMC
 - name: Zhen Wang
   apacheId: zhenw
   githubId: zinking
@@ -186,5 +197,10 @@
   apacheId: zhiqianghe
   githubId: Zhiqiang-He
   org: Huawei
+  role: Committer
+- name: Zoltan Haindrich
+  apacheId: kgyrtkirk
+  githubId: kgyrtkirk
+  org: Hortonworks
   role: Committer
 # End contributors.yml

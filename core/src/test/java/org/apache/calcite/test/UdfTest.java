@@ -17,19 +17,15 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.enumerable.CallImplementor;
-import org.apache.calcite.adapter.enumerable.RexImpTable.NullAs;
-import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.SemiStrict;
-import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
-import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.FunctionParameter;
 import org.apache.calcite.schema.ImplementableFunction;
 import org.apache.calcite.schema.ScalarFunction;
@@ -244,7 +240,7 @@ public class UdfTest {
         + "  POST.MY_INCREMENT(\"empid\", 10) as INCREMENTED_SALARY\n"
         + "from \"hr\".\"emps\"";
     post.add("V_EMP",
-        ViewTable.viewMacro(post, viewSql, ImmutableList.<String>of(),
+        ViewTable.viewMacro(post, viewSql, ImmutableList.of(),
             ImmutableList.of("POST", "V_EMP"), null));
 
     final String result = ""
@@ -598,7 +594,9 @@ public class UdfTest {
         .throws_("No match found for function signature MY_SUM3(<NUMERIC>, "
             + "<NUMERIC>, <APPROXIMATE_NUMERIC>)");
     with.query("select \"adhoc\".my_sum3(\"empid\",\"deptno\",\"name\") as p "
-        + "from \"adhoc\".EMPLOYEES\n");
+        + "from \"adhoc\".EMPLOYEES\n")
+        .throws_("No match found for function signature MY_SUM3(<NUMERIC>, "
+            + "<NUMERIC>, <CHARACTER>)");
     with.query("select \"adhoc\".my_sum2(\"commission\",250) as p "
         + "from \"adhoc\".EMPLOYEES\n")
         .returns("P=1500\n");
@@ -998,14 +996,12 @@ public class UdfTest {
     protected abstract List<RelProtoDataType> getParams();
 
     @Override public CallImplementor getImplementor() {
-      return new CallImplementor() {
-        public Expression implement(RexToLixTranslator translator, RexCall call, NullAs nullAs) {
-          Method lookupMethod =
-              Types.lookupMethod(Smalls.AllTypesFunction.class,
-                  "arrayAppendFun", List.class, Integer.class);
-          return Expressions.call(lookupMethod,
-              translator.translateList(call.getOperands(), nullAs));
-        }
+      return (translator, call, nullAs) -> {
+        Method lookupMethod =
+            Types.lookupMethod(Smalls.AllTypesFunction.class,
+                "arrayAppendFun", List.class, Integer.class);
+        return Expressions.call(lookupMethod,
+            translator.translateList(call.getOperands(), nullAs));
       };
     }
   }
@@ -1020,17 +1016,9 @@ public class UdfTest {
 
     @Override public List<RelProtoDataType> getParams() {
       return ImmutableList.of(
-          new RelProtoDataType() {
-            public RelDataType apply(RelDataTypeFactory typeFactory) {
-              return typeFactory.createArrayType(
-                  typeFactory.createSqlType(SqlTypeName.INTEGER), -1);
-            }
-          },
-          new RelProtoDataType() {
-            public RelDataType apply(RelDataTypeFactory typeFactory) {
-              return typeFactory.createSqlType(SqlTypeName.INTEGER);
-            }
-          });
+          typeFactory -> typeFactory.createArrayType(
+              typeFactory.createSqlType(SqlTypeName.INTEGER), -1),
+          typeFactory -> typeFactory.createSqlType(SqlTypeName.INTEGER));
     }
   }
 
@@ -1044,17 +1032,9 @@ public class UdfTest {
 
     public List<RelProtoDataType> getParams() {
       return ImmutableList.of(
-          new RelProtoDataType() {
-            public RelDataType apply(RelDataTypeFactory typeFactory) {
-              return typeFactory.createArrayType(
-                  typeFactory.createSqlType(SqlTypeName.DOUBLE), -1);
-            }
-          },
-          new RelProtoDataType() {
-            public RelDataType apply(RelDataTypeFactory typeFactory) {
-              return typeFactory.createSqlType(SqlTypeName.INTEGER);
-            }
-          });
+          typeFactory -> typeFactory.createArrayType(
+              typeFactory.createSqlType(SqlTypeName.DOUBLE), -1),
+          typeFactory -> typeFactory.createSqlType(SqlTypeName.INTEGER));
     }
   }
 

@@ -32,4 +32,6 @@ settings.xml
 nb-configuration.xml
 */nb-configuration.xml
 
+.mvn/wrapper/maven-wrapper.jar
+
 # End .gitignore

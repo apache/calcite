@@ -31,6 +31,7 @@ import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
@@ -69,7 +70,6 @@ import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.trace.CalciteTimingTracer;
 import org.apache.calcite.util.trace.CalciteTrace;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.slf4j.Logger;
@@ -78,6 +78,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Abstract base for classes that implement
@@ -175,7 +176,7 @@ public abstract class Prepare {
         if (node instanceof TableScan) {
           final RelOptCluster cluster = node.getCluster();
           final RelOptTable.ToRelContext context =
-              RelOptUtil.getContext(cluster);
+              ViewExpanders.simpleContext(cluster);
           final RelNode r = node.getTable().toRel(context);
           planner.registerClass(r);
         }
@@ -398,11 +399,6 @@ public abstract class Prepare {
     return THREAD_TRIM.get() || RelOptUtil.countJoins(rootRel) < 2;
   }
 
-  public RelRoot expandView(RelDataType rowType, String queryString,
-      List<String> schemaPath, List<String> viewPath) {
-    throw new UnsupportedOperationException();
-  }
-
   protected abstract void init(Class runtimeContextClass);
 
   protected abstract SqlValidator getSqlValidator();
@@ -532,7 +528,7 @@ public abstract class Prepare {
 
     public List<List<String>> getFieldOrigins() {
       return Collections.singletonList(
-          Collections.<String>nCopies(4, null));
+          Collections.nCopies(4, null));
     }
   }
 
@@ -599,11 +595,11 @@ public abstract class Prepare {
         RelNode rootRel,
         LogicalTableModify.Operation tableModOp,
         boolean isDml) {
-      this.rowType = Preconditions.checkNotNull(rowType);
-      this.parameterRowType = Preconditions.checkNotNull(parameterRowType);
-      this.fieldOrigins = Preconditions.checkNotNull(fieldOrigins);
+      this.rowType = Objects.requireNonNull(rowType);
+      this.parameterRowType = Objects.requireNonNull(parameterRowType);
+      this.fieldOrigins = Objects.requireNonNull(fieldOrigins);
       this.collations = ImmutableList.copyOf(collations);
-      this.rootRel = Preconditions.checkNotNull(rootRel);
+      this.rootRel = Objects.requireNonNull(rootRel);
       this.tableModOp = tableModOp;
       this.isDml = isDml;
     }

@@ -91,6 +91,25 @@ public class RexFieldAccess extends RexNode {
   public RexNode getReferenceExpr() {
     return expr;
   }
+
+  @Override public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    RexFieldAccess that = (RexFieldAccess) o;
+
+    return field.equals(that.field) && expr.equals(that.expr);
+  }
+
+  @Override public int hashCode() {
+    int result = expr.hashCode();
+    result = 31 * result + field.hashCode();
+    return result;
+  }
 }
 
 // End RexFieldAccess.java

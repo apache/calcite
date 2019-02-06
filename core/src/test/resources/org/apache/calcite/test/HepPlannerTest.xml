@@ -167,9 +167,8 @@ LogicalIntersect(all=[false])
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(EXPR$0=[UPPER($0)])
-  LogicalProject(ENAME=[LOWER($1)])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[UPPER(LOWER($1))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">

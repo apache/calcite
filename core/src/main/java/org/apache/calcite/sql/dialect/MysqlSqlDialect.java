@@ -105,7 +105,8 @@ public class MysqlSqlDialect extends SqlDialect {
       return new SqlDataTypeSpec(new SqlIdentifier("CHAR", SqlParserPos.ZERO),
           type.getPrecision(), -1, null, null, SqlParserPos.ZERO);
     case INTEGER:
-      return new SqlDataTypeSpec(new SqlIdentifier("_UNSIGNED", SqlParserPos.ZERO),
+    case BIGINT:
+      return new SqlDataTypeSpec(new SqlIdentifier("_SIGNED", SqlParserPos.ZERO),
           type.getPrecision(), -1, null, null, SqlParserPos.ZERO);
     }
     return super.getCastSpec(type);
@@ -127,12 +128,10 @@ public class MysqlSqlDialect extends SqlDialect {
             SqlStdOperatorTable.COUNT.createCall(SqlParserPos.ZERO, operand),
             SqlNodeList.of(
                 SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO),
-                SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)
-            ),
+                SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),
             SqlNodeList.of(
                 nullLiteral,
-                operand
-            ),
+                operand),
             SqlStdOperatorTable.SCALAR_QUERY.createCall(SqlParserPos.ZERO,
                 SqlStdOperatorTable.UNION_ALL
                     .createCall(SqlParserPos.ZERO, unionOperand, unionOperand)));
@@ -193,13 +192,13 @@ public class MysqlSqlDialect extends SqlDialect {
       format = "%Y-%m-%d";
       break;
     case HOUR:
-      format = "%Y-%m-%d %k:00:00";
+      format = "%Y-%m-%d %H:00:00";
       break;
     case MINUTE:
-      format = "%Y-%m-%d %k:%i:00";
+      format = "%Y-%m-%d %H:%i:00";
       break;
     case SECOND:
-      format = "%Y-%m-%d %k:%i:%s";
+      format = "%Y-%m-%d %H:%i:%s";
       break;
     default:
       throw new AssertionError("MYSQL does not support FLOOR for time unit: "

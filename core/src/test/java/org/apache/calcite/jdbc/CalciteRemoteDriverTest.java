@@ -25,20 +25,15 @@ import org.apache.calcite.avatica.remote.Service;
 import org.apache.calcite.avatica.server.AvaticaJsonHandler;
 import org.apache.calcite.avatica.server.HttpServer;
 import org.apache.calcite.avatica.server.Main;
-import org.apache.calcite.avatica.server.Main.HandlerFactory;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.JdbcFrontLinqBackTest;
 import org.apache.calcite.test.JdbcTest;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import org.hamcrest.CoreMatchers;
-
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -71,9 +66,11 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -100,53 +97,47 @@ public class CalciteRemoteDriverTest {
       };
 
   private static final Function<Connection, ResultSet> GET_SCHEMAS =
-      new Function<Connection, ResultSet>() {
-        public ResultSet apply(Connection input) {
-          try {
-            return input.getMetaData().getSchemas();
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
+      connection -> {
+        try {
+          return connection.getMetaData().getSchemas();
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
         }
       };
+
   private static final Function<Connection, ResultSet> GET_CATALOGS =
-      new Function<Connection, ResultSet>() {
-        public ResultSet apply(Connection input) {
-          try {
-            return input.getMetaData().getCatalogs();
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
+      connection -> {
+        try {
+          return connection.getMetaData().getCatalogs();
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
         }
       };
+
   private static final Function<Connection, ResultSet> GET_COLUMNS =
-      new Function<Connection, ResultSet>() {
-        public ResultSet apply(Connection input) {
-          try {
-            return input.getMetaData().getColumns(null, null, null, null);
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
+      connection -> {
+        try {
+          return connection.getMetaData().getColumns(null, null, null, null);
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
         }
       };
+
   private static final Function<Connection, ResultSet> GET_TYPEINFO =
-      new Function<Connection, ResultSet>() {
-        public ResultSet apply(Connection input) {
-          try {
-            return input.getMetaData().getTypeInfo();
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
+      connection -> {
+        try {
+          return connection.getMetaData().getTypeInfo();
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
         }
       };
+
   private static final Function<Connection, ResultSet> GET_TABLE_TYPES =
-      new Function<Connection, ResultSet>() {
-        public ResultSet apply(Connection input) {
-          try {
-            return input.getMetaData().getTableTypes();
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
+      connection -> {
+        try {
+          return connection.getMetaData().getTableTypes();
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
         }
       };
 
@@ -157,11 +148,8 @@ public class CalciteRemoteDriverTest {
     localConnection = CalciteAssert.hr().connect();
 
     // Make sure we pick an ephemeral port for the server
-    start = Main.start(new String[]{Factory.class.getName()}, 0, new HandlerFactory() {
-      public AvaticaJsonHandler createHandler(Service service) {
-        return new AvaticaJsonHandler(service);
-      }
-    });
+    start = Main.start(new String[]{Factory.class.getName()}, 0,
+        AvaticaJsonHandler::new);
   }
 
   protected static Connection getRemoteConnection() throws SQLException {
@@ -311,7 +299,7 @@ public class CalciteRemoteDriverTest {
    * variables. */
   @Test public void testParameterConvert() throws Exception {
     final StringBuilder sql = new StringBuilder("select 1");
-    final Map<SqlType, Integer> map = Maps.newHashMap();
+    final Map<SqlType, Integer> map = new HashMap<>();
     for (Map.Entry<Class, SqlType> entry : SqlType.getSetConversions()) {
       final SqlType sqlType = entry.getValue();
       switch (sqlType) {
@@ -629,7 +617,7 @@ public class CalciteRemoteDriverTest {
 
   /** A bunch of sample values of various types. */
   private static final List<Object> SAMPLE_VALUES =
-      ImmutableList.<Object>of(false, true,
+      ImmutableList.of(false, true,
           // byte
           (byte) 0, (byte) 1, Byte.MIN_VALUE, Byte.MAX_VALUE,
           // short
@@ -664,7 +652,7 @@ public class CalciteRemoteDriverTest {
           new byte[0], "hello".getBytes(StandardCharsets.UTF_8));
 
   private static List<Object> values(Class clazz) {
-    final List<Object> list = Lists.newArrayList();
+    final List<Object> list = new ArrayList<>();
     for (Object sampleValue : SAMPLE_VALUES) {
       if (sampleValue.getClass() == clazz) {
         list.add(sampleValue);

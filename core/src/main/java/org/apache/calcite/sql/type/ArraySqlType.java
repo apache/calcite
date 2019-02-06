@@ -20,7 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
 
-import com.google.common.base.Preconditions;
+import java.util.Objects;
 
 /**
  * SQL array type.
@@ -38,7 +38,7 @@ public class ArraySqlType extends AbstractSqlType {
    */
   public ArraySqlType(RelDataType elementType, boolean isNullable) {
     super(SqlTypeName.ARRAY, isNullable, null);
-    this.elementType = Preconditions.checkNotNull(elementType);
+    this.elementType = Objects.requireNonNull(elementType);
     computeDigest();
   }
 

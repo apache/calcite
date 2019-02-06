@@ -18,6 +18,7 @@ package org.apache.calcite.util.graph;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import org.hamcrest.CoreMatchers;
@@ -30,6 +31,9 @@ import java.util.List;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -221,7 +225,7 @@ public class DirectedGraphTest {
     //   +- E - F
     DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
     assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
-        CoreMatchers.<Set<String>>equalTo(ImmutableSet.<String>of()));
+        CoreMatchers.equalTo(ImmutableSet.of()));
 
     // Add cycle C-D-E-C
     //
@@ -232,8 +236,8 @@ public class DirectedGraphTest {
     //      \_____/
     graph.addEdge("D", "E");
     assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
-        CoreMatchers.<Set<String>>equalTo(
-            ImmutableSet.<String>of("C", "D", "E", "F")));
+        CoreMatchers.equalTo(
+            ImmutableSet.of("C", "D", "E", "F")));
 
     // Add another cycle, D-C-D in addition to C-D-E-C.
     //           __
@@ -245,8 +249,8 @@ public class DirectedGraphTest {
     //      \_____/
     graph.addEdge("D", "C");
     assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
-        CoreMatchers.<Set<String>>equalTo(
-            ImmutableSet.<String>of("C", "D", "E", "F")));
+        CoreMatchers.equalTo(
+            ImmutableSet.of("C", "D", "E", "F")));
 
     graph.removeEdge("D", "E");
     graph.removeEdge("D", "C");
@@ -262,8 +266,8 @@ public class DirectedGraphTest {
     // Detected cycle contains "D", which is downstream from the cycle but not
     // in the cycle. Not sure whether that is correct.
     assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
-        CoreMatchers.<Set<String>>equalTo(
-            ImmutableSet.<String>of("B", "C", "D")));
+        CoreMatchers.equalTo(
+            ImmutableSet.of("B", "C", "D")));
 
     // Add single-node cycle, C-C
     //
@@ -275,13 +279,13 @@ public class DirectedGraphTest {
     graph.removeEdge("C", "B");
     graph.addEdge("C", "C");
     assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
-        CoreMatchers.<Set<String>>equalTo(
-            ImmutableSet.<String>of("C", "D")));
+        CoreMatchers.equalTo(
+            ImmutableSet.of("C", "D")));
 
     // Empty graph is not cyclic.
     graph.removeAllVertices(graph.vertexSet());
     assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
-        CoreMatchers.<Set<String>>equalTo(ImmutableSet.<String>of()));
+        CoreMatchers.equalTo(ImmutableSet.of()));
   }
 
   /** Unit test for
@@ -310,6 +314,72 @@ public class DirectedGraphTest {
     return list;
   }
 
+  @Test public void testAttributed() {
+    AttributedDirectedGraph<String, DefaultEdge> g =
+        AttributedDirectedGraph.create(new DefaultAttributedEdgeFactory());
+    g.addVertex("A");
+    g.addVertex("B");
+    g.addVertex("C");
+    g.addVertex("D");
+    g.addVertex("E");
+    g.addVertex("F");
+    g.addEdge("A", "B", 1);
+    g.addEdge("B", "C", 1);
+    g.addEdge("D", "C", 1);
+    g.addEdge("C", "D", 1);
+    g.addEdge("E", "F", 1);
+    g.addEdge("C", "C", 1);
+    assertEquals("[A, B, C, D]", shortestPath(g, "A", "D").toString());
+    g.addEdge("B", "D", 1);
+    assertEquals("[A, B, D]", shortestPath(g, "A", "D").toString());
+    assertNull("There is no path from A to E", shortestPath(g, "A", "E"));
+    assertEquals("[]", shortestPath(g, "D", "D").toString());
+    assertNull("Node X is not in the graph", shortestPath(g, "X", "A"));
+    assertEquals("[[A, B, C, D], [A, B, D]]", paths(g, "A", "D").toString());
+    assertThat(g.addVertex("B"), is(false));
+
+    assertThat(Iterables.size(g.getEdges("A", "B")), is(1));
+    assertThat(g.addEdge("A", "B", 1), nullValue());
+    assertThat(Iterables.size(g.getEdges("A", "B")), is(1));
+    assertThat(g.addEdge("A", "B", 2), notNullValue());
+    assertThat(Iterables.size(g.getEdges("A", "B")), is(2));
+  }
+
+  /** Edge that stores its attributes in a list. */
+  private static class DefaultAttributedEdge extends DefaultEdge {
+    private final List list;
+
+    DefaultAttributedEdge(String source, String target, List list) {
+      super(source, target);
+      this.list = ImmutableList.copyOf(list);
+    }
+
+    @Override public int hashCode() {
+      return super.hashCode() * 31 + list.hashCode();
+    }
+
+    @Override public boolean equals(Object obj) {
+      return this == obj
+          || obj instanceof DefaultAttributedEdge
+          && ((DefaultAttributedEdge) obj).source.equals(source)
+          && ((DefaultAttributedEdge) obj).target.equals(target)
+          && ((DefaultAttributedEdge) obj).list.equals(list);
+    }
+  }
+
+    /** Factory for {@link DefaultAttributedEdge}. */
+  private static class DefaultAttributedEdgeFactory
+      implements AttributedDirectedGraph.AttributedEdgeFactory<String,
+          DefaultEdge> {
+    public DefaultEdge createEdge(String v0, String v1, Object... attributes) {
+      return new DefaultAttributedEdge(v0, v1,
+          ImmutableList.copyOf(attributes));
+    }
+
+    public DefaultEdge createEdge(String v0, String v1) {
+      throw new UnsupportedOperationException();
+    }
+  }
 }
 
 // End DirectedGraphTest.java

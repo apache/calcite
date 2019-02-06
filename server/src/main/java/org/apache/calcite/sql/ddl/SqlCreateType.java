@@ -34,9 +34,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Preconditions;
-
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Parse tree for {@code CREATE TYPE} statement.
@@ -54,7 +53,7 @@ public class SqlCreateType extends SqlCreate
   SqlCreateType(SqlParserPos pos, boolean replace, SqlIdentifier name,
       SqlNodeList attributeDefs, SqlDataTypeSpec dataType) {
     super(OPERATOR, pos, replace, false);
-    this.name = Preconditions.checkNotNull(name);
+    this.name = Objects.requireNonNull(name);
     this.attributeDefs = attributeDefs; // may be null
     this.dataType = dataType; // may be null
   }

@@ -26,7 +26,6 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -37,19 +36,6 @@ import java.util.List;
  * A <code>SqlIdentifier</code> is an identifier, possibly compound.
  */
 public class SqlIdentifier extends SqlNode {
-  private static final Function<String, String> STAR_TO_EMPTY =
-      new Function<String, String>() {
-        public String apply(String s) {
-          return s.equals("*") ? "" : s;
-        }
-      };
-
-  private static final Function<String, String> EMPTY_TO_STAR =
-      new Function<String, String>() {
-        public String apply(String s) {
-          return s.equals("") ? "*" : s.equals("*") ? "\"*\"" : s;
-        }
-      };
 
   //~ Instance fields --------------------------------------------------------
 
@@ -131,7 +117,8 @@ public class SqlIdentifier extends SqlNode {
   /** Creates an identifier that ends in a wildcard star. */
   public static SqlIdentifier star(List<String> names, SqlParserPos pos,
       List<SqlParserPos> componentPositions) {
-    return new SqlIdentifier(Lists.transform(names, STAR_TO_EMPTY), null, pos,
+    return new SqlIdentifier(
+        Lists.transform(names, s -> s.equals("*") ? "" : s), null, pos,
         componentPositions);
   }
 
@@ -156,7 +143,8 @@ public class SqlIdentifier extends SqlNode {
 
   /** Converts empty strings in a list of names to stars. */
   public static List<String> toStar(List<String> names) {
-    return Lists.transform(names, EMPTY_TO_STAR);
+    return Lists.transform(names,
+        s -> s.equals("") ? "*" : s.equals("*") ? "\"*\"" : s);
   }
 
   /**
@@ -175,7 +163,7 @@ public class SqlIdentifier extends SqlNode {
    * Does not modify this identifier. */
   public SqlIdentifier setName(int i, String name) {
     if (!names.get(i).equals(name)) {
-      String[] nameArray = names.toArray(new String[names.size()]);
+      String[] nameArray = names.toArray(new String[0]);
       nameArray[i] = name;
       return new SqlIdentifier(ImmutableList.copyOf(nameArray), collation, pos,
           componentPositions);
@@ -274,8 +262,10 @@ public class SqlIdentifier extends SqlNode {
    */
   public SqlIdentifier plusStar() {
     final SqlIdentifier id = this.plus("*", SqlParserPos.ZERO);
-    return new SqlIdentifier(Lists.transform(id.names, STAR_TO_EMPTY), null, id.pos,
-        id.componentPositions);
+    return new SqlIdentifier(
+        id.names.stream().map(s -> s.equals("*") ? "" : s)
+            .collect(Util.toImmutableList()),
+        null, id.pos, id.componentPositions);
   }
 
   /** Creates an identifier that consists of all but the last {@code n}

@@ -27,10 +27,10 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 import java.io.Serializable;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -85,7 +85,7 @@ public abstract class RelDataTypeImpl
       }
     }
     if (elideRecord) {
-      final List<Slot> slots = Lists.newArrayList();
+      final List<Slot> slots = new ArrayList<>();
       getFieldRecurse(slots, this, 0, fieldName, caseSensitive);
     loop:
       for (Slot slot : slots) {
@@ -241,7 +241,7 @@ public abstract class RelDataTypeImpl
   /**
    * Generates a string representation of this type.
    *
-   * @param sb         StringBuffer into which to generate the string
+   * @param sb         StringBuilder into which to generate the string
    * @param withDetail when true, all detail information needed to compute a
    *                   unique digest (and return from getFullTypeString) should
    *                   be included;
@@ -298,11 +298,7 @@ public abstract class RelDataTypeImpl
    */
   public static RelProtoDataType proto(final RelDataType protoType) {
     assert protoType != null;
-    return new RelProtoDataType() {
-      public RelDataType apply(RelDataTypeFactory typeFactory) {
-        return typeFactory.copyType(protoType);
-      }
-    };
+    return typeFactory -> typeFactory.copyType(protoType);
   }
 
   /** Returns a {@link org.apache.calcite.rel.type.RelProtoDataType}
@@ -318,11 +314,9 @@ public abstract class RelDataTypeImpl
   public static RelProtoDataType proto(final SqlTypeName typeName,
       final boolean nullable) {
     assert typeName != null;
-    return new RelProtoDataType() {
-      public RelDataType apply(RelDataTypeFactory typeFactory) {
-        final RelDataType type = typeFactory.createSqlType(typeName);
-        return typeFactory.createTypeWithNullability(type, nullable);
-      }
+    return typeFactory -> {
+      final RelDataType type = typeFactory.createSqlType(typeName);
+      return typeFactory.createTypeWithNullability(type, nullable);
     };
   }
 
@@ -340,11 +334,9 @@ public abstract class RelDataTypeImpl
   public static RelProtoDataType proto(final SqlTypeName typeName,
       final int precision, final boolean nullable) {
     assert typeName != null;
-    return new RelProtoDataType() {
-      public RelDataType apply(RelDataTypeFactory typeFactory) {
-        final RelDataType type = typeFactory.createSqlType(typeName, precision);
-        return typeFactory.createTypeWithNullability(type, nullable);
-      }
+    return typeFactory -> {
+      final RelDataType type = typeFactory.createSqlType(typeName, precision);
+      return typeFactory.createTypeWithNullability(type, nullable);
     };
   }
 
@@ -362,12 +354,10 @@ public abstract class RelDataTypeImpl
    */
   public static RelProtoDataType proto(final SqlTypeName typeName,
       final int precision, final int scale, final boolean nullable) {
-    return new RelProtoDataType() {
-      public RelDataType apply(RelDataTypeFactory typeFactory) {
-        final RelDataType type =
-            typeFactory.createSqlType(typeName, precision, scale);
-        return typeFactory.createTypeWithNullability(type, nullable);
-      }
+    return typeFactory -> {
+      final RelDataType type =
+          typeFactory.createSqlType(typeName, precision, scale);
+      return typeFactory.createTypeWithNullability(type, nullable);
     };
   }
 

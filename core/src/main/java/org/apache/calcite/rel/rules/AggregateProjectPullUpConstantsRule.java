@@ -87,7 +87,7 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
       Class<? extends RelNode> inputClass,
       RelBuilderFactory relBuilderFactory, String description) {
     super(
-        operand(aggregateClass, null, Aggregate.IS_SIMPLE,
+        operandJ(aggregateClass, null, Aggregate::isSimple,
             operand(inputClass, any())),
         relBuilderFactory, description);
   }
@@ -154,7 +154,7 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
           aggCall.adaptTo(input, aggCall.getArgList(), aggCall.filterArg,
               groupCount, newGroupCount));
     }
-    relBuilder.aggregate(relBuilder.groupKey(newGroupSet, null), newAggCalls);
+    relBuilder.aggregate(relBuilder.groupKey(newGroupSet), newAggCalls);
 
     // Create a projection back again.
     List<Pair<RexNode, String>> projects = new ArrayList<>();

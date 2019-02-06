@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.XmlOutput;
 
@@ -746,7 +747,9 @@ public class DiffRepository {
     if (diffRepository == null) {
       final URL refFile = findFile(clazz, ".xml");
       final File logFile =
-          new File(refFile.getFile().replace("test-classes", "surefire"));
+          new File(
+              Sources.of(refFile).file().getAbsolutePath()
+                  .replace("test-classes", "surefire"));
       diffRepository =
           new DiffRepository(refFile, logFile, baseRepository, filter);
       MAP_CLASS_TO_REPOSITORY.put(clazz, diffRepository);

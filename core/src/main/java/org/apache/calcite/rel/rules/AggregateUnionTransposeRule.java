@@ -30,6 +30,8 @@ import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.fun.SqlAnyValueAggFunction;
+import org.apache.calcite.sql.fun.SqlBitOpAggFunction;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -39,8 +41,8 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +65,8 @@ public class AggregateUnionTransposeRule extends RelOptRule {
     SUPPORTED_AGGREGATES.put(SqlCountAggFunction.class, true);
     SUPPORTED_AGGREGATES.put(SqlSumAggFunction.class, true);
     SUPPORTED_AGGREGATES.put(SqlSumEmptyIsZeroAggFunction.class, true);
+    SUPPORTED_AGGREGATES.put(SqlAnyValueAggFunction.class, true);
+    SUPPORTED_AGGREGATES.put(SqlBitOpAggFunction.class, true);
   }
 
   /** Creates an AggregateUnionTransposeRule. */
@@ -125,7 +129,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
       relBuilder.push(input);
       if (!alreadyUnique) {
         ++transformCount;
-        relBuilder.aggregate(relBuilder.groupKey(aggRel.getGroupSet(), null),
+        relBuilder.aggregate(relBuilder.groupKey(aggRel.getGroupSet()),
             aggRel.getAggCallList());
       }
     }
@@ -147,7 +151,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
 
   private List<AggregateCall> transformAggCalls(RelNode input, int groupCount,
       List<AggregateCall> origCalls) {
-    final List<AggregateCall> newCalls = Lists.newArrayList();
+    final List<AggregateCall> newCalls = new ArrayList<>();
     for (Ord<AggregateCall> ord : Ord.zip(origCalls)) {
       final AggregateCall origCall = ord.e;
       if (origCall.isDistinct()
@@ -171,8 +175,12 @@ public class AggregateUnionTransposeRule extends RelOptRule {
       AggregateCall newCall =
           AggregateCall.create(aggFun, origCall.isDistinct(),
               origCall.isApproximate(),
-              ImmutableList.of(groupCount + ord.i), -1, groupCount, input,
-              aggType, origCall.getName());
+              ImmutableList.of(groupCount + ord.i), -1,
+              origCall.collation,
+              groupCount,
+              input,
+              aggType,
+              origCall.getName());
       newCalls.add(newCall);
     }
     return newCalls;

@@ -67,9 +67,6 @@ import org.apache.calcite.util.Util;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -90,7 +87,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
-
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
@@ -188,8 +185,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     this.druidTable = druidTable;
     this.intervals = ImmutableList.copyOf(intervals);
     this.rels = ImmutableList.copyOf(rels);
-    this.converterOperatorMap = Preconditions.checkNotNull(converterOperatorMap, "Operator map "
-        + "can not be null");
+    this.converterOperatorMap = Objects.requireNonNull(converterOperatorMap,
+        "Operator map can not be null");
     assert isValid(Litmus.THROW, null);
   }
 
@@ -798,7 +795,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         }
       }
     }
-    return Pair.<List<String>, List<VirtualColumn>>of(projectedColumnsBuilder.build(),
+    return Pair.of(projectedColumnsBuilder.build(),
         virtualColumnsBuilder.build());
   }
 
@@ -1001,9 +998,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       }
       final ScanQuery scanQuery = new ScanQuery(druidTable.dataSource, intervals, jsonFilter,
           virtualColumnList, scanColumnNames, fetch);
-      return new QuerySpec(QueryType.SCAN,
-          Preconditions.checkNotNull(scanQuery.toQuery(), "Can not plan Scan Druid Query"),
-          scanColumnNames);
+      return new QuerySpec(QueryType.SCAN, scanQuery.toQuery(), scanColumnNames);
     }
 
     // At this Stage we have a valid Aggregate thus Query is one of Timeseries, TopN, or GroupBy
@@ -1053,11 +1048,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       // this is an index of existing columns coming out aggregate layer. Will use this index to:
       // filter out any project down the road that doesn't change values e.g inputRef/identity cast
       Map<String, String> existingProjects = Maps
-          .uniqueIndex(aggregateStageFieldNames, new Function<String, String>() {
-            @Override public String apply(@Nullable String input) {
-              return DruidExpressions.fromColumn(input);
-            }
-          });
+          .uniqueIndex(aggregateStageFieldNames, DruidExpressions::fromColumn);
       for (Pair<RexNode, String> pair : postProject.getNamedProjects()) {
         final RexNode postProjectRexNode = pair.left;
         String expression = DruidExpressions
@@ -1098,15 +1089,12 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         // Case we have transformed the group by time to druid timeseries with Granularity.
         // Need to replace the name of the column with druid timestamp field name.
         final List<String> timeseriesFieldNames =
-            Lists.transform(queryOutputFieldNames,
-                new Function<String, String>() {
-                  @Override public String apply(@Nullable String input) {
-                    if (timeExtractColumn.equals(input)) {
-                      return "timestamp";
-                    }
-                    return input;
-                  }
-                });
+            Lists.transform(queryOutputFieldNames, input -> {
+              if (timeExtractColumn.equals(input)) {
+                return "timestamp";
+              }
+              return input;
+            });
         return new QuerySpec(QueryType.TIMESERIES, timeSeriesQueryString, timeseriesFieldNames);
       }
       return new QuerySpec(QueryType.TIMESERIES, timeSeriesQueryString, queryOutputFieldNames);
@@ -1350,7 +1338,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       this.fetchLimit = fetchLimit;
     }
 
-    public String toQuery() {
+    @Nonnull public String toQuery() {
       final StringWriter sw = new StringWriter();
       try {
         final JsonFactory factory = new JsonFactory();
@@ -1548,8 +1536,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
     QuerySpec(QueryType queryType, String queryString,
         List<String> fieldNames) {
-      this.queryType = Preconditions.checkNotNull(queryType);
-      this.queryString = Preconditions.checkNotNull(queryString);
+      this.queryType = Objects.requireNonNull(queryType);
+      this.queryString = Objects.requireNonNull(queryString);
       this.fieldNames = ImmutableList.copyOf(fieldNames);
     }
 
@@ -1799,11 +1787,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    * @return index of the timestamp ref or -1 if not present
    */
   protected int getTimestampFieldIndex() {
-    return Iterables.indexOf(this.getRowType().getFieldList(), new Predicate<RelDataTypeField>() {
-      @Override public boolean apply(@Nullable RelDataTypeField input) {
-        return druidTable.timestampFieldName.equals(input.getName());
-      }
-    });
+    return Iterables.indexOf(this.getRowType().getFieldList(),
+        input -> druidTable.timestampFieldName.equals(input.getName()));
   }
 }
 

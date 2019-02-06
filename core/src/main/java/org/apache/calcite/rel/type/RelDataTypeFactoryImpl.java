@@ -25,7 +25,6 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -56,24 +55,23 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   private static final LoadingCache<Object, RelDataType> CACHE =
       CacheBuilder.newBuilder()
           .softValues()
-          .build(
-              new CacheLoader<Object, RelDataType>() {
-                @Override public RelDataType load(@Nonnull Object k) {
-                  if (k instanceof RelDataType) {
-                    return (RelDataType) k;
-                  }
-                  @SuppressWarnings("unchecked")
-                  final Key key = (Key) k;
-                  final ImmutableList.Builder<RelDataTypeField> list =
-                      ImmutableList.builder();
-                  for (int i = 0; i < key.names.size(); i++) {
-                    list.add(
-                        new RelDataTypeFieldImpl(
-                            key.names.get(i), i, key.types.get(i)));
-                  }
-                  return new RelRecordType(key.kind, list.build());
-                }
-              });
+          .build(CacheLoader.from(RelDataTypeFactoryImpl::keyToType));
+
+  private static RelDataType keyToType(@Nonnull Object k) {
+    if (k instanceof RelDataType) {
+      return (RelDataType) k;
+    }
+    @SuppressWarnings("unchecked")
+    final Key key = (Key) k;
+    final ImmutableList.Builder<RelDataTypeField> list =
+        ImmutableList.builder();
+    for (int i = 0; i < key.names.size(); i++) {
+      list.add(
+          new RelDataTypeFieldImpl(
+              key.names.get(i), i, key.types.get(i)));
+    }
+    return new RelRecordType(key.kind, list.build());
+  }
 
   private static final Map<Class, RelDataTypeFamily> CLASS_FAMILIES =
       ImmutableMap.<Class, RelDataTypeFamily>builder()
@@ -104,7 +102,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
 
   /** Creates a type factory. */
   protected RelDataTypeFactoryImpl(RelDataTypeSystem typeSystem) {
-    this.typeSystem = Preconditions.checkNotNull(typeSystem);
+    this.typeSystem = Objects.requireNonNull(typeSystem);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -312,7 +310,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   public RelDataType createTypeWithNullability(
       final RelDataType type,
       final boolean nullable) {
-    Preconditions.checkNotNull(type);
+    Objects.requireNonNull(type);
     RelDataType newType;
     if (type.isNullable() == nullable) {
       newType = type;

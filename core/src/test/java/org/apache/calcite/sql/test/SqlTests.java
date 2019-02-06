@@ -18,13 +18,20 @@ package org.apache.calcite.sql.test;
 
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
 
 import java.sql.ResultSet;
 import java.sql.Types;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.apache.calcite.sql.test.SqlTester.ParameterChecker;
@@ -32,6 +39,7 @@ import static org.apache.calcite.sql.test.SqlTester.ResultChecker;
 import static org.apache.calcite.sql.test.SqlTester.TypeChecker;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -52,20 +60,32 @@ public abstract class SqlTests {
   /**
    * Checker which allows any type.
    */
-  public static final TypeChecker ANY_TYPE_CHECKER =
-      new TypeChecker() {
-        public void checkType(RelDataType type) {
-        }
-      };
+  public static final TypeChecker ANY_TYPE_CHECKER = type -> {
+  };
 
   /**
    * Checker that allows any number or type of parameters.
    */
-  public static final ParameterChecker ANY_PARAMETER_CHECKER =
-      new ParameterChecker() {
-        public void checkParameters(RelDataType parameterRowType) {
-        }
-      };
+  public static final ParameterChecker ANY_PARAMETER_CHECKER = parameterRowType -> {
+  };
+
+  /**
+   * Checker that allows any result.
+   */
+  public static final ResultChecker ANY_RESULT_CHECKER = result -> {
+    while (true) {
+      if (!result.next()) {
+        break;
+      }
+    }
+  };
+
+  private static final Pattern LINE_COL_PATTERN =
+      Pattern.compile("At line ([0-9]+), column ([0-9]+)");
+
+  private static final Pattern LINE_COL_TWICE_PATTERN =
+      Pattern.compile(
+          "(?s)From line ([0-9]+), column ([0-9]+) to line ([0-9]+), column ([0-9]+): (.*)");
 
   /**
    * Helper function to get the string representation of a RelDataType
@@ -111,6 +131,45 @@ public abstract class SqlTests {
         buf.append("SELECT ");
         String inputValue = inputValues[i];
         buf.append(inputValue).append(" AS x FROM (VALUES (1))");
+      }
+      buf.append(")");
+    }
+    return buf.toString();
+  }
+
+  public static String generateAggQueryWithMultipleArgs(String expr,
+      String[][] inputValues) {
+    int argCount = -1;
+    for (String[] row : inputValues) {
+      if (argCount == -1) {
+        argCount = row.length;
+      } else if (argCount != row.length) {
+        throw new IllegalArgumentException("invalid test input: "
+            + Arrays.toString(row));
+      }
+    }
+    StringBuilder buf = new StringBuilder();
+    buf.append("SELECT ").append(expr).append(" FROM ");
+    if (inputValues.length == 0) {
+      buf.append("(VALUES 1) AS t(x) WHERE false");
+    } else {
+      buf.append("(");
+      for (int i = 0; i < inputValues.length; i++) {
+        if (i > 0) {
+          buf.append(" UNION ALL ");
+        }
+        buf.append("SELECT ");
+        for (int j = 0; j < argCount; j++) {
+          if (j != 0) {
+            buf.append(", ");
+          }
+          String inputValue = inputValues[i][j];
+          buf.append(inputValue).append(" AS x");
+          if (j != 0) {
+            buf.append(j + 1);
+          }
+        }
+        buf.append(" FROM (VALUES (1))");
       }
       buf.append(")");
     }
@@ -271,6 +330,199 @@ public abstract class SqlTests {
     }
   }
 
+  /**
+   * Checks whether an exception matches the expected pattern. If
+   * <code>sap</code> contains an error location, checks this too.
+   *
+   * @param ex                 Exception thrown
+   * @param expectedMsgPattern Expected pattern
+   * @param sap                Query and (optional) position in query
+   * @param stage              Query processing stage
+   */
+  public static void checkEx(Throwable ex,
+      String expectedMsgPattern,
+      SqlParserUtil.StringAndPos sap,
+      Stage stage) {
+    if (null == ex) {
+      if (expectedMsgPattern == null) {
+        // No error expected, and no error happened.
+        return;
+      } else {
+        throw new AssertionError("Expected query to throw exception, "
+            + "but it did not; query [" + sap.sql
+            + "]; expected [" + expectedMsgPattern + "]");
+      }
+    }
+    Throwable actualException = ex;
+    String actualMessage = actualException.getMessage();
+    int actualLine = -1;
+    int actualColumn = -1;
+    int actualEndLine = 100;
+    int actualEndColumn = 99;
+
+    // Search for an CalciteContextException somewhere in the stack.
+    CalciteContextException ece = null;
+    for (Throwable x = ex; x != null; x = x.getCause()) {
+      if (x instanceof CalciteContextException) {
+        ece = (CalciteContextException) x;
+        break;
+      }
+      if (x.getCause() == x) {
+        break;
+      }
+    }
+
+    // Search for a SqlParseException -- with its position set -- somewhere
+    // in the stack.
+    SqlParseException spe = null;
+    for (Throwable x = ex; x != null; x = x.getCause()) {
+      if ((x instanceof SqlParseException)
+          && (((SqlParseException) x).getPos() != null)) {
+        spe = (SqlParseException) x;
+        break;
+      }
+      if (x.getCause() == x) {
+        break;
+      }
+    }
+
+    if (ece != null) {
+      actualLine = ece.getPosLine();
+      actualColumn = ece.getPosColumn();
+      actualEndLine = ece.getEndPosLine();
+      actualEndColumn = ece.getEndPosColumn();
+      if (ece.getCause() != null) {
+        actualException = ece.getCause();
+        actualMessage = actualException.getMessage();
+      }
+    } else if (spe != null) {
+      actualLine = spe.getPos().getLineNum();
+      actualColumn = spe.getPos().getColumnNum();
+      actualEndLine = spe.getPos().getEndLineNum();
+      actualEndColumn = spe.getPos().getEndColumnNum();
+      if (spe.getCause() != null) {
+        actualException = spe.getCause();
+        actualMessage = actualException.getMessage();
+      }
+    } else {
+      final String message = ex.getMessage();
+      if (message != null) {
+        Matcher matcher = LINE_COL_TWICE_PATTERN.matcher(message);
+        if (matcher.matches()) {
+          actualLine = Integer.parseInt(matcher.group(1));
+          actualColumn = Integer.parseInt(matcher.group(2));
+          actualEndLine = Integer.parseInt(matcher.group(3));
+          actualEndColumn = Integer.parseInt(matcher.group(4));
+          actualMessage = matcher.group(5);
+        } else {
+          matcher = LINE_COL_PATTERN.matcher(message);
+          if (matcher.matches()) {
+            actualLine = Integer.parseInt(matcher.group(1));
+            actualColumn = Integer.parseInt(matcher.group(2));
+          } else {
+            if (expectedMsgPattern != null
+                && actualMessage.matches(expectedMsgPattern)) {
+              return;
+            }
+          }
+        }
+      }
+    }
+
+    if (null == expectedMsgPattern) {
+      actualException.printStackTrace();
+      fail(stage.componentName + " threw unexpected exception"
+          + "; query [" + sap.sql
+          + "]; exception [" + actualMessage
+          + "]; class [" + actualException.getClass()
+          + "]; pos [line " + actualLine
+          + " col " + actualColumn
+          + " thru line " + actualLine
+          + " col " + actualColumn + "]");
+    }
+
+    String sqlWithCarets;
+    if (actualColumn <= 0
+        || actualLine <= 0
+        || actualEndColumn <= 0
+        || actualEndLine <= 0) {
+      if (sap.pos != null) {
+        throw new AssertionError("Expected error to have position,"
+            + " but actual error did not: "
+            + " actual pos [line " + actualLine
+            + " col " + actualColumn
+            + " thru line " + actualEndLine + " col "
+            + actualEndColumn + "]", actualException);
+      }
+      sqlWithCarets = sap.sql;
+    } else {
+      sqlWithCarets =
+          SqlParserUtil.addCarets(
+              sap.sql,
+              actualLine,
+              actualColumn,
+              actualEndLine,
+              actualEndColumn + 1);
+      if (sap.pos == null) {
+        throw new AssertionError("Actual error had a position, but expected "
+            + "error did not. Add error position carets to sql:\n"
+            + sqlWithCarets);
+      }
+    }
+
+    if (actualMessage != null) {
+      actualMessage = Util.toLinux(actualMessage);
+    }
+
+    if (actualMessage == null
+        || !actualMessage.matches(expectedMsgPattern)) {
+      actualException.printStackTrace();
+      final String actualJavaRegexp =
+          (actualMessage == null)
+              ? "null"
+              : TestUtil.quoteForJava(
+              TestUtil.quotePattern(actualMessage));
+      fail(stage.componentName + " threw different "
+          + "exception than expected; query [" + sap.sql
+          + "];\n"
+          + " expected pattern [" + expectedMsgPattern
+          + "];\n"
+          + " actual [" + actualMessage
+          + "];\n"
+          + " actual as java regexp [" + actualJavaRegexp
+          + "]; pos [" + actualLine
+          + " col " + actualColumn
+          + " thru line " + actualEndLine
+          + " col " + actualEndColumn
+          + "]; sql [" + sqlWithCarets + "]");
+    } else if (sap.pos != null
+        && (actualLine != sap.pos.getLineNum()
+        || actualColumn != sap.pos.getColumnNum()
+        || actualEndLine != sap.pos.getEndLineNum()
+        || actualEndColumn != sap.pos.getEndColumnNum())) {
+      fail(stage.componentName + " threw expected "
+          + "exception [" + actualMessage
+          + "];\nbut at pos [line " + actualLine
+          + " col " + actualColumn
+          + " thru line " + actualEndLine
+          + " col " + actualEndColumn
+          + "];\nsql [" + sqlWithCarets + "]");
+    }
+  }
+
+  /** Stage of query processing */
+  public enum Stage {
+    PARSE("Parser"),
+    VALIDATE("Validator"),
+    RUNTIME("Executor");
+
+    public final String componentName;
+
+    Stage(String componentName) {
+      this.componentName = componentName;
+    }
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**
@@ -285,9 +537,7 @@ public abstract class SqlTests {
     }
 
     public void checkType(RelDataType type) {
-      assertEquals(
-          typeName.toString(),
-          type.toString());
+      assertThat(type.toString(), is(typeName.toString()));
     }
   }
 
@@ -314,7 +564,7 @@ public abstract class SqlTests {
 
     public void checkType(RelDataType type) {
       String actual = getTypeString(type);
-      assertEquals(expected, actual);
+      assertThat(actual, is(expected));
     }
   }
 
@@ -389,13 +639,6 @@ public abstract class SqlTests {
       compareResultSet(resultSet, expected);
     }
   }
-
-  /** Result checker that accepts any result. */
-  public static final ResultChecker ANY_RESULT_CHECKER =
-      new ResultChecker() {
-        public void checkResult(ResultSet result) {
-        }
-      };
 }
 
 // End SqlTests.java

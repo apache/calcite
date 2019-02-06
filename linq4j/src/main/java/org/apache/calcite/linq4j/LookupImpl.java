@@ -53,7 +53,7 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
 
       public Grouping<K, V> current() {
         final Entry<K, List<V>> keyAndList = enumerator.current();
-        return new GroupingImpl<K, V>(keyAndList.getKey(),
+        return new GroupingImpl<>(keyAndList.getKey(),
             keyAndList.getValue());
       }
 
@@ -159,7 +159,7 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
 
           public Entry<K, Enumerable<V>> next() {
             final Entry<K, List<V>> entry = iterator.next();
-            return new AbstractMap.SimpleEntry<K, Enumerable<V>>(entry.getKey(),
+            return new AbstractMap.SimpleEntry<>(entry.getKey(),
                 Linq4j.asEnumerable(entry.getValue()));
           }
 

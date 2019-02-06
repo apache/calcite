@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -118,7 +119,7 @@ public interface SqlSplittableAggFunction {
 
     public AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e) {
       return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
-          ImmutableIntList.of(), -1,
+          ImmutableIntList.of(), -1, RelCollations.EMPTY,
           typeFactory.createSqlType(SqlTypeName.BIGINT), null);
     }
 
@@ -147,8 +148,8 @@ public interface SqlSplittableAggFunction {
       }
       int ordinal = extra.register(node);
       return AggregateCall.create(SqlStdOperatorTable.SUM0, false, false,
-          ImmutableList.of(ordinal), -1, aggregateCall.type,
-          aggregateCall.name);
+          ImmutableList.of(ordinal), -1, aggregateCall.collation,
+          aggregateCall.type, aggregateCall.name);
     }
 
     /**
@@ -207,8 +208,10 @@ public interface SqlSplittableAggFunction {
         Registry<RexNode> extra, int offset, RelDataType inputRowType,
         AggregateCall aggregateCall, int leftSubTotal, int rightSubTotal) {
       assert (leftSubTotal >= 0) != (rightSubTotal >= 0);
+      assert aggregateCall.collation.getFieldCollations().isEmpty();
       final int arg = leftSubTotal >= 0 ? leftSubTotal : rightSubTotal;
-      return aggregateCall.copy(ImmutableIntList.of(arg), -1);
+      return aggregateCall.copy(ImmutableIntList.of(arg), -1,
+          RelCollations.EMPTY);
     }
   }
 
@@ -230,6 +233,7 @@ public interface SqlSplittableAggFunction {
     public AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e) {
       return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
           ImmutableIntList.of(), -1,
+          RelCollations.EMPTY,
           typeFactory.createSqlType(SqlTypeName.BIGINT), null);
     }
 
@@ -260,8 +264,8 @@ public interface SqlSplittableAggFunction {
       }
       int ordinal = extra.register(node);
       return AggregateCall.create(getMergeAggFunctionOfTopSplit(), false, false,
-          ImmutableList.of(ordinal), -1, aggregateCall.type,
-          aggregateCall.name);
+          ImmutableList.of(ordinal), -1, aggregateCall.collation,
+          aggregateCall.type, aggregateCall.name);
     }
 
     protected abstract SqlAggFunction getMergeAggFunctionOfTopSplit();

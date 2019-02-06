@@ -38,7 +38,7 @@ public class SortedMultiMap<K, V> extends HashMap<K, List<V>> {
       return;
     }
     if (list.size() == 1) {
-      list = new ArrayList<V>(list);
+      list = new ArrayList<>(list);
     }
     list.add(value);
     put(key, list);
@@ -71,7 +71,7 @@ public class SortedMultiMap<K, V> extends HashMap<K, List<V>> {
   public static <V> Iterator<V[]> singletonArrayIterator(
       Comparator<V> comparator, List<V> list) {
     final SortedMultiMap<Object, V> multiMap =
-        new SortedMultiMap<Object, V>();
+        new SortedMultiMap<>();
     multiMap.put("x", list);
     return multiMap.arrays(comparator);
   }

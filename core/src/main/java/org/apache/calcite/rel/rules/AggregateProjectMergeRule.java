@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Aggregate.Group;
@@ -29,13 +30,17 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Planner rule that recognizes a {@link org.apache.calcite.rel.core.Aggregate}
@@ -73,18 +78,26 @@ public class AggregateProjectMergeRule extends RelOptRule {
 
   public static RelNode apply(RelOptRuleCall call, Aggregate aggregate,
       Project project) {
-    final List<Integer> newKeys = Lists.newArrayList();
+    // Find all fields which we need to be straightforward field projections.
+    final Set<Integer> interestingFields = new TreeSet<>();
+    interestingFields.addAll(aggregate.getGroupSet().asList());
+    for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
+      interestingFields.addAll(aggregateCall.getArgList());
+      if (aggregateCall.filterArg >= 0) {
+        interestingFields.add(aggregateCall.filterArg);
+      }
+      interestingFields.addAll(RelCollations.ordinals(aggregateCall.collation));
+    }
+
+    // Build the map from old to new; abort if any entry is not a
+    // straightforward field projection.
     final Map<Integer, Integer> map = new HashMap<>();
-    for (int key : aggregate.getGroupSet()) {
-      final RexNode rex = project.getProjects().get(key);
-      if (rex instanceof RexInputRef) {
-        final int newKey = ((RexInputRef) rex).getIndex();
-        newKeys.add(newKey);
-        map.put(key, newKey);
-      } else {
-        // Cannot handle "GROUP BY expression"
+    for (int source : interestingFields) {
+      final RexNode rex = project.getProjects().get(source);
+      if (!(rex instanceof RexInputRef)) {
         return null;
       }
+      map.put(source, ((RexInputRef) rex).getIndex());
     }
 
     final ImmutableBitSet newGroupSet = aggregate.getGroupSet().permute(map);
@@ -97,28 +110,12 @@ public class AggregateProjectMergeRule extends RelOptRule {
 
     final ImmutableList.Builder<AggregateCall> aggCalls =
         ImmutableList.builder();
+    final int sourceCount = aggregate.getInput().getRowType().getFieldCount();
+    final int targetCount = project.getInput().getRowType().getFieldCount();
+    final Mappings.TargetMapping targetMapping =
+        Mappings.target(map, sourceCount, targetCount);
     for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
-      final ImmutableList.Builder<Integer> newArgs = ImmutableList.builder();
-      for (int arg : aggregateCall.getArgList()) {
-        final RexNode rex = project.getProjects().get(arg);
-        if (rex instanceof RexInputRef) {
-          newArgs.add(((RexInputRef) rex).getIndex());
-        } else {
-          // Cannot handle "AGG(expression)"
-          return null;
-        }
-      }
-      final int newFilterArg;
-      if (aggregateCall.filterArg >= 0) {
-        final RexNode rex = project.getProjects().get(aggregateCall.filterArg);
-        if (!(rex instanceof RexInputRef)) {
-          return null;
-        }
-        newFilterArg = ((RexInputRef) rex).getIndex();
-      } else {
-        newFilterArg = -1;
-      }
-      aggCalls.add(aggregateCall.copy(newArgs.build(), newFilterArg));
+      aggCalls.add(aggregateCall.transform(targetMapping));
     }
 
     final Aggregate newAggregate =
@@ -130,8 +127,10 @@ public class AggregateProjectMergeRule extends RelOptRule {
     // contains duplicates.
     final RelBuilder relBuilder = call.builder();
     relBuilder.push(newAggregate);
+    final List<Integer> newKeys =
+        Lists.transform(aggregate.getGroupSet().asList(), map::get);
     if (!newKeys.equals(newGroupSet.asList())) {
-      final List<Integer> posList = Lists.newArrayList();
+      final List<Integer> posList = new ArrayList<>();
       for (int newKey : newKeys) {
         posList.add(newGroupSet.indexOf(newKey));
       }

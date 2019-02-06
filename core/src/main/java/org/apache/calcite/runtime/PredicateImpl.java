@@ -30,6 +30,9 @@ import javax.annotation.Nullable;
  * but still works on JDK 1.7.
  *
  * @param <T> the type of the input to the predicate
+ *
+ * @deprecated Now Calcite is Java 8 and higher, we recommend that you
+ * implement {@link java.util.function.Predicate} directly.
  */
 public abstract class PredicateImpl<T> implements Predicate<T> {
   public final boolean apply(@Nullable T input) {

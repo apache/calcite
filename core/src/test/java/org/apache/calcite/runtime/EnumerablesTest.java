@@ -19,7 +19,6 @@ package org.apache.calcite.runtime;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.EnumerableDefaults;
 import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.linq4j.function.Predicate2;
@@ -28,8 +27,11 @@ import com.google.common.collect.Lists;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import static com.google.common.collect.Lists.newArrayList;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -51,37 +53,19 @@ public class EnumerablesTest {
           new Dept(15, "Marketing")));
 
   private static final Function2<Emp, Dept, String> EMP_DEPT_TO_STRING =
-      new Function2<Emp, Dept, String>() {
-        public String apply(Emp v0, Dept v1) {
-          return "{" + (v0 == null ? null : v0.name)
-              + ", " + (v0 == null ? null : v0.deptno)
-              + ", " + (v1 == null ? null : v1.deptno)
-              + ", " + (v1 == null ? null : v1.name)
-              + "}";
-        }
-      };
+      (v0, v1) -> "{" + (v0 == null ? null : v0.name)
+          + ", " + (v0 == null ? null : v0.deptno)
+          + ", " + (v1 == null ? null : v1.deptno)
+          + ", " + (v1 == null ? null : v1.name)
+          + "}";
 
   private static final Predicate2<Emp, Dept> EQUAL_DEPTNO =
-      new Predicate2<Emp, Dept>() {
-        public boolean apply(Emp v0, Dept v1) {
-          return v0.deptno == v1.deptno;
-        }
-      };
+      (e, d) -> e.deptno == d.deptno;
 
   @Test public void testSemiJoin() {
     assertThat(
-        EnumerableDefaults.semiJoin(EMPS, DEPTS,
-            new Function1<Emp, Integer>() {
-              public Integer apply(Emp a0) {
-                return a0.deptno;
-              }
-            },
-            new Function1<Dept, Integer>() {
-              public Integer apply(Dept a0) {
-                return a0.deptno;
-              }
-            },
-            Functions.<Integer>identityComparer()).toList().toString(),
+        EnumerableDefaults.semiJoin(EMPS, DEPTS, e -> e.deptno, d -> d.deptno,
+            Functions.identityComparer()).toList().toString(),
         equalTo("[Emp(20, Theodore), Emp(20, Sebastian)]"));
   }
 
@@ -101,21 +85,9 @@ public class EnumerablesTest {
                     new Dept(20, "Sales"),
                     new Dept(30, "Research"),
                     new Dept(30, "Development"))),
-            new Function1<Emp, Integer>() {
-              public Integer apply(Emp a0) {
-                return a0.deptno;
-              }
-            },
-            new Function1<Dept, Integer>() {
-              public Integer apply(Dept a0) {
-                return a0.deptno;
-              }
-            },
-            new Function2<Emp, Dept, String>() {
-              public String apply(Emp v0, Dept v1) {
-                return v0 + ", " + v1;
-              }
-            }, false, false).toList().toString(),
+            e -> e.deptno,
+            d -> d.deptno,
+            (v0, v1) -> v0 + ", " + v1, false, false).toList().toString(),
         equalTo("[Emp(20, Theodore), Dept(20, Sales),"
             + " Emp(20, Sebastian), Dept(20, Sales),"
             + " Emp(30, Joe), Dept(30, Research),"
@@ -155,18 +127,18 @@ public class EnumerablesTest {
         equalTo("[]"));
     // Left empty
     assertThat(
-        intersect(Lists.<Integer>newArrayList(),
-            Lists.newArrayList(1, 3, 4, 6)).toList().toString(),
+        intersect(new ArrayList<>(),
+            newArrayList(1, 3, 4, 6)).toList().toString(),
         equalTo("[]"));
     // Right empty
     assertThat(
-        intersect(Lists.newArrayList(3, 7),
-            Lists.<Integer>newArrayList()).toList().toString(),
+        intersect(newArrayList(3, 7),
+            new ArrayList<>()).toList().toString(),
         equalTo("[]"));
     // Both empty
     assertThat(
-        intersect(Lists.<Integer>newArrayList(),
-            Lists.<Integer>newArrayList()).toList().toString(),
+        intersect(new ArrayList<Integer>(),
+            new ArrayList<>()).toList().toString(),
         equalTo("[]"));
   }
 
@@ -175,13 +147,8 @@ public class EnumerablesTest {
     return EnumerableDefaults.mergeJoin(
         Linq4j.asEnumerable(list0),
         Linq4j.asEnumerable(list1),
-        Functions.<T>identitySelector(),
-        Functions.<T>identitySelector(),
-        new Function2<T, T, T>() {
-          public T apply(T v0, T v1) {
-            return v0;
-          }
-        }, false, false);
+        Functions.identitySelector(),
+        Functions.identitySelector(), (v0, v1) -> v0, false, false);
   }
 
   @Test public void testThetaJoin() {
@@ -220,7 +187,7 @@ public class EnumerablesTest {
     assertThat(
         EnumerableDefaults.thetaJoin(EMPS.take(0), DEPTS, EQUAL_DEPTNO,
             EMP_DEPT_TO_STRING, true, true)
-            .orderBy(Functions.<String>identitySelector()).toList().toString(),
+            .orderBy(Functions.identitySelector()).toList().toString(),
         equalTo("[{null, null, 15, Marketing}, {null, null, 20, Sales}]"));
   }
 

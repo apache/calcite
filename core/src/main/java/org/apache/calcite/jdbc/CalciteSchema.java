@@ -28,7 +28,6 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.schema.impl.MaterializedViewTable;
 import org.apache.calcite.schema.impl.StarTable;
-import org.apache.calcite.util.Compatible;
 import org.apache.calcite.util.NameMap;
 import org.apache.calcite.util.NameMultimap;
 import org.apache.calcite.util.NameSet;
@@ -43,10 +42,10 @@ import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -82,17 +81,17 @@ public abstract class CalciteSchema {
     if (tableMap == null) {
       this.tableMap = new NameMap<>();
     } else {
-      this.tableMap = Preconditions.checkNotNull(tableMap);
+      this.tableMap = Objects.requireNonNull(tableMap);
     }
     if (latticeMap == null) {
       this.latticeMap = new NameMap<>();
     } else {
-      this.latticeMap = Preconditions.checkNotNull(latticeMap);
+      this.latticeMap = Objects.requireNonNull(latticeMap);
     }
     if (subSchemaMap == null) {
       this.subSchemaMap = new NameMap<>();
     } else {
-      this.subSchemaMap = Preconditions.checkNotNull(subSchemaMap);
+      this.subSchemaMap = Objects.requireNonNull(subSchemaMap);
     }
     if (functionMap == null) {
       this.functionMap = new NameMultimap<>();
@@ -101,14 +100,14 @@ public abstract class CalciteSchema {
     } else {
       // If you specify functionMap, you must also specify functionNames and
       // nullaryFunctionMap.
-      this.functionMap = Preconditions.checkNotNull(functionMap);
-      this.functionNames = Preconditions.checkNotNull(functionNames);
-      this.nullaryFunctionMap = Preconditions.checkNotNull(nullaryFunctionMap);
+      this.functionMap = Objects.requireNonNull(functionMap);
+      this.functionNames = Objects.requireNonNull(functionNames);
+      this.nullaryFunctionMap = Objects.requireNonNull(nullaryFunctionMap);
     }
     if (typeMap == null) {
       this.typeMap = new NameMap<>();
     } else {
-      this.typeMap = Preconditions.checkNotNull(typeMap);
+      this.typeMap = Objects.requireNonNull(typeMap);
     }
     this.path = path;
   }
@@ -172,7 +171,7 @@ public abstract class CalciteSchema {
 
   /** Creates a TableEntryImpl with no SQLs. */
   protected TableEntryImpl tableEntry(String name, Table table) {
-    return new TableEntryImpl(this, name, table, ImmutableList.<String>of());
+    return new TableEntryImpl(this, name, table, ImmutableList.of());
   }
 
   /** Creates a TableEntryImpl with no SQLs. */
@@ -182,7 +181,7 @@ public abstract class CalciteSchema {
 
   /** Defines a table within this schema. */
   public TableEntry add(String tableName, Table table) {
-    return add(tableName, table, ImmutableList.<String>of());
+    return add(tableName, table, ImmutableList.of());
   }
 
   /** Defines a table within this schema. */
@@ -327,7 +326,7 @@ public abstract class CalciteSchema {
         new ImmutableSortedMap.Builder<>(NameSet.COMPARATOR);
     builder.putAll(subSchemaMap.map());
     addImplicitSubSchemaToBuilder(builder);
-    return Compatible.INSTANCE.navigableMap(builder.build());
+    return builder.build();
   }
 
   /** Returns a collection of lattices.
@@ -346,7 +345,7 @@ public abstract class CalciteSchema {
     builder.addAll(tableMap.map().keySet());
     // Add implicit tables, case-sensitive.
     addImplicitTableToBuilder(builder);
-    return Compatible.INSTANCE.navigableSet(builder.build());
+    return builder.build();
   }
 
   /** Returns the set of all types names. */
@@ -357,7 +356,7 @@ public abstract class CalciteSchema {
     builder.addAll(typeMap.map().keySet());
     // Add implicit types.
     addImplicitTypeNamesToBuilder(builder);
-    return Compatible.INSTANCE.navigableSet(builder.build());
+    return builder.build();
   }
 
   /** Returns a type, explicit and implicit, with a given
@@ -393,7 +392,7 @@ public abstract class CalciteSchema {
     builder.addAll(functionMap.map().keySet());
     // Add implicit functions, case-sensitive.
     addImplicitFuncNamesToBuilder(builder);
-    return Compatible.INSTANCE.navigableSet(builder.build());
+    return builder.build();
   }
 
   /** Returns tables derived from explicit and implicit functions
@@ -412,7 +411,7 @@ public abstract class CalciteSchema {
     }
     // add tables derived from implicit functions
     addImplicitTablesBasedOnNullaryFunctionsToBuilder(builder);
-    return Compatible.INSTANCE.navigableMap(builder.build());
+    return builder.build();
   }
 
   /** Returns a tables derived from explicit and implicit functions
@@ -451,20 +450,22 @@ public abstract class CalciteSchema {
   }
 
   /** Returns a subset of a map whose keys match the given string
-   * case-insensitively. */
+   * case-insensitively.
+   * @deprecated use NameMap
+   */
+  @Deprecated // to be removed before 2.0
   protected static <V> NavigableMap<String, V> find(NavigableMap<String, V> map,
       String s) {
-    assert map.comparator() == NameSet.COMPARATOR;
-    return map.subMap(s.toUpperCase(Locale.ROOT), true,
-        s.toLowerCase(Locale.ROOT), true);
+    return NameMap.immutableCopyOf(map).range(s, false);
   }
 
   /** Returns a subset of a set whose values match the given string
-   * case-insensitively. */
+   * case-insensitively.
+   * @deprecated use NameSet
+   */
+  @Deprecated // to be removed before 2.0
   protected static Iterable<String> find(NavigableSet<String> set, String name) {
-    assert set.comparator() == NameSet.COMPARATOR;
-    return set.subSet(name.toUpperCase(Locale.ROOT), true,
-        name.toLowerCase(Locale.ROOT), true);
+    return NameSet.immutableCopyOf(set).range(name, false);
   }
 
   /** Creates a root schema.
@@ -552,8 +553,8 @@ public abstract class CalciteSchema {
     public final String name;
 
     public Entry(CalciteSchema schema, String name) {
-      this.schema = Preconditions.checkNotNull(schema);
-      this.name = Preconditions.checkNotNull(name);
+      this.schema = Objects.requireNonNull(schema);
+      this.name = Objects.requireNonNull(name);
     }
 
     /** Returns this object's path. For example ["hr", "emps"]. */
@@ -569,7 +570,7 @@ public abstract class CalciteSchema {
     public TableEntry(CalciteSchema schema, String name,
         ImmutableList<String> sqls) {
       super(schema, name);
-      this.sqls = Preconditions.checkNotNull(sqls);
+      this.sqls = Objects.requireNonNull(sqls);
     }
 
     public abstract Table getTable();
@@ -729,8 +730,7 @@ public abstract class CalciteSchema {
     public TableEntryImpl(CalciteSchema schema, String name, Table table,
         ImmutableList<String> sqls) {
       super(schema, name, sqls);
-      assert table != null;
-      this.table = Preconditions.checkNotNull(table);
+      this.table = Objects.requireNonNull(table);
     }
 
     public Table getTable() {

@@ -20,12 +20,12 @@ import org.apache.calcite.linq4j.function.Experimental;
 
 import com.google.common.collect.ImmutableSortedMap;
 
-import java.util.Locale;
+import java.util.Collections;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
-import static org.apache.calcite.util.NameSet.COMPARATOR;
+import static org.apache.calcite.util.CaseInsensitiveComparator.COMPARATOR;
 
 /** Map whose keys are names and can be accessed with and without case
  * sensitivity.
@@ -45,6 +45,20 @@ public class NameMap<V> {
     this(new TreeMap<String, V>(COMPARATOR));
   }
 
+  @Override public String toString() {
+    return map.toString();
+  }
+
+  @Override public int hashCode() {
+    return map.hashCode();
+  }
+
+  @Override public boolean equals(Object obj) {
+    return this == obj
+        || obj instanceof NameMap
+        && map.equals(((NameMap) obj).map);
+  }
+
   /** Creates a NameMap that is an immutable copy of a given map. */
   public static <V> NameMap immutableCopyOf(Map<String, V> names) {
     return new NameMap<>(ImmutableSortedMap.copyOf(names, COMPARATOR));
@@ -58,16 +72,17 @@ public class NameMap<V> {
    * name. If case-sensitive, that map will have 0 or 1 elements; if
    * case-insensitive, it may have 0 or more. */
   public NavigableMap<String, V> range(String name, boolean caseSensitive) {
+    Object floorKey;
+    Object ceilingKey;
     if (caseSensitive) {
-      if (map.containsKey(name)) {
-        return ImmutableSortedMap.of(name, map.get(name));
-      } else {
-        return ImmutableSortedMap.of();
-      }
+      floorKey = name;
+      ceilingKey = name;
     } else {
-      return map.subMap(name.toUpperCase(Locale.ROOT), true,
-          name.toLowerCase(Locale.ROOT), true);
+      floorKey = COMPARATOR.floorKey(name);
+      ceilingKey = COMPARATOR.ceilingKey(name);
     }
+    NavigableMap subMap = ((NavigableMap) map).subMap(floorKey, true, ceilingKey, true);
+    return Collections.unmodifiableNavigableMap((NavigableMap<String, V>) subMap);
   }
 
   /** Returns whether this map contains a given key, with a given

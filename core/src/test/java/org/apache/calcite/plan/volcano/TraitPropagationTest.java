@@ -71,7 +71,6 @@ import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
@@ -140,7 +139,7 @@ public class TraitPropagationTest {
         }
 
         @Override public Statistic getStatistic() {
-          return Statistics.of(100d, ImmutableList.<ImmutableBitSet>of(),
+          return Statistics.of(100d, ImmutableList.of(),
               ImmutableList.of(COLLATION));
         }
       };
@@ -166,7 +165,8 @@ public class TraitPropagationTest {
 
       // aggregate on s, count
       AggregateCall aggCall = AggregateCall.create(SqlStdOperatorTable.COUNT,
-          false, false, Collections.singletonList(1), -1, sqlBigInt, "cnt");
+          false, false, Collections.singletonList(1), -1, RelCollations.EMPTY,
+          sqlBigInt, "cnt");
       RelNode agg = new LogicalAggregate(cluster,
           cluster.traitSetOf(Convention.NONE), project, false,
           ImmutableBitSet.of(0), null, Collections.singletonList(aggCall));
@@ -329,11 +329,7 @@ public class TraitPropagationTest {
           cluster.traitSet().replace(PHYSICAL)
               .replaceIfs(
                   RelCollationTraitDef.INSTANCE,
-                  new Supplier<List<RelCollation>>() {
-                    public List<RelCollation> get() {
-                      return RelMdCollation.project(mq, input, projects);
-                    }
-                  });
+                  () -> RelMdCollation.project(mq, input, projects));
       return new PhysProj(cluster, traitSet, input, projects, rowType);
     }
 

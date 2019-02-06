@@ -1,0 +1,864 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+data: {
+    parser: {
+      # Generated parser implementation class package and name
+      package: "org.apache.calcite.sql.parser.babel",
+      class: "SqlBabelParserImpl",
+
+      # List of import statements.
+      imports: [
+      ]
+
+      # List of keywords.
+      keywords: [
+        "SEMI"
+      ]
+
+      # List of keywords from "keywords" section that are not reserved.
+      nonReservedKeywords: [
+        "A"
+        "ABSENT"
+        "ABSOLUTE"
+        "ACTION"
+        "ADA"
+        "ADD"
+        "ADMIN"
+        "AFTER"
+        "ALWAYS"
+        "APPLY"
+        "ASC"
+        "ASSERTION"
+        "ASSIGNMENT"
+        "ATTRIBUTE"
+        "ATTRIBUTES"
+        "BEFORE"
+        "BERNOULLI"
+        "BREADTH"
+        "C"
+        "CASCADE"
+        "CATALOG"
+        "CATALOG_NAME"
+        "CENTURY"
+        "CHAIN"
+        "CHARACTER_SET_CATALOG"
+        "CHARACTER_SET_NAME"
+        "CHARACTER_SET_SCHEMA"
+        "CHARACTERISTICS"
+        "CHARACTERS"
+        "CLASS_ORIGIN"
+        "COBOL"
+        "COLLATION"
+        "COLLATION_CATALOG"
+        "COLLATION_NAME"
+        "COLLATION_SCHEMA"
+        "COLUMN_NAME"
+        "COMMAND_FUNCTION"
+        "COMMAND_FUNCTION_CODE"
+        "COMMITTED"
+        "CONDITION_NUMBER"
+        "CONDITIONAL"
+        "CONNECTION"
+        "CONNECTION_NAME"
+        "CONSTRAINT_CATALOG"
+        "CONSTRAINT_NAME"
+        "CONSTRAINT_SCHEMA"
+        "CONSTRAINTS"
+        "CONSTRUCTOR"
+        "CONTINUE"
+        "CURSOR_NAME"
+        "DATA"
+        "DATABASE"
+        "DATETIME_INTERVAL_CODE"
+        "DATETIME_INTERVAL_PRECISION"
+        "DECADE"
+        "DEFAULTS"
+        "DEFERRABLE"
+        "DEFERRED"
+        "DEFINED"
+        "DEFINER"
+        "DEGREE"
+        "DEPTH"
+        "DERIVED"
+        "DESC"
+        "DESCRIPTION"
+        "DESCRIPTOR"
+        "DIAGNOSTICS"
+        "DISPATCH"
+        "DOMAIN"
+        "DOW"
+        "DOY"
+        "DYNAMIC_FUNCTION"
+        "DYNAMIC_FUNCTION_CODE"
+        "ENCODING"
+        "EPOCH"
+        "ERROR"
+        "EXCEPTION"
+        "EXCLUDE"
+        "EXCLUDING"
+        "FINAL"
+        "FIRST"
+        "FOLLOWING"
+        "FORMAT"
+        "FORTRAN"
+        "FOUND"
+        "FRAC_SECOND"
+        "G"
+        "GENERAL"
+        "GENERATED"
+        "GEOMETRY"
+        "GO"
+        "GOTO"
+        "GRANTED"
+        "HIERARCHY"
+        "IMMEDIATE"
+        "IMMEDIATELY"
+        "IMPLEMENTATION"
+        "INCLUDING"
+        "INCREMENT"
+        "INITIALLY"
+        "INPUT"
+        "INSTANCE"
+        "INSTANTIABLE"
+        "INVOKER"
+        "ISODOW"
+        "ISOYEAR"
+        "ISOLATION"
+        "JAVA"
+        "JSON"
+        "K"
+        "KEY"
+        "KEY_MEMBER"
+        "KEY_TYPE"
+        "LABEL"
+        "LAST"
+        "LENGTH"
+        "LEVEL"
+        "LIBRARY"
+        "LOCATOR"
+        "M"
+        "MAP"
+        "MATCHED"
+        "MAXVALUE"
+        "MICROSECOND"
+        "MESSAGE_LENGTH"
+        "MESSAGE_OCTET_LENGTH"
+        "MESSAGE_TEXT"
+        "MILLISECOND"
+        "MILLENNIUM"
+        "MINVALUE"
+        "MORE_"
+        "MUMPS"
+        "NAME"
+        "NAMES"
+        "NANOSECOND"
+        "NESTING"
+        "NORMALIZED"
+        "NULLABLE"
+        "NULLS"
+        "NUMBER"
+        "OBJECT"
+        "OCTETS"
+        "OPTION"
+        "OPTIONS"
+        "ORDERING"
+        "ORDINALITY"
+        "OTHERS"
+        "OUTPUT"
+        "OVERRIDING"
+        "PAD"
+        "PARAMETER_MODE"
+        "PARAMETER_NAME"
+        "PARAMETER_ORDINAL_POSITION"
+        "PARAMETER_SPECIFIC_CATALOG"
+        "PARAMETER_SPECIFIC_NAME"
+        "PARAMETER_SPECIFIC_SCHEMA"
+        "PARTIAL"
+        "PASCAL"
+        "PASSING"
+        "PASSTHROUGH"
+        "PAST"
+        "PATH"
+        "PLACING"
+        "PLAN"
+        "PLI"
+        "PRECEDING"
+        "PRESERVE"
+        "PRIOR"
+        "PRIVILEGES"
+        "PUBLIC"
+        "QUARTER"
+        "READ"
+        "RELATIVE"
+        "REPEATABLE"
+        "REPLACE"
+        "RESTART"
+        "RESTRICT"
+        "RETURNED_CARDINALITY"
+        "RETURNED_LENGTH"
+        "RETURNED_OCTET_LENGTH"
+        "RETURNED_SQLSTATE"
+        "RETURNING"
+        "ROLE"
+        "ROUTINE"
+        "ROUTINE_CATALOG"
+        "ROUTINE_NAME"
+        "ROUTINE_SCHEMA"
+        "ROW_COUNT"
+        "SCALAR"
+        "SCALE"
+        "SCHEMA"
+        "SCHEMA_NAME"
+        "SCOPE_CATALOGS"
+        "SCOPE_NAME"
+        "SCOPE_SCHEMA"
+        "SECTION"
+        "SECURITY"
+        "SELF"
+        "SEQUENCE"
+        "SERIALIZABLE"
+        "SERVER"
+        "SERVER_NAME"
+        "SESSION"
+        "SETS"
+        "SIMPLE"
+        "SIZE"
+        "SOURCE"
+        "SPACE"
+        "SPECIFIC_NAME"
+        "SQL_BIGINT"
+        "SQL_BINARY"
+        "SQL_BIT"
+        "SQL_BLOB"
+        "SQL_BOOLEAN"
+        "SQL_CHAR"
+        "SQL_CLOB"
+        "SQL_DATE"
+        "SQL_DECIMAL"
+        "SQL_DOUBLE"
+        "SQL_FLOAT"
+        "SQL_INTEGER"
+        "SQL_INTERVAL_DAY"
+        "SQL_INTERVAL_DAY_TO_HOUR"
+        "SQL_INTERVAL_DAY_TO_MINUTE"
+        "SQL_INTERVAL_DAY_TO_SECOND"
+        "SQL_INTERVAL_HOUR"
+        "SQL_INTERVAL_HOUR_TO_MINUTE"
+        "SQL_INTERVAL_HOUR_TO_SECOND"
+        "SQL_INTERVAL_MINUTE"
+        "SQL_INTERVAL_MINUTE_TO_SECOND"
+        "SQL_INTERVAL_MONTH"
+        "SQL_INTERVAL_SECOND"
+        "SQL_INTERVAL_YEAR"
+        "SQL_INTERVAL_YEAR_TO_MONTH"
+        "SQL_LONGVARBINARY"
+        "SQL_LONGVARNCHAR"
+        "SQL_LONGVARCHAR"
+        "SQL_NCHAR"
+        "SQL_NCLOB"
+        "SQL_NUMERIC"
+        "SQL_NVARCHAR"
+        "SQL_REAL"
+        "SQL_SMALLINT"
+        "SQL_TIME"
+        "SQL_TIMESTAMP"
+        "SQL_TINYINT"
+        "SQL_TSI_DAY"
+        "SQL_TSI_FRAC_SECOND"
+        "SQL_TSI_HOUR"
+        "SQL_TSI_MICROSECOND"
+        "SQL_TSI_MINUTE"
+        "SQL_TSI_MONTH"
+        "SQL_TSI_QUARTER"
+        "SQL_TSI_SECOND"
+        "SQL_TSI_WEEK"
+        "SQL_TSI_YEAR"
+        "SQL_VARBINARY"
+        "SQL_VARCHAR"
+        "STATE"
+        "STATEMENT"
+        "STRUCTURE"
+        "STYLE"
+        "SUBCLASS_ORIGIN"
+        "SUBSTITUTE"
+        "TABLE_NAME"
+        "TEMPORARY"
+        "TIES"
+        "TIMESTAMPADD"
+        "TIMESTAMPDIFF"
+        "TOP_LEVEL_COUNT"
+        "TRANSACTION"
+        "TRANSACTIONS_ACTIVE"
+        "TRANSACTIONS_COMMITTED"
+        "TRANSACTIONS_ROLLED_BACK"
+        "TRANSFORM"
+        "TRANSFORMS"
+        "TRIGGER_CATALOG"
+        "TRIGGER_NAME"
+        "TRIGGER_SCHEMA"
+        "TYPE"
+        "UNBOUNDED"
+        "UNCOMMITTED"
+        "UNCONDITIONAL"
+        "UNDER"
+        "UNNAMED"
+        "USAGE"
+        "USER_DEFINED_TYPE_CATALOG"
+        "USER_DEFINED_TYPE_CODE"
+        "USER_DEFINED_TYPE_NAME"
+        "USER_DEFINED_TYPE_SCHEMA"
+        "UTF8"
+        "UTF16"
+        "UTF32"
+        "VERSION"
+        "VIEW"
+        "WEEK"
+        "WRAPPER"
+        "WORK"
+        "WRITE"
+        "XML"
+        "ZONE"
+
+        # not in core, added in babel
+        "SEMI",
+
+        # The following keywords are reserved in core Calcite,
+        # are reserved in some version of SQL,
+        # but are not reserved in Babel.
+        #
+        # Words that are commented out (e.g. "AND") are still reserved.
+        # These are the most important reserved words, and SQL cannot be
+        # unambiguously parsed if they are not reserved. For example, if
+        # "INNER" is not reserved then in the query
+        #
+        #   select * from emp inner join dept using (deptno)"
+        #
+        # "inner" could be a table alias for "emp".
+        #
+        "ABS",
+        "ABSOLUTE",
+        "ACTION",
+        "ADD",
+        "AFTER",
+        "ALL",
+        "ALLOCATE",
+        "ALLOW",
+        "ALTER",
+        "AND",
+#       "ANY",
+        "ARE",
+        "ARRAY",
+#       # "ARRAY_AGG", # not a keyword in Calcite
+        "ARRAY_MAX_CARDINALITY",
+        "AS",
+        "ASC",
+        "ASENSITIVE",
+        "ASSERTION",
+        "ASYMMETRIC",
+        "AT",
+        "ATOMIC",
+        "AUTHORIZATION",
+        "AVG",
+        "BEFORE",
+        "BEGIN",
+        "BEGIN_FRAME",
+        "BEGIN_PARTITION",
+        "BETWEEN",
+        "BIGINT",
+        "BINARY",
+        "BIT",
+#       # "BIT_LENGTH", # not a keyword in Calcite
+        "BLOB",
+        "BOOLEAN",
+        "BOTH",
+        "BREADTH",
+        "BY",
+#       "CALL",
+        "CALLED",
+        "CARDINALITY",
+        "CASCADE",
+        "CASCADED",
+#       "CASE",
+        "CAST",
+        "CATALOG",
+        "CEIL",
+        "CEILING",
+        "CHAR",
+        "CHARACTER",
+        "CHARACTER_LENGTH",
+        "CHAR_LENGTH",
+        "CHECK",
+        "CLASSIFIER",
+        "CLOB",
+        "CLOSE",
+        "COALESCE",
+        "COLLATE",
+        "COLLATION",
+        "COLLECT",
+        "COLUMN",
+        "COMMIT",
+        "CONDITION",
+        "CONNECT",
+        "CONNECTION",
+        "CONSTRAINT",
+        "CONSTRAINTS",
+        "CONSTRUCTOR",
+        "CONTAINS",
+        "CONTINUE",
+        "CONVERT",
+        "CORR",
+        "CORRESPONDING",
+        "COUNT",
+        "COVAR_POP",
+        "COVAR_SAMP",
+#       "CREATE",
+#       "CROSS",
+        "CUBE",
+        "CUME_DIST",
+#       "CURRENT",
+        "CURRENT_CATALOG",
+        "CURRENT_DATE",
+        "CURRENT_DEFAULT_TRANSFORM_GROUP",
+        "CURRENT_PATH",
+        "CURRENT_ROLE",
+        "CURRENT_ROW",
+        "CURRENT_SCHEMA",
+        "CURRENT_TIME",
+        "CURRENT_TIMESTAMP",
+        "CURRENT_TRANSFORM_GROUP_FOR_TYPE",
+        "CURRENT_USER",
+#       "CURSOR",
+        "CYCLE",
+        "DATA",
+#       "DATE",
+        "DAY",
+#       # "DAYS", # not a keyword in Calcite
+        "DEALLOCATE",
+        "DEC",
+        "DECIMAL",
+        "DECLARE",
+#       # "DEFAULT",
+        "DEFERRABLE",
+        "DEFERRED",
+#       "DEFINE",
+#       "DELETE",
+        "DENSE_RANK",
+        "DEPTH",
+        "DEREF",
+        "DESC",
+#       "DESCRIBE", # must be reserved
+       "DESCRIPTOR",
+       "DETERMINISTIC",
+       "DIAGNOSTICS",
+       "DISALLOW",
+       "DISCONNECT",
+#       "DISTINCT",
+#       # "DO",  # not a keyword in Calcite
+       "DOMAIN",
+       "DOUBLE",
+#       "DROP", # probably must be reserved
+       "DYNAMIC",
+       "EACH",
+       "ELEMENT",
+       "ELSE",
+#       # "ELSEIF", # not a keyword in Calcite
+       "EMPTY",
+       "END",
+#       # "END-EXEC", # not a keyword in Calcite, and contains '-'
+       "END_FRAME",
+       "END_PARTITION",
+       "EQUALS",
+       "ESCAPE",
+       "EVERY",
+#       "EXCEPT", # must be reserved
+       "EXCEPTION",
+       "EXEC",
+       "EXECUTE",
+       "EXISTS",
+#       # "EXIT", # not a keyword in Calcite
+       "EXP",
+#       "EXPLAIN", # must be reserved
+       "EXTEND",
+       "EXTERNAL",
+       "EXTRACT",
+       "FALSE",
+#        "FETCH",
+        "FILTER",
+        "FIRST",
+        "FIRST_VALUE",
+        "FLOAT",
+        "FLOOR",
+        "FOR",
+        "FOREIGN",
+#       # "FOREVER", # not a keyword in Calcite
+        "FOUND",
+        "FRAME_ROW",
+        "FREE",
+#       "FROM", # must be reserved
+#       "FULL", # must be reserved
+        "FUNCTION",
+        "FUSION",
+        "GENERAL",
+        "GET",
+        "GLOBAL",
+        "GO",
+        "GOTO",
+#       "GRANT",
+#       "GROUP",
+#       "GROUPING",
+        "GROUPS",
+#       # "HANDLER", # not a keyword in Calcite
+#       "HAVING",
+        "HOLD",
+        "HOUR",
+#       # "HOURS", # not a keyword in Calcite
+        "IDENTITY",
+#       # "IF", # not a keyword in Calcite
+        "IMMEDIATE",
+        "IMMEDIATELY",
+        "IMPORT",
+#       "IN",
+        "INDICATOR",
+        "INITIAL",
+        "INITIALLY",
+#       "INNER",
+        "INOUT",
+        "INPUT",
+        "INSENSITIVE",
+#       "INSERT",
+        "INT",
+        "INTEGER",
+#       "INTERSECT",
+        "INTERSECTION",
+#       "INTERVAL",
+#       "INTO",
+        "IS",
+        "ISOLATION",
+#       # "ITERATE", # not a keyword in Calcite
+#       "JOIN",
+        "JSON_ARRAY",
+        "JSON_ARRAYAGG",
+        "JSON_EXISTS",
+        "JSON_VALUE",
+        "JSON_OBJECT",
+        "JSON_OBJECTAGG",
+        "JSON_QUERY",
+#       # "KEEP", # not a keyword in Calcite
+        "KEY",
+        "LAG",
+        "LANGUAGE",
+        "LARGE",
+        "LAST",
+        "LAST_VALUE",
+#       "LATERAL",
+        "LEAD",
+        "LEADING",
+#       # "LEAVE", # not a keyword in Calcite
+#       "LEFT",
+        "LEVEL",
+        "LIKE",
+        "LIKE_REGEX",
+#       "LIMIT",
+        "LN",
+        "LOCAL",
+        "LOCALTIME",
+        "LOCALTIMESTAMP",
+        "LOCATOR",
+#       # "LOOP", # not a keyword in Calcite
+        "LOWER",
+        "MAP",
+        "MATCH",
+        "MATCHES",
+        "MATCH_NUMBER",
+#       "MATCH_RECOGNIZE",
+        "MAX",
+#       # "MAX_CARDINALITY", # not a keyword in Calcite
+        "MEASURES",
+        "MEMBER",
+#       "MERGE",
+        "METHOD",
+        "MIN",
+#       "MINUS",
+        "MINUTE",
+#       # "MINUTES", # not a keyword in Calcite
+        "MOD",
+        "MODIFIES",
+        "MODULE",
+        "MONTH",
+        "MULTISET",
+        "NAMES",
+        "NATIONAL",
+#       "NATURAL",
+        "NCHAR",
+        "NCLOB",
+#       "NEW",
+#       "NEXT",
+        "NO",
+        "NONE",
+        "NORMALIZE",
+        "NOT",
+        "NTH_VALUE",
+        "NTILE",
+#       "NULL",
+        "NULLIF",
+        "NUMERIC",
+        "OBJECT",
+        "OCCURRENCES_REGEX",
+        "OCTET_LENGTH",
+        "OF",
+#       "OFFSET",
+        "OLD",
+        "OMIT",
+#       "ON",
+        "ONE",
+        "ONLY",
+        "OPEN",
+        "OPTION",
+        "OR",
+#       "ORDER",
+        "ORDINALITY",
+        "OUT",
+#       "OUTER",
+        "OUTPUT",
+#       "OVER",
+        "OVERLAPS",
+        "OVERLAY",
+        "PAD",
+        "PARAMETER",
+        "PARTIAL",
+#       "PARTITION",
+        "PATH",
+#       "PATTERN",
+        "PER",
+        "PERCENT",
+        "PERCENTILE_CONT",
+        "PERCENTILE_DISC",
+        "PERCENT_RANK",
+        "PERIOD",
+        "PERMUTE",
+        "PORTION",
+        "POSITION",
+        "POSITION_REGEX",
+        "POWER",
+        "PRECEDES",
+        "PRECISION",
+        "PREPARE",
+        "PRESERVE",
+        "PREV",
+        "PRIMARY",
+        "PRIOR",
+        "PRIVILEGES",
+        "PROCEDURE",
+        "PUBLIC",
+#       "RANGE",
+        "RANK",
+        "READ",
+        "READS",
+        "REAL",
+        "RECURSIVE",
+        "REF",
+        "REFERENCES",
+        "REFERENCING",
+        "REGR_AVGX",
+        "REGR_AVGY",
+        "REGR_COUNT",
+        "REGR_INTERCEPT",
+        "REGR_R2",
+        "REGR_SLOPE",
+        "REGR_SXX",
+        "REGR_SXY",
+        "REGR_SYY",
+        "RELATIVE",
+        "RELEASE",
+#       # "REPEAT", # not a keyword in Calcite
+        "RESET",
+#       # "RESIGNAL", # not a keyword in Calcite
+        "RESTRICT",
+        "RESULT",
+        "RETURN",
+        "RETURNS",
+        "REVOKE",
+#       "RIGHT",
+        "ROLE",
+        "ROLLBACK",
+#       "ROLLUP",
+        "ROUTINE",
+#       "ROW",
+#       "ROWS",
+        "ROW_NUMBER",
+        "RUNNING",
+        "SAVEPOINT",
+        "SCHEMA",
+        "SCOPE",
+        "SCROLL",
+        "SEARCH",
+        "SECOND",
+#       # "SECONDS", # not a keyword in Calcite
+        "SECTION",
+        "SEEK",
+#       "SELECT",
+        "SENSITIVE",
+        "SESSION",
+        "SESSION_USER",
+#       "SET",
+#       "SETS",
+        "SHOW",
+#       # "SIGNAL", # not a keyword in Calcite
+        "SIMILAR",
+        "SIZE",
+#       # "SKIP", # messes with JavaCC's <SKIP> token
+        "SMALLINT",
+#       "SOME",
+        "SPACE",
+        "SPECIFIC",
+        "SPECIFICTYPE",
+        "SQL",
+#       # "SQLCODE", # not a keyword in Calcite
+#       # "SQLERROR", # not a keyword in Calcite
+        "SQLEXCEPTION",
+        "SQLSTATE",
+        "SQLWARNING",
+        "SQRT",
+        "START",
+        "STATE",
+        "STATIC",
+        "STDDEV_POP",
+        "STDDEV_SAMP",
+#       "STREAM",
+        "SUBMULTISET",
+        "SUBSET",
+        "SUBSTRING",
+        "SUBSTRING_REGEX",
+        "SUCCEEDS",
+        "SUM",
+        "SYMMETRIC",
+        "SYSTEM",
+        "SYSTEM_TIME",
+        "SYSTEM_USER",
+#       "TABLE",
+#       "TABLESAMPLE",
+        "TEMPORARY",
+#       "THEN",
+#       "TIME",
+#       "TIMESTAMP",
+        "TIMEZONE_HOUR",
+        "TIMEZONE_MINUTE",
+        "TINYINT",
+        "TO",
+        "TRAILING",
+        "TRANSACTION",
+        "TRANSLATE",
+        "TRANSLATE_REGEX",
+        "TRANSLATION",
+        "TREAT",
+        "TRIGGER",
+        "TRIM",
+        "TRIM_ARRAY",
+        "TRUE",
+        "TRUNCATE",
+        "UESCAPE",
+        "UNDER",
+#       # "UNDO", # not a keyword in Calcite
+#       "UNION",
+        "UNIQUE",
+        "UNKNOWN",
+#       "UNNEST",
+#       # "UNTIL", # not a keyword in Calcite
+#       "UPDATE",
+        "UPPER",
+        "UPSERT",
+        "USAGE",
+        "USER",
+#       "USING",
+        "VALUE",
+#       "VALUES",
+        "VALUE_OF",
+        "VARBINARY",
+        "VARCHAR",
+        "VARYING",
+        "VAR_POP",
+        "VAR_SAMP",
+        "VERSION",
+        "VERSIONING",
+#       # "VERSIONS", # not a keyword in Calcite
+        "VIEW",
+#       "WHEN",
+        "WHENEVER",
+#       "WHERE",
+#       # "WHILE", # not a keyword in Calcite
+        "WIDTH_BUCKET",
+#       "WINDOW",
+#       "WITH",
+        "WITHIN",
+        "WITHOUT",
+        "WORK",
+        "WRITE",
+        "YEAR",
+        # "YEARS", # not a keyword in Calcite
+        "ZONE",
+      ]
+
+      # List of additional join types. Each is a method with no arguments.
+      # Example: LeftSemiJoin()
+      joinTypes: [
+        "LeftSemiJoin"
+      ]
+
+      # List of methods for parsing custom SQL statements.
+      statementParserMethods: [
+      ]
+
+      # List of methods for parsing custom literals.
+      # Example: ParseJsonLiteral().
+      literalParserMethods: [
+      ]
+
+      # List of methods for parsing custom data types.
+      dataTypeParserMethods: [
+      ]
+
+      # List of methods for parsing extensions to "ALTER <scope>" calls.
+      # Each must accept arguments "(SqlParserPos pos, String scope)".
+      alterStatementParserMethods: [
+      ]
+
+      # List of methods for parsing extensions to "CREATE [OR REPLACE]" calls.
+      # Each must accept arguments "(SqlParserPos pos, boolean replace)".
+      createStatementParserMethods: [
+      ]
+
+      # List of methods for parsing extensions to "DROP" calls.
+      # Each must accept arguments "(SqlParserPos pos)".
+      dropStatementParserMethods: [
+      ]
+
+      # List of files in @includes directory that have parser method
+      # implementations for parsing custom SQL statements, literals or types
+      # given as part of "statementParserMethods", "literalParserMethods" or
+      # "dataTypeParserMethods".
+      implementationFiles: [
+        "parserImpls.ftl"
+      ]
+
+      includeCompoundIdentifier: true
+      includeBraces: true
+      includeAdditionalDeclarations: false
+
+    }
+}
+freemarkerLinks: {
+    includes: includes/
+}

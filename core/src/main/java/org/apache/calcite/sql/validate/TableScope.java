@@ -19,7 +19,7 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 
-import com.google.common.base.Preconditions;
+import java.util.Objects;
 
 /**
  * The name-resolution scope of a LATERAL TABLE clause.
@@ -40,8 +40,8 @@ class TableScope extends ListScope {
    * @param parent  Parent scope
    */
   TableScope(SqlValidatorScope parent, SqlNode node) {
-    super(Preconditions.checkNotNull(parent));
-    this.node = Preconditions.checkNotNull(node);
+    super(Objects.requireNonNull(parent));
+    this.node = Objects.requireNonNull(node);
   }
 
   //~ Methods ----------------------------------------------------------------

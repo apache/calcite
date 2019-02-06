@@ -286,7 +286,7 @@ public abstract class ReflectUtil {
         visitorClass,
         visiteeClass,
         visitMethodName,
-        Collections.<Class>emptyList());
+        Collections.emptyList());
   }
 
   /**
@@ -426,7 +426,7 @@ public abstract class ReflectUtil {
             visitorClass,
             visiteeClass,
             visitMethodName,
-            Collections.<Class>emptyList());
+            Collections.emptyList());
       }
 
       public Method lookupVisitMethod(
@@ -558,7 +558,7 @@ public abstract class ReflectUtil {
         return ((Parameter) annotation).name();
       }
     }
-    return Compatible.INSTANCE.getParameterName(method, i);
+    return method.getParameters()[i].getName();
   }
 
   /** Derives whether the {@code i}th parameter of a method is optional. */

@@ -226,7 +226,7 @@ public abstract class QueryableDefaults {
     return new BaseQueryable<T2>(source.getProvider(), clazz,
         source.getExpression()) {
       public Enumerator<T2> enumerator() {
-        return new EnumerableDefaults.CastingEnumerator<T2>(source.enumerator(),
+        return new EnumerableDefaults.CastingEnumerator<>(source.enumerator(),
             clazz);
       }
     };
@@ -897,7 +897,7 @@ public abstract class QueryableDefaults {
       FunctionExpression<Predicate1<T>> predicate) {
     return skipWhileN(source,
         Expressions.lambda(
-            Functions.<T, Integer>toPredicate2(predicate.getFunction())));
+            Functions.toPredicate2(predicate.getFunction())));
   }
 
   /**
@@ -911,7 +911,7 @@ public abstract class QueryableDefaults {
     return new BaseQueryable<T>(source.getProvider(), source.getElementType(),
         source.getExpression()) {
       public Enumerator<T> enumerator() {
-        return new EnumerableDefaults.SkipWhileEnumerator<T>(
+        return new EnumerableDefaults.SkipWhileEnumerator<>(
             source.enumerator(), predicate.getFunction());
       }
     };
@@ -1033,7 +1033,7 @@ public abstract class QueryableDefaults {
       FunctionExpression<Predicate1<T>> predicate) {
     return takeWhileN(source,
         Expressions.lambda(
-            Functions.<T, Integer>toPredicate2(predicate.getFunction())));
+            Functions.toPredicate2(predicate.getFunction())));
   }
 
   /**
@@ -1046,7 +1046,7 @@ public abstract class QueryableDefaults {
     return new BaseQueryable<T>(source.getProvider(), source.getElementType(),
         source.getExpression()) {
       public Enumerator<T> enumerator() {
-        return new EnumerableDefaults.TakeWhileEnumerator<T>(
+        return new EnumerableDefaults.TakeWhileEnumerator<>(
             source.enumerator(), predicate.getFunction());
       }
     };

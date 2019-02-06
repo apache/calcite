@@ -61,8 +61,7 @@ public class MutableSemiJoin extends MutableBiRel {
   @Override public boolean equals(Object obj) {
     return obj == this
         || obj instanceof MutableSemiJoin
-        && condition.toString().equals(
-            ((MutableSemiJoin) obj).condition.toString())
+        && condition.equals(((MutableSemiJoin) obj).condition)
         && leftKeys.equals(((MutableSemiJoin) obj).leftKeys)
         && rightKeys.equals(((MutableSemiJoin) obj).rightKeys)
         && left.equals(((MutableSemiJoin) obj).left)
@@ -70,8 +69,7 @@ public class MutableSemiJoin extends MutableBiRel {
   }
 
   @Override public int hashCode() {
-    return Objects.hash(left, right,
-        condition.toString(), leftKeys, rightKeys);
+    return Objects.hash(left, right, condition, leftKeys, rightKeys);
   }
 
   @Override public StringBuilder digest(StringBuilder buf) {

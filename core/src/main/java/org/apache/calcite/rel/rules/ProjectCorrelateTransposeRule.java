@@ -46,8 +46,7 @@ import java.util.Map;
 public class ProjectCorrelateTransposeRule  extends RelOptRule {
 
   public static final ProjectCorrelateTransposeRule INSTANCE =
-      new ProjectCorrelateTransposeRule(
-          PushProjector.ExprCondition.TRUE,
+      new ProjectCorrelateTransposeRule(expr -> true,
           RelFactories.LOGICAL_BUILDER);
 
   //~ Instance fields --------------------------------------------------------

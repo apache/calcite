@@ -35,7 +35,6 @@ import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.BuiltInMethod;
@@ -55,34 +54,14 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+
+import static org.apache.calcite.jdbc.CalciteSchema.LatticeEntry;
 
 /**
  * Utility functions for schemas.
  */
 public final class Schemas {
-  private static final com.google.common.base.Function<
-      CalciteSchema.LatticeEntry,
-      CalciteSchema.TableEntry> TO_TABLE_ENTRY =
-      new com.google.common.base.Function<CalciteSchema.LatticeEntry,
-          CalciteSchema.TableEntry>() {
-        public CalciteSchema.TableEntry apply(
-            CalciteSchema.LatticeEntry entry) {
-          final CalciteSchema.TableEntry starTable = entry.getStarTable();
-          assert starTable.getTable().getJdbcTableType()
-              == Schema.TableType.STAR;
-          return entry.getStarTable();
-        }
-      };
-
-  private static final com.google.common.base.Function<
-      CalciteSchema.LatticeEntry,
-      Lattice> TO_LATTICE =
-      new com.google.common.base.Function<CalciteSchema.LatticeEntry,
-          Lattice>() {
-        public Lattice apply(CalciteSchema.LatticeEntry entry) {
-          return entry.getLattice();
-        }
-      };
 
   private Schemas() {
     throw new AssertionError("no instances!");
@@ -245,7 +224,7 @@ public final class Schemas {
    * array. */
   public static Enumerable<Object[]> enumerable(final FilterableTable table,
       final DataContext root) {
-    return table.scan(root, ImmutableList.<RexNode>of());
+    return table.scan(root, ImmutableList.of());
   }
 
   /** Returns an {@link org.apache.calcite.linq4j.Enumerable} over the rows of
@@ -253,7 +232,7 @@ public final class Schemas {
    * representing each row as an object array. */
   public static Enumerable<Object[]> enumerable(
       final ProjectableFilterableTable table, final DataContext root) {
-    return table.scan(root, ImmutableList.<RexNode>of(),
+    return table.scan(root, ImmutableList.of(),
         identity(table.getRowType(root.getTypeFactory()).getFieldCount()));
   }
 
@@ -448,22 +427,14 @@ public final class Schemas {
    * {@link RelProtoDataType}
    * that asks a given table for its row type with a given type factory. */
   public static RelProtoDataType proto(final Table table) {
-    return new RelProtoDataType() {
-      public RelDataType apply(RelDataTypeFactory typeFactory) {
-        return table.getRowType(typeFactory);
-      }
-    };
+    return table::getRowType;
   }
 
   /** Returns an implementation of {@link RelProtoDataType}
    * that asks a given scalar function for its return type with a given type
    * factory. */
   public static RelProtoDataType proto(final ScalarFunction function) {
-    return new RelProtoDataType() {
-      public RelDataType apply(RelDataTypeFactory typeFactory) {
-        return function.getReturnType(typeFactory);
-      }
-    };
+    return function::getReturnType;
   }
 
   /** Returns the star tables defined in a schema.
@@ -472,7 +443,13 @@ public final class Schemas {
   public static List<CalciteSchema.TableEntry> getStarTables(
       CalciteSchema schema) {
     final List<CalciteSchema.LatticeEntry> list = getLatticeEntries(schema);
-    return Lists.transform(list, TO_TABLE_ENTRY);
+    return Lists.transform(list, entry -> {
+      final CalciteSchema.TableEntry starTable =
+          Objects.requireNonNull(entry).getStarTable();
+      assert starTable.getTable().getJdbcTableType()
+          == Schema.TableType.STAR;
+      return entry.getStarTable();
+    });
   }
 
   /** Returns the lattices defined in a schema.
@@ -480,7 +457,7 @@ public final class Schemas {
    * @param schema Schema */
   public static List<Lattice> getLattices(CalciteSchema schema) {
     final List<CalciteSchema.LatticeEntry> list = getLatticeEntries(schema);
-    return Lists.transform(list, TO_LATTICE);
+    return Lists.transform(list, CalciteSchema.LatticeEntry::getLattice);
   }
 
   /** Returns the lattices defined in a schema.
@@ -488,7 +465,7 @@ public final class Schemas {
    * @param schema Schema */
   public static List<CalciteSchema.LatticeEntry> getLatticeEntries(
       CalciteSchema schema) {
-    final List<CalciteSchema.LatticeEntry> list = Lists.newArrayList();
+    final List<LatticeEntry> list = new ArrayList<>();
     gatherLattices(schema, list);
     return list;
   }
@@ -520,7 +497,7 @@ public final class Schemas {
 
   /** Generates a table name that is unique within the given schema. */
   public static String uniqueTableName(CalciteSchema schema, String base) {
-    String t = Preconditions.checkNotNull(base);
+    String t = Objects.requireNonNull(base);
     for (int x = 0; schema.getTable(t, true) != null; x++) {
       t = base + x;
     }
@@ -558,7 +535,7 @@ public final class Schemas {
   public static Path path(SchemaPlus schema) {
     List<Pair<String, Schema>> list = new ArrayList<>();
     for (SchemaPlus s = schema; s != null; s = s.getParentSchema()) {
-      list.add(Pair.<String, Schema>of(s.getName(), s));
+      list.add(Pair.of(s.getName(), s));
     }
     return new PathImpl(ImmutableList.copyOf(Lists.reverse(list)));
   }
@@ -572,7 +549,7 @@ public final class Schemas {
     DummyDataContext(CalciteConnection connection, SchemaPlus rootSchema) {
       this.connection = connection;
       this.rootSchema = rootSchema;
-      this.map = ImmutableMap.<String, Object>of();
+      this.map = ImmutableMap.of();
     }
 
     public SchemaPlus getRootSchema() {
@@ -598,7 +575,7 @@ public final class Schemas {
     private final ImmutableList<Pair<String, Schema>> pairs;
 
     private static final PathImpl EMPTY =
-        new PathImpl(ImmutableList.<Pair<String, Schema>>of());
+        new PathImpl(ImmutableList.of());
 
     PathImpl(ImmutableList<Pair<String, Schema>> pairs) {
       this.pairs = pairs;

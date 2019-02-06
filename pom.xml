@@ -20,14 +20,14 @@ limitations under the License.
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>19</version>
+    <version>21</version>
   </parent>
 
   <!-- The basics. -->
   <groupId>org.apache.calcite</groupId>
   <artifactId>calcite</artifactId>
   <packaging>pom</packaging>
-  <version>1.17.0-SNAPSHOT</version>
+  <version>1.19.0-SNAPSHOT</version>
 
   <!-- More project information. -->
   <name>Calcite</name>
@@ -46,38 +46,45 @@ limitations under the License.
   </mailingLists>
 
   <properties>
+    <!-- Ensure that source and target version are overridden from base ASF POM.
+         This is also used by forbiddenapis to ensure correct signatures are loaded. -->
+    <maven.compiler.source>8</maven.compiler.source>
+    <maven.compiler.target>8</maven.compiler.target>
+
     <surefire.parallel>both</surefire.parallel>
+    <surefire.threadCount>1</surefire.threadCount>
+    <surefire.perCoreThreadCount>true</surefire.perCoreThreadCount>
 
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <top.dir>${project.basedir}</top.dir>
     <version.major>1</version.major>
-    <version.minor>16</version.minor>
+    <version.minor>18</version.minor>
 
     <!-- Don't fail the build for vulnerabilities below this threshold. -->
     <failBuildOnCVSS>8</failBuildOnCVSS>
 
     <!-- This list is in alphabetical order. -->
     <airlift-tpch.version>0.1</airlift-tpch.version>
-    <avatica.version>1.12.0</avatica.version>
+    <avatica.version>1.13.0</avatica.version>
     <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
-    <cassandra-driver-core.version>3.4.0</cassandra-driver-core.version>
+    <cassandra-driver-core.version>3.6.0</cassandra-driver-core.version>
+    <cassandra-unit.version>3.5.0.1</cassandra-unit.version>
+    <cassandra.version>3.11.2</cassandra.version>
     <checksum-maven-plugin.version>1.2</checksum-maven-plugin.version>
     <chinook-data-hsqldb.version>0.1</chinook-data-hsqldb.version>
-    <commons-dbcp2.version>2.4.0</commons-dbcp2.version>
-    <commons-lang3.version>3.2</commons-lang3.version>
-    <commons-logging.version>1.1.3</commons-logging.version>
-    <commons-pool2.version>2.5.0</commons-pool2.version>
-    <elasticsearch-java-driver.version>2.4.6</elasticsearch-java-driver.version>
-    <elasticsearch5-java-driver.version>5.6.9</elasticsearch5-java-driver.version>
-    <esri-geometry-api.version>2.0.0</esri-geometry-api.version>
+    <commons-dbcp2.version>2.5.0</commons-dbcp2.version>
+    <commons-lang3.version>3.8</commons-lang3.version>
+    <commons-pool2.version>2.6.0</commons-pool2.version>
+    <elasticsearch.version>6.2.4</elasticsearch.version>
+    <esri-geometry-api.version>2.2.0</esri-geometry-api.version>
     <findbugs.version>3.0.1</findbugs.version>
-    <fmpp-maven-plugin.version>1.0</fmpp-maven-plugin.version>
+    <drill-fmpp-maven-plugin.version>1.14.0</drill-fmpp-maven-plugin.version>
     <foodmart-data-hsqldb.version>0.3</foodmart-data-hsqldb.version>
     <foodmart-queries.version>0.4.1</foodmart-queries.version>
-    <forbiddenapis.version>2.5</forbiddenapis.version>
-    <freemarker.version>2.3.25-incubating</freemarker.version>
+    <forbiddenapis.version>2.6</forbiddenapis.version>
+    <freemarker.version>2.3.28</freemarker.version>
     <git-commit-id-plugin.version>2.1.9</git-commit-id-plugin.version>
-    <geode.version>1.3.0</geode.version>
+    <geode.version>1.6.0</geode.version>
     <fongo.version>2.1.1</fongo.version>
     <foodmart-data-json.version>0.4</foodmart-data-json.version>
 
@@ -85,57 +92,70 @@ limitations under the License.
          19.0 and 23.0. Default is 19.0 due to Cassandra adapter. -->
     <guava.version>19.0</guava.version>
     <joda.version>2.8.1</joda.version>
-    <h2.version>1.4.185</h2.version>
+    <h2.version>1.4.197</h2.version>
     <!-- Require Hadoop 2.7.4+ due to HADOOP-14586 -->
     <hadoop.version>2.7.5</hadoop.version>
     <hamcrest.version>1.3</hamcrest.version>
-    <hppc.version>0.7.1</hppc.version>
-    <hsqldb.version>2.4.0</hsqldb.version>
-    <httpclient.version>4.5.2</httpclient.version>
-    <httpcore.version>4.4.4</httpcore.version>
+    <hsqldb.version>2.4.1</hsqldb.version>
+    <httpclient.version>4.5.6</httpclient.version>
+    <httpcore.version>4.4.10</httpcore.version>
     <hydromatic-resource.version>0.6</hydromatic-resource.version>
     <hydromatic-toolbox.version>0.3</hydromatic-toolbox.version>
     <hydromatic-tpcds.version>0.4</hydromatic-tpcds.version>
-    <jackson.version>2.9.4</jackson.version>
-    <janino.version>2.7.6</janino.version>
-    <java-diff.version>1.1.1</java-diff.version>
+    <jackson.version>2.9.6</jackson.version>
+    <janino.version>3.0.11</janino.version>
+    <java-diff.version>1.1.2</java-diff.version>
     <javacc-maven-plugin.version>2.4</javacc-maven-plugin.version>
     <jcip-annotations.version>1.0-1</jcip-annotations.version>
-    <jetty.version>9.2.19.v20160908</jetty.version>
+    <jetty.version>9.4.11.v20180605</jetty.version>
     <jmh.version>1.12</jmh.version>
-    <jsoup.version>1.10.2</jsoup.version>
+    <jsoup.version>1.11.3</jsoup.version>
     <junit.version>4.12</junit.version>
+    <kotlin.version>1.2.71</kotlin.version>
+    <checkstyle.version>7.8.2</checkstyle.version>
     <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
-    <maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
-    <maven-enforcer-plugin.version>3.0.0-M1</maven-enforcer-plugin.version>
-    <!-- Apache 19 has 2.10.4, but need 3.0.1 for [LANG-1365] and [MJAVADOC-517]. -->
-    <maven-javadoc-plugin.version>3.0.1</maven-javadoc-plugin.version>
-    <maven-scm-provider.version>1.9.4</maven-scm-provider.version>
-    <maven-shade-plugin.version>2.1</maven-shade-plugin.version>
-    <!-- Apache 19 has 2.20.1, but need 2.21.0+ for [MPOM-184] -->
-    <maven-surefire-plugin.version>2.21.0</maven-surefire-plugin.version>
-    <mockito.version>2.5.5</mockito.version>
+    <maven-dependency-plugin.version>3.1.1</maven-dependency-plugin.version>
+    <maven-enforcer-plugin.version>3.0.0-M2</maven-enforcer-plugin.version>
+    <maven-remote-resources-plugin.version>1.6.0</maven-remote-resources-plugin.version>
+    <maven-scm-provider.version>1.10.0</maven-scm-provider.version>
+    <mockito.version>2.22.0</mockito.version>
     <mongo-java-driver.version>3.5.0</mongo-java-driver.version>
     <mysql-driver.version>5.1.20</mysql-driver.version>
     <natty.version>0.13</natty.version>
     <opencsv.version>2.3</opencsv.version>
     <oracle-jdbc6-driver.version>11.2.0.2.0</oracle-jdbc6-driver.version>
-    <owasp-dependency-check.version>2.1.1</owasp-dependency-check.version>
+    <owasp-dependency-check.version>3.3.2</owasp-dependency-check.version>
     <pig.version>0.16.0</pig.version>
     <aggdesigner.version>6.0</aggdesigner.version>
-    <postgresql.version>9.3-1102-jdbc3</postgresql.version>
-    <quidem.version>0.8</quidem.version>
+    <postgresql.version>9.3-1102-jdbc41</postgresql.version>
+    <quidem.version>0.9</quidem.version>
     <scala.version>2.10.3</scala.version>
     <scott-data-hsqldb.version>0.1</scott-data-hsqldb.version>
-    <servlet.version>3.0.1</servlet.version>
-    <slf4j.version>1.7.13</slf4j.version>
+    <servlet.version>4.0.1</servlet.version>
+    <slf4j.version>1.7.25</slf4j.version>
     <log4j2.version>2.11.0</log4j2.version>
     <spark.version>2.2.0</spark.version>
-    <sqlline.version>1.4.0</sqlline.version>
+    <sqlline.version>1.6.0</sqlline.version>
+    <tpcds.version>1.2</tpcds.version>
     <xalan.version>2.7.1</xalan.version>
     <xerces.version>2.9.1</xerces.version>
     <sketches.version>0.9.0</sketches.version>
-    <fmpp.version>0.9.14</fmpp.version>
+    <fmpp.version>0.9.16</fmpp.version>
+    <jsonpath.version>2.4.0</jsonpath.version>
+
+    <!-- Other properties (not version numbers) -->
+    <!-- Java 1.8 does not support -html5, so override via profile for Java 1.8 -->
+    <maven-javadoc-html5>-html5</maven-javadoc-html5>
+    <maven-javadoc-plugin.excludePackageNames>
+      org.apache.calcite.benchmarks.generated,
+      org.apache.calcite.sql.parser.babel,
+      org.apache.calcite.sql.parser.ddl,
+      org.apache.calcite.sql.parser.impl,
+      org.apache.calcite.sql.parser.parserextensiontesting,
+      org.apache.calcite.piglet.parser,
+      org.openjdk.jmh
+    </maven-javadoc-plugin.excludePackageNames>
+    <maven-javadoc-plugin.link>https://docs.oracle.com/javase/9/docs/api/</maven-javadoc-plugin.link>
   </properties>
 
   <issueManagement>
@@ -144,18 +164,18 @@ limitations under the License.
   </issueManagement>
 
   <scm>
-    <connection>scm:git:https://git-wip-us.apache.org/repos/asf/calcite.git</connection>
-    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/calcite.git</developerConnection>
+    <connection>scm:git:https://gitbox.apache.org/repos/asf/calcite.git</connection>
+    <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/calcite.git</developerConnection>
     <url>https://github.com/apache/calcite</url>
     <tag>HEAD</tag>
   </scm>
 
   <modules>
+    <module>babel</module>
     <module>cassandra</module>
     <module>core</module>
     <module>druid</module>
-    <module>elasticsearch2</module>
-    <module>elasticsearch5</module>
+    <module>elasticsearch</module>
     <module>example</module>
     <module>file</module>
     <module>geode</module>
@@ -225,16 +245,41 @@ limitations under the License.
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-pool2</artifactId>
         <version>${commons-pool2.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.carrotsearch</groupId>
-        <artifactId>hppc</artifactId>
-        <version>${hppc.version}</version>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>com.datastax.cassandra</groupId>
         <artifactId>cassandra-driver-core</artifactId>
         <version>${cassandra-driver-core.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.cassandra</groupId>
+        <artifactId>cassandra-all</artifactId>
+        <version>${cassandra.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-stdlib</artifactId>
+        <version>${kotlin.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-stdlib-jdk8</artifactId>
+        <version>${kotlin.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-test</artifactId>
+        <version>${kotlin.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-test-junit</artifactId>
+        <version>${kotlin.version}</version>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>com.esri.geometry</groupId>
@@ -257,6 +302,11 @@ limitations under the License.
         <version>${jackson.version}</version>
       </dependency>
       <dependency>
+        <groupId>com.fasterxml.jackson.dataformat</groupId>
+        <artifactId>jackson-dataformat-yaml</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
         <groupId>joda-time</groupId>
         <artifactId>joda-time</artifactId>
         <version>${joda.version}</version>
@@ -265,6 +315,7 @@ limitations under the License.
         <groupId>com.google.code.findbugs</groupId>
         <artifactId>jsr305</artifactId>
         <version>${findbugs.version}</version>
+        <optional>true</optional>
       </dependency>
       <dependency>
         <groupId>com.google.guava</groupId>
@@ -290,6 +341,11 @@ limitations under the License.
         <groupId>com.yahoo.datasketches</groupId>
         <artifactId>sketches-core</artifactId>
         <version>${sketches.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.teradata.tpcds</groupId>
+        <artifactId>tpcds</artifactId>
+        <version>${tpcds.version}</version>
       </dependency>
       <dependency>
         <groupId>javax.servlet</groupId>
@@ -394,6 +450,12 @@ limitations under the License.
         <scope>test</scope>
       </dependency>
       <dependency>
+        <groupId>org.cassandraunit</groupId>
+        <artifactId>cassandra-unit</artifactId>
+        <version>${cassandra-unit.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
         <groupId>org.jsoup</groupId>
         <artifactId>jsoup</artifactId>
         <version>${jsoup.version}</version>
@@ -461,12 +523,7 @@ limitations under the License.
       <dependency>
         <groupId>org.elasticsearch</groupId>
         <artifactId>elasticsearch</artifactId>
-        <version>${elasticsearch-java-driver.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.elasticsearch.module</groupId>
-        <artifactId>lang-groovy</artifactId>
-        <version>${elasticsearch-java-driver.version}</version>
+        <version>${elasticsearch.version}</version>
       </dependency>
       <dependency>
         <groupId>org.mongodb</groupId>
@@ -529,6 +586,17 @@ limitations under the License.
         <version>${xalan.version}</version>
       </dependency>
       <dependency>
+        <groupId>com.jayway.jsonpath</groupId>
+        <artifactId>json-path</artifactId>
+        <version>${jsonpath.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>net.minidev</groupId>
+            <artifactId>json-smart</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
         <groupId>com.github.stephenc.jcip</groupId>
         <artifactId>jcip-annotations</artifactId>
         <version>${jcip-annotations.version}</version>
@@ -564,6 +632,7 @@ limitations under the License.
             <exclude>**/*TokenManager.class</exclude>
             <exclude>**/TokenMgrError.class</exclude>
             <exclude>**/org/apache/calcite/adapter/os/Processes$ProcessFactory.class</exclude>
+            <exclude>**/org/apache/calcite/adapter/os/OsAdapterTest.class</exclude>
             <exclude>**/org/apache/calcite/runtime/Resources$Inst.class</exclude>
             <exclude>**/org/apache/calcite/test/concurrent/ConcurrentTestCommandScript.class</exclude>
             <exclude>**/org/apache/calcite/test/concurrent/ConcurrentTestCommandScript$ShellCommand.class</exclude>
@@ -592,7 +661,7 @@ limitations under the License.
             <exclude>**/src/test/resources/**/*.txt</exclude>
             <exclude>**/src/test/resources/bug/archers.json</exclude>
             <exclude>**/src/test/resources/foodmart-schema.spec</exclude>
-            <exclude>**/src/test/resources/zips-mini.json</exclude>
+            <exclude>**/src/test/resources/*.json</exclude>
             <exclude>**/data.txt</exclude>
             <exclude>**/data2.txt</exclude>
 
@@ -651,9 +720,9 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
+        <!-- If you are looking to change source/target,
+             change the maven.compiler.{source,target} property -->
         <configuration>
-          <source>8</source>
-          <target>8</target>
           <compilerArgument>-Xlint:deprecation</compilerArgument>
         </configuration>
       </plugin>
@@ -667,8 +736,8 @@ limitations under the License.
             <configuration>
               <configLocation>${top.dir}/src/main/config/checkstyle/checker.xml</configLocation>
               <suppressionsLocation>${top.dir}/src/main/config/checkstyle/suppressions.xml</suppressionsLocation>
+              <propertyExpansion>base_dir=${top.dir}</propertyExpansion>
               <consoleOutput>true</consoleOutput>
-              <headerLocation>${top.dir}/src/main/config/checkstyle/header.txt</headerLocation>
               <failOnViolation>true</failOnViolation>
               <includeTestSourceDirectory>true</includeTestSourceDirectory>
             </configuration>
@@ -678,6 +747,11 @@ limitations under the License.
           </execution>
         </executions>
         <dependencies>
+          <dependency>
+            <groupId>com.puppycrawl.tools</groupId>
+            <artifactId>checkstyle</artifactId>
+            <version>${checkstyle.version}</version>
+          </dependency>
           <dependency>
             <groupId>net.hydromatic</groupId>
             <artifactId>toolbox</artifactId>
@@ -711,20 +785,8 @@ limitations under the License.
         <artifactId>maven-enforcer-plugin</artifactId>
       </plugin>
       <plugin>
-        <!-- This is the configuration used by "mvn javadoc:javadoc". It is
-             configured strict, so that it shows errors such as broken links in
-             javadoc on private methods. The configuration for "mvn site" is
-             under "reporting", and is more lenient. -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <configuration>
-          <additionalparam>-html5</additionalparam>
-          <links>
-            <link>https://docs.oracle.com/javase/9/docs/api/</link>
-          </links>
-          <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.ddl,org.apache.calcite.sql.parser.impl,org.apache.calcite.sql.parser.parserextensiontesting,org.apache.calcite.piglet.parser,org.openjdk.jmh,org.apache.calcite.adapter.elasticsearch2</excludePackageNames>
-          <show>private</show>
-        </configuration>
       </plugin>
       <plugin>
         <!-- Override apache parent POM's definition of release
@@ -735,10 +797,25 @@ limitations under the License.
         <dependencies>
           <dependency>
             <groupId>org.apache.maven.scm</groupId>
+            <artifactId>maven-scm-api</artifactId>
+            <version>${maven-scm-provider.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>org.apache.maven.scm</groupId>
             <artifactId>maven-scm-provider-gitexe</artifactId>
             <version>${maven-scm-provider.version}</version>
           </dependency>
         </dependencies>
+      </plugin>
+      <!-- CALCITE-2759, CALCITE-537: maven-remote-resources-plugin 1.6.0 resolves MRRESOURCES-91
+        Avoid overwrite of the destination file if the produced
+        contents is the same.
+        Apache pom overwrites NOTICE, DEPENDENCIES, and LICENSE files, however
+        we do not want recompile the module every time. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-remote-resources-plugin</artifactId>
+        <version>${maven-remote-resources-plugin.version}</version>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -793,9 +870,9 @@ limitations under the License.
       <plugins>
         <!-- Sorted by groupId, artifactId. -->
         <plugin>
-          <groupId>com.googlecode.fmpp-maven-plugin</groupId>
-          <artifactId>fmpp-maven-plugin</artifactId>
-          <version>${fmpp-maven-plugin.version}</version>
+          <groupId>org.apache.drill.tools</groupId>
+          <artifactId>drill-fmpp-maven-plugin</artifactId>
+          <version>${drill-fmpp-maven-plugin.version}</version>
           <dependencies>
             <dependency>
               <groupId>org.freemarker</groupId>
@@ -868,7 +945,8 @@ limitations under the License.
               <configuration>
                 <threadCount>6</threadCount>
                 <parallel>both</parallel>
-                <argLine>-Xmx1024m</argLine>
+                <!-- work around https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=911925 -->
+                <argLine>-Xmx1024m -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
                 <systemPropertyVariables>
                   <calcite.integrationTest>true</calcite.integrationTest>
                 </systemPropertyVariables>
@@ -886,7 +964,25 @@ limitations under the License.
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
-          <version>${maven-javadoc-plugin.version}</version>
+          <!-- This is the configuration used by "mvn javadoc:javadoc". It is
+               configured strict, so that it shows errors such as broken links in
+               javadoc on private methods. The configuration for "mvn site" is
+               under "reporting", and is more lenient. -->
+          <configuration>
+            <additionalOptions>
+              <additionalOption>${maven-javadoc-html5}</additionalOption>
+            </additionalOptions>
+            <doclint>all,-missing</doclint>
+            <failOnWarnings>true</failOnWarnings>
+            <links>
+              <link>${maven-javadoc-plugin.link}</link>
+            </links>
+            <notimestamp>true</notimestamp>
+            <excludePackageNames>${maven-javadoc-plugin.excludePackageNames}</excludePackageNames>
+            <quiet>true</quiet>
+            <show>private</show>
+            <windowtitle>Apache Calcite API</windowtitle>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -903,15 +999,13 @@ limitations under the License.
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
-          <version>${maven-shade-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>${maven-surefire-plugin.version}</version>
           <configuration>
-            <threadCount>1</threadCount>
-            <perCoreThreadCount>true</perCoreThreadCount>
+            <threadCount>${surefire.threadCount}</threadCount>
+            <perCoreThreadCount>${surefire.perCoreThreadCount}</perCoreThreadCount>
             <parallel>${surefire.parallel}</parallel>
             <forkMode>once</forkMode>
             <systemProperties>
@@ -924,8 +1018,8 @@ limitations under the License.
                 <value>tr</value>
               </systemProperty>
             </systemProperties>
-            <!--<argLine>-Xmx1536m -Duser.timezone=${user.timezone} -Duser.country=${user.country} -Duser.language=${user.language}</argLine>-->
-            <argLine>-Xmx1536m</argLine>
+            <!-- work around https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=911925 -->
+            <argLine>-Xmx1536m -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
           </configuration>
         </plugin>
         <plugin>
@@ -948,6 +1042,44 @@ limitations under the License.
           <artifactId>git-commit-id-plugin</artifactId>
           <version>${git-commit-id-plugin.version}</version>
         </plugin>
+        <plugin>
+          <groupId>org.jetbrains.kotlin</groupId>
+          <artifactId>kotlin-maven-plugin</artifactId>
+          <version>${kotlin.version}</version>
+          <executions>
+            <!-- Kotlin is supposed to be used in test code only for now,
+                 that is why compile execution is commented. -->
+            <!--<execution>
+              <id>compile</id>
+              <phase>compile</phase>
+              <goals>
+                <goal>compile</goal>
+              </goals>
+              <configuration>
+                <sourceDirs>
+                  <sourceDir>${project.basedir}/src/main/kotlin</sourceDir>
+                  <sourceDir>${project.basedir}/src/main/java</sourceDir>
+                </sourceDirs>
+              </configuration>
+            </execution>-->
+            <execution>
+              <id>test-compile</id>
+              <phase>test-compile</phase>
+              <goals>
+                <goal>test-compile</goal>
+              </goals>
+              <configuration>
+                <sourceDirs>
+                  <sourceDir>${project.basedir}/src/test/kotlin</sourceDir>
+                  <sourceDir>${project.basedir}/src/test/java</sourceDir>
+                </sourceDirs>
+              </configuration>
+            </execution>
+          </executions>
+          <configuration>
+            <jvmTarget>1.8</jvmTarget>
+          </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
   </build>
@@ -957,15 +1089,6 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>${maven-javadoc-plugin.version}</version>
-        <configuration>
-          <links>
-            <link>https://docs.oracle.com/javase/8/docs/api/</link>
-          </links>
-          <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.ddl,org.apache.calcite.sql.parser.impl,org.apache.calcite.sql.parser.parserextensiontesting,org.apache.calcite.piglet.parser,org.openjdk.jmh,org.apache.calcite.adapter.elasticsearch2</excludePackageNames>
-          <notimestamp>true</notimestamp>
-          <windowtitle>Apache Calcite API</windowtitle>
-        </configuration>
       </plugin>
     </plugins>
   </reporting>
@@ -1040,7 +1163,9 @@ limitations under the License.
                 <configuration>
                   <runOnlyAtExecutionRoot>true</runOnlyAtExecutionRoot>
                   <appendAssemblyId>false</appendAssemblyId>
-                  <descriptor>src/main/config/assemblies/source-assembly.xml</descriptor>
+                  <descriptors>
+                    <descriptor>src/main/config/assemblies/source-assembly.xml</descriptor>
+                  </descriptors>
                   <finalName>apache-calcite-${project.version}-src</finalName>
                   <tarLongFileMode>gnu</tarLongFileMode>
                 </configuration>
@@ -1074,29 +1199,6 @@ limitations under the License.
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-failsafe-plugin</artifactId>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <!-- CALCITE-537: workaround for MRRESOURCES-91
-        Avoid overwrite of the destination file if the produced
-        contents is the same.
-        Apache pom overwrites NOTICE, DEPENDENCIES, and LICENSE files, however
-        we do not want recompile the module every time. -->
-      <id>skip-apache-licenses</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-        <file><exists>target/maven-shared-archive-resources/META-INF/LICENSE</exists></file>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-remote-resources-plugin</artifactId>
-            <configuration>
-              <skip>true</skip>
-            </configuration>
           </plugin>
         </plugins>
       </build>
@@ -1170,6 +1272,16 @@ limitations under the License.
           </plugin>
         </plugins>
       </build>
+    </profile>
+    <profile>
+      <id>java8</id>
+      <activation>
+        <jdk>1.8</jdk>
+      </activation>
+      <properties>
+        <!-- Java 1.8 does not support -html5, so we pass another harmles option -->
+        <maven-javadoc-html5>-notimestamp</maven-javadoc-html5>
+      </properties>
     </profile>
   </profiles>
 </project>

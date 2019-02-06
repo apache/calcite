@@ -72,13 +72,13 @@ as follows.
     "type": "custom",
     "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
     "operand": {
-      "tables": {
+      "tables": [ {
         "name": "EMPS",
         "url": "file:file/src/test/resources/sales/EMPS.html"
       }, {
         "name": "DEPTS"
         "url": "file:file/src/test/resources/sales/DEPTS.html"
-      }
+      } ]
     }
   ]
 }

@@ -36,6 +36,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import com.google.common.base.Preconditions;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Relational expression that modifies a table.
@@ -116,8 +117,8 @@ public abstract class TableModify extends SingleRel {
     this.updateColumnList = updateColumnList;
     this.sourceExpressionList = sourceExpressionList;
     if (operation == Operation.UPDATE) {
-      Preconditions.checkNotNull(updateColumnList);
-      Preconditions.checkNotNull(sourceExpressionList);
+      Objects.requireNonNull(updateColumnList);
+      Objects.requireNonNull(sourceExpressionList);
       Preconditions.checkArgument(sourceExpressionList.size()
           == updateColumnList.size());
     } else {

@@ -24,6 +24,9 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.SourceStringReader;
+
+import java.io.Reader;
 
 /**
  * A fa&ccedil;ade that covers Calcite's query planning process: parse SQL,
@@ -43,7 +46,19 @@ public interface Planner extends AutoCloseable {
    * @return The root node of the SQL parse tree.
    * @throws org.apache.calcite.sql.parser.SqlParseException on parse error
    */
-  SqlNode parse(String sql) throws SqlParseException;
+  default SqlNode parse(String sql) throws SqlParseException {
+    return parse(new SourceStringReader(sql));
+  }
+
+  /**
+   * Parses and validates a SQL statement.
+   *
+   * @param source A reader which will provide the SQL statement to parse.
+   *
+   * @return The root node of the SQL parse tree.
+   * @throws org.apache.calcite.sql.parser.SqlParseException on parse error
+   */
+  SqlNode parse(Reader source) throws SqlParseException;
 
   /**
    * Validates a SQL statement.

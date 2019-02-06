@@ -28,16 +28,14 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Lists;
-
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * Planner rule that creates a {@code SemiJoinRule} from a
@@ -46,25 +44,19 @@ import java.util.List;
  */
 public abstract class SemiJoinRule extends RelOptRule {
   private static final Predicate<Join> IS_LEFT_OR_INNER =
-      new PredicateImpl<Join>() {
-        public boolean test(Join input) {
-          switch (input.getJoinType()) {
-          case LEFT:
-          case INNER:
-            return true;
-          default:
-            return false;
-          }
+      join -> {
+        switch (join.getJoinType()) {
+        case LEFT:
+        case INNER:
+          return true;
+        default:
+          return false;
         }
       };
 
   /* Tests if an Aggregate always produces 1 row and 0 columns. */
   private static final Predicate<Aggregate> IS_EMPTY_AGGREGATE =
-      new PredicateImpl<Aggregate>() {
-        public boolean test(Aggregate input) {
-          return input.getRowType().getFieldCount() == 0;
-        }
-      };
+      aggregate -> aggregate.getRowType().getFieldCount() == 0;
 
   public static final SemiJoinRule PROJECT =
       new ProjectToSemiJoinRule(Project.class, Join.class, Aggregate.class,
@@ -80,7 +72,7 @@ public abstract class SemiJoinRule extends RelOptRule {
     super(
         operand(projectClass,
             some(
-                operand(joinClass, null, IS_LEFT_OR_INNER,
+                operandJ(joinClass, null, IS_LEFT_OR_INNER,
                     some(operand(RelNode.class, any()),
                         operand(aggregateClass, any()))))),
         relBuilderFactory, description);
@@ -89,9 +81,9 @@ public abstract class SemiJoinRule extends RelOptRule {
   protected SemiJoinRule(Class<Join> joinClass, Class<Aggregate> aggregateClass,
       RelBuilderFactory relBuilderFactory, String description) {
     super(
-        operand(joinClass, null, IS_LEFT_OR_INNER,
+        operandJ(joinClass, null, IS_LEFT_OR_INNER,
             some(operand(RelNode.class, any()),
-                operand(aggregateClass, null, IS_EMPTY_AGGREGATE, any()))),
+                operandJ(aggregateClass, null, IS_EMPTY_AGGREGATE, any()))),
         relBuilderFactory, description);
   }
 
@@ -123,7 +115,7 @@ public abstract class SemiJoinRule extends RelOptRule {
     relBuilder.push(left);
     switch (join.getJoinType()) {
     case INNER:
-      final List<Integer> newRightKeyBuilder = Lists.newArrayList();
+      final List<Integer> newRightKeyBuilder = new ArrayList<>();
       final List<Integer> aggregateKeys = aggregate.getGroupSet().asList();
       for (int key : joinInfo.rightKeys) {
         newRightKeyBuilder.add(aggregateKeys.get(key));

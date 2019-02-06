@@ -112,9 +112,9 @@ is a distributed JVM-Embeddable Database built on top of
 <a href="https://bookkeeper.apache.org/">Apache BookKeeper</a>.
 It uses Calcite as its SQL Planner.
 
-### MapD
+### OmniSci
 
-<a href="https://www.mapd.com">MapD</a>
+<a href="https://www.omnisci.com">OmniSci</a>
 is a GPU-powered database and visual analytics platform for
 interactive exploration of large datasets.
 

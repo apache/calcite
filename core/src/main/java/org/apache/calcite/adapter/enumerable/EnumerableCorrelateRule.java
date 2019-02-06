@@ -17,13 +17,12 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-import com.google.common.base.Predicates;
+import java.util.function.Predicate;
 
 /**
  * Implementation of nested loops over enumerable inputs.
@@ -35,18 +34,14 @@ public class EnumerableCorrelateRule extends ConverterRule {
    * @param relBuilderFactory Builder for relational expressions
    */
   public EnumerableCorrelateRule(RelBuilderFactory relBuilderFactory) {
-    super(LogicalCorrelate.class, Predicates.<RelNode>alwaysTrue(),
+    super(LogicalCorrelate.class, (Predicate<RelNode>) r -> true,
         Convention.NONE, EnumerableConvention.INSTANCE, relBuilderFactory,
         "EnumerableCorrelateRule");
   }
 
   public RelNode convert(RelNode rel) {
     final LogicalCorrelate c = (LogicalCorrelate) rel;
-    final RelTraitSet traitSet =
-        c.getTraitSet().replace(EnumerableConvention.INSTANCE);
-    return new EnumerableCorrelate(
-        rel.getCluster(),
-        traitSet,
+    return EnumerableCorrelate.create(
         convert(c.getLeft(), c.getLeft().getTraitSet()
             .replace(EnumerableConvention.INSTANCE)),
         convert(c.getRight(), c.getRight().getTraitSet()

@@ -21,7 +21,6 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
-import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
@@ -45,13 +44,13 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * User-defined table macro.
@@ -69,14 +68,14 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
       TableMacro tableMacro) {
     super(Util.last(opName.names), opName, SqlKind.OTHER_FUNCTION,
         returnTypeInference, operandTypeInference, operandTypeChecker,
-        Preconditions.checkNotNull(paramTypes),
+        Objects.requireNonNull(paramTypes),
         SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
     this.tableMacro = tableMacro;
   }
 
   @Override public List<String> getParamNames() {
     return Lists.transform(tableMacro.getParameters(),
-        FunctionParameter.NAME_FN);
+        FunctionParameter::getName);
   }
 
   /** Returns the table in this UDF, or null if there is no table. */
@@ -133,7 +132,7 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
   private static Object getValue(SqlNode right) throws NonLiteralException {
     switch (right.getKind()) {
     case ARRAY_VALUE_CONSTRUCTOR:
-      final List<Object> list = Lists.newArrayList();
+      final List<Object> list = new ArrayList<>();
       for (SqlNode o : ((SqlCall) right).getOperandList()) {
         list.add(getValue(o));
       }
@@ -188,8 +187,7 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
         RexToLixTranslator.convert(Expressions.constant(o), clazz);
     bb.add(Expressions.return_(null, expr));
     final FunctionExpression convert =
-        Expressions.lambda(bb.toBlock(),
-            Collections.<ParameterExpression>emptyList());
+        Expressions.lambda(bb.toBlock(), Collections.emptyList());
     return convert.compile().dynamicInvoke();
   }
 

@@ -36,9 +36,7 @@ import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import java.nio.charset.Charset;
@@ -46,6 +44,7 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -66,7 +65,7 @@ public abstract class SqlTypeUtil {
     assert argTypes.size() >= 2;
 
     // Filter out ANY elements.
-    List<RelDataType> argTypes2 = Lists.newArrayList();
+    List<RelDataType> argTypes2 = new ArrayList<>();
     for (RelDataType t : argTypes) {
       if (!isAny(t)) {
         argTypes2.add(t);
@@ -145,7 +144,7 @@ public abstract class SqlTypeUtil {
       List<SqlNode> operands) {
     // NOTE: Do not use an AbstractList. Don't want to be lazy. We want
     // errors.
-    List<RelDataType> types = new ArrayList<RelDataType>();
+    List<RelDataType> types = new ArrayList<>();
     for (SqlNode operand : operands) {
       types.add(validator.deriveType(scope, operand));
     }
@@ -202,7 +201,7 @@ public abstract class SqlTypeUtil {
       final RelDataTypeFactory typeFactory,
       final List<RelDataType> argTypes,
       RelDataType type) {
-    Preconditions.checkNotNull(type);
+    Objects.requireNonNull(type);
     if (containsNullable(argTypes)) {
       type = typeFactory.createTypeWithNullability(type, true);
     }
@@ -886,7 +885,7 @@ public abstract class SqlTypeUtil {
     if (!recordType.isStruct()) {
       return recordType;
     }
-    List<RelDataTypeField> fieldList = new ArrayList<RelDataTypeField>();
+    List<RelDataTypeField> fieldList = new ArrayList<>();
     boolean nested =
         flattenFields(
             typeFactory,
@@ -896,8 +895,8 @@ public abstract class SqlTypeUtil {
     if (!nested) {
       return recordType;
     }
-    List<RelDataType> types = new ArrayList<RelDataType>();
-    List<String> fieldNames = new ArrayList<String>();
+    List<RelDataType> types = new ArrayList<>();
+    List<String> fieldNames = new ArrayList<>();
     int i = -1;
     for (RelDataTypeField field : fieldList) {
       ++i;
@@ -1183,8 +1182,8 @@ public abstract class SqlTypeUtil {
   public static RelDataType createEmptyStructType(
       RelDataTypeFactory typeFactory) {
     return typeFactory.createStructType(
-        ImmutableList.<RelDataType>of(),
-        ImmutableList.<String>of());
+        ImmutableList.of(),
+        ImmutableList.of());
   }
 
   /** Returns whether a type is flat. It is not flat if it is a record type that

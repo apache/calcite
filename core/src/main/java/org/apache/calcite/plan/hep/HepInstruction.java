@@ -186,7 +186,7 @@ abstract class HepInstruction {
         return;
       }
 
-      ruleSet = new HashSet<RelOptRule>();
+      ruleSet = new HashSet<>();
       collecting = true;
     }
 

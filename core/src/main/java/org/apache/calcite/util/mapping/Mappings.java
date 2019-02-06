@@ -21,7 +21,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Permutation;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
@@ -33,6 +32,7 @@ import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntFunction;
 
 /**
  * Utility functions related to mappings.
@@ -219,12 +219,7 @@ public abstract class Mappings {
   public static ImmutableList<ImmutableBitSet> apply2(final Mapping mapping,
       Iterable<ImmutableBitSet> bitSets) {
     return ImmutableList.copyOf(
-        Iterables.transform(bitSets,
-            new Function<ImmutableBitSet, ImmutableBitSet>() {
-              public ImmutableBitSet apply(ImmutableBitSet input1) {
-                return Mappings.apply(mapping, input1);
-              }
-            }));
+        Iterables.transform(bitSets, input1 -> apply(mapping, input1)));
   }
 
   /**
@@ -243,7 +238,7 @@ public abstract class Mappings {
           + " does not match list size " + list.size());
     }
     final int targetCount = mapping.getTargetCount();
-    final List<T> list2 = new ArrayList<T>(targetCount);
+    final List<T> list2 = new ArrayList<>(targetCount);
     for (int target = 0; target < targetCount; ++target) {
       final int source = mapping.getSource(target);
       list2.add(list.get(source));
@@ -346,7 +341,7 @@ public abstract class Mappings {
   }
 
   public static TargetMapping target(
-      Function<Integer, Integer> function,
+      IntFunction<Integer> function,
       int sourceCount,
       int targetCount) {
     final PartialFunctionImpl mapping =
@@ -606,13 +601,11 @@ public abstract class Mappings {
       throw new IllegalArgumentException("new source count too low");
     }
     return target(
-        new Function<Integer, Integer>() {
-          public Integer apply(Integer source) {
-            int source2 = source - offset;
-            return source2 < 0 || source2 >= mapping.getSourceCount()
-                ? null
-                : mapping.getTargetOpt(source2);
-          }
+        (IntFunction<Integer>) source -> {
+          int source2 = source - offset;
+          return source2 < 0 || source2 >= mapping.getSourceCount()
+              ? null
+              : mapping.getTargetOpt(source2);
         },
         sourceCount,
         mapping.getTargetCount());
@@ -652,12 +645,11 @@ public abstract class Mappings {
       throw new IllegalArgumentException("new target count too low");
     }
     return target(
-        new Function<Integer, Integer>() {
-          public Integer apply(Integer source) {
-            int target = mapping.getTargetOpt(source);
-            return target < 0 ? null : target + offset;
-          }
-        }, mapping.getSourceCount(), targetCount);
+        (IntFunction<Integer>) source -> {
+          int target = mapping.getTargetOpt(source);
+          return target < 0 ? null : target + offset;
+        },
+        mapping.getSourceCount(), targetCount);
   }
 
   /**
@@ -681,18 +673,16 @@ public abstract class Mappings {
       throw new IllegalArgumentException("new source count too low");
     }
     return target(
-        new Function<Integer, Integer>() {
-          public Integer apply(Integer source) {
-            final int source2 = source - offset;
-            if (source2 < 0 || source2 >= mapping.getSourceCount()) {
-              return null;
-            }
-            int target = mapping.getTargetOpt(source2);
-            if (target < 0) {
-              return null;
-            }
-            return target + offset;
+        (IntFunction<Integer>) source -> {
+          final int source2 = source - offset;
+          if (source2 < 0 || source2 >= mapping.getSourceCount()) {
+            return null;
           }
+          int target = mapping.getTargetOpt(source2);
+          if (target < 0) {
+            return null;
+          }
+          return target + offset;
         },
         sourceCount,
         mapping.getTargetCount() + offset);
@@ -716,11 +706,7 @@ public abstract class Mappings {
   /** Inverts an {@link java.lang.Iterable} over
    * {@link org.apache.calcite.util.mapping.IntPair}s. */
   public static Iterable<IntPair> invert(final Iterable<IntPair> pairs) {
-    return new Iterable<IntPair>() {
-      public Iterator<IntPair> iterator() {
-        return invert(pairs.iterator());
-      }
-    };
+    return () -> invert(pairs.iterator());
   }
 
   /** Inverts an {@link java.util.Iterator} over
@@ -1189,8 +1175,8 @@ public abstract class Mappings {
     public int size() {
       int size = 0;
       int[] a = sources.length < targets.length ? sources : targets;
-      for (int i = 0; i < a.length; i++) {
-        if (a[i] >= 0) {
+      for (int i1 : a) {
+        if (i1 >= 0) {
           ++size;
         }
       }
@@ -1582,8 +1568,8 @@ public abstract class Mappings {
 
     public int size() {
       int size = 0;
-      for (int i = 0; i < targets.length; i++) {
-        if (targets[i] >= 0) {
+      for (int target : targets) {
+        if (target >= 0) {
           ++size;
         }
       }

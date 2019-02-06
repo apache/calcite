@@ -49,7 +49,7 @@ abstract class SqlDropObject extends SqlDrop
   }
 
   public List<SqlNode> getOperandList() {
-    return ImmutableList.<SqlNode>of(name);
+    return ImmutableList.of(name);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
@@ -91,6 +91,7 @@ abstract class SqlDropObject extends SqlDrop
             RESOURCE.typeNotFound(name.getSimple()));
       }
       break;
+    case OTHER_DDL:
     default:
       throw new AssertionError(getKind());
     }

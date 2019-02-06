@@ -16,9 +16,7 @@
  */
 package org.apache.calcite.util.graph;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -42,8 +40,8 @@ public class DepthFirstIterator<V, E extends DefaultEdge>
 
   private static <V, E extends DefaultEdge> List<V> buildList(
       DirectedGraph<V, E> graph, V start) {
-    final List<V> list = Lists.newArrayList();
-    buildListRecurse(list, Sets.<V>newHashSet(), graph, start);
+    final List<V> list = new ArrayList<>();
+    buildListRecurse(list, new HashSet<>(), graph, start);
     return list;
   }
 
@@ -59,7 +57,7 @@ public class DepthFirstIterator<V, E extends DefaultEdge>
   /** Populates a collection with the nodes reachable from a given node. */
   public static <V, E extends DefaultEdge> void reachable(Collection<V> list,
       final DirectedGraph<V, E> graph, final V start) {
-    buildListRecurse(list, new HashSet<V>(), graph, start);
+    buildListRecurse(list, new HashSet<>(), graph, start);
   }
 
   private static <V, E extends DefaultEdge> void buildListRecurse(

@@ -104,7 +104,7 @@ public class EnumerableTableModify extends TableModify
       final JavaRowFormat format = EnumerableTableScan.deduceFormat(table);
       PhysType physType =
           PhysTypeImpl.of(typeFactory, table.getRowType(), format);
-      List<Expression> expressionList = new ArrayList<Expression>();
+      List<Expression> expressionList = new ArrayList<>();
       final PhysType childPhysType = result.physType;
       final ParameterExpression o_ =
           Expressions.parameter(childPhysType.getJavaRowType(), "o");

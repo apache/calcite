@@ -30,9 +30,8 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
-
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Relational expression that imposes a particular distribution on its input
@@ -58,7 +57,7 @@ public abstract class Exchange extends SingleRel {
   protected Exchange(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       RelDistribution distribution) {
     super(cluster, traitSet, input);
-    this.distribution = Preconditions.checkNotNull(distribution);
+    this.distribution = Objects.requireNonNull(distribution);
 
     assert traitSet.containsIfApplicable(distribution)
         : "traits=" + traitSet + ", distribution" + distribution;
@@ -66,7 +65,7 @@ public abstract class Exchange extends SingleRel {
   }
 
   /**
-   * Creates a Exchange by parsing serialized output.
+   * Creates an Exchange by parsing serialized output.
    */
   public Exchange(RelInput input) {
     this(input.getCluster(), input.getTraitSet().plus(input.getCollation()),

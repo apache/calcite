@@ -32,7 +32,6 @@ import org.apache.calcite.sql.fun.SqlCastFunction;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.trace.CalciteLogger;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -43,6 +42,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -70,9 +70,9 @@ public class RexImplicationChecker {
       RexBuilder builder,
       RexExecutorImpl executor,
       RelDataType rowType) {
-    this.builder = Preconditions.checkNotNull(builder);
-    this.executor = Preconditions.checkNotNull(executor);
-    this.rowType = Preconditions.checkNotNull(rowType);
+    this.builder = Objects.requireNonNull(builder);
+    this.executor = Objects.requireNonNull(executor);
+    this.rowType = Objects.requireNonNull(rowType);
   }
 
   /**
@@ -168,7 +168,7 @@ public class RexImplicationChecker {
     }
 
     // E.g. "x is null" implies "x is null".
-    if (RexUtil.eq(first, second)) {
+    if (first.equals(second)) {
       return true;
     }
 
@@ -184,7 +184,7 @@ public class RexImplicationChecker {
       final RexNode operand = ((RexCall) second).getOperands().get(0);
       final Strong strong = new Strong() {
         @Override public boolean isNull(RexNode node) {
-          return RexUtil.eq(node, operand)
+          return node.equals(operand)
               || super.isNull(node);
         }
       };
@@ -196,8 +196,8 @@ public class RexImplicationChecker {
     final InputUsageFinder firstUsageFinder = new InputUsageFinder();
     final InputUsageFinder secondUsageFinder = new InputUsageFinder();
 
-    RexUtil.apply(firstUsageFinder, ImmutableList.<RexNode>of(), first);
-    RexUtil.apply(secondUsageFinder, ImmutableList.<RexNode>of(), second);
+    RexUtil.apply(firstUsageFinder, ImmutableList.of(), first);
+    RexUtil.apply(secondUsageFinder, ImmutableList.of(), second);
 
     // Check Support
     if (!checkSupport(firstUsageFinder, secondUsageFinder)) {

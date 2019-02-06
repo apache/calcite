@@ -36,11 +36,9 @@ import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
 import org.apache.calcite.rel.rules.ProjectSortTransposeRule;
-import org.apache.calcite.rel.rules.PushProjector;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutor;
@@ -61,9 +59,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.commons.lang3.tuple.Triple;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import org.joda.time.Interval;
@@ -74,8 +70,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import javax.annotation.Nullable;
 
 /**
  * Rules and relational operators for {@link DruidQuery}.
@@ -163,8 +157,9 @@ public class DruidRules {
       final RelOptPredicateList predicates =
           call.getMetadataQuery().getPulledUpPredicates(filter.getInput());
       final RexSimplify simplify =
-          new RexSimplify(rexBuilder, predicates, true, executor);
-      final RexNode cond = simplify.simplify(filter.getCondition());
+          new RexSimplify(rexBuilder, predicates, executor);
+      final RexNode cond =
+          simplify.simplifyUnknownAsFalse(filter.getCondition());
       for (RexNode e : RelOptUtil.conjunctions(cond)) {
         DruidJsonFilter druidJsonFilter = DruidJsonFilter
             .toDruidFilters(e, filter.getInput().getRowType(), query);
@@ -176,17 +171,14 @@ public class DruidRules {
       }
 
       // Timestamp
-      int timestampFieldIdx = Iterables
-          .indexOf(query.getRowType().getFieldList(), new Predicate<RelDataTypeField>() {
-            @Override public boolean apply(@Nullable RelDataTypeField input) {
-              return query.druidTable.timestampFieldName.equals(input.getName());
-            }
-          });
+      int timestampFieldIdx =
+          query.getRowType().getFieldNames()
+              .indexOf(query.druidTable.timestampFieldName);
       RelNode newDruidQuery = query;
       final Triple<List<RexNode>, List<RexNode>, List<RexNode>> triple =
           splitFilters(rexBuilder, query, validPreds, nonValidPreds, timestampFieldIdx);
       if (triple.getLeft().isEmpty() && triple.getMiddle().isEmpty()) {
-        //it sucks, nothing to push
+        // it sucks, nothing to push
         return;
       }
       final List<RexNode> residualPreds = new ArrayList<>(triple.getRight());
@@ -196,7 +188,7 @@ public class DruidRules {
             .unwrap(CalciteConnectionConfig.class).timeZone();
         assert timeZone != null;
         intervals = DruidDateTimeUtils.createInterval(
-            RexUtil.composeConjunction(rexBuilder, triple.getLeft(), false));
+            RexUtil.composeConjunction(rexBuilder, triple.getLeft()));
         if (intervals == null || intervals.isEmpty()) {
           // Case we have a filter with extract that can not be written as interval push down
           triple.getMiddle().addAll(triple.getLeft());
@@ -205,7 +197,7 @@ public class DruidRules {
 
       if (!triple.getMiddle().isEmpty()) {
         final RelNode newFilter = filter.copy(filter.getTraitSet(), Util.last(query.rels),
-            RexUtil.composeConjunction(rexBuilder, triple.getMiddle(), false));
+            RexUtil.composeConjunction(rexBuilder, triple.getMiddle()));
         newDruidQuery = DruidQuery.extendQuery(query, newFilter);
       }
       if (intervals != null && !intervals.isEmpty()) {
@@ -572,7 +564,7 @@ public class DruidRules {
       final RelOptPredicateList predicates =
           call.getMetadataQuery().getPulledUpPredicates(scan);
       final RexSimplify simplify =
-          new RexSimplify(builder, predicates, true, executor);
+          new RexSimplify(builder, predicates, executor);
 
       // if the druid query originally contained a filter
       boolean containsFilter = false;
@@ -603,13 +595,12 @@ public class DruidRules {
 
       // Erase references to filters
       for (AggregateCall aggCall : aggregate.getAggCallList()) {
-        int newFilterArg = aggCall.filterArg;
-        if (!aggCall.hasFilter()
-                || (uniqueFilterRefs.size() == 1 && allHaveFilters) // filters get extracted
-                || project.getProjects().get(newFilterArg).isAlwaysTrue()) {
-          newFilterArg = -1;
+        if ((uniqueFilterRefs.size() == 1
+                && allHaveFilters) // filters get extracted
+            || project.getProjects().get(aggCall.filterArg).isAlwaysTrue()) {
+          aggCall = aggCall.copy(aggCall.getArgList(), -1, aggCall.collation);
         }
-        newCalls.add(aggCall.copy(aggCall.getArgList(), newFilterArg));
+        newCalls.add(aggCall);
       }
       aggregate = aggregate.copy(aggregate.getTraitSet(), aggregate.getInput(),
               aggregate.indicator, aggregate.getGroupSet(), aggregate.getGroupSets(),
@@ -622,7 +613,7 @@ public class DruidRules {
 
       // Simplify the filter as much as possible
       RexNode tempFilterNode = filterNode;
-      filterNode = simplify.simplify(filterNode);
+      filterNode = simplify.simplifyUnknownAsFalse(filterNode);
 
       // It's possible that after simplification that the expression is now always false.
       // Druid cannot handle such a filter.
@@ -666,7 +657,7 @@ public class DruidRules {
      * the given {@link Filter}, and any extra nodes.
      */
     private static List<RelNode> constructNewNodes(List<RelNode> oldNodes,
-        boolean addFilter, int startIndex, RelNode filter, RelNode ... trailingNodes) {
+        boolean addFilter, int startIndex, RelNode filter, RelNode... trailingNodes) {
       List<RelNode> newNodes = new ArrayList<>();
 
       // The first item should always be the Table scan, so any filter would go after that
@@ -815,7 +806,7 @@ public class DruidRules {
           operand(Project.class,
               operand(Filter.class,
                   operand(DruidQuery.class, none()))),
-          PushProjector.ExprCondition.FALSE,
+              expr -> false,
           relBuilderFactory);
     }
   }

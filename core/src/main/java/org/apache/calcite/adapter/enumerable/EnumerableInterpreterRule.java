@@ -22,7 +22,7 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-import com.google.common.base.Predicates;
+import java.util.function.Predicate;
 
 /**
  * Planner rule that converts {@link org.apache.calcite.interpreter.BindableRel}
@@ -39,7 +39,7 @@ public class EnumerableInterpreterRule extends ConverterRule {
    * @param relBuilderFactory Builder for relational expressions
    */
   public EnumerableInterpreterRule(RelBuilderFactory relBuilderFactory) {
-    super(RelNode.class, Predicates.<RelNode>alwaysTrue(),
+    super(RelNode.class, (Predicate<RelNode>) r -> true,
         BindableConvention.INSTANCE, EnumerableConvention.INSTANCE,
         relBuilderFactory, "EnumerableInterpreterRule");
   }

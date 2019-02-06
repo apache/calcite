@@ -31,8 +31,8 @@ import java.util.Set;
 public class BreadthFirstIterator<V, E extends DefaultEdge>
     implements Iterator<V> {
   private final DirectedGraph<V, E> graph;
-  private final Deque<V> deque = new ArrayDeque<V>();
-  private final Set<V> set = new HashSet<V>();
+  private final Deque<V> deque = new ArrayDeque<>();
+  private final Set<V> set = new HashSet<>();
 
   public BreadthFirstIterator(DirectedGraph<V, E> graph, V root) {
     this.graph = graph;
@@ -41,17 +41,13 @@ public class BreadthFirstIterator<V, E extends DefaultEdge>
 
   public static <V, E extends DefaultEdge> Iterable<V> of(
       final DirectedGraph<V, E> graph, final V root) {
-    return new Iterable<V>() {
-      public Iterator<V> iterator() {
-        return new BreadthFirstIterator<V, E>(graph, root);
-      }
-    };
+    return () -> new BreadthFirstIterator<>(graph, root);
   }
 
   /** Populates a set with the nodes reachable from a given node. */
   public static <V, E extends DefaultEdge> void reachable(Set<V> set,
       final DirectedGraph<V, E> graph, final V root) {
-    final Deque<V> deque = new ArrayDeque<V>();
+    final Deque<V> deque = new ArrayDeque<>();
     deque.add(root);
     set.add(root);
     while (!deque.isEmpty()) {

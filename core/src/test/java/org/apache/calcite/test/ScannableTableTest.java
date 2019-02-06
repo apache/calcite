@@ -348,7 +348,7 @@ public class ScannableTableTest {
   @Test public void testPrepared2() throws SQLException {
     final Properties properties = new Properties();
     properties.setProperty("caseSensitive", "true");
-    try (final Connection connection =
+    try (Connection connection =
              DriverManager.getConnection("jdbc:calcite:", properties)) {
       final CalciteConnection calciteConnection = connection.unwrap(
           CalciteConnection.class);
@@ -358,7 +358,7 @@ public class ScannableTableTest {
       final Schema schema =
           new AbstractSchema() {
             @Override protected Map<String, Table> getTableMap() {
-              return ImmutableMap.<String, Table>of("TENS",
+              return ImmutableMap.of("TENS",
                   new SimpleTable() {
                     private Enumerable<Object[]> superScan(DataContext root) {
                       return super.scan(root);
@@ -414,16 +414,13 @@ public class ScannableTableTest {
 
   protected ConnectionPostProcessor newSchema(final String schemaName,
       final String tableName, final Table table) {
-    return new ConnectionPostProcessor() {
-
-      @Override public Connection apply(Connection connection) throws SQLException {
-        CalciteConnection con = connection.unwrap(CalciteConnection.class);
-        SchemaPlus rootSchema = con.getRootSchema();
-        SchemaPlus schema = rootSchema.add(schemaName, new AbstractSchema());
-        schema.add(tableName, table);
-        connection.setSchema(schemaName);
-        return connection;
-      }
+    return connection -> {
+      CalciteConnection con = connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = con.getRootSchema();
+      SchemaPlus schema = rootSchema.add(schemaName, new AbstractSchema());
+      schema.add(tableName, table);
+      connection.setSchema(schemaName);
+      return connection;
     };
   }
 

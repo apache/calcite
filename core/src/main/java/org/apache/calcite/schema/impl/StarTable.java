@@ -34,11 +34,11 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Virtual table that is composed of two or more tables joined together.
@@ -63,7 +63,7 @@ public class StarTable extends AbstractTable implements TranslatableTable {
 
   /** Creates a StarTable. */
   private StarTable(Lattice lattice, ImmutableList<Table> tables) {
-    this.lattice = Preconditions.checkNotNull(lattice);
+    this.lattice = Objects.requireNonNull(lattice);
     this.tables = tables;
   }
 
@@ -77,8 +77,8 @@ public class StarTable extends AbstractTable implements TranslatableTable {
   }
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-    final List<RelDataType> typeList = new ArrayList<RelDataType>();
-    final List<Integer> fieldCounts = new ArrayList<Integer>();
+    final List<RelDataType> typeList = new ArrayList<>();
+    final List<Integer> fieldCounts = new ArrayList<>();
     for (Table table : tables) {
       final RelDataType rowType = table.getRowType(typeFactory);
       typeList.addAll(RelOptUtil.getFieldTypeList(rowType));
@@ -89,7 +89,7 @@ public class StarTable extends AbstractTable implements TranslatableTable {
     if (this.fieldCounts == null) {
       this.fieldCounts = ImmutableIntList.copyOf(fieldCounts);
     }
-    return typeFactory.createStructType(typeList, lattice.uniqueColumnNames);
+    return typeFactory.createStructType(typeList, lattice.uniqueColumnNames());
   }
 
   public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable table) {

@@ -61,8 +61,7 @@ public class SqlDynamicParam extends SqlNode {
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
-    writer.print("?");
-    writer.setNeedWhitespace(true);
+    writer.dynamicParam(index);
   }
 
   public void validate(SqlValidator validator, SqlValidatorScope scope) {

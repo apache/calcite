@@ -16,10 +16,13 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.TestKtTest;
 import org.apache.calcite.adapter.clone.ArrayTableTest;
 import org.apache.calcite.jdbc.CalciteRemoteDriverTest;
+import org.apache.calcite.materialize.LatticeSuggesterTest;
 import org.apache.calcite.plan.RelOptPlanReaderTest;
 import org.apache.calcite.plan.RelOptUtilTest;
+import org.apache.calcite.plan.RelTraitTest;
 import org.apache.calcite.plan.RelWriterTest;
 import org.apache.calcite.plan.volcano.CollationConversionTest;
 import org.apache.calcite.plan.volcano.ComboRuleTest;
@@ -33,8 +36,10 @@ import org.apache.calcite.rel.RelCollationTest;
 import org.apache.calcite.rel.RelDistributionTest;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverterTest;
 import org.apache.calcite.rel.rules.DateRangeRulesTest;
+import org.apache.calcite.rel.rules.SortRemoveRuleTest;
 import org.apache.calcite.rex.RexBuilderTest;
 import org.apache.calcite.rex.RexExecutorTest;
+import org.apache.calcite.rex.RexSqlStandardConvertletTableTest;
 import org.apache.calcite.runtime.BinarySearchTest;
 import org.apache.calcite.runtime.EnumerablesTest;
 import org.apache.calcite.sql.SqlSetOptionOperatorTest;
@@ -50,6 +55,7 @@ import org.apache.calcite.sql.type.SqlTypeUtilTest;
 import org.apache.calcite.sql.validate.LexCaseSensitiveTest;
 import org.apache.calcite.sql.validate.SqlValidatorUtilTest;
 import org.apache.calcite.test.enumerable.EnumerableCorrelateTest;
+import org.apache.calcite.test.fuzzer.RexProgramFuzzyTest;
 import org.apache.calcite.tools.FrameworksTest;
 import org.apache.calcite.tools.PlannerTest;
 import org.apache.calcite.util.BitSetsTest;
@@ -60,6 +66,7 @@ import org.apache.calcite.util.PermutationTestCase;
 import org.apache.calcite.util.PrecedenceClimbingParserTest;
 import org.apache.calcite.util.ReflectVisitorTest;
 import org.apache.calcite.util.SourceTest;
+import org.apache.calcite.util.TestUtilTest;
 import org.apache.calcite.util.UtilTest;
 import org.apache.calcite.util.graph.DirectedGraphTest;
 import org.apache.calcite.util.mapping.MappingTest;
@@ -79,6 +86,7 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     // very fast tests (under 0.1s)
+    TestKtTest.class,
     ArrayTableTest.class,
     BitSetsTest.class,
     ImmutableBitSetTest.class,
@@ -94,12 +102,15 @@ import org.junit.runners.Suite;
     FilteratorTest.class,
     PermutationTestCase.class,
     SqlFunctionsTest.class,
+    SqlJsonFunctionsTest.class,
     SqlTypeNameTest.class,
     ModelTest.class,
     SqlValidatorFeatureTest.class,
     VolcanoPlannerTraitTest.class,
     InterpreterTest.class,
+    TestUtilTest.class,
     VolcanoPlannerTest.class,
+    RelTraitTest.class,
     HepPlannerTest.class,
     TraitPropagationTest.class,
     RelDistributionTest.class,
@@ -113,6 +124,7 @@ import org.junit.runners.Suite;
     InduceGroupingTypeTest.class,
     RelOptPlanReaderTest.class,
     RexBuilderTest.class,
+    RexSqlStandardConvertletTableTest.class,
     SqlTypeFactoryTest.class,
     SqlTypeUtilTest.class,
     SqlValidatorUtilTest.class,
@@ -124,6 +136,7 @@ import org.junit.runners.Suite;
     SqlSetOptionOperatorTest.class,
     SqlPrettyWriterTest.class,
     SqlValidatorTest.class,
+    SqlValidatorDynamicTest.class,
     SqlValidatorMatchTest.class,
     SqlAdvisorTest.class,
     RelMetadataTest.class,
@@ -160,13 +173,17 @@ import org.junit.runners.Suite;
     LinqFrontJdbcBackTest.class,
     JdbcFrontJdbcBackLinqMiddleTest.class,
     CalciteSqlOperatorTest.class,
+    RexProgramFuzzyTest.class,
     ProfilerTest.class,
+    LatticeSuggesterTest.class,
     LatticeTest.class,
     ReflectiveSchemaTest.class,
+    SqlAdvisorJdbcTest.class,
     JdbcTest.class,
     CoreQuidemTest.class,
     CalciteRemoteDriverTest.class,
     StreamTest.class,
+    SortRemoveRuleTest.class,
 
     // test cases
     TableInRootSchemaTest.class,

@@ -17,11 +17,9 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.sql.SqlCollation;
-import org.apache.calcite.sql.test.DefaultSqlTestFactory;
-import org.apache.calcite.sql.test.DelegatingSqlTestFactory;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
-import org.apache.calcite.sql.test.SqlTesterImpl;
+import org.apache.calcite.sql.test.SqlValidatorTester;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.BarfingInvocationHandler;
 import org.apache.calcite.util.Util;
@@ -80,7 +78,7 @@ public class SqlTestGen {
         list.add(method);
       }
     }
-    return list.toArray(new Method[list.size()]);
+    return list.toArray(new Method[0]);
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -90,6 +88,13 @@ public class SqlTestGen {
    * tests.
    */
   private static class SqlValidatorSpooler extends SqlValidatorTest {
+    private static final SqlTestFactory SPOOLER_VALIDATOR = SqlTestFactory.INSTANCE.withValidator(
+        (opTab, catalogReader, typeFactory, conformance) ->
+            (SqlValidator) Proxy.newProxyInstance(
+                SqlValidatorSpooler.class.getClassLoader(),
+                new Class[]{SqlValidator.class},
+                new MyInvocationHandler()));
+
     private final PrintWriter pw;
 
     private SqlValidatorSpooler(PrintWriter pw) {
@@ -97,16 +102,7 @@ public class SqlTestGen {
     }
 
     public SqlTester getTester() {
-      final SqlTestFactory factory =
-          new DelegatingSqlTestFactory(DefaultSqlTestFactory.INSTANCE) {
-            @Override public SqlValidator getValidator(SqlTestFactory factory) {
-              return (SqlValidator) Proxy.newProxyInstance(
-                  SqlValidatorSpooler.class.getClassLoader(),
-                  new Class[]{SqlValidator.class},
-                  new MyInvocationHandler());
-            }
-          };
-      return new SqlTesterImpl(factory) {
+      return new SqlValidatorTester(SPOOLER_VALIDATOR) {
         public void assertExceptionIsThrown(
             String sql,
             String expectedMsgPattern) {

@@ -64,7 +64,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
   final String username;
   final String password;
   String sessionKey;
-  final Map<String, String> requestHeaders = new HashMap<String, String>();
+  final Map<String, String> requestHeaders = new HashMap<>();
 
   public SplunkConnectionImpl(String url, String username, String password)
       throws MalformedURLException {
@@ -147,7 +147,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
             url.getPort());
 
     StringBuilder data = new StringBuilder();
-    Map<String, String> args = new LinkedHashMap<String, String>();
+    Map<String, String> args = new LinkedHashMap<>();
     if (otherArgs != null) {
       args.putAll(otherArgs);
     }
@@ -242,7 +242,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
   }
 
   public static void main(String[] args) throws MalformedURLException {
-    Map<String, String> argsMap = new HashMap<String, String>();
+    Map<String, String> argsMap = new HashMap<>();
     argsMap.put("uri",           "https://localhost:8089");
     argsMap.put("username",      "admin");
     argsMap.put("password",      "changeme");
@@ -270,7 +270,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
             argsMap.get("username"),
             argsMap.get("password"));
 
-    Map<String, String> searchArgs = new HashMap<String, String>();
+    Map<String, String> searchArgs = new HashMap<>();
     searchArgs.put("earliest_time", argsMap.get("earliest_time"));
     searchArgs.put("latest_time", argsMap.get("latest_time"));
     searchArgs.put(

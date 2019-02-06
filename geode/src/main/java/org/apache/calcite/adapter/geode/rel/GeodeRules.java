@@ -39,23 +39,23 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
-import com.google.common.base.Predicate;
-
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * Rules and relational operators for {@link GeodeRel#CONVENTION} calling convention.
  */
 public class GeodeRules {
 
-  public static final RelOptRule[] RULES = {
+  static final RelOptRule[] RULES = {
+      GeodeSortLimitRule.INSTANCE,
       GeodeFilterRule.INSTANCE,
       GeodeProjectRule.INSTANCE,
-      GeodeSortLimitRule.INSTANCE,
-      GeodeAggregateRule.INSTANCE
+      GeodeAggregateRule.INSTANCE,
   };
+
 
   private GeodeRules() {
   }
@@ -208,15 +208,11 @@ public class GeodeRules {
 
     private static final GeodeSortLimitRule INSTANCE =
         new GeodeSortLimitRule(
-          new Predicate<Sort>() {
-            public boolean apply(Sort input) {
-              // OQL doesn't support for offsets (e.g. LIMIT 10 OFFSET 500)
-              return input.offset == null;
-            }
-          });
+            // OQL doesn't support for offsets (e.g. LIMIT 10 OFFSET 500)
+            sort -> sort.offset == null);
 
     GeodeSortLimitRule(Predicate<Sort> predicate) {
-      super(operand(Sort.class, null, predicate, any()), "GeodeSortLimitRule");
+      super(operandJ(Sort.class, null, predicate, any()), "GeodeSortLimitRule");
     }
 
     @Override public void onMatch(RelOptRuleCall call) {

@@ -21,10 +21,8 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 
-import com.google.common.base.Preconditions;
-
 import java.util.List;
-
+import java.util.Objects;
 import javax.annotation.Nullable;
 
 /**
@@ -35,8 +33,8 @@ public class NaryOperatorConverter implements DruidSqlOperatorConverter {
   private final String druidOperatorName;
 
   public NaryOperatorConverter(SqlOperator operator, String druidOperatorName) {
-    this.operator = Preconditions.checkNotNull(operator);
-    this.druidOperatorName = Preconditions.checkNotNull(druidOperatorName);
+    this.operator = Objects.requireNonNull(operator);
+    this.druidOperatorName = Objects.requireNonNull(druidOperatorName);
   }
 
   @Override public SqlOperator calciteOperator() {

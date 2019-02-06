@@ -33,7 +33,7 @@ You can get the source code by
 or from source control.
 
 Calcite uses git for version control.  The canonical source is in
-[Apache](https://git-wip-us.apache.org/repos/asf/calcite.git),
+[Apache](https://gitbox.apache.org/repos/asf/calcite.git),
 but most people find the
 [Github mirror](https://github.com/apache/calcite) more
 user-friendly.
@@ -67,7 +67,7 @@ helps to agree on the general approach. Log a
 [JIRA case](https://issues.apache.org/jira/browse/CALCITE) for your
 proposed feature or start a discussion on the dev list.
 
-Fork the github repository, and create a branch for your feature.
+Fork the GitHub repository, and create a branch for your feature.
 
 Develop your feature and test cases, and make sure that
 `mvn install` succeeds. (Run extra tests if your change warrants it.)
@@ -83,10 +83,53 @@ If your change had multiple commits, use `git rebase -i master` to
 squash them into a single commit, and to bring your code up to date
 with the latest on the main line.
 
-Then push your commit(s) to github, and create a pull request from
+In order to keep the commit history clean and uniform, you should 
+respect the following guidelines.
+ * Read the messages of previous commits, and follow their style.
+ * The first line of the commit message must be a concise and useful
+description of the change.
+ * The message is often, but not always, the same as the JIRA subject.
+If the JIRA subject is not clear, change it (perhaps move the original
+subject to the description of the JIRA case, if it clarifies).
+ * Start with a capital letter.
+ * Do not finish with a period.
+ * Use imperative mood ("Add a handler ...") rather than past tense
+("Added a handler ...") or present tense ("Adds a handler ...").
+ * If possible, describe the user-visible behavior that you changed
+("FooCommand now creates directory if it does not exist"), rather than
+the implementation ("Add handler for FileNotFound").
+ * If you are fixing a bug, it is sufficient to describe the bug
+ ("NullPointerException if user is unknown") and people will correctly
+ surmise that the purpose of your change is to fix the bug.
+ * If you are not a committer, add your name in parentheses at the end
+ of the message.
+
+Then push your commit(s) to GitHub, and create a pull request from
 your branch to the calcite master branch. Update the JIRA case
 to reference your pull request, and a committer will review your
 changes.
+
+The pull request may need to be updated (after its submission) for three main
+reasons:
+1. you identified a problem after the submission of the pull request;
+2. the reviewer requested further changes;
+3. the Travis CI build failed and the failure is not caused by your changes.
+
+In order to update the pull request, you need to commit the changes in your
+branch and then push the commit(s) to GitHub. You are encouraged to use regular
+ (non-rebased) commits on top of previously existing ones.
+
+When pushing the changes to GitHub, you should refrain from using the `--force`
+parameter and its alternatives. You may choose to force push your changes under
+ certain conditions:
+ * the pull request has been submitted less than 10 minutes ago and there is no
+ pending discussion (in the PR and/or in JIRA) concerning it;
+ * a reviewer has explicitly asked you to perform some modifications that
+ require the use of the `--force` option.
+
+In the special case, that the Travis CI build failed and the failure is not
+caused by your changes create an empty commit (`git commit --allow-empty`) and
+push it.
 
 ## Continuous Integration Testing
 

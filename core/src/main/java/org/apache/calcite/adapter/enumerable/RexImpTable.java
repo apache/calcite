@@ -32,8 +32,6 @@ import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
-import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
@@ -47,6 +45,8 @@ import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlJsonArrayAggAggFunction;
+import org.apache.calcite.sql.fun.SqlJsonObjectAggAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -57,9 +57,8 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
+import com.google.common.collect.Iterables;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -74,6 +73,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.tree.ExpressionType.Add;
 import static org.apache.calcite.linq4j.tree.ExpressionType.AndAlso;
@@ -94,10 +94,13 @@ import static org.apache.calcite.sql.fun.OracleSqlOperatorTable.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ABS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ACOS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.AND;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ANY_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN2;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_AND;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_OR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CARDINALITY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
@@ -140,14 +143,32 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.INITCAP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_A_SET;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_EMPTY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_FALSE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_JSON_ARRAY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_JSON_OBJECT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_JSON_SCALAR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_JSON_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_A_SET;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_EMPTY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_FALSE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_JSON_ARRAY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_JSON_OBJECT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_JSON_SCALAR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_JSON_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_NULL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_TRUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NULL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_TRUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ITEM;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_API_COMMON_SYNTAX;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_ARRAY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_ARRAYAGG;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_EXISTS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECTAGG;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_QUERY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_STRUCTURED_VALUE_EXPRESSION;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_VALUE_ANY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_VALUE_EXPRESSION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAG;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LEAD;
@@ -179,6 +200,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_LIKE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SIMILAR_TO;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SUBMULTISET_OF;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTH_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTILE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OVERLAY;
@@ -190,6 +212,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RADIANS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND_INTEGER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RANK;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGR_COUNT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REINTERPRET;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REPLACE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
@@ -201,6 +224,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SIMILAR_TO;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SINGLE_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SLICE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.STRUCT_ACCESS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBMULTISET_OF;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBSTRING;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUM;
@@ -231,9 +255,9 @@ public class RexImpTable {
 
   private final Map<SqlOperator, CallImplementor> map = new HashMap<>();
   private final Map<SqlAggFunction, Supplier<? extends AggImplementor>> aggMap =
-      Maps.newHashMap();
+      new HashMap<>();
   private final Map<SqlAggFunction, Supplier<? extends WinAggImplementor>> winAggMap =
-      Maps.newHashMap();
+      new HashMap<>();
 
   RexImpTable() {
     defineMethod(ROW, BuiltInMethod.ARRAY.method, NullPolicy.ANY);
@@ -327,12 +351,7 @@ public class RexImpTable {
     defineMethod(TAN, "tan", NullPolicy.STRICT);
     defineMethod(TRUNCATE, "struncate", NullPolicy.STRICT);
 
-    map.put(PI, new CallImplementor() {
-      @Override public Expression implement(RexToLixTranslator translator,
-          RexCall call, NullAs nullAs) {
-        return Expressions.constant(Math.PI);
-      }
-    });
+    map.put(PI, (translator, call, nullAs) -> Expressions.constant(Math.PI));
 
     // datetime
     defineImplementor(DATETIME_PLUS, NullPolicy.STRICT,
@@ -374,6 +393,7 @@ public class RexImpTable {
         NullPolicy.STRICT);
     defineMethod(SLICE, BuiltInMethod.SLICE.method, NullPolicy.NONE);
     defineMethod(ELEMENT, BuiltInMethod.ELEMENT.method, NullPolicy.STRICT);
+    defineMethod(STRUCT_ACCESS, BuiltInMethod.STRUCT_ACCESS.method, NullPolicy.ANY);
     defineMethod(MEMBER_OF, BuiltInMethod.MEMBER_OF.method, NullPolicy.NONE);
     final MethodImplementor isEmptyImplementor =
         new MethodImplementor(BuiltInMethod.IS_EMPTY.method);
@@ -413,21 +433,50 @@ public class RexImpTable {
     map.put(ARRAY_VALUE_CONSTRUCTOR, value);
     map.put(ITEM, new ItemImplementor());
 
-    map.put(DEFAULT,
-        new CallImplementor() {
-          public Expression implement(RexToLixTranslator translator,
-              RexCall call, NullAs nullAs) {
-            return Expressions.constant(null);
-          }
-        });
+    map.put(DEFAULT, (translator, call, nullAs) -> Expressions.constant(null));
 
     // Sequences
-    defineImplementor(CURRENT_VALUE, NullPolicy.STRICT,
-        new SequenceImplementor(BuiltInMethod.SEQUENCE_CURRENT_VALUE.method),
-        false);
-    defineImplementor(NEXT_VALUE, NullPolicy.STRICT,
-        new SequenceImplementor(BuiltInMethod.SEQUENCE_NEXT_VALUE.method),
-        false);
+    defineMethod(CURRENT_VALUE, BuiltInMethod.SEQUENCE_CURRENT_VALUE.method, NullPolicy.STRICT);
+    defineMethod(NEXT_VALUE, BuiltInMethod.SEQUENCE_NEXT_VALUE.method, NullPolicy.STRICT);
+
+    // Json Operators
+    defineMethod(JSON_VALUE_EXPRESSION,
+        BuiltInMethod.JSON_VALUE_EXPRESSION.method, NullPolicy.STRICT);
+    defineMethod(JSON_STRUCTURED_VALUE_EXPRESSION,
+        BuiltInMethod.JSON_STRUCTURED_VALUE_EXPRESSION.method, NullPolicy.STRICT);
+    defineMethod(JSON_API_COMMON_SYNTAX, BuiltInMethod.JSON_API_COMMON_SYNTAX.method,
+        NullPolicy.NONE);
+    defineMethod(JSON_EXISTS, BuiltInMethod.JSON_EXISTS.method, NullPolicy.NONE);
+    defineMethod(JSON_VALUE_ANY, BuiltInMethod.JSON_VALUE_ANY.method, NullPolicy.NONE);
+    defineMethod(JSON_QUERY, BuiltInMethod.JSON_QUERY.method, NullPolicy.NONE);
+    defineMethod(JSON_OBJECT, BuiltInMethod.JSON_OBJECT.method, NullPolicy.NONE);
+    aggMap.put(JSON_OBJECTAGG,
+        JsonObjectAggImplementor
+            .supplierFor(BuiltInMethod.JSON_OBJECTAGG_ADD.method));
+    defineMethod(JSON_ARRAY, BuiltInMethod.JSON_ARRAY.method, NullPolicy.NONE);
+    aggMap.put(JSON_ARRAYAGG,
+        JsonArrayAggImplementor
+            .supplierFor(BuiltInMethod.JSON_ARRAYAGG_ADD.method));
+    defineImplementor(IS_JSON_VALUE, NullPolicy.NONE,
+            new MethodImplementor(BuiltInMethod.IS_JSON_VALUE.method), false);
+    defineImplementor(IS_JSON_OBJECT, NullPolicy.NONE,
+            new MethodImplementor(BuiltInMethod.IS_JSON_OBJECT.method), false);
+    defineImplementor(IS_JSON_ARRAY, NullPolicy.NONE,
+            new MethodImplementor(BuiltInMethod.IS_JSON_ARRAY.method), false);
+    defineImplementor(IS_JSON_SCALAR, NullPolicy.NONE,
+            new MethodImplementor(BuiltInMethod.IS_JSON_SCALAR.method), false);
+    defineImplementor(IS_NOT_JSON_VALUE, NullPolicy.NONE,
+        NotImplementor.of(
+            new MethodImplementor(BuiltInMethod.IS_JSON_VALUE.method)), false);
+    defineImplementor(IS_NOT_JSON_OBJECT, NullPolicy.NONE,
+        NotImplementor.of(
+            new MethodImplementor(BuiltInMethod.IS_JSON_OBJECT.method)), false);
+    defineImplementor(IS_NOT_JSON_ARRAY, NullPolicy.NONE,
+        NotImplementor.of(
+            new MethodImplementor(BuiltInMethod.IS_JSON_ARRAY.method)), false);
+    defineImplementor(IS_NOT_JSON_SCALAR, NullPolicy.NONE,
+        NotImplementor.of(
+            new MethodImplementor(BuiltInMethod.IS_JSON_SCALAR.method)), false);
 
     // System functions
     final SystemFunctionImplementor systemFunctionImplementor =
@@ -448,12 +497,17 @@ public class RexImpTable {
     map.put(LOCALTIMESTAMP, systemFunctionImplementor);
 
     aggMap.put(COUNT, constructorSupplier(CountImplementor.class));
+    aggMap.put(REGR_COUNT, constructorSupplier(CountImplementor.class));
     aggMap.put(SUM0, constructorSupplier(SumImplementor.class));
     aggMap.put(SUM, constructorSupplier(SumImplementor.class));
     Supplier<MinMaxImplementor> minMax =
         constructorSupplier(MinMaxImplementor.class);
     aggMap.put(MIN, minMax);
     aggMap.put(MAX, minMax);
+    aggMap.put(ANY_VALUE, minMax);
+    final Supplier<BitOpImplementor> bitop = constructorSupplier(BitOpImplementor.class);
+    aggMap.put(BIT_AND, bitop);
+    aggMap.put(BIT_OR, bitop);
     aggMap.put(SINGLE_VALUE, constructorSupplier(SingleValueImplementor.class));
     aggMap.put(COLLECT, constructorSupplier(CollectImplementor.class));
     aggMap.put(FUSION, constructorSupplier(FusionImplementor.class));
@@ -467,11 +521,13 @@ public class RexImpTable {
     winAggMap.put(ROW_NUMBER, constructorSupplier(RowNumberImplementor.class));
     winAggMap.put(FIRST_VALUE,
         constructorSupplier(FirstValueImplementor.class));
+    winAggMap.put(NTH_VALUE, constructorSupplier(NthValueImplementor.class));
     winAggMap.put(LAST_VALUE, constructorSupplier(LastValueImplementor.class));
     winAggMap.put(LEAD, constructorSupplier(LeadImplementor.class));
     winAggMap.put(LAG, constructorSupplier(LagImplementor.class));
     winAggMap.put(NTILE, constructorSupplier(NtileImplementor.class));
     winAggMap.put(COUNT, constructorSupplier(CountWinImplementor.class));
+    winAggMap.put(REGR_COUNT, constructorSupplier(CountWinImplementor.class));
   }
 
   private <T> Supplier<T> constructorSupplier(Class<T> klass) {
@@ -482,15 +538,13 @@ public class RexImpTable {
       throw new IllegalArgumentException(
           klass + " should implement zero arguments constructor");
     }
-    return new Supplier<T>() {
-      public T get() {
-        try {
-          return constructor.newInstance();
-        } catch (InstantiationException | IllegalAccessException
-            | InvocationTargetException e) {
-          throw new IllegalStateException(
-              "Error while creating aggregate implementor " + constructor, e);
-        }
+    return () -> {
+      try {
+        return constructor.newInstance();
+      } catch (InstantiationException | IllegalAccessException
+          | InvocationTargetException e) {
+        throw new IllegalStateException(
+            "Error while creating aggregate implementor " + constructor, e);
       }
     };
   }
@@ -528,14 +582,9 @@ public class RexImpTable {
     case ANY:
     case STRICT:
     case SEMI_STRICT:
-      return new CallImplementor() {
-        public Expression implement(
-            RexToLixTranslator translator, RexCall call, NullAs nullAs) {
-          return implementNullSemantics0(
-              translator, call, nullAs, nullPolicy, harmonize,
-              implementor);
-        }
-      };
+      return (translator, call, nullAs) -> implementNullSemantics0(
+          translator, call, nullAs, nullPolicy, harmonize,
+          implementor);
     case AND:
 /* TODO:
             if (nullAs == NullAs.FALSE) {
@@ -549,41 +598,41 @@ public class RexImpTable {
       // b0 == null ? (b1 == null || b1 ? null : Boolean.FALSE)
       //   : b0 ? b1
       //   : Boolean.FALSE;
-      return new CallImplementor() {
-        public Expression implement(
-            RexToLixTranslator translator, RexCall call, NullAs nullAs) {
-          assert call.getOperator() == AND
-              : "AND null semantics is supported only for AND operator. Actual operator is "
-              + String.valueOf(call.getOperator());
-          final RexCall call2 = call2(false, translator, call);
-          switch (nullAs) {
-          case NOT_POSSIBLE: // Just foldAnd
-          case TRUE:
-            // AND call should return false iff has FALSEs,
-            // thus if we convert nulls to true then no harm is made
-          case FALSE:
-            // AND call should return false iff has FALSEs or has NULLs,
-            // thus if we convert nulls to false, no harm is made
-            final List<Expression> expressions =
-                translator.translateList(call2.getOperands(), nullAs);
-            return Expressions.foldAnd(expressions);
-          case NULL:
-          case IS_NULL:
-          case IS_NOT_NULL:
-            final List<Expression> nullAsTrue =
-                translator.translateList(call2.getOperands(), NullAs.TRUE);
-            final List<Expression> nullAsIsNull =
-                translator.translateList(call2.getOperands(), NullAs.IS_NULL);
-            Expression hasFalse = Expressions.not(Expressions.foldAnd(nullAsTrue));
-            Expression hasNull = Expressions.foldOr(nullAsIsNull);
-            Expression result = nullAs.handle(
-                Expressions.condition(hasFalse, BOXED_FALSE_EXPR,
-                    Expressions.condition(hasNull, NULL_EXPR, BOXED_TRUE_EXPR)));
-            return result;
-          default:
-            throw new IllegalArgumentException(
-                "Unknown nullAs when implementing AND: " + nullAs);
-          }
+      return (translator, call, nullAs) -> {
+        assert call.getOperator() == AND
+            : "AND null semantics is supported only for AND operator. Actual operator is "
+            + String.valueOf(call.getOperator());
+        final RexCall call2 = call2(false, translator, call);
+        switch (nullAs) {
+        case NOT_POSSIBLE:
+          // This doesn't mean that none of the arguments might be null, ex: (s and s is not null)
+          nullAs = NullAs.TRUE;
+          // fallthru
+        case TRUE:
+          // AND call should return false iff has FALSEs,
+          // thus if we convert nulls to true then no harm is made
+        case FALSE:
+          // AND call should return false iff has FALSEs or has NULLs,
+          // thus if we convert nulls to false, no harm is made
+          final List<Expression> expressions =
+              translator.translateList(call2.getOperands(), nullAs);
+          return Expressions.foldAnd(expressions);
+        case NULL:
+        case IS_NULL:
+        case IS_NOT_NULL:
+          final List<Expression> nullAsTrue =
+              translator.translateList(call2.getOperands(), NullAs.TRUE);
+          final List<Expression> nullAsIsNull =
+              translator.translateList(call2.getOperands(), NullAs.IS_NULL);
+          Expression hasFalse =
+              Expressions.not(Expressions.foldAnd(nullAsTrue));
+          Expression hasNull = Expressions.foldOr(nullAsIsNull);
+          return nullAs.handle(
+              Expressions.condition(hasFalse, BOXED_FALSE_EXPR,
+                  Expressions.condition(hasNull, NULL_EXPR, BOXED_TRUE_EXPR)));
+        default:
+          throw new IllegalArgumentException(
+              "Unknown nullAs when implementing AND: " + nullAs);
         }
       };
     case OR:
@@ -594,41 +643,41 @@ public class RexImpTable {
       // b0 == null ? (b1 == null || !b1 ? null : Boolean.TRUE)
       //   : !b0 ? b1
       //   : Boolean.TRUE;
-      return new CallImplementor() {
-        public Expression implement(
-            RexToLixTranslator translator, RexCall call, final NullAs nullAs) {
-          assert call.getOperator() == OR
-              : "OR null semantics is supported only for OR operator. Actual operator is "
-              + String.valueOf(call.getOperator());
-          final RexCall call2 = call2(harmonize, translator, call);
-          switch (nullAs) {
-          case NOT_POSSIBLE: // Just foldOr
-          case TRUE:
-            // This should return false iff all arguments are FALSE,
-            // thus we convert nulls to TRUE and foldOr
-          case FALSE:
-            // This should return true iff has TRUE arguments,
-            // thus we convert nulls to FALSE and foldOr
-            final List<Expression> expressions =
-                translator.translateList(call2.getOperands(), nullAs);
-            return Expressions.foldOr(expressions);
-          case NULL:
-          case IS_NULL:
-          case IS_NOT_NULL:
-            final List<Expression> nullAsFalse =
-                translator.translateList(call2.getOperands(), NullAs.FALSE);
-            final List<Expression> nullAsIsNull =
-                translator.translateList(call2.getOperands(), NullAs.IS_NULL);
-            Expression hasTrue = Expressions.foldOr(nullAsFalse);
-            Expression hasNull = Expressions.foldOr(nullAsIsNull);
-            Expression result = nullAs.handle(
-                Expressions.condition(hasTrue, BOXED_TRUE_EXPR,
-                    Expressions.condition(hasNull, NULL_EXPR, BOXED_FALSE_EXPR)));
-            return result;
-          default:
-            throw new IllegalArgumentException(
-                "Unknown nullAs when implementing OR: " + nullAs);
-          }
+      return (translator, call, nullAs) -> {
+        assert call.getOperator() == OR
+            : "OR null semantics is supported only for OR operator. Actual operator is "
+            + String.valueOf(call.getOperator());
+        final RexCall call2 = call2(harmonize, translator, call);
+        switch (nullAs) {
+        case NOT_POSSIBLE:
+          // This doesn't mean that none of the arguments might be null, ex: (s or s is null)
+          nullAs = NullAs.FALSE;
+          // fallthru
+        case TRUE:
+          // This should return false iff all arguments are FALSE,
+          // thus we convert nulls to TRUE and foldOr
+        case FALSE:
+          // This should return true iff has TRUE arguments,
+          // thus we convert nulls to FALSE and foldOr
+          final List<Expression> expressions =
+              translator.translateList(call2.getOperands(), nullAs);
+          return Expressions.foldOr(expressions);
+        case NULL:
+        case IS_NULL:
+        case IS_NOT_NULL:
+          final List<Expression> nullAsFalse =
+              translator.translateList(call2.getOperands(), NullAs.FALSE);
+          final List<Expression> nullAsIsNull =
+              translator.translateList(call2.getOperands(), NullAs.IS_NULL);
+          Expression hasTrue = Expressions.foldOr(nullAsFalse);
+          Expression hasNull = Expressions.foldOr(nullAsIsNull);
+          Expression result = nullAs.handle(
+              Expressions.condition(hasTrue, BOXED_TRUE_EXPR,
+                  Expressions.condition(hasNull, NULL_EXPR, BOXED_FALSE_EXPR)));
+          return result;
+        default:
+          throw new IllegalArgumentException(
+              "Unknown nullAs when implementing OR: " + nullAs);
         }
       };
     case NOT:
@@ -661,13 +710,10 @@ public class RexImpTable {
         }
       };
     case NONE:
-      return new CallImplementor() {
-        public Expression implement(
-            RexToLixTranslator translator, RexCall call, NullAs nullAs) {
-          final RexCall call2 = call2(false, translator, call);
-          return implementCall(
-              translator, call2, implementor, nullAs);
-        }
+      return (translator, call, nullAs) -> {
+        final RexCall call2 = call2(false, translator, call);
+        return implementCall(
+            translator, call2, implementor, nullAs);
       };
     default:
       throw new AssertionError(nullPolicy);
@@ -1321,6 +1367,35 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the {@code BIT_AND} and {@code BIT_OR} aggregate function. */
+  static class BitOpImplementor extends StrictAggImplementor {
+    @Override protected void implementNotNullReset(AggContext info,
+        AggResetContext reset) {
+      Object initValue = info.aggregation() == BIT_AND ? -1 : 0;
+      Expression start = Expressions.constant(initValue, info.returnType());
+
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(0), start)));
+    }
+
+    @Override public void implementNotNullAdd(AggContext info,
+        AggAddContext add) {
+      Expression acc = add.accumulator().get(0);
+      Expression arg = add.arguments().get(0);
+      SqlAggFunction aggregation = info.aggregation();
+      final Method method = (aggregation == BIT_AND
+          ? BuiltInMethod.BIT_AND
+          : BuiltInMethod.BIT_OR).method;
+      Expression next = Expressions.call(
+          method.getDeclaringClass(),
+          method.getName(),
+          acc,
+          Expressions.unbox(arg));
+      accAdvance(add, acc, next);
+    }
+  }
+
   /** Implementor for the {@code GROUPING} aggregate function. */
   static class GroupingImplementor implements AggImplementor {
     public List<Type> getStateType(AggContext info) {
@@ -1383,9 +1458,9 @@ public class RexImpTable {
 
     @Override public List<Type> getNotNullState(AggContext info) {
       if (afi.isStatic) {
-        return Collections.<Type>singletonList(afi.accumulatorType);
+        return Collections.singletonList(afi.accumulatorType);
       }
-      return Arrays.<Type>asList(afi.accumulatorType, afi.declaringClass);
+      return Arrays.asList(afi.accumulatorType, afi.declaringClass);
     }
 
     @Override protected void implementNotNullReset(AggContext info,
@@ -1545,6 +1620,62 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the {@code NTH_VALUE}
+   * windowed aggregate function. */
+  static class NthValueImplementor implements WinAggImplementor {
+    public List<Type> getStateType(AggContext info) {
+      return Collections.emptyList();
+    }
+
+    public void implementReset(AggContext info, AggResetContext reset) {
+      // no op
+    }
+
+    public void implementAdd(AggContext info, AggAddContext add) {
+      // no op
+    }
+
+    public boolean needCacheWhenFrameIntact() {
+      return true;
+    }
+
+    public Expression implementResult(AggContext info,
+        AggResultContext result) {
+      WinAggResultContext winResult = (WinAggResultContext) result;
+
+      List<RexNode> rexArgs = winResult.rexArguments();
+
+      ParameterExpression res = Expressions.parameter(0, info.returnType(),
+          result.currentBlock().newName("nth"));
+
+      RexToLixTranslator currentRowTranslator =
+          winResult.rowTranslator(
+              winResult.computeIndex(Expressions.constant(0), SeekType.START));
+
+      Expression dstIndex = winResult.computeIndex(
+          Expressions.subtract(
+              currentRowTranslator.translate(rexArgs.get(1), int.class),
+              Expressions.constant(1)), SeekType.START);
+
+      Expression rowInRange = winResult.rowInPartition(dstIndex);
+
+      BlockBuilder thenBlock = result.nestBlock();
+      Expression nthValue = winResult.rowTranslator(dstIndex)
+          .translate(rexArgs.get(0), res.type);
+      thenBlock.add(Expressions.statement(Expressions.assign(res, nthValue)));
+      result.exitBlock();
+      BlockStatement thenBranch = thenBlock.toBlock();
+
+      Expression defaultValue = getDefaultValue(res.type);
+
+      result.currentBlock().add(Expressions.declare(0, res, null));
+      result.currentBlock().add(
+          Expressions.ifThenElse(rowInRange, thenBranch,
+              Expressions.statement(Expressions.assign(res, defaultValue))));
+      return res;
+    }
+  }
+
   /** Implementor for the {@code LEAD} and {@code LAG} windowed
    * aggregate functions. */
   static class LeadLagImplementor implements WinAggImplementor {
@@ -1691,10 +1822,100 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the {@code JSON_OBJECTAGG} aggregate function. */
+  static class JsonObjectAggImplementor implements AggImplementor {
+    private final Method m;
+
+    JsonObjectAggImplementor(Method m) {
+      this.m = m;
+    }
+
+    static Supplier<JsonObjectAggImplementor> supplierFor(Method m) {
+      return () -> new JsonObjectAggImplementor(m);
+    }
+
+    @Override public List<Type> getStateType(AggContext info) {
+      return Collections.singletonList(Map.class);
+    }
+
+    @Override public void implementReset(AggContext info,
+        AggResetContext reset) {
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(0),
+                  Expressions.new_(HashMap.class))));
+    }
+
+    @Override public void implementAdd(AggContext info, AggAddContext add) {
+      final SqlJsonObjectAggAggFunction function =
+          (SqlJsonObjectAggAggFunction) info.aggregation();
+      add.currentBlock().add(
+          Expressions.statement(
+              Expressions.call(m,
+                  Iterables.concat(
+                      Collections.singletonList(add.accumulator().get(0)),
+                      add.arguments(),
+                      Collections.singletonList(
+                          Expressions.constant(function.getNullClause()))))));
+    }
+
+    @Override public Expression implementResult(AggContext info,
+        AggResultContext result) {
+      return Expressions.call(BuiltInMethod.JSONIZE.method,
+          result.accumulator().get(0));
+    }
+  }
+
+  /** Implementor for the {@code JSON_ARRAYAGG} aggregate function. */
+  static class JsonArrayAggImplementor implements AggImplementor {
+    private final Method m;
+
+    JsonArrayAggImplementor(Method m) {
+      this.m = m;
+    }
+
+    static Supplier<JsonArrayAggImplementor> supplierFor(Method m) {
+      return () -> new JsonArrayAggImplementor(m);
+    }
+
+    @Override public List<Type> getStateType(AggContext info) {
+      return Collections.singletonList(List.class);
+    }
+
+    @Override public void implementReset(AggContext info,
+        AggResetContext reset) {
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(0),
+                  Expressions.new_(ArrayList.class))));
+    }
+
+    @Override public void implementAdd(AggContext info,
+        AggAddContext add) {
+      final SqlJsonArrayAggAggFunction function =
+          (SqlJsonArrayAggAggFunction) info.aggregation();
+      add.currentBlock().add(
+          Expressions.statement(
+              Expressions.call(m,
+                  Iterables.concat(
+                      Collections.singletonList(add.accumulator().get(0)),
+                      add.arguments(),
+                      Collections.singletonList(
+                          Expressions.constant(function.getNullClause()))))));
+    }
+
+    @Override public Expression implementResult(AggContext info,
+        AggResultContext result) {
+      return Expressions.call(BuiltInMethod.JSONIZE.method,
+          result.accumulator().get(0));
+    }
+  }
+
   /** Implementor for the {@code TRIM} function. */
   private static class TrimImplementor implements NotNullImplementor {
     public Expression implement(RexToLixTranslator translator, RexCall call,
         List<Expression> translatedOperands) {
+      final boolean strict = !translator.conformance.allowExtendedTrim();
       final Object value =
           ((ConstantExpression) translatedOperands.get(0)).value;
       SqlTrimFunction.Flag flag = (SqlTrimFunction.Flag) value;
@@ -1707,7 +1928,8 @@ public class RexImpTable {
               flag == SqlTrimFunction.Flag.BOTH
               || flag == SqlTrimFunction.Flag.TRAILING),
           translatedOperands.get(1),
-          translatedOperands.get(2));
+          translatedOperands.get(2),
+          Expressions.constant(strict));
     }
   }
 
@@ -1802,27 +2024,6 @@ public class RexImpTable {
       final Type returnType =
           translator.typeFactory.getJavaClass(call.getType());
       return Types.castIfNecessary(returnType, expression);
-    }
-  }
-
-  /** Implementor for a function that generates calls to a given method. */
-  private static class SequenceImplementor extends MethodImplementor {
-    SequenceImplementor(Method method) {
-      super(method);
-    }
-
-    public Expression implement(
-        RexToLixTranslator translator,
-        RexCall call,
-        List<Expression> translatedOperands) {
-      assert translatedOperands.size() == 1;
-      ConstantExpression x = (ConstantExpression) translatedOperands.get(0);
-      List<String> names = Util.stringToList((String) x.value);
-      final Prepare.CatalogReader catalogReader =
-          Prepare.CatalogReader.THREAD_LOCAL.get();
-      RelOptTable table = catalogReader.getTable(names);
-      System.out.println("Now, do something with table " + table);
-      return super.implement(translator, call, translatedOperands);
     }
   }
 
@@ -2374,6 +2575,12 @@ public class RexImpTable {
         RexToLixTranslator translator, RexCall call, NullAs nullAs) {
       List<RexNode> operands = call.getOperands();
       assert operands.size() == 1;
+      switch (nullAs) {
+      case IS_NOT_NULL:
+        return BOXED_TRUE_EXPR;
+      case IS_NULL:
+        return BOXED_FALSE_EXPR;
+      }
       if (seek == null) {
         return translator.translate(operands.get(0),
             negate ? NullAs.IS_NOT_NULL : NullAs.IS_NULL);
@@ -2458,11 +2665,16 @@ public class RexImpTable {
         case MINUS:
           trop1 = Expressions.negate(trop1);
         }
-        final BuiltInMethod method =
-            operand0.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP
-                ? BuiltInMethod.ADD_MONTHS
-                : BuiltInMethod.ADD_MONTHS_INT;
-        return Expressions.call(method.method, trop0, trop1);
+        switch (typeName) {
+        case TIME:
+          return Expressions.convert_(trop0, long.class);
+        default:
+          final BuiltInMethod method =
+              operand0.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP
+                  ? BuiltInMethod.ADD_MONTHS
+                  : BuiltInMethod.ADD_MONTHS_INT;
+          return Expressions.call(method.method, trop0, trop1);
+        }
 
       case INTERVAL_DAY:
       case INTERVAL_DAY_HOUR:

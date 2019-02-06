@@ -41,7 +41,6 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -147,9 +146,12 @@ public class RelMdAllPredicates
     }
 
     // Replace with new expressions and return union of predicates
-    return predsBelow.union(rexBuilder,
-        RelOptPredicateList.of(rexBuilder,
-            RelMdExpressionLineage.createAllPossibleExpressions(rexBuilder, pred, mapping)));
+    final Set<RexNode> allExprs =
+        RelMdExpressionLineage.createAllPossibleExpressions(rexBuilder, pred, mapping);
+    if (allExprs == null) {
+      return null;
+    }
+    return predsBelow.union(rexBuilder, RelOptPredicateList.of(rexBuilder, allExprs));
   }
 
   /**
@@ -195,14 +197,9 @@ public class RelMdAllPredicates
               RelTableRef.of(rightRef.getTable(), shift + rightRef.getEntityNumber()));
         }
         final List<RexNode> updatedPreds = Lists.newArrayList(
-            Iterables.transform(
-                inputPreds.pulledUpPredicates,
-                new Function<RexNode, RexNode>() {
-                  @Override public RexNode apply(RexNode e) {
-                    return RexUtil.swapTableReferences(rexBuilder, e, currentTablesMapping);
-                  }
-                }
-          ));
+            Iterables.transform(inputPreds.pulledUpPredicates,
+                e -> RexUtil.swapTableReferences(rexBuilder, e,
+                    currentTablesMapping)));
         newPreds = newPreds.union(rexBuilder,
             RelOptPredicateList.of(rexBuilder, updatedPreds));
       }
@@ -228,9 +225,12 @@ public class RelMdAllPredicates
     }
 
     // Replace with new expressions and return union of predicates
-    return newPreds.union(rexBuilder,
-        RelOptPredicateList.of(rexBuilder,
-            RelMdExpressionLineage.createAllPossibleExpressions(rexBuilder, pred, mapping)));
+    final Set<RexNode> allExprs =
+        RelMdExpressionLineage.createAllPossibleExpressions(rexBuilder, pred, mapping);
+    if (allExprs == null) {
+      return null;
+    }
+    return newPreds.union(rexBuilder, RelOptPredicateList.of(rexBuilder, allExprs));
   }
 
   /**
@@ -283,14 +283,9 @@ public class RelMdAllPredicates
         }
         // Update preds
         final List<RexNode> updatedPreds = Lists.newArrayList(
-            Iterables.transform(
-                inputPreds.pulledUpPredicates,
-                new Function<RexNode, RexNode>() {
-                  @Override public RexNode apply(RexNode e) {
-                    return RexUtil.swapTableReferences(rexBuilder, e, currentTablesMapping);
-                  }
-                }
-          ));
+            Iterables.transform(inputPreds.pulledUpPredicates,
+                e -> RexUtil.swapTableReferences(rexBuilder, e,
+                    currentTablesMapping)));
         newPreds = newPreds.union(rexBuilder,
             RelOptPredicateList.of(rexBuilder, updatedPreds));
       }

@@ -36,12 +36,9 @@ public class TpcdsSchemaFactory implements SchemaFactory {
 
   public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
-    Map map = (Map) operand;
+    @SuppressWarnings("RawTypeCanBeGeneric") final Map map = operand;
     double scale = Util.first((Double) map.get("scale"), 1D);
-    int part = Util.first((Integer) map.get("part"), 1);
-    int partCount = Util.first((Integer) map.get("partCount"), 1);
-    boolean columnPrefix = Util.first((Boolean) map.get("columnPrefix"), true);
-    return new TpcdsSchema(scale, part, partCount);
+    return new TpcdsSchema(scale);
   }
 }
 

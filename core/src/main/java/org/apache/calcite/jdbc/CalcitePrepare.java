@@ -47,7 +47,6 @@ import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.ImmutableIntList;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
@@ -63,18 +62,9 @@ import java.util.Map;
  * API for a service that prepares statements for execution.
  */
 public interface CalcitePrepare {
-  Function0<CalcitePrepare> DEFAULT_FACTORY =
-      new Function0<CalcitePrepare>() {
-        public CalcitePrepare apply() {
-          return new CalcitePrepareImpl();
-        }
-      };
+  Function0<CalcitePrepare> DEFAULT_FACTORY = CalcitePrepareImpl::new;
   ThreadLocal<Deque<Context>> THREAD_CONTEXT_STACK =
-      new ThreadLocal<Deque<Context>>() {
-        @Override protected Deque<Context> initialValue() {
-          return new ArrayDeque<>();
-        }
-      };
+      ThreadLocal.withInitial(ArrayDeque::new);
 
   ParseResult parse(Context context, String sql);
 

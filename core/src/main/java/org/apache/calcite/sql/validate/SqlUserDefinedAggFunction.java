@@ -31,9 +31,9 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
@@ -58,10 +58,12 @@ public class SqlUserDefinedAggFunction extends SqlAggFunction {
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker, AggregateFunction function,
-      boolean requiresOrder, boolean requiresOver, RelDataTypeFactory typeFactory) {
+      boolean requiresOrder, boolean requiresOver,
+      Optionality requiresGroupOrder, RelDataTypeFactory typeFactory) {
     super(Util.last(opName.names), opName, SqlKind.OTHER_FUNCTION,
         returnTypeInference, operandTypeInference, operandTypeChecker,
-        SqlFunctionCategory.USER_DEFINED_FUNCTION, requiresOrder, requiresOver);
+        SqlFunctionCategory.USER_DEFINED_FUNCTION, requiresOrder, requiresOver,
+        requiresGroupOrder);
     this.function = function;
     this.typeFactory = typeFactory;
   }
@@ -76,12 +78,7 @@ public class SqlUserDefinedAggFunction extends SqlAggFunction {
   }
 
   private List<RelDataType> toSql(List<RelDataType> types) {
-    return Lists.transform(types,
-        new com.google.common.base.Function<RelDataType, RelDataType>() {
-          public RelDataType apply(RelDataType type) {
-            return toSql(type);
-          }
-        });
+    return Lists.transform(types, this::toSql);
   }
 
   private RelDataType toSql(RelDataType type) {
@@ -98,11 +95,7 @@ public class SqlUserDefinedAggFunction extends SqlAggFunction {
   public List<RelDataType> getParameterTypes(
       final RelDataTypeFactory typeFactory) {
     return Lists.transform(function.getParameters(),
-        new Function<FunctionParameter, RelDataType>() {
-          public RelDataType apply(FunctionParameter input) {
-            return input.getType(typeFactory);
-          }
-        });
+        parameter -> parameter.getType(typeFactory));
   }
 
   @SuppressWarnings("deprecation")

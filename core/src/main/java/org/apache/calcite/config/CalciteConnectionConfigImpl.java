@@ -99,7 +99,7 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     tables.add(SqlStdOperatorTable.instance());
     return operatorTableClass.cast(
         ChainedSqlOperatorTable.of(
-            tables.toArray(new SqlOperatorTable[tables.size()])));
+            tables.toArray(new SqlOperatorTable[0])));
   }
 
   private static void operatorTable(String s,
@@ -182,6 +182,11 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
   public SqlConformance conformance() {
     return CalciteConnectionProperty.CONFORMANCE.wrap(properties)
         .getEnum(SqlConformanceEnum.class);
+  }
+
+  @Override public String timeZone() {
+    return CalciteConnectionProperty.TIME_ZONE.wrap(properties)
+            .getString();
   }
 }
 

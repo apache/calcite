@@ -37,7 +37,6 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -56,6 +55,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -84,8 +84,8 @@ class DruidConnectionImpl implements DruidConnection {
   }
 
   DruidConnectionImpl(String url, String coordinatorUrl) {
-    this.url = Preconditions.checkNotNull(url);
-    this.coordinatorUrl = Preconditions.checkNotNull(coordinatorUrl);
+    this.url = Objects.requireNonNull(url);
+    this.coordinatorUrl = Objects.requireNonNull(coordinatorUrl);
   }
 
   /** Executes a query request.
@@ -126,7 +126,7 @@ class DruidConnectionImpl implements DruidConnection {
       try {
         final byte[] bytes = AvaticaUtils.readFullyToBytes(in);
         System.out.println("Response: "
-            + new String(bytes, StandardCharsets.UTF_8));
+            + new String(bytes, StandardCharsets.UTF_8)); // CHECKSTYLE: IGNORE 0
         in = new ByteArrayInputStream(bytes);
       } catch (IOException e) {
         throw new RuntimeException(e);
@@ -145,7 +145,7 @@ class DruidConnectionImpl implements DruidConnection {
       }
     }
 
-    try (final JsonParser parser = factory.createParser(in)) {
+    try (JsonParser parser = factory.createParser(in)) {
       switch (queryType) {
       case TIMESERIES:
         if (parser.nextToken() == JsonToken.START_ARRAY) {
@@ -646,7 +646,7 @@ class DruidConnectionImpl implements DruidConnection {
         final byte[] bytes = AvaticaUtils.readFullyToBytes(in);
         in.close();
         System.out.println("Response: "
-            + new String(bytes, StandardCharsets.UTF_8));
+            + new String(bytes, StandardCharsets.UTF_8)); // CHECKSTYLE: IGNORE 0
         in = new ByteArrayInputStream(bytes);
       } catch (IOException e) {
         throw new RuntimeException(e);
@@ -719,8 +719,8 @@ class DruidConnectionImpl implements DruidConnection {
     public String id;
     public List<String> intervals;
     public Map<String, JsonColumn> columns;
-    public int size;
-    public int numRows;
+    public long size;
+    public long numRows;
     public Map<String, JsonAggregator> aggregators;
   }
 

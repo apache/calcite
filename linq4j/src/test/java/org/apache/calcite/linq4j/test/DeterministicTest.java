@@ -23,7 +23,6 @@ import org.apache.calcite.linq4j.tree.ClassDeclarationFinder;
 import org.apache.calcite.linq4j.tree.DeterministicCodeOptimizer;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Types;
 
 import org.junit.Test;
@@ -134,12 +133,12 @@ public class DeterministicTest {
         optimize(
             Expressions.new_(
                 Runnable.class,
-                Collections.<Expression>emptyList(),
+                Collections.emptyList(),
                 Expressions.methodDecl(
                     0,
                     int.class,
                     "test",
-                    Collections.<ParameterExpression>emptyList(),
+                    Collections.emptyList(),
                     Blocks.toFunctionBlock(Expressions.add(ONE, TWO))))),
         equalTo("{\n"
             + "  return new Runnable(){\n"
@@ -157,11 +156,11 @@ public class DeterministicTest {
         optimize(
             optimizeExpression(
                 Expressions.new_(Runnable.class,
-                    Collections.<Expression>emptyList(),
+                    Collections.emptyList(),
                     Expressions.methodDecl(0,
                         int.class,
                         "test",
-                        Collections.<ParameterExpression>emptyList(),
+                        Collections.emptyList(),
                         Blocks.toFunctionBlock(Expressions.add(ONE, TWO)))))),
         equalTo("{\n"
             + "  return new Runnable(){\n"
@@ -179,12 +178,12 @@ public class DeterministicTest {
         optimize(
             Expressions.new_(
                 Runnable.class,
-                Collections.<Expression>emptyList(),
+                Collections.emptyList(),
                 Expressions.methodDecl(
                     0,
                     int.class,
                     "test",
-                    Collections.<ParameterExpression>emptyList(),
+                    Collections.emptyList(),
                     Blocks.toFunctionBlock(
                         Expressions.multiply(Expressions.add(ONE, TWO),
                             Expressions.subtract(ONE, TWO)))))),
@@ -206,12 +205,12 @@ public class DeterministicTest {
         optimize(
             Expressions.new_(
                 Runnable.class,
-                Collections.<Expression>emptyList(),
+                Collections.emptyList(),
                 Expressions.methodDecl(
                     0,
                     int.class,
                     "test",
-                    Collections.<ParameterExpression>emptyList(),
+                    Collections.emptyList(),
                     Blocks.toFunctionBlock(
                         Expressions.multiply(Expressions.add(ONE, TWO),
                             THREE))))),
@@ -232,31 +231,31 @@ public class DeterministicTest {
         optimize(
             Expressions.new_(
                 Runnable.class,
-                Collections.<Expression>emptyList(),
+                Collections.emptyList(),
                 Expressions.methodDecl(
                     0,
                     int.class,
                     "test",
-                    Collections.<ParameterExpression>emptyList(),
+                    Collections.emptyList(),
                     Blocks.toFunctionBlock(
                         Expressions.add(
                             Expressions.add(ONE, FOUR),
                             Expressions.call(
                                 Expressions.new_(
                                     Callable.class,
-                                    Collections.<Expression>emptyList(),
+                                    Collections.emptyList(),
                                     Expressions.methodDecl(
                                         0,
                                         Object.class,
                                         "call",
                                         Collections
-                                            .<ParameterExpression>emptyList(),
+                                            .emptyList(),
                                         Blocks.toFunctionBlock(
                                             Expressions.multiply(
                                                 Expressions.add(ONE, TWO),
                                                 THREE)))),
                                 "call",
-                                Collections.<Expression>emptyList())))))),
+                                Collections.emptyList())))))),
         equalTo("{\n"
             + "  return new Runnable(){\n"
             + "      int test() {\n"
@@ -280,10 +279,10 @@ public class DeterministicTest {
         optimize(
             Expressions.new_(
                 Runnable.class,
-                Collections.<Expression>emptyList(),
+                Collections.emptyList(),
                 Expressions.methodDecl(
                     0, int.class, "test",
-                    Collections.<ParameterExpression>emptyList(),
+                    Collections.emptyList(),
                     Blocks.toFunctionBlock(
                         Expressions.new_(BigInteger.class,
                             Expressions.constant("42")))))),
@@ -306,10 +305,10 @@ public class DeterministicTest {
         optimize(
             Expressions.new_(
                 Runnable.class,
-                Collections.<Expression>emptyList(),
+                Collections.emptyList(),
                 Expressions.methodDecl(
                     0, int.class, "test",
-                    Collections.<ParameterExpression>emptyList(),
+                    Collections.emptyList(),
                     Blocks.toFunctionBlock(
                         Expressions.typeIs(ONE, Boolean.class))))),
         equalTo("{\n"
@@ -327,9 +326,9 @@ public class DeterministicTest {
     assertThat(
         optimize(
             Expressions.new_(Runnable.class,
-                Collections.<Expression>emptyList(),
+                Collections.emptyList(),
                 Expressions.methodDecl(0, int.class, "test",
-                    Collections.<ParameterExpression>emptyList(),
+                    Collections.emptyList(),
                     Blocks.toFunctionBlock(
                         Expressions.orElse(
                             Expressions.typeIs(ONE, Boolean.class),
@@ -352,9 +351,9 @@ public class DeterministicTest {
     assertThat(
         optimize(
             Expressions.new_(Runnable.class,
-                Collections.<Expression>emptyList(),
+                Collections.emptyList(),
                 Expressions.methodDecl(0, int.class, "test",
-                    Collections.<ParameterExpression>emptyList(),
+                    Collections.emptyList(),
                     Blocks.toFunctionBlock(
                         Expressions.call(
                             getMethod(Integer.class, "valueOf", int.class),
@@ -375,9 +374,9 @@ public class DeterministicTest {
     assertThat(
         optimize(
             Expressions.new_(Runnable.class,
-                Collections.<Expression>emptyList(),
+                Collections.emptyList(),
                 Expressions.methodDecl(0, int.class, "test",
-                    Collections.<ParameterExpression>emptyList(),
+                    Collections.emptyList(),
                     Blocks.toFunctionBlock(
                         Expressions.call(
                             Expressions.field(null, BigInteger.class, "ONE"),
@@ -407,9 +406,9 @@ public class DeterministicTest {
     assertThat(
         optimize(
             Expressions.new_(Runnable.class,
-                Collections.<Expression>emptyList(),
+                Collections.emptyList(),
                 Expressions.methodDecl(0, int.class, "test",
-                    Collections.<ParameterExpression>emptyList(),
+                    Collections.emptyList(),
                     Blocks.toFunctionBlock(
                         Expressions.call(
                             Expressions.call(null,
@@ -442,12 +441,12 @@ public class DeterministicTest {
         optimize(
             Expressions.new_(
                 Runnable.class,
-                Collections.<Expression>emptyList(),
+                Collections.emptyList(),
                 Expressions.methodDecl(
                     0,
                     int.class,
                     "test",
-                    Collections.<ParameterExpression>emptyList(),
+                    Collections.emptyList(),
                     Blocks.toFunctionBlock(
                         Expressions.call(null,
                             Types.lookupMethod(TestClass.class,
@@ -469,12 +468,12 @@ public class DeterministicTest {
         optimize(
             Expressions.new_(
                 Runnable.class,
-                Collections.<Expression>emptyList(),
+                Collections.emptyList(),
                 Expressions.methodDecl(
                     0,
                     int.class,
                     "test",
-                    Collections.<ParameterExpression>emptyList(),
+                    Collections.emptyList(),
                     Blocks.toFunctionBlock(
                         Expressions.call(null,
                             Types.lookupMethod(TestClass.class,
@@ -495,12 +494,12 @@ public class DeterministicTest {
         optimize(
             Expressions.new_(
                 Runnable.class,
-                Collections.<Expression>emptyList(),
+                Collections.emptyList(),
                 Expressions.methodDecl(
                     0,
                     int.class,
                     "test",
-                    Collections.<ParameterExpression>emptyList(),
+                    Collections.emptyList(),
                     Blocks.toFunctionBlock(
                         Expressions.call(null,
                             Types.lookupMethod(TestDeterministicClass.class,
@@ -522,12 +521,12 @@ public class DeterministicTest {
         optimize(
             Expressions.new_(
                 Runnable.class,
-                Collections.<Expression>emptyList(),
+                Collections.emptyList(),
                 Expressions.methodDecl(
                     0,
                     int.class,
                     "test",
-                    Collections.<ParameterExpression>emptyList(),
+                    Collections.emptyList(),
                     Blocks.toFunctionBlock(
                         Expressions.call(null,
                             Types.lookupMethod(TestDeterministicClass.class,

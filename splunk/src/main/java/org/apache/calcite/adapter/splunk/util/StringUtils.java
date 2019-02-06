@@ -50,7 +50,7 @@ public class StringUtils {
   }
 
   public static List<String> decodeList(CharSequence encoded, char delim) {
-    List<String> list = new LinkedList<String>();
+    List<String> list = new LinkedList<>();
     int len = encoded.length();
     int start = 0;
     int end = 0;
@@ -132,7 +132,7 @@ public class StringUtils {
 
 
   public static void main(String[] args) {
-    List<String> list = new LinkedList<String>();
+    List<String> list = new LinkedList<>();
     list.add("test");
     list.add("test,with,comma");
     list.add("");

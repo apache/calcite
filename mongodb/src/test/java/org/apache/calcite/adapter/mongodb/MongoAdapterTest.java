@@ -21,12 +21,9 @@ import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.MongoAssertions;
-
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.io.LineProcessor;
 import com.google.common.io.Resources;
 import com.mongodb.client.MongoCollection;
@@ -39,9 +36,7 @@ import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.BsonString;
 import org.bson.Document;
-
 import org.hamcrest.CoreMatchers;
-
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -52,7 +47,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -60,6 +54,8 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Testing mongo adapter functionality. By default runs with
@@ -109,7 +105,7 @@ public class MongoAdapterTest implements SchemaFactory {
 
   private static void populate(MongoCollection<Document> collection, URL resource)
       throws IOException {
-    Preconditions.checkNotNull(collection, "collection");
+    Objects.requireNonNull(collection, "collection");
 
     if (collection.count() > 0) {
       // delete any existing documents (run from a clean set)
@@ -146,7 +142,7 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   private CalciteAssert.AssertThat assertModel(URL url) {
-    Preconditions.checkNotNull(url, "url");
+    Objects.requireNonNull(url, "url");
     try {
       return assertModel(Resources.toString(url, StandardCharsets.UTF_8));
     } catch (IOException e) {
@@ -457,7 +453,7 @@ public class MongoAdapterTest implements SchemaFactory {
         .returns("STATE=AK; A=26856\nSTATE=AL; A=43383\n")
         .queryContains(
             mongoChecker(
-                "{$project: {POP: '$pop', STATE: '$state'}}",
+                "{$project: {STATE: '$state', POP: '$pop'}}",
                 "{$group: {_id: '$STATE', A: {$avg: '$POP'}}}",
                 "{$project: {STATE: '$_id', A: '$A'}}",
                 "{$sort: {STATE: 1}}"));
@@ -535,7 +531,7 @@ public class MongoAdapterTest implements SchemaFactory {
             + "C=3; STATE=AL; MIN_POP=42124; MAX_POP=44165; SUM_POP=130151\n")
         .queryContains(
             mongoChecker(
-                "{$project: {POP: '$pop', STATE: '$state'}}",
+                "{$project: {STATE: '$state', POP: '$pop'}}",
                 "{$group: {_id: '$STATE', C: {$sum: 1}, MIN_POP: {$min: '$POP'}, MAX_POP: {$max: '$POP'}, SUM_POP: {$sum: '$POP'}}}",
                 "{$project: {STATE: '$_id', C: '$C', MIN_POP: '$MIN_POP', MAX_POP: '$MAX_POP', SUM_POP: '$SUM_POP'}}",
                 "{$project: {C: 1, STATE: 1, MIN_POP: 1, MAX_POP: 1, SUM_POP: 1}}",
@@ -552,9 +548,9 @@ public class MongoAdapterTest implements SchemaFactory {
             + "C=1; STATE=SC; CITY=AIKEN\n")
         .queryContains(
             mongoChecker(
-                "{$project: {CITY: '$city', STATE: '$state'}}",
-                "{$group: {_id: {CITY: '$CITY', STATE: '$STATE'}, C: {$sum: 1}}}",
-                "{$project: {_id: 0, CITY: '$_id.CITY', STATE: '$_id.STATE', C: '$C'}}",
+                "{$project: {STATE: '$state', CITY: '$city'}}",
+                "{$group: {_id: {STATE: '$STATE', CITY: '$CITY'}, C: {$sum: 1}}}",
+                "{$project: {_id: 0, STATE: '$_id.STATE', CITY: '$_id.CITY', C: '$C'}}",
                 "{$sort: {C: -1, CITY: 1}}",
                 "{$limit: 2}",
                 "{$project: {C: 1, STATE: 1, CITY: 1}}"));
@@ -724,18 +720,14 @@ public class MongoAdapterTest implements SchemaFactory {
   @Test public void testCountViaInt() {
     assertModel(MODEL)
         .query("select count(*) from zips")
-        .returns(
-            new Function<ResultSet, Void>() {
-              public Void apply(ResultSet input) {
-                try {
-                  Assert.assertThat(input.next(), CoreMatchers.is(true));
-                  Assert.assertThat(input.getInt(1), CoreMatchers.is(ZIPS_SIZE));
-                  return null;
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                }
-              }
-            });
+        .returns(input -> {
+          try {
+            Assert.assertThat(input.next(), CoreMatchers.is(true));
+            Assert.assertThat(input.getInt(1), CoreMatchers.is(ZIPS_SIZE));
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   /**
@@ -745,17 +737,14 @@ public class MongoAdapterTest implements SchemaFactory {
    * @param strings Expected expressions
    * @return validation function
    */
-  private static Function<List, Void> mongoChecker(final String... strings) {
-    return new Function<List, Void>() {
-      public Void apply(List actual) {
-        Object[] actualArray =
-            actual == null || actual.isEmpty()
-                ? null
-                : ((List) actual.get(0)).toArray();
-        CalciteAssert.assertArrayEqual("expected MongoDB query not found",
-            strings, actualArray);
-        return null;
-      }
+  private static Consumer<List> mongoChecker(final String... strings) {
+    return actual -> {
+      Object[] actualArray =
+          actual == null || actual.isEmpty()
+              ? null
+              : ((List) actual.get(0)).toArray();
+      CalciteAssert.assertArrayEqual("expected MongoDB query not found",
+          strings, actualArray);
     };
   }
 }

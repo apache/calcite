@@ -547,7 +547,7 @@ public class XmlOutput {
      * Identity transform
      */
     StringEscaper() {
-      translationVector = new ArrayList<String>();
+      translationVector = new ArrayList<>();
     }
 
     /**
@@ -558,7 +558,7 @@ public class XmlOutput {
       if (i >= translationVector.size()) {
         // Extend list by adding the requisite number of nulls.
         final int count = i + 1 - translationVector.size();
-        translationVector.addAll(Collections.<String>nCopies(count, null));
+        translationVector.addAll(Collections.nCopies(count, null));
       }
       translationVector.set(i, to);
     }
@@ -569,7 +569,7 @@ public class XmlOutput {
      */
     public void makeImmutable() {
       translationTable =
-          translationVector.toArray(new String[translationVector.size()]);
+          translationVector.toArray(new String[0]);
       translationVector = null;
     }
 
@@ -597,7 +597,7 @@ public class XmlOutput {
         } else {
           if (sb == null) {
             sb = new StringBuilder(n * 2);
-            sb.append(s.substring(0, i));
+            sb.append(s, 0, i);
           }
           sb.append(escape);
         }
@@ -613,7 +613,7 @@ public class XmlOutput {
     protected StringEscaper clone() {
       StringEscaper clone = new StringEscaper();
       if (translationVector != null) {
-        clone.translationVector = new ArrayList<String>(translationVector);
+        clone.translationVector = new ArrayList<>(translationVector);
       }
       if (translationTable != null) {
         clone.translationTable = translationTable.clone();

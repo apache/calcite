@@ -30,8 +30,7 @@ import java.util.List;
 public class HepProgramBuilder {
   //~ Instance fields --------------------------------------------------------
 
-  private final List<HepInstruction> instructions =
-      new ArrayList<HepInstruction>();
+  private final List<HepInstruction> instructions = new ArrayList<>();
 
   private HepInstruction.BeginGroup group;
 

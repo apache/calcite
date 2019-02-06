@@ -82,7 +82,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
-import javax.annotation.Nonnull;
 
 /**
  * Implementation of the {@link RelMetadataProvider} interface that generates
@@ -102,17 +101,14 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
   /** Cache of pre-generated handlers by provider and kind of metadata.
    * For the cache to be effective, providers should implement identity
    * correctly. */
+  @SuppressWarnings("unchecked")
   private static final LoadingCache<Key, MetadataHandler> HANDLERS =
       maxSize(CacheBuilder.newBuilder(),
           SaffronProperties.INSTANCE.metadataHandlerCacheMaximumSize().get())
           .build(
-              new CacheLoader<Key, MetadataHandler>() {
-                public MetadataHandler load(@Nonnull Key key) {
-                  //noinspection unchecked
-                  return load3(key.def, key.provider.handlers(key.def),
-                      key.relClasses);
-                }
-              });
+              CacheLoader.from(key ->
+                  load3(key.def, key.provider.handlers(key.def),
+                      key.relClasses)));
 
   // Pre-register the most common relational operators, to reduce the number of
   // times we re-generate.
@@ -374,7 +370,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
         buff.append(pair.getKey());
       }
     }
-    final List<Object> argList = new ArrayList<Object>(Pair.right(providerList));
+    final List<Object> argList = new ArrayList<>(Pair.right(providerList));
     argList.add(0, ImmutableList.copyOf(relClasses));
     try {
       return compile(name, buff.toString(), def, argList);

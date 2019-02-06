@@ -21,13 +21,13 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
-import org.apache.calcite.sql.util.SqlBuilder;
 import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteLogger;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 import org.slf4j.LoggerFactory;
 
@@ -141,6 +141,7 @@ public class SqlPrettyWriter implements SqlWriter {
   private final StringWriter sw = new StringWriter();
   protected final PrintWriter pw;
   private final Deque<FrameImpl> listStack = new ArrayDeque<>();
+  private ImmutableList.Builder<Integer> dynamicParameters;
   protected FrameImpl frame;
   private boolean needWhitespace;
   protected String nextWhitespace;
@@ -279,6 +280,7 @@ public class SqlPrettyWriter implements SqlWriter {
   public void reset() {
     pw.flush();
     Unsafe.clear(sw);
+    dynamicParameters = null;
     setNeedWhitespace(false);
     nextWhitespace = " ";
   }
@@ -810,7 +812,9 @@ public class SqlPrettyWriter implements SqlWriter {
   }
 
   public SqlString toSqlString() {
-    return new SqlBuilder(dialect, toString()).toSqlString();
+    ImmutableList<Integer> dynamicParameters =
+        this.dynamicParameters == null ? null : this.dynamicParameters.build();
+    return new SqlString(dialect, toString(), dynamicParameters);
   }
 
   public SqlDialect getDialect() {
@@ -881,12 +885,6 @@ public class SqlPrettyWriter implements SqlWriter {
   }
 
   public void print(String s) {
-    if (s.equals("(")) {
-      throw new RuntimeException("Use 'startList'");
-    }
-    if (s.equals(")")) {
-      throw new RuntimeException("Use 'endList'");
-    }
     maybeWhitespace(s);
     pw.print(s);
     charCount += s.length();
@@ -907,6 +905,15 @@ public class SqlPrettyWriter implements SqlWriter {
     maybeWhitespace(qName);
     pw.print(qName);
     charCount += qName.length();
+    setNeedWhitespace(true);
+  }
+
+  @Override public void dynamicParam(int index) {
+    if (dynamicParameters == null) {
+      dynamicParameters = ImmutableList.builder();
+    }
+    dynamicParameters.add(index);
+    print("?");
     setNeedWhitespace(true);
   }
 
@@ -1142,7 +1149,7 @@ public class SqlPrettyWriter implements SqlWriter {
       final Set<String> names = new HashSet<>();
       names.addAll(getterMethods.keySet());
       names.addAll(setterMethods.keySet());
-      return names.toArray(new String[names.size()]);
+      return names.toArray(new String[0]);
     }
   }
 }

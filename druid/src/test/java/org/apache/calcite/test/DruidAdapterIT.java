@@ -20,29 +20,25 @@ import org.apache.calcite.adapter.druid.DruidQuery;
 import org.apache.calcite.adapter.druid.DruidSchema;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
-import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 
 import org.junit.Test;
 
 import java.net.URL;
-import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -111,18 +107,15 @@ public class DruidAdapterIT {
     return ENABLED;
   }
 
-  /** Returns a function that checks that a particular Druid query is
+  /** Returns a consumer that checks that a particular Druid query is
    * generated to implement a query. */
-  private static Function<List, Void> druidChecker(final String... lines) {
-    return new Function<List, Void>() {
-      public Void apply(List list) {
-        assertThat(list.size(), is(1));
-        DruidQuery.QuerySpec querySpec = (DruidQuery.QuerySpec) list.get(0);
-        for (String line : lines) {
-          final String s = line.replace('\'', '"');
-          assertThat(querySpec.getQueryString(null, -1), containsString(s));
-        }
-        return null;
+  private static Consumer<List> druidChecker(final String... lines) {
+    return list -> {
+      assertThat(list.size(), is(1));
+      DruidQuery.QuerySpec querySpec = (DruidQuery.QuerySpec) list.get(0);
+      for (String line : lines) {
+        final String s = line.replace('\'', '"');
+        assertThat(querySpec.getQueryString(null, -1), containsString(s));
       }
     };
   }
@@ -144,7 +137,7 @@ public class DruidAdapterIT {
   private CalciteAssert.AssertQuery approxQuery(URL url, String sql) {
     return CalciteAssert.that()
             .enable(enabled())
-            .with(CalciteConnectionProperty.MODEL, url.getPath())
+            .withModel(url)
             .with(CalciteConnectionProperty.APPROXIMATE_DISTINCT_COUNT, true)
             .with(CalciteConnectionProperty.APPROXIMATE_TOP_N, true)
             .with(CalciteConnectionProperty.APPROXIMATE_DECIMAL, true)
@@ -155,7 +148,7 @@ public class DruidAdapterIT {
   private CalciteAssert.AssertQuery sql(String sql, URL url) {
     return CalciteAssert.that()
         .enable(enabled())
-        .with(CalciteConnectionProperty.MODEL, url.getPath())
+        .withModel(url)
         .query(sql);
   }
 
@@ -383,31 +376,29 @@ public class DruidAdapterIT {
 
   @Test public void testMetadataColumns() throws Exception {
     sql("values 1")
-        .withConnection(
-            new Function<Connection, Void>() {
-              public Void apply(Connection c) {
-                try {
-                  final DatabaseMetaData metaData = c.getMetaData();
-                  final ResultSet r =
-                      metaData.getColumns(null, null, "foodmart", null);
-                  Multimap<String, Boolean> map = ArrayListMultimap.create();
-                  while (r.next()) {
-                    map.put(r.getString("TYPE_NAME"), true);
-                  }
-                  System.out.println(map);
-                  // 1 timestamp, 2 float measure, 1 int measure, 88 dimensions
-                  assertThat(map.keySet().size(), is(4));
-                  assertThat(map.values().size(), is(92));
-                  assertThat(map.get("TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL").size(), is(1));
-                  assertThat(map.get("DOUBLE").size(), is(2));
-                  assertThat(map.get("BIGINT").size(), is(1));
-                  assertThat(map.get(VARCHAR_TYPE).size(), is(88));
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                }
-                return null;
-              }
-            });
+        .withConnection(c -> {
+          try {
+            final DatabaseMetaData metaData = c.getMetaData();
+            final ResultSet r =
+                metaData.getColumns(null, null, "foodmart", null);
+            Multimap<String, Boolean> map = ArrayListMultimap.create();
+            while (r.next()) {
+              map.put(r.getString("TYPE_NAME"), true);
+            }
+            if (CalcitePrepareImpl.DEBUG) {
+              System.out.println(map);
+            }
+            // 1 timestamp, 2 float measure, 1 int measure, 88 dimensions
+            assertThat(map.keySet().size(), is(4));
+            assertThat(map.values().size(), is(92));
+            assertThat(map.get("TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL").size(), is(1));
+            assertThat(map.get("DOUBLE").size(), is(2));
+            assertThat(map.get("BIGINT").size(), is(1));
+            assertThat(map.get(VARCHAR_TYPE).size(), is(88));
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   @Test public void testSelectDistinct() {
@@ -502,19 +493,16 @@ public class DruidAdapterIT {
   @Test public void testSelectCount() {
     final String sql = "select count(*) as c from \"foodmart\"";
     sql(sql)
-        .returns(new Function<ResultSet, Void>() {
-          public Void apply(ResultSet input) {
-            try {
-              assertThat(input.next(), is(true));
-              assertThat(input.getInt(1), is(86829));
-              assertThat(input.getLong(1), is(86829L));
-              assertThat(input.getString(1), is("86829"));
-              assertThat(input.wasNull(), is(false));
-              assertThat(input.next(), is(false));
-              return null;
-            } catch (SQLException e) {
-              throw new RuntimeException(e);
-            }
+        .returns(input -> {
+          try {
+            assertThat(input.next(), is(true));
+            assertThat(input.getInt(1), is(86829));
+            assertThat(input.getLong(1), is(86829L));
+            assertThat(input.getString(1), is("86829"));
+            assertThat(input.wasNull(), is(false));
+            assertThat(input.next(), is(false));
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
           }
         });
   }
@@ -677,7 +665,7 @@ public class DruidAdapterIT {
         + "aggs=[[SUM($1)]], sort0=[1], dir0=[DESC], fetch=[3])";
     CalciteAssert.that()
         .enable(enabled())
-        .with(CalciteConnectionProperty.MODEL, FOODMART.getPath())
+        .withModel(FOODMART)
         .with(CalciteConnectionProperty.APPROXIMATE_TOP_N, approx)
         .query(sql)
         .runs()
@@ -798,22 +786,18 @@ public class DruidAdapterIT {
         + "'resultFormat':'compactedList'";
     sql(sql)
         .limit(4)
-        .returns(
-            new Function<ResultSet, Void>() {
-              public Void apply(ResultSet resultSet) {
-                try {
-                  for (int i = 0; i < 4; i++) {
-                    assertTrue(resultSet.next());
-                    assertThat(resultSet.getString("product_name"),
-                        is("Fort West Dried Apricots"));
-                  }
-                  assertFalse(resultSet.next());
-                  return null;
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                }
-              }
-            })
+        .returns(resultSet -> {
+          try {
+            for (int i = 0; i < 4; i++) {
+              assertTrue(resultSet.next());
+              assertThat(resultSet.getString("product_name"),
+                  is("Fort West Dried Apricots"));
+            }
+            assertFalse(resultSet.next());
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        })
         .queryContains(druidChecker(druidQuery));
   }
 
@@ -831,22 +815,18 @@ public class DruidAdapterIT {
         + "'resultFormat':'compactedList'";
     sql(sql)
         .limit(4)
-        .returns(
-            new Function<ResultSet, Void>() {
-              public Void apply(ResultSet resultSet) {
-                try {
-                  for (int i = 0; i < 4; i++) {
-                    assertTrue(resultSet.next());
-                    assertThat(resultSet.getString("product_name"),
-                        is("Fort West Dried Apricots"));
-                  }
-                  assertFalse(resultSet.next());
-                  return null;
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                }
-              }
-            })
+        .returns(resultSet -> {
+          try {
+            for (int i = 0; i < 4; i++) {
+              assertTrue(resultSet.next());
+              assertThat(resultSet.getString("product_name"),
+                  is("Fort West Dried Apricots"));
+            }
+            assertFalse(resultSet.next());
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        })
         .queryContains(druidChecker(druidQuery));
   }
 
@@ -881,22 +861,18 @@ public class DruidAdapterIT {
 
     sql(sql)
         .limit(4)
-        .returns(
-            new Function<ResultSet, Void>() {
-              public Void apply(ResultSet resultSet) {
-                try {
-                  for (int i = 0; i < 4; i++) {
-                    assertTrue(resultSet.next());
-                    assertThat(resultSet.getString("product_name"),
-                        is("Fort West Dried Apricots"));
-                  }
-                  assertFalse(resultSet.next());
-                  return null;
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                }
-              }
-            })
+        .returns(resultSet -> {
+          try {
+            for (int i = 0; i < 4; i++) {
+              assertTrue(resultSet.next());
+              assertThat(resultSet.getString("product_name"),
+                  is("Fort West Dried Apricots"));
+            }
+            assertFalse(resultSet.next());
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        })
         .queryContains(druidChecker(druidQuery, druidFilter, druidQuery2));
   }
 
@@ -2001,43 +1977,39 @@ public class DruidAdapterIT {
     String druidQuery = "'filter':{'type':'bound','dimension':'product_id',"
         + "'upper':'10','upperStrict':true,'ordering':'numeric'}";
     sql("?")
-        .withRel(new Function<RelBuilder, RelNode>() {
-          public RelNode apply(RelBuilder b) {
-            // select product_id
-            // from foodmart.foodmart
-            // where product_id < cast(10 as varchar)
-            final RelDataType intType =
-                b.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
-            return b.scan("foodmart", "foodmart")
-                .filter(
-                    b.call(SqlStdOperatorTable.LESS_THAN,
-                        b.getRexBuilder().makeCall(intType,
-                            SqlStdOperatorTable.CAST,
-                            ImmutableList.<RexNode>of(b.field("product_id"))),
-                        b.getRexBuilder().makeCall(intType,
-                            SqlStdOperatorTable.CAST,
-                            ImmutableList.of(b.literal("10")))))
-                .project(b.field("product_id"))
-                .build();
-          }
+        .withRel(b -> {
+          // select product_id
+          // from foodmart.foodmart
+          // where product_id < cast(10 as varchar)
+          final RelDataType intType =
+              b.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+          return b.scan("foodmart", "foodmart")
+              .filter(
+                  b.call(SqlStdOperatorTable.LESS_THAN,
+                      b.getRexBuilder().makeCall(intType,
+                          SqlStdOperatorTable.CAST,
+                          ImmutableList.of(b.field("product_id"))),
+                      b.getRexBuilder().makeCall(intType,
+                          SqlStdOperatorTable.CAST,
+                          ImmutableList.of(b.literal("10")))))
+              .project(b.field("product_id"))
+              .build();
         })
         .queryContains(druidChecker(druidQuery));
   }
 
   @Test public void testPushFieldEqualsLiteral() {
     sql("?")
-        .withRel(new Function<RelBuilder, RelNode>() {
-          public RelNode apply(RelBuilder b) {
-            // select count(*) as c
-            // from foodmart.foodmart
-            // where product_id = 'id'
-            return b.scan("foodmart", "foodmart")
-                .filter(
-                    b.call(SqlStdOperatorTable.EQUALS, b.field("product_id"),
-                        b.literal("id")))
-                .aggregate(b.groupKey(), b.countStar("c"))
-                .build();
-          }
+        .withRel(b -> {
+          // select count(*) as c
+          // from foodmart.foodmart
+          // where product_id = 'id'
+          return b.scan("foodmart", "foodmart")
+              .filter(
+                  b.call(SqlStdOperatorTable.EQUALS, b.field("product_id"),
+                      b.literal("id")))
+              .aggregate(b.groupKey(), b.countStar("c"))
+              .build();
         })
         // Should return one row, "c=0"; logged
         // [CALCITE-1775] "GROUP BY ()" on empty relation should return 1 row
@@ -2992,7 +2964,7 @@ public class DruidAdapterIT {
       String expectedDruidQuery) {
     CalciteAssert.that()
         .enable(enabled())
-        .with(CalciteConnectionProperty.MODEL, FOODMART.getPath())
+        .withModel(FOODMART)
         .with(CalciteConnectionProperty.APPROXIMATE_DISTINCT_COUNT, approx)
         .query(sql)
         .runs()
@@ -3293,7 +3265,7 @@ public class DruidAdapterIT {
 
     CalciteAssert.that()
         .enable(enabled())
-        .with(CalciteConnectionProperty.MODEL, WIKI_AUTO2.getPath())
+        .withModel(WIKI_AUTO2)
         .with(CalciteConnectionProperty.TIME_ZONE, "Asia/Kolkata")
         .query(sql)
         .runs()
@@ -3315,7 +3287,7 @@ public class DruidAdapterIT {
         + "\"locale\":\"und\"}}";
     CalciteAssert.that()
         .enable(enabled())
-        .with(ImmutableMap.of("model", WIKI_AUTO2.getPath()))
+        .withModel(WIKI_AUTO2)
         .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "Asia/Kolkata")
         .query(sql)
         .runs()
@@ -3341,7 +3313,7 @@ public class DruidAdapterIT {
 
     CalciteAssert.that()
         .enable(enabled())
-        .with(CalciteConnectionProperty.MODEL, WIKI_AUTO2.getPath())
+        .withModel(WIKI_AUTO2)
         .with(CalciteConnectionProperty.TIME_ZONE, "Asia/Kolkata")
         .query(sql)
         .runs()
@@ -3374,7 +3346,7 @@ public class DruidAdapterIT {
         + "\"expression\",\"name\":\"vc\",\"expression\":\"timestamp_parse";
     CalciteAssert.that()
         .enable(enabled())
-        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .withModel(FOODMART)
         .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "Asia/Kolkata")
         .query(sql)
         .runs()
@@ -3644,7 +3616,7 @@ public class DruidAdapterIT {
     final String filterTimezoneName = "America/Los_Angeles";
     CalciteAssert.that()
         .enable(enabled())
-        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .withModel(FOODMART)
         .with(CalciteConnectionProperty.TIME_ZONE.camelName(), filterTimezoneName)
         .query(sql)
         .runs()
@@ -3661,7 +3633,7 @@ public class DruidAdapterIT {
     final String filterTimezoneName = "America/Los_Angeles";
     CalciteAssert.that()
         .enable(enabled())
-        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .withModel(FOODMART)
         .with(CalciteConnectionProperty.TIME_ZONE.camelName(), filterTimezoneName)
         .query(sql)
         .runs()
@@ -3676,7 +3648,7 @@ public class DruidAdapterIT {
             + "group by EXTRACT(HOUR from \"timestamp\") ";
     CalciteAssert.that()
         .enable(enabled())
-        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .withModel(FOODMART)
         .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "America/Los_Angeles")
         .query(sql)
         .runs()
@@ -3688,7 +3660,7 @@ public class DruidAdapterIT {
             + "group by EXTRACT(HOUR from \"timestamp\") ";
     CalciteAssert.that()
         .enable(enabled())
-        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .withModel(FOODMART)
         .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "EST")
         .query(sql2)
         .runs()
@@ -3699,7 +3671,7 @@ public class DruidAdapterIT {
             + "group by EXTRACT(HOUR from \"timestamp\") ";
     CalciteAssert.that()
         .enable(enabled())
-        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .withModel(FOODMART)
         .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "UTC")
         .query(sql3)
         .runs()
@@ -3713,7 +3685,7 @@ public class DruidAdapterIT {
         + "group by EXTRACT(HOUR from CAST(\"timestamp\" AS TIMESTAMP)) ";
     CalciteAssert.that()
         .enable(enabled())
-        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .withModel(FOODMART)
         .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "America/Los_Angeles")
         .query(sql)
         .runs()
@@ -3725,7 +3697,7 @@ public class DruidAdapterIT {
         + "group by EXTRACT(HOUR from CAST(\"timestamp\" AS TIMESTAMP)) ";
     CalciteAssert.that()
         .enable(enabled())
-        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .withModel(FOODMART)
         .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "EST")
         .query(sql2)
         .runs()
@@ -3736,7 +3708,7 @@ public class DruidAdapterIT {
         + "group by EXTRACT(HOUR from CAST(\"timestamp\" AS TIMESTAMP)) ";
     CalciteAssert.that()
         .enable(enabled())
-        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .withModel(FOODMART)
         .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "UTC")
         .query(sql3)
         .runs()
@@ -4556,8 +4528,7 @@ public class DruidAdapterIT {
                     + "[{\"type\":\"default\",\"dimension\":\"vc\",\"outputName\":\"vc\",\"outputType\":\"LONG\"},"
                     + "{\"type\":\"default\",\"dimension\":\"product_id\",\"outputName\":\"product_id\",\"outputType\":\"STRING\"}],"
                     + "\"virtualColumns\":[{\"type\":\"expression\",\"name\":\"vc\",\"expression\":\"timestamp_extract(\\\"__time\\\",",
-                "QUARTER"
-            ));
+                "QUARTER"));
   }
 
   @Test
@@ -4575,8 +4546,7 @@ public class DruidAdapterIT {
                 "{\"queryType\":\"groupBy\",\"dataSource\":\"foodmart\",\"granularity\":\"all\","
                     + "\"dimensions\":[{\"type\":\"default\",\"dimension\":\"vc\",\"outputName\":\"vc\",\"outputType\":\"LONG\"}],"
                     + "\"virtualColumns\":[{\"type\":\"expression\",\"name\":\"vc\",\"expression\":\"timestamp_extract(\\\"__time\\\",",
-                "QUARTER"
-            ));
+                "QUARTER"));
   }
 
 

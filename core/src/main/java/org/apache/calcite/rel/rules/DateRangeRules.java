@@ -30,7 +30,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
-import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlKind;
@@ -44,8 +43,6 @@ import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -64,8 +61,11 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.function.Predicate;
+import javax.annotation.Nonnull;
 
 /**
  * Collection of planner rules that convert
@@ -92,17 +92,15 @@ public abstract class DateRangeRules {
   private DateRangeRules() {}
 
   private static final Predicate<Filter> FILTER_PREDICATE =
-      new PredicateImpl<Filter>() {
-        @Override public boolean test(Filter filter) {
-          try (ExtractFinder finder = ExtractFinder.THREAD_INSTANCES.get()) {
-            assert finder.timeUnits.isEmpty() && finder.opKinds.isEmpty()
-                : "previous user did not clean up";
-            filter.getCondition().accept(finder);
-            // bail out if there is no EXTRACT of YEAR, or call to FLOOR or CEIL
-            return finder.timeUnits.contains(TimeUnitRange.YEAR)
-                || finder.opKinds.contains(SqlKind.FLOOR)
-                || finder.opKinds.contains(SqlKind.CEIL);
-          }
+      filter -> {
+        try (ExtractFinder finder = ExtractFinder.THREAD_INSTANCES.get()) {
+          assert finder.timeUnits.isEmpty() && finder.opKinds.isEmpty()
+              : "previous user did not clean up";
+          filter.getCondition().accept(finder);
+          // bail out if there is no EXTRACT of YEAR, or call to FLOOR or CEIL
+          return finder.timeUnits.contains(TimeUnitRange.YEAR)
+              || finder.opKinds.contains(SqlKind.FLOOR)
+              || finder.opKinds.contains(SqlKind.CEIL);
         }
       };
 
@@ -160,7 +158,7 @@ public abstract class DateRangeRules {
       timeUnits = ImmutableSortedSet.<TimeUnitRange>naturalOrder()
           .addAll(timeUnits).add(TimeUnitRange.YEAR).build();
     }
-    final Map<String, RangeSet<Calendar>> operandRanges = new HashMap<>();
+    final Map<RexNode, RangeSet<Calendar>> operandRanges = new HashMap<>();
     for (TimeUnitRange timeUnit : timeUnits) {
       e = e.accept(
           new ExtractShuttle(rexBuilder, timeUnit, operandRanges, timeUnits,
@@ -174,7 +172,7 @@ public abstract class DateRangeRules {
   @SuppressWarnings("WeakerAccess")
   public static class FilterDateRangeRule extends RelOptRule {
     public FilterDateRangeRule(RelBuilderFactory relBuilderFactory) {
-      super(operand(Filter.class, null, FILTER_PREDICATE, any()),
+      super(operandJ(Filter.class, null, FILTER_PREDICATE, any()),
           relBuilderFactory, "FilterDateRangeRule");
     }
 
@@ -185,7 +183,7 @@ public abstract class DateRangeRules {
           .unwrap(CalciteConnectionConfig.class).timeZone();
       final RexNode condition =
           replaceTimeUnits(rexBuilder, filter.getCondition(), timeZone);
-      if (RexUtil.eq(condition, filter.getCondition())) {
+      if (condition.equals(filter.getCondition())) {
         return;
       }
       final RelBuilder relBuilder =
@@ -205,11 +203,7 @@ public abstract class DateRangeRules {
     private final Set<SqlKind> opKinds = EnumSet.noneOf(SqlKind.class);
 
     private static final ThreadLocal<ExtractFinder> THREAD_INSTANCES =
-        new ThreadLocal<ExtractFinder>() {
-          @Override protected ExtractFinder initialValue() {
-            return new ExtractFinder();
-          }
-        };
+        ThreadLocal.withInitial(ExtractFinder::new);
 
     private ExtractFinder() {
       super(true);
@@ -244,21 +238,21 @@ public abstract class DateRangeRules {
   static class ExtractShuttle extends RexShuttle {
     private final RexBuilder rexBuilder;
     private final TimeUnitRange timeUnit;
-    private final Map<String, RangeSet<Calendar>> operandRanges;
+    private final Map<RexNode, RangeSet<Calendar>> operandRanges;
     private final Deque<RexCall> calls = new ArrayDeque<>();
     private final ImmutableSortedSet<TimeUnitRange> timeUnitRanges;
     private final String timeZone;
 
     @VisibleForTesting
     ExtractShuttle(RexBuilder rexBuilder, TimeUnitRange timeUnit,
-        Map<String, RangeSet<Calendar>> operandRanges,
+        Map<RexNode, RangeSet<Calendar>> operandRanges,
         ImmutableSortedSet<TimeUnitRange> timeUnitRanges, String timeZone) {
-      this.rexBuilder = Preconditions.checkNotNull(rexBuilder);
-      this.timeUnit = Preconditions.checkNotNull(timeUnit);
+      this.rexBuilder = Objects.requireNonNull(rexBuilder);
+      this.timeUnit = Objects.requireNonNull(timeUnit);
       Bug.upgrade("Change type to Map<RexNode, RangeSet<Calendar>> when"
           + " [CALCITE-1367] is fixed");
-      this.operandRanges = Preconditions.checkNotNull(operandRanges);
-      this.timeUnitRanges = Preconditions.checkNotNull(timeUnitRanges);
+      this.operandRanges = Objects.requireNonNull(operandRanges);
+      this.timeUnitRanges = Objects.requireNonNull(timeUnitRanges);
       this.timeZone = timeZone;
     }
 
@@ -338,8 +332,7 @@ public abstract class DateRangeRules {
       if (timeUnit == TimeUnitRange.YEAR) {
         return true;
       }
-      final RangeSet<Calendar> calendarRangeSet =
-          operandRanges.get(operand.toString());
+      final RangeSet<Calendar> calendarRangeSet = operandRanges.get(operand);
       if (calendarRangeSet == null || calendarRangeSet.isEmpty()) {
         return false;
       }
@@ -367,7 +360,7 @@ public abstract class DateRangeRules {
           //noinspection unchecked
           return (List<RexNode>) exprs;
         }
-        final Map<String, RangeSet<Calendar>> save =
+        final Map<RexNode, RangeSet<Calendar>> save =
             ImmutableMap.copyOf(operandRanges);
         final ImmutableList.Builder<RexNode> clonedOperands =
             ImmutableList.builder();
@@ -406,7 +399,7 @@ public abstract class DateRangeRules {
 
     RexNode compareExtract(SqlKind comparison, RexNode operand,
         RexLiteral literal) {
-      RangeSet<Calendar> rangeSet = operandRanges.get(operand.toString());
+      RangeSet<Calendar> rangeSet = operandRanges.get(operand);
       if (rangeSet == null) {
         rangeSet = ImmutableRangeSet.<Calendar>of().complement();
       }
@@ -445,7 +438,7 @@ public abstract class DateRangeRules {
       }
       // Intersect old range set with new.
       s2.removeAll(rangeSet.complement());
-      operandRanges.put(operand.toString(), ImmutableRangeSet.copyOf(s2));
+      operandRanges.put(operand, ImmutableRangeSet.copyOf(s2));
       final List<RexNode> nodes = new ArrayList<>();
       for (Range<Calendar> r : s2.asRanges()) {
         nodes.add(toRex(operand, r));
@@ -495,7 +488,7 @@ public abstract class DateRangeRules {
       }
     }
 
-    private RexNode toRex(RexNode operand, Range<Calendar> r) {
+    private @Nonnull RexNode toRex(RexNode operand, Range<Calendar> r) {
       final List<RexNode> nodes = new ArrayList<>();
       if (r.hasLowerBound()) {
         final SqlBinaryOperator op = r.lowerBoundType() == BoundType.CLOSED
@@ -513,7 +506,7 @@ public abstract class DateRangeRules {
             rexBuilder.makeCall(op, operand,
                 dateTimeLiteral(rexBuilder, r.upperEndpoint(), operand)));
       }
-      return RexUtil.composeConjunction(rexBuilder, nodes, false);
+      return RexUtil.composeConjunction(rexBuilder, nodes);
     }
 
     private RexLiteral dateTimeLiteral(RexBuilder rexBuilder, Calendar calendar,
@@ -575,7 +568,7 @@ public abstract class DateRangeRules {
 
     private RexNode compareFloorCeil(SqlKind comparison, RexNode operand,
         RexLiteral timeLiteral, TimeUnitRange timeUnit, boolean floor) {
-      RangeSet<Calendar> rangeSet = operandRanges.get(operand.toString());
+      RangeSet<Calendar> rangeSet = operandRanges.get(operand);
       if (rangeSet == null) {
         rangeSet = ImmutableRangeSet.<Calendar>of().complement();
       }
@@ -587,7 +580,7 @@ public abstract class DateRangeRules {
       s2.add(range);
       // Intersect old range set with new.
       s2.removeAll(rangeSet.complement());
-      operandRanges.put(operand.toString(), ImmutableRangeSet.copyOf(s2));
+      operandRanges.put(operand, ImmutableRangeSet.copyOf(s2));
       if (range.isEmpty()) {
         return rexBuilder.makeLiteral(false);
       }

@@ -47,6 +47,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.AbstractList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A relational expression representing a set of window aggregates.
@@ -316,6 +317,7 @@ public abstract class Window extends SingleRel {
           final SqlAggFunction op = (SqlAggFunction) aggCall.getOperator();
           return AggregateCall.create(op, aggCall.distinct,
               false, getProjectOrdinals(aggCall.getOperands()), -1,
+              RelCollations.EMPTY,
               aggCall.getType(), fieldNames.get(aggCall.ordinal));
         }
       };
@@ -358,6 +360,18 @@ public abstract class Window extends SingleRel {
       super(type, aggFun, operands);
       this.ordinal = ordinal;
       this.distinct = distinct;
+    }
+
+    /** {@inheritDoc}
+     *
+     * <p>Override {@link RexCall}, defining equality based on identity.
+     */
+    @Override public boolean equals(Object obj) {
+      return this == obj;
+    }
+
+    @Override public int hashCode() {
+      return Objects.hash(digest, ordinal, distinct);
     }
 
     @Override public RexCall clone(RelDataType type, List<RexNode> operands) {

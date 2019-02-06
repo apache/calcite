@@ -96,7 +96,7 @@ public class EnumerableMergeJoin extends EquiJoin implements EnumerableRel {
       traitSet = traitSet.replace(collations);
     }
     return new EnumerableMergeJoin(cluster, traitSet, left, right, condition,
-        leftKeys, rightKeys, ImmutableSet.<CorrelationId>of(), joinType);
+        leftKeys, rightKeys, ImmutableSet.of(), joinType);
   }
 
   @Override public EnumerableMergeJoin copy(RelTraitSet traitSet,

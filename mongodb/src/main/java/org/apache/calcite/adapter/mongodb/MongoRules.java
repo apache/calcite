@@ -131,7 +131,7 @@ public class MongoRules {
     private final List<String> inFields;
 
     private static final Map<SqlOperator, String> MONGO_OPERATORS =
-        new HashMap<SqlOperator, String>();
+        new HashMap<>();
 
     static {
       // Arithmetic
@@ -236,7 +236,7 @@ public class MongoRules {
     }
 
     public List<String> visitList(List<RexNode> list) {
-      final List<String> strings = new ArrayList<String>();
+      final List<String> strings = new ArrayList<>();
       for (RexNode node : list) {
         strings.add(node.accept(this));
       }

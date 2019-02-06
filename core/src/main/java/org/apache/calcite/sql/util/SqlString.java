@@ -18,6 +18,8 @@ package org.apache.calcite.sql.util;
 
 import org.apache.calcite.sql.SqlDialect;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * String that represents a kocher SQL statement, expression, or fragment.
  *
@@ -28,29 +30,40 @@ import org.apache.calcite.sql.SqlDialect;
  * <p>The easiest way to do build a SqlString is to use a {@link SqlBuilder}.
  */
 public class SqlString {
-  private final String s;
+  private final String sql;
   private SqlDialect dialect;
+  private ImmutableList<Integer> dynamicParameters;
 
   /**
    * Creates a SqlString.
-   *
-   * @param s Contents of string
    */
-  public SqlString(SqlDialect dialect, String s) {
+  public SqlString(SqlDialect dialect, String sql) {
+    this(dialect, sql, ImmutableList.of());
+  }
+
+  /**
+   * Creates a SqlString. The SQL might contain dynamic parameters, dynamicParameters
+   * designate the order of the parameters.
+   *
+   * @param sql text
+   * @param dynamicParameters indices
+   */
+  public SqlString(SqlDialect dialect, String sql, ImmutableList<Integer> dynamicParameters) {
     this.dialect = dialect;
-    this.s = s;
-    assert s != null;
-    assert dialect != null;
+    this.sql = sql;
+    this.dynamicParameters = dynamicParameters;
+    assert sql != null : "sql must be NOT null";
+    assert dialect != null : "dialect must be NOT null";
   }
 
   @Override public int hashCode() {
-    return s.hashCode();
+    return sql.hashCode();
   }
 
   @Override public boolean equals(Object obj) {
     return obj == this
         || obj instanceof SqlString
-        && s.equals(((SqlString) obj).s);
+        && sql.equals(((SqlString) obj).sql);
   }
 
   /**
@@ -62,7 +75,7 @@ public class SqlString {
    * @see #getSql()
    */
   @Override public String toString() {
-    return s;
+    return sql;
   }
 
   /**
@@ -71,7 +84,16 @@ public class SqlString {
    * @return SQL string
    */
   public String getSql() {
-    return s;
+    return sql;
+  }
+
+  /**
+   * Returns indices of dynamic parameters.
+   *
+   * @return indices of dynamic parameters
+   */
+  public ImmutableList<Integer> getDynamicParameters() {
+    return dynamicParameters;
   }
 
   /**
