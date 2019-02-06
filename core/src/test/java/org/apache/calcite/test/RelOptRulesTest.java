@@ -44,6 +44,7 @@ import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableModify;
@@ -137,6 +138,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.function.Predicate;
@@ -4346,6 +4348,85 @@ public class RelOptRulesTest extends RelOptTestBase {
     final RelNode relAfter = hepPlanner.findBestExp();
     final String planAfter = NL + RelOptUtil.toString(relAfter);
     diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+  }
+
+  @Test public void testReduceAverageWithNoReduceSum() {
+    final EnumSet<SqlKind> functionsToReduce = EnumSet.of(SqlKind.AVG);
+    checkPlanning(
+        new AggregateReduceFunctionsRule(
+          LogicalAggregate.class, RelFactories.LOGICAL_BUILDER,
+            functionsToReduce),
+                  "select name, max(name), avg(deptno), min(name)"
+                          + " from sales.dept group by name");
+  }
+
+  @Test public void testNoReduceAverage() {
+    final EnumSet<SqlKind> functionsToReduce = EnumSet.noneOf(SqlKind.class);
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(
+          new AggregateReduceFunctionsRule(LogicalAggregate.class,
+            RelFactories.LOGICAL_BUILDER, functionsToReduce))
+        .build();
+    String sql = "select name, max(name), avg(deptno), min(name)"
+        + " from sales.dept group by name";
+    sql(sql).with(program).checkUnchanged();
+  }
+
+  @Test public void testNoReduceSum() {
+    final EnumSet<SqlKind> functionsToReduce = EnumSet.noneOf(SqlKind.class);
+    HepProgram program = new HepProgramBuilder()
+            .addRuleInstance(
+              new AggregateReduceFunctionsRule(LogicalAggregate.class,
+                RelFactories.LOGICAL_BUILDER, functionsToReduce))
+            .build();
+    String sql = "select name, sum(deptno)"
+            + " from sales.dept group by name";
+    sql(sql).with(program).checkUnchanged();
+  }
+
+  @Test public void testReduceAverageAndVarWithNoReduceStddev() {
+    // configure rule to reduce AVG and VAR_POP functions
+    // other functions like SUM, STDDEV won't be reduced
+    final EnumSet<SqlKind> functionsToReduce = EnumSet.of(SqlKind.AVG, SqlKind.VAR_POP);
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(
+         new AggregateReduceFunctionsRule(LogicalAggregate.class,
+           RelFactories.LOGICAL_BUILDER, functionsToReduce))
+        .build();
+    final String sql = "select name, stddev_pop(deptno), avg(deptno),"
+        + " var_pop(deptno)\n"
+        + "from sales.dept group by name";
+    sql(sql).with(program).check();
+  }
+
+  @Test public void testReduceAverageAndSumWithNoReduceStddevAndVar() {
+    // configure rule to reduce AVG and SUM functions
+    // other functions like VAR_POP, STDDEV_POP won't be reduced
+    final EnumSet<SqlKind> functionsToReduce = EnumSet.of(SqlKind.AVG, SqlKind.SUM);
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(
+          new AggregateReduceFunctionsRule(LogicalAggregate.class,
+            RelFactories.LOGICAL_BUILDER, functionsToReduce))
+        .build();
+    final String sql = "select name, stddev_pop(deptno), avg(deptno),"
+        + " var_pop(deptno)\n"
+        + "from sales.dept group by name";
+    sql(sql).with(program).check();
+  }
+
+  @Test public void testReduceAllAggregateFunctions() {
+    // configure rule to reduce all used functions
+    final EnumSet<SqlKind> functionsToReduce = EnumSet.of(SqlKind.AVG, SqlKind.SUM,
+        SqlKind.STDDEV_POP, SqlKind.STDDEV_SAMP, SqlKind.VAR_POP, SqlKind.VAR_SAMP);
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(
+          new AggregateReduceFunctionsRule(LogicalAggregate.class,
+            RelFactories.LOGICAL_BUILDER, functionsToReduce))
+        .build();
+    final String sql = "select name, stddev_pop(deptno), avg(deptno),"
+        + " stddev_samp(deptno), var_pop(deptno), var_samp(deptno)\n"
+        + "from sales.dept group by name";
+    sql(sql).with(program).check();
   }
 }
 
