@@ -1,0 +1,9 @@
+DEPTNO:int,NAME:string
+10,"Sales"
+
+20,"Marketing"
+30,"Accounts"
+
+ 31,"My Dept"
+32,  "My Another Depts"
+
