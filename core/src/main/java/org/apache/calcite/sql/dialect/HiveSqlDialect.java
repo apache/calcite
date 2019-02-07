@@ -129,8 +129,8 @@ public class HiveSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public void unparseSqlIntervalLiteral(SqlWriter writer,
-      SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
+  public void unparseSqlIntervalLiteralHive(SqlWriter writer,
+      SqlIntervalLiteral literal) {
     SqlIntervalLiteral.IntervalValue interval =
         (SqlIntervalLiteral.IntervalValue) literal.getValue();
     if (interval.getSign() == -1) {
@@ -154,7 +154,7 @@ public class HiveSqlDialect extends SqlDialect {
       writer.sep(",");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.sep(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      unparseSqlIntervalLiteralHive(writer, call.operand(1));
       writer.endFunCall(dateAddFrame);
       break;
     case MINUS:

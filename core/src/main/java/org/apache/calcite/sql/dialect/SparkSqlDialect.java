@@ -117,8 +117,8 @@ public class SparkSqlDialect extends SqlDialect {
     }
   }
 
-  @Override public void unparseSqlIntervalLiteral(SqlWriter writer,
-      SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
+  public void unparseSqlIntervalLiteralSpark(SqlWriter writer,
+      SqlIntervalLiteral literal) {
     SqlIntervalLiteral.IntervalValue interval =
         (SqlIntervalLiteral.IntervalValue) literal.getValue();
     if (interval.getSign() == -1) {
@@ -142,7 +142,7 @@ public class SparkSqlDialect extends SqlDialect {
       writer.sep(",");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.sep(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      unparseSqlIntervalLiteralSpark(writer, call.operand(1));
       writer.endFunCall(dateAddFrame);
       break;
     case MINUS:
