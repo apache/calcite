@@ -190,7 +190,11 @@ public class JdbcToEnumerableConverter
               sql_,
               rowBuilderFactory_));
     }
-
+    builder0.add(
+        Expressions.statement(
+            Expressions.call(enumerable,
+                BuiltInMethod.RESULT_SET_ENUMERABLE_SET_TIMEOUT.method,
+                DataContext.ROOT)));
     builder0.add(
         Expressions.return_(null, enumerable));
     return implementor.result(physType, builder0.toBlock());

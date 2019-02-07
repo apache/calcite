@@ -19,6 +19,7 @@ package org.apache.calcite.rex;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
@@ -34,6 +35,7 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.SaffronProperties;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
@@ -197,7 +199,6 @@ public class RexLiteral extends RexNode {
    */
   private final SqlTypeName typeName;
 
-
   private static final ImmutableList<TimeUnit> TIME_UNITS =
       ImmutableList.copyOf(TimeUnit.values());
 
@@ -216,10 +217,71 @@ public class RexLiteral extends RexNode {
     Preconditions.checkArgument(valueMatchesType(value, typeName, true));
     Preconditions.checkArgument((value == null) == type.isNullable());
     Preconditions.checkArgument(typeName != SqlTypeName.ANY);
-    this.digest = toJavaString(value, typeName);
+    this.digest = computeDigest(RexDigestIncludeType.OPTIONAL);
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Returns a string which concisely describes the definition of this
+   * rex literal. Two literals are equivalent if and only if their digests are the same.
+   *
+   * <p>The digest does not contain the expression's identity, but does include the identity
+   * of children.
+   *
+   * <p>Technically speaking 1:INT differs from 1:FLOAT, so we need data type in the literal's
+   * digest, however we want to avoid extra verbosity of the {@link RelNode#getDigest()} for
+   * readability purposes, so we omit type info in certain cases.
+   * For instance, 1:INT becomes 1 (INT is implied by default), however 1:BIGINT always holds
+   * the type
+   *
+   * <p>Here's a non-exhaustive list of the "well known cases":
+   * <ul><li>Hide "NOT NULL" for not null literals
+   * <li>Hide INTEGER, BOOLEAN, SYMBOL, TIME(0), TIMESTAMP(0), DATE(0) types
+   * <li>Hide collation when it matches IMPLICIT/COERCIBLE
+   * <li>Hide charset when it matches default
+   * <li>Hide CHAR(xx) when literal length is equal to the precision of the type.
+   * In other words, use 'Bob' instead of 'Bob':CHAR(3)
+   * <li>Hide BOOL for AND/OR arguments. In other words, AND(true, null) means
+   * null is BOOL.
+   * <li>Hide types for literals in simple binary operations (e.g. +, -, *, /,
+   * comparison) when type of the other argument is clear.
+   * See {@link RexCall#computeDigest(boolean)}
+   * For instance: =(true. null) means null is BOOL. =($0, null) means the type
+   * of null matches the type of $0.
+   * </ul>
+   *
+   * @param includeType whether the digest should include type or not
+   * @return digest
+   */
+  public final String computeDigest(RexDigestIncludeType includeType) {
+    if (includeType == RexDigestIncludeType.OPTIONAL) {
+      if (digest != null) {
+        // digest is initialized with OPTIONAL, so cached value matches for
+        // includeType=OPTIONAL as well
+        return digest;
+      }
+      // Compute we should include the type or not
+      includeType = digestIncludesType();
+    } else if (digest != null && includeType == digestIncludesType()) {
+      // The digest is always computed with includeType=OPTIONAL
+      // If it happened to omit the type, we want to optimize computeDigest(NO_TYPE) as well
+      // If the digest includes the type, we want to optimize computeDigest(ALWAYS)
+      return digest;
+    }
+
+    return toJavaString(value, typeName, type, includeType);
+  }
+
+  /**
+   * Returns true if {@link RexDigestIncludeType#OPTIONAL} digest would include data type.
+   *
+   * @see RexCall#computeDigest(boolean)
+   * @return true if {@link RexDigestIncludeType#OPTIONAL} digest would include data type
+   */
+  RexDigestIncludeType digestIncludesType() {
+    return shouldIncludeType(value, type);
+  }
 
   /**
    * @return whether value is appropriate for its type (we have rules about
@@ -312,15 +374,85 @@ public class RexLiteral extends RexNode {
 
   private static String toJavaString(
       Comparable value,
-      SqlTypeName typeName) {
+      SqlTypeName typeName, RelDataType type,
+      RexDigestIncludeType includeType) {
+    assert includeType != RexDigestIncludeType.OPTIONAL
+        : "toJavaString must not be called with includeType=OPTIONAL";
+    String fullTypeString = type.getFullTypeString();
     if (value == null) {
-      return "null";
+      return includeType == RexDigestIncludeType.NO_TYPE ? "null" : "null:" + fullTypeString;
     }
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);
-    printAsJava(value, pw, typeName, false);
+    printAsJava(value, pw, typeName, false, includeType);
     pw.flush();
+
+    if (includeType != RexDigestIncludeType.NO_TYPE) {
+      sw.append(':');
+      if (!fullTypeString.endsWith("NOT NULL")) {
+        sw.append(fullTypeString);
+      } else {
+        // Trim " NOT NULL". Apparently, the literal is not null, so we just print the data type.
+        Unsafe.append(sw, fullTypeString, 0, fullTypeString.length() - 9);
+      }
+    }
     return sw.toString();
+  }
+
+  /**
+   * Computes if data type can be omitted from the digset.
+   * <p>For instance, {@code 1:BIGINT} has to keep data type while {@code 1:INT}
+   * should be represented as just {@code 1}.
+   *
+   * <p>Implementation assumption: this method should be fast. In fact might call
+   * {@link NlsString#getValue()} which could decode the string, however we rely on the cache there.
+   *
+   * @see RexLiteral#computeDigest(RexDigestIncludeType)
+   * @param value value of the literal
+   * @param type type of the literal
+   * @return NO_TYPE when type can be omitted, ALWAYS otherwise
+   */
+  private static RexDigestIncludeType shouldIncludeType(Comparable value, RelDataType type) {
+    if (type.isNullable()) {
+      // This means "null literal", so we require a type for it
+      // There might be exceptions like AND(null, true) which are handled by RexCall#computeDigest
+      return RexDigestIncludeType.ALWAYS;
+    }
+    // The variable here simplifies debugging (one can set a breakpoint at return)
+    // final ensures we set the value in all the branches, and it ensures the value is set just once
+    final RexDigestIncludeType includeType;
+    if (type.getSqlTypeName() == SqlTypeName.BOOLEAN
+        || type.getSqlTypeName() == SqlTypeName.INTEGER
+        || type.getSqlTypeName() == SqlTypeName.SYMBOL) {
+      // We don't want false:BOOLEAN NOT NULL, so we don't print type information for
+      // non-nullable BOOLEAN and INTEGER
+      includeType = RexDigestIncludeType.NO_TYPE;
+    } else if (type.getSqlTypeName() == SqlTypeName.CHAR
+            && value instanceof NlsString) {
+      NlsString nlsString = (NlsString) value;
+
+      // Ignore type information for 'Bar':CHAR(3)
+      if (((nlsString.getCharset() != null
+          && type.getCharset().equals(nlsString.getCharset()))
+          || (nlsString.getCharset() == null
+          && SqlCollation.IMPLICIT.getCharset().equals(type.getCharset())))
+          && nlsString.getCollation().equals(type.getCollation())
+          && ((NlsString) value).getValue().length() == type.getPrecision()) {
+        includeType = RexDigestIncludeType.NO_TYPE;
+      } else {
+        includeType = RexDigestIncludeType.ALWAYS;
+      }
+    } else if (type.getPrecision() == 0 && (
+               type.getSqlTypeName() == SqlTypeName.TIME
+            || type.getSqlTypeName() == SqlTypeName.TIMESTAMP
+            || type.getSqlTypeName() == SqlTypeName.DATE)) {
+      // Ignore type information for '12:23:20':TIME(0)
+      // Note that '12:23:20':TIME WITH LOCAL TIME ZONE
+      includeType = RexDigestIncludeType.NO_TYPE;
+    } else {
+      includeType = RexDigestIncludeType.ALWAYS;
+    }
+    return includeType;
   }
 
   /** Returns whether a value is valid as a constant value, using the same
@@ -419,7 +551,7 @@ public class RexLiteral extends RexNode {
    * Prints the value this literal as a Java string constant.
    */
   public void printAsJava(PrintWriter pw) {
-    printAsJava(value, pw, typeName, true);
+    printAsJava(value, pw, typeName, true, RexDigestIncludeType.NO_TYPE);
   }
 
   /**
@@ -435,16 +567,16 @@ public class RexLiteral extends RexNode {
    * <li>1.25</li>
    * <li>1234ABCD</li>
    * </ul>
-   *
-   * @param value    Value
+   *  @param value    Value
    * @param pw       Writer to write to
    * @param typeName Type family
+   * @param includeType if representation should include data type
    */
   private static void printAsJava(
       Comparable value,
       PrintWriter pw,
       SqlTypeName typeName,
-      boolean java) {
+      boolean java, RexDigestIncludeType includeType) {
     switch (typeName) {
     case CHAR:
       NlsString nlsString = (NlsString) value;
@@ -540,7 +672,7 @@ public class RexLiteral extends RexNode {
       pw.print(
           new AbstractList<String>() {
             public String get(int index) {
-              return list.get(index).digest;
+              return list.get(index).computeDigest(includeType);
             }
 
             public int size() {

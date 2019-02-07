@@ -108,7 +108,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
-EnumerableCalc(expr#0..10=[{inputs}], expr#11=[0], expr#12=[=($t1, $t11)], expr#13=[false], expr#14=[<=($t8, $t0)], expr#15=[IS TRUE($t14)], expr#16=[true], expr#17=[>($t1, $t2)], expr#18=[null], expr#19=[CASE($t12, $t13, $t15, $t16, $t17, $t18, $t14)], expr#20=[NOT($t19)], EMPNO=[$t3], ENAME=[$t4], JOB=[$t5], MGR=[$t6], HIREDATE=[$t7], SAL=[$t8], COMM=[$t9], DEPTNO=[$t10], X=[$t20])
+EnumerableCalc(expr#0..10=[{inputs}], expr#11=[0], expr#12=[=($t1, $t11)], expr#13=[false], expr#14=[<=($t8, $t0)], expr#15=[IS TRUE($t14)], expr#16=[true], expr#17=[>($t1, $t2)], expr#18=[null:NULL], expr#19=[CASE($t12, $t13, $t15, $t16, $t17, $t18, $t14)], expr#20=[NOT($t19)], EMPNO=[$t3], ENAME=[$t4], JOB=[$t5], MGR=[$t6], HIREDATE=[$t7], SAL=[$t8], COMM=[$t9], DEPTNO=[$t10], X=[$t20])
   EnumerableJoin(condition=[true], joinType=[inner])
     EnumerableAggregate(group=[{}], m=[MAX($6)], c=[COUNT()], d=[COUNT($6)])
       EnumerableTableScan(table=[[scott, EMP]])

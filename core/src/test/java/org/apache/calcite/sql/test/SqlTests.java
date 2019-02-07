@@ -108,12 +108,7 @@ public abstract class SqlTests {
       return actual;
 
     default:
-      // Get rid of the verbose charset/collation stuff.
-      // TODO: There's probably a better way to do this.
-      final String s = sqlType.getFullTypeString();
-      return s.replace(
-          " CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"",
-          "");
+      return sqlType.getFullTypeString();
     }
   }
 

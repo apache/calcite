@@ -305,6 +305,11 @@ abstract class CalciteConnectionImpl
       throw new RuntimeException(e);
     }
     map.put(DataContext.Variable.CANCEL_FLAG.camelName, cancelFlag);
+    int queryTimeout = statement.getQueryTimeout();
+    // Avoid overflow
+    if (queryTimeout > 0 && queryTimeout < Integer.MAX_VALUE / 1000) {
+      map.put(DataContext.Variable.TIMEOUT.camelName, queryTimeout * 1000L);
+    }
     final DataContext dataContext = createDataContext(map, signature.rootSchema);
     return signature.enumerable(dataContext);
   }

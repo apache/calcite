@@ -1030,14 +1030,8 @@ public class RexBuilder {
     assert s != null;
     if (s.equals("")) {
       return charEmpty;
-    } else {
-      return makeLiteral(
-          new NlsString(s, null, null),
-          typeFactory.createSqlType(
-              SqlTypeName.CHAR,
-              s.length()),
-          SqlTypeName.CHAR);
     }
+    return makeCharLiteral(new NlsString(s, null, null));
   }
 
   /**
@@ -1050,10 +1044,7 @@ public class RexBuilder {
    */
   protected RexLiteral makePreciseStringLiteral(ByteString value,
       String charsetName, SqlCollation collation) {
-    return makeLiteral(
-        new NlsString(value, charsetName, collation),
-        typeFactory.createSqlType(SqlTypeName.CHAR),
-        SqlTypeName.CHAR);
+    return makeCharLiteral(new NlsString(value, charsetName, collation));
   }
 
   /**
