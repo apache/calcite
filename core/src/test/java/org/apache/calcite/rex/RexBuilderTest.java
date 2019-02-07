@@ -250,7 +250,7 @@ public class RexBuilderTest {
   }
 
   private void checkTimestampWithLocalTimeZone(RexNode node) {
-    assertThat(node.toString(), is("1969-07-21 02:56:15"));
+    assertThat(node.toString(), is("1969-07-21 02:56:15:TIMESTAMP_WITH_LOCAL_TIME_ZONE(0)"));
     RexLiteral literal = (RexLiteral) node;
     assertThat(literal.getValue() instanceof TimestampString, is(true));
     assertThat(literal.getValue2() instanceof Long, is(true));
@@ -514,6 +514,8 @@ public class RexBuilderTest {
         "UTF8",
         SqlCollation.IMPLICIT);
     assertEquals("_UTF8'foobar'", literal.toString());
+    assertEquals("_UTF8'foobar':CHAR(6) CHARACTER SET \"UTF-8\"",
+        ((RexLiteral) literal).computeDigest(RexDigestIncludeType.ALWAYS));
     literal = builder.makePreciseStringLiteral(
         new ByteString("\u82f1\u56fd".getBytes(StandardCharsets.UTF_8)),
         "UTF8",

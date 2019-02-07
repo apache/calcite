@@ -154,7 +154,7 @@ public class CassandraAdapterTest {
         .returns("tweet_id=f3cd759c-d05b-11e5-b58b-90e2ba530b12; "
             + "body=Lacus augue pede posuere.; username=JmuhsAaMdw\n")
         .explainContains("PLAN=CassandraToEnumerableConverter\n"
-           + "  CassandraFilter(condition=[=(CAST($0):CHAR(36) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", 'f3cd759c-d05b-11e5-b58b-90e2ba530b12')])\n"
+           + "  CassandraFilter(condition=[=(CAST($0):CHAR(36), 'f3cd759c-d05b-11e5-b58b-90e2ba530b12')])\n"
            + "    CassandraTableScan(table=[[twissandra, tweets]]");
   }
 

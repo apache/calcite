@@ -134,8 +134,7 @@ public class GeodeBookstoreTest extends AbstractGeodeTest {
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeProject(author=[$4])\n"
             + "    GeodeFilter(condition=[OR(AND(>($0, 123), =(CAST($0):INTEGER, 789)), "
-            + "=(CAST($4):VARCHAR CHARACTER SET \"ISO-8859-1\" "
-            + "COLLATE \"ISO-8859-1$en_US$primary\", 'Daisy Mae West'))])\n"
+            + "=(CAST($4):VARCHAR, 'Daisy Mae West'))])\n"
             + "      GeodeTableScan(table=[[geode, BookMaster]])\n"
             + "\n")
         .queryContains(

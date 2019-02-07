@@ -290,7 +290,7 @@ and e."name" <> d."name";
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t2):VARCHAR CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"], expr#6=[CAST($t4):VARCHAR CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"], expr#7=[<>($t5, $t6)], empid=[$t0], name=[$t4], name0=[$t2], $condition=[$t7])
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t2):VARCHAR], expr#6=[CAST($t4):VARCHAR], expr#7=[<>($t5, $t6)], empid=[$t0], name=[$t4], name0=[$t2], $condition=[$t7])
   EnumerableJoin(condition=[=($1, $3)], joinType=[inner])
     EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])
       EnumerableTableScan(table=[[hr, emps]])
@@ -314,7 +314,7 @@ and e."name" <> d."name";
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t2):VARCHAR CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"], expr#6=[CAST($t4):VARCHAR CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"], expr#7=[<>($t5, $t6)], empid=[$t0], name=[$t4], name0=[$t2], $condition=[$t7])
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t2):VARCHAR], expr#6=[CAST($t4):VARCHAR], expr#7=[<>($t5, $t6)], empid=[$t0], name=[$t4], name0=[$t2], $condition=[$t7])
   EnumerableJoin(condition=[=($1, $3)], joinType=[inner])
     EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])
       EnumerableTableScan(table=[[hr, emps]])
@@ -663,7 +663,7 @@ where c."city" = 'San Francisco';
 EnumerableJoin(condition=[=($0, $38)], joinType=[inner])
   EnumerableJoin(condition=[=($2, $8)], joinType=[inner])
     EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])
-    EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco'], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30])
+    EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco':VARCHAR(30)], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30])
       EnumerableTableScan(table=[[foodmart2, customer]])
   EnumerableTableScan(table=[[foodmart2, product]])
 !plan
@@ -686,12 +686,12 @@ where c."city" = 'San Francisco'
 EnumerableCalc(expr#0..56=[{inputs}], product_id=[$t20], time_id=[$t21], customer_id=[$t22], promotion_id=[$t23], store_id=[$t24], store_sales=[$t25], store_cost=[$t26], unit_sales=[$t27], customer_id0=[$t28], account_num=[$t29], lname=[$t30], fname=[$t31], mi=[$t32], address1=[$t33], address2=[$t34], address3=[$t35], address4=[$t36], city=[$t37], state_province=[$t38], postal_code=[$t39], country=[$t40], customer_region_id=[$t41], phone1=[$t42], phone2=[$t43], birthdate=[$t44], marital_status=[$t45], yearly_income=[$t46], gender=[$t47], total_children=[$t48], num_children_at_home=[$t49], education=[$t50], date_accnt_opened=[$t51], member_card=[$t52], occupation=[$t53], houseowner=[$t54], num_cars_owned=[$t55], fullname=[$t56], product_class_id=[$t5], product_id0=[$t6], brand_name=[$t7], product_name=[$t8], SKU=[$t9], SRP=[$t10], gross_weight=[$t11], net_weight=[$t12], recyclable_package=[$t13], low_fat=[$t14], units_per_case=[$t15], cases_per_pallet=[$t16], shelf_width=[$t17], shelf_height=[$t18], shelf_depth=[$t19], product_class_id0=[$t0], product_subcategory=[$t1], product_category=[$t2], product_department=[$t3], product_family=[$t4])
   EnumerableJoin(condition=[=($6, $20)], joinType=[inner])
     EnumerableJoin(condition=[=($0, $5)], joinType=[inner])
-      EnumerableCalc(expr#0..4=[{inputs}], expr#5=['Snacks'], expr#6=[=($t3, $t5)], proj#0..4=[{exprs}], $condition=[$t6])
+      EnumerableCalc(expr#0..4=[{inputs}], expr#5=['Snacks':VARCHAR(30)], expr#6=[=($t3, $t5)], proj#0..4=[{exprs}], $condition=[$t6])
         EnumerableTableScan(table=[[foodmart2, product_class]])
       EnumerableTableScan(table=[[foodmart2, product]])
     EnumerableJoin(condition=[=($2, $8)], joinType=[inner])
       EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])
-      EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco'], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30])
+      EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco':VARCHAR(30)], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30])
         EnumerableTableScan(table=[[foodmart2, customer]])
 !plan
 
@@ -1677,7 +1677,7 @@ values cast(123 as bigint);
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[123], EXPR$0=[$t1])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[123:BIGINT], EXPR$0=[$t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
@@ -1691,7 +1691,7 @@ values cast('123.45' as decimal(4, 2));
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[123.45], EXPR$0=[$t1])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[123.45:DECIMAL(4, 2)], EXPR$0=[$t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
@@ -1705,7 +1705,7 @@ values cast('123.45' as decimal(4, 2));
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[123.45], EXPR$0=[$t1])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[123.45:DECIMAL(4, 2)], EXPR$0=[$t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
@@ -1719,7 +1719,7 @@ values cast('-123.45' as double);
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[-1.2345E2], EXPR$0=[$t1])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[-1.2345E2:DOUBLE], EXPR$0=[$t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
@@ -2029,7 +2029,7 @@ select TIMESTAMP '2016-02-26 19:06:00.123456789',
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[2016-02-26 19:06:00.123], expr#2=[2016-02-26 19:06:00], expr#3=[2016-02-26 19:06:00.1], expr#4=[2016-02-26 19:06:00.12], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t2], EXPR$3=[$t3], EXPR$4=[$t4], EXPR$5=[$t1], EXPR$6=[$t1], EXPR$7=[$t1])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[2016-02-26 19:06:00.123:TIMESTAMP(3)], expr#2=[2016-02-26 19:06:00], expr#3=[2016-02-26 19:06:00.1:TIMESTAMP(1)], expr#4=[2016-02-26 19:06:00.12:TIMESTAMP(2)], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t2], EXPR$3=[$t3], EXPR$4=[$t4], EXPR$5=[$t1], EXPR$6=[$t1], EXPR$7=[$t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
