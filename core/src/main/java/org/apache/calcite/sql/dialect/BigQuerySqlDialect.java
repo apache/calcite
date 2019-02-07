@@ -126,7 +126,14 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       writer.endList(arrayFrame);
       break;
-
+    case CONCAT:
+      final SqlWriter.Frame concatFrame = writer.startFunCall("CONCAT");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(concatFrame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }

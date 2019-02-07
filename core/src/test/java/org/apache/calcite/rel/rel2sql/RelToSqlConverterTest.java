@@ -3218,6 +3218,18 @@ public class RelToSqlConverterTest {
         .ok(expectedBigQuery);
   }
 
+  @Test public void concatFunctionEmulationForHiveAndSparkAndBigQuery() {
+    String query = "select 'foo' || 'bar' from \"employee\"";
+    final String expected = "SELECT CONCAT('foo', 'bar')\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withBigquery()
+        .ok(expected);
+  }
 
   /** Fluid interface to run tests. */
   static class Sql {
