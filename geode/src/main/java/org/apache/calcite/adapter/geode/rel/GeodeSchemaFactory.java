@@ -16,16 +16,23 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
+import org.apache.calcite.adapter.geode.util.GeodeUtils;
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 
+import org.apache.geode.cache.GemFireCache;
+
 import com.google.common.collect.ImmutableList;
 
 import java.util.Arrays;
+import java.util.Hashtable;
 import java.util.Map;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 
 /**
  * Factory that creates a {@link GeodeSchema}.
@@ -39,18 +46,58 @@ public class GeodeSchemaFactory implements SchemaFactory {
   public static final String PDX_SERIALIZABLE_PACKAGE_PATH = "pdxSerializablePackagePath";
   public static final String ALLOW_SPATIAL_FUNCTIONS = "spatialFunction";
   public static final String COMMA_DELIMITER = ",";
+  public static final String JNDI_INITIAL_CONTEXT_FACTORY = "jndiInitialContextFactory";
+  public static final String JNDI_CLIENT_CACHE_OBJECT_KEY = "jndiClientCacheObjectKey";
 
   public GeodeSchemaFactory() {
     // Do Nothing
   }
 
+  private static Context getContext(Map map) {
+    Context context = null;
+
+    try {
+      String jndiInitialContextFactory = (String) map.get(JNDI_INITIAL_CONTEXT_FACTORY);
+      Hashtable env = new Hashtable();
+      env.put(Context.INITIAL_CONTEXT_FACTORY, jndiInitialContextFactory);
+      context = new InitialContext(env);
+    } catch (NamingException ignored) {
+
+    }
+
+    return context;
+  }
+
+  private static GemFireCache getGemFireCache(Map map) {
+    GemFireCache gemFireCache = null;
+
+    try {
+      String clientCacheObjectKey = (String) map.get(JNDI_CLIENT_CACHE_OBJECT_KEY);
+
+      if (clientCacheObjectKey == null) {
+        String locatorHost = (String) map.get(LOCATOR_HOST);
+        int locatorPort = Integer.valueOf((String) map.get(LOCATOR_PORT));
+        String[] regionNames = ((String) map.get(REGIONS)).split(COMMA_DELIMITER);
+        String pbxSerializablePackagePath = (String) map.get(PDX_SERIALIZABLE_PACKAGE_PATH);
+
+        gemFireCache = GeodeUtils.createClientCache(locatorHost, locatorPort,
+            pbxSerializablePackagePath, true);
+      } else {
+        Context context = getContext(map);
+        gemFireCache = (GemFireCache) context.lookup(clientCacheObjectKey);
+      }
+    } catch (NamingException ignored) {
+
+    }
+    return gemFireCache;
+  }
+
   public synchronized Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     Map map = (Map) operand;
-    String locatorHost = (String) map.get(LOCATOR_HOST);
-    int locatorPort = Integer.valueOf((String) map.get(LOCATOR_PORT));
+
+    GemFireCache gemFireCache = getGemFireCache(map);
     String[] regionNames = ((String) map.get(REGIONS)).split(COMMA_DELIMITER);
-    String pbxSerializablePackagePath = (String) map.get(PDX_SERIALIZABLE_PACKAGE_PATH);
 
     boolean allowSpatialFunctions = true;
     if (map.containsKey(ALLOW_SPATIAL_FUNCTIONS)) {
@@ -62,8 +109,7 @@ public class GeodeSchemaFactory implements SchemaFactory {
           GeoFunctions.class.getName(), "*", true);
     }
 
-    return new GeodeSchema(locatorHost, locatorPort, Arrays.asList(regionNames),
-        pbxSerializablePackagePath);
+    return new GeodeSchema(gemFireCache, Arrays.asList(regionNames));
   }
 }
 

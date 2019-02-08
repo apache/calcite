@@ -16,16 +16,6 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.Statement;
-import java.util.Properties;
-
 /**
  * Example of using Geode via JDBC.
  *
@@ -42,61 +32,14 @@ import java.util.Properties;
  */
 public class RelationalJdbcExample {
 
-  protected static final Logger LOGGER = LoggerFactory.getLogger(
-      RelationalJdbcExample.class.getName());
-
   private RelationalJdbcExample() {
   }
 
   public static void main(String[] args) throws Exception {
-
-    final String geodeModelJson =
-        "inline:"
-            + "{\n"
-            + "  version: '1.0',\n"
-            + "  schemas: [\n"
-            + "     {\n"
-            + "       type: 'custom',\n"
-            + "       name: 'TEST',\n"
-            + "       factory: 'org.apache.calcite.adapter.geode.rel.GeodeSchemaFactory',\n"
-            + "       operand: {\n"
-            + "         locatorHost: 'localhost', \n"
-            + "         locatorPort: '10334', \n"
-            + "         regions: 'BookMaster,BookCustomer,BookInventory,BookOrder', \n"
-            + "         pdxSerializablePackagePath: 'org.apache.calcite.adapter.geode.domain.*' \n"
-            + "       }\n"
-            + "     }\n"
-            + "   ]\n"
-            + "}";
-
-    Class.forName("org.apache.calcite.jdbc.Driver");
-
-    Properties info = new Properties();
-    info.put("model", geodeModelJson);
-
-    Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
-
-    Statement statement = connection.createStatement();
-    ResultSet resultSet = statement.executeQuery(
-        "SELECT \"b\".\"author\", \"b\".\"retailCost\", \"i\".\"quantityInStock\"\n"
-            + "FROM \"TEST\".\"BookMaster\" AS \"b\" "
-            + " INNER JOIN \"TEST\".\"BookInventory\" AS \"i\""
-            + "  ON \"b\".\"itemNumber\" = \"i\".\"itemNumber\"\n "
-            + "WHERE  \"b\".\"retailCost\" > 0");
-
-    final StringBuilder buf = new StringBuilder();
-    while (resultSet.next()) {
-      ResultSetMetaData metaData = resultSet.getMetaData();
-      for (int i = 1; i <= metaData.getColumnCount(); i++) {
-        buf.append(i > 1 ? "; " : "")
-            .append(metaData.getColumnLabel(i)).append("=").append(resultSet.getObject(i));
-      }
-      LOGGER.info("Result entry: " + buf.toString());
-      buf.setLength(0);
+    RelationalJdbcExampleRunner exampleRunner = new RelationalJdbcExampleRunner();
+    for (int i = 0; i < 2; i++) {
+      exampleRunner.doExample(i);
     }
-    resultSet.close();
-    statement.close();
-    connection.close();
   }
 }
 
