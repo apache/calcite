@@ -232,7 +232,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlBinaryOperator CONCAT =
       new SqlBinaryOperator(
           "||",
-          SqlKind.OTHER,
+          SqlKind.CONCAT,
           60,
           true,
           ReturnTypes.DYADIC_STRING_SUM_PRECISION_NULLABLE,

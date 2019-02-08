@@ -20,6 +20,7 @@ import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
@@ -109,6 +110,29 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.sep(",");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(truncateFrame);
+      break;
+    case ITEM:
+      call.operand(0).unparse(writer, leftPrec, 0);
+      final SqlWriter.Frame itemFrame = writer.startList("[OFFSET(", ")]");
+      call.operand(1).unparse(writer, 0, 0);
+      writer.endList(itemFrame);
+      break;
+    case ARRAY_VALUE_CONSTRUCTOR:
+      writer.keyword(call.getOperator().getName());
+      final SqlWriter.Frame arrayFrame = writer.startList("(", ")");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endList(arrayFrame);
+      break;
+    case CONCAT:
+      final SqlWriter.Frame concatFrame = writer.startFunCall("CONCAT");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(concatFrame);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
