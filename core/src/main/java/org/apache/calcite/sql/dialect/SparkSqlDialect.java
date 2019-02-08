@@ -16,13 +16,9 @@
  */
 package org.apache.calcite.sql.dialect;
 
-import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlIntervalLiteral;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
@@ -114,45 +110,6 @@ public class SparkSqlDialect extends SqlDialect {
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
-    }
-  }
-
-  public void unparseSqlIntervalLiteralSpark(SqlWriter writer,
-      SqlIntervalLiteral literal) {
-    SqlIntervalLiteral.IntervalValue interval =
-        (SqlIntervalLiteral.IntervalValue) literal.getValue();
-    if (interval.getSign() == -1) {
-      writer.print("-");
-    }
-    writer.literal(literal.getValue().toString());
-  }
-
-  @Override public void unparseSqlDatetimeArithmetic(SqlWriter writer,
-      SqlCall call, SqlKind sqlKind, int leftPrec, int rightPrec) {
-    switch (sqlKind) {
-    case PLUS:
-      SqlWriter.Frame dateAddFrame = null;
-      final SqlLiteral timeUnitNode = call.operand(1);
-      final TimeUnitRange timeUnit = timeUnitNode.getValueAs(TimeUnitRange.class);
-      if (timeUnit == TimeUnitRange.MONTH) {
-        dateAddFrame = writer.startFunCall("ADD_MONTHS");
-      } else if (timeUnit == TimeUnitRange.DAY) {
-        dateAddFrame = writer.startFunCall("DATE_ADD");
-      }
-      writer.sep(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      unparseSqlIntervalLiteralSpark(writer, call.operand(1));
-      writer.endFunCall(dateAddFrame);
-      break;
-    case MINUS:
-      final SqlWriter.Frame dateDiffFrame = writer.startFunCall("DATEDIFF");
-      writer.sep(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(dateDiffFrame);
-      break;
     }
   }
 }
