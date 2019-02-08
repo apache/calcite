@@ -258,10 +258,11 @@ public class Programs {
   }
 
   public static Program subQuery(RelMetadataProvider metadataProvider) {
-    return hep(
-        ImmutableList.of((RelOptRule) SubQueryRemoveRule.FILTER,
-            SubQueryRemoveRule.PROJECT,
-            SubQueryRemoveRule.JOIN), true, metadataProvider);
+    final HepProgramBuilder builder = HepProgram.builder();
+    builder.addRuleCollection(ImmutableList.of((RelOptRule) SubQueryRemoveRule.FILTER,
+                                               SubQueryRemoveRule.PROJECT,
+                                               SubQueryRemoveRule.JOIN));
+    return of(builder.build(), true, metadataProvider);
   }
 
   public static Program getProgram() {

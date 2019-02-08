@@ -1998,4 +1998,54 @@ from "scott".emp;
 
 !ok
 
+# Test nested subquery in PROJECT within FILTER
+select * from emp where empno IN (select (select max(deptno) from "scott".emp t1) from "scott".emp t2);
+ EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO
+-------+-------+-----+-----+----------+-----+------+--------
+(0 rows)
+
+!ok
+EnumerableSemiJoin(condition=[=($0, $9)], joinType=[inner])
+  EnumerableTableScan(table=[[scott, EMP]])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{}], EXPR$0=[MAX($7)])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test nested subquery in FILTER within PROJECT
+select (select max(deptno) from "scott".emp where empno IN (select deptno from "scott".emp)) from emp ;
+ EXPR$0
+--------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t1])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{}], EXPR$0=[MAX($1)])
+      EnumerableSemiJoin(condition=[=($0, $9)], joinType=[inner])
+        EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+          EnumerableTableScan(table=[[scott, EMP]])
+        EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+
+
 # End sub-query.iq
