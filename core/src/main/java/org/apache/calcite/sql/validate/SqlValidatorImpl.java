@@ -2218,7 +2218,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case VALUES:
     case WITH:
     case OTHER_FUNCTION:
-    case ITEM:
       if (alias == null) {
         alias = deriveAlias(node, nextGeneratedId++);
       }
