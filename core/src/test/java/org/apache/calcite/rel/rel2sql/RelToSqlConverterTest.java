@@ -3169,28 +3169,6 @@ public class RelToSqlConverterTest {
         .ok(expectedBigQuery);
   }
 
-  @Test public void arrayValueConstructorEmulationForHiveAndSparkAndBigQuery() {
-    String query = "select Array['foo', 'bar'] from \"employee\"";
-    final String expected = "SELECT ARRAY ('foo', 'bar')\n"
-        + "FROM foodmart.employee";
-    sql(query)
-        .withHive()
-        .ok(expected)
-        .withSpark()
-        .ok(expected)
-        .withBigquery()
-        .ok(expected);
-  }
-
-  @Test public void itemEmulationForBigQuery() {
-    String query = "select Array['foo', 'bar'] [1] from \"employee\"";
-    final String expectedBigQuery  = "SELECT ARRAY ('foo', 'bar') [OFFSET( 1 )]\n"
-        + "FROM foodmart.employee";
-    sql(query)
-        .withBigquery()
-        .ok(expectedBigQuery);
-  }
-
   @Test public void selectWithoutFromEmulationForHiveAndSparkAndBigquery() {
     String query = "select 2 + 2";
     final String expected = "SELECT 2 + 2";

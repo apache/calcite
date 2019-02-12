@@ -95,8 +95,7 @@ public abstract class SqlCall extends SqlNode {
     final SqlDialect dialect = writer.getDialect();
     if (leftPrec > operator.getLeftPrec()
         || (operator.getRightPrec() <= rightPrec && (rightPrec != 0))
-        || writer.isAlwaysUseParentheses() && isA(SqlKind.EXPRESSION)
-        && operator.kind != SqlKind.ITEM) {
+        || writer.isAlwaysUseParentheses() && isA(SqlKind.EXPRESSION)) {
       final SqlWriter.Frame frame = writer.startList("(", ")");
       dialect.unparseCall(writer, this, 0, 0);
       writer.endList(frame);

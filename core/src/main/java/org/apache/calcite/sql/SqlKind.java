@@ -138,11 +138,6 @@ public enum SqlKind {
   SUBSTRING,
 
   /**
-   * ITEM Function
-   * */
-  ITEM,
-
-  /**
    * EXPLAIN statement
    */
   EXPLAIN,
