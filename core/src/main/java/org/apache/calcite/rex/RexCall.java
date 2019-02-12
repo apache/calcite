@@ -62,6 +62,7 @@ public class RexCall extends RexNode {
   static {
     EnumSet<SqlKind> kinds = EnumSet.of(SqlKind.PLUS, SqlKind.MINUS, SqlKind.TIMES, SqlKind.DIVIDE);
     kinds.addAll(SqlKind.COMPARISON);
+    kinds.remove(SqlKind.IN);
     SIMPLE_BINARY_OPS = Sets.immutableEnumSet(kinds);
   }
 
