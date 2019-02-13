@@ -127,7 +127,12 @@ public class RelToSqlConverter extends SqlImplementor
     SqlLiteral condType = JoinConditionType.ON.symbol(POS);
     JoinType joinType = joinType(e.getJoinType());
     if (e.getJoinType() == JoinRelType.INNER && e.getCondition().isAlwaysTrue()) {
-      joinType = JoinType.COMMA;
+      if (dialect.supportCommaForCrossJoin()) {
+        joinType = JoinType.COMMA;
+      } else {
+        //SparkSql doesnot support COMMA for CROSS JOIN , so printing CROSS JOIN for Spark
+        joinType = JoinType.CROSS;
+      }
       condType = JoinConditionType.NONE.symbol(POS);
     } else {
       sqlCondition = convertConditionToSqlNode(e.getCondition(),

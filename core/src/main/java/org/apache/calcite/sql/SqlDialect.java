@@ -555,6 +555,9 @@ public class SqlDialect {
   public boolean hasDualTable() {
     return false; }
 
+  public boolean supportCommaForCrossJoin() {
+    return true; }
+
   // -- behaviors --
   protected boolean requiresAliasForFromItems() {
     return false;
