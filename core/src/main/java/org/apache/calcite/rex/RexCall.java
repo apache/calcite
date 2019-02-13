@@ -112,7 +112,7 @@ public class RexCall extends RexNode {
           && operand.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
         includeType = RexDigestIncludeType.NO_TYPE;
       }
-      if (SIMPLE_BINARY_OPS.contains(getKind())) {
+      if (SIMPLE_BINARY_OPS.contains(getKind()) && operands.size() == 2) {
         RexNode otherArg = operands.get(1 - i);
         if ((!(otherArg instanceof RexLiteral)
             || ((RexLiteral) otherArg).digestIncludesType() == RexDigestIncludeType.NO_TYPE)
