@@ -3209,6 +3209,14 @@ public class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  @Test public void testCartesianProductWithCrossJoinSyntaxForSpark() {
+    String query = "select * from \"department\" , \"employee\"";
+    String expected = "SELECT *\n"
+        + "FROM foodmart.department\n"
+        + "CROSS JOIN foodmart.employee";
+    sql(query).withSpark().ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;
