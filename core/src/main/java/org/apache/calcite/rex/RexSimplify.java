@@ -395,14 +395,14 @@ public class RexSimplify {
     }
   }
 
-  private void simplifyAndTerms(List<RexNode> terms) {
+  private void simplifyAndTerms(List<RexNode> terms, RexUnknownAs unknownAs) {
     RexSimplify simplify = this;
     for (int i = 0; i < terms.size(); i++) {
       RexNode t = terms.get(i);
       if (Predicate.of(t) == null) {
         continue;
       }
-      terms.set(i, simplify.simplify(t, UNKNOWN));
+      terms.set(i, simplify.simplify(t, unknownAs));
       RelOptPredicateList newPredicates = simplify.predicates.union(rexBuilder,
           RelOptPredicateList.of(rexBuilder, terms.subList(i, i + 1)));
       simplify = simplify.withPredicates(newPredicates);
@@ -412,11 +412,11 @@ public class RexSimplify {
       if (Predicate.of(t) != null) {
         continue;
       }
-      terms.set(i, simplify.simplify(t, UNKNOWN));
+      terms.set(i, simplify.simplify(t, unknownAs));
     }
   }
 
-  private void simplifyOrTerms(List<RexNode> terms) {
+  private void simplifyOrTerms(List<RexNode> terms, RexUnknownAs unknownAs) {
     // Suppose we are processing "e1(x) OR e2(x) OR e3(x)". When we are
     // visiting "e3(x)" we know both "e1(x)" and "e2(x)" are not true (they
     // may be unknown), because if either of them were true we would have
@@ -427,7 +427,7 @@ public class RexSimplify {
       if (Predicate.of(t) == null) {
         continue;
       }
-      final RexNode t2 = simplify.simplify(t, RexUnknownAs.UNKNOWN);
+      final RexNode t2 = simplify.simplify(t, unknownAs);
       terms.set(i, t2);
       final RexNode inverse =
           simplify.simplify(rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_TRUE, t2),
@@ -441,7 +441,7 @@ public class RexSimplify {
       if (Predicate.of(t) != null) {
         continue;
       }
-      terms.set(i, simplify.simplify(t, RexUnknownAs.UNKNOWN));
+      terms.set(i, simplify.simplify(t, unknownAs));
     }
   }
 
@@ -1027,12 +1027,12 @@ public class RexSimplify {
     RelOptUtil.decomposeConjunction(e, terms, notTerms);
 
     if (unknownAs == FALSE && predicateElimination) {
-      simplifyAndTerms(terms);
+      simplifyAndTerms(terms, FALSE);
     } else {
       simplifyList(terms, unknownAs);
     }
 
-    simplifyList(notTerms, UNKNOWN); // TODO could be unknownAs.negate()?
+    simplifyList(notTerms, unknownAs.negate());
 
     switch (unknownAs) {
     case FALSE:
@@ -1430,7 +1430,7 @@ public class RexSimplify {
     assert call.getKind() == SqlKind.OR;
     final List<RexNode> terms = RelOptUtil.disjunctions(call);
     if (predicateElimination) {
-      simplifyOrTerms(terms);
+      simplifyOrTerms(terms, unknownAs);
     }
     return simplifyOrs(terms, unknownAs);
   }
