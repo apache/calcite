@@ -40,6 +40,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.JdbcTest;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -407,7 +408,7 @@ public class RelWriterTest {
           try {
             node = reader.read(XX);
           } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
           return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
               SqlExplainLevel.EXPPLAN_ATTRIBUTES);
@@ -434,7 +435,7 @@ public class RelWriterTest {
           try {
             node = reader.read(XX2);
           } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
           return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
               SqlExplainLevel.EXPPLAN_ATTRIBUTES);
@@ -462,7 +463,7 @@ public class RelWriterTest {
           try {
             node = reader.read(XXNULL);
           } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
           return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
               SqlExplainLevel.EXPPLAN_ATTRIBUTES);

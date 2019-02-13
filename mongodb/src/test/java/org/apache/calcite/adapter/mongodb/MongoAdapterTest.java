@@ -22,6 +22,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.MongoAssertions;
 import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.io.LineProcessor;
@@ -725,7 +726,7 @@ public class MongoAdapterTest implements SchemaFactory {
             Assert.assertThat(input.next(), CoreMatchers.is(true));
             Assert.assertThat(input.getInt(1), CoreMatchers.is(ZIPS_SIZE));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }

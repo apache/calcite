@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.util.ReflectUtil;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import org.incava.diff.Diff;
@@ -461,7 +462,7 @@ public abstract class DiffTestCase {
       return lines;
     } catch (IOException e) {
       e.printStackTrace();
-      throw new RuntimeException(e);
+      throw TestUtil.rethrow(e);
     }
   }
 
@@ -481,7 +482,7 @@ public abstract class DiffTestCase {
       }
       return writer.toString(StandardCharsets.UTF_8.name());
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw TestUtil.rethrow(e);
     }
   }
 

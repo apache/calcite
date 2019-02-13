@@ -91,6 +91,7 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.SaffronProperties;
+import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -1108,7 +1109,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
       join = EnumerableMergeJoin.create(project, deptSort,
           rexBuilder.makeLiteral(true), leftKeys, rightKeys, JoinRelType.INNER);
     } catch (InvalidRelException e) {
-      throw new RuntimeException(e);
+      throw TestUtil.rethrow(e);
     }
     collations =
         RelMdCollation.mergeJoin(mq, project, deptSort, leftKeys,

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.elasticsearch;
 
+import org.apache.calcite.util.TestUtil;
+
 import com.google.common.base.Preconditions;
 import com.google.common.io.Files;
 
@@ -96,7 +98,7 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
       node.start();
       this.isStarted = true;
     } catch (NodeValidationException e) {
-      throw new RuntimeException(e);
+      throw TestUtil.rethrow(e);
     }
   }
 

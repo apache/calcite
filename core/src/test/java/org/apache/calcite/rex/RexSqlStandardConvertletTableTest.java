@@ -30,6 +30,7 @@ import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Closer;
+import org.apache.calcite.util.TestUtil;
 
 import org.junit.Test;
 
@@ -89,7 +90,7 @@ public class RexSqlStandardConvertletTableTest extends SqlToRelTestBase {
       final SqlNode validated = planner.validate(parsed);
       return planner.rel(validated).rel;
     } catch (SqlParseException | RelConversionException | ValidationException e) {
-      throw new RuntimeException(e);
+      throw TestUtil.rethrow(e);
     }
   }
 

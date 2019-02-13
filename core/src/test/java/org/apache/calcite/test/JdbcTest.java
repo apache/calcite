@@ -90,6 +90,7 @@ import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Smalls;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Util;
 
@@ -308,7 +309,7 @@ public class JdbcTest {
 
           statement.close();
         } catch (SQLException e) {
-          throw new RuntimeException(e);
+          throw TestUtil.rethrow(e);
         }
       });
     }
@@ -950,7 +951,7 @@ public class JdbcTest {
                   equalTo("invalid column ordinal: 5"));
             }
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -1458,7 +1459,7 @@ public class JdbcTest {
             final BigDecimal bigDecimal = resultSet.getBigDecimal(1);
             assertThat(bigDecimal, equalTo(BigDecimal.valueOf(2008)));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -1944,7 +1945,7 @@ public class JdbcTest {
             assertThat(subResultSet.isAfterLast(), is(true));
             statement.close();
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -2980,7 +2981,7 @@ public class JdbcTest {
           numbers.add((Number) resultSet.getObject(2));
         }
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
       assertThat(msg, numbers.size(), is(3));
       assertThat(msg, numbers.get(nullCollation.last(desc) ? 2 : 0),
@@ -4831,7 +4832,7 @@ public class JdbcTest {
             resultSet.close();
             statement.close();
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -4898,7 +4899,7 @@ public class JdbcTest {
             preparedStatement2.close();
             preparedStatement.close();
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -4932,7 +4933,7 @@ public class JdbcTest {
               assertThat(r, matcher);
             }
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -5080,7 +5081,7 @@ public class JdbcTest {
       try {
         assertEquals("adhoc", connection.getSchema());
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     });
     that.query("select * from \"adhoc\".ELVIS where \"deptno\" = 10")
@@ -5383,7 +5384,7 @@ public class JdbcTest {
               CalciteAssert.toString(r));
         }
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     });
   }
@@ -5508,7 +5509,7 @@ public class JdbcTest {
                 .executeQuery(sql);
             assertThat(objects.size(), is(1));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -5645,7 +5646,7 @@ public class JdbcTest {
             try {
               Thread.sleep(1000);
             } catch (InterruptedException e) {
-              throw new RuntimeException(e);
+              throw TestUtil.rethrow(e);
             }
 
             resultSet = statement.executeQuery();
@@ -5658,7 +5659,7 @@ public class JdbcTest {
                     + "s1=" + s1 + "\n",
                 s0.compareTo(s1) < 0);
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -5671,7 +5672,7 @@ public class JdbcTest {
           try {
             checkGetTimestamp(connection);
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -5821,7 +5822,7 @@ public class JdbcTest {
                 rs.getDate(1));
             assertFalse(rs.next());
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -5848,7 +5849,7 @@ public class JdbcTest {
                 rs.getTimestamp(1));
             assertFalse(rs.next());
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -5920,7 +5921,7 @@ public class JdbcTest {
             assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
                 equalTo(false));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -5950,7 +5951,7 @@ public class JdbcTest {
             assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
                 equalTo(false));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -5980,7 +5981,7 @@ public class JdbcTest {
             assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
                 equalTo(false));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -6014,7 +6015,7 @@ public class JdbcTest {
             assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
                 equalTo(false));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -6045,7 +6046,7 @@ public class JdbcTest {
             assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
                 equalTo(false));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -6080,7 +6081,7 @@ public class JdbcTest {
             assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
                 equalTo(false));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -6674,7 +6675,7 @@ public class JdbcTest {
               }
             }
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }

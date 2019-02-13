@@ -25,6 +25,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -396,7 +397,7 @@ public class DruidAdapterIT {
             assertThat(map.get("BIGINT").size(), is(1));
             assertThat(map.get(VARCHAR_TYPE).size(), is(88));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -502,7 +503,7 @@ public class DruidAdapterIT {
             assertThat(input.wasNull(), is(false));
             assertThat(input.next(), is(false));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -795,7 +796,7 @@ public class DruidAdapterIT {
             }
             assertFalse(resultSet.next());
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         })
         .queryContains(druidChecker(druidQuery));
@@ -824,7 +825,7 @@ public class DruidAdapterIT {
             }
             assertFalse(resultSet.next());
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         })
         .queryContains(druidChecker(druidQuery));
@@ -870,7 +871,7 @@ public class DruidAdapterIT {
             }
             assertFalse(resultSet.next());
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         })
         .queryContains(druidChecker(druidQuery, druidFilter, druidQuery2));

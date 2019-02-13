@@ -20,6 +20,7 @@ import org.apache.calcite.piglet.Handler;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.tools.PigRelBuilder;
 import org.apache.calcite.tools.RelRunners;
+import org.apache.calcite.util.TestUtil;
 
 import java.io.PrintWriter;
 import java.io.Writer;
@@ -46,7 +47,7 @@ class CalciteHandler extends Handler {
       final ResultSet resultSet = preparedStatement.executeQuery();
       dump(resultSet, true);
     } catch (SQLException e) {
-      throw new RuntimeException(e);
+      throw TestUtil.rethrow(e);
     }
   }
 
