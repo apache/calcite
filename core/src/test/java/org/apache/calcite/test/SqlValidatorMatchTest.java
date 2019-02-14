@@ -140,7 +140,7 @@ public class SqlValidatorMatchTest extends SqlValidatorTestCase {
         + "      up as up.sal > prev(up.sal)\n"
         + "  ) mr";
     sql(sql)
-        .fails("(?s).*Encountered \"to null\" at .*");
+        .fails("(?s).*Encountered \"null\" at .*");
   }
 
   @Test public void testMatchRecognizeSkipTo2() throws Exception {

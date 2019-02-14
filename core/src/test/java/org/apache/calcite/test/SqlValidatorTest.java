@@ -7818,7 +7818,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     check("select count(ename, 1, deptno) from emp");
     check("select count(distinct ename, 1, deptno) from emp");
     checkFails("select count(deptno, *) from emp",
-        "(?s).*Encountered \", \\*\" at .*");
+        "(?s).*Encountered \"\\*\" at .*");
     checkFails(
         "select count(*, deptno) from emp",
         "(?s).*Encountered \",\" at .*");
