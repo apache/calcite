@@ -275,7 +275,7 @@ public class RexSimplify {
     case IS_FALSE:
     case IS_NOT_FALSE:
       assert e instanceof RexCall;
-      return simplifyIs((RexCall) e);
+      return simplifyIs((RexCall) e, unknownAs);
     case EQUALS:
     case GREATER_THAN:
     case GREATER_THAN_OR_EQUAL:
@@ -534,16 +534,35 @@ public class RexSimplify {
     return rexBuilder.makeCall(SqlStdOperatorTable.NOT, a2);
   }
 
-  private RexNode simplifyIs(RexCall call) {
+  private RexNode simplifyIs(RexCall call, RexUnknownAs unknownAs) {
     final SqlKind kind = call.getKind();
     final RexNode a = call.getOperands().get(0);
 
+    // UnknownAs.FALSE corresponds to x IS TRUE evaluation
+    // UnknownAs.TRUE to x IS NOT FALSE
+    // Note that both UnknownAs.TRUE and UnknownAs.FALSE only changes the meaning of Unknown
+    // (1) if we are already in UnknownAs.FALSE mode; x IS TRUE can be simiplified to x
+    // (2) similarily  in UnknownAs.TRUE mode ; x IS NOT FALSE can be simplified to x
+    // (3) x IS FALSE could be rewritten to (NOT x) IS TRUE and from there the 1. rule applies
+    // (4) x IS NOT TRUE can be rewritten to (NOT x) IS NOT FALSE and from there the 2. rule applies
+    if (kind == SqlKind.IS_TRUE && unknownAs == RexUnknownAs.FALSE) {
+      return simplify(a, unknownAs);
+    }
+    if (kind == SqlKind.IS_FALSE && unknownAs == RexUnknownAs.FALSE) {
+      return simplify(rexBuilder.makeCall(SqlStdOperatorTable.NOT, a), unknownAs);
+    }
+    if (kind == SqlKind.IS_NOT_FALSE && unknownAs == RexUnknownAs.TRUE) {
+      return simplify(a, unknownAs);
+    }
+    if (kind == SqlKind.IS_NOT_TRUE && unknownAs == RexUnknownAs.TRUE) {
+      return simplify(rexBuilder.makeCall(SqlStdOperatorTable.NOT, a), unknownAs);
+    }
     final RexNode pred = simplifyIsPredicate(kind, a);
     if (pred != null) {
       return pred;
     }
 
-    final RexNode simplified = simplifyIs2(kind, a);
+    final RexNode simplified = simplifyIs2(kind, a, unknownAs);
     if (simplified != null) {
       return simplified;
     }
@@ -567,21 +586,21 @@ public class RexSimplify {
     return null;
   }
 
-  private RexNode simplifyIs2(SqlKind kind, RexNode a) {
+  private RexNode simplifyIs2(SqlKind kind, RexNode a, RexUnknownAs unknownAs) {
     final RexNode simplified;
     switch (kind) {
     case IS_NULL:
       // x IS NULL ==> FALSE (if x is not nullable)
       simplified = simplifyIsNull(a);
       if (simplified != null) {
-        return simplified;
+        return simplify(simplified, unknownAs);
       }
       break;
     case IS_NOT_NULL:
       // x IS NOT NULL ==> TRUE (if x is not nullable)
       simplified = simplifyIsNotNull(a);
       if (simplified != null) {
-        return simplified;
+        return simplify(simplified, unknownAs);
       }
       break;
     case IS_TRUE:
@@ -589,16 +608,21 @@ public class RexSimplify {
       // x IS TRUE ==> x (if x is not nullable)
       // x IS NOT FALSE ==> x (if x is not nullable)
       if (!a.getType().isNullable()) {
-        return simplify(a, UNKNOWN);
+        return simplify(a, unknownAs);
+      } else {
+        RexNode newSub =
+            simplify(a, kind == SqlKind.IS_TRUE ? RexUnknownAs.FALSE : RexUnknownAs.TRUE);
+        if (newSub == a) {
+          return null;
+        }
+        return rexBuilder.makeCall(RexUtil.op(kind), ImmutableList.of(newSub));
       }
-      break;
     case IS_FALSE:
     case IS_NOT_TRUE:
       // x IS NOT TRUE ==> NOT x (if x is not nullable)
       // x IS FALSE ==> NOT x (if x is not nullable)
       if (!a.getType().isNullable()) {
-        return simplify(rexBuilder.makeCall(SqlStdOperatorTable.NOT, a),
-            UNKNOWN);
+        return simplify(rexBuilder.makeCall(SqlStdOperatorTable.NOT, a), unknownAs);
       }
       break;
     }
@@ -1129,7 +1153,7 @@ public class RexSimplify {
       for (RexNode notSatisfiableNullable : notSatisfiableNullables) {
         terms.add(
             simplifyIs((RexCall)
-                rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, notSatisfiableNullable)));
+            rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, notSatisfiableNullable), UNKNOWN));
       }
     }
     // Add the NOT disjunctions back in.
