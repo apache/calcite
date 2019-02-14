@@ -145,6 +145,32 @@ public class RelToSqlConverterTest {
     return sqlNode.toSqlString(dialect).getSql();
   }
 
+  @Test public void testSimpleSelectWithOrderByAliasAsc() {
+    final String query = "select sku+1 as a from \"product\" order by a";
+    final String bigQueryExpected = "SELECT SKU + 1 AS A\nFROM foodmart.product\n"
+        + "ORDER BY A IS NULL, A";
+    final String hiveExpected = "SELECT SKU + 1 A\nFROM foodmart.product\n"
+        + "ORDER BY A IS NULL, A";
+    sql(query)
+        .withBigquery()
+        .ok(bigQueryExpected)
+        .withHive()
+        .ok(hiveExpected);
+  }
+
+  @Test public void testSimpleSelectWithOrderByAliasDesc() {
+    final String query = "select sku+1 as a from \"product\" order by a desc";
+    final String bigQueryExpected = "SELECT SKU + 1 AS A\nFROM foodmart.product\n"
+        + "ORDER BY A IS NULL DESC, A DESC";
+    final String hiveExpected = "SELECT SKU + 1 A\nFROM foodmart.product\n"
+        + "ORDER BY A IS NULL DESC, A DESC";
+    sql(query)
+        .withBigquery()
+        .ok(bigQueryExpected)
+        .withHive()
+        .ok(hiveExpected);
+  }
+
   @Test public void testSimpleSelectStarFromProductTable() {
     String query = "select * from \"product\"";
     sql(query).ok("SELECT *\nFROM \"foodmart\".\"product\"");
@@ -676,40 +702,56 @@ public class RelToSqlConverterTest {
     sql(query).withBigquery().ok(expected);
   }
 
-  @Test public void testHiveSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
+  @Test public void testSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls first";
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id IS NULL DESC, product_id DESC";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withBigquery()
+        .ok(expected);
   }
 
-  @Test public void testHiveSelectQueryWithOrderByAscAndNullsLastShouldBeEmulated() {
+  @Test public void testSelectQueryWithOrderByAscAndNullsLastShouldBeEmulated() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" nulls last";
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id IS NULL, product_id";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withBigquery()
+        .ok(expected);
   }
 
-  @Test public void testHiveSelectQueryWithOrderByAscNullsFirstShouldNotAddNullEmulation() {
+  @Test public void testSelectQueryWithOrderByAscNullsFirstShouldNotAddNullEmulation() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" nulls first";
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withBigquery()
+        .ok(expected);
   }
 
-  @Test public void testHiveSelectQueryWithOrderByDescNullsLastShouldNotAddNullEmulation() {
+  @Test public void testSelectQueryWithOrderByDescNullsLastShouldNotAddNullEmulation() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls last";
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id DESC";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withBigquery()
+        .ok(expected);
   }
 
   @Test public void testMysqlCastToBigint() {

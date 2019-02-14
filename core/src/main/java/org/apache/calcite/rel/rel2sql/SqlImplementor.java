@@ -24,6 +24,7 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
@@ -1027,6 +1028,7 @@ public abstract class SqlImplementor {
     public Builder builder(RelNode rel, Clause... clauses) {
       final Clause maxClause = maxClause();
       boolean needNew = false;
+      boolean keepColumnAlias = false;
       // If old and new clause are equal and belong to below set,
       // then new SELECT wrap is not required
       Set<Clause> nonWrapSet = ImmutableSet.of(Clause.SELECT);
@@ -1041,6 +1043,10 @@ public abstract class SqlImplementor {
           && hasNestedAggregations((LogicalAggregate) rel)) {
         needNew = true;
       }
+      if (rel instanceof LogicalSort
+          && dialect.getSqlConformance().isSortByAlias()) {
+        keepColumnAlias = true;
+      }
 
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
@@ -1054,11 +1060,15 @@ public abstract class SqlImplementor {
       Context newContext;
       final SqlNodeList selectList = select.getSelectList();
       if (selectList != null) {
+        boolean keepColumnAliasFinal = keepColumnAlias;
         newContext = new Context(dialect, selectList.size()) {
           public SqlNode field(int ordinal) {
             final SqlNode selectItem = selectList.get(ordinal);
             switch (selectItem.getKind()) {
             case AS:
+              if (keepColumnAliasFinal) {
+                return ((SqlCall) selectItem).operand(1);
+              }
               return ((SqlCall) selectItem).operand(0);
             }
             return selectItem;
