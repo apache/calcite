@@ -43,11 +43,15 @@ public class HiveSqlDialect extends SqlDialect {
     // See https://issues.apache.org/jira/browse/HIVE-12994.
     emulateNullDirection = (context.databaseMajorVersion() < 2)
         || (context.databaseMajorVersion() == 2
-            && context.databaseMinorVersion() < 1);
+        && context.databaseMinorVersion() < 1);
   }
 
   @Override protected boolean allowsAs() {
     return false;
+  }
+
+  @Override public boolean supportsColumnAliasInSort() {
+    return true;
   }
 
   @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
