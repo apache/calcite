@@ -57,6 +57,12 @@ public class RexCall extends RexNode {
   public final ImmutableList<RexNode> operands;
   public final RelDataType type;
 
+  /**
+   * Simple binary operators are those operators which expects operands from the same Domain.
+   *
+   * Example: simple comparisions (=,<)
+   * Note: it doesn't contain IN because that is defined on D x D^n
+   */
   private static final Set<SqlKind> SIMPLE_BINARY_OPS;
 
   static {
