@@ -128,7 +128,7 @@ void TableElement(List<SqlNode> list) :
     final ColumnStrategy strategy;
 }
 {
-    id = SimpleIdentifier()
+    LOOKAHEAD(2) id = SimpleIdentifier()
     (
         type = DataType()
         (
