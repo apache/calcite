@@ -262,11 +262,12 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
         }
       }
     }
-    if (opt.getType().isNullable() && !node.getType().isNullable()) {
+    if (unknownAs == RexUnknownAs.UNKNOWN
+        && opt.getType().isNullable()
+        && !node.getType().isNullable()) {
       fail(nodeToString(node) + " had non-nullable type " + opt.getType()
           + ", and it was optimized to " + nodeToString(opt)
-          + " that has nullable type " + opt.getType()
-          + ", " + uaf);
+          + " that has nullable type " + opt.getType());
     }
     if (!SqlTypeUtil.equalSansNullability(typeFactory, node.getType(), opt.getType())) {
       assertEquals(nodeToString(node) + " has different type after simplification to "
