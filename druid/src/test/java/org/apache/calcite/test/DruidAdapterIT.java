@@ -587,7 +587,7 @@ public class DruidAdapterIT {
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']',"
         + "'virtualColumns:[{'type':'expression','name':'vc',"
         + "'expression':'timestamp_parse("
-        + "timestamp_format(__time,'yyyy-MM-dd\\u0027T\\u0027HH:mm:ss.SSS\\u0027Z\\u0027',"
+        + "timestamp_format(\"__time\",'yyyy-MM-dd\\u0027T\\u0027HH:mm:ss.SSS\\u0027Z\\u0027',"
         + "'America/New_York'),'yyyy-MM-dd\\u0027T\\u0027HH:mm:ss.SSS\\u0027Z\\u0027','UTC')',"
         + "'outputType':'LONG'}],"
         + "'columns':['vc'],"
