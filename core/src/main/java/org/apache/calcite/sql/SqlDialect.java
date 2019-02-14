@@ -31,6 +31,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
@@ -136,6 +138,7 @@ public class SqlDialect {
   private final DatabaseProduct databaseProduct;
   protected final NullCollation nullCollation;
   private final RelDataTypeSystem dataTypeSystem;
+  private final SqlConformance sqlConformance;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -192,6 +195,7 @@ public class SqlDialect {
    * @param context All the information necessary to create a dialect
    */
   public SqlDialect(Context context) {
+    this.sqlConformance = Objects.requireNonNull(context.sqlConformance());
     this.nullCollation = Objects.requireNonNull(context.nullCollation());
     this.dataTypeSystem = Objects.requireNonNull(context.dataTypeSystem());
     this.databaseProduct =
@@ -218,7 +222,8 @@ public class SqlDialect {
   /** Creates an empty context. Use {@link #EMPTY_CONTEXT} if possible. */
   protected static Context emptyContext() {
     return new ContextImpl(DatabaseProduct.UNKNOWN, null, null, -1, -1, null,
-        NullCollation.HIGH, RelDataTypeSystemImpl.DEFAULT, JethroDataSqlDialect.JethroInfo.EMPTY);
+      NullCollation.HIGH, RelDataTypeSystemImpl.DEFAULT, JethroDataSqlDialect.JethroInfo.EMPTY,
+      SqlConformanceEnum.DEFAULT);
   }
 
   /**
@@ -862,6 +867,13 @@ public class SqlDialect {
     return nullCollation;
   }
 
+  /**
+   * Returns SqlConformance for current SqlDialect
+   */
+  public SqlConformance getSqlConformance() {
+    return this.sqlConformance;
+  }
+
   /** Returns whether NULL values are sorted first or last, in this dialect,
    * in an ORDER BY item of a given direction. */
   public RelFieldCollation.NullDirection defaultNullDirection(
@@ -1065,6 +1077,8 @@ public class SqlDialect {
     Context withDataTypeSystem(@Nonnull RelDataTypeSystem dataTypeSystem);
     JethroDataSqlDialect.JethroInfo jethroInfo();
     Context withJethroInfo(JethroDataSqlDialect.JethroInfo jethroInfo);
+    @Nonnull SqlConformance sqlConformance();
+    Context withSqlConformance(@Nonnull SqlConformance sqlConformance);
   }
 
   /** Implementation of Context. */
@@ -1078,13 +1092,15 @@ public class SqlDialect {
     private final NullCollation nullCollation;
     private final RelDataTypeSystem dataTypeSystem;
     private final JethroDataSqlDialect.JethroInfo jethroInfo;
+    private final SqlConformance sqlConformance;
 
     private ContextImpl(DatabaseProduct databaseProduct,
         String databaseProductName, String databaseVersion,
         int databaseMajorVersion, int databaseMinorVersion,
         String identifierQuoteString, NullCollation nullCollation,
         RelDataTypeSystem dataTypeSystem,
-        JethroDataSqlDialect.JethroInfo jethroInfo) {
+        JethroDataSqlDialect.JethroInfo jethroInfo,
+        SqlConformance sqlConformance) {
       this.databaseProduct = Objects.requireNonNull(databaseProduct);
       this.databaseProductName = databaseProductName;
       this.databaseVersion = databaseVersion;
@@ -1094,6 +1110,7 @@ public class SqlDialect {
       this.nullCollation = Objects.requireNonNull(nullCollation);
       this.dataTypeSystem = Objects.requireNonNull(dataTypeSystem);
       this.jethroInfo = Objects.requireNonNull(jethroInfo);
+      this.sqlConformance = Objects.requireNonNull(sqlConformance);
     }
 
     @Nonnull public DatabaseProduct databaseProduct() {
@@ -1104,7 +1121,7 @@ public class SqlDialect {
         @Nonnull DatabaseProduct databaseProduct) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
     }
 
     public String databaseProductName() {
@@ -1114,7 +1131,7 @@ public class SqlDialect {
     public Context withDatabaseProductName(String databaseProductName) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
     }
 
     public String databaseVersion() {
@@ -1124,7 +1141,7 @@ public class SqlDialect {
     public Context withDatabaseVersion(String databaseVersion) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
     }
 
     public int databaseMajorVersion() {
@@ -1134,7 +1151,7 @@ public class SqlDialect {
     public Context withDatabaseMajorVersion(int databaseMajorVersion) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
     }
 
     public int databaseMinorVersion() {
@@ -1144,7 +1161,7 @@ public class SqlDialect {
     public Context withDatabaseMinorVersion(int databaseMinorVersion) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
     }
 
     public String identifierQuoteString() {
@@ -1154,7 +1171,7 @@ public class SqlDialect {
     public Context withIdentifierQuoteString(String identifierQuoteString) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
     }
 
     @Nonnull public NullCollation nullCollation() {
@@ -1164,7 +1181,7 @@ public class SqlDialect {
     public Context withNullCollation(@Nonnull NullCollation nullCollation) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
     }
 
     @Nonnull public RelDataTypeSystem dataTypeSystem() {
@@ -1174,7 +1191,7 @@ public class SqlDialect {
     public Context withDataTypeSystem(@Nonnull RelDataTypeSystem dataTypeSystem) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
     }
 
     @Nonnull public JethroDataSqlDialect.JethroInfo jethroInfo() {
@@ -1184,7 +1201,17 @@ public class SqlDialect {
     public Context withJethroInfo(JethroDataSqlDialect.JethroInfo jethroInfo) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
+    }
+
+    public Context withSqlConformance(@Nonnull SqlConformance sqlConformance) {
+      return new ContextImpl(databaseProduct, databaseProductName,
+          databaseVersion, databaseMajorVersion, databaseMinorVersion,
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
+    }
+
+    @Nonnull public SqlConformance sqlConformance() {
+      return sqlConformance;
     }
   }
 }
