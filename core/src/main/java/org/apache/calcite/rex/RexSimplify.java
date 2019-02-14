@@ -952,7 +952,8 @@ public class RexSimplify {
     // but not interfere with the normal simplifcation recursion
     List<CaseBranch> branches = new ArrayList<>();
     for (CaseBranch branch : inputBranches) {
-      if (!isSafeExpression(branch.cond) || !isSafeExpression(branch.value)) {
+      if ((branches.size() > 0 && !isSafeExpression(branch.cond))
+          || !isSafeExpression(branch.value)) {
         return null;
       }
       RexNode cond;
