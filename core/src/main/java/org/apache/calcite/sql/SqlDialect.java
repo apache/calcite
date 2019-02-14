@@ -549,6 +549,15 @@ public class SqlDialect {
     return true;
   }
 
+  /**Setting hasDualTable as false by default ,
+  *because most of the dialects supports SELECT without FROM clause .
+   */
+  public boolean hasDualTable() {
+    return false; }
+
+  public boolean supportCommaForCrossJoin() {
+    return true; }
+
   // -- behaviors --
   protected boolean requiresAliasForFromItems() {
     return false;
@@ -994,6 +1003,7 @@ public class SqlDialect {
     HSQLDB("Hsqldb", null, NullCollation.HIGH),
     VERTICA("Vertica", "\"", NullCollation.HIGH),
     SQLSTREAM("SQLstream", "\"", NullCollation.HIGH),
+    SPARK("Spark", null, NullCollation.LOW),
 
     /** Paraccel, now called Actian Matrix. Redshift is based on this, so
      * presumably the dialect capabilities are similar. */

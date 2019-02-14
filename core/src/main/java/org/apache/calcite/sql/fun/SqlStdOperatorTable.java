@@ -232,7 +232,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlBinaryOperator CONCAT =
       new SqlBinaryOperator(
           "||",
-          SqlKind.OTHER,
+          SqlKind.CONCAT,
           60,
           true,
           ReturnTypes.DYADIC_STRING_SUM_PRECISION_NULLABLE,
@@ -1433,7 +1433,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction CHAR_LENGTH =
       new SqlFunction(
           "CHAR_LENGTH",
-          SqlKind.OTHER_FUNCTION,
+          SqlKind.CHAR_LENGTH,
           ReturnTypes.INTEGER_NULLABLE,
           null,
           OperandTypes.CHARACTER,
@@ -1442,7 +1442,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction CHARACTER_LENGTH =
       new SqlFunction(
           "CHARACTER_LENGTH",
-          SqlKind.OTHER_FUNCTION,
+          SqlKind.CHARACTER_LENGTH,
           ReturnTypes.INTEGER_NULLABLE,
           null,
           OperandTypes.CHARACTER,
@@ -1663,7 +1663,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction TRUNCATE =
       new SqlFunction(
           "TRUNCATE",
-          SqlKind.OTHER_FUNCTION,
+          SqlKind.TRUNCATE,
           ReturnTypes.ARG0_NULLABLE,
           null,
           OperandTypes.NUMERIC_OPTIONAL_INTEGER,

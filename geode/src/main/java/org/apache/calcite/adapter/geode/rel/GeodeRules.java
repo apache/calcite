@@ -319,7 +319,8 @@ public class GeodeRules {
 
         return (leftName != null) && (rightName != null);
       }
-      if (left.isA(SqlKind.OTHER_FUNCTION) && right.isA(SqlKind.LITERAL)) {
+      if ((left.isA(SqlKind.OTHER_FUNCTION))
+          && right.isA(SqlKind.LITERAL)) {
         if (((RexCall) left).getOperator() != SqlStdOperatorTable.ITEM) {
           return false;
         }
