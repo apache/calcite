@@ -117,6 +117,28 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
   }
 
   @Test
+  public void testSqlBooleanColumnFilter() {
+    calciteAssert()
+        .query("SELECT booleanValue as booleanValue "
+            + "FROM geode.allDataTypesRegion WHERE booleanValue")
+        .returnsCount(2)
+        .queryContains(
+            GeodeAssertions.query("SELECT booleanValue AS booleanValue FROM /allDataTypesRegion "
+                + "WHERE booleanValue = true"));
+  }
+
+  @Test
+  public void testSqlBooleanColumnNotFilter() {
+    calciteAssert()
+        .query("SELECT booleanValue as booleanValue "
+            + "FROM geode.allDataTypesRegion WHERE not booleanValue")
+        .returnsCount(1)
+        .queryContains(
+            GeodeAssertions.query("SELECT booleanValue AS booleanValue FROM /allDataTypesRegion "
+                + "WHERE booleanValue = false"));
+  }
+
+  @Test
   public void testSqlMultipleBooleanWhereFilter() {
     calciteAssert()
         .query("SELECT booleanValue as booleanValue "
