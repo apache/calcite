@@ -862,7 +862,7 @@ public class SqlDialect {
   }
 
   /**
-   * Returns whether the dialect supports alias name in sorting, for instance
+   * Returns whether the dialect supports column alias in sorting, for instance
    * {@code SELECT SKU+1 AS A FROM "PRODUCT" ORDER BY A }.
    */
   public boolean supportsColumnAliasInSort() {

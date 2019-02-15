@@ -114,6 +114,19 @@ public abstract class SqlImplementor {
     this.dialect = Objects.requireNonNull(dialect);
   }
 
+  public abstract Result visitChild(int i, RelNode e);
+
+  public void addSelect(List<SqlNode> selectList, SqlNode node,
+      RelDataType rowType) {
+    String name = rowType.getFieldNames().get(selectList.size());
+    String alias = SqlValidatorUtil.getAlias(node, -1);
+    if (alias == null || !alias.equals(name)) {
+      node = SqlStdOperatorTable.AS.createCall(
+          POS, node, new SqlIdentifier(name, POS));
+    }
+    selectList.add(node);
+  }
+
   /** Returns whether a list of expressions projects all fields, in order,
    * from the input, with the same names. */
   public static boolean isStar(List<RexNode> exps, RelDataType inputRowType,
@@ -139,6 +152,21 @@ public abstract class SqlImplementor {
       }
     }
     return i == program.getInputRowType().getFieldCount();
+  }
+
+  public Result setOpToSql(SqlSetOperator operator, RelNode rel) {
+    SqlNode node = null;
+    for (Ord<RelNode> input : Ord.zip(rel.getInputs())) {
+      final Result result = visitChild(input.i, input.e);
+      if (node == null) {
+        node = result.asSelect();
+      } else {
+        node = operator.createCall(POS, node, result.asSelect());
+      }
+    }
+    final List<Clause> clauses =
+        Expressions.list(Clause.SET_OP);
+    return result(node, clauses, rel, null);
   }
 
   /**
@@ -315,43 +343,6 @@ public abstract class SqlImplementor {
     }
   }
 
-  private static int computeFieldCount(
-      Map<String, RelDataType> aliases) {
-    int x = 0;
-    for (RelDataType type : aliases.values()) {
-      x += type.getFieldCount();
-    }
-    return x;
-  }
-
-  public abstract Result visitChild(int i, RelNode e);
-
-  public void addSelect(List<SqlNode> selectList, SqlNode node,
-      RelDataType rowType) {
-    String name = rowType.getFieldNames().get(selectList.size());
-    String alias = SqlValidatorUtil.getAlias(node, -1);
-    if (alias == null || !alias.equals(name)) {
-      node = SqlStdOperatorTable.AS.createCall(
-          POS, node, new SqlIdentifier(name, POS));
-    }
-    selectList.add(node);
-  }
-
-  public Result setOpToSql(SqlSetOperator operator, RelNode rel) {
-    SqlNode node = null;
-    for (Ord<RelNode> input : Ord.zip(rel.getInputs())) {
-      final Result result = visitChild(input.i, input.e);
-      if (node == null) {
-        node = result.asSelect();
-      } else {
-        node = operator.createCall(POS, node, result.asSelect());
-      }
-    }
-    final List<Clause> clauses =
-        Expressions.list(Clause.SET_OP);
-    return result(node, clauses, rel, null);
-  }
-
   /** Creates a result based on a single relational expression. */
   public Result result(SqlNode node, Collection<Clause> clauses,
       RelNode rel, Map<String, RelDataType> aliases) {
@@ -368,7 +359,7 @@ public abstract class SqlImplementor {
     if (aliases != null
         && !aliases.isEmpty()
         && (!dialect.hasImplicitTableAlias()
-        || aliases.size() > 1)) {
+          || aliases.size() > 1)) {
       return new Result(node, clauses, alias4, rel.getRowType(), aliases);
     }
     final String alias5;
@@ -399,7 +390,7 @@ public abstract class SqlImplementor {
       SqlNode node, Iterator<RelDataType> aliases) {
     if (node instanceof SqlJoin) {
       final SqlJoin join = (SqlJoin) node;
-      collectAliases(builder, join.getLeft(), aliases);
+      collectAliases(builder, join.getLeft(),  aliases);
       collectAliases(builder, join.getRight(), aliases);
     } else {
       final String alias = SqlValidatorUtil.getAlias(node, -1);
@@ -415,31 +406,12 @@ public abstract class SqlImplementor {
         || node instanceof SqlIdentifier
         || node instanceof SqlMatchRecognize
         || node instanceof SqlCall
-        && (((SqlCall) node).getOperator() instanceof SqlSetOperator
-        || ((SqlCall) node).getOperator() == SqlStdOperatorTable.AS
-        || ((SqlCall) node).getOperator() == SqlStdOperatorTable.VALUES)
+            && (((SqlCall) node).getOperator() instanceof SqlSetOperator
+                || ((SqlCall) node).getOperator() == SqlStdOperatorTable.AS
+                || ((SqlCall) node).getOperator() == SqlStdOperatorTable.VALUES)
         : node;
     return new SqlSelect(POS, SqlNodeList.EMPTY, null, node, null, null, null,
         SqlNodeList.EMPTY, null, null, null);
-  }
-
-  public Context aliasContext(Map<String, RelDataType> aliases,
-      boolean qualified) {
-    return new AliasContext(dialect, aliases, qualified);
-  }
-
-  public Context joinContext(Context leftContext, Context rightContext) {
-    return new JoinContext(dialect, leftContext, rightContext);
-  }
-
-  public Context matchRecognizeContext(Context context) {
-    return new MatchRecognizeContext(dialect, ((AliasContext) context).aliases);
-  }
-
-  /** Clauses in a SQL query. Ordered by evaluation order.
-   * SELECT is set only when there is a NON-TRIVIAL SELECT clause. */
-  public enum Clause {
-    FROM, WHERE, GROUP_BY, HAVING, SELECT, SET_OP, ORDER_BY, FETCH, OFFSET
   }
 
   /** Context for translating a {@link RexNode} expression (within a
@@ -738,7 +710,7 @@ public abstract class SqlImplementor {
         node = SqlStdOperatorTable.DESC.createCall(POS, node);
       }
       if (rfc.getNullDirection()
-          != dialect.defaultNullDirection(rfc.getDirection())) {
+              != dialect.defaultNullDirection(rfc.getDirection())) {
         switch (rfc.getNullDirection()) {
         case FIRST:
           node = SqlStdOperatorTable.NULLS_FIRST.createCall(POS, node);
@@ -890,8 +862,7 @@ public abstract class SqlImplementor {
    * {@link SqlImplementor} or {@link org.apache.calcite.tools.RelBuilder}
    * to use it. It is a good way to convert a {@link RexNode} to SQL text. */
   public static class SimpleContext extends Context {
-    @Nonnull
-    private final IntFunction<SqlNode> field;
+    @Nonnull private final IntFunction<SqlNode> field;
 
     public SimpleContext(SqlDialect dialect, IntFunction<SqlNode> field) {
       super(dialect, 0, false);
@@ -917,6 +888,28 @@ public abstract class SqlImplementor {
     @Override public SqlImplementor implementor() {
       return SqlImplementor.this;
     }
+  }
+
+  private static int computeFieldCount(
+      Map<String, RelDataType> aliases) {
+    int x = 0;
+    for (RelDataType type : aliases.values()) {
+      x += type.getFieldCount();
+    }
+    return x;
+  }
+
+  public Context aliasContext(Map<String, RelDataType> aliases,
+      boolean qualified) {
+    return new AliasContext(dialect, aliases, qualified);
+  }
+
+  public Context joinContext(Context leftContext, Context rightContext) {
+    return new JoinContext(dialect, leftContext, rightContext);
+  }
+
+  public Context matchRecognizeContext(Context context) {
+    return new MatchRecognizeContext(dialect, ((AliasContext) context).aliases);
   }
 
   /**
@@ -1001,10 +994,10 @@ public abstract class SqlImplementor {
   /** Result of implementing a node. */
   public class Result {
     final SqlNode node;
-    final Expressions.FluentList<Clause> clauses;
     private final String neededAlias;
     private final RelDataType neededType;
     private final Map<String, RelDataType> aliases;
+    final Expressions.FluentList<Clause> clauses;
 
     public Result(SqlNode node, Collection<Clause> clauses, String neededAlias,
         RelDataType neededType, Map<String, RelDataType> aliases) {
@@ -1102,8 +1095,8 @@ public abstract class SqlImplementor {
         // if our aliases map has a single element:  <neededAlias, rowType>,
         // then we don't need to rewrite the alias but otherwise, it should be updated.
         if (needNew
-            && neededAlias != null
-            && (aliases.size() != 1 || !aliases.containsKey(neededAlias))) {
+                && neededAlias != null
+                && (aliases.size() != 1 || !aliases.containsKey(neededAlias))) {
           final Map<String, RelDataType> newAliases =
               ImmutableMap.of(neededAlias, rel.getInput(0).getRowType());
           newContext = aliasContext(newAliases, qualified);
@@ -1235,10 +1228,10 @@ public abstract class SqlImplementor {
 
   /** Builder. */
   public class Builder {
-    public final Context context;
+    private final RelNode rel;
     final List<Clause> clauses;
     final SqlSelect select;
-    private final RelNode rel;
+    public final Context context;
     private final Map<String, RelDataType> aliases;
 
     public Builder(RelNode rel, List<Clause> clauses, SqlSelect select,
@@ -1292,6 +1285,12 @@ public abstract class SqlImplementor {
     public Result result() {
       return SqlImplementor.this.result(select, clauses, rel, aliases);
     }
+  }
+
+  /** Clauses in a SQL query. Ordered by evaluation order.
+   * SELECT is set only when there is a NON-TRIVIAL SELECT clause. */
+  public enum Clause {
+    FROM, WHERE, GROUP_BY, HAVING, SELECT, SET_OP, ORDER_BY, FETCH, OFFSET
   }
 }
 
