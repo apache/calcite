@@ -284,8 +284,24 @@ public class RexSimplify {
     case NOT_EQUALS:
       return simplifyComparison((RexCall) e, unknownAs);
     default:
+      if (e.getClass() == RexCall.class) {
+        return simplifyGenericNode((RexCall) e);
+      } else {
+        return e;
+      }
+    }
+  }
+
+  /**
+   * Runs simplification inside a non-specialized node.
+   */
+  private RexNode simplifyGenericNode(RexCall e) {
+    final List<RexNode> operands = new ArrayList<>(e.operands);
+    simplifyList(operands, UNKNOWN);
+    if (e.operands.equals(operands)) {
       return e;
     }
+    return rexBuilder.makeCall(e.getType(), e.getOperator(), operands);
   }
 
   // e must be a comparison (=, >, >=, <, <=, !=)

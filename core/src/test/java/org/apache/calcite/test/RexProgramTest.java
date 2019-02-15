@@ -1772,6 +1772,16 @@ public class RexProgramTest extends RexProgramBuilderBase {
     assertThat(result, is(condition));
   }
 
+  @Test public void testSimplifyRecurseIntoArithmetics() {
+    checkSimplify(
+        plus(literal(1),
+            case_(
+                falseLiteral, literal(1),
+                trueLiteral, literal(2),
+                literal(3))),
+        "+(1, 2)");
+  }
+
   @Test public void testSimplifyCaseBranchesCollapse() {
     // case when x is true then 1 when x is not true then 1 else 2 end
     // => case when x is true or x is not true then 1 else 2 end
