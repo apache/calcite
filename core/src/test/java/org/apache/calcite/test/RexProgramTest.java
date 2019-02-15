@@ -1663,7 +1663,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
         eq(
             literal(false),
             eq(literal(false), vBool(1))));
-    checkSimplifyUnchanged(e);
+    checkSimplify(e, "OR(<=(?0.bool1, true), ?0.bool1)");
   }
 
   @Test public void testSimplifyUnknown() {
@@ -2262,6 +2262,29 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplifyUnchanged(lt(literalAbc, literalZero));
     checkSimplifyUnchanged(le(literalZero, literalAbc));
     checkSimplifyUnchanged(le(literalAbc, literalZero));
+  }
+
+  @Test public void testBooleanComparisions() {
+    checkSimplify(eq(vBool(), trueLiteral), "?0.bool0");
+    checkSimplify(ge(vBool(), trueLiteral), "?0.bool0");
+    checkSimplify(ne(vBool(), trueLiteral), "NOT(?0.bool0)");
+    checkSimplify(lt(vBool(), trueLiteral), "NOT(?0.bool0)");
+
+    checkSimplifyUnchanged(gt(vBool(), trueLiteral));
+    checkSimplifyUnchanged(le(vBool(), trueLiteral));
+    checkSimplify(gt(vBoolNotNull(), trueLiteral), "false");
+    checkSimplify(le(vBoolNotNull(), trueLiteral), "true");
+
+    checkSimplify(eq(vBool(), falseLiteral), "NOT(?0.bool0)");
+    checkSimplify(ne(vBool(), falseLiteral), "?0.bool0");
+    checkSimplify(gt(vBool(), falseLiteral), "?0.bool0");
+    checkSimplify(le(vBool(), falseLiteral), "NOT(?0.bool0)");
+
+    checkSimplifyUnchanged(ge(vBool(), falseLiteral));
+    checkSimplifyUnchanged(lt(vBool(), falseLiteral));
+
+    checkSimplify(ge(vBoolNotNull(), falseLiteral), "true");
+    checkSimplify(lt(vBoolNotNull(), falseLiteral), "false");
   }
 
   @Test public void testSimpleDynamicVars() {
