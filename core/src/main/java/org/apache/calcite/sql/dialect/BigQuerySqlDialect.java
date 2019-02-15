@@ -42,6 +42,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     super(context);
   }
 
+  @Override public boolean supportsColumnAliasInSort() {
+    return true;
+  }
+
   @Override public boolean supportsAliasedValues() {
     return false;
   }
@@ -49,7 +53,6 @@ public class BigQuerySqlDialect extends SqlDialect {
   @Override public boolean supportsCharSet() {
     return false;
   }
-
 
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,
       final int rightPrec) {
@@ -122,6 +125,11 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  @Override public SqlNode emulateNullDirection(SqlNode node,
+      boolean nullsFirst, boolean desc) {
+    return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
   }
 
   /**

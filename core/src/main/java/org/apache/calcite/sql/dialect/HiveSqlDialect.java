@@ -54,6 +54,10 @@ public class HiveSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsColumnAliasInSort() {
+    return true;
+  }
+
   @Override public boolean supportsAliasedValues() {
     return false;
   }

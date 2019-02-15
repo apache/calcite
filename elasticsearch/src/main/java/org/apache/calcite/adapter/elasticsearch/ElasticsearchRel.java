@@ -24,6 +24,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.Pair;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -72,7 +73,7 @@ public interface ElasticsearchRel extends RelNode {
      *
      * @see SqlStdOperatorTable#ITEM
      */
-    final List<Map.Entry<String, String>> expressionItemMap = new ArrayList<>();
+    final Map<String, String> expressionItemMap = new LinkedHashMap<>();
 
     /**
      * Starting index (default {@code 0}). Equivalent to {@code start} in ES query.
@@ -112,7 +113,7 @@ public interface ElasticsearchRel extends RelNode {
     void addExpressionItemMapping(String expressionId, String item) {
       Objects.requireNonNull(expressionId, "expressionId");
       Objects.requireNonNull(item, "item");
-      expressionItemMap.add(new Pair<>(expressionId, item));
+      expressionItemMap.put(expressionId, item);
     }
 
     void offset(long offset) {

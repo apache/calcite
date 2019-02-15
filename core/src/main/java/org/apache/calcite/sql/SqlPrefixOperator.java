@@ -81,9 +81,7 @@ public class SqlPrefixOperator extends SqlOperator {
                 .createTypeWithCharsetAndCollation(
                     type,
                     type.getCharset(),
-                    new SqlCollation(
-                        collation.getCollationName(),
-                        collation.getCoercibility()));
+                    collation);
       }
     }
     return type;

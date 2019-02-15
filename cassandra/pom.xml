@@ -78,6 +78,15 @@ limitations under the License.
       <groupId>org.apache.cassandra</groupId>
       <artifactId>cassandra-all</artifactId>
       <scope>test</scope>
+      <exclusions>
+        <!-- log4j is already present in the classpath.
+           sqlline can't initialize due to NoClassDefFoundError. See CALCITE-2734
+        -->
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>log4j-over-slf4j</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>

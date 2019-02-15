@@ -183,6 +183,11 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     return CalciteConnectionProperty.CONFORMANCE.wrap(properties)
         .getEnum(SqlConformanceEnum.class);
   }
+
+  @Override public String timeZone() {
+    return CalciteConnectionProperty.TIME_ZONE.wrap(properties)
+            .getString();
+  }
 }
 
 // End CalciteConnectionConfigImpl.java

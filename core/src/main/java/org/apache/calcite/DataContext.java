@@ -85,6 +85,10 @@ public interface DataContext {
      * frequently and cease execution (e.g. by returning end of data). */
     CANCEL_FLAG("cancelFlag", AtomicBoolean.class),
 
+    /** Query timeout in milliseconds.
+     * When no timeout is set, the value is 0 or not present. */
+    TIMEOUT("timeout", Long.class),
+
     /** Advisor that suggests completion hints for SQL statements. */
     SQL_ADVISOR("sqlAdvisor", SqlAdvisor.class),
 

@@ -251,7 +251,7 @@ public class CsvTest {
         + "select max(empno) from EMPS where gender='F'";
     final String expected = "PLAN="
         + "EnumerableAggregate(group=[{}], EXPR$0=[MAX($0)])\n"
-        + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=['F'], "
+        + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=['F':VARCHAR], "
         + "expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
         + "    CsvTableScan(table=[[SALES, EMPS]], fields=[[0, 3]])\n";
     sql("smart", sql).returns(expected).ok();

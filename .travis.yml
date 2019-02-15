@@ -22,7 +22,7 @@ matrix:
   include:
     - env: IMAGE=maven:3-jdk-12
     - env: IMAGE=maven:3-jdk-11 JDOC=Y RAT=Y
-    - env: IMAGE=maven:3-jdk-10
+    - env: IMAGE=maven:3-jdk-10 SLOW_TESTS=Y
     - env: IMAGE=maven:3-jdk-9
     - env: IMAGE=maven:3-jdk-8 JDOC=Y
 branches:
@@ -47,7 +47,8 @@ script:
   - unset _JAVA_OPTIONS
   - if [ $JDOC = "Y" ]; then export JDOC=javadoc:javadoc; fi
   - if [ $RAT = "Y" ]; then export RAT="apache-rat:check -Drat.consoleOutput"; fi
-  - $DOCKERRUN $IMAGE mvn -Dcheckstyle.skip -Dsurefire.useFile=false -Dsurefire.threadCount=1 -Dsurefire.perCoreThreadCount=false -Djavax.net.ssl.trustStorePassword=changeit test $JDOC $RAT
+  - if [ $SLOW_TESTS = "Y" ]; then export TESTS="-Dgroups=org.apache.calcite.test.SlowTests --projects :calcite-core"; else export TESTS=-DskipSlowTests; fi
+  - $DOCKERRUN $IMAGE mvn -Dcheckstyle.skip -Dsurefire.useFile=false -Dsurefire.threadCount=1 -Dsurefire.perCoreThreadCount=false -Djavax.net.ssl.trustStorePassword=changeit test $TESTS $JDOC $RAT
 git:
   depth: 10000
 sudo: required

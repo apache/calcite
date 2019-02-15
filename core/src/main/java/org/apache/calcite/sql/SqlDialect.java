@@ -861,6 +861,14 @@ public class SqlDialect {
     return true;
   }
 
+  /**
+   * Returns whether the dialect supports alias name in sorting, for instance
+   * {@code SELECT SKU+1 AS A FROM "PRODUCT" ORDER BY A }.
+   */
+  public boolean supportsColumnAliasInSort() {
+    return false;
+  }
+
   /** Returns how NULL values are sorted if an ORDER BY item does not contain
    * NULLS ASCENDING or NULLS DESCENDING. */
   public NullCollation getNullCollation() {

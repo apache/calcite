@@ -55,18 +55,18 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
     mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
 
     try {
-      final Map<String, Integer> coordinates =
-          mapper.readValue((String) map.get("coordinates"),
-              new TypeReference<Map<String, Integer>>() { });
+      final String coordinatesString = (String) map.get("coordinates");
+      Preconditions.checkState(coordinatesString != null,
+          "'coordinates' is missing in configuration");
 
+      final Map<String, Integer> coordinates = mapper.readValue(coordinatesString,
+          new TypeReference<Map<String, Integer>>() { });
+
+      // create client
       final RestClient client = connect(coordinates);
 
-      final Map<String, String> userConfig =
-          mapper.readValue((String) map.get("userConfig"),
-              new TypeReference<Map<String, String>>() { });
-
       final String index = (String) map.get("index");
-      Preconditions.checkArgument(index != null, "index is missing in configuration");
+      Preconditions.checkState(index != null, "'index' is missing in configuration");
       return new ElasticsearchSchema(client, new ObjectMapper(), index);
     } catch (IOException e) {
       throw new RuntimeException("Cannot parse values from json", e);
