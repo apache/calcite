@@ -6949,7 +6949,7 @@ LogicalProject(NEWCOL=[+($0, CASE(=('a', 'a'), 1, null:INTEGER))])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(NEWCOL=[+($0, CAST(1):INTEGER)])
+LogicalProject(NEWCOL=[+($0, 1)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -6968,7 +6968,7 @@ LogicalProject(NEWCOL=[+($0, CASE(=('a', 'a'), 1, null:INTEGER))])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(NEWCOL=[+($0, CAST(1):INTEGER)])
+LogicalProject(NEWCOL=[+($0, 1)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
