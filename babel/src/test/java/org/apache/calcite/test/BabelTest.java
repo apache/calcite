@@ -25,10 +25,16 @@ import org.junit.rules.ExpectedException;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
 
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit tests for Babel framework.
@@ -48,8 +54,37 @@ public class BabelTest {
             .build());
   }
 
+  static Connection connect(String libraries) throws SQLException {
+    return DriverManager.getConnection(URL,
+        CalciteAssert.propBuilder()
+            .set(CalciteConnectionProperty.PARSER_FACTORY,
+                SqlBabelParserImpl.class.getName() + "#FACTORY")
+            .set(CalciteConnectionProperty.FUN, libraries)
+            .build());
+  }
+
   @Test public void testFoo() {
     assertThat(1 + 1, is(2));
+  }
+
+  @Test public void testPostgreSQLCastingOp() throws SQLException {
+    Connection connection = connect("standard,postgresql");
+    Statement statement = connection.createStatement();
+    Object[][] sqlTypes = {
+        { "integer", Types.INTEGER },
+        { "varchar", Types.VARCHAR },
+        { "boolean", Types.BOOLEAN },
+        { "double", Types.DOUBLE },
+        { "bigint", Types.BIGINT } };
+    for (Object[] sqlType : sqlTypes) {
+      String sql = "SELECT x::" + sqlType[0] + " FROM (VALUES ('1', '2')) as tbl(x,y)";
+      assertTrue(statement.execute(sql));
+      ResultSet resultSet = statement.getResultSet();
+
+      ResultSetMetaData metaData = resultSet.getMetaData();
+      assertEquals("Invalid column count", 1, metaData.getColumnCount());
+      assertEquals("Invalid column type", (int) sqlType[1], metaData.getColumnType(1));
+    }
   }
 }
 
