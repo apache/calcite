@@ -26,9 +26,8 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.fun.SqlCastFunction;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.trace.CalciteLogger;
@@ -108,8 +107,8 @@ public class VisitorDataContext implements DataContext {
   }
 
   public static Pair<Integer, ?> getValue(RexNode inputRef, RexNode literal) {
-    inputRef = removeCast(inputRef);
-    literal = removeCast(literal);
+    inputRef = inputRef == null ? null : RexUtil.removeCast(inputRef);
+    literal = literal == null ? null : RexUtil.removeCast(literal);
 
     if (inputRef instanceof RexInputRef
         && literal instanceof RexLiteral)  {
@@ -162,16 +161,6 @@ public class VisitorDataContext implements DataContext {
     return null;
   }
 
-  private static RexNode removeCast(RexNode inputRef) {
-    if (inputRef instanceof RexCall) {
-      final RexCall castedRef = (RexCall) inputRef;
-      final SqlOperator operator = castedRef.getOperator();
-      if (operator instanceof SqlCastFunction) {
-        inputRef = castedRef.getOperands().get(0);
-      }
-    }
-    return inputRef;
-  }
 }
 
 // End VisitorDataContext.java

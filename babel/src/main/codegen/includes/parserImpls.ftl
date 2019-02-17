@@ -80,4 +80,21 @@ SqlNode DateaddFunctionCall() :
 |   < TILDE: "~" >
 }
 
+/** Parses the infix "::" cast operator used in PostgreSQL. */
+void InfixCast(List<Object> list, ExprContext exprContext, Span s) :
+{
+    final SqlDataTypeSpec dt;
+}
+{
+    <INFIX_CAST> {
+        checkNonQueryExpression(exprContext);
+    }
+    dt = DataType() {
+        list.add(
+            new SqlParserUtil.ToTreeListItem(SqlLibraryOperators.INFIX_CAST,
+                s.pos()));
+        list.add(dt);
+    }
+}
+
 // End parserImpls.ftl

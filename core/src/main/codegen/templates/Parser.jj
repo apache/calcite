@@ -3228,6 +3228,10 @@ List<Object> Expression2(ExprContext exprContext) :
                     }
                 ]
             |
+            <#list parser.extraBinaryExpressions as extra >
+                ${extra}(list, exprContext, s)
+            |
+            </#list>
                 LOOKAHEAD(3) op = BinaryRowOperator() {
                     checkNonQueryExpression(exprContext);
                     list.add(new SqlParserUtil.ToTreeListItem(op, getPos()));
@@ -7146,6 +7150,9 @@ void NonReservedKeyWord2of3() :
 |   < VERTICAL_BAR: "|" >
 |   < CARET: "^" >
 |   < DOLLAR: "$" >
+<#list parser.binaryOperatorsTokens as operator>
+|   ${operator}
+</#list>
 }
 
 

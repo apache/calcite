@@ -25,7 +25,12 @@ import org.junit.rules.ExpectedException;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
+import java.util.function.UnaryOperator;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -41,15 +46,45 @@ public class BabelTest {
   public ExpectedException thrown = ExpectedException.none();
 
   static Connection connect() throws SQLException {
-    return DriverManager.getConnection(URL,
-        CalciteAssert.propBuilder()
-            .set(CalciteConnectionProperty.PARSER_FACTORY,
-                SqlBabelParserImpl.class.getName() + "#FACTORY")
-            .build());
+    return connect(UnaryOperator.identity());
   }
 
-  @Test public void testFoo() {
-    assertThat(1 + 1, is(2));
+  static Connection connect(UnaryOperator<CalciteAssert.PropBuilder> propBuild)
+      throws SQLException {
+    final CalciteAssert.PropBuilder propBuilder =
+        CalciteAssert.propBuilder()
+            .set(CalciteConnectionProperty.PARSER_FACTORY,
+                SqlBabelParserImpl.class.getName() + "#FACTORY");
+    return DriverManager.getConnection(URL,
+        propBuild.apply(propBuilder).build());
+  }
+
+  private Connection connectWithFun(String libraryList) throws SQLException {
+    return connect(propBuilder ->
+        propBuilder.set(CalciteConnectionProperty.FUN, libraryList));
+  }
+
+  @Test public void testInfixCast() throws SQLException {
+    try (Connection connection = connectWithFun("standard,postgresql");
+         Statement statement = connection.createStatement()) {
+      checkInfixCast(statement, "integer", Types.INTEGER);
+      checkInfixCast(statement, "varchar", Types.VARCHAR);
+      checkInfixCast(statement, "boolean", Types.BOOLEAN);
+      checkInfixCast(statement, "double", Types.DOUBLE);
+      checkInfixCast(statement, "bigint", Types.BIGINT);
+    }
+  }
+
+  private void checkInfixCast(Statement statement, String typeName, int sqlType)
+      throws SQLException {
+    final String sql = "SELECT x::" + typeName + "\n"
+        + "FROM (VALUES ('1', '2')) as tbl(x, y)";
+    try (ResultSet resultSet = statement.executeQuery(sql)) {
+      final ResultSetMetaData metaData = resultSet.getMetaData();
+      assertThat("Invalid column count", metaData.getColumnCount(), is(1));
+      assertThat("Invalid column type", metaData.getColumnType(1),
+          is(sqlType));
+    }
   }
 }
 

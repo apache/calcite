@@ -233,6 +233,29 @@ public class BabelParserTest extends SqlParserTest {
       }
     };
   }
+
+  /** Tests parsing PostgreSQL-style "::" cast operator. */
+  @Test public void testParseInfixCast()  {
+    checkParseInfixCast("integer");
+    checkParseInfixCast("varchar");
+    checkParseInfixCast("boolean");
+    checkParseInfixCast("double");
+    checkParseInfixCast("bigint");
+
+    final String sql = "select -('12' || '.34')::VARCHAR(30)::INTEGER as x\n"
+        + "from t";
+    final String expected = ""
+        + "SELECT (- ('12' || '.34') :: VARCHAR(30) :: INTEGER) AS `X`\n"
+        + "FROM `T`";
+    sql(sql).ok(expected);
+  }
+
+  private void checkParseInfixCast(String sqlType) {
+    String sql = "SELECT x::" + sqlType + " FROM (VALUES (1, 2)) as tbl(x,y)";
+    String expected = "SELECT `X` :: " + sqlType.toUpperCase(Locale.ROOT) + "\n"
+        + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)";
+    sql(sql).ok(expected);
+  }
 }
 
 // End BabelParserTest.java
