@@ -56,7 +56,7 @@ public class RelOptCluster {
    * Creates a cluster.
    */
   @Deprecated // to be removed before 2.0
-  RelOptCluster(
+  public RelOptCluster(
       RelOptQuery query,
       RelOptPlanner planner,
       RelDataTypeFactory typeFactory,
@@ -70,7 +70,7 @@ public class RelOptCluster {
    *
    * <p>For use only from {@link #create} and {@link RelOptQuery}.
    */
-  RelOptCluster(RelOptPlanner planner, RelDataTypeFactory typeFactory,
+  public RelOptCluster(RelOptPlanner planner, RelDataTypeFactory typeFactory,
       RexBuilder rexBuilder, AtomicInteger nextCorrel,
       Map<String, RelNode> mapCorrelToRel) {
     this.nextCorrel = nextCorrel;
