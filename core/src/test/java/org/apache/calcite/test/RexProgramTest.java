@@ -1082,6 +1082,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
         .add("i", intNullableType)
         .add("j", intType)
         .add("k", intType)
+        .add("l", intNullableType)
         .build();
 
     final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
@@ -1094,6 +1095,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
     final RexNode iRef = rexBuilder.makeFieldAccess(range, 8);
     final RexNode jRef = rexBuilder.makeFieldAccess(range, 9);
     final RexNode kRef = rexBuilder.makeFieldAccess(range, 10);
+    final RexNode lRef = rexBuilder.makeFieldAccess(range, 11);
     final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
 
     // and: remove duplicates
@@ -1126,6 +1128,21 @@ public class RexProgramTest extends RexProgramBuilderBase {
 
     checkSimplify(and(aRef, bRef, not(or(not(cRef), dRef, not(eRef)))),
         "AND(?0.a, ?0.b, ?0.c, ?0.e, NOT(?0.d))");
+
+    // comparisons as terms for a AND conjunction can be simplified when unknownAsFalse
+    // set to true.
+    // e.g expression like fieldA = fieldA AND fieldB = fieldB can be simplified into
+    // fieldA IS NOT NULL AND fieldB IS NOT NULL
+    // see CALCITE-2421 for more details
+    checkSimplify2(and(eq(iRef, iRef), eq(lRef, lRef)),
+        "AND(=(?0.i, ?0.i), =(?0.l, ?0.l))",
+        "AND(IS NOT NULL(?0.i), IS NOT NULL(?0.l))");
+    checkSimplify2(and(ge(iRef, iRef), le(lRef, lRef)),
+        "AND(>=(?0.i, ?0.i), <=(?0.l, ?0.l))",
+        "AND(IS NOT NULL(?0.i), IS NOT NULL(?0.l))");
+    checkSimplify2(and(lt(iRef, iRef), gt(lRef, lRef)),
+        "AND(<(?0.i, ?0.i), >(?0.l, ?0.l))",
+        "false");
 
     // or: remove duplicates
     checkSimplify(or(aRef, bRef, aRef), "OR(?0.a, ?0.b)");
