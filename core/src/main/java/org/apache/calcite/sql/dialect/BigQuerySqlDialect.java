@@ -41,6 +41,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     super(context);
   }
 
+  @Override public boolean supportsAliasedValues() {
+    return false;
+  }
+
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,
       final int rightPrec) {
     switch (call.getKind()) {
@@ -58,16 +62,22 @@ public class BigQuerySqlDialect extends SqlDialect {
     case UNION:
       if (!((SqlSetOperator) call.getOperator()).isAll()) {
         SqlSyntax.BINARY.unparse(writer, UNION_DISTINCT, call, leftPrec, rightPrec);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
     case EXCEPT:
       if (!((SqlSetOperator) call.getOperator()).isAll()) {
         SqlSyntax.BINARY.unparse(writer, EXCEPT_DISTINCT, call, leftPrec, rightPrec);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
     case INTERSECT:
       if (!((SqlSetOperator) call.getOperator()).isAll()) {
         SqlSyntax.BINARY.unparse(writer, INTERSECT_DISTINCT, call, leftPrec, rightPrec);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
     default:

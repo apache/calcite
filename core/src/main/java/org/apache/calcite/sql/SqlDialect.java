@@ -756,6 +756,10 @@ public class SqlDialect {
     return node;
   }
 
+  public SqlIdentifier fromIdentifier() {
+    return null;
+  }
+
   /**
    * Returns whether the dialect supports OFFSET/FETCH clauses
    * introduced by SQL:2008, for instance

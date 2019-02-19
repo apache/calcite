@@ -658,13 +658,40 @@ public class RelToSqlConverterTest {
     sql(query).withBigquery().ok(expected);
   }
 
+  @Test public void testUnionAllOperatorForBigQuery() {
+    final String query = "select mod(11,3) from \"product\"\n"
+        + "UNION ALL select 1 from \"product\"";
+    final String expected = "SELECT MOD(11, 3)\n"
+        + "FROM foodmart.product\n"
+        + "UNION ALL\nSELECT 1\nFROM foodmart.product";
+    sql(query).withBigquery().ok(expected);
+  }
+
+  @Test public void testIntersectAllOperatorForBigQuery() {
+    final String query = "select mod(11,3) from \"product\"\n"
+        + "INTERSECT ALL select 1 from \"product\"";
+    final String expected = "SELECT MOD(11, 3)\n"
+        + "FROM foodmart.product\n"
+        + "INTERSECT ALL\nSELECT 1\nFROM foodmart.product";
+    sql(query).withBigquery().ok(expected);
+  }
+
+  @Test public void testExceptAllOperatorForBigQuery() {
+    final String query = "select mod(11,3) from \"product\"\n"
+        + "EXCEPT ALL select 1 from \"product\"";
+    final String expected = "SELECT MOD(11, 3)\n"
+        + "FROM foodmart.product\n"
+        + "EXCEPT ALL\nSELECT 1\nFROM foodmart.product";
+    sql(query).withBigquery().ok(expected);
+  }
+
   @Test public void testHiveSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls first";
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id IS NULL DESC, product_id DESC";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+    sql(query).withHive().ok(expected);
   }
 
   @Test public void testHiveSelectQueryWithOrderByAscAndNullsLastShouldBeEmulated() {
@@ -673,7 +700,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id IS NULL, product_id";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+    sql(query).withHive().ok(expected);
   }
 
   @Test public void testHiveSelectQueryWithOrderByAscNullsFirstShouldNotAddNullEmulation() {
@@ -682,7 +709,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+    sql(query).withHive().ok(expected);
   }
 
   @Test public void testHiveSelectQueryWithOrderByDescNullsLastShouldNotAddNullEmulation() {
@@ -691,7 +718,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id DESC";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+    sql(query).withHive().ok(expected);
   }
 
   @Test public void testMysqlCastToBigint() {
@@ -2839,13 +2866,25 @@ public class RelToSqlConverterTest {
         + "UNION ALL\n"
         + "SELECT 2 \"a\", 'yy' \"b\"\n"
         + "FROM \"DUAL\")";
+    final String expectedHive = "SELECT a\n"
+        + "FROM (SELECT 1 a, 'x ' b\n"
+        + "UNION ALL\n"
+        + "SELECT 2 a, 'yy' b)";
+    final String expectedBigQuery = "SELECT a\n"
+        + "FROM (SELECT 1 AS a, 'x ' AS b\n"
+        + "UNION ALL\n"
+        + "SELECT 2 AS a, 'yy' AS b)";
     sql(sql)
         .withHsqldb()
         .ok(expectedHsqldb)
         .withPostgresql()
         .ok(expectedPostgresql)
         .withOracle()
-        .ok(expectedOracle);
+        .ok(expectedOracle)
+        .withHive()
+        .ok(expectedHive)
+        .withBigquery()
+        .ok(expectedBigQuery);
   }
 
   /** Test case for
@@ -3045,6 +3084,16 @@ public class RelToSqlConverterTest {
         + "\"product_name\" IS NOT JSON SCALAR\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
+  }
+
+  @Test public void selectWithoutFromEmulationForHiveAndBigquery() {
+    String query = "select 2 + 2";
+    final String expected = "SELECT 2 + 2";
+    sql(query)
+      .withHive()
+      .ok(expected)
+      .withBigquery()
+      .ok(expected);
   }
 
   /** Fluid interface to run tests. */

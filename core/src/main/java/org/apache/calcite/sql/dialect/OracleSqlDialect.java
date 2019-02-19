@@ -19,12 +19,15 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+
+import static org.apache.calcite.rel.rel2sql.SqlImplementor.POS;
 
 /**
  * A <code>SqlDialect</code> implementation for the Oracle database.
@@ -50,6 +53,10 @@ public class OracleSqlDialect extends SqlDialect {
 
   @Override public boolean supportsAliasedValues() {
     return false;
+  }
+
+  @Override public SqlIdentifier fromIdentifier() {
+    return new SqlIdentifier("DUAL", POS);
   }
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
