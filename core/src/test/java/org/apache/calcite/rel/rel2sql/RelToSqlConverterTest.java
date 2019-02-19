@@ -1337,8 +1337,7 @@ class RelToSqlConverterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3663">[CALCITE-3663]
-   * Support for TRIM function in Bigquery dialect</a>. */
-
+   * Support for TRIM function in BigQuery dialect</a>. */
   @Test void testBqTrimWithLeadingChar() {
     final String query = "SELECT TRIM(LEADING 'a' from 'abcd')\n"
         + "from \"foodmart\".\"reserve_employee\"";
@@ -4534,6 +4533,14 @@ class RelToSqlConverterTest {
         + "UNION ALL\n"
         + "SELECT 2 \"a\", 'yy' \"b\"\n"
         + "FROM \"DUAL\")";
+    final String expectedHive = "SELECT a\n"
+        + "FROM (SELECT 1 a, 'x ' b\n"
+        + "UNION ALL\n"
+        + "SELECT 2 a, 'yy' b)";
+    final String expectedBigQuery = "SELECT a\n"
+        + "FROM (SELECT 1 AS a, 'x ' AS b\n"
+        + "UNION ALL\n"
+        + "SELECT 2 AS a, 'yy' AS b)";
     final String expectedSnowflake = expectedPostgresql;
     final String expectedRedshift = expectedPostgresql;
     sql(sql)
@@ -4545,6 +4552,10 @@ class RelToSqlConverterTest {
         .ok(expectedPostgresql)
         .withOracle()
         .ok(expectedOracle)
+        .withHive()
+        .ok(expectedHive)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSnowflake()
         .ok(expectedSnowflake)
         .withRedshift()
@@ -4594,6 +4605,14 @@ class RelToSqlConverterTest {
         + "FULL JOIN (VALUES  (1, 'x '),\n"
         + " (2, 'yy')) AS \"t0\" (\"a\", \"b\") ON TRUE";
     assertThat(toSql(root), isLinux(expectedSql));
+  }
+
+  @Test void testSelectWithoutFromEmulationForHiveAndBigQuery() {
+    String query = "select 2 + 2";
+    final String expected = "SELECT 2 + 2";
+    sql(query)
+        .withHive().ok(expected)
+        .withBigQuery().ok(expected);
   }
 
   /** Test case for
@@ -5261,53 +5280,39 @@ class RelToSqlConverterTest {
   }
 
   @Test void testRowValueExpression() {
-    final String expected0 = "INSERT INTO SCOTT.DEPT (DEPTNO, DNAME, LOC)\n"
+    String sql = "insert into \"DEPT\"\n"
+        + "values ROW(1,'Fred', 'San Francisco'), ROW(2, 'Eric', 'Washington')";
+    final String expectedDefault = "INSERT INTO \"SCOTT\".\"DEPT\""
+        + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
-        + "FROM (VALUES  (0)) t (ZERO)\n"
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")\n"
         + "UNION ALL\n"
         + "SELECT 2, 'Eric', 'Washington'\n"
-        + "FROM (VALUES  (0)) t (ZERO)";
-    String sql = "insert into \"DEPT\"\n"
-            + "values ROW(1,'Fred', 'San Francisco'), ROW(2, 'Eric', 'Washington')";
-    sql(sql)
-        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
-        .withHive()
-        .ok(expected0);
-
-    final String expected1 = "INSERT INTO `SCOTT`.`DEPT` (`DEPTNO`, `DNAME`, `LOC`)\n"
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+    final String expectedHive = "INSERT INTO SCOTT.DEPT (DEPTNO, DNAME, LOC)\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
         + "UNION ALL\n"
         + "SELECT 2, 'Eric', 'Washington'";
-    sql(sql)
-        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
-        .withMysql()
-        .ok(expected1);
-
-    final String expected2 = "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", "
-        + "\"DNAME\", \"LOC\")\n"
+    final String expectedMysql = "INSERT INTO `SCOTT`.`DEPT`"
+        + " (`DEPTNO`, `DNAME`, `LOC`)\nSELECT 1, 'Fred', 'San Francisco'\n"
+        + "UNION ALL\n"
+        + "SELECT 2, 'Eric', 'Washington'";
+    final String expectedOracle = "INSERT INTO \"SCOTT\".\"DEPT\""
+        + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
         + "FROM \"DUAL\"\n"
         + "UNION ALL\n"
         + "SELECT 2, 'Eric', 'Washington'\n"
         + "FROM \"DUAL\"";
-    sql(sql)
-        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
-        .withOracle()
-        .ok(expected2);
-
-    final String expected3 = "INSERT INTO [SCOTT].[DEPT] ([DEPTNO], [DNAME], [LOC])\n"
+    final String expectedMssql = "INSERT INTO [SCOTT].[DEPT]"
+        + " ([DEPTNO], [DNAME], [LOC])\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
         + "FROM (VALUES  (0)) AS [t] ([ZERO])\n"
         + "UNION ALL\n"
         + "SELECT 2, 'Eric', 'Washington'\n"
         + "FROM (VALUES  (0)) AS [t] ([ZERO])";
-    sql(sql)
-        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
-        .withMssql()
-        .ok(expected3);
-
-    final String expected4 = "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", "
-        + "\"DNAME\", \"LOC\")\n"
+    final String expectedCalcite = "INSERT INTO \"SCOTT\".\"DEPT\""
+        + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
         + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")\n"
         + "UNION ALL\n"
@@ -5315,18 +5320,12 @@ class RelToSqlConverterTest {
         + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
-        .ok(expected4);
-
-    final String expected5 = "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", "
-        + "\"DNAME\", \"LOC\")\n"
-        + "SELECT 1, 'Fred', 'San Francisco'\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")\n"
-        + "UNION ALL\n"
-        + "SELECT 2, 'Eric', 'Washington'\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
-    sql(sql).withCalcite()
-            .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
-            .ok(expected5);
+        .ok(expectedDefault)
+        .withHive().ok(expectedHive)
+        .withMysql().ok(expectedMysql)
+        .withOracle().ok(expectedOracle)
+        .withMssql().ok(expectedMssql)
+        .withCalcite().ok(expectedCalcite);
   }
 
   @Test void testInsertValuesWithDynamicParams() {

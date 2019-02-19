@@ -578,12 +578,18 @@ public class RelToSqlConverter extends SqlImplementor
         || !(Iterables.get(stack, 1).r instanceof TableModify);
     final List<String> fieldNames = e.getRowType().getFieldNames();
     if (!dialect.supportsAliasedValues() && rename) {
-      // Oracle does not support "AS t (c1, c2)". So instead of
+      // Some dialects (such as Oracle and BigQuery) don't support
+      // "AS t (c1, c2)". So instead of
       //   (VALUES (v0, v1), (v2, v3)) AS t (c0, c1)
       // we generate
       //   SELECT v0 AS c0, v1 AS c1 FROM DUAL
       //   UNION ALL
       //   SELECT v2 AS c0, v3 AS c1 FROM DUAL
+      // for Oracle and
+      //   SELECT v0 AS c0, v1 AS c1
+      //   UNION ALL
+      //   SELECT v2 AS c0, v3 AS c1
+      // for dialects that support SELECT-without-FROM.
       List<SqlSelect> list = new ArrayList<>();
       for (List<RexLiteral> tuple : e.getTuples()) {
         final List<SqlNode> values2 = new ArrayList<>();
