@@ -294,17 +294,11 @@ public class RelJson {
       return map;
     case LITERAL:
       final RexLiteral literal = (RexLiteral) node;
-      final Object value2 = literal.getValue2();
-      if (value2 == null) {
-        // Special treatment for null literal because (1) we wouldn't want
-        // 'null' to be confused as an empty expression and (2) for null
-        // literals we need an explicit type.
-        map = jsonBuilder.map();
-        map.put("literal", null);
-        map.put("type", literal.getTypeName().name());
-        return map;
-      }
-      return value2;
+      final Object value = literal.getValue2();
+      map = jsonBuilder.map();
+      map.put("literal", value);
+      map.put("type", toJson(node.getType()));
+      return map;
     case INPUT_REF:
     case LOCAL_REF:
       map = jsonBuilder.map();
@@ -391,13 +385,17 @@ public class RelJson {
       }
       if (map.containsKey("literal")) {
         final Object literal = map.get("literal");
-        final SqlTypeName sqlTypeName =
-            Util.enumVal(SqlTypeName.class, (String) map.get("type"));
+        final RelDataType type = toType(typeFactory, map.get("type"));
         if (literal == null) {
-          return rexBuilder.makeNullLiteral(
-              typeFactory.createSqlType(sqlTypeName));
+          return rexBuilder.makeNullLiteral(type);
         }
-        return toRex(relInput, literal);
+        if (type == null) {
+          // In previous versions, type was not specified for all literals.
+          // To keep backwards compatibility, if type is not specified
+          // we just interpret the literal
+          return toRex(relInput, literal);
+        }
+        return rexBuilder.makeLiteral(literal, type, false);
       }
       throw new UnsupportedOperationException("cannot convert to rex " + o);
     } else if (o instanceof Boolean) {
