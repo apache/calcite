@@ -190,20 +190,26 @@ public class RelJson {
     } else if (o instanceof Map) {
       @SuppressWarnings("unchecked")
       final Map<String, Object> map = (Map<String, Object>) o;
-      final SqlTypeName sqlTypeName =
-          Util.enumVal(SqlTypeName.class, (String) map.get("type"));
-      final Integer precision = (Integer) map.get("precision");
-      final Integer scale = (Integer) map.get("scale");
-      final RelDataType type;
-      if (precision == null) {
-        type = typeFactory.createSqlType(sqlTypeName);
-      } else if (scale == null) {
-        type = typeFactory.createSqlType(sqlTypeName, precision);
+      final Object fields = map.get("fields");
+      if (fields != null) {
+        // Nested struct
+        return toType(typeFactory, fields);
       } else {
-        type = typeFactory.createSqlType(sqlTypeName, precision, scale);
+        final SqlTypeName sqlTypeName =
+            Util.enumVal(SqlTypeName.class, (String) map.get("type"));
+        final Integer precision = (Integer) map.get("precision");
+        final Integer scale = (Integer) map.get("scale");
+        final RelDataType type;
+        if (precision == null) {
+          type = typeFactory.createSqlType(sqlTypeName);
+        } else if (scale == null) {
+          type = typeFactory.createSqlType(sqlTypeName, precision);
+        } else {
+          type = typeFactory.createSqlType(sqlTypeName, precision, scale);
+        }
+        final boolean nullable = (Boolean) map.get("nullable");
+        return typeFactory.createTypeWithNullability(type, nullable);
       }
-      final boolean nullable = (Boolean) map.get("nullable");
-      return typeFactory.createTypeWithNullability(type, nullable);
     } else {
       final SqlTypeName sqlTypeName =
           Util.enumVal(SqlTypeName.class, (String) o);
@@ -220,7 +226,7 @@ public class RelJson {
     return map;
   }
 
-  Object toJson(Object value) {
+  public Object toJson(Object value) {
     if (value == null
         || value instanceof Number
         || value instanceof String
@@ -278,8 +284,13 @@ public class RelJson {
   }
 
   private Object toJson(RelDataTypeField node) {
-    final Map<String, Object> map =
-        (Map<String, Object>) toJson(node.getType());
+    final Map<String, Object> map;
+    if (node.getType().isStruct()) {
+      map = jsonBuilder.map();
+      map.put("fields", toJson(node.getType()));
+    } else {
+      map = (Map<String, Object>) toJson(node.getType());
+    }
     map.put("name", node.getName());
     return map;
   }
