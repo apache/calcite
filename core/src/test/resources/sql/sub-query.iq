@@ -624,7 +624,7 @@ where exists (
 !ok
 EnumerableSemiJoin(condition=[=($0, $10)], joinType=[inner])
   EnumerableTableScan(table=[[scott, DEPT]])
-  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[=($t7, $t7)], expr#9=['SMITH':VARCHAR(10)], expr#10=[=($t1, $t9)], expr#11=[AND($t8, $t10)], proj#0..7=[{exprs}], $condition=[$t11])
+  EnumerableCalc(expr#0..7=[{inputs}], expr#8=['SMITH':VARCHAR(10)], expr#9=[=($t1, $t8)], expr#10=[IS NOT NULL($t7)], expr#11=[AND($t9, $t10)], proj#0..7=[{exprs}], $condition=[$t11])
     EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -831,7 +831,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[false], expr#5=[=($t2, $t4)], expr#
     EnumerableLimit(fetch=[1])
       EnumerableSort(sort0=[$0], dir0=[DESC])
         EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[123], expr#5=[null:INTEGER], expr#6=[=($t4, $t5)], expr#7=[IS NULL($t5)], expr#8=[OR($t6, $t7)], cs=[$t3], $condition=[$t8])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], cs=[$t3])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
@@ -1009,7 +1009,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[false], expr#5=[=($t2, $t4)], expr#
     EnumerableLimit(fetch=[1])
       EnumerableSort(sort0=[$0], dir0=[DESC])
         EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[CAST($t0):TINYINT], expr#6=[=($t4, $t5)], expr#7=[IS NULL($t5)], expr#8=[OR($t6, $t7)], cs=[$t3], $condition=[$t8])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[=($t4, $t0)], cs=[$t3], $condition=[$t5])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
@@ -1081,7 +1081,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[false], expr
     EnumerableLimit(fetch=[1])
       EnumerableSort(sort0=[$0], dir0=[DESC])
         EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[123], expr#5=[null:INTEGER], expr#6=[=($t4, $t5)], expr#7=[IS NULL($t5)], expr#8=[OR($t6, $t7)], cs=[$t3], $condition=[$t8])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], cs=[$t3])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
@@ -1259,7 +1259,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[false], expr
     EnumerableLimit(fetch=[1])
       EnumerableSort(sort0=[$0], dir0=[DESC])
         EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[CAST($t0):TINYINT], expr#6=[=($t4, $t5)], expr#7=[IS NULL($t5)], expr#8=[OR($t6, $t7)], cs=[$t3], $condition=[$t8])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[=($t4, $t0)], cs=[$t3], $condition=[$t5])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
@@ -1424,7 +1424,7 @@ select sal from "scott".emp
 EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t2])
   EnumerableJoin(condition=[true], joinType=[inner])
     EnumerableAggregate(group=[{0}])
-      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[CAST($t0):TINYINT], expr#6=[=($t4, $t5)], cs=[$t3], $condition=[$t6])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[=($t4, $t0)], cs=[$t3], $condition=[$t5])
         EnumerableTableScan(table=[[scott, DEPT]])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
@@ -1468,7 +1468,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[false], expr#5=[=($t2, $t4)], expr#
     EnumerableLimit(fetch=[1])
       EnumerableSort(sort0=[$0], dir0=[DESC])
         EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[123], expr#5=[null:INTEGER], expr#6=[=($t4, $t5)], expr#7=[IS NULL($t5)], expr#8=[OR($t6, $t7)], cs=[$t3], $condition=[$t8])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], cs=[$t3])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
@@ -1573,7 +1573,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[false], expr#5=[=($t2, $t4)], expr#
     EnumerableLimit(fetch=[1])
       EnumerableSort(sort0=[$0], dir0=[DESC])
         EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[CAST($t0):TINYINT], expr#6=[=($t4, $t5)], expr#7=[IS NULL($t5)], expr#8=[OR($t6, $t7)], cs=[$t3], $condition=[$t8])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[=($t4, $t0)], cs=[$t3], $condition=[$t5])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
