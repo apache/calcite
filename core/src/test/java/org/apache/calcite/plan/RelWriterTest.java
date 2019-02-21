@@ -116,6 +116,66 @@ public class RelWriterTest {
       + "  ]\n"
       + "}";
 
+  public static final String XX2 = "{\n"
+      + "  \"rels\": [\n"
+      + "    {\n"
+      + "      \"id\": \"0\",\n"
+      + "      \"relOp\": \"LogicalTableScan\",\n"
+      + "      \"table\": [\n"
+      + "        \"hr\",\n"
+      + "        \"emps\"\n"
+      + "      ],\n"
+      + "      \"inputs\": []\n"
+      + "    },\n"
+      + "    {\n"
+      + "      \"id\": \"1\",\n"
+      + "      \"relOp\": \"LogicalFilter\",\n"
+      + "      \"condition\": {\n"
+      + "        \"op\": \"=\",\n"
+      + "        \"operands\": [\n"
+      + "          {\n"
+      + "            \"input\": 1,\n"
+      + "            \"name\": \"$1\"\n"
+      + "          },\n"
+      + "          {\n"
+      + "            \"literal\": null,\n"
+      + "            \"type\": \"INTEGER\"\n"
+      + "          }\n"
+      + "        ]\n"
+      + "      }\n"
+      + "    },\n"
+      + "    {\n"
+      + "      \"id\": \"2\",\n"
+      + "      \"relOp\": \"LogicalAggregate\",\n"
+      + "      \"group\": [\n"
+      + "        0\n"
+      + "      ],\n"
+      + "      \"aggs\": [\n"
+      + "        {\n"
+      + "          \"agg\": \"COUNT\",\n"
+      + "          \"type\": {\n"
+      + "            \"type\": \"BIGINT\",\n"
+      + "            \"nullable\": false\n"
+      + "          },\n"
+      + "          \"distinct\": true,\n"
+      + "          \"operands\": [\n"
+      + "            1\n"
+      + "          ]\n"
+      + "        },\n"
+      + "        {\n"
+      + "          \"agg\": \"COUNT\",\n"
+      + "          \"type\": {\n"
+      + "            \"type\": \"BIGINT\",\n"
+      + "            \"nullable\": false\n"
+      + "          },\n"
+      + "          \"distinct\": false,\n"
+      + "          \"operands\": []\n"
+      + "        }\n"
+      + "      ]\n"
+      + "    }\n"
+      + "  ]\n"
+      + "}";
+
   /**
    * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonWriter} on
    * a simple tree of relational expressions, consisting of a table, a filter
@@ -181,6 +241,33 @@ public class RelWriterTest {
     assertThat(s,
         isLinux("LogicalAggregate(group=[{0}], agg#0=[COUNT(DISTINCT $1)], agg#1=[COUNT()])\n"
             + "  LogicalFilter(condition=[=($1, 10)])\n"
+            + "    LogicalTableScan(table=[[hr, emps]])\n"));
+  }
+
+  /**
+   * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonReader}.
+   */
+  @Test public void testReader2() {
+    String s =
+        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+          SchemaPlus schema =
+              rootSchema.add("hr",
+                  new ReflectiveSchema(new JdbcTest.HrSchema()));
+          final RelJsonReader reader =
+              new RelJsonReader(cluster, relOptSchema, schema);
+          RelNode node;
+          try {
+            node = reader.read(XX2);
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+          return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
+              SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+        });
+
+    assertThat(s,
+        isLinux("LogicalAggregate(group=[{0}], agg#0=[COUNT(DISTINCT $1)], agg#1=[COUNT()])\n"
+            + "  LogicalFilter(condition=[=($1, null:INTEGER)])\n"
             + "    LogicalTableScan(table=[[hr, emps]])\n"));
   }
 }

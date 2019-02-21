@@ -187,7 +187,8 @@ public class RelJson {
         builder.add((String) jsonMap.get("name"), toType(typeFactory, jsonMap));
       }
       return builder.build();
-    } else {
+    } else if (o instanceof Map) {
+      @SuppressWarnings("unchecked")
       final Map<String, Object> map = (Map<String, Object>) o;
       final SqlTypeName sqlTypeName =
           Util.enumVal(SqlTypeName.class, (String) map.get("type"));
@@ -203,6 +204,10 @@ public class RelJson {
       }
       final boolean nullable = (Boolean) map.get("nullable");
       return typeFactory.createTypeWithNullability(type, nullable);
+    } else {
+      final SqlTypeName sqlTypeName =
+          Util.enumVal(SqlTypeName.class, (String) o);
+      return typeFactory.createSqlType(sqlTypeName);
     }
   }
 
