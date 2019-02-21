@@ -160,8 +160,8 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
         .queryContains(
             GeodeAssertions.query("SELECT stringValue AS stringValue "
                 + "FROM /allDataTypesRegion WHERE "
-                + "stringValue IN SET('abc', 'def') OR floatValue IN SET(1.5678, null) "
-                + "OR booleanValue IN SET(true, false, null)"));
+                + "stringValue IN SET('abc', 'def') OR floatValue = 1.5678 "
+                + "OR booleanValue IN SET(true, false)"));
   }
 
   @Test
