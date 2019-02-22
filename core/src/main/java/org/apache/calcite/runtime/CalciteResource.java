@@ -850,6 +850,9 @@ public interface CalciteResource {
   @BaseMessage("Timeout of ''{0}'' ms for query execution is reached. Query execution started at ''{1}''")
   ExInst<CalciteException> queryExecutionTimeoutReached(String timeout, String queryStart);
 
+  @BaseMessage("Including both WITHIN GROUP(...) and inside ORDER BY in a single JSON_ARRAYAGG call is not allowed")
+  ExInst<CalciteException> ambiguousSortOrderInJsonArrayAggFunc();
+
   @BaseMessage("While executing SQL [{0}] on JDBC sub-schema")
   ExInst<RuntimeException> exceptionWhilePerformingQueryOnJdbcSubSchema(String sql);
 

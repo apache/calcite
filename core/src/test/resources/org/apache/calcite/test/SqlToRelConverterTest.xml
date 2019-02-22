@@ -5362,7 +5362,7 @@ LogicalProject(EXPR$0=[JSON_ARRAY(FLAG(ABSENT_ON_NULL), JSON_STRUCTURED_VALUE_EX
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testJsonArrayAgg">
+    <TestCase name="testJsonArrayAgg1">
         <Resource name="sql">
             <![CDATA[select json_arrayagg(ename)
 from emp]]>
@@ -5371,6 +5371,45 @@ from emp]]>
             <![CDATA[
 LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG<ABSENT_ON_NULL>($0)])
   LogicalProject($f0=[JSON_STRUCTURED_VALUE_EXPRESSION($1)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJsonArrayAgg2">
+        <Resource name="sql">
+            <![CDATA[select json_arrayagg(ename order by ename)
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG<ABSENT_ON_NULL>($0) WITHIN GROUP ([1])])
+  LogicalProject($f0=[JSON_STRUCTURED_VALUE_EXPRESSION($1)], ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJsonArrayAgg3">
+        <Resource name="sql">
+            <![CDATA[select json_arrayagg(ename order by ename null on null)
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG<NULL_ON_NULL>($0) WITHIN GROUP ([1])])
+  LogicalProject($f0=[JSON_STRUCTURED_VALUE_EXPRESSION($1)], ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJsonArrayAgg4">
+        <Resource name="sql">
+            <![CDATA[select json_arrayagg(ename null on null) within group (order by ename)
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG<NULL_ON_NULL>($0) WITHIN GROUP ([1])])
+  LogicalProject($f0=[JSON_STRUCTURED_VALUE_EXPRESSION($1)], ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>

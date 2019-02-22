@@ -2906,8 +2906,26 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test public void testJsonArrayAgg() {
+  @Test public void testJsonArrayAgg1() {
     final String sql = "select json_arrayagg(ename)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonArrayAgg2() {
+    final String sql = "select json_arrayagg(ename order by ename)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonArrayAgg3() {
+    final String sql = "select json_arrayagg(ename order by ename null on null)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonArrayAgg4() {
+    final String sql = "select json_arrayagg(ename null on null) within group (order by ename)\n"
         + "from emp";
     sql(sql).ok();
   }

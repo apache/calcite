@@ -8417,13 +8417,23 @@ public class SqlParserTest {
         "JSON_ARRAY(JSON_ARRAY('foo', 'bar' ABSENT ON NULL) FORMAT JSON ABSENT ON NULL)");
   }
 
-  @Test public void testJsonArrayAgg() {
+  @Test public void testJsonArrayAgg1() {
     checkExp("json_arrayagg(\"column\")",
         "JSON_ARRAYAGG(`column` ABSENT ON NULL)");
     checkExp("json_arrayagg(\"column\" null on null)",
         "JSON_ARRAYAGG(`column` NULL ON NULL)");
     checkExp("json_arrayagg(json_array(\"column\") format json)",
         "JSON_ARRAYAGG(JSON_ARRAY(`column` ABSENT ON NULL) FORMAT JSON ABSENT ON NULL)");
+  }
+
+  @Test public void testJsonArrayAgg2() {
+    checkExp("json_arrayagg(\"column\" order by \"column\")",
+        "(JSON_ARRAYAGG(`column` ABSENT ON NULL) WITHIN GROUP (ORDER BY `column`))");
+    checkExp("json_arrayagg(\"column\") within group (order by \"column\")",
+        "(JSON_ARRAYAGG(`column` ABSENT ON NULL) WITHIN GROUP (ORDER BY `column`))");
+    checkFails("^json_arrayagg(\"column\" order by \"column\") within group (order by \"column\")^",
+        "(?s).*Including both WITHIN GROUP\\(\\.\\.\\.\\) and inside ORDER BY "
+            + "in a single JSON_ARRAYAGG call is not allowed.*");
   }
 
   @Test public void testJsonPredicate() {
