@@ -310,7 +310,7 @@ public class RelJson {
       return map;
     case LITERAL:
       final RexLiteral literal = (RexLiteral) node;
-      final Object value = literal.getValue2();
+      final Object value = literal.getValue3();
       map = jsonBuilder.map();
       map.put("literal", value);
       map.put("type", toJson(node.getType()));

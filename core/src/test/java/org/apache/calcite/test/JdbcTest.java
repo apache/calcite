@@ -5568,7 +5568,7 @@ public class JdbcTest {
         + "            }\n"
         + "          },\n"
         + "          {\n"
-        + "            \"literal\": 1,\n"
+        + "            \"literal\": 0.01,\n"
         + "            \"type\": {\n"
         + "              \"type\": \"DECIMAL\",\n"
         + "              \"nullable\": false,\n"
