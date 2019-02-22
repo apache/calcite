@@ -741,6 +741,10 @@ public class SqlDialect {
     return null;
   }
 
+  public JoinType emulateJoinTypeForCrossJoin() {
+    return JoinType.COMMA;
+  }
+
   protected SqlNode emulateNullDirectionWithIsNull(SqlNode node,
       boolean nullsFirst, boolean desc) {
     // No need for emulation if the nulls will anyways come out the way we want
@@ -990,6 +994,7 @@ public class SqlDialect {
     HSQLDB("Hsqldb", null, NullCollation.HIGH),
     VERTICA("Vertica", "\"", NullCollation.HIGH),
     SQLSTREAM("SQLstream", "\"", NullCollation.HIGH),
+    SPARK("Spark", null, NullCollation.LOW),
 
     /** Paraccel, now called Actian Matrix. Redshift is based on this, so
      * presumably the dialect capabilities are similar. */

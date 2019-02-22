@@ -1719,20 +1719,31 @@ public class RexProgramTest extends RexProgramBuilderBase {
   }
 
   @Test public void testSimplifyAnd3() {
-    final RelDataType boolType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
-    final RelDataType rowType = typeFactory.builder()
-        .add("a", boolType).nullable(true)
-        .build();
-
-    final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
-    final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
-
     // in the case of 3-valued logic, the result must be unknown if a is unknown
     checkSimplify2(
-        and(aRef,
-            not(aRef)),
-        "AND(null, IS NULL(?0.a))",
+        and(vBool(), not(vBool())),
+        "AND(null, IS NULL(?0.bool0))",
         "false");
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2840">[CALCITE-2840]
+   * Simplification should use more specific UnknownAs modes during simplification</a>. */
+  @Test public void testNestedAndSimplification() {
+    // to have the correct mode for the AND at the bottom,
+    // both the OR and AND parent should retain the UnknownAs mode
+    checkSimplify2(
+        and(
+            eq(vInt(2), literal(2)),
+            or(
+                eq(vInt(3), literal(3)),
+                and(
+                    ge(vInt(), literal(1)),
+                    le(vInt(), literal(1))))),
+        "AND(=(?0.int2, 2), OR(=(?0.int3, 3), AND(>=(?0.int0, 1), <=(?0.int0, 1))))",
+        "AND(=(?0.int2, 2), OR(=(?0.int3, 3), =(?0.int0, 1)))"
+
+    );
   }
 
   @Test public void fieldAccessEqualsHashCode() {
@@ -1770,6 +1781,16 @@ public class RexProgramTest extends RexProgramBuilderBase {
     assertThat(result.getType().isNullable(), is(false));
     assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.BOOLEAN));
     assertThat(result, is(condition));
+  }
+
+  @Test public void testSimplifyRecurseIntoArithmetics() {
+    checkSimplify(
+        plus(literal(1),
+            case_(
+                falseLiteral, literal(1),
+                trueLiteral, literal(2),
+                literal(3))),
+        "+(1, 2)");
   }
 
   @Test public void testSimplifyCaseBranchesCollapse() {
@@ -1872,6 +1893,13 @@ public class RexProgramTest extends RexProgramBuilderBase {
         gt(div(literal(3), vIntNotNull()), literal(1)), trueLiteral,
         falseLiteral);
     checkSimplifyUnchanged(caseNode);
+  }
+
+  @Test public void testSimplifyCaseFirstBranchIsSafe() {
+    RexNode caseNode = case_(
+        gt(div(vIntNotNull(), literal(1)), literal(1)), falseLiteral,
+        trueLiteral);
+    checkSimplify(caseNode, "<=(/(?0.notNullInt0, 1), 1)");
   }
 
   @Test public void testSimplifyAnd() {
@@ -2539,6 +2567,14 @@ public class RexProgramTest extends RexProgramBuilderBase {
   private Comparable eval(RexNode e) {
     return RexInterpreter.evaluate(e, ImmutableMap.of());
   }
-}
 
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2842">[CALCITE-2842]
+   * Computing digest of IN expressions leads to Exceptions</a>. */
+  @Test public void testInDigest() {
+    RexNode e = in(vInt(), literal(1), literal(2));
+    assertThat(e.toString(), is("IN(?0.int0, 1, 2)"));
+  }
+
+}
 // End RexProgramTest.java
