@@ -5369,7 +5369,7 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG<ABSENT_ON_NULL>($0)])
+LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG_ABSENT_ON_NULL($0)])
   LogicalProject($f0=[JSON_STRUCTURED_VALUE_EXPRESSION($1)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -5382,7 +5382,7 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG<ABSENT_ON_NULL>($0) WITHIN GROUP ([1])])
+LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG_ABSENT_ON_NULL($0) WITHIN GROUP ([1])])
   LogicalProject($f0=[JSON_STRUCTURED_VALUE_EXPRESSION($1)], ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -5395,7 +5395,7 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG<NULL_ON_NULL>($0) WITHIN GROUP ([1])])
+LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG_NULL_ON_NULL($0) WITHIN GROUP ([1])])
   LogicalProject($f0=[JSON_STRUCTURED_VALUE_EXPRESSION($1)], ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -5408,7 +5408,7 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG<NULL_ON_NULL>($0) WITHIN GROUP ([1])])
+LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG_NULL_ON_NULL($0) WITHIN GROUP ([1])])
   LogicalProject($f0=[JSON_STRUCTURED_VALUE_EXPRESSION($1)], ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -5433,7 +5433,7 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalAggregate(group=[{}], EXPR$0=[JSON_OBJECTAGG<NULL_ON_NULL>($0, $1)])
+LogicalAggregate(group=[{}], EXPR$0=[JSON_OBJECTAGG_NULL_ON_NULL($0, $1)])
   LogicalProject(ENAME=[$1], $f1=[JSON_STRUCTURED_VALUE_EXPRESSION($7)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
