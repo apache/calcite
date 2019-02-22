@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.adapter.enumerable.impl.AggAddContextImpl;
 import org.apache.calcite.adapter.enumerable.impl.AggResultContextImpl;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function0;
@@ -31,7 +32,6 @@ import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
@@ -212,7 +212,7 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
       final List<Expression> decls = new ArrayList<>(state.size());
       for (int i = 0; i < state.size(); i++) {
         String aggName = "a" + agg.aggIdx;
-        if (CalcitePrepareImpl.DEBUG) {
+        if (CalciteSystemProperty.DEBUG.value()) {
           aggName = Util.toJavaId(agg.call.getAggregation().getName(), 0)
               .substring("ID$0$".length()) + aggName;
         }

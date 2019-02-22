@@ -19,6 +19,7 @@ package org.apache.calcite.tools;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
@@ -33,7 +34,6 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.volcano.AbstractConverter;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
@@ -325,7 +325,7 @@ public class FrameworksTest {
         .programs(Programs.ofRules(Programs.RULE_SET))
         .build();
     executeQuery(config, " UPDATE MYTABLE set id=7 where id=1",
-        CalcitePrepareImpl.DEBUG);
+        CalciteSystemProperty.DEBUG.value());
   }
 
   private void executeQuery(FrameworkConfig config,

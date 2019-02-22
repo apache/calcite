@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.util.IntegerIntervalSet;
 
@@ -101,8 +102,8 @@ public class FoodmartTest {
 
   @Parameterized.Parameters(name = "{index}: foodmart({0})={1}")
   public static List<Object[]> getSqls() throws IOException {
-    String idList = System.getProperty("calcite.ids");
-    if (!CalciteAssert.ENABLE_SLOW && idList == null) {
+    String idList = CalciteSystemProperty.TEST_FOODMART_QUERY_IDS.value();
+    if (!CalciteSystemProperty.TEST_SLOW.value() && idList == null) {
       // Avoid loading the query set in a regular test suite run. It burns too
       // much memory.
       return ImmutableList.of();
@@ -126,7 +127,7 @@ public class FoodmartTest {
       }
     } else {
       for (FoodMartQuerySet.FoodmartQuery query1 : set.queries.values()) {
-        if (!CalciteAssert.ENABLE_SLOW && query1.id != 2) {
+        if (!CalciteSystemProperty.TEST_SLOW.value() && query1.id != 2) {
           // If slow queries are not enabled, only run query #2.
           continue;
         }

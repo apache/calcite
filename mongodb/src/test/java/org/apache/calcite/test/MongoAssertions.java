@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.Ordering;
 
@@ -80,8 +80,8 @@ public class MongoAssertions {
    * @return Whether current tests should use an external mongo instance
    */
   public static boolean useMongo() {
-    return Util.getBooleanProperty("calcite.integrationTest")
-            && Util.getBooleanProperty("calcite.test.mongodb", true);
+    return CalciteSystemProperty.INTEGRATION_TEST.value()
+            && CalciteSystemProperty.TEST_MONGODB.value();
   }
 
   /**

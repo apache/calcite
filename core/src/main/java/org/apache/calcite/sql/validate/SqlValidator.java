@@ -42,7 +42,6 @@ import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
-import org.apache.calcite.util.Util;
 
 import java.util.List;
 import java.util.Map;
@@ -103,9 +102,6 @@ import java.util.Map;
  * names in a particular clause of a SQL statement.</p>
  */
 public interface SqlValidator {
-  /** Whether to follow the SQL standard strictly. */
-  boolean STRICT = Util.getBooleanProperty("calcite.strict.sql");
-
   //~ Methods ----------------------------------------------------------------
 
   /**

@@ -23,6 +23,7 @@ import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.avatica.ConnectionProperty;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteMetaImpl;
@@ -71,7 +72,6 @@ import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
 
 import org.hamcrest.Matcher;
 
-import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -122,23 +122,13 @@ import static org.junit.Assert.fail;
 public class CalciteAssert {
   private CalciteAssert() {}
 
-  /** Which database to use for tests that require a JDBC data source. By
-   * default the test suite runs against the embedded hsqldb database.
+  /**
+   * Which database to use for tests that require a JDBC data source.
    *
-   * <p>We recommend that casual users use hsqldb, and frequent Calcite
-   * developers use MySQL. The test suite runs faster against the MySQL database
-   * (mainly because of the 0.1s versus 6s startup time). You have to populate
-   * MySQL manually with the foodmart data set, otherwise there will be test
-   * failures.  To run against MySQL, specify '-Dcalcite.test.db=mysql' on the
-   * java command line. */
+   * @see CalciteSystemProperty#TEST_DB
+   **/
   public static final DatabaseInstance DB =
-      DatabaseInstance.valueOf(
-          Util.first(System.getProperty("calcite.test.db"), "HSQLDB")
-              .toUpperCase(Locale.ROOT));
-
-  /** Whether to enable slow tests. Default is false. */
-  public static final boolean ENABLE_SLOW =
-      Util.getBooleanProperty("calcite.test.slow");
+      DatabaseInstance.valueOf(CalciteSystemProperty.TEST_DB.value());
 
   private static final DateFormat UTC_DATE_FORMAT;
   private static final DateFormat UTC_TIME_FORMAT;
@@ -1814,7 +1804,7 @@ public class CalciteAssert {
         new ConnectionSpec(ScottHsqldb.URI, ScottHsqldb.USER,
             ScottHsqldb.PASSWORD, "org.hsqldb.jdbcDriver", "SCOTT")),
     H2(
-        new ConnectionSpec("jdbc:h2:" + getDataSetPath()
+        new ConnectionSpec("jdbc:h2:" + CalciteSystemProperty.TEST_DATASET_PATH.value()
             + "/h2/target/foodmart;user=foodmart;password=foodmart",
             "foodmart", "foodmart", "org.h2.Driver", "foodmart"), null),
     MYSQL(
@@ -1830,23 +1820,6 @@ public class CalciteAssert {
 
     public final ConnectionSpec foodmart;
     public final ConnectionSpec scott;
-
-    private static String getDataSetPath() {
-      String path = System.getProperty("calcite.test.dataset");
-      if (path != null) {
-        return path;
-      }
-      final String[] dirs = {
-          "../calcite-test-dataset",
-          "../../calcite-test-dataset"
-      };
-      for (String s : dirs) {
-        if (new File(s).exists() && new File(s, "vm").exists()) {
-          return s;
-        }
-      }
-      return ".";
-    }
 
     DatabaseInstance(ConnectionSpec foodmart, ConnectionSpec scott) {
       this.foodmart = foodmart;

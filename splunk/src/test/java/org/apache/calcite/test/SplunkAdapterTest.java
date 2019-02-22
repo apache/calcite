@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -47,16 +47,10 @@ public class SplunkAdapterTest {
   public static final String SPLUNK_USER = "admin";
   public static final String SPLUNK_PASSWORD = "changeme";
 
-  /** Whether to run Splunk tests. Disabled by default, because we do not expect
-   * Splunk to be installed and populated data set. To enable,
-   * specify {@code -Dcalcite.test.splunk} on the Java command line. */
-  public static final boolean ENABLED =
-      Util.getBooleanProperty("calcite.test.splunk");
-
   /** Whether this test is enabled. Tests are disabled unless we know that
    * Splunk is present and loaded with the requisite data. */
   private boolean enabled() {
-    return ENABLED;
+    return CalciteSystemProperty.TEST_SPLUNK.value();
   }
 
   private void loadDriverClass() {

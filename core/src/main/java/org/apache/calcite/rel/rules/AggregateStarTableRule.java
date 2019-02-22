@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.TileKey;
@@ -29,7 +30,6 @@ import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.SubstitutionVisitor;
 import org.apache.calcite.plan.ViewExpanders;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -150,14 +150,14 @@ public class AggregateStarTableRule extends RelOptRule {
             rowCount);
     relBuilder.push(aggregateRelOptTable.toRel(ViewExpanders.simpleContext(cluster)));
     if (tileKey == null) {
-      if (CalcitePrepareImpl.DEBUG) {
+      if (CalciteSystemProperty.DEBUG.value()) {
         System.out.println("Using materialization "
             + aggregateRelOptTable.getQualifiedName()
             + " (exact match)");
       }
     } else if (!tileKey.dimensions.equals(aggregate.getGroupSet())) {
       // Aggregate has finer granularity than we need. Roll up.
-      if (CalcitePrepareImpl.DEBUG) {
+      if (CalciteSystemProperty.DEBUG.value()) {
         System.out.println("Using materialization "
             + aggregateRelOptTable.getQualifiedName()
             + ", rolling up " + tileKey.dimensions + " to "
@@ -181,7 +181,7 @@ public class AggregateStarTableRule extends RelOptRule {
           aggregate.copy(aggregate.getTraitSet(), relBuilder.build(), false,
               groupSet.build(), null, aggCalls));
     } else if (!tileKey.measures.equals(measures)) {
-      if (CalcitePrepareImpl.DEBUG) {
+      if (CalciteSystemProperty.DEBUG.value()) {
         System.out.println("Using materialization "
             + aggregateRelOptTable.getQualifiedName()
             + ", right granularity, but different measures "
