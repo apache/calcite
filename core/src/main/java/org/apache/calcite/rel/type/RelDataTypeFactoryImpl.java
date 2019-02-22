@@ -467,6 +467,14 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
         int s1 = type1.getScale();
         int s2 = type2.getScale();
 
+        if (p1 == RelDataType.PRECISION_NOT_SPECIFIED) {
+          p1 = typeSystem.getDefaultPrecision(type1.getSqlTypeName());
+        }
+
+        if (p2 == RelDataType.PRECISION_NOT_SPECIFIED) {
+          p2 = typeSystem.getDefaultPrecision(type2.getSqlTypeName());
+        }
+
         int scale = s1 + s2;
         scale = Math.min(scale, typeSystem.getMaxNumericScale());
         int precision = p1 + p2;

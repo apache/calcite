@@ -26,6 +26,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -482,10 +483,50 @@ public abstract class Types {
       //   Short foo(Object o) {
       //     return (short) (int) o;
       //   }
+
+      if (returnType == BigDecimal.class) {
+        try {
+          return castToDecimal(expression);
+        } catch (NoSuchMethodException e) {
+          throw new RuntimeException("Can't find method: " + e);
+        }
+      }
       return Expressions.convert_(expression,
           Types.unbox(returnType));
     }
     return Expressions.convert_(expression, returnType);
+  }
+
+  private static Expression castToDecimal(Expression e) throws NoSuchMethodException {
+    Type t = e.getType();
+
+    if (t == BigDecimal.class) {
+      return e;
+    }
+
+    final Method decimalMethod;
+    if (t == byte.class
+            || t == Byte.class
+            || t == short.class
+            || t == Short.class
+            || t == int.class
+            || t == Integer.class
+            || t == long.class
+            || t == Long.class) {
+      decimalMethod = BigDecimal.class.getDeclaredMethod("valueOf", long.class);
+      Method longMethod = Long.class.getDeclaredMethod("valueOf", (Class) t);
+      return Expressions.call(decimalMethod, Expressions.call(longMethod, e));
+    } else if (
+            t == double.class
+            || t == Double.class
+            || t == Float.class
+            || t == float.class) {
+      decimalMethod = BigDecimal.class.getDeclaredMethod("valueOf", double.class);
+      Method doubleMethod = Double.class.getDeclaredMethod("valueOf", (Class) t);
+      return Expressions.call(decimalMethod, Expressions.call(doubleMethod, e));
+    } else {
+      throw new RuntimeException("Can't cast type " + t + " to type BigDecimal");
+    }
   }
 
   public static PseudoField field(final Field field) {

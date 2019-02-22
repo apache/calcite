@@ -493,14 +493,23 @@ public abstract class ReturnTypes {
         && SqlTypeUtil.isExactNumeric(type2)) {
       if (SqlTypeUtil.isDecimal(type1)
           || SqlTypeUtil.isDecimal(type2)) {
+        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+        final RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
+
         int p1 = type1.getPrecision();
         int p2 = type2.getPrecision();
         int s1 = type1.getScale();
         int s2 = type2.getScale();
 
-        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+        if (p1 == RelDataType.PRECISION_NOT_SPECIFIED) {
+          p1 = typeSystem.getDefaultPrecision(type1.getSqlTypeName());
+        }
+
+        if (p2 == RelDataType.PRECISION_NOT_SPECIFIED) {
+          p2 = typeSystem.getDefaultPrecision(type2.getSqlTypeName());
+        }
+
         int scale = Math.max(s1, s2);
-        final RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
         assert scale <= typeSystem.getMaxNumericScale();
         int precision = Math.max(p1 - s1, p2 - s2) + scale + 1;
         precision =

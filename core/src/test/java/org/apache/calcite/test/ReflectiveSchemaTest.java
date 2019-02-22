@@ -44,6 +44,7 @@ import org.junit.Test;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -290,8 +291,8 @@ public class ReflectiveSchemaTest {
             + "primitiveBoolean=true\n");
     with.query("select * from \"s\".\"everyTypes\"")
         .returns(""
-            + "primitiveBoolean=false; primitiveByte=0; primitiveChar=\u0000; primitiveShort=0; primitiveInt=0; primitiveLong=0; primitiveFloat=0.0; primitiveDouble=0.0; wrapperBoolean=false; wrapperByte=0; wrapperCharacter=\u0000; wrapperShort=0; wrapperInteger=0; wrapperLong=0; wrapperFloat=0.0; wrapperDouble=0.0; sqlDate=1970-01-01; sqlTime=00:00:00; sqlTimestamp=1970-01-01 00:00:00; utilDate=1970-01-01 00:00:00; string=1\n"
-            + "primitiveBoolean=true; primitiveByte=127; primitiveChar=\uffff; primitiveShort=32767; primitiveInt=2147483647; primitiveLong=9223372036854775807; primitiveFloat=3.4028235E38; primitiveDouble=1.7976931348623157E308; wrapperBoolean=null; wrapperByte=null; wrapperCharacter=null; wrapperShort=null; wrapperInteger=null; wrapperLong=null; wrapperFloat=null; wrapperDouble=null; sqlDate=null; sqlTime=null; sqlTimestamp=null; utilDate=null; string=null\n");
+            + "primitiveBoolean=false; primitiveByte=0; primitiveChar=\u0000; primitiveShort=0; primitiveInt=0; primitiveLong=0; primitiveFloat=0.0; primitiveDouble=0.0; wrapperBoolean=false; wrapperByte=0; wrapperCharacter=\u0000; wrapperShort=0; wrapperInteger=0; wrapperLong=0; wrapperFloat=0.0; wrapperDouble=0.0; sqlDate=1970-01-01; sqlTime=00:00:00; sqlTimestamp=1970-01-01 00:00:00; utilDate=1970-01-01 00:00:00; string=1; decimal=-1\n"
+            + "primitiveBoolean=true; primitiveByte=127; primitiveChar=\uffff; primitiveShort=32767; primitiveInt=2147483647; primitiveLong=9223372036854775807; primitiveFloat=3.4028235E38; primitiveDouble=1.7976931348623157E308; wrapperBoolean=null; wrapperByte=null; wrapperCharacter=null; wrapperShort=null; wrapperInteger=null; wrapperLong=null; wrapperFloat=null; wrapperDouble=null; sqlDate=null; sqlTime=null; sqlTimestamp=null; utilDate=null; string=null; decimal=1.1\n");
   }
 
   /**
@@ -465,6 +466,9 @@ public class ReflectiveSchemaTest {
       return input.getTime(1);
     case java.sql.Types.TIMESTAMP:
       return input.getTimestamp(1);
+    case java.sql.Types.DECIMAL:
+      return input.getBigDecimal(1);
+
     default:
       throw new AssertionError(type);
     }
@@ -858,6 +862,8 @@ public class ReflectiveSchemaTest {
     public final Timestamp sqlTimestamp;
     public final Date utilDate;
     public final String string;
+    public final BigDecimal decimal;
+
 
     public EveryType(
         boolean primitiveBoolean,
@@ -880,7 +886,8 @@ public class ReflectiveSchemaTest {
         Time sqlTime,
         Timestamp sqlTimestamp,
         Date utilDate,
-        String string) {
+        String string,
+        BigDecimal decimal) {
       this.primitiveBoolean = primitiveBoolean;
       this.primitiveByte = primitiveByte;
       this.primitiveChar = primitiveChar;
@@ -902,6 +909,7 @@ public class ReflectiveSchemaTest {
       this.sqlTimestamp = sqlTimestamp;
       this.utilDate = utilDate;
       this.string = string;
+      this.decimal = decimal;
     }
 
     static Enumerable<Field> fields() {
@@ -953,13 +961,13 @@ public class ReflectiveSchemaTest {
             false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
             false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
             new java.sql.Date(0), new Time(0), new Timestamp(0),
-            new Date(0), "1"),
+            new Date(0), "1", BigDecimal.valueOf(-1)),
         new EveryType(
             true, Byte.MAX_VALUE, Character.MAX_VALUE, Short.MAX_VALUE,
             Integer.MAX_VALUE, Long.MAX_VALUE, Float.MAX_VALUE,
             Double.MAX_VALUE,
             null, null, null, null, null, null, null, null,
-            null, null, null, null, null),
+            null, null, null, null, null, new BigDecimal("1.1")),
     };
 
     public final AllPrivate[] allPrivates = { new AllPrivate() };
