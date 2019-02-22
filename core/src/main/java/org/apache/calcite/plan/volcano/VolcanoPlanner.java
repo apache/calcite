@@ -18,6 +18,7 @@ package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.AbstractRelOptPlanner;
 import org.apache.calcite.plan.Context;
@@ -39,7 +40,6 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.convert.Converter;
@@ -64,7 +64,6 @@ import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.PartiallyOrderedSet;
-import org.apache.calcite.util.SaffronProperties;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -99,12 +98,6 @@ import java.util.regex.Pattern;
  * according to a dynamic programming algorithm.
  */
 public class VolcanoPlanner extends AbstractRelOptPlanner {
-  //~ Static fields/initializers ---------------------------------------------
-  private static final boolean DUMP_GRAPHVIZ =
-      Util.getBooleanProperty("calcite.volcano.dump.graphviz", true);
-  private static final boolean DUMP_SETS =
-      Util.getBooleanProperty("calcite.volcano.dump.sets", true);
-
   protected static final double COST_IMPROVEMENT = .5;
 
   //~ Instance fields --------------------------------------------------------
@@ -912,7 +905,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     addRule(JoinCommuteRule.INSTANCE);
     addRule(SemiJoinRule.PROJECT);
     addRule(SemiJoinRule.JOIN);
-    if (CalcitePrepareImpl.COMMUTE) {
+    if (CalciteSystemProperty.COMMUTE.value()) {
       addRule(JoinAssociateRule.INSTANCE);
     }
     addRule(AggregateRemoveRule.INSTANCE);
@@ -1012,7 +1005,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     assert fromTraits.size() >= toTraits.size();
 
     final boolean allowInfiniteCostConverters =
-        SaffronProperties.INSTANCE.allowInfiniteCostConverters().get();
+        CalciteSystemProperty.ALLOW_INFINITE_COST_CONVERTERS.value();
 
     // Traits may build on top of another...for example a collation trait
     // would typically come after a distribution trait since distribution
@@ -1175,12 +1168,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       originalRoot.explain(
           new RelWriterImpl(pw, SqlExplainLevel.ALL_ATTRIBUTES, false));
     }
-    if (DUMP_SETS) {
+    if (CalciteSystemProperty.DUMP_SETS.value()) {
       pw.println();
       pw.println("Sets:");
       dumpSets(pw);
     }
-    if (DUMP_GRAPHVIZ) {
+    if (CalciteSystemProperty.DUMP_GRAPHVIZ.value()) {
       pw.println();
       pw.println("Graphviz:");
       dumpGraphviz(pw);

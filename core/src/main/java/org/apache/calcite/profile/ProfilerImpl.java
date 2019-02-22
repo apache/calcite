@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.profile;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.materialize.Lattice;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -275,7 +275,7 @@ public class ProfilerImpl implements Profiler {
     }
 
     void pass(int pass, List<Space> spaces, Iterable<List<Comparable>> rows) {
-      if (CalcitePrepareImpl.DEBUG) {
+      if (CalciteSystemProperty.DEBUG.value()) {
         System.out.println("pass: " + pass
             + ", spaces.size: " + spaces.size()
             + ", distributions.size: " + distributions.size());
@@ -361,7 +361,7 @@ public class ProfilerImpl implements Profiler {
               new Distribution(space.columns, space.valueSet, space.cardinality,
                   space.nullCount, expectedCardinality, minimal);
           final double surprise = distribution.surprise();
-          if (CalcitePrepareImpl.DEBUG && surprise > 0.1d) {
+          if (CalciteSystemProperty.DEBUG.value() && surprise > 0.1d) {
             System.out.println(distribution.columnOrdinals()
                 + " " + distribution.columns
                 + ", cardinality: " + distribution.cardinality
@@ -757,7 +757,7 @@ public class ProfilerImpl implements Profiler {
     }
 
     boolean isValid() {
-      if (CalcitePrepareImpl.DEBUG) {
+      if (CalciteSystemProperty.DEBUG.value()) {
         System.out.println(toString());
       }
       assert deque.size() == priorityQueue.size();
@@ -779,7 +779,7 @@ public class ProfilerImpl implements Profiler {
       } else {
         b = false;
       }
-      if (CalcitePrepareImpl.DEBUG) {
+      if (CalciteSystemProperty.DEBUG.value()) {
         System.out.println("offer " + d
             + " min " + priorityQueue.peek()
             + " accepted " + b);

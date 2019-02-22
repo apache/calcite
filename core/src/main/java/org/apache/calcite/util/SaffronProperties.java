@@ -45,7 +45,11 @@ import java.util.Properties;
  * comment must describe the name of the property (for example,
  * "net.sf.saffron.connection.PoolSize") and the default value, if any. <em>
  * Developers, please make sure that this remains so!</em>
+ *
+ * @deprecated As of release 1.19,
+ * replaced by {@link org.apache.calcite.config.CalciteSystemProperty}
  */
+@Deprecated
 public interface SaffronProperties {
   /**
    * The boolean property "saffron.opt.allowInfiniteCostConverters" determines

@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.util.Glossary;
-import org.apache.calcite.util.SaffronProperties;
 import org.apache.calcite.util.SerializableCharset;
 import org.apache.calcite.util.Util;
 
@@ -104,7 +104,7 @@ public class SqlCollation implements Serializable {
    */
   public SqlCollation(Coercibility coercibility) {
     this(
-        SaffronProperties.INSTANCE.defaultCollation().get(),
+        CalciteSystemProperty.DEFAULT_COLLATION.value(),
         coercibility);
   }
 

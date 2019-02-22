@@ -25,7 +25,7 @@ import org.apache.calcite.avatica.remote.Service;
 import org.apache.calcite.avatica.server.AvaticaJsonHandler;
 import org.apache.calcite.avatica.server.HttpServer;
 import org.apache.calcite.avatica.server.Main;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.JdbcFrontLinqBackTest;
 import org.apache.calcite.test.JdbcTest;
@@ -92,7 +92,7 @@ public class CalciteRemoteDriverTest {
   public static final String LJS = Factory2.class.getName();
 
   private final PrintWriter out =
-      CalcitePrepareImpl.DEBUG ? Util.printWriter(System.out)
+      CalciteSystemProperty.DEBUG.value() ? Util.printWriter(System.out)
           : new PrintWriter(new StringWriter());
 
   private static final CalciteAssert.ConnectionFactory REMOTE_CONNECTION_FACTORY =
@@ -430,7 +430,7 @@ public class CalciteRemoteDriverTest {
         SqlType.SQLXML
     };
     final PrintWriter out =
-        CalcitePrepareImpl.DEBUG
+        CalciteSystemProperty.DEBUG.value()
             ? Util.printWriter(System.out)
             : new PrintWriter(new StringWriter());
     for (SqlType.Method row : SqlType.Method.values()) {

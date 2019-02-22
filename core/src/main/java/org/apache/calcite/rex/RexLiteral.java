@@ -19,6 +19,7 @@ package org.apache.calcite.rex;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCollation;
@@ -32,7 +33,6 @@ import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
-import org.apache.calcite.util.SaffronProperties;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Unsafe;
@@ -589,7 +589,7 @@ public class RexLiteral extends RexNode {
         boolean includeCharset =
             (nlsString.getCharsetName() != null)
                 && !nlsString.getCharsetName().equals(
-                    SaffronProperties.INSTANCE.defaultCharset().get());
+                CalciteSystemProperty.DEFAULT_CHARSET.value());
         pw.print(nlsString.asSql(includeCharset, false));
       }
       break;

@@ -32,6 +32,7 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.jdbc.CalciteConnection;
@@ -3483,7 +3484,7 @@ public class JdbcTest {
             "deptno=10; empid=110; S=21710.0; FIVE=5; M=10000.0; C=2",
             "deptno=10; empid=150; S=18760.0; FIVE=5; M=7000.0; C=2",
             "deptno=20; empid=200; S=8200.0; FIVE=5; M=8000.0; C=1")
-        .planContains(CalcitePrepareImpl.DEBUG
+        .planContains(CalciteSystemProperty.DEBUG.value()
             ? "_list.add(new Object[] {\n"
             + "        row[0],\n" // box-unbox is optimized
             + "        row[1],\n"
@@ -3552,7 +3553,7 @@ public class JdbcTest {
   @Test public void testWinAggScalarNonNullPhysType() {
     String planLine =
         "a0s0w0 = org.apache.calcite.runtime.SqlFunctions.lesser(a0s0w0, org.apache.calcite.runtime.SqlFunctions.toFloat(_rows[j]));";
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       planLine = planLine.replaceAll("a0s0w0", "MINa0s0w0");
     }
     CalciteAssert.hr()
@@ -3577,7 +3578,7 @@ public class JdbcTest {
   @Test public void testWinAggScalarNonNullPhysTypePlusOne() {
     String planLine =
         "a0s0w0 = org.apache.calcite.runtime.SqlFunctions.lesser(a0s0w0, org.apache.calcite.runtime.SqlFunctions.toFloat(_rows[j]));";
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       planLine = planLine.replaceAll("a0s0w0", "MINa0s0w0");
     }
     CalciteAssert.hr()

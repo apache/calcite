@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.enumerable.impl.WinAggAddContextImpl;
 import org.apache.calcite.adapter.enumerable.impl.WinAggResetContextImpl;
 import org.apache.calcite.adapter.enumerable.impl.WinAggResultContextImpl;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.tree.BinaryExpression;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
@@ -34,7 +35,6 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -798,7 +798,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
             }
           };
       String aggName = "a" + agg.aggIdx;
-      if (CalcitePrepareImpl.DEBUG) {
+      if (CalciteSystemProperty.DEBUG.value()) {
         aggName = Util.toJavaId(agg.call.getAggregation().getName(), 0)
             .substring("ID$0$".length()) + aggName;
       }

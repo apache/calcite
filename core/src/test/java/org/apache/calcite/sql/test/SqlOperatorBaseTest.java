@@ -18,6 +18,7 @@ package org.apache.calcite.sql.test;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.RelDataType;
@@ -5491,7 +5492,7 @@ public abstract class SqlOperatorBaseTest {
   protected static Pair<String, Hook.Closeable> currentTimeString(TimeZone tz) {
     final Calendar calendar;
     final Hook.Closeable closeable;
-    if (CalciteAssert.ENABLE_SLOW) {
+    if (CalciteSystemProperty.TEST_SLOW.value()) {
       calendar = getCalendarNotTooNear(Calendar.HOUR_OF_DAY);
       closeable = () -> { };
     } else {
@@ -8002,7 +8003,7 @@ public abstract class SqlOperatorBaseTest {
   /** Test that calls all operators with all possible argument types, and for
    * each type, with a set of tricky values. */
   @Test public void testArgumentBounds() {
-    if (!CalciteAssert.ENABLE_SLOW) {
+    if (!CalciteSystemProperty.TEST_SLOW.value()) {
       return;
     }
     final SqlValidatorImpl validator = (SqlValidatorImpl) tester.getValidator();

@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.avatica.Helper;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.Compiler;
 import org.apache.calcite.interpreter.InterpretableConvention;
 import org.apache.calcite.interpreter.InterpretableRel;
@@ -33,7 +34,6 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.runtime.ArrayBindable;
@@ -92,7 +92,7 @@ public class EnumerableInterpretable extends ConverterImpl
     final ClassDeclaration expr = relImplementor.implementRoot(rel, prefer);
     String s = Expressions.toString(expr.memberDeclarations, "\n", false);
 
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       Util.debugCode(System.out, s);
     }
 
@@ -133,7 +133,7 @@ public class EnumerableInterpretable extends ConverterImpl
             ? new Class[] {Bindable.class, Typed.class}
             : new Class[] {ArrayBindable.class});
     cbe.setParentClassLoader(EnumerableInterpretable.class.getClassLoader());
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       // Add line numbers to the generated janino class
       cbe.setDebuggingInformation(true, true, true);
     }

@@ -29,6 +29,7 @@ import org.apache.calcite.avatica.AvaticaParameter;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.BindableConvention;
 import org.apache.calcite.interpreter.Bindables;
 import org.apache.calcite.interpreter.Interpreters;
@@ -163,12 +164,6 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * subject to change without notice.</p>
  */
 public class CalcitePrepareImpl implements CalcitePrepare {
-
-  public static final boolean DEBUG = Util.getBooleanProperty("calcite.debug");
-
-  public static final boolean COMMUTE =
-      Util.getBooleanProperty("calcite.enable.join.commute");
-
   /** Whether to enable the collation trait. Some extra optimizations are
    * possible if enabled, but queries should work either way. At some point
    * this will become a preference, or we will run multiple phases: first
@@ -221,7 +216,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           AggregateStarTableRule.INSTANCE,
           AggregateStarTableRule.INSTANCE2,
           TableScanRule.INSTANCE,
-          COMMUTE
+          CalciteSystemProperty.COMMUTE.value()
               ? JoinAssociateRule.INSTANCE
               : ProjectMergeRule.INSTANCE,
           FilterTableScanRule.INSTANCE,
