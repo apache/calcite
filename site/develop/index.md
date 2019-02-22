@@ -83,6 +83,27 @@ If your change had multiple commits, use `git rebase -i master` to
 squash them into a single commit, and to bring your code up to date
 with the latest on the main line.
 
+In order to keep the commit history clean and uniform, you should 
+respect the following guidelines.
+ * Read the messages of previous commits, and follow their style.
+ * The first line of the commit message must be a concise and useful
+description of the change.
+ * The message is often, but not always, the same as the JIRA subject.
+If the JIRA subject is not clear, change it (perhaps move the original
+subject to the description of the JIRA case, if it clarifies).
+ * Start with a capital letter.
+ * Do not finish with a period.
+ * Use imperative mood ("Add a handler ...") rather than past tense
+("Added a handler ...") or present tense ("Adds a handler ...").
+ * If possible, describe the user-visible behavior that you changed
+("FooCommand now creates directory if it does not exist"), rather than
+the implementation ("Add handler for FileNotFound").
+ * If you are fixing a bug, it is sufficient to describe the bug
+ ("NullPointerException if user is unknown") and people will correctly
+ surmise that the purpose of your change is to fix the bug.
+ * If you are not a committer, add your name in parentheses at the end
+ of the message.
+
 Then push your commit(s) to GitHub, and create a pull request from
 your branch to the calcite master branch. Update the JIRA case
 to reference your pull request, and a committer will review your

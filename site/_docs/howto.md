@@ -307,13 +307,13 @@ bye
 {% endhighlight %}
 
 Connect using the
-[mongo-zips-model.json]({{ site.sourceRoot }}/mongodb/src/test/resources/mongo-zips-model.json)
+[mongo-model.json]({{ site.sourceRoot }}/mongodb/src/test/resources/mongo-model.json)
 Calcite model:
 
 {% highlight bash %}
 $ ./sqlline
-sqlline> !connect jdbc:calcite:model=mongodb/target/test-classes/mongo-zips-model.json admin admin
-Connecting to jdbc:calcite:model=mongodb/target/test-classes/mongo-zips-model.json
+sqlline> !connect jdbc:calcite:model=mongodb/target/test-classes/mongo-model.json admin admin
+Connecting to jdbc:calcite:model=mongodb/target/test-classes/mongo-model.json
 Connected to: Calcite (version 1.x.x)
 Driver: Calcite JDBC Driver (version 1.x.x)
 Autocommit status: true

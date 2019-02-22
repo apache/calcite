@@ -75,7 +75,7 @@ For example, in the example dataset there is an Elasticsearch type
 named `zips` under index named `usa`.
 
 We can issue a simple query to fetch the names of all the states
-stored in the type `zips`. By default, Elasticsearch returns only 10 rows:
+stored in the type `zips`. 
 
 {% highlight sql %}
 sqlline> SELECT * from "zips";
@@ -128,6 +128,12 @@ The final source json given to Elasticsearch is below:
     }
   ]
 }
+{% endhighlight %}
+
+You can also query elastic search index without prior view definition:
+
+{% highlight sql %}
+sqlline> SELECT _MAP['city'], _MAP['state'] from "elasticsearch"."zips" order by _MAP['state'];
 {% endhighlight %}
 
 ### Use of Scrolling API

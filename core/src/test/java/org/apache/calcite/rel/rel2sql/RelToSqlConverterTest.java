@@ -323,10 +323,9 @@ public class RelToSqlConverterTest {
         + "from \"foodmart\".\"product\"";
     final String expectedPostgresql = "SELECT CASE WHEN (COUNT(\"net_weight\")"
         + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW)) > 0 "
-        + "THEN CAST(COALESCE(SUM(\"net_weight\")"
+        + "THEN COALESCE(SUM(\"net_weight\")"
         + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 0)"
-        + " AS DOUBLE PRECISION) "
-        + "ELSE NULL END / (COUNT(\"net_weight\")"
+        + " ELSE NULL END / (COUNT(\"net_weight\")"
         + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW))\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query)
@@ -3122,6 +3121,10 @@ public class RelToSqlConverterTest {
 
     Sql withBigquery() {
       return dialect(SqlDialect.DatabaseProduct.BIG_QUERY.getDialect());
+    }
+
+    Sql withSpark() {
+      return dialect(DatabaseProduct.SPARK.getDialect());
     }
 
     Sql withPostgresqlModifiedTypeSystem() {

@@ -100,6 +100,7 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
@@ -505,10 +506,10 @@ public class CalciteAssert {
       List<Pair<Hook, Consumer>> hooks,
       Consumer<ResultSet> resultChecker,
       Consumer<Integer> updateChecker,
-      Consumer<Throwable> exceptionChecker) throws Exception {
-    final String message =
+      Consumer<Throwable> exceptionChecker) {
+    final Supplier<String> message = () ->
         "With materializationsEnabled=" + materializationsEnabled
-            + ", limit=" + limit;
+            + ", limit=" + limit + ", sql=" + sql;
     try (Closer closer = new Closer()) {
       if (connection.isWrapperFor(CalciteConnection.class)) {
         final CalciteConnection calciteConnection =
@@ -565,12 +566,12 @@ public class CalciteAssert {
       statement.close();
       connection.close();
     } catch (Error | RuntimeException e) {
-      // We ignore extended message for non-runtime exception, however
-      // it does not matter much since it is better to have AssertionError
+      // It is better to have AssertionError
       // at the very top level of the exception stack.
+      e.addSuppressed(new RuntimeException(message.get()));
       throw e;
     } catch (Throwable e) {
-      throw new RuntimeException(message, e);
+      throw new RuntimeException(message.get(), e);
     }
   }
 
@@ -584,8 +585,8 @@ public class CalciteAssert {
       Consumer<Integer> updateChecker,
       Consumer<Throwable> exceptionChecker,
       PreparedStatementConsumer consumer) {
-    final String message = "With materializationsEnabled="
-        + materializationsEnabled + ", limit=" + limit;
+    final Supplier<String> message = () -> "With materializationsEnabled="
+        + materializationsEnabled + ", limit=" + limit + ", sql = " + sql;
     try (Closer closer = new Closer()) {
       if (connection.isWrapperFor(CalciteConnection.class)) {
         final CalciteConnection calciteConnection =
@@ -643,12 +644,12 @@ public class CalciteAssert {
       statement.close();
       connection.close();
     } catch (Error | RuntimeException e) {
-      // We ignore extended message for non-runtime exception, however
-      // it does not matter much since it is better to have AssertionError
+      // It is better to have AssertionError
       // at the very top level of the exception stack.
+      e.addSuppressed(new RuntimeException(message.get()));
       throw e;
     } catch (Throwable e) {
-      throw new RuntimeException(message, e);
+      throw new RuntimeException(message.get(), e);
     }
   }
 
@@ -657,9 +658,9 @@ public class CalciteAssert {
       String sql,
       boolean materializationsEnabled,
       final Function<RelNode, Void> convertChecker,
-      final Function<RelNode, Void> substitutionChecker) throws Exception {
-    final String message = "With materializationsEnabled="
-        + materializationsEnabled;
+      final Function<RelNode, Void> substitutionChecker) {
+    final Supplier<String> message = () -> "With materializationsEnabled="
+        + materializationsEnabled + ", sql = " + sql;
     try (Closer closer = new Closer()) {
       if (convertChecker != null) {
         closer.add(
@@ -679,8 +680,13 @@ public class CalciteAssert {
       PreparedStatement statement = connection.prepareStatement(sql);
       statement.close();
       connection.close();
+    } catch (Error | RuntimeException e) {
+      // It is better to have AssertionError
+      // at the very top level of the exception stack.
+      e.addSuppressed(new RuntimeException(message.get()));
+      throw e;
     } catch (Throwable e) {
-      throw new RuntimeException(message, e);
+      throw new RuntimeException(message.get(), e);
     }
   }
 
@@ -1367,16 +1373,22 @@ public class CalciteAssert {
       this.connectionFactory = connectionFactory;
     }
 
-    protected Connection createConnection() throws Exception {
-      return connectionFactory.createConnection();
+    protected Connection createConnection() {
+      try {
+        return connectionFactory.createConnection();
+      } catch (SQLException e) {
+        throw new IllegalStateException(
+            "Unable to create connection: connectionFactory = " + connectionFactory, e);
+      }
     }
 
     /** Performs an action using a connection, and closes the connection
      * afterwards. */
-    public final AssertQuery withConnection(Consumer<Connection> f)
-        throws Exception {
+    public final AssertQuery withConnection(Consumer<Connection> f) {
       try (Connection c = createConnection()) {
         f.accept(c);
+      } catch (SQLException e) {
+        throw new IllegalStateException("connection#close() failed", e);
       }
       return this;
     }
@@ -1427,14 +1439,9 @@ public class CalciteAssert {
     }
 
     public final AssertQuery updates(int count) {
-      try (Connection connection = createConnection()) {
-        assertQuery(connection, sql, limit, materializationsEnabled,
-            hooks, null, checkUpdateCount(count), null);
-        return this;
-      } catch (Exception e) {
-        throw new RuntimeException(
-            "exception while executing [" + sql + "]", e);
-      }
+      return withConnection(connection ->
+          assertQuery(connection, sql, limit, materializationsEnabled,
+              hooks, null, checkUpdateCount(count), null));
     }
 
     @SuppressWarnings("Guava")
@@ -1445,7 +1452,7 @@ public class CalciteAssert {
     }
 
     protected AssertQuery returns(String sql, Consumer<ResultSet> checker) {
-      try (Connection connection = createConnection()) {
+      return withConnection(connection -> {
         if (consumer == null) {
           assertQuery(connection, sql, limit, materializationsEnabled,
               hooks, checker, null, null);
@@ -1453,11 +1460,7 @@ public class CalciteAssert {
           assertPrepare(connection, sql, limit, materializationsEnabled,
               hooks, checker, null, null, consumer);
         }
-        return this;
-      } catch (Exception e) {
-        throw new RuntimeException(
-            "exception while executing [" + sql + "]", e);
-      }
+      });
     }
 
     public AssertQuery returnsUnordered(String... lines) {
@@ -1473,14 +1476,9 @@ public class CalciteAssert {
     }
 
     public AssertQuery throws_(String message) {
-      try (Connection connection = createConnection()) {
+      return withConnection(connection ->
         assertQuery(connection, sql, limit, materializationsEnabled,
-            hooks, null, null, checkException(message));
-        return this;
-      } catch (Exception e) {
-        throw new RuntimeException(
-            "exception while executing [" + sql + "]", e);
-      }
+            hooks, null, null, checkException(message)));
     }
 
     /**
@@ -1490,14 +1488,9 @@ public class CalciteAssert {
      * @param optionalMessage An optional message to check for in the output stacktrace
      * */
     public AssertQuery failsAtValidation(String optionalMessage) {
-      try (Connection connection = createConnection()) {
+      return withConnection(connection ->
         assertQuery(connection, sql, limit, materializationsEnabled,
-            hooks, null, null, checkValidationException(optionalMessage));
-        return this;
-      } catch (Exception e) {
-        throw new RuntimeException("exception while executing [" + sql + "]",
-            e);
-      }
+            hooks, null, null, checkValidationException(optionalMessage)));
     }
 
     /**
@@ -1509,7 +1502,7 @@ public class CalciteAssert {
     }
 
     public AssertQuery runs() {
-      try (Connection connection = createConnection()) {
+      return withConnection(connection -> {
         if (consumer == null) {
           assertQuery(connection, sql, limit, materializationsEnabled,
               hooks, null, null, null);
@@ -1517,22 +1510,13 @@ public class CalciteAssert {
           assertPrepare(connection, sql, limit, materializationsEnabled,
               hooks, null, null, null, consumer);
         }
-        return this;
-      } catch (Exception e) {
-        throw new RuntimeException(
-            "exception while executing [" + sql + "]", e);
-      }
+      });
     }
 
     public AssertQuery typeIs(String expected) {
-      try (Connection connection = createConnection()) {
+      return withConnection(connection ->
         assertQuery(connection, sql, limit, false,
-            hooks, checkResultType(expected), null, null);
-        return this;
-      } catch (Exception e) {
-        throw new RuntimeException(
-            "exception while executing [" + sql + "]", e);
-      }
+            hooks, checkResultType(expected), null, null));
     }
 
     /** Checks that when the query (which was set using
@@ -1548,25 +1532,15 @@ public class CalciteAssert {
     }
 
     public AssertQuery convertMatches(final Function<RelNode, Void> checker) {
-      try (Connection connection = createConnection()) {
+      return withConnection(connection ->
         assertPrepare(connection, sql, this.materializationsEnabled,
-            checker, null);
-        return this;
-      } catch (Exception e) {
-        throw new RuntimeException("exception while preparing [" + sql + "]",
-            e);
-      }
+            checker, null));
     }
 
     public AssertQuery substitutionMatches(
         final Function<RelNode, Void> checker) {
-      try (Connection connection = createConnection()) {
-        assertPrepare(connection, sql, materializationsEnabled, null, checker);
-        return this;
-      } catch (Exception e) {
-        throw new RuntimeException("exception while preparing [" + sql + "]",
-            e);
-      }
+      return withConnection(connection ->
+        assertPrepare(connection, sql, materializationsEnabled, null, checker));
     }
 
     public AssertQuery explainContains(String expected) {
@@ -1617,14 +1591,11 @@ public class CalciteAssert {
         return;
       }
       addHook(Hook.JAVA_PLAN, (Consumer<String>) a0 -> plan = a0);
-      try (Connection connection = createConnection()) {
+      withConnection(connection -> {
         assertQuery(connection, sql, limit, materializationsEnabled,
             hooks, null, checkUpdate, null);
         assertNotNull(plan);
-      } catch (Exception e) {
-        throw new RuntimeException("exception while executing [" + sql + "]",
-            e);
-      }
+      });
     }
 
     /** Runs the query and applies a checker to the generated third-party
@@ -1634,15 +1605,11 @@ public class CalciteAssert {
     public AssertQuery queryContains(Consumer<List> predicate1) {
       final List<Object> list = new ArrayList<>();
       addHook(Hook.QUERY_PLAN, list::add);
-      try (Connection connection = createConnection()) {
+      return withConnection(connection -> {
         assertQuery(connection, sql, limit, materializationsEnabled,
             hooks, null, null, null);
         predicate1.accept(list);
-        return this;
-      } catch (Exception e) {
-        throw new RuntimeException(
-            "exception while executing [" + sql + "]", e);
-      }
+      });
     }
 
     /** @deprecated Use {@link #queryContains(Consumer)}. */
@@ -1732,7 +1699,11 @@ public class CalciteAssert {
         resultSet.close();
         c.close();
         return this;
-      } catch (Exception e) {
+      } catch (Error | RuntimeException e) {
+        // It is better to have AssertionError
+        // at the very top level of the exception stack.
+        throw e;
+      } catch (Throwable e) {
         throw new RuntimeException(e);
       }
     }
@@ -1812,7 +1783,7 @@ public class CalciteAssert {
       return new NopAssertQuery(sql);
     }
 
-    @Override protected Connection createConnection() throws Exception {
+    @Override protected Connection createConnection() {
       throw new AssertionError("disabled");
     }
 

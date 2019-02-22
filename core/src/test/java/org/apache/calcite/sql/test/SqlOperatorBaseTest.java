@@ -7785,6 +7785,50 @@ public abstract class SqlOperatorBaseTest {
         0d);
   }
 
+  @Test public void testBitAndFunc() {
+    tester.setFor(SqlStdOperatorTable.BIT_AND, VM_FENNEL, VM_JAVA);
+    tester.checkFails("bit_and(^*^)", "Unknown identifier '\\*'", false);
+    tester.checkType("bit_and(1)", "INTEGER");
+    tester.checkType("bit_and(CAST(2 AS TINYINT))", "TINYINT");
+    tester.checkType("bit_and(CAST(2 AS SMALLINT))", "SMALLINT");
+    tester.checkType("bit_and(distinct CAST(2 AS BIGINT))", "BIGINT");
+    tester.checkFails("^bit_and(1.2)^",
+        "Cannot apply 'BIT_AND' to arguments of type 'BIT_AND\\(<DECIMAL\\(2, 1\\)>\\)'\\. Supported form\\(s\\): 'BIT_AND\\(<INTEGER>\\)'",
+        false);
+    tester.checkFails(
+        "^bit_and()^",
+        "Invalid number of arguments to function 'BIT_AND'. Was expecting 1 arguments",
+        false);
+    tester.checkFails(
+        "^bit_and(1, 2)^",
+        "Invalid number of arguments to function 'BIT_AND'. Was expecting 1 arguments",
+        false);
+    final String[] values = {"3", "2", "2"};
+    tester.checkAgg("bit_and(x)", values, 2, 0);
+  }
+
+  @Test public void testBitOrFunc() {
+    tester.setFor(SqlStdOperatorTable.BIT_OR, VM_FENNEL, VM_JAVA);
+    tester.checkFails("bit_or(^*^)", "Unknown identifier '\\*'", false);
+    tester.checkType("bit_or(1)", "INTEGER");
+    tester.checkType("bit_or(CAST(2 AS TINYINT))", "TINYINT");
+    tester.checkType("bit_or(CAST(2 AS SMALLINT))", "SMALLINT");
+    tester.checkType("bit_or(distinct CAST(2 AS BIGINT))", "BIGINT");
+    tester.checkFails("^bit_or(1.2)^",
+        "Cannot apply 'BIT_OR' to arguments of type 'BIT_OR\\(<DECIMAL\\(2, 1\\)>\\)'\\. Supported form\\(s\\): 'BIT_OR\\(<INTEGER>\\)'",
+        false);
+    tester.checkFails(
+        "^bit_or()^",
+        "Invalid number of arguments to function 'BIT_OR'. Was expecting 1 arguments",
+        false);
+    tester.checkFails(
+        "^bit_or(1, 2)^",
+        "Invalid number of arguments to function 'BIT_OR'. Was expecting 1 arguments",
+        false);
+    final String[] values = {"1", "2", "2"};
+    tester.checkAgg("bit_or(x)", values, 3, 0);
+  }
+
   /**
    * Tests that CAST fails when given a value just outside the valid range for
    * that type. For example,

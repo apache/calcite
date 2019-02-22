@@ -1448,7 +1448,7 @@ group by deptno;
 
 !ok
 EnumerableAggregate(group=[{0}], CF=[COUNT() FILTER $1], C=[COUNT()])
-  EnumerableCalc(expr#0..1=[{inputs}], expr#2=['CLERK'], expr#3=[=($t0, $t2)], expr#4=[IS TRUE($t3)], DEPTNO=[$t1], $f1=[$t4])
+  EnumerableCalc(expr#0..1=[{inputs}], expr#2=['CLERK':VARCHAR(9)], expr#3=[=($t0, $t2)], expr#4=[IS TRUE($t3)], DEPTNO=[$t1], $f1=[$t4])
     EnumerableUnion(all=[true])
       EnumerableCalc(expr#0..7=[{inputs}], expr#8=[20], expr#9=[<($t7, $t8)], JOB=[$t2], DEPTNO=[$t7], $condition=[$t9])
         EnumerableTableScan(table=[[scott, EMP]])
@@ -2148,7 +2148,7 @@ from (values (1,2),(3,4));
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[0], expr#2=[=($t0, $t1)], expr#3=[null], expr#4=[CASE($t2, $t3, $t0)], EXPR$0=[$t4])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[0:BIGINT], expr#2=[=($t0, $t1)], expr#3=[null:BIGINT], expr#4=[CASE($t2, $t3, $t0)], EXPR$0=[$t4])
   EnumerableAggregate(group=[{}], agg#0=[COUNT($0)])
     EnumerableAggregate(group=[{0}])
       EnumerableCalc(expr#0..1=[{inputs}], expr#2=['1'], $f0=[$t2])
@@ -2503,6 +2503,29 @@ EnumerableAggregate(group=[{0}], EMPNOS=[COLLECT($1) WITHIN GROUP ([2])])
   EnumerableCalc(expr#0..7=[{inputs}], expr#8=[1], expr#9=[+($t0, $t8)], DEPTNO=[$t7], $f1=[$t9], $f2=[$t8])
     EnumerableTableScan(table=[[scott, EMP]])
 !plan
+
+# BIT_AND, BIT_OR aggregate functions
+select bit_and(deptno), bit_or(deptno) from "scott".emp;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|      0 |     30 |
++--------+--------+
+(1 row)
+
+!ok
+
+select deptno, bit_and(empno), bit_or(empno) from "scott".emp group by deptno;
++--------+--------+--------+
+| DEPTNO | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|     10 |   7686 |   7935 |
+|     20 |   7168 |   8191 |
+|     30 |   7168 |   8191 |
++--------+--------+--------+
+(3 rows)
+
+!ok
 
 # [CALCITE-2266] JSON_OBJECTAGG, JSON_ARRAYAGG
 

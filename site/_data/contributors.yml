@@ -198,4 +198,9 @@
   githubId: Zhiqiang-He
   org: Huawei
   role: Committer
+- name: Zoltan Haindrich
+  apacheId: kgyrtkirk
+  githubId: kgyrtkirk
+  org: Hortonworks
+  role: Committer
 # End contributors.yml

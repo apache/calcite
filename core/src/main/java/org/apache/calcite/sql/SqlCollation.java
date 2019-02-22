@@ -200,41 +200,29 @@ public class SqlCollation implements Serializable {
     case COERCIBLE:
       switch (coercibility2) {
       case COERCIBLE:
-        return new SqlCollation(
-            col2.collationName,
-            Coercibility.COERCIBLE);
+        return col2;
       case IMPLICIT:
-        return new SqlCollation(
-            col2.collationName,
-            Coercibility.IMPLICIT);
+        return col2;
       case NONE:
         return null;
       case EXPLICIT:
-        return new SqlCollation(
-            col2.collationName,
-            Coercibility.EXPLICIT);
+        return col2;
       default:
         throw Util.unexpected(coercibility2);
       }
     case IMPLICIT:
       switch (coercibility2) {
       case COERCIBLE:
-        return new SqlCollation(
-            col1.collationName,
-            Coercibility.IMPLICIT);
+        return col1;
       case IMPLICIT:
         if (col1.collationName.equals(col2.collationName)) {
-          return new SqlCollation(
-              col2.collationName,
-              Coercibility.IMPLICIT);
+          return col2;
         }
         return null;
       case NONE:
         return null;
       case EXPLICIT:
-        return new SqlCollation(
-            col2.collationName,
-            Coercibility.EXPLICIT);
+        return col2;
       default:
         throw Util.unexpected(coercibility2);
       }
@@ -245,9 +233,7 @@ public class SqlCollation implements Serializable {
       case NONE:
         return null;
       case EXPLICIT:
-        return new SqlCollation(
-            col2.collationName,
-            Coercibility.EXPLICIT);
+        return col2;
       default:
         throw Util.unexpected(coercibility2);
       }
@@ -256,14 +242,10 @@ public class SqlCollation implements Serializable {
       case COERCIBLE:
       case IMPLICIT:
       case NONE:
-        return new SqlCollation(
-            col1.collationName,
-            Coercibility.EXPLICIT);
+        return col1;
       case EXPLICIT:
         if (col1.collationName.equals(col2.collationName)) {
-          return new SqlCollation(
-              col2.collationName,
-              Coercibility.EXPLICIT);
+          return col2;
         }
         throw RESOURCE.differentCollations(
             col1.collationName,

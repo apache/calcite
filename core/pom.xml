@@ -112,6 +112,11 @@ limitations under the License.
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>com.github.stephenc.jcip</groupId>
+      <artifactId>jcip-annotations</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.jetbrains.kotlin</groupId>
       <artifactId>kotlin-stdlib</artifactId>
       <scope>test</scope>
@@ -552,6 +557,25 @@ limitations under the License.
             <filtering>true</filtering>
           </resource>
         </resources>
+      </build>
+    </profile>
+    <profile>
+      <id>skipSlowTests</id>
+      <activation>
+        <property>
+          <name>skipSlowTests</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <excludedGroups>org.apache.calcite.test.SlowTests</excludedGroups>
+            </configuration>
+          </plugin>
+        </plugins>
       </build>
     </profile>
   </profiles>

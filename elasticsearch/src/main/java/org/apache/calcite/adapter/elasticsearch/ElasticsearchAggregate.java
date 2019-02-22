@@ -28,7 +28,11 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.ImmutableBitSet;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -68,11 +72,14 @@ public class ElasticsearchAggregate extends Aggregate implements ElasticsearchRe
     assert this.groupSets.size() == 1 : "Grouping sets not supported";
 
     for (AggregateCall aggCall : aggCalls) {
-      if (aggCall.isDistinct()) {
-        throw new InvalidRelException("distinct aggregation not supported");
+      if (aggCall.isDistinct() && !aggCall.isApproximate()) {
+        final String message = String.format(Locale.ROOT, "Only approximate distinct "
+            + "aggregations are supported in Elastic (cardinality aggregation). Use %s function",
+            SqlStdOperatorTable.APPROX_COUNT_DISTINCT.getName());
+        throw new InvalidRelException(message);
       }
 
-      SqlKind kind = aggCall.getAggregation().getKind();
+      final SqlKind kind = aggCall.getAggregation().getKind();
       if (!SUPPORTED_AGGREGATIONS.contains(kind)) {
         final String message = String.format(Locale.ROOT,
             "Aggregation %s not supported (use one of %s)", kind, SUPPORTED_AGGREGATIONS);
@@ -106,27 +113,30 @@ public class ElasticsearchAggregate extends Aggregate implements ElasticsearchRe
 
   @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
-    List<String> inputFields = fieldNames(getInput().getRowType());
+    final List<String> inputFields = fieldNames(getInput().getRowType());
     for (int group : groupSet) {
-      implementor.addGroupBy(inputFields.get(group));
+      final String name = inputFields.get(group);
+      implementor.addGroupBy(implementor.expressionItemMap.getOrDefault(name, name));
     }
 
+    final ObjectMapper mapper = implementor.elasticsearchTable.mapper;
+
     for (AggregateCall aggCall : aggCalls) {
-      List<String> names = new ArrayList<>();
+      final List<String> names = new ArrayList<>();
       for (int i : aggCall.getArgList()) {
         names.add(inputFields.get(i));
       }
 
+      final ObjectNode aggregation = mapper.createObjectNode();
+      final ObjectNode field = aggregation.with(toElasticAggregate(aggCall));
+
       final String name = names.isEmpty() ? ElasticsearchConstants.ID : names.get(0);
-      // for ANY_VALUE return just a single result
-      final String size = aggCall.getAggregation().getKind() == SqlKind.ANY_VALUE ? ", \"size\": 1"
-           : "";
+      field.put("field", implementor.expressionItemMap.getOrDefault(name, name));
+      if (aggCall.getAggregation().getKind() == SqlKind.ANY_VALUE) {
+        field.put("size", 1);
+      }
 
-      final String op = String.format(Locale.ROOT, "{\"%s\":{\"field\": \"%s\" %s}}",
-          toElasticAggregate(aggCall),
-          name, size);
-
-      implementor.addAggregation(aggCall.getName(), op);
+      implementor.addAggregation(aggCall.getName(), aggregation.toString());
     }
   }
 
@@ -136,11 +146,12 @@ public class ElasticsearchAggregate extends Aggregate implements ElasticsearchRe
    * function. But currently only one-to-one mapping is supported between sql agg and elastic
    * aggregation.
    */
-  private String toElasticAggregate(AggregateCall call) {
-    SqlKind kind = call.getAggregation().getKind();
+  private static String toElasticAggregate(AggregateCall call) {
+    final SqlKind kind = call.getAggregation().getKind();
     switch (kind) {
     case COUNT:
-      return call.isApproximate() ? "cardinality" : "value_count";
+      // approx_count_distinct() vs count()
+      return call.isDistinct() && call.isApproximate() ? "cardinality" : "value_count";
     case SUM:
       return "sum";
     case MIN:
