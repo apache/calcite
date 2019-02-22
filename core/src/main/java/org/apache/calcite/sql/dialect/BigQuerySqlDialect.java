@@ -67,18 +67,10 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       break;
     case EXCEPT:
-      if (!((SqlSetOperator) call.getOperator()).isAll()) {
-        SqlSyntax.BINARY.unparse(writer, EXCEPT_DISTINCT, call, leftPrec, rightPrec);
-      } else {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
-      }
+      SqlSyntax.BINARY.unparse(writer, EXCEPT_DISTINCT, call, leftPrec, rightPrec);
       break;
     case INTERSECT:
-      if (!((SqlSetOperator) call.getOperator()).isAll()) {
-        SqlSyntax.BINARY.unparse(writer, INTERSECT_DISTINCT, call, leftPrec, rightPrec);
-      } else {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
-      }
+      SqlSyntax.BINARY.unparse(writer, INTERSECT_DISTINCT, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
