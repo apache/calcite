@@ -2032,6 +2032,38 @@ EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t1])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+!use scott
 
+# CALCITE-1513
+select count(*) as c
+from "scott".emp as e
+where sal + 100 not in (
+  select deptno
+  from dept
+  where dname = e.ename);
+ C
+----
+ 14
+(1 row)
+
+!ok
+EnumerableAggregate(group=[{}], C=[COUNT()])
+  EnumerableCalc(expr#0..9=[{inputs}], expr#10=[IS NOT NULL($t7)], expr#11=[<($t5, $t4)], expr#12=[OR($t10, $t11)], expr#13=[IS NOT TRUE($t12)], expr#14=[0], expr#15=[=($t4, $t14)], expr#16=[IS NULL($t2)], expr#17=[OR($t13, $t15, $t16)], proj#0..9=[{exprs}], $condition=[$t17])
+    EnumerableJoin(condition=[AND(=($1, $8), =($2, $9))], joinType=[left])
+      EnumerableCalc(expr#0..5=[{inputs}], expr#6=[IS NOT NULL($t2)], expr#7=[0], expr#8=[=($t4, $t7)], expr#9=[OR($t6, $t8)], proj#0..5=[{exprs}], $condition=[$t9])
+        EnumerableJoin(condition=[=($1, $3)], joinType=[left])
+          EnumerableCalc(expr#0..7=[{inputs}], proj#0..1=[{exprs}], SAL=[$t5])
+            EnumerableTableScan(table=[[scott, EMP]])
+          EnumerableAggregate(group=[{1}], c=[COUNT()], ck=[COUNT($0)])
+            EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t1)], proj#0..2=[{exprs}], $condition=[$t3])
+              EnumerableTableScan(table=[[scott, DEPT]])
+      EnumerableCalc(expr#0..4=[{inputs}], DEPTNO=[$t2], i=[$t3], DNAME=[$t4], SAL=[$t0])
+        EnumerableJoin(condition=[=($1, $2)], joinType=[inner])
+          EnumerableCalc(expr#0=[{inputs}], expr#1=[100], expr#2=[+($t0, $t1)], SAL=[$t0], $f1=[$t2])
+            EnumerableAggregate(group=[{5}])
+              EnumerableTableScan(table=[[scott, EMP]])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[IS NOT NULL($t1)], DEPTNO=[$t0], i=[$t3], DNAME=[$t1], $condition=[$t4])
+            EnumerableTableScan(table=[[scott, DEPT]])
+!plan
 
 # End sub-query.iq
