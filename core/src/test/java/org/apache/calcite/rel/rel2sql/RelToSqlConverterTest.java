@@ -3054,6 +3054,14 @@ public class RelToSqlConverterTest {
     sql(query).withSpark().ok(expected);
   }
 
+  @Test public void testJsonType() {
+    String query = "select json_type(\"product_name\") from \"product\"";
+    final String expected = "SELECT "
+            + "JSON_TYPE(\"product_name\" FORMAT JSON)\n"
+            + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;

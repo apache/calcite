@@ -4827,6 +4827,8 @@ SqlNode BuiltinFunctionCall() :
     |
         node = JsonObjectFunctionCall() { return node; }
     |
+        node = JsonTypeFunctionCall() { return node; }
+    |
         node = JsonObjectAggFunctionCall() { return node; }
     |
         node = JsonArrayFunctionCall() { return node; }
@@ -5243,6 +5245,22 @@ SqlCall JsonObjectFunctionCall() :
         args.addAll(Arrays.asList(otherArgs));
         args.addAll(nvArgs);
         return SqlStdOperatorTable.JSON_OBJECT.createCall(span.end(this), args);
+    }
+}
+
+SqlCall JsonTypeFunctionCall() :
+{
+    final SqlNode[] args = new SqlNode[1];
+    SqlNode e;
+    final Span span;
+}
+{
+    <JSON_TYPE> { span = span(); }
+    <LPAREN> e = JsonValueExpression(true) {
+        args[0] = e;
+    }
+    <RPAREN> {
+        return SqlStdOperatorTable.JSON_TYPE.createCall(span.end(this), args);
     }
 }
 
@@ -6274,6 +6292,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < JSON_EXISTS: "JSON_EXISTS" >
 |   < JSON_VALUE: "JSON_VALUE" >
 |   < JSON_OBJECT: "JSON_OBJECT">
+|   < JSON_TYPE: "JSON_TYPE">
 |   < JSON_OBJECTAGG: "JSON_OBJECTAGG">
 |   < JSON_QUERY: "JSON_QUERY" >
 |   < K: "K" >
