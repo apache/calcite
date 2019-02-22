@@ -3046,12 +3046,12 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
-  @Test public void testCrossJoinEmulationForSpark() {
-    String query = "select * from \"employee\", \"department\"";
-    final String expected = "SELECT *\n"
-        + "FROM foodmart.employee\n"
-        + "CROSS JOIN foodmart.department";
-    sql(query).withSpark().ok(expected);
+  @Test public void testJsonType() {
+    String query = "select json_type(\"product_name\") from \"product\"";
+    final String expected = "SELECT "
+            + "JSON_TYPE(\"product_name\" FORMAT JSON)\n"
+            + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
   }
 
   @Test public void testJsonType() {
