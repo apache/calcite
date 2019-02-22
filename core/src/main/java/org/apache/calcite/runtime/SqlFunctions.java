@@ -73,7 +73,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TimeZone;
@@ -2487,7 +2486,7 @@ public class SqlFunctions {
             errorBehavior.toString()).ex();
       }
     } else {
-      return !Objects.isNull(context.pathReturned);
+      return context.pathReturned != null;
     }
   }
 
