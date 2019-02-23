@@ -275,8 +275,26 @@ public class ElasticSearchAdapterTest {
 
     CalciteAssert.that()
         .with(newConnectionFactory())
+        .query("select * from elastic.zips where _MAP['state'] = 'NY' order by _MAP['city']")
+        .queryContains(
+            ElasticsearchChecker.elasticsearchChecker(
+            "query:{'constant_score':{filter:{term:{state:'NY'}}}}",
+            "sort:[{city:'asc'}]",
+            String.format(Locale.ROOT, "size:%s", ElasticsearchTransport.DEFAULT_FETCH_SIZE)))
+        .returnsCount(3);
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
         .query("select _MAP['state'] from elastic.zips order by _MAP['city']")
         .returnsCount(ZIPS_SIZE);
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select _MAP['city'] from elastic.zips where _MAP['state'] = 'NY' "
+            + "order by _MAP['city']")
+        .returnsOrdered("EXPR$0=BROOKLYN",
+            "EXPR$0=JACKSON HEIGHTS",
+            "EXPR$0=NEW YORK");
 
     CalciteAssert.that()
         .with(newConnectionFactory())
@@ -299,6 +317,12 @@ public class ElasticSearchAdapterTest {
         .returnsOrdered("EXPR$0=32383.0; EXPR$1=23238.0; EXPR$2=AK",
              "EXPR$0=44165.0; EXPR$1=42124.0; EXPR$2=AL",
              "EXPR$0=53532.0; EXPR$1=37428.0; EXPR$2=AR");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select max(_MAP['pop']), min(_MAP['pop']), _MAP['state'] from elastic.zips "
+            + "where _MAP['state'] = 'NY' group by _MAP['state'] order by _MAP['state'] limit 3")
+        .returnsCount(1);
   }
 
   /**
