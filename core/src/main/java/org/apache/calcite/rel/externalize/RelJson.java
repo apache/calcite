@@ -24,6 +24,8 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelFieldCollation.Direction;
+import org.apache.calcite.rel.RelFieldCollation.NullDirection;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -35,13 +37,20 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldAccess;
+import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexSlot;
+import org.apache.calcite.rex.RexWindow;
+import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.JsonBuilder;
@@ -54,8 +63,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Utilities for converting {@link org.apache.calcite.rel.RelNode}
@@ -234,6 +245,12 @@ public class RelJson {
       return value;
     } else if (value instanceof RexNode) {
       return toJson((RexNode) value);
+    } else if (value instanceof RexWindow) {
+      return toJson((RexWindow) value);
+    } else if (value instanceof RexFieldCollation) {
+      return toJson((RexFieldCollation) value);
+    } else if (value instanceof RexWindowBound) {
+      return toJson((RexWindowBound) value);
     } else if (value instanceof CorrelationId) {
       return toJson((CorrelationId) value);
     } else if (value instanceof List) {
@@ -342,13 +359,72 @@ public class RelJson {
         }
         if (call.getOperator() instanceof SqlFunction) {
           if (((SqlFunction) call.getOperator()).getFunctionType().isUserDefined()) {
-            map.put("class", call.getOperator().getClass().getName());
+            SqlOperator op = call.getOperator();
+            map.put("class", op.getClass().getName());
+            map.put("type", toJson(node.getType()));
+            map.put("deterministic", op.isDeterministic());
+            map.put("dynamic", op.isDynamicFunction());
           }
+        }
+        if (call instanceof RexOver) {
+          RexOver over = (RexOver) call;
+          map.put("distinct", over.isDistinct());
+          map.put("type", toJson(node.getType()));
+          map.put("window", toJson(over.getWindow()));
         }
         return map;
       }
       throw new UnsupportedOperationException("unknown rex " + node);
     }
+  }
+
+  private Object toJson(RexWindow window) {
+    final Map<String, Object> map = jsonBuilder.map();
+    if (window.partitionKeys.size() > 0) {
+      map.put("partition", toJson(window.partitionKeys));
+    }
+    if (window.orderKeys.size() > 0) {
+      map.put("order", toJson(window.orderKeys));
+    }
+    if (window.getLowerBound() == null) {
+      // No ROWS or RANGE clause
+    } else if (window.getUpperBound() == null) {
+      if (window.isRows()) {
+        map.put("rows-lower", toJson(window.getLowerBound()));
+      } else {
+        map.put("range-lower", toJson(window.getLowerBound()));
+      }
+    } else {
+      if (window.isRows()) {
+        map.put("rows-lower", toJson(window.getLowerBound()));
+        map.put("rows-upper", toJson(window.getUpperBound()));
+      } else {
+        map.put("range-lower", toJson(window.getLowerBound()));
+        map.put("range-upper", toJson(window.getUpperBound()));
+      }
+    }
+    return map;
+  }
+
+  private Object toJson(RexFieldCollation collation) {
+    final Map<String, Object> map = jsonBuilder.map();
+    map.put("expr", toJson(collation.left));
+    map.put("direction", collation.getDirection().name());
+    map.put("null-direction", collation.getNullDirection().name());
+    return map;
+  }
+
+  private Object toJson(RexWindowBound windowBound) {
+    final Map<String, Object> map = jsonBuilder.map();
+    if (windowBound.isCurrentRow()) {
+      map.put("type", "CURRENT_ROW");
+    } else if (windowBound.isUnbounded()) {
+      map.put("type", windowBound.isPreceding() ? "UNBOUNDED_PRECEDING" : "UNBOUNDED_FOLLOWING");
+    } else {
+      map.put("type", windowBound.isPreceding() ? "PRECEDING" : "FOLLOWING");
+      map.put("offset", toJson(windowBound.getOffset()));
+    }
+    return map;
   }
 
   RexNode toRex(RelInput relInput, Object o) {
@@ -362,16 +438,46 @@ public class RelJson {
       final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
       if (op != null) {
         final List operands = (List) map.get("operands");
-        final Object jsonType = map.get("type");
-        final SqlOperator operator = toOp(op, map);
         final List<RexNode> rexOperands = toRexList(relInput, operands);
-        RelDataType type;
-        if (jsonType != null) {
-          type = toType(typeFactory, jsonType);
+        final Object jsonType = map.get("type");
+        final Map window = (Map) map.get("window");
+        if (window != null) {
+          final SqlAggFunction operator = toAggregation(relInput, op, map);
+          final RelDataType type = toType(typeFactory, jsonType);
+          final List<RexNode> partitionKeys = toRexList(relInput, (List) window.get("partition"));
+          final List<RexFieldCollation> orderKeys =
+              toRexFieldCollationList(relInput, (List) window.get("order"));
+          final RexWindowBound lowerBound;
+          final RexWindowBound upperBound;
+          final boolean physical;
+          if (window.get("rows-lower") != null) {
+            lowerBound = toRexWindowBound(relInput, (Map) window.get("rows-lower"));
+            upperBound = toRexWindowBound(relInput, (Map) window.get("rows-upper"));
+            physical = true;
+          } else if (window.get("range-lower") != null) {
+            lowerBound = toRexWindowBound(relInput, (Map) window.get("range-lower"));
+            upperBound = toRexWindowBound(relInput, (Map) window.get("range-upper"));
+            physical = false;
+          } else {
+            // No ROWS or RANGE clause
+            lowerBound = null;
+            upperBound = null;
+            physical = false;
+          }
+          final boolean distinct = (Boolean) map.get("distinct");
+          return rexBuilder.makeOver(type, operator, rexOperands, partitionKeys,
+              ImmutableList.copyOf(orderKeys), lowerBound, upperBound, physical, true, false,
+              distinct);
         } else {
-          type = rexBuilder.deriveReturnType(operator, rexOperands);
+          final SqlOperator operator = toOp(relInput, op, map);
+          final RelDataType type;
+          if (jsonType != null) {
+            type = toType(typeFactory, jsonType);
+          } else {
+            type = rexBuilder.deriveReturnType(operator, rexOperands);
+          }
+          return rexBuilder.makeCall(type, operator, rexOperands);
         }
-        return rexBuilder.makeCall(type, operator, rexOperands);
       }
       final Integer input = (Integer) map.get("input");
       if (input != null) {
@@ -432,6 +538,60 @@ public class RelJson {
     }
   }
 
+  private List<RexFieldCollation> toRexFieldCollationList(
+      RelInput relInput, List<Map<String, Object>> order) {
+    if (order == null) {
+      return null;
+    }
+
+    List<RexFieldCollation> list = new ArrayList<>();
+    for (Map<String, Object> o : order) {
+      RexNode expr = toRex(relInput, o.get("expr"));
+      Set<SqlKind> directions = new HashSet<>();
+      if (Direction.valueOf((String) o.get("direction")) == Direction.DESCENDING) {
+        directions.add(SqlKind.DESCENDING);
+      }
+      if (NullDirection.valueOf((String) o.get("null-direction")) == NullDirection.FIRST) {
+        directions.add(SqlKind.NULLS_FIRST);
+      } else {
+        directions.add(SqlKind.NULLS_LAST);
+      }
+      list.add(new RexFieldCollation(expr, directions));
+    }
+    return list;
+  }
+
+  private RexWindowBound toRexWindowBound(RelInput input, Map<String, Object> map) {
+    if (map == null) {
+      return null;
+    }
+
+    final String type = (String) map.get("type");
+    switch (type) {
+    case "CURRENT_ROW":
+      return RexWindowBound.create(
+          SqlWindow.createCurrentRow(SqlParserPos.ZERO), null);
+    case "UNBOUNDED_PRECEDING":
+      return RexWindowBound.create(
+          SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO), null);
+    case "UNBOUNDED_FOLLOWING":
+      return RexWindowBound.create(
+          SqlWindow.createUnboundedFollowing(SqlParserPos.ZERO), null);
+    case "PRECEDING":
+      RexNode precedingOffset = toRex(input, map.get("offset"));
+      return RexWindowBound.create(null,
+          input.getCluster().getRexBuilder().makeCall(
+              SqlWindow.PRECEDING_OPERATOR, precedingOffset));
+    case "FOLLOWING":
+      RexNode followingOffset = toRex(input, map.get("offset"));
+      return RexWindowBound.create(null,
+          input.getCluster().getRexBuilder().makeCall(
+              SqlWindow.FOLLOWING_OPERATOR, followingOffset));
+    default:
+      throw new UnsupportedOperationException("cannot convert type to rex window bound " + type);
+    }
+  }
+
   private List<RexNode> toRexList(RelInput relInput, List operands) {
     final List<RexNode> list = new ArrayList<>();
     for (Object operand : operands) {
@@ -440,7 +600,7 @@ public class RelJson {
     return list;
   }
 
-  private SqlOperator toOp(String op, Map<String, Object> map) {
+  SqlOperator toOp(RelInput relInput, String op, Map<String, Object> map) {
     // TODO: build a map, for more efficient lookup
     // TODO: look up based on SqlKind
     final List<SqlOperator> operatorList =
@@ -457,8 +617,8 @@ public class RelJson {
     return null;
   }
 
-  SqlAggFunction toAggregation(String agg, Map<String, Object> map) {
-    return (SqlAggFunction) toOp(agg, map);
+  SqlAggFunction toAggregation(RelInput relInput, String agg, Map<String, Object> map) {
+    return (SqlAggFunction) toOp(relInput, agg, map);
   }
 
   private String toJson(SqlOperator operator) {

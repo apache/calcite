@@ -170,7 +170,7 @@ public class RelJsonReader {
         final List<Map<String, Object>> jsonAggs = (List) jsonRel.get(tag);
         final List<AggregateCall> inputs = new ArrayList<>();
         for (Map<String, Object> jsonAggCall : jsonAggs) {
-          inputs.add(toAggCall(jsonAggCall));
+          inputs.add(toAggCall(this, jsonAggCall));
         }
         return inputs;
       }
@@ -273,10 +273,10 @@ public class RelJsonReader {
     }
   }
 
-  private AggregateCall toAggCall(Map<String, Object> jsonAggCall) {
+  private AggregateCall toAggCall(RelInput relInput, Map<String, Object> jsonAggCall) {
     final String aggName = (String) jsonAggCall.get("agg");
     final SqlAggFunction aggregation =
-        relJson.toAggregation(aggName, jsonAggCall);
+        relJson.toAggregation(relInput, aggName, jsonAggCall);
     final Boolean distinct = (Boolean) jsonAggCall.get("distinct");
     @SuppressWarnings("unchecked")
     final List<Integer> operands = (List<Integer>) jsonAggCall.get("operands");
