@@ -296,8 +296,8 @@ public class RelWriterTest {
 
   /**
    * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonWriter} on
-   * a simple tree of relational expressions, consisting of a table, a filter
-   * and an aggregate node.
+   * a simple tree of relational expressions, consisting of a table and a
+   * project including window expressions.
    */
   @Test public void testWriter() {
     String s =
