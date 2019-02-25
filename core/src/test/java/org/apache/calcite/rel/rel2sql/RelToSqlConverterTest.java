@@ -40,6 +40,7 @@ import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
+import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -1771,6 +1772,10 @@ public class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`";
     final String expectedMssql = "SELECT SUBSTRING([brand_name], 2, 3)\n"
         + "FROM [foodmart].[product]";
+    final String expectedHive = "SELECT SUBSTR(brand_name, 2, 3)\n"
+        + "FROM foodmart.product";
+    final String expectedSpark = "SELECT SUBSTR(brand_name, 2, 3)\n"
+        + "FROM foodmart.product";
     sql(query)
         .withOracle()
         .ok(expectedOracle)
@@ -1779,7 +1784,11 @@ public class RelToSqlConverterTest {
         .withMysql()
         .ok(expectedMysql)
         .withMssql()
-        .ok(expectedMssql);
+        .ok(expectedMssql)
+        .withSpark()
+        .ok(expectedSpark)
+        .withHive()
+        .ok(expectedHive);
   }
 
   /** Test case for
@@ -2880,13 +2889,31 @@ public class RelToSqlConverterTest {
         + "UNION ALL\n"
         + "SELECT 2 \"a\", 'yy' \"b\"\n"
         + "FROM \"DUAL\")";
+    final String expectedHive = "SELECT a\n"
+        + "FROM (SELECT 1 a, 'x ' b\n"
+        + "UNION ALL\n"
+        + "SELECT 2 a, 'yy' b)";
+    final String expectedSpark = "SELECT a\n"
+        + "FROM (SELECT 1 a, 'x ' b\n"
+        + "UNION ALL\n"
+        + "SELECT 2 a, 'yy' b)";
+    final String expectedBigQuery = "SELECT a\n"
+        + "FROM (SELECT 1 AS a, 'x ' AS b\n"
+        + "UNION ALL\n"
+        + "SELECT 2 AS a, 'yy' AS b)";
     sql(sql)
         .withHsqldb()
         .ok(expectedHsqldb)
         .withPostgresql()
         .ok(expectedPostgresql)
         .withOracle()
-        .ok(expectedOracle);
+        .ok(expectedOracle)
+        .withHive()
+        .ok(expectedHive)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigquery()
+        .ok(expectedBigQuery);
   }
 
   /** Test case for
@@ -3104,6 +3131,113 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void datePlusIntervalMonthFunctionForHiveAndSparkAndBigQuery() {
+    String query = "select \"birth_date\" + INTERVAL '1' MONTH from \"employee\"";
+    final String expectedHive = "SELECT ADD_MONTHS(birth_date, 1)\n"
+        + "FROM foodmart.employee";
+    final String expectedSpark = "SELECT ADD_MONTHS(birth_date, 1)\n"
+        + "FROM foodmart.employee";
+    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL '1' MONTH)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withHive().ok(expectedHive)
+        .withBigquery().ok(expectedBigQuery)
+        .withSpark().ok(expectedSpark);
+  }
+
+  @Test public void datePlusIntervalDayFunctionForHiveAndSparkAndBigQuery() {
+    String query = "select \"birth_date\" + INTERVAL '1' DAY from \"employee\"";
+    final String expectedHive = "SELECT DATE_ADD(birth_date, 1)\n"
+        + "FROM foodmart.employee";
+    final String expectedSpark = "SELECT DATE_ADD(birth_date, 1)\n"
+        + "FROM foodmart.employee";
+    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL '1' DAY)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withHive().ok(expectedHive)
+        .withBigquery().ok(expectedBigQuery)
+        .withSpark().ok(expectedSpark);
+  }
+
+  @Test public void minusDateFunctionForHiveAndSparkAndBigQuery() {
+    String query = "select (\"birth_date\" - DATE '1899-12-31') day from \"employee\"";
+    final String expectedHive = "SELECT DATEDIFF(birth_date, DATE '1899-12-31')\n"
+        + "FROM foodmart.employee";
+    final String expectedSpark = "SELECT DATEDIFF(birth_date, DATE '1899-12-31')\n"
+        + "FROM foodmart.employee";
+    final String expectedBigQuery = "SELECT DATE_DIFF(birth_date, DATE '1899-12-31', DAY)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withHive().ok(expectedHive)
+        .withBigquery().ok(expectedBigQuery)
+        .withSpark().ok(expectedSpark);
+  }
+
+  @Test public void truncateFunctionEmulationForBigQuery() {
+    String query = "select truncate(2.30259, 3) from \"employee\"";
+    final String expectedBigQuery = "SELECT TRUNC(2.30259, 3)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigquery().ok(expectedBigQuery);
+  }
+
+  @Test public void extractFunctionEmulationForHiveAndSparkAndBigQuery() {
+    String query = "select extract(year from \"hire_date\") from \"employee\"";
+    final String expectedHive = "SELECT YEAR(hire_date)\n"
+        + "FROM foodmart.employee";
+    final String expectedSpark = "SELECT YEAR(hire_date)\n"
+        + "FROM foodmart.employee";
+    final String expectedBigQuery = "SELECT EXTRACT(YEAR FROM hire_date)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withHive()
+        .ok(expectedHive)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigquery()
+        .ok(expectedBigQuery);
+  }
+
+  @Test public void selectWithoutFromEmulationForHiveAndSparkAndBigquery() {
+    String query = "select 2 + 2";
+    final String expected = "SELECT 2 + 2";
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withBigquery()
+        .ok(expected);
+  }
+
+  @Test public void currentTimestampFunctionForHiveAndSparkAndBigquery() {
+    String query = "select current_timestamp";
+    final String expectedHiveQuery = "SELECT CURRENT_TIMESTAMP `CURRENT_TIMESTAMP`";
+    final String expectedSparkQuery = "SELECT CURRENT_TIMESTAMP `CURRENT_TIMESTAMP`";
+    final String expectedBigQuery = "SELECT CURRENT_TIMESTAMP AS CURRENT_TIMESTAMP";
+
+    sql(query)
+        .withHiveIdentifierQuoteString()
+        .ok(expectedHiveQuery)
+        .withSparkIdentifierQuoteString()
+        .ok(expectedSparkQuery)
+        .withBigquery()
+        .ok(expectedBigQuery);
+  }
+
+  @Test public void concatFunctionEmulationForHiveAndSparkAndBigQuery() {
+    String query = "select 'foo' || 'bar' from \"employee\"";
+    final String expected = "SELECT CONCAT('foo', 'bar')\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withBigquery()
+        .ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;
@@ -3175,6 +3309,22 @@ public class RelToSqlConverterTest {
 
     Sql withSpark() {
       return dialect(DatabaseProduct.SPARK.getDialect());
+    }
+
+    Sql withHiveIdentifierQuoteString() {
+      final HiveSqlDialect hiveSqlDialect =
+          new HiveSqlDialect((SqlDialect.EMPTY_CONTEXT)
+          .withDatabaseProduct(DatabaseProduct.HIVE)
+          .withIdentifierQuoteString("`"));
+      return dialect(hiveSqlDialect);
+    }
+
+    Sql withSparkIdentifierQuoteString() {
+      final SparkSqlDialect sparkSqlDialect =
+          new SparkSqlDialect((SqlDialect.EMPTY_CONTEXT)
+              .withDatabaseProduct(DatabaseProduct.SPARK)
+              .withIdentifierQuoteString("`"));
+      return dialect(sparkSqlDialect);
     }
 
     Sql withPostgresqlModifiedTypeSystem() {

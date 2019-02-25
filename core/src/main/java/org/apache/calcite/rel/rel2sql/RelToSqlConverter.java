@@ -126,6 +126,7 @@ public class RelToSqlConverter extends SqlImplementor
     SqlNode sqlCondition = null;
     SqlLiteral condType = JoinConditionType.ON.symbol(POS);
     JoinType joinType = joinType(e.getJoinType());
+
     if (isCrossJoin(e)) {
       joinType = dialect.emulateJoinTypeForCrossJoin();
       condType = JoinConditionType.NONE.symbol(POS);
@@ -289,12 +290,22 @@ public class RelToSqlConverter extends SqlImplementor
         || !(Iterables.get(stack, 1).r instanceof TableModify);
     final List<String> fieldNames = e.getRowType().getFieldNames();
     if (!dialect.supportsAliasedValues() && rename) {
-      // Oracle does not support "AS t (c1, c2)". So instead of
-      //   (VALUES (v0, v1), (v2, v3)) AS t (c0, c1)
-      // we generate
-      //   SELECT v0 AS c0, v1 AS c1 FROM DUAL
-      //   UNION ALL
-      //   SELECT v2 AS c0, v3 AS c1 FROM DUAL
+      //Dialects like Hive , Spark , BigQuery , doesn't have dual table
+      //so setting fromSqlIdentifier = null by default
+      //as SELECT without FROM clause is supported in such dialects
+      SqlIdentifier fromSqlIdentifier = null;
+      //Dialect like Oracle has dual table which is a special table used
+      // for evaluating expressions or calling functions
+      // as SELECT must have a FROM clause in Oracle.
+      if (dialect.hasDualTable()) {
+        // Oracle does not support "AS t (c1, c2)". So instead of
+        //   (VALUES (v0, v1), (v2, v3)) AS t (c0, c1)
+        // we generate
+        //   SELECT v0 AS c0, v1 AS c1 FROM DUAL
+        //   UNION ALL
+        //   SELECT v2 AS c0, v3 AS c1 FROM DUAL
+        fromSqlIdentifier = new SqlIdentifier("DUAL", POS);
+      }
       List<SqlSelect> list = new ArrayList<>();
       for (List<RexLiteral> tuple : e.getTuples()) {
         final List<SqlNode> values2 = new ArrayList<>();
@@ -307,7 +318,7 @@ public class RelToSqlConverter extends SqlImplementor
         list.add(
             new SqlSelect(POS, null,
                 new SqlNodeList(values2, POS),
-                new SqlIdentifier("DUAL", POS), null, null,
+                fromSqlIdentifier, null, null,
                 null, null, null, null, null));
       }
       if (list.size() == 1) {
