@@ -1051,11 +1051,6 @@ public abstract class SqlImplementor {
         keepColumnAlias = true;
       }
 
-      if (rel instanceof LogicalSort
-          && dialect.supportsColumnAliasInSort()) {
-        keepColumnAlias = true;
-      }
-
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
       if (needNew) {
@@ -1079,19 +1074,9 @@ public abstract class SqlImplementor {
               }
                 return ((SqlCall) selectItem).operand(0);
             }
-          };
-        } else {
-          newContext = new Context(dialect, selectList.size()) {
-            public SqlNode field(int ordinal) {
-              final SqlNode selectItem = selectList.get(ordinal);
-              switch (selectItem.getKind()) {
-              case AS:
-                return ((SqlCall) selectItem).operand(0);
-              }
-              return selectItem;
-            }
-          };
-        }
+            return selectItem;
+          }
+        };
       } else {
         boolean qualified =
             !dialect.hasImplicitTableAlias() || aliases.size() > 1;
