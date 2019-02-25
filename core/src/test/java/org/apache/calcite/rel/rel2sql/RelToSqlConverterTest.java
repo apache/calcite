@@ -736,6 +736,34 @@ public class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  @Test
+  public void testCharLengthFunctionEmulationForHiveAndBigqueryAndSpark() {
+    final String query = "select char_length('xyz') from \"product\"";
+    final String expected = "SELECT LENGTH('xyz')\n"
+        + "FROM foodmart.product";
+    sql(query)
+      .withHive()
+      .ok(expected)
+      .withBigquery()
+      .ok(expected)
+      .withSpark()
+      .ok(expected);
+  }
+
+  @Test
+  public void testCharacterLengthFunctionEmulationForHiveAndBigqueryAndSpark() {
+    final String query = "select character_length('xyz') from \"product\"";
+    final String expected = "SELECT LENGTH('xyz')\n"
+        + "FROM foodmart.product";
+    sql(query)
+      .withHive()
+      .ok(expected)
+      .withBigquery()
+      .ok(expected)
+      .withSpark()
+      .ok(expected);
+  }
+
   @Test public void testMysqlCastToBigint() {
     // MySQL does not allow cast to BIGINT; instead cast to SIGNED.
     final String query = "select cast(\"product_id\" as bigint) from \"product\"";

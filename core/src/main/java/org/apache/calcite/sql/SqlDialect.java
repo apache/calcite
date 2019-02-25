@@ -558,10 +558,8 @@ public class SqlDialect {
   *because most of the dialects supports SELECT without FROM clause .
    */
   public boolean hasDualTable() {
-    return false; }
-
-  public boolean supportCommaForCrossJoin() {
-    return true; }
+    return false;
+  }
 
   // -- behaviors --
   protected boolean requiresAliasForFromItems() {
