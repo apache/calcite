@@ -858,6 +858,9 @@ public interface CalciteResource {
 
   @BaseMessage("Unknown JSON type in JSON_TYPE function, and the object is: ''{0}''")
   ExInst<CalciteException> unknownObjectOfJsonType(String value);
+
+  @BaseMessage("Unknown JSON depth in JSON_DEPTH function, and the object is: ''{0}''")
+  ExInst<CalciteException> unknownObjectOfJsonDepth(String value);
 }
 
 // End CalciteResource.java

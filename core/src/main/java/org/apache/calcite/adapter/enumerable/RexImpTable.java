@@ -162,6 +162,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ITEM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_API_COMMON_SYNTAX;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_ARRAY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_ARRAYAGG;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_DEPTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_EXISTS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECTAGG;
@@ -452,6 +453,7 @@ public class RexImpTable {
     defineMethod(JSON_QUERY, BuiltInMethod.JSON_QUERY.method, NullPolicy.NONE);
     defineMethod(JSON_OBJECT, BuiltInMethod.JSON_OBJECT.method, NullPolicy.NONE);
     defineMethod(JSON_TYPE, BuiltInMethod.JSON_TYPE.method, NullPolicy.NONE);
+    defineMethod(JSON_DEPTH, BuiltInMethod.JSON_DEPTH.method, NullPolicy.NONE);
     aggMap.put(JSON_OBJECTAGG,
         JsonObjectAggImplementor
             .supplierFor(BuiltInMethod.JSON_OBJECTAGG_ADD.method));

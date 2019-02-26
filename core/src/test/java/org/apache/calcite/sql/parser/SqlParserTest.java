@@ -8389,6 +8389,16 @@ public class SqlParserTest {
             "JSON_TYPE('{\"foo\": \"100\"}' FORMAT JSON)");
   }
 
+  @Test public void testJsonDepth() {
+    checkExp("json_depth('11.56')", "JSON_DEPTH('11.56' FORMAT JSON)");
+    checkExp("json_depth('{}')", "JSON_DEPTH('{}' FORMAT JSON)");
+    checkExp("json_depth(null)", "JSON_DEPTH(NULL FORMAT JSON)");
+    checkExp("json_depth('[\"foo\",null]')",
+            "JSON_DEPTH('[\"foo\",null]' FORMAT JSON)");
+    checkExp("json_depth('{\"foo\": \"100\"}')",
+            "JSON_DEPTH('{\"foo\": \"100\"}' FORMAT JSON)");
+  }
+
   @Test public void testJsonObjectAgg() {
     checkExp("json_objectagg(k_column: v_column)",
         "JSON_OBJECTAGG(KEY `K_COLUMN` VALUE `V_COLUMN` NULL ON NULL)");

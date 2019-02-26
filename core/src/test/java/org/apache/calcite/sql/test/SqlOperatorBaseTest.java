@@ -4498,6 +4498,34 @@ public abstract class SqlOperatorBaseTest {
             "STRING", "VARCHAR(20) NOT NULL");
   }
 
+  @Test public void testJsonDepth() {
+    tester.setFor(SqlStdOperatorTable.JSON_DEPTH);
+    tester.checkString("json_depth('1')",
+            "1", "INTEGER");
+    tester.checkString("json_depth('11.45')",
+            "1", "INTEGER");
+    tester.checkString("json_depth('true')",
+            "1", "INTEGER");
+    tester.checkString("json_depth('\"2019-01-27 21:24:00\"')",
+            "1", "INTEGER");
+    tester.checkString("json_depth('{}')",
+            "1", "INTEGER");
+    tester.checkString("json_depth('[]')",
+              "1", "INTEGER");
+    tester.checkString("json_depth('null')",
+            null, "INTEGER");
+    tester.checkString("json_depth(cast(null as varchar(1)))",
+            null, "INTEGER");
+    tester.checkString("json_depth('[10, true]')",
+            "2", "INTEGER");
+    tester.checkString("json_depth('[[], {}]')",
+              "2", "INTEGER");
+    tester.checkString("json_depth('{\"a\": [10, true]}')",
+            "3", "INTEGER");
+    tester.checkString("json_depth('[10, {\"a\": [[1,2]]}]')",
+            "5", "INTEGER");
+  }
+
   @Test public void testJsonObjectAgg() {
     checkAggType(tester, "json_objectagg('foo': 'bar')", "VARCHAR(2000) NOT NULL");
     tester.checkFails("^json_objectagg(100: 'bar')^",

@@ -563,6 +563,7 @@ JAVA,
 JSON,
 **JSON_ARRAY**,
 **JSON_ARRAYAGG**,
+JSON_DEPTH,
 **JSON_EXISTS**,
 **JSON_OBJECT**,
 **JSON_OBJECTAGG**,
@@ -2000,7 +2001,10 @@ Note:
 
 | Operator syntax                                   | Description
 |:------------------------------------------------- |:-----------
-| JSON_TYPE(value) | Returns a string indicating the type of a JSON **value**. This can be an object, an array, or a scalar type
+| JSON_TYPE(value)                                  | Returns a string indicating the type of a JSON **value**. This can be an object, an array, or a scalar type
+| JSON_DEPTH(value)                                 | Returns a integer indicating the depth of a JSON **value**. This can be an object, an array, or a scalar type
+
+* JSON_TYPE
 
 Example SQL:
 
@@ -2018,6 +2022,25 @@ Result:
 | c1     | c2    | c3      | c4      |
 | ------ | ----- | ------- | ------- |
 | OBJECT | ARRAY | INTEGER | BOOLEAN |
+
+* JSON_DEPTH
+
+Example SQL:
+
+```SQL
+SELECT JSON_DEPTH(v) AS c1
+,JSON_DEPTH(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2
+,JSON_DEPTH(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3
+,JSON_DEPTH(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4
+FROM (VALUES ('{"a": [10, true],"b": "[10, true]"}')) AS t(v)
+LIMIT 10;
+```
+
+Result:
+
+| c1     | c2    | c3      | c4      |
+| ------ | ----- | ------- | ------- |
+| 3      | 2     | 1       | 1       |
 
 ## User-defined functions
 
