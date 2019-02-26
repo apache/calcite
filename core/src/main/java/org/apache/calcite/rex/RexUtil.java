@@ -1843,14 +1843,15 @@ public class RexUtil {
   @Deprecated // to be removed before 2.0
   public static RexNode simplifyOr(RexBuilder rexBuilder, RexCall call) {
     return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, EXECUTOR)
-        .simplifyOr(call);
+        .simplifyUnknownAs(call, RexUnknownAs.UNKNOWN);
   }
 
   @Deprecated // to be removed before 2.0
   public static RexNode simplifyOrs(RexBuilder rexBuilder,
       List<RexNode> terms) {
     return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, EXECUTOR)
-        .simplifyOrs(terms);
+        .simplifyUnknownAs(rexBuilder.makeCall(SqlStdOperatorTable.OR, terms),
+            RexUnknownAs.UNKNOWN);
   }
 
   /**

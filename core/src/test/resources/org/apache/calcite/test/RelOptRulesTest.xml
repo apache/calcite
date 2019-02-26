@@ -4664,7 +4664,7 @@ LogicalProject(EXPR$0=[1])
       LogicalProject(DEPTNO=[$7])
         LogicalFilter(condition=[>($7, 10)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalFilter(condition=[OR(>($7, 7), >($7, 10))])
+    LogicalFilter(condition=[>($7, 7)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -8038,7 +8038,7 @@ LogicalProject(DEPTNO=[$1])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EMPNO=[$0], D=[CASE(=($9, 0), false, IS NULL(CASE(true, CAST($7):INTEGER, null:INTEGER)), null:NULL, IS NOT NULL($12), true, <($10, $9), null:NULL, false)])
-  LogicalJoin(condition=[=($7, $11)], joinType=[left])
+  LogicalJoin(condition=[=(CASE(true, CAST($7):INTEGER, null:INTEGER), $11)], joinType=[left])
     LogicalJoin(condition=[true], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])

@@ -576,7 +576,7 @@ public class RelBuilder {
    * {@code e AND TRUE} becomes {@code e};
    * {@code e AND e2 AND NOT e} becomes {@code e2}. */
   public RexNode and(Iterable<? extends RexNode> operands) {
-    return simplifier.simplifyAnds(operands);
+    return RexUtil.composeConjunction(getRexBuilder(), operands);
   }
 
   /** Creates an OR. */
@@ -1643,6 +1643,9 @@ public class RelBuilder {
     final RelNode join;
     final boolean correlate = variablesSet.size() == 1;
     RexNode postCondition = literal(true);
+    if (simplify) {
+      condition = simplifier.simplifyUnknownAsFalse(condition);
+    }
     if (correlate) {
       final CorrelationId id = Iterables.getOnlyElement(variablesSet);
       final ImmutableBitSet requiredColumns =
