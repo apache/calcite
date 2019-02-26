@@ -67,12 +67,14 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
@@ -2710,6 +2712,48 @@ public class SqlFunctions {
     } catch (Exception ex) {
       throw RESOURCE.unknownObjectOfJsonType(o.toString()).ex();
     }
+  }
+
+  public static Integer jsonDepth(Object o) {
+    final Integer result;
+    try {
+      if (o == null) {
+        result = null;
+      } else {
+        result = getJsonDepth(o);
+      }
+      return result;
+    } catch (Exception ex) {
+      throw RESOURCE.unknownObjectOfJsonDepth(o.toString()).ex();
+    }
+  }
+
+  private static Integer getJsonDepth(Object o) {
+    if (isScalarObject(o)) {
+      return 1;
+    }
+    Queue<Object> q = new LinkedList<>();
+    int depth = 0;
+    q.add(o);
+
+    while (!q.isEmpty()) {
+      int size = q.size();
+      for (int i = 0; i < size; ++i) {
+        Object obj = q.poll();
+        if (obj instanceof Map) {
+          for (Object value : ((LinkedHashMap) obj).values()) {
+            q.add(value);
+          }
+        } else if (obj instanceof Collection) {
+          for (Object value : (Collection) obj) {
+            q.add(value);
+          }
+        }
+      }
+      ++depth;
+    }
+
+    return depth;
   }
 
   public static boolean isJsonValue(String input) {

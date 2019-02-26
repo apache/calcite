@@ -3062,6 +3062,14 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testJsonDepth() {
+    String query = "select json_depth(\"product_name\") from \"product\"";
+    final String expected = "SELECT "
+            + "JSON_DEPTH(\"product_name\" FORMAT JSON)\n"
+            + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;

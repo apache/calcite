@@ -66,6 +66,7 @@ public class SqlJsonFunctionsTest {
   public static final String INVOC_DESC_DEJSONIZE = "dejsonize";
   public static final String INVOC_DESC_JSON_OBJECT = "jsonObject";
   public static final String INVOC_DESC_JSON_TYPE = "jsonType";
+  public static final String INVOC_DESC_JSON_DEPTH = "jsonDepth";
   public static final String INVOC_DESC_JSON_OBJECT_AGG_ADD =
       "jsonObjectAggAdd";
   public static final String INVOC_DESC_JSON_ARRAY = "jsonArray";
@@ -488,6 +489,19 @@ public class SqlJsonFunctionsTest {
   }
 
   @Test
+  public void testJsonDepth() {
+    assertJsonDepth(is(1), "{}");
+    assertJsonDepth(is(1), "false");
+    assertJsonDepth(is(1), "12");
+    assertJsonDepth(is(1), "11.22");
+    assertJsonDepth(is(2),
+            "[\"foo\",null]");
+    assertJsonDepth(is(3),
+            "{\"a\": [10, true]}");
+    assertJsonDepth(nullValue(), "null");
+  }
+
+  @Test
   public void testJsonObjectAggAdd() {
     Map<String, Object> map = new HashMap<>();
     Map<String, Object> expected = new HashMap<>();
@@ -675,6 +689,15 @@ public class SqlJsonFunctionsTest {
         SqlFunctions.jsonType(
                 SqlFunctions.dejsonize(input)),
         matcher);
+  }
+
+  private void assertJsonDepth(Matcher<? super Integer> matcher,
+                              String input) {
+    assertThat(
+            invocationDesc(INVOC_DESC_JSON_DEPTH, input),
+            SqlFunctions.jsonDepth(
+                    SqlFunctions.dejsonize(input)),
+            matcher);
   }
 
   private void assertJsonObjectAggAdd(Map map, String k, Object v,

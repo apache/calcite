@@ -10777,6 +10777,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             "(.*)JSON_VALUE_EXPRESSION(.*)");
   }
 
+  @Test public void testJsonDepth() {
+    check("select json_depth(ename) from emp");
+    checkExp("json_depth('{\"foo\":\"bar\"}')");
+    checkExpType("json_depth('{\"foo\":\"bar\"}')", "INTEGER");
+    checkFails("select json_depth(^1^) from emp",
+            "(.*)JSON_VALUE_EXPRESSION(.*)");
+  }
+
   @Test public void testJsonObjectAgg() {
     check("select json_objectagg(ename: empno) from emp");
     checkFails("select ^json_objectagg(empno: ename)^ from emp",

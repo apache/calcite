@@ -1305,6 +1305,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlFunction JSON_TYPE = new SqlJsonTypeFunction();
 
+  public static final SqlFunction JSON_DEPTH = new SqlJsonDepthFunction();
+
   public static final SqlJsonObjectAggAggFunction JSON_OBJECTAGG =
       new SqlJsonObjectAggAggFunction("JSON_OBJECTAGG",
           SqlJsonConstructorNullClause.NULL_ON_NULL);
