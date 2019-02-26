@@ -4679,6 +4679,21 @@ public class JdbcTest {
             "deptno=null; deptno=40");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2464">[CALCITE-2464]
+   * Allow to set nullability for columns of structured types</a>. */
+  @Test public void testLeftJoinWhereStructIsNotNull() {
+    CalciteAssert.hr()
+        .query("select e.\"deptno\", d.\"deptno\"\n"
+            + "from \"hr\".\"emps\" as e\n"
+            + "  left join \"hr\".\"depts\" as d using (\"deptno\")"
+            + "where d.\"location\" is not null")
+        .returnsUnordered(
+            "deptno=10; deptno=10",
+            "deptno=10; deptno=10",
+            "deptno=10; deptno=10");
+  }
+
   /** Various queries against EMP and DEPT, in particular involving composite
    * join conditions in various flavors of outer join. Results are verified
    * against MySQL (except full join, which MySQL does not support). */
@@ -5527,19 +5542,62 @@ public class JdbcTest {
         + "          \"nullable\": false,\n"
         + "          \"precision\": 2,\n"
         + "          \"name\": \"EXPR$1\"\n"
+        + "        },\n"
+        + "        {\n"
+        + "          \"type\": \"TIMESTAMP\",\n"
+        + "          \"nullable\": false,\n"
+        + "          \"precision\": 0,\n"
+        + "          \"name\": \"EXPR$2\"\n"
+        + "        },\n"
+        + "        {\n"
+        + "          \"type\": \"DECIMAL\",\n"
+        + "          \"nullable\": false,\n"
+        + "          \"precision\": 3,\n"
+        + "          \"scale\": 2,\n"
+        + "          \"name\": \"EXPR$3\"\n"
         + "        }\n"
         + "      ],\n"
         + "      \"tuples\": [\n"
         + "        [\n"
-        + "          1,\n"
-        + "          \"ab\"\n"
+        + "          {\n"
+        + "            \"literal\": 1,\n"
+        + "            \"type\": {\n"
+        + "              \"type\": \"INTEGER\",\n"
+        + "              \"nullable\": false\n"
+        + "            }\n"
+        + "          },\n"
+        + "          {\n"
+        + "            \"literal\": \"ab\",\n"
+        + "            \"type\": {\n"
+        + "              \"type\": \"CHAR\",\n"
+        + "              \"nullable\": false,\n"
+        + "              \"precision\": 2\n"
+        + "            }\n"
+        + "          },\n"
+        + "          {\n"
+        + "            \"literal\": 1364860800000,\n"
+        + "            \"type\": {\n"
+        + "              \"type\": \"TIMESTAMP\",\n"
+        + "              \"nullable\": false,\n"
+        + "              \"precision\": 0\n"
+        + "            }\n"
+        + "          },\n"
+        + "          {\n"
+        + "            \"literal\": 0.01,\n"
+        + "            \"type\": {\n"
+        + "              \"type\": \"DECIMAL\",\n"
+        + "              \"nullable\": false,\n"
+        + "              \"precision\": 3,\n"
+        + "              \"scale\": 2\n"
+        + "            }\n"
+        + "          }\n"
         + "        ]\n"
         + "      ],\n"
         + "      \"inputs\": []\n"
         + "    }\n"
         + "  ]\n"
         + "}\n";
-    with.query("explain plan as json for values (1, 'ab')")
+    with.query("explain plan as json for values (1, 'ab', TIMESTAMP '2013-04-02 00:00:00', 0.01)")
         .returns(expectedJson);
     with.query("explain plan with implementation for values (1, 'ab')")
         .returns("PLAN=EnumerableValues(tuples=[[{ 1, 'ab' }]])\n\n");
@@ -6731,6 +6789,18 @@ public class JdbcTest {
         .explainContains("EnumerableAggregate(group=[{}], "
             + "EXPR$0=[COLLECT($4) WITHIN GROUP ([4])])")
         .returns("EXPR$0=[250, 500, 1000]\n");
+  }
+
+  @Ignore
+  @Test public void testJsonType() {
+    CalciteAssert.that()
+        .query("SELECT JSON_TYPE(v) AS c1\n"
+            + ",JSON_TYPE(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2\n"
+            + ",JSON_TYPE(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3\n"
+            + ",JSON_TYPE(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4\n"
+            + "FROM (VALUES ('{\"a\": [10, true],\"b\": \"[10, true]\"}')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1=OBJECT; C2=ARRAY; C3=INTEGER; C4=BOOLEAN\n");
   }
 
   /**

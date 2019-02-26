@@ -1805,7 +1805,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
         .build();
 
-    checkPlanning(new HepPlanner(program),
+    checkPlanUnchanged(new HepPlanner(program),
         "select p1 is not distinct from p0 from (values (2, cast(null as integer))) as t(p0, p1)");
   }
 

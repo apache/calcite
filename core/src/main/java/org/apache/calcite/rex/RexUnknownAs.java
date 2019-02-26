@@ -94,6 +94,17 @@ public enum RexUnknownAs {
       throw new IllegalArgumentException("unknown");
     }
   }
+
+  public RexUnknownAs negate() {
+    switch (this) {
+    case TRUE:
+      return FALSE;
+    case FALSE:
+      return TRUE;
+    default:
+      return UNKNOWN;
+    }
+  }
 }
 
 // End RexUnknownAs.java

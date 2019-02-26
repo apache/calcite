@@ -8379,6 +8379,16 @@ public class SqlParserTest {
             + "FORMAT JSON NULL ON NULL)");
   }
 
+  @Test public void testJsonType() {
+    checkExp("json_type('11.56')", "JSON_TYPE('11.56' FORMAT JSON)");
+    checkExp("json_type('{}')", "JSON_TYPE('{}' FORMAT JSON)");
+    checkExp("json_type(null)", "JSON_TYPE(NULL FORMAT JSON)");
+    checkExp("json_type('[\"foo\",null]')",
+            "JSON_TYPE('[\"foo\",null]' FORMAT JSON)");
+    checkExp("json_type('{\"foo\": \"100\"}')",
+            "JSON_TYPE('{\"foo\": \"100\"}' FORMAT JSON)");
+  }
+
   @Test public void testJsonObjectAgg() {
     checkExp("json_objectagg(k_column: v_column)",
         "JSON_OBJECTAGG(KEY `K_COLUMN` VALUE `V_COLUMN` NULL ON NULL)");

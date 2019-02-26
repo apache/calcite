@@ -126,13 +126,9 @@ public class RelToSqlConverter extends SqlImplementor
     SqlNode sqlCondition = null;
     SqlLiteral condType = JoinConditionType.ON.symbol(POS);
     JoinType joinType = joinType(e.getJoinType());
-    if (e.getJoinType() == JoinRelType.INNER && e.getCondition().isAlwaysTrue()) {
-      if (dialect.supportCommaForCrossJoin()) {
-        joinType = JoinType.COMMA;
-      } else {
-        //SparkSql doesnot support COMMA for CROSS JOIN , so printing CROSS JOIN for Spark
-        joinType = JoinType.CROSS;
-      }
+
+    if (isCrossJoin(e)) {
+      joinType = dialect.emulateJoinTypeForCrossJoin();
       condType = JoinConditionType.NONE.symbol(POS);
     } else {
       sqlCondition = convertConditionToSqlNode(e.getCondition(),
@@ -149,6 +145,10 @@ public class RelToSqlConverter extends SqlImplementor
             condType,
             sqlCondition);
     return result(join, leftResult, rightResult);
+  }
+
+  private boolean isCrossJoin(final Join e) {
+    return e.getJoinType() == JoinRelType.INNER && e.getCondition().isAlwaysTrue();
   }
 
   /** @see #dispatch */

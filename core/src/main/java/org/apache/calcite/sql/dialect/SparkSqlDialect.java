@@ -18,6 +18,7 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalLiteral;
@@ -57,9 +58,9 @@ public class SparkSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public boolean supportCommaForCrossJoin() {
-    return false; }
-
+  @Override public JoinType emulateJoinTypeForCrossJoin() {
+    return JoinType.CROSS;
+  }
 
   @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
       SqlNode fetch) {

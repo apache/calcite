@@ -852,6 +852,9 @@ public interface CalciteResource {
 
   @BaseMessage("While executing SQL [{0}] on JDBC sub-schema")
   ExInst<RuntimeException> exceptionWhilePerformingQueryOnJdbcSubSchema(String sql);
+
+  @BaseMessage("Unknown JSON type in JSON_TYPE function, and the object is: ''{0}''")
+  ExInst<CalciteException> unknownObjectOfJsonType(String value);
 }
 
 // End CalciteResource.java

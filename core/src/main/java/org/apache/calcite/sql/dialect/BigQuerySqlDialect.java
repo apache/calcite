@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 /**
  * A <code>SqlDialect</code> implementation for Google BigQuery's "Standard SQL"
@@ -35,7 +36,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       new BigQuerySqlDialect(
           EMPTY_CONTEXT
               .withDatabaseProduct(SqlDialect.DatabaseProduct.BIG_QUERY)
-              .withNullCollation(NullCollation.LOW));
+              .withNullCollation(NullCollation.LOW)
+              .withSqlConformance(SqlConformanceEnum.BIG_QUERY));
 
   /** Creates a BigQuerySqlDialect. */
   public BigQuerySqlDialect(SqlDialect.Context context) {

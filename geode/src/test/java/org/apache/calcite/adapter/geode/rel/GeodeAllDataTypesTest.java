@@ -117,6 +117,28 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
   }
 
   @Test
+  public void testSqlBooleanColumnFilter() {
+    calciteAssert()
+        .query("SELECT booleanValue as booleanValue "
+            + "FROM geode.allDataTypesRegion WHERE booleanValue")
+        .returnsCount(2)
+        .queryContains(
+            GeodeAssertions.query("SELECT booleanValue AS booleanValue FROM /allDataTypesRegion "
+                + "WHERE booleanValue = true"));
+  }
+
+  @Test
+  public void testSqlBooleanColumnNotFilter() {
+    calciteAssert()
+        .query("SELECT booleanValue as booleanValue "
+            + "FROM geode.allDataTypesRegion WHERE not booleanValue")
+        .returnsCount(1)
+        .queryContains(
+            GeodeAssertions.query("SELECT booleanValue AS booleanValue FROM /allDataTypesRegion "
+                + "WHERE booleanValue = false"));
+  }
+
+  @Test
   public void testSqlMultipleBooleanWhereFilter() {
     calciteAssert()
         .query("SELECT booleanValue as booleanValue "
@@ -124,7 +146,7 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
         .returnsCount(3)
         .queryContains(
             GeodeAssertions.query("SELECT booleanValue AS booleanValue FROM /allDataTypesRegion "
-                + "WHERE booleanValue IN SET(true, false)"));
+                + "WHERE booleanValue = true OR booleanValue = false"));
   }
 
   @Test
@@ -138,8 +160,8 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
         .queryContains(
             GeodeAssertions.query("SELECT stringValue AS stringValue "
                 + "FROM /allDataTypesRegion WHERE "
-                + "stringValue IN SET('abc', 'def') OR floatValue IN SET(1.5678, null) "
-                + "OR booleanValue IN SET(true, false, null)"));
+                + "stringValue IN SET('abc', 'def') OR floatValue = 1.5678 "
+                + "OR booleanValue = true OR booleanValue = false"));
   }
 
   @Test

@@ -57,11 +57,18 @@ public class RexCall extends RexNode {
   public final ImmutableList<RexNode> operands;
   public final RelDataType type;
 
+  /**
+   * Simple binary operators are those operators which expects operands from the same Domain.
+   *
+   * Example: simple comparisions (=,&lt;)
+   * Note: it doesn't contain IN because that is defined on D x D^n
+   */
   private static final Set<SqlKind> SIMPLE_BINARY_OPS;
 
   static {
     EnumSet<SqlKind> kinds = EnumSet.of(SqlKind.PLUS, SqlKind.MINUS, SqlKind.TIMES, SqlKind.DIVIDE);
     kinds.addAll(SqlKind.COMPARISON);
+    kinds.remove(SqlKind.IN);
     SIMPLE_BINARY_OPS = Sets.immutableEnumSet(kinds);
   }
 
@@ -111,7 +118,7 @@ public class RexCall extends RexNode {
           && operand.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
         includeType = RexDigestIncludeType.NO_TYPE;
       }
-      if (SIMPLE_BINARY_OPS.contains(getKind())) {
+      if (SIMPLE_BINARY_OPS.contains(getKind()) && operands.size() == 2) {
         RexNode otherArg = operands.get(1 - i);
         if ((!(otherArg instanceof RexLiteral)
             || ((RexLiteral) otherArg).digestIncludesType() == RexDigestIncludeType.NO_TYPE)

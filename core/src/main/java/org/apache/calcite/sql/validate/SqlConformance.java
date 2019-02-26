@@ -133,8 +133,10 @@ public interface SqlConformance {
    * {@link SqlConformanceEnum#MYSQL_5},
    * {@link SqlConformanceEnum#ORACLE_10},
    * {@link SqlConformanceEnum#ORACLE_12},
-   * {@link SqlConformanceEnum#STRICT_92};
+   * {@link SqlConformanceEnum#STRICT_92},
    * {@link SqlConformanceEnum#SQL_SERVER_2008};
+   * {@link SqlConformanceEnum#BIG_QUERY};
+   * {@link SqlConformanceEnum#HIVE};
    * false otherwise.
    */
   boolean isSortByAlias();

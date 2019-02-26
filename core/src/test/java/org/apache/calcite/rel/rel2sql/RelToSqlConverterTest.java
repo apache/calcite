@@ -62,6 +62,8 @@ import org.junit.Test;
 
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
@@ -143,12 +145,12 @@ public class RelToSqlConverterTest {
     return sqlNode.toSqlString(dialect).getSql();
   }
 
-  @Test public void testSimpleSelectWithOrderByAliasDescNullsFirst() {
-    String query = "select sku+1 as a from \"product\" order by a desc nulls first";
-    String bigQueryExpected = "SELECT SKU + 1 AS A\nFROM foodmart.product\nORDER BY A "
-        + "IS NULL DESC, A DESC";
-    String hiveExpected = "SELECT SKU + 1 A\nFROM foodmart.product\nORDER BY A "
-        + "IS NULL DESC, A DESC";
+  @Test public void testSimpleSelectWithOrderByAliasAsc() {
+    final String query = "select sku+1 as a from \"product\" order by a";
+    final String bigQueryExpected = "SELECT SKU + 1 AS A\nFROM foodmart.product\n"
+        + "ORDER BY A IS NULL, A";
+    final String hiveExpected = "SELECT SKU + 1 A\nFROM foodmart.product\n"
+        + "ORDER BY A IS NULL, A";
     sql(query)
         .withBigquery()
         .ok(bigQueryExpected)
@@ -156,32 +158,12 @@ public class RelToSqlConverterTest {
         .ok(hiveExpected);
   }
 
-  @Test public void testSimpleSelectWithOrderByAliasDescNullsLast() {
-    String query = "select sku+1 as a from \"product\" order by a desc nulls last";
-    String bigQueryExpected = "SELECT SKU + 1 AS A\nFROM foodmart.product\nORDER BY A DESC";
-    String hiveExpected = "SELECT SKU + 1 A\nFROM foodmart.product\nORDER BY A DESC";
-    sql(query)
-        .withBigquery()
-        .ok(bigQueryExpected)
-        .withHive()
-        .ok(hiveExpected);
-  }
-
-  @Test public void testSimpleSelectWithOrderByAliasAscNullsFirst() {
-    String query = "select sku+1 as a from \"product\" order by a nulls first";
-    String bigQueryExpected = "SELECT SKU + 1 AS A\nFROM foodmart.product\nORDER BY A";
-    String hiveExpected = "SELECT SKU + 1 A\nFROM foodmart.product\nORDER BY A";
-    sql(query)
-        .withBigquery()
-        .ok(bigQueryExpected)
-        .withHive()
-        .ok(hiveExpected);
-  }
-
-  @Test public void testSimpleSelectWithOrderByAliasAscNullsLast() {
-    String query = "select sku+1 as a from \"product\" order by a nulls last";
-    String bigQueryExpected = "SELECT SKU + 1 AS A\nFROM foodmart.product\nORDER BY A IS NULL, A";
-    String hiveExpected = "SELECT SKU + 1 A\nFROM foodmart.product\nORDER BY A IS NULL, A";
+  @Test public void testSimpleSelectWithOrderByAliasDesc() {
+    final String query = "select sku+1 as a from \"product\" order by a desc";
+    final String bigQueryExpected = "SELECT SKU + 1 AS A\nFROM foodmart.product\n"
+        + "ORDER BY A IS NULL DESC, A DESC";
+    final String hiveExpected = "SELECT SKU + 1 A\nFROM foodmart.product\n"
+        + "ORDER BY A IS NULL DESC, A DESC";
     sql(query)
         .withBigquery()
         .ok(bigQueryExpected)
@@ -370,15 +352,30 @@ public class RelToSqlConverterTest {
         + "from \"foodmart\".\"product\"";
     final String expectedPostgresql = "SELECT CASE WHEN (COUNT(\"net_weight\")"
         + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW)) > 0 "
-        + "THEN CAST(COALESCE(SUM(\"net_weight\")"
+        + "THEN COALESCE(SUM(\"net_weight\")"
         + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 0)"
-        + " AS DOUBLE PRECISION) "
-        + "ELSE NULL END / (COUNT(\"net_weight\")"
+        + " ELSE NULL END / (COUNT(\"net_weight\")"
         + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW))\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query)
         .withPostgresql()
         .ok(expectedPostgresql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2722">[CALCITE-2722]
+   * SqlImplementor createLeftCall method throws StackOverflowError</a>. */
+  @Test public void testStack() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(
+            builder.or(
+                IntStream.range(1, 10000)
+                    .mapToObj(i -> builder.equals(builder.field("EMPNO"), builder.literal(i)))
+                    .collect(Collectors.toList())))
+        .build();
+    assertThat(toSql(root), notNullValue());
   }
 
   /** Test case for
@@ -705,40 +702,56 @@ public class RelToSqlConverterTest {
     sql(query).withBigquery().ok(expected);
   }
 
-  @Test public void testHiveSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
+  @Test public void testSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls first";
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id IS NULL DESC, product_id DESC";
-    sql(query).withHive().ok(expected);
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withBigquery()
+        .ok(expected);
   }
 
-  @Test public void testHiveSelectQueryWithOrderByAscAndNullsLastShouldBeEmulated() {
+  @Test public void testSelectQueryWithOrderByAscAndNullsLastShouldBeEmulated() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" nulls last";
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id IS NULL, product_id";
-    sql(query).withHive().ok(expected);
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withBigquery()
+        .ok(expected);
   }
 
-  @Test public void testHiveSelectQueryWithOrderByAscNullsFirstShouldNotAddNullEmulation() {
+  @Test public void testSelectQueryWithOrderByAscNullsFirstShouldNotAddNullEmulation() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" nulls first";
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id";
-    sql(query).withHive().ok(expected);
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withBigquery()
+        .ok(expected);
   }
 
-  @Test public void testHiveSelectQueryWithOrderByDescNullsLastShouldNotAddNullEmulation() {
+  @Test public void testSelectQueryWithOrderByDescNullsLastShouldNotAddNullEmulation() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls last";
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id DESC";
-    sql(query).withHive().ok(expected);
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withBigquery()
+        .ok(expected);
   }
 
   @Test
@@ -747,12 +760,12 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT LENGTH('xyz')\n"
         + "FROM foodmart.product";
     sql(query)
-        .withHive()
-        .ok(expected)
-        .withBigquery()
-        .ok(expected)
-        .withSpark()
-        .ok(expected);
+      .withHive()
+      .ok(expected)
+      .withBigquery()
+      .ok(expected)
+      .withSpark()
+      .ok(expected);
   }
 
   @Test
@@ -761,12 +774,12 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT LENGTH('xyz')\n"
         + "FROM foodmart.product";
     sql(query)
-        .withHive()
-        .ok(expected)
-        .withBigquery()
-        .ok(expected)
-        .withSpark()
-        .ok(expected);
+      .withHive()
+      .ok(expected)
+      .withBigquery()
+      .ok(expected)
+      .withSpark()
+      .ok(expected);
   }
 
   @Test public void testMysqlCastToBigint() {
@@ -3148,6 +3161,22 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testCrossJoinEmulationForSpark() {
+    String query = "select * from \"employee\", \"department\"";
+    final String expected = "SELECT *\n"
+        + "FROM foodmart.employee\n"
+        + "CROSS JOIN foodmart.department";
+    sql(query).withSpark().ok(expected);
+  }
+
+  @Test public void testJsonType() {
+    String query = "select json_type(\"product_name\") from \"product\"";
+    final String expected = "SELECT "
+            + "JSON_TYPE(\"product_name\" FORMAT JSON)\n"
+            + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
   @Test public void datePlusIntervalMonthFunctionForHiveAndSparkAndBigQuery() {
     String query = "select \"birth_date\" + INTERVAL '1' MONTH from \"employee\"";
     final String expectedHive = "SELECT ADD_MONTHS(birth_date, 1)\n"
@@ -3255,14 +3284,6 @@ public class RelToSqlConverterTest {
         .ok(expected);
   }
 
-  @Test public void testCartesianProductWithCrossJoinSyntaxForSpark() {
-    String query = "select * from \"department\" , \"employee\"";
-    String expected = "SELECT *\n"
-        + "FROM foodmart.department\n"
-        + "CROSS JOIN foodmart.employee";
-    sql(query).withSpark().ok(expected);
-  }
-
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;
@@ -3333,7 +3354,7 @@ public class RelToSqlConverterTest {
     }
 
     Sql withSpark() {
-      return dialect(SqlDialect.DatabaseProduct.SPARK.getDialect());
+      return dialect(DatabaseProduct.SPARK.getDialect());
     }
 
     Sql withHiveIdentifierQuoteString() {

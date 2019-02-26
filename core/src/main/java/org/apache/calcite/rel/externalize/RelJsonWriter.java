@@ -37,10 +37,10 @@ import java.util.Map;
 public class RelJsonWriter implements RelWriter {
   //~ Instance fields ----------------------------------------------------------
 
-  private final JsonBuilder jsonBuilder;
-  private final RelJson relJson;
+  protected final JsonBuilder jsonBuilder;
+  protected final RelJson relJson;
   private final Map<RelNode, String> relIdMap = new IdentityHashMap<>();
-  private final List<Object> relList;
+  protected final List<Object> relList;
   private final List<Pair<String, Object>> values = new ArrayList<>();
   private String previousId;
 
