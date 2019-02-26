@@ -62,6 +62,8 @@ import org.junit.Test;
 
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
@@ -358,6 +360,22 @@ public class RelToSqlConverterTest {
     sql(query)
         .withPostgresql()
         .ok(expectedPostgresql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2722">[CALCITE-2722]
+   * SqlImplementor createLeftCall method throws StackOverflowError</a>. */
+  @Test public void testStack() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(
+            builder.or(
+                IntStream.range(1, 10000)
+                    .mapToObj(i -> builder.equals(builder.field("EMPNO"), builder.literal(i)))
+                    .collect(Collectors.toList())))
+        .build();
+    assertThat(toSql(root), notNullValue());
   }
 
   /** Test case for

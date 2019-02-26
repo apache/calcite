@@ -146,7 +146,7 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
         .returnsCount(3)
         .queryContains(
             GeodeAssertions.query("SELECT booleanValue AS booleanValue FROM /allDataTypesRegion "
-                + "WHERE booleanValue IN SET(true, false)"));
+                + "WHERE booleanValue = true OR booleanValue = false"));
   }
 
   @Test
@@ -161,7 +161,7 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
             GeodeAssertions.query("SELECT stringValue AS stringValue "
                 + "FROM /allDataTypesRegion WHERE "
                 + "stringValue IN SET('abc', 'def') OR floatValue = 1.5678 "
-                + "OR booleanValue IN SET(true, false)"));
+                + "OR booleanValue = true OR booleanValue = false"));
   }
 
   @Test

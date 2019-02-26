@@ -57,14 +57,14 @@ public class SqlWindow extends SqlCall {
   /**
    * The FOLLOWING operator used exclusively in a window specification.
    */
-  static final SqlPostfixOperator FOLLOWING_OPERATOR =
+  public static final SqlPostfixOperator FOLLOWING_OPERATOR =
       new SqlPostfixOperator("FOLLOWING", SqlKind.FOLLOWING, 20,
           ReturnTypes.ARG0, null,
           null);
   /**
    * The PRECEDING operator used exclusively in a window specification.
    */
-  static final SqlPostfixOperator PRECEDING_OPERATOR =
+  public static final SqlPostfixOperator PRECEDING_OPERATOR =
       new SqlPostfixOperator("PRECEDING", SqlKind.PRECEDING, 20,
           ReturnTypes.ARG0, null,
           null);
