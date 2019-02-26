@@ -73,7 +73,7 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
         implementor.addExpressionItemMapping(name, ElasticsearchRules.stripQuotes(expr));
       }
 
-      hasSelectStar |= "_MAP".equals(name);
+      hasSelectStar |= ElasticsearchConstants.isSelectAll(name);
 
       if (expr.equals(name)) {
         fields.add(name);
