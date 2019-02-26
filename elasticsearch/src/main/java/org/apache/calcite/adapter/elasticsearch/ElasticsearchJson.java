@@ -318,6 +318,12 @@ final class ElasticsearchJson {
 
     Object valueOrNull(String name) {
       Objects.requireNonNull(name, "name");
+
+      // for "select *" return whole document
+      if (ElasticsearchConstants.isSelectAll(name)) {
+        return sourceOrFields();
+      }
+
       if (fields != null && fields.containsKey(name)) {
         Object field = fields.get(name);
         if (field instanceof Iterable) {
