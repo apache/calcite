@@ -2236,8 +2236,8 @@ public class RexImpTable {
               Expressions.call(BuiltInMethod.TIME_ZONE.method, translator.getRoot()));
           // fall through
         case TIMESTAMP:
-          operand = Expressions.divide(operand,
-              Expressions.constant(TimeUnit.DAY.multiplier.longValue()));
+          operand = Expressions.call(BuiltInMethod.FLOOR_DIV.method,
+              operand, Expressions.constant(TimeUnit.DAY.multiplier.longValue()));
           // fall through
         case DATE:
           return Expressions.call(BuiltInMethod.UNIX_DATE_EXTRACT.method,
@@ -2247,11 +2247,9 @@ public class RexImpTable {
         }
         break;
       case MILLISECOND:
-        return Expressions.modulo(
-              operand, Expressions.constant(TimeUnit.MINUTE.multiplier.longValue()));
+        return mod(operand, TimeUnit.MINUTE.multiplier.longValue());
       case MICROSECOND:
-        operand = Expressions.modulo(
-              operand, Expressions.constant(TimeUnit.MINUTE.multiplier.longValue()));
+        operand = mod(operand, TimeUnit.MINUTE.multiplier.longValue());
         return Expressions.multiply(
               operand, Expressions.constant(TimeUnit.SECOND.multiplier.longValue()));
       case EPOCH:
@@ -2317,7 +2315,8 @@ public class RexImpTable {
     if (factor == 1L) {
       return operand;
     } else {
-      return Expressions.modulo(operand, Expressions.constant(factor));
+      return Expressions.call(BuiltInMethod.FLOOR_MOD.method,
+          operand, Expressions.constant(factor));
     }
   }
 

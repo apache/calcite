@@ -6723,6 +6723,73 @@ public abstract class SqlOperatorBaseTest {
         "extract(microsecond from cast(null as time))");
   }
 
+  @Test public void testExtractWithDatesBeforeUnixEpoch() {
+    tester.checkScalar(
+        "extract(year from TIMESTAMP '1970-01-01 00:00:00')",
+        "1970",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(year from TIMESTAMP '1969-12-31 10:13:17')",
+        "1969",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(quarter from TIMESTAMP '1969-12-31 08:13:17')",
+        "4",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(quarter from TIMESTAMP '1969-5-31 21:13:17')",
+        "2",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(month from TIMESTAMP '1969-12-31 00:13:17')",
+        "12",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(day from TIMESTAMP '1969-12-31 12:13:17')",
+        "31",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(week from TIMESTAMP '1969-2-23 01:23:45')",
+        "8",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(doy from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "365",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(dow from TIMESTAMP '1969-12-31 01:13:17.357')",
+        "4",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(decade from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "196",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(century from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "20",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(hour from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "21",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(minute from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "13",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(second from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "17",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(millisecond from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "17357",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(microsecond from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "17357000",
+        "BIGINT NOT NULL");
+  }
+
   @Test public void testArrayValueConstructor() {
     tester.setFor(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR);
     tester.checkScalar(
