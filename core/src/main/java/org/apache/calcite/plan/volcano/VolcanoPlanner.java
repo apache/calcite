@@ -1250,13 +1250,29 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       Util.printJavaString(pw, "Set " + set.id + " " + set.subsets.get(0).getRowType(), false);
       pw.print(";\n");
       for (RelNode rel : set.rels) {
-        String traits = "." + rel.getTraitSet().toString();
         pw.print("\t\trel");
         pw.print(rel.getId());
         pw.print(" [label=");
         RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+
+        // Note: rel traitset could be different from its subset.traitset
+        // It can happen due to RelTraitset#simplify
+        // If the traits are different, we want to keep them on a graph
+        String traits = "." + getSubset(rel).getTraitSet().toString();
+        String title = rel.getDescription().replace(traits, "");
+        if (title.endsWith(")")) {
+          int openParen = title.indexOf('(');
+          if (openParen != -1) {
+            // Title is like rel#12:LogicalJoin(left=RelSubset#4,right=RelSubset#3,
+            // condition==($2, $0),joinType=inner)
+            // so we remove the parenthesis, and wrap parameters to the second line
+            // This avoids "too wide" Graphiz boxes, and makes the graph easier to follow
+            title = title.substring(0, openParen) + '\n'
+                + title.substring(openParen + 1, title.length() - 1);
+          }
+        }
         Util.printJavaString(pw,
-            rel.getDescription().replace(traits, "")
+            title
                 + "\nrows=" + mq.getRowCount(rel) + ", cost=" + getCost(rel, mq), false);
         RelSubset relSubset = getSubset(rel);
         if (!(rel instanceof AbstractConverter)) {
