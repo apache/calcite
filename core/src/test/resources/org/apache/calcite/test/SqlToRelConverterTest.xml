@@ -327,7 +327,7 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
     <TestCase name="testSelectOverDistinct">
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CASE(>(COUNT(DISTINCT $7) OVER (ROWS BETWEEN 10 PRECEDING AND CURRENT ROW), 0), $SUM0(DISTINCT $7) OVER (ROWS BETWEEN 10 PRECEDING AND CURRENT ROW), null)])
+LogicalProject(EXPR$0=[CASE(>(COUNT(DISTINCT $7) OVER (ROWS BETWEEN 10 PRECEDING AND CURRENT ROW), 0), $SUM0(DISTINCT $7) OVER (ROWS BETWEEN 10 PRECEDING AND CURRENT ROW), null:INTEGER)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -342,7 +342,7 @@ from emp
         <Resource name="plan">
             <![CDATA[
 LogicalDelta
-  LogicalProject(C=[COUNT(DISTINCT $2) OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN 1000 PRECEDING AND CURRENT ROW)], C2=[COUNT(DISTINCT $2) OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)], C3=[COUNT($2) OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+  LogicalProject(C=[COUNT(DISTINCT $2) OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN 1000:INTERVAL SECOND PRECEDING AND CURRENT ROW)], C2=[COUNT(DISTINCT $2) OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)], C3=[COUNT($2) OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
     LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
 ]]>
         </Resource>
@@ -647,9 +647,9 @@ LogicalProject(DEPTNO=[$7])
             <![CDATA[
 LogicalProject(EXPR$0=[AND(OR(IS NOT NULL($0), IS NOT NULL($1)), IS NOT TRUE(=($0, $1)))])
   LogicalUnion(all=[true])
-    LogicalProject(EXPR$0=[null], EXPR$1=[1])
+    LogicalProject(EXPR$0=[null:INTEGER], EXPR$1=[1])
       LogicalValues(tuples=[[{ 0 }]])
-    LogicalProject(EXPR$0=[2], EXPR$1=[null])
+    LogicalProject(EXPR$0=[2], EXPR$1=[null:INTEGER])
       LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
@@ -664,9 +664,9 @@ from (values (cast(null as int), 1),
             <![CDATA[
 LogicalProject(EXPR$0=[OR(AND(IS NULL($0), IS NULL($1)), IS TRUE(=($0, $1)))])
   LogicalUnion(all=[true])
-    LogicalProject(EXPR$0=[null], EXPR$1=[1])
+    LogicalProject(EXPR$0=[null:INTEGER], EXPR$1=[1])
       LogicalValues(tuples=[[{ 0 }]])
-    LogicalProject(EXPR$0=[2], EXPR$1=[null])
+    LogicalProject(EXPR$0=[2], EXPR$1=[null:INTEGER])
       LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
@@ -690,7 +690,7 @@ LogicalProject(EXPR$0=[NOT(LIKE('a', 'b', 'c'))])
     <TestCase name="testOverMultiple">
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), $SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), null)], EXPR$1=[CASE(>(COUNT($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), $SUM0($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), null)], EXPR$2=[CASE(>=(COUNT() OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 2), CASE(>(COUNT($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 0), $SUM0($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), null), null)])
+LogicalProject(EXPR$0=[CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), $SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), null:INTEGER)], EXPR$1=[CASE(>(COUNT($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), $SUM0($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), null:INTEGER)], EXPR$2=[CASE(>=(COUNT() OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 2), CASE(>(COUNT($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 0), $SUM0($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), null:INTEGER), null:NULL)])
   LogicalFilter(condition=[>(-($7, $5), 999)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -775,7 +775,7 @@ LogicalProject(C_NATIONKEY=[$1], FAKE_COL3=[$2])
     <TestCase name="testOverAvg">
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), $SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), null)], EXPR$1=[CAST(/(CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), CAST($SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)):INTEGER, null), COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW))):INTEGER])
+LogicalProject(EXPR$0=[CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), $SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), null:INTEGER)], EXPR$1=[CAST(/(CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), $SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), null:INTEGER), COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW))):INTEGER])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -819,7 +819,7 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[*(CAST($0):INTEGER NOT NULL, 13)])
+LogicalProject(EXPR$0=[*($0, 13:INTERVAL YEAR TO MONTH)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -832,7 +832,7 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[*(CAST($0):INTEGER NOT NULL, 3660000)])
+LogicalProject(EXPR$0=[*($0, 3660000:INTERVAL HOUR TO MINUTE)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -1267,7 +1267,7 @@ window w1 as (partition by job order by hiredate rows 2 preceding)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), $SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), null)], EXPR$1=[/(CASE(>(COUNT(CAST($5):REAL NOT NULL) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), CAST($SUM0(CAST($5):REAL NOT NULL) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)):REAL, null), COUNT(CAST($5):REAL NOT NULL) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW))])
+LogicalProject(EXPR$0=[CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), $SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), null:INTEGER)], EXPR$1=[/(CASE(>(COUNT(CAST($5):REAL NOT NULL) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), $SUM0(CAST($5):REAL NOT NULL) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), null:REAL), COUNT(CAST($5):REAL NOT NULL) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW))])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -1461,7 +1461,7 @@ LogicalProject(A=[$0], B=[$1], C=[$2], DEPTNO=[$3], NAME=[$4])
     </TestCase>
     <TestCase name="testStructTypeAlias">
         <Resource name="sql">
-            <![CDATA[select t.r AS myRow
+            <![CDATA[select t.r AS myRow 
 from (select row(row(1)) r from dept) t]]>
         </Resource>
         <Resource name="plan">
@@ -2098,7 +2098,7 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EMPNO=[$0], EXPR$1=[NOT(CASE(=($9, 0), false, IS NOT NULL($13), true, IS NULL($11), null, <($10, $9), null, false))])
+LogicalProject(EMPNO=[$0], EXPR$1=[OR(=($9, 0), AND(<($10, $9), null, <>($9, 0), IS NULL($13)), AND(<>($9, 0), IS NULL($13), >=($10, $9)))])
   LogicalJoin(condition=[=($11, $12)], joinType=[left])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$9], $f1=[$10], DEPTNO0=[$7])
       LogicalJoin(condition=[true], joinType=[inner])
@@ -2242,7 +2242,7 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EMPNO=[$0], EXPR$1=[NOT(CASE(=($9, 0), false, IS NOT NULL($13), true, IS NULL($11), null, <($10, $9), null, false))])
+LogicalProject(EMPNO=[$0], EXPR$1=[OR(=($9, 0), AND(<($10, $9), null, <>($9, 0), IS NULL($13)), AND(<>($9, 0), IS NULL($13), >=($10, $9)))])
   LogicalJoin(condition=[=($11, $12)], joinType=[left])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$9], $f1=[$10], DEPTNO0=[$7])
       LogicalJoin(condition=[true], joinType=[inner])
@@ -2466,7 +2466,7 @@ group by rollup(a, b)]]>
         <Resource name="plan">
             <![CDATA[
 LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], C=[COUNT()])
-  LogicalProject(A=[null], B=[2])
+  LogicalProject(A=[null:INTEGER], B=[2])
     LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
@@ -2985,7 +2985,7 @@ from orders]]>
         <Resource name="plan">
             <![CDATA[
 LogicalDelta
-  LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], C=[COUNT() OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN 1000 PRECEDING AND CURRENT ROW)])
+  LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], C=[COUNT() OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN 1000:INTERVAL SECOND PRECEDING AND CURRENT ROW)])
     LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
 ]]>
         </Resource>
@@ -2999,9 +2999,9 @@ group by tumble(rowtime, interval '2' hour), productId]]>
         <Resource name="plan">
             <![CDATA[
 LogicalDelta
-  LogicalProject(ROWTIME=[+($0, 7200000)], PRODUCTID=[$1])
+  LogicalProject(ROWTIME=[+($0, 7200000:INTERVAL HOUR)], PRODUCTID=[$1])
     LogicalAggregate(group=[{0, 1}])
-      LogicalProject($f0=[TUMBLE($0, 7200000)], PRODUCTID=[$1])
+      LogicalProject($f0=[TUMBLE($0, 7200000:INTERVAL HOUR)], PRODUCTID=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
 ]]>
         </Resource>
@@ -3018,7 +3018,7 @@ group by hop(rowtime, interval '1' hour, interval '3' hour)]]>
 LogicalDelta
   LogicalProject(ROWTIME=[$0], C=[$1])
     LogicalAggregate(group=[{0}], C=[COUNT()])
-      LogicalProject($f0=[HOP($0, 3600000, 10800000)])
+      LogicalProject($f0=[HOP($0, 3600000:INTERVAL HOUR, 10800000:INTERVAL HOUR)])
         LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
 ]]>
         </Resource>
@@ -3057,7 +3057,7 @@ group by session(rowtime, interval '1' hour)]]>
 LogicalDelta
   LogicalProject(ROWTIME=[$0], EXPR$1=[$0], C=[$1])
     LogicalAggregate(group=[{0}], C=[COUNT()])
-      LogicalProject($f0=[SESSION($0, 3600000)])
+      LogicalProject($f0=[SESSION($0, 3600000:INTERVAL HOUR)])
         LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
 ]]>
         </Resource>
@@ -3271,7 +3271,7 @@ values (10, 150, 'Fred')]]>
         <Resource name="plan">
             <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[true])
-  LogicalProject(EMPNO=[$1], ENAME=[$2], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[null], COMM=[null], DEPTNO=[$0], SLACKER=[null])
+  LogicalProject(EMPNO=[$1], ENAME=[$2], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[$0], SLACKER=[null:BOOLEAN])
     LogicalValues(tuples=[[{ 10, 150, 'Fred' }]])
 ]]>
         </Resource>
@@ -3284,7 +3284,7 @@ values (50, 'Fred')]]>
         <Resource name="plan">
             <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[true])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[null], COMM=[null], DEPTNO=[null], SLACKER=[null])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[null:INTEGER], SLACKER=[null:BOOLEAN])
     LogicalValues(tuples=[[{ 50, 'Fred' }]])
 ]]>
         </Resource>
@@ -3297,7 +3297,7 @@ values (?, ?, ?)]]>
         <Resource name="plan">
             <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[true])
-  LogicalProject(EMPNO=[?1], ENAME=[?2], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[null], COMM=[null], DEPTNO=[?0], SLACKER=[null])
+  LogicalProject(EMPNO=[?1], ENAME=[?2], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[?0], SLACKER=[null:BOOLEAN])
     LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
@@ -3310,7 +3310,7 @@ values (?, ?)]]>
         <Resource name="plan">
             <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[true])
-  LogicalProject(EMPNO=[?0], ENAME=[?1], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[null], COMM=[null], DEPTNO=[null], SLACKER=[null])
+  LogicalProject(EMPNO=[?0], ENAME=[?1], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[null:INTEGER], SLACKER=[null:BOOLEAN])
     LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
@@ -3322,7 +3322,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], f
         <Resource name="plan">
             <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
-  LogicalProject(EMPNO=[44], ENAME=['Fred'], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[999999], COMM=[null], DEPTNO=[456], SLACKER=[null], UPDATED=[?0])
+  LogicalProject(EMPNO=[44], ENAME=['Fred'], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[999999], COMM=[null:INTEGER], DEPTNO=[456], SLACKER=[null:BOOLEAN], UPDATED=[?0])
     LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
@@ -3335,7 +3335,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPDEFAULTS]], operation=[INSERT], fl
             <![CDATA[
 LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
   LogicalFilter(condition=[=($7, 20)])
-    LogicalProject(EMPNO=[$2], ENAME=[$0], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[$4], COMM=[null], DEPTNO=[$1], SLACKER=[null], EXTRA=[null], UPDATED=[$3])
+    LogicalProject(EMPNO=[$2], ENAME=[$0], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[$4], COMM=[null:INTEGER], DEPTNO=[$1], SLACKER=[null:BOOLEAN], EXTRA=[null:BOOLEAN], UPDATED=[$3])
       LogicalValues(tuples=[[{ 'Fred', 20, 44, 2017-03-12 13:03:05, 999999 }]])
 ]]>
         </Resource>
@@ -3348,7 +3348,7 @@ LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[
             <![CDATA[
 LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
   LogicalFilter(condition=[=($7, 20)])
-    LogicalProject(EMPNO=[44], ENAME=['Fred'], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[999999], COMM=[null], DEPTNO=[20], SLACKER=[null], EXTRA=[null], UPDATED=[?0])
+    LogicalProject(EMPNO=[44], ENAME=['Fred':VARCHAR(20)], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[999999], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN], EXTRA=[null:BOOLEAN], UPDATED=[?0])
       LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
@@ -3460,7 +3460,7 @@ values (150, 'Fred')]]>
             <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[true])
   LogicalFilter(condition=[>($5, 1000)])
-    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[null], COMM=[null], DEPTNO=[20], SLACKER=[null])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN])
       LogicalValues(tuples=[[{ 150, 'Fred' }]])
 ]]>
         </Resource>
@@ -3474,7 +3474,7 @@ values (10, 'Fred')]]>
             <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[true])
   LogicalFilter(condition=[>($5, 1000)])
-    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[null], COMM=[null], DEPTNO=[20], SLACKER=[null])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN])
       LogicalValues(tuples=[[{ 10, 'Fred' }]])
 ]]>
         </Resource>
@@ -3486,7 +3486,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], f
         <Resource name="plan">
             <![CDATA[
 LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[null], HIREDATE=[null], SAL=[555], COMM=[null], DEPTNO=[20], SLACKER=[null])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[555], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN])
     LogicalValues(tuples=[[{ 34625, 'nom', 'accountant' }]])
 ]]>
         </Resource>
@@ -3498,7 +3498,7 @@ LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[
         <Resource name="plan">
             <![CDATA[
 LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[555], COMM=[null], DEPTNO=[20], SLACKER=[null])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[555], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN])
     LogicalValues(tuples=[[{ 10, 'Fred' }]])
 ]]>
         </Resource>
@@ -3510,7 +3510,7 @@ LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[
         <Resource name="plan">
             <![CDATA[
 LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
-  LogicalProject(EMPNO=[CAST(?0):INTEGER NOT NULL], ENAME=['Bob'], JOB=[?1], MGR=[null], HIREDATE=[null], SAL=[555], COMM=[null], DEPTNO=[20], SLACKER=[null])
+  LogicalProject(EMPNO=[CAST(?0):INTEGER NOT NULL], ENAME=['Bob':VARCHAR(20)], JOB=[?1], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[555], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN])
     LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
@@ -3522,7 +3522,7 @@ LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[
         <Resource name="plan">
             <![CDATA[
 LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
-  LogicalProject(EMPNO=[CAST(?0):INTEGER NOT NULL], ENAME=[CAST(?1):VARCHAR(20) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[555], COMM=[null], DEPTNO=[20], SLACKER=[null])
+  LogicalProject(EMPNO=[CAST(?0):INTEGER NOT NULL], ENAME=[CAST(?1):VARCHAR(20) NOT NULL], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[555], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN])
     LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
@@ -3534,7 +3534,7 @@ LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[
         <Resource name="plan">
             <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
-  LogicalProject(EMPNO=[123], ENAME=['Bob'], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[555], COMM=[null], DEPTNO=[$0], SLACKER=[null])
+  LogicalProject(EMPNO=[123], ENAME=['Bob'], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[555], COMM=[null:INTEGER], DEPTNO=[$0], SLACKER=[null:BOOLEAN])
     LogicalValues(tuples=[[{ 300 }]])
 ]]>
         </Resource>
@@ -3546,7 +3546,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPDEFAULTS]], operation=[INSERT], fl
         <Resource name="plan">
             <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
-  LogicalProject(EMPNO=[$0], ENAME=['Bob'], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[555], COMM=[null], DEPTNO=[null], SLACKER=[null])
+  LogicalProject(EMPNO=[$0], ENAME=['Bob'], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[555], COMM=[null:INTEGER], DEPTNO=[null:INTEGER], SLACKER=[null:BOOLEAN])
     LogicalValues(tuples=[[{ 100 }]])
 ]]>
         </Resource>
@@ -3558,7 +3558,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPDEFAULTS]], operation=[INSERT], fl
         <Resource name="plan">
             <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
-  LogicalProject(EMPNO=[123], ENAME=['Bob'], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[555], COMM=[null], DEPTNO=[?0], SLACKER=[null])
+  LogicalProject(EMPNO=[123], ENAME=['Bob'], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[555], COMM=[null:INTEGER], DEPTNO=[?0], SLACKER=[null:BOOLEAN])
     LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
@@ -3570,7 +3570,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPDEFAULTS]], operation=[INSERT], fl
         <Resource name="plan">
             <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
-  LogicalProject(EMPNO=[?0], ENAME=['Bob'], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[555], COMM=[null], DEPTNO=[null], SLACKER=[null])
+  LogicalProject(EMPNO=[?0], ENAME=['Bob'], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[555], COMM=[null:INTEGER], DEPTNO=[null:INTEGER], SLACKER=[null:BOOLEAN])
     LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
@@ -3595,7 +3595,7 @@ values (?, ?, ?)]]>
         <Resource name="plan">
             <![CDATA[
 LogicalTableModify(table=[[CATALOG, STRUCT, T_NULLABLES]], operation=[INSERT], flattened=[true])
-  LogicalProject("K0"=[null], "C1"=[?2], "F1"."A0"=[null], "F2"."A0"=[null], "F0"."C0"=[?0], "F1"."C0"=[null], "F0"."C1"=[null], "F1"."C2"=[?1], "F2"."C3"=[null])
+  LogicalProject("K0"=[null:VARCHAR(20)], "C1"=[?2], "F1"."A0"=[null:INTEGER], "F2"."A0"=[null:BOOLEAN], "F0"."C0"=[?0], "F1"."C0"=[null:INTEGER], "F0"."C1"=[null:INTEGER], "F1"."C2"=[?1], "F2"."C3"=[null:INTEGER])
     LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
@@ -3610,7 +3610,7 @@ values (?, ?, ?, ?, ?, ?, ?, ?)]]>
             <![CDATA[
 LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[INSERT], flattened=[true])
   LogicalFilter(condition=[=($4, 10)])
-    LogicalProject("K0"=[CAST(?3):VARCHAR(20) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL], "C1"=[CAST(?2):VARCHAR(20) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL], "F1"."A0"=[CAST(?4):INTEGER NOT NULL], "F2"."A0"=[CAST(?5):BOOLEAN NOT NULL], "F0"."C0"=[CAST(?0):INTEGER NOT NULL], "F1"."C0"=[null], "F0"."C1"=[CAST(?6):INTEGER NOT NULL], "F1"."C2"=[CAST(?1):INTEGER NOT NULL], "F2"."C3"=[CAST(?7):INTEGER NOT NULL])
+    LogicalProject("K0"=[CAST(?3):VARCHAR(20) NOT NULL], "C1"=[CAST(?2):VARCHAR(20) NOT NULL], "F1"."A0"=[CAST(?4):INTEGER NOT NULL], "F2"."A0"=[CAST(?5):BOOLEAN NOT NULL], "F0"."C0"=[CAST(?0):INTEGER NOT NULL], "F1"."C0"=[null:INTEGER], "F0"."C1"=[CAST(?6):INTEGER NOT NULL], "F1"."C2"=[CAST(?1):INTEGER NOT NULL], "F2"."C3"=[CAST(?7):INTEGER NOT NULL])
       LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
@@ -4197,7 +4197,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW3]], operation=[UPD
         <Resource name="plan">
             <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
-  LogicalProject(EMPNO=[$2], ENAME=[$0], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[$4], COMM=[null], DEPTNO=[$1], SLACKER=[null], UPDATED=[$3])
+  LogicalProject(EMPNO=[$2], ENAME=[$0], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[$4], COMM=[null:INTEGER], DEPTNO=[$1], SLACKER=[null:BOOLEAN], UPDATED=[$3])
     LogicalValues(tuples=[[{ 'Fred', 456, 44, 2017-03-12 13:03:05, 999999 }]])
 ]]>
         </Resource>
@@ -4213,9 +4213,9 @@ GROUP BY TUMBLE(rowtime, INTERVAL '1' MINUTE)]]>
         <Resource name="plan">
             <![CDATA[
 LogicalDelta
-  LogicalProject(S=[$0], E=[+($0, 60000)])
+  LogicalProject(S=[$0], E=[+($0, 60000:INTERVAL MINUTE)])
     LogicalAggregate(group=[{0}])
-      LogicalProject($f0=[TUMBLE($1, 60000)])
+      LogicalProject($f0=[TUMBLE($1, 60000:INTERVAL MINUTE)])
         LogicalTableScan(table=[[CATALOG, SALES, SHIPMENTS]])
 ]]>
         </Resource>
@@ -4230,9 +4230,9 @@ group by tumble(rowtime, interval '2' hour), orderId]]>
         <Resource name="plan">
             <![CDATA[
 LogicalDelta
-  LogicalProject(ROWTIME=[+($0, 7200000)], ORDERID=[$1])
+  LogicalProject(ROWTIME=[+($0, 7200000:INTERVAL HOUR)], ORDERID=[$1])
     LogicalAggregate(group=[{0, 1}])
-      LogicalProject($f0=[TUMBLE($1, 7200000)], ORDERID=[$0])
+      LogicalProject($f0=[TUMBLE($1, 7200000:INTERVAL HOUR)], ORDERID=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, SHIPMENTS]])
 ]]>
         </Resource>
@@ -4454,7 +4454,7 @@ LogicalProject(EMPNO=[$0])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EMPNO=[$0])
-  LogicalFilter(condition=[CASE(true, CAST(NOT(OR(=($7, 10), =($7, 20)))):BOOLEAN, null)])
+  LogicalFilter(condition=[CASE(true, CAST(NOT(OR(=($7, 10), =($7, 20)))):BOOLEAN, null:BOOLEAN)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -5191,7 +5191,7 @@ WINDOW w AS (PARTITION BY REGION ORDER BY n_nationkey)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CASE(>(COUNT(ITEM($0, 'N_NATIONKEY')) OVER (PARTITION BY ITEM($0, 'REGION') ORDER BY ITEM($0, 'N_NATIONKEY') RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), 0), $SUM0(ITEM($0, 'N_NATIONKEY')) OVER (PARTITION BY ITEM($0, 'REGION') ORDER BY ITEM($0, 'N_NATIONKEY') RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), null)])
+LogicalProject(EXPR$0=[CASE(>(COUNT(ITEM($0, 'N_NATIONKEY')) OVER (PARTITION BY ITEM($0, 'REGION') ORDER BY ITEM($0, 'N_NATIONKEY') RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), 0), $SUM0(ITEM($0, 'N_NATIONKEY')) OVER (PARTITION BY ITEM($0, 'REGION') ORDER BY ITEM($0, 'N_NATIONKEY') RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), null:ANY)])
   LogicalTableScan(table=[[CATALOG, SALES, NATION]])
 ]]>
         </Resource>
@@ -5333,7 +5333,7 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CAST(JSON_VALUE_ANY(JSON_API_COMMON_SYNTAX(JSON_VALUE_EXPRESSION($1), 'lax $'), FLAG(SqlJsonValueEmptyOrErrorBehavior[NULL]), null, FLAG(SqlJsonValueEmptyOrErrorBehavior[NULL]), null)):VARCHAR(2000) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"])
+LogicalProject(EXPR$0=[CAST(JSON_VALUE_ANY(JSON_API_COMMON_SYNTAX(JSON_VALUE_EXPRESSION($1), 'lax $'), FLAG(SqlJsonValueEmptyOrErrorBehavior[NULL]), null:ANY, FLAG(SqlJsonValueEmptyOrErrorBehavior[NULL]), null:ANY)):VARCHAR(2000)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -5362,7 +5362,7 @@ LogicalProject(EXPR$0=[JSON_ARRAY(FLAG(ABSENT_ON_NULL), JSON_STRUCTURED_VALUE_EX
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testJsonArrayAgg">
+    <TestCase name="testJsonArrayAgg1">
         <Resource name="sql">
             <![CDATA[select json_arrayagg(ename)
 from emp]]>
@@ -5375,9 +5375,48 @@ LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG<ABSENT_ON_NULL>($0)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testJsonArrayAgg2">
+        <Resource name="sql">
+            <![CDATA[select json_arrayagg(ename order by ename)
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG<ABSENT_ON_NULL>($0) WITHIN GROUP ([1])])
+  LogicalProject($f0=[JSON_STRUCTURED_VALUE_EXPRESSION($1)], ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJsonArrayAgg3">
+        <Resource name="sql">
+            <![CDATA[select json_arrayagg(ename order by ename null on null)
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG<NULL_ON_NULL>($0) WITHIN GROUP ([1])])
+  LogicalProject($f0=[JSON_STRUCTURED_VALUE_EXPRESSION($1)], ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJsonArrayAgg4">
+        <Resource name="sql">
+            <![CDATA[select json_arrayagg(ename null on null) within group (order by ename)
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG<NULL_ON_NULL>($0) WITHIN GROUP ([1])])
+  LogicalProject($f0=[JSON_STRUCTURED_VALUE_EXPRESSION($1)], ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testJsonObject">
         <Resource name="sql">
-            <![CDATA[select select json_object(ename: deptno, ename: deptno)
+            <![CDATA[select json_object(ename: deptno, ename: deptno)
 from emp]]>
         </Resource>
         <Resource name="plan">
@@ -5475,7 +5514,8 @@ LogicalAggregate(group=[{0}], EXPR$1=[COLLECT($1) WITHIN GROUP ([2])], EXPR$2=[C
     </TestCase>
     <TestCase name="testOrderByRemoval1">
         <Resource name="sql">
-            <![CDATA[select * from (select empno from emp order by deptno offset 0) t
+            <![CDATA[select * from (
+  select empno from emp order by deptno offset 0) t
 order by empno desc]]>
         </Resource>
         <Resource name="plan">
@@ -5488,7 +5528,8 @@ LogicalSort(sort0=[$0], dir0=[DESC])
     </TestCase>
     <TestCase name="testOrderByRemoval2">
         <Resource name="sql">
-            <![CDATA[select * from (select empno from emp order by deptno offset 1) t
+            <![CDATA[select * from (
+  select empno from emp order by deptno offset 1) t
 order by empno desc]]>
         </Resource>
         <Resource name="plan">
@@ -5503,7 +5544,8 @@ LogicalSort(sort0=[$0], dir0=[DESC])
     </TestCase>
     <TestCase name="testOrderByRemoval3">
         <Resource name="sql">
-            <![CDATA[select * from (select empno from emp order by deptno limit 10) t
+            <![CDATA[select * from (
+  select empno from emp order by deptno limit 10) t
 order by empno]]>
         </Resource>
         <Resource name="plan">

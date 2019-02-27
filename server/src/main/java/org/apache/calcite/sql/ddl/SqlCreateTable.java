@@ -174,6 +174,10 @@ public class SqlCreateTable extends SqlCreate
           CalciteSchema.TypeEntry typeEntry = pairForType.left.getType(pairForType.right, false);
           if (typeEntry != null) {
             type = typeEntry.getType().apply(typeFactory);
+            if (d.dataType.getNullable() != null
+                    && d.dataType.getNullable() != type.isNullable()) {
+              type = typeFactory.createTypeWithNullability(type, d.dataType.getNullable());
+            }
           }
         }
         builder.add(d.name.getSimple(), type);

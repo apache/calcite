@@ -127,17 +127,6 @@ limitations under the License.
     <plugins>
       <!-- Sorted by groupId, artifactId. Put versions in
            pluginManagement in the root POM, not here. -->
-
-      <!-- Base is 1.7, but we require 1.8 for com.teradata.tpcds. -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
-          <compilerArgument>-Xlint:deprecation</compilerArgument>
-        </configuration>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>

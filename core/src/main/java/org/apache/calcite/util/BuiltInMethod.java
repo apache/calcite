@@ -282,6 +282,7 @@ public enum BuiltInMethod {
       SqlJsonQueryEmptyOrErrorBehavior.class),
   JSON_OBJECT(SqlFunctions.class, "jsonObject",
       SqlJsonConstructorNullClause.class),
+  JSON_TYPE(SqlFunctions.class, "jsonType", Object.class),
   JSON_OBJECTAGG_ADD(SqlFunctions.class, "jsonObjectAggAdd", Map.class,
       String.class, Object.class, SqlJsonConstructorNullClause.class),
   JSON_ARRAY(SqlFunctions.class, "jsonArray",

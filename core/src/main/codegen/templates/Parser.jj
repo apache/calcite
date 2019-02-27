@@ -4827,6 +4827,8 @@ SqlNode BuiltinFunctionCall() :
     |
         node = JsonObjectFunctionCall() { return node; }
     |
+        node = JsonTypeFunctionCall() { return node; }
+    |
         node = JsonObjectAggFunctionCall() { return node; }
     |
         node = JsonArrayFunctionCall() { return node; }
@@ -5246,6 +5248,22 @@ SqlCall JsonObjectFunctionCall() :
     }
 }
 
+SqlCall JsonTypeFunctionCall() :
+{
+    final SqlNode[] args = new SqlNode[1];
+    SqlNode e;
+    final Span span;
+}
+{
+    <JSON_TYPE> { span = span(); }
+    <LPAREN> e = JsonValueExpression(true) {
+        args[0] = e;
+    }
+    <RPAREN> {
+        return SqlStdOperatorTable.JSON_TYPE.createCall(span.end(this), args);
+    }
+}
+
 SqlCall JsonObjectAggFunctionCall() :
 {
     final SqlNode[] args = new SqlNode[2];
@@ -5305,28 +5323,64 @@ SqlCall JsonArrayFunctionCall() :
     }
 }
 
+SqlNodeList JsonArrayAggOrderByClause() :
+{
+    final SqlNodeList orderList;
+}
+{
+    (
+        orderList = OrderBy(true)
+    |
+        { orderList = null; }
+    )
+    {
+        return orderList;
+    }
+}
+
 SqlCall JsonArrayAggFunctionCall() :
 {
-    final SqlNode[] args = new SqlNode[1];
+    final SqlNode valueExpr;
+    SqlNodeList orderList = null;
     List<SqlNode> list;
     final Span span;
     SqlJsonConstructorNullClause nullClause =
         SqlJsonConstructorNullClause.ABSENT_ON_NULL;
-    SqlNode e;
+    SqlNode e = null;
+    final SqlNode aggCall;
 }
 {
     <JSON_ARRAYAGG> { span = span(); }
     <LPAREN> e = JsonValueExpression(false) {
-        args[0] = e;
+        valueExpr = e;
     }
+    orderList = JsonArrayAggOrderByClause()
     [
         e = JsonConstructorNullClause() {
             nullClause = (SqlJsonConstructorNullClause) ((SqlLiteral) e).getValue();
         }
     ]
-    <RPAREN> {
+    <RPAREN>
+    {
+        aggCall = SqlStdOperatorTable.JSON_ARRAYAGG.with(nullClause)
+            .createCall(span.end(this), valueExpr, orderList);
+    }
+    [
+        e = withinGroup(aggCall) {
+            if (orderList != null) {
+                throw SqlUtil.newContextException(span.pos().plus(e.getParserPosition()),
+                    RESOURCE.ambiguousSortOrderInJsonArrayAggFunc());
+            }
+            return (SqlCall) e;
+        }
+    ]
+    {
+        if (orderList == null) {
+            return SqlStdOperatorTable.JSON_ARRAYAGG.with(nullClause)
+                .createCall(span.end(this), valueExpr);
+        }
         return SqlStdOperatorTable.JSON_ARRAYAGG.with(nullClause)
-            .createCall(span.end(this), args);
+            .createCall(span.end(this), valueExpr, orderList);
     }
 }
 
@@ -5485,6 +5539,23 @@ SqlCall MatchRecognizeNavigationPhysical() :
     }
 }
 
+SqlCall withinGroup(SqlNode arg) :
+{
+    final Span withinGroupSpan;
+    final SqlNodeList orderList;
+}
+{
+
+    <WITHIN> { withinGroupSpan = span(); }
+    <GROUP>
+    <LPAREN>
+    orderList = OrderBy(true)
+    <RPAREN> {
+        return SqlStdOperatorTable.WITHIN_GROUP.createCall(
+            withinGroupSpan.end(this), arg, orderList);
+    }
+}
+
 /**
  * Parses a call to a named function (could be a builtin with regular
  * syntax, or else a UDF).
@@ -5544,14 +5615,7 @@ SqlNode NamedFunctionCall() :
         call = createCall(qualifiedName, s.end(this), funcType, quantifier, args);
     }
     [
-        <WITHIN> { withinGroupSpan = span(); }
-        <GROUP>
-        <LPAREN>
-        orderList = OrderBy(true)
-        <RPAREN> {
-            call = SqlStdOperatorTable.WITHIN_GROUP.createCall(
-                withinGroupSpan.end(this), call, orderList);
-        }
+        call = withinGroup(call)
     ]
     [
         <FILTER> { filterSpan = span(); }
@@ -6274,6 +6338,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < JSON_EXISTS: "JSON_EXISTS" >
 |   < JSON_VALUE: "JSON_VALUE" >
 |   < JSON_OBJECT: "JSON_OBJECT">
+|   < JSON_TYPE: "JSON_TYPE">
 |   < JSON_OBJECTAGG: "JSON_OBJECTAGG">
 |   < JSON_QUERY: "JSON_QUERY" >
 |   < K: "K" >

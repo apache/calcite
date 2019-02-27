@@ -139,6 +139,14 @@ public class ServerTest {
         assertThat(r.getInt(1), is(4));
         assertThat(r.next(), is(false));
       }
+
+      // CALCITE-2464: Allow to set nullability for columns of structured types
+      b = s.execute("create type mytype as (i int)");
+      assertThat(b, is(false));
+      b = s.execute("create table w (i int not null, j mytype)");
+      assertThat(b, is(false));
+      x = s.executeUpdate("insert into w values (1, NULL)");
+      assertThat(x, is(1));
     }
   }
 

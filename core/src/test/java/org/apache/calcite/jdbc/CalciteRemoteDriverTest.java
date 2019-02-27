@@ -33,6 +33,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import net.jcip.annotations.NotThreadSafe;
+
 import org.hamcrest.CoreMatchers;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -81,7 +83,10 @@ import static org.junit.Assert.assertThat;
 
 /**
  * Test for Calcite's remote JDBC driver.
+ * Technically speaking, the test is thread safe, however Caclite/Avatica have thread-safety issues
+ * see https://issues.apache.org/jira/browse/CALCITE-2853.
  */
+@NotThreadSafe
 public class CalciteRemoteDriverTest {
   public static final String LJS = Factory2.class.getName();
 

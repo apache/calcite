@@ -22,8 +22,10 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -45,7 +47,7 @@ public class SqlJsonArrayAggAggFunction extends SqlAggFunction {
       SqlJsonConstructorNullClause nullClause) {
     super(name, null, SqlKind.JSON_ARRAYAGG, ReturnTypes.VARCHAR_2000, null,
         OperandTypes.family(SqlTypeFamily.ANY), SqlFunctionCategory.SYSTEM,
-        false, false, Optionality.FORBIDDEN);
+        false, false, Optionality.OPTIONAL);
     this.nullClause = Objects.requireNonNull(nullClause);
   }
 
@@ -70,6 +72,25 @@ public class SqlJsonArrayAggAggFunction extends SqlAggFunction {
 
   @Override public String toString() {
     return getName() + String.format(Locale.ROOT, "<%s>", nullClause);
+  }
+
+  @Override public SqlCall createCall(SqlLiteral functionQualifier,
+      SqlParserPos pos, SqlNode... operands) {
+    assert operands.length == 1 || operands.length == 2;
+    final SqlNode valueExpr = operands[0];
+    if (operands.length == 2) {
+      final SqlNode orderList = operands[1];
+      if (orderList != null) {
+        // call has an order by clause, e.g. json_arrayagg(col_1 order by col_1)
+        return SqlStdOperatorTable.WITHIN_GROUP.createCall(SqlParserPos.ZERO,
+            createCall_(functionQualifier, pos, valueExpr), orderList);
+      }
+    }
+    return createCall_(functionQualifier, pos, valueExpr);
+  }
+
+  private SqlCall createCall_(SqlLiteral functionQualifier, SqlParserPos pos, SqlNode valueExpr) {
+    return super.createCall(functionQualifier, pos, valueExpr);
   }
 
   public SqlJsonArrayAggAggFunction with(SqlJsonConstructorNullClause nullClause) {

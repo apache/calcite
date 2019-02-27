@@ -82,14 +82,26 @@ As you make changes to the site, the site will automatically rebuild.
 
 ## Pushing to site
 
-1. `cd site`
-2. `svn co https://svn.apache.org/repos/asf/calcite/site target`
-3. `cd target`
-4. `svn status`
-5. You'll need to `svn add` any new files
-6. `svn ci`
+1. `cd site/target`
+2. `git init`
+3. `git remote add origin https://github.com/apache/calcite-site`
+4. `git reset origin/master --soft`
 
-Within a few minutes, svnpubsub should kick in and you'll be able to
+If you have not regenerated the javadoc and they are missing, restore them:
+6. `git reset -- apidocs/`
+7. `git reset -- testapidocs/`
+8. `git checkout -- apidocs/`
+9. `git checkout -- testapidocs/`
+
+Restore the avatica site
+10. `git reset -- avatica/`
+11. `git checkout -- avatica/`
+
+10. `git add .`
+11. Commit: `git commit -m "Your commit message goes here"`
+12. Push the site: `git push origin master`
+
+Within a few minutes, gitpubsub should kick in and you'll be able to
 see the results at
 [calcite.apache.org](https://calcite.apache.org/).
 

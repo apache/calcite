@@ -17,13 +17,22 @@
 package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelRecordType;
 
 import com.google.common.collect.Lists;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -110,6 +119,26 @@ public class SqlTypeFactoryTest {
     assertThat(SqlTypeUtil.comparePrecision(p0, p1), is(expectedComparison));
     assertThat(SqlTypeUtil.comparePrecision(p0, p0), is(0));
     assertThat(SqlTypeUtil.comparePrecision(p1, p1), is(0));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2464">[CALCITE-2464]
+   * Allow to set nullability for columns of structured types</a>. */
+  @Test
+  public void createStructTypeWithNullability() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataTypeFactory typeFactory = f.typeFactory;
+    List<RelDataTypeField> fields = new ArrayList<>();
+    RelDataTypeField field0 = new RelDataTypeFieldImpl(
+            "i", 0, typeFactory.createSqlType(SqlTypeName.INTEGER));
+    RelDataTypeField field1 = new RelDataTypeFieldImpl(
+            "s", 1, typeFactory.createSqlType(SqlTypeName.VARCHAR));
+    fields.add(field0);
+    fields.add(field1);
+    final RelDataType recordType = new RelRecordType(fields); // nullable false by default
+    final RelDataType copyRecordType = typeFactory.createTypeWithNullability(recordType, true);
+    assertFalse(recordType.isNullable());
+    assertTrue(copyRecordType.isNullable());
   }
 
 }
