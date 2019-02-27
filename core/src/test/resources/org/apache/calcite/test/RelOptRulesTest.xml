@@ -5854,9 +5854,11 @@ where deptno = 10
 LogicalProject(DEPTNO=[$0], ENAME=[$1])
   LogicalFilter(condition=[=($0, 10)])
     LogicalProject(DEPTNO=[$9], ENAME=[$1])
-      LogicalJoin(condition=[AND(=($7, $9), =($9, 10))], joinType=[inner])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+        LogicalFilter(condition=[=($7, 10)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalFilter(condition=[=($0, 10)])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
         <Resource name="planAfter">
@@ -5864,12 +5866,46 @@ LogicalProject(DEPTNO=[$0], ENAME=[$1])
 LogicalProject(DEPTNO=[$0], ENAME=[$1])
   LogicalProject(DEPTNO=[$9], ENAME=[$1])
     LogicalJoin(condition=[=($7, $9)], joinType=[inner])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalFilter(condition=[=($0, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushdownConditionInJoin">
+        <Resource name="sql">
+            <![CDATA[select * from (
+  select d.deptno, e.ename
+  from emp as e
+  join dept as d
+  on e.deptno = d.deptno
+  and d.deptno < 10)
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DEPTNO=[$9], ENAME=[$1])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalFilter(condition=[<($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[<($0, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[$9], ENAME=[$1])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalFilter(condition=[<($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[<($0, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+
+
     <TestCase name="testReduceCase">
         <Resource name="sql">
             <![CDATA[select

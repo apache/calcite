@@ -1445,8 +1445,8 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testMergeJoinFilter() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
-        .addRuleInstance(FilterMergeRule.INSTANCE)
         .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
+        .addRuleInstance(FilterMergeRule.INSTANCE)
         .build();
 
     checkPlanning(program,
@@ -1458,6 +1458,25 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "  and d.deptno = 10)\n"
             + "where deptno = 10\n");
   }
+
+  /**
+   * Test filter on join push down
+   * @throws Exception
+   */
+  @Test public void testPushdownConditionInJoin() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+            .addRuleInstance(JoinPushExpressionsRule.INSTANCE)
+            .build();
+    HepPlanner planner = new HepPlanner(program);
+    checkPlanUnchanged(planner,
+            "select * from (\n"
+                    + "  select d.deptno, e.ename\n"
+                    + "  from emp as e\n"
+                    + "  join dept as d\n"
+                    + "  on e.deptno = d.deptno\n"
+                    + "  and d.deptno < 10)\n");
+  }
+
 
   /** Tests {@link UnionMergeRule}, which merges 2 {@link Union} operators into
    * a single {@code Union} with 3 inputs. */

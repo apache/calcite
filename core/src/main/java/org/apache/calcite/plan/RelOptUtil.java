@@ -106,6 +106,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -3148,6 +3149,168 @@ public abstract class RelOptUtil {
   }
 
   /**
+   * To make Join(a.id = b.id and a.id < 5)
+   *           A
+   *           B
+   * As
+   *         Join(a.id = b.id)
+   *            A(a.id < 5)
+   *            B(b.id < 5)
+   *
+   * Only consider the simplest case
+   * @param join join
+   * @param relBuilder builder
+   * @return
+   */
+  public static RelNode pushEqualJoinConditionsDown(Join join, RelBuilder relBuilder) {
+    RexNode joinCond = join.getCondition();
+
+    if (containsGet(joinCond) || RexUtil.SubQueryFinder.find(joinCond) != null) {
+      return join;
+    }
+
+    RelNode left = join.getLeft();
+    RelNode right = join.getRight();
+
+    JoinRelType joinType = join.getJoinType();
+    if (joinType != JoinRelType.INNER) {
+      return join;
+    }
+
+    List<RexNode> rexNodes = RelOptUtil.conjunctions(joinCond);
+    Set<SqlKind> allowPush = Sets.newHashSet(
+            SqlKind.EQUALS,
+            SqlKind.GREATER_THAN_OR_EQUAL,
+            SqlKind.GREATER_THAN,
+            SqlKind.LESS_THAN_OR_EQUAL,
+            SqlKind.LESS_THAN
+    );
+
+    List<Pair<RexNode, RexNode>> equalRexInputRef = Lists.newArrayList();
+    List<RexNode> equalCond = Lists.newArrayList();
+
+    List<Pair<RexNode, RexNode>> filterCond = Lists.newArrayList();
+
+    boolean canPushDown = rexNodes.stream().allMatch(a -> {
+      if (!allowPush.contains(a.getKind())) {
+        return false;
+      }
+
+      if (a instanceof RexCall) {
+        RexCall call = (RexCall) a;
+        List<RexNode> op = call.getOperands();
+
+        RexNode op1 = op.get(0);
+        RexNode op2 = op.get(1);
+
+        if (op1 instanceof RexInputRef && op2 instanceof RexInputRef) {
+          if (call.getKind() == SqlKind.EQUALS) {
+            equalRexInputRef.add(new Pair<>(op1, op2));
+            equalRexInputRef.add(new Pair<>(op2, op1));
+            equalCond.add(a);
+            return true;
+          } else {
+            return false;
+          }
+        } else if (op1 instanceof RexInputRef && op2 instanceof RexLiteral) {
+          filterCond.add(new Pair<>(op1, call));
+          return true;
+        } else if (op1 instanceof RexLiteral && op2 instanceof RexInputRef) {
+          filterCond.add(new Pair<>(op2, call));
+          return true;
+        } else {
+          return false;
+        }
+      } else {
+        if (a instanceof RexInputRef && a.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
+          return true;
+        }
+
+        return false;
+      }
+    });
+
+    if (!canPushDown) {
+      return join;
+    }
+
+    List<RexNode> finalLeftFilter = Lists.newArrayList();
+    List<RexNode> finalRightFilter = Lists.newArrayList();
+
+    RelNode leftRel = join.getLeft();
+    RelNode rightRel = join.getRight();
+
+    int leftSize = leftRel.getRowType().getFieldCount();
+
+    for (Pair<RexNode, RexNode> nodeRexNodePair : filterCond) {
+      RexInputRef inputRef = (RexInputRef) nodeRexNodePair.getKey();
+
+      List<RexNode> result = Lists.newArrayList();
+      List<RexNode> aux = Lists.newArrayList();
+      findAllEqual(equalRexInputRef, inputRef, result, aux);
+
+      if (result.size() == 0) {
+        //can't push down filter condition to both side
+        //a.id = b.id and a.c = 1
+        equalCond.add(nodeRexNodePair.getValue());
+        result.clear();
+        aux.clear();
+        continue;
+      }
+
+
+      RexCall call = (RexCall) nodeRexNodePair.getValue();
+      Pair<RexNode, Boolean> literalBooleanPair = call.getOperands().get(0) instanceof RexLiteral
+              ? new Pair<>(call.getOperands().get(0), true)
+              : new Pair<>(call.getOperands().get(1), false);
+      for (RexNode node : result) {
+        RexInputRef r = (RexInputRef) node;
+        RexInputRef convertedNode;
+        if (r.getIndex() >= leftSize) {
+          convertedNode = relBuilder.getRexBuilder().makeInputRef(right, r.getIndex() - leftSize);
+        } else {
+          convertedNode = relBuilder.getRexBuilder().makeInputRef(left, r.getIndex());
+        }
+
+        RexNode newCall;
+        if (literalBooleanPair.getValue()) {
+          newCall = relBuilder.call(call.getOperator(), literalBooleanPair.getKey(), convertedNode);
+        } else {
+          newCall = relBuilder.call(call.getOperator(), convertedNode, literalBooleanPair.getKey());
+        }
+
+        if (r.getIndex() >= leftSize) {
+          finalRightFilter.add(newCall);
+        } else {
+          finalLeftFilter.add(newCall);
+        }
+      }
+
+      result.clear();
+      aux.clear();
+    }
+
+    RelNode finalLeftNode = relBuilder.push(leftRel).filter(finalLeftFilter).build();
+    RelNode finalRightNode = relBuilder.push(rightRel).filter(finalRightFilter).build();
+
+    return relBuilder.push(finalLeftNode).push(finalRightNode)
+            .join(JoinRelType.INNER, equalCond).build();
+  }
+
+  private static void findAllEqual(List<Pair<RexNode, RexNode>> input,
+                                   RexNode toSearch,
+                                   List<RexNode> result,
+                                   List<RexNode> hasVisit) {
+    for (Pair<RexNode, RexNode> pair : input) {
+      if (pair.getKey().equals(toSearch) && !result.contains(pair.getValue())) {
+        result.add(pair.getValue());
+        hasVisit.add(toSearch);
+        findAllEqual(input, pair.getValue(), result, hasVisit);
+      }
+    }
+  }
+
+  /**
    * Pushes down expressions in "equal" join condition.
    *
    * <p>For example, given
@@ -3161,6 +3324,23 @@ public abstract class RelOptUtil {
    */
   public static RelNode pushDownJoinConditions(Join originalJoin,
       RelBuilder relBuilder) {
+
+    /**
+    Try to simply join condition to avoid condition can't push down
+    for example select * from Ta a inner join Tb b on a.id = b.id and a.id < 5
+    plan should be as follows:
+        Join(a.id = b.id)
+           A(a.id < 5)
+           B(b.id < 5)
+    if do not do this, it will be
+        Join (a.id = b.id and foldedCond)
+           project(foldedCond = a.id < 5)
+              A
+           B
+    and can't do optimization later
+    */
+    originalJoin = (Join) pushEqualJoinConditionsDown(originalJoin, relBuilder);
+
     RexNode joinCond = originalJoin.getCondition();
     final JoinRelType joinType = originalJoin.getJoinType();
 
