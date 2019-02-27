@@ -56,7 +56,7 @@ public class RelOptCluster {
    * Creates a cluster.
    */
   @Deprecated // to be removed before 2.0
-  public RelOptCluster(
+  RelOptCluster(
       RelOptQuery query,
       RelOptPlanner planner,
       RelDataTypeFactory typeFactory,
