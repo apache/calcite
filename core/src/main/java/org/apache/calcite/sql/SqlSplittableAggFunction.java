@@ -186,12 +186,13 @@ public interface SqlSplittableAggFunction {
       }
       final RexNode predicate =
           RexUtil.composeConjunction(rexBuilder, predicates, true);
+      final RexNode rexOne = rexBuilder.makeExactLiteral(
+          BigDecimal.ONE, aggregateCall.getType());
       if (predicate == null) {
-        return rexBuilder.makeExactLiteral(BigDecimal.ONE);
+        return rexOne;
       } else {
-        return rexBuilder.makeCall(SqlStdOperatorTable.CASE, predicate,
-            rexBuilder.makeExactLiteral(BigDecimal.ONE),
-            rexBuilder.makeExactLiteral(BigDecimal.ZERO));
+        return rexBuilder.makeCall(SqlStdOperatorTable.CASE, predicate, rexOne,
+            rexBuilder.makeExactLiteral(BigDecimal.ZERO, aggregateCall.getType()));
       }
     }
 
@@ -339,6 +340,19 @@ public interface SqlSplittableAggFunction {
 
     @Override public SqlAggFunction getMergeAggFunctionOfTopSplit() {
       return SqlStdOperatorTable.SUM0;
+    }
+
+    @Override public RexNode singleton(RexBuilder rexBuilder,
+        RelDataType inputRowType, AggregateCall aggregateCall) {
+      final int arg = aggregateCall.getArgList().get(0);
+      final RelDataType type = inputRowType.getFieldList().get(arg).getType();
+      final RexNode inputRef = rexBuilder.makeInputRef(type, arg);
+      if (type.isNullable()) {
+        return rexBuilder.makeCall(SqlStdOperatorTable.COALESCE, inputRef,
+            rexBuilder.makeExactLiteral(BigDecimal.ZERO, type));
+      } else {
+        return inputRef;
+      }
     }
   }
 }
