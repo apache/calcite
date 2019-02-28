@@ -4475,6 +4475,15 @@ public abstract class SqlOperatorBaseTest {
         "{\"foo\":{\"foo\":\"bar\"}}", "VARCHAR(2000) NOT NULL");
   }
 
+  @Test public void testJsonPretty() {
+    tester.checkString("json_pretty('{\"foo\":100}')",
+        "{\n  \"foo\" : 100\n}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_pretty('[1,2,3]')",
+        "[ 1, 2, 3 ]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_pretty('null')",
+        "null", "VARCHAR(2000) NOT NULL");
+  }
+
   @Test public void testJsonType() {
     tester.setFor(SqlStdOperatorTable.JSON_TYPE);
     tester.checkString("json_type('\"1\"')",

@@ -10769,12 +10769,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "(?s).*Expected a character type*");
   }
 
+  @Test public void testJsonPretty() {
+    check("select json_pretty(ename) from emp");
+    checkExp("json_pretty('{\"foo\":\"bar\"}')");
+    checkExpType("json_pretty('{\"foo\":\"bar\"}')", "VARCHAR(2000) NOT NULL");
+    checkFails("select json_pretty(^NULL^) from emp", "(?s).*Illegal use of .NULL.*");
+    checkFails("select json_pretty(^1^) from emp",
+            "(.*)JSON_VALUE_EXPRESSION(.*)");
+  }
+
   @Test public void testJsonType() {
     check("select json_type(ename) from emp");
     checkExp("json_type('{\"foo\":\"bar\"}')");
     checkExpType("json_type('{\"foo\":\"bar\"}')", "VARCHAR(20) NOT NULL");
     checkFails("select json_type(^1^) from emp",
-            "(.*)JSON_VALUE_EXPRESSION(.*)");
+        "(.*)JSON_VALUE_EXPRESSION(.*)");
   }
 
   @Test public void testJsonDepth() {

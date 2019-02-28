@@ -8427,6 +8427,13 @@ public class SqlParserTest {
         "JSON_ARRAY(JSON_ARRAY('foo', 'bar' ABSENT ON NULL) FORMAT JSON ABSENT ON NULL)");
   }
 
+  @Test public void testJsonPretty() {
+    checkExp("json_pretty('foo')",
+            "JSON_PRETTY('foo' FORMAT JSON)");
+    checkExp("json_pretty(null)",
+            "JSON_PRETTY(NULL FORMAT JSON)");
+  }
+
   @Test public void testJsonArrayAgg1() {
     checkExp("json_arrayagg(\"column\")",
         "JSON_ARRAYAGG(`column` ABSENT ON NULL)");

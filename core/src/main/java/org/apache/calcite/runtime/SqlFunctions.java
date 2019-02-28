@@ -43,12 +43,14 @@ import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 
+import com.fasterxml.jackson.core.PrettyPrinter;
+import com.fasterxml.jackson.core.util.DefaultIndenter;
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
-import com.jayway.jsonpath.spi.json.JsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import com.jayway.jsonpath.spi.mapper.MappingProvider;
 
@@ -131,10 +133,13 @@ public class SqlFunctions {
       Pattern.compile("^\\s*(?<mode>strict|lax)\\s+(?<spec>.+)$",
           Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);
 
-  private static final JsonProvider JSON_PATH_JSON_PROVIDER =
+  private static final JacksonJsonProvider JSON_PATH_JSON_PROVIDER =
       new JacksonJsonProvider();
   private static final MappingProvider JSON_PATH_MAPPING_PROVIDER =
       new JacksonMappingProvider();
+  private static final PrettyPrinter JSON_PRETTY_PRINTER =
+      new DefaultPrettyPrinter().withObjectIndenter(
+          DefaultIndenter.SYSTEM_LINEFEED_INSTANCE.withLinefeed("\n"));
 
   private SqlFunctions() {
   }
@@ -2674,6 +2679,15 @@ public class SqlFunctions {
       }
     } else {
       list.add(element);
+    }
+  }
+
+  public static String jsonPretty(Object input) {
+    try {
+      return JSON_PATH_JSON_PROVIDER.getObjectMapper().writer(JSON_PRETTY_PRINTER)
+          .writeValueAsString(input);
+    } catch (Exception e) {
+      throw RESOURCE.exceptionWhileSerializingToJson(input.toString()).ex();
     }
   }
 

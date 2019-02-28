@@ -266,6 +266,7 @@ public enum BuiltInMethod {
   UPPER(SqlFunctions.class, "upper", String.class),
   LOWER(SqlFunctions.class, "lower", String.class),
   JSONIZE(SqlFunctions.class, "jsonize", Object.class),
+  DEJSONIZE(SqlFunctions.class, "dejsonize", String.class),
   JSON_VALUE_EXPRESSION(SqlFunctions.class, "jsonValueExpression",
       String.class),
   JSON_STRUCTURED_VALUE_EXPRESSION(SqlFunctions.class,
@@ -284,6 +285,7 @@ public enum BuiltInMethod {
       SqlJsonConstructorNullClause.class),
   JSON_TYPE(SqlFunctions.class, "jsonType", Object.class),
   JSON_DEPTH(SqlFunctions.class, "jsonDepth", Object.class),
+  JSON_PRETTY(SqlFunctions.class, "jsonPretty", Object.class),
   JSON_OBJECTAGG_ADD(SqlFunctions.class, "jsonObjectAggAdd", Map.class,
       String.class, Object.class, SqlJsonConstructorNullClause.class),
   JSON_ARRAY(SqlFunctions.class, "jsonArray",
@@ -532,6 +534,10 @@ public enum BuiltInMethod {
   BuiltInMethod(Class clazz, String fieldName, boolean dummy) {
     this(null, null, Types.lookupField(clazz, fieldName));
     assert dummy : "dummy value for method overloading must be true";
+  }
+
+  public String getMethodName() {
+    return method.getName();
   }
 }
 

@@ -567,6 +567,7 @@ JSON_DEPTH,
 **JSON_EXISTS**,
 **JSON_OBJECT**,
 **JSON_OBJECTAGG**,
+JSON_PRETTY,
 **JSON_QUERY**,
 JSON_TYPE,
 **JSON_VALUE**,
@@ -2003,6 +2004,7 @@ Note:
 |:------------------------------------------------- |:-----------
 | JSON_TYPE(value)                                  | Returns a string indicating the type of a JSON **value**. This can be an object, an array, or a scalar type
 | JSON_DEPTH(value)                                 | Returns a integer indicating the depth of a JSON **value**. This can be an object, an array, or a scalar type
+| JSON_PRETTY(value)                                | Returns a pretty-printing of JSON **value**.
 
 * JSON_TYPE
 

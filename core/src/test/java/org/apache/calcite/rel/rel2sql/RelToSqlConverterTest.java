@@ -2990,6 +2990,13 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testJsonPretty() {
+    String query = "select json_pretty(\"product_name\") from \"product\"";
+    final String expected = "SELECT JSON_PRETTY(\"product_name\" FORMAT JSON)\n"
+            + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
   @Test public void testJsonValue() {
     String query = "select json_value(\"product_name\", 'lax $') from \"product\"";
     // todo translate to JSON_VALUE rather than CAST
