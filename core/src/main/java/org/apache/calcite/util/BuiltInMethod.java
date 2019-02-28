@@ -18,8 +18,9 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.AggregateLambdaFactory;
-import org.apache.calcite.adapter.enumerable.OrderedAggregateLambdaFactory;
-import org.apache.calcite.adapter.enumerable.SequencedAdderAggregateLambdaFactory;
+import org.apache.calcite.adapter.enumerable.BasicAggregateLambdaFactory;
+import org.apache.calcite.adapter.enumerable.BasicLazyAccumulator;
+import org.apache.calcite.adapter.enumerable.LazyAggregateLambdaFactory;
 import org.apache.calcite.adapter.enumerable.SourceSorter;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
@@ -485,9 +486,10 @@ public enum BuiltInMethod {
       String.class),
   SOURCE_SORTER(SourceSorter.class, Function2.class, Function1.class,
       Comparator.class),
-  ORDERED_AGGREGATE_LAMBDA_FACTORY(OrderedAggregateLambdaFactory.class,
+  BASIC_LAZY_ACCUMULATOR(BasicLazyAccumulator.class, Function2.class),
+  LAZY_AGGREGATE_LAMBDA_FACTORY(LazyAggregateLambdaFactory.class,
       Function0.class, List.class),
-  SEQUENCED_ADDER_AGGREGATE_LAMBDA_FACTORY(SequencedAdderAggregateLambdaFactory.class,
+  BASIC_AGGREGATE_LAMBDA_FACTORY(BasicAggregateLambdaFactory.class,
       Function0.class, List.class),
   AGG_LAMBDA_FACTORY_ACC_INITIALIZER(AggregateLambdaFactory.class,
       "accumulatorInitializer"),
