@@ -322,20 +322,27 @@ public class RexSimplify {
     // Simplify "x <op> x"
     final RexNode o0 = operands.get(0);
     final RexNode o1 = operands.get(1);
-    if (o0.equals(o1)
-        && (unknownAs == FALSE
-            || (!o0.getType().isNullable()
-                && !o1.getType().isNullable()))) {
+    if (o0.equals(o1)) {
+      RexNode newExpr;
       switch (e.getKind()) {
       case EQUALS:
       case GREATER_THAN_OR_EQUAL:
       case LESS_THAN_OR_EQUAL:
-        // "x = x" simplifies to "x is not null" (similarly <= and >=)
-        return simplify(
-            rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, o0), unknownAs);
+        // "x = x" simplifies to "null or x is not null" (similarly <= and >=)
+        newExpr = rexBuilder.makeCall(SqlStdOperatorTable.OR,
+            rexBuilder.makeNullLiteral(e.getType()),
+            rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, o0));
+        return simplify(newExpr, unknownAs);
+      case NOT_EQUALS:
+      case LESS_THAN:
+      case GREATER_THAN:
+        // "x != x" simplifies to "null and x is null" (similarly < and >)
+        newExpr = rexBuilder.makeCall(SqlStdOperatorTable.AND,
+            rexBuilder.makeNullLiteral(e.getType()),
+            rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, o0));
+        return simplify(newExpr, unknownAs);
       default:
-        // "x != x" simplifies to "false" (similarly < and >)
-        return rexBuilder.makeLiteral(false);
+        // unknown kind
       }
     }
 
