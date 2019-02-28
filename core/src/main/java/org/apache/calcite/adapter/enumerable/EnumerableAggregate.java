@@ -485,11 +485,11 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
    * <ul>
    *
    * <li>{@code hasOrderedCall == true} means there is at least one aggregate
-   * call including sort spec. We use {@link OrderedAggregateLambdaFactory}
+   * call including sort spec. We use {@link LazyAggregateLambdaFactory}
    * implementation to implement sorted aggregates for that.
    *
    * <li>{@code hasOrderedCall == false} indicates to use
-   * {@link SequencedAdderAggregateLambdaFactory} to implement a non-sort
+   * {@link BasicAggregateLambdaFactory} to implement a non-sort
    * aggregate.
    *
    * </ul>
@@ -502,12 +502,20 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
       ParameterExpression lambdaFactory) {
     if (hasOrderedCall) {
       ParameterExpression pe = Expressions.parameter(List.class,
-          builder.newName("sourceSorters"));
+          builder.newName("lazyAccumulators"));
       builder.add(
           Expressions.declare(0, pe, Expressions.new_(LinkedList.class)));
 
       for (AggImpState agg : aggs) {
         if (agg.call.collation.equals(RelCollations.EMPTY)) {
+          // if the call does not require ordering, fallback to
+          // use a non-sorted lazy accumulator.
+          builder.add(
+              Expressions.statement(
+                  Expressions.call(pe,
+                      BuiltInMethod.COLLECTION_ADD.method,
+                      Expressions.new_(BuiltInMethod.BASIC_LAZY_ACCUMULATOR.constructor,
+                          agg.accumulatorAdder))));
           continue;
         }
         final Pair<Expression, Expression> pair =
@@ -523,7 +531,7 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
       builder.add(
           Expressions.declare(0, lambdaFactory,
               Expressions.new_(
-                  BuiltInMethod.ORDERED_AGGREGATE_LAMBDA_FACTORY.constructor,
+                  BuiltInMethod.LAZY_AGGREGATE_LAMBDA_FACTORY.constructor,
                   accumulatorInitializer, pe)));
     } else {
       // when hasOrderedCall == false
@@ -541,7 +549,7 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
       builder.add(
           Expressions.declare(0, lambdaFactory,
               Expressions.new_(
-                  BuiltInMethod.SEQUENCED_ADDER_AGGREGATE_LAMBDA_FACTORY.constructor,
+                  BuiltInMethod.BASIC_AGGREGATE_LAMBDA_FACTORY.constructor,
                   accumulatorInitializer, pe)));
     }
   }

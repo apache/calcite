@@ -31,13 +31,13 @@ import java.util.List;
  * @param <TResult> Type of the enumerable output result
  * @param <TKey> Type of the group-by key
  */
-public class SequencedAdderAggregateLambdaFactory<TSource, TAccumulate, TResult, TKey>
+public class BasicAggregateLambdaFactory<TSource, TAccumulate, TResult, TKey>
     implements AggregateLambdaFactory<TSource, TAccumulate, TAccumulate, TResult, TKey> {
 
   private final Function0<TAccumulate> accumulatorInitializer;
   private final Function2<TAccumulate, TSource, TAccumulate> accumulatorAdderDecorator;
 
-  public SequencedAdderAggregateLambdaFactory(
+  public BasicAggregateLambdaFactory(
       Function0<TAccumulate> accumulatorInitializer,
       List<Function2<TAccumulate, TSource, TAccumulate>> accumulatorAdders) {
     this.accumulatorInitializer = accumulatorInitializer;
@@ -85,4 +85,4 @@ public class SequencedAdderAggregateLambdaFactory<TSource, TAccumulate, TResult,
   }
 }
 
-// End SequencedAdderAggregateLambdaFactory.java
+// End BasicAggregateLambdaFactory.java

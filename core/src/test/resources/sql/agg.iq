@@ -2418,6 +2418,27 @@ EnumerableAggregate(group=[{7}], EMPNOS=[COLLECT($0) WITHIN GROUP ([0 DESC])])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+select
+deptno,
+collect(empno) as empnos_1,
+collect(empno) within group (order by empno desc) as empnos_2
+from "scott".emp
+group by deptno;
+
++--------+--------------------------------------+--------------------------------------+
+| DEPTNO | EMPNOS_1                             | EMPNOS_2                             |
++--------+--------------------------------------+--------------------------------------+
+|     10 | [7782, 7839, 7934]                   | [7934, 7839, 7782]                   |
+|     20 | [7369, 7566, 7788, 7876, 7902]       | [7902, 7876, 7788, 7566, 7369]       |
+|     30 | [7499, 7521, 7654, 7698, 7844, 7900] | [7900, 7844, 7698, 7654, 7521, 7499] |
++--------+--------------------------------------+--------------------------------------+
+(3 rows)
+
+!ok
+EnumerableAggregate(group=[{7}], EMPNOS_1=[COLLECT($0)], EMPNOS_2=[COLLECT($0) WITHIN GROUP ([0 DESC])])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 select deptno, collect(empno) within group (order by empno desc)
 filter (where empno > 7500) as empnos
 from "scott".emp

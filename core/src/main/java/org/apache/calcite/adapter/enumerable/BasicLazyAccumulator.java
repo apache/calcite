@@ -16,52 +16,30 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
-import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
 
-import java.util.Comparator;
-import java.util.List;
-
 /**
- * Helper that combines the sorting process and accumulating process against the
- * aggregate execution, used with {@link LazyAggregateLambdaFactory}.
+ * Performs accumulation against a pre-collected list of input sources,
+ * used with {@link LazyAggregateLambdaFactory}.
  *
  * @param <TAccumulate> Type of the accumulator
  * @param <TSource>     Type of the enumerable input source
- * @param <TSortKey>    Type of the sort key
  */
-public class SourceSorter<TAccumulate, TSource, TSortKey>
+public class BasicLazyAccumulator<TAccumulate, TSource>
     implements LazyAggregateLambdaFactory.LazyAccumulator<TAccumulate, TSource> {
 
   private final Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder;
-  private final Function1<TSource, TSortKey> keySelector;
-  private final Comparator<TSortKey> comparator;
 
-  public SourceSorter(
-      Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
-      Function1<TSource, TSortKey> keySelector,
-      Comparator<TSortKey> comparator) {
+  public BasicLazyAccumulator(Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder) {
     this.accumulatorAdder = accumulatorAdder;
-    this.keySelector = keySelector;
-    this.comparator = comparator;
   }
 
-  @Override public void accumulate(Iterable<TSource> sourceIterable,
-      TAccumulate accumulator) {
-    sortAndAccumulate(sourceIterable, accumulator);
-  }
-
-  private void sortAndAccumulate(Iterable<TSource> sourceIterable,
-      TAccumulate accumulator) {
-    List<TSource> sorted = Linq4j.asEnumerable(sourceIterable)
-        .orderBy(keySelector, comparator)
-        .toList();
+  @Override public void accumulate(Iterable<TSource> sourceIterable, TAccumulate accumulator) {
     TAccumulate accumulator1 = accumulator;
-    for (TSource source : sorted) {
-      accumulator1 = accumulatorAdder.apply(accumulator1, source);
+    for (TSource tSource : sourceIterable) {
+      accumulator1 = accumulatorAdder.apply(accumulator1, tSource);
     }
   }
 }
 
-// End SourceSorter.java
+// End BasicLazyAccumulator.java
