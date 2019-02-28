@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
 import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.primitives.Longs;
 import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.PathNotFoundException;
 
@@ -63,6 +64,7 @@ public class SqlJsonFunctionsTest {
   public static final String INVOC_DESC_JSON_VALUE_ANY = "jsonValueAny";
   public static final String INVOC_DESC_JSON_QUERY = "jsonQuery";
   public static final String INVOC_DESC_JSONIZE = "jsonize";
+  public static final String INVOC_DESC_PRETTY_JSONISE = "prettyJson";
   public static final String INVOC_DESC_DEJSONIZE = "dejsonize";
   public static final String INVOC_DESC_JSON_OBJECT = "jsonObject";
   public static final String INVOC_DESC_JSON_TYPE = "jsonType";
@@ -444,6 +446,12 @@ public class SqlJsonFunctionsTest {
   }
 
   @Test
+  public void assertPrettyJson() {
+    assertPrettyJson(new HashMap<>(), is("{ }"));
+    assertPrettyJson(Longs.asList(1, 2), is("[ 1, 2 ]"));
+  }
+
+  @Test
   public void testDejsonize() {
     assertDejsonize("{}",
         is(Collections.emptyMap()));
@@ -643,6 +651,13 @@ public class SqlJsonFunctionsTest {
       Matcher<? super String> matcher) {
     assertThat(invocationDesc(INVOC_DESC_JSONIZE, input),
         SqlFunctions.jsonize(input),
+        matcher);
+  }
+
+  private void assertPrettyJson(Object input,
+      Matcher<? super String> matcher) {
+    assertThat(invocationDesc(INVOC_DESC_PRETTY_JSONISE, input),
+        SqlFunctions.jsonPretty(input),
         matcher);
   }
 

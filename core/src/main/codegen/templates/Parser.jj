@@ -4823,6 +4823,8 @@ SqlNode BuiltinFunctionCall() :
     |
         node = JsonValueFunctionCall() { return node; }
     |
+        node = JsonPrettyFunctionCall() { return node; }
+    |
         node = JsonQueryFunctionCall() { return node; }
     |
         node = JsonObjectFunctionCall() { return node; }
@@ -5067,6 +5069,22 @@ SqlCall JsonValueFunctionCall() :
     )*
     <RPAREN> {
         return SqlStdOperatorTable.JSON_VALUE.createCall(span.end(this), args);
+    }
+}
+
+SqlCall JsonPrettyFunctionCall() :
+{
+    final SqlNode[] args = new SqlNode[1];
+    SqlNode e;
+    final Span span;
+}
+{
+    <JSON_PRETTY> { span = span(); }
+    <LPAREN> e = JsonValueExpression(true) {
+        args[0] = e;
+    }
+    <RPAREN> {
+        return SqlStdOperatorTable.JSON_PRETTY.createCall(span.end(this), args);
     }
 }
 
@@ -6337,6 +6355,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < JSON_ARRAYAGG: "JSON_ARRAYAGG">
 |   < JSON_EXISTS: "JSON_EXISTS" >
 |   < JSON_VALUE: "JSON_VALUE" >
+|   < JSON_PRETTY: "JSON_PRETTY" >
 |   < JSON_OBJECT: "JSON_OBJECT">
 |   < JSON_TYPE: "JSON_TYPE">
 |   < JSON_OBJECTAGG: "JSON_OBJECTAGG">

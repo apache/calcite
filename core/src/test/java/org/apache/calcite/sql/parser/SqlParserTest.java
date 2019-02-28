@@ -300,6 +300,7 @@ public class SqlParserTest {
       "JSON_EXISTS",                                                       "c",
       "JSON_OBJECT",                                                       "c",
       "JSON_OBJECTAGG",                                                    "c",
+      "JSON_PRETTY",                                                       "c",
       "JSON_QUERY",                                                        "c",
       "JSON_VALUE",                                                        "c",
       "KEEP",                                              "2011",
@@ -8415,6 +8416,13 @@ public class SqlParserTest {
         "JSON_ARRAY(NULL NULL ON NULL)");
     checkExp("json_array(json_array('foo', 'bar') format json)",
         "JSON_ARRAY(JSON_ARRAY('foo', 'bar' ABSENT ON NULL) FORMAT JSON ABSENT ON NULL)");
+  }
+
+  @Test public void testJsonPretty() {
+    checkExp("json_pretty('foo')",
+            "JSON_PRETTY('foo' FORMAT JSON)");
+    checkExp("json_pretty(null)",
+            "JSON_PRETTY(NULL FORMAT JSON)");
   }
 
   @Test public void testJsonArrayAgg1() {

@@ -566,6 +566,7 @@ JSON,
 **JSON_EXISTS**,
 **JSON_OBJECT**,
 **JSON_OBJECTAGG**,
+**JSON_PRETTY**,
 **JSON_QUERY**,
 JSON_TYPE,
 **JSON_VALUE**,
@@ -2001,6 +2002,7 @@ Note:
 | Operator syntax                                   | Description
 |:------------------------------------------------- |:-----------
 | JSON_TYPE(value) | Returns a string indicating the type of a JSON **value**. This can be an object, an array, or a scalar type
+| JSON_PRETTY(value) | Returns a pretty-printing of JSON **value**.
 
 Example SQL:
 

@@ -6803,6 +6803,18 @@ public class JdbcTest {
         .returns("C1=OBJECT; C2=ARRAY; C3=INTEGER; C4=BOOLEAN\n");
   }
 
+  @Test
+  public void testJsonPretty() {
+    CalciteAssert.that()
+        .query("SELECT JSON_PRETTY(v) AS c1\n"
+            + "FROM (VALUES ('{\"a\": [10, true],\"b\": [10, true]}')) as t(v)\n"
+            + "limit 10")
+        .returns("C1={\n"
+            + "  \"a\" : [ 10, true ],\n"
+            + "  \"b\" : [ 10, true ]\n"
+            + "}\n");
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2609">[CALCITE-2609]
