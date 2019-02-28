@@ -20,9 +20,7 @@ import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
 
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -44,9 +42,6 @@ import static org.junit.Assert.fail;
 public class ServerTest {
 
   static final String URL = "jdbc:calcite:";
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   static Connection connect() throws SQLException {
     return DriverManager.getConnection(URL,

@@ -51,7 +51,7 @@ limitations under the License.
     <maven.compiler.source>8</maven.compiler.source>
     <maven.compiler.target>8</maven.compiler.target>
 
-    <surefire.parallel>both</surefire.parallel>
+    <surefire.parallel>classesAndMethods</surefire.parallel>
     <surefire.threadCount>1</surefire.threadCount>
     <surefire.perCoreThreadCount>true</surefire.perCoreThreadCount>
 
@@ -111,6 +111,8 @@ limitations under the License.
     <jmh.version>1.12</jmh.version>
     <jsoup.version>1.11.3</jsoup.version>
     <junit.version>4.12</junit.version>
+    <junit.jupiter.version>5.4.0</junit.jupiter.version>
+    <junit.vintage.version>5.4.0</junit.vintage.version>
     <kotlin.version>1.2.71</kotlin.version>
     <checkstyle.version>7.8.2</checkstyle.version>
     <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
@@ -353,9 +355,24 @@ limitations under the License.
         <version>${servlet.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-api</artifactId>
+        <version>${junit.jupiter.version}</version>
+      </dependency>
+      <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
         <version>${junit.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-engine</artifactId>
+        <version>${junit.jupiter.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.junit.vintage</groupId>
+        <artifactId>junit-vintage-engine</artifactId>
+        <version>${junit.vintage.version}</version>
       </dependency>
       <dependency>
         <groupId>io.airlift.tpch</groupId>
@@ -1003,11 +1020,18 @@ limitations under the License.
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
+          <version>2.22.1</version>
           <configuration>
             <threadCount>${surefire.threadCount}</threadCount>
             <perCoreThreadCount>${surefire.perCoreThreadCount}</perCoreThreadCount>
             <parallel>${surefire.parallel}</parallel>
             <forkMode>once</forkMode>
+            <properties>
+              <configurationParameters>
+                junit.jupiter.execution.parallel.enabled=true
+                junit.jupiter.execution.parallel.config.strategy=dynamic
+              </configurationParameters>
+            </properties>
             <systemProperties>
               <systemProperty>
                 <name>user.language</name>
