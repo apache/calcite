@@ -22,7 +22,9 @@ import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -31,11 +33,15 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlCastFunction;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteLogger;
+
+import com.google.common.collect.ImmutableList;
 
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -75,12 +81,27 @@ public class VisitorDataContext implements DataContext {
   }
 
   public static DataContext of(RelDataType rowType, RexNode rex) {
+    return of(rowType, rex, null, null);
+  }
+
+  public static DataContext of(RelDataType rowType,
+                               List<Pair<RexInputRef, RexNode>> usageList) {
+    return of(rowType, usageList, null, null);
+  }
+
+  public static DataContext of(RelNode targetRel, LogicalFilter queryRel,
+                               RexBuilder builder, RexExecutor executor) {
+    return of(targetRel.getRowType(), queryRel.getCondition(), builder, executor);
+  }
+
+  public static DataContext of(RelDataType rowType, RexNode rex,
+                               RexBuilder builder, RexExecutor executor) {
     final int size = rowType.getFieldList().size();
     final Object[] values = new Object[size];
     final List<RexNode> operands = ((RexCall) rex).getOperands();
     final RexNode firstOperand = operands.get(0);
     final RexNode secondOperand = operands.get(1);
-    final Pair<Integer, ?> value = getValue(firstOperand, secondOperand);
+    final Pair<Integer, ?> value = getValue(firstOperand, secondOperand, builder, executor);
     if (value != null) {
       int index = value.getKey();
       values[index] = value.getValue();
@@ -91,11 +112,12 @@ public class VisitorDataContext implements DataContext {
   }
 
   public static DataContext of(RelDataType rowType,
-      List<Pair<RexInputRef, RexNode>> usageList) {
+                               List<Pair<RexInputRef, RexNode>> usageList,
+                               RexBuilder builder, RexExecutor executor) {
     final int size = rowType.getFieldList().size();
     final Object[] values = new Object[size];
     for (Pair<RexInputRef, RexNode> elem : usageList) {
-      Pair<Integer, ?> value = getValue(elem.getKey(), elem.getValue());
+      Pair<Integer, ?> value = getValue(elem.getKey(), elem.getValue(), builder, executor);
       if (value == null) {
         LOGGER.warn("{} is not handled for {} for checking implication",
             elem.getKey(), elem.getValue());
@@ -107,15 +129,17 @@ public class VisitorDataContext implements DataContext {
     return new VisitorDataContext(values);
   }
 
-  public static Pair<Integer, ?> getValue(RexNode inputRef, RexNode literal) {
+  @Deprecated
+  public static Pair<Integer, ?> getValue(RexNode inputRef, RexNode literal,
+                                          RexBuilder builder, RexExecutor executor) {
     inputRef = removeCast(inputRef);
-    literal = removeCast(literal);
+    final RelDataType type = inputRef.getType();
+    literal = convertAndRemoveCast(builder, executor, literal, type);
 
     if (inputRef instanceof RexInputRef
         && literal instanceof RexLiteral)  {
       final int index = ((RexInputRef) inputRef).getIndex();
-      final RexLiteral rexLiteral = (RexLiteral) literal;
-      final RelDataType type = inputRef.getType();
+      RexLiteral rexLiteral = (RexLiteral) literal;
 
       if (type.getSqlTypeName() == null) {
         LOGGER.warn("{} returned null SqlTypeName", inputRef.toString());
@@ -172,6 +196,20 @@ public class VisitorDataContext implements DataContext {
     }
     return inputRef;
   }
-}
 
+  private static RexNode convertAndRemoveCast(RexBuilder builder, RexExecutor executor,
+                                     RexNode second, RelDataType toType) {
+    if (second instanceof RexLiteral) {
+      if (((builder != null) && (executor != null))
+          && (toType.getSqlTypeName() != second.getType().getSqlTypeName())) {
+        RexNode cast = builder.makeCast(toType, second);
+        final List<RexNode> reducedValues = new ArrayList<>();
+        executor.reduce(builder, ImmutableList.of(cast), reducedValues);
+        second = Util.first(reducedValues.get(0), second);
+      }
+    }
+
+    return removeCast(second);
+  }
+}
 // End VisitorDataContext.java

@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rex;
 
+import org.apache.calcite.DataContext;
+import org.apache.calcite.rel.type.RelDataType;
+
 import java.util.List;
 
 /** Can reduce expressions, writing a literal for each into a list. */
@@ -32,6 +35,18 @@ public interface RexExecutor {
    * @param reducedValues List to which reduced expressions are appended
    */
   void reduce(RexBuilder rexBuilder, List<RexNode> constExps, List<RexNode> reducedValues);
+
+  /**
+   * Applies generated code with {@link DataContext}
+   *
+   * @param rexBuilder Rexbuilder
+   * @param exps Expressions
+   * @param rowType describes the structure of the input row
+   * @param dataValues {@link DataContext} to execute with
+   * @return Objects returned after applying generated code with dataValues.
+   */
+  Object[] execute(RexBuilder rexBuilder, List<RexNode> exps,
+                   RelDataType rowType,  DataContext dataValues);
 }
 
 // End RexExecutor.java
