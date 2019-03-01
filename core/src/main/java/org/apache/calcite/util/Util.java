@@ -479,24 +479,33 @@ public class Util {
    * Prints a string, enclosing in double quotes (") and escaping if
    * necessary. For examples, <code>printDoubleQuoted(w,"x\"y",false)</code>
    * prints <code>"x\"y"</code>.
+   *
+   * <p>The appendable where the value is printed must not incur I/O operations. This method is
+   * not meant to be used for writing the values to permanent storage.</p>
+   *
+   * @throws IllegalStateException if the print to the specified appendable fails due to I/O
    */
   public static void printJavaString(
-      PrintWriter pw,
+      Appendable appendable,
       String s,
       boolean nullMeansNull) {
-    if (s == null) {
-      if (nullMeansNull) {
-        pw.print("null");
+    try {
+      if (s == null) {
+        if (nullMeansNull) {
+          appendable.append("null");
+        }
+      } else {
+        String s1 = replace(s, "\\", "\\\\");
+        String s2 = replace(s1, "\"", "\\\"");
+        String s3 = replace(s2, "\n\r", "\\n");
+        String s4 = replace(s3, "\n", "\\n");
+        String s5 = replace(s4, "\r", "\\r");
+        appendable.append('"');
+        appendable.append(s5);
+        appendable.append('"');
       }
-    } else {
-      String s1 = replace(s, "\\", "\\\\");
-      String s2 = replace(s1, "\"", "\\\"");
-      String s3 = replace(s2, "\n\r", "\\n");
-      String s4 = replace(s3, "\n", "\\n");
-      String s5 = replace(s4, "\r", "\\r");
-      pw.print("\"");
-      pw.print(s5);
-      pw.print("\"");
+    } catch (IOException ioe) {
+      throw new IllegalStateException("The specified appendable should not incur I/O.", ioe);
     }
   }
 
