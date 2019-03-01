@@ -300,7 +300,6 @@ public class SqlParserTest {
       "JSON_EXISTS",                                                       "c",
       "JSON_OBJECT",                                                       "c",
       "JSON_OBJECTAGG",                                                    "c",
-      "JSON_PRETTY",                                                       "c",
       "JSON_QUERY",                                                        "c",
       "JSON_VALUE",                                                        "c",
       "KEEP",                                              "2011",

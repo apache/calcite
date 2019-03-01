@@ -64,7 +64,7 @@ public class SqlJsonFunctionsTest {
   public static final String INVOC_DESC_JSON_VALUE_ANY = "jsonValueAny";
   public static final String INVOC_DESC_JSON_QUERY = "jsonQuery";
   public static final String INVOC_DESC_JSONIZE = "jsonize";
-  public static final String INVOC_DESC_PRETTY_JSONISE = "prettyJson";
+  public static final String INVOC_DESC_JSON_PRETTY = "jsonPretty";
   public static final String INVOC_DESC_DEJSONIZE = "dejsonize";
   public static final String INVOC_DESC_JSON_OBJECT = "jsonObject";
   public static final String INVOC_DESC_JSON_TYPE = "jsonType";
@@ -446,9 +446,9 @@ public class SqlJsonFunctionsTest {
   }
 
   @Test
-  public void assertPrettyJson() {
-    assertPrettyJson(new HashMap<>(), is("{ }"));
-    assertPrettyJson(Longs.asList(1, 2), is("[ 1, 2 ]"));
+  public void assertJsonPretty() {
+    assertJsonPretty(new HashMap<>(), is("{ }"));
+    assertJsonPretty(Longs.asList(1, 2), is("[ 1, 2 ]"));
   }
 
   @Test
@@ -654,9 +654,9 @@ public class SqlJsonFunctionsTest {
         matcher);
   }
 
-  private void assertPrettyJson(Object input,
+  private void assertJsonPretty(Object input,
       Matcher<? super String> matcher) {
-    assertThat(invocationDesc(INVOC_DESC_PRETTY_JSONISE, input),
+    assertThat(invocationDesc(INVOC_DESC_JSON_PRETTY, input),
         SqlFunctions.jsonPretty(input),
         matcher);
   }

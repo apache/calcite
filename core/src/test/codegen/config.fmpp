@@ -144,6 +144,7 @@ data: {
         "JAVA"
         "JSON"
         "JSON_TYPE"
+        "JSON_PRETTY"
         "K"
         "KEY"
         "KEY_MEMBER"
