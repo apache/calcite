@@ -30,6 +30,8 @@ import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.rules.CalcMergeRule;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
 import org.apache.calcite.rel.rules.FilterToCalcRule;
+import org.apache.calcite.rel.rules.JoinToMultiJoinRule;
+import org.apache.calcite.rel.rules.LoptOptimizeJoinRule;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule;
@@ -300,6 +302,22 @@ public class HepPlannerTest extends RelOptTestBase {
 
     final long applyTimes2 = checkRuleApplyCount(HepMatchOrder.DEPTH_FIRST);
     assertThat(applyTimes2, is(87L));
+  }
+
+  @Test public void testSubprogramLoop() {
+    final HepProgramBuilder programBuilder = new HepProgramBuilder();
+    final HepProgramBuilder subprogramBuilder = new HepProgramBuilder();
+    subprogramBuilder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
+    subprogramBuilder.addRuleInstance(JoinToMultiJoinRule.INSTANCE);
+    subprogramBuilder.addRuleInstance(LoptOptimizeJoinRule.INSTANCE);
+    programBuilder.addSubprogram(subprogramBuilder.build());
+
+    HepPlanner planner = new HepPlanner(programBuilder.build());
+    planner.setRoot(
+        tester.convertSqlToRel("select e1.ename from emp e1\n"
+            + "join dept d on e1.deptno=d.deptno\n"
+            + "join emp e2 on e1.deptno=e2.deptno").rel);
+    planner.findBestExp();
   }
 
   @Test public void testMaterialization() throws Exception {

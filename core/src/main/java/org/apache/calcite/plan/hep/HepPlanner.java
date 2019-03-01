@@ -336,14 +336,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
   void executeInstruction(
       HepInstruction.Subprogram instruction) {
     LOGGER.trace("Entering subprogram");
-    for (;;) {
-      int nTransformationsBefore = nTransformations;
-      executeProgram(instruction.subprogram);
-      if (nTransformations == nTransformationsBefore) {
-        // Nothing happened this time around.
-        break;
-      }
-    }
+    executeProgram(instruction.subprogram);
     LOGGER.trace("Leaving subprogram");
   }
 
