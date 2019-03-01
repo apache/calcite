@@ -29,6 +29,7 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistributions;
@@ -135,6 +136,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -254,6 +256,42 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql)
         .with(hepProgram)
         .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2865">[CALCITE-2865]
+   * FilterProjectTransposeRule generates wrong traitSet when copyFilter/Project is true</a>. */
+  @Test public void testFilterProjectTransposeRule() {
+    List<RelOptRule> rules = Arrays.asList(
+            FilterProjectTransposeRule.INSTANCE, // default: copyFilter=true, copyProject=true
+            new FilterProjectTransposeRule(Filter.class, Project.class,
+                false, false, RelFactories.LOGICAL_BUILDER));
+
+    for (RelOptRule rule : rules) {
+      RelBuilder b = RelBuilder.create(RelBuilderTest.config().build());
+      RelNode in = b
+              .scan("EMP")
+              .sort(-4) // salary desc
+              .project(b.field(3)) // salary
+              .filter(b.equals(b.field(0), b.literal(11500))) // salary = 11500
+              .build();
+      HepProgram program = new HepProgramBuilder()
+              .addRuleInstance(rule)
+              .build();
+      HepPlanner hepPlanner = new HepPlanner(program);
+      hepPlanner.setRoot(in);
+      RelNode result = hepPlanner.findBestExp();
+
+      // Verify LogicalFilter traitSet (must be [3 DESC])
+      RelNode filter = result.getInput(0);
+      RelCollation collation = filter.getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
+      Assert.assertNotNull(collation);
+      List<RelFieldCollation> fieldCollations = collation.getFieldCollations();
+      Assert.assertEquals(1, fieldCollations.size());
+      RelFieldCollation fieldCollation = fieldCollations.get(0);
+      Assert.assertEquals(3, fieldCollation.getFieldIndex());
+      Assert.assertEquals(RelFieldCollation.Direction.DESCENDING, fieldCollation.getDirection());
+    }
   }
 
   @Test public void testReduceOrCaseWhen() {
