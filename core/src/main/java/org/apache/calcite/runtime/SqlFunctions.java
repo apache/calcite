@@ -2680,7 +2680,7 @@ public class SqlFunctions {
       return JSON_PATH_JSON_PROVIDER.getObjectMapper().writerWithDefaultPrettyPrinter()
           .writeValueAsString(input);
     } catch (Exception e) {
-      return null;
+      throw RESOURCE.exceptionWhileSerializingToJson(input.toString()).ex();
     }
   }
 

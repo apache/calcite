@@ -533,6 +533,10 @@ public enum BuiltInMethod {
     this(null, null, Types.lookupField(clazz, fieldName));
     assert dummy : "dummy value for method overloading must be true";
   }
+
+  public String getMethodName() {
+    return method.getName();
+  }
 }
 
 // End BuiltInMethod.java

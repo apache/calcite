@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;
 import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
 import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
 import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
+import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.Longs;
@@ -64,7 +65,6 @@ public class SqlJsonFunctionsTest {
   public static final String INVOC_DESC_JSON_VALUE_ANY = "jsonValueAny";
   public static final String INVOC_DESC_JSON_QUERY = "jsonQuery";
   public static final String INVOC_DESC_JSONIZE = "jsonize";
-  public static final String INVOC_DESC_JSON_PRETTY = "jsonPretty";
   public static final String INVOC_DESC_DEJSONIZE = "dejsonize";
   public static final String INVOC_DESC_JSON_OBJECT = "jsonObject";
   public static final String INVOC_DESC_JSON_TYPE = "jsonType";
@@ -449,6 +449,13 @@ public class SqlJsonFunctionsTest {
   public void assertJsonPretty() {
     assertJsonPretty(new HashMap<>(), is("{ }"));
     assertJsonPretty(Longs.asList(1, 2), is("[ 1, 2 ]"));
+
+    Object input = new Object() {
+      private final Object self = this;
+    };
+    CalciteException expected = new CalciteException(
+        "Cannot serialize object to JSON, and the object is: '" + input + "'", null);
+    assertJsonPrettyFailed(input, errorMatches(expected));
   }
 
   @Test
@@ -656,8 +663,15 @@ public class SqlJsonFunctionsTest {
 
   private void assertJsonPretty(Object input,
       Matcher<? super String> matcher) {
-    assertThat(invocationDesc(INVOC_DESC_JSON_PRETTY, input),
+    assertThat(invocationDesc(BuiltInMethod.JSON_PRETTY.getMethodName(), input),
         SqlFunctions.jsonPretty(input),
+        matcher);
+  }
+
+  private void assertJsonPrettyFailed(Object input,
+      Matcher<? super Throwable> matcher) {
+    assertFailed(invocationDesc(BuiltInMethod.JSON_PRETTY.getMethodName(), input),
+        () -> SqlFunctions.jsonPretty(input),
         matcher);
   }
 
