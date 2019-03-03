@@ -55,27 +55,7 @@ import static org.junit.Assert.fail;
  * Unit test for the methods in {@link SqlFunctions} that implement JSON processing functions.
  */
 public class SqlJsonFunctionsTest {
-  public static final String INVOC_DESC_JSON_VALUE_EXPRESSION =
-      "jsonValueExpression";
-  public static final String INVOC_DESC_JSON_STRUCTURED_VALUE_EXPRESSION =
-      "jsonStructuredValueExpression";
-  public static final String INVOC_DESC_JSON_API_COMMON_SYNTAX =
-      "jsonApiCommonSyntax";
-  public static final String INVOC_DESC_JSON_EXISTS = "jsonExists";
-  public static final String INVOC_DESC_JSON_VALUE_ANY = "jsonValueAny";
-  public static final String INVOC_DESC_JSON_QUERY = "jsonQuery";
-  public static final String INVOC_DESC_JSONIZE = "jsonize";
   public static final String INVOC_DESC_DEJSONIZE = "dejsonize";
-  public static final String INVOC_DESC_JSON_OBJECT = "jsonObject";
-  public static final String INVOC_DESC_JSON_TYPE = "jsonType";
-  public static final String INVOC_DESC_JSON_OBJECT_AGG_ADD =
-      "jsonObjectAggAdd";
-  public static final String INVOC_DESC_JSON_ARRAY = "jsonArray";
-  public static final String INVOC_DESC_JSON_ARRAY_AGG_ADD = "jsonArrayAggAdd";
-  public static final String INVOC_DESC_IS_JSON_VALUE = "isJsonValue";
-  public static final String INVOC_DESC_IS_JSON_SCALAR = "isJsonScalar";
-  public static final String INVOC_DESC_IS_JSON_ARRAY = "isJsonArray";
-  public static final String INVOC_DESC_IS_JSON_OBJECT = "isJsonObject";
 
   @Test
   public void testJsonValueExpression() {
@@ -569,34 +549,34 @@ public class SqlJsonFunctionsTest {
   private void assertJsonValueExpression(String input,
       Matcher<Object> matcher) {
     assertThat(
-        invocationDesc(INVOC_DESC_JSON_VALUE_EXPRESSION, input),
+        invocationDesc(BuiltInMethod.JSON_VALUE_EXPRESSION.getMethodName(), input),
         SqlFunctions.jsonValueExpression(input), matcher);
   }
 
   private void assertJsonStructuredValueExpression(Object input,
       Matcher<Object> matcher) {
     assertThat(
-        invocationDesc(INVOC_DESC_JSON_STRUCTURED_VALUE_EXPRESSION, input),
+        invocationDesc(BuiltInMethod.JSON_STRUCTURED_VALUE_EXPRESSION.getMethodName(), input),
         SqlFunctions.jsonStructuredValueExpression(input), matcher);
   }
 
   private void assertJsonApiCommonSyntax(Object input, String pathSpec,
       Matcher<? super SqlFunctions.PathContext> matcher) {
     assertThat(
-        invocationDesc(INVOC_DESC_JSON_API_COMMON_SYNTAX, input, pathSpec),
+        invocationDesc(BuiltInMethod.JSON_API_COMMON_SYNTAX.getMethodName(), input, pathSpec),
         SqlFunctions.jsonApiCommonSyntax(input, pathSpec), matcher);
   }
 
   private void assertJsonExists(Object input, SqlJsonExistsErrorBehavior errorBehavior,
       Matcher<? super Boolean> matcher) {
-    assertThat(invocationDesc(INVOC_DESC_JSON_EXISTS, input, errorBehavior),
+    assertThat(invocationDesc(BuiltInMethod.JSON_EXISTS.getMethodName(), input, errorBehavior),
         SqlFunctions.jsonExists(input, errorBehavior), matcher);
   }
 
   private void assertJsonExistsFailed(Object input,
       SqlJsonExistsErrorBehavior errorBehavior,
       Matcher<? super Throwable> matcher) {
-    assertFailed(invocationDesc(INVOC_DESC_JSON_EXISTS, input, errorBehavior),
+    assertFailed(invocationDesc(BuiltInMethod.JSON_EXISTS.getMethodName(), input, errorBehavior),
         () -> SqlFunctions.jsonExists(input, errorBehavior), matcher);
   }
 
@@ -607,7 +587,7 @@ public class SqlJsonFunctionsTest {
       Object defaultValueOnError,
       Matcher<Object> matcher) {
     assertThat(
-        invocationDesc(INVOC_DESC_JSON_VALUE_ANY, input, emptyBehavior,
+        invocationDesc(BuiltInMethod.JSON_VALUE_ANY.getMethodName(), input, emptyBehavior,
             defaultValueOnEmpty, errorBehavior, defaultValueOnError),
         SqlFunctions.jsonValueAny(input, emptyBehavior, defaultValueOnEmpty,
             errorBehavior, defaultValueOnError),
@@ -621,7 +601,7 @@ public class SqlJsonFunctionsTest {
       Object defaultValueOnError,
       Matcher<? super Throwable> matcher) {
     assertFailed(
-        invocationDesc(INVOC_DESC_JSON_VALUE_ANY, input, emptyBehavior,
+        invocationDesc(BuiltInMethod.JSON_VALUE_ANY.getMethodName(), input, emptyBehavior,
             defaultValueOnEmpty, errorBehavior, defaultValueOnError),
         () -> SqlFunctions.jsonValueAny(input, emptyBehavior,
             defaultValueOnEmpty, errorBehavior, defaultValueOnError),
@@ -634,7 +614,7 @@ public class SqlJsonFunctionsTest {
       SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
       Matcher<? super String> matcher) {
     assertThat(
-        invocationDesc(INVOC_DESC_JSON_QUERY, input, wrapperBehavior,
+        invocationDesc(BuiltInMethod.JSON_QUERY.getMethodName(), input, wrapperBehavior,
             emptyBehavior, errorBehavior),
         SqlFunctions.jsonQuery(input, wrapperBehavior, emptyBehavior,
             errorBehavior),
@@ -647,7 +627,7 @@ public class SqlJsonFunctionsTest {
       SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
       Matcher<? super Throwable> matcher) {
     assertFailed(
-        invocationDesc(INVOC_DESC_JSON_QUERY, input, wrapperBehavior,
+        invocationDesc(BuiltInMethod.JSON_QUERY.getMethodName(), input, wrapperBehavior,
             emptyBehavior, errorBehavior),
         () -> SqlFunctions.jsonQuery(input, wrapperBehavior, emptyBehavior,
             errorBehavior),
@@ -656,7 +636,7 @@ public class SqlJsonFunctionsTest {
 
   private void assertJsonize(Object input,
       Matcher<? super String> matcher) {
-    assertThat(invocationDesc(INVOC_DESC_JSONIZE, input),
+    assertThat(invocationDesc(BuiltInMethod.JSONIZE.getMethodName(), input),
         SqlFunctions.jsonize(input),
         matcher);
   }
@@ -692,7 +672,7 @@ public class SqlJsonFunctionsTest {
   private void assertJsonObject(Matcher<? super String> matcher,
       SqlJsonConstructorNullClause nullClause,
       Object... kvs) {
-    assertThat(invocationDesc(INVOC_DESC_JSON_OBJECT, nullClause, kvs),
+    assertThat(invocationDesc(BuiltInMethod.JSON_OBJECT.getMethodName(), nullClause, kvs),
         SqlFunctions.jsonObject(nullClause, kvs),
         matcher);
   }
@@ -700,7 +680,7 @@ public class SqlJsonFunctionsTest {
   private void assertJsonType(Matcher<? super String> matcher,
                                 String input) {
     assertThat(
-        invocationDesc(INVOC_DESC_JSON_TYPE, input),
+        invocationDesc(BuiltInMethod.JSON_TYPE.getMethodName(), input),
         SqlFunctions.jsonType(
                 SqlFunctions.dejsonize(input)),
         matcher);
@@ -711,13 +691,13 @@ public class SqlJsonFunctionsTest {
       Matcher<? super Map> matcher) {
     SqlFunctions.jsonObjectAggAdd(map, k, v, nullClause);
     assertThat(
-        invocationDesc(INVOC_DESC_JSON_OBJECT_AGG_ADD, map, k, v, nullClause),
+        invocationDesc(BuiltInMethod.JSON_ARRAYAGG_ADD.getMethodName(), map, k, v, nullClause),
         map, matcher);
   }
 
   private void assertJsonArray(Matcher<? super String> matcher,
       SqlJsonConstructorNullClause nullClause, Object... elements) {
-    assertThat(invocationDesc(INVOC_DESC_JSON_ARRAY, nullClause, elements),
+    assertThat(invocationDesc(BuiltInMethod.JSON_ARRAY.getMethodName(), nullClause, elements),
         SqlFunctions.jsonArray(nullClause, elements),
         matcher);
   }
@@ -727,35 +707,35 @@ public class SqlJsonFunctionsTest {
       Matcher<? super List> matcher) {
     SqlFunctions.jsonArrayAggAdd(list, element, nullClause);
     assertThat(
-        invocationDesc(INVOC_DESC_JSON_ARRAY_AGG_ADD, list, element,
+        invocationDesc(BuiltInMethod.JSON_ARRAYAGG_ADD.getMethodName(), list, element,
             nullClause),
         list, matcher);
   }
 
   private void assertIsJsonValue(String input,
       Matcher<? super Boolean> matcher) {
-    assertThat(invocationDesc(INVOC_DESC_IS_JSON_VALUE, input),
+    assertThat(invocationDesc(BuiltInMethod.IS_JSON_VALUE.getMethodName(), input),
         SqlFunctions.isJsonValue(input),
         matcher);
   }
 
   private void assertIsJsonScalar(String input,
       Matcher<? super Boolean> matcher) {
-    assertThat(invocationDesc(INVOC_DESC_IS_JSON_SCALAR, input),
+    assertThat(invocationDesc(BuiltInMethod.IS_JSON_SCALAR.getMethodName(), input),
         SqlFunctions.isJsonScalar(input),
         matcher);
   }
 
   private void assertIsJsonArray(String input,
       Matcher<? super Boolean> matcher) {
-    assertThat(invocationDesc(INVOC_DESC_IS_JSON_ARRAY, input),
+    assertThat(invocationDesc(BuiltInMethod.IS_JSON_ARRAY.getMethodName(), input),
         SqlFunctions.isJsonArray(input),
         matcher);
   }
 
   private void assertIsJsonObject(String input,
       Matcher<? super Boolean> matcher) {
-    assertThat(invocationDesc(INVOC_DESC_IS_JSON_OBJECT, input),
+    assertThat(invocationDesc(BuiltInMethod.IS_JSON_OBJECT.getMethodName(), input),
         SqlFunctions.isJsonObject(input),
         matcher);
   }
