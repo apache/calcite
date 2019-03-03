@@ -202,7 +202,23 @@ public class EnumUtils {
       List<Expression> expressions) {
     final List<Expression> list = new ArrayList<>();
     for (int i = 0; i < expressions.size(); i++) {
-      list.add(fromInternal(expressions.get(i), targetTypes[i]));
+      if (i == targetTypes.length - 1 && targetTypes[i].isArray()) {
+        // only the last type could be varargs. All left expressions
+        // are supposed to be the same type as targetTypes[i].getComponentType().
+        List<Expression> subList = expressions.subList(i, expressions.size());
+        list.addAll(fromInternal(targetTypes[i].getComponentType(), subList));
+        break;
+      } else {
+        list.add(fromInternal(expressions.get(i), targetTypes[i]));
+      }
+    }
+    return list;
+  }
+
+  private static List<Expression> fromInternal(Class<?> targetType, List<Expression> expressions) {
+    final List<Expression> list = new ArrayList<>();
+    for (int i = 0; i < expressions.size(); i++) {
+      list.add(fromInternal(expressions.get(i), targetType));
     }
     return list;
   }
