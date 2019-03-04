@@ -49,6 +49,7 @@ import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
+import org.apache.calcite.rel.rules.AggregateMergeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.AggregateRemoveRule;
 import org.apache.calcite.rel.rules.CalcRemoveRule;
@@ -909,6 +910,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       addRule(JoinAssociateRule.INSTANCE);
     }
     addRule(AggregateRemoveRule.INSTANCE);
+    addRule(AggregateMergeRule.INSTANCE);
     addRule(UnionToDistinctRule.INSTANCE);
     addRule(ProjectRemoveRule.INSTANCE);
     addRule(AggregateJoinTransposeRule.INSTANCE);
