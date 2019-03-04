@@ -37,7 +37,6 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSimplify;
-import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.QueryableTable;
@@ -759,13 +758,13 @@ public class MaterializationTest {
 
   private void checkNotSatisfiable(RexNode e) {
     assertFalse(SubstitutionVisitor.mayBeSatisfiable(e));
-    final RexNode simple = simplify.simplifyUnknownAs(e, RexUnknownAs.UNKNOWN);
+    final RexNode simple = simplify.simplifyUnknownAsFalse(e);
     assertFalse(RexLiteral.booleanValue(simple));
   }
 
   private void checkSatisfiable(RexNode e, String s) {
     assertTrue(SubstitutionVisitor.mayBeSatisfiable(e));
-    final RexNode simple = simplify.simplifyUnknownAs(e, RexUnknownAs.UNKNOWN);
+    final RexNode simple = simplify.simplifyUnknownAsFalse(e);
     assertEquals(s, simple.toString());
   }
 
