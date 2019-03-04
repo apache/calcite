@@ -57,6 +57,7 @@ import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
 import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
+import org.apache.calcite.rel.rules.AggregateMergeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
 import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
@@ -3642,6 +3643,176 @@ public class RelOptRulesTest extends RelOptTestBase {
     final String sql =
             "select count(distinct sal) from sales.emp join sales.dept on job = name";
     checkPlanUnchanged(new HepPlanner(program), sql);
+  }
+
+  /**
+   * Test case for AggregateMergeRule, should merge 2 aggregates
+   * into a single aggregate.
+   */
+  @Test public void testAggregateMerge1() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateMergeRule.INSTANCE)
+        .build();
+    final String sql = "select deptno c, min(y), max(z) z,\n"
+        + "sum(r), sum(m) n, sum(x) sal from (\n"
+        + "   select deptno, ename, sum(sal) x, max(sal) z,\n"
+        + "      min(sal) y, count(hiredate) m, count(mgr) r\n"
+        + "   from sales.emp group by deptno, ename) t\n"
+        + "group by deptno";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  /**
+   * Test case for AggregateMergeRule, should merge 2 aggregates
+   * into a single aggregate, top aggregate is not simple aggregate.
+   */
+  @Test public void testAggregateMerge2() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateMergeRule.INSTANCE)
+        .build();
+    final String sql = "select deptno, empno, sum(x), sum(y)\n"
+        + "from (\n"
+        + "  select ename, empno, deptno, sum(sal) x, count(mgr) y\n"
+        + "    from sales.emp\n"
+        + "  group by deptno, ename, empno) t\n"
+        + "group by grouping sets(deptno, empno)";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  /**
+   * Test case for AggregateMergeRule, should not merge 2 aggregates
+   * into a single aggregate, since lower aggregate is not simple aggregate.
+   */
+  @Test public void testAggregateMerge3() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateMergeRule.INSTANCE)
+        .build();
+    final String sql = "select deptno, sum(x) from (\n"
+        + " select ename, deptno, sum(sal) x from\n"
+        + "   sales.emp group by cube(deptno, ename)) t\n"
+        + "group by deptno";
+    sql(sql).withPre(preProgram).with(program)
+        .checkUnchanged();
+  }
+
+  /**
+   * Test case for AggregateMergeRule, should not merge 2 aggregates
+   * into a single aggregate, since it contains distinct aggregate
+   * function.
+   */
+  @Test public void testAggregateMerge4() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateMergeRule.INSTANCE)
+        .build();
+    final String sql = "select deptno, sum(x) from (\n"
+        + "  select ename, deptno, count(distinct sal) x\n"
+        + "    from sales.emp group by deptno, ename) t\n"
+        + "group by deptno";
+    sql(sql).withPre(preProgram).with(program)
+        .checkUnchanged();
+  }
+
+  /**
+   * Test case for AggregateMergeRule, should not merge 2 aggregates
+   * into a single aggregate, since AVG doesn't support splitting.
+   */
+  @Test public void testAggregateMerge5() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateMergeRule.INSTANCE)
+        .build();
+    final String sql = "select deptno, avg(x) from (\n"
+        + "  select mgr, deptno, avg(sal) x from\n"
+        + "    sales.emp group by deptno, mgr) t\n"
+        + "group by deptno";
+    sql(sql).withPre(preProgram).with(program)
+        .checkUnchanged();
+  }
+
+  /**
+   * Test case for AggregateMergeRule, should not merge 2 aggregates
+   * into a single aggregate, since top agg has no group key, and
+   * lower agg function is COUNT.
+   */
+  @Test public void testAggregateMerge6() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateMergeRule.INSTANCE)
+        .build();
+    final String sql = "select sum(x) from (\n"
+        + "select mgr, deptno, count(sal) x from\n"
+        + "sales.emp group by deptno, mgr) t";
+    sql(sql).withPre(preProgram).with(program)
+        .checkUnchanged();
+  }
+
+  /**
+   * Test case for AggregateMergeRule, should not merge 2 aggregates
+   * into a single aggregate, since top agg contains empty grouping set,
+   * and lower agg function is COUNT.
+   */
+  @Test public void testAggregateMerge7() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateMergeRule.INSTANCE)
+        .build();
+    final String sql = "select mgr, deptno, sum(x) from (\n"
+        + "  select mgr, deptno, count(sal) x from\n"
+        + "    sales.emp group by deptno, mgr) t\n"
+        + "group by cube(mgr, deptno)";
+    sql(sql).withPre(preProgram).with(program)
+        .checkUnchanged();
+  }
+
+  /**
+   * Test case for AggregateMergeRule, should merge 2 aggregates
+   * into a single aggregate, since both top and bottom aggregates
+   * contains empty grouping set and they are mergable.
+   */
+  @Test public void testAggregateMerge8() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateMergeRule.INSTANCE)
+        .build();
+    final String sql = "select sum(x) x, min(y) z from (\n"
+        + "  select sum(sal) x, min(sal) y from sales.emp)";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
   @Test public void testSwapOuterJoin() {
