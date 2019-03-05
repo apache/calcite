@@ -3230,6 +3230,15 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testJsonLength() {
+    String query = "select json_length(\"product_name\", 'lax $'), "
+            + "json_length(\"product_name\") from \"product\"";
+    final String expected = "SELECT JSON_LENGTH(\"product_name\" FORMAT JSON, 'lax $'), "
+            + "JSON_LENGTH(\"product_name\" FORMAT JSON)\n"
+            + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;

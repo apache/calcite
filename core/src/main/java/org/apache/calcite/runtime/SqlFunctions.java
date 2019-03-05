@@ -2460,6 +2460,10 @@ public class SqlFunctions {
     return input;
   }
 
+  public static PathContext jsonApiCommonSyntax(Object input) {
+    return jsonApiCommonSyntax(input, "strict $");
+  }
+
   public static PathContext jsonApiCommonSyntax(Object input, String pathSpec) {
     try {
       Matcher matcher = JSON_PATH_BASE.matcher(pathSpec);
@@ -2755,12 +2759,12 @@ public class SqlFunctions {
         result = "unknown";
       }
       if (result.equals("unknown")) {
-        throw RESOURCE.unknownObjectOfJsonType(o.toString()).ex();
+        throw RESOURCE.invalidInputForJsonType(o.toString()).ex();
       } else {
         return result;
       }
     } catch (Exception ex) {
-      throw RESOURCE.unknownObjectOfJsonType(o.toString()).ex();
+      throw RESOURCE.invalidInputForJsonType(o.toString()).ex();
     }
   }
 
@@ -2774,7 +2778,7 @@ public class SqlFunctions {
       }
       return result;
     } catch (Exception ex) {
-      throw RESOURCE.unknownObjectOfJsonDepth(o.toString()).ex();
+      throw RESOURCE.invalidInputForJsonDepth(o.toString()).ex();
     }
   }
 
@@ -2804,6 +2808,49 @@ public class SqlFunctions {
     }
 
     return depth;
+  }
+
+  public static Integer jsonLength(Object input) {
+    final Integer result;
+    final Object value;
+    try {
+      if (!isJsonPathContext(input)) {
+        throw RESOURCE.invalidInputForJsonLength(
+            input.toString()).ex();
+      }
+      PathContext context = (PathContext) input;
+      if (context.exc != null) {
+        throw toUnchecked(context.exc);
+      }
+      value = context.pathReturned;
+
+      if (value == null) {
+        result = null;
+      } else {
+        if (value instanceof Collection) {
+          result = ((Collection) value).size();
+        } else if (value instanceof Map) {
+          result = ((LinkedHashMap) value).size();
+        } else if (isScalarObject(value)) {
+          result = 1;
+        } else {
+          result = 0;
+        }
+      }
+    } catch (Exception ex) {
+      throw RESOURCE.invalidInputForJsonLength(
+          input.toString()).ex();
+    }
+    return result;
+  }
+
+  public static boolean isJsonPathContext(Object input) {
+    try {
+      PathContext context = (PathContext) input;
+      return context != null;
+    } catch (Exception e) {
+      return false;
+    }
   }
 
   public static boolean isJsonValue(String input) {
@@ -2857,6 +2904,12 @@ public class SqlFunctions {
     public final Object pathReturned;
     public final Exception exc;
 
+    private PathContext(Object pathReturned, Exception exc) {
+      this.mode = PathMode.NONE;
+      this.pathReturned = pathReturned;
+      this.exc = exc;
+    }
+
     private PathContext(PathMode mode, Object pathReturned, Exception exc) {
       this.mode = mode;
       this.pathReturned = pathReturned;
@@ -2898,7 +2951,8 @@ public class SqlFunctions {
   public enum PathMode {
     LAX,
     STRICT,
-    UNKNOWN
+    UNKNOWN,
+    NONE
   }
 
   /** Enumerates over the cartesian product of the given lists, returning

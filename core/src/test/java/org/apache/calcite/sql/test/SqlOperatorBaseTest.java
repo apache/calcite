@@ -4534,7 +4534,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("json_depth('{}')",
             "1", "INTEGER");
     tester.checkString("json_depth('[]')",
-              "1", "INTEGER");
+            "1", "INTEGER");
     tester.checkString("json_depth('null')",
             null, "INTEGER");
     tester.checkString("json_depth(cast(null as varchar(1)))",
@@ -4542,11 +4542,61 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("json_depth('[10, true]')",
             "2", "INTEGER");
     tester.checkString("json_depth('[[], {}]')",
-              "2", "INTEGER");
+            "2", "INTEGER");
     tester.checkString("json_depth('{\"a\": [10, true]}')",
             "3", "INTEGER");
     tester.checkString("json_depth('[10, {\"a\": [[1,2]]}]')",
             "5", "INTEGER");
+  }
+
+  @Test public void testJsonLength() {
+    // no path context
+    tester.checkString("json_length('{}')",
+            "0", "INTEGER");
+    tester.checkString("json_length('[]')",
+            "0", "INTEGER");
+    tester.checkString("json_length('{\"foo\":100}')",
+            "1", "INTEGER");
+    tester.checkString("json_length('{\"a\": 1, \"b\": {\"c\": 30}}')",
+            "2", "INTEGER");
+    tester.checkString("json_length('[1, 2, {\"a\": 3}]')",
+            "3", "INTEGER");
+
+    // lax test
+    tester.checkString("json_length('{}', 'lax $')",
+            "0", "INTEGER");
+    tester.checkString("json_length('[]', 'lax $')",
+            "0", "INTEGER");
+    tester.checkString("json_length('{\"foo\":100}', 'lax $')",
+            "1", "INTEGER");
+    tester.checkString("json_length('{\"a\": 1, \"b\": {\"c\": 30}}', 'lax $')",
+            "2", "INTEGER");
+    tester.checkString("json_length('[1, 2, {\"a\": 3}]', 'lax $')",
+            "3", "INTEGER");
+    tester.checkString("json_length('{\"a\": 1, \"b\": {\"c\": 30}}', 'lax $.b')",
+            "1", "INTEGER");
+    tester.checkString("json_length('{\"foo\":100}', 'lax $.foo1')",
+            null, "INTEGER");
+
+    // strict test
+    tester.checkString("json_length('{}', 'strict $')",
+            "0", "INTEGER");
+    tester.checkString("json_length('[]', 'strict $')",
+            "0", "INTEGER");
+    tester.checkString("json_length('{\"foo\":100}', 'strict $')",
+            "1", "INTEGER");
+    tester.checkString("json_length('{\"a\": 1, \"b\": {\"c\": 30}}', 'strict $')",
+            "2", "INTEGER");
+    tester.checkString("json_length('[1, 2, {\"a\": 3}]', 'strict $')",
+            "3", "INTEGER");
+    tester.checkString("json_length('{\"a\": 1, \"b\": {\"c\": 30}}', 'strict $.b')",
+            "1", "INTEGER");
+
+    // catch error test
+    tester.checkFails("json_length('{\"foo\":100}', 'invalid $.foo')",
+            "(?s).*Illegal jsonpath spec.*", true);
+    tester.checkFails("json_length('{\"foo\":100}', 'strict $.foo1')",
+            "(?s).*No results for path.*", true);
   }
 
   @Test public void testJsonObjectAgg() {

@@ -566,6 +566,7 @@ JSON,
 **JSON_ARRAYAGG**,
 JSON_DEPTH,
 **JSON_EXISTS**,
+JSON_LENGTH,
 **JSON_OBJECT**,
 **JSON_OBJECTAGG**,
 JSON_PRETTY,
@@ -2007,6 +2008,7 @@ Note:
 | JSON_TYPE(value)                                  | Returns a string indicating the type of a JSON **value**. This can be an object, an array, or a scalar type
 | JSON_DEPTH(value)                                 | Returns a integer indicating the depth of a JSON **value**. This can be an object, an array, or a scalar type
 | JSON_PRETTY(value)                                | Returns a pretty-printing of JSON **value**.
+| JSON_LENGTH(value)                                | Returns a integer indicating the length of a JSON **value**. This can be an object, an array, or a scalar type
 
 * JSON_TYPE
 
@@ -2045,6 +2047,25 @@ Result:
 | c1     | c2    | c3      | c4      |
 | ------ | ----- | ------- | ------- |
 | 3      | 2     | 1       | 1       |
+
+* JSON_LENGTH
+
+Example SQL:
+
+```SQL
+SELECT JSON_LENGTH(v) AS c1
+,JSON_LENGTH(v, 'lax $.a') AS c2
+,JSON_LENGTH(v, 'strict $.a[0]') AS c3
+,JSON_LENGTH(v, 'strict $.a[1]') AS c4
+FROM (VALUES ('{"a": [10, true]}')) AS t(v)
+LIMIT 10;
+```
+
+Result:
+
+| c1     | c2    | c3      | c4      |
+| ------ | ----- | ------- | ------- |
+| 1      | 2     | 1       | 1       |
 
 ## User-defined functions
 

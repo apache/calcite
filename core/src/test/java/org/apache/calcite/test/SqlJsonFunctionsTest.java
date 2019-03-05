@@ -495,6 +495,26 @@ public class SqlJsonFunctionsTest {
   }
 
   @Test
+  public void testJsonLength() {
+    assertJsonLength(
+        SqlFunctions.PathContext
+            .withReturned(SqlFunctions.PathMode.LAX, Collections.singletonList("bar")),
+        is(1));
+    assertJsonLength(
+        SqlFunctions.PathContext
+            .withReturned(SqlFunctions.PathMode.LAX, null),
+        nullValue());
+    assertJsonLength(
+        SqlFunctions.PathContext
+            .withReturned(SqlFunctions.PathMode.STRICT, Collections.singletonList("bar")),
+        is(1));
+    assertJsonLength(
+        SqlFunctions.PathContext
+            .withReturned(SqlFunctions.PathMode.LAX, "bar"),
+        is(1));
+  }
+
+  @Test
   public void testJsonObjectAggAdd() {
     Map<String, Object> map = new HashMap<>();
     Map<String, Object> expected = new HashMap<>();
@@ -664,6 +684,22 @@ public class SqlJsonFunctionsTest {
       Matcher<? super Throwable> matcher) {
     assertFailed(invocationDesc(BuiltInMethod.JSON_PRETTY.getMethodName(), input),
         () -> SqlFunctions.jsonPretty(input),
+        matcher);
+  }
+
+  private void assertJsonLength(Object input,
+      Matcher<? super Integer> matcher) {
+    assertThat(
+        invocationDesc(BuiltInMethod.JSON_LENGTH.getMethodName(), input),
+        SqlFunctions.jsonLength(input),
+        matcher);
+  }
+
+  private void assertJsonLengthFailed(Object input,
+      Matcher<? super Throwable> matcher) {
+    assertFailed(
+        invocationDesc(BuiltInMethod.JSON_LENGTH.getMethodName(), input),
+        () -> SqlFunctions.jsonLength(input),
         matcher);
   }
 

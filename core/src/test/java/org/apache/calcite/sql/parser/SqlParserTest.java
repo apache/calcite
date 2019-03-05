@@ -8429,6 +8429,17 @@ public class SqlParserTest {
             "JSON_DEPTH('{\"foo\": \"100\"}' FORMAT JSON)");
   }
 
+  @Test public void testJsonLength() {
+    checkExp("json_length('{\"foo\": \"bar\"}')",
+            "JSON_LENGTH('{\"foo\": \"bar\"}' FORMAT JSON)");
+    checkExp("json_length('{\"foo\": \"bar\"}', 'lax $')",
+            "JSON_LENGTH('{\"foo\": \"bar\"}' FORMAT JSON, 'lax $')");
+    checkExp("json_length('{\"foo\": \"bar\"}', 'strict $')",
+            "JSON_LENGTH('{\"foo\": \"bar\"}' FORMAT JSON, 'strict $')");
+    checkExp("json_length('{\"foo\": \"bar\"}', 'invalid $')",
+            "JSON_LENGTH('{\"foo\": \"bar\"}' FORMAT JSON, 'invalid $')");
+  }
+
   @Test public void testJsonObjectAgg() {
     checkExp("json_objectagg(k_column: v_column)",
         "JSON_OBJECTAGG(KEY `K_COLUMN` VALUE `V_COLUMN` NULL ON NULL)");

@@ -8729,6 +8729,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "DOT -\n"
         + "ITEM -\n"
         + "JSON_API_COMMON_SYNTAX -\n"
+        + "JSON_API_COMMON_SYNTAX_WITHOUT_PATH -\n"
         + "JSON_STRUCTURED_VALUE_EXPRESSION -\n"
         + "JSON_VALUE_EXPRESSION -\n"
         + "NEXT_VALUE -\n"
@@ -10813,6 +10814,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpType("json_depth('{\"foo\":\"bar\"}')", "INTEGER");
     checkFails("select json_depth(^1^) from emp",
             "(.*)JSON_VALUE_EXPRESSION(.*)");
+  }
+
+  @Test public void testJsonLength() {
+    checkExp("json_length('{\"foo\":\"bar\"}')");
+    checkExp("json_length('{\"foo\":\"bar\"}', 'lax $')");
+    checkExpType("json_length('{\"foo\":\"bar\"}')", "INTEGER");
+    checkExpType("json_length('{\"foo\":\"bar\"}', 'lax $')", "INTEGER");
+    checkExpType("json_length('{\"foo\":\"bar\"}', 'strict $')", "INTEGER");
   }
 
   @Test public void testJsonObjectAgg() {

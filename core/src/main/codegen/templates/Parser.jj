@@ -4864,6 +4864,8 @@ SqlNode BuiltinFunctionCall() :
     |
         node = JsonDepthFunctionCall() { return node; }
     |
+        node = JsonLengthFunctionCall() { return node; }
+    |
         node = JsonObjectAggFunctionCall() { return node; }
     |
         node = JsonArrayFunctionCall() { return node; }
@@ -4958,21 +4960,32 @@ SqlNode JsonPathSpec() :
     }
 }
 
-SqlNode JsonApiCommonSyntax() :
+SqlNode JsonApiCommonSyntax(boolean acceptNonPath) :
 {
     SqlNode e;
     List<SqlNode> args = new ArrayList<SqlNode>();
     Span span;
+    SqlOperator op;
 }
 {
     e = JsonValueExpression(true) {
         args.add(e);
         span = Span.of(e);
     }
-    <COMMA>
-    e = Expression(ExprContext.ACCEPT_NON_QUERY) {
-        args.add(e);
-    }
+    (
+        <COMMA>
+        e = Expression(ExprContext.ACCEPT_NON_QUERY) {
+            op = SqlStdOperatorTable.JSON_API_COMMON_SYNTAX;
+            args.add(e);
+        }
+    |
+        {
+            if (!acceptNonPath) {
+              throw new ParseException(RESOURCE.jsonPathMustBeSpecified().str());
+            }
+            op = SqlStdOperatorTable.JSON_API_COMMON_SYNTAX_WITHOUT_PATH;
+        }
+    )
     [
         <PASSING> e = JsonValueExpression(false) {
             args.add(e);
@@ -4991,9 +5004,8 @@ SqlNode JsonApiCommonSyntax() :
         )*
     ]
     {
-        return SqlStdOperatorTable.JSON_API_COMMON_SYNTAX.createCall(span.end(this), args);
+        return op.createCall(span.end(this), args);
     }
-
 }
 
 SqlJsonExistsErrorBehavior JsonExistsErrorBehavior() :
@@ -5019,7 +5031,7 @@ SqlCall JsonExistsFunctionCall() :
 }
 {
     <JSON_EXISTS> { span = span(); }
-    <LPAREN> e = JsonApiCommonSyntax() {
+    <LPAREN> e = JsonApiCommonSyntax(false) {
         args = new ArrayList<SqlNode>();
         args.add(e);
     }
@@ -5076,7 +5088,7 @@ SqlCall JsonValueFunctionCall() :
 }
 {
     <JSON_VALUE> { span = span(); }
-    <LPAREN> e = JsonApiCommonSyntax() {
+    <LPAREN> e = JsonApiCommonSyntax(false) {
         args[0] = e;
     }
     [
@@ -5185,7 +5197,7 @@ SqlCall JsonQueryFunctionCall() :
 }
 {
     <JSON_QUERY> { span = span(); }
-    <LPAREN> e = JsonApiCommonSyntax() {
+    <LPAREN> e = JsonApiCommonSyntax(false) {
         args[0] = e;
     }
     [
@@ -5328,6 +5340,23 @@ SqlCall JsonDepthFunctionCall() :
     }
     <RPAREN> {
         return SqlStdOperatorTable.JSON_DEPTH.createCall(span.end(this), args);
+    }
+}
+
+SqlCall JsonLengthFunctionCall() :
+{
+    final SqlNode[] args = new SqlNode[1];
+    SqlNode e;
+    final Span span;
+    List<SqlNode> behavior;
+}
+{
+    <JSON_LENGTH> { span = span(); }
+    <LPAREN> e = JsonApiCommonSyntax(true) {
+       args[0] = e;
+    }
+    <RPAREN> {
+        return SqlStdOperatorTable.JSON_LENGTH.createCall(span.end(this), args);
     }
 }
 
@@ -6408,6 +6437,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < JSON_OBJECT: "JSON_OBJECT">
 |   < JSON_TYPE: "JSON_TYPE">
 |   < JSON_DEPTH: "JSON_DEPTH">
+|   < JSON_LENGTH: "JSON_LENGTH">
 |   < JSON_OBJECTAGG: "JSON_OBJECTAGG">
 |   < JSON_QUERY: "JSON_QUERY" >
 |   < K: "K" >
