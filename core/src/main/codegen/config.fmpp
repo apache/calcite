@@ -161,6 +161,7 @@ data: {
         "JSON"
         "JSON_TYPE"
         "JSON_DEPTH"
+        "JSON_LENGTH"
         "JSON_PRETTY"
         "K"
         "KEY"

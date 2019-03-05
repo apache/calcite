@@ -6793,7 +6793,6 @@ public class JdbcTest {
         .returns("EXPR$0=[250, 500, 1000]\n");
   }
 
-  @Ignore
   @Test public void testJsonType() {
     CalciteAssert.that()
         .query("SELECT JSON_TYPE(v) AS c1\n"
@@ -6805,16 +6804,26 @@ public class JdbcTest {
         .returns("C1=OBJECT; C2=ARRAY; C3=INTEGER; C4=BOOLEAN\n");
   }
 
-  @Ignore
   @Test public void testJsonDepth() {
     CalciteAssert.that()
-        .query("SELECT JSON_DEPTH(v) AS c1\n"
-            + ",JSON_DEPTH(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2\n"
-            + ",JSON_DEPTH(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3\n"
-            + ",JSON_DEPTH(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4\n"
-            + "FROM (VALUES ('{\"a\": [10, true],\"b\": \"[10, true]\"}')) AS t(v)\n"
+            .query("SELECT JSON_DEPTH(v) AS c1\n"
+                    + ",JSON_DEPTH(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2\n"
+                    + ",JSON_DEPTH(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3\n"
+                    + ",JSON_DEPTH(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4\n"
+                    + "FROM (VALUES ('{\"a\": [10, true],\"b\": \"[10, true]\"}')) AS t(v)\n"
+                    + "limit 10")
+            .returns("C1=3; C2=2; C3=1; C4=1\n");
+  }
+
+  @Test public void testJsonLength() {
+    CalciteAssert.that()
+        .query("SELECT JSON_LENGTH(v) AS c1\n"
+            + ",JSON_LENGTH(v, 'lax $.a') AS c2\n"
+            + ",JSON_LENGTH(v, 'strict $.a[0]') AS c3\n"
+            + ",JSON_LENGTH(v, 'strict $.a[1]') AS c4\n"
+            + "FROM (VALUES ('{\"a\": [10, true]}')) AS t(v)\n"
             + "limit 10")
-        .returns("C1=3; C2=2; C3=1; C4=1\n");
+        .returns("C1=1; C2=2; C3=1; C4=1\n");
   }
 
   @Test

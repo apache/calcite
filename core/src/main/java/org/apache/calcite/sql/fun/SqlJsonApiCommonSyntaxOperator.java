@@ -36,12 +36,13 @@ public class SqlJsonApiCommonSyntaxOperator extends SqlSpecialOperator {
   public SqlJsonApiCommonSyntaxOperator() {
     super("JSON_API_COMMON_SYNTAX", SqlKind.JSON_API_COMMON_SYNTAX, 100, true,
         ReturnTypes.explicit(SqlTypeName.ANY), null,
-        OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING));
+        OperandTypes.or(OperandTypes.family(SqlTypeFamily.ANY),
+        OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING)));
   }
 
   @Override protected void checkOperandCount(SqlValidator validator,
       SqlOperandTypeChecker argType, SqlCall call) {
-    if (call.operandCount() != 2) {
+    if (call.operandCount() < 1) {
       throw new UnsupportedOperationException("json passing syntax is not yet supported");
     }
   }
@@ -50,14 +51,16 @@ public class SqlJsonApiCommonSyntaxOperator extends SqlSpecialOperator {
       int rightPrec) {
     SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
     call.operand(0).unparse(writer, 0, 0);
-    writer.sep(",", true);
-    call.operand(1).unparse(writer, 0, 0);
-    if (call.operandCount() > 2) {
-      writer.keyword("PASSING");
-      for (int i = 2; i < call.getOperandList().size(); i += 2) {
-        call.operand(i).unparse(writer, 0, 0);
-        writer.keyword("AS");
-        call.operand(i + 1).unparse(writer, 0, 0);
+    if (call.operandCount() > 1) {
+      writer.sep(",", true);
+      call.operand(1).unparse(writer, 0, 0);
+      if (call.operandCount() > 2) {
+        writer.keyword("PASSING");
+        for (int i = 2; i < call.getOperandList().size(); i += 2) {
+          call.operand(i).unparse(writer, 0, 0);
+          writer.keyword("AS");
+          call.operand(i + 1).unparse(writer, 0, 0);
+        }
       }
     }
     writer.endFunCall(frame);

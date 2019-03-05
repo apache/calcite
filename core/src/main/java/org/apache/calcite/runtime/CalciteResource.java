@@ -43,6 +43,9 @@ public interface CalciteResource {
   @BaseMessage("APPLY operator is not allowed under the current SQL conformance level")
   ExInst<CalciteException> applyNotAllowed();
 
+  @BaseMessage("JSON path expression must be specified after the JSON value expression")
+  ExInst<CalciteException> jsonPathMustBeSpecified();
+
   @BaseMessage("Illegal {0} literal {1}: {2}")
   ExInst<CalciteException> illegalLiteral(String a0, String a1, String a2);
 
@@ -864,6 +867,9 @@ public interface CalciteResource {
 
   @BaseMessage("Cannot serialize object to JSON, and the object is: ''{0}''")
   ExInst<CalciteException> exceptionWhileSerializingToJson(String value);
+
+  @BaseMessage("Unknown JSON length in JSON_LENGTH function, and the object is: ''{0}''")
+  ExInst<CalciteException> unknownContextOfJsonLength(String value);
 }
 
 // End CalciteResource.java
