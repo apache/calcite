@@ -1207,6 +1207,7 @@ public class RelBuilder {
     for (int i = 0; i < fieldNameList.size(); ++i) {
       final RexNode node = nodeList.get(i);
       String name = fieldNameList.get(i);
+      String originalName = name;
       Field field;
       if (name == null || uniqueNameList.contains(name)) {
         int j = 0;
@@ -1214,7 +1215,7 @@ public class RelBuilder {
           j = i;
         }
         do {
-          name = SqlValidatorUtil.F_SUGGESTER.apply(name, j, j++);
+          name = SqlValidatorUtil.F_SUGGESTER.apply(originalName, j, j++);
         } while (uniqueNameList.contains(name));
         fieldNameList.set(i, name);
       }
