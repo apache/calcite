@@ -1535,8 +1535,35 @@ public class RelBuilderTest {
             .build();
     final String expected = ""
         + "LogicalFilter(condition=[>($1, $2)])\n"
-        + "  LogicalProject($f1=[20], $f12=[10], DEPTNO=[$7])\n"
+        + "  LogicalProject($f1=[20], $f2=[10], DEPTNO=[$7])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /**
+   * Tests that project field name aliases are suggested incrementally.
+   */
+  @Test public void testAliasSuggester() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root = builder.scan("EMP")
+        .project(builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0))
+        .build();
+    final String expected = ""
+        + "LogicalProject(EMPNO=[$0], EMPNO0=[$0], EMPNO1=[$0], "
+        + "EMPNO2=[$0], EMPNO3=[$0], EMPNO4=[$0], EMPNO5=[$0], "
+        + "EMPNO6=[$0], EMPNO7=[$0], EMPNO8=[$0], EMPNO9=[$0], EMPNO10=[$0])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }
 
