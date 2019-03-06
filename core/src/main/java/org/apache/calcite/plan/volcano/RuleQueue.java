@@ -103,8 +103,11 @@ class RuleQueue {
       Ordering.from(new RelImportanceComparator());
 
   /**
-   * Maps a {@link VolcanoPlannerPhase} to a set of rule names.  Named rules
+   * Maps a {@link VolcanoPlannerPhase} to a set of rule descriptions. Named rules
    * may be invoked in their corresponding phase.
+   *
+   * See {@link VolcanoPlannerPhaseRuleMappingInitializer} for more information regarding the
+   * contents of this Map and how it is initialized.
    */
   private final Map<VolcanoPlannerPhase, Set<String>> phaseRuleMapping;
 
@@ -330,11 +333,10 @@ class RuleQueue {
         continue;
       }
 
-      String ruleClassName = match.getRule().getClass().getSimpleName();
-
       Set<String> phaseRuleSet = phaseRuleMapping.get(matchList.phase);
       if (phaseRuleSet != ALL_RULES) {
-        if (!phaseRuleSet.contains(ruleClassName)) {
+        String ruleDescription = match.getRule().toString();
+        if (!phaseRuleSet.contains(ruleDescription)) {
           continue;
         }
       }
