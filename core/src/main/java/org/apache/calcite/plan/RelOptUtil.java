@@ -1455,10 +1455,22 @@ public abstract class RelOptUtil {
       if (kind == SqlKind.EQUALS
           || (filterNulls != null && kind == SqlKind.IS_NOT_DISTINCT_FROM)) {
         final List<RexNode> operands = call.getOperands();
-        if ((operands.get(0) instanceof RexInputRef)
-            && (operands.get(1) instanceof RexInputRef)) {
-          RexInputRef op0 = (RexInputRef) operands.get(0);
-          RexInputRef op1 = (RexInputRef) operands.get(1);
+
+        RexNode operand0 = operands.get(0);
+        RexNode operand1 = operands.get(1);
+
+        // check if operands are RexFieldAccess (potentially referencing a RexInputRef)
+        while (operand0 instanceof RexFieldAccess) {
+          operand0 = ((RexFieldAccess) operand0).getReferenceExpr();
+        }
+        while (operand1 instanceof RexFieldAccess) {
+          operand1 = ((RexFieldAccess) operand1).getReferenceExpr();
+        }
+
+        if ((operand0 instanceof RexInputRef)
+            && (operand1 instanceof RexInputRef)) {
+          RexInputRef op0 = (RexInputRef) operand0;
+          RexInputRef op1 = (RexInputRef) operand1;
 
           RexInputRef leftField;
           RexInputRef rightField;
