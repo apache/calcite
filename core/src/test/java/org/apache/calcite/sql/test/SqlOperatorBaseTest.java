@@ -4593,6 +4593,56 @@ public abstract class SqlOperatorBaseTest {
             "(?s).*No results for path.*", true);
   }
 
+  @Test public void testJsonKeys() {
+    // no path context
+    tester.checkString("json_keys('{}')",
+            "[]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('[]')",
+            "null", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('{\"foo\":100}')",
+            "[\"foo\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('{\"a\": 1, \"b\": {\"c\": 30}}')",
+            "[\"a\",\"b\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('[1, 2, {\"a\": 3}]')",
+            "null", "VARCHAR(2000) NOT NULL");
+
+    // lax test
+    tester.checkString("json_keys('{}', 'lax $')",
+            "[]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('[]', 'lax $')",
+            "null", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('{\"foo\":100}', 'lax $')",
+            "[\"foo\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('{\"a\": 1, \"b\": {\"c\": 30}}', 'lax $')",
+            "[\"a\",\"b\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('[1, 2, {\"a\": 3}]', 'lax $')",
+            "null", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('{\"a\": 1, \"b\": {\"c\": 30}}', 'lax $.b')",
+            "[\"c\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('{\"foo\":100}', 'lax $.foo1')",
+            "null", "VARCHAR(2000) NOT NULL");
+
+    // strict test
+    tester.checkString("json_keys('{}', 'strict $')",
+            "[]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('[]', 'strict $')",
+            "null", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('{\"foo\":100}', 'strict $')",
+            "[\"foo\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('{\"a\": 1, \"b\": {\"c\": 30}}', 'strict $')",
+            "[\"a\",\"b\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('[1, 2, {\"a\": 3}]', 'strict $')",
+            "null", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('{\"a\": 1, \"b\": {\"c\": 30}}', 'strict $.b')",
+            "[\"c\"]", "VARCHAR(2000) NOT NULL");
+
+    // catch error test
+    tester.checkFails("json_keys('{\"foo\":100}', 'invalid $.foo')",
+            "(?s).*Illegal jsonpath spec.*", true);
+    tester.checkFails("json_keys('{\"foo\":100}', 'strict $.foo1')",
+            "(?s).*No results for path.*", true);
+  }
+
   @Test public void testJsonObjectAgg() {
     checkAggType(tester, "json_objectagg('foo': 'bar')", "VARCHAR(2000) NOT NULL");
     tester.checkFails("^json_objectagg(100: 'bar')^",

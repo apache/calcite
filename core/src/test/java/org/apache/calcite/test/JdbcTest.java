@@ -6864,6 +6864,18 @@ public class JdbcTest {
             + "}\n");
   }
 
+  @Test public void testJsonKeys() {
+    CalciteAssert.that()
+        .query("SELECT JSON_KEYS(v) AS c1\n"
+            + ",JSON_KEYS(v, 'lax $.a') AS c2\n"
+            + ",JSON_KEYS(v, 'lax $.b') AS c3\n"
+            + ",JSON_KEYS(v, 'strict $.a[0]') AS c4\n"
+            + ",JSON_KEYS(v, 'strict $.a[1]') AS c5\n"
+            + "FROM (VALUES ('{\"a\": [10, true],\"b\": {\"c\": 30}}')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1=[\"a\",\"b\"]; C2=null; C3=[\"c\"]; C4=null; C5=null\n");
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2609">[CALCITE-2609]

@@ -22,30 +22,22 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 
 /**
- * The <code>JSON_TYPE</code> function.
+ * The <code>JSON_KEYS</code> function.
  */
-public class SqlJsonTypeFunction extends SqlFunction {
-  public SqlJsonTypeFunction() {
-    super("JSON_TYPE",
-        SqlKind.OTHER_FUNCTION,
-        ReturnTypes.explicit(SqlTypeName.VARCHAR, 20),
-        null,
-        OperandTypes.ANY,
-        SqlFunctionCategory.SYSTEM);
-  }
-
-  @Override public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.of(1);
+public class SqlJsonKeysFunction extends SqlFunction {
+  public SqlJsonKeysFunction() {
+    super("JSON_KEYS", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000,
+          null,
+          OperandTypes.ANY,
+          SqlFunctionCategory.SYSTEM);
   }
 
   @Override protected void checkOperandCount(SqlValidator validator,
@@ -54,9 +46,9 @@ public class SqlJsonTypeFunction extends SqlFunction {
   }
 
   @Override public SqlCall createCall(SqlLiteral functionQualifier,
-      SqlParserPos pos, SqlNode... operands) {
+                                        SqlParserPos pos, SqlNode... operands) {
     return super.createCall(functionQualifier, pos, operands);
   }
 }
 
-// End SqlJsonTypeFunction.java
+// End SqlJsonKeysFunction.java

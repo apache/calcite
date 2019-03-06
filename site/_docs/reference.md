@@ -567,6 +567,7 @@ JSON,
 **JSON_ARRAYAGG**,
 JSON_DEPTH,
 **JSON_EXISTS**,
+JSON_KEYS,
 JSON_LENGTH,
 **JSON_OBJECT**,
 **JSON_OBJECTAGG**,
@@ -2052,6 +2053,7 @@ Note:
 | JSON_DEPTH(jsonValue)             | Returns an integer value indicating the depth of a *jsonValue*
 | JSON_PRETTY(jsonValue)            | Returns a pretty-printing of *jsonValue*
 | JSON_LENGTH(jsonValue [, path ])  | Returns a integer indicating the length of *jsonValue*
+| JSON_KEYS(jsonValue [, path ])    | Returns a string indicating the keys of a JSON *jsonValue*
 
 Note:
 
@@ -2135,13 +2137,32 @@ Result
 | ------ | ----- | ------- | ------- |
 | 1      | 2     | 1       | 1       |
 
+##### JSON_KEYS example
+
+SQL
+
+ ```SQL
+SELECT JSON_KEYS(v) AS c1
+,JSON_KEYS(v, 'lax $.a') AS c2
+,JSON_KEYS(v, 'lax $.b') AS c2
+,JSON_KEYS(v, 'strict $.a[0]') AS c3
+,JSON_KEYS(v, 'strict $.a[1]') AS c4
+FROM (VALUES ('{"a": [10, true],"b": {"c": 30}}')) AS t(v)
+LIMIT 10;
+```
+
+ Result
+
+| c1         | c2   | c3    | c4   | c5   |
+| ---------- | ---- | ----- | ---- | ---- |
+| ["a", "b"] | NULL | ["c"] | NULL | NULL |
+
 Not implemented:
 
 * JSON_INSERT
 * JSON_SET
 * JSON_REPLACE
 * JSON_REMOVE
-* JSON_KEYS
 
 ## User-defined functions
 

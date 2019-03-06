@@ -2840,6 +2840,35 @@ public class SqlFunctions {
     return result;
   }
 
+  public static String jsonKeys(Object input) {
+    List<String> list = new ArrayList<>();
+    final Object value;
+    try {
+      if (!isJsonPathContext(input)) {
+        throw RESOURCE.invalidInputForJsonLength(
+            input.toString()).ex();
+      }
+      PathContext context = (PathContext) input;
+      if (context.exc != null) {
+        throw toUnchecked(context.exc);
+      }
+      value = context.pathReturned;
+
+      if ((value == null) || (value instanceof Collection)
+             || isScalarObject(value)) {
+        list = null;
+      } else if (value instanceof Map) {
+        for (Object key : ((LinkedHashMap) value).keySet()) {
+          list.add(key.toString());
+        }
+      }
+    } catch (Exception ex) {
+      throw RESOURCE.invalidInputForJsonKeys(
+              input.toString()).ex();
+    }
+    return jsonize(list);
+  }
+
   public static boolean isJsonPathContext(Object input) {
     try {
       PathContext context = (PathContext) input;

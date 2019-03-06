@@ -41,14 +41,6 @@ public class SqlJsonLengthFunction extends SqlFunction {
         SqlFunctionCategory.SYSTEM);
   }
 
-  @Override public String getSignatureTemplate(int operandsCount) {
-    assert operandsCount == 1 || operandsCount == 2;
-    if (operandsCount == 1) {
-      return "{0}({1})";
-    }
-    return "{0}({1} {2})";
-  }
-
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall(getName());
