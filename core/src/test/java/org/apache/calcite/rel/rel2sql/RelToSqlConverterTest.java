@@ -3236,6 +3236,12 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT JSON_LENGTH(\"product_name\" FORMAT JSON, 'lax $'), "
             + "JSON_LENGTH(\"product_name\" FORMAT JSON)\n"
             + "FROM \"foodmart\".\"product\"";
+  }
+
+  @Test public void testJsonKeys() {
+    String query = "select json_keys(\"product_name\", 'lax $') from \"product\"";
+    final String expected = "SELECT JSON_KEYS(\"product_name\" FORMAT JSON, 'lax $')\n"
+            + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }
 

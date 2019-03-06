@@ -10878,6 +10878,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpType("json_length('{\"foo\":\"bar\"}', 'strict $')", "INTEGER");
   }
 
+  @Test public void testJsonKeys() {
+    checkExp("json_keys('{\"foo\":\"bar\"}', 'lax $')");
+    checkExpType("json_keys('{\"foo\":\"bar\"}', 'lax $')", "VARCHAR(2000) NOT NULL");
+    checkExpType("json_keys('{\"foo\":\"bar\"}', 'strict $')", "VARCHAR(2000) NOT NULL");
+  }
+
   @Test public void testJsonObjectAgg() {
     check("select json_objectagg(ename: empno) from emp");
     checkFails("select ^json_objectagg(empno: ename)^ from emp",

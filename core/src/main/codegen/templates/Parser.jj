@@ -4854,6 +4854,8 @@ SqlNode BuiltinFunctionCall() :
     |
         node = JsonValueFunctionCall() { return node; }
     |
+        node = JsonKeysFunctionCall() { return node; }
+    |
         node = JsonPrettyFunctionCall() { return node; }
     |
         node = JsonQueryFunctionCall() { return node; }
@@ -5114,6 +5116,23 @@ SqlCall JsonValueFunctionCall() :
     )*
     <RPAREN> {
         return SqlStdOperatorTable.JSON_VALUE.createCall(span.end(this), args);
+    }
+}
+
+SqlCall JsonKeysFunctionCall() :
+{
+    final SqlNode[] args = new SqlNode[1];
+    SqlNode e;
+    final Span span;
+    List<SqlNode> behavior;
+}
+{
+    <JSON_KEYS> { span = span(); }
+    <LPAREN> e = JsonApiCommonSyntax(true) {
+       args[0] = e;
+    }
+    <RPAREN> {
+        return SqlStdOperatorTable.JSON_KEYS.createCall(span.end(this), args);
     }
 }
 
@@ -6431,15 +6450,16 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < JSON: "JSON" >
 |   < JSON_ARRAY: "JSON_ARRAY">
 |   < JSON_ARRAYAGG: "JSON_ARRAYAGG">
+|   < JSON_DEPTH: "JSON_DEPTH">
 |   < JSON_EXISTS: "JSON_EXISTS" >
-|   < JSON_VALUE: "JSON_VALUE" >
-|   < JSON_PRETTY: "JSON_PRETTY" >
+|   < JSON_KEYS: "JSON_KEYS" >
+|   < JSON_LENGTH: "JSON_LENGTH">
 |   < JSON_OBJECT: "JSON_OBJECT">
 |   < JSON_TYPE: "JSON_TYPE">
-|   < JSON_DEPTH: "JSON_DEPTH">
-|   < JSON_LENGTH: "JSON_LENGTH">
 |   < JSON_OBJECTAGG: "JSON_OBJECTAGG">
+|   < JSON_PRETTY: "JSON_PRETTY" >
 |   < JSON_QUERY: "JSON_QUERY" >
+|   < JSON_VALUE: "JSON_VALUE" >
 |   < K: "K" >
 |   < KEY: "KEY" >
 |   < KEY_MEMBER: "KEY_MEMBER" >

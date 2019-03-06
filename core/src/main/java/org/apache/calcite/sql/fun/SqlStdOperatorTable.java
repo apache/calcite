@@ -1300,6 +1300,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction JSON_VALUE =
       new SqlJsonValueFunction("JSON_VALUE", false);
 
+  public static final SqlFunction JSON_KEYS = new SqlJsonKeysFunction();
+
   public static final SqlFunction JSON_PRETTY =
           new SqlJsonPrettyFunction();
 

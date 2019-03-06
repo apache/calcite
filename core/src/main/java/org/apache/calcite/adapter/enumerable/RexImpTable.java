@@ -167,6 +167,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_ARRAY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_ARRAYAGG;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_DEPTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_EXISTS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_KEYS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECTAGG;
@@ -466,6 +467,7 @@ public class RexImpTable {
     defineMethod(JSON_ARRAY, BuiltInMethod.JSON_ARRAY.method, NullPolicy.NONE);
     defineMethod(JSON_TYPE, BuiltInMethod.JSON_TYPE.method, NullPolicy.NONE);
     defineMethod(JSON_DEPTH, BuiltInMethod.JSON_DEPTH.method, NullPolicy.NONE);
+    defineMethod(JSON_KEYS, BuiltInMethod.JSON_KEYS.method, NullPolicy.NONE);
     defineMethod(JSON_PRETTY, BuiltInMethod.JSON_PRETTY.method, NullPolicy.NONE);
     defineMethod(JSON_LENGTH, BuiltInMethod.JSON_LENGTH.method, NullPolicy.NONE);
     aggMap.put(JSON_OBJECTAGG.with(SqlJsonConstructorNullClause.ABSENT_ON_NULL),

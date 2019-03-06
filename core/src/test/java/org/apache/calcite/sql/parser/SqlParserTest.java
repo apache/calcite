@@ -8440,6 +8440,15 @@ public class SqlParserTest {
             "JSON_LENGTH('{\"foo\": \"bar\"}' FORMAT JSON, 'invalid $')");
   }
 
+  @Test public void testJsonKeys() {
+    checkExp("json_keys('{\"foo\": \"bar\"}', 'lax $')",
+            "JSON_KEYS('{\"foo\": \"bar\"}' FORMAT JSON, 'lax $')");
+    checkExp("json_keys('{\"foo\": \"bar\"}', 'strict $')",
+            "JSON_KEYS('{\"foo\": \"bar\"}' FORMAT JSON, 'strict $')");
+    checkExp("json_keys('{\"foo\": \"bar\"}', 'invalid $')",
+            "JSON_KEYS('{\"foo\": \"bar\"}' FORMAT JSON, 'invalid $')");
+  }
+
   @Test public void testJsonObjectAgg() {
     checkExp("json_objectagg(k_column: v_column)",
         "JSON_OBJECTAGG(KEY `K_COLUMN` VALUE `V_COLUMN` NULL ON NULL)");

@@ -876,6 +876,9 @@ public interface CalciteResource {
 
   @BaseMessage("Not a valid input for JSON_LENGTH: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonLength(String value);
+
+  @BaseMessage("Not a valid input for JSON_KEYS: ''{0}''")
+  ExInst<CalciteException> invalidInputForJsonKeys(String value);
 }
 
 // End CalciteResource.java

@@ -497,21 +497,40 @@ public class SqlJsonFunctionsTest {
   @Test
   public void testJsonLength() {
     assertJsonLength(
-        SqlFunctions.PathContext
-            .withReturned(SqlFunctions.PathMode.LAX, Collections.singletonList("bar")),
-        is(1));
+            SqlFunctions.PathContext
+                    .withReturned(SqlFunctions.PathMode.LAX, Collections.singletonList("bar")),
+            is(1));
     assertJsonLength(
-        SqlFunctions.PathContext
-            .withReturned(SqlFunctions.PathMode.LAX, null),
-        nullValue());
+            SqlFunctions.PathContext
+                    .withReturned(SqlFunctions.PathMode.LAX, null),
+            nullValue());
     assertJsonLength(
-        SqlFunctions.PathContext
-            .withReturned(SqlFunctions.PathMode.STRICT, Collections.singletonList("bar")),
-        is(1));
+            SqlFunctions.PathContext
+                    .withReturned(SqlFunctions.PathMode.STRICT, Collections.singletonList("bar")),
+            is(1));
     assertJsonLength(
-        SqlFunctions.PathContext
-            .withReturned(SqlFunctions.PathMode.LAX, "bar"),
-        is(1));
+            SqlFunctions.PathContext
+                    .withReturned(SqlFunctions.PathMode.LAX, "bar"),
+            is(1));
+  }
+
+  public void testJsonKeys() {
+    assertJsonKeys(
+            SqlFunctions.PathContext
+                    .withReturned(SqlFunctions.PathMode.LAX, Collections.singletonList("bar")),
+            is("null"));
+    assertJsonKeys(
+            SqlFunctions.PathContext
+                    .withReturned(SqlFunctions.PathMode.LAX, null),
+            is("null"));
+    assertJsonKeys(
+            SqlFunctions.PathContext
+                    .withReturned(SqlFunctions.PathMode.STRICT, Collections.singletonList("bar")),
+            is("null"));
+    assertJsonKeys(
+            SqlFunctions.PathContext
+                    .withReturned(SqlFunctions.PathMode.LAX, "bar"),
+            is("null"));
   }
 
   @Test
@@ -700,6 +719,21 @@ public class SqlJsonFunctionsTest {
     assertFailed(
         invocationDesc(BuiltInMethod.JSON_LENGTH.getMethodName(), input),
         () -> SqlFunctions.jsonLength(input),
+        matcher);
+  }
+
+  private void assertJsonKeys(Object input,
+                                Matcher<? super String> matcher) {
+    assertThat(
+            invocationDesc(BuiltInMethod.JSON_KEYS.getMethodName(), input),
+            SqlFunctions.jsonKeys(input),
+            matcher);
+  }
+
+  private void assertJsonKeysFailed(Object input,
+                                      Matcher<? super Throwable> matcher) {
+    assertFailed(invocationDesc(BuiltInMethod.JSON_KEYS.getMethodName(), input),
+        () -> SqlFunctions.jsonKeys(input),
         matcher);
   }
 
