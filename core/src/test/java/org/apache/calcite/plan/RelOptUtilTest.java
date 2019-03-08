@@ -17,6 +17,7 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -37,6 +38,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -52,10 +54,15 @@ import static org.junit.Assert.fail;
 public class RelOptUtilTest {
   /** Creates a config based on the "scott" schema. */
   private static Frameworks.ConfigBuilder config() {
+    return config(CalciteAssert.SchemaSpec.SCOTT);
+  }
+
+  /** Creates a config based on a certain schema. */
+  private static Frameworks.ConfigBuilder config(CalciteAssert.SchemaSpec schemaSpec) {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     return Frameworks.newConfigBuilder()
-        .parserConfig(SqlParser.Config.DEFAULT)
-        .defaultSchema(CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.SCOTT));
+            .parserConfig(SqlParser.Config.DEFAULT)
+            .defaultSchema(CalciteAssert.addSchema(rootSchema, schemaSpec));
   }
 
   private static final RelBuilder REL_BUILDER = RelBuilder.create(config().build());
@@ -136,6 +143,8 @@ public class RelOptUtilTest {
         RexInputRef.of(EMP_ROW.getFieldCount() + rightJoinIndex, EMP_DEPT_JOIN_REL_FIELDS));
 
     splitJoinConditionHelper(
+        EMP_SCAN,
+        DEPT_SCAN,
         joinCond,
         Collections.singletonList(leftJoinIndex),
         Collections.singletonList(rightJoinIndex),
@@ -156,6 +165,8 @@ public class RelOptUtilTest {
         RexInputRef.of(EMP_ROW.getFieldCount() + rightJoinIndex, EMP_DEPT_JOIN_REL_FIELDS));
 
     splitJoinConditionHelper(
+        EMP_SCAN,
+        DEPT_SCAN,
         joinCond,
         Collections.singletonList(leftJoinIndex),
         Collections.singletonList(rightJoinIndex),
@@ -181,6 +192,8 @@ public class RelOptUtilTest {
             REL_BUILDER.call(SqlStdOperatorTable.IS_NULL, rightKeyInputRef)));
 
     splitJoinConditionHelper(
+        EMP_SCAN,
+        DEPT_SCAN,
         joinCond,
         Collections.singletonList(leftJoinIndex),
         Collections.singletonList(rightJoinIndex),
@@ -188,13 +201,60 @@ public class RelOptUtilTest {
         REL_BUILDER.literal(true));
   }
 
-  private static void splitJoinConditionHelper(RexNode joinCond, List<Integer> expLeftKeys,
-      List<Integer> expRightKeys, List<Boolean> expFilterNulls, RexNode expRemaining) {
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2898">[CALCITE-2898]
+   * RelOptUtil#splitJoinCondition must consider RexFieldAccess referencing RexInputRef</a>. */
+  @Test public void testSemiJoinConditionOnStructTypes() {
+    RelBuilder relBuilder =
+            RelBuilder.create(config(CalciteAssert.SchemaSpec.BOOKSTORE).build());
+
+    // Example of semijoin with struct type: authors from the same country as Victor Hugo / Homer
+    //   SELECT a1.* from authors a1 WHERE a1.birthPlace.country IN
+    //     (SELECT a2.birthPlace.country FROM authors a2
+    //      WHERE a2.name = 'Victor Hugo' OR a2.name = 'Homer')
+
+    relBuilder.scan("authors").as("a1");
+    RelNode left = relBuilder.peek();
+    int leftJoinIndex = left.getRowType().getFieldNames().indexOf("birthPlace");
+
+    relBuilder.scan("authors").as("a2");
+    relBuilder.filter(
+                    relBuilder.or(
+                            relBuilder.equals(
+                                    relBuilder.literal("Victor Hugo"),
+                                    relBuilder.field("a2", "name")),
+                            relBuilder.equals(
+                                    relBuilder.literal("Homer"),
+                                    relBuilder.field("a2", "name"))));
+    RelNode right = relBuilder.peek();
+    int rightJoinIndex = right.getRowType().getFieldNames().indexOf("birthPlace");
+
+    RexNode condition = relBuilder.equals(
+            relBuilder.field(relBuilder.field(2, "a1", "birthPlace"), "country"),
+            relBuilder.field(relBuilder.field(2, "a2", "birthPlace"), "country"));
+    relBuilder.semiJoin(condition);
+
+    splitJoinConditionHelper(
+            left,
+            right,
+            condition,
+            Collections.singletonList(leftJoinIndex),
+            Collections.singletonList(rightJoinIndex),
+            Collections.singletonList(true),
+            relBuilder.literal(true));
+
+    JoinInfo joinInfo = JoinInfo.of(left, right, condition);
+    Assert.assertTrue(joinInfo.isEqui());
+  }
+
+  private static void splitJoinConditionHelper(RelNode left, RelNode right, RexNode joinCond,
+      List<Integer> expLeftKeys, List<Integer> expRightKeys, List<Boolean> expFilterNulls,
+      RexNode expRemaining) {
     List<Integer> actLeftKeys = new ArrayList<>();
     List<Integer> actRightKeys = new ArrayList<>();
     List<Boolean> actFilterNulls = new ArrayList<>();
 
-    RexNode actRemaining = RelOptUtil.splitJoinCondition(EMP_SCAN, DEPT_SCAN, joinCond, actLeftKeys,
+    RexNode actRemaining = RelOptUtil.splitJoinCondition(left, right, joinCond, actLeftKeys,
         actRightKeys, actFilterNulls);
 
     assertEquals(expRemaining.toString(), actRemaining.toString());
