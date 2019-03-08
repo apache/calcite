@@ -3471,7 +3471,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "  select n2.SAL\n"
         + "  from EMPNULLABLES_20 n2\n"
         + "  where n1.SAL = n2.SAL or n1.SAL = 4)";
-    sql(sql).withDecorrelation(true).with(program).check();
+    sql(sql).withDecorrelation(true).with(program).checkUnchanged();
   }
 
   /** Test case for

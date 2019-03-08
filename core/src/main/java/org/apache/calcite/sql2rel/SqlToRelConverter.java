@@ -188,6 +188,7 @@ import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -2415,6 +2416,30 @@ public class SqlToRelConverter {
     }
   }
 
+  /** Shuttle that replace outer {@link RexInputRef} with
+   * {@link RexFieldAccess}, and adjust {@code offset} to
+   * each inner {@link RexInputRef} in the lateral join
+   * condition. */
+  private static class RexAccessShuttle extends RexShuttle {
+    private final RexBuilder builder;
+    private final RexCorrelVariable rexCorrel;
+    private final BitSet varCols = new BitSet();
+
+    RexAccessShuttle(RexBuilder builder, RexCorrelVariable rexCorrel) {
+      this.builder = builder;
+      this.rexCorrel = rexCorrel;
+    }
+
+    @Override public RexNode visitInputRef(RexInputRef input) {
+      int i = input.getIndex() - rexCorrel.getType().getFieldCount();
+      if (i < 0) {
+        varCols.set(input.getIndex());
+        return builder.makeFieldAccess(rexCorrel, input.getIndex());
+      }
+      return builder.makeInputRef(input.getType(), i);
+    }
+  }
+
   protected RelNode createJoin(
       Blackboard bb,
       RelNode leftRel,
@@ -2425,13 +2450,29 @@ public class SqlToRelConverter {
 
     final CorrelationUse p = getCorrelationUse(bb, rightRel);
     if (p != null) {
-      LogicalCorrelate corr = LogicalCorrelate.create(leftRel, p.r,
-          p.id, p.requiredColumns, SemiJoinType.of(joinType));
+      RelNode innerRel = p.r;
+      ImmutableBitSet requiredCols = p.requiredColumns;
+
       if (!joinCond.isAlwaysTrue()) {
         final RelFactories.FilterFactory factory =
             RelFactories.DEFAULT_FILTER_FACTORY;
-        return factory.createFilter(corr, joinCond);
+        final RexCorrelVariable rexCorrel =
+            (RexCorrelVariable) rexBuilder.makeCorrel(
+                leftRel.getRowType(), p.id);
+        final RexAccessShuttle shuttle =
+            new RexAccessShuttle(rexBuilder, rexCorrel);
+
+        // Replace outer RexInputRef with RexFieldAccess,
+        // and push lateral join predicate into inner child
+        final RexNode newCond = joinCond.accept(shuttle);
+        innerRel = factory.createFilter(p.r, newCond);
+        requiredCols = ImmutableBitSet
+            .fromBitSet(shuttle.varCols)
+            .union(p.requiredColumns);
       }
+
+      LogicalCorrelate corr = LogicalCorrelate.create(leftRel, innerRel,
+          p.id, requiredCols, SemiJoinType.of(joinType));
       return corr;
     }
 
