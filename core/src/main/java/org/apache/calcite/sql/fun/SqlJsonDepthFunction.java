@@ -31,18 +31,17 @@ import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.validate.SqlValidator;
 
-
 /**
  * The <code>JSON_DEPTH</code> function.
  */
 public class SqlJsonDepthFunction extends SqlFunction {
   public SqlJsonDepthFunction() {
     super("JSON_DEPTH",
-            SqlKind.OTHER_FUNCTION,
-            ReturnTypes.INTEGER_NULLABLE,
-            null,
-            OperandTypes.ANY,
-            SqlFunctionCategory.SYSTEM);
+        SqlKind.OTHER_FUNCTION,
+        ReturnTypes.INTEGER_NULLABLE,
+        null,
+        OperandTypes.ANY,
+        SqlFunctionCategory.SYSTEM);
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {
@@ -50,17 +49,17 @@ public class SqlJsonDepthFunction extends SqlFunction {
   }
 
   @Override protected void checkOperandCount(SqlValidator validator,
-                                             SqlOperandTypeChecker argType, SqlCall call) {
+      SqlOperandTypeChecker argType, SqlCall call) {
     assert call.operandCount() == 1;
   }
 
   @Override public SqlCall createCall(SqlLiteral functionQualifier,
-                                      SqlParserPos pos, SqlNode... operands) {
+      SqlParserPos pos, SqlNode... operands) {
     return super.createCall(functionQualifier, pos, operands);
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
-                                int rightPrec) {
+      int rightPrec) {
     super.unparse(writer, call, 0, 0);
   }
 }

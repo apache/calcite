@@ -106,8 +106,8 @@ class RuleQueue {
    * Maps a {@link VolcanoPlannerPhase} to a set of rule descriptions. Named rules
    * may be invoked in their corresponding phase.
    *
-   * See {@link VolcanoPlannerPhaseRuleMappingInitializer} for more information regarding the
-   * contents of this Map and how it is initialized.
+   * <p>See {@link VolcanoPlannerPhaseRuleMappingInitializer} for more
+   * information regarding the contents of this Map and how it is initialized.
    */
   private final Map<VolcanoPlannerPhase, Set<String>> phaseRuleMapping;
 

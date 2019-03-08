@@ -266,7 +266,8 @@ public class ElasticSearchAdapterTest {
   /**
    * Sorting (and aggregating) directly on items without a view.
    *
-   * Queries of type: {@code select _MAP['a'] from elastic order by _MAP['b']}
+   * <p>Queries of type:
+   * {@code select _MAP['a'] from elastic order by _MAP['b']}
    */
   @Test public void testSortNoSchema() {
     CalciteAssert.that()

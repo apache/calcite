@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.benchmarks;
 
-
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -36,7 +35,6 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -44,9 +42,11 @@ import java.io.Writer;
 import java.util.concurrent.TimeUnit;
 
 /**
- * A benchmark of the most common patterns that are used to construct gradually String objects.
+ * A benchmark of the most common patterns that are used to construct gradually
+ * String objects.
  *
- * The benchmark emphasizes on the build patterns that appear in the Calcite project.
+ * <p>The benchmark emphasizes on the build patterns that appear in the Calcite
+ * project.
  */
 @Fork(value = 1, jvmArgsPrepend = "-Xmx2048m")
 @Measurement(iterations = 10, time = 100, timeUnit = TimeUnit.MILLISECONDS)
@@ -85,8 +85,9 @@ public class StringConstructBenchmark {
     /**
      * The maximum number of appends before resetting the appender.
      *
-     * If the value is small then the appender is reinitialized very often, making the instantiation
-     * of the appender the dominant operation of the benchmark.
+     * <p>If the value is small then the appender is reinitialized very often,
+     * making the instantiation of the appender the dominant operation of the
+     * benchmark.
      */
     @Param({"1", "256", "512", "1024"})
     public int maxAppends;

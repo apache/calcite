@@ -174,13 +174,13 @@ public class FilterProjectTransposeRule extends RelOptRule {
   }
 
   /**
-   * Simplifies the filter condition using a simplifier created by the information in the
-   * current call.
+   * Simplifies the filter condition using a simplifier created by the
+   * information in the current call.
    *
-   * The method is an attempt to replicate the simplification behavior of
-   * {@link RelBuilder#filter(RexNode...)} which cannot be used in the case of copying nodes. The
-   * main difference with the behavior of that method is that it does not drop entirely the filter
-   * if the condition is always false.
+   * <p>This method is an attempt to replicate the simplification behavior of
+   * {@link RelBuilder#filter(RexNode...)} which cannot be used in the case of
+   * copying nodes. The main difference with the behavior of that method is that
+   * it does not drop entirely the filter if the condition is always false.
    */
   private RexNode simplifyFilterCondition(RexNode condition, RelOptRuleCall call) {
     final RexBuilder xBuilder = call.builder().getRexBuilder();

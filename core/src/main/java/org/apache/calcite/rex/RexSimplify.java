@@ -2036,9 +2036,9 @@ public class RexSimplify {
     }
   }
 
-  /** Represents a simple Comparision.
+  /** Represents a simple Comparison.
    *
-   * Left hand side is a {@link RexNode}, right hand side is a literal.
+   * <p>Left hand side is a {@link RexNode}, right hand side is a literal.
    */
   private static class Comparison implements Predicate {
     final RexNode ref;

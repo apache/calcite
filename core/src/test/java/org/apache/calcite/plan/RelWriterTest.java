@@ -382,8 +382,7 @@ public class RelWriterTest {
                               rexBuilder.makeCall(
                                   SqlWindow.FOLLOWING_OPERATOR,
                                   rexBuilder.makeExactLiteral(BigDecimal.ONE))),
-                          false, true, false, false)
-                  ),
+                          false, true, false, false)),
                   ImmutableList.of("field0", "field1", "field2"));
           final RelJsonWriter writer = new RelJsonWriter();
           project.explain(writer);
@@ -391,7 +390,6 @@ public class RelWriterTest {
         });
     assertThat(s, is(XX2));
   }
-
 
   /**
    * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonReader}.

@@ -34,6 +34,7 @@ import org.apache.calcite.prepare.LookupOperatorOverloadsTest;
 import org.apache.calcite.profile.ProfilerTest;
 import org.apache.calcite.rel.RelCollationTest;
 import org.apache.calcite.rel.RelDistributionTest;
+import org.apache.calcite.rel.rel2sql.RelToSqlConverterStructsTest;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverterTest;
 import org.apache.calcite.rel.rules.DateRangeRulesTest;
 import org.apache.calcite.rel.rules.SortRemoveRuleTest;
@@ -146,6 +147,7 @@ import org.junit.runners.Suite;
     SqlLimitsTest.class,
     JdbcFrontLinqBackTest.class,
     RelToSqlConverterTest.class,
+    RelToSqlConverterStructsTest.class,
     SqlOperatorTest.class,
     ChunkListTest.class,
     FrameworksTest.class,

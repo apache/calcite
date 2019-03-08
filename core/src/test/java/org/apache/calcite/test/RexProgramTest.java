@@ -1743,9 +1743,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
                     ge(vInt(), literal(1)),
                     le(vInt(), literal(1))))),
         "AND(=(?0.int2, 2), OR(=(?0.int3, 3), AND(>=(?0.int0, 1), <=(?0.int0, 1))))",
-        "AND(=(?0.int2, 2), OR(=(?0.int3, 3), =(?0.int0, 1)))"
-
-    );
+        "AND(=(?0.int2, 2), OR(=(?0.int3, 3), =(?0.int0, 1)))");
   }
 
   @Test public void fieldAccessEqualsHashCode() {
@@ -2570,16 +2568,14 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplify2(
         isTrue(isTrue(vBool())),
         "IS TRUE(?0.bool0)",
-        "?0.bool0"
-    );
+        "?0.bool0");
   }
 
   @Test public void testRedundantIsFalse() {
     checkSimplify2(
         isTrue(isFalse(vBool())),
         "IS FALSE(?0.bool0)",
-        "NOT(?0.bool0)"
-    );
+        "NOT(?0.bool0)");
   }
 
   @Test public void testRedundantIsNotTrue() {
@@ -2587,8 +2583,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
         isNotFalse(isNotTrue(vBool())),
         "IS NOT TRUE(?0.bool0)",
         "IS NOT TRUE(?0.bool0)",
-        "NOT(?0.bool0)"
-    );
+        "NOT(?0.bool0)");
   }
 
   @Test public void testRedundantIsNotFalse() {
@@ -2596,8 +2591,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
         isNotFalse(isNotFalse(vBool())),
         "IS NOT FALSE(?0.bool0)",
         "IS NOT FALSE(?0.bool0)",
-        "?0.bool0"
-    );
+        "?0.bool0");
   }
 
   /** Unit tests for
@@ -2681,4 +2675,5 @@ public class RexProgramTest extends RexProgramBuilderBase {
   }
 
 }
+
 // End RexProgramTest.java

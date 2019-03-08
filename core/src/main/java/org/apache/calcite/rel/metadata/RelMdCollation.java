@@ -146,22 +146,21 @@ public class RelMdCollation
   public ImmutableList<RelCollation> collations(EnumerableThetaJoin join,
       RelMetadataQuery mq) {
     return ImmutableList.copyOf(
-        RelMdCollation.enumerableThetaJoin(mq, join.getLeft(), join.getRight(), join.getJoinType())
-    );
+        RelMdCollation.enumerableThetaJoin(mq, join.getLeft(), join.getRight(),
+            join.getJoinType()));
   }
 
   public ImmutableList<RelCollation> collations(EnumerableCorrelate join,
       RelMetadataQuery mq) {
     return ImmutableList.copyOf(
-        RelMdCollation.enumerableCorrelate(mq, join.getLeft(), join.getRight(), join.getJoinType())
-    );
+        RelMdCollation.enumerableCorrelate(mq, join.getLeft(), join.getRight(),
+            join.getJoinType()));
   }
 
   public ImmutableList<RelCollation> collations(EnumerableSemiJoin join,
       RelMetadataQuery mq) {
     return ImmutableList.copyOf(
-        RelMdCollation.enumerableSemiJoin(mq, join.getLeft(), join.getRight())
-    );
+        RelMdCollation.enumerableSemiJoin(mq, join.getLeft(), join.getRight()));
   }
 
   public ImmutableList<RelCollation> collations(Sort sort,

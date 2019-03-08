@@ -37,7 +37,6 @@ import org.apache.calcite.runtime.Typed;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.tools.RelBuilder;
 
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
@@ -70,11 +69,11 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * A benchmark of the main methods that are dynamically
- * generating and compiling Java code at runtime.
+ * A benchmark of the main methods that are dynamically generating and compiling
+ * Java code at runtime.
  *
- * The benchmark examines the behavior of existing methods
- * and evaluates the potential of adding a caching layer on top.
+ * <p>The benchmark examines the behavior of existing methods and evaluates the
+ * potential of adding a caching layer on top.
  */
 @Fork(value = 1, jvmArgsPrepend = "-Xmx1024m")
 @Measurement(iterations = 10, time = 1)
@@ -262,8 +261,8 @@ public class CodeGenerationBenchmark {
     PlanInfo info = jState.planInfos[jState.nextPlan()];
     Cache<String, Bindable> cache = chState.cache;
 
-    EnumerableInterpretable.StaticFieldDetector detector
-        = new EnumerableInterpretable.StaticFieldDetector();
+    EnumerableInterpretable.StaticFieldDetector detector =
+        new EnumerableInterpretable.StaticFieldDetector();
     info.classExpr.accept(detector);
     if (!detector.containsStaticField) {
       return cache.get(

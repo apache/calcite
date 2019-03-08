@@ -83,7 +83,7 @@ If your change had multiple commits, use `git rebase -i master` to
 squash them into a single commit, and to bring your code up to date
 with the latest on the main line.
 
-In order to keep the commit history clean and uniform, you should 
+In order to keep the commit history clean and uniform, you should
 respect the following guidelines.
  * Read the messages of previous commits, and follow their style.
  * The first line of the commit message must be a concise and useful

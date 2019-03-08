@@ -128,7 +128,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * struct type alias should not cause IOOBE.</a>.
    */
   @Test public void testStructTypeAlias() {
-    final String sql = "select t.r AS myRow \n"
+    final String sql = "select t.r AS myRow\n"
         + "from (select row(row(1)) r from dept) t";
     sql(sql).ok();
   }
