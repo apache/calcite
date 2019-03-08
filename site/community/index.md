@@ -143,3 +143,11 @@ As Hadoop Summit, Dublin, 2016
 * <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-nosql-now-2013.pdf?raw=true">SQL Now!</a> (NoSQL Now! conference, 2013)
 * <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-drill-user-group-2013.pdf?raw=true">Drill / SQL / Optiq</a> (2013)
 * <a href="http://www.slideshare.net/julianhyde/how-to-integrate-splunk-with-any-data-solution">How to integrate Splunk with any data solution</a> (Splunk User Conference, 2012)
+
+# Publications 
+
+Begoli, Edmon, Tyler Akidau, Fabian Hueske, Julian Hyde, Kathryn Knight, and Kenneth Knowles. 2019. "One SQL to Rule Them All -- an Efficient and Syntactically Idiomatic Approach to Management of Streams and Tables: An Industrial Paper." In Proceedings of ACM SIGMOD conference (SIGMOD 2019). ACM, New York, NY, USA, Article 4, 16 pages.
+
+Begoli, Edmon, Jesús Camacho-Rodríguez, Julian Hyde, Michael J. Mior, and Daniel Lemire. "Apache calcite: a foundational framework for optimized query processing over heterogeneous data sources." In Proceedings of the 2018 International Conference on Management of Data, pp. 221-230. ACM, 2018.
+
+Vajantri, Ashwin Kumar, Kunwar Deep Singh Toor, Edmon Begoli, and Jack Bates. "An apache calcite-based polystore variation for federated querying of heterogeneous healthcare sources." In 2017 IEEE International Conference on Big Data (Big Data), pp. 3221-3227. IEEE, 2017.
