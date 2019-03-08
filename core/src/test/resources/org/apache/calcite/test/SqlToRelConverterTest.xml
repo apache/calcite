@@ -277,9 +277,9 @@ for system_time as of orders.rowtime on orders.productid = products_temporal.pro
             <![CDATA[
 LogicalDelta
   LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], PRODUCTID0=[$3], NAME=[$4], SUPPLIERID=[$5], SYS_START=[$6], SYS_END=[$7])
-    LogicalFilter(condition=[=($1, $3)])
-      LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
-        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0, 1}])
+      LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+      LogicalFilter(condition=[=($cor0.PRODUCTID, $0)])
         LogicalSnapshot(period=[$cor0.ROWTIME])
           LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS_TEMPORAL]])
 ]]>
@@ -5723,6 +5723,145 @@ LogicalSort(sort0=[$0], dir0=[ASC])
     LogicalSort(sort0=[$1], dir0=[ASC], fetch=[10])
       LogicalProject(EMPNO=[$0], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testLeftJoinLateral1">
+        <Resource name="sql">
+            <![CDATA[select * from (values 4) as t (c)
+            left join lateral
+            (select c,a*c from (values 2) as s(a)) as r(d,c)
+            using(c)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(C=[$0], D=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+    LogicalValues(tuples=[[{ 4 }]])
+    LogicalFilter(condition=[=($cor0.C, $1)])
+      LogicalProject(C=[$cor0.C], EXPR$1=[*($0, $cor0.C)])
+        LogicalValues(tuples=[[{ 2 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testLeftJoinLateral2">
+        <Resource name="sql">
+            <![CDATA[select * from (values 4) as t (c)
+            natural left join lateral
+            (select c,a*c from (values 2) as s(a)) as r(d,c)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(C=[$0], D=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+    LogicalValues(tuples=[[{ 4 }]])
+    LogicalFilter(condition=[=($cor0.C, $1)])
+      LogicalProject(C=[$cor0.C], EXPR$1=[*($0, $cor0.C)])
+        LogicalValues(tuples=[[{ 2 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testLeftJoinLateral3">
+        <Resource name="sql">
+            <![CDATA[select * from (values 4) as t (c)
+            left join lateral
+            (select c,a*c from (values 2) as s(a)) as r(d,c)
+            on t.c=r.c]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(C=[$0], D=[$1], C0=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+    LogicalValues(tuples=[[{ 4 }]])
+    LogicalFilter(condition=[=($cor0.C, $1)])
+      LogicalProject(C=[$cor0.C], EXPR$1=[*($0, $cor0.C)])
+        LogicalValues(tuples=[[{ 2 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testLeftJoinLateral4">
+        <Resource name="sql">
+            <![CDATA[select * from (values (4,5)) as t(c,d)
+            left join lateral
+            (select c,a*c from (values 2) as s(a)) as r(d,c)
+            on t.c+t.d=r.c]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(C=[$0], D=[$1], D0=[$2], C0=[$3])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0, 1}])
+    LogicalValues(tuples=[[{ 4, 5 }]])
+    LogicalFilter(condition=[=(+($cor0.C, $cor0.D), $1)])
+      LogicalProject(C=[$cor0.C], EXPR$1=[*($0, $cor0.C)])
+        LogicalValues(tuples=[[{ 2 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testLeftJoinLateral5">
+        <Resource name="sql">
+            <![CDATA[select * from (values 4) as t (c)
+        left join lateral
+          (select f1+b1 from (values 2) as foo(f1)
+            join
+          (select c+1 from (values 3)) as bar(b1)
+          on f1=b1)
+        as r(n) on c=n]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(C=[$0], N=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+    LogicalValues(tuples=[[{ 4 }]])
+    LogicalFilter(condition=[=($cor0.C, $0)])
+      LogicalProject(EXPR$0=[+($0, $1)])
+        LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+          LogicalValues(tuples=[[{ 2 }]])
+          LogicalProject(EXPR$0=[+($cor0.C, 1)])
+            LogicalValues(tuples=[[{ 3 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testCrossJoinLateral1">
+        <Resource name="sql">
+            <![CDATA[select * from (values (4,5)) as t(c,d)
+         cross join lateral
+         (select c,a*c as f from (values 2) as s(a)
+         where c+d=a*c)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(C=[$0], D=[$1], C0=[$2], F=[$3])
+  LogicalCorrelate(correlation=[$cor3], joinType=[inner], requiredColumns=[{0, 1}])
+    LogicalValues(tuples=[[{ 4, 5 }]])
+    LogicalProject(C=[$cor3.C], F=[*($0, $cor3.C)])
+      LogicalFilter(condition=[=(+($cor3.C, $cor3.D), *($0, $cor3.C))])
+        LogicalValues(tuples=[[{ 2 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testCrossJoinLateral2">
+        <Resource name="sql">
+            <![CDATA[select * from (values 4) as t (c)
+        cross join lateral
+        (select * from (
+          select f1+b1 from (values 2) as foo(f1)
+            join
+          (select c+1 from (values 3)) as bar(b1)
+          on f1=b1
+        ) as r(n) where c=n)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(C=[$0], N=[$1])
+  LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{0}])
+    LogicalValues(tuples=[[{ 4 }]])
+    LogicalProject(N=[$0])
+      LogicalFilter(condition=[=($cor1.C, $0)])
+        LogicalProject(EXPR$0=[+($0, $1)])
+          LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+            LogicalValues(tuples=[[{ 2 }]])
+            LogicalProject(EXPR$0=[+($cor1.C, 1)])
+              LogicalValues(tuples=[[{ 3 }]])
 ]]>
         </Resource>
     </TestCase>

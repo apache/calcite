@@ -432,6 +432,20 @@ public class TableFunctionTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2004">[CALCITE-2004]
+   * Wrong plan generated for left outer apply with table function</a>. */
+  @Test public void testLeftOuterApply() {
+    final String sql = "select *\n"
+        + "from (values 4) as t (c)\n"
+        + "left join lateral table(\"s\".\"fibonacci2\"(c)) as R(n) on c=n";
+    with()
+        .with(CalciteConnectionProperty.CONFORMANCE,
+            SqlConformanceEnum.LENIENT)
+        .query(sql)
+        .returnsUnordered("C=4; N=null");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2382">[CALCITE-2382]
    * Sub-query lateral joined to table function</a>. */
   @Test public void testInlineViewLateralTableFunction() throws SQLException {
