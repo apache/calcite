@@ -285,6 +285,67 @@ LogicalDelta
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testCrossJoinTemporalTable1">
+        <Resource name="sql">
+            <![CDATA[select stream *
+        from orders
+        join products_temporal for system_time as of orders.rowtime
+        on orders.productid = products_temporal.productid]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalDelta
+  LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], PRODUCTID0=[$3], NAME=[$4], SUPPLIERID=[$5], SYS_START=[$6], SYS_END=[$7])
+    LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{0, 1}])
+      LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+      LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], SYS_START=[$3], SYS_END=[$4])
+        LogicalFilter(condition=[=($cor1.PRODUCTID, $0)])
+          LogicalSnapshot(period=[$cor1.ROWTIME])
+            LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS_TEMPORAL]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testCrossJoinTemporalTable2">
+        <Resource name="sql">
+            <![CDATA[select stream *
+        from orders
+        cross join lateral (
+          select * from products_temporal for system_time
+          as of TIMESTAMP '2011-01-02 00:00:00'
+          where orders.productid = products_temporal.productid)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalDelta
+  LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], PRODUCTID0=[$3], NAME=[$4], SUPPLIERID=[$5], SYS_START=[$6], SYS_END=[$7])
+    LogicalJoin(condition=[=($1, $8)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+      LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], SYS_START=[$3], SYS_END=[$4], PRODUCTID5=[$0])
+        LogicalSnapshot(period=[2011-01-02 00:00:00])
+          LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS_TEMPORAL]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testCrossJoinTemporalTable3">
+        <Resource name="sql">
+            <![CDATA[select stream *
+        from orders
+        join products_temporal for system_time as of orders.rowtime
+        on products_temporal.productid > 1]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalDelta
+  LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], PRODUCTID0=[$3], NAME=[$4], SUPPLIERID=[$5], SYS_START=[$6], SYS_END=[$7])
+    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+      LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+      LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], SYS_START=[$3], SYS_END=[$4])
+        LogicalFilter(condition=[>($0, 1)])
+          LogicalSnapshot(period=[$cor0.ROWTIME])
+            LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS_TEMPORAL]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testCollectionTableWithLateral3">
         <Resource name="sql">
             <![CDATA[select * from dept, lateral table(DEDUP(dept.deptno, dept.name))]]>
