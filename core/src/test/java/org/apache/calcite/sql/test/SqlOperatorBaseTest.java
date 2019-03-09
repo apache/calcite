@@ -4247,6 +4247,19 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("CHARACTER_LENGTH(cast(null as varchar(1)))");
   }
 
+  @Test public void testAsciiFunc() {
+    tester.setFor(SqlStdOperatorTable.ASCII);
+    tester.checkScalarExact("ASCII('')", "0");
+    tester.checkScalarExact("ASCII('a')", "97");
+    tester.checkScalarExact("ASCII('1')", "49");
+    tester.checkScalarExact("ASCII('abc')", "97");
+    tester.checkScalarExact("ASCII('ABC')", "65");
+    tester.checkScalarExact("ASCII(_UTF8'\u0082')", "130");
+    tester.checkScalarExact("ASCII(_UTF8'\u5B57')", "23383");
+    tester.checkScalarExact("ASCII(_UTF8'Ω')", "937");
+    tester.checkNull("ASCII(cast(null as varchar(1)))");
+  }
+
   @Test public void testUpperFunc() {
     tester.setFor(SqlStdOperatorTable.UPPER);
     tester.checkString("upper('a')", "A", "CHAR(1) NOT NULL");
