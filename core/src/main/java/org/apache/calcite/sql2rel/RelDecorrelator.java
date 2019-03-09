@@ -46,6 +46,7 @@ import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSnapshot;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -980,6 +981,18 @@ public class RelDecorrelator implements ReflectiveVisitor {
   private boolean isWidening(RelDataType type, RelDataType type1) {
     return type.getSqlTypeName() == type1.getSqlTypeName()
         && type.getPrecision() >= type1.getPrecision();
+  }
+
+  /**
+   * Rewrite LogicalSnapshot.
+   *
+   * @param rel the snapshot rel to rewrite
+   */
+  public Frame decorrelateRel(LogicalSnapshot rel) {
+    if (RexUtil.containsCorrelation(rel.getPeriod())) {
+      return null;
+    }
+    return decorrelateRel((RelNode) rel);
   }
 
   /**
