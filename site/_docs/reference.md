@@ -1447,10 +1447,10 @@ period:
 | {fn SUBSTRING(string, offset, length)} | Returns a character string that consists of *length* characters from *string* starting at the *offset* position
 | {fn UCASE(string)} | Returns a string in which all alphabetic characters in *string* have been converted to upper case
 | {fn REPLACE(string, search, replacement)} | Returns a string in which all the occurrences of *search* in *string* are replaced with *replacement*; if *replacement* is the empty string, the occurrences of *search* are removed
+| {fn ASCII(string)} | Returns the corresponding ASCII code of the first character of *string*; Returns 0 if *string* is empty; Returns NULL if *string* is NULL; Returns the Unicode code point for non-ASCII character
 
 Not implemented:
 
-* {fn ASCII(string)} - Convert a single-character string to the corresponding ASCII code, an integer between 0 and 255
 * {fn CHAR(string)}
 * {fn DIFFERENCE(string, string)}
 * {fn LEFT(string, integer)}
