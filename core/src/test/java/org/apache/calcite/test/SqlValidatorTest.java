@@ -5626,6 +5626,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "select 1 from (values (^'x'^)) union\n"
             + "(values ('a'))",
         "Type mismatch in column 1 of UNION");
+
+    checkFails(
+        "select 1, ^2^, 3 union\n "
+            + "select deptno, name, deptno from dept",
+        "Type mismatch in column 2 of UNION");
   }
 
   @Test public void testValuesTypeMismatchFails() {
