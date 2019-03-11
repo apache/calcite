@@ -5577,6 +5577,83 @@ public abstract class SqlOperatorBaseTest {
     }
   }
 
+  @Test public void testLastDayFunc() {
+    tester.setFor(SqlStdOperatorTable.LAST_DAY);
+    tester.checkScalar("last_day(DATE '2019-02-10')",
+        "2019-02-28", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2019-06-10')",
+        "2019-06-30", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2019-07-10')",
+        "2019-07-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2019-09-10')",
+        "2019-09-30", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2019-12-10')",
+        "2019-12-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '9999-12-10')",
+        "9999-12-31", "DATE NOT NULL");
+
+    // Edge tests
+    tester.checkScalar("last_day(DATE '1900-01-01')",
+        "1900-01-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '1935-02-01')",
+        "1935-02-28", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '1965-09-01')",
+        "1965-09-30", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '1970-01-01')",
+        "1970-01-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2019-02-28')",
+        "2019-02-28", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2019-12-31')",
+        "2019-12-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2019-01-01')",
+        "2019-01-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2019-06-30')",
+        "2019-06-30", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2020-02-20')",
+        "2020-02-29", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2020-02-29')",
+        "2020-02-29", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '9999-12-31')",
+        "9999-12-31", "DATE NOT NULL");
+
+    tester.checkNull("last_day(cast(null as date))");
+
+    tester.checkScalar("last_day(TIMESTAMP '2019-02-10 02:10:12')",
+        "2019-02-28", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2019-06-10 06:10:16')",
+        "2019-06-30", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2019-07-10 07:10:17')",
+        "2019-07-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2019-09-10 09:10:19')",
+        "2019-09-30", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2019-12-10 12:10:22')",
+        "2019-12-31", "DATE NOT NULL");
+
+    // Edge tests
+    tester.checkScalar("last_day(TIMESTAMP '1900-01-01 01:01:02')",
+        "1900-01-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '1935-02-01 02:01:03')",
+        "1935-02-28", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '1970-01-01 01:01:02')",
+        "1970-01-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2019-02-28 02:28:30')",
+        "2019-02-28", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2019-12-31 12:31:43')",
+        "2019-12-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2019-01-01 01:01:02')",
+        "2019-01-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2019-06-30 06:30:36')",
+        "2019-06-30", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2020-02-20 02:20:33')",
+        "2020-02-29", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2020-02-29 02:29:31')",
+        "2020-02-29", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '9999-12-31 12:31:43')",
+        "9999-12-31", "DATE NOT NULL");
+
+    tester.checkNull("last_day(cast(null as timestamp))");
+  }
+
   @Test public void testSubstringFunction() {
     tester.setFor(SqlStdOperatorTable.SUBSTRING);
     tester.checkString(

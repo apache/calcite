@@ -1924,6 +1924,33 @@ public class SqlFunctions {
     return v - remainder;
   }
 
+  /**
+   * SQL {@code LAST_DAY} function.
+   *
+   * @param date days since epoch
+   * @return days of the last day of the month since epoch
+   */
+  public static int lastDay(int date) {
+    int y0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.YEAR, date);
+    int m0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.MONTH, date);
+    int last = lastDay(y0, m0);
+    return DateTimeUtils.ymdToUnixDate(y0, m0, last);
+  }
+
+  /**
+   * SQL {@code LAST_DAY} function.
+   *
+   * @param timestamp milliseconds from epoch
+   * @return milliseconds of the last day of the month since epoch
+   */
+  public static int lastDay(long timestamp) {
+    int date = (int) (timestamp / DateTimeUtils.MILLIS_PER_DAY);
+    int y0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.YEAR, date);
+    int m0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.MONTH, date);
+    int last = lastDay(y0, m0);
+    return DateTimeUtils.ymdToUnixDate(y0, m0, last);
+  }
+
   /** SQL {@code CURRENT_TIMESTAMP} function. */
   @NonDeterministic
   public static long currentTimestamp(DataContext root) {

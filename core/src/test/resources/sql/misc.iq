@@ -2219,4 +2219,25 @@ EXPR$0
 true
 !ok
 
+# [CALCITE-2908] Implement SQL LAST_DAY function
+with data(c_date, c_timestamp) as (select * from (values
+    (DATE'1965-01-10', TIMESTAMP '1965-01-10 20:20:20'),
+    (DATE'2019-01-01', TIMESTAMP '2019-01-01 18:19:20'),
+    (DATE'2019-02-20', TIMESTAMP '2019-02-20 00:00:00'),
+    (DATE'2019-02-28', TIMESTAMP '2019-02-28 03:04:05'),
+    (DATE'2019-03-02', TIMESTAMP '2019-03-02 15:10:05'),
+    (DATE'2019-06-28', TIMESTAMP '2019-06-28 17:32:01'),
+    (DATE'2019-12-12', TIMESTAMP '2019-12-12 12:12:01')))
+select last_day(c_date), last_day(c_timestamp) from data;
+
+EXPR$0, EXPR$1
+1965-01-31, 1965-01-31
+2019-01-31, 2019-01-31
+2019-02-28, 2019-02-28
+2019-02-28, 2019-02-28
+2019-03-31, 2019-03-31
+2019-06-30, 2019-06-30
+2019-12-31, 2019-12-31
+!ok
+
 # End misc.iq

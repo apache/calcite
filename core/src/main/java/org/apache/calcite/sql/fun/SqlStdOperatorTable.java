@@ -1957,6 +1957,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlDatePartFunction SECOND =
       new SqlDatePartFunction("SECOND", TimeUnit.SECOND);
 
+  public static final SqlFunction LAST_DAY =
+      new SqlFunction(
+          "LAST_DAY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE,
+          null,
+          OperandTypes.DATETIME,
+          SqlFunctionCategory.TIMEDATE);
+
   /**
    * The ELEMENT operator, used to convert a multiset with only one item to a
    * "regular" type. Example ... log(ELEMENT(MULTISET[1])) ...
