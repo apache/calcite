@@ -4256,7 +4256,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalarExact("ASCII('ABC')", "65");
     tester.checkScalarExact("ASCII(_UTF8'\u0082')", "130");
     tester.checkScalarExact("ASCII(_UTF8'\u5B57')", "23383");
-    tester.checkScalarExact("ASCII(_UTF8'Ω')", "937");
+    tester.checkScalarExact("ASCII(_UTF8'\u03a9')", "937"); // omega
     tester.checkNull("ASCII(cast(null as varchar(1)))");
   }
 

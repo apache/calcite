@@ -235,6 +235,7 @@ public class PhysTypeImpl implements PhysType {
         Primitive.box(javaRowClass), format);
   }
 
+  @SuppressWarnings("deprecation")
   public Expression convertTo(Expression exp, PhysType targetPhysType) {
     return convertTo(exp, targetPhysType.getFormat());
   }

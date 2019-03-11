@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.benchmarks;
 
-
 import org.apache.calcite.rel.AbstractRelNode;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -189,10 +188,10 @@ public class AbstractRelNodeGetRelTypeNameBenchmark {
     private Random r = null;
 
     /**
-     * Setups the random number generator at the beginning of each iteration.
+     * Sets up the random number generator at the beginning of each iteration.
      *
-     * To have relatively comparable results the generator should always use the same seed for the
-     * whole duration of the benchmark.
+     * <p>To have relatively comparable results the generator should always use
+     * the same seed for the whole duration of the benchmark.
      */
     @Setup(Level.Iteration)
     public void setupRandom() {
@@ -200,7 +199,7 @@ public class AbstractRelNodeGetRelTypeNameBenchmark {
     }
 
     /**
-     * Returns a pseudo random class name which corresponds to an implementor of the RelNode
+     * Returns a pseudo-random class name that corresponds to an implementor of the RelNode
      * interface.
      */
     public String nextName() {
