@@ -75,6 +75,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.NoSuchElementException;
 import java.util.TreeSet;
 
 import static org.apache.calcite.test.Matchers.hasTree;
@@ -296,6 +297,31 @@ public class RelBuilderTest {
     final String expected = "LogicalSnapshot(period=[2011-07-20 12:34:56])\n"
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
     assertThat(root, hasTree(expected));
+  }
+
+  @Test public void testTableFunctionScan() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM TABLE(DEDUP(CURSOR(select * from emp), CURSOR(select * from DEPT), 'NAME'))
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root = builder.scan("EMP").scan("DEPT")
+        .functionScan(new MockSqlOperatorTable.DedupFunction(), 2,
+            Lists.newArrayList(builder.cursor(2, 0),
+                builder.cursor(2, 1))).build();
+    final String expected = "LogicalTableFunctionScan(invocation="
+        + "[DEDUP(CURSOR(2, $0), CURSOR(2, $1))], "
+        + "rowType=[RecordType(VARCHAR(1024) NAME)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
+
+    // Test whether builder is empty now.
+    try {
+      RelNode node = builder.build();
+      fail("expected error, got " + node);
+    } catch (NoSuchElementException e) {
+      assertTrue(e.getMessage() == null);
+    }
   }
 
   @Test public void testJoinTemporalTable() {

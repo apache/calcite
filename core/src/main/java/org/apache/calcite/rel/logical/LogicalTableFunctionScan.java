@@ -45,11 +45,12 @@ public class LogicalTableFunctionScan extends TableFunctionScan {
    *
    * @param cluster        Cluster that this relational expression belongs to
    * @param inputs         0 or more relational inputs
-   * @param rexCall        function invocation expression
-   * @param elementType    element type of the collection that will implement
+   * @param traitSet       Trait set
+   * @param rexCall        Function invocation expression
+   * @param elementType    Element type of the collection that will implement
    *                       this table
-   * @param rowType        row type produced by function
-   * @param columnMappings column mappings associated with this function
+   * @param rowType        Row type produced by function
+   * @param columnMappings Column mappings associated with this function
    */
   public LogicalTableFunctionScan(
       RelOptCluster cluster,

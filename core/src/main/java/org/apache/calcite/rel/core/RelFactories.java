@@ -36,9 +36,11 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSnapshot;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalSortExchange;
+import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -51,6 +53,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -102,6 +105,9 @@ public class RelFactories {
 
   public static final SnapshotFactory DEFAULT_SNAPSHOT_FACTORY =
       new SnapshotFactoryImpl();
+
+  public static final TableFunctionScanFactory
+      DEFAULT_TABLE_FUNCTION_SCAN_FACTORY = new TableFunctionScanFactoryImpl();
 
   /** A {@link RelBuilderFactory} that creates a {@link RelBuilder} that will
    * create logical relational expressions for everything. */
@@ -547,6 +553,34 @@ public class RelFactories {
       return LogicalMatch.create(input, rowType, pattern, strictStart,
           strictEnd, patternDefinitions, measures, after, subsets, allRows,
           partitionKeys, orderKeys, interval);
+    }
+  }
+
+  /**
+   * Can create a {@link TableFunctionScan}
+   * of the appropriate type for a rule's calling convention.
+   */
+  public interface TableFunctionScanFactory {
+    /** Creates a {@link TableFunctionScan}. */
+    RelNode createTableFunctionScan(RelOptCluster cluster,
+        List<RelNode> inputs, RexNode rexCall, Type elementType,
+        Set<RelColumnMapping> columnMappings);
+  }
+
+  /**
+   * Implementation of
+   * {@link TableFunctionScanFactory}
+   * that returns a {@link TableFunctionScan}.
+   */
+  private static class TableFunctionScanFactoryImpl implements
+      TableFunctionScanFactory {
+    @Override public RelNode createTableFunctionScan(RelOptCluster cluster,
+        List<RelNode> inputs,
+        RexNode rexCall,
+        Type elementType,
+        Set<RelColumnMapping> columnMappings) {
+      return LogicalTableFunctionScan.create(cluster, inputs, rexCall,
+          elementType, rexCall.getType(), columnMappings);
     }
   }
 }

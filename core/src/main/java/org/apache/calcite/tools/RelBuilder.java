@@ -44,11 +44,13 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -72,7 +74,9 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.TableFunctionReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -145,6 +149,7 @@ public class RelBuilder {
   private final RelFactories.TableScanFactory scanFactory;
   private final RelFactories.SnapshotFactory snapshotFactory;
   private final RelFactories.MatchFactory matchFactory;
+  private final RelFactories.TableFunctionScanFactory tableFunctionScanFactory;
   private final Deque<Frame> stack = new ArrayDeque<>();
   private final boolean simplify;
   private final RexSimplify simplifier;
@@ -199,6 +204,9 @@ public class RelBuilder {
     this.matchFactory =
         Util.first(context.unwrap(RelFactories.MatchFactory.class),
             RelFactories.DEFAULT_MATCH_FACTORY);
+    this.tableFunctionScanFactory =
+        Util.first(context.unwrap(RelFactories.TableFunctionScanFactory.class),
+            RelFactories.DEFAULT_TABLE_FUNCTION_SCAN_FACTORY);
     final RexExecutor executor =
         Util.first(context.unwrap(RexExecutor.class),
             Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR));
@@ -1042,6 +1050,69 @@ public class RelBuilder {
     final Frame frame = stack.pop();
     final RelNode snapshot = snapshotFactory.createSnapshot(frame.rel, period);
     stack.push(new Frame(snapshot, frame.fields));
+    return this;
+  }
+
+
+  /**
+   * Gets column mappings of the operator.
+   *
+   * @param op operator instance
+   * @return column mappings associated with this function
+   */
+  private Set<RelColumnMapping> getColumnMappings(SqlOperator op) {
+    SqlReturnTypeInference inference = op.getReturnTypeInference();
+    if (inference instanceof TableFunctionReturnTypeInference) {
+      return ((TableFunctionReturnTypeInference) inference).getColumnMappings();
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * Create a RexCall to the CURSOR function by ordinal.
+   *
+   * @param inputCount Number of inputs
+   * @param ordinal The reference to the relational input
+   * @return RexCall to CURSOR function
+   */
+  public RexNode cursor(int inputCount, int ordinal) {
+    if (inputCount <= ordinal || ordinal < 0 || inputCount < 1) {
+      throw new IllegalArgumentException(
+          "bad input count or ordinal");
+    }
+    return getRexBuilder().makeCall(SqlStdOperatorTable.CURSOR,
+        getRexBuilder().makeLiteral(inputCount, getTypeFactory()
+            .createSqlType(SqlTypeName.INTEGER), false),
+        getRexBuilder()
+        .makeInputRef(peek(inputCount, ordinal).getRowType(), ordinal));
+  }
+
+  /**
+   * Creates a {@link TableFunctionScan}.
+   *
+   */
+  public RelBuilder functionScan(SqlOperator operator,
+      int inputCount, Iterable<? extends RexNode> operands) {
+    if (inputCount < 1 || inputCount > stack.size()) {
+      throw new IllegalArgumentException(
+          "bad input count");
+    }
+
+    // Gets inputs.
+    List<RelNode> inputs = new LinkedList<>();
+    for (int i = 0; i < inputCount; i++) {
+      inputs.add(0, build());
+    }
+
+    RelNode functionScan =
+        tableFunctionScanFactory.createTableFunctionScan(cluster,
+            inputs,
+            getRexBuilder()
+                .makeCall(operator, ImmutableList.copyOf(operands)),
+            null,
+            getColumnMappings(operator));
+    push(functionScan);
     return this;
   }
 
