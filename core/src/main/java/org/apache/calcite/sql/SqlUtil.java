@@ -692,7 +692,7 @@ public abstract class SqlUtil {
     case SELECT:
       SqlSelect select = (SqlSelect) query;
       final SqlNode from = stripAs(select.getFrom());
-      if (from.getKind() == SqlKind.VALUES) {
+      if (from != null && from.getKind() == SqlKind.VALUES) {
         // They wrote "VALUES (x, y)", but the validator has
         // converted this into "SELECT * FROM VALUES (x, y)".
         return getSelectListItem(from, i);
