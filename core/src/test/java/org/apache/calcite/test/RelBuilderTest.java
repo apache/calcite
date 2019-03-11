@@ -43,6 +43,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.sql.SqlMatchRecognize;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -75,12 +76,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.NoSuchElementException;
 import java.util.TreeSet;
 
 import static org.apache.calcite.test.Matchers.hasTree;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -296,6 +299,57 @@ public class RelBuilderTest {
     final String expected = "LogicalSnapshot(period=[2011-07-20 12:34:56])\n"
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
     assertThat(root, hasTree(expected));
+  }
+
+  @Test public void testTableFunctionScan() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM TABLE(
+    //       DEDUP(CURSOR(select * from emp),
+    //             CURSOR(select * from DEPT), 'NAME'))
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final SqlOperator dedupFunction =
+        new MockSqlOperatorTable.DedupFunction();
+    RelNode root = builder.scan("EMP")
+        .scan("DEPT")
+        .functionScan(dedupFunction, 2, builder.cursor(2, 0),
+            builder.cursor(2, 1))
+        .build();
+    final String expected = "LogicalTableFunctionScan("
+        + "invocation=[DEDUP(CURSOR($0), CURSOR($1))], "
+        + "rowType=[RecordType(VARCHAR(1024) NAME)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
+
+    // Make sure that the builder's stack is empty.
+    try {
+      RelNode node = builder.build();
+      fail("expected error, got " + node);
+    } catch (NoSuchElementException e) {
+      assertNull(e.getMessage());
+    }
+  }
+
+  @Test public void testTableFunctionScanZeroInputs() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM TABLE(RAMP(3))
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final SqlOperator rampFunction = new MockSqlOperatorTable.RampFunction();
+    RelNode root = builder.functionScan(rampFunction, 0, builder.literal(3))
+        .build();
+    final String expected = "LogicalTableFunctionScan(invocation=[RAMP(3)], "
+        + "rowType=[RecordType(INTEGER I)])\n";
+    assertThat(root, hasTree(expected));
+
+    // Make sure that the builder's stack is empty.
+    try {
+      RelNode node = builder.build();
+      fail("expected error, got " + node);
+    } catch (NoSuchElementException e) {
+      assertNull(e.getMessage());
+    }
   }
 
   @Test public void testJoinTemporalTable() {
