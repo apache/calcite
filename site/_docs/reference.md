@@ -2005,14 +2005,36 @@ Note:
 
 | Operator syntax                                   | Description
 |:------------------------------------------------- |:-----------
-| JSON_TYPE(value)                                  | Returns a string indicating the type of a JSON **value**. This can be an object, an array, or a scalar type
-| JSON_DEPTH(value)                                 | Returns a integer indicating the depth of a JSON **value**. This can be an object, an array, or a scalar type
-| JSON_PRETTY(value)                                | Returns a pretty-printing of JSON **value**.
+| JSON_TYPE(value)                                  | Returns a string value indicating the type of a JSON **value**, *value* is in character string type
+| JSON_DEPTH(value)                                 | Returns a integer value indicating the depth of a JSON **value**, *value* is in character string type
+| JSON_PRETTY(value)                                | Returns a pretty-printing of JSON **value**, *value* is in character string type
 | JSON_LENGTH(value)                                | Returns a integer indicating the length of a JSON **value**. This can be an object, an array, or a scalar type
 
-* JSON_TYPE
+Note:
 
-Example SQL:
+* **JSON_TYPE** / **JSON_DEPTH** return *NULL* if the argument is *NULL*
+* **JSON_TYPE** / **JSON_DEPTH** / **JSON_PRETTY** throw error if the argument is not a valid JSON value
+* **JSON_TYPE** generally returns a upper case string flag indicating the type of the JSON input. Currently supported supported type flags are:
+  * INTEGER
+  * STRING
+  * FLOAT
+  * DOUBLE
+  * LONG
+  * BOOLEAN
+  * DATE
+  * OBJECT
+  * ARRAY
+  * NULL
+* Below are how **JSON_DEPTH** defines a JSON input's depth:
+  * An empty array, empty object, or scalar value has depth 1
+  * A nonempty array containing only elements of depth 1 or nonempty object containing only member values of depth 1 has depth 2
+  * Otherwise, a JSON document has depth greater than 2
+
+Usage Examples:
+
+##### JSON_TYPE example
+
+SQL
 
 ```SQL
 SELECT JSON_TYPE(v) AS c1
@@ -2023,15 +2045,15 @@ FROM (VALUES ('{"a": [10, true],"b": "[10, true]"}')) AS t(v)
 LIMIT 10;
 ```
 
-Result:
+Result
 
 | c1     | c2    | c3      | c4      |
 | ------ | ----- | ------- | ------- |
 | OBJECT | ARRAY | INTEGER | BOOLEAN |
 
-* JSON_DEPTH
+##### JSON_LENGTH example
 
-Example SQL:
+SQL
 
 ```SQL
 SELECT JSON_DEPTH(v) AS c1
@@ -2042,7 +2064,7 @@ FROM (VALUES ('{"a": [10, true],"b": "[10, true]"}')) AS t(v)
 LIMIT 10;
 ```
 
-Result:
+Result
 
 | c1     | c2    | c3      | c4      |
 | ------ | ----- | ------- | ------- |
