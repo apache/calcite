@@ -2756,13 +2756,9 @@ public class SqlFunctions {
       } else if (o == null) {
         result = "NULL";
       } else {
-        result = "unknown";
-      }
-      if (result.equals("unknown")) {
         throw RESOURCE.invalidInputForJsonType(o.toString()).ex();
-      } else {
-        return result;
       }
+      return result;
     } catch (Exception ex) {
       throw RESOURCE.invalidInputForJsonType(o.toString()).ex();
     }
