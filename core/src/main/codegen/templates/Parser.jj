@@ -6133,7 +6133,7 @@ SqlPostfixOperator PostfixRowOperator() :
 /* KEYWORDS:  anything in this list is a reserved word unless it appears
    in the NonReservedKeyWord() production. */
 
-<DEFAULT, DQID, BTID> TOKEN :
+<DEFAULT, BQID, BTID> TOKEN :
 {
     < A: "A" >
 |   < ABS: "ABS" >
@@ -6885,7 +6885,7 @@ void NonReservedKeyWord2of3() :
 
 /* LITERALS */
 
-<DEFAULT, DQID, BTID> TOKEN :
+<DEFAULT, BQID, BTID> TOKEN :
 {
     < UNSIGNED_INTEGER_LITERAL: (["0"-"9"])+ >
 |
@@ -6920,7 +6920,7 @@ void NonReservedKeyWord2of3() :
     >
 }
 
-<DEFAULT, DQID, BTID> TOKEN :
+<DEFAULT, BQID, BTID> TOKEN :
 {
     < UNICODE_QUOTED_ESCAPE_CHAR:
     <QUOTE>
@@ -6931,7 +6931,7 @@ void NonReservedKeyWord2of3() :
 
 /* SEPARATORS */
 
-<DEFAULT, DQID, BTID> TOKEN :
+<DEFAULT, BQID, BTID> TOKEN :
 {
     < LPAREN: "(">
 |   < RPAREN: ")">
@@ -6954,7 +6954,7 @@ void NonReservedKeyWord2of3() :
 
 /* OPERATORS */
 
-<DEFAULT, DQID, BTID> TOKEN :
+<DEFAULT, BQID, BTID> TOKEN :
 {
     < EQ: "=" >
 |   < GT: ">" >
@@ -7004,14 +7004,14 @@ TOKEN_MGR_DECLS : {
 /*
 Lexical states:
 
-DEFAULT: Identifiers are quoted in brackets, e.g. [My Identifier]
-DQID:    Identifiers are double-quoted, e.g. "My Identifier"
+DEFAULT: Identifiers are double-quoted, e.g. "My Identifier"
+BQID:    Identifiers are quoted in brackets, e.g. [My Identifier]
 BTID:    Identifiers are enclosed in back-ticks, e.g. `My Identifier`
 IN_SINGLE_LINE_COMMENT:
 IN_FORMAL_COMMENT:
 IN_MULTI_LINE_COMMENT:
 
-DEFAULT, DQID, BTID are the 3 'normal states'. Behavior is identical except
+DEFAULT, BQID, BTID are the 3 'normal states'. Behavior is identical except
 for how quoted identifiers are recognized.
 
 After a comment has completed, the lexer returns to the previous state, one
@@ -7020,7 +7020,7 @@ of the 'normal states'.
 
 /* WHITE SPACE */
 
-<DEFAULT, DQID, BTID> SKIP :
+<DEFAULT, BQID, BTID> SKIP :
 {
     " "
 |   "\t"
@@ -7031,17 +7031,17 @@ of the 'normal states'.
 
 /* COMMENTS */
 
-<DEFAULT, DQID, BTID> MORE :
+<DEFAULT, BQID, BTID> MORE :
 {
     <"/**" ~["/"]> { pushState(); } : IN_FORMAL_COMMENT
 }
 
-<DEFAULT, DQID, BTID> MORE :
+<DEFAULT, BQID, BTID> MORE :
 {
     "/*" { pushState(); } : IN_MULTI_LINE_COMMENT
 }
 
-<DEFAULT, DQID, BTID> SKIP :
+<DEFAULT, BQID, BTID> SKIP :
 {
     <SINGLE_LINE_COMMENT: ("//"|"--")(~["\n","\r"])* ("\n"|"\r"|"\r\n")? >
 }
@@ -7067,7 +7067,7 @@ MORE :
 
 /* IDENTIFIERS */
 
-<DEFAULT> TOKEN :
+<BQID> TOKEN :
 {
     < BRACKET_QUOTED_IDENTIFIER:
     "["
@@ -7080,7 +7080,7 @@ MORE :
     >
 }
 
-<DQID> TOKEN :
+<DEFAULT> TOKEN :
 {
     < QUOTED_IDENTIFIER:
     "\""
@@ -7106,7 +7106,7 @@ MORE :
     >
 }
 
-<DEFAULT, DQID, BTID> TOKEN :
+<DEFAULT, BQID, BTID> TOKEN :
 {
     < COLLATION_ID:
     (<LETTER>|<DIGIT>)+ (<LETTER>|<DIGIT>|":"|"."|"-"|"_")*
@@ -7161,7 +7161,7 @@ MORE :
 /* Special token to throw a wrench in the works. It is never valid in SQL,
    and so when it occurs, it causes the parser to print which tokens would
    have been valid at that point. Used by SqlAdvisor. */
-<DEFAULT, DQID, BTID> TOKEN :
+<DEFAULT, BQID, BTID> TOKEN :
 {
     < BEL:
     [
