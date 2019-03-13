@@ -54,6 +54,7 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
+import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 
@@ -2989,6 +2990,13 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testJsonPretty() {
+    String query = "select json_pretty(\"product_name\") from \"product\"";
+    final String expected = "SELECT JSON_PRETTY(\"product_name\" FORMAT JSON)\n"
+            + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
   @Test public void testJsonValue() {
     String query = "select json_value(\"product_name\", 'lax $') from \"product\"";
     // todo translate to JSON_VALUE rather than CAST
@@ -3076,6 +3084,14 @@ public class RelToSqlConverterTest {
     String query = "select json_type(\"product_name\") from \"product\"";
     final String expected = "SELECT "
             + "JSON_TYPE(\"product_name\" FORMAT JSON)\n"
+            + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonDepth() {
+    String query = "select json_depth(\"product_name\") from \"product\"";
+    final String expected = "SELECT "
+            + "JSON_DEPTH(\"product_name\" FORMAT JSON)\n"
             + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }
@@ -3212,10 +3228,8 @@ public class RelToSqlConverterTest {
           rel = transform.apply(rel);
         }
         return toSql(rel, dialect);
-      } catch (RuntimeException e) {
-        throw e;
       } catch (Exception e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     }
 

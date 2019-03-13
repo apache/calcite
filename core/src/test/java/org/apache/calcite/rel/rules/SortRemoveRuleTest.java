@@ -83,8 +83,8 @@ public final class SortRemoveRuleTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2554">[CALCITE-2554]
    * Enrich enumerable join operators with order preserving information</a>.
    *
-   * Since join inputs are sorted, and this join preserves the order of the left input, there
-   * shouldn't be any sort operator above the join.
+   * <p>Since join inputs are sorted, and this join preserves the order of the
+   * left input, there shouldn't be any sort operator above the join.
    */
   @Test public void removeSortOverEnumerableJoin() throws Exception {
     RuleSet prepareRules =
@@ -114,8 +114,8 @@ public final class SortRemoveRuleTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2554">[CALCITE-2554]
    * Enrich enumerable join operators with order preserving information</a>.
    *
-   * Since join inputs are sorted, and this join preserves the order of the left input, there
-   * shouldn't be any sort operator above the join.
+   * <p>Since join inputs are sorted, and this join preserves the order of the
+   * left input, there shouldn't be any sort operator above the join.
    */
   @Test public void removeSortOverEnumerableThetaJoin() throws Exception {
     RuleSet prepareRules =
@@ -146,14 +146,14 @@ public final class SortRemoveRuleTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2554">[CALCITE-2554]
    * Enrich enumerable join operators with order preserving information</a>.
    *
-   * Since join inputs are sorted, and this join preserves the order of the left input, there
-   * shouldn't be any sort operator above the join.
+   * <p>Since join inputs are sorted, and this join preserves the order of the
+   * left input, there shouldn't be any sort operator above the join.
    */
   @Test public void removeSortOverEnumerableCorrelate() throws Exception {
     RuleSet prepareRules =
         RuleSets.ofList(
             SortProjectTransposeRule.INSTANCE,
-            JoinToCorrelateRule.INSTANCE,
+            JoinToCorrelateRule.JOIN,
             EnumerableRules.ENUMERABLE_SORT_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_CORRELATE_RULE,
@@ -178,8 +178,8 @@ public final class SortRemoveRuleTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2554">[CALCITE-2554]
    * Enrich enumerable join operators with order preserving information</a>.
    *
-   * Since join inputs are sorted, and this join preserves the order of the left input, there
-   * shouldn't be any sort operator above the join.
+   * <p>Since join inputs are sorted, and this join preserves the order of the
+   * left input, there shouldn't be any sort operator above the join.
    */
   @Test public void removeSortOverEnumerableSemiJoin() throws Exception {
     RuleSet prepareRules =
@@ -209,6 +209,6 @@ public final class SortRemoveRuleTest {
         RelOptUtil.dumpPlan("", rel, SqlExplainFormat.TEXT,
             SqlExplainLevel.DIGEST_ATTRIBUTES));
   }
-
 }
+
 // End SortRemoveRuleTest.java

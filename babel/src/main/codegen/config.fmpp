@@ -140,6 +140,7 @@ data: {
         "JAVA"
         "JSON"
         "JSON_TYPE"
+        "JSON_DEPTH"
         "K"
         "KEY"
         "KEY_MEMBER"
@@ -554,6 +555,9 @@ data: {
         "JSON_ARRAYAGG",
         "JSON_EXISTS",
         "JSON_VALUE",
+        "JSON_TYPE",
+        "JSON_DEPTH"
+        "JSON_PRETTY",
         "JSON_OBJECT",
         "JSON_OBJECTAGG",
         "JSON_QUERY",

@@ -40,6 +40,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.JdbcTest;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -381,8 +382,7 @@ public class RelWriterTest {
                               rexBuilder.makeCall(
                                   SqlWindow.FOLLOWING_OPERATOR,
                                   rexBuilder.makeExactLiteral(BigDecimal.ONE))),
-                          false, true, false, false)
-                  ),
+                          false, true, false, false)),
                   ImmutableList.of("field0", "field1", "field2"));
           final RelJsonWriter writer = new RelJsonWriter();
           project.explain(writer);
@@ -390,7 +390,6 @@ public class RelWriterTest {
         });
     assertThat(s, is(XX2));
   }
-
 
   /**
    * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonReader}.
@@ -407,7 +406,7 @@ public class RelWriterTest {
           try {
             node = reader.read(XX);
           } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
           return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
               SqlExplainLevel.EXPPLAN_ATTRIBUTES);
@@ -434,7 +433,7 @@ public class RelWriterTest {
           try {
             node = reader.read(XX2);
           } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
           return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
               SqlExplainLevel.EXPPLAN_ATTRIBUTES);
@@ -462,7 +461,7 @@ public class RelWriterTest {
           try {
             node = reader.read(XXNULL);
           } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
           return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
               SqlExplainLevel.EXPPLAN_ATTRIBUTES);

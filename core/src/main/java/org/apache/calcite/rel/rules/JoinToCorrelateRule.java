@@ -22,7 +22,9 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rex.RexBuilder;
@@ -35,8 +37,10 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
+import java.util.function.Function;
+
 /**
- * Rule that converts a {@link org.apache.calcite.rel.logical.LogicalJoin}
+ * Rule that converts a {@link org.apache.calcite.rel.core.Join}
  * into a {@link org.apache.calcite.rel.logical.LogicalCorrelate}, which can
  * then be implemented using nested loops.
  *
@@ -58,18 +62,42 @@ import org.apache.calcite.util.Util;
  * employees, and Correlator cannot do that.</p>
  */
 public class JoinToCorrelateRule extends RelOptRule {
+
+  /**
+   * Function to extract the {@link org.apache.calcite.sql.SemiJoinType} parameter
+   * for the creation of the {@link org.apache.calcite.rel.logical.LogicalCorrelate}
+   */
+  private final Function<Join, SemiJoinType> semiJoinTypeExtractor;
+
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final JoinToCorrelateRule INSTANCE =
-      new JoinToCorrelateRule(RelFactories.LOGICAL_BUILDER);
+  /**
+   * Rule that converts a {@link org.apache.calcite.rel.logical.LogicalJoin}
+   * into a {@link org.apache.calcite.rel.logical.LogicalCorrelate}
+   */
+  public static final JoinToCorrelateRule JOIN =
+      new JoinToCorrelateRule(LogicalJoin.class, RelFactories.LOGICAL_BUILDER,
+              "JoinToCorrelateRule", join -> SemiJoinType.of(join.getJoinType()));
+
+  @Deprecated // to be removed (should use JOIN instead), kept for backwards compatibility
+  public static final JoinToCorrelateRule INSTANCE = JOIN;
+
+  /**
+   * Rule that converts a {@link org.apache.calcite.rel.core.SemiJoin}
+   * into a {@link org.apache.calcite.rel.logical.LogicalCorrelate}
+   */
+  public static final JoinToCorrelateRule SEMI =
+      new JoinToCorrelateRule(SemiJoin.class, RelFactories.LOGICAL_BUILDER,
+              "SemiJoinToCorrelateRule", join -> SemiJoinType.SEMI);
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a JoinToCorrelateRule.
+   * Creates a rule that converts a {@link org.apache.calcite.rel.logical.LogicalJoin}
+   * into a {@link org.apache.calcite.rel.logical.LogicalCorrelate}
    */
   public JoinToCorrelateRule(RelBuilderFactory relBuilderFactory) {
-    super(operand(LogicalJoin.class, any()), relBuilderFactory, null);
+    this(LogicalJoin.class, relBuilderFactory, null, join -> SemiJoinType.of(join.getJoinType()));
   }
 
   @Deprecated // to be removed before 2.0
@@ -77,10 +105,28 @@ public class JoinToCorrelateRule extends RelOptRule {
     this(RelBuilder.proto(Contexts.of(filterFactory)));
   }
 
+  /**
+   * Creates a JoinToCorrelateRule for a certain sub-class of
+   * {@link org.apache.calcite.rel.core.Join} to be transformed into a
+   * {@link org.apache.calcite.rel.logical.LogicalCorrelate}
+   * @param clazz Class of relational expression to match (must not be null)
+   * @param relBuilderFactory Builder for relational expressions
+   * @param description Description, or null to guess description
+   * @param semiJoinTypeExtractor Function to get the {@link org.apache.calcite.sql.SemiJoinType}
+   *                              for the {@link org.apache.calcite.rel.logical.LogicalCorrelate}
+   */
+  private JoinToCorrelateRule(Class<? extends Join> clazz,
+                             RelBuilderFactory relBuilderFactory,
+                             String description,
+                             Function<Join, SemiJoinType> semiJoinTypeExtractor) {
+    super(operand(clazz, any()), relBuilderFactory, description);
+    this.semiJoinTypeExtractor = semiJoinTypeExtractor;
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   public boolean matches(RelOptRuleCall call) {
-    LogicalJoin join = call.rel(0);
+    Join join = call.rel(0);
     switch (join.getJoinType()) {
     case INNER:
     case LEFT:
@@ -95,7 +141,7 @@ public class JoinToCorrelateRule extends RelOptRule {
 
   public void onMatch(RelOptRuleCall call) {
     assert matches(call);
-    final LogicalJoin join = call.rel(0);
+    final Join join = call.rel(0);
     RelNode right = join.getRight();
     final RelNode left = join.getLeft();
     final int leftFieldCount = left.getRowType().getFieldCount();
@@ -127,7 +173,7 @@ public class JoinToCorrelateRule extends RelOptRule {
             relBuilder.build(),
             correlationId,
             requiredColumns.build(),
-            SemiJoinType.of(join.getJoinType()));
+            semiJoinTypeExtractor.apply(join));
     call.transformTo(newRel);
   }
 }

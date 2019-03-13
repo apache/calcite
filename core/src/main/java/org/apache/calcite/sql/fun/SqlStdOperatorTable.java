@@ -1297,6 +1297,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction JSON_VALUE =
       new SqlJsonValueFunction("JSON_VALUE", false);
 
+  public static final SqlFunction JSON_PRETTY =
+          new SqlJsonPrettyFunction();
+
   public static final SqlFunction JSON_VALUE_ANY =
       new SqlJsonValueFunction("JSON_VALUE_ANY", true);
 
@@ -1306,15 +1309,17 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlFunction JSON_TYPE = new SqlJsonTypeFunction();
 
+  public static final SqlFunction JSON_DEPTH = new SqlJsonDepthFunction();
+
   public static final SqlJsonObjectAggAggFunction JSON_OBJECTAGG =
-      new SqlJsonObjectAggAggFunction("JSON_OBJECTAGG",
+      new SqlJsonObjectAggAggFunction(SqlKind.JSON_OBJECTAGG,
           SqlJsonConstructorNullClause.NULL_ON_NULL);
 
   public static final SqlFunction JSON_ARRAY = new SqlJsonArrayFunction();
 
   public static final SqlJsonArrayAggAggFunction JSON_ARRAYAGG =
-      new SqlJsonArrayAggAggFunction("JSON_ARRAYAGG",
-          SqlJsonConstructorNullClause.NULL_ON_NULL);
+      new SqlJsonArrayAggAggFunction(SqlKind.JSON_ARRAYAGG,
+          SqlJsonConstructorNullClause.ABSENT_ON_NULL);
 
   public static final SqlBetweenOperator BETWEEN =
       new SqlBetweenOperator(
@@ -1474,6 +1479,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "INITCAP",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0_NULLABLE,
+          null,
+          OperandTypes.CHARACTER,
+          SqlFunctionCategory.STRING);
+
+  public static final SqlFunction ASCII =
+      new SqlFunction(
+          "ASCII",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
           null,
           OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);

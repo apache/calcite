@@ -713,6 +713,12 @@ public interface CalciteResource {
   @BaseMessage("Invalid number of parameters to COUNT method")
   ExInst<SqlValidatorException> patternCountFunctionArg();
 
+  @BaseMessage("The system time period specification expects Timestamp type but is ''{0}''")
+  ExInst<SqlValidatorException> illegalExpressionForTemporal(String type);
+
+  @BaseMessage("Table ''{0}'' is not a temporal table, can not be queried in system time period specification")
+  ExInst<SqlValidatorException> notTemporalTable(String tableName);
+
   @BaseMessage("Cannot use RUNNING/FINAL in DEFINE ''{0}''")
   ExInst<SqlValidatorException> patternRunningFunctionInDefine(String call);
 
@@ -858,6 +864,12 @@ public interface CalciteResource {
 
   @BaseMessage("Unknown JSON type in JSON_TYPE function, and the object is: ''{0}''")
   ExInst<CalciteException> unknownObjectOfJsonType(String value);
+
+  @BaseMessage("Unknown JSON depth in JSON_DEPTH function, and the object is: ''{0}''")
+  ExInst<CalciteException> unknownObjectOfJsonDepth(String value);
+
+  @BaseMessage("Cannot serialize object to JSON, and the object is: ''{0}''")
+  ExInst<CalciteException> exceptionWhileSerializingToJson(String value);
 }
 
 // End CalciteResource.java

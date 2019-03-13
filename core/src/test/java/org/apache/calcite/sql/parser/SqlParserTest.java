@@ -18,6 +18,8 @@ package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSetOption;
@@ -40,6 +42,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
 
 import org.hamcrest.BaseMatcher;
+import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.junit.Ignore;
@@ -59,6 +62,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import javax.annotation.Nonnull;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -649,6 +653,21 @@ public class SqlParserTest {
 
       public void describeTo(Description description) {
         description.appendText("isDdl");
+      }
+    };
+  }
+
+  /** Returns a {@link Matcher} that succeeds if the given {@link SqlNode} is a
+   * VALUES that contains a ROW that contains an identifier whose {@code i}th
+   * element is quoted. */
+  @Nonnull private static Matcher<SqlNode> isQuoted(final int i,
+      final boolean quoted) {
+    return new CustomTypeSafeMatcher<SqlNode>("quoting") {
+      protected boolean matchesSafely(SqlNode item) {
+        final SqlCall valuesCall = (SqlCall) item;
+        final SqlCall rowCall = valuesCall.operand(0);
+        final SqlIdentifier id = rowCall.operand(0);
+        return id.isComponentQuoted(i) == quoted;
       }
     };
   }
@@ -1824,6 +1843,11 @@ public class SqlParserTest {
 
     checkExp("myMap[field] + myArray[1 + 2]",
         "(`MYMAP`[`FIELD`] + `MYARRAY`[(1 + 2)])");
+
+    getTester().checkNode("VALUES a", isQuoted(0, false));
+    getTester().checkNode("VALUES \"a\"", isQuoted(0, true));
+    getTester().checkNode("VALUES \"a\".\"b\"", isQuoted(1, true));
+    getTester().checkNode("VALUES \"a\".b", isQuoted(1, false));
   }
 
   @Test public void testBackTickIdentifier() {
@@ -1837,6 +1861,9 @@ public class SqlParserTest {
 
     checkExp("myMap[field] + myArray[1 + 2]",
         "(`MYMAP`[`FIELD`] + `MYARRAY`[(1 + 2)])");
+
+    getTester().checkNode("VALUES a", isQuoted(0, false));
+    getTester().checkNode("VALUES `a`", isQuoted(0, true));
   }
 
   @Test public void testBracketIdentifier() {
@@ -1863,6 +1890,9 @@ public class SqlParserTest {
         "SELECT *\n"
             + "FROM `MYMAP` AS `field`,\n"
             + "`MYARRAY` AS `1 + 2`");
+
+    getTester().checkNode("VALUES a", isQuoted(0, false));
+    getTester().checkNode("VALUES [a]", isQuoted(0, true));
   }
 
   @Test public void testBackTickQuery() {
@@ -8389,6 +8419,16 @@ public class SqlParserTest {
             "JSON_TYPE('{\"foo\": \"100\"}' FORMAT JSON)");
   }
 
+  @Test public void testJsonDepth() {
+    checkExp("json_depth('11.56')", "JSON_DEPTH('11.56' FORMAT JSON)");
+    checkExp("json_depth('{}')", "JSON_DEPTH('{}' FORMAT JSON)");
+    checkExp("json_depth(null)", "JSON_DEPTH(NULL FORMAT JSON)");
+    checkExp("json_depth('[\"foo\",null]')",
+            "JSON_DEPTH('[\"foo\",null]' FORMAT JSON)");
+    checkExp("json_depth('{\"foo\": \"100\"}')",
+            "JSON_DEPTH('{\"foo\": \"100\"}' FORMAT JSON)");
+  }
+
   @Test public void testJsonObjectAgg() {
     checkExp("json_objectagg(k_column: v_column)",
         "JSON_OBJECTAGG(KEY `K_COLUMN` VALUE `V_COLUMN` NULL ON NULL)");
@@ -8415,6 +8455,13 @@ public class SqlParserTest {
         "JSON_ARRAY(NULL NULL ON NULL)");
     checkExp("json_array(json_array('foo', 'bar') format json)",
         "JSON_ARRAY(JSON_ARRAY('foo', 'bar' ABSENT ON NULL) FORMAT JSON ABSENT ON NULL)");
+  }
+
+  @Test public void testJsonPretty() {
+    checkExp("json_pretty('foo')",
+            "JSON_PRETTY('foo' FORMAT JSON)");
+    checkExp("json_pretty(null)",
+            "JSON_PRETTY(NULL FORMAT JSON)");
   }
 
   @Test public void testJsonArrayAgg1() {
@@ -8556,7 +8603,7 @@ public class SqlParserTest {
         final SqlNode sqlNode = getSqlParser(sap.sql).parseStmt();
         assertThat(sqlNode, matcher);
       } catch (SqlParseException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     }
 

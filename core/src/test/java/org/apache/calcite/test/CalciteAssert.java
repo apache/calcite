@@ -23,6 +23,7 @@ import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.avatica.ConnectionProperty;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteMetaImpl;
@@ -53,6 +54,7 @@ import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.Sources;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import org.apache.commons.dbcp2.PoolableConnectionFactory;
@@ -70,9 +72,6 @@ import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
 
 import org.hamcrest.Matcher;
 
-import java.io.File;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -100,7 +99,6 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
@@ -124,23 +122,13 @@ import static org.junit.Assert.fail;
 public class CalciteAssert {
   private CalciteAssert() {}
 
-  /** Which database to use for tests that require a JDBC data source. By
-   * default the test suite runs against the embedded hsqldb database.
+  /**
+   * Which database to use for tests that require a JDBC data source.
    *
-   * <p>We recommend that casual users use hsqldb, and frequent Calcite
-   * developers use MySQL. The test suite runs faster against the MySQL database
-   * (mainly because of the 0.1s versus 6s startup time). You have to populate
-   * MySQL manually with the foodmart data set, otherwise there will be test
-   * failures.  To run against MySQL, specify '-Dcalcite.test.db=mysql' on the
-   * java command line. */
+   * @see CalciteSystemProperty#TEST_DB
+   **/
   public static final DatabaseInstance DB =
-      DatabaseInstance.valueOf(
-          Util.first(System.getProperty("calcite.test.db"), "HSQLDB")
-              .toUpperCase(Locale.ROOT));
-
-  /** Whether to enable slow tests. Default is false. */
-  public static final boolean ENABLE_SLOW =
-      Util.getBooleanProperty("calcite.test.slow");
+      DatabaseInstance.valueOf(CalciteSystemProperty.TEST_DB.value());
 
   private static final DateFormat UTC_DATE_FORMAT;
   private static final DateFormat UTC_TIME_FORMAT;
@@ -258,11 +246,7 @@ public class CalciteAssert {
     return p0 -> {
       assertNotNull(
           "expected exception but none was thrown", p0);
-      StringWriter stringWriter = new StringWriter();
-      PrintWriter printWriter = new PrintWriter(stringWriter);
-      p0.printStackTrace(printWriter);
-      printWriter.flush();
-      String stack = stringWriter.toString();
+      String stack = TestUtil.printStackTrace(p0);
       assertTrue(stack, stack.contains(expected));
     };
   }
@@ -276,11 +260,7 @@ public class CalciteAssert {
 
         assertTrue("Expected to fail at validation, but did not", exception != null);
         if (expected != null) {
-          StringWriter stringWriter = new StringWriter();
-          PrintWriter printWriter = new PrintWriter(stringWriter);
-          exception.printStackTrace(printWriter);
-          printWriter.flush();
-          String stack = stringWriter.toString();
+          String stack = TestUtil.printStackTrace(exception);
           assertTrue(stack, stack.contains(expected));
         }
       }
@@ -314,7 +294,7 @@ public class CalciteAssert {
         resultSetFormatter.resultSet(resultSet);
         assertThat(resultSetFormatter.string(), isLinux(expected));
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        TestUtil.rethrow(e);
       }
     };
   }
@@ -332,7 +312,7 @@ public class CalciteAssert {
         assertThat(resultString,
             expected == null ? nullValue(String.class) : isLinux(expected));
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     };
   }
@@ -344,7 +324,7 @@ public class CalciteAssert {
         final int count = CalciteAssert.countRows(resultSet);
         assertThat(count, expected);
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     };
   }
@@ -381,7 +361,7 @@ public class CalciteAssert {
             }
           }
         } catch (SQLException e) {
-          throw new RuntimeException(e);
+          throw TestUtil.rethrow(e);
         }
       }
     };
@@ -425,7 +405,7 @@ public class CalciteAssert {
               equalTo(Util.lines(expectedList)));
         }
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     };
   }
@@ -439,7 +419,7 @@ public class CalciteAssert {
           assertThat(actual, containsStringLinux(st));
         }
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     };
   }
@@ -453,7 +433,7 @@ public class CalciteAssert {
             actual + " should have " + count + " occurrence of " + expected,
             StringUtils.countMatches(actual, expected) == count);
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     };
   }
@@ -467,7 +447,7 @@ public class CalciteAssert {
             actual.replaceAll(", id = [0-9]+", "");
         assertThat(maskedActual, containsString(expected));
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     };
   }
@@ -478,7 +458,7 @@ public class CalciteAssert {
         final String actual = typeString(s.getMetaData());
         assertEquals(expected, actual);
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     };
   }
@@ -507,9 +487,6 @@ public class CalciteAssert {
       Consumer<ResultSet> resultChecker,
       Consumer<Integer> updateChecker,
       Consumer<Throwable> exceptionChecker) {
-    final Supplier<String> message = () ->
-        "With materializationsEnabled=" + materializationsEnabled
-            + ", limit=" + limit + ", sql=" + sql;
     try (Closer closer = new Closer()) {
       if (connection.isWrapperFor(CalciteConnection.class)) {
         final CalciteConnection calciteConnection =
@@ -565,13 +542,13 @@ public class CalciteAssert {
       }
       statement.close();
       connection.close();
-    } catch (Error | RuntimeException e) {
-      // It is better to have AssertionError
-      // at the very top level of the exception stack.
-      e.addSuppressed(new RuntimeException(message.get()));
-      throw e;
     } catch (Throwable e) {
-      throw new RuntimeException(message.get(), e);
+      String message = "With materializationsEnabled=" + materializationsEnabled
+          + ", limit=" + limit;
+      if (!TestUtil.hasMessage(e, sql)) {
+        message += ", sql=" + sql;
+      }
+      throw TestUtil.rethrow(e, message);
     }
   }
 
@@ -585,8 +562,6 @@ public class CalciteAssert {
       Consumer<Integer> updateChecker,
       Consumer<Throwable> exceptionChecker,
       PreparedStatementConsumer consumer) {
-    final Supplier<String> message = () -> "With materializationsEnabled="
-        + materializationsEnabled + ", limit=" + limit + ", sql = " + sql;
     try (Closer closer = new Closer()) {
       if (connection.isWrapperFor(CalciteConnection.class)) {
         final CalciteConnection calciteConnection =
@@ -643,13 +618,13 @@ public class CalciteAssert {
       }
       statement.close();
       connection.close();
-    } catch (Error | RuntimeException e) {
-      // It is better to have AssertionError
-      // at the very top level of the exception stack.
-      e.addSuppressed(new RuntimeException(message.get()));
-      throw e;
     } catch (Throwable e) {
-      throw new RuntimeException(message.get(), e);
+      String message = "With materializationsEnabled=" + materializationsEnabled
+          + ", limit=" + limit;
+      if (!TestUtil.hasMessage(e, sql)) {
+        message += ", sql=" + sql;
+      }
+      throw TestUtil.rethrow(e, message);
     }
   }
 
@@ -659,8 +634,6 @@ public class CalciteAssert {
       boolean materializationsEnabled,
       final Function<RelNode, Void> convertChecker,
       final Function<RelNode, Void> substitutionChecker) {
-    final Supplier<String> message = () -> "With materializationsEnabled="
-        + materializationsEnabled + ", sql = " + sql;
     try (Closer closer = new Closer()) {
       if (convertChecker != null) {
         closer.add(
@@ -680,13 +653,12 @@ public class CalciteAssert {
       PreparedStatement statement = connection.prepareStatement(sql);
       statement.close();
       connection.close();
-    } catch (Error | RuntimeException e) {
-      // It is better to have AssertionError
-      // at the very top level of the exception stack.
-      e.addSuppressed(new RuntimeException(message.get()));
-      throw e;
     } catch (Throwable e) {
-      throw new RuntimeException(message.get(), e);
+      String message = "With materializationsEnabled=" + materializationsEnabled;
+      if (!TestUtil.hasMessage(e, sql)) {
+        message += ", sql=" + sql;
+      }
+      throw TestUtil.rethrow(e, message);
     }
   }
 
@@ -761,6 +733,7 @@ public class CalciteAssert {
   public static SchemaPlus addSchema(SchemaPlus rootSchema, SchemaSpec schema) {
     final SchemaPlus foodmart;
     final SchemaPlus jdbcScott;
+    final SchemaPlus scott;
     final ConnectionSpec cs;
     final DataSource dataSource;
     switch (schema) {
@@ -795,6 +768,13 @@ public class CalciteAssert {
     case SCOTT:
       jdbcScott = addSchemaIfNotExists(rootSchema, SchemaSpec.JDBC_SCOTT);
       return rootSchema.add(schema.schemaName, new CloneSchema(jdbcScott));
+    case SCOTT_WITH_TEMPORAL:
+      scott = addSchemaIfNotExists(rootSchema, SchemaSpec.SCOTT);
+      scott.add("products_temporal", new StreamTest.ProductsTemporalTable());
+      scott.add("orders",
+          new StreamTest.OrdersHistoryTable(
+              StreamTest.OrdersStreamTableFactory.getRowList()));
+      return scott;
     case CLONE_FOODMART:
       foodmart = addSchemaIfNotExists(rootSchema, SchemaSpec.JDBC_FOODMART);
       return rootSchema.add("foodmart2", new CloneSchema(foodmart));
@@ -1388,7 +1368,7 @@ public class CalciteAssert {
       try (Connection c = createConnection()) {
         f.accept(c);
       } catch (SQLException e) {
-        throw new IllegalStateException("connection#close() failed", e);
+        TestUtil.rethrow(e);
       }
       return this;
     }
@@ -1699,12 +1679,8 @@ public class CalciteAssert {
         resultSet.close();
         c.close();
         return this;
-      } catch (Error | RuntimeException e) {
-        // It is better to have AssertionError
-        // at the very top level of the exception stack.
-        throw e;
       } catch (Throwable e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     }
 
@@ -1836,7 +1812,7 @@ public class CalciteAssert {
         new ConnectionSpec(ScottHsqldb.URI, ScottHsqldb.USER,
             ScottHsqldb.PASSWORD, "org.hsqldb.jdbcDriver", "SCOTT")),
     H2(
-        new ConnectionSpec("jdbc:h2:" + getDataSetPath()
+        new ConnectionSpec("jdbc:h2:" + CalciteSystemProperty.TEST_DATASET_PATH.value()
             + "/h2/target/foodmart;user=foodmart;password=foodmart",
             "foodmart", "foodmart", "org.h2.Driver", "foodmart"), null),
     MYSQL(
@@ -1852,23 +1828,6 @@ public class CalciteAssert {
 
     public final ConnectionSpec foodmart;
     public final ConnectionSpec scott;
-
-    private static String getDataSetPath() {
-      String path = System.getProperty("calcite.test.dataset");
-      if (path != null) {
-        return path;
-      }
-      final String[] dirs = {
-          "../calcite-test-dataset",
-          "../../calcite-test-dataset"
-      };
-      for (String s : dirs) {
-        if (new File(s).exists() && new File(s, "vm").exists()) {
-          return s;
-        }
-      }
-      return ".";
-    }
 
     DatabaseInstance(ConnectionSpec foodmart, ConnectionSpec scott) {
       this.foodmart = foodmart;
@@ -1886,6 +1845,7 @@ public class CalciteAssert {
     HR("hr"),
     JDBC_SCOTT("JDBC_SCOTT"),
     SCOTT("scott"),
+    SCOTT_WITH_TEMPORAL("scott_temporal"),
     BLANK("BLANK"),
     LINGUAL("SALES"),
     POST("POST"),

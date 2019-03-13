@@ -49,6 +49,11 @@ public interface SqlValidatorTable extends Wrapper {
   boolean supportsModality(SqlModality modality);
 
   /**
+   * Returns whether the table is temporal.
+   */
+  boolean isTemporal();
+
+  /**
    * Returns whether the ordinal column has a default value.
    */
   @Deprecated // to be removed before 2.0

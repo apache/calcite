@@ -173,7 +173,7 @@ public final class FunctionExpression<F extends Function<?>>
     final String bridgeResultTypeName =
         isAbstractMethodPrimitive()
             ? Types.className(bridgeResultType)
-            : Types.boxClassName(bridgeResultType);
+            : Types.className(Types.box(bridgeResultType));
     if (!boxBridgeParams.equals(params)) {
       writer
           .append("public ")
@@ -204,7 +204,8 @@ public final class FunctionExpression<F extends Function<?>>
 
   private boolean isAbstractMethodPrimitive() {
     Method method = getAbstractMethod();
-    return method != null && Primitive.is(method.getReturnType());
+    assert method != null;
+    return Primitive.is(method.getReturnType());
   }
 
   private String getAbstractMethodName() {

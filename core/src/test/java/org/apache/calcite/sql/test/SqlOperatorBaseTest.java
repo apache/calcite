@@ -18,6 +18,7 @@ package org.apache.calcite.sql.test;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.RelDataType;
@@ -54,6 +55,7 @@ import org.apache.calcite.test.SqlLimitsTest;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
@@ -1516,7 +1518,7 @@ public abstract class SqlOperatorBaseTest {
           throw new AssertionError("unexpected time unit: " + timeUnit);
         }
       } catch (InterruptedException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     }
   }
@@ -4245,6 +4247,19 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("CHARACTER_LENGTH(cast(null as varchar(1)))");
   }
 
+  @Test public void testAsciiFunc() {
+    tester.setFor(SqlStdOperatorTable.ASCII);
+    tester.checkScalarExact("ASCII('')", "0");
+    tester.checkScalarExact("ASCII('a')", "97");
+    tester.checkScalarExact("ASCII('1')", "49");
+    tester.checkScalarExact("ASCII('abc')", "97");
+    tester.checkScalarExact("ASCII('ABC')", "65");
+    tester.checkScalarExact("ASCII(_UTF8'\u0082')", "130");
+    tester.checkScalarExact("ASCII(_UTF8'\u5B57')", "23383");
+    tester.checkScalarExact("ASCII(_UTF8'Ω')", "937");
+    tester.checkNull("ASCII(cast(null as varchar(1)))");
+  }
+
   @Test public void testUpperFunc() {
     tester.setFor(SqlStdOperatorTable.UPPER);
     tester.checkString("upper('a')", "A", "CHAR(1) NOT NULL");
@@ -4473,6 +4488,15 @@ public abstract class SqlOperatorBaseTest {
         "{\"foo\":{\"foo\":\"bar\"}}", "VARCHAR(2000) NOT NULL");
   }
 
+  @Test public void testJsonPretty() {
+    tester.checkString("json_pretty('{\"foo\":100}')",
+        "{\n  \"foo\" : 100\n}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_pretty('[1,2,3]')",
+        "[ 1, 2, 3 ]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_pretty('null')",
+        "null", "VARCHAR(2000) NOT NULL");
+  }
+
   @Test public void testJsonType() {
     tester.setFor(SqlStdOperatorTable.JSON_TYPE);
     tester.checkString("json_type('\"1\"')",
@@ -4495,6 +4519,34 @@ public abstract class SqlOperatorBaseTest {
             "ARRAY", "VARCHAR(20) NOT NULL");
     tester.checkString("json_type('\"2019-01-27 21:24:00\"')",
             "STRING", "VARCHAR(20) NOT NULL");
+  }
+
+  @Test public void testJsonDepth() {
+    tester.setFor(SqlStdOperatorTable.JSON_DEPTH);
+    tester.checkString("json_depth('1')",
+            "1", "INTEGER");
+    tester.checkString("json_depth('11.45')",
+            "1", "INTEGER");
+    tester.checkString("json_depth('true')",
+            "1", "INTEGER");
+    tester.checkString("json_depth('\"2019-01-27 21:24:00\"')",
+            "1", "INTEGER");
+    tester.checkString("json_depth('{}')",
+            "1", "INTEGER");
+    tester.checkString("json_depth('[]')",
+              "1", "INTEGER");
+    tester.checkString("json_depth('null')",
+            null, "INTEGER");
+    tester.checkString("json_depth(cast(null as varchar(1)))",
+            null, "INTEGER");
+    tester.checkString("json_depth('[10, true]')",
+            "2", "INTEGER");
+    tester.checkString("json_depth('[[], {}]')",
+              "2", "INTEGER");
+    tester.checkString("json_depth('{\"a\": [10, true]}')",
+            "3", "INTEGER");
+    tester.checkString("json_depth('[10, {\"a\": [[1,2]]}]')",
+            "5", "INTEGER");
   }
 
   @Test public void testJsonObjectAgg() {
@@ -5462,7 +5514,7 @@ public abstract class SqlOperatorBaseTest {
   protected static Pair<String, Hook.Closeable> currentTimeString(TimeZone tz) {
     final Calendar calendar;
     final Hook.Closeable closeable;
-    if (CalciteAssert.ENABLE_SLOW) {
+    if (CalciteSystemProperty.TEST_SLOW.value()) {
       calendar = getCalendarNotTooNear(Calendar.HOUR_OF_DAY);
       closeable = () -> { };
     } else {
@@ -6682,6 +6734,73 @@ public abstract class SqlOperatorBaseTest {
 
     tester.checkNull(
         "extract(microsecond from cast(null as time))");
+  }
+
+  @Test public void testExtractWithDatesBeforeUnixEpoch() {
+    tester.checkScalar(
+        "extract(year from TIMESTAMP '1970-01-01 00:00:00')",
+        "1970",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(year from TIMESTAMP '1969-12-31 10:13:17')",
+        "1969",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(quarter from TIMESTAMP '1969-12-31 08:13:17')",
+        "4",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(quarter from TIMESTAMP '1969-5-31 21:13:17')",
+        "2",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(month from TIMESTAMP '1969-12-31 00:13:17')",
+        "12",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(day from TIMESTAMP '1969-12-31 12:13:17')",
+        "31",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(week from TIMESTAMP '1969-2-23 01:23:45')",
+        "8",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(doy from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "365",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(dow from TIMESTAMP '1969-12-31 01:13:17.357')",
+        "4",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(decade from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "196",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(century from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "20",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(hour from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "21",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(minute from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "13",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(second from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "17",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(millisecond from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "17357",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(microsecond from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "17357000",
+        "BIGINT NOT NULL");
   }
 
   @Test public void testArrayValueConstructor() {
@@ -7973,7 +8092,7 @@ public abstract class SqlOperatorBaseTest {
   /** Test that calls all operators with all possible argument types, and for
    * each type, with a set of tricky values. */
   @Test public void testArgumentBounds() {
-    if (!CalciteAssert.ENABLE_SLOW) {
+    if (!CalciteSystemProperty.TEST_SLOW.value()) {
       return;
     }
     final SqlValidatorImpl validator = (SqlValidatorImpl) tester.getValidator();
@@ -8180,10 +8299,8 @@ public abstract class SqlOperatorBaseTest {
         final ResultSet resultSet =
             statement.executeQuery(query);
         resultChecker.checkResult(resultSet);
-      } catch (RuntimeException e) {
-        throw e;
       } catch (Exception e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     }
 

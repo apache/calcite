@@ -86,6 +86,7 @@ import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOption;
+import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlUnnestOperator;
@@ -1559,7 +1560,7 @@ List<SqlNode> SelectList() :
 SqlNode SelectItem() :
 {
     SqlNode e;
-    SqlIdentifier id;
+    final SqlIdentifier id;
 }
 {
     e = SelectExpression()
@@ -1810,10 +1811,11 @@ SqlNode TableRef() :
 SqlNode TableRef2(boolean lateral) :
 {
     SqlNode tableRef;
-    SqlNode over;
+    final SqlNode over;
+    final SqlNode snapshot;
+    final SqlNode match;
     SqlNodeList extendList = null;
-    String alias;
-    final SqlIdentifier id;
+    final SqlIdentifier alias;
     final Span s, s2;
     SqlNodeList args;
     SqlNode sample;
@@ -1834,20 +1836,20 @@ SqlNode TableRef2(boolean lateral) :
                 tableRef = extend(tableRef, extendList);
             }
         ]
-        over = TableOverOpt()
-        {
+        over = TableOverOpt() {
             if (over != null) {
                 tableRef = SqlStdOperatorTable.OVER.createCall(
                     getPos(), tableRef, over);
             }
         }
         [
-            over = MatchRecognizeOpt(tableRef)
-            {
-                if (over != null) {
-                    tableRef = over;
-                }
+            snapshot = Snapshot(tableRef) {
+                tableRef = SqlStdOperatorTable.LATERAL.createCall(
+                    getPos(), snapshot);
             }
+        ]
+        [
+            tableRef = MatchRecognize(tableRef)
         ]
     |
         [ <LATERAL> { lateral = true; } ]
@@ -1863,14 +1865,9 @@ SqlNode TableRef2(boolean lateral) :
                     getPos(), tableRef);
             }
         }
-        (
-            [ over = MatchRecognizeOpt(tableRef) ]
-            {
-                if (over != null) {
-                    tableRef = over;
-                }
-            }
-        )
+        [
+            tableRef = MatchRecognize(tableRef)
+        ]
     |
         <UNNEST> { s = span(); }
         args = ParenthesizedQueryOrCommaList(ExprContext.ACCEPT_SUB_QUERY)
@@ -1897,18 +1894,16 @@ SqlNode TableRef2(boolean lateral) :
         tableRef = ExtendedTableRef()
     )
     [
-        [ <AS> ] alias = Identifier() {
-            id = new SqlIdentifier(alias, getPos());
-        }
+        [ <AS> ] alias = SimpleIdentifier()
         [ columnAliasList = ParenthesizedSimpleIdentifierList() ]
         {
             if (columnAliasList == null) {
                 tableRef = SqlStdOperatorTable.AS.createCall(
-                    Span.of(tableRef).end(this), tableRef, id);
+                    Span.of(tableRef).end(this), tableRef, alias);
             } else {
                 List<SqlNode> idList = new ArrayList<SqlNode>();
                 idList.add(tableRef);
-                idList.add(id);
+                idList.add(alias);
                 idList.addAll(columnAliasList.getList());
                 tableRef = SqlStdOperatorTable.AS.createCall(
                     Span.of(tableRef).end(this), idList);
@@ -2506,9 +2501,24 @@ SqlNode OrderItem() :
 }
 
 /**
+ * Parses a FOR SYSTEM_TIME clause following a table expression.
+ */
+SqlSnapshot Snapshot(SqlNode tableRef) :
+{
+    final Span s;
+    final SqlNode e;
+}
+{
+    <FOR> { s = span(); } <SYSTEM_TIME> <AS> <OF>
+    e = Expression(ExprContext.ACCEPT_NON_QUERY) {
+        return new SqlSnapshot(s.end(this), tableRef, e);
+    }
+}
+
+/**
  * Parses a MATCH_RECOGNIZE clause following a table expression.
  */
-SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
+SqlMatchRecognize MatchRecognize(SqlNode tableRef) :
 {
     final Span s, s0, s1, s2;
     SqlNodeList measureList = SqlNodeList.EMPTY;
@@ -3007,7 +3017,7 @@ void Expression2b(ExprContext exprContext, List<Object> list) :
 {
     SqlNode e;
     SqlOperator op;
-    String p;
+    SqlIdentifier p;
 }
 {
     (
@@ -3021,11 +3031,11 @@ void Expression2b(ExprContext exprContext, List<Object> list) :
     }
     (
         <DOT>
-        p = Identifier() {
+        p = SimpleIdentifier() {
             list.add(
                 new SqlParserUtil.ToTreeListItem(
                     SqlStdOperatorTable.DOT, getPos()));
-            list.add(new SqlIdentifier(p, getPos()));
+            list.add(p);
         }
     )*
 }
@@ -3052,7 +3062,7 @@ List<Object> Expression2(ExprContext exprContext) :
     SqlNodeList nodeList;
     SqlNode e;
     SqlOperator op;
-    String p;
+    SqlIdentifier p;
     final Span s = span();
 }
 {
@@ -3177,11 +3187,11 @@ List<Object> Expression2(ExprContext exprContext) :
                 }
                 (
                     <DOT>
-                    p = Identifier() {
+                    p = SimpleIdentifier() {
                         list.add(
                             new SqlParserUtil.ToTreeListItem(
                                 SqlStdOperatorTable.DOT, getPos()));
-                        list.add(new SqlIdentifier(p, getPos()));
+                        list.add(p);
                     }
                 )*
             |
@@ -4157,41 +4167,50 @@ SqlDynamicParam DynamicParam() :
     }
 }
 
-
 /**
- * Parses a simple identifier as a string.
+ * Parses one segment of an identifier that may be composite.
+ *
+ * <p>Each time it reads an identifier it writes one element to each list;
+ * the entry in {@code positions} records its position and whether the
+ * segment was quoted.
  */
-String Identifier() :
+void IdentifierSegment(List<String> names, List<SqlParserPos> positions) :
 {
-    String id;
+    final String id;
     char unicodeEscapeChar = BACKSLASH;
+    final SqlParserPos pos;
+    final Span span;
 }
 {
     (
-        <IDENTIFIER>
-        {
+        <IDENTIFIER> {
             id = unquotedIdentifier();
+            pos = getPos();
         }
     |
         <QUOTED_IDENTIFIER> {
             id = SqlParserUtil.strip(getToken(0).image, DQ, DQ, DQDQ,
                 quotedCasing);
+            pos = getPos().withQuoting(true);
         }
     |
         <BACK_QUOTED_IDENTIFIER> {
             id = SqlParserUtil.strip(getToken(0).image, "`", "`", "``",
                 quotedCasing);
+            pos = getPos().withQuoting(true);
         }
     |
         <BRACKET_QUOTED_IDENTIFIER> {
             id = SqlParserUtil.strip(getToken(0).image, "[", "]", "]]",
                 quotedCasing);
+            pos = getPos().withQuoting(true);
         }
     |
         <UNICODE_QUOTED_IDENTIFIER> {
-            id = getToken(0).image;
-            id = id.substring(id.indexOf('"'));
-            id = SqlParserUtil.strip(id, DQ, DQ, DQDQ, quotedCasing);
+            span = span();
+            String image = getToken(0).image;
+            image = image.substring(image.indexOf('"'));
+            image = SqlParserUtil.strip(image, DQ, DQ, DQDQ, quotedCasing);
         }
         [
             <UESCAPE> <QUOTED_STRING> {
@@ -4200,19 +4219,38 @@ String Identifier() :
             }
         ]
         {
-            SqlLiteral lit = SqlLiteral.createCharString(id, "UTF16", getPos());
+            pos = span.end(this).withQuoting(true);
+            SqlLiteral lit = SqlLiteral.createCharString(image, "UTF16", pos);
             lit = lit.unescapeUnicode(unicodeEscapeChar);
-            return lit.toValue();
+            id = lit.toValue();
         }
     |
-        id = NonReservedKeyWord()
+        id = NonReservedKeyWord() {
+            pos = getPos();
+        }
     )
     {
         if (id.length() > this.identifierMaxLength) {
-            throw SqlUtil.newContextException(getPos(),
+            throw SqlUtil.newContextException(pos,
                 RESOURCE.identifierTooLong(id, this.identifierMaxLength));
         }
-        return id;
+        names.add(id);
+        if (positions != null) {
+            positions.add(pos);
+        }
+    }
+}
+
+/**
+ * Parses a simple identifier as a String.
+ */
+String Identifier() :
+{
+    final List<String> names = new ArrayList<String>();
+}
+{
+    IdentifierSegment(names, null) {
+        return names.get(0);
     }
 }
 
@@ -4221,11 +4259,12 @@ String Identifier() :
  */
 SqlIdentifier SimpleIdentifier() :
 {
-    final String p;
+    final List<String> names = new ArrayList<String>();
+    final List<SqlParserPos> positions = new ArrayList<SqlParserPos>();
 }
 {
-    p = Identifier() {
-        return new SqlIdentifier(p, getPos());
+    IdentifierSegment(names, positions) {
+        return new SqlIdentifier(names.get(0), positions.get(0));
     }
 }
 
@@ -4268,38 +4307,30 @@ SqlNodeList ParenthesizedSimpleIdentifierList() :
  */
 SqlIdentifier CompoundIdentifier() :
 {
-    List<String> list = new ArrayList<String>();
-    List<SqlParserPos> posList = new ArrayList<SqlParserPos>();
-    String p;
+    final List<String> nameList = new ArrayList<String>();
+    final List<SqlParserPos> posList = new ArrayList<SqlParserPos>();
     boolean star = false;
 }
 {
-    p = Identifier()
-    {
-        posList.add(getPos());
-        list.add(p);
-    }
+    IdentifierSegment(nameList, posList)
     (
         <DOT>
-        p = Identifier() {
-            list.add(p);
-            posList.add(getPos());
-        }
+        IdentifierSegment(nameList, posList)
     )*
     (
         <DOT>
         <STAR> {
             star = true;
-            list.add("");
+            nameList.add("");
             posList.add(getPos());
         }
     )?
     {
         SqlParserPos pos = SqlParserPos.sum(posList);
         if (star) {
-            return SqlIdentifier.star(list, pos, posList);
+            return SqlIdentifier.star(nameList, pos, posList);
         }
-        return new SqlIdentifier(list, null, pos, posList);
+        return new SqlIdentifier(nameList, null, pos, posList);
     }
 }
 
@@ -4823,11 +4854,15 @@ SqlNode BuiltinFunctionCall() :
     |
         node = JsonValueFunctionCall() { return node; }
     |
+        node = JsonPrettyFunctionCall() { return node; }
+    |
         node = JsonQueryFunctionCall() { return node; }
     |
         node = JsonObjectFunctionCall() { return node; }
     |
         node = JsonTypeFunctionCall() { return node; }
+    |
+        node = JsonDepthFunctionCall() { return node; }
     |
         node = JsonObjectAggFunctionCall() { return node; }
     |
@@ -5070,6 +5105,22 @@ SqlCall JsonValueFunctionCall() :
     }
 }
 
+SqlCall JsonPrettyFunctionCall() :
+{
+    final SqlNode[] args = new SqlNode[1];
+    SqlNode e;
+    final Span span;
+}
+{
+    <JSON_PRETTY> { span = span(); }
+    <LPAREN> e = JsonValueExpression(true) {
+        args[0] = e;
+    }
+    <RPAREN> {
+        return SqlStdOperatorTable.JSON_PRETTY.createCall(span.end(this), args);
+    }
+}
+
 List<SqlNode> JsonQueryEmptyOrErrorBehavior() :
 {
     final List<SqlNode> list = new ArrayList<SqlNode>();
@@ -5261,6 +5312,22 @@ SqlCall JsonTypeFunctionCall() :
     }
     <RPAREN> {
         return SqlStdOperatorTable.JSON_TYPE.createCall(span.end(this), args);
+    }
+}
+
+SqlCall JsonDepthFunctionCall() :
+{
+    final SqlNode[] args = new SqlNode[1];
+    SqlNode e;
+    final Span span;
+}
+{
+    <JSON_DEPTH> { span = span(); }
+    <LPAREN> e = JsonValueExpression(true) {
+        args[0] = e;
+    }
+    <RPAREN> {
+        return SqlStdOperatorTable.JSON_DEPTH.createCall(span.end(this), args);
     }
 }
 
@@ -6337,8 +6404,10 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < JSON_ARRAYAGG: "JSON_ARRAYAGG">
 |   < JSON_EXISTS: "JSON_EXISTS" >
 |   < JSON_VALUE: "JSON_VALUE" >
+|   < JSON_PRETTY: "JSON_PRETTY" >
 |   < JSON_OBJECT: "JSON_OBJECT">
 |   < JSON_TYPE: "JSON_TYPE">
+|   < JSON_DEPTH: "JSON_DEPTH">
 |   < JSON_OBJECTAGG: "JSON_OBJECTAGG">
 |   < JSON_QUERY: "JSON_QUERY" >
 |   < K: "K" >

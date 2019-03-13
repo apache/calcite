@@ -44,6 +44,7 @@ import org.apache.calcite.schema.ImplementableFunction;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlJsonArrayAggAggFunction;
 import org.apache.calcite.sql.fun.SqlJsonObjectAggAggFunction;
@@ -96,6 +97,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ACOS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.AND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ANY_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASCII;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN2;
@@ -162,9 +164,11 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ITEM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_API_COMMON_SYNTAX;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_ARRAY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_ARRAYAGG;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_DEPTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_EXISTS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECTAGG;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_PRETTY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_QUERY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_STRUCTURED_VALUE_EXPRESSION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_TYPE;
@@ -276,6 +280,7 @@ public class RexImpTable {
         NullPolicy.STRICT);
     defineMethod(OVERLAY, BuiltInMethod.OVERLAY.method, NullPolicy.STRICT);
     defineMethod(POSITION, BuiltInMethod.POSITION.method, NullPolicy.STRICT);
+    defineMethod(ASCII, BuiltInMethod.ASCII.method, NullPolicy.STRICT);
 
     final TrimImplementor trimImplementor = new TrimImplementor();
     defineImplementor(TRIM, NullPolicy.STRICT, trimImplementor, false);
@@ -451,12 +456,20 @@ public class RexImpTable {
     defineMethod(JSON_VALUE_ANY, BuiltInMethod.JSON_VALUE_ANY.method, NullPolicy.NONE);
     defineMethod(JSON_QUERY, BuiltInMethod.JSON_QUERY.method, NullPolicy.NONE);
     defineMethod(JSON_OBJECT, BuiltInMethod.JSON_OBJECT.method, NullPolicy.NONE);
+    defineMethod(JSON_ARRAY, BuiltInMethod.JSON_ARRAY.method, NullPolicy.NONE);
     defineMethod(JSON_TYPE, BuiltInMethod.JSON_TYPE.method, NullPolicy.NONE);
-    aggMap.put(JSON_OBJECTAGG,
+    defineMethod(JSON_DEPTH, BuiltInMethod.JSON_DEPTH.method, NullPolicy.NONE);
+    defineMethod(JSON_PRETTY, BuiltInMethod.JSON_PRETTY.method, NullPolicy.NONE);
+    aggMap.put(JSON_OBJECTAGG.with(SqlJsonConstructorNullClause.ABSENT_ON_NULL),
         JsonObjectAggImplementor
             .supplierFor(BuiltInMethod.JSON_OBJECTAGG_ADD.method));
-    defineMethod(JSON_ARRAY, BuiltInMethod.JSON_ARRAY.method, NullPolicy.NONE);
-    aggMap.put(JSON_ARRAYAGG,
+    aggMap.put(JSON_OBJECTAGG.with(SqlJsonConstructorNullClause.NULL_ON_NULL),
+        JsonObjectAggImplementor
+            .supplierFor(BuiltInMethod.JSON_OBJECTAGG_ADD.method));
+    aggMap.put(JSON_ARRAYAGG.with(SqlJsonConstructorNullClause.ABSENT_ON_NULL),
+        JsonArrayAggImplementor
+            .supplierFor(BuiltInMethod.JSON_ARRAYAGG_ADD.method));
+    aggMap.put(JSON_ARRAYAGG.with(SqlJsonConstructorNullClause.NULL_ON_NULL),
         JsonArrayAggImplementor
             .supplierFor(BuiltInMethod.JSON_ARRAYAGG_ADD.method));
     defineImplementor(IS_JSON_VALUE, NullPolicy.NONE,
@@ -2225,8 +2238,8 @@ public class RexImpTable {
               Expressions.call(BuiltInMethod.TIME_ZONE.method, translator.getRoot()));
           // fall through
         case TIMESTAMP:
-          operand = Expressions.divide(operand,
-              Expressions.constant(TimeUnit.DAY.multiplier.longValue()));
+          operand = Expressions.call(BuiltInMethod.FLOOR_DIV.method,
+              operand, Expressions.constant(TimeUnit.DAY.multiplier.longValue()));
           // fall through
         case DATE:
           return Expressions.call(BuiltInMethod.UNIX_DATE_EXTRACT.method,
@@ -2236,11 +2249,9 @@ public class RexImpTable {
         }
         break;
       case MILLISECOND:
-        return Expressions.modulo(
-              operand, Expressions.constant(TimeUnit.MINUTE.multiplier.longValue()));
+        return mod(operand, TimeUnit.MINUTE.multiplier.longValue());
       case MICROSECOND:
-        operand = Expressions.modulo(
-              operand, Expressions.constant(TimeUnit.MINUTE.multiplier.longValue()));
+        operand = mod(operand, TimeUnit.MINUTE.multiplier.longValue());
         return Expressions.multiply(
               operand, Expressions.constant(TimeUnit.SECOND.multiplier.longValue()));
       case EPOCH:
@@ -2306,7 +2317,8 @@ public class RexImpTable {
     if (factor == 1L) {
       return operand;
     } else {
-      return Expressions.modulo(operand, Expressions.constant(factor));
+      return Expressions.call(BuiltInMethod.FLOOR_MOD.method,
+          operand, Expressions.constant(factor));
     }
   }
 

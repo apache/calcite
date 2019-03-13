@@ -358,6 +358,18 @@ public class SqlIdentifier extends SqlNode {
     return names.size() == 1 && !isStar();
   }
 
+  /**
+   * Returns whether the {@code i}th component of a compound identifier is
+   * quoted.
+   *
+   * @param i Ordinal of component
+   * @return Whether i'th component is quoted
+   */
+  public boolean isComponentQuoted(int i) {
+    return componentPositions != null
+        && componentPositions.get(i).isQuoted();
+  }
+
   public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     // for "star" column, whether it's static or dynamic return not_monotonic directly.
     if (Util.last(names).equals("") || DynamicRecordType.isDynamicStarColName(Util.last(names))) {

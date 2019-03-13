@@ -128,7 +128,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * struct type alias should not cause IOOBE.</a>.
    */
   @Test public void testStructTypeAlias() {
-    final String sql = "select t.r AS myRow \n"
+    final String sql = "select t.r AS myRow\n"
         + "from (select row(row(1)) r from dept) t";
     sql(sql).ok();
   }
@@ -1060,6 +1060,28 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testCollectionTableWithLateral2() {
     sql("select * from dept, lateral table(ramp(deptno))").ok();
+  }
+
+  @Test public void testSnapshotOnTemporalTable() {
+    final String sql = "select * from products_temporal "
+        + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'";
+    sql(sql).ok();
+  }
+
+  @Test public void testJoinTemporalTableOnSpecificTime() {
+    final String sql = "select stream *\n"
+        + "from orders,\n"
+        + "  products_temporal for system_time as of\n"
+        + "    TIMESTAMP '2011-01-02 00:00:00'";
+    sql(sql).ok();
+  }
+
+  @Test public void testJoinTemporalTableOnColumnReference() {
+    final String sql = "select stream *\n"
+        + "from orders\n"
+        + "join products_temporal for system_time as of orders.rowtime\n"
+        + "on orders.productid = products_temporal.productid";
+    sql(sql).ok();
   }
 
   /** Test case for

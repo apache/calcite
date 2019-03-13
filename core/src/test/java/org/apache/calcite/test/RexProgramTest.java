@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.Strong;
@@ -957,7 +958,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
    * to CNF. */
   @Test public void testCnfExponential() {
     // run out of memory if limit is higher than about 20
-    final int limit = CalciteAssert.ENABLE_SLOW ? 16 : 6;
+    final int limit = CalciteSystemProperty.TEST_SLOW.value() ? 16 : 6;
     for (int i = 2; i < limit; i++) {
       checkExponentialCnf(i);
     }
@@ -1222,37 +1223,37 @@ public class RexProgramTest extends RexProgramBuilderBase {
     // "x = x" simplifies to "x is not null"
     checkSimplify(eq(literal1, literal1), "true");
     checkSimplify(eq(hRef, hRef), "true");
-    checkSimplify2(eq(iRef, iRef), "=(?0.i, ?0.i)", "IS NOT NULL(?0.i)");
+    checkSimplify3(eq(iRef, iRef), "OR(null, IS NOT NULL(?0.i))", "IS NOT NULL(?0.i)", "true");
     checkSimplifyUnchanged(eq(iRef, hRef));
 
     // "x <= x" simplifies to "x is not null"
     checkSimplify(le(literal1, literal1), "true");
     checkSimplify(le(hRef, hRef), "true");
-    checkSimplify2(le(iRef, iRef), "<=(?0.i, ?0.i)", "IS NOT NULL(?0.i)");
+    checkSimplify3(le(iRef, iRef), "OR(null, IS NOT NULL(?0.i))", "IS NOT NULL(?0.i)", "true");
     checkSimplifyUnchanged(le(iRef, hRef));
 
     // "x >= x" simplifies to "x is not null"
     checkSimplify(ge(literal1, literal1), "true");
     checkSimplify(ge(hRef, hRef), "true");
-    checkSimplify2(ge(iRef, iRef), ">=(?0.i, ?0.i)", "IS NOT NULL(?0.i)");
+    checkSimplify3(ge(iRef, iRef), "OR(null, IS NOT NULL(?0.i))", "IS NOT NULL(?0.i)", "true");
     checkSimplifyUnchanged(ge(iRef, hRef));
 
     // "x != x" simplifies to "false"
     checkSimplify(ne(literal1, literal1), "false");
     checkSimplify(ne(hRef, hRef), "false");
-    checkSimplify2(ne(iRef, iRef), "<>(?0.i, ?0.i)", "false");
+    checkSimplify3(ne(iRef, iRef), "AND(null, IS NULL(?0.i))", "false", "IS NULL(?0.i)");
     checkSimplifyUnchanged(ne(iRef, hRef));
 
     // "x < x" simplifies to "false"
     checkSimplify(lt(literal1, literal1), "false");
     checkSimplify(lt(hRef, hRef), "false");
-    checkSimplify2(lt(iRef, iRef), "<(?0.i, ?0.i)", "false");
+    checkSimplify3(lt(iRef, iRef), "AND(null, IS NULL(?0.i))", "false", "IS NULL(?0.i)");
     checkSimplifyUnchanged(lt(iRef, hRef));
 
     // "x > x" simplifies to "false"
     checkSimplify(gt(literal1, literal1), "false");
     checkSimplify(gt(hRef, hRef), "false");
-    checkSimplify2(gt(iRef, iRef), ">(?0.i, ?0.i)", "false");
+    checkSimplify3(gt(iRef, iRef), "AND(null, IS NULL(?0.i))", "false", "IS NULL(?0.i)");
     checkSimplifyUnchanged(gt(iRef, hRef));
 
     // "(not x) is null" to "x is null"
@@ -1545,11 +1546,12 @@ public class RexProgramTest extends RexProgramBuilderBase {
         ">(?0.a, 10)");
 
     // "null AND NOT(null OR x)" => "null AND NOT(x)"
-    checkSimplify2(
+    checkSimplify3(
         and(nullBool,
             not(or(nullBool, vBool()))),
         "AND(null, NOT(?0.bool0))",
-        "false");
+        "false",
+        "NOT(?0.bool0)");
 
     // "x1 AND x2 AND x3 AND NOT(x1) AND NOT(x2) AND NOT(x0)" =>
     // "x3 AND null AND x1 IS NULL AND x2 IS NULL AND NOT(x0)"
@@ -1682,21 +1684,23 @@ public class RexProgramTest extends RexProgramBuilderBase {
             nullInt),
         "AND(=(?0.a, 1), null:INTEGER)",
         "false");
-    checkSimplify2(
+    checkSimplify3(
         and(trueLiteral,
             nullBool),
         "null:BOOLEAN",
-        "false");
+        "false",
+        "true");
     checkSimplify(
         and(falseLiteral,
             nullBool),
         "false");
 
-    checkSimplify2(
+    checkSimplify3(
         and(nullBool,
             eq(aRef, literal1)),
         "AND(null, =(?0.a, 1))",
-        "false");
+        "false",
+        "=(?0.a, 1)");
 
     checkSimplify3(
         or(eq(aRef, literal1),
@@ -1739,9 +1743,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
                     ge(vInt(), literal(1)),
                     le(vInt(), literal(1))))),
         "AND(=(?0.int2, 2), OR(=(?0.int3, 3), AND(>=(?0.int0, 1), <=(?0.int0, 1))))",
-        "AND(=(?0.int2, 2), OR(=(?0.int3, 3), =(?0.int0, 1)))"
-
-    );
+        "AND(=(?0.int2, 2), OR(=(?0.int3, 3), =(?0.int0, 1)))");
   }
 
   @Test public void fieldAccessEqualsHashCode() {
@@ -2264,6 +2266,20 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplifyUnchanged(le(literalAbc, literalZero));
   }
 
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2421">[CALCITE-2421]
+   * to-be-filled </a>. */
+  @Test public void testSelfComparisions() {
+    checkSimplify3(and(eq(vInt(), vInt()), eq(vInt(1), vInt(1))),
+        "AND(OR(null, IS NOT NULL(?0.int0)), OR(null, IS NOT NULL(?0.int1)))",
+        "AND(IS NOT NULL(?0.int0), IS NOT NULL(?0.int1))",
+        "true");
+    checkSimplify3(and(ne(vInt(), vInt()), ne(vInt(1), vInt(1))),
+        "AND(null, IS NULL(?0.int0), IS NULL(?0.int1))",
+        "false",
+        "AND(IS NULL(?0.int0), IS NULL(?0.int1))");
+  }
+
   @Test public void testBooleanComparisions() {
     checkSimplify(eq(vBool(), trueLiteral), "?0.bool0");
     checkSimplify(ge(vBool(), trueLiteral), "?0.bool0");
@@ -2481,16 +2497,18 @@ public class RexProgramTest extends RexProgramBuilderBase {
     // "x = x AND NOT (y >= y)"
     //    -> "x = x AND y < y" (treating unknown as unknown)
     //    -> false (treating unknown as false)
-    checkSimplify2(and(eq(vInt(1), vInt(1)), not(ge(vInt(2), vInt(2)))),
-        "AND(=(?0.int1, ?0.int1), <(?0.int2, ?0.int2))",
-        "false");
+    checkSimplify3(and(eq(vInt(1), vInt(1)), not(ge(vInt(2), vInt(2)))),
+        "AND(OR(null, IS NOT NULL(?0.int1)), null, IS NULL(?0.int2))",
+        "false",
+        "IS NULL(?0.int2)");
 
     // "NOT(x = x AND NOT (y = y))"
     //   -> "OR(x <> x, y >= y)" (treating unknown as unknown)
     //   -> "y IS NOT NULL" (treating unknown as false)
-    checkSimplify2(not(and(eq(vInt(1), vInt(1)), not(ge(vInt(2), vInt(2))))),
-        "OR(<>(?0.int1, ?0.int1), >=(?0.int2, ?0.int2))",
-        "IS NOT NULL(?0.int2)");
+    checkSimplify3(not(and(eq(vInt(1), vInt(1)), not(ge(vInt(2), vInt(2))))),
+        "OR(AND(null, IS NULL(?0.int1)), null, IS NOT NULL(?0.int2))",
+        "IS NOT NULL(?0.int2)",
+        "true");
   }
 
   @Test public void testSimplifyOrNot() {
@@ -2501,16 +2519,18 @@ public class RexProgramTest extends RexProgramBuilderBase {
     // "x = x OR NOT (y >= y)"
     //    -> "x = x OR y < y" (treating unknown as unknown)
     //    -> "x IS NOT NULL" (treating unknown as false)
-    checkSimplify2(or(eq(vInt(1), vInt(1)), not(ge(vInt(2), vInt(2)))),
-        "OR(=(?0.int1, ?0.int1), <(?0.int2, ?0.int2))",
-        "IS NOT NULL(?0.int1)");
+    checkSimplify3(or(eq(vInt(1), vInt(1)), not(ge(vInt(2), vInt(2)))),
+        "OR(null, IS NOT NULL(?0.int1), AND(null, IS NULL(?0.int2)))",
+        "IS NOT NULL(?0.int1)",
+        "true");
 
     // "NOT(x = x OR NOT (y = y))"
     //   -> "AND(x <> x, y >= y)" (treating unknown as unknown)
     //   -> "FALSE" (treating unknown as false)
-    checkSimplify2(not(or(eq(vInt(1), vInt(1)), not(ge(vInt(2), vInt(2))))),
-        "AND(<>(?0.int1, ?0.int1), >=(?0.int2, ?0.int2))",
-        "false");
+    checkSimplify3(not(or(eq(vInt(1), vInt(1)), not(ge(vInt(2), vInt(2))))),
+        "AND(null, IS NULL(?0.int1), OR(null, IS NOT NULL(?0.int2)))",
+        "false",
+        "IS NULL(?0.int1)");
   }
 
   private RexNode simplify(RexNode e) {
@@ -2548,16 +2568,14 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplify2(
         isTrue(isTrue(vBool())),
         "IS TRUE(?0.bool0)",
-        "?0.bool0"
-    );
+        "?0.bool0");
   }
 
   @Test public void testRedundantIsFalse() {
     checkSimplify2(
         isTrue(isFalse(vBool())),
         "IS FALSE(?0.bool0)",
-        "NOT(?0.bool0)"
-    );
+        "NOT(?0.bool0)");
   }
 
   @Test public void testRedundantIsNotTrue() {
@@ -2565,8 +2583,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
         isNotFalse(isNotTrue(vBool())),
         "IS NOT TRUE(?0.bool0)",
         "IS NOT TRUE(?0.bool0)",
-        "NOT(?0.bool0)"
-    );
+        "NOT(?0.bool0)");
   }
 
   @Test public void testRedundantIsNotFalse() {
@@ -2574,8 +2591,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
         isNotFalse(isNotFalse(vBool())),
         "IS NOT FALSE(?0.bool0)",
         "IS NOT FALSE(?0.bool0)",
-        "?0.bool0"
-    );
+        "?0.bool0");
   }
 
   /** Unit tests for
@@ -2659,4 +2675,5 @@ public class RexProgramTest extends RexProgramBuilderBase {
   }
 
 }
+
 // End RexProgramTest.java

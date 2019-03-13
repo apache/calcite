@@ -20,12 +20,12 @@ import org.apache.calcite.adapter.druid.DruidQuery;
 import org.apache.calcite.adapter.druid.DruidSchema;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.Util;
+import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -91,12 +91,6 @@ public class DruidAdapterIT {
   public static final URL WIKI_AUTO2 =
       DruidAdapterIT.class.getResource("/druid-wiki-no-tables-model.json");
 
-  /** Whether to run Druid tests. Enabled by default, however test is only
-   * included if "it" profile is activated ({@code -Pit}). To disable,
-   * specify {@code -Dcalcite.test.druid=false} on the Java command line. */
-  public static final boolean ENABLED =
-      Util.getBooleanProperty("calcite.test.druid", true);
-
   private static final String VARCHAR_TYPE =
       "VARCHAR";
 
@@ -104,7 +98,7 @@ public class DruidAdapterIT {
 
   /** Whether to run this test. */
   protected boolean enabled() {
-    return ENABLED;
+    return CalciteSystemProperty.TEST_DRUID.value();
   }
 
   /** Returns a consumer that checks that a particular Druid query is
@@ -385,7 +379,7 @@ public class DruidAdapterIT {
             while (r.next()) {
               map.put(r.getString("TYPE_NAME"), true);
             }
-            if (CalcitePrepareImpl.DEBUG) {
+            if (CalciteSystemProperty.DEBUG.value()) {
               System.out.println(map);
             }
             // 1 timestamp, 2 float measure, 1 int measure, 88 dimensions
@@ -396,7 +390,7 @@ public class DruidAdapterIT {
             assertThat(map.get("BIGINT").size(), is(1));
             assertThat(map.get(VARCHAR_TYPE).size(), is(88));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -502,7 +496,7 @@ public class DruidAdapterIT {
             assertThat(input.wasNull(), is(false));
             assertThat(input.next(), is(false));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -795,7 +789,7 @@ public class DruidAdapterIT {
             }
             assertFalse(resultSet.next());
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         })
         .queryContains(druidChecker(druidQuery));
@@ -824,7 +818,7 @@ public class DruidAdapterIT {
             }
             assertFalse(resultSet.next());
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         })
         .queryContains(druidChecker(druidQuery));
@@ -870,7 +864,7 @@ public class DruidAdapterIT {
             }
             assertFalse(resultSet.next());
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         })
         .queryContains(druidChecker(druidQuery, druidFilter, druidQuery2));

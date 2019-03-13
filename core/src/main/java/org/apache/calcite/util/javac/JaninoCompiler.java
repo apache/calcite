@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.util.javac;
 
-import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.config.CalciteSystemProperty;
 
 import org.codehaus.janino.JavaSourceClassLoader;
 import org.codehaus.janino.util.ClassFile;
@@ -78,7 +78,7 @@ public class JaninoCompiler implements JavaCompiler {
             sourceFinder,
             null,
             args.destdir == null ? null : new File(args.destdir));
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       // Add line numbers to the generated janino class
       classLoader.setDebuggingInfo(true, true, true);
     }

@@ -25,6 +25,7 @@ import org.apache.calcite.adapter.jdbc.JdbcConvention;
 import org.apache.calcite.adapter.jdbc.JdbcImplementor;
 import org.apache.calcite.adapter.jdbc.JdbcRel;
 import org.apache.calcite.adapter.jdbc.JdbcRules;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
@@ -734,7 +735,7 @@ public class PlannerTest {
     checkJoinNWay(5); // LoptOptimizeJoinRule disabled; takes about .4s
     checkJoinNWay(9); // LoptOptimizeJoinRule enabled; takes about 0.04s
     checkJoinNWay(35); // takes about 2s
-    if (CalciteAssert.ENABLE_SLOW) {
+    if (CalciteSystemProperty.TEST_SLOW.value()) {
       checkJoinNWay(60); // takes about 15s
     }
   }

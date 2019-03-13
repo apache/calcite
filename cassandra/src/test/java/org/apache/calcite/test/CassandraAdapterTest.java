@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
 
 import org.apache.cassandra.config.DatabaseDescriptor;
 
@@ -82,8 +82,7 @@ public class CassandraAdapterTest {
    *         {@code false} otherwise
    */
   private static boolean enabled() {
-    final boolean enabled =
-        Util.getBooleanProperty("calcite.test.cassandra", true);
+    final boolean enabled = CalciteSystemProperty.TEST_CASSANDRA.value();
     Bug.upgrade("remove JDK version check once current adapter supports Cassandra 4.x");
     final boolean compatibleJdk = TestUtil.getJavaMajorVersion() != 11
                                       && TestUtil.getJavaMajorVersion() != 12;

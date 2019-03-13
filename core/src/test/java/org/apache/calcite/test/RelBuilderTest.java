@@ -54,6 +54,7 @@ import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.tools.RelRunners;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
@@ -124,7 +125,7 @@ public class RelBuilderTest {
     return Frameworks.newConfigBuilder()
         .parserConfig(SqlParser.Config.DEFAULT)
         .defaultSchema(
-            CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.SCOTT))
+            CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL))
         .traitDefs((List<RelTraitDef>) null)
         .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2));
   }
@@ -278,6 +279,47 @@ public class RelBuilderTest {
             .build();
     final String expected = "LogicalFilter(condition=[=($7, 20)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test public void testSnapshotTemporalTable() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM products_temporal FOR SYSTEM_TIME AS OF TIMESTAMP '2011-07-20 12:34:56'
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("products_temporal")
+            .snapshot(
+                builder.getRexBuilder().makeTimestampLiteral(
+                    new TimestampString("2011-07-20 12:34:56"), 0))
+            .build();
+    final String expected = "LogicalSnapshot(period=[2011-07-20 12:34:56])\n"
+            + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test public void testJoinTemporalTable() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM orders
+    //   JOIN products_temporal FOR SYSTEM_TIME AS OF TIMESTAMP '2011-07-20 12:34:56'
+    //   ON orders.product = products_temporal.id
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("orders")
+            .scan("products_temporal")
+            .snapshot(
+                builder.getRexBuilder().makeTimestampLiteral(
+                    new TimestampString("2011-07-20 12:34:56"), 0))
+            .join(JoinRelType.INNER,
+                builder.call(SqlStdOperatorTable.EQUALS,
+                    builder.field(2, 0, "PRODUCT"),
+                    builder.field(2, 1, "ID")))
+            .build();
+    final String expected = "LogicalJoin(condition=[=($2, $4)], joinType=[inner])\n"
+        + "  LogicalTableScan(table=[[scott, orders]])\n"
+        + "  LogicalSnapshot(period=[2011-07-20 12:34:56])\n"
+        + "    LogicalTableScan(table=[[scott, products_temporal]])\n";
     assertThat(root, hasTree(expected));
   }
 
@@ -1535,8 +1577,35 @@ public class RelBuilderTest {
             .build();
     final String expected = ""
         + "LogicalFilter(condition=[>($1, $2)])\n"
-        + "  LogicalProject($f1=[20], $f12=[10], DEPTNO=[$7])\n"
+        + "  LogicalProject($f1=[20], $f2=[10], DEPTNO=[$7])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /**
+   * Tests that project field name aliases are suggested incrementally.
+   */
+  @Test public void testAliasSuggester() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root = builder.scan("EMP")
+        .project(builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0))
+        .build();
+    final String expected = ""
+        + "LogicalProject(EMPNO=[$0], EMPNO0=[$0], EMPNO1=[$0], "
+        + "EMPNO2=[$0], EMPNO3=[$0], EMPNO4=[$0], EMPNO5=[$0], "
+        + "EMPNO6=[$0], EMPNO7=[$0], EMPNO8=[$0], EMPNO9=[$0], EMPNO10=[$0])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }
 

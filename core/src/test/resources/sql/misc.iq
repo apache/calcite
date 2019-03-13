@@ -2109,14 +2109,14 @@ and "sqlTimestamp" < {ts '1998-01-01 00:00:00'};
 !ok
 
 # [CALCITE-1188] NullPointerException in EXTRACT with WHERE ... IN clause if field has null value
-select extract(YEAR from "sqlTimestamp") Y
+select "sqlTimestamp" T
 from "everyTypes"
 where extract(YEAR from "sqlTimestamp") IN (1969, 1970);
-+------+
-| Y    |
-+------+
-| 1970 |
-+------+
++---------------------+
+| T                   |
++---------------------+
+| 1970-01-01 00:00:00 |
++---------------------+
 (1 row)
 
 !ok

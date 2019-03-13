@@ -80,15 +80,6 @@ public class EnumUtils {
     return clazz instanceof Class ? clazz : Object[].class;
   }
 
-  static Class javaRowClass(
-      JavaTypeFactory typeFactory, RelDataType type) {
-    if (type.isStruct() && type.getFieldCount() == 1) {
-      type = type.getFieldList().get(0).getType();
-    }
-    final Type clazz = typeFactory.getJavaClass(type);
-    return clazz instanceof Class ? (Class) clazz : Object[].class;
-  }
-
   static List<Type> fieldTypes(
       final JavaTypeFactory typeFactory,
       final List<? extends RelDataType> inputTypes) {

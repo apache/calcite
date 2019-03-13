@@ -19,8 +19,8 @@ package org.apache.calcite.materialize;
 import org.apache.calcite.adapter.tpcds.TpcdsSchema;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.Contexts;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.PlannerImpl;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.schema.SchemaPlus;
@@ -70,7 +70,7 @@ public class TpcdsLatticeSuggesterTest {
           .replaceAll("14 days", "interval '14' day")
           .replaceAll("substr\\(([^,]*),([^,]*),([^)]*)\\)",
               "substring($1 from $2 for $3)");
-      if (CalcitePrepareImpl.DEBUG) {
+      if (CalciteSystemProperty.DEBUG.value()) {
         System.out.println("Query #" + query.id + "\n"
             + number(sql));
       }

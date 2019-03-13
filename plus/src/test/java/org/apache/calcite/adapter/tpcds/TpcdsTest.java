@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.tpcds;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
@@ -43,9 +44,8 @@ import java.util.function.Consumer;
 
 /** Unit test for {@link org.apache.calcite.adapter.tpcds.TpcdsSchema}.
  *
- * <p>Only runs if {@code -Dcalcite.test.slow} is specified on the
- * command-line.
- * (See {@link org.apache.calcite.test.CalciteAssert#ENABLE_SLOW}.)</p> */
+ * <p>Only runs if {@link org.apache.calcite.config.CalciteSystemProperty#TEST_SLOW} is set.</p>
+ */
 public class TpcdsTest {
   private static Consumer<Holder<Program>> handler(
       final boolean bushy, final int minJoinCount) {
@@ -80,7 +80,7 @@ public class TpcdsTest {
 
   private CalciteAssert.AssertThat with() {
     return CalciteAssert.model(TPCDS_MODEL)
-        .enable(CalciteAssert.ENABLE_SLOW);
+        .enable(CalciteSystemProperty.TEST_SLOW.value());
   }
 
   @Test public void testCallCenter() {

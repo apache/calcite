@@ -23,6 +23,7 @@ import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.ElasticsearchChecker;
+import org.apache.calcite.util.TestUtil;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
@@ -257,7 +258,7 @@ public class ElasticSearchAdapterTest {
           }
         }
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     };
   }
@@ -265,7 +266,8 @@ public class ElasticSearchAdapterTest {
   /**
    * Sorting (and aggregating) directly on items without a view.
    *
-   * Queries of type: {@code select _MAP['a'] from elastic order by _MAP['b']}
+   * <p>Queries of type:
+   * {@code select _MAP['a'] from elastic order by _MAP['b']}
    */
   @Test public void testSortNoSchema() {
     CalciteAssert.that()

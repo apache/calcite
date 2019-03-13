@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
@@ -72,7 +72,7 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
   public static final MultiJoinOptimizeBushyRule INSTANCE =
       new MultiJoinOptimizeBushyRule(RelFactories.LOGICAL_BUILDER);
 
-  private final PrintWriter pw = CalcitePrepareImpl.DEBUG
+  private final PrintWriter pw = CalciteSystemProperty.DEBUG.value()
       ? Util.printWriter(System.out)
       : null;
 

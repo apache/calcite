@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -112,7 +112,7 @@ import static org.apache.calcite.rex.RexUtil.removeAll;
  * {@link org.apache.calcite.rel.logical.LogicalAggregate}.</p>
  */
 public class SubstitutionVisitor {
-  private static final boolean DEBUG = CalcitePrepareImpl.DEBUG;
+  private static final boolean DEBUG = CalciteSystemProperty.DEBUG.value();
 
   private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 

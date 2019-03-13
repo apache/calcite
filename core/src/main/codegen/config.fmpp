@@ -160,6 +160,8 @@ data: {
         "JAVA"
         "JSON"
         "JSON_TYPE"
+        "JSON_DEPTH"
+        "JSON_PRETTY"
         "K"
         "KEY"
         "KEY_MEMBER"

@@ -26,6 +26,7 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.Smalls;
+import org.apache.calcite.util.TestUtil;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -389,7 +390,7 @@ public class TableFunctionTest {
             assertThat(numbers.toString(),
                 is("[1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233]"));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }

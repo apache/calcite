@@ -334,7 +334,7 @@ public class LatticeTest {
                   + "  LogicalProject(DUMMY=[0])\n"
                   + "    StarTableScan(table=[[adhoc, star]])\n",
                   counter));
-    } catch (RuntimeException e) {
+    } catch (Throwable e) {
       assertThat(Throwables.getStackTraceAsString(e),
           containsString("CannotPlanException"));
     }

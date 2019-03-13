@@ -43,12 +43,14 @@ import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 
+import com.fasterxml.jackson.core.PrettyPrinter;
+import com.fasterxml.jackson.core.util.DefaultIndenter;
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
-import com.jayway.jsonpath.spi.json.JsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import com.jayway.jsonpath.spi.mapper.MappingProvider;
 
@@ -67,12 +69,13 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
+import java.util.Queue;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
@@ -130,10 +133,13 @@ public class SqlFunctions {
       Pattern.compile("^\\s*(?<mode>strict|lax)\\s+(?<spec>.+)$",
           Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);
 
-  private static final JsonProvider JSON_PATH_JSON_PROVIDER =
+  private static final JacksonJsonProvider JSON_PATH_JSON_PROVIDER =
       new JacksonJsonProvider();
   private static final MappingProvider JSON_PATH_MAPPING_PROVIDER =
       new JacksonMappingProvider();
+  private static final PrettyPrinter JSON_PRETTY_PRINTER =
+      new DefaultPrettyPrinter().withObjectIndenter(
+          DefaultIndenter.SYSTEM_LINEFEED_INSTANCE.withLinefeed("\n"));
 
   private SqlFunctions() {
   }
@@ -229,6 +235,12 @@ public class SqlFunctions {
       newS.append(curCh);
     } // for each character in s
     return newS.toString();
+  }
+
+  /** SQL ASCII(string) function. */
+  public static int ascii(String s) {
+    return s.isEmpty()
+        ? 0 : s.codePointAt(0);
   }
 
   /** SQL CHARACTER_LENGTH(string) function. */
@@ -2090,7 +2102,11 @@ public class SqlFunctions {
 
   /** Support the SLICE function. */
   public static List slice(List list) {
-    return list;
+    List result = new ArrayList(list.size());
+    for (Object e : list) {
+      result.add(structAccess(e, 0, null));
+    }
+    return result;
   }
 
   /** Support the ELEMENT function. */
@@ -2485,7 +2501,7 @@ public class SqlFunctions {
             errorBehavior.toString()).ex();
       }
     } else {
-      return !Objects.isNull(context.pathReturned);
+      return context.pathReturned != null;
     }
   }
 
@@ -2676,6 +2692,15 @@ public class SqlFunctions {
     }
   }
 
+  public static String jsonPretty(Object input) {
+    try {
+      return JSON_PATH_JSON_PROVIDER.getObjectMapper().writer(JSON_PRETTY_PRINTER)
+          .writeValueAsString(input);
+    } catch (Exception e) {
+      throw RESOURCE.exceptionWhileSerializingToJson(input.toString()).ex();
+    }
+  }
+
   public static String jsonType(Object o) {
     final String result;
     try {
@@ -2710,6 +2735,48 @@ public class SqlFunctions {
     } catch (Exception ex) {
       throw RESOURCE.unknownObjectOfJsonType(o.toString()).ex();
     }
+  }
+
+  public static Integer jsonDepth(Object o) {
+    final Integer result;
+    try {
+      if (o == null) {
+        result = null;
+      } else {
+        result = getJsonDepth(o);
+      }
+      return result;
+    } catch (Exception ex) {
+      throw RESOURCE.unknownObjectOfJsonDepth(o.toString()).ex();
+    }
+  }
+
+  private static Integer getJsonDepth(Object o) {
+    if (isScalarObject(o)) {
+      return 1;
+    }
+    Queue<Object> q = new LinkedList<>();
+    int depth = 0;
+    q.add(o);
+
+    while (!q.isEmpty()) {
+      int size = q.size();
+      for (int i = 0; i < size; ++i) {
+        Object obj = q.poll();
+        if (obj instanceof Map) {
+          for (Object value : ((LinkedHashMap) obj).values()) {
+            q.add(value);
+          }
+        } else if (obj instanceof Collection) {
+          for (Object value : (Collection) obj) {
+            q.add(value);
+          }
+        }
+      }
+      ++depth;
+    }
+
+    return depth;
   }
 
   public static boolean isJsonValue(String input) {

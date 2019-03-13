@@ -25,6 +25,7 @@ import org.apache.calcite.test.Matchers;
 import org.apache.calcite.test.SlowTests;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.JsonBuilder;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.HashMultimap;
@@ -560,7 +561,7 @@ public class ProfilerTest {
                       .collect(Collectors.toList());
               assertThat(strings, matcher);
             } catch (SQLException e) {
-              throw new RuntimeException(e);
+              throw TestUtil.rethrow(e);
             }
           });
       return this;
@@ -573,7 +574,7 @@ public class ProfilerTest {
             final ResultSet r = s.executeQuery();
             return getListEnumerator(r, r.getMetaData().getColumnCount());
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         }
       };
@@ -590,7 +591,7 @@ public class ProfilerTest {
               final Comparable value = (Comparable) r.getObject(i + 1);
               values[i] = NullSentinel.mask(value);
             } catch (SQLException e) {
-              throw new RuntimeException(e);
+              throw TestUtil.rethrow(e);
             }
           }
           return ImmutableList.copyOf(values);
@@ -600,7 +601,7 @@ public class ProfilerTest {
           try {
             return r.next();
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         }
 
@@ -611,7 +612,7 @@ public class ProfilerTest {
           try {
             r.close();
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         }
       };
