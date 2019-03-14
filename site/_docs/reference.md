@@ -1940,24 +1940,28 @@ Not implemented:
 
 ### JSON Functions
 
+In the following:
+
+* *jsonValue* is a JSON input in character string type ;
+* *path* is a JSON path expression in character string type, mode flag **strict** or **lax** should be specified in the beginning of *path*.
+
 #### Query Functions
 
 | Operator syntax        | Description
 |:---------------------- |:-----------
-| JSON_EXISTS(value, path [ { TRUE &#124; FALSE &#124; UNKNOWN &#124; ERROR ) ON ERROR } ) | Test whether a JSON **value** satisfies a search criterion described using JSON path expression **path**
-| JSON_VALUE(value, path [ RETURNING type ] [ { ERROR &#124; NULL &#124; DEFAULT expr } ON EMPTY ] [ { ERROR &#124; NULL &#124; DEFAULT expr } ON ERROR ] ) | Extract an SQL scalar from a JSON **value** using JSON path expression **path**
-| JSON_QUERY(value, path [ { WITHOUT [ ARRAY ] &#124; WITH [ CONDITIONAL &#124; UNCONDITIONAL ] [ ARRAY ] } WRAPPER ] [ { ERROR &#124; NULL &#124; EMPTY ARRAY &#124; EMPTY OBJECT } ON EMPTY ] [ { ERROR &#124; NULL &#124; EMPTY ARRAY &#124; EMPTY OBJECT } ON ERROR ] ) | Extract an JSON object or an JSON array from a JSON **value** using JSON path expression **path**
+| JSON_EXISTS(jsonValue, path [ { TRUE &#124; FALSE &#124; UNKNOWN &#124; ERROR ) ON ERROR } ) | Test whether a *jsonValue* satisfies a search criterion described using JSON path expression *path*
+| JSON_VALUE(jsonValue, path [ RETURNING type ] [ { ERROR &#124; NULL &#124; DEFAULT expr } ON EMPTY ] [ { ERROR &#124; NULL &#124; DEFAULT expr } ON ERROR ] ) | Extract an SQL scalar from a *jsonValue* using JSON path expression *path*
+| JSON_QUERY(jsonValue, path [ { WITHOUT [ ARRAY ] &#124; WITH [ CONDITIONAL &#124; UNCONDITIONAL ] [ ARRAY ] } WRAPPER ] [ { ERROR &#124; NULL &#124; EMPTY ARRAY &#124; EMPTY OBJECT } ON EMPTY ] [ { ERROR &#124; NULL &#124; EMPTY ARRAY &#124; EMPTY OBJECT } ON ERROR ] ) | Extract an JSON object or an JSON array from a *jsonValue* using JSON path expression *path*
 
 Note:
 
-* The common structure `value, path` is JSON API common syntax. **value** is a character string type json input, and **path** is a JSON path expression (in character string type too), mode flag **strict** or **lax** should be specified in the beginning of **path**.
 * **ON ERROR** clause, and **ON EMPTY** clause define the fallback behavior of the function when an error is thrown or a null value is about to be returned.
 * **ARRAY WRAPPER** clause defines how to represent JSON array result in JSON_QUERY function. Following is a comparision to demonstrate the difference among different wrapper behaviors.
 
 Example Data:
 
 ```JSON
-{ "a": "[1,2]", "b": [1,2], "c": "hi"}
+{"a": "[1,2]", "b": [1,2], "c": "hi"}
 ```
 
 Comparison:
@@ -1977,10 +1981,10 @@ Not implemented:
 
 | Operator syntax        | Description
 |:---------------------- |:-----------
-| JSON_OBJECT( { [ KEY ] name VALUE value [ FORMAT JSON ] &#124; name : value [ FORMAT JSON ] } * [ { NULL &#124; ABSENT } ON NULL ] ) | Construct json object using a series of key (**name**) value (**value**) pairs
-| JSON_OBJECTAGG( { [ KEY ] name VALUE value [ FORMAT JSON ] &#124; name : value [ FORMAT JSON ] } [ { NULL &#124; ABSENT } ON NULL ] ) | Aggregate function to construct json object using a key (**name**) value (**value**) pair
-| JSON_ARRAY( { value [ FORMAT JSON ] } * [ { NULL &#124; ABSENT } ON NULL ] ) | Construct json array using a series of values (**value**)
-| JSON_ARRAYAGG( value [ FORMAT JSON ] [ ORDER BY orderItem [, orderItem ]* ] [ { NULL &#124; ABSENT } ON NULL ] ) | Aggregate function to construct json array using a value (**value**)
+| JSON_OBJECT( { [ KEY ] name VALUE value [ FORMAT JSON ] &#124; name : value [ FORMAT JSON ] } * [ { NULL &#124; ABSENT } ON NULL ] ) | Construct json object using a series of key (*name*) value (*value*) pairs
+| JSON_OBJECTAGG( { [ KEY ] name VALUE value [ FORMAT JSON ] &#124; name : value [ FORMAT JSON ] } [ { NULL &#124; ABSENT } ON NULL ] ) | Aggregate function to construct json object using a key (*name*) value (*value*) pair
+| JSON_ARRAY( { value [ FORMAT JSON ] } * [ { NULL &#124; ABSENT } ON NULL ] ) | Construct json array using a series of values (*value*)
+| JSON_ARRAYAGG( value [ FORMAT JSON ] [ ORDER BY orderItem [, orderItem ]* ] [ { NULL &#124; ABSENT } ON NULL ] ) | Aggregate function to construct json array using a value (*value*)
 
 Note:
 
@@ -1992,23 +1996,24 @@ Note:
 
 | Operator syntax                                   | Description
 |:------------------------------------------------- |:-----------
-| value IS JSON [ VALUE ]                           | Whether *value* is a json value, *value* is in character string type
-| value IS NOT JSON [ VALUE ]                       | Whether *value* is not a json value, *value* is in character string type
-| value IS JSON SCALAR                              | Whether *value* is a json scalar value, *value* is in character string type
-| value IS NOT JSON SCALAR                          | Whether *value* is not a json scalar value, *value* is in character string type
-| value IS JSON OBJECT                              | Whether *value* is a json object, *value* is in character string type
-| value IS NOT JSON OBJECT                          | Whether *value* is not a json object, *value* is in character string type
-| value IS JSON ARRAY                               | Whether *value* is a json array, *value* is in character string type
-| value IS NOT JSON ARRAY                           | Whether *value* is not a json array, *value* is in character string type
+| jsonValue IS JSON [ VALUE ]                           | Whether *jsonValue* is a json value
+| jsonValue IS NOT JSON [ VALUE ]                       | Whether *jsonValue* is not a json value
+| jsonValue IS JSON SCALAR                              | Whether *jsonValue* is a json scalar value
+| jsonValue IS NOT JSON SCALAR                          | Whether *jsonValue* is not a json scalar value
+| jsonValue IS JSON OBJECT                              | Whether *jsonValue* is a json object
+| jsonValue IS NOT JSON OBJECT                          | Whether *jsonValue* is not a json object
+| jsonValue IS JSON ARRAY                               | Whether *jsonValue* is a json array
+| jsonValue IS NOT JSON ARRAY                           | Whether *jsonValue* is not a json array
 
 #### MySQL Specific Operators
 
 | Operator syntax                                   | Description
 |:------------------------------------------------- |:-----------
-| JSON_TYPE(value)                                  | Returns a string value indicating the type of a JSON **value**, *value* is in character string type
-| JSON_DEPTH(value)                                 | Returns a integer value indicating the depth of a JSON **value**, *value* is in character string type
-| JSON_PRETTY(value)                                | Returns a pretty-printing of JSON **value**, *value* is in character string type
-| JSON_LENGTH(value)                                | Returns a integer indicating the length of a JSON **value**. This can be an object, an array, or a scalar type
+| JSON_TYPE(jsonValue)                                  | Returns a string value indicating the type of a *jsonValue*
+| JSON_DEPTH(jsonValue)                                 | Returns a integer value indicating the depth of a *jsonValue*
+| JSON_PRETTY(jsonValue)                                | Returns a pretty-printing of *jsonValue*
+| JSON_LENGTH(value)                                    | Returns a integer indicating the length of a JSON **value**. This can be an object, an array, or a scalar type
+
 
 Note:
 
@@ -2051,7 +2056,7 @@ Result
 | ------ | ----- | ------- | ------- |
 | OBJECT | ARRAY | INTEGER | BOOLEAN |
 
-##### JSON_LENGTH example
+##### JSON_DEPTH example
 
 SQL
 
@@ -2088,6 +2093,15 @@ Result:
 | c1     | c2    | c3      | c4      |
 | ------ | ----- | ------- | ------- |
 | 1      | 2     | 1       | 1       |
+
+Not implemented:
+
+* JSON_LENGTH
+* JSON_INSERT
+* JSON_SET
+* JSON_REPLACE
+* JSON_REMOVE
+* JSON_KEYS
 
 ## User-defined functions
 
