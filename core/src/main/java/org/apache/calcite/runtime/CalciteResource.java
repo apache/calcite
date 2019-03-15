@@ -870,6 +870,9 @@ public interface CalciteResource {
 
   @BaseMessage("Cannot serialize object to JSON, and the object is: ''{0}''")
   ExInst<CalciteException> exceptionWhileSerializingToJson(String value);
+
+  @BaseMessage("Omit quotes can be only applied on scalar strings, and the object is: ''{0}''")
+  ExInst<CalciteException> omitQuotesCanBeOnlyAppliedOnScalarStrings(String value);
 }
 
 // End CalciteResource.java

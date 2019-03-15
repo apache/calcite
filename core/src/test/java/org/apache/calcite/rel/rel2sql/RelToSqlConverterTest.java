@@ -3009,7 +3009,7 @@ public class RelToSqlConverterTest {
   @Test public void testJsonQuery() {
     String query = "select json_query(\"product_name\", 'lax $') from \"product\"";
     final String expected = "SELECT JSON_QUERY(\"product_name\" FORMAT JSON, 'lax $' "
-        + "WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)\n"
+        + "WITHOUT ARRAY WRAPPER KEEP QUOTES NULL ON EMPTY NULL ON ERROR)\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }

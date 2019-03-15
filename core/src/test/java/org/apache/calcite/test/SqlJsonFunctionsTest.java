@@ -21,6 +21,7 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;
 import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
+import org.apache.calcite.sql.SqlJsonQueryQuotesBehavior;
 import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
 import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 import org.apache.calcite.util.BuiltInMethod;
@@ -273,6 +274,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryQuotesBehavior.KEEP_QUOTES,
         is("[\"bar\"]"));
     assertJsonQuery(
         SqlFunctions.PathContext
@@ -280,6 +282,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryQuotesBehavior.KEEP_QUOTES,
         nullValue());
     assertJsonQuery(
         SqlFunctions.PathContext
@@ -287,6 +290,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.EMPTY_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryQuotesBehavior.KEEP_QUOTES,
         is("[]"));
     assertJsonQuery(
         SqlFunctions.PathContext
@@ -294,6 +298,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.EMPTY_OBJECT,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryQuotesBehavior.KEEP_QUOTES,
         is("{}"));
     assertJsonQueryFailed(
         SqlFunctions.PathContext
@@ -301,6 +306,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.ERROR,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryQuotesBehavior.KEEP_QUOTES,
         errorMatches(
             new CalciteException("Empty result of JSON_QUERY function is not "
                 + "allowed", null)));
@@ -311,6 +317,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryQuotesBehavior.KEEP_QUOTES,
         nullValue());
     assertJsonQuery(
         SqlFunctions.PathContext
@@ -318,6 +325,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.EMPTY_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryQuotesBehavior.KEEP_QUOTES,
         is("[]"));
     assertJsonQuery(
         SqlFunctions.PathContext
@@ -325,6 +333,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.EMPTY_OBJECT,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryQuotesBehavior.KEEP_QUOTES,
         is("{}"));
     assertJsonQueryFailed(
         SqlFunctions.PathContext
@@ -332,6 +341,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.ERROR,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryQuotesBehavior.KEEP_QUOTES,
         errorMatches(
             new CalciteException("Empty result of JSON_QUERY function is not "
                 + "allowed", null)));
@@ -341,6 +351,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         SqlJsonQueryEmptyOrErrorBehavior.EMPTY_ARRAY,
+        SqlJsonQueryQuotesBehavior.KEEP_QUOTES,
         is("[]"));
     assertJsonQuery(
         SqlFunctions.PathContext
@@ -348,6 +359,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         SqlJsonQueryEmptyOrErrorBehavior.EMPTY_OBJECT,
+        SqlJsonQueryQuotesBehavior.KEEP_QUOTES,
         is("{}"));
     assertJsonQueryFailed(
         SqlFunctions.PathContext
@@ -355,6 +367,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         SqlJsonQueryEmptyOrErrorBehavior.ERROR,
+        SqlJsonQueryQuotesBehavior.KEEP_QUOTES,
         errorMatches(
             new RuntimeException("java.lang.Exception: test message")));
     assertJsonQuery(
@@ -363,6 +376,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryQuotesBehavior.KEEP_QUOTES,
         nullValue());
     assertJsonQuery(
         SqlFunctions.PathContext
@@ -370,6 +384,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         SqlJsonQueryEmptyOrErrorBehavior.EMPTY_ARRAY,
+        SqlJsonQueryQuotesBehavior.KEEP_QUOTES,
         is("[]"));
     assertJsonQueryFailed(
         SqlFunctions.PathContext
@@ -377,6 +392,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         SqlJsonQueryEmptyOrErrorBehavior.ERROR,
+        SqlJsonQueryQuotesBehavior.KEEP_QUOTES,
         errorMatches(
             new CalciteException("Strict jsonpath mode requires array or "
                 + "object value, and the actual value is: 'bar'", null)));
@@ -389,6 +405,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITH_UNCONDITIONAL_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryQuotesBehavior.KEEP_QUOTES,
         is("[\"bar\"]"));
 
     assertJsonQuery(
@@ -397,6 +414,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITH_CONDITIONAL_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryQuotesBehavior.KEEP_QUOTES,
         is("[\"bar\"]"));
 
     assertJsonQuery(
@@ -406,6 +424,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITH_UNCONDITIONAL_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryQuotesBehavior.KEEP_QUOTES,
         is("[[\"bar\"]]"));
 
     assertJsonQuery(
@@ -415,7 +434,29 @@ public class SqlJsonFunctionsTest {
         SqlJsonQueryWrapperBehavior.WITH_CONDITIONAL_ARRAY,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryQuotesBehavior.KEEP_QUOTES,
         is("[\"bar\"]"));
+
+    // quotes behavior test
+
+    assertJsonQuery(
+        SqlFunctions.PathContext
+            .withReturned(SqlFunctions.PathMode.STRICT, "bar"),
+        SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
+        SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryQuotesBehavior.OMIT_QUOTES,
+        is("bar"));
+    assertJsonQueryFailed(
+        SqlFunctions.PathContext
+            .withReturned(SqlFunctions.PathMode.LAX, 1),
+        SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY,
+        SqlJsonQueryEmptyOrErrorBehavior.ERROR,
+        SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryQuotesBehavior.OMIT_QUOTES,
+        errorMatches(
+            new CalciteException("Omit quotes can be only applied on scalar strings,"
+                + " and the object is: '1'", null)));
   }
 
   @Test
@@ -624,12 +665,13 @@ public class SqlJsonFunctionsTest {
       SqlJsonQueryWrapperBehavior wrapperBehavior,
       SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
       SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
+      SqlJsonQueryQuotesBehavior quotesBehavior,
       Matcher<? super String> matcher) {
     assertThat(
         invocationDesc(BuiltInMethod.JSON_QUERY.getMethodName(), input, wrapperBehavior,
             emptyBehavior, errorBehavior),
         SqlFunctions.jsonQuery(input, wrapperBehavior, emptyBehavior,
-            errorBehavior),
+            errorBehavior, quotesBehavior),
         matcher);
   }
 
@@ -637,12 +679,13 @@ public class SqlJsonFunctionsTest {
       SqlJsonQueryWrapperBehavior wrapperBehavior,
       SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
       SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
+      SqlJsonQueryQuotesBehavior quotesBehavior,
       Matcher<? super Throwable> matcher) {
     assertFailed(
         invocationDesc(BuiltInMethod.JSON_QUERY.getMethodName(), input, wrapperBehavior,
             emptyBehavior, errorBehavior),
         () -> SqlFunctions.jsonQuery(input, wrapperBehavior, emptyBehavior,
-            errorBehavior),
+            errorBehavior, quotesBehavior),
         matcher);
   }
 

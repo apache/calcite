@@ -95,6 +95,7 @@ import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
+import org.apache.calcite.sql.SqlJsonQueryQuotesBehavior;
 import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
 import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 
@@ -282,7 +283,8 @@ public enum BuiltInMethod {
   JSON_QUERY(SqlFunctions.class, "jsonQuery", Object.class,
       SqlJsonQueryWrapperBehavior.class,
       SqlJsonQueryEmptyOrErrorBehavior.class,
-      SqlJsonQueryEmptyOrErrorBehavior.class),
+      SqlJsonQueryEmptyOrErrorBehavior.class,
+      SqlJsonQueryQuotesBehavior.class),
   JSON_OBJECT(SqlFunctions.class, "jsonObject",
       SqlJsonConstructorNullClause.class),
   JSON_TYPE(SqlFunctions.class, "jsonType", Object.class),

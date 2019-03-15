@@ -4465,6 +4465,14 @@ public abstract class SqlOperatorBaseTest {
             + "with conditional wrapper)",
         "[100]", "VARCHAR(2000)");
 
+    //omit quotes test
+    tester.checkString("json_query('{\"foo\":\"100\"}', 'strict $.foo' "
+            + "omit quotes)",
+        "100", "VARCHAR(2000)");
+    tester.checkString("json_query('{\"foo\":\"100\"}', 'lax $.foo' "
+            + "omit quotes)",
+        "100", "VARCHAR(2000)");
+
 
   }
 

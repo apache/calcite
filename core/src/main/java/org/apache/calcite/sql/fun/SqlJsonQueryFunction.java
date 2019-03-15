@@ -20,6 +20,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
+import org.apache.calcite.sql.SqlJsonQueryQuotesBehavior;
 import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
@@ -41,7 +42,7 @@ public class SqlJsonQueryFunction extends SqlFunction {
             SqlTypeTransforms.FORCE_NULLABLE),
         null,
         OperandTypes.family(SqlTypeFamily.ANY,
-            SqlTypeFamily.ANY, SqlTypeFamily.ANY, SqlTypeFamily.ANY),
+            SqlTypeFamily.ANY, SqlTypeFamily.ANY, SqlTypeFamily.ANY, SqlTypeFamily.ANY),
         SqlFunctionCategory.SYSTEM);
   }
 
@@ -55,6 +56,8 @@ public class SqlJsonQueryFunction extends SqlFunction {
     call.operand(0).unparse(writer, 0, 0);
     final SqlJsonQueryWrapperBehavior wrapperBehavior =
         getEnumValue(call.operand(1));
+    final SqlJsonQueryQuotesBehavior quotesBehaviour =
+        getEnumValue(call.operand(4));
     switch (wrapperBehavior) {
     case WITHOUT_ARRAY:
       writer.keyword("WITHOUT ARRAY");
@@ -69,6 +72,16 @@ public class SqlJsonQueryFunction extends SqlFunction {
       throw new IllegalStateException("unreachable code");
     }
     writer.keyword("WRAPPER");
+    switch (quotesBehaviour) {
+    case KEEP_QUOTES:
+      writer.keyword("KEEP QUOTES");
+      break;
+    case OMIT_QUOTES:
+      writer.keyword("OMIT QUOTES");
+      break;
+    default:
+      throw new IllegalStateException("unreachable code");
+    }
     unparseEmptyOrErrorBehavior(writer, getEnumValue(call.operand(2)));
     writer.keyword("ON EMPTY");
     unparseEmptyOrErrorBehavior(writer, getEnumValue(call.operand(3)));
@@ -86,6 +99,9 @@ public class SqlJsonQueryFunction extends SqlFunction {
     }
     if (operands[3] == null) {
       operands[3] = SqlLiteral.createSymbol(SqlJsonQueryEmptyOrErrorBehavior.NULL, pos);
+    }
+    if (operands[4] == null) {
+      operands[4] = SqlLiteral.createSymbol(SqlJsonQueryQuotesBehavior.KEEP_QUOTES, pos);
     }
     return super.createCall(functionQualifier, pos, operands);
   }

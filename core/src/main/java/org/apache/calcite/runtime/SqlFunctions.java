@@ -36,6 +36,7 @@ import org.apache.calcite.runtime.FlatLists.ComparableList;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;
 import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
+import org.apache.calcite.sql.SqlJsonQueryQuotesBehavior;
 import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
 import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 import org.apache.calcite.util.Bug;
@@ -2553,7 +2554,8 @@ public class SqlFunctions {
   public static String jsonQuery(Object input,
       SqlJsonQueryWrapperBehavior wrapperBehavior,
       SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
-      SqlJsonQueryEmptyOrErrorBehavior errorBehavior) {
+      SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
+      SqlJsonQueryQuotesBehavior quotesBehavior) {
     final PathContext context = (PathContext) input;
     final Exception exc;
     if (context.exc != null) {
@@ -2580,6 +2582,14 @@ public class SqlFunctions {
         default:
           throw RESOURCE.illegalWrapperBehaviorInJsonQueryFunc(
               wrapperBehavior.toString()).ex();
+        }
+      }
+      if (quotesBehavior == SqlJsonQueryQuotesBehavior.OMIT_QUOTES) {
+        if (value instanceof String) {
+          return (String) value;
+        } else {
+          throw RESOURCE.omitQuotesCanBeOnlyAppliedOnScalarStrings(
+              value.toString()).ex();
         }
       }
       if (value == null || context.mode == PathMode.LAX

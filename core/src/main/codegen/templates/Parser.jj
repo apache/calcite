@@ -69,6 +69,7 @@ import org.apache.calcite.sql.SqlJsonEncoding;
 import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;
 import org.apache.calcite.sql.SqlJsonEmptyOrError;
 import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
+import org.apache.calcite.sql.SqlJsonQueryQuotesBehavior;
 import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
 import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 import org.apache.calcite.sql.SqlKind;
@@ -5157,6 +5158,21 @@ List<SqlNode> JsonQueryEmptyOrErrorBehavior() :
     { return list; }
 }
 
+SqlNode JsonQueryQuotesBehavior() :
+{
+    SqlNode e;
+}
+{
+     <OMIT> <QUOTES> {
+        return SqlLiteral.createSymbol(SqlJsonQueryQuotesBehavior.OMIT_QUOTES, getPos());
+     }
+|
+     <KEEP> <QUOTES>{
+         return SqlLiteral.createSymbol(SqlJsonQueryQuotesBehavior.KEEP_QUOTES, getPos());
+     }
+
+}
+
 SqlNode JsonQueryWrapperBehavior() :
 {
     SqlNode e;
@@ -5178,7 +5194,7 @@ SqlNode JsonQueryWrapperBehavior() :
 
 SqlCall JsonQueryFunctionCall() :
 {
-    final SqlNode[] args = new SqlNode[4];
+    final SqlNode[] args = new SqlNode[5];
     SqlNode e;
     final Span span;
     List<SqlNode> behavior;
@@ -5191,6 +5207,11 @@ SqlCall JsonQueryFunctionCall() :
     [
         e = JsonQueryWrapperBehavior() <WRAPPER> {
             args[1] = e;
+        }
+    ]
+    [
+        e = JsonQueryQuotesBehavior(){
+            args[4] = e;
         }
     ]
     (
@@ -6411,6 +6432,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < JSON_OBJECTAGG: "JSON_OBJECTAGG">
 |   < JSON_QUERY: "JSON_QUERY" >
 |   < K: "K" >
+|   < KEEP: "KEEP" >
 |   < KEY: "KEY" >
 |   < KEY_MEMBER: "KEY_MEMBER" >
 |   < KEY_TYPE: "KEY_TYPE" >
@@ -6556,6 +6578,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < PROCEDURE: "PROCEDURE" >
 |   < PUBLIC: "PUBLIC" >
 |   < QUARTER: "QUARTER" >
+|   < QUOTES: "QUOTES" >
 |   < RANGE: "RANGE" >
 |   < RANK: "RANK" >
 |   < READ: "READ" >

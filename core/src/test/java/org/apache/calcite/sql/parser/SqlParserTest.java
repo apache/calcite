@@ -306,7 +306,7 @@ public class SqlParserTest {
       "JSON_OBJECTAGG",                                                    "c",
       "JSON_QUERY",                                                        "c",
       "JSON_VALUE",                                                        "c",
-      "KEEP",                                              "2011",
+      "KEEP",                                                      "2014", "c",
       "KEY",                           "92", "99",
       "LAG",                                               "2011", "2014", "c",
       "LANGUAGE",                      "92", "99", "2003", "2011", "2014", "c",
@@ -413,6 +413,7 @@ public class SqlParserTest {
       "PRIVILEGES",                    "92", "99",
       "PROCEDURE",                     "92", "99", "2003", "2011", "2014", "c",
       "PUBLIC",                        "92", "99",
+      "QUOTES",                       "92", "99", "2003", "2011", "2014", "c",
       "RANGE",                               "99", "2003", "2011", "2014", "c",
       "RANK",                                              "2011", "2014", "c",
       "READ",                          "92", "99",
@@ -8350,44 +8351,48 @@ public class SqlParserTest {
   @Test public void testJsonQuery() {
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITHOUT ARRAY WRAPPER)",
         "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
-            + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
+            + "'lax $' WITHOUT ARRAY WRAPPER KEEP QUOTES NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITH WRAPPER)",
         "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
-            + "'lax $' WITH UNCONDITIONAL ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
+            + "'lax $' WITH UNCONDITIONAL ARRAY WRAPPER KEEP QUOTES NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITH UNCONDITIONAL WRAPPER)",
         "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
-            + "'lax $' WITH UNCONDITIONAL ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
+            + "'lax $' WITH UNCONDITIONAL ARRAY WRAPPER KEEP QUOTES NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITH CONDITIONAL WRAPPER)",
         "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
-            + "'lax $' WITH CONDITIONAL ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
+            + "'lax $' WITH CONDITIONAL ARRAY WRAPPER KEEP QUOTES NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' NULL ON EMPTY)",
         "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
-            + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
+            + "'lax $' WITHOUT ARRAY WRAPPER KEEP QUOTES NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' ERROR ON EMPTY)",
         "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
-            + "'lax $' WITHOUT ARRAY WRAPPER ERROR ON EMPTY NULL ON ERROR)");
+            + "'lax $' WITHOUT ARRAY WRAPPER KEEP QUOTES ERROR ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY ARRAY ON EMPTY)",
         "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
-            + "'lax $' WITHOUT ARRAY WRAPPER EMPTY ARRAY ON EMPTY NULL ON ERROR)");
+            + "'lax $' WITHOUT ARRAY WRAPPER KEEP QUOTES EMPTY ARRAY ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY OBJECT ON EMPTY)",
         "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
-            + "'lax $' WITHOUT ARRAY WRAPPER EMPTY OBJECT ON EMPTY NULL ON ERROR)");
+            + "'lax $' WITHOUT ARRAY WRAPPER KEEP QUOTES EMPTY OBJECT ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' NULL ON ERROR)",
         "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
-            + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
+            + "'lax $' WITHOUT ARRAY WRAPPER KEEP QUOTES NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' ERROR ON ERROR)",
         "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
-            + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY ERROR ON ERROR)");
+            + "'lax $' WITHOUT ARRAY WRAPPER KEEP QUOTES NULL ON EMPTY ERROR ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY ARRAY ON ERROR)",
         "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
-            + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY EMPTY ARRAY ON ERROR)");
+            + "'lax $' WITHOUT ARRAY WRAPPER KEEP QUOTES NULL ON EMPTY EMPTY ARRAY ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY OBJECT ON ERROR)",
         "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
-            + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY EMPTY OBJECT ON ERROR)");
+            + "'lax $' WITHOUT ARRAY WRAPPER KEEP QUOTES NULL ON EMPTY EMPTY OBJECT ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY ARRAY ON EMPTY "
             + "EMPTY OBJECT ON ERROR)",
         "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
-            + "'lax $' WITHOUT ARRAY WRAPPER EMPTY ARRAY ON EMPTY EMPTY OBJECT ON ERROR)");
+            + "'lax $' WITHOUT ARRAY WRAPPER KEEP QUOTES EMPTY ARRAY ON EMPTY EMPTY OBJECT ON ERROR)");
+    checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' OMIT QUOTES EMPTY ARRAY ON EMPTY "
+            + "EMPTY OBJECT ON ERROR)",
+        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+            + "'lax $' WITHOUT ARRAY WRAPPER OMIT QUOTES EMPTY ARRAY ON EMPTY EMPTY OBJECT ON ERROR)");
   }
 
   @Test public void testJsonObject() {

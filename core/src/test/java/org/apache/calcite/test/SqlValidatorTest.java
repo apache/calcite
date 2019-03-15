@@ -10769,6 +10769,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpType("json_query('{\"foo\":\"bar\"}', 'strict $' EMPTY OBJECT ON EMPTY "
             + "EMPTY ARRAY ON ERROR EMPTY ARRAY ON EMPTY NULL ON ERROR)",
         "VARCHAR(2000)");
+    checkExp("json_query('{\"foo\":\"bar\"}', 'lax $' OMIT QUOTES)");
+    checkExp("json_query('{\"foo\":\"bar\"}', 'lax $' KEEP QUOTES)");
+    checkExpType("json_query('{\"foo\":\"bar\"}', 'strict $' WITH WRAPPER KEEP QUOTES)",
+        "VARCHAR(2000)");
+    checkExpType("json_query('{\"foo\":\"bar\"}', 'strict $' WITH WRAPPER OMIT QUOTES)",
+        "VARCHAR(2000)");
+    checkExpType("json_query('{\"foo\":\"bar\"}', 'strict $' OMIT QUOTES EMPTY OBJECT ON EMPTY "
+            + "EMPTY ARRAY ON ERROR EMPTY ARRAY ON EMPTY NULL ON ERROR)",
+        "VARCHAR(2000)");
+    checkExpType("json_query('{\"foo\":\"bar\"}', 'strict $' KEEP QUOTES EMPTY OBJECT ON EMPTY "
+            + "EMPTY ARRAY ON ERROR EMPTY ARRAY ON EMPTY NULL ON ERROR)",
+        "VARCHAR(2000)");
   }
 
   @Test public void testJsonArray() {
