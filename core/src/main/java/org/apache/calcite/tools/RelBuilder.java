@@ -1719,7 +1719,10 @@ public class RelBuilder {
     return join(joinType, conditions);
   }
 
-  /** Creates a {@link SemiJoin}. */
+  /** Creates a {@link SemiJoin}.
+   *
+   * <p>The effect is something like the SQL {@code IN} operator:
+   * select ... from A where a in (select b from B ...)</p>*/
   public RelBuilder semiJoin(Iterable<? extends RexNode> conditions) {
     final Frame right = stack.pop();
     final RelNode semiJoin =
@@ -1731,6 +1734,53 @@ public class RelBuilder {
   /** Creates a {@link SemiJoin}. */
   public RelBuilder semiJoin(RexNode... conditions) {
     return semiJoin(ImmutableList.copyOf(conditions));
+  }
+
+  /** Creates an AntiJoin: a relational expression that joins two relational expressions
+   * according to some condition, but outputs only columns from the left input that do
+   * not match that condition and eliminates duplicates.
+   *
+   * <p>The effect is something like the SQL {@code NOT EXISTS} operator:
+   * select ... from A where NOT EXISTS (select 1 from B where B.b = A.a)</p>*/
+  public RelBuilder antiJoin(Iterable<? extends RexNode> conditions) {
+    // For the moment, there is no "AntiJoin" expression, the only possibility to
+    // build an AntiJoin is using a LogicalCorrelate with SemiJoinType.ANTI
+    final RexBuilder rexBuilder = getRexBuilder();
+    RelNode right = build();
+    final RelNode left = peek();
+    final int leftFieldCount = left.getRowType().getFieldCount();
+    final CorrelationId correlationId = cluster.createCorrel();
+    final RexNode corrVar = rexBuilder.makeCorrel(left.getRowType(), correlationId);
+    final ImmutableBitSet.Builder requiredColumns = ImmutableBitSet.builder();
+
+    // Replace all references of left input with FieldAccess(corrVar, field)
+    final RexNode condition = and(conditions).accept(new RexShuttle() {
+      @Override public RexNode visitInputRef(RexInputRef input) {
+        final int field = input.getIndex();
+        if (field >= leftFieldCount) {
+          return rexBuilder.makeInputRef(input.getType(), input.getIndex()
+                  - leftFieldCount);
+        }
+        requiredColumns.set(field);
+        return rexBuilder.makeFieldAccess(corrVar, field);
+      }
+    });
+
+    right = push(right).filter(condition).build();
+
+    final RelNode antiJoin = correlateFactory.createCorrelate(
+            left,
+            right,
+            correlationId,
+            requiredColumns.build(),
+            SemiJoinType.ANTI);
+    replaceTop(antiJoin);
+    return this;
+  }
+
+  /** Creates an AntiJoin. */
+  public RelBuilder antiJoin(RexNode... conditions) {
+    return antiJoin(ImmutableList.copyOf(conditions));
   }
 
   /** Assigns a table alias to the top entry on the stack. */

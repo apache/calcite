@@ -45,8 +45,7 @@ public enum SemiJoinType {
 
   /**
    * Anti-join
-   * <p>Similar to from A ... where a NOT in (select b from B ...)</p>
-   * <p>Note: if B.b is nullable and B has nulls, no rows must be returned</p>
+   * <p>Similar to from A ... where NOT EXISTS (select 1 from B where B.b = A.a)</p>
    */
   ANTI;
 
