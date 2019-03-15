@@ -178,8 +178,8 @@ public class AggregateCall {
   public static AggregateCall create(SqlAggFunction aggFunction,
       boolean distinct, boolean approximate, List<Integer> argList,
       int filterArg, RelCollation collation, RelDataType type, String name) {
-    return new AggregateCall(aggFunction, distinct, approximate, false, argList,
-        filterArg, collation, type, name);
+    return create(aggFunction, distinct, approximate, false, argList, filterArg,
+        collation, type, name);
   }
 
   /** Creates an AggregateCall. */

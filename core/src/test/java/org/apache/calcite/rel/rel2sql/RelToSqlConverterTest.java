@@ -1440,19 +1440,21 @@ public class RelToSqlConverterTest {
         + "WHERE v2.job LIKE 'PRESIDENT'";
     final String expected = "SELECT \"DEPT\".\"DEPTNO\","
         + " \"EMP\".\"DEPTNO\" AS \"DEPTNO0\"\n"
-        + "FROM \"JDBC_SCOTT\".\"DEPT\"\n"
-        + "LEFT JOIN \"JDBC_SCOTT\".\"EMP\""
+        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "LEFT JOIN \"SCOTT\".\"EMP\""
         + " ON \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\"\n"
         + "WHERE \"EMP\".\"JOB\" LIKE 'PRESIDENT'";
-    final String expected2 = "SELECT DEPT.DEPTNO, EMP.DEPTNO AS DEPTNO0\n"
-        + "FROM JDBC_SCOTT.DEPT AS DEPT\n"
-        + "LEFT JOIN JDBC_SCOTT.EMP AS EMP ON DEPT.DEPTNO = EMP.DEPTNO\n"
+    // DB2 does not have implicit aliases, so generates explicit "AS DEPT"
+    // and "AS EMP"
+    final String expectedDb2 = "SELECT DEPT.DEPTNO, EMP.DEPTNO AS DEPTNO0\n"
+        + "FROM SCOTT.DEPT AS DEPT\n"
+        + "LEFT JOIN SCOTT.EMP AS EMP ON DEPT.DEPTNO = EMP.DEPTNO\n"
         + "WHERE EMP.JOB LIKE 'PRESIDENT'";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected)
         .withDb2()
-        .ok(expected2);
+        .ok(expectedDb2);
   }
 
   /** Test case for

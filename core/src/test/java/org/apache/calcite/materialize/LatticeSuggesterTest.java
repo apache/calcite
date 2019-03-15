@@ -21,6 +21,7 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.statistic.MapSqlStatisticProvider;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.FoodMartQuerySet;
 import org.apache.calcite.test.SlowTests;
@@ -334,10 +335,7 @@ public class LatticeSuggesterTest {
         + "[foodmart, warehouse_class]], "
         + "edges: ["
         + "Step([foodmart, agg_c_14_sales_fact_1997], [foodmart, store], store_id:store_id), "
-        + "Step([foodmart, agg_c_14_sales_fact_1997], [foodmart, time_by_day],"
-        + " month_of_year:month_of_year), "
         + "Step([foodmart, customer], [foodmart, region], customer_region_id:region_id), "
-        + "Step([foodmart, customer], [foodmart, store], state_province:store_state), "
         + "Step([foodmart, employee], [foodmart, employee], supervisor_id:employee_id), "
         + "Step([foodmart, employee], [foodmart, position], position_id:position_id), "
         + "Step([foodmart, employee], [foodmart, store], store_id:store_id), "
@@ -352,7 +350,6 @@ public class LatticeSuggesterTest {
         + "Step([foodmart, product], [foodmart, product_class],"
         + " product_class_id:product_class_id), "
         + "Step([foodmart, product], [foodmart, store], product_class_id:store_id), "
-        + "Step([foodmart, product_class], [foodmart, store], product_class_id:region_id), "
         + "Step([foodmart, salary], [foodmart, department], department_id:department_id), "
         + "Step([foodmart, salary], [foodmart, employee], employee_id:employee_id), "
         + "Step([foodmart, salary], [foodmart, employee_closure], employee_id:employee_id), "
@@ -367,21 +364,24 @@ public class LatticeSuggesterTest {
         + "Step([foodmart, sales_fact_1997], [foodmart, store_ragged], store_id:store_id), "
         + "Step([foodmart, sales_fact_1997], [foodmart, time_by_day], product_id:time_id), "
         + "Step([foodmart, sales_fact_1997], [foodmart, time_by_day], time_id:time_id), "
+        + "Step([foodmart, store], [foodmart, customer], store_state:state_province), "
+        + "Step([foodmart, store], [foodmart, product_class], region_id:product_class_id), "
         + "Step([foodmart, store], [foodmart, region], region_id:region_id), "
-        + "Step([foodmart, store], [foodmart, warehouse], store_id:stores_id), "
+        + "Step([foodmart, time_by_day], [foodmart, agg_c_14_sales_fact_1997], month_of_year:month_of_year), "
+        + "Step([foodmart, warehouse], [foodmart, store], stores_id:store_id), "
         + "Step([foodmart, warehouse], [foodmart, warehouse_class],"
         + " warehouse_class_id:warehouse_class_id)])";
     assertThat(t.s.space.g.toString(), is(expected));
     if (evolve) {
-      // compared to evolve=false, there are a few more nodes (133 vs 117),
-      // the same number of paths, and a lot fewer lattices (27 vs 376)
-      assertThat(t.s.space.nodeMap.size(), is(133));
+      // compared to evolve=false, there are a few more nodes (137 vs 119),
+      // the same number of paths, and a lot fewer lattices (27 vs 388)
+      assertThat(t.s.space.nodeMap.size(), is(137));
       assertThat(t.s.latticeMap.size(), is(27));
-      assertThat(t.s.space.pathMap.size(), is(42));
+      assertThat(t.s.space.pathMap.size(), is(46));
     } else {
-      assertThat(t.s.space.nodeMap.size(), is(117));
-      assertThat(t.s.latticeMap.size(), is(386));
-      assertThat(t.s.space.pathMap.size(), is(42));
+      assertThat(t.s.space.nodeMap.size(), is(119));
+      assertThat(t.s.latticeMap.size(), is(388));
+      assertThat(t.s.space.pathMap.size(), is(46));
     }
   }
 
@@ -572,6 +572,7 @@ public class LatticeSuggesterTest {
       this(
           Frameworks.newConfigBuilder()
               .defaultSchema(schemaFrom(CalciteAssert.SchemaSpec.SCOTT))
+              .statisticProvider(MapSqlStatisticProvider.INSTANCE)
               .build());
     }
 
