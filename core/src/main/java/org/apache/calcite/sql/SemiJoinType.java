@@ -28,25 +28,40 @@ import java.util.Locale;
  */
 public enum SemiJoinType {
   /**
-   * Inner join
+   * Inner join.
    */
   INNER,
 
   /**
-   * Left-outer join
+   * Left-outer join.
    */
   LEFT,
 
   /**
-   * Semi-join
-   * <p>Similar to from A ... where a in (select b from B ...)</p>
+   * Semi-join.
+   *
+   * <p>For example, {@code EMP semi-join DEPT} finds all {@code EMP} records
+   * that have a corresponding {@code DEPT} record:
+   *
+   * <blockquote><pre>
+   * SELECT * FROM EMP
+   * WHERE EXISTS (SELECT 1 FROM DEPT
+   *     WHERE DEPT.DEPTNO = EMP.DEPTNO)</pre>
+   * </blockquote>
    */
   SEMI,
 
   /**
-   * Anti-join
-   * <p>Similar to from A ... where a NOT in (select b from B ...)</p>
-   * <p>Note: if B.b is nullable and B has nulls, no rows must be returned</p>
+   * Anti-join.
+   *
+   * <p>For example, {@code EMP anti-join DEPT} finds all {@code EMP} records
+   * that do not have a corresponding {@code DEPT} record:
+   *
+   * <blockquote><pre>
+   * SELECT * FROM EMP
+   * WHERE NOT EXISTS (SELECT 1 FROM DEPT
+   *     WHERE DEPT.DEPTNO = EMP.DEPTNO)</pre>
+   * </blockquote>
    */
   ANTI;
 

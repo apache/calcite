@@ -1788,7 +1788,23 @@ public class RelBuilder {
     return join(joinType, conditions);
   }
 
-  /** Creates a {@link SemiJoin}. */
+  /** Creates a {@link SemiJoin}.
+   *
+   * <p>A semi-join is a form of join that combines two relational expressions
+   * according to some condition, and outputs only rows from the left input for
+   * which at least one row from the right input matches. It only outputs
+   * columns from the left input, and ignores duplicates on the right.
+   *
+   * <p>For example, {@code EMP semi-join DEPT} finds all {@code EMP} records
+   * that do not have a corresponding {@code DEPT} record, similar to the
+   * following SQL:
+   *
+   * <blockquote><pre>
+   * SELECT * FROM EMP
+   * WHERE EXISTS (SELECT 1 FROM DEPT
+   *     WHERE DEPT.DEPTNO = EMP.DEPTNO)</pre>
+   * </blockquote>
+   */
   public RelBuilder semiJoin(Iterable<? extends RexNode> conditions) {
     final Frame right = stack.pop();
     final RelNode semiJoin =
@@ -1797,9 +1813,68 @@ public class RelBuilder {
     return this;
   }
 
-  /** Creates a {@link SemiJoin}. */
+  /** Creates a {@link SemiJoin}.
+   *
+   * @see #semiJoin(Iterable) */
   public RelBuilder semiJoin(RexNode... conditions) {
     return semiJoin(ImmutableList.copyOf(conditions));
+  }
+
+  /** Creates an anti-join.
+   *
+   * <p>An anti-join is a form of join that combines two relational expressions
+   * according to some condition, but outputs only rows from the left input
+   * for which no rows from the right input match.
+   *
+   * <p>For example, {@code EMP anti-join DEPT} finds all {@code EMP} records
+   * that do not have a corresponding {@code DEPT} record, similar to the
+   * following SQL:
+   *
+   * <blockquote><pre>
+   * SELECT * FROM EMP
+   * WHERE NOT EXISTS (SELECT 1 FROM DEPT
+   *     WHERE DEPT.DEPTNO = EMP.DEPTNO)</pre>
+   * </blockquote>
+   */
+  public RelBuilder antiJoin(Iterable<? extends RexNode> conditions) {
+    // There is currently no "AntiJoin" relational expression, so we
+    // simulate it using a LogicalCorrelate with SemiJoinType.ANTI.
+    final RexBuilder rexBuilder = getRexBuilder();
+    final RelNode right = build();
+    final RelNode left = peek();
+    final int leftFieldCount = left.getRowType().getFieldCount();
+    final CorrelationId correlationId = cluster.createCorrel();
+    final RexNode corrVar =
+        rexBuilder.makeCorrel(left.getRowType(), correlationId);
+    final ImmutableBitSet.Builder requiredColumns = ImmutableBitSet.builder();
+
+    // Replace all references of left input with FieldAccess(corrVar, field)
+    final RexNode condition = and(conditions).accept(new RexShuttle() {
+      @Override public RexNode visitInputRef(RexInputRef input) {
+        final int field = input.getIndex();
+        if (field >= leftFieldCount) {
+          return rexBuilder.makeInputRef(input.getType(), input.getIndex()
+              - leftFieldCount);
+        }
+        requiredColumns.set(field);
+        return rexBuilder.makeFieldAccess(corrVar, field);
+      }
+    });
+
+    final RelNode right2 = push(right).filter(condition).build();
+
+    final RelNode antiJoin =
+        correlateFactory.createCorrelate(left, right2, correlationId,
+            requiredColumns.build(), SemiJoinType.ANTI);
+    replaceTop(antiJoin);
+    return this;
+  }
+
+  /** Creates an anti-join.
+   *
+   * @see #antiJoin(Iterable) */
+  public RelBuilder antiJoin(RexNode... conditions) {
+    return antiJoin(ImmutableList.copyOf(conditions));
   }
 
   /** Assigns a table alias to the top entry on the stack. */

@@ -133,6 +133,71 @@ public class EnumerableCorrelateTest {
             "empid=200");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2920">[CALCITE-2920]
+   * RelBuilder: new method to create an anti-join</a>. */
+  @Test public void antiJoinCorrelate() {
+    tester(false, new JdbcTest.HrSchema())
+        .query("?")
+        .withRel(
+            // Retrieve departments without employees. Equivalent SQL:
+            //   SELECT d.deptno, d.name FROM depts d
+            //   WHERE NOT EXISTS (SELECT 1 FROM emps e WHERE e.deptno = d.deptno)
+            builder -> builder
+                .scan("s", "depts").as("d")
+                .scan("s", "emps").as("e")
+                .antiJoin(
+                    builder.equals(
+                        builder.field(2, "d", "deptno"),
+                        builder.field(2, "e", "deptno")))
+                    .project(
+                        builder.field("deptno"),
+                        builder.field("name"))
+                    .build())
+        .returnsUnordered(
+            "deptno=30; name=Marketing",
+            "deptno=40; name=HR");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2920">[CALCITE-2920]
+   * RelBuilder: new method to create an antijoin</a> */
+  @Test public void antiJoinCorrelateWithNullValues() {
+    final Integer salesDeptNo = 10;
+    tester(false, new JdbcTest.HrSchema())
+        .query("?")
+        .withRel(
+            // Retrieve employees from any department other than Sales (deptno 10) whose
+            // commission is different from any Sales employee commission. Since there
+            // is a Sales employee with null commission, the goal is to validate that antiJoin
+            // behaves as a NOT EXISTS (and returns results), and not as a NOT IN (which would
+            // not return any result due to its null handling). Equivalent SQL:
+            //   SELECT empOther.empid, empOther.name FROM emps empOther
+            //   WHERE empOther.deptno <> 10 AND NOT EXISTS
+            //     (SELECT 1 FROM emps empSales
+            //      WHERE empSales.deptno = 10 AND empSales.commission = empOther.commission)
+            builder -> builder
+                .scan("s", "emps").as("empOther")
+                .filter(
+                    builder.notEquals(
+                        builder.field("empOther", "deptno"),
+                        builder.literal(salesDeptNo)))
+                .scan("s", "emps").as("empSales")
+                .filter(
+                    builder.equals(
+                        builder.field("empSales", "deptno"),
+                        builder.literal(salesDeptNo)))
+                .antiJoin(
+                    builder.equals(
+                        builder.field(2, "empOther", "commission"),
+                        builder.field(2, "empSales", "commission")))
+                .project(
+                    builder.field("empid"),
+                    builder.field("name"))
+                .build())
+        .returnsUnordered("empid=200; name=Eric");
+  }
+
   private CalciteAssert.AssertThat tester(boolean forceDecorrelate,
       Object schema) {
     return CalciteAssert.that()

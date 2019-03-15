@@ -22,6 +22,7 @@ import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.avatica.ConnectionProperty;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.config.Lex;
@@ -31,6 +32,7 @@ import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.model.ModelHandler;
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.runtime.CalciteException;
@@ -47,6 +49,7 @@ import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Closer;
 import org.apache.calcite.util.Holder;
@@ -1368,7 +1371,7 @@ public class CalciteAssert {
       try (Connection c = createConnection()) {
         f.accept(c);
       } catch (SQLException e) {
-        TestUtil.rethrow(e);
+        throw TestUtil.rethrow(e);
       }
       return this;
     }
@@ -1570,12 +1573,16 @@ public class CalciteAssert {
       if (plan != null) {
         return;
       }
-      addHook(Hook.JAVA_PLAN, (Consumer<String>) a0 -> plan = a0);
+      addHook(Hook.JAVA_PLAN, this::setPlan);
       withConnection(connection -> {
         assertQuery(connection, sql, limit, materializationsEnabled,
             hooks, null, checkUpdate, null);
         assertNotNull(plan);
       });
+    }
+
+    private void setPlan(String plan) {
+      this.plan = plan;
     }
 
     /** Runs the query and applies a checker to the generated third-party
@@ -1655,9 +1662,20 @@ public class CalciteAssert {
       return withHook(Hook.STRING_TO_QUERY,
           (Consumer<Pair<FrameworkConfig, Holder<CalcitePrepare.Query>>>)
           pair -> {
-            final RelBuilder b = RelBuilder.create(pair.left);
+            final FrameworkConfig config = forceDecorrelate(pair.left);
+            final RelBuilder b = RelBuilder.create(config);
             pair.right.set(CalcitePrepare.Query.of(relFn.apply(b)));
           });
+    }
+
+    /** Creates a {@link FrameworkConfig} that does not decorrelate. */
+    private FrameworkConfig forceDecorrelate(FrameworkConfig config) {
+      return Frameworks.newConfigBuilder(config)
+          .context(
+              Contexts.of(new CalciteConnectionConfigImpl(new Properties())
+                  .set(CalciteConnectionProperty.FORCE_DECORRELATE,
+                      Boolean.toString(false))))
+          .build();
     }
   }
 
