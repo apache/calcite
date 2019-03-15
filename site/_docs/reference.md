@@ -1487,12 +1487,8 @@ period:
 Not implemented:
 
 * {fn CHAR(string)}
-* {fn DIFFERENCE(string, string)}
 * {fn LEFT(string, integer)}
-* {fn REPEAT(string, integer)}
 * {fn RIGHT(string, integer)}
-* {fn SOUNDEX(string)}
-* {fn SPACE(integer)}
 
 #### Date/time
 
@@ -2108,7 +2104,11 @@ semantics.
 | o | SUBSTR(string, position [, substring_length ]) | Returns a portion of *string*, beginning at character *position*, *substring_length* characters long. SUBSTR calculates lengths using characters as defined by the input character set
 | o | GREATEST(expr [, expr ]*)                      | Returns the greatest of the expressions
 | o | LEAST(expr [, expr ]* )                        | Returns the least of the expressions
-| o p | TRANSLATE(expr, fromString, toString)          | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
+| o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
+| m o p | SOUNDEX(string)                            | Returns the phonetic representation of *string*. Throws exception when *string* is encoded with multi-byte encoding such as UTF-8
+| p | DIFFERENCE(string, string)                     | Returns the difference between the SOUNDEX values of two character expressions as an integer. For example, returns 4 if the SOUNDEX values are same and returns 0 if the SOUNDEX values are totally different.
+| m p | REPEAT(string, integer)                      | Returns a string of *integer* times *string*; Returns an empty string if *integer* is less than 1
+| m | SPACE(integer)                                 | Returns a string of *integer* spaces; Returns an empty string if *integer* is less than 1
 
 Note:
 

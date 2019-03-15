@@ -405,6 +405,9 @@ public abstract class OperandTypes {
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
           SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER);
 
+  public static final SqlSingleOperandTypeChecker STRING_INTEGER =
+      family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER);
+
   /**
    * Operand type-checking strategy where two operands must both be in the
    * same string type family and last type is INTEGER.
