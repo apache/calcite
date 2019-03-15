@@ -48,7 +48,6 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
@@ -1252,12 +1251,8 @@ public class SubstitutionVisitor {
 
   public static MutableRel unifyAggregates(MutableAggregate query,
       MutableAggregate target) {
-    if (query.getGroupType() != Aggregate.Group.SIMPLE
-        || target.getGroupType() != Aggregate.Group.SIMPLE) {
-      throw new AssertionError(Bug.CALCITE_461_FIXED);
-    }
     MutableRel result;
-    if (query.groupSet.equals(target.groupSet)) {
+    if (query.groupSets.equals(target.groupSets)) {
       // Same level of aggregation. Generate a project.
       final List<Integer> projects = new ArrayList<>();
       final int groupCount = query.groupSet.cardinality();
@@ -1272,16 +1267,20 @@ public class SubstitutionVisitor {
         projects.add(groupCount + i);
       }
       result = MutableRels.createProject(target, projects);
-    } else {
-      // Target is coarser level of aggregation. Generate an aggregate.
-      final ImmutableBitSet.Builder groupSet = ImmutableBitSet.builder();
-      final List<Integer> targetGroupList = target.groupSet.asList();
+    } else if (target.getGroupType() == Aggregate.Group.SIMPLE) {
+      // Query is coarser level of aggregation. Generate an aggregate.
+      final Map<Integer, Integer> map = new HashMap<>();
+      target.groupSet.forEach(k -> map.put(k, map.size()));
       for (int c : query.groupSet) {
-        int c2 = targetGroupList.indexOf(c);
-        if (c2 < 0) {
+        if (!map.containsKey(c)) {
           return null;
         }
-        groupSet.set(c2);
+      }
+      final ImmutableBitSet groupSet = query.groupSet.permute(map);
+      ImmutableList<ImmutableBitSet> groupSets = null;
+      if (query.getGroupType() != Aggregate.Group.SIMPLE) {
+        groupSets = ImmutableBitSet.ORDERING.immutableSortedCopy(
+            ImmutableBitSet.permute(query.groupSets, map));
       }
       final List<AggregateCall> aggregateCalls = new ArrayList<>();
       for (AggregateCall aggregateCall : query.aggCalls) {
@@ -1299,8 +1298,10 @@ public class SubstitutionVisitor {
                 aggregateCall.collation, aggregateCall.type,
                 aggregateCall.name));
       }
-      result = MutableAggregate.of(target, groupSet.build(), null,
+      result = MutableAggregate.of(target, groupSet, groupSets,
           aggregateCalls);
+    } else {
+      return null;
     }
     return MutableRels.createCastRel(result, query.rowType, true);
   }

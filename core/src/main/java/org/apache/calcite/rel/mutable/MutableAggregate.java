@@ -64,12 +64,13 @@ public class MutableAggregate extends MutableSingleRel {
     return obj == this
         || obj instanceof MutableAggregate
         && groupSet.equals(((MutableAggregate) obj).groupSet)
+        && groupSets.equals(((MutableAggregate) obj).groupSets)
         && aggCalls.equals(((MutableAggregate) obj).aggCalls)
         && input.equals(((MutableAggregate) obj).input);
   }
 
   @Override public int hashCode() {
-    return Objects.hash(input, groupSet, aggCalls);
+    return Objects.hash(input, groupSet, groupSets, aggCalls);
   }
 
   @Override public StringBuilder digest(StringBuilder buf) {
