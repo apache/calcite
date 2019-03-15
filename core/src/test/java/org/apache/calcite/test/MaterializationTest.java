@@ -536,9 +536,26 @@ public class MaterializationTest {
         "select count(*) + 1 as c, \"deptno\" from \"emps\" group by \"deptno\"");
   }
 
+  /** Aggregation query at same level of aggregation as aggregation
+   * materialization with grouping sets. */
+  @Test public void testAggregateGroupSets1() {
+    checkMaterialize(
+        "select \"empid\", \"deptno\", count(*) as c, sum(\"salary\") as s from \"emps\" group by cube(\"empid\",\"deptno\")",
+        "select count(*) + 1 as c, \"deptno\" from \"emps\" group by cube(\"empid\",\"deptno\")");
+  }
+
+  /** Aggregation query with different grouping sets, should not
+   * do materialization. */
+  @Test public void testAggregateGroupSets2() {
+    checkNoMaterialize(
+        "select \"empid\", \"deptno\", count(*) as c, sum(\"salary\") as s from \"emps\" group by cube(\"empid\",\"deptno\")",
+        "select count(*) + 1 as c, \"deptno\" from \"emps\" group by rollup(\"empid\",\"deptno\")",
+        HR_FKUK_MODEL);
+  }
+
   /** Aggregation query at coarser level of aggregation than aggregation
    * materialization. Requires an additional aggregate to roll up. Note that
-   * COUNT is rolled up using SUM. */
+   * COUNT is rolled up using SUM0. */
   @Test public void testAggregateRollUp() {
     checkMaterialize(
         "select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s from \"emps\" "
@@ -549,6 +566,22 @@ public class MaterializationTest {
             "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], "
                 + "expr#3=[+($t1, $t2)], C=[$t3], deptno=[$t0])\n"
                 + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($2)])\n"
+                + "    EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  /** Aggregation query with groupSets at coarser level of aggregation than
+   * aggregation materialization. Requires an additional aggregate to roll up.
+   * Note that COUNT is rolled up using SUM0. */
+  @Test public void testAggregateGroupSetsRollUp() {
+    checkMaterialize(
+        "select \"empid\", \"deptno\", count(*) as c, sum(\"salary\") as s from \"emps\" "
+            + "group by \"empid\", \"deptno\"",
+        "select count(*) + 1 as c,  \"deptno\" from \"emps\" group by cube(\"empid\",\"deptno\")",
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], "
+                + "expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])\n"
+                + "  EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[$SUM0($2)])\n"
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
 
