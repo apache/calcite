@@ -283,10 +283,31 @@ public abstract class ReturnTypes {
       cascade(BIGINT, SqlTypeTransforms.TO_NULLABLE);
 
   /**
+   * Type-inference strategy that always returns "VARCHAR(4)".
+   */
+  public static final SqlReturnTypeInference VARCHAR_4 =
+      explicit(SqlTypeName.VARCHAR, 4);
+
+  /**
+   * Type-inference strategy that always returns "VARCHAR(4)" with nulls
+   * allowed if any of the operands allow nulls.
+   */
+  public static final SqlReturnTypeInference VARCHAR_4_NULLABLE =
+      cascade(VARCHAR_4, SqlTypeTransforms.TO_NULLABLE);
+
+  /**
    * Type-inference strategy that always returns "VARCHAR(2000)".
    */
   public static final SqlReturnTypeInference VARCHAR_2000 =
       explicit(SqlTypeName.VARCHAR, 2000);
+
+  /**
+   * Type-inference strategy that always returns "VARCHAR(2000)" with nulls
+   * allowed if any of the operands allow nulls.
+   */
+  public static final SqlReturnTypeInference VARCHAR_2000_NULLABLE =
+      cascade(VARCHAR_2000, SqlTypeTransforms.TO_NULLABLE);
+
   /**
    * Type-inference strategy for Histogram agg support
    */

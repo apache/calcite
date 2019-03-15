@@ -149,6 +149,46 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction JSON_REMOVE = new SqlJsonRemoveFunction();
+
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  public static final SqlFunction REPEAT =
+      new SqlFunction(
+          "REPEAT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_NULLABLE_VARYING,
+          null,
+          OperandTypes.STRING_INTEGER,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction SPACE =
+      new SqlFunction(
+          "SPACE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE,
+          null,
+          OperandTypes.INTEGER,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL, ORACLE})
+  public static final SqlFunction SOUNDEX =
+      new SqlFunction(
+          "SOUNDEX",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_4_NULLABLE,
+          null,
+          OperandTypes.CHARACTER,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction DIFFERENCE =
+      new SqlFunction(
+          "DIFFERENCE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
 }
 
 // End SqlLibraryOperators.java
