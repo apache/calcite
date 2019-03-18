@@ -21,6 +21,7 @@ import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.rel.rules.FilterCorrelateRule;
 import org.apache.calcite.rel.rules.JoinToCorrelateRule;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.test.CalciteAssert;
@@ -99,6 +100,34 @@ public class EnumerableCorrelateTest {
             + "      EnumerableTableScan(table=[[s, depts]])")
         .returnsUnordered(
             "empid=100; name=Bill",
+            "empid=110; name=Theodore",
+            "empid=150; name=Sebastian");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2930">[CALCITE-2930]
+   * FilterCorrelateRule on a Correlate with SemiJoinType SEMI (or ANTI)
+   * throws IllegalStateException</a> */
+  @Test public void semiJoinCorrelateWithFilterCorrelateRule() {
+    tester(false, new JdbcTest.HrSchema())
+        .query(
+            "select empid, name from emps e where e.deptno in (select d.deptno from depts d) and e.empid > 100")
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          // force the semi-join to run via EnumerableCorrelate instead of EnumerableJoin/SemiJoin,
+          // and push the 'empid > 100' filter into the Correlate
+          planner.addRule(JoinToCorrelateRule.SEMI);
+          planner.addRule(FilterCorrelateRule.INSTANCE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_SEMI_JOIN_RULE);
+        })
+        .explainContains(""
+            + "EnumerableCalc(expr#0..2=[{inputs}], empid=[$t0], name=[$t2])\n"
+            + "  EnumerableCorrelate(correlation=[$cor3], joinType=[semi], requiredColumns=[{1}])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[100], expr#6=[>($t0, $t5)], proj#0..2=[{exprs}], $condition=[$t6])\n"
+            + "      EnumerableTableScan(table=[[s, emps]])\n"
+            + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[$cor3], expr#5=[$t4.deptno], expr#6=[=($t5, $t0)], proj#0..3=[{exprs}], $condition=[$t6])\n"
+            + "      EnumerableTableScan(table=[[s, depts]])")
+        .returnsUnordered(
             "empid=110; name=Theodore",
             "empid=150; name=Sebastian");
   }
