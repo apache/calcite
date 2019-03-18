@@ -1956,6 +1956,20 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplify(isNotNull(lt(i0, null_)), "false");
   }
 
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2929">[CALCITE-2929]
+   * Simplification of IS NULL checks are incorrectly assuming that CAST-s are possible</a>. */
+  @Test public void testSimplifyCastIsNull() {
+    checkSimplifyUnchanged(isNull(cast(vVarchar(), tInt(true))));
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2929">[CALCITE-2929]
+   * Simplification of IS NULL checks are incorrectly assuming that CAST-s are possible</a>. */
+  @Test public void testSimplifyCastIsNull2() {
+    checkSimplifyUnchanged(isNull(cast(vVarcharNotNull(), tInt(false))));
+  }
+
   @Test public void checkSimplifyDynamicParam() {
     checkSimplify(isNotNull(lt(vInt(0), vInt(1))),
         "AND(IS NOT NULL(?0.int0), IS NOT NULL(?0.int1))");
