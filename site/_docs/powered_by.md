@@ -112,6 +112,12 @@ is a distributed JVM-Embeddable Database built on top of
 <a href="https://bookkeeper.apache.org/">Apache BookKeeper</a>.
 It uses Calcite as its SQL Planner.
 
+### MaxCompute
+
+<a href="https://www.alibabacloud.com">Alibaba</a>'s big data computing and storage platform
+<a href="https://www.alibabacloud.com/product/maxcompute">MaxCompute</a>
+uses Calcite for cost-based query optimization.
+
 ### OmniSci
 
 <a href="https://www.omnisci.com">OmniSci</a>
