@@ -26,6 +26,7 @@ import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
@@ -2355,9 +2356,10 @@ public abstract class RelOptUtil {
     final List<RelDataTypeField> rightFields =
         joinRel.getInputs().get(1).getRowType().getFieldList();
     final int nFieldsRight = rightFields.size();
-    assert nTotalFields == (joinRel instanceof SemiJoin
-        ? nSysFields + nFieldsLeft
-        : nSysFields + nFieldsLeft + nFieldsRight);
+
+    assert nTotalFields == (returnsJustFirstInput(joinRel)
+            ? nSysFields + nFieldsLeft
+            : nSysFields + nFieldsLeft + nFieldsRight);
 
     // set the reference bitmaps for the left and right children
     ImmutableBitSet leftBitmap =
@@ -2442,6 +2444,13 @@ public abstract class RelOptUtil {
 
     // Did anything change?
     return !filtersToRemove.isEmpty();
+  }
+
+  private static boolean returnsJustFirstInput(RelNode joinRel) {
+    // SemiJoin, CorrelateSemiJoin, CorrelateAntiJoin: right fields are not returned
+    return joinRel instanceof SemiJoin
+            || (joinRel instanceof Correlate
+                && ((Correlate) joinRel).getJoinType().returnsJustFirstInput());
   }
 
   private static RexNode shiftFilter(
