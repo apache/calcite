@@ -22,9 +22,12 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Optionality;
 
 import com.google.common.base.Preconditions;
+
+import static org.apache.calcite.sql.type.ReturnTypes.nullDefault;
 
 /**
  * <code>Avg</code> is an aggregator which returns the average of the values
@@ -47,7 +50,7 @@ public class SqlAvgAggFunction extends SqlAggFunction {
     super(name,
         null,
         kind,
-        ReturnTypes.AVG_AGG_FUNCTION,
+        nullDefault(ReturnTypes.AVG_AGG_FUNCTION, SqlTypeName.DECIMAL),
         null,
         OperandTypes.NUMERIC,
         SqlFunctionCategory.NUMERIC,

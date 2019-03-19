@@ -473,6 +473,11 @@ public abstract class SqlOperator {
             + opBinding.getOperator() + "; operand types: "
             + opBinding.collectOperandTypes());
       }
+      if (returnType.getSqlTypeName() == SqlTypeName.NULL) {
+        throw new IllegalArgumentException("Return type should not be NULL for  "
+            + opBinding.getOperator() + "; operand types: "
+            + opBinding.collectOperandTypes());
+      }
       return returnType;
     }
 

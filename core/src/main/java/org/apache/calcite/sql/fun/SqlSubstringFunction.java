@@ -42,6 +42,8 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.util.List;
 
+import static org.apache.calcite.sql.type.ReturnTypes.nullDefault;
+
 /**
  * Definition of the "SUBSTRING" builtin SQL function.
  */
@@ -55,7 +57,7 @@ public class SqlSubstringFunction extends SqlFunction {
     super(
         "SUBSTRING",
         SqlKind.OTHER_FUNCTION,
-        ReturnTypes.ARG0_NULLABLE_VARYING,
+        nullDefault(ReturnTypes.ARG0_NULLABLE_VARYING, SqlTypeName.VARCHAR),
         null,
         null,
         SqlFunctionCategory.STRING);

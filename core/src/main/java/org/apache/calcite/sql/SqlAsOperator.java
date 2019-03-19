@@ -23,6 +23,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -32,6 +33,7 @@ import org.apache.calcite.util.Util;
 
 import java.util.List;
 
+import static org.apache.calcite.sql.type.ReturnTypes.nullDefault;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -49,7 +51,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
         SqlKind.AS,
         20,
         true,
-        ReturnTypes.ARG0,
+        nullDefault(ReturnTypes.ARG0, SqlTypeName.ANY),
         InferTypes.RETURN_TYPE,
         OperandTypes.ANY_ANY);
   }

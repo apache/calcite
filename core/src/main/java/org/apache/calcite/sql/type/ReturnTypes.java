@@ -85,6 +85,14 @@ public abstract class ReturnTypes {
   }
 
   /**
+   * Creates an inference rule which transform null-type to a default type.
+   */
+  public static SqlReturnTypeInference nullDefault(SqlReturnTypeInference rule,
+      SqlTypeName defaultType) {
+    return cascade(rule, SqlTypeTransforms.nullToDefault(defaultType));
+  }
+
+  /**
    * Type-inference strategy whereby the result type of a call is the type of
    * the operand #0 (0-based).
    */
@@ -186,7 +194,7 @@ public abstract class ReturnTypes {
    * BOOLEAN.
    */
   public static final SqlReturnTypeInference BOOLEAN_NULLABLE_OPTIMIZED =
-      opBinding -> {
+      nullDefault(opBinding -> {
         // Equivalent to
         //   cascade(ARG0, SqlTypeTransforms.TO_NULLABLE);
         // but implemented by hand because used in AND, which is a very common
@@ -200,7 +208,7 @@ public abstract class ReturnTypes {
           }
         }
         return type1;
-      };
+      }, SqlTypeName.BOOLEAN);
 
   /**
    * Type-inference strategy whereby the result type of a call is a nullable
@@ -580,8 +588,12 @@ public abstract class ReturnTypes {
         final boolean containsAnyType =
             (argType0.getSqlTypeName() == SqlTypeName.ANY)
                 || (argType1.getSqlTypeName() == SqlTypeName.ANY);
+        final boolean containsNullType =
+            (argType0.getSqlTypeName() == SqlTypeName.NULL)
+                || (argType1.getSqlTypeName() == SqlTypeName.NULL);
 
         if (!containsAnyType
+            && !containsNullType
             && !(SqlTypeUtil.inCharOrBinaryFamilies(argType0)
             && SqlTypeUtil.inCharOrBinaryFamilies(argType1))) {
           Preconditions.checkArgument(
@@ -589,6 +601,7 @@ public abstract class ReturnTypes {
         }
         SqlCollation pickedCollation = null;
         if (!containsAnyType
+            && !containsNullType
             && SqlTypeUtil.inCharFamily(argType0)) {
           if (!SqlTypeUtil.isCharTypeComparable(
               opBinding.collectOperandTypes().subList(0, 2))) {
@@ -638,6 +651,10 @@ public abstract class ReturnTypes {
           ret =
               typeFactory.createTypeWithCharsetAndCollation(ret,
                   pickedType.getCharset(), pickedType.getCollation());
+        }
+        if (ret.getSqlTypeName() == SqlTypeName.NULL) {
+          ret = typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
         }
         return ret;
       };

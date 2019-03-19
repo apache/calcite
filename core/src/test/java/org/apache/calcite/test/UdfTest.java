@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.enumerable.CallImplementor;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.SemiStrict;
@@ -34,6 +35,7 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.Smalls;
 
 import com.google.common.collect.ImmutableList;
@@ -188,7 +190,7 @@ public class UdfTest {
   @Test public void testUserDefinedFunction() throws Exception {
     final String sql = "select \"adhoc\".my_plus(\"deptno\", 100) as p\n"
         + "from \"adhoc\".EMPLOYEES";
-    final AtomicInteger c = Smalls.MyPlusFunction.INSTANCE_COUNT;
+    final AtomicInteger c = Smalls.MyPlusFunction.INSTANCE_COUNT.get();
     final int before = c.get();
     withUdf().query(sql).returnsUnordered("P=110",
         "P=120",
@@ -205,12 +207,29 @@ public class UdfTest {
   @Test public void testUserDefinedFunctionInstanceCount() throws Exception {
     final String sql = "select \"adhoc\".my_det_plus(\"deptno\", 100) as p\n"
         + "from \"adhoc\".EMPLOYEES";
-    final AtomicInteger c = Smalls.MyDeterministicPlusFunction.INSTANCE_COUNT;
+    final AtomicInteger c = Smalls.MyDeterministicPlusFunction.INSTANCE_COUNT.get();
     final int before = c.get();
     withUdf().query(sql).returnsUnordered("P=110",
         "P=120",
         "P=110",
         "P=110");
+    final int after = c.get();
+    assertThat(after, is(before + 1));
+  }
+
+  @Test public void testUserDefinedFunctionWithNull() throws Exception {
+    final String sql = "select \"adhoc\".my_det_plus(\"deptno\", 1 + null) as p\n"
+        + "from \"adhoc\".EMPLOYEES where 1 > 0 or nullif(null, 1) is null";
+    final AtomicInteger c = Smalls.MyDeterministicPlusFunction.INSTANCE_COUNT.get();
+    final int before = c.get();
+    withUdf()
+        .with(CalciteConnectionProperty.CONFORMANCE,
+                      SqlConformanceEnum.MYSQL_5)
+        .query(sql)
+        .returnsUnordered("P=null",
+        "P=null",
+        "P=null",
+        "P=null");
     final int after = c.get();
     assertThat(after, is(before + 1));
   }

@@ -67,7 +67,7 @@ public abstract class SqlTypeUtil {
     // Filter out ANY elements.
     List<RelDataType> argTypes2 = new ArrayList<>();
     for (RelDataType t : argTypes) {
-      if (!isAny(t)) {
+      if (!isAny(t) && !isNull(t)) {
         argTypes2.add(t);
       }
     }
@@ -688,6 +688,10 @@ public abstract class SqlTypeUtil {
 
   private static boolean isAny(RelDataType t) {
     return t.getFamily() == SqlTypeFamily.ANY;
+  }
+
+  private static boolean isNull(RelDataType t) {
+    return t.getFamily() == SqlTypeFamily.NULL;
   }
 
   /**

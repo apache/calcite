@@ -304,6 +304,14 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  public boolean allowNakedNull() {
+    switch (this) {
+    case MYSQL_5:
+      return true;
+    default:
+      return false;
+    }
+  }
 }
 
 // End SqlConformanceEnum.java

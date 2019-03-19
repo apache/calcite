@@ -22,9 +22,12 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Optionality;
 
 import com.google.common.base.Preconditions;
+
+import static org.apache.calcite.sql.type.ReturnTypes.nullDefault;
 
 /**
  * Definition of the <code>BIT_AND</code> and <code>BIT_OR</code> aggregate functions,
@@ -42,7 +45,7 @@ public class SqlBitOpAggFunction extends SqlAggFunction {
     super(kind.name(),
         null,
         kind,
-        ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
+        nullDefault(ReturnTypes.ARG0_NULLABLE_IF_EMPTY, SqlTypeName.INTEGER),
         null,
         OperandTypes.INTEGER,
         SqlFunctionCategory.NUMERIC,

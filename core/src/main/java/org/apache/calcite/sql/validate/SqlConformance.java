@@ -393,6 +393,14 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean allowExtendedTrim();
+
+  /**
+   * Whether allow null-literal as parameter of function.
+   *
+   * <p>For example, consider the query
+   * <blockquote><pre>SELECT 1 + null FROM EMP</pre></blockquote>
+   */
+  boolean allowNakedNull();
 }
 
 // End SqlConformance.java
