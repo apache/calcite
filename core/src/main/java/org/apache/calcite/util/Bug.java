@@ -183,6 +183,12 @@ public abstract class Bug {
    * Wrong value when accessing struct types with one attribute</a> is fixed. */
   public static final boolean CALCITE_2776_FIXED = false;
 
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2933">[CALCITE-2933]
+   * In Druid adapter, expression like "cast(cast(\"timestamp\" as timestamp) as varchar)"
+   * returns as epoch millisecond</a> is fixed. */
+  public static final boolean CALCITE_2933_FIXED = false;
+
   /**
    * Use this to flag temporary code.
    */
