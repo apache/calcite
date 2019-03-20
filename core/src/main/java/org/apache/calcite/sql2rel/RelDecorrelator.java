@@ -76,7 +76,6 @@ import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
@@ -447,9 +446,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
    * @param rel Aggregate to rewrite
    */
   public Frame decorrelateRel(LogicalAggregate rel) {
-    if (rel.getGroupType() != Aggregate.Group.SIMPLE) {
-      throw new AssertionError(Bug.CALCITE_461_FIXED);
-    }
     //
     // Rewrite logic:
     //
@@ -560,6 +556,16 @@ public class RelDecorrelator implements ReflectiveVisitor {
     List<AggregateCall> newAggCalls = new ArrayList<>();
     List<AggregateCall> oldAggCalls = rel.getAggCallList();
 
+    ImmutableList<ImmutableBitSet> newGroupSets = null;
+    if (rel.getGroupType() != Aggregate.Group.SIMPLE) {
+      final ImmutableBitSet addedGroupSet =
+          ImmutableBitSet.range(oldGroupKeyCount, newGroupKeyCount);
+      final Iterable<ImmutableBitSet> tmpGroupSets =
+          Iterables.transform(rel.getGroupSets(),
+              bitSet -> bitSet.union(addedGroupSet));
+      newGroupSets = ImmutableBitSet.ORDERING.immutableSortedCopy(tmpGroupSets);
+    }
+
     int oldInputOutputFieldCount = rel.getGroupSet().cardinality();
     int newInputOutputFieldCount = newGroupSet.cardinality();
 
@@ -592,7 +598,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     relBuilder.push(
-        LogicalAggregate.create(newProject, newGroupSet, null, newAggCalls));
+        LogicalAggregate.create(newProject, newGroupSet, newGroupSets, newAggCalls));
 
     if (!omittedConstants.isEmpty()) {
       final List<RexNode> postProjects = new ArrayList<>(relBuilder.fields());
