@@ -3312,6 +3312,60 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1) FILTER $2], EXPR$2=[COUNT()])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSimplifyExistsAggregateSubQuery">
+        <Resource name="sql">
+            <![CDATA[SELECT e1.empno
+        FROM emp e1 where exists
+        (select avg(sal) from emp e2 where e1.empno = e2.empno)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSimplifyNotExistsAggregateSubQuery">
+        <Resource name="sql">
+            <![CDATA[SELECT e1.empno
+        FROM emp e1 where not exists
+        (select avg(sal) from emp e2 where e1.empno = e2.empno)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[NOT(true)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSimplifyExistsValuesSubQuery">
+        <Resource name="sql">
+            <![CDATA[select deptno
+        from EMP
+        where exists (values 10)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSimplifyNotExistsValuesSubQuery">
+        <Resource name="sql">
+            <![CDATA[select deptno
+        from EMP
+        where not exists (values 10)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[NOT(true)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSubQueryAggregateFunctionFollowedBySimpleOperation">
         <Resource name="sql">
             <![CDATA[select deptno

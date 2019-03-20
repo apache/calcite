@@ -2250,6 +2250,46 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /**
    * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2936">[CALCITE-2936]
+   * Existential sub-query that has aggregate without grouping key
+   * should be simplified to constant boolean expression</a>.
+   */
+  @Test public void testSimplifyExistsAggregateSubQuery() {
+    final String sql = "SELECT e1.empno\n"
+        + "FROM emp e1 where exists\n"
+        + "(select avg(sal) from emp e2 where e1.empno = e2.empno)";
+    sql(sql).decorrelate(true).ok();
+  }
+
+  @Test public void testSimplifyNotExistsAggregateSubQuery() {
+    final String sql = "SELECT e1.empno\n"
+        + "FROM emp e1 where not exists\n"
+        + "(select avg(sal) from emp e2 where e1.empno = e2.empno)";
+    sql(sql).decorrelate(true).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2936">[CALCITE-2936]
+   * Existential sub-query that has Values with at least 1 tuple
+   * should be simplified to constant boolean expression</a>.
+   */
+  @Test public void testSimplifyExistsValuesSubQuery() {
+    final String sql = "select deptno\n"
+        + "from EMP\n"
+        + "where exists (values 10)";
+    sql(sql).decorrelate(true).ok();
+  }
+
+  @Test public void testSimplifyNotExistsValuesSubQuery() {
+    final String sql = "select deptno\n"
+        + "from EMP\n"
+        + "where not exists (values 10)";
+    sql(sql).decorrelate(true).ok();
+  }
+
+  /**
+   * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-695">[CALCITE-695]
    * SqlSingleValueAggFunction is created when it may not be needed</a>.
    */
