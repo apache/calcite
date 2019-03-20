@@ -1166,8 +1166,23 @@ public class SqlToRelConverter {
       if (!config.isExpand()) {
         return;
       }
-      converted = convertExists(query, RelOptUtil.SubQueryType.EXISTS,
-          subQuery.logic, true, null);
+      final SqlValidatorScope seekScope =
+          (query instanceof SqlSelect)
+              ? validator.getSelectScope((SqlSelect) query)
+              : null;
+      final Blackboard seekBb = createBlackboard(seekScope, null, false);
+      final RelNode seekRel = convertQueryOrInList(seekBb, query, null);
+      // An EXIST sub-query whose inner child has at least 1 tuple
+      // (e.g. an Aggregate with no grouping columns or non-empty Values
+      // node) should be simplified to a Boolean constant expression.
+      final RelMetadataQuery mq = seekRel.getCluster().getMetadataQuery();
+      final Double minRowCount = mq.getMinRowCount(seekRel);
+      if (minRowCount != null && minRowCount >= 1D) {
+        subQuery.expr = rexBuilder.makeLiteral(true);
+        return;
+      }
+      converted = RelOptUtil.createExistsPlan(seekRel,
+          RelOptUtil.SubQueryType.EXISTS, subQuery.logic, true, relBuilder);
       assert !converted.indicator;
       if (convertNonCorrelatedSubQuery(subQuery, bb, converted.r, true)) {
         return;
