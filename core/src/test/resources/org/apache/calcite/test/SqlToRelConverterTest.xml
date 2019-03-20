@@ -3972,6 +3972,31 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testCorrelationAggregateGroupSets">
+        <Resource name="sql">
+            <![CDATA[select sum(e1.empno)
+from emp e1, dept d1
+where e1.deptno = d1.deptno
+and e1.sal > (select avg(e2.sal) from emp e2
+where e2.deptno = d1.deptno group by cube(comm, mgr))]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject(EMPNO=[$0])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10], DEPTNO1=[CAST($11):INTEGER], $f1=[CAST($12):INTEGER])
+      LogicalJoin(condition=[AND(=($9, $11), >($5, $12))], joinType=[inner])
+        LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])
+          LogicalProject(DEPTNO=[$2], EXPR$0=[$3])
+            LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {0, 2}, {1, 2}, {2}]], EXPR$0=[AVG($3)])
+              LogicalProject(COMM=[$6], MGR=[$3], DEPTNO=[$7], SAL=[$5])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testFakeStar">
         <Resource name="sql">
             <![CDATA[SELECT * FROM (VALUES (0, 0)) AS T(A, "*")]]>
