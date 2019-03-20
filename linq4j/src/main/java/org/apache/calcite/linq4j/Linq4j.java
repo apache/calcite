@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.RandomAccess;
+import java.util.function.Supplier;
 
 /**
  * Utility and factory methods for Linq4j.
@@ -521,6 +522,39 @@ public abstract class Linq4j {
           current = emptyEnumerator();
         }
       };
+    }
+  }
+
+  /**
+   * Returns an {@link Enumerable} whose computation (via a {@link Supplier}) will be
+   * postponed until it is actually required
+   *
+   * @param supplier Enumerable supplier
+   * @param <E> Element type
+   *
+   * @return Lazy enumerable
+   */
+  public static <E> Enumerable<E> lazyEnumerable(Supplier<Enumerable<E>> supplier) {
+    return new LazyEnumerable<>(supplier);
+  }
+
+
+  /** Lazy enumerable.
+   *
+   * @param <E> element type */
+  static class LazyEnumerable<E> extends WrapperEnumerable<E> {
+    private final Supplier<Enumerable<E>> supplier;
+    private Enumerable<E> enumerable = null;
+
+    LazyEnumerable(Supplier<Enumerable<E>> supplier) {
+      this.supplier = supplier;
+    }
+
+    @Override protected Enumerable<E> getEnumerable() {
+      if (enumerable == null) {
+        enumerable = supplier.get();
+      }
+      return enumerable;
     }
   }
 
