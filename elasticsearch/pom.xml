@@ -21,12 +21,12 @@ limitations under the License.
   <parent>
     <groupId>org.apache.calcite</groupId>
     <artifactId>calcite</artifactId>
-    <version>1.19.0-SNAPSHOT</version>
+    <version>1.19.0</version>
   </parent>
 
   <artifactId>calcite-elasticsearch</artifactId>
   <packaging>jar</packaging>
-  <version>1.19.0-SNAPSHOT</version>
+  <version>1.19.0</version>
   <name>Calcite Elasticsearch</name>
   <description>Elasticsearch adapter for Calcite</description>
 

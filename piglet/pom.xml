@@ -20,12 +20,12 @@ limitations under the License.
   <parent>
     <groupId>org.apache.calcite</groupId>
     <artifactId>calcite</artifactId>
-    <version>1.19.0-SNAPSHOT</version>
+    <version>1.19.0</version>
   </parent>
 
   <artifactId>calcite-piglet</artifactId>
   <packaging>jar</packaging>
-  <version>1.19.0-SNAPSHOT</version>
+  <version>1.19.0</version>
   <name>Calcite Piglet</name>
   <description>Pig-like language built on top of Calcite algebra</description>
 
