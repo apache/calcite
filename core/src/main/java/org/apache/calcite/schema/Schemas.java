@@ -352,8 +352,14 @@ public final class Schemas {
       return makeContext(config, context0.getTypeFactory(),
           context0.getDataContext(), schema, schemaPath, objectPath);
     } else {
+      /**
+       * workaround for issue:
+       * {@link https://issues.apache.org/jira/browse/CALCITE-2208?jql=project%20%3D%20CALCITE%20AND%20text%20~%20MATERIALIZATION_CONNECTION}
+       */
       final CalciteConnectionConfig config =
-          mutate(connection.config(), propValues);
+          mutate(CalcitePrepare.Dummy.peek() != null
+              ? CalcitePrepare.Dummy.peek().config()
+              : connection.config(), propValues);
       return makeContext(config, connection.getTypeFactory(),
           createDataContext(connection, schema.root().plus()), schema,
           schemaPath, objectPath);

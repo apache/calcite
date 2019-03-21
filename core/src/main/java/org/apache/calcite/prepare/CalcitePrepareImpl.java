@@ -124,6 +124,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
+import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.type.ExtraSqlTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
@@ -274,7 +275,22 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             context.getDefaultSchemaPath(),
             typeFactory,
             context.config());
-    SqlParser parser = createParser(sql);
+
+    final CalciteConnectionConfig config = context.config();
+    final SqlParser.ConfigBuilder parserConfig = createParserConfig()
+        .setQuotedCasing(config.quotedCasing())
+        .setUnquotedCasing(config.unquotedCasing())
+        .setQuoting(config.quoting())
+        .setConformance(config.conformance())
+        .setCaseSensitive(config.caseSensitive());
+    final SqlParserImplFactory parserFactory =
+        context.config()
+            .parserFactory(SqlParserImplFactory.class, SqlParserImpl.FACTORY);
+    if (parserFactory != null) {
+      parserConfig.setParserFactory(parserFactory);
+    }
+
+    SqlParser parser = createParser(sql, parserConfig);
     SqlNode sqlNode;
     try {
       sqlNode = parser.parseStmt();
