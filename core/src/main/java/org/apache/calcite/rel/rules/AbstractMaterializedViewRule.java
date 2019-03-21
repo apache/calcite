@@ -18,7 +18,6 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.plan.RelOptMaterialization;
-import org.apache.calcite.plan.RelOptMaterializations;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
@@ -221,319 +220,325 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         return;
       }
 
-      // Obtain applicable (filtered) materializations
-      // TODO: Filtering of relevant materializations needs to be
-      // improved so we gather only materializations that might
-      // actually generate a valid rewriting.
-      final List<RelOptMaterialization> applicableMaterializations =
-          RelOptMaterializations.getApplicableMaterializations(node, materializations);
+      // 2. Initialize all query related auxiliary data structures
+      // that will be used throughout query rewriting process
+      // Generate query table references
+      final Set<RelTableRef> queryTableRefs = mq.getTableReferences(node);
+      if (queryTableRefs == null) {
+        // Bail out
+        return;
+      }
 
-      if (!applicableMaterializations.isEmpty()) {
-        // 2. Initialize all query related auxiliary data structures
-        // that will be used throughout query rewriting process
-        // Generate query table references
-        final Set<RelTableRef> queryTableRefs = mq.getTableReferences(node);
-        if (queryTableRefs == null) {
-          // Bail out
-          return;
-        }
-
-        // Extract query predicates
-        final RelOptPredicateList queryPredicateList =
-            mq.getAllPredicates(node);
-        if (queryPredicateList == null) {
-          // Bail out
-          return;
-        }
-        final RexNode pred =
-            simplify.simplifyUnknownAsFalse(
-                RexUtil.composeConjunction(rexBuilder,
-                    queryPredicateList.pulledUpPredicates));
-        final Triple<RexNode, RexNode, RexNode> queryPreds =
-            splitPredicates(rexBuilder, pred);
-
-        // Extract query equivalence classes. An equivalence class is a set
-        // of columns in the query output that are known to be equal.
-        final EquivalenceClasses qEC = new EquivalenceClasses();
-        for (RexNode conj : RelOptUtil.conjunctions(queryPreds.getLeft())) {
-          assert conj.isA(SqlKind.EQUALS);
-          RexCall equiCond = (RexCall) conj;
-          qEC.addEquivalenceClass(
-              (RexTableInputRef) equiCond.getOperands().get(0),
-              (RexTableInputRef) equiCond.getOperands().get(1));
-        }
-
-        // 3. We iterate through all applicable materializations trying to
-        // rewrite the given query
-        for (RelOptMaterialization materialization : applicableMaterializations) {
-          RelNode view = materialization.tableRel;
-          Project topViewProject;
-          RelNode viewNode;
-          if (materialization.queryRel instanceof Project) {
-            topViewProject = (Project) materialization.queryRel;
-            viewNode = topViewProject.getInput();
-          } else {
-            topViewProject = null;
-            viewNode = materialization.queryRel;
-          }
-
-          // 3.1. View checks before proceeding
-          if (!isValidPlan(topViewProject, viewNode, mq)) {
-            // Skip it
-            continue;
-          }
-
-          // 3.2. Initialize all query related auxiliary data structures
-          // that will be used throughout query rewriting process
-          // Extract view predicates
-          final RelOptPredicateList viewPredicateList =
-              mq.getAllPredicates(viewNode);
-          if (viewPredicateList == null) {
-            // Skip it
-            continue;
-          }
-          final RexNode viewPred = simplify.simplifyUnknownAsFalse(
+      // Extract query predicates
+      final RelOptPredicateList queryPredicateList =
+          mq.getAllPredicates(node);
+      if (queryPredicateList == null) {
+        // Bail out
+        return;
+      }
+      final RexNode pred =
+          simplify.simplifyUnknownAsFalse(
               RexUtil.composeConjunction(rexBuilder,
-                  viewPredicateList.pulledUpPredicates));
-          final Triple<RexNode, RexNode, RexNode> viewPreds =
-              splitPredicates(rexBuilder, viewPred);
+                  queryPredicateList.pulledUpPredicates));
+      final Triple<RexNode, RexNode, RexNode> queryPreds =
+          splitPredicates(rexBuilder, pred);
 
-          // Extract view table references
-          final Set<RelTableRef> viewTableRefs = mq.getTableReferences(viewNode);
-          if (viewTableRefs == null) {
-            // Skip it
-            continue;
+      // Extract query equivalence classes. An equivalence class is a set
+      // of columns in the query output that are known to be equal.
+      final EquivalenceClasses qEC = new EquivalenceClasses();
+      for (RexNode conj : RelOptUtil.conjunctions(queryPreds.getLeft())) {
+        assert conj.isA(SqlKind.EQUALS);
+        RexCall equiCond = (RexCall) conj;
+        qEC.addEquivalenceClass(
+            (RexTableInputRef) equiCond.getOperands().get(0),
+            (RexTableInputRef) equiCond.getOperands().get(1));
+      }
+
+      // 3. We iterate through all applicable materializations trying to
+      // rewrite the given query
+      for (RelOptMaterialization materialization : materializations) {
+        RelNode view = materialization.tableRel;
+        Project topViewProject;
+        RelNode viewNode;
+        if (materialization.queryRel instanceof Project) {
+          topViewProject = (Project) materialization.queryRel;
+          viewNode = topViewProject.getInput();
+        } else {
+          topViewProject = null;
+          viewNode = materialization.queryRel;
+        }
+
+        // Extract view table references
+        final Set<RelTableRef> viewTableRefs = mq.getTableReferences(viewNode);
+        if (viewTableRefs == null) {
+          // Skip it
+          continue;
+        }
+
+        // Filter relevant materializations. Currently, we only check whether
+        // the materialization contains any table that is used by the query
+        // TODO: Filtering of relevant materializations can be improved to be more fine-grained.
+        boolean applicable = false;
+        for (RelTableRef tableRef : viewTableRefs) {
+          if (queryTableRefs.contains(tableRef)) {
+            applicable = true;
+            break;
           }
+        }
+        if (!applicable) {
+          // Skip it
+          continue;
+        }
 
-          // Extract view tables
-          MatchModality matchModality;
-          Multimap<RexTableInputRef, RexTableInputRef> compensationEquiColumns =
-              ArrayListMultimap.create();
-          if (!queryTableRefs.equals(viewTableRefs)) {
-            // We try to compensate, e.g., for join queries it might be
-            // possible to join missing tables with view to compute result.
-            // Two supported cases: query tables are subset of view tables (we need to
-            // check whether they are cardinality-preserving joins), or view tables are
-            // subset of query tables (add additional tables through joins if possible)
-            if (viewTableRefs.containsAll(queryTableRefs)) {
-              matchModality = MatchModality.QUERY_PARTIAL;
-              final EquivalenceClasses vEC = new EquivalenceClasses();
-              for (RexNode conj : RelOptUtil.conjunctions(viewPreds.getLeft())) {
-                assert conj.isA(SqlKind.EQUALS);
-                RexCall equiCond = (RexCall) conj;
-                vEC.addEquivalenceClass(
-                    (RexTableInputRef) equiCond.getOperands().get(0),
-                    (RexTableInputRef) equiCond.getOperands().get(1));
-              }
-              if (!compensatePartial(viewTableRefs, vEC, queryTableRefs,
-                      compensationEquiColumns)) {
-                // Cannot rewrite, skip it
-                continue;
-              }
-            } else if (queryTableRefs.containsAll(viewTableRefs)) {
-              matchModality = MatchModality.VIEW_PARTIAL;
-              ViewPartialRewriting partialRewritingResult = compensateViewPartial(
-                  call.builder(), rexBuilder, mq, view,
-                  topProject, node, queryTableRefs, qEC,
-                  topViewProject, viewNode, viewTableRefs);
-              if (partialRewritingResult == null) {
-                // Cannot rewrite, skip it
-                continue;
-              }
-              // Rewrite succeeded
-              view = partialRewritingResult.newView;
-              topViewProject = partialRewritingResult.newTopViewProject;
-              viewNode = partialRewritingResult.newViewNode;
-            } else {
-              // Skip it
-              continue;
-            }
-          } else {
-            matchModality = MatchModality.COMPLETE;
-          }
+        // 3.1. View checks before proceeding
+        if (!isValidPlan(topViewProject, viewNode, mq)) {
+          // Skip it
+          continue;
+        }
 
-          // 4. We map every table in the query to a table with the same qualified
-          // name (all query tables are contained in the view, thus this is equivalent
-          // to mapping every table in the query to a view table).
-          final Multimap<RelTableRef, RelTableRef> multiMapTables = ArrayListMultimap.create();
-          for (RelTableRef queryTableRef1 : queryTableRefs) {
-            for (RelTableRef queryTableRef2 : queryTableRefs) {
-              if (queryTableRef1.getQualifiedName().equals(
-                  queryTableRef2.getQualifiedName())) {
-                multiMapTables.put(queryTableRef1, queryTableRef2);
-              }
-            }
-          }
+        // 3.2. Initialize all query related auxiliary data structures
+        // that will be used throughout query rewriting process
+        // Extract view predicates
+        final RelOptPredicateList viewPredicateList =
+            mq.getAllPredicates(viewNode);
+        if (viewPredicateList == null) {
+          // Skip it
+          continue;
+        }
+        final RexNode viewPred = simplify.simplifyUnknownAsFalse(
+            RexUtil.composeConjunction(rexBuilder,
+                viewPredicateList.pulledUpPredicates));
+        final Triple<RexNode, RexNode, RexNode> viewPreds =
+            splitPredicates(rexBuilder, viewPred);
 
-          // If a table is used multiple times, we will create multiple mappings,
-          // and we will try to rewrite the query using each of the mappings.
-          // Then, we will try to map every source table (query) to a target
-          // table (view), and if we are successful, we will try to create
-          // compensation predicates to filter the view results further
-          // (if needed).
-          final List<BiMap<RelTableRef, RelTableRef>> flatListMappings =
-              generateTableMappings(multiMapTables);
-          for (BiMap<RelTableRef, RelTableRef> queryToViewTableMapping : flatListMappings) {
-            // TableMapping : mapping query tables -> view tables
-            // 4.0. If compensation equivalence classes exist, we need to add
-            // the mapping to the query mapping
-            final EquivalenceClasses currQEC = EquivalenceClasses.copy(qEC);
-            if (matchModality == MatchModality.QUERY_PARTIAL) {
-              for (Entry<RexTableInputRef, RexTableInputRef> e
-                  : compensationEquiColumns.entries()) {
-                // Copy origin
-                RelTableRef queryTableRef = queryToViewTableMapping.inverse().get(
-                    e.getKey().getTableRef());
-                RexTableInputRef queryColumnRef = RexTableInputRef.of(queryTableRef,
-                    e.getKey().getIndex(), e.getKey().getType());
-                // Add to query equivalence classes and table mapping
-                currQEC.addEquivalenceClass(queryColumnRef, e.getValue());
-                queryToViewTableMapping.put(e.getValue().getTableRef(),
-                    e.getValue().getTableRef()); // identity
-              }
-            }
-
-            // 4.1. Compute compensation predicates, i.e., predicates that need to be
-            // enforced over the view to retain query semantics. The resulting predicates
-            // are expressed using {@link RexTableInputRef} over the query.
-            // First, to establish relationship, we swap column references of the view
-            // predicates to point to query tables and compute equivalence classes.
-            final RexNode viewColumnsEquiPred = RexUtil.swapTableReferences(
-                rexBuilder, viewPreds.getLeft(), queryToViewTableMapping.inverse());
-            final EquivalenceClasses queryBasedVEC = new EquivalenceClasses();
-            for (RexNode conj : RelOptUtil.conjunctions(viewColumnsEquiPred)) {
+        // Extract view tables
+        MatchModality matchModality;
+        Multimap<RexTableInputRef, RexTableInputRef> compensationEquiColumns =
+            ArrayListMultimap.create();
+        if (!queryTableRefs.equals(viewTableRefs)) {
+          // We try to compensate, e.g., for join queries it might be
+          // possible to join missing tables with view to compute result.
+          // Two supported cases: query tables are subset of view tables (we need to
+          // check whether they are cardinality-preserving joins), or view tables are
+          // subset of query tables (add additional tables through joins if possible)
+          if (viewTableRefs.containsAll(queryTableRefs)) {
+            matchModality = MatchModality.QUERY_PARTIAL;
+            final EquivalenceClasses vEC = new EquivalenceClasses();
+            for (RexNode conj : RelOptUtil.conjunctions(viewPreds.getLeft())) {
               assert conj.isA(SqlKind.EQUALS);
               RexCall equiCond = (RexCall) conj;
-              queryBasedVEC.addEquivalenceClass(
+              vEC.addEquivalenceClass(
                   (RexTableInputRef) equiCond.getOperands().get(0),
                   (RexTableInputRef) equiCond.getOperands().get(1));
             }
-            Triple<RexNode, RexNode, RexNode> compensationPreds =
-                computeCompensationPredicates(rexBuilder, simplify,
-                    currQEC, queryPreds, queryBasedVEC, viewPreds,
-                    queryToViewTableMapping);
-            if (compensationPreds == null && generateUnionRewriting) {
-              // Attempt partial rewriting using union operator. This rewriting
-              // will read some data from the view and the rest of the data from
-              // the query computation. The resulting predicates are expressed
-              // using {@link RexTableInputRef} over the view.
-              compensationPreds = computeCompensationPredicates(rexBuilder, simplify,
-                  queryBasedVEC, viewPreds, currQEC, queryPreds,
-                  queryToViewTableMapping.inverse());
-              if (compensationPreds == null) {
-                // This was our last chance to use the view, skip it
-                continue;
-              }
-              RexNode compensationColumnsEquiPred = compensationPreds.getLeft();
-              RexNode otherCompensationPred =
-                  RexUtil.composeConjunction(rexBuilder,
-                      ImmutableList.of(compensationPreds.getMiddle(),
-                          compensationPreds.getRight()));
-              assert !compensationColumnsEquiPred.isAlwaysTrue()
-                  || !otherCompensationPred.isAlwaysTrue();
-
-              // b. Generate union branch (query).
-              final RelNode unionInputQuery = rewriteQuery(call.builder(), rexBuilder,
-                  simplify, mq, compensationColumnsEquiPred, otherCompensationPred,
-                  topProject, node, queryToViewTableMapping, queryBasedVEC, currQEC);
-              if (unionInputQuery == null) {
-                // Skip it
-                continue;
-              }
-
-              // c. Generate union branch (view).
-              // We trigger the unifying method. This method will either create a Project
-              // or an Aggregate operator on top of the view. It will also compute the
-              // output expressions for the query.
-              final RelNode unionInputView = rewriteView(call.builder(), rexBuilder, simplify, mq,
-                  matchModality, true, view, topProject, node, topViewProject, viewNode,
-                  queryToViewTableMapping, currQEC);
-              if (unionInputView == null) {
-                // Skip it
-                continue;
-              }
-
-              // d. Generate final rewriting (union).
-              final RelNode result = createUnion(call.builder(), rexBuilder,
-                  topProject, unionInputQuery, unionInputView);
-              if (result == null) {
-                // Skip it
-                continue;
-              }
-              call.transformTo(result);
-            } else if (compensationPreds != null) {
-              RexNode compensationColumnsEquiPred = compensationPreds.getLeft();
-              RexNode otherCompensationPred =
-                  RexUtil.composeConjunction(rexBuilder,
-                      ImmutableList.of(compensationPreds.getMiddle(),
-                          compensationPreds.getRight()));
-
-              // a. Compute final compensation predicate.
-              if (!compensationColumnsEquiPred.isAlwaysTrue()
-                  || !otherCompensationPred.isAlwaysTrue()) {
-                // All columns required by compensating predicates must be contained
-                // in the view output (condition 2).
-                List<RexNode> viewExprs = topViewProject == null
-                    ? extractReferences(rexBuilder, view)
-                    : topViewProject.getChildExps();
-                // For compensationColumnsEquiPred, we use the view equivalence classes,
-                // since we want to enforce the rest
-                if (!compensationColumnsEquiPred.isAlwaysTrue()) {
-                  compensationColumnsEquiPred = rewriteExpression(rexBuilder, mq,
-                      view, viewNode, viewExprs, queryToViewTableMapping.inverse(), queryBasedVEC,
-                      false, compensationColumnsEquiPred);
-                  if (compensationColumnsEquiPred == null) {
-                    // Skip it
-                    continue;
-                  }
-                }
-                // For the rest, we use the query equivalence classes
-                if (!otherCompensationPred.isAlwaysTrue()) {
-                  otherCompensationPred = rewriteExpression(rexBuilder, mq,
-                      view, viewNode, viewExprs, queryToViewTableMapping.inverse(), currQEC,
-                      true, otherCompensationPred);
-                  if (otherCompensationPred == null) {
-                    // Skip it
-                    continue;
-                  }
-                }
-              }
-              final RexNode viewCompensationPred =
-                  RexUtil.composeConjunction(rexBuilder,
-                      ImmutableList.of(compensationColumnsEquiPred,
-                          otherCompensationPred));
-
-              // b. Generate final rewriting if possible.
-              // First, we add the compensation predicate (if any) on top of the view.
-              // Then, we trigger the unifying method. This method will either create a
-              // Project or an Aggregate operator on top of the view. It will also compute
-              // the output expressions for the query.
-              RelBuilder builder = call.builder();
-              RelNode viewWithFilter;
-              if (!viewCompensationPred.isAlwaysTrue()) {
-                RexNode newPred =
-                    simplify.simplifyUnknownAsFalse(viewCompensationPred);
-                viewWithFilter = builder.push(view).filter(newPred).build();
-                // We add (and push) the filter to the view plan before triggering the rewriting.
-                // This is useful in case some of the columns can be folded to same value after
-                // filter is added.
-                Pair<RelNode, RelNode> pushedNodes =
-                    pushFilterToOriginalViewPlan(builder, topViewProject, viewNode, newPred);
-                topViewProject = (Project) pushedNodes.left;
-                viewNode = pushedNodes.right;
-              } else {
-                viewWithFilter = builder.push(view).build();
-              }
-              final RelNode result = rewriteView(builder, rexBuilder, simplify, mq, matchModality,
-                  false, viewWithFilter, topProject, node, topViewProject, viewNode,
-                  queryToViewTableMapping, currQEC);
-              if (result == null) {
-                // Skip it
-                continue;
-              }
-              call.transformTo(result);
-            } // end else
+            if (!compensatePartial(viewTableRefs, vEC, queryTableRefs,
+                    compensationEquiColumns)) {
+              // Cannot rewrite, skip it
+              continue;
+            }
+          } else if (queryTableRefs.containsAll(viewTableRefs)) {
+            matchModality = MatchModality.VIEW_PARTIAL;
+            ViewPartialRewriting partialRewritingResult = compensateViewPartial(
+                call.builder(), rexBuilder, mq, view,
+                topProject, node, queryTableRefs, qEC,
+                topViewProject, viewNode, viewTableRefs);
+            if (partialRewritingResult == null) {
+              // Cannot rewrite, skip it
+              continue;
+            }
+            // Rewrite succeeded
+            view = partialRewritingResult.newView;
+            topViewProject = partialRewritingResult.newTopViewProject;
+            viewNode = partialRewritingResult.newViewNode;
+          } else {
+            // Skip it
+            continue;
           }
+        } else {
+          matchModality = MatchModality.COMPLETE;
+        }
+
+        // 4. We map every table in the query to a table with the same qualified
+        // name (all query tables are contained in the view, thus this is equivalent
+        // to mapping every table in the query to a view table).
+        final Multimap<RelTableRef, RelTableRef> multiMapTables = ArrayListMultimap.create();
+        for (RelTableRef queryTableRef1 : queryTableRefs) {
+          for (RelTableRef queryTableRef2 : queryTableRefs) {
+            if (queryTableRef1.getQualifiedName().equals(
+                queryTableRef2.getQualifiedName())) {
+              multiMapTables.put(queryTableRef1, queryTableRef2);
+            }
+          }
+        }
+
+        // If a table is used multiple times, we will create multiple mappings,
+        // and we will try to rewrite the query using each of the mappings.
+        // Then, we will try to map every source table (query) to a target
+        // table (view), and if we are successful, we will try to create
+        // compensation predicates to filter the view results further
+        // (if needed).
+        final List<BiMap<RelTableRef, RelTableRef>> flatListMappings =
+            generateTableMappings(multiMapTables);
+        for (BiMap<RelTableRef, RelTableRef> queryToViewTableMapping : flatListMappings) {
+          // TableMapping : mapping query tables -> view tables
+          // 4.0. If compensation equivalence classes exist, we need to add
+          // the mapping to the query mapping
+          final EquivalenceClasses currQEC = EquivalenceClasses.copy(qEC);
+          if (matchModality == MatchModality.QUERY_PARTIAL) {
+            for (Entry<RexTableInputRef, RexTableInputRef> e
+                : compensationEquiColumns.entries()) {
+              // Copy origin
+              RelTableRef queryTableRef = queryToViewTableMapping.inverse().get(
+                  e.getKey().getTableRef());
+              RexTableInputRef queryColumnRef = RexTableInputRef.of(queryTableRef,
+                  e.getKey().getIndex(), e.getKey().getType());
+              // Add to query equivalence classes and table mapping
+              currQEC.addEquivalenceClass(queryColumnRef, e.getValue());
+              queryToViewTableMapping.put(e.getValue().getTableRef(),
+                  e.getValue().getTableRef()); // identity
+            }
+          }
+
+          // 4.1. Compute compensation predicates, i.e., predicates that need to be
+          // enforced over the view to retain query semantics. The resulting predicates
+          // are expressed using {@link RexTableInputRef} over the query.
+          // First, to establish relationship, we swap column references of the view
+          // predicates to point to query tables and compute equivalence classes.
+          final RexNode viewColumnsEquiPred = RexUtil.swapTableReferences(
+              rexBuilder, viewPreds.getLeft(), queryToViewTableMapping.inverse());
+          final EquivalenceClasses queryBasedVEC = new EquivalenceClasses();
+          for (RexNode conj : RelOptUtil.conjunctions(viewColumnsEquiPred)) {
+            assert conj.isA(SqlKind.EQUALS);
+            RexCall equiCond = (RexCall) conj;
+            queryBasedVEC.addEquivalenceClass(
+                (RexTableInputRef) equiCond.getOperands().get(0),
+                (RexTableInputRef) equiCond.getOperands().get(1));
+          }
+          Triple<RexNode, RexNode, RexNode> compensationPreds =
+              computeCompensationPredicates(rexBuilder, simplify,
+                  currQEC, queryPreds, queryBasedVEC, viewPreds,
+                  queryToViewTableMapping);
+          if (compensationPreds == null && generateUnionRewriting) {
+            // Attempt partial rewriting using union operator. This rewriting
+            // will read some data from the view and the rest of the data from
+            // the query computation. The resulting predicates are expressed
+            // using {@link RexTableInputRef} over the view.
+            compensationPreds = computeCompensationPredicates(rexBuilder, simplify,
+                queryBasedVEC, viewPreds, currQEC, queryPreds,
+                queryToViewTableMapping.inverse());
+            if (compensationPreds == null) {
+              // This was our last chance to use the view, skip it
+              continue;
+            }
+            RexNode compensationColumnsEquiPred = compensationPreds.getLeft();
+            RexNode otherCompensationPred =
+                RexUtil.composeConjunction(rexBuilder,
+                    ImmutableList.of(compensationPreds.getMiddle(),
+                        compensationPreds.getRight()));
+            assert !compensationColumnsEquiPred.isAlwaysTrue()
+                || !otherCompensationPred.isAlwaysTrue();
+
+            // b. Generate union branch (query).
+            final RelNode unionInputQuery = rewriteQuery(call.builder(), rexBuilder,
+                simplify, mq, compensationColumnsEquiPred, otherCompensationPred,
+                topProject, node, queryToViewTableMapping, queryBasedVEC, currQEC);
+            if (unionInputQuery == null) {
+              // Skip it
+              continue;
+            }
+
+            // c. Generate union branch (view).
+            // We trigger the unifying method. This method will either create a Project
+            // or an Aggregate operator on top of the view. It will also compute the
+            // output expressions for the query.
+            final RelNode unionInputView = rewriteView(call.builder(), rexBuilder, simplify, mq,
+                matchModality, true, view, topProject, node, topViewProject, viewNode,
+                queryToViewTableMapping, currQEC);
+            if (unionInputView == null) {
+              // Skip it
+              continue;
+            }
+
+            // d. Generate final rewriting (union).
+            final RelNode result = createUnion(call.builder(), rexBuilder,
+                topProject, unionInputQuery, unionInputView);
+            if (result == null) {
+              // Skip it
+              continue;
+            }
+            call.transformTo(result);
+          } else if (compensationPreds != null) {
+            RexNode compensationColumnsEquiPred = compensationPreds.getLeft();
+            RexNode otherCompensationPred =
+                RexUtil.composeConjunction(rexBuilder,
+                    ImmutableList.of(compensationPreds.getMiddle(),
+                        compensationPreds.getRight()));
+
+            // a. Compute final compensation predicate.
+            if (!compensationColumnsEquiPred.isAlwaysTrue()
+                || !otherCompensationPred.isAlwaysTrue()) {
+              // All columns required by compensating predicates must be contained
+              // in the view output (condition 2).
+              List<RexNode> viewExprs = topViewProject == null
+                  ? extractReferences(rexBuilder, view)
+                  : topViewProject.getChildExps();
+              // For compensationColumnsEquiPred, we use the view equivalence classes,
+              // since we want to enforce the rest
+              if (!compensationColumnsEquiPred.isAlwaysTrue()) {
+                compensationColumnsEquiPred = rewriteExpression(rexBuilder, mq,
+                    view, viewNode, viewExprs, queryToViewTableMapping.inverse(), queryBasedVEC,
+                    false, compensationColumnsEquiPred);
+                if (compensationColumnsEquiPred == null) {
+                  // Skip it
+                  continue;
+                }
+              }
+              // For the rest, we use the query equivalence classes
+              if (!otherCompensationPred.isAlwaysTrue()) {
+                otherCompensationPred = rewriteExpression(rexBuilder, mq,
+                    view, viewNode, viewExprs, queryToViewTableMapping.inverse(), currQEC,
+                    true, otherCompensationPred);
+                if (otherCompensationPred == null) {
+                  // Skip it
+                  continue;
+                }
+              }
+            }
+            final RexNode viewCompensationPred =
+                RexUtil.composeConjunction(rexBuilder,
+                    ImmutableList.of(compensationColumnsEquiPred,
+                        otherCompensationPred));
+
+            // b. Generate final rewriting if possible.
+            // First, we add the compensation predicate (if any) on top of the view.
+            // Then, we trigger the unifying method. This method will either create a
+            // Project or an Aggregate operator on top of the view. It will also compute
+            // the output expressions for the query.
+            RelBuilder builder = call.builder();
+            RelNode viewWithFilter;
+            if (!viewCompensationPred.isAlwaysTrue()) {
+              RexNode newPred =
+                  simplify.simplifyUnknownAsFalse(viewCompensationPred);
+              viewWithFilter = builder.push(view).filter(newPred).build();
+              // We add (and push) the filter to the view plan before triggering the rewriting.
+              // This is useful in case some of the columns can be folded to same value after
+              // filter is added.
+              Pair<RelNode, RelNode> pushedNodes =
+                  pushFilterToOriginalViewPlan(builder, topViewProject, viewNode, newPred);
+              topViewProject = (Project) pushedNodes.left;
+              viewNode = pushedNodes.right;
+            } else {
+              viewWithFilter = builder.push(view).build();
+            }
+            final RelNode result = rewriteView(builder, rexBuilder, simplify, mq, matchModality,
+                false, viewWithFilter, topProject, node, topViewProject, viewNode,
+                queryToViewTableMapping, currQEC);
+            if (result == null) {
+              // Skip it
+              continue;
+            }
+            call.transformTo(result);
+          } // end else
         }
       }
     }
