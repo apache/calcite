@@ -18,7 +18,6 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 
@@ -40,8 +39,6 @@ class EnumerableLimitRule extends RelOptRule {
     if (sort.offset == null && sort.fetch == null) {
       return;
     }
-    final RelTraitSet traitSet =
-        sort.getTraitSet().replace(EnumerableConvention.INSTANCE);
     RelNode input = sort.getInput();
     if (!sort.getCollation().getFieldCollations().isEmpty()) {
       // Create a sort with the same sort key, but no offset or fetch.
@@ -52,14 +49,9 @@ class EnumerableLimitRule extends RelOptRule {
           null,
           null);
     }
-    RelNode x = convert(
-        input,
-        input.getTraitSet().replace(EnumerableConvention.INSTANCE));
     call.transformTo(
-        new EnumerableLimit(
-            sort.getCluster(),
-            traitSet,
-            x,
+        EnumerableLimit.create(
+            convert(input, input.getTraitSet().replace(EnumerableConvention.INSTANCE)),
             sort.offset,
             sort.fetch));
   }
