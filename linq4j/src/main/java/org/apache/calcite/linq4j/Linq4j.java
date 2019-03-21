@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j;
 
+import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
 
 import java.lang.reflect.Method;
@@ -27,7 +28,6 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.RandomAccess;
-import java.util.function.Supplier;
 
 /**
  * Utility and factory methods for Linq4j.
@@ -526,7 +526,7 @@ public abstract class Linq4j {
   }
 
   /**
-   * Returns an {@link Enumerable} whose computation (via a {@link Supplier}) will be
+   * Returns an {@link Enumerable} whose computation (via a {@link Function0}) will be
    * postponed until it is actually required
    *
    * @param supplier Enumerable supplier
@@ -534,7 +534,7 @@ public abstract class Linq4j {
    *
    * @return Lazy enumerable
    */
-  public static <E> Enumerable<E> lazyEnumerable(Supplier<Enumerable<E>> supplier) {
+  public static <E> Enumerable<E> lazyEnumerable(Function0<Enumerable<E>> supplier) {
     return new LazyEnumerable<>(supplier);
   }
 
@@ -542,17 +542,18 @@ public abstract class Linq4j {
   /** Lazy enumerable.
    *
    * @param <E> element type */
-  static class LazyEnumerable<E> extends WrapperEnumerable<E> {
-    private final Supplier<Enumerable<E>> supplier;
+  static class LazyEnumerable<E> extends ForwardingEnumerable<E> {
+    private final Function0<Enumerable<E>> supplier;
     private Enumerable<E> enumerable = null;
 
-    LazyEnumerable(Supplier<Enumerable<E>> supplier) {
+    LazyEnumerable(Function0<Enumerable<E>> supplier) {
       this.supplier = supplier;
     }
 
-    @Override protected Enumerable<E> getEnumerable() {
+    @Override protected Enumerable<E> delegate() {
       if (enumerable == null) {
-        enumerable = supplier.get();
+        enumerable = supplier.apply();
+        Objects.requireNonNull(enumerable);
       }
       return enumerable;
     }
