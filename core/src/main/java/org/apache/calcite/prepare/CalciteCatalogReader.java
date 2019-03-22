@@ -163,7 +163,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
               Iterables.concat(schemaNames, Util.skipLast(names)), nameMatcher);
       if (schema != null) {
         final String name = Util.last(names);
-        functions2.addAll(schema.getFunctions(name, true));
+        functions2.addAll(schema.getFunctions(name, config.caseSensitive()));
       }
     }
     return functions2;
