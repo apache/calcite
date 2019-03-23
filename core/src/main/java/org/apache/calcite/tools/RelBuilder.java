@@ -1431,7 +1431,7 @@ public class RelBuilder {
       final Double maxRowCount = mq.getMaxRowCount(peek());
       if (maxRowCount != null && maxRowCount <= 1D) {
         // If there is at most one row, rel is already unique.
-        return this;
+        return project(fields(groupSet.asList()));
       }
     }
     final ImmutableList<ImmutableBitSet> groupSets;

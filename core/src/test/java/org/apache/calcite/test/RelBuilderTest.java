@@ -855,6 +855,25 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2946">[CALCITE-2946]
+   * RelBuilder wrongly skips creation of Aggregate that prunes columns if input
+   * produces one row at most</a>. */
+  @Test public void testAggregate5() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .aggregate(builder.groupKey(), builder.count().as("C"))
+            .project(builder.literal(4), builder.literal(2), builder.field(0))
+            .aggregate(builder.groupKey(builder.field(0), builder.field(1)))
+            .build();
+    final String expected = ""
+        + "LogicalProject($f0=[4], $f1=[2])\n"
+        + "  LogicalAggregate(group=[{}], C=[COUNT()])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
   @Test public void testAggregateFilter() {
     // Equivalent SQL:
     //   SELECT deptno, COUNT(*) FILTER (WHERE empno > 100) AS c
