@@ -860,6 +860,16 @@ LogicalProject(FAKE2=[ITEM($0, 'fake_col2')])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testNestedColumnType">
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(ZIP=[$4])
+  LogicalFilter(condition=[=($3, 'abc':VARCHAR(20))])
+    LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testDynamicSchemaUnnest">
         <Resource name="sql">
             <![CDATA[select t1.c_nationkey, t3.fake_col3
