@@ -109,8 +109,11 @@ final class Fixture {
             .build();
     empListType =
         typeFactory.createArrayType(empRecordType, -1);
+
+    // Subclass ObjectSqlType to make nested field queryable.
     addressType =
-        new ObjectSqlType(SqlTypeName.STRUCTURED,
+        new ObjectSqlType(
+            SqlTypeName.STRUCTURED,
             new SqlIdentifier("ADDRESS", SqlParserPos.ZERO),
             false,
             Arrays.asList(
@@ -118,7 +121,11 @@ final class Fixture {
                 new RelDataTypeFieldImpl("CITY", 1, varchar20Type),
                 new RelDataTypeFieldImpl("ZIP", 2, intType),
                 new RelDataTypeFieldImpl("STATE", 3, varchar20Type)),
-            RelDataTypeComparability.NONE);
+            RelDataTypeComparability.NONE) {
+          @Override public StructKind getStructKind() {
+            return StructKind.PEEK_FIELDS_DEFAULT;
+          }
+        };
   }
 }
 

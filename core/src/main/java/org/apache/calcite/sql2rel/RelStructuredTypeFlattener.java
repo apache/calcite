@@ -303,9 +303,11 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
    * corresponding field post-flattening, and also returns its type.
    *
    * @param oldOrdinal Pre-flattening ordinal
+   * @param existingOffset offset already calculated the target column inside the oldOrdinal column.
+   *                       For unnested column, it should be 0.
    * @return Post-flattening ordinal and type
    */
-  protected Ord<RelDataType> getNewFieldForOldInput(int oldOrdinal) {
+  private Ord<RelDataType> getNewFieldForOldInput(int oldOrdinal, int existingOffset) {
     assert currentRel != null;
     int newOrdinal = 0;
 
@@ -328,11 +330,22 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     assert newInput != null;
 
     RelDataType oldInputType = oldInput.getRowType();
-    final int newOffset = calculateFlattenedOffset(oldInputType, oldOrdinal);
+    final int newOffset = calculateFlattenedOffset(oldInputType, oldOrdinal) + existingOffset;
     newOrdinal += newOffset;
     final RelDataTypeField field =
         newInput.getRowType().getFieldList().get(newOffset);
     return Ord.of(newOrdinal, field.getType());
+  }
+
+  /**
+   * Maps the ordinal of a field pre-flattening to the ordinal of the
+   * corresponding field post-flattening, and also returns its type.
+   *
+   * @param oldOrdinal Pre-flattening ordinal
+   * @return Post-flattening ordinal and type
+   */
+  protected Ord<RelDataType> getNewFieldForOldInput(int oldOrdinal) {
+    return getNewFieldForOldInput(oldOrdinal, 0);
   }
 
   /**
@@ -822,9 +835,8 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
           // correct ordinal and type.
           RexInputRef inputRef = (RexInputRef) refExp;
           final Ord<RelDataType> newField =
-              getNewFieldForOldInput(inputRef.getIndex());
-          iInput += newField.i;
-          return new RexInputRef(iInput, removeDistinct(newField.e));
+              getNewFieldForOldInput(inputRef.getIndex(), iInput);
+          return new RexInputRef(newField.getKey(), removeDistinct(newField.getValue()));
         } else if (refExp instanceof RexCorrelVariable) {
           RelDataType refType =
               SqlTypeUtil.flattenRecordType(

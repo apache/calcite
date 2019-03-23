@@ -2559,6 +2559,18 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2900">[CALCITE-2900]
+   * RewriteRexShuttle generates wrong type during flatten for structured type when
+   * visitInputRef</a>.
+   */
+  @Test
+  public void testNestedColumn() {
+    final String sql =
+        "select home_address.zip from sales.emp_address where home_address.city = 'abc'";
+    sql(sql).ok();
+  }
+
   @Test public void testDynamicSchemaUnnest() {
     final String sql3 = "select t1.c_nationkey, t3.fake_col3\n"
         + "from SALES.CUSTOMER as t1,\n"
