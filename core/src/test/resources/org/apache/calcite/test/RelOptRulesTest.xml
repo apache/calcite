@@ -8997,4 +8997,25 @@ LogicalProject(NAME=[$0], EXPR$1=[CAST(POWER(/(-($1, /(*($2, $2), $3)), $3), 0.5
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testRangeSimplification">
+        <Resource name="sql">
+            <![CDATA[select *
+             FROM (VALUES({ts '2018-01-01 01:23:45'})) tbl(d)
+             WHERE d = '2018-01-01 01:23:45' AND d > '2018-01-01 01:23:45'
+             ]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(D=[$0])
+  LogicalFilter(condition=[AND(=($0, '2018-01-01 01:23:45'), >($0, CAST('2018-01-01 01:23:45'):TIMESTAMP(0) NOT NULL))])
+    LogicalValues(tuples=[[{ 2018-01-01 01:23:45 }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(D=[$0])
+  LogicalValues(tuples=[[]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

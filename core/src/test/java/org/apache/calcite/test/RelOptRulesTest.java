@@ -4428,6 +4428,13 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "from sales.dept group by name";
     sql(sql).with(program).check();
   }
+  @Test public void testRangeSimplification() {
+    final String sql = "select *"
+        + "FROM (VALUES({ts '2018-01-01 01:23:45'})) tbl(d) "
+        + "WHERE d = '2018-01-01 01:23:45' AND d > '2018-01-01 01:23:45'";
+
+    checkPlanning(ReduceExpressionsRule.FILTER_INSTANCE, sql);
+  }
 }
 
 // End RelOptRulesTest.java

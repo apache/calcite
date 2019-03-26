@@ -1425,7 +1425,45 @@ public abstract class SqlTypeUtil {
     return type.getSqlTypeName() == SqlTypeName.ARRAY;
   }
 
-
+  public static RelDataType consistentType(RelDataTypeFactory typeFactory,
+      SqlOperandTypeChecker.Consistency consistency, List<RelDataType> types) {
+    switch (consistency) {
+    case COMPARE:
+      if (SqlTypeUtil.areSameFamily(types)) {
+        // All arguments are of same family. No need for explicit casts.
+        return null;
+      }
+      final List<RelDataType> nonCharacterTypes = new ArrayList<>();
+      for (RelDataType type : types) {
+        if (type.getFamily() != SqlTypeFamily.CHARACTER) {
+          nonCharacterTypes.add(type);
+        }
+      }
+      if (!nonCharacterTypes.isEmpty()) {
+        final int typeCount = types.size();
+        types = nonCharacterTypes;
+        if (nonCharacterTypes.size() < typeCount) {
+          final RelDataTypeFamily family =
+              nonCharacterTypes.get(0).getFamily();
+          if (family instanceof SqlTypeFamily) {
+            // The character arguments might be larger than the numeric
+            // argument. Give ourselves some headroom.
+            switch ((SqlTypeFamily) family) {
+            case INTEGER:
+            case NUMERIC:
+              nonCharacterTypes.add(
+                  typeFactory.createSqlType(SqlTypeName.BIGINT));
+            }
+          }
+        }
+      }
+      // fall through
+    case LEAST_RESTRICTIVE:
+      return typeFactory.leastRestrictive(types);
+    default:
+      return null;
+    }
+  }
 }
 
 // End SqlTypeUtil.java
