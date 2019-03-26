@@ -38,7 +38,7 @@ query support.
 
 Compatibility: This release is tested
 on Linux, macOS, Microsoft Windows;
-using Oracle JDK 8, 9, 10, 11 and OpenJDK 10, 11;
+using Oracle JDK 8, 9, 10, 11, 12 and OpenJDK 8, 9, 10, 11, 12;
 Guava versions 19.0 to 27.1-jre;
 Druid version 0.11.0;
 other software versions as specified in `pom.xml`.
