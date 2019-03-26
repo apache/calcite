@@ -63,6 +63,16 @@
   githubId: gianm
   org: Imply
   role: Committer
+- name: Haisheng Yuan
+  apacheId: hyuan
+  githubId: hsyuan
+  org: Alibaba
+  role: Committer
+- name: Hongze Zhang
+  apacheId: hongze
+  githubId: zhztheplayer
+  org: Tencent
+  role: Committer
 - name: James R. Taylor
   apacheId: jamestaylor
   githubId: JamesRTaylor
@@ -166,6 +176,11 @@
   apacheId: bslim
   githubId: b-slim
   org: Hortonworks
+  role: Committer
+- name: Stamatis Zampetakis
+  apacheId: zabetak
+  githubId: zabetak
+  org: TIBCO EBX
   role: Committer
 - name: Steven Noels
   apacheId: stevenn
