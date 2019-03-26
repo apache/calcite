@@ -305,7 +305,7 @@ public class CassandraSchema extends AbstractSchema {
 
       schema.add(viewName,
             MaterializedViewTable.create(calciteSchema, query,
-            null, viewPath, view.getName(), true));
+            null, viewPath, view.getName(), true, configBuilder.build()));
     }
   }
 

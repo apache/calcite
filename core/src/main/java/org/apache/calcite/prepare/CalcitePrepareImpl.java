@@ -124,6 +124,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
+import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.type.ExtraSqlTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
@@ -274,7 +275,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             context.getDefaultSchemaPath(),
             typeFactory,
             context.config());
-    SqlParser parser = createParser(sql);
+    SqlParser parser = SqlParser.create(sql, extractParserConfigFromConnection(context.config()));
     SqlNode sqlNode;
     try {
       sqlNode = parser.parseStmt();
@@ -289,6 +290,23 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
     return new ParseResult(this, validator, sql, sqlNode1,
         validator.getValidatedNodeType(sqlNode1));
+  }
+
+  public static SqlParser.Config extractParserConfigFromConnection(CalciteConnectionConfig config) {
+    final SqlParser.ConfigBuilder parserConfig = SqlParser.configBuilder();
+    if (config != null) {
+      parserConfig.setQuotedCasing(config.quotedCasing())
+          .setUnquotedCasing(config.unquotedCasing())
+          .setQuoting(config.quoting())
+          .setConformance(config.conformance())
+          .setCaseSensitive(config.caseSensitive());
+      final SqlParserImplFactory parserFactory = config
+          .parserFactory(SqlParserImplFactory.class, SqlParserImpl.FACTORY);
+      if (parserFactory != null) {
+        parserConfig.setParserFactory(parserFactory);
+      }
+    }
+    return parserConfig.build();
   }
 
   private ParseResult convert_(Context context, String sql, boolean analyze,

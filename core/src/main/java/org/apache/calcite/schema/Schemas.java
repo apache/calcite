@@ -35,7 +35,9 @@ import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
@@ -51,6 +53,7 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -263,10 +266,10 @@ public final class Schemas {
   /** Parses and validates a SQL query. For use within Calcite only. */
   public static CalcitePrepare.ParseResult parse(
       final CalciteConnection connection, final CalciteSchema schema,
-      final List<String> schemaPath, final String sql) {
+      final List<String> schemaPath, final String sql, SqlParser.Config parserConfig) {
     final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.apply();
-    final ImmutableMap<CalciteConnectionProperty, String> propValues =
-        ImmutableMap.of();
+    ImmutableMap<CalciteConnectionProperty, String> propValues =
+        getConnectionPropsFromParser(parserConfig);
     final CalcitePrepare.Context context =
         makeContext(connection, schema, schemaPath, null, propValues);
     CalcitePrepare.Dummy.push(context);
@@ -275,6 +278,27 @@ public final class Schemas {
     } finally {
       CalcitePrepare.Dummy.pop(context);
     }
+  }
+
+  /** Extract sql parser config into connection properties. **/
+  private static ImmutableMap<CalciteConnectionProperty, String> getConnectionPropsFromParser(
+      SqlParser.Config parserConfig) {
+    final HashMap<CalciteConnectionProperty, String> m = new HashMap<>();
+    if (parserConfig != null) {
+      m.put(CalciteConnectionProperty.QUOTED_CASING, parserConfig.quotedCasing().name());
+      m.put(CalciteConnectionProperty.UNQUOTED_CASING, parserConfig.unquotedCasing().name());
+      m.put(CalciteConnectionProperty.QUOTING, parserConfig.quoting().name());
+      m.put(CalciteConnectionProperty.CONFORMANCE,
+          ((SqlConformanceEnum) parserConfig.conformance()).name());
+      m.put(CalciteConnectionProperty.CASE_SENSITIVE, parserConfig.caseSensitive() + "");
+      if (parserConfig.parserFactory() != null) {
+        String clazz = parserConfig.parserFactory().getClass().getCanonicalName();
+        if (clazz != null) {
+          m.put(CalciteConnectionProperty.PARSER_FACTORY, clazz);
+        }
+      }
+    }
+    return ImmutableMap.copyOf(m);
   }
 
   /** Parses and validates a SQL query and converts to relational algebra. For

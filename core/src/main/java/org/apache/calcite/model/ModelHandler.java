@@ -21,6 +21,7 @@ import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.AggregateFunction;
@@ -376,7 +377,8 @@ public class ModelHandler {
       schema.add(viewName,
           MaterializedViewTable.create(calciteSchema,
               jsonMaterialization.getSql(), jsonMaterialization.viewSchemaPath, viewPath,
-              jsonMaterialization.table, existing));
+              jsonMaterialization.table, existing,
+              CalcitePrepareImpl.extractParserConfigFromConnection(connection.config())));
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonMaterialization,
           e);

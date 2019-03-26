@@ -81,7 +81,7 @@ public class RelOptLattice {
     boolean create = lattice.auto && config.createMaterializations();
     final CalciteSchema schema = starRelOptTable.unwrap(CalciteSchema.class);
     return service.defineTile(lattice, groupSet, measureList, schema, create,
-        false);
+        false, config);
   }
 }
 

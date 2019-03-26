@@ -20,6 +20,7 @@ import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.MaterializationKey;
 import org.apache.calcite.materialize.MaterializationService;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelProtoDataType;
@@ -125,7 +126,8 @@ public class SqlCreateMaterializedView extends SqlCreate
     SqlDdlNodes.populate(name, query, context);
     table.key =
         MaterializationService.instance().defineMaterialization(pair.left, null,
-            sql, schemaPath, pair.right, true, true);
+            sql, schemaPath, pair.right, true, true,
+            CalcitePrepareImpl.extractParserConfigFromConnection(context.config()));
   }
 
   /** A table that implements a materialized view. */

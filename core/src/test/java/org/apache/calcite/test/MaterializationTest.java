@@ -17,6 +17,8 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -55,6 +57,7 @@ import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
 
 import org.junit.Ignore;
@@ -67,6 +70,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -215,23 +219,40 @@ public class MaterializationTest {
   private CalciteAssert.AssertQuery checkThatMaterialize(String materialize,
       String query, String name, boolean existing, String model,
       Consumer<ResultSet> explainChecker, final RuleSet rules) {
+    return checkThatMaterialize2(materialize, query, name, existing, model,
+        explainChecker, rules, ImmutableMap.of());
+  }
+
+  /** Checks that a given query can use a materialized view with a given
+   * definition. */
+  private CalciteAssert.AssertQuery checkThatMaterialize2(String materialize,
+      String query, String name, boolean existing, String model,
+      Consumer<ResultSet> explainChecker, final RuleSet rules,
+      Map<CalciteConnectionProperty, Object> props) {
     try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
-      CalciteAssert.AssertQuery that = CalciteAssert.that()
-          .withMaterializations(model, existing, name, materialize)
+      CalciteAssert.AssertThat that = CalciteAssert.that()
+          .withMaterializations(model, existing, name, materialize);
+      if (props.size() > 0) {
+        for (Map.Entry<CalciteConnectionProperty, Object> entry : props.entrySet()) {
+          that = that.with(entry.getKey(), entry.getValue());
+        }
+      }
+
+      CalciteAssert.AssertQuery assertQuery = that
           .query(query)
           .enableMaterializations(true);
 
       // Add any additional rules required for the test
       if (rules.iterator().hasNext()) {
-        that.withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+        assertQuery.withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           for (RelOptRule rule : rules) {
             planner.addRule(rule);
           }
         });
       }
 
-      return that.explainMatches("", explainChecker);
+      return assertQuery.explainMatches("", explainChecker);
     }
   }
 
@@ -1984,6 +2005,46 @@ public class MaterializationTest {
         CalciteAssert.checkResultContains(
             "EnumerableValues(tuples=[[{ 'noname' }]])"),
         RuleSets.ofList(ImmutableList.of()))
+        .returnsValue("noname");
+  }
+
+  @Test public void testViewMaterializationWithConnectionProps1() {
+    final Map<CalciteConnectionProperty, Object> props = new HashMap<>();
+    props.put(CalciteConnectionProperty.UNQUOTED_CASING, Casing.UNCHANGED);
+
+    checkThatMaterialize2(
+        "select \"depts\".\"name\"\n"
+            + "from \"emps\"\n"
+            + "join \"depts\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")",
+        "select depts.name\n"
+            + "from depts\n"
+            + "join emps on (emps.deptno = depts.deptno)",
+        "matview",
+        true,
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableValues(tuples=[[{ 'noname' }]])"),
+        RuleSets.ofList(ImmutableList.of()), props)
+        .returnsValue("noname");
+  }
+
+  @Test public void testViewMaterializationWithConnectionProps2() {
+    final Map<CalciteConnectionProperty, Object> props = new HashMap<>();
+    props.put(CalciteConnectionProperty.CASE_SENSITIVE, false);
+
+    checkThatMaterialize2(
+        "select \"depts\".\"name\"\n"
+            + "from \"emps\"\n"
+            + "join \"depts\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")",
+        "select DEpts.Name\n"
+            + "from DEpts\n"
+            + "join emps on (Emps.deptno = DEpts.DEPTNO)",
+        "matview",
+        true,
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableValues(tuples=[[{ 'noname' }]])"),
+        RuleSets.ofList(ImmutableList.of()), props)
         .returnsValue("noname");
   }
 

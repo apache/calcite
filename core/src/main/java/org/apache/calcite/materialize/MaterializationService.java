@@ -18,6 +18,7 @@ package org.apache.calcite.materialize;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.clone.CloneSchema;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteMetaImpl;
@@ -27,12 +28,14 @@ import org.apache.calcite.linq4j.AbstractQueryable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -86,16 +89,17 @@ public class MaterializationService {
   /** Defines a new materialization. Returns its key. */
   public MaterializationKey defineMaterialization(final CalciteSchema schema,
       TileKey tileKey, String viewSql, List<String> viewSchemaPath,
-      final String suggestedTableName, boolean create, boolean existing) {
+      final String suggestedTableName, boolean create, boolean existing,
+      SqlParser.Config parserConfig) {
     return defineMaterialization(schema, tileKey, viewSql, viewSchemaPath,
-        suggestedTableName, tableFactory, create, existing);
+        suggestedTableName, tableFactory, create, existing, parserConfig);
   }
 
   /** Defines a new materialization. Returns its key. */
   public MaterializationKey defineMaterialization(final CalciteSchema schema,
       TileKey tileKey, String viewSql, List<String> viewSchemaPath,
       String suggestedTableName, TableFactory tableFactory, boolean create,
-      boolean existing) {
+      boolean existing, SqlParser.Config parserConfig) {
     final MaterializationActor.QueryKey queryKey =
         new MaterializationActor.QueryKey(viewSql, schema, viewSchemaPath);
     final MaterializationKey existingKey = actor.keyBySql.get(queryKey);
@@ -112,9 +116,10 @@ public class MaterializationService {
     // If the user says the materialization exists, first try to find a table
     // with the name and if none can be found, lookup a view in the schema
     if (existing) {
-      tableEntry = schema.getTable(suggestedTableName, true);
+      tableEntry = schema.getTable(suggestedTableName, parserConfig.caseSensitive());
       if (tableEntry == null) {
-        tableEntry = schema.getTableBasedOnNullaryFunction(suggestedTableName, true);
+        tableEntry = schema.getTableBasedOnNullaryFunction(suggestedTableName,
+            parserConfig.caseSensitive());
       }
     } else {
       tableEntry = null;
@@ -136,7 +141,7 @@ public class MaterializationService {
     if (rowType == null) {
       // If we didn't validate the SQL by populating a table, validate it now.
       final CalcitePrepare.ParseResult parse =
-          Schemas.parse(connection, schema, viewSchemaPath, viewSql);
+          Schemas.parse(connection, schema, viewSchemaPath, viewSql, parserConfig);
       rowType = parse.rowType;
     }
     final MaterializationKey key = new MaterializationKey();
@@ -172,15 +177,16 @@ public class MaterializationService {
    */
   public Pair<CalciteSchema.TableEntry, TileKey> defineTile(Lattice lattice,
       ImmutableBitSet groupSet, List<Lattice.Measure> measureList,
-      CalciteSchema schema, boolean create, boolean exact) {
+      CalciteSchema schema, boolean create, boolean exact, CalciteConnectionConfig config) {
     return defineTile(lattice, groupSet, measureList, schema, create, exact,
-        "m" + groupSet, tableFactory);
+        "m" + groupSet, tableFactory, config);
   }
 
   public Pair<CalciteSchema.TableEntry, TileKey> defineTile(Lattice lattice,
       ImmutableBitSet groupSet, List<Lattice.Measure> measureList,
       CalciteSchema schema, boolean create, boolean exact,
-      String suggestedTableName, TableFactory tableFactory) {
+      String suggestedTableName, TableFactory tableFactory,
+      CalciteConnectionConfig config) {
     MaterializationKey materializationKey;
     final TileKey tileKey =
         new TileKey(lattice, groupSet, ImmutableList.copyOf(measureList));
@@ -271,7 +277,8 @@ public class MaterializationService {
     final String sql = lattice.sql(groupSet, newTileKey.measures);
     materializationKey =
         defineMaterialization(schema, newTileKey, sql, schema.path(null),
-            suggestedTableName, tableFactory, true, false);
+            suggestedTableName, tableFactory, true, false,
+            CalcitePrepareImpl.extractParserConfigFromConnection(config));
     if (materializationKey != null) {
       final CalciteSchema.TableEntry tableEntry =
           checkValid(materializationKey);
