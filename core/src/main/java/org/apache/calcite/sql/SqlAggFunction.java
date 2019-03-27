@@ -182,6 +182,11 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
   public boolean allowsFilter() {
     return true;
   }
+
+  /** Returns whether this aggregate function allows specifying null treatment. */
+  public boolean allowsNullTreatment() {
+    return false;
+  }
 }
 
 // End SqlAggFunction.java

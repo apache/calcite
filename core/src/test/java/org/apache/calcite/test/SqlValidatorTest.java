@@ -4242,6 +4242,88 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-883">[CALCITE-883]
+   * Give error if the aggregate function don't support null treatment</a>. */
+  @Test public void testWindowFunctionsIgnoreNulls() {
+    winSql("select lead(sal, 4) over (w)\n"
+        + " from emp window w as (order by empno)").ok();
+
+    winSql("select lead(sal, 4) IGNORE NULLS over (w)\n"
+        + " from emp window w as (order by empno)").ok();
+
+    winSql("select lag(sal, 4) over (w)\n"
+        + " from emp window w as (order by empno)").ok();
+
+    winSql("select lag(sal, 4) IGNORE NULLS over (w)\n"
+        + " from emp window w as (order by empno)").ok();
+
+    winSql("select first_value(sal) over (w)\n"
+        + " from emp window w as (order by empno)").ok();
+
+    winSql("select first_value(sal) IGNORE NULLS over (w)\n"
+        + " from emp window w as (order by empno)").ok();
+
+    winSql("select last_value(sal) over (w)\n"
+        + " from emp window w as (order by empno)").ok();
+
+    winSql("select last_value(sal) IGNORE NULLS over (w)\n"
+        + " from emp window w as (order by empno)").ok();
+
+    winSql("select ^sum(sal)^ IGNORE NULLS over (w)\n"
+        + " from emp window w as (order by empno)").fails("Cannot specify IGNORE NULLS or RESPECT NULLS following 'SUM'");
+
+    winSql("select ^count(sal)^ IGNORE NULLS over (w)\n"
+        + " from emp window w as (order by empno)").fails("Cannot specify IGNORE NULLS or RESPECT NULLS following 'COUNT'");
+
+    winSql("select ^avg(sal)^ IGNORE NULLS \n"
+        + " from emp").fails("Cannot specify IGNORE NULLS or RESPECT NULLS following 'AVG'");
+
+    winSql("select ^abs(sal)^ IGNORE NULLS \n"
+        + " from emp").fails("Cannot specify IGNORE NULLS or RESPECT NULLS following 'ABS'");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-883">[CALCITE-883]
+   * Give error if the aggregate function don't support null treatment</a>. */
+  @Test public void testWindowFunctionsRespectNulls() {
+    winSql("select lead(sal, 4) over (w)\n"
+        + " from emp window w as (order by empno)").ok();
+
+    winSql("select lead(sal, 4) RESPECT NULLS over (w)\n"
+        + " from emp window w as (order by empno)").ok();
+
+    winSql("select lag(sal, 4) over (w)\n"
+        + " from emp window w as (order by empno)").ok();
+
+    winSql("select lag(sal, 4) RESPECT NULLS over (w)\n"
+        + " from emp window w as (order by empno)").ok();
+
+    winSql("select first_value(sal) over (w)\n"
+        + " from emp window w as (order by empno)").ok();
+
+    winSql("select first_value(sal) RESPECT NULLS over (w)\n"
+        + " from emp window w as (order by empno)").ok();
+
+    winSql("select last_value(sal) over (w)\n"
+        + " from emp window w as (order by empno)").ok();
+
+    winSql("select last_value(sal) RESPECT NULLS over (w)\n"
+        + " from emp window w as (order by empno)").ok();
+
+    winSql("select ^sum(sal)^ RESPECT NULLS over (w)\n"
+        + " from emp window w as (order by empno)").fails("Cannot specify IGNORE NULLS or RESPECT NULLS following 'SUM'");
+
+    winSql("select ^count(sal)^ RESPECT NULLS over (w)\n"
+        + " from emp window w as (order by empno)").fails("Cannot specify IGNORE NULLS or RESPECT NULLS following 'COUNT'");
+
+    winSql("select ^avg(sal)^ RESPECT NULLS \n"
+        + " from emp").fails("Cannot specify IGNORE NULLS or RESPECT NULLS following 'AVG'");
+
+    winSql("select ^abs(sal)^ RESPECT NULLS \n"
+        + " from emp").fails("Cannot specify IGNORE NULLS or RESPECT NULLS following 'ABS'");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1954">[CALCITE-1954]
    * Column from outer join should be null, whether or not it is aliased</a>. */
   @Test public void testLeftOuterJoinWithAlias() {
@@ -8833,7 +8915,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "=> -\n"
         + "AS -\n"
         + "DESC post\n"
+        + "IGNORE NULLS -\n"
         + "OVER left\n"
+        + "RESPECT NULLS -\n"
         + "TABLESAMPLE -\n"
         + "\n"
         + "INTERSECT left\n"

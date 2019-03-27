@@ -327,9 +327,7 @@ public class RexBuilder {
     return list;
   }
 
-  /**
-   * Creates a call to a windowed agg.
-   */
+  @Deprecated // to be removed before 2.0
   public RexNode makeOver(
       RelDataType type,
       SqlAggFunction operator,
@@ -353,7 +351,8 @@ public class RexBuilder {
             lowerBound,
             upperBound,
             physical);
-    final RexOver over = new RexOver(type, operator, exprs, window, distinct);
+    final RexOver over = new RexOver(type, operator, exprs, window,
+        distinct, false);
     RexNode result = over;
 
     // This should be correct but need time to go over test results.
@@ -370,14 +369,15 @@ public class RexBuilder {
                   SqlStdOperatorTable.COUNT,
                   exprs,
                   window,
-                  distinct),
+                  distinct,
+                  false),
               makeLiteral(
                   BigDecimal.ZERO,
                   bigintType,
                   SqlTypeName.DECIMAL)),
           ensureType(type, // SUM0 is non-nullable, thus need a cast
               new RexOver(typeFactory.createTypeWithNullability(type, false),
-              operator, exprs, window, distinct),
+              operator, exprs, window, distinct, false),
               false),
           makeCast(type, constantNull()));
     }
@@ -396,7 +396,92 @@ public class RexBuilder {
                       SqlStdOperatorTable.COUNT,
                       ImmutableList.of(),
                       window,
-                      distinct),
+                      distinct,
+                      false),
+                  makeLiteral(
+                      BigDecimal.valueOf(2),
+                      bigintType,
+                      SqlTypeName.DECIMAL)),
+              result,
+              constantNull);
+    }
+    return result;
+  }
+
+  /**
+   * Creates a call to a windowed agg.
+   */
+  public RexNode makeOver(
+      RelDataType type,
+      SqlAggFunction operator,
+      List<RexNode> exprs,
+      List<RexNode> partitionKeys,
+      ImmutableList<RexFieldCollation> orderKeys,
+      RexWindowBound lowerBound,
+      RexWindowBound upperBound,
+      boolean physical,
+      boolean allowPartial,
+      boolean nullWhenCountZero,
+      boolean distinct,
+      boolean ignoreNulls) {
+    assert operator != null;
+    assert exprs != null;
+    assert partitionKeys != null;
+    assert orderKeys != null;
+    final RexWindow window =
+        makeWindow(
+            partitionKeys,
+            orderKeys,
+            lowerBound,
+            upperBound,
+            physical);
+    final RexOver over = new RexOver(type, operator, exprs, window,
+        distinct, ignoreNulls);
+    RexNode result = over;
+
+    // This should be correct but need time to go over test results.
+    // Also want to look at combing with section below.
+    if (nullWhenCountZero) {
+      final RelDataType bigintType = getTypeFactory().createSqlType(
+          SqlTypeName.BIGINT);
+      result = makeCall(
+          SqlStdOperatorTable.CASE,
+          makeCall(
+              SqlStdOperatorTable.GREATER_THAN,
+              new RexOver(
+                  bigintType,
+                  SqlStdOperatorTable.COUNT,
+                  exprs,
+                  window,
+                  distinct,
+                  ignoreNulls),
+              makeLiteral(
+                  BigDecimal.ZERO,
+                  bigintType,
+                  SqlTypeName.DECIMAL)),
+          ensureType(type, // SUM0 is non-nullable, thus need a cast
+              new RexOver(typeFactory.createTypeWithNullability(type, false),
+                  operator, exprs, window, distinct, ignoreNulls),
+              false),
+          makeCast(type, constantNull()));
+    }
+    if (!allowPartial) {
+      Preconditions.checkArgument(physical, "DISALLOW PARTIAL over RANGE");
+      final RelDataType bigintType = getTypeFactory().createSqlType(
+          SqlTypeName.BIGINT);
+      // todo: read bound
+      result =
+          makeCall(
+              SqlStdOperatorTable.CASE,
+              makeCall(
+                  SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
+                  new RexOver(
+                      bigintType,
+                      SqlStdOperatorTable.COUNT,
+                      ImmutableList.of(),
+                      window,
+                      distinct,
+                      ignoreNulls),
                   makeLiteral(
                       BigDecimal.valueOf(2),
                       bigintType,

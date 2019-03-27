@@ -368,7 +368,7 @@ public class RelWriterTest {
                               SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO), null),
                           RexWindowBound.create(
                               SqlWindow.createCurrentRow(SqlParserPos.ZERO), null),
-                          true, true, false, false),
+                          true, true, false, false, false),
                       rexBuilder.makeOver(bigIntType,
                           SqlStdOperatorTable.SUM,
                           ImmutableList.of(rexBuilder.makeInputRef(scan, 0)),
@@ -382,7 +382,7 @@ public class RelWriterTest {
                               rexBuilder.makeCall(
                                   SqlWindow.FOLLOWING_OPERATOR,
                                   rexBuilder.makeExactLiteral(BigDecimal.ONE))),
-                          false, true, false, false)),
+                          false, true, false, false, false)),
                   ImmutableList.of("field0", "field1", "field2"));
           final RelJsonWriter writer = new RelJsonWriter();
           project.explain(writer);

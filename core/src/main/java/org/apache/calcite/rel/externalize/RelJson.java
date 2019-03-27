@@ -467,7 +467,7 @@ public class RelJson {
           final boolean distinct = (Boolean) map.get("distinct");
           return rexBuilder.makeOver(type, operator, rexOperands, partitionKeys,
               ImmutableList.copyOf(orderKeys), lowerBound, upperBound, physical, true, false,
-              distinct);
+              distinct, false);
         } else {
           final SqlOperator operator = toOp(relInput, op, map);
           final RelDataType type;

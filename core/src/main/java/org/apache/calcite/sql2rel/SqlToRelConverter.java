@@ -1857,6 +1857,14 @@ public class SqlToRelConverter {
   private RexNode convertOver(Blackboard bb, SqlNode node) {
     SqlCall call = (SqlCall) node;
     SqlCall aggCall = call.operand(0);
+    boolean ignoreNulls = false;
+    if (aggCall.getKind() == SqlKind.NULL_TREATMENT) {
+      if (aggCall.getOperator().equals(SqlStdOperatorTable.IGNORE_NULLS)) {
+        ignoreNulls = true;
+      }
+      aggCall = aggCall.operand(0);
+    }
+
     SqlNode windowOrRef = call.operand(1);
     final SqlWindow window =
         validator.resolveWindow(windowOrRef, bb.scope, true);
@@ -1919,7 +1927,8 @@ public class SqlToRelConverter {
               RexWindowBound.create(window.getLowerBound(), lowerBound),
               RexWindowBound.create(window.getUpperBound(), upperBound),
               window,
-              isDistinct);
+              isDistinct,
+              ignoreNulls);
       RexNode overNode = rexAgg.accept(visitor);
 
       return overNode;
@@ -5253,19 +5262,22 @@ public class SqlToRelConverter {
     private final RexWindowBound upperBound;
     private final SqlWindow window;
     private final boolean distinct;
+    private final boolean ignoreNulls;
 
     HistogramShuttle(
         List<RexNode> partitionKeys,
         ImmutableList<RexFieldCollation> orderKeys,
         RexWindowBound lowerBound, RexWindowBound upperBound,
         SqlWindow window,
-        boolean distinct) {
+        boolean distinct,
+        boolean ignoreNulls) {
       this.partitionKeys = partitionKeys;
       this.orderKeys = orderKeys;
       this.lowerBound = lowerBound;
       this.upperBound = upperBound;
       this.window = window;
       this.distinct = distinct;
+      this.ignoreNulls = ignoreNulls;
     }
 
     public RexNode visitCall(RexCall call) {
@@ -5322,7 +5334,8 @@ public class SqlToRelConverter {
                 window.isRows(),
                 window.isAllowPartial(),
                 false,
-                distinct);
+                distinct,
+                ignoreNulls);
 
         RexNode histogramCall =
             rexBuilder.makeCall(
@@ -5363,7 +5376,8 @@ public class SqlToRelConverter {
             window.isRows(),
             window.isAllowPartial(),
             needSum0,
-            distinct);
+            distinct,
+            ignoreNulls);
       }
     }
 

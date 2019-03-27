@@ -308,6 +308,9 @@ public interface CalciteResource {
   @BaseMessage("Window ''{0}'' not found")
   ExInst<SqlValidatorException> windowNotFound(String a0);
 
+  @BaseMessage("Cannot specify IGNORE NULLS or RESPECT NULLS following ''{0}''")
+  ExInst<SqlValidatorException> disallowsNullTreatment(String a0);
+
   @BaseMessage("Expression ''{0}'' is not being grouped")
   ExInst<SqlValidatorException> notGroupExpr(String a0);
 

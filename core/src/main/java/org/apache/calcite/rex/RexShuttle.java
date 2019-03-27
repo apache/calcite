@@ -49,7 +49,8 @@ public class RexShuttle implements RexVisitor<RexNode> {
           over.getAggOperator(),
           clonedOperands,
           window,
-          over.isDistinct());
+          over.isDistinct(),
+          over.ignoreNulls());
     } else {
       return over;
     }

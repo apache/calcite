@@ -213,6 +213,11 @@ public enum SqlKind {
   OVER,
 
   /**
+   * NULL TREATMENT operator
+   */
+  NULL_TREATMENT,
+
+  /**
    * FILTER operator
    */
   FILTER,

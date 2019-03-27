@@ -74,6 +74,11 @@ public class SqlFirstLastValueAggFunction extends SqlAggFunction {
     return typeFactory.createTypeWithNullability(
         typeFactory.createSqlType(SqlTypeName.ANY), true);
   }
+
+  /** Returns whether this aggregate function allows specifying null treatment. */
+  public boolean allowsNullTreatment() {
+    return true;
+  }
 }
 
 // End SqlFirstLastValueAggFunction.java

@@ -160,6 +160,10 @@ class AggChecker extends SqlBasicVisitor<Void> {
       call.operand(0).accept(this);
       return null;
     }
+    if (call.getKind() == SqlKind.NULL_TREATMENT) {
+      call.operand(0).accept(this);
+      return null;
+    }
     // Visit the operand in window function
     if (call.getKind() == SqlKind.OVER) {
       for (SqlNode operand : call.<SqlCall>operand(0).getOperandList()) {
