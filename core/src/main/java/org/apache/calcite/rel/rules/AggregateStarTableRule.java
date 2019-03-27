@@ -235,7 +235,9 @@ public class AggregateStarTableRule extends RelOptRule {
         break tryRoll;
       }
       return AggregateCall.create(roll, false,
-          aggregateCall.isApproximate(), ImmutableList.of(offset + i), -1,
+          aggregateCall.isApproximate(),
+          aggregateCall.ignoreNulls(),
+          ImmutableList.of(offset + i), -1,
           aggregateCall.collation,
           groupCount, relBuilder.peek(), null, aggregateCall.name);
     }
@@ -252,7 +254,8 @@ public class AggregateStarTableRule extends RelOptRule {
         newArgs.add(z);
       }
       return AggregateCall.create(aggregation, false,
-          aggregateCall.isApproximate(), newArgs, -1, aggregateCall.collation,
+          aggregateCall.isApproximate(),
+          aggregateCall.ignoreNulls(), newArgs, -1, aggregateCall.collation,
           groupCount, relBuilder.peek(), null, aggregateCall.name);
     }
 

@@ -24,7 +24,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * An operator that decide the way a window function handles null input.
+ * An operator that decides how to handle null input.
  */
 public class SqlNullTreatmentOperator extends SqlSpecialOperator {
 

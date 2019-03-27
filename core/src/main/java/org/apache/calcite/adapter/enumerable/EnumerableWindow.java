@@ -210,6 +210,9 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       List<AggregateCall> aggregateCalls = group.getAggregateCalls(this);
       for (int aggIdx = 0; aggIdx < aggregateCalls.size(); aggIdx++) {
         AggregateCall call = aggregateCalls.get(aggIdx);
+        if (call.ignoreNulls()) {
+          throw new UnsupportedOperationException("Do not support ignore nulls now");
+        }
         aggs.add(new AggImpState(aggIdx, call, true));
       }
 

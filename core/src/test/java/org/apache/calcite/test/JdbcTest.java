@@ -3926,6 +3926,28 @@ public class JdbcTest {
   }
 
   /**
+   * Tests ignore nulls of LAG function.
+   */
+  @Test public void testLagIgnoreNulls() {
+    CalciteAssert.that()
+        .query("select lag(rn, expected, 42) ignore nulls over (w) l, lead(rn, expected) over (w),"
+            + "lead(rn, expected) over (order by expected) \n"
+            + "from (values"
+            + "(1,0,1),\n"
+            + "(2,0,1),\n"
+            + "(2,0,1),\n"
+            + "(3,1,2),\n"
+            + "(4,0,3),\n"
+            + "(cast(null as int),0,3),\n"
+            + "(5,0,3),\n"
+            + "(6,0,3),\n"
+            + "(7,1,4),\n"
+            + "(8,1,4))\n"
+            + " as t(rn,val,expected) window w as (order by rn)")
+        .throws_("Do not support ignore nulls now");
+  }
+
+  /**
    * Tests NTILE(2).
    */
   @Test public void testNtile1() {

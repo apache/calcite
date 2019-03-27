@@ -119,7 +119,7 @@ public interface SqlSplittableAggFunction {
 
     public AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e) {
       return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
-          ImmutableIntList.of(), -1, RelCollations.EMPTY,
+          false, ImmutableIntList.of(), -1, RelCollations.EMPTY,
           typeFactory.createSqlType(SqlTypeName.BIGINT), null);
     }
 
@@ -148,7 +148,7 @@ public interface SqlSplittableAggFunction {
       }
       int ordinal = extra.register(node);
       return AggregateCall.create(SqlStdOperatorTable.SUM0, false, false,
-          ImmutableList.of(ordinal), -1, aggregateCall.collation,
+          false, ImmutableList.of(ordinal), -1, aggregateCall.collation,
           aggregateCall.type, aggregateCall.name);
     }
 
@@ -232,6 +232,7 @@ public interface SqlSplittableAggFunction {
 
     public AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e) {
       return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
+          false,
           ImmutableIntList.of(), -1,
           RelCollations.EMPTY,
           typeFactory.createSqlType(SqlTypeName.BIGINT), null);
@@ -264,7 +265,7 @@ public interface SqlSplittableAggFunction {
       }
       int ordinal = extra.register(node);
       return AggregateCall.create(getMergeAggFunctionOfTopSplit(), false, false,
-          ImmutableList.of(ordinal), -1, aggregateCall.collation,
+          false, ImmutableList.of(ordinal), -1, aggregateCall.collation,
           aggregateCall.type, aggregateCall.name);
     }
 
