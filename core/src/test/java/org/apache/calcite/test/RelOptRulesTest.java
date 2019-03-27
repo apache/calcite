@@ -3875,6 +3875,15 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).check();
   }
 
+  @Test public void testSelectNotInCorrelated() {
+    final String sql = "select sal, \n"
+        + " empno NOT IN (\n"
+        + " select deptno from dept \n"
+        + "   where emp.job=dept.name) \n"
+        + " from emp";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1493">[CALCITE-1493]
    * Wrong plan for NOT IN correlated queries</a>. */
