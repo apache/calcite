@@ -7287,6 +7287,45 @@ LogicalProject(EMPNO=[$0], D=[$9])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSelectNotInCorrelated">
+        <Resource name="sql">
+            <![CDATA[select sal,
+ empno NOT IN (
+ select deptno from dept
+   where emp.job=dept.name)
+ from emp]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(SAL=[$5], EXPR$1=[NOT(IN($0, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[=($cor0.JOB, $1)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+}))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planMid">
+            <![CDATA[
+LogicalProject(SAL=[$5], EXPR$1=[IS NULL($10)])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{2}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[=($cor0.EMPNO, $0)])
+      LogicalProject(DEPTNO=[$0], i=[true])
+        LogicalFilter(condition=[=($cor0.JOB, $1)])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(SAL=[$5], EXPR$1=[IS NULL($10)])
+  LogicalJoin(condition=[AND(=($0, $9), =($2, $11))], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], i=[true], NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSome">
         <Resource name="sql">
             <![CDATA[select * from emp e1
