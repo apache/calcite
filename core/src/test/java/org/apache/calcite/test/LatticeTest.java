@@ -20,9 +20,12 @@ import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.Lattices;
 import org.apache.calcite.materialize.MaterializationService;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.rules.AbstractMaterializedViewRule;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.test.CalciteAssert.AssertQuery;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
 
@@ -501,15 +504,33 @@ public class LatticeTest {
       String expectedExplain) {
     MaterializationService.setThreadLocal();
     MaterializationService.instance().clear();
-    foodmartLatticeModel(statisticProvider)
+    AssertQuery that = foodmartLatticeModel(statisticProvider)
         .query("select distinct t.\"the_year\", t.\"quarter\"\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n")
-        .enableMaterializations(true)
-        // disable for MySQL; times out running star-join query
-        // disable for H2; it thinks our generated SQL has invalid syntax
-        .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.MYSQL
-            && CalciteAssert.DB != CalciteAssert.DatabaseInstance.H2)
+        .enableMaterializations(true);
+
+    // Disable materialization rules from this test. For some reason, there is
+    // a weird interaction between these rules and the lattice rewriting that
+    // produces non-deterministic rewriting (even when only lattices are present).
+    // For more context, see
+    // <a href="https://issues.apache.org/jira/browse/CALCITE-2953">[CALCITE-2953]</a>.
+    that.withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+      ImmutableList
+          .of(
+              AbstractMaterializedViewRule.INSTANCE_PROJECT_FILTER,
+              AbstractMaterializedViewRule.INSTANCE_FILTER,
+              AbstractMaterializedViewRule.INSTANCE_PROJECT_JOIN,
+              AbstractMaterializedViewRule.INSTANCE_JOIN,
+              AbstractMaterializedViewRule.INSTANCE_PROJECT_AGGREGATE,
+              AbstractMaterializedViewRule.INSTANCE_AGGREGATE)
+          .forEach(planner::removeRule);
+    });
+
+    // disable for MySQL; times out running star-join query
+    // disable for H2; it thinks our generated SQL has invalid syntax
+    that.enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.MYSQL
+        && CalciteAssert.DB != CalciteAssert.DatabaseInstance.H2)
         .explainContains(expectedExplain)
         .returnsUnordered("the_year=1997; quarter=Q1",
             "the_year=1997; quarter=Q2",
