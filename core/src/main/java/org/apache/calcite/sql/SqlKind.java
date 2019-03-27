@@ -213,6 +213,16 @@ public enum SqlKind {
   OVER,
 
   /**
+   * RESPECT NULLS operator
+   */
+  RESPECT_NULLS("RESPECT NULLS"),
+
+  /**
+   * IGNORE NULLS operator
+   */
+  IGNORE_NULLS("IGNORE NULLS"),
+
+  /**
    * FILTER operator
    */
   FILTER,
@@ -1194,6 +1204,7 @@ public enum SqlKind {
           concat(
               EnumSet.of(AS, ARGUMENT_ASSIGNMENT, DEFAULT,
                   RUNNING, FINAL, LAST, FIRST, PREV, NEXT,
+                  FILTER, WITHIN_GROUP, IGNORE_NULLS, RESPECT_NULLS,
                   DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
                   SELECT, JOIN, OTHER_FUNCTION, POSITION, CAST, TRIM, FLOOR, CEIL,
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, EXTRACT,

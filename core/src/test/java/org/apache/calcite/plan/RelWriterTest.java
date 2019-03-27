@@ -325,10 +325,10 @@ public class RelWriterTest {
               LogicalAggregate.create(filter, ImmutableBitSet.of(0), null,
                   ImmutableList.of(
                       AggregateCall.create(SqlStdOperatorTable.COUNT,
-                          true, false, ImmutableList.of(1), -1,
+                          true, false, false, ImmutableList.of(1), -1,
                           RelCollations.EMPTY, bigIntType, "c"),
                       AggregateCall.create(SqlStdOperatorTable.COUNT,
-                          false, false, ImmutableList.of(), -1,
+                          false, false, false, ImmutableList.of(), -1,
                           RelCollations.EMPTY, bigIntType, "d")));
           aggregate.explain(writer);
           return writer.asString();
@@ -368,7 +368,7 @@ public class RelWriterTest {
                               SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO), null),
                           RexWindowBound.create(
                               SqlWindow.createCurrentRow(SqlParserPos.ZERO), null),
-                          true, true, false, false),
+                          true, true, false, false, false),
                       rexBuilder.makeOver(bigIntType,
                           SqlStdOperatorTable.SUM,
                           ImmutableList.of(rexBuilder.makeInputRef(scan, 0)),
@@ -382,7 +382,7 @@ public class RelWriterTest {
                               rexBuilder.makeCall(
                                   SqlWindow.FOLLOWING_OPERATOR,
                                   rexBuilder.makeExactLiteral(BigDecimal.ONE))),
-                          false, true, false, false)),
+                          false, true, false, false, false)),
                   ImmutableList.of("field0", "field1", "field2"));
           final RelJsonWriter writer = new RelJsonWriter();
           project.explain(writer);

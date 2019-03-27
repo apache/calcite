@@ -491,43 +491,41 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       final List<Window.Group> groups = new ArrayList<>();
       for (Window.Group group : window.groups) {
         List<Window.RexWinAggCall> aggCalls = new ArrayList<>();
-        for (Window.RexWinAggCall rexWinAggCall : group.aggCalls) {
-          final List<RexNode> expList = new ArrayList<>(
-              rexWinAggCall.getOperands());
-          boolean opReduced = reduceExpressions(window, expList, predicates);
-          aggCalls.add(opReduced
-              ?
-              new Window.RexWinAggCall(
-                  (SqlAggFunction) rexWinAggCall.getOperator(),
-                  rexWinAggCall.type, expList, rexWinAggCall.ordinal,
-                  rexWinAggCall.distinct)
-              :
-              rexWinAggCall);
-          reduced |= opReduced;
+        for (Window.RexWinAggCall aggCall : group.aggCalls) {
+          final List<RexNode> expList = new ArrayList<>(aggCall.getOperands());
+          if (reduceExpressions(window, expList, predicates)) {
+            aggCall = new Window.RexWinAggCall(
+                (SqlAggFunction) aggCall.getOperator(), aggCall.type, expList,
+                aggCall.ordinal, aggCall.distinct, aggCall.ignoreNulls);
+            reduced = true;
+          }
+          aggCalls.add(aggCall);
         }
 
         final ImmutableBitSet.Builder keyBuilder = ImmutableBitSet.builder();
-        group.keys.asList().stream().filter(key
-            -> !predicates.constantMap.containsKey(rexBuilder.
-            makeInputRef(window.getInput(), key))).collect(
-            Collectors.toList()).forEach(i -> keyBuilder.set(i));
-        ImmutableBitSet keys = keyBuilder.build();
+        group.keys.asList().stream()
+            .filter(key ->
+                !predicates.constantMap.containsKey(
+                    rexBuilder.makeInputRef(window.getInput(), key)))
+            .collect(Collectors.toList())
+            .forEach(i -> keyBuilder.set(i));
+        final ImmutableBitSet keys = keyBuilder.build();
         reduced |= keys.cardinality() != group.keys.cardinality();
 
         final List<RelFieldCollation> collationsList = group.orderKeys
-            .getFieldCollations().stream().filter(fc -> !predicates.constantMap
-                .containsKey(rexBuilder
-                    .makeInputRef(window.getInput(), fc.getFieldIndex())))
+            .getFieldCollations().stream()
+            .filter(fc ->
+                !predicates.constantMap.containsKey(
+                    rexBuilder.makeInputRef(window.getInput(),
+                        fc.getFieldIndex())))
             .collect(Collectors.toList());
 
         boolean collationReduced =
             group.orderKeys.getFieldCollations().size() != collationsList.size();
         reduced |= collationReduced;
         RelCollation relCollation = collationReduced
-            ?
-            RelCollations.of(collationsList)
-            :
-            group.orderKeys;
+            ? RelCollations.of(collationsList)
+            : group.orderKeys;
         groups.add(
             new Window.Group(keys, group.isRows, group.lowerBound,
                 group.upperBound, relCollation, aggCalls));

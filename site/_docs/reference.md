@@ -220,13 +220,13 @@ groupItem:
   |   ROLLUP '(' expression [, expression ]* ')'
   |   GROUPING SETS '(' groupItem [, groupItem ]* ')'
 
-windowRef:
+window:
       windowName
   |   windowSpec
 
 windowSpec:
-      [ windowName ]
       '('
+      [ windowName ]
       [ ORDER BY orderItem [, orderItem ]* ]
       [ PARTITION BY expression [, expression ]* ]
       [
@@ -531,6 +531,7 @@ HIERARCHY,
 **HOLD**,
 **HOUR**,
 **IDENTITY**,
+IGNORE,
 IMMEDIATE,
 IMMEDIATELY,
 IMPLEMENTATION,
@@ -743,6 +744,7 @@ RELATIVE,
 REPEATABLE,
 REPLACE,
 **RESET**,
+RESPECT,
 RESTART,
 RESTRICT,
 **RESULT**,
@@ -1513,6 +1515,9 @@ aggregateCall:
     |   agg(*) [ FILTER (WHERE condition) ]
 {% endhighlight %}
 
+where *agg* is one of the operators in the following table, or a user-defined
+aggregate function.
+
 If `FILTER` is present, the aggregate function only considers rows for which
 *condition* evaluates to TRUE.
 
@@ -1531,7 +1536,7 @@ and `LISTAGG`).
 | COLLECT( [ ALL &#124; DISTINCT ] value)       | Returns a multiset of the values
 | COUNT( [ ALL &#124; DISTINCT ] value [, value ]*) | Returns the number of input rows for which *value* is not null (wholly not null if *value* is composite)
 | COUNT(*)                           | Returns the number of input rows
-| FUSION( multiset )                 | Returns the multiset union of *multiset* across all input values
+| FUSION(multiset)                   | Returns the multiset union of *multiset* across all input values
 | APPROX_COUNT_DISTINCT(value [, value ]*)      | Returns the approximate number of distinct values of *value*; the database is allowed to use an approximation but is not required to
 | AVG( [ ALL &#124; DISTINCT ] numeric)         | Returns the average (arithmetic mean) of *numeric* across all input values
 | SUM( [ ALL &#124; DISTINCT ] numeric)         | Returns the sum of *numeric* across all input values
@@ -1562,6 +1567,26 @@ Not implemented:
 
 ### Window functions
 
+Syntax:
+
+{% highlight sql %}
+windowedAggregateCall:
+        agg( [ ALL | DISTINCT ] value [, value ]*)
+        [ RESPECT NULLS | IGNORE NULLS ]
+        [ WITHIN GROUP (ORDER BY orderItem [, orderItem ]*) ]
+        [ FILTER (WHERE condition) ]
+        OVER window
+    |   agg(*)
+        [ FILTER (WHERE condition) ]
+        OVER window
+{% endhighlight %}
+
+where *agg* is one of the operators in the following table, or a user-defined
+aggregate function.
+
+`DISTINCT`, `FILTER` and `WITHIN GROUP` are as described for aggregate
+functions.
+
 | Operator syntax                           | Description
 |:----------------------------------------- |:-----------
 | COUNT(value [, value ]*) OVER window      | Returns the number of rows in *window* for which *value* is not null (wholly not null if *value* is composite)
@@ -1580,15 +1605,19 @@ Not implemented:
 | NTH_VALUE(value, nth) OVER window         | Returns *value* evaluated at the row that is the *n*th row of the window frame
 | NTILE(value) OVER window                  | Returns an integer ranging from 1 to *value*, dividing the partition as equally as possible
 
+Note:
+
+* You may specify null treatment (`IGNORE NULLS`, `RESPECT NULLS`) for
+  `FIRST_VALUE`, `LAST_VALUE`, `NTH_VALUE`, `LEAD` and `LAG` functions. The
+  syntax handled by the parser, but only `RESPECT NULLS` is implemented at
+  runtime.
+
 Not implemented:
 
 * COUNT(DISTINCT value [, value ]*) OVER window
 * APPROX_COUNT_DISTINCT(value [, value ]*) OVER window
-* FIRST_VALUE(value) IGNORE NULLS OVER window
-* LAST_VALUE(value) IGNORE NULLS OVER window
 * PERCENT_RANK(value) OVER window
 * CUME_DIST(value) OVER window
-* NTH_VALUE(value, nth) [ FROM { FIRST &#124; LAST } ] IGNORE NULLS OVER window
 
 ### Grouping functions
 

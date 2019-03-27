@@ -112,15 +112,14 @@ public class ProjectWindowTransposeRule extends RelOptRule {
 
       @Override public RexNode visitCall(final RexCall call) {
         if (call instanceof Window.RexWinAggCall) {
+          final Window.RexWinAggCall aggCall = (Window.RexWinAggCall) call;
           boolean[] update = {false};
           final List<RexNode> clonedOperands = visitList(call.operands, update);
           if (update[0]) {
             return new Window.RexWinAggCall(
-                (SqlAggFunction) call.getOperator(),
-                call.getType(),
-                clonedOperands,
-                ((Window.RexWinAggCall) call).ordinal,
-                ((Window.RexWinAggCall) call).distinct);
+                (SqlAggFunction) call.getOperator(), call.getType(),
+                clonedOperands, aggCall.ordinal, aggCall.distinct,
+                aggCall.ignoreNulls);
           } else {
             return call;
           }

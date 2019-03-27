@@ -327,6 +327,17 @@ public class RexBuilder {
     return list;
   }
 
+  @Deprecated // to be removed before 2.0
+  public RexNode makeOver(RelDataType type, SqlAggFunction operator,
+      List<RexNode> exprs, List<RexNode> partitionKeys,
+      ImmutableList<RexFieldCollation> orderKeys,
+      RexWindowBound lowerBound, RexWindowBound upperBound,
+      boolean physical, boolean allowPartial, boolean nullWhenCountZero,
+      boolean distinct) {
+    return makeOver(type, operator, exprs, partitionKeys, orderKeys, lowerBound,
+        upperBound, physical, allowPartial, nullWhenCountZero, distinct, false);
+  }
+
   /**
    * Creates a call to a windowed agg.
    */
@@ -341,7 +352,8 @@ public class RexBuilder {
       boolean physical,
       boolean allowPartial,
       boolean nullWhenCountZero,
-      boolean distinct) {
+      boolean distinct,
+      boolean ignoreNulls) {
     assert operator != null;
     assert exprs != null;
     assert partitionKeys != null;
@@ -353,14 +365,15 @@ public class RexBuilder {
             lowerBound,
             upperBound,
             physical);
-    final RexOver over = new RexOver(type, operator, exprs, window, distinct);
+    final RexOver over = new RexOver(type, operator, exprs, window,
+        distinct, ignoreNulls);
     RexNode result = over;
 
     // This should be correct but need time to go over test results.
     // Also want to look at combing with section below.
     if (nullWhenCountZero) {
-      final RelDataType bigintType = getTypeFactory().createSqlType(
-          SqlTypeName.BIGINT);
+      final RelDataType bigintType =
+          typeFactory.createSqlType(SqlTypeName.BIGINT);
       result = makeCall(
           SqlStdOperatorTable.CASE,
           makeCall(
@@ -370,21 +383,22 @@ public class RexBuilder {
                   SqlStdOperatorTable.COUNT,
                   exprs,
                   window,
-                  distinct),
+                  distinct,
+                  ignoreNulls),
               makeLiteral(
                   BigDecimal.ZERO,
                   bigintType,
                   SqlTypeName.DECIMAL)),
           ensureType(type, // SUM0 is non-nullable, thus need a cast
               new RexOver(typeFactory.createTypeWithNullability(type, false),
-              operator, exprs, window, distinct),
+                  operator, exprs, window, distinct, ignoreNulls),
               false),
           makeCast(type, constantNull()));
     }
     if (!allowPartial) {
       Preconditions.checkArgument(physical, "DISALLOW PARTIAL over RANGE");
-      final RelDataType bigintType = getTypeFactory().createSqlType(
-          SqlTypeName.BIGINT);
+      final RelDataType bigintType =
+          typeFactory.createSqlType(SqlTypeName.BIGINT);
       // todo: read bound
       result =
           makeCall(
@@ -396,7 +410,8 @@ public class RexBuilder {
                       SqlStdOperatorTable.COUNT,
                       ImmutableList.of(),
                       window,
-                      distinct),
+                      distinct,
+                      ignoreNulls),
                   makeLiteral(
                       BigDecimal.valueOf(2),
                       bigintType,
@@ -642,10 +657,8 @@ public class RexBuilder {
         multiplier, divider);
     if (scale > 0) {
       RelDataType decimalType =
-          getTypeFactory().createSqlType(
-              SqlTypeName.DECIMAL,
-              scale + exp.getType().getPrecision(),
-              scale);
+          typeFactory.createSqlType(SqlTypeName.DECIMAL,
+              scale + exp.getType().getPrecision(), scale);
       value = encodeIntervalOrDecimal(value, decimalType, false);
     }
     return ensureType(toType, value, false);
@@ -1089,9 +1102,7 @@ public class RexBuilder {
     boolean typeNullability = type.isNullable();
     boolean valueNullability = value.getType().isNullable();
     if (typeNullability != valueNullability) {
-      return getTypeFactory().createTypeWithNullability(
-          type,
-          valueNullability);
+      return typeFactory.createTypeWithNullability(type, valueNullability);
     }
     return type;
   }

@@ -467,24 +467,10 @@ public abstract class RelOptUtil {
       final RelBuilder relBuilder =
           RelFactories.LOGICAL_BUILDER.create(cluster, null);
       ret = relBuilder.push(ret)
-          .project(ImmutableList.of(extraExpr))
+          .project(extraExpr)
+          .aggregate(relBuilder.groupKey(),
+              relBuilder.min(relBuilder.field(0)).as(extraName))
           .build();
-
-      final AggregateCall aggCall =
-          AggregateCall.create(SqlStdOperatorTable.MIN,
-              false,
-              false,
-              ImmutableList.of(0),
-              -1,
-              RelCollations.EMPTY,
-              0,
-              ret,
-              null,
-              extraName);
-
-      ret =
-          LogicalAggregate.create(ret,
-              ImmutableBitSet.of(), null, ImmutableList.of(aggCall));
     }
 
     return ret;
@@ -561,22 +547,12 @@ public abstract class RelOptUtil {
     final int projectedKeyCount = exprs.size();
     exprs.add(rexBuilder.makeLiteral(true));
 
-    ret = relBuilder.push(ret).project(exprs).build();
-
-    final AggregateCall aggCall =
-        AggregateCall.create(SqlStdOperatorTable.MIN,
-            false,
-            false,
-            ImmutableList.of(projectedKeyCount),
-            -1,
-            RelCollations.EMPTY,
-            projectedKeyCount,
-            ret,
-            null,
-            null);
-
-    ret = LogicalAggregate.create(ret, ImmutableBitSet.range(projectedKeyCount),
-        null, ImmutableList.of(aggCall));
+    ret = relBuilder.push(ret)
+        .project(exprs)
+        .aggregate(
+            relBuilder.groupKey(ImmutableBitSet.range(projectedKeyCount)),
+            relBuilder.min(relBuilder.field(projectedKeyCount)))
+        .build();
 
     switch (logic) {
     case TRUE_FALSE_UNKNOWN:
@@ -774,7 +750,7 @@ public abstract class RelOptUtil {
     for (int i = 0; i < aggCallCnt; i++) {
       aggCalls.add(
           AggregateCall.create(SqlStdOperatorTable.SINGLE_VALUE, false, false,
-              ImmutableList.of(i), -1, RelCollations.EMPTY, 0, rel, null,
+              false, ImmutableList.of(i), -1, RelCollations.EMPTY, 0, rel, null,
               null));
     }
 

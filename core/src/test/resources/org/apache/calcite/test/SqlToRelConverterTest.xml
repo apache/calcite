@@ -1349,6 +1349,32 @@ LogicalProject(EXPR$0=[LAST_VALUE($7) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED 
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testOverNullTreatmentWindow">
+        <Resource name="sql">
+            <![CDATA[select
+lead(deptno, 1) over w,
+ lead(deptno, 2) ignore nulls over w,
+lead(deptno, 3) respect nulls over w,
+lead(deptno, 1) over w,
+lag(deptno, 2) ignore nulls over w,
+lag(deptno, 2) respect nulls over w,
+first_value(deptno) over w,
+first_value(deptno) ignore nulls over w,
+first_value(deptno) respect nulls over w,
+last_value(deptno) over w,
+last_value(deptno) ignore nulls over w,
+last_value(deptno) respect nulls over w
+ from emp
+window w as (order by empno)
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[LEAD($7, 1) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$1=[LEAD($7, 2) IGNORE NULLS OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$2=[LEAD($7, 3) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$3=[LEAD($7, 1) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$4=[LAG($7, 2) IGNORE NULLS OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$5=[LAG($7, 2) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$6=[FIRST_VALUE($7) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$7=[FIRST_VALUE($7) IGNORE NULLS OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$8=[FIRST_VALUE($7) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$9=[LAST_VALUE($7) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$10=[LAST_VALUE($7) IGNORE NULLS OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$11=[LAST_VALUE($7) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testOverOrderFollowingWindow">
         <Resource name="sql">
             <![CDATA[select

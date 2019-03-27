@@ -148,11 +148,11 @@ class AggChecker extends SqlBasicVisitor<Void> {
       // BY deptno'
       return null;
     }
-    if (call.getKind() == SqlKind.FILTER) {
-      call.operand(0).accept(this);
-      return null;
-    }
-    if (call.getKind() == SqlKind.WITHIN_GROUP) {
+    switch (call.getKind()) {
+    case FILTER:
+    case WITHIN_GROUP:
+    case RESPECT_NULLS:
+    case IGNORE_NULLS:
       call.operand(0).accept(this);
       return null;
     }

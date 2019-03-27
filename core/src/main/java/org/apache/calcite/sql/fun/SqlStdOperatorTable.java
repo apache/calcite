@@ -32,6 +32,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLateralOperator;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNullTreatmentOperator;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
@@ -1169,6 +1170,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   //                   SPECIAL OPERATORS
   //-------------------------------------------------------------
   public static final SqlRowOperator ROW = new SqlRowOperator("ROW");
+
+  /** <code>IGNORE NULLS</code> operator. */
+  public static final SqlNullTreatmentOperator IGNORE_NULLS =
+      new SqlNullTreatmentOperator(SqlKind.IGNORE_NULLS);
+
+  /** <code>RESPECT NULLS</code> operator. */
+  public static final SqlNullTreatmentOperator RESPECT_NULLS =
+      new SqlNullTreatmentOperator(SqlKind.RESPECT_NULLS);
 
   /**
    * A special operator for the subtraction of two DATETIMEs. The format of
