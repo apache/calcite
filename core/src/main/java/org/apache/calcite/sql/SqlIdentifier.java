@@ -305,7 +305,7 @@ public class SqlIdentifier extends SqlNode {
     SqlCall call =
         SqlUtil.makeCall(
             validator.getOperatorTable(),
-            this);
+            this, validator.getCatalogReader().nameMatcher().isCaseSensitive());
     if (call != null) {
       validator.validateCall(call, scope);
       return;
@@ -382,7 +382,7 @@ public class SqlIdentifier extends SqlNode {
     SqlCall call =
         SqlUtil.makeCall(
             validator.getOperatorTable(),
-            this);
+            this, validator.getCatalogReader().nameMatcher().isCaseSensitive());
     if (call != null) {
       return call.getMonotonicity(scope);
     }

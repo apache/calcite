@@ -41,6 +41,7 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
   /** Whether to find group functions (e.g. {@code TUMBLE})
    * or group auxiliary functions (e.g. {@code TUMBLE_START}). */
   protected boolean group;
+  protected boolean caseSensitive;
 
   /**
    * Creates an AggVisitor.
@@ -51,14 +52,16 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
    * @param aggregate Whether to find non-windowed aggregate calls
    * @param group Whether to find group functions (e.g. {@code TUMBLE})
    * @param delegate Finder to which to delegate when processing the arguments
+   * @param caseSensitive If to match the agg function case-sensitively
    */
   AggVisitor(SqlOperatorTable opTab, boolean over, boolean aggregate,
-      boolean group, AggFinder delegate) {
+      boolean group, AggFinder delegate, boolean caseSensitive) {
     this.group = group;
     this.over = over;
     this.aggregate = aggregate;
     this.delegate = delegate;
     this.opTab = opTab;
+    this.caseSensitive = caseSensitive;
   }
 
   public Void visit(SqlCall call) {
@@ -83,7 +86,7 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
       if (sqlFunction.getFunctionType().isUserDefinedNotSpecificFunction()) {
         final List<SqlOperator> list = new ArrayList<>();
         opTab.lookupOperatorOverloads(sqlFunction.getSqlIdentifier(),
-            sqlFunction.getFunctionType(), SqlSyntax.FUNCTION, list);
+            sqlFunction.getFunctionType(), SqlSyntax.FUNCTION, list, caseSensitive);
         for (SqlOperator operator2 : list) {
           if (operator2.isAggregator() && !operator2.requiresOver()) {
             // If nested aggregates disallowed or found aggregate at invalid

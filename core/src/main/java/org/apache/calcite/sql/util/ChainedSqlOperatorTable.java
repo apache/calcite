@@ -67,9 +67,9 @@ public class ChainedSqlOperatorTable implements SqlOperatorTable {
 
   public void lookupOperatorOverloads(SqlIdentifier opName,
       SqlFunctionCategory category, SqlSyntax syntax,
-      List<SqlOperator> operatorList) {
+      List<SqlOperator> operatorList, boolean caseSensitive) {
     for (SqlOperatorTable table : tableList) {
-      table.lookupOperatorOverloads(opName, category, syntax, operatorList);
+      table.lookupOperatorOverloads(opName, category, syntax, operatorList, caseSensitive);
     }
   }
 

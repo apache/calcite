@@ -282,6 +282,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private boolean inWindow;                        // Allow nested aggregates
 
+  private final boolean isCaseSensitive;
+
   private final SqlValidatorImpl.ValidationErrorFunction validationErrorFunction =
       new SqlValidatorImpl.ValidationErrorFunction();
 
@@ -304,17 +306,18 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     this.catalogReader = Objects.requireNonNull(catalogReader);
     this.typeFactory = Objects.requireNonNull(typeFactory);
     this.conformance = Objects.requireNonNull(conformance);
+    this.isCaseSensitive = this.catalogReader.nameMatcher().isCaseSensitive();
 
     unknownType = typeFactory.createUnknownType();
     booleanType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
 
     rewriteCalls = true;
     expandColumnReferences = true;
-    aggFinder = new AggFinder(opTab, false, true, false, null);
-    aggOrOverFinder = new AggFinder(opTab, true, true, false, null);
-    overFinder = new AggFinder(opTab, true, false, false, aggOrOverFinder);
-    groupFinder = new AggFinder(opTab, false, false, true, null);
-    aggOrOverOrGroupFinder = new AggFinder(opTab, true, true, true, null);
+    aggFinder = new AggFinder(opTab, false, true, false, null, this.isCaseSensitive);
+    aggOrOverFinder = new AggFinder(opTab, true, true, false, null, this.isCaseSensitive);
+    overFinder = new AggFinder(opTab, true, false, false, aggOrOverFinder, this.isCaseSensitive);
+    groupFinder = new AggFinder(opTab, false, false, true, null, this.isCaseSensitive);
+    aggOrOverOrGroupFinder = new AggFinder(opTab, true, true, true, null, this.isCaseSensitive);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -823,7 +826,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
       // builtin function names are valid completion hints when the
       // identifier has only 1 name part
-      findAllValidFunctionNames(names, this, hintList, pos);
+      findAllValidFunctionNames(names, this, hintList, pos, this.isCaseSensitive);
     } else {
       // No prefix; use the children of the current scope (that is,
       // the aliases in the FROM clause)
@@ -868,7 +871,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       List<String> names,
       SqlValidator validator,
       Collection<SqlMoniker> result,
-      SqlParserPos pos) {
+      SqlParserPos pos,
+      boolean caseSensitive) {
     // a function name can only be 1 part
     if (names.size() > 1) {
       return;
@@ -882,7 +886,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlCall call =
           SqlUtil.makeCall(
               validator.getOperatorTable(),
-              curOpId);
+              curOpId, caseSensitive);
       if (call != null) {
         result.add(
             new SqlMonikerImpl(
@@ -1178,7 +1182,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         // not, we'll handle it later during overload resolution.
         final List<SqlOperator> overloads = new ArrayList<>();
         opTab.lookupOperatorOverloads(function.getNameAsId(),
-            function.getFunctionType(), SqlSyntax.FUNCTION, overloads);
+            function.getFunctionType(), SqlSyntax.FUNCTION, overloads,
+            catalogReader.nameMatcher().isCaseSensitive());
         if (overloads.size() == 1) {
           ((SqlBasicCall) call).setOperator(overloads.get(0));
         }
@@ -1717,7 +1722,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // For builtins, we can give a better error message
     final List<SqlOperator> overloads = new ArrayList<>();
     opTab.lookupOperatorOverloads(unresolvedFunction.getNameAsId(), null,
-        SqlSyntax.FUNCTION, overloads);
+        SqlSyntax.FUNCTION, overloads, catalogReader.nameMatcher().isCaseSensitive());
     if (overloads.size() == 1) {
       SqlFunction fun = (SqlFunction) overloads.get(0);
       if ((fun.getSqlIdentifier() == null)
@@ -2790,7 +2795,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   protected boolean isNestedAggregateWindow(SqlNode node) {
     AggFinder nestedAggFinder =
-        new AggFinder(opTab, false, false, false, aggFinder);
+        new AggFinder(opTab, false, false, false, aggFinder, this.isCaseSensitive);
     return nestedAggFinder.findAgg(node) != null;
   }
 
@@ -3111,7 +3116,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (leftOrRight instanceof SqlIdentifier) {
       SqlIdentifier from = (SqlIdentifier) leftOrRight;
       Table table = findTable(catalogReader.getRootSchema(), Util.last(from.names),
-              catalogReader.nameMatcher().isCaseSensitive());
+              this.isCaseSensitive);
       String name = Util.last(identifier.names);
 
       if (table != null && table.isRolledUp(name)) {
@@ -3320,7 +3325,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Make sure that items in FROM clause have distinct aliases.
     final SelectScope fromScope = (SelectScope) getFromScope(select);
     List<String> names = fromScope.getChildNames();
-    if (!catalogReader.nameMatcher().isCaseSensitive()) {
+    if (!this.isCaseSensitive) {
       names = Lists.transform(names, s -> s.toUpperCase(Locale.ROOT));
     }
     final int duplicateAliasOrdinal = Util.firstDuplicate(names);
@@ -3470,7 +3475,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private Pair<String, String> findTableColumnPair(SqlIdentifier identifier,
                                                    SqlValidatorScope scope) {
-    SqlCall call = SqlUtil.makeCall(getOperatorTable(), identifier);
+    SqlCall call = SqlUtil.makeCall(getOperatorTable(), identifier, this.isCaseSensitive);
     if (call != null) {
       return null;
     }
@@ -3559,8 +3564,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (names == null || names.size() == 0) {
       return null;
     } else if (names.size() == 1) {
-      return findTable(catalogReader.getRootSchema(), names.get(0),
-              catalogReader.nameMatcher().isCaseSensitive());
+      return findTable(catalogReader.getRootSchema(), names.get(0), this.isCaseSensitive);
     }
 
     CalciteSchema.TableEntry entry =
@@ -5305,7 +5309,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public SqlNode expand(SqlNode expr, SqlValidatorScope scope) {
-    final Expander expander = new Expander(this, scope);
+    final Expander expander = new Expander(this, scope, this.isCaseSensitive);
     SqlNode newExpr = expr.accept(expander);
     if (expr != newExpr) {
       setOriginal(newExpr, expr);
@@ -5316,7 +5320,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   public SqlNode expandGroupByOrHavingExpr(SqlNode expr,
       SqlValidatorScope scope, SqlSelect select, boolean havingExpression) {
     final Expander expander = new ExtendedExpander(this, scope, select, expr,
-        havingExpression);
+        havingExpression, this.isCaseSensitive);
     SqlNode newExpr = expr.accept(expander);
     if (expr != newExpr) {
       setOriginal(newExpr, expr);
@@ -5595,7 +5599,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     public RelDataType visit(SqlIdentifier id) {
       // First check for builtin functions which don't have parentheses,
       // like "LOCALTIME".
-      SqlCall call = SqlUtil.makeCall(opTab, id);
+      SqlCall call = SqlUtil.makeCall(opTab, id, catalogReader.nameMatcher().isCaseSensitive());
       if (call != null) {
         return call.getOperator().validateOperands(
             SqlValidatorImpl.this,
@@ -5701,10 +5705,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    */
   private static class Expander extends SqlScopedShuttle {
     protected final SqlValidatorImpl validator;
+    private final boolean caseSensitive;
 
-    Expander(SqlValidatorImpl validator, SqlValidatorScope scope) {
+    Expander(SqlValidatorImpl validator, SqlValidatorScope scope, boolean caseSensitive) {
       super(scope);
       this.validator = validator;
+      this.caseSensitive = caseSensitive;
     }
 
     @Override public SqlNode visit(SqlIdentifier id) {
@@ -5713,7 +5719,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlCall call =
           SqlUtil.makeCall(
               validator.getOperatorTable(),
-              id);
+              id, caseSensitive);
       if (call != null) {
         return call.accept(this);
       }
@@ -5871,8 +5877,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final boolean havingExpr;
 
     ExtendedExpander(SqlValidatorImpl validator, SqlValidatorScope scope,
-        SqlSelect select, SqlNode root, boolean havingExpr) {
-      super(validator, scope);
+        SqlSelect select, SqlNode root, boolean havingExpr, boolean caseSensitive) {
+      super(validator, scope, caseSensitive);
       this.select = select;
       this.root = root;
       this.havingExpr = havingExpr;

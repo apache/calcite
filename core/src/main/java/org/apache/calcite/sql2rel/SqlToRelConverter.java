@@ -3618,7 +3618,8 @@ public class SqlToRelConverter {
       Blackboard bb,
       SqlIdentifier identifier) {
     // first check for reserved identifiers like CURRENT_USER
-    final SqlCall call = SqlUtil.makeCall(opTab, identifier);
+    final SqlCall call = SqlUtil.makeCall(opTab, identifier, bb.getValidator()
+        .getCatalogReader().nameMatcher().isCaseSensitive());
     if (call != null) {
       return bb.convertExpression(call);
     }

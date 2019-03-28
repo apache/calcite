@@ -351,7 +351,8 @@ public abstract class SqlOperatorBaseTest {
           new SqlIdentifier(operatorName, SqlParserPos.ZERO),
           null,
           sqlOperator.getSyntax(),
-          routines);
+          routines,
+          true);
 
       Iterator<SqlOperator> iter = routines.iterator();
       while (iter.hasNext()) {

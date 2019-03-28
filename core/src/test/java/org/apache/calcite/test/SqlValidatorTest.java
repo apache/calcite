@@ -8455,6 +8455,59 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Expression 'EMPNO' is not being grouped");
   }
 
+  /** Tests using case-insensitive matching of UDFs. */
+  @Test public void testCaseInsensitiveUDFs() {
+    final SqlTester tester1 = tester
+        .withCaseSensitive(false)
+        .withQuoting(Quoting.BRACKET);
+    MockSqlOperatorTable operatorTable = new MockSqlOperatorTable(SqlStdOperatorTable.instance());
+    MockSqlOperatorTable.addRamp(operatorTable);
+    tester1.withOperatorTable(operatorTable);
+    final SqlTester tester2 = tester.withQuoting(Quoting.BRACKET);
+    tester2.withOperatorTable(operatorTable);
+
+    // test table function lookup case-insensitively.
+    tester1.checkQuery("select * from dept, lateral table(ramp(dept.deptno))");
+    tester1.checkQuery("select * from dept, lateral table(RAMP(dept.deptno))");
+    tester1.checkQuery("select * from dept, lateral table([RAMP](dept.deptno))");
+    tester1.checkQuery("select * from dept, lateral table([Ramp](dept.deptno))");
+    // test scalar function lookup case-insensitively.
+    tester1.checkQuery("select myfun(EMPNO) from EMP");
+    tester1.checkQuery("select MYFUN(empno) from emp");
+    tester1.checkQuery("select [MYFUN]([empno]) from [emp]");
+    tester1.checkQuery("select [Myfun]([E].[empno]) from [emp] as e");
+    tester1.checkQuery("select t.[x] from (\n"
+        + "  select [Myfun]([E].[empno]) as x from [emp] as e) as [t]");
+
+    // correlating variable
+    tester1.checkQuery(
+        "select * from emp as [e] where exists (\n"
+            + "select 1 from dept where dept.deptno = myfun([E].deptno))");
+    tester2.checkQueryFails(
+        "select * from emp as [e] where exists (\n"
+            + "select 1 from dept where dept.deptno = ^[myfun]([e].deptno)^)",
+        "No match found for function signature myfun\\(<NUMERIC>\\).*");
+  }
+
+  /** Tests using case-sensitive matching of builtin functions. */
+  @Test public void testCaseSensitiveBuiltinFunction() {
+    final SqlTester tester1 = tester
+        .withCaseSensitive(true)
+        .withQuoting(Quoting.BRACKET);
+    tester1.withOperatorTable(SqlStdOperatorTable.instance());
+
+    tester1.checkQuery("select sum(empno) from EMP group by ename, empno");
+    tester1.checkQuery("select [sum](empno) from EMP group by ename, empno");
+    tester1.checkQuery("select [SUM](empno) from EMP group by ename, empno");
+    tester1.checkQuery("select SUM(empno) from EMP group by ename, empno");
+    tester1.checkQuery("select Sum(empno) from EMP group by ename, empno");
+    tester1.checkQuery("select count(empno) from EMP group by ename, empno");
+    tester1.checkQuery("select [count](empno) from EMP group by ename, empno");
+    tester1.checkQuery("select [COUNT](empno) from EMP group by ename, empno");
+    tester1.checkQuery("select COUNT(empno) from EMP group by ename, empno");
+    tester1.checkQuery("select Count(empno) from EMP group by ename, empno");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-319">[CALCITE-319]
    * Table aliases should follow case-sensitivity policy</a>. */

@@ -187,7 +187,7 @@ public abstract class SqlCall extends SqlNode {
    * @return boolean true if function call to COUNT(*)
    */
   public boolean isCountStar() {
-    if (getOperator().isName("COUNT") && operandCount() == 1) {
+    if (getOperator().isName("COUNT", true) && operandCount() == 1) {
       final SqlNode parm = operand(0);
       if (parm instanceof SqlIdentifier) {
         SqlIdentifier id = (SqlIdentifier) parm;

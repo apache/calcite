@@ -392,7 +392,7 @@ public abstract class SqlAbstractParserImpl {
     /// name when regenerating SQL).
     if (funName.isSimple()) {
       final List<SqlOperator> list = new ArrayList<>();
-      opTab.lookupOperatorOverloads(funName, funcType, SqlSyntax.FUNCTION, list);
+      opTab.lookupOperatorOverloads(funName, funcType, SqlSyntax.FUNCTION, list, false);
       if (list.size() == 1) {
         fun = list.get(0);
       }

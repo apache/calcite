@@ -120,7 +120,15 @@ public class LookupOperatorOverloadsTest {
     check(cats, USER_DEFINED_FUNCTION, USER_DEFINED_TABLE_FUNCTION);
   }
 
-  @Test public void test() throws SQLException {
+  @Test public void testLookupCaseSensitively() throws SQLException {
+    testInternal(true);
+  }
+
+  @Test public void testLookupCaseInSensitively() throws SQLException {
+    testInternal(false);
+  }
+
+  private void testInternal(boolean caseSensitive) throws SQLException {
     final String schemaName = "MySchema";
     final String funcName = "MyFUNC";
     final String anotherName = "AnotherFunc";
@@ -152,13 +160,13 @@ public class LookupOperatorOverloadsTest {
               SqlParserPos.ZERO, null);
       reader.lookupOperatorOverloads(myFuncIdentifier,
           SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION, SqlSyntax.FUNCTION,
-          operatorList);
+          operatorList, caseSensitive);
       checkFunctionType(2, funcName, operatorList);
 
       operatorList.clear();
       reader.lookupOperatorOverloads(myFuncIdentifier,
           SqlFunctionCategory.USER_DEFINED_FUNCTION, SqlSyntax.FUNCTION,
-          operatorList);
+          operatorList, caseSensitive);
       checkFunctionType(0, null, operatorList);
 
       operatorList.clear();
@@ -167,7 +175,7 @@ public class LookupOperatorOverloadsTest {
               SqlParserPos.ZERO, null);
       reader.lookupOperatorOverloads(anotherFuncIdentifier,
           SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION, SqlSyntax.FUNCTION,
-          operatorList);
+          operatorList, caseSensitive);
       checkFunctionType(1, anotherName, operatorList);
     }
   }

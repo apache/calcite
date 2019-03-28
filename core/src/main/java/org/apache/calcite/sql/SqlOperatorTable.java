@@ -35,11 +35,13 @@ public interface SqlOperatorTable {
    *                 operator
    * @param syntax   syntax type of operator
    * @param operatorList mutable list to which to append matches
+   * @param caseSensitive if to match the operator case-sensitively
    */
   void lookupOperatorOverloads(SqlIdentifier opName,
       SqlFunctionCategory category,
       SqlSyntax syntax,
-      List<SqlOperator> operatorList);
+      List<SqlOperator> operatorList,
+      boolean caseSensitive);
 
   /**
    * Retrieves a list of all functions and operators in this table. Used for

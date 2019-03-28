@@ -54,13 +54,14 @@ public class ListSqlOperatorTable implements SqlOperatorTable {
   public void lookupOperatorOverloads(SqlIdentifier opName,
       SqlFunctionCategory category,
       SqlSyntax syntax,
-      List<SqlOperator> operatorList) {
+      List<SqlOperator> operatorList,
+      boolean caseSensitive) {
     for (SqlOperator operator : this.operatorList) {
       if (operator.getSyntax() != syntax) {
         continue;
       }
       if (!opName.isSimple()
-          || !operator.isName(opName.getSimple())) {
+          || !operator.isName(opName.getSimple(), caseSensitive)) {
         continue;
       }
       if (category != null

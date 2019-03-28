@@ -137,7 +137,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return config;
   }
 
-  private Collection<Function> getFunctionsFrom(List<String> names) {
+  private Collection<Function> getFunctionsFrom(List<String> names, boolean caseSensitive) {
     final List<Function> functions2 = new ArrayList<>();
     final List<List<String>> schemaNameList = new ArrayList<>();
     if (names.size() > 1) {
@@ -163,7 +163,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
               Iterables.concat(schemaNames, Util.skipLast(names)), nameMatcher);
       if (schema != null) {
         final String name = Util.last(names);
-        functions2.addAll(schema.getFunctions(name, true));
+        functions2.addAll(schema.getFunctions(name, caseSensitive));
       }
     }
     return functions2;
@@ -246,7 +246,8 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   public void lookupOperatorOverloads(final SqlIdentifier opName,
       SqlFunctionCategory category,
       SqlSyntax syntax,
-      List<SqlOperator> operatorList) {
+      List<SqlOperator> operatorList,
+      boolean caseSensitive) {
     if (syntax != SqlSyntax.FUNCTION) {
       return;
     }
@@ -263,7 +264,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
           !(function instanceof TableMacro
               || function instanceof TableFunction);
     }
-    getFunctionsFrom(opName.names)
+    getFunctionsFrom(opName.names, caseSensitive)
         .stream()
         .filter(predicate)
         .map(function -> toOp(opName, function))

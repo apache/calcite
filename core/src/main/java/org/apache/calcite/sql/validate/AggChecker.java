@@ -99,7 +99,8 @@ class AggChecker extends SqlBasicVisitor<Void> {
     SqlCall call =
         SqlUtil.makeCall(
             validator.getOperatorTable(),
-            id);
+            id,
+            validator.getCatalogReader().nameMatcher().isCaseSensitive());
     if (call != null) {
       return call.accept(this);
     }
