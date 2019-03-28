@@ -2012,7 +2012,7 @@ Note:
 | JSON_TYPE(jsonValue)                                  | Returns a string value indicating the type of a *jsonValue*
 | JSON_DEPTH(jsonValue)                                 | Returns a integer value indicating the depth of a *jsonValue*
 | JSON_PRETTY(jsonValue)                                | Returns a pretty-printing of *jsonValue*
-| JSON_LENGTH(value)                                    | Returns a integer indicating the length of a JSON **value**. This can be an object, an array, or a scalar type
+| JSON_LENGTH(jsonValue, [path])                        | Returns a integer indicating the length of a JSON *jsonValue*
 
 
 Note:
@@ -2033,7 +2033,10 @@ Note:
 * Below are how **JSON_DEPTH** defines a JSON input's depth:
   * An empty array, empty object, or scalar value has depth 1
   * A nonempty array containing only elements of depth 1 or nonempty object containing only member values of depth 1 has depth 2
-  * Otherwise, a JSON document has depth greater than 2
+  * A JSON document has depth greater than 2
+* Below are how **JSON_LENGTH** defines a JSON input's length:
+  * A scalar value has length 1
+  * The length of array or object is the number of its elements
 
 Usage Examples:
 
@@ -2075,9 +2078,9 @@ Result
 | ------ | ----- | ------- | ------- |
 | 3      | 2     | 1       | 1       |
 
-* JSON_LENGTH
+##### JSON_LENGTH example
 
-Example SQL:
+SQL
 
 ```SQL
 SELECT JSON_LENGTH(v) AS c1
@@ -2088,7 +2091,7 @@ FROM (VALUES ('{"a": [10, true]}')) AS t(v)
 LIMIT 10;
 ```
 
-Result:
+Result
 
 | c1     | c2    | c3      | c4      |
 | ------ | ----- | ------- | ------- |
