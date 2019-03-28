@@ -462,7 +462,24 @@ class TableFunctionTest {
     with().query(q).returnsUnordered("C=2\nC=3\nC=4");
   }
 
-  @Test void testCrossApply() {
+  @Test public void testTableFunctionInSelect() {
+    final String q = "select * from ("
+        + "select f0, \"s\".\"fibonacci2\"(20) as (c)"
+        +    " from (select 1 as f0)"
+        + ")";
+    with()
+        .with(CalciteConnectionProperty.CONFORMANCE,
+            SqlConformanceEnum.HIVE)
+        .query(q).returnsUnordered("F0=1; C=1",
+        "F0=1; C=1",
+        "F0=1; C=13",
+        "F0=1; C=2",
+        "F0=1; C=3",
+        "F0=1; C=5",
+        "F0=1; C=8");
+  }
+
+  @Test public void testCrossApply() {
     final String q1 = "select *\n"
         + "from (values 2, 5) as t (c)\n"
         + "cross apply table(\"s\".\"fibonacci2\"(c))";

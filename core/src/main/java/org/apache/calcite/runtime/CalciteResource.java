@@ -910,6 +910,18 @@ public interface CalciteResource {
   @BaseMessage("Not a valid input for REGEXP_REPLACE: ''{0}''")
   ExInst<CalciteException> invalidInputForRegexpReplace(String value);
 
+  @BaseMessage("Table function is not allowed in select list in current SQL conformance level")
+  ExInst<SqlValidatorException> notAllowTableFunctionInSelect();
+
+  @BaseMessage("''{0}'' should be a table function")
+  ExInst<SqlValidatorException> exceptTableFunction(String name);
+
+  @BaseMessage("Only one table function is allowed in select list")
+  ExInst<SqlValidatorException> onlyOneTableFunctionAllowedInSelect();
+
+  @BaseMessage("Table function is not allowed in aggregate statement")
+  ExInst<SqlValidatorException> notAllowTableFunctionInAggregate();
+
   @BaseMessage("Illegal xslt specified : ''{0}''")
   ExInst<CalciteException> illegalXslt(String xslt);
 

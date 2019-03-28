@@ -1822,23 +1822,47 @@ List<SqlNode> SelectList() :
 SqlNode SelectItem() :
 {
     SqlNode e;
+    SqlIdentifier columnAlias;
+    final List<SqlNode> columnAliases = new ArrayList();
+    final Span s = span();
     final SqlIdentifier id;
 }
 {
     e = SelectExpression()
     [
-        [ <AS> ]
         (
-            id = SimpleIdentifier()
+        LOOKAHEAD(2)
+            (
+                [ <AS> ]
+                (
+                    id = SimpleIdentifier()
+                |
+                    // Mute the warning about ambiguity between alias and continued
+                    // string literal.
+                    LOOKAHEAD(1)
+                    id = SimpleIdentifierFromStringLiteral()
+                )
+                {
+                    e = SqlStdOperatorTable.AS.createCall(span().end(e), e, id);
+                }
+            )
         |
-            // Mute the warning about ambiguity between alias and continued
-            // string literal.
-            LOOKAHEAD(1)
-            id = SimpleIdentifierFromStringLiteral()
+            (
+                 <AS> <LPAREN>
+                 columnAlias = SimpleIdentifier() {
+                     columnAliases.add(columnAlias);
+                 }
+                 ( <COMMA> columnAlias = SimpleIdentifier() { columnAliases.add(columnAlias);} )*
+                   <RPAREN> {
+                       if (!this.conformance.allowSelectTableFunction()) {
+                           throw SqlUtil.newContextException(getPos(),
+                               RESOURCE.notAllowTableFunctionInSelect());
+                     }
+                     e = SqlStdOperatorTable.AS.createCall(s.end(e), e,
+                             new SqlNodeList(columnAliases, s.end(e)));
+                  }
+            )
         )
-        {
-            e = SqlStdOperatorTable.AS.createCall(span().end(e), e, id);
-        }
     ]
     {
         return e;

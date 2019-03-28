@@ -11589,4 +11589,34 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withOperatorTable(operatorTable)
         .type("RecordType(BIGINT NOT NULL A, BIGINT B) NOT NULL");
   }
+
+  @Test public void testTableFunction() {
+    tester = tester.withConformance(SqlConformanceEnum.HIVE);
+    sql("select n,c from (select TABLE_FUNC(1) as (n,c) from emp)")
+        .ok();
+    sql("select char_length(c)*2 from"
+        +  " (select TABLE_FUNC(1) as (n,c) from emp) where char_length(c) > 1")
+        .ok();
+    sql("select char_length(c)*2, f0 from"
+        + " (select 1 as f0, TABLE_FUNC(1) as (n,c) from emp) where char_length(c) > 1")
+        .ok();
+    sql("select TABLE_FUNC(1) as (n,c)")
+        .ok();
+
+    sql("select ^test_udf('1')^ as (n,c) from emp")
+        .fails("'TEST_UDF' should be a table function");
+
+    sql("^select TABLE_FUNC(1) as (n1,c1), TABLE_FUNC(2)^ as (n2,c2) from emp")
+        .fails("Only one table function is allowed in select list");
+
+    sql("select ^TABLE_FUNC(1)^ as (n1,c1) , count(1) from emp having count(1) > 0")
+        .fails("Table function is not allowed in aggregate statement");
+
+    sql("select ^TABLE_FUNC(1)^ as (n1,c1) from emp group by empno")
+        .fails("Table function is not allowed in aggregate statement");
+
+    tester = tester.withConformance(SqlConformanceEnum.DEFAULT);
+    sql("select TABLE_FUNC(1) as (n,c) from emp")
+        .fails("(.*)Table function is not allowed in select list(.*)");
+  }
 }

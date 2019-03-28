@@ -1121,7 +1121,58 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql("select * from dept, lateral table(ramp(dept.deptno))").ok();
   }
 
-  @Test void testCollectionTableWithLateral2() {
+  @Test public void testTableFunctionInSelect() {
+    sql("select table_func(dept.deptno) as (f0, f1) from dept")
+        .conformance(SqlConformanceEnum.HIVE)
+        .ok();
+  }
+
+  @Test public void testTableFunctionInSelectWithUnion() {
+    sql("select * from ("
+        + "select a.deptno, table_func(a.deptno) as (f0, f1)"
+        + "     from (select * from dept) a "
+        + " union all "
+        + " select 1, table_func(b.deptno) as (f0, f1) from dept b"
+        + ")")
+        .conformance(SqlConformanceEnum.HIVE)
+        .ok();
+  }
+
+  @Test public void testTableFunctionInSelectWithoutFrom() {
+    sql("select table_func(1) as (f0,f1)")
+        .conformance(SqlConformanceEnum.HIVE)
+        .ok();
+  }
+
+  @Test public void testTableFunctionInSelectWithOrderBy() {
+    sql("select table_func(dept.deptno) as (f0, f1) from"
+        + " dept order by deptno")
+        .conformance(SqlConformanceEnum.HIVE)
+        .ok();
+  }
+
+  @Test public void testTableFunctionInSelectWithJoin() {
+    sql("select table_func(a.deptno) as (f0, f1) from "
+        + "dept a join dept b on a.deptno = b.deptno")
+        .conformance(SqlConformanceEnum.HIVE)
+        .ok();
+  }
+
+  @Test public void testTableFunctionInSelectWithInQuery() {
+    sql("select * from dept where deptno in "
+        + "(select f0 from (select table_func(a.deptno) as (f0, f1) from dept a))")
+        .conformance(SqlConformanceEnum.HIVE)
+        .ok();
+  }
+
+  @Test public void testTableFunctionInSelectWithUnnest() {
+    sql("select table_func(e.empno) as (f0, f1) "
+        + "from dept_nested as d, UNNEST(d.employees) e")
+        .conformance(SqlConformanceEnum.HIVE)
+        .ok();
+  }
+
+  @Test public void testCollectionTableWithLateral2() {
     sql("select * from dept, lateral table(ramp(deptno))").ok();
   }
 
