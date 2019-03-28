@@ -45,6 +45,7 @@ import org.apache.calcite.sql.SqlWithItem;
 
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nullable;
 
 /**
  * Validates the parse tree of a SQL statement, and provides semantic
@@ -310,6 +311,13 @@ public interface SqlValidator {
       SqlFunction function,
       List<RelDataType> argTypes,
       List<SqlNode> operands);
+
+  /**
+   * If an identifier is a legitimate call to a function that has no
+   * arguments and requires no parentheses (for example "CURRENT_USER"),
+   * returns a call to that function, otherwise returns null.
+   */
+  @Nullable SqlCall makeNullaryCall(SqlIdentifier id);
 
   /**
    * Derives the type of a node in a given scope. If the type has already been

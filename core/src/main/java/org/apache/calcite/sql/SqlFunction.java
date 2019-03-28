@@ -235,7 +235,9 @@ public class SqlFunction extends SqlOperator {
 
     final SqlFunction function =
         (SqlFunction) SqlUtil.lookupRoutine(validator.getOperatorTable(),
-            getNameAsId(), argTypes, argNames, getFunctionType(), SqlSyntax.FUNCTION, getKind());
+            getNameAsId(), argTypes, argNames, getFunctionType(),
+            SqlSyntax.FUNCTION, getKind(),
+            validator.getCatalogReader().nameMatcher());
     try {
       // if we have a match on function name and parameter count, but
       // couldn't find a function with  a COLUMN_LIST type, retry, but
@@ -248,7 +250,8 @@ public class SqlFunction extends SqlOperator {
         if (function == null
             && SqlUtil.matchRoutinesByParameterCount(
                 validator.getOperatorTable(), getNameAsId(), argTypes,
-                getFunctionType())) {
+                getFunctionType(),
+                validator.getCatalogReader().nameMatcher())) {
           // remove the already validated node types corresponding to
           // row arguments before re-validating
           for (SqlNode operand : args) {

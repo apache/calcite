@@ -133,6 +133,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -310,11 +311,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     rewriteCalls = true;
     expandColumnReferences = true;
-    aggFinder = new AggFinder(opTab, false, true, false, null);
-    aggOrOverFinder = new AggFinder(opTab, true, true, false, null);
-    overFinder = new AggFinder(opTab, true, false, false, aggOrOverFinder);
-    groupFinder = new AggFinder(opTab, false, false, true, null);
-    aggOrOverOrGroupFinder = new AggFinder(opTab, true, true, true, null);
+    final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
+    aggFinder = new AggFinder(opTab, false, true, false, null, nameMatcher);
+    aggOrOverFinder =
+        new AggFinder(opTab, true, true, false, null, nameMatcher);
+    overFinder = new AggFinder(opTab, true, false, false, aggOrOverFinder,
+        nameMatcher);
+    groupFinder = new AggFinder(opTab, false, false, true, null, nameMatcher);
+    aggOrOverOrGroupFinder = new AggFinder(opTab, true, true, true, null,
+        nameMatcher);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -879,10 +884,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               op.getName(),
               pos);
 
-      final SqlCall call =
-          SqlUtil.makeCall(
-              validator.getOperatorTable(),
-              curOpId);
+      final SqlCall call = validator.makeNullaryCall(curOpId);
       if (call != null) {
         result.add(
             new SqlMonikerImpl(
@@ -1178,7 +1180,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         // not, we'll handle it later during overload resolution.
         final List<SqlOperator> overloads = new ArrayList<>();
         opTab.lookupOperatorOverloads(function.getNameAsId(),
-            function.getFunctionType(), SqlSyntax.FUNCTION, overloads);
+            function.getFunctionType(), SqlSyntax.FUNCTION, overloads,
+            catalogReader.nameMatcher());
         if (overloads.size() == 1) {
           ((SqlBasicCall) call).setOperator(overloads.get(0));
         }
@@ -1624,6 +1627,25 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     nodeToTypeMap.remove(node);
   }
 
+  @Nullable public SqlCall makeNullaryCall(SqlIdentifier id) {
+    if (id.names.size() == 1 && !id.isComponentQuoted(0)) {
+      final List<SqlOperator> list = new ArrayList<>();
+      opTab.lookupOperatorOverloads(id, null, SqlSyntax.FUNCTION, list,
+          catalogReader.nameMatcher());
+      for (SqlOperator operator : list) {
+        if (operator.getSyntax() == SqlSyntax.FUNCTION_ID) {
+          // Even though this looks like an identifier, it is a
+          // actually a call to a function. Construct a fake
+          // call to this function, so we can use the regular
+          // operator validation.
+          return new SqlBasicCall(operator, SqlNode.EMPTY_ARRAY,
+              id.getParserPosition(), true, null);
+        }
+      }
+    }
+    return null;
+  }
+
   public RelDataType deriveType(
       SqlValidatorScope scope,
       SqlNode expr) {
@@ -1717,7 +1739,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // For builtins, we can give a better error message
     final List<SqlOperator> overloads = new ArrayList<>();
     opTab.lookupOperatorOverloads(unresolvedFunction.getNameAsId(), null,
-        SqlSyntax.FUNCTION, overloads);
+        SqlSyntax.FUNCTION, overloads, catalogReader.nameMatcher());
     if (overloads.size() == 1) {
       SqlFunction fun = (SqlFunction) overloads.get(0);
       if ((fun.getSqlIdentifier() == null)
@@ -2790,7 +2812,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   protected boolean isNestedAggregateWindow(SqlNode node) {
     AggFinder nestedAggFinder =
-        new AggFinder(opTab, false, false, false, aggFinder);
+        new AggFinder(opTab, false, false, false, aggFinder,
+            catalogReader.nameMatcher());
     return nestedAggFinder.findAgg(node) != null;
   }
 
@@ -3110,8 +3133,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // if it's not a SqlIdentifier then that's fine, it'll be validated somewhere else.
     if (leftOrRight instanceof SqlIdentifier) {
       SqlIdentifier from = (SqlIdentifier) leftOrRight;
-      Table table = findTable(catalogReader.getRootSchema(), Util.last(from.names),
-              catalogReader.nameMatcher().isCaseSensitive());
+      Table table = findTable(catalogReader.getRootSchema(),
+          Util.last(from.names));
       String name = Util.last(identifier.names);
 
       if (table != null && table.isRolledUp(name)) {
@@ -3469,8 +3492,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   private Pair<String, String> findTableColumnPair(SqlIdentifier identifier,
-                                                   SqlValidatorScope scope) {
-    SqlCall call = SqlUtil.makeCall(getOperatorTable(), identifier);
+      SqlValidatorScope scope) {
+    final SqlCall call = makeNullaryCall(identifier);
     if (call != null) {
       return null;
     }
@@ -3523,7 +3546,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return false;
   }
 
-  private Table findTable(CalciteSchema schema, String tableName, boolean caseSensitive) {
+  private Table findTable(CalciteSchema schema, String tableName) {
+    boolean caseSensitive = catalogReader.nameMatcher().isCaseSensitive();
     CalciteSchema.TableEntry entry = schema.getTable(tableName, caseSensitive);
     if (entry != null) {
       return entry.getTable();
@@ -3531,7 +3555,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // Check sub schemas
     for (CalciteSchema subSchema : schema.getSubSchemaMap().values()) {
-      Table table = findTable(subSchema, tableName, caseSensitive);
+      Table table = findTable(subSchema, tableName);
       if (table != null) {
         return table;
       }
@@ -3559,8 +3583,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (names == null || names.size() == 0) {
       return null;
     } else if (names.size() == 1) {
-      return findTable(catalogReader.getRootSchema(), names.get(0),
-              catalogReader.nameMatcher().isCaseSensitive());
+      return findTable(catalogReader.getRootSchema(), names.get(0));
     }
 
     CalciteSchema.TableEntry entry =
@@ -5595,7 +5618,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     public RelDataType visit(SqlIdentifier id) {
       // First check for builtin functions which don't have parentheses,
       // like "LOCALTIME".
-      SqlCall call = SqlUtil.makeCall(opTab, id);
+      final SqlCall call = makeNullaryCall(id);
       if (call != null) {
         return call.getOperator().validateOperands(
             SqlValidatorImpl.this,
@@ -5710,10 +5733,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     @Override public SqlNode visit(SqlIdentifier id) {
       // First check for builtin functions which don't have
       // parentheses, like "LOCALTIME".
-      SqlCall call =
-          SqlUtil.makeCall(
-              validator.getOperatorTable(),
-              id);
+      final SqlCall call = validator.makeNullaryCall(id);
       if (call != null) {
         return call.accept(this);
       }

@@ -48,6 +48,7 @@ import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.sql.validate.SqlNameMatchers;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
@@ -75,7 +76,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -347,19 +347,13 @@ public abstract class SqlOperatorBaseTest {
     for (SqlOperator sqlOperator : operatorTable.getOperatorList()) {
       String operatorName = sqlOperator.getName();
       List<SqlOperator> routines = new ArrayList<>();
-      operatorTable.lookupOperatorOverloads(
-          new SqlIdentifier(operatorName, SqlParserPos.ZERO),
-          null,
-          sqlOperator.getSyntax(),
-          routines);
+      final SqlIdentifier id =
+          new SqlIdentifier(operatorName, SqlParserPos.ZERO);
+      operatorTable.lookupOperatorOverloads(id, null, sqlOperator.getSyntax(),
+          routines, SqlNameMatchers.withCaseSensitive(true));
 
-      Iterator<SqlOperator> iter = routines.iterator();
-      while (iter.hasNext()) {
-        SqlOperator operator = iter.next();
-        if (!sqlOperator.getClass().isInstance(operator)) {
-          iter.remove();
-        }
-      }
+      routines.removeIf(operator ->
+          !sqlOperator.getClass().isInstance(operator));
       assertThat(routines.size(), equalTo(1));
       assertThat(sqlOperator, equalTo(routines.get(0)));
     }

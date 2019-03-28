@@ -27,6 +27,8 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import javax.annotation.Nullable;
 
 /** Visitor that can find aggregate and windowed aggregate functions.
  *
@@ -37,10 +39,11 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
   protected final boolean over;
   protected final AggFinder delegate;
   /** Whether to find regular (non-windowed) aggregates. */
-  protected boolean aggregate;
+  protected final boolean aggregate;
   /** Whether to find group functions (e.g. {@code TUMBLE})
    * or group auxiliary functions (e.g. {@code TUMBLE_START}). */
-  protected boolean group;
+  protected final boolean group;
+  protected final SqlNameMatcher nameMatcher;
 
   /**
    * Creates an AggVisitor.
@@ -51,14 +54,16 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
    * @param aggregate Whether to find non-windowed aggregate calls
    * @param group Whether to find group functions (e.g. {@code TUMBLE})
    * @param delegate Finder to which to delegate when processing the arguments
+   * @param nameMatcher Whether to match the agg function names case-sensitively
    */
   AggVisitor(SqlOperatorTable opTab, boolean over, boolean aggregate,
-      boolean group, AggFinder delegate) {
+      boolean group, @Nullable AggFinder delegate, SqlNameMatcher nameMatcher) {
     this.group = group;
     this.over = over;
     this.aggregate = aggregate;
     this.delegate = delegate;
-    this.opTab = opTab;
+    this.opTab = Objects.requireNonNull(opTab);
+    this.nameMatcher = Objects.requireNonNull(nameMatcher);
   }
 
   public Void visit(SqlCall call) {
@@ -83,7 +88,8 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
       if (sqlFunction.getFunctionType().isUserDefinedNotSpecificFunction()) {
         final List<SqlOperator> list = new ArrayList<>();
         opTab.lookupOperatorOverloads(sqlFunction.getSqlIdentifier(),
-            sqlFunction.getFunctionType(), SqlSyntax.FUNCTION, list);
+            sqlFunction.getFunctionType(), SqlSyntax.FUNCTION, list,
+            nameMatcher);
         for (SqlOperator operator2 : list) {
           if (operator2.isAggregator() && !operator2.requiresOver()) {
             // If nested aggregates disallowed or found aggregate at invalid

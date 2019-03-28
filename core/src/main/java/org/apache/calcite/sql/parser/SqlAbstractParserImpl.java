@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlNameMatchers;
 import org.apache.calcite.util.Glossary;
 
 import com.google.common.collect.ImmutableList;
@@ -392,7 +393,8 @@ public abstract class SqlAbstractParserImpl {
     /// name when regenerating SQL).
     if (funName.isSimple()) {
       final List<SqlOperator> list = new ArrayList<>();
-      opTab.lookupOperatorOverloads(funName, funcType, SqlSyntax.FUNCTION, list);
+      opTab.lookupOperatorOverloads(funName, funcType, SqlSyntax.FUNCTION, list,
+          SqlNameMatchers.withCaseSensitive(funName.isComponentQuoted(0)));
       if (list.size() == 1) {
         fun = list.get(0);
       }

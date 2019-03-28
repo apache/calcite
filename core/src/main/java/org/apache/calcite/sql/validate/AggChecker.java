@@ -22,7 +22,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
@@ -96,10 +95,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
     }
 
     // Is it a call to a parentheses-free function?
-    SqlCall call =
-        SqlUtil.makeCall(
-            validator.getOperatorTable(),
-            id);
+    final SqlCall call = validator.makeNullaryCall(id);
     if (call != null) {
       return call.accept(this);
     }

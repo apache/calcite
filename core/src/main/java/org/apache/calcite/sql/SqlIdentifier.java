@@ -302,10 +302,7 @@ public class SqlIdentifier extends SqlNode {
   public void validateExpr(SqlValidator validator, SqlValidatorScope scope) {
     // First check for builtin functions which don't have parentheses,
     // like "LOCALTIME".
-    SqlCall call =
-        SqlUtil.makeCall(
-            validator.getOperatorTable(),
-            this);
+    final SqlCall call = validator.makeNullaryCall(this);
     if (call != null) {
       validator.validateCall(call, scope);
       return;
@@ -379,10 +376,7 @@ public class SqlIdentifier extends SqlNode {
     // First check for builtin functions which don't have parentheses,
     // like "LOCALTIME".
     final SqlValidator validator = scope.getValidator();
-    SqlCall call =
-        SqlUtil.makeCall(
-            validator.getOperatorTable(),
-            this);
+    final SqlCall call = validator.makeNullaryCall(this);
     if (call != null) {
       return call.getMonotonicity(scope);
     }

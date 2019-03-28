@@ -31,6 +31,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.util.BarfingInvocationHandler;
 import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.Glossary;
@@ -356,12 +357,13 @@ public abstract class SqlUtil {
    * Looks up a (possibly overloaded) routine based on name and argument
    * types.
    *
-   * @param opTab    operator table to search
-   * @param funcName name of function being invoked
-   * @param argTypes argument types
-   * @param argNames argument names, or null if call by position
-   * @param category whether a function or a procedure. (If a procedure is
-   *                 being invoked, the overload rules are simpler.)
+   * @param opTab         operator table to search
+   * @param funcName      name of function being invoked
+   * @param argTypes      argument types
+   * @param argNames      argument names, or null if call by position
+   * @param category      whether a function or a procedure. (If a procedure is
+   *                      being invoked, the overload rules are simpler.)
+   * @param nameMatcher   Whether to look up the function case-sensitively
    * @return matching routine, or null if none found
    *
    * @see Glossary#SQL99 SQL:1999 Part 2 Section 10.4
@@ -369,7 +371,7 @@ public abstract class SqlUtil {
   public static SqlOperator lookupRoutine(SqlOperatorTable opTab,
       SqlIdentifier funcName, List<RelDataType> argTypes,
       List<String> argNames, SqlFunctionCategory category,
-      SqlSyntax syntax, SqlKind sqlKind) {
+      SqlSyntax syntax, SqlKind sqlKind, SqlNameMatcher nameMatcher) {
     Iterator<SqlOperator> list =
         lookupSubjectRoutines(
             opTab,
@@ -378,7 +380,8 @@ public abstract class SqlUtil {
             argNames,
             syntax,
             sqlKind,
-            category);
+            category,
+            nameMatcher);
     if (list.hasNext()) {
       // return first on schema path
       return list.next();
@@ -401,7 +404,8 @@ public abstract class SqlUtil {
    * @param argNames  argument names, or null if call by position
    * @param sqlSyntax the SqlSyntax of the SqlOperator being looked up
    * @param sqlKind   the SqlKind of the SqlOperator being looked up
-   * @param category category of routine to look up
+   * @param category  Category of routine to look up
+   * @param nameMatcher Whether to look up the function case-sensitively
    * @return list of matching routines
    * @see Glossary#SQL99 SQL:1999 Part 2 Section 10.4
    */
@@ -412,10 +416,12 @@ public abstract class SqlUtil {
       List<String> argNames,
       SqlSyntax sqlSyntax,
       SqlKind sqlKind,
-      SqlFunctionCategory category) {
+      SqlFunctionCategory category,
+      SqlNameMatcher nameMatcher) {
     // start with all routines matching by name
     Iterator<SqlOperator> routines =
-        lookupSubjectRoutinesByName(opTab, funcName, sqlSyntax, category);
+        lookupSubjectRoutinesByName(opTab, funcName, sqlSyntax, category,
+            nameMatcher);
 
     // first pass:  eliminate routines which don't accept the given
     // number of arguments
@@ -453,20 +459,23 @@ public abstract class SqlUtil {
    * Determines whether there is a routine matching the given name and number
    * of arguments.
    *
-   * @param opTab    operator table to search
-   * @param funcName name of function being invoked
-   * @param argTypes argument types
-   * @param category category of routine to look up
+   * @param opTab         operator table to search
+   * @param funcName      name of function being invoked
+   * @param argTypes      argument types
+   * @param category      category of routine to look up
+   * @param nameMatcher   Whether to look up the function case-sensitively
    * @return true if match found
    */
   public static boolean matchRoutinesByParameterCount(
       SqlOperatorTable opTab,
       SqlIdentifier funcName,
       List<RelDataType> argTypes,
-      SqlFunctionCategory category) {
+      SqlFunctionCategory category,
+      SqlNameMatcher nameMatcher) {
     // start with all routines matching by name
     Iterator<SqlOperator> routines =
-        lookupSubjectRoutinesByName(opTab, funcName, SqlSyntax.FUNCTION, category);
+        lookupSubjectRoutinesByName(opTab, funcName, SqlSyntax.FUNCTION,
+            category, nameMatcher);
 
     // first pass:  eliminate routines which don't accept the given
     // number of arguments
@@ -479,9 +488,11 @@ public abstract class SqlUtil {
       SqlOperatorTable opTab,
       SqlIdentifier funcName,
       final SqlSyntax syntax,
-      SqlFunctionCategory category) {
+      SqlFunctionCategory category,
+      SqlNameMatcher nameMatcher) {
     final List<SqlOperator> sqlOperators = new ArrayList<>();
-    opTab.lookupOperatorOverloads(funcName, category, syntax, sqlOperators);
+    opTab.lookupOperatorOverloads(funcName, category, syntax, sqlOperators,
+        nameMatcher);
     switch (syntax) {
     case FUNCTION:
       return Iterators.filter(sqlOperators.iterator(),
@@ -653,35 +664,6 @@ public abstract class SqlUtil {
       // Unexpected type of query.
       throw Util.needToImplement(query);
     }
-  }
-
-  /**
-   * If an identifier is a legitimate call to a function which has no
-   * arguments and requires no parentheses (for example "CURRENT_USER"),
-   * returns a call to that function, otherwise returns null.
-   */
-  public static SqlCall makeCall(
-      SqlOperatorTable opTab,
-      SqlIdentifier id) {
-    if (id.names.size() == 1 && !id.isComponentQuoted(0)) {
-      final List<SqlOperator> list = new ArrayList<>();
-      opTab.lookupOperatorOverloads(id, null, SqlSyntax.FUNCTION, list);
-      for (SqlOperator operator : list) {
-        if (operator.getSyntax() == SqlSyntax.FUNCTION_ID) {
-          // Even though this looks like an identifier, it is a
-          // actually a call to a function. Construct a fake
-          // call to this function, so we can use the regular
-          // operator validation.
-          return new SqlBasicCall(
-              operator,
-              SqlNode.EMPTY_ARRAY,
-              id.getParserPosition(),
-              true,
-              null);
-        }
-      }
-    }
-    return null;
   }
 
   public static String deriveAliasFromOrdinal(int ordinal) {
