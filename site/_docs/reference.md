@@ -213,6 +213,7 @@ selectWithoutFrom:
 
 projectItem:
       expression [ [ AS ] columnAlias ]
+  |   expression AS '(' columnAlias [, columnAlias ]* ')'
   |   tableAlias . *
 
 tableExpression:
@@ -299,6 +300,9 @@ the <em>n</em>th item in the SELECT clause.
 In *query*, *count* and *start* may each be either an unsigned integer literal
 or a dynamic parameter whose value is an integer.
 
+In *projectItem*, *expression* followed by a *As* column alias list is only allowed in
+certain [conformance levels] ({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowSelectTableFunction--);
+in those same conformance levels, table function can be used in the select list.
 An aggregate query is a query that contains a GROUP BY or a HAVING
 clause, or aggregate functions in the SELECT clause. In the SELECT,
 HAVING and ORDER BY clauses of an aggregate query, all expressions

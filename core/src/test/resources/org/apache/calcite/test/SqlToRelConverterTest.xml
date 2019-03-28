@@ -323,6 +323,120 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], I=[$2])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testTableFunctionInSelect">
+        <Resource name="sql">
+            <![CDATA[select * from (select table_func(dept.deptno) as (f0, f1) from dept)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(F0=[$2], F1=[$3])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableFunctionScan(invocation=[TABLE_FUNC($cor0.DEPTNO)], rowType=[RecordType(BIGINT f0, VARCHAR f1)], elementType=[class [Ljava.lang.Object;])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTableFunctionInSelectWithUnion">
+        <Resource name="sql">
+            <![CDATA[select * from (
+                        select a.deptno, table_func(a.deptno) as (f0, f1)  from (select * from dept) a
+                        union all
+                        select 1, table_func(b.deptno) as (f0, f1) from dept b"
+                    )
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], F0=[$1], F1=[$2])
+  LogicalUnion(all=[true])
+    LogicalProject(DEPTNO=[$0], F0=[$2], F1=[$3])
+      LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+        LogicalProject(DEPTNO=[$0], NAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableFunctionScan(invocation=[TABLE_FUNC($cor0.DEPTNO)], rowType=[RecordType(BIGINT f0, VARCHAR f1)], elementType=[class [Ljava.lang.Object;])
+    LogicalProject(EXPR$0=[1], F0=[$2], F1=[$3])
+      LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{0}])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableFunctionScan(invocation=[TABLE_FUNC($cor1.DEPTNO)], rowType=[RecordType(BIGINT f0, VARCHAR f1)], elementType=[class [Ljava.lang.Object;])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTableFunctionInSelectWithoutFrom">
+        <Resource name="sql">
+            <![CDATA[select table_func(1) as (f0,f1)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(F0=[$0], F1=[$1])
+  LogicalTableFunctionScan(invocation=[TABLE_FUNC(1)], rowType=[RecordType(BIGINT f0, VARCHAR f1)], elementType=[class [Ljava.lang.Object;])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTableFunctionInSelectWithOrderBy">
+        <Resource name="sql">
+            <![CDATA[select table_func(dept.deptno) as (f0, f1) from dept order by deptno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(F0=[$0], F1=[$1])
+  LogicalSort(sort0=[$2], dir0=[ASC])
+    LogicalProject(F0=[$2], F1=[$3], DEPTNO=[$0])
+      LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableFunctionScan(invocation=[TABLE_FUNC($cor0.DEPTNO)], rowType=[RecordType(BIGINT f0, VARCHAR f1)], elementType=[class [Ljava.lang.Object;])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTableFunctionInSelectWithJoin">
+        <Resource name="sql">
+            <![CDATA[select table_func(a.deptno) as (f0, f1) from dept a join dept b on a.deptno = b.deptno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(F0=[$4], F1=[$5])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableFunctionScan(invocation=[TABLE_FUNC($cor0.DEPTNO)], rowType=[RecordType(BIGINT f0, VARCHAR f1)], elementType=[class [Ljava.lang.Object;])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTableFunctionInSelectWithInQuery">
+        <Resource name="sql">
+            <![CDATA[select * from dept where deptno in (select f0 from (select table_func(a.deptno) as (f0, f1) from dept a))]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(F0=[$2])
+        LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+          LogicalTableFunctionScan(invocation=[TABLE_FUNC($cor0.DEPTNO)], rowType=[RecordType(BIGINT f0, VARCHAR f1)], elementType=[class [Ljava.lang.Object;])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTableFunctionInSelectWithUnnest">
+        <Resource name="sql">
+            <![CDATA[select table_func(e.empno) as (f0, f1) from dept_nested as d, UNNEST(d.employees) e]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(F0=[$10], F1=[$11])
+  LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{7}])
+    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{6}])
+      LogicalProject(DEPTNO=[$0], NAME=[$1], TYPE=[$2.TYPE], DESC=[$2.DESC], A=[$2.OTHERS.A], B=[$2.OTHERS.B], EMPLOYEES=[$3])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+      Uncollect
+        LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES_6])
+          LogicalValues(tuples=[[{ 0 }]])
+    LogicalTableFunctionScan(invocation=[TABLE_FUNC($cor1.EMPNO)], rowType=[RecordType(BIGINT f0, VARCHAR f1)], elementType=[class [Ljava.lang.Object;])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSnapshotOnTemporalTable">
         <Resource name="sql">
             <![CDATA[select * from products_temporal for system_time as of TIMESTAMP '2011-01-02 00:00:00']]>

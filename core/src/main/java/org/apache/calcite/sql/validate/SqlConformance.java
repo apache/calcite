@@ -61,6 +61,7 @@ public interface SqlConformance {
   @Deprecated // to be removed before 2.0
   SqlConformanceEnum PRAGMATIC_2003 = SqlConformanceEnum.PRAGMATIC_2003;
 
+  SqlConformanceEnum HIVE = SqlConformanceEnum.HIVE;
   /**
    * Whether this dialect supports features from a wide variety of
    * dialects. This is enabled for the Babel parser, disabled otherwise.
@@ -408,6 +409,13 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean allowPluralTimeUnits();
+
+  /**
+   * Whether SELECT can contain a table function.
+   * <p>For example, consider the query
+   * <blockquote><pre> SELECT SPLIT(col) AS (F0, F1) FROM A </pre> </blockquote>
+   */
+  boolean allowSelectTableFunction();
 }
 
 // End SqlConformance.java

@@ -69,7 +69,11 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   /** Conformance value that instructs Calcite to use SQL semantics
    * consistent with Microsoft SQL Server version 2008. */
-  SQL_SERVER_2008;
+  SQL_SERVER_2008,
+
+  /** Conformance value that instructs Calcite to use SQL semantics
+   * consistent with Hive version. */
+  HIVE;
 
   public boolean isLiberal() {
     switch (this) {
@@ -314,6 +318,14 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  public boolean allowSelectTableFunction() {
+    switch (this) {
+    case HIVE:
+      return true;
+    default:
+      return false;
+    }
+  }
 }
 
 // End SqlConformanceEnum.java

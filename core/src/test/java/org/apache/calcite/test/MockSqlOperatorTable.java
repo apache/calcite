@@ -18,6 +18,8 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.FunctionParameter;
+import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -33,9 +35,13 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.util.ListSqlOperatorTable;
+import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
+
+import java.lang.reflect.Type;
+import java.util.List;
 
 /**
  * Mock operator table for testing purposes. Contains the standard SQL operator
@@ -69,6 +75,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     opTab.addOperator(new DedupFunction());
     opTab.addOperator(new MyFunction());
     opTab.addOperator(new MyAvgAggFunction());
+    opTab.addOperator(new MyTableFunction());
   }
 
   /** "RAMP" user-defined function. */
@@ -142,6 +149,58 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
 
     @Override public boolean isDeterministic() {
       return false;
+    }
+  }
+
+  /*** "TABLE_FUNC" User-Defined table function */
+  public static class MyTableFunction extends SqlUserDefinedTableFunction {
+    public MyTableFunction() {
+      super(
+          new SqlIdentifier("TABLE_FUNC", SqlParserPos.ZERO),
+          ReturnTypes.CURSOR,
+          null,
+          OperandTypes.NUMERIC,
+          null,
+          new MyTableFunctionImpl());
+    }
+  }
+  /** TableFunctionImpl */
+  private static class MyTableFunctionImpl implements TableFunction {
+    @Override public List<FunctionParameter> getParameters() {
+      FunctionParameter parameter = new FunctionParameter() {
+        @Override public int getOrdinal() {
+          return 0;
+        }
+
+        @Override public String getName() {
+          return "i0";
+        }
+
+        @Override public RelDataType getType(RelDataTypeFactory typeFactory) {
+          return typeFactory.createSqlType(SqlTypeName.BIGINT);
+        }
+
+        @Override public boolean isOptional() {
+          return false;
+        }
+      };
+      return ImmutableList.of(parameter);
+    }
+
+
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory,
+                                  List<Object> arguments) {
+      RelDataType type0 = typeFactory.createSqlType(SqlTypeName.BIGINT);
+      RelDataType type1 = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+
+      return typeFactory.createStructType(
+          ImmutableList.of(type0, type1),
+          ImmutableList.of("f0", "f1"));
+    }
+
+
+    @Override public Type getElementType(List<Object> arguments) {
+      return Object[].class;
     }
   }
 }
