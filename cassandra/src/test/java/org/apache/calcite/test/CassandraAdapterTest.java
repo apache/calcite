@@ -46,7 +46,7 @@ import static org.junit.Assume.assumeTrue;
  * <p>Will start embedded cassandra cluster and populate it from local {@code twissandra.cql} file.
  * All configuration files are located in test classpath.
  *
- * <p>Note that tests will be skipped if running on JDK11 and JDK12
+ * <p>Note that tests will be skipped if running on JDK11+
  * (which is not yet supported by cassandra) see
  * <a href="https://issues.apache.org/jira/browse/CASSANDRA-9608">CASSANDRA-9608</a>.
  *
@@ -74,8 +74,8 @@ public class CassandraAdapterTest {
    * version (see below).
    *
    * <p>As of this wiring Cassandra 4.x is not yet released and we're using 3.x
-   * (which fails on JDK11 and JDK12). All cassandra tests will be skipped if
-   * running on JDK11 and JDK12.
+   * (which fails on JDK11+). All cassandra tests will be skipped if
+   * running on JDK11+.
    *
    * @see <a href="https://issues.apache.org/jira/browse/CASSANDRA-9608">CASSANDRA-9608</a>
    * @return {@code true} if test is compatible with current environment,
@@ -84,8 +84,7 @@ public class CassandraAdapterTest {
   private static boolean enabled() {
     final boolean enabled = CalciteSystemProperty.TEST_CASSANDRA.value();
     Bug.upgrade("remove JDK version check once current adapter supports Cassandra 4.x");
-    final boolean compatibleJdk = TestUtil.getJavaMajorVersion() != 11
-                                      && TestUtil.getJavaMajorVersion() != 12;
+    final boolean compatibleJdk = TestUtil.getJavaMajorVersion() < 11;
     return enabled && compatibleJdk;
   }
 
