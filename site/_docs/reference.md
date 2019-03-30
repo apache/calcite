@@ -2108,7 +2108,6 @@ Result
 
 Not implemented:
 
-* JSON_LENGTH
 * JSON_INSERT
 * JSON_SET
 * JSON_REPLACE
