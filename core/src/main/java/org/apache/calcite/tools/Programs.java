@@ -272,8 +272,8 @@ public class Programs {
   }
 
   public static Program getProgram() {
-    return (planner, rel, requiredOutputTraits, materializations, lattices)
-        -> null;
+    return (planner, rel, requiredOutputTraits, materializations, lattices) ->
+        null;
   }
 
   /** Returns the standard program used by Prepare. */

@@ -112,10 +112,8 @@ public class ExchangeRemoveConstantKeysRule extends RelOptRule {
       call.transformTo(call.builder()
           .push(exchange.getInput())
           .exchange(distributionKeys.isEmpty()
-              ?
-              RelDistributions.SINGLETON
-              :
-              RelDistributions.hash(distributionKeys))
+              ? RelDistributions.SINGLETON
+              : RelDistributions.hash(distributionKeys))
           .build());
       call.getPlanner().setImportance(exchange, 0.0);
     }
@@ -182,19 +180,13 @@ public class ExchangeRemoveConstantKeysRule extends RelOptRule {
       if (distributionSimplified
            || collationSimplified) {
         RelDistribution distribution = distributionSimplified
-            ?
-            distributionKeys.isEmpty()
-                ?
-                RelDistributions.SINGLETON
-                :
-                RelDistributions.hash(distributionKeys)
-            :
-            sortExchange.getDistribution();
+            ? (distributionKeys.isEmpty()
+                ? RelDistributions.SINGLETON
+                : RelDistributions.hash(distributionKeys))
+            : sortExchange.getDistribution();
         RelCollation collation = collationSimplified
-            ?
-            RelCollations.of(fieldCollations)
-            :
-            sortExchange.getCollation();
+            ? RelCollations.of(fieldCollations)
+            : sortExchange.getCollation();
 
         call.transformTo(call.builder()
             .push(sortExchange.getInput())

@@ -41,8 +41,7 @@ public class SqlJsonApiCommonSyntaxOperator extends SqlSpecialOperator {
     super(name, SqlKind.JSON_API_COMMON_SYNTAX, 100, true,
         ReturnTypes.explicit(SqlTypeName.ANY), null,
         hasPath ? OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING)
-            : OperandTypes.family(SqlTypeFamily.ANY)
-    );
+            : OperandTypes.family(SqlTypeFamily.ANY));
     this.hasPath = hasPath;
   }
 

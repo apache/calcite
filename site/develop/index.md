@@ -68,23 +68,23 @@ helps to agree on the general approach. Log a
 proposed feature or start a discussion on the dev list.
 
 Before opening up a new JIRA case, have a look in the existing issues.
-The feature or bug that you plan to work on may already be there.  
+The feature or bug that you plan to work on may already be there.
 
 If you are going to take on the issue right away assign it to yourself.
-To assign issues to yourself you have to be registered in JIRA as a contributor. 
+To assign issues to yourself you have to be registered in JIRA as a contributor.
 In order to do that, send an email to the developers list
-and provide your JIRA username.   
+and provide your JIRA username.
 
-If you are committed to fixing the issue before the upcoming release set 
+If you are committed to fixing the issue before the upcoming release set
 the fix version accordingly (e.g., 1.20.0), otherwise leave it as blank.
 
-If you pick up an existing issue, mark it 'in progress', and when it's 
-finished flag it with 'pull-request-available'. 
+If you pick up an existing issue, mark it 'in progress', and when it's
+finished flag it with 'pull-request-available'.
 
 If for any reason you decide that an issue cannot go into the ongoing
 release, reset the fix version to blank.
 
-During a release, the release manager will update the issues that were 
+During a release, the release manager will update the issues that were
 not completed for the current release to the next release
 
 Fork the GitHub repository, and create a branch for your feature.
