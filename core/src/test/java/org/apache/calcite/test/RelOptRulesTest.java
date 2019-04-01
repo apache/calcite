@@ -57,6 +57,8 @@ import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
 import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
+import org.apache.calcite.rel.rules.AggregateJoinJoinRemoveRule;
+import org.apache.calcite.rel.rules.AggregateJoinRemoveRule;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
 import org.apache.calcite.rel.rules.AggregateMergeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
@@ -89,6 +91,8 @@ import org.apache.calcite.rel.rules.JoinToMultiJoinRule;
 import org.apache.calcite.rel.rules.JoinUnionTransposeRule;
 import org.apache.calcite.rel.rules.ProjectCorrelateTransposeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
+import org.apache.calcite.rel.rules.ProjectJoinJoinRemoveRule;
+import org.apache.calcite.rel.rules.ProjectJoinRemoveRule;
 import org.apache.calcite.rel.rules.ProjectJoinTransposeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.ProjectMultiJoinMergeRule;
@@ -4350,6 +4354,269 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanUnchanged(new HepPlanner(program), sql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2712">[CALCITE-2712]
+   * Should remove the left join since the aggregate has no call and
+   * only uses column in the left input of the bottom join as group key.</a>. */
+  @Test public void testAggregateJoinRemove1() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateJoinRemoveRule.INSTANCE)
+        .build();
+    final String sql =
+        "select distinct e.deptno from sales.emp e\n"
+            + "left outer join sales.dept d on e.deptno = d.deptno";
+    checkPlanning(new HepPlanner(program), sql);
+  }
+
+  /** Similar to {@link #testAggregateJoinRemove1()} but has aggregate
+   * call with distinct. */
+  @Test public void testAggregateJoinRemove2() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateJoinRemoveRule.INSTANCE)
+        .build();
+    final String sql =
+        "select e.deptno, count(distinct e.job) from sales.emp e\n"
+            + "left outer join sales.dept d on e.deptno = d.deptno\n"
+            + "group by e.deptno";
+    checkPlanning(new HepPlanner(program), sql);
+  }
+
+  /** Similar to {@link #testAggregateJoinRemove1()} but should not
+   * remove the left join since the aggregate uses column in the right
+   * input of the bottom join. */
+  @Test public void testAggregateJoinRemove3() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateJoinRemoveRule.INSTANCE)
+        .build();
+    final String sql =
+        "select e.deptno, count(distinct d.name) from sales.emp e\n"
+            + "left outer join sales.dept d on e.deptno = d.deptno\n"
+            + "group by e.deptno";
+    checkPlanning(new HepPlanner(program), sql);
+  }
+
+  /** Similar to {@link #testAggregateJoinRemove1()} but right join. */
+  @Test public void testAggregateJoinRemove4() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateJoinRemoveRule.INSTANCE)
+        .build();
+    final String sql =
+        "select distinct d.deptno from sales.emp e\n"
+            + "right outer join sales.dept d on e.deptno = d.deptno";
+    checkPlanning(new HepPlanner(program), sql);
+  }
+
+  /** Similar to {@link #testAggregateJoinRemove2()} but right join. */
+  @Test public void testAggregateJoinRemove5() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateJoinRemoveRule.INSTANCE)
+        .build();
+    final String sql =
+        "select d.deptno, count(distinct d.name) from sales.emp e\n"
+            + "right outer join sales.dept d on e.deptno = d.deptno\n"
+            + "group by d.deptno";
+    checkPlanning(new HepPlanner(program), sql);
+  }
+
+  /** Similar to {@link #testAggregateJoinRemove3()} but right join. */
+  @Test public void testAggregateJoinRemove6() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateJoinRemoveRule.INSTANCE)
+        .build();
+    final String sql =
+        "select d.deptno, count(distinct e.job) from sales.emp e\n"
+            + "right outer join sales.dept d on e.deptno = d.deptno\n"
+            + "group by d.deptno";
+    checkPlanning(new HepPlanner(program), sql);
+  }
+
+  /** Similar to {@link #testAggregateJoinRemove1()};
+   * Should remove the bottom join since the aggregate has no aggregate
+   * call. */
+  @Test public void testAggregateJoinRemove7() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateJoinJoinRemoveRule.INSTANCE)
+        .build();
+    final String sql = "SELECT distinct e.deptno\n"
+        + "FROM sales.emp e\n"
+        + "LEFT JOIN sales.dept d1 ON e.deptno = d1.deptno\n"
+        + "LEFT JOIN sales.dept d2 ON e.deptno = d2.deptno";
+    checkPlanning(new HepPlanner(program), sql);
+  }
+
+
+  /** Similar to {@link #testAggregateJoinRemove7()} but has aggregate
+   * call. */
+  @Test public void testAggregateJoinRemove8() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateJoinJoinRemoveRule.INSTANCE)
+        .build();
+    final String sql = "SELECT e.deptno, COUNT(DISTINCT d2.name)\n"
+        + "FROM sales.emp e\n"
+        + "LEFT JOIN sales.dept d1 ON e.deptno = d1.deptno\n"
+        + "LEFT JOIN sales.dept d2 ON e.deptno = d2.deptno\n"
+        + "GROUP BY e.deptno";
+    checkPlanning(new HepPlanner(program), sql);
+  }
+
+  /** Similar to {@link #testAggregateJoinRemove7()} but use columns in
+   * the right input of the top join. */
+  @Test public void testAggregateJoinRemove9() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateJoinJoinRemoveRule.INSTANCE)
+        .build();
+    final String sql = "SELECT distinct e.deptno, d2.name\n"
+        + "FROM sales.emp e\n"
+        + "LEFT JOIN sales.dept d1 ON e.deptno = d1.deptno\n"
+        + "LEFT JOIN sales.dept d2 ON e.deptno = d2.deptno";
+    checkPlanning(new HepPlanner(program), sql);
+  }
+
+  /** Similar to {@link #testAggregateJoinRemove1()};
+   * Should not remove the bottom join since the aggregate uses column in the
+   * right input of bottom join. */
+  @Test public void testAggregateJoinRemove10() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(AggregateJoinJoinRemoveRule.INSTANCE)
+        .build();
+    final String sql = "SELECT e.deptno, COUNT(DISTINCT d1.name, d2.name)\n"
+        + "FROM sales.emp e\n"
+        + "LEFT JOIN sales.dept d1 ON e.deptno = d1.deptno\n"
+        + "LEFT JOIN sales.dept d2 ON e.deptno = d2.deptno\n"
+        + "GROUP BY e.deptno";
+    checkPlanning(new HepPlanner(program), sql);
+  }
+
+  /** Similar to {@link #testAggregateJoinRemove1()};
+   * Should remove the bottom join since the project uses column in the
+   * right input of bottom join. */
+  @Test public void testProjectJoinRemove1() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ProjectJoinJoinRemoveRule.INSTANCE)
+        .build();
+    final String sql = "SELECT e.deptno, d2.deptno\n"
+        + "FROM sales.emp e\n"
+        + "LEFT JOIN sales.dept d1 ON e.deptno = d1.deptno\n"
+        + "LEFT JOIN sales.dept d2 ON e.deptno = d2.deptno";
+    checkPlanning(new HepPlanner(program), sql);
+  }
+
+  /** Similar to {@link #testAggregateJoinRemove1()};
+   * Should not remove the bottom join since the project uses column in the
+   * left input of bottom join. */
+  @Test public void testProjectJoinRemove2() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ProjectJoinJoinRemoveRule.INSTANCE)
+        .build();
+    final String sql = "SELECT e.deptno, d1.deptno\n"
+        + "FROM sales.emp e\n"
+        + "LEFT JOIN sales.dept d1 ON e.deptno = d1.deptno\n"
+        + "LEFT JOIN sales.dept d2 ON e.deptno = d2.deptno";
+    checkPlanUnchanged(new HepPlanner(program), sql);
+  }
+
+  /** Similar to {@link #testAggregateJoinRemove1()};
+   * Should not remove the bottom join since the right join keys of bottom
+   * join are not unique. */
+  @Test public void testProjectJoinRemove3() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ProjectJoinJoinRemoveRule.INSTANCE)
+        .build();
+    final String sql = "SELECT e1.deptno, d.deptno\n"
+        + "FROM sales.emp e1\n"
+        + "LEFT JOIN sales.emp e2 ON e1.deptno = e2.deptno\n"
+        + "LEFT JOIN sales.dept d ON e1.deptno = d.deptno";
+    checkPlanUnchanged(new HepPlanner(program), sql);
+  }
+
+  /** Similar to {@link #testAggregateJoinRemove1()};
+   * Should remove the left join since the join key of the right input is
+   * unique. */
+  @Test public void testProjectJoinRemove4() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ProjectJoinRemoveRule.INSTANCE)
+        .build();
+    final String sql = "SELECT e.deptno\n"
+        + "FROM sales.emp e\n"
+        + "LEFT JOIN sales.dept d ON e.deptno = d.deptno";
+    checkPlanning(new HepPlanner(program), sql);
+  }
+
+  /** Similar to {@link #testAggregateJoinRemove1()};
+   * Should not remove the left join since the join key of the right input is
+   * not unique. */
+  @Test public void testProjectJoinRemove5() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ProjectJoinRemoveRule.INSTANCE)
+        .build();
+    final String sql = "SELECT e1.deptno\n"
+        + "FROM sales.emp e1\n"
+        + "LEFT JOIN sales.emp e2 ON e1.deptno = e2.deptno";
+    checkPlanUnchanged(new HepPlanner(program), sql);
+  }
+
+  /** Similar to {@link #testAggregateJoinRemove1()};
+   * Should not remove the left join since the project use columns in the right
+   * input of the join. */
+  @Test public void testProjectJoinRemove6() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ProjectJoinRemoveRule.INSTANCE)
+        .build();
+    final String sql = "SELECT e.deptno, d.name\n"
+        + "FROM sales.emp e\n"
+        + "LEFT JOIN sales.dept d ON e.deptno = d.deptno";
+    checkPlanUnchanged(new HepPlanner(program), sql);
+  }
+
+  /** Similar to {@link #testAggregateJoinRemove1()};
+   * Should remove the right join since the join key of the left input is
+   * unique. */
+  @Test public void testProjectJoinRemove7() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ProjectJoinRemoveRule.INSTANCE)
+        .build();
+    final String sql = "SELECT e.deptno\n"
+        + "FROM sales.dept d\n"
+        + "RIGHT JOIN sales.emp e ON e.deptno = d.deptno";
+    checkPlanning(new HepPlanner(program), sql);
+  }
+
+  /** Similar to {@link #testAggregateJoinRemove1()};
+   * Should not remove the right join since the join key of the left input is
+   * not unique. */
+  @Test public void testProjectJoinRemove8() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ProjectJoinRemoveRule.INSTANCE)
+        .build();
+    final String sql = "SELECT e2.deptno\n"
+        + "FROM sales.emp e1\n"
+        + "RIGHT JOIN sales.emp e2 ON e1.deptno = e2.deptno";
+    checkPlanUnchanged(new HepPlanner(program), sql);
+  }
+
+  /** Similar to {@link #testAggregateJoinRemove1()};
+   * Should not remove the right join since the project uses columns in the
+   * left input of the join. */
+  @Test public void testProjectJoinRemove9() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ProjectJoinRemoveRule.INSTANCE)
+        .build();
+    final String sql = "SELECT e.deptno, d.name\n"
+        + "FROM sales.dept d\n"
+        + "RIGHT JOIN sales.emp e ON e.deptno = d.deptno";
+    checkPlanUnchanged(new HepPlanner(program), sql);
+  }
+
   @Test public void testSwapOuterJoin() {
     final HepProgram program = new HepProgramBuilder()
         .addMatchLimit(1)
@@ -4359,7 +4626,6 @@ public class RelOptRulesTest extends RelOptTestBase {
         "select 1 from sales.dept d left outer join sales.emp e"
             + " on d.deptno = e.deptno");
   }
-
 
   @Test public void testPushJoinCondDownToProject() {
     final HepProgram program = new HepProgramBuilder()
