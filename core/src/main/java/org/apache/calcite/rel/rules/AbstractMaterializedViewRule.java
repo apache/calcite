@@ -72,9 +72,6 @@ import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 import org.apache.calcite.util.trace.CalciteLogger;
 
-import org.apache.commons.lang3.tuple.ImmutableTriple;
-import org.apache.commons.lang3.tuple.Triple;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.BiMap;
@@ -240,13 +237,12 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
           simplify.simplifyUnknownAsFalse(
               RexUtil.composeConjunction(rexBuilder,
                   queryPredicateList.pulledUpPredicates));
-      final Triple<RexNode, RexNode, RexNode> queryPreds =
-          splitPredicates(rexBuilder, pred);
+      final Pair<RexNode, RexNode> queryPreds = splitPredicates(rexBuilder, pred);
 
       // Extract query equivalence classes. An equivalence class is a set
       // of columns in the query output that are known to be equal.
       final EquivalenceClasses qEC = new EquivalenceClasses();
-      for (RexNode conj : RelOptUtil.conjunctions(queryPreds.getLeft())) {
+      for (RexNode conj : RelOptUtil.conjunctions(queryPreds.left)) {
         assert conj.isA(SqlKind.EQUALS);
         RexCall equiCond = (RexCall) conj;
         qEC.addEquivalenceClass(
@@ -308,8 +304,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         final RexNode viewPred = simplify.simplifyUnknownAsFalse(
             RexUtil.composeConjunction(rexBuilder,
                 viewPredicateList.pulledUpPredicates));
-        final Triple<RexNode, RexNode, RexNode> viewPreds =
-            splitPredicates(rexBuilder, viewPred);
+        final Pair<RexNode, RexNode> viewPreds = splitPredicates(rexBuilder, viewPred);
 
         // Extract view tables
         MatchModality matchModality;
@@ -324,7 +319,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
           if (viewTableRefs.containsAll(queryTableRefs)) {
             matchModality = MatchModality.QUERY_PARTIAL;
             final EquivalenceClasses vEC = new EquivalenceClasses();
-            for (RexNode conj : RelOptUtil.conjunctions(viewPreds.getLeft())) {
+            for (RexNode conj : RelOptUtil.conjunctions(viewPreds.left)) {
               assert conj.isA(SqlKind.EQUALS);
               RexCall equiCond = (RexCall) conj;
               vEC.addEquivalenceClass(
@@ -405,7 +400,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
           // First, to establish relationship, we swap column references of the view
           // predicates to point to query tables and compute equivalence classes.
           final RexNode viewColumnsEquiPred = RexUtil.swapTableReferences(
-              rexBuilder, viewPreds.getLeft(), queryToViewTableMapping.inverse());
+              rexBuilder, viewPreds.left, queryToViewTableMapping.inverse());
           final EquivalenceClasses queryBasedVEC = new EquivalenceClasses();
           for (RexNode conj : RelOptUtil.conjunctions(viewColumnsEquiPred)) {
             assert conj.isA(SqlKind.EQUALS);
@@ -414,7 +409,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                 (RexTableInputRef) equiCond.getOperands().get(0),
                 (RexTableInputRef) equiCond.getOperands().get(1));
           }
-          Triple<RexNode, RexNode, RexNode> compensationPreds =
+          Pair<RexNode, RexNode> compensationPreds =
               computeCompensationPredicates(rexBuilder, simplify,
                   currQEC, queryPreds, queryBasedVEC, viewPreds,
                   queryToViewTableMapping);
@@ -430,11 +425,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               // This was our last chance to use the view, skip it
               continue;
             }
-            RexNode compensationColumnsEquiPred = compensationPreds.getLeft();
-            RexNode otherCompensationPred =
-                RexUtil.composeConjunction(rexBuilder,
-                    ImmutableList.of(compensationPreds.getMiddle(),
-                        compensationPreds.getRight()));
+            RexNode compensationColumnsEquiPred = compensationPreds.left;
+            RexNode otherCompensationPred = compensationPreds.right;
             assert !compensationColumnsEquiPred.isAlwaysTrue()
                 || !otherCompensationPred.isAlwaysTrue();
 
@@ -468,11 +460,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             }
             call.transformTo(result);
           } else if (compensationPreds != null) {
-            RexNode compensationColumnsEquiPred = compensationPreds.getLeft();
-            RexNode otherCompensationPred =
-                RexUtil.composeConjunction(rexBuilder,
-                    ImmutableList.of(compensationPreds.getMiddle(),
-                        compensationPreds.getRight()));
+            RexNode compensationColumnsEquiPred = compensationPreds.left;
+            RexNode otherCompensationPred = compensationPreds.right;
 
             // a. Compute final compensation predicate.
             if (!compensationColumnsEquiPred.isAlwaysTrue()
@@ -1895,24 +1884,20 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
   }
 
   /**
-   * Classifies each of the predicates in the list into one of these three
+   * Classifies each of the predicates in the list into one of these two
    * categories:
    *
    * <ul>
    * <li> 1-l) column equality predicates, or
-   * <li> 2-m) range predicates, comprising &lt;, &le;, &gt;, &ge;, and =
-   *      between a reference and a constant, or
-   * <li> 3-r) residual predicates, all the rest
+   * <li> 2-r) residual predicates, all the rest
    * </ul>
    *
    * <p>For each category, it creates the conjunction of the predicates. The
-   * result is an array of three RexNode objects corresponding to each
-   * category.
+   * result is an pair of RexNode objects corresponding to each category.
    */
-  private static Triple<RexNode, RexNode, RexNode> splitPredicates(
+  private static Pair<RexNode, RexNode> splitPredicates(
       RexBuilder rexBuilder, RexNode pred) {
     List<RexNode> equiColumnsPreds = new ArrayList<>();
-    List<RexNode> rangePreds = new ArrayList<>();
     List<RexNode> residualPreds = new ArrayList<>();
     for (RexNode e : RelOptUtil.conjunctions(pred)) {
       switch (e.getKind()) {
@@ -1921,26 +1906,6 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         if (RexUtil.isReferenceOrAccess(eqCall.getOperands().get(0), false)
                 && RexUtil.isReferenceOrAccess(eqCall.getOperands().get(1), false)) {
           equiColumnsPreds.add(e);
-        } else if ((RexUtil.isReferenceOrAccess(eqCall.getOperands().get(0), false)
-                && RexUtil.isConstant(eqCall.getOperands().get(1)))
-            || (RexUtil.isReferenceOrAccess(eqCall.getOperands().get(1), false)
-                && RexUtil.isConstant(eqCall.getOperands().get(0)))) {
-          rangePreds.add(e);
-        } else {
-          residualPreds.add(e);
-        }
-        break;
-      case LESS_THAN:
-      case GREATER_THAN:
-      case LESS_THAN_OR_EQUAL:
-      case GREATER_THAN_OR_EQUAL:
-      case NOT_EQUALS:
-        RexCall rangeCall = (RexCall) e;
-        if ((RexUtil.isReferenceOrAccess(rangeCall.getOperands().get(0), false)
-                && RexUtil.isConstant(rangeCall.getOperands().get(1)))
-            || (RexUtil.isReferenceOrAccess(rangeCall.getOperands().get(1), false)
-                && RexUtil.isConstant(rangeCall.getOperands().get(0)))) {
-          rangePreds.add(e);
         } else {
           residualPreds.add(e);
         }
@@ -1949,9 +1914,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         residualPreds.add(e);
       }
     }
-    return ImmutableTriple.of(
+    return Pair.of(
         RexUtil.composeConjunction(rexBuilder, equiColumnsPreds),
-        RexUtil.composeConjunction(rexBuilder, rangePreds),
         RexUtil.composeConjunction(rexBuilder, residualPreds));
   }
 
@@ -2078,17 +2042,16 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
    *
    * <p>In turn, if containment cannot be confirmed, the method returns null.
    */
-  private static Triple<RexNode, RexNode, RexNode> computeCompensationPredicates(
+  private static Pair<RexNode, RexNode> computeCompensationPredicates(
       RexBuilder rexBuilder,
       RexSimplify simplify,
       EquivalenceClasses sourceEC,
-      Triple<RexNode, RexNode, RexNode> sourcePreds,
+      Pair<RexNode, RexNode> sourcePreds,
       EquivalenceClasses targetEC,
-      Triple<RexNode, RexNode, RexNode> targetPreds,
+      Pair<RexNode, RexNode> targetPreds,
       BiMap<RelTableRef, RelTableRef> sourceToTargetTableMapping) {
     final RexNode compensationColumnsEquiPred;
-    final RexNode compensationRangePred;
-    final RexNode compensationResidualPred;
+    final RexNode compensationPred;
 
     // 1. Establish relationship between source and target equivalence classes.
     // If every target equivalence class is not a subset of a source
@@ -2100,37 +2063,21 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       return null;
     }
 
-    // 2. We check that range intervals for the source are contained in the target.
+    // 2. We check that that residual predicates of the source are satisfied within the target.
     // Compute compensating predicates.
-    final RexNode queryRangePred = RexUtil.swapColumnReferences(
-        rexBuilder, sourcePreds.getMiddle(), sourceEC.getEquivalenceClassesMap());
-    final RexNode viewRangePred = RexUtil.swapTableColumnReferences(
-        rexBuilder, targetPreds.getMiddle(), sourceToTargetTableMapping.inverse(),
+    final RexNode queryPred = RexUtil.swapColumnReferences(
+        rexBuilder, sourcePreds.right, sourceEC.getEquivalenceClassesMap());
+    final RexNode viewPred = RexUtil.swapTableColumnReferences(
+        rexBuilder, targetPreds.right, sourceToTargetTableMapping.inverse(),
         sourceEC.getEquivalenceClassesMap());
-    compensationRangePred = SubstitutionVisitor.splitFilter(
-        simplify, queryRangePred, viewRangePred);
-    if (compensationRangePred == null) {
+    compensationPred = SubstitutionVisitor.splitFilter(
+        simplify, queryPred, viewPred);
+    if (compensationPred == null) {
       // Cannot rewrite
       return null;
     }
 
-    // 3. Finally, we check that residual predicates of the source are satisfied
-    // within the target.
-    // Compute compensating predicates.
-    final RexNode queryResidualPred = RexUtil.swapColumnReferences(
-        rexBuilder, sourcePreds.getRight(), sourceEC.getEquivalenceClassesMap());
-    final RexNode viewResidualPred = RexUtil.swapTableColumnReferences(
-        rexBuilder, targetPreds.getRight(), sourceToTargetTableMapping.inverse(),
-        sourceEC.getEquivalenceClassesMap());
-    compensationResidualPred = SubstitutionVisitor.splitFilter(
-        simplify, queryResidualPred, viewResidualPred);
-    if (compensationResidualPred == null) {
-      // Cannot rewrite
-      return null;
-    }
-
-    return ImmutableTriple.of(compensationColumnsEquiPred,
-        compensationRangePred, compensationResidualPred);
+    return Pair.of(compensationColumnsEquiPred, compensationPred);
   }
 
   /**
