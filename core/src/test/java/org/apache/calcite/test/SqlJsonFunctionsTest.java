@@ -430,7 +430,7 @@ public class SqlJsonFunctionsTest {
       private final Object self = this;
     };
     CalciteException expected = new CalciteException(
-        "Cannot serialize object to JSON, and the object is: '" + input + "'", null);
+        "Cannot serialize object to JSON: '" + input + "'", null);
     assertJsonPrettyFailed(
         JsonFunctions.JsonValueContext.withJavaObj(input), errorMatches(expected));
   }
@@ -529,6 +529,18 @@ public class SqlJsonFunctionsTest {
         JsonFunctions.JsonPathContext
             .withJavaObj(JsonFunctions.PathMode.LAX, "bar"),
         is("null"));
+  }
+
+  @Test
+  public void testJsonRemove() {
+    assertJsonRemove(
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new String[]{"$.a"},
+        is("{\"b\":[2]}"));
+    assertJsonRemove(
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new String[]{"$.a", "$.b"},
+        is("{}"));
   }
 
   @Test
@@ -734,6 +746,13 @@ public class SqlJsonFunctionsTest {
     assertFailed(invocationDesc(BuiltInMethod.JSON_KEYS.getMethodName(), input),
         () -> JsonFunctions.jsonKeys(input),
         matcher);
+  }
+
+  private void assertJsonRemove(JsonFunctions.JsonValueContext input, String[] pathSpecs,
+      Matcher<? super String> matcher) {
+    assertThat(invocationDesc(BuiltInMethod.JSON_REMOVE.getMethodName(), input, pathSpecs),
+             JsonFunctions.jsonRemove(input, pathSpecs),
+             matcher);
   }
 
   private void assertDejsonize(String input,
