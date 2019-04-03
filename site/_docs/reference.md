@@ -573,6 +573,7 @@ JSON_LENGTH,
 **JSON_OBJECTAGG**,
 JSON_PRETTY,
 **JSON_QUERY**,
+JSON_REMOVE,
 JSON_TYPE,
 **JSON_VALUE**,
 K,
@@ -2054,6 +2055,7 @@ Note:
 | JSON_PRETTY(jsonValue)            | Returns a pretty-printing of *jsonValue*
 | JSON_LENGTH(jsonValue [, path ])  | Returns a integer indicating the length of *jsonValue*
 | JSON_KEYS(jsonValue [, path ])    | Returns a string indicating the keys of a JSON *jsonValue*
+| JSON_REMOVE(jsonValue, path[, path])  | Returns a JSON document by remove a data of *path*
 
 Note:
 
@@ -2157,12 +2159,27 @@ LIMIT 10;
 | ---------- | ---- | ----- | ---- | ---- |
 | ["a", "b"] | NULL | ["c"] | NULL | NULL |
 
+##### JSON_REMOVE example
+
+SQL
+
+ ```SQL
+SELECT JSON_REMOVE(v, '$[1]') AS c1
+FROM (VALUES ('["a", ["b", "c"], "d"]')) AS t(v)
+LIMIT 10;
+```
+
+ Result
+
+| c1         |
+| ---------- | 
+| ["a", "d"] |
+
 Not implemented:
 
 * JSON_INSERT
 * JSON_SET
 * JSON_REPLACE
-* JSON_REMOVE
 
 ## User-defined functions
 

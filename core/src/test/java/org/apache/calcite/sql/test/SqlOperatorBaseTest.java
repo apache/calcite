@@ -4643,6 +4643,21 @@ public abstract class SqlOperatorBaseTest {
             "(?s).*No results for path.*", true);
   }
 
+  @Test public void testJsonRemove() {
+    tester.checkString("json_remove('{\"foo\":100}', '$.foo')",
+            "{}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_remove('{\"foo\":100, \"foo1\":100}', '$.foo')",
+            "{\"foo1\":100}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_remove('[\"a\", [\"b\", \"c\"], \"d\"]', '$[1][0]')",
+            "[\"a\",[\"c\"],\"d\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_remove('[\"a\", [\"b\", \"c\"], \"d\"]', '$[1]')",
+            "[\"a\",\"d\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_remove('[\"a\", [\"b\", \"c\"], \"d\"]', '$[0]', '$[0]')",
+            "[\"d\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkFails("json_remove('[\"a\", [\"b\", \"c\"], \"d\"]', '$')",
+            "(?s).*Invalid input for.*", true);
+  }
+
   @Test public void testJsonObjectAgg() {
     checkAggType(tester, "json_objectagg('foo': 'bar')", "VARCHAR(2000) NOT NULL");
     tester.checkFails("^json_objectagg(100: 'bar')^",

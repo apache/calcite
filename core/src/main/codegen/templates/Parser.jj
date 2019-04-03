@@ -4873,6 +4873,8 @@ SqlNode BuiltinFunctionCall() :
         node = JsonArrayFunctionCall() { return node; }
     |
         node = JsonArrayAggFunctionCall() { return node; }
+    |
+        node = JsonRemoveFunctionCall() { return node; }
     )
 }
 
@@ -5376,6 +5378,32 @@ SqlCall JsonLengthFunctionCall() :
     }
     <RPAREN> {
         return SqlStdOperatorTable.JSON_LENGTH.createCall(span.end(this), args);
+    }
+}
+
+SqlCall JsonRemoveFunctionCall() :
+{
+    final List<SqlNode> pathExprs = new ArrayList<SqlNode>();
+    final SqlNode[] jsonDoc = new SqlNode[1];
+    SqlNode e;
+    final Span span;
+}
+{
+    <JSON_REMOVE> { span = span(); }
+    <LPAREN> e = JsonValueExpression(true) {
+        jsonDoc[0] = e;
+     }
+     (
+         <COMMA>
+         e = Expression(ExprContext.ACCEPT_NON_QUERY) {
+             pathExprs.add(e);
+         }
+     )*
+    <RPAREN> {
+        final List<SqlNode> args = new ArrayList();
+        args.addAll(Arrays.asList(jsonDoc));
+        args.addAll(pathExprs);
+        return SqlStdOperatorTable.JSON_REMOVE.createCall(span.end(this), args);
     }
 }
 
@@ -6480,6 +6508,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < JSON_OBJECTAGG: "JSON_OBJECTAGG">
 |   < JSON_PRETTY: "JSON_PRETTY" >
 |   < JSON_QUERY: "JSON_QUERY" >
+|   < JSON_REMOVE: "JSON_REMOVE" >
 |   < JSON_TYPE: "JSON_TYPE">
 |   < JSON_VALUE: "JSON_VALUE" >
 |   < K: "K" >

@@ -2869,6 +2869,27 @@ public class SqlFunctions {
     return jsonize(list);
   }
 
+  public static String jsonRemove(Object jsonDoc, Object... jsonPaths) {
+    try {
+      DocumentContext ctx = JsonPath.parse(jsonDoc,
+          Configuration
+              .builder()
+              .options(Option.SUPPRESS_EXCEPTIONS)
+              .jsonProvider(JSON_PATH_JSON_PROVIDER)
+              .mappingProvider(JSON_PATH_MAPPING_PROVIDER)
+              .build());
+      for (Object jsonPath : jsonPaths) {
+        if ((jsonPath != null) && (ctx.read(jsonPath.toString()) != null)) {
+          ctx.delete(jsonPath.toString());
+        }
+      }
+      return ctx.jsonString();
+    } catch (Exception ex) {
+      throw RESOURCE.invalidInputForJsonRemove(
+                  jsonDoc.toString(), jsonize(jsonPaths)).ex();
+    }
+  }
+
   public static boolean isJsonPathContext(Object input) {
     try {
       PathContext context = (PathContext) input;

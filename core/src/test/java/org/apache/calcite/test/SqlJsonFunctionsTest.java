@@ -534,6 +534,18 @@ public class SqlJsonFunctionsTest {
   }
 
   @Test
+  public void testJsonRemove() {
+    assertJsonRemove(
+        SqlFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new Object[]{"$.a"},
+        is("{\"b\":[2]}"));
+    assertJsonRemove(
+        SqlFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new Object[]{"$.a", "$.b"},
+        is("{}"));
+  }
+
+  @Test
   public void testJsonObjectAggAdd() {
     Map<String, Object> map = new HashMap<>();
     Map<String, Object> expected = new HashMap<>();
@@ -735,6 +747,13 @@ public class SqlJsonFunctionsTest {
     assertFailed(invocationDesc(BuiltInMethod.JSON_KEYS.getMethodName(), input),
         () -> SqlFunctions.jsonKeys(input),
         matcher);
+  }
+
+  private void assertJsonRemove(Object jsonDoc, Object[] elems,
+      Matcher<? super String> matcher) {
+    assertThat(invocationDesc(BuiltInMethod.JSON_REMOVE.getMethodName(), jsonDoc, elems),
+             SqlFunctions.jsonRemove(jsonDoc, elems),
+             matcher);
   }
 
   private void assertDejsonize(String input,

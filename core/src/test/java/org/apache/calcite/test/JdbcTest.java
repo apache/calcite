@@ -6876,6 +6876,14 @@ public class JdbcTest {
         .returns("C1=[\"a\",\"b\"]; C2=null; C3=[\"c\"]; C4=null; C5=null\n");
   }
 
+  @Test public void testJsonRemove() {
+    CalciteAssert.that()
+        .query("SELECT JSON_REMOVE(v, '$[1]') AS c1\n"
+            + "FROM (VALUES ('[\"a\", [\"b\", \"c\"], \"d\"]')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1=[\"a\",\"d\"]\n");
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2609">[CALCITE-2609]

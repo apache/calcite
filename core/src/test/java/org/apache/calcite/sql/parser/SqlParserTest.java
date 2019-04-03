@@ -8481,6 +8481,13 @@ public class SqlParserTest {
             "JSON_KEYS('{\"foo\": \"bar\"}' FORMAT JSON, 'invalid $')");
   }
 
+  @Test public void testJsonRemove() {
+    checkExp("json_remove('[\"a\", [\"b\", \"c\"], \"d\"]', '$')",
+            "JSON_REMOVE('[\"a\", [\"b\", \"c\"], \"d\"]' FORMAT JSON, '$')");
+    checkExp("json_remove('[\"a\", [\"b\", \"c\"], \"d\"]', '$[1]', '$[0]')",
+            "JSON_REMOVE('[\"a\", [\"b\", \"c\"], \"d\"]' FORMAT JSON, '$[1]', '$[0]')");
+  }
+
   @Test public void testJsonObjectAgg() {
     checkExp("json_objectagg(k_column: v_column)",
         "JSON_OBJECTAGG(KEY `K_COLUMN` VALUE `V_COLUMN` NULL ON NULL)");

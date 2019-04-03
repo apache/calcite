@@ -882,6 +882,9 @@ public interface CalciteResource {
 
   @BaseMessage("Not a valid input for JSON_KEYS: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonKeys(String value);
+
+  @BaseMessage("Invalid input for JSON_REMOVE: jsonDoc: ''{0}'', jsonPaths: ''{1}''")
+  ExInst<CalciteException> invalidInputForJsonRemove(String jsonDoc, String jsonPaths);
 }
 
 // End CalciteResource.java
