@@ -227,6 +227,16 @@ public class SqlToRelConverter {
    * static table. */
   public static final int DEFAULT_IN_SUB_QUERY_THRESHOLD = 20;
 
+  public static final SqlToRelConverterFactory FACTORY = new SqlToRelConverterFactory() {
+    @Override public SqlToRelConverter create(
+        RelOptTable.ViewExpander viewExpander1, SqlValidator validator1,
+        Prepare.CatalogReader catalogReader1, RelOptCluster cluster1,
+        SqlRexConvertletTable convertletTable, Config config1) {
+      return new SqlToRelConverter(viewExpander1, validator1, catalogReader1,
+          cluster1, convertletTable, config1);
+    }
+  };
+
   @Deprecated // to be removed before 2.0
   public static final int DEFAULT_IN_SUBQUERY_THRESHOLD =
       DEFAULT_IN_SUB_QUERY_THRESHOLD;

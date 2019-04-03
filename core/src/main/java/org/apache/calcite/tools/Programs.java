@@ -19,12 +19,12 @@ package org.apache.calcite.tools;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.interpreter.NoneToBindableConverterRule;
 import org.apache.calcite.plan.RelOptCostImpl;
 import org.apache.calcite.plan.RelOptLattice;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRules;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.hep.HepMatchOrder;
@@ -40,22 +40,17 @@ import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
 import org.apache.calcite.rel.rules.AggregateStarTableRule;
-import org.apache.calcite.rel.rules.CalcMergeRule;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
-import org.apache.calcite.rel.rules.FilterCalcMergeRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.FilterTableScanRule;
-import org.apache.calcite.rel.rules.FilterToCalcRule;
 import org.apache.calcite.rel.rules.JoinAssociateRule;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
 import org.apache.calcite.rel.rules.JoinToMultiJoinRule;
 import org.apache.calcite.rel.rules.LoptOptimizeJoinRule;
 import org.apache.calcite.rel.rules.MultiJoinOptimizeBushyRule;
-import org.apache.calcite.rel.rules.ProjectCalcMergeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
-import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.rel.rules.SemiJoinRule;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.SubQueryRemoveRule;
@@ -76,24 +71,8 @@ import java.util.List;
  * Utilities for creating {@link Program}s.
  */
 public class Programs {
-  public static final ImmutableList<RelOptRule> CALC_RULES =
-      ImmutableList.of(
-          NoneToBindableConverterRule.INSTANCE,
-          EnumerableRules.ENUMERABLE_CALC_RULE,
-          EnumerableRules.ENUMERABLE_FILTER_TO_CALC_RULE,
-          EnumerableRules.ENUMERABLE_PROJECT_TO_CALC_RULE,
-          CalcMergeRule.INSTANCE,
-          FilterCalcMergeRule.INSTANCE,
-          ProjectCalcMergeRule.INSTANCE,
-          FilterToCalcRule.INSTANCE,
-          ProjectToCalcRule.INSTANCE,
-          CalcMergeRule.INSTANCE,
-
-          // REVIEW jvs 9-Apr-2006: Do we still need these two?  Doesn't the
-          // combination of CalcMergeRule, FilterToCalcRule, and
-          // ProjectToCalcRule have the same effect?
-          FilterCalcMergeRule.INSTANCE,
-          ProjectCalcMergeRule.INSTANCE);
+  @Deprecated // to be removed before 2.0
+  public static final ImmutableList<RelOptRule> CALC_RULES = RelOptRules.CALC_RULES;
 
   /** Program that converts filters and projects to {@link Calc}s. */
   public static final Program CALC_PROGRAM =
@@ -255,7 +234,7 @@ public class Programs {
   }
 
   public static Program calc(RelMetadataProvider metadataProvider) {
-    return hep(CALC_RULES, true, metadataProvider);
+    return hep(RelOptRules.CALC_RULES, true, metadataProvider);
   }
 
   @Deprecated // to be removed before 2.0

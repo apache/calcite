@@ -21,6 +21,7 @@ import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.MapSqlStatisticProvider;
 import org.apache.calcite.materialize.SqlStatisticProvider;
 import org.apache.calcite.plan.Context;
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptSchema;
@@ -210,6 +211,7 @@ public class Frameworks {
       convertletTable = StandardConvertletTable.INSTANCE;
       operatorTable = SqlStdOperatorTable.instance();
       programs = ImmutableList.of();
+      context = Contexts.empty();
       parserConfig = SqlParser.Config.DEFAULT;
       sqlToRelConverterConfig = SqlToRelConverter.Config.DEFAULT;
       typeSystem = RelDataTypeSystem.DEFAULT;

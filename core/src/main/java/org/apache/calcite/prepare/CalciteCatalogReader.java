@@ -82,6 +82,16 @@ import java.util.function.Predicate;
  * functions defined schemas.
  */
 public class CalciteCatalogReader implements Prepare.CatalogReader {
+
+  public static final CatalogReaderFactory FACTORY = new CatalogReaderFactory() {
+    @Override public Prepare.CatalogReader create(CalciteSchema rootSchema,
+        List<String> defaultSchema, RelDataTypeFactory typeFactory,
+        CalciteConnectionConfig config1) {
+      return new CalciteCatalogReader(rootSchema, defaultSchema,
+          typeFactory, config1);
+    }
+  };
+
   protected final CalciteSchema rootSchema;
   protected final RelDataTypeFactory typeFactory;
   private final List<List<String>> schemaPaths;
