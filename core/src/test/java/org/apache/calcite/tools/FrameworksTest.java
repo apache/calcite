@@ -19,11 +19,14 @@ package org.apache.calcite.tools;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptAbstractTable;
 import org.apache.calcite.plan.RelOptCluster;
@@ -34,9 +37,13 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.volcano.AbstractConverter;
+import org.apache.calcite.prepare.CalciteCatalogReader;
+import org.apache.calcite.prepare.CatalogReaderFactory;
 import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalTableModify;
@@ -61,11 +68,20 @@ import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlNameMatcher;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorFactory;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.sql2rel.SqlRexConvertletTable;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.sql2rel.SqlToRelConverterFactory;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
@@ -73,6 +89,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.lang.reflect.Type;
@@ -191,6 +208,146 @@ public class FrameworksTest {
             return null;
           }
         });
+  }
+
+  @Test public void testDefaultRules() throws Exception {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    rootSchema.add("MYTABLE", new TableImpl());
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(rootSchema)
+        .programs((Program) (planner, rel, requiredOutputTraits, materializations,
+            lattices) -> {
+          planner.setRoot(
+              planner.changeTraits(rel, requiredOutputTraits));
+          return planner.findBestExp();
+        })
+        .build();
+    final Planner planner = Frameworks.getPlanner(config);
+    SqlNode parsed = planner.parse("select \"id\", \"name\" from mytable");
+    SqlNode validated = planner.validate(parsed);
+    RelRoot rel = planner.rel(validated);
+    RelTraitSet traitSet = RelTraitSet.createEmpty();
+    traitSet = traitSet.plus(EnumerableConvention.INSTANCE);
+    traitSet = traitSet.plus(RelCollations.EMPTY);
+    RelNode best = planner.transform(0, traitSet, rel.rel);
+    Assert.assertThat(Util.toLinux(RelOptUtil.toString(best)),
+        equalTo("EnumerableTableScan(table=[[MYTABLE]])\n"));
+  }
+
+  @Test public void testDefaultRulesOverridden() throws Exception {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    rootSchema.add("MYTABLE", new TableImpl());
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(rootSchema)
+        .programs(Programs.ofRules()) // override default rules
+        .build();
+    final Planner planner = Frameworks.getPlanner(config);
+    SqlNode parsed = planner.parse("select \"id\", \"name\" from mytable");
+    SqlNode validated = planner.validate(parsed);
+    RelRoot rel = planner.rel(validated);
+    RelTraitSet traitSet = RelTraitSet.createEmpty();
+    traitSet = traitSet.plus(EnumerableConvention.INSTANCE);
+    traitSet = traitSet.plus(RelCollations.EMPTY);
+    try {
+      planner.transform(0, traitSet, rel.rel);
+      Assert.fail("default rules are disabled, but successfully planned");
+    } catch (RelOptPlanner.CannotPlanException e) {
+      // should fail
+    }
+  }
+
+  @Test public void testValidatorFactory() throws Exception {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    rootSchema.add("MYTABLE", new TableImpl());
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(rootSchema)
+        .programs(Programs.ofRules())
+        .context(
+            Contexts.of(new SqlValidatorFactory() {
+              @Override public SqlValidatorImpl create(SqlOperatorTable opTab,
+                  Prepare.CatalogReader catalogReader, RelDataTypeFactory typeFactory,
+                  SqlConformance conformance) {
+                return new SqlValidatorImpl(opTab, catalogReader, typeFactory, conformance) {
+                  @Override public SqlNode validate(SqlNode topNode) {
+                    // fails immediately for testing
+                    throw new FailsImmediately();
+                  }
+                };
+              }
+            }))
+        .build();
+    final Planner planner = Frameworks.getPlanner(config);
+    SqlNode parsed = planner.parse("select \"id\", \"name\" from mytable");
+    try {
+      planner.validate(parsed);
+      Assert.fail("validation should fail, but succeed");
+    } catch (FailsImmediately e) {
+      // should fail
+    }
+  }
+
+  @Test public void testSqlToRelConverterFactory() throws Exception {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    rootSchema.add("MYTABLE", new TableImpl());
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(rootSchema)
+        .programs(Programs.ofRules())
+        .context(
+            Contexts.of(new SqlToRelConverterFactory() {
+              @Override public SqlToRelConverter create(RelOptTable.ViewExpander viewExpander,
+                  SqlValidator validator, Prepare.CatalogReader catalogReader,
+                  RelOptCluster cluster, SqlRexConvertletTable convertletTable,
+                  SqlToRelConverter.Config config) {
+                return new SqlToRelConverter(viewExpander, validator, catalogReader, cluster,
+                    convertletTable, config) {
+                  @Override public RelRoot convertQuery(SqlNode query, boolean needsValidation,
+                      boolean top) {
+                    // fails immediately for testing
+                    throw new FailsImmediately();
+                  }
+                };
+              }
+            }))
+        .build();
+    final Planner planner = Frameworks.getPlanner(config);
+    SqlNode parsed = planner.parse("select \"id\", \"name\" from mytable");
+    SqlNode validated = planner.validate(parsed);
+    try {
+      planner.rel(validated);
+      Assert.fail("sql-to-rel should fail, but succeed");
+    } catch (FailsImmediately e) {
+      // should fail
+    }
+  }
+
+  @Test public void testCatalogReaderFactory() throws Exception {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    rootSchema.add("MYTABLE", new TableImpl());
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(rootSchema)
+        .programs(Programs.ofRules())
+        .context(
+            Contexts.of(new CatalogReaderFactory() {
+              @Override public Prepare.CatalogReader create(CalciteSchema rootSchema,
+                  List<String> defaultSchema, RelDataTypeFactory typeFactory,
+                  CalciteConnectionConfig config) {
+                return new CalciteCatalogReader(rootSchema, defaultSchema, typeFactory, config) {
+                  @Override public SqlNameMatcher nameMatcher() {
+                    // fails immediately for testing
+                    throw new FailsImmediately();
+                  }
+                };
+              }
+            }))
+        .build();
+    final Planner planner = Frameworks.getPlanner(config);
+    SqlNode parsed = planner.parse("select \"id\", \"name\" from mytable2");
+    try {
+      planner.validate(parsed);
+      Assert.fail("validation should fail on calling catalog reader, but succeed");
+    } catch (FailsImmediately e) {
+      // should fail
+    }
   }
 
   /** Tests that the validator expands identifiers by default.
@@ -434,6 +591,13 @@ public class FrameworksTest {
       assert super.getMaxNumericPrecision() == 19;
       return 38;
     }
+  }
+
+  /**
+   * A fake error for testing custom factories.
+   */
+  private static class FailsImmediately extends Error {
+
   }
 }
 
