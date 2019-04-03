@@ -291,6 +291,7 @@ public enum BuiltInMethod {
   JSON_KEYS(JsonFunctions.class, "jsonKeys", String.class),
   JSON_PRETTY(JsonFunctions.class, "jsonPretty", String.class),
   JSON_LENGTH(JsonFunctions.class, "jsonLength", String.class),
+  JSON_REMOVE(JsonFunctions.class, "jsonRemove", String.class),
   JSON_OBJECTAGG_ADD(JsonFunctions.class, "jsonObjectAggAdd", Map.class,
       String.class, Object.class, SqlJsonConstructorNullClause.class),
   JSON_ARRAY(JsonFunctions.class, "jsonArray",

@@ -36,6 +36,7 @@ import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import com.jayway.jsonpath.spi.mapper.MappingProvider;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -603,6 +604,31 @@ public class JsonFunctions {
           context.toString()).ex();
     }
     return jsonize(list);
+  }
+
+  public static String jsonRemove(String input, String... pathSpecs) {
+    return jsonRemove(jsonValueExpression(input), pathSpecs);
+  }
+
+  public static String jsonRemove(JsonValueContext input, String... pathSpecs) {
+    try {
+      DocumentContext ctx = JsonPath.parse(input.obj,
+          Configuration
+              .builder()
+              .options(Option.SUPPRESS_EXCEPTIONS)
+              .jsonProvider(JSON_PATH_JSON_PROVIDER)
+              .mappingProvider(JSON_PATH_MAPPING_PROVIDER)
+              .build());
+      for (String pathSpec : pathSpecs) {
+        if ((pathSpec != null) && (ctx.read(pathSpec) != null)) {
+          ctx.delete(pathSpec);
+        }
+      }
+      return ctx.jsonString();
+    } catch (Exception ex) {
+      throw RESOURCE.invalidInputForJsonRemove(
+          input.toString(), Arrays.toString(pathSpecs)).ex();
+    }
   }
 
   public static boolean isJsonValue(String input) {
