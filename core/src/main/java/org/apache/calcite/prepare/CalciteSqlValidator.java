@@ -18,13 +18,33 @@ package org.apache.calcite.prepare;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlValidatorFactory;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
 /** Validator. */
 class CalciteSqlValidator extends SqlValidatorImpl {
+
+  public static final SqlValidatorFactory FACTORY = new SqlValidatorFactory() {
+        @Override public SqlValidatorImpl create(SqlOperatorTable opTab,
+            Prepare.CatalogReader catalogReader, RelDataTypeFactory typeFactory,
+            SqlConformance conformance) {
+          if (!(catalogReader instanceof CalciteCatalogReader)) {
+            throw new IllegalArgumentException(
+                "catalog reader must implement CalciteCatalogReader");
+          }
+          if (!(typeFactory instanceof JavaTypeFactory)) {
+            throw new IllegalArgumentException(
+                "typeFactory reader must implement JavaTypeFactory");
+          }
+          return new CalciteSqlValidator(opTab, (CalciteCatalogReader) catalogReader,
+              (JavaTypeFactory) typeFactory, conformance);
+        }
+      };
+
   CalciteSqlValidator(SqlOperatorTable opTab,
       CalciteCatalogReader catalogReader, JavaTypeFactory typeFactory,
       SqlConformance conformance) {
