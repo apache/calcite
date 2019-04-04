@@ -5743,7 +5743,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // make sal occur more than once on rhs, it is ignored and therefore
     // there is no error about incompatible types
     sql("select * from emp natural join\n"
-        + " (select deptno, name as sal, 'foo' as sal from dept)").ok();
+        + " (select deptno, name as sal, 'foo' as sal2 from dept)").ok();
   }
 
   @Test public void testJoinUsingIncompatibleDatatype() {
@@ -6390,7 +6390,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     // empno is not an alias in the first select in the union
     checkFails(
-        "select deptno, deptno from dept "
+        "select deptno, deptno as no2 from dept "
             + "union all "
             + "select empno, sal from emp "
             + "order by deptno asc, ^empno^",
@@ -7934,6 +7934,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("SELECT must have a FROM clause");
   }
 
+  @Test public void testSelectAmbiguousField() {
+    tester = tester.withCaseSensitive(false)
+        .withUnquotedCasing(Casing.UNCHANGED);
+    sql("select ^t0^ from (select 1 as t0, 2 as T0 from dept)")
+        .fails("Column 't0' is ambiguous");
+    sql("select ^t0^ from (select 1 as t0, 2 as t0,3 as t1,4 as t1, 5 as t2 from dept)")
+        .fails("Column 't0' is ambiguous");
+    // t0 is not referenced,so this case is allowed
+    sql("select 1 as t0, 2 as t0 from dept").ok();
+
+    tester = tester.withCaseSensitive(true)
+        .withUnquotedCasing(Casing.UNCHANGED);
+    sql("select t0 from (select 1 as t0, 2 as T0 from DEPT)").ok();
+  }
+
   @Test public void testTableExtend() {
     checkResultType("select * from dept extend (x int not null)",
         "RecordType(INTEGER NOT NULL DEPTNO, VARCHAR(10) NOT NULL NAME, INTEGER NOT NULL X) NOT NULL");
@@ -8576,19 +8591,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testCaseSensitiveBuiltinFunction() {
     final SqlTester tester1 = tester
         .withCaseSensitive(true)
+        .withUnquotedCasing(Casing.UNCHANGED)
         .withQuoting(Quoting.BRACKET);
     tester1.withOperatorTable(SqlStdOperatorTable.instance());
 
-    tester1.checkQuery("select sum(empno) from EMP group by ename, empno");
-    tester1.checkQuery("select [sum](empno) from EMP group by ename, empno");
-    tester1.checkQuery("select [SUM](empno) from EMP group by ename, empno");
-    tester1.checkQuery("select SUM(empno) from EMP group by ename, empno");
-    tester1.checkQuery("select Sum(empno) from EMP group by ename, empno");
-    tester1.checkQuery("select count(empno) from EMP group by ename, empno");
-    tester1.checkQuery("select [count](empno) from EMP group by ename, empno");
-    tester1.checkQuery("select [COUNT](empno) from EMP group by ename, empno");
-    tester1.checkQuery("select COUNT(empno) from EMP group by ename, empno");
-    tester1.checkQuery("select Count(empno) from EMP group by ename, empno");
+    tester1.checkQuery("select sum(EMPNO) from EMP group by ENAME, EMPNO");
+    tester1.checkQuery("select [sum](EMPNO) from EMP group by ENAME, EMPNO");
+    tester1.checkQuery("select [SUM](EMPNO) from EMP group by ENAME, EMPNO");
+    tester1.checkQuery("select SUM(EMPNO) from EMP group by ENAME, EMPNO");
+    tester1.checkQuery("select Sum(EMPNO) from EMP group by ENAME, EMPNO");
+    tester1.checkQuery("select count(EMPNO) from EMP group by ENAME, EMPNO");
+    tester1.checkQuery("select [count](EMPNO) from EMP group by ENAME, EMPNO");
+    tester1.checkQuery("select [COUNT](EMPNO) from EMP group by ENAME, EMPNO");
+    tester1.checkQuery("select COUNT(EMPNO) from EMP group by ENAME, EMPNO");
+    tester1.checkQuery("select Count(EMPNO) from EMP group by ENAME, EMPNO");
   }
 
   /** Test case for
@@ -9022,13 +9038,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withQuoting(Quoting.BRACKET);
     final SqlTester sensitive = tester
         .withCaseSensitive(true)
+        .withUnquotedCasing(Casing.UNCHANGED)
         .withQuoting(Quoting.BRACKET);
     String sql = "select [e] from (\n"
-        + "select empno as [e], deptno as d, 1 as [e] from EMP)";
+        + "select EMPNO as [e], DEPTNO as d, 1 as [e2] from EMP)";
     sensitive.checkQuery(sql);
     insensitive.checkQuery(sql);
-    String sql1 = "select e from (\n"
-        + "select empno as [e], deptno as d, 1 as [E] from EMP)";
+    String sql1 = "select e2 from (\n"
+        + "select EMPNO as [e2], DEPTNO as d, 1 as [E] from EMP)";
     insensitive.checkQuery(sql1);
     sensitive.checkQuery(sql1);
   }
