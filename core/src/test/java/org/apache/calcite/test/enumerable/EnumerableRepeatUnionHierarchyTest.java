@@ -22,7 +22,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.JdbcTest;
+import org.apache.calcite.test.HierarchySchema;
 import org.apache.calcite.tools.RelBuilder;
 
 import org.junit.Test;
@@ -100,7 +100,7 @@ public class EnumerableRepeatUnionHierarchyTest {
   }
 
   @Test public void testHierarchy() {
-    final Schema schema = new ReflectiveSchema(new JdbcTest.HierarchySchema());
+    final Schema schema = new ReflectiveSchema(new HierarchySchema());
     CalciteAssert.that()
         .withSchema("s", schema)
         .query("?")
