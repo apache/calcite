@@ -19,10 +19,11 @@ package org.apache.calcite.statistic;
 import org.apache.calcite.materialize.SqlStatisticProvider;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Throwables;
 import com.google.common.cache.Cache;
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -49,8 +50,9 @@ public class CachingSqlStatisticProvider implements SqlStatisticProvider {
               table.getQualifiedName());
       return (Double) cache.get(key,
           () -> provider.tableCardinality(table));
-    } catch (ExecutionException e) {
-      throw Throwables.propagate(e.getCause());
+    } catch (UncheckedExecutionException | ExecutionException e) {
+      Util.throwIfUnchecked(e.getCause());
+      throw new RuntimeException(e.getCause());
     }
   }
 
@@ -66,8 +68,9 @@ public class CachingSqlStatisticProvider implements SqlStatisticProvider {
       return (Boolean) cache.get(key,
           () -> provider.isForeignKey(fromTable, fromColumns, toTable,
               toColumns));
-    } catch (ExecutionException e) {
-      throw Throwables.propagate(e.getCause());
+    } catch (UncheckedExecutionException | ExecutionException e) {
+      Util.throwIfUnchecked(e.getCause());
+      throw new RuntimeException(e.getCause());
     }
   }
 
@@ -77,8 +80,9 @@ public class CachingSqlStatisticProvider implements SqlStatisticProvider {
           ImmutableList.of("isKey", table.getQualifiedName(),
               ImmutableIntList.copyOf(columns));
       return (Boolean) cache.get(key, () -> provider.isKey(table, columns));
-    } catch (ExecutionException e) {
-      throw Throwables.propagate(e.getCause());
+    } catch (UncheckedExecutionException | ExecutionException e) {
+      Util.throwIfUnchecked(e.getCause());
+      throw new RuntimeException(e.getCause());
     }
   }
 }

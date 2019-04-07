@@ -160,15 +160,16 @@ public class BabelParserTest extends SqlParserTest {
   }
 
   /**
-   * Babel parser's global LOOKAHEAD is larger than the core parser's, this causes different
-   * parse error message between these two parser types. Here we define a looser error checker
-   * for Babel to reuse failure testing codes from {@link SqlParserTest}.
+   * Babel parser's global {@code OOKAHEAD} is larger than the core
+   * parser's. This causes different parse error message between these two
+   * parsers. Here we define a looser error checker for Babel, so that we can
+   * reuse failure testing codes from {@link SqlParserTest}.
    *
-   * Test cases just written in this file is still checked by {@link SqlParserTest}'s checker.
+   * <p>If a test case is written in this file -- that is, not inherited -- it
+   * is still checked by {@link SqlParserTest}'s checker.
    */
   @Override protected Tester getTester() {
     return new TesterImpl() {
-
       @Override protected void checkEx(String expectedMsgPattern,
           SqlParserUtil.StringAndPos sap, Throwable thrown) {
         if (thrownByBabelTest(thrown)) {
