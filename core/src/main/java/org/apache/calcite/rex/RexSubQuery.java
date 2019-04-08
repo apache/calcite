@@ -56,10 +56,16 @@ public class RexSubQuery extends RexCall {
    * <p>There is no ALL. For {@code x comparison ALL (sub-query)} use instead
    * {@code NOT (x inverse-comparison SOME (sub-query))}.
    * If {@code comparison} is {@code >}
-   * then {@code negated-comparison} is {@code <=}, and so forth. */
+   * then {@code negated-comparison} is {@code <=}, and so forth.
+   *
+   * <p>Also =SOME is rewritten into IN</p> */
   public static RexSubQuery some(RelNode rel, ImmutableList<RexNode> nodes,
       SqlQuantifyOperator op) {
     assert op.kind == SqlKind.SOME;
+
+    if (op == SqlStdOperatorTable.SOME_EQ) {
+      return RexSubQuery.in(rel, nodes);
+    }
     final RelDataType type = type(rel, nodes);
     return new RexSubQuery(type, op, nodes, rel);
   }

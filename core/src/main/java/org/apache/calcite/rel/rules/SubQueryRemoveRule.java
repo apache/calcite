@@ -160,6 +160,9 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     //   from emp) as q
     //
     final SqlQuantifyOperator op = (SqlQuantifyOperator) e.op;
+
+    // SOME_EQ (=SOME) should have been rewritten into IN
+    assert op != SqlStdOperatorTable.SOME_EQ;
     builder.push(e.rel)
         .aggregate(builder.groupKey(),
             op.comparisonKind == SqlKind.GREATER_THAN
