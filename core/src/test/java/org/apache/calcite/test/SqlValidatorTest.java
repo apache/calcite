@@ -8112,6 +8112,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .type("RecordType(VARCHAR(10) OA) NOT NULL");
   }
 
+  @Test public void testItemOperatorException() {
+    sql("select ^name[0]^ from dept")
+        .fails("Cannot apply 'ITEM' to arguments of type 'ITEM\\(<VARCHAR\\(10\\)>, "
+          +  "<INTEGER>\\)'\\. Supported form\\(s\\): <ARRAY>\\[<INTEGER>\\]\n"
+          + "<MAP>\\[<VALUE>\\].*");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-497">[CALCITE-497]
    * Support optional qualifier for column name references</a>. */
