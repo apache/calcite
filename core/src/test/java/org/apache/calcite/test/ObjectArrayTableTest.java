@@ -37,15 +37,14 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Locale;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import static java.lang.String.format;
 
 /**
  * Test for querying Java Object array table.
@@ -111,7 +110,6 @@ public class ObjectArrayTableTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1703">[CALCITE-1703]
    * Before the fix, functions on TIME and TIMESTAMP column can throw ClassCastException</a>. */
   @Test public void testJavaSqlDateColumnReference() throws SQLException {
-
     withJavaSqlDateTypes(connection -> {
       // 'extract' function expects numeric date representation.
       // RexToLixTranslator.convert() handles Java type to numeric storage type conversion.
@@ -132,16 +130,13 @@ public class ObjectArrayTableTest {
               + " java.sql.Timestamp.valueOf(\"2018-12-14 18:29:34.123\"))",
           14, resultSet.getInt(3));
     });
-
   }
 
   /**
    * Test to confirm java.sql.Time column can be used by a filter condition.
    */
   @Test public void testTimeFilter() throws SQLException {
-
     withJavaSqlDateTypes(connection -> {
-
       String sql = "select 'result'"
           + " from \"java_sql_date_types\"";
 
@@ -149,16 +144,13 @@ public class ObjectArrayTableTest {
       ResultSet resultSet = statement.executeQuery(sql + " where \"tm\" > TIME '18:29:33'");
       assertTrue("java.sql.Time.valueOf(\"18:29:34\") > TIME '18:29:33'", resultSet.next());
 
-
       statement = connection.createStatement();
       resultSet = statement.executeQuery(sql + " where \"tm\" = TIME '18:29:34'");
       assertTrue("java.sql.Time.valueOf(\"18:29:34\") = TIME '18:29:34'", resultSet.next());
 
-
       statement = connection.createStatement();
       resultSet = statement.executeQuery(sql + " where \"tm\" > TIME '18:29:34'");
       assertFalse("java.sql.Time.valueOf(\"18:29:34\") > TIME '18:29:34'", resultSet.next());
-
 
       statement = connection.createStatement();
       resultSet = statement.executeQuery(sql
@@ -166,16 +158,13 @@ public class ObjectArrayTableTest {
       assertTrue("java.sql.Time.valueOf(\"18:29:34\")"
           + " between TIME '18:29:34' and  TIME '18:29:35'", resultSet.next());
     });
-
   }
 
   /**
    * Test to confirm java.sql.Date column can be used by a filter condition.
    */
   @Test public void testDateFilter() throws SQLException {
-
     withJavaSqlDateTypes(connection -> {
-
       String sql = "select 'result'"
           + " from \"java_sql_date_types\"";
 
@@ -184,16 +173,13 @@ public class ObjectArrayTableTest {
           + " where \"dt\" > DATE '2018-12-13'");
       assertTrue("java.sql.Date.valueOf(\"2018-12-14\") > DATE '2018-12-13'", resultSet.next());
 
-
       statement = connection.createStatement();
       resultSet = statement.executeQuery(sql + " where \"dt\" = DATE '2018-12-14'");
       assertTrue("java.sql.Date.valueOf(\"2018-12-14\") = DATE '2018-12-14'", resultSet.next());
 
-
       statement = connection.createStatement();
       resultSet = statement.executeQuery(sql + " where \"dt\" > DATE '2018-12-14'");
       assertFalse("java.sql.Date.valueOf(\"2018-12-14\") > DATE '2018-12-14'", resultSet.next());
-
 
       statement = connection.createStatement();
       resultSet = statement.executeQuery(sql
@@ -201,16 +187,13 @@ public class ObjectArrayTableTest {
       assertTrue("java.sql.Date.valueOf(\"2018-12-14\")"
           + " between DATE '2018-12-14' and DATE '2018-12-14'", resultSet.next());
     });
-
   }
 
   /**
    * Test to confirm java.sql.Timestamp column can be used by a filter condition.
    */
   @Test public void testTimestampFilter() throws SQLException {
-
     withJavaSqlDateTypes(connection -> {
-
       String sql = "select 'result'"
           + " from \"java_sql_date_types\"";
 
@@ -242,7 +225,6 @@ public class ObjectArrayTableTest {
           + " between TIMESTAMP '2018-12-14 18:29:34.122'"
           + " and TIMESTAMP '2018-12-14 18:29:34.123'", resultSet.next());
     });
-
   }
 
   /**
@@ -250,27 +232,28 @@ public class ObjectArrayTableTest {
    * The cast should be done the same as with TIMESTAMP literal.
    */
   @Test public void testCastTimestampToTimestamp() throws SQLException {
-
     withJavaSqlDateTypes(connection -> {
-
       Statement statement = connection.createStatement();
-      final String sql = "select %s as EXPECTED, %s as ACTUAL from \"java_sql_date_types\"";
-
+      final Timestamp[] expectedTimestamps = {
+          // precision = 0
+          Timestamp.valueOf("2018-12-14 18:29:34"),
+          // precision = 1
+          Timestamp.valueOf("2018-12-14 18:29:34.1"),
+          // precision = 2
+          Timestamp.valueOf("2018-12-14 18:29:34.12"),
+          // precision = 3
+          Timestamp.valueOf("2018-12-14 18:29:34.123")
+      };
       for (int i = 3; i >= 0; i--) {
-        final String castTo = format(Locale.ROOT, "TIMESTAMP(%d)", i);
-
-        final String expected = format(Locale.ROOT,
-            "cast(TIMESTAMP '2018-12-14 18:29:34.123' as %s)", castTo);
-        final String actual = format(Locale.ROOT, "cast(\"ts\" as %s)", castTo);
-        final ResultSet resultSet = statement.executeQuery(
-            format(Locale.ROOT, sql, expected, actual));
+        final String castTo = "TIMESTAMP(" + i + ")";
+        final String sql = "select cast(\"ts\" as " + castTo + ") from \"java_sql_date_types\"";
+        final ResultSet resultSet = statement.executeQuery(sql);
         resultSet.next();
-        assertEquals(format(Locale.ROOT, "cast(java.sql.Timestamp as %s)", castTo),
-            resultSet.getTimestamp(1), resultSet.getTimestamp(2));
+        assertEquals("cast(java.sql.Timestamp.valueOf(\"2018-12-14 18:29:34.123\")"
+                + " as " + castTo + ")",
+            expectedTimestamps[i], resultSet.getTimestamp(1));
       }
-
     });
-
   }
 
 }
