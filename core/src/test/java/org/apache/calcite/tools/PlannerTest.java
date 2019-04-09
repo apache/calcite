@@ -455,8 +455,7 @@ public class PlannerTest {
         EnumerableRules.ENUMERABLE_PROJECT_RULE,
         EnumerableRules.ENUMERABLE_FILTER_RULE,
         EnumerableRules.ENUMERABLE_VALUES_RULE,
-        EnumerableRules.ENUMERABLE_UNION_RULE
-    );
+        EnumerableRules.ENUMERABLE_UNION_RULE);
     rules.add(extraRules);
     Program program = Programs.ofRules(rules.build());
     Planner planner = getPlanner(null, program);
