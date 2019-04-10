@@ -619,9 +619,9 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
         int n = fieldList.size();
         for (int j = 0; j < n; ++j) {
           final Ord<RelDataType> newField =
-              getNewFieldForOldInput(inputRef.getIndex());
+              getNewFieldForOldInput(inputRef.getIndex(), j);
           flattenedExps.add(
-              Pair.of(new RexInputRef(newField.i + j, newField.e),
+              Pair.of(new RexInputRef(newField.i, newField.e),
                   fieldName));
         }
       } else if (isConstructor(exp) || exp.isA(SqlKind.CAST)) {

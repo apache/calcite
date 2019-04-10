@@ -2649,6 +2649,17 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2962">[CALCITE-2962]
+   * RelStructuredTypeFlattener generates wrong types for nested column when flattenProjection</a>.
+   */
+  @Test
+  public void testSelectNestedColumnType() {
+    final String sql =
+        "select coord from customer.contact_peek where coord.x = 1";
+    sql(sql).ok();
+  }
+
   @Test public void testDynamicSchemaUnnest() {
     final String sql3 = "select t1.c_nationkey, t3.fake_col3\n"
         + "from SALES.CUSTOMER as t1,\n"
