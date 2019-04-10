@@ -870,6 +870,18 @@ LogicalProject(ZIP=[$4])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSelectNestedColumnType">
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(UNIT_LENGTH=[CHAR_LENGTH($3)])
+  LogicalFilter(condition=[=($0, 'john')])
+    LogicalProject(FNAME=[$1], COORD=[$4], COORD2=[$5], COORD3=[$6])
+      LogicalFilter(condition=[AND(>($4, 1), >($5, 1))])
+        LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+          LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testDynamicSchemaUnnest">
         <Resource name="sql">
             <![CDATA[select t1.c_nationkey, t3.fake_col3
