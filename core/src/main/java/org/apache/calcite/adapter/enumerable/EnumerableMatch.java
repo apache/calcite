@@ -452,6 +452,15 @@ public class EnumerableMatch extends Match implements EnumerableRel {
             Expressions.declare(0, row,
                 Expressions.convert_(tmp, physType.getJavaRowType())
             ));
+
+        // Add return statement if here is a null!
+        list.add(
+                Expressions.ifThen(
+                        Expressions.equal(tmp, Expressions.constant(null)),
+                        Expressions.return_(null, Expressions.constant(false))
+                )
+        );
+
 //        list.add(
 //            Expressions.assign(row,
 //                ));

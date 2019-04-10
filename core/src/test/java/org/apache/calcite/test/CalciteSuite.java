@@ -42,6 +42,7 @@ import org.apache.calcite.rel.rules.SortRemoveRuleTest;
 import org.apache.calcite.rex.RexBuilderTest;
 import org.apache.calcite.rex.RexExecutorTest;
 import org.apache.calcite.rex.RexSqlStandardConvertletTableTest;
+import org.apache.calcite.runtime.AutomatonTest;
 import org.apache.calcite.runtime.BinarySearchTest;
 import org.apache.calcite.runtime.EnumerablesTest;
 import org.apache.calcite.sql.SqlSetOptionOperatorTest;
@@ -124,6 +125,7 @@ import org.junit.runners.Suite;
     RexProgramTest.class,
     SqlOperatorBindingTest.class,
     RexTransformerTest.class,
+    AutomatonTest.class,
     BinarySearchTest.class,
     EnumerablesTest.class,
     ExceptionMessageTest.class,
