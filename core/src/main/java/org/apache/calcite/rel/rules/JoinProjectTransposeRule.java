@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -171,6 +172,20 @@ public class JoinProjectTransposeRule extends RelOptRule {
       return;
     }
 
+    final RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
+
+    if (includeOuter) {
+      if (leftProj != null && joinType.generatesNullsOnLeft()
+          && !Strong.allStrong(leftProj.getProjects())) {
+        return;
+      }
+
+      if (rightProj != null && joinType.generatesNullsOnRight()
+          && !Strong.allStrong(rightProj.getProjects())) {
+        return;
+      }
+    }
+
     // Construct two RexPrograms and combine them.  The bottom program
     // is a join of the projection expressions from the left and/or
     // right projects that feed into the join.  The top program contains
@@ -196,7 +211,6 @@ public class JoinProjectTransposeRule extends RelOptRule {
     // references to the inputs.
     int nProjExprs = joinRel.getRowType().getFieldCount();
     final List<Pair<RexNode, String>> projects = new ArrayList<>();
-    final RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
 
     createProjectExprs(
         leftProj,

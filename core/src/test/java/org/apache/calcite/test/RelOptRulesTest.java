@@ -489,7 +489,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
-  @Test public void testJoinProjectTranspose() {
+  @Test public void testJoinProjectTranspose1() {
     final HepProgram preProgram =
         HepProgram.builder()
             .addRuleInstance(ProjectJoinTransposeRule.INSTANCE)
@@ -508,6 +508,118 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "left join dept b on b.deptno > 10\n"
         + "right join dept c on b.deptno > 10\n";
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1338">[CALCITE-1338]
+   * Should not transpose since the right project of left join has literal</a>. */
+  @Test public void testJoinProjectTranspose2() {
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(JoinProjectTransposeRule.RIGHT_PROJECT_INCLUDE_OUTER)
+            .build();
+    final String sql = "select *\n"
+        + "from dept a \n"
+        + "left join (select name, 1 from dept) as b\n"
+        + "on a.name = b.name";
+    checkPlanUnchanged(new HepPlanner(program), sql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1338">[CALCITE-1338]
+   * Should not transpose since the left project of right join has literal</a>. */
+  @Test public void testJoinProjectTranspose3() {
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(JoinProjectTransposeRule.LEFT_PROJECT_INCLUDE_OUTER)
+            .build();
+    final String sql = "select *\n"
+        + "from (select name, 1 from dept) as a\n"
+        + "right join dept b\n"
+        + "on a.name = b.name";
+    checkPlanUnchanged(new HepPlanner(program), sql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1338">[CALCITE-1338]
+   * Should not transpose since the right project of left join has not-strong
+   * expression {@code y is not null}</a>. */
+  @Test public void testJoinProjectTranspose4() {
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(JoinProjectTransposeRule.RIGHT_PROJECT_INCLUDE_OUTER)
+            .build();
+    final String sql = "select *\n"
+        + "from dept a\n"
+        + "left join (select x name, y is not null from\n"
+        + "(values (2, cast(null as integer)), (2, 1)) as t(x, y)) b\n"
+        + "on a.name = b.name";
+    checkPlanUnchanged(new HepPlanner(program), sql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1338">[CALCITE-1338]
+   * Should not transpose since the right project of left join has not-strong
+   * expression {@code 1 + 1}</a>. */
+  @Test public void testJoinProjectTranspose5() {
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(JoinProjectTransposeRule.RIGHT_PROJECT_INCLUDE_OUTER)
+            .build();
+    final String sql = "select *\n"
+        + "from dept a \n"
+        + "left join (select name, 1 + 1 from dept) as b\n"
+        + "on a.name = b.name";
+    checkPlanUnchanged(new HepPlanner(program), sql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1338">[CALCITE-1338]
+   * Should not transpose since both the left project and right project have
+   * literal</a>. */
+  @Test public void testJoinProjectTranspose6() {
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(JoinProjectTransposeRule.BOTH_PROJECT_INCLUDE_OUTER)
+            .build();
+    final String sql = "select *\n"
+        + "from (select name, 1 from dept) a \n"
+        + "full join (select name, 1 from dept) as b\n"
+        + "on a.name = b.name";
+    checkPlanUnchanged(new HepPlanner(program), sql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1338">[CALCITE-1338]
+   * Should transpose since all expressions in the right project of left join
+   * are strong</a>. */
+  @Test public void testJoinProjectTranspose7() {
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(JoinProjectTransposeRule.RIGHT_PROJECT_INCLUDE_OUTER)
+            .build();
+    final String sql = "select *\n"
+        + "from dept a \n"
+        + "left join (select name from dept) as b"
+        + " on a.name = b.name";
+    checkPlanning(new HepPlanner(program), sql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1338">[CALCITE-1338]
+   * Should transpose since all expression including
+   * {@code deptno > 10 and cast(null as boolean)} in the right project of left
+   * join are strong</a>. */
+  @Test public void testJoinProjectTranspose8() {
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(JoinProjectTransposeRule.RIGHT_PROJECT_INCLUDE_OUTER)
+            .build();
+    final String sql = "select *\n"
+        + "from dept a \n"
+        + "left join (select name, deptno > 10 and cast(null as boolean) from dept) as b\n"
+        + "on a.name = b.name";
+    checkPlanning(new HepPlanner(program), sql);
   }
 
   /** Test case for
