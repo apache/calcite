@@ -16,12 +16,13 @@
  */
 package org.apache.calcite.runtime;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.calcite.linq4j.MemoryFactory;
+
+import com.google.common.collect.ImmutableList;
+
 import org.junit.Test;
 
 import java.util.AbstractList;
-import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -71,7 +72,8 @@ public class AutomatonTest {
             .add("a", (s) -> s.get().contains("a"))
             .add("b", (s) -> s.get().contains("b"))
             .build();
-    final String expected = "[[b], [ab], [ab], [ab, a, ab], [a, ab], [b], [ab, b], [ab, a, ab, b], [a, ab, b], [b]]";
+    final String expected = "[[b], [ab], [ab], [ab, a, ab], [a, ab], [b], [ab, b], [ab, a, ab, b], "
+        + "[a, ab, b], [b]]";
     assertThat(matcher.match(rows).toString(), is(expected));
   }
 

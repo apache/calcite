@@ -16,13 +16,7 @@
  */
 package org.apache.calcite.sql.parser.parserextensiontesting;
 
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.parser.SqlParserTest;
-
-import org.hamcrest.core.IsNull;
-import org.junit.Test;
 
 /**
  * Testing for extension functionality of the base SQL parser impl.

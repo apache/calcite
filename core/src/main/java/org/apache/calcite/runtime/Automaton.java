@@ -16,9 +16,10 @@
  */
 package org.apache.calcite.runtime;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.util.ImmutableBitSet;
+
+import com.google.common.collect.ImmutableList;
 
 import java.util.Objects;
 

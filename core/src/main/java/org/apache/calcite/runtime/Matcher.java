@@ -16,12 +16,13 @@
  */
 package org.apache.calcite.runtime;
 
+import org.apache.calcite.linq4j.MemoryFactory;
+import org.apache.calcite.util.ImmutableBitSet;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import org.apache.calcite.linq4j.MemoryFactory;
-import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.ArrayList;
 import java.util.Arrays;

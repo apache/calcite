@@ -6877,7 +6877,6 @@ public class JdbcTest {
   }
 
   @Test public void testMatchSimple() {
-    Hook.JAVA_PLAN.add((Consumer<?>)System.out::println);
     final String sql = "select *\n"
             + "from \"hr\".\"emps\" match_recognize (\n"
             + "  order by \"empid\" desc\n"

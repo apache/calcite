@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.MemoryFactory;
 import org.apache.calcite.linq4j.Ord;
@@ -54,6 +53,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
+
+import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -136,7 +137,8 @@ public class EnumerableMatch extends Match implements EnumerableRel {
 
     // ...
     List<Map.Entry<String, RelDataType>> types = measures.entrySet().stream()
-            .collect(Collectors.toMap(
+            .collect(
+                Collectors.toMap(
                     e -> e.getKey(),
                     e -> e.getValue().getType()
             )).entrySet().stream()
@@ -160,7 +162,8 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     builder.add(
         Expressions.return_(null,
             Expressions.call(BuiltInMethod.MATCH.method,
-                inputExp, keySelector_, matcher_, emitter_, Expressions.constant(history), Expressions.constant(future))));
+                inputExp, keySelector_, matcher_, emitter_, Expressions.constant(history),
+                Expressions.constant(future))));
     return implementor.result(emitType, builder.toBlock());
   }
 
@@ -182,13 +185,14 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     final BlockBuilder builder2 = new BlockBuilder();
 
     RexBuilder rexBuilder = new RexBuilder(implementor.getTypeFactory());
-    RexProgramBuilder rexProgramBuilder = new RexProgramBuilder(inputPhysType.getRowType(), rexBuilder);
+    RexProgramBuilder rexProgramBuilder = new RexProgramBuilder(inputPhysType.getRowType(),
+        rexBuilder);
     for (Map.Entry<String, RexNode> entry : measures.entrySet()) {
       rexProgramBuilder.addProject(entry.getValue(), entry.getKey());
     }
     final List<Expression> arguments =
         RexToLixTranslator.translateProjects(rexProgramBuilder.getProgram(),
-    (JavaTypeFactory) getCluster().getTypeFactory(),
+            (JavaTypeFactory) getCluster().getTypeFactory(),
             implementor.getConformance(), builder2, physType,
             implementor.getRootExpression(),
             new RexToLixTranslator.InputGetterImpl(
@@ -199,9 +203,12 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     final ParameterExpression result_ = Expressions.parameter(physType.getJavaRowType());
     // final ParameterExpression result__ = Expressions.parameter(physType.getJavaRowType());
 
-    builder2.add(Expressions.declare(Modifier.FINAL, result_, Expressions.new_(physType.getJavaRowType())));
+    builder2.add(
+        Expressions.declare(Modifier.FINAL, result_, Expressions.new_(physType.getJavaRowType())));
     for (int i = 0; i < arguments.size(); i++) {
-      builder2.add(Expressions.statement(Expressions.assign(physType.fieldReference(result_, i), arguments.get(i))));
+      builder2.add(
+          Expressions.statement(
+              Expressions.assign(physType.fieldReference(result_, i), arguments.get(i))));
     }
     // builder2.add(Expressions.declare(Modifier.PUBLIC, result__, physType.record(arguments)));
     builder2.add(
@@ -211,7 +218,8 @@ public class EnumerableMatch extends Match implements EnumerableRel {
 
     final BlockBuilder builder = new BlockBuilder();
 
-    builder.add(Expressions.forEach(row_, rows_,
+    builder.add(
+        Expressions.forEach(row_, rows_,
                     builder2.toBlock()
     ));
 
@@ -224,8 +232,8 @@ public class EnumerableMatch extends Match implements EnumerableRel {
                 builder.toBlock())));
   }
 
-  private Expression implementMatcher(EnumerableRelImplementor implementor, PhysType physType, BlockBuilder builder,
-                                      ParameterExpression row_) {
+  private Expression implementMatcher(EnumerableRelImplementor implementor, PhysType physType,
+                                      BlockBuilder builder, ParameterExpression row_) {
     final Expression patternBuilder_ = builder.append("patternBuilder",
         Expressions.call(BuiltInMethod.PATTERN_BUILDER.method));
     final Expression automaton_ = builder.append("automaton",
@@ -243,19 +251,21 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     for (Map.Entry<String, RexNode> entry : patternDefinitions.entrySet()) {
       // Translate REX to Expressions
       RexBuilder rexBuilder = new RexBuilder(implementor.getTypeFactory());
-      RexProgramBuilder rexProgramBuilder = new RexProgramBuilder(physType.getRowType(), rexBuilder);
+      RexProgramBuilder rexProgramBuilder =
+          new RexProgramBuilder(physType.getRowType(), rexBuilder);
 
       rexProgramBuilder.addCondition(entry.getValue());
 
       final RexToLixTranslator.InputGetter inputGetter1 = new PrevInputGetter(row_, physType);
 
 
-      final Expression condition = RexToLixTranslator.translateCondition(rexProgramBuilder.getProgram(),
-          (JavaTypeFactory) getCluster().getTypeFactory(),
-          builder2,
-          inputGetter1,
-          implementor.allCorrelateVariables,
-          implementor.getConformance());
+      final Expression condition = RexToLixTranslator
+          .translateCondition(rexProgramBuilder.getProgram(),
+            (JavaTypeFactory) getCluster().getTypeFactory(),
+            builder2,
+            inputGetter1,
+            implementor.allCorrelateVariables,
+            implementor.getConformance());
 
 
       builder2.add(Expressions.return_(null, condition));
@@ -272,12 +282,15 @@ public class EnumerableMatch extends Match implements EnumerableRel {
   }
 
   /** Generates code for a predicate. */
-  private Expression implementPredicate(PhysType physType, ParameterExpression rows_, BlockStatement body) {
+  private Expression implementPredicate(PhysType physType, ParameterExpression rows_,
+                                        BlockStatement body) {
     final List<MemberDeclaration> memberDeclarations = new ArrayList<>();
-    ParameterExpression row_ = Expressions.parameter(Types.of(MemoryFactory.Memory.class, physType.getJavaRowType()), "row_");
+    ParameterExpression row_ = Expressions.parameter(
+        Types.of(MemoryFactory.Memory.class,
+            physType.getJavaRowType()), "row_");
     try {
       Expressions.assign(row_,
-        Expressions.call(rows_, MemoryFactory.Memory.class.getMethod("get")));
+          Expressions.call(rows_, MemoryFactory.Memory.class.getMethod("get")));
     } catch (NoSuchMethodException e) {
       throw new RuntimeException();
     }
@@ -310,7 +323,9 @@ public class EnumerableMatch extends Match implements EnumerableRel {
               Expressions.call(
                   Expressions.parameter(Comparable.class, "this"),
                   BuiltInMethod.PREDICATE_TEST.method,
-                  Expressions.convert_(row0_, Types.of(MemoryFactory.Memory.class, physType.getJavaRowType())))));
+                  Expressions.convert_(row0_,
+                      Types.of(MemoryFactory.Memory.class,
+                      physType.getJavaRowType())))));
       memberDeclarations.add(
           EnumUtils.overridingMethodDecl(
               BuiltInMethod.PREDICATE_TEST.method,
@@ -349,6 +364,9 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     }
   }
 
+  /**
+   * Visitor that finds out how much "history" we need in the past and future.
+   */
   private static class MaxHistoryFutureVisitor implements RexVisitor<Integer> {
 
     private int history = 0;
@@ -377,10 +395,12 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     @Override public Integer visitCall(RexCall call) {
       call.operands.forEach(o -> o.accept(this));
       if (call.op == SqlStdOperatorTable.PREV) {
-        final int prev = (int) ((BigDecimal) ((RexLiteral) call.getOperands().get(1)).getValue()).longValue();
+        final int prev = (int) ((BigDecimal) ((RexLiteral) call.getOperands()
+            .get(1)).getValue()).longValue();
         this.history = Math.max(this.history, prev);
       } else if (call.op == SqlStdOperatorTable.NEXT) {
-        final int next = (int) ((BigDecimal) ((RexLiteral) call.getOperands().get(1)).getValue()).longValue();
+        final int next = (int) ((BigDecimal) ((RexLiteral) call.getOperands()
+            .get(1)).getValue()).longValue();
         this.future = Math.max(this.future, next);
       }
       return null;
@@ -419,15 +439,18 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     }
   }
 
+  /**
+   * A special Getter which "interchanges" the PREV and the field call.
+   */
   public static class PrevInputGetter implements RexToLixTranslator.InputGetter {
 
     private Expression offset;
-    private final ParameterExpression row_;
+    private final ParameterExpression row;
     private final Function<Expression, RexToLixTranslator.InputGetter> generator;
     private final PhysType physType;
 
-    public PrevInputGetter(ParameterExpression row_, PhysType physType) {
-      this.row_ = row_;
+    public PrevInputGetter(ParameterExpression row, PhysType physType) {
+      this.row = row;
       generator = e -> new RexToLixTranslator.InputGetterImpl(
           Collections.singletonList(
               Pair.of(e, physType)));
@@ -444,7 +467,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
         final ParameterExpression tmp = Expressions.parameter(Object.class);
         list.add(
             Expressions.declare(0, tmp,
-                Expressions.call(row_,
+                Expressions.call(this.row,
                     MemoryFactory.Memory.class.getMethod("get", int.class),
                     offset)
             ));

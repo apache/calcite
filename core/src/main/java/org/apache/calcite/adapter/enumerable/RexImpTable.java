@@ -39,14 +39,12 @@ import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.ImplementableAggFunction;
 import org.apache.calcite.schema.ImplementableFunction;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
-import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlJsonArrayAggAggFunction;
@@ -602,27 +600,19 @@ public class RexImpTable {
 
     // Functions for MATCH_RECOGNIZE
     defineMethod(FINAL, "abs", NullPolicy.ANY);
-//    final Method dummy;
-//    try {
-      map.put(PREV, new CallImplementor() {
 
-        @Override public Expression implement(RexToLixTranslator translator, RexCall call, NullAs nullAs) {
-          final RexNode node = call.getOperands().get(0);
-          final RexNode offset = call.getOperands().get(1);
-          final Expression offs = Expressions.multiply(translator.translate(offset), Expressions.constant(-1));
-          ((EnumerableMatch.PrevInputGetter)translator.inputGetter).setOffset(offs);
-          return translator.translate(node);
-        }
-      });
-//      dummy = RexImpTable.class.getMethod("dummy", Object.class, Object.class);
-//      defineMethod(PREV, dummy, NullPolicy.ANY);
-//    } catch (NoSuchMethodException e) {
-//      e.printStackTrace();
-//    }
-  }
+    map.put(PREV, new CallImplementor() {
 
-  public static int dummy(Object a, Object b) {
-    return (int)a;
+      @Override public Expression implement(RexToLixTranslator translator,
+                                            RexCall call, NullAs nullAs) {
+        final RexNode node = call.getOperands().get(0);
+        final RexNode offset = call.getOperands().get(1);
+        final Expression offs = Expressions.multiply(translator.translate(offset),
+                Expressions.constant(-1));
+        ((EnumerableMatch.PrevInputGetter) translator.inputGetter).setOffset(offs);
+        return translator.translate(node);
+      }
+    });
   }
 
   private <T> Supplier<T> constructorSupplier(Class<T> klass) {
@@ -1099,8 +1089,12 @@ public class RexImpTable {
       // v0 != null && v1 != null && f(v0, v1)
       for (Ord<RexNode> operand : Ord.zip(conditionalOps)) {
         if (translator.isNullable(operand.e)) {
-          list.add(Expressions.notEqual(translator.translate(
-                  operand.e, NullAs.IS_NOT_NULL), Expressions.constant(null)));
+          list.add(
+              Expressions.notEqual(
+              translator.translate(operand.e, NullAs.IS_NOT_NULL),
+              Expressions.constant(null)
+            )
+          );
           translator = translator.setNullable(operand.e, false);
         }
       }

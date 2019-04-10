@@ -19,8 +19,9 @@ package org.apache.calcite.runtime;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
+/** Tests for the {@link DFA} */
 public class DFATest {
 
   @Test
@@ -35,8 +36,8 @@ public class DFATest {
         new DFA(automaton);
 
     assertThat(da.startState,
-        equalTo(new DFA.MultiState(
-            new Automaton.State(0), new Automaton.State(2)
+        equalTo(
+            new DFA.MultiState(new Automaton.State(0), new Automaton.State(2)
         )));
 
     // Result should have three states
@@ -56,7 +57,7 @@ public class DFATest {
     final Automaton automaton = pattern.toAutomaton();
 
     final DFA da =
-        new DFA(automaton);;
+        new DFA(automaton);
 
     // Result should have two transitions
     // 0 -A-> 1
@@ -75,7 +76,7 @@ public class DFATest {
     final Automaton automaton = pattern.toAutomaton();
 
     final DFA da =
-        new DFA(automaton);;
+        new DFA(automaton);
 
     // Result should have two transitions
     // 0 -A-> 1 -B-> 2 (which again goes to 2 on a "B")
@@ -94,7 +95,7 @@ public class DFATest {
     final Automaton automaton = pattern.toAutomaton();
 
     final DFA da =
-        new DFA(automaton);;
+        new DFA(automaton);
 
     // Result should have two transitions
     // 0 -A-> 1 -B-> 2 (which again goes to 2 on a "B")
@@ -105,3 +106,5 @@ public class DFATest {
 
 
 }
+
+// End DFATest.java

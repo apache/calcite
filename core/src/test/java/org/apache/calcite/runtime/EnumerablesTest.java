@@ -232,8 +232,8 @@ public class EnumerablesTest {
 
     Enumerables.Emitter<Emp, String> emitter = new Enumerables.Emitter<Emp, String>() {
 
-      @Override
-      public void emit(List<Emp> rows, List<Integer> rowStates, List<String> rowSymbols, int match, Consumer<String> consumer) {
+      @Override public void emit(List<Emp> rows, List<Integer> rowStates, List<String> rowSymbols,
+                                 int match, Consumer<String> consumer) {
         for (int i = 0; i < rows.size(); i++) {
           if ("A".equals(rowSymbols.get(i))) {
             consumer.accept(String.format(Locale.ENGLISH, "%s %s %d", rows, rowStates, match));
@@ -242,9 +242,11 @@ public class EnumerablesTest {
       }
     };
 
-    Enumerable<String> matches = Enumerables.match(emps, emp -> 0L, matcher, emitter, 0, 0);
+    Enumerable<String> matches = Enumerables
+        .match(emps, emp -> 0L, matcher, emitter, 0, 0);
     assertThat(matches.toList().toString(),
-            equalTo("[[Emp(20, Theodore), Emp(10, Fred)] null 1, [Emp(20, Sebastian), Emp(30, Joe)] null 2]"));
+            equalTo("[[Emp(20, Theodore), Emp(10, Fred)] null 1, "
+                + "[Emp(20, Sebastian), Emp(30, Joe)] null 2]"));
   }
 
   /** Employee record. */
