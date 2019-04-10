@@ -491,7 +491,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
-  @Test public void testJoinProjectTranspose() {
+  @Test public void testJoinProjectTranspose1() {
     final HepProgram preProgram =
         HepProgram.builder()
             .addRuleInstance(ProjectJoinTransposeRule.INSTANCE)
@@ -510,6 +510,101 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "left join dept b on b.deptno > 10\n"
         + "right join dept c on b.deptno > 10\n";
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1338">[CALCITE-1338]
+   * JoinProjectTransposeRule should not pull a literal above the
+   * null-generating side of a join</a>. */
+  @Test public void testJoinProjectTranspose2() {
+    final String sql = "select *\n"
+        + "from dept a\n"
+        + "left join (select name, 1 from dept) as b\n"
+        + "on a.name = b.name";
+    sql(sql)
+        .withRule(JoinProjectTransposeRule.RIGHT_PROJECT_INCLUDE_OUTER)
+        .checkUnchanged();
+  }
+
+  /** As {@link #testJoinProjectTranspose2()};
+   * should not transpose since the left project of right join has literal. */
+  @Test public void testJoinProjectTranspose3() {
+    final String sql = "select *\n"
+        + "from (select name, 1 from dept) as a\n"
+        + "right join dept b\n"
+        + "on a.name = b.name";
+    sql(sql)
+        .withRule(JoinProjectTransposeRule.LEFT_PROJECT_INCLUDE_OUTER)
+        .checkUnchanged();
+  }
+
+  /** As {@link #testJoinProjectTranspose2()};
+   * should not transpose since the right project of left join has not-strong
+   * expression {@code y is not null}. */
+  @Test public void testJoinProjectTranspose4() {
+    final String sql = "select *\n"
+        + "from dept a\n"
+        + "left join (select x name, y is not null from\n"
+        + "(values (2, cast(null as integer)), (2, 1)) as t(x, y)) b\n"
+        + "on a.name = b.name";
+    sql(sql)
+        .withRule(JoinProjectTransposeRule.RIGHT_PROJECT_INCLUDE_OUTER)
+        .checkUnchanged();
+  }
+
+  /** As {@link #testJoinProjectTranspose2()};
+   * should not transpose since the right project of left join has not-strong
+   * expression {@code 1 + 1}. */
+  @Test public void testJoinProjectTranspose5() {
+    final String sql = "select *\n"
+        + "from dept a\n"
+        + "left join (select name, 1 + 1 from dept) as b\n"
+        + "on a.name = b.name";
+    sql(sql)
+        .withRule(JoinProjectTransposeRule.RIGHT_PROJECT_INCLUDE_OUTER)
+        .checkUnchanged();
+  }
+
+  /** As {@link #testJoinProjectTranspose2()};
+   * should not transpose since both the left project and right project have
+   * literal. */
+  @Test public void testJoinProjectTranspose6() {
+    final String sql = "select *\n"
+        + "from (select name, 1 from dept) a\n"
+        + "full join (select name, 1 from dept) as b\n"
+        + "on a.name = b.name";
+    sql(sql)
+        .withRule(JoinProjectTransposeRule.RIGHT_PROJECT_INCLUDE_OUTER)
+        .checkUnchanged();
+  }
+
+  /** As {@link #testJoinProjectTranspose2()};
+   * Should transpose since all expressions in the right project of left join
+   * are strong. */
+  @Test public void testJoinProjectTranspose7() {
+    final String sql = "select *\n"
+        + "from dept a\n"
+        + "left join (select name from dept) as b\n"
+        + " on a.name = b.name";
+    sql(sql)
+        .withRule(JoinProjectTransposeRule.RIGHT_PROJECT_INCLUDE_OUTER)
+        .check();
+  }
+
+  /** As {@link #testJoinProjectTranspose2()};
+   * should transpose since all expressions including
+   * {@code deptno > 10 and cast(null as boolean)} in the right project of left
+   * join are strong. */
+  @Test public void testJoinProjectTranspose8() {
+    final String sql = "select *\n"
+        + "from dept a\n"
+        + "left join (\n"
+        + "  select name, deptno > 10 and cast(null as boolean)\n"
+        + "  from dept) as b\n"
+        + "on a.name = b.name";
+    sql(sql)
+        .withRule(JoinProjectTransposeRule.RIGHT_PROJECT_INCLUDE_OUTER)
+        .check();
   }
 
   /** Test case for
@@ -4159,10 +4254,10 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test public void testSelectNotInCorrelated() {
-    final String sql = "select sal, \n"
+    final String sql = "select sal,\n"
         + " empno NOT IN (\n"
-        + " select deptno from dept \n"
-        + "   where emp.job=dept.name) \n"
+        + " select deptno from dept\n"
+        + "   where emp.job=dept.name)\n"
         + " from emp";
     checkSubQuery(sql).withLateDecorrelation(true).check();
   }
