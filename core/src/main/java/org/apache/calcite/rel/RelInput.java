@@ -62,7 +62,7 @@ public interface RelInput {
   Object get(String tag);
 
   /**
-   * Returns a {@code float} value. Throws if wrong type.
+   * Returns a {@code string} value. Throws if wrong type.
    */
   String getString(String tag);
 
