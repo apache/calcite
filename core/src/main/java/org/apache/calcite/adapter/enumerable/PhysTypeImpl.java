@@ -544,6 +544,13 @@ public class PhysTypeImpl implements PhysType {
     return rowType.getFieldList().get(field).getType().isNullable();
   }
 
+  public static String convert2String(Object o) {
+    return o == null ? null : o.toString();
+  }
+
+  private static final Method CONVERT2STRING_METHOD = Types.lookupMethod(
+      PhysTypeImpl.class, "convert2String", Object.class);
+
   public Expression generateAccessor(
       List<Integer> fields) {
     ParameterExpression v1 =
@@ -571,7 +578,8 @@ public class PhysTypeImpl implements PhysType {
               fieldReference(v1, field0));
       return Expressions.lambda(
           Function1.class,
-          fieldReference,
+          Expressions.call(CONVERT2STRING_METHOD,
+              fieldReference),
           v1);
     default:
       // new Function1<Employee, List> {
@@ -582,7 +590,8 @@ public class PhysTypeImpl implements PhysType {
       // }
       Expressions.FluentList<Expression> list = Expressions.list();
       for (int field : fields) {
-        list.add(fieldReference(v1, field));
+        list.add(
+            Expressions.call(CONVERT2STRING_METHOD, fieldReference(v1, field)));
       }
       switch (list.size()) {
       case 2:
