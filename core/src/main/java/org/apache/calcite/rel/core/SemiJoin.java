@@ -39,7 +39,12 @@ import com.google.common.collect.ImmutableSet;
  * duplicates.
  *
  * <p>The effect is something like the SQL {@code IN} operator.
+ *
+ * @deprecated This class is deprecated, please use
+ * {@link org.apache.calcite.rel.logical.LogicalJoin} with join type {@link JoinRelType#SEMI}
+ * instead.
  */
+@Deprecated // to be removed before 2.0
 public class SemiJoin extends EquiJoin {
   //~ Constructors -----------------------------------------------------------
 

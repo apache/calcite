@@ -31,7 +31,6 @@ import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -140,35 +139,14 @@ public class RelMdDistinctRowCount
 
   public Double getDistinctRowCount(Join rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey, RexNode predicate) {
-    if (predicate == null || predicate.isAlwaysTrue()) {
-      if (groupKey.isEmpty()) {
-        return 1D;
-      }
-    }
     return RelMdUtil.getJoinDistinctRowCount(mq, rel, rel.getJoinType(),
         groupKey, predicate, false);
   }
 
+  @Deprecated // to be removed before 2.0
   public Double getDistinctRowCount(SemiJoin rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey, RexNode predicate) {
-    if (predicate == null || predicate.isAlwaysTrue()) {
-      if (groupKey.isEmpty()) {
-        return 1D;
-      }
-    }
-    // create a RexNode representing the selectivity of the
-    // semijoin filter and pass it to getDistinctRowCount
-    RexNode newPred = RelMdUtil.makeSemiJoinSelectivityRexNode(mq, rel);
-    if (predicate != null) {
-      RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
-      newPred =
-          rexBuilder.makeCall(
-              SqlStdOperatorTable.AND,
-              newPred,
-              predicate);
-    }
-
-    return mq.getDistinctRowCount(rel.getLeft(), groupKey, newPred);
+    return RelMdUtil.getSemiJoinDistinctRowCount(rel, mq, groupKey, predicate);
   }
 
   public Double getDistinctRowCount(Aggregate rel, RelMetadataQuery mq,

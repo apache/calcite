@@ -19,14 +19,17 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import com.google.common.collect.ImmutableSet;
+
 /**
- * Planner rule that pushes
- * {@link org.apache.calcite.rel.core.SemiJoin}s down in a tree past
+ * Planner rule that pushes {@code SemiJoin}s down in a tree past
  * a {@link org.apache.calcite.rel.core.Filter}.
  *
  * <p>The intention is to trigger other rules that will convert
@@ -47,7 +50,7 @@ public class SemiJoinFilterTransposeRule extends RelOptRule {
    */
   public SemiJoinFilterTransposeRule(RelBuilderFactory relBuilderFactory) {
     super(
-        operand(SemiJoin.class,
+        operandJ(LogicalJoin.class, null, Join::isSemiJoin,
             some(operand(LogicalFilter.class, any()))),
         relBuilderFactory, null);
   }
@@ -56,15 +59,15 @@ public class SemiJoinFilterTransposeRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    SemiJoin semiJoin = call.rel(0);
+    LogicalJoin semiJoin = call.rel(0);
     LogicalFilter filter = call.rel(1);
 
     RelNode newSemiJoin =
-        SemiJoin.create(filter.getInput(),
+        LogicalJoin.create(filter.getInput(),
             semiJoin.getRight(),
             semiJoin.getCondition(),
-            semiJoin.getLeftKeys(),
-            semiJoin.getRightKeys());
+            ImmutableSet.of(),
+            JoinRelType.SEMI);
 
     final RelFactories.FilterFactory factory =
         RelFactories.DEFAULT_FILTER_FACTORY;

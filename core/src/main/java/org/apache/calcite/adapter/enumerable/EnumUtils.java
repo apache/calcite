@@ -30,7 +30,6 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
 
@@ -109,19 +108,6 @@ public class EnumUtils {
         return argList.size();
       }
     };
-  }
-
-  static Expression joinSelector(SemiJoinType semiJoinType, PhysType physType,
-      List<PhysType> inputPhysTypes) {
-    JoinRelType joinRelType;
-    if (semiJoinType.returnsJustFirstInput()) {
-      // Actual join type does not matter much, joinSelector would skip selection
-      // of the columns that are not required (see if (expressions.size() == outputFieldCount) {)
-      joinRelType = JoinRelType.INNER;
-    } else {
-      joinRelType = semiJoinType.toJoinType();
-    }
-    return joinSelector(joinRelType, physType, inputPhysTypes);
   }
 
   static Expression joinSelector(JoinRelType joinType, PhysType physType,

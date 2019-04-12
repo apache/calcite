@@ -17,8 +17,8 @@
 package org.apache.calcite.rel.mutable;
 
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.Objects;
@@ -27,7 +27,7 @@ import java.util.Objects;
 public class MutableCorrelate extends MutableBiRel {
   public final CorrelationId correlationId;
   public final ImmutableBitSet requiredColumns;
-  public final SemiJoinType joinType;
+  public final JoinRelType joinType;
 
   private MutableCorrelate(
       RelDataType rowType,
@@ -35,7 +35,7 @@ public class MutableCorrelate extends MutableBiRel {
       MutableRel right,
       CorrelationId correlationId,
       ImmutableBitSet requiredColumns,
-      SemiJoinType joinType) {
+      JoinRelType joinType) {
     super(MutableRelType.CORRELATE, left.cluster, rowType, left, right);
     this.correlationId = correlationId;
     this.requiredColumns = requiredColumns;
@@ -54,7 +54,7 @@ public class MutableCorrelate extends MutableBiRel {
    */
   public static MutableCorrelate of(RelDataType rowType, MutableRel left,
       MutableRel right, CorrelationId correlationId,
-      ImmutableBitSet requiredColumns, SemiJoinType joinType) {
+      ImmutableBitSet requiredColumns, JoinRelType joinType) {
     return new MutableCorrelate(rowType, left, right, correlationId,
         requiredColumns, joinType);
   }

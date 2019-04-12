@@ -45,7 +45,6 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Union;
@@ -126,11 +125,6 @@ public class JdbcRules {
         throw new UnsupportedOperationException("JdbcCorrelate");
       };
 
-  public static final RelFactories.SemiJoinFactory SEMI_JOIN_FACTORY =
-      (left, right, condition) -> {
-        throw new UnsupportedOperationException("JdbcSemiJoin");
-      };
-
   public static final RelFactories.SortFactory SORT_FACTORY =
       (input, collation, offset, fetch) -> {
         throw new UnsupportedOperationException("JdbcSort");
@@ -204,7 +198,6 @@ public class JdbcRules {
           Contexts.of(PROJECT_FACTORY,
               FILTER_FACTORY,
               JOIN_FACTORY,
-              SEMI_JOIN_FACTORY,
               SORT_FACTORY,
               EXCHANGE_FACTORY,
               SORT_EXCHANGE_FACTORY,
@@ -281,12 +274,13 @@ public class JdbcRules {
     }
 
     @Override public RelNode convert(RelNode rel) {
-      if (rel instanceof SemiJoin) {
+      final Join join = (Join) rel;
+      if (join.isSemiJoin()) {
         // It's not possible to convert semi-joins. They have fewer columns
         // than regular joins.
         return null;
       }
-      return convert((Join) rel, true);
+      return convert(join, true);
     }
 
     /**

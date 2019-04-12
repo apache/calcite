@@ -129,7 +129,6 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Hook;
-import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
@@ -1283,7 +1282,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .build();
     LogicalCorrelate correlate = new LogicalCorrelate(left.getCluster(),
         left.getTraitSet(), left, right, correlationId,
-        ImmutableBitSet.of(0), SemiJoinType.SEMI);
+        ImmutableBitSet.of(0), JoinRelType.SEMI);
 
     relBuilder.push(correlate);
     RelNode relNode = relBuilder.project(relBuilder.field(0))
@@ -1320,7 +1319,7 @@ public class RelOptRulesTest extends RelOptTestBase {
             relBuilder.getRexBuilder().makeFieldAccess(rexCorrel, 0)).build();
     LogicalCorrelate correlate = new LogicalCorrelate(left.getCluster(),
         left.getTraitSet(), left, right, correlationId,
-        ImmutableBitSet.of(0), SemiJoinType.ANTI);
+        ImmutableBitSet.of(0), JoinRelType.ANTI);
 
     relBuilder.push(correlate);
     RelNode relNode = relBuilder.project(relBuilder.field(0))

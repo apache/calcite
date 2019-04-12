@@ -22,8 +22,8 @@ import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -32,7 +32,6 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
-import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.BitSets;
@@ -228,7 +227,7 @@ public class PushProjector {
       List<RelDataTypeField> rightFields =
           joinRel.getRight().getRowType().getFieldList();
       nFields = leftFields.size();
-      nFieldsRight = childRel instanceof SemiJoin ? 0 : rightFields.size();
+      nFieldsRight = joinRel.isSemiJoin() ? 0 : rightFields.size();
       nSysFields = joinRel.getSystemFieldList().size();
       childBitmap =
           ImmutableBitSet.range(nSysFields, nFields + nSysFields);
@@ -257,7 +256,7 @@ public class PushProjector {
       List<RelDataTypeField> rightFields =
           corrRel.getRight().getRowType().getFieldList();
       nFields = leftFields.size();
-      SemiJoinType joinType = corrRel.getJoinType();
+      JoinRelType joinType = corrRel.getJoinType();
       switch (joinType) {
       case SEMI:
       case ANTI:

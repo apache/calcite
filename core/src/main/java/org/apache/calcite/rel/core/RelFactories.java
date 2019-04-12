@@ -48,7 +48,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.TranslatableTable;
-import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -78,9 +77,6 @@ public class RelFactories {
 
   public static final CorrelateFactory DEFAULT_CORRELATE_FACTORY =
       new CorrelateFactoryImpl();
-
-  public static final SemiJoinFactory DEFAULT_SEMI_JOIN_FACTORY =
-      new SemiJoinFactoryImpl();
 
   public static final SortFactory DEFAULT_SORT_FACTORY =
       new SortFactoryImpl();
@@ -125,7 +121,6 @@ public class RelFactories {
           Contexts.of(DEFAULT_PROJECT_FACTORY,
               DEFAULT_FILTER_FACTORY,
               DEFAULT_JOIN_FACTORY,
-              DEFAULT_SEMI_JOIN_FACTORY,
               DEFAULT_SORT_FACTORY,
               DEFAULT_EXCHANGE_FACTORY,
               DEFAULT_SORT_EXCHANGE_FACTORY,
@@ -377,7 +372,7 @@ public class RelFactories {
      */
     RelNode createCorrelate(RelNode left, RelNode right,
         CorrelationId correlationId, ImmutableBitSet requiredColumns,
-        SemiJoinType joinType);
+        JoinRelType joinType);
   }
 
   /**
@@ -387,7 +382,7 @@ public class RelFactories {
   private static class CorrelateFactoryImpl implements CorrelateFactory {
     public RelNode createCorrelate(RelNode left, RelNode right,
         CorrelationId correlationId, ImmutableBitSet requiredColumns,
-        SemiJoinType joinType) {
+        JoinRelType joinType) {
       return LogicalCorrelate.create(left, right, correlationId,
           requiredColumns, joinType);
     }
@@ -396,7 +391,10 @@ public class RelFactories {
   /**
    * Can create a semi-join of the appropriate type for a rule's calling
    * convention.
+   *
+   * @deprecated Use {@link JoinFactory} instead.
    */
+  @Deprecated // to be removed before 2.0
   public interface SemiJoinFactory {
     /**
      * Creates a semi-join.
@@ -411,7 +409,10 @@ public class RelFactories {
   /**
    * Implementation of {@link SemiJoinFactory} that returns a vanilla
    * {@link SemiJoin}.
+   *
+   * @deprecated Use {@link JoinFactoryImpl} instead.
    */
+  @Deprecated  // to be removed before 2.0
   private static class SemiJoinFactoryImpl implements SemiJoinFactory {
     public RelNode createSemiJoin(RelNode left, RelNode right,
         RexNode condition) {

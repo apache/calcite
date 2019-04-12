@@ -124,7 +124,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "  on s.\"customer_id\" - c.\"customer_id\" = 0)")
         .explainContains("EnumerableAggregate(group=[{}], EXPR$0=[COUNT()])\n"
             + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0], expr#3=[-($t0, $t1)], expr#4=[=($t3, $t2)], DUMMY=[$t2], $condition=[$t4])\n"
-            + "    EnumerableJoin(condition=[true], joinType=[inner])\n"
+            + "    EnumerableHashJoin(condition=[true], joinType=[inner])\n"
             + "      JdbcToEnumerableConverter\n"
             + "        JdbcProject(customer_id=[$2])\n"
             + "          JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n"
@@ -270,7 +270,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
         .query(
             "select \"store\".\"store_country\" as \"c0\", sum(\"inventory_fact_1997\".\"supply_time\") as \"m0\" from \"store\" as \"store\", \"inventory_fact_1997\" as \"inventory_fact_1997\" where \"inventory_fact_1997\".\"store_id\" = \"store\".\"store_id\" group by \"store\".\"store_country\"")
         .planContains(
-            " left.join(right, new org.apache.calcite.linq4j.function.Function1() {\n");
+            " left.hashJoin(right, new org.apache.calcite.linq4j.function.Function1() {\n");
   }
 }
 

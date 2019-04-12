@@ -996,12 +996,12 @@ public abstract class EnumerableDefaults {
    * matching keys. The default equality comparer is used to compare
    * keys.
    */
-  public static <TSource, TInner, TKey, TResult> Enumerable<TResult> join(
+  public static <TSource, TInner, TKey, TResult> Enumerable<TResult> hashJoin(
       final Enumerable<TSource> outer, final Enumerable<TInner> inner,
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
       final Function2<TSource, TInner, TResult> resultSelector) {
-    return join(
+    return hashJoin(
         outer,
         inner,
         outerKeySelector,
@@ -1017,13 +1017,13 @@ public abstract class EnumerableDefaults {
    * matching keys. A specified {@code EqualityComparer<TSource>} is used to
    * compare keys.
    */
-  public static <TSource, TInner, TKey, TResult> Enumerable<TResult> join(
+  public static <TSource, TInner, TKey, TResult> Enumerable<TResult> hashJoin(
       Enumerable<TSource> outer, Enumerable<TInner> inner,
       Function1<TSource, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
       Function2<TSource, TInner, TResult> resultSelector,
       EqualityComparer<TKey> comparer) {
-    return join(
+    return hashJoin(
         outer,
         inner,
         outerKeySelector,
@@ -1039,14 +1039,14 @@ public abstract class EnumerableDefaults {
    * matching keys. A specified {@code EqualityComparer<TSource>} is used to
    * compare keys.
    */
-  public static <TSource, TInner, TKey, TResult> Enumerable<TResult> join(
+  public static <TSource, TInner, TKey, TResult> Enumerable<TResult> hashJoin(
       Enumerable<TSource> outer, Enumerable<TInner> inner,
       Function1<TSource, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
       Function2<TSource, TInner, TResult> resultSelector,
       EqualityComparer<TKey> comparer, boolean generateNullsOnLeft,
       boolean generateNullsOnRight) {
-    return join_(
+    return hashJoin_(
         outer,
         inner,
         outerKeySelector,
@@ -1059,7 +1059,7 @@ public abstract class EnumerableDefaults {
 
   /** Implementation of join that builds the right input and probes with the
    * left. */
-  private static <TSource, TInner, TKey, TResult> Enumerable<TResult> join_(
+  private static <TSource, TInner, TKey, TResult> Enumerable<TResult> hashJoin_(
       final Enumerable<TSource> outer, final Enumerable<TInner> inner,
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
@@ -1318,7 +1318,7 @@ public abstract class EnumerableDefaults {
   /**
    * Correlates the elements of two sequences based on a predicate.
    */
-  public static <TSource, TInner, TResult> Enumerable<TResult> thetaJoin(
+  public static <TSource, TInner, TResult> Enumerable<TResult> nestedLoopJoin(
       final Enumerable<TSource> outer, final Enumerable<TInner> inner,
       final Predicate2<TSource, TInner> predicate,
       Function2<TSource, TInner, TResult> resultSelector,

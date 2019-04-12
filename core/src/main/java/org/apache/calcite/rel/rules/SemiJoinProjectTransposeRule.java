@@ -19,30 +19,30 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableSet;
+
 import java.util.List;
 
 /**
  * Planner rule that pushes
- * a {@link org.apache.calcite.rel.core.SemiJoin} down in a tree past
+ * a {@code SemiJoin} down in a tree past
  * a {@link org.apache.calcite.rel.core.Project}.
  *
  * <p>The intention is to trigger other rules that will convert
@@ -63,7 +63,7 @@ public class SemiJoinProjectTransposeRule extends RelOptRule {
    */
   private SemiJoinProjectTransposeRule(RelBuilderFactory relBuilderFactory) {
     super(
-        operand(SemiJoin.class,
+        operandJ(LogicalJoin.class, null, Join::isSemiJoin,
             some(operand(LogicalProject.class, any()))),
         relBuilderFactory, null);
   }
@@ -71,34 +71,27 @@ public class SemiJoinProjectTransposeRule extends RelOptRule {
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    SemiJoin semiJoin = call.rel(0);
+    LogicalJoin semiJoin = call.rel(0);
     LogicalProject project = call.rel(1);
 
     // Convert the LHS semi-join keys to reference the child projection
     // expression; all projection expressions must be RexInputRefs,
     // otherwise, we wouldn't have created this semi-join.
-    final List<Integer> newLeftKeys = new ArrayList<>();
-    final List<Integer> leftKeys = semiJoin.getLeftKeys();
-    final List<RexNode> projExprs = project.getProjects();
-    for (int leftKey : leftKeys) {
-      RexInputRef inputRef = (RexInputRef) projExprs.get(leftKey);
-      newLeftKeys.add(inputRef.getIndex());
-    }
 
     // convert the semijoin condition to reflect the LHS with the project
     // pulled up
     RexNode newCondition = adjustCondition(project, semiJoin);
 
-    SemiJoin newSemiJoin =
-        SemiJoin.create(project.getInput(), semiJoin.getRight(), newCondition,
-            ImmutableIntList.copyOf(newLeftKeys), semiJoin.getRightKeys());
+    LogicalJoin newSemiJoin =
+        LogicalJoin.create(project.getInput(), semiJoin.getRight(), newCondition,
+            ImmutableSet.of(), JoinRelType.SEMI);
 
     // Create the new projection.  Note that the projection expressions
     // are the same as the original because they only reference the LHS
     // of the semijoin and the semijoin only projects out the LHS
     final RelBuilder relBuilder = call.builder();
     relBuilder.push(newSemiJoin);
-    relBuilder.project(projExprs, project.getRowType().getFieldNames());
+    relBuilder.project(project.getProjects(), project.getRowType().getFieldNames());
 
     call.transformTo(relBuilder.build());
   }
@@ -113,7 +106,7 @@ public class SemiJoinProjectTransposeRule extends RelOptRule {
    * @param semiJoin the semijoin
    * @return the modified semijoin condition
    */
-  private RexNode adjustCondition(LogicalProject project, SemiJoin semiJoin) {
+  private RexNode adjustCondition(LogicalProject project, LogicalJoin semiJoin) {
     // create two RexPrograms -- the bottom one representing a
     // concatenation of the project and the RHS of the semijoin and the
     // top one representing the semijoin condition

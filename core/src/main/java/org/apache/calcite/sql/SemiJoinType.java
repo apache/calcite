@@ -25,7 +25,10 @@ import java.util.Locale;
 /**
  * Enumeration representing different join types used in correlation
  * relations.
+ *
+ * @deprecated Use {@link JoinRelType} instead.
  */
+@Deprecated // To be removed before 2.0
 public enum SemiJoinType {
   /**
    * Inner join.

@@ -247,6 +247,11 @@ public class RelMdColumnUniqueness
     final RelNode left = rel.getLeft();
     final RelNode right = rel.getRight();
 
+    // Semi or anti join should ignore uniqueness of the right input.
+    if (!rel.getJoinType().projectsRight()) {
+      return mq.areColumnsUnique(left, columns, ignoreNulls);
+    }
+
     // Divide up the input column mask into column masks for the left and
     // right sides of the join
     final Pair<ImmutableBitSet, ImmutableBitSet> leftAndRightColumns =
