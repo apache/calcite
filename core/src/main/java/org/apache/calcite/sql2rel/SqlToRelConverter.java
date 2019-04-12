@@ -95,7 +95,6 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
-import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -2498,7 +2497,7 @@ public class SqlToRelConverter {
       }
 
       LogicalCorrelate corr = LogicalCorrelate.create(leftRel, innerRel,
-          p.id, requiredCols, SemiJoinType.of(joinType));
+          p.id, requiredCols, joinType);
       return corr;
     }
 

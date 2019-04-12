@@ -153,14 +153,14 @@ public class EnumerablesTest {
 
   @Test public void testThetaJoin() {
     assertThat(
-        EnumerableDefaults.thetaJoin(EMPS, DEPTS, EQUAL_DEPTNO,
+        EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS, EQUAL_DEPTNO,
             EMP_DEPT_TO_STRING, false, false).toList().toString(),
         equalTo("[{Theodore, 20, 20, Sales}, {Sebastian, 20, 20, Sales}]"));
   }
 
   @Test public void testThetaLeftJoin() {
     assertThat(
-        EnumerableDefaults.thetaJoin(EMPS, DEPTS, EQUAL_DEPTNO,
+        EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS, EQUAL_DEPTNO,
             EMP_DEPT_TO_STRING, false, true).toList().toString(),
         equalTo("[{Fred, 10, null, null}, {Theodore, 20, 20, Sales}, "
             + "{Sebastian, 20, 20, Sales}, {Joe, 30, null, null}]"));
@@ -168,7 +168,7 @@ public class EnumerablesTest {
 
   @Test public void testThetaRightJoin() {
     assertThat(
-        EnumerableDefaults.thetaJoin(EMPS, DEPTS, EQUAL_DEPTNO,
+        EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS, EQUAL_DEPTNO,
             EMP_DEPT_TO_STRING, true, false).toList().toString(),
         equalTo("[{Theodore, 20, 20, Sales}, {Sebastian, 20, 20, Sales}, "
             + "{null, null, 15, Marketing}]"));
@@ -176,7 +176,7 @@ public class EnumerablesTest {
 
   @Test public void testThetaFullJoin() {
     assertThat(
-        EnumerableDefaults.thetaJoin(EMPS, DEPTS, EQUAL_DEPTNO,
+        EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS, EQUAL_DEPTNO,
             EMP_DEPT_TO_STRING, true, true).toList().toString(),
         equalTo("[{Fred, 10, null, null}, {Theodore, 20, 20, Sales}, "
             + "{Sebastian, 20, 20, Sales}, {Joe, 30, null, null}, "
@@ -185,7 +185,7 @@ public class EnumerablesTest {
 
   @Test public void testThetaFullJoinLeftEmpty() {
     assertThat(
-        EnumerableDefaults.thetaJoin(EMPS.take(0), DEPTS, EQUAL_DEPTNO,
+        EnumerableDefaults.nestedLoopJoin(EMPS.take(0), DEPTS, EQUAL_DEPTNO,
             EMP_DEPT_TO_STRING, true, true)
             .orderBy(Functions.identitySelector()).toList().toString(),
         equalTo("[{null, null, 15, Marketing}, {null, null, 20, Sales}]"));
@@ -193,7 +193,7 @@ public class EnumerablesTest {
 
   @Test public void testThetaFullJoinRightEmpty() {
     assertThat(
-        EnumerableDefaults.thetaJoin(EMPS, DEPTS.take(0), EQUAL_DEPTNO,
+        EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS.take(0), EQUAL_DEPTNO,
             EMP_DEPT_TO_STRING, true, true).toList().toString(),
         equalTo("[{Fred, 10, null, null}, {Theodore, 20, null, null}, "
             + "{Sebastian, 20, null, null}, {Joe, 30, null, null}]"));
@@ -201,7 +201,7 @@ public class EnumerablesTest {
 
   @Test public void testThetaFullJoinBothEmpty() {
     assertThat(
-        EnumerableDefaults.thetaJoin(EMPS.take(0), DEPTS.take(0), EQUAL_DEPTNO,
+        EnumerableDefaults.nestedLoopJoin(EMPS.take(0), DEPTS.take(0), EQUAL_DEPTNO,
             EMP_DEPT_TO_STRING, true, true).toList().toString(),
         equalTo("[]"));
   }

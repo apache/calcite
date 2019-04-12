@@ -43,7 +43,6 @@ import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.RepeatUnion;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Spool;
@@ -75,7 +74,6 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TransientTable;
 import org.apache.calcite.schema.impl.ListTransientTable;
 import org.apache.calcite.server.CalciteServerStatement;
-import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -149,7 +147,6 @@ public class RelBuilder {
   private final RelFactories.SortExchangeFactory sortExchangeFactory;
   private final RelFactories.SetOpFactory setOpFactory;
   private final RelFactories.JoinFactory joinFactory;
-  private final RelFactories.SemiJoinFactory semiJoinFactory;
   private final RelFactories.CorrelateFactory correlateFactory;
   private final RelFactories.ValuesFactory valuesFactory;
   private final RelFactories.TableScanFactory scanFactory;
@@ -194,9 +191,6 @@ public class RelBuilder {
     this.joinFactory =
         Util.first(context.unwrap(RelFactories.JoinFactory.class),
             RelFactories.DEFAULT_JOIN_FACTORY);
-    this.semiJoinFactory =
-        Util.first(context.unwrap(RelFactories.SemiJoinFactory.class),
-            RelFactories.DEFAULT_SEMI_JOIN_FACTORY);
     this.correlateFactory =
         Util.first(context.unwrap(RelFactories.CorrelateFactory.class),
             RelFactories.DEFAULT_CORRELATE_FACTORY);
@@ -1871,7 +1865,7 @@ public class RelBuilder {
         postCondition = condition;
       }
       join = correlateFactory.createCorrelate(left.rel, right.rel, id,
-          requiredColumns, SemiJoinType.of(joinType));
+          requiredColumns, joinType);
     } else {
       join = joinFactory.createJoin(left.rel, right.rel, condition,
           variablesSet, joinType, false);
@@ -1904,7 +1898,7 @@ public class RelBuilder {
     return join(joinType, conditions);
   }
 
-  /** Creates a {@link SemiJoin}.
+  /** Creates a {@link Join} with {@link JoinRelType#SEMI}.
    *
    * <p>A semi-join is a form of join that combines two relational expressions
    * according to some condition, and outputs only rows from the left input for
@@ -1924,12 +1918,13 @@ public class RelBuilder {
   public RelBuilder semiJoin(Iterable<? extends RexNode> conditions) {
     final Frame right = stack.pop();
     final RelNode semiJoin =
-        semiJoinFactory.createSemiJoin(peek(), right.rel, and(conditions));
+        joinFactory.createJoin(peek(), right.rel,
+            and(conditions), ImmutableSet.of(), JoinRelType.SEMI, false);
     replaceTop(semiJoin);
     return this;
   }
 
-  /** Creates a {@link SemiJoin}.
+  /** Creates a {@link Join} with {@link JoinRelType#SEMI}.
    *
    * @see #semiJoin(Iterable) */
   public RelBuilder semiJoin(RexNode... conditions) {
@@ -1981,7 +1976,7 @@ public class RelBuilder {
 
     final RelNode antiJoin =
         correlateFactory.createCorrelate(left, right2, correlationId,
-            requiredColumns.build(), SemiJoinType.ANTI);
+            requiredColumns.build(), JoinRelType.ANTI);
     replaceTop(antiJoin);
     return this;
   }

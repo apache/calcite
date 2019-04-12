@@ -26,7 +26,11 @@ import java.util.List;
 
 /** Planner rule that converts a
  * {@link org.apache.calcite.rel.core.SemiJoin} relational expression
- * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
+ * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
+ *
+ * @deprecated Use {@link EnumerableJoinRule} instead.
+ */
+@Deprecated // to be removed before 2.0
 class EnumerableSemiJoinRule extends ConverterRule {
   EnumerableSemiJoinRule() {
     super(SemiJoin.class, Convention.NONE, EnumerableConvention.INSTANCE,
