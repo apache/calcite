@@ -1894,7 +1894,7 @@ SqlNode TableRef2(boolean lateral) :
             tableRef = unnestOp.createCall(s.end(this), args.toArray());
         }
     |
-        [ LOOKAHEAD(1) <LATERAL> { lateral = true; } ]
+        [<LATERAL> { lateral = true; } ]
         <TABLE> { s = span(); } <LPAREN>
         tableRef = TableFunctionCall(s.pos())
         <RPAREN>
@@ -2597,7 +2597,17 @@ SqlMatchRecognize MatchRecognize(SqlNode tableRef) :
                         s1.end(var), var);
                 }
             |
-                [ LOOKAHEAD(1) <LAST> ] var = SimpleIdentifier() {
+                // This "LOOKAHEAD({true})" is a workaround for Babel.
+                // Because of babel parser uses option "LOOKAHEAD=2" globally,
+                // JavaCC generates something like "LOOKAHEAD(2, [<LAST>] SimpleIdentifier())"
+                // here. But the correct LOOKAHEAD should be
+                // "LOOKAHEAD(2, [ LOOKAHEAD(2, <LAST> SimpleIdentifier()) <LAST> ]
+                // SimpleIdentifier())" which have the syntactic lookahead for <LAST> considered.
+                //
+                // Overall LOOKAHEAD({true}) is even better as this is the last branch in the
+                // choice.
+                LOOKAHEAD({true})
+                [ LOOKAHEAD(2, <LAST> SimpleIdentifier()) <LAST> ] var = SimpleIdentifier() {
                     after = SqlMatchRecognize.SKIP_TO_LAST.createCall(
                         s1.end(var), var);
                 }
@@ -3422,7 +3432,6 @@ SqlNode AtomicRowExpression() :
 }
 {
     (
-        LOOKAHEAD(1)
         e = Literal()
     |
         e = DynamicParam()
@@ -5290,7 +5299,7 @@ List<SqlNode> JsonNameAndValue() :
 }
 {
     [
-        LOOKAHEAD(1)
+        LOOKAHEAD(2, <KEY> JsonName())
         <KEY> { kvMode = true; }
     ]
     e = JsonName() {
@@ -5782,7 +5791,7 @@ SqlNode NamedFunctionCall() :
         call = createCall(qualifiedName, s.end(this), funcType, quantifier, args);
     }
     [
-        LOOKAHEAD(1) call = nullTreatment(call)
+        LOOKAHEAD(2) call = nullTreatment(call)
     ]
     [
         call = withinGroup(call)
