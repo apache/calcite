@@ -312,7 +312,6 @@ Assignment foreachStmt(final Identifier target) :
 {
   <FOREACH> id = simpleIdentifier()
   (
-    LOOKAHEAD(1)
     <GENERATE> expList = expCommaList() <SEMICOLON> {
       return new ForeachStmt(pos3(target), target, id, expList, schema);
     }
