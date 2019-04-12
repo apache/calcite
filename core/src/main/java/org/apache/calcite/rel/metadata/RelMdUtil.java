@@ -39,6 +39,7 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -81,8 +82,7 @@ public class RelMdUtil {
    * @param rel the semijoin of interest
    * @return constructed rexnode
    */
-  public static RexNode makeSemiJoinSelectivityRexNode(RelMetadataQuery mq,
-      SemiJoin rel) {
+  public static RexNode makeSemiJoinSelectivityRexNode(RelMetadataQuery mq, Join rel) {
     RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
     double selectivity =
         computeSemiJoinSelectivity(mq, rel.getLeft(), rel.getRight(), rel);
@@ -132,9 +132,9 @@ public class RelMdUtil {
    * @return calculated selectivity
    */
   public static double computeSemiJoinSelectivity(RelMetadataQuery mq,
-      RelNode factRel, RelNode dimRel, SemiJoin rel) {
-    return computeSemiJoinSelectivity(mq, factRel, dimRel, rel.getLeftKeys(),
-        rel.getRightKeys());
+      RelNode factRel, RelNode dimRel, Join rel) {
+    return computeSemiJoinSelectivity(mq, factRel, dimRel, rel.analyzeCondition().leftKeys,
+        rel.analyzeCondition().rightKeys);
   }
 
   /**
@@ -532,6 +532,10 @@ public class RelMdUtil {
    */
   public static Double getJoinPopulationSize(RelMetadataQuery mq,
       RelNode joinRel, ImmutableBitSet groupKey) {
+    Join join = (Join) joinRel;
+    if (!join.getJoinType().projectsRight()) {
+      return mq.getPopulationSize(join.getLeft(), groupKey);
+    }
     ImmutableBitSet.Builder leftMask = ImmutableBitSet.builder();
     ImmutableBitSet.Builder rightMask = ImmutableBitSet.builder();
     RelNode left = joinRel.getInputs().get(0);
@@ -549,6 +553,60 @@ public class RelMdUtil {
     return numDistinctVals(population, mq.getRowCount(joinRel));
   }
 
+  /** Add an epsilon to the value passed in. **/
+  public static double addEpsilon(double d) {
+    assert d >= 0d;
+    final double d0 = d;
+    if (d < 10) {
+      // For small d, adding 1 would change the value significantly.
+      d *= 1.001d;
+      if (d != d0) {
+        return d;
+      }
+    }
+    // For medium d, add 1. Keeps integral values integral.
+    ++d;
+    if (d != d0) {
+      return d;
+    }
+    // For large d, adding 1 might not change the value. Add .1%.
+    // If d is NaN, this still will probably not change the value. That's OK.
+    d *= 1.001d;
+    return d;
+  }
+
+  /**
+   * Computes the number of distinct rows for a set of keys returned from a
+   * semi-join
+   *
+   * @param semiJoinRel RelNode representing the semi-join
+   * @param mq          metadata query
+   * @param groupKey    keys that the distinct row count will be computed for
+   * @param predicate   join predicate
+   * @return number of distinct rows
+   */
+  public static Double getSemiJoinDistinctRowCount(Join semiJoinRel, RelMetadataQuery mq,
+      ImmutableBitSet groupKey, RexNode predicate) {
+    if (predicate == null || predicate.isAlwaysTrue()) {
+      if (groupKey.isEmpty()) {
+        return 1D;
+      }
+    }
+    // create a RexNode representing the selectivity of the
+    // semijoin filter and pass it to getDistinctRowCount
+    RexNode newPred = RelMdUtil.makeSemiJoinSelectivityRexNode(mq, semiJoinRel);
+    if (predicate != null) {
+      RexBuilder rexBuilder = semiJoinRel.getCluster().getRexBuilder();
+      newPred =
+          rexBuilder.makeCall(
+              SqlStdOperatorTable.AND,
+              newPred,
+              predicate);
+    }
+
+    return mq.getDistinctRowCount(semiJoinRel.getLeft(), groupKey, newPred);
+  }
+
   /**
    * Computes the number of distinct rows for a set of keys returned from a
    * join. Also known as NDV (number of distinct values).
@@ -564,6 +622,15 @@ public class RelMdUtil {
   public static Double getJoinDistinctRowCount(RelMetadataQuery mq,
       RelNode joinRel, JoinRelType joinType, ImmutableBitSet groupKey,
       RexNode predicate, boolean useMaxNdv) {
+    if (predicate == null || predicate.isAlwaysTrue()) {
+      if (groupKey.isEmpty()) {
+        return 1D;
+      }
+    }
+    Join join = (Join) joinRel;
+    if (join.isSemiJoin()) {
+      return getSemiJoinDistinctRowCount(join, mq, groupKey, predicate);
+    }
     Double distRowCount;
     ImmutableBitSet.Builder leftMask = ImmutableBitSet.builder();
     ImmutableBitSet.Builder rightMask = ImmutableBitSet.builder();
@@ -589,7 +656,7 @@ public class RelMdUtil {
           joinRel,
           predList,
           joinType,
-          joinType == JoinRelType.INNER,
+          !joinType.isOuterJoin(),
           !joinType.generatesNullsOnLeft(),
           !joinType.generatesNullsOnRight(),
           joinFilters,
@@ -644,6 +711,16 @@ public class RelMdUtil {
   /** Returns an estimate of the number of rows returned by a {@link Join}. */
   public static Double getJoinRowCount(RelMetadataQuery mq, Join join,
       RexNode condition) {
+    if (!join.getJoinType().projectsRight()) {
+      // Create a RexNode representing the selectivity of the
+      // semijoin filter and pass it to getSelectivity
+      RexNode semiJoinSelectivity =
+          RelMdUtil.makeSemiJoinSelectivityRexNode(mq, join);
+
+      return NumberUtil.multiply(
+          mq.getSelectivity(join.getLeft(), semiJoinSelectivity),
+          mq.getRowCount(join.getLeft()));
+    }
     // Row count estimates of 0 will be rounded up to 1.
     // So, use maxRowCount where the product is very small.
     final Double left = mq.getRowCount(join.getLeft());
@@ -659,7 +736,6 @@ public class RelMdUtil {
     }
     double product = left * right;
 
-    // TODO:  correlation factor
     return product * mq.getSelectivity(join, condition);
   }
 
@@ -667,7 +743,6 @@ public class RelMdUtil {
    * {@link SemiJoin}. */
   public static Double getSemiJoinRowCount(RelMetadataQuery mq, RelNode left,
       RelNode right, JoinRelType joinType, RexNode condition) {
-    // TODO:  correlation factor
     final Double leftCount = mq.getRowCount(left);
     if (leftCount == null) {
       return null;

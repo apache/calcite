@@ -131,6 +131,12 @@ public class RelMdUniqueKeys
 
   public Set<ImmutableBitSet> getUniqueKeys(Join rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
+    if (!rel.getJoinType().projectsRight()) {
+      // only return the unique keys from the LHS since a semijoin only
+      // returns the LHS
+      return mq.getUniqueKeys(rel.getLeft(), ignoreNulls);
+    }
+
     final RelNode left = rel.getLeft();
     final RelNode right = rel.getRight();
 

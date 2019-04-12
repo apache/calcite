@@ -29,12 +29,12 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.EquiJoin;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
@@ -2376,6 +2376,10 @@ public abstract class RelOptUtil {
   public static JoinRelType simplifyJoin(RelNode joinRel,
       ImmutableList<RexNode> aboveFilters,
       JoinRelType joinType) {
+    // No need to simplify if the join only outputs left side.
+    if (!joinType.projectsRight()) {
+      return joinType;
+    }
     final int nTotalFields = joinRel.getRowType().getFieldCount();
     final int nSysFields = 0;
     final int nFieldsLeft =
@@ -2399,7 +2403,7 @@ public abstract class RelOptUtil {
           && Strong.isNotTrue(filter, rightBitmap)) {
         joinType = joinType.cancelNullsOnRight();
       }
-      if (joinType == JoinRelType.INNER) {
+      if (!joinType.isOuterJoin()) {
         break;
       }
     }
@@ -2515,7 +2519,7 @@ public abstract class RelOptUtil {
         // If the filter can't be pushed to either child and the join
         // is an inner join, push them to the join if they originated
         // from above the join
-        if (joinType == JoinRelType.INNER && pushInto) {
+        if (!joinType.isOuterJoin() && pushInto) {
           if (!joinFilters.contains(filter)) {
             joinFilters.add(filter);
           }
@@ -2535,9 +2539,10 @@ public abstract class RelOptUtil {
 
   private static boolean returnsJustFirstInput(RelNode joinRel) {
     // SemiJoin, CorrelateSemiJoin, CorrelateAntiJoin: right fields are not returned
-    return joinRel instanceof SemiJoin
+    return (joinRel instanceof Join
+                && !((Join) joinRel).getJoinType().projectsRight())
             || (joinRel instanceof Correlate
-                && ((Correlate) joinRel).getJoinType().returnsJustFirstInput());
+                && !((Correlate) joinRel).getJoinType().projectsRight());
   }
 
   private static RexNode shiftFilter(
@@ -3828,6 +3833,12 @@ public abstract class RelOptUtil {
       this.indicator = indicator;
       this.outerJoin = outerJoin;
     }
+  }
+
+  /** Check if it is the join whose condition is based on column equality,
+   * this mostly depends on the physical implementation of the join. */
+  public static boolean forceEquiJoin(Join join) {
+    return join.isSemiJoin() || join instanceof EquiJoin;
   }
 }
 

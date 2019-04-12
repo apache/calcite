@@ -25,11 +25,11 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
-import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -37,11 +37,13 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -158,7 +160,7 @@ public class RelMdAllPredicates
    * Add the Join condition to the list obtained from the input.
    */
   public RelOptPredicateList getAllPredicates(Join join, RelMetadataQuery mq) {
-    if (join.getJoinType() != JoinRelType.INNER) {
+    if (join.getJoinType().isOuterJoin()) {
       // We cannot map origin of this expression.
       return null;
     }
@@ -213,14 +215,20 @@ public class RelMdAllPredicates
 
     // Infer column origin expressions for given references
     final Map<RexInputRef, Set<RexNode>> mapping = new LinkedHashMap<>();
+    final RelDataType fullRowType = SqlValidatorUtil.createJoinType(
+        rexBuilder.getTypeFactory(),
+        join.getLeft().getRowType(),
+        join.getRight().getRowType(),
+        null,
+        ImmutableList.of());
     for (int idx : inputFieldsUsed) {
-      final RexInputRef inputRef = RexInputRef.of(idx, join.getRowType().getFieldList());
+      final RexInputRef inputRef = RexInputRef.of(idx, fullRowType.getFieldList());
       final Set<RexNode> originalExprs = mq.getExpressionLineage(join, inputRef);
       if (originalExprs == null) {
         // Bail out
         return null;
       }
-      final RexInputRef ref = RexInputRef.of(idx, join.getRowType().getFieldList());
+      final RexInputRef ref = RexInputRef.of(idx, fullRowType.getFieldList());
       mapping.put(ref, originalExprs);
     }
 

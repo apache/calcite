@@ -281,7 +281,7 @@ public class JoinProjectTransposeRule extends RelOptRule {
     int[] adjustments = new int[nJoinFields];
     for (int i = 0; i < nProjExprs; i++) {
       RexNode newExpr = mergedProgram.expandLocalRef(projList.get(i));
-      if (joinType != JoinRelType.INNER) {
+      if (joinType.isOuterJoin()) {
         newExpr =
             newExpr.accept(
                 new RelOptUtil.RexInputConverter(
@@ -299,7 +299,7 @@ public class JoinProjectTransposeRule extends RelOptRule {
     relBuilder.project(newProjExprs, joinRel.getRowType().getFieldNames());
     // if the join was outer, we might need a cast after the
     // projection to fix differences wrt nullability of fields
-    if (joinType != JoinRelType.INNER) {
+    if (joinType.isOuterJoin()) {
       relBuilder.convert(joinRel.getRowType(), false);
     }
 

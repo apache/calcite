@@ -488,6 +488,10 @@ public class SqlValidatorUtil {
       leftType = typeFactory.createTypeWithNullability(leftType, true);
       rightType = typeFactory.createTypeWithNullability(rightType, true);
       break;
+    case SEMI:
+    case ANTI:
+      rightType = null;
+      break;
     default:
       break;
     }

@@ -37,6 +37,7 @@ public class EnumerableRules {
   public static final RelOptRule ENUMERABLE_MERGE_JOIN_RULE =
       new EnumerableMergeJoinRule();
 
+  @Deprecated // To be removed before 2.0, use ENUMERABLE_JOIN_RULE instead.
   public static final RelOptRule ENUMERABLE_SEMI_JOIN_RULE =
       new EnumerableSemiJoinRule();
 

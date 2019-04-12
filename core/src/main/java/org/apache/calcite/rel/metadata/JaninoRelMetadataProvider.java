@@ -18,7 +18,7 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.adapter.enumerable.EnumerableAggregate;
 import org.apache.calcite.adapter.enumerable.EnumerableFilter;
-import org.apache.calcite.adapter.enumerable.EnumerableJoin;
+import org.apache.calcite.adapter.enumerable.EnumerableHashJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableProject;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
 import org.apache.calcite.config.CalciteSystemProperty;
@@ -142,7 +142,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
             EnumerableAggregate.class,
             EnumerableFilter.class,
             EnumerableProject.class,
-            EnumerableJoin.class,
+            EnumerableHashJoin.class,
             EnumerableTableScan.class));
   }
 

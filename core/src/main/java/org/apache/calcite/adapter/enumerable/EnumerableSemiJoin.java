@@ -37,7 +37,12 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
 /** Implementation of {@link org.apache.calcite.rel.core.SemiJoin} in
- * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
+ * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
+ *
+ * @deprecated This class is deprecated, the function is merged into {@link EnumerableHashJoin},
+ * see {@link EnumerableJoinRule} for details.
+ */
+@Deprecated // to be removed before 2.0
 public class EnumerableSemiJoin extends SemiJoin implements EnumerableRel {
   /** Creates an EnumerableSemiJoin.
    *

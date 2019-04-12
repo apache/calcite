@@ -268,7 +268,7 @@ public final class MultiJoin extends AbstractRelNode {
 
   boolean containsOuter() {
     for (JoinRelType joinType : joinTypes) {
-      if (joinType != JoinRelType.INNER) {
+      if (joinType.isOuterJoin()) {
         return true;
       }
     }

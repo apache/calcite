@@ -61,7 +61,7 @@ class EnumerableJoinRule extends ConverterRule {
       // EnumerableJoinRel only supports equi-join. We can put a filter on top
       // if it is an inner join.
       try {
-        return EnumerableThetaJoin.create(
+        return EnumerableNestedLoopJoin.create(
             left,
             right,
             join.getCondition(),
@@ -71,26 +71,25 @@ class EnumerableJoinRule extends ConverterRule {
         EnumerableRules.LOGGER.debug(e.toString());
         return null;
       }
+    } else {
+      RelNode newRel;
+      try {
+        newRel = EnumerableHashJoin.create(
+            left,
+            right,
+            info.getEquiCondition(left, right, cluster.getRexBuilder()),
+            join.getVariablesSet(),
+            join.getJoinType());
+      } catch (InvalidRelException e) {
+        EnumerableRules.LOGGER.debug(e.toString());
+        return null;
+      }
+      if (!info.isEqui()) {
+        newRel = new EnumerableFilter(cluster, newRel.getTraitSet(),
+            newRel, info.getRemaining(cluster.getRexBuilder()));
+      }
+      return newRel;
     }
-    RelNode newRel;
-    try {
-      newRel = EnumerableJoin.create(
-          left,
-          right,
-          info.getEquiCondition(left, right, cluster.getRexBuilder()),
-          info.leftKeys,
-          info.rightKeys,
-          join.getVariablesSet(),
-          join.getJoinType());
-    } catch (InvalidRelException e) {
-      EnumerableRules.LOGGER.debug(e.toString());
-      return null;
-    }
-    if (!info.isEqui()) {
-      newRel = new EnumerableFilter(cluster, newRel.getTraitSet(),
-          newRel, info.getRemaining(cluster.getRexBuilder()));
-    }
-    return newRel;
   }
 }
 

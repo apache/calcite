@@ -171,22 +171,22 @@ public final class JoinPreserveOrderTest {
     testJoin(hashJoin(false, false), AssertOrder.PRESERVED, AssertOrder.IGNORED);
   }
 
-  @Test public void testLeftThetaJoinPreservesOrderOfLeftInput() {
-    testJoin(thetaJoin(false, true), AssertOrder.PRESERVED, AssertOrder.IGNORED);
+  @Test public void testLeftNestedLoopJoinPreservesOrderOfLeftInput() {
+    testJoin(nestedLoopJoin(false, true), AssertOrder.PRESERVED, AssertOrder.IGNORED);
   }
 
-  @Test public void testRightThetaJoinPreservesOrderOfLeftInput() {
+  @Test public void testRightNestedLoopJoinPreservesOrderOfLeftInput() {
     Assume.assumeFalse(leftColumn.isNullsFirst);
-    testJoin(thetaJoin(true, false), AssertOrder.PRESERVED, AssertOrder.IGNORED);
+    testJoin(nestedLoopJoin(true, false), AssertOrder.PRESERVED, AssertOrder.IGNORED);
   }
 
-  @Test public void testFullThetaJoinPreservesOrderOfLeftInput() {
+  @Test public void testFullNestedLoopJoinPreservesOrderOfLeftInput() {
     Assume.assumeFalse(leftColumn.isNullsFirst);
-    testJoin(thetaJoin(true, true), AssertOrder.PRESERVED, AssertOrder.IGNORED);
+    testJoin(nestedLoopJoin(true, true), AssertOrder.PRESERVED, AssertOrder.IGNORED);
   }
 
-  @Test public void testInnerThetaJoinPreservesOrderOfLeftInput() {
-    testJoin(thetaJoin(false, false), AssertOrder.PRESERVED, AssertOrder.IGNORED);
+  @Test public void testInnerNestedLoopJoinPreservesOrderOfLeftInput() {
+    testJoin(nestedLoopJoin(false, false), AssertOrder.PRESERVED, AssertOrder.IGNORED);
   }
 
 
@@ -247,7 +247,7 @@ public final class JoinPreserveOrderTest {
       boolean generateNullsOnLeft,
       boolean generateNullsOnRight) {
     return (left, right) ->
-        left.join(right,
+        left.hashJoin(right,
             e -> e.deptno,
             d -> d.deptno,
             RESULT_SELECTOR,
@@ -256,11 +256,11 @@ public final class JoinPreserveOrderTest {
             generateNullsOnRight);
   }
 
-  private JoinAlgorithm<Employee, Department, List<Integer>> thetaJoin(
+  private JoinAlgorithm<Employee, Department, List<Integer>> nestedLoopJoin(
       boolean generateNullsOnLeft,
       boolean generateNullsOnRight) {
     return (left, right) ->
-        EnumerableDefaults.thetaJoin(
+        EnumerableDefaults.nestedLoopJoin(
             left,
             right,
             (emp, dept) ->

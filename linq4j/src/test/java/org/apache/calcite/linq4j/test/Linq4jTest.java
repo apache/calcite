@@ -980,7 +980,7 @@ public class Linq4jTest {
     String s =
         Linq4j.asEnumerable(emps)
             .concat(Linq4j.asEnumerable(badEmps))
-            .join(
+            .hashJoin(
                 Linq4j.asEnumerable(depts),
                 EMP_DEPTNO_SELECTOR,
                 DEPT_DEPTNO_SELECTOR, (v1, v2) -> v1.name + " works in " + v2.name)
@@ -1003,7 +1003,7 @@ public class Linq4jTest {
     String s =
         Linq4j.asEnumerable(emps)
             .concat(Linq4j.asEnumerable(badEmps))
-            .join(
+            .hashJoin(
                 Linq4j.asEnumerable(depts),
                 EMP_DEPTNO_SELECTOR,
                 DEPT_DEPTNO_SELECTOR, (v1, v2) -> v1.name + " works in "
@@ -1028,7 +1028,7 @@ public class Linq4jTest {
     String s =
         Linq4j.asEnumerable(emps)
             .concat(Linq4j.asEnumerable(badEmps))
-            .join(
+            .hashJoin(
                 Linq4j.asEnumerable(depts),
                 EMP_DEPTNO_SELECTOR,
                 DEPT_DEPTNO_SELECTOR, (v1, v2) -> (v1 == null ? null : v1.name)
@@ -1053,7 +1053,7 @@ public class Linq4jTest {
     String s =
         Linq4j.asEnumerable(emps)
             .concat(Linq4j.asEnumerable(badEmps))
-            .join(
+            .hashJoin(
                 Linq4j.asEnumerable(depts),
                 EMP_DEPTNO_SELECTOR,
                 DEPT_DEPTNO_SELECTOR, (v1, v2) -> (v1 == null ? null : v1.name)
@@ -1074,7 +1074,7 @@ public class Linq4jTest {
   @Test public void testJoinCartesianProduct() {
     int n =
         Linq4j.asEnumerable(emps)
-            .<Department, Integer, Integer>join(
+            .<Department, Integer, Integer>hashJoin(
                 Linq4j.asEnumerable(depts),
                 (Function1) ONE_SELECTOR,
                 (Function1) ONE_SELECTOR,
