@@ -63,6 +63,7 @@ import org.apache.calcite.sql.validate.SqlValidatorWithHints;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -76,6 +77,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
@@ -414,6 +416,9 @@ abstract class CalciteConnectionImpl
       final long currentOffset = localOffset;
       final String user = "sa";
       final String systemUser = System.getProperty("user.name");
+      final String localeName = connection.config().locale();
+      final Locale locale = localeName != null
+          ? Util.parseLocale(localeName) : Locale.ROOT;
 
       // Give a hook chance to alter standard input, output, error streams.
       final Holder<Object[]> streamHolder =
@@ -427,6 +432,7 @@ abstract class CalciteConnectionImpl
           .put(Variable.TIME_ZONE.camelName, timeZone)
           .put(Variable.USER.camelName, user)
           .put(Variable.SYSTEM_USER.camelName, systemUser)
+          .put(Variable.LOCALE.camelName, locale)
           .put(Variable.STDIN.camelName, streamHolder.get()[0])
           .put(Variable.STDOUT.camelName, streamHolder.get()[1])
           .put(Variable.STDERR.camelName, streamHolder.get()[2]);
@@ -465,9 +471,9 @@ abstract class CalciteConnectionImpl
               : ImmutableList.of(schemaName);
       final SqlValidatorWithHints validator =
           new SqlAdvisorValidator(SqlStdOperatorTable.instance(),
-          new CalciteCatalogReader(rootSchema,
-              schemaPath, typeFactory, con.config()),
-          typeFactory, SqlConformanceEnum.DEFAULT);
+              new CalciteCatalogReader(rootSchema,
+                  schemaPath, typeFactory, con.config()),
+              typeFactory, SqlConformanceEnum.DEFAULT);
       final CalciteConnectionConfig config = con.config();
       // This duplicates org.apache.calcite.prepare.CalcitePrepareImpl.prepare2_
       final SqlParser.Config parserConfig = SqlParser.configBuilder()

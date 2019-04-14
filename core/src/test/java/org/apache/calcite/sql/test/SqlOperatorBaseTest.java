@@ -1927,9 +1927,10 @@ public abstract class SqlOperatorBaseTest {
     // Time and Date Functions
     tester.checkType("{fn CURDATE()}", "DATE NOT NULL");
     tester.checkType("{fn CURTIME()}", "TIME(0) NOT NULL");
-    if (false) {
-      tester.checkScalar("{fn DAYNAME(date)}", null, "");
-    }
+    tester.checkScalar("{fn DAYNAME(DATE '2014-12-10')}",
+        // Day names in root locale changed from long to short in JDK 9
+        TestUtil.getJavaMajorVersion() <= 8 ? "Wednesday" : "Wed",
+        "VARCHAR(2000) NOT NULL");
     tester.checkScalar("{fn DAYOFMONTH(DATE '2014-12-10')}", 10,
         "BIGINT NOT NULL");
     if (Bug.CALCITE_2539_FIXED) {
@@ -1945,16 +1946,17 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar("{fn MINUTE(TIMESTAMP '2014-12-10 12:34:56')}", 34,
         "BIGINT NOT NULL");
     tester.checkScalar("{fn MONTH(DATE '2014-12-10')}", 12, "BIGINT NOT NULL");
-    if (false) {
-      tester.checkScalar("{fn MONTHNAME(date)}", null, "");
-    }
+    tester.checkScalar("{fn MONTHNAME(DATE '2014-12-10')}",
+        // Month names in root locale changed from long to short in JDK 9
+        TestUtil.getJavaMajorVersion() <= 8 ? "December" : "Dec",
+        "VARCHAR(2000) NOT NULL");
     tester.checkType("{fn NOW()}", "TIMESTAMP(0) NOT NULL");
     tester.checkScalar("{fn QUARTER(DATE '2014-12-10')}", "4",
         "BIGINT NOT NULL");
     tester.checkScalar("{fn SECOND(TIMESTAMP '2014-12-10 12:34:56')}", 56,
         "BIGINT NOT NULL");
     tester.checkScalar("{fn TIMESTAMPADD(HOUR, 5,"
-        + " TIMESTAMP '2014-03-29 12:34:56')}",
+            + " TIMESTAMP '2014-03-29 12:34:56')}",
         "2014-03-29 17:34:56", "TIMESTAMP(0) NOT NULL");
     tester.checkScalar("{fn TIMESTAMPDIFF(HOUR,"
         + " TIMESTAMP '2014-03-29 12:34:56',"
@@ -2190,7 +2192,7 @@ public abstract class SqlOperatorBaseTest {
     // submit as non-runtime because the janino exception does not have
     // error position information and the framework is unhappy with that.
     tester1.checkFails(
-            "3 % case 'a' when 'a' then 0 end", DIVISION_BY_ZERO_MESSAGE, true);
+        "3 % case 'a' when 'a' then 0 end", DIVISION_BY_ZERO_MESSAGE, true);
   }
 
   @Test public void testDivideOperator() {
@@ -4528,7 +4530,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails("json_value('{\"foo\":\"100\"}', 'strict $.foo' returning boolean)",
         INVALID_CHAR_MESSAGE, true);
     tester.checkScalar("json_value('{\"foo\":100}', 'lax $.foo1' returning integer "
-            + "null on empty)", null, "INTEGER");
+        + "null on empty)", null, "INTEGER");
     tester.checkScalar("json_value('{\"foo\":\"100\"}', 'strict $.foo1' returning boolean "
         + "null on error)", null, "BOOLEAN");
 
@@ -4729,24 +4731,24 @@ public abstract class SqlOperatorBaseTest {
   @Test public void testJsonType() {
     tester.setFor(SqlLibraryOperators.JSON_TYPE);
     tester.checkString("json_type('\"1\"')",
-            "STRING", "VARCHAR(20)");
+        "STRING", "VARCHAR(20)");
     tester.checkString("json_type('1')",
-            "INTEGER", "VARCHAR(20)");
+        "INTEGER", "VARCHAR(20)");
     tester.checkString("json_type('11.45')",
-            "DOUBLE", "VARCHAR(20)");
+        "DOUBLE", "VARCHAR(20)");
     tester.checkString("json_type('true')",
-            "BOOLEAN", "VARCHAR(20)");
+        "BOOLEAN", "VARCHAR(20)");
     tester.checkString("json_type('null')",
-            "NULL", "VARCHAR(20)");
+        "NULL", "VARCHAR(20)");
     tester.checkNull("json_type(cast(null as varchar(1)))");
     tester.checkString("json_type('{\"a\": [10, true]}')",
-            "OBJECT", "VARCHAR(20)");
+        "OBJECT", "VARCHAR(20)");
     tester.checkString("json_type('{}')",
-            "OBJECT", "VARCHAR(20)");
+        "OBJECT", "VARCHAR(20)");
     tester.checkString("json_type('[10, true]')",
-            "ARRAY", "VARCHAR(20)");
+        "ARRAY", "VARCHAR(20)");
     tester.checkString("json_type('\"2019-01-27 21:24:00\"')",
-            "STRING", "VARCHAR(20)");
+        "STRING", "VARCHAR(20)");
 
     // nulls
     tester.checkFails("json_type(^null^)",
@@ -4757,29 +4759,29 @@ public abstract class SqlOperatorBaseTest {
   @Test public void testJsonDepth() {
     tester.setFor(SqlLibraryOperators.JSON_DEPTH);
     tester.checkString("json_depth('1')",
-            "1", "INTEGER");
+        "1", "INTEGER");
     tester.checkString("json_depth('11.45')",
-            "1", "INTEGER");
+        "1", "INTEGER");
     tester.checkString("json_depth('true')",
-            "1", "INTEGER");
+        "1", "INTEGER");
     tester.checkString("json_depth('\"2019-01-27 21:24:00\"')",
-            "1", "INTEGER");
+        "1", "INTEGER");
     tester.checkString("json_depth('{}')",
-            "1", "INTEGER");
+        "1", "INTEGER");
     tester.checkString("json_depth('[]')",
-            "1", "INTEGER");
+        "1", "INTEGER");
     tester.checkString("json_depth('null')",
-            null, "INTEGER");
+        null, "INTEGER");
     tester.checkString("json_depth(cast(null as varchar(1)))",
-            null, "INTEGER");
+        null, "INTEGER");
     tester.checkString("json_depth('[10, true]')",
-            "2", "INTEGER");
+        "2", "INTEGER");
     tester.checkString("json_depth('[[], {}]')",
-            "2", "INTEGER");
+        "2", "INTEGER");
     tester.checkString("json_depth('{\"a\": [10, true]}')",
-            "3", "INTEGER");
+        "3", "INTEGER");
     tester.checkString("json_depth('[10, {\"a\": [[1,2]]}]')",
-            "5", "INTEGER");
+        "5", "INTEGER");
 
     // nulls
     tester.checkFails("json_depth(^null^)",
@@ -4790,51 +4792,51 @@ public abstract class SqlOperatorBaseTest {
   @Test public void testJsonLength() {
     // no path context
     tester.checkString("json_length('{}')",
-            "0", "INTEGER");
+        "0", "INTEGER");
     tester.checkString("json_length('[]')",
-            "0", "INTEGER");
+        "0", "INTEGER");
     tester.checkString("json_length('{\"foo\":100}')",
-            "1", "INTEGER");
+        "1", "INTEGER");
     tester.checkString("json_length('{\"a\": 1, \"b\": {\"c\": 30}}')",
-            "2", "INTEGER");
+        "2", "INTEGER");
     tester.checkString("json_length('[1, 2, {\"a\": 3}]')",
-            "3", "INTEGER");
+        "3", "INTEGER");
 
     // lax test
     tester.checkString("json_length('{}', 'lax $')",
-            "0", "INTEGER");
+        "0", "INTEGER");
     tester.checkString("json_length('[]', 'lax $')",
-            "0", "INTEGER");
+        "0", "INTEGER");
     tester.checkString("json_length('{\"foo\":100}', 'lax $')",
-            "1", "INTEGER");
+        "1", "INTEGER");
     tester.checkString("json_length('{\"a\": 1, \"b\": {\"c\": 30}}', 'lax $')",
-            "2", "INTEGER");
+        "2", "INTEGER");
     tester.checkString("json_length('[1, 2, {\"a\": 3}]', 'lax $')",
-            "3", "INTEGER");
+        "3", "INTEGER");
     tester.checkString("json_length('{\"a\": 1, \"b\": {\"c\": 30}}', 'lax $.b')",
-            "1", "INTEGER");
+        "1", "INTEGER");
     tester.checkString("json_length('{\"foo\":100}', 'lax $.foo1')",
-            null, "INTEGER");
+        null, "INTEGER");
 
     // strict test
     tester.checkString("json_length('{}', 'strict $')",
-            "0", "INTEGER");
+        "0", "INTEGER");
     tester.checkString("json_length('[]', 'strict $')",
-            "0", "INTEGER");
+        "0", "INTEGER");
     tester.checkString("json_length('{\"foo\":100}', 'strict $')",
-            "1", "INTEGER");
+        "1", "INTEGER");
     tester.checkString("json_length('{\"a\": 1, \"b\": {\"c\": 30}}', 'strict $')",
-            "2", "INTEGER");
+        "2", "INTEGER");
     tester.checkString("json_length('[1, 2, {\"a\": 3}]', 'strict $')",
-            "3", "INTEGER");
+        "3", "INTEGER");
     tester.checkString("json_length('{\"a\": 1, \"b\": {\"c\": 30}}', 'strict $.b')",
-            "1", "INTEGER");
+        "1", "INTEGER");
 
     // catch error test
     tester.checkFails("json_length('{\"foo\":100}', 'invalid $.foo')",
-            "(?s).*Illegal jsonpath spec.*", true);
+        "(?s).*Illegal jsonpath spec.*", true);
     tester.checkFails("json_length('{\"foo\":100}', 'strict $.foo1')",
-            "(?s).*No results for path.*", true);
+        "(?s).*No results for path.*", true);
 
     // nulls
     tester.checkFails("json_length(^null^)",
@@ -4845,51 +4847,51 @@ public abstract class SqlOperatorBaseTest {
   @Test public void testJsonKeys() {
     // no path context
     tester.checkString("json_keys('{}')",
-            "[]", "VARCHAR(2000)");
+        "[]", "VARCHAR(2000)");
     tester.checkString("json_keys('[]')",
-            "null", "VARCHAR(2000)");
+        "null", "VARCHAR(2000)");
     tester.checkString("json_keys('{\"foo\":100}')",
-            "[\"foo\"]", "VARCHAR(2000)");
+        "[\"foo\"]", "VARCHAR(2000)");
     tester.checkString("json_keys('{\"a\": 1, \"b\": {\"c\": 30}}')",
-            "[\"a\",\"b\"]", "VARCHAR(2000)");
+        "[\"a\",\"b\"]", "VARCHAR(2000)");
     tester.checkString("json_keys('[1, 2, {\"a\": 3}]')",
-            "null", "VARCHAR(2000)");
+        "null", "VARCHAR(2000)");
 
     // lax test
     tester.checkString("json_keys('{}', 'lax $')",
-            "[]", "VARCHAR(2000)");
+        "[]", "VARCHAR(2000)");
     tester.checkString("json_keys('[]', 'lax $')",
-            "null", "VARCHAR(2000)");
+        "null", "VARCHAR(2000)");
     tester.checkString("json_keys('{\"foo\":100}', 'lax $')",
-            "[\"foo\"]", "VARCHAR(2000)");
+        "[\"foo\"]", "VARCHAR(2000)");
     tester.checkString("json_keys('{\"a\": 1, \"b\": {\"c\": 30}}', 'lax $')",
-            "[\"a\",\"b\"]", "VARCHAR(2000)");
+        "[\"a\",\"b\"]", "VARCHAR(2000)");
     tester.checkString("json_keys('[1, 2, {\"a\": 3}]', 'lax $')",
-            "null", "VARCHAR(2000)");
+        "null", "VARCHAR(2000)");
     tester.checkString("json_keys('{\"a\": 1, \"b\": {\"c\": 30}}', 'lax $.b')",
-            "[\"c\"]", "VARCHAR(2000)");
+        "[\"c\"]", "VARCHAR(2000)");
     tester.checkString("json_keys('{\"foo\":100}', 'lax $.foo1')",
-            "null", "VARCHAR(2000)");
+        "null", "VARCHAR(2000)");
 
     // strict test
     tester.checkString("json_keys('{}', 'strict $')",
-            "[]", "VARCHAR(2000)");
+        "[]", "VARCHAR(2000)");
     tester.checkString("json_keys('[]', 'strict $')",
-            "null", "VARCHAR(2000)");
+        "null", "VARCHAR(2000)");
     tester.checkString("json_keys('{\"foo\":100}', 'strict $')",
-            "[\"foo\"]", "VARCHAR(2000)");
+        "[\"foo\"]", "VARCHAR(2000)");
     tester.checkString("json_keys('{\"a\": 1, \"b\": {\"c\": 30}}', 'strict $')",
-            "[\"a\",\"b\"]", "VARCHAR(2000)");
+        "[\"a\",\"b\"]", "VARCHAR(2000)");
     tester.checkString("json_keys('[1, 2, {\"a\": 3}]', 'strict $')",
-            "null", "VARCHAR(2000)");
+        "null", "VARCHAR(2000)");
     tester.checkString("json_keys('{\"a\": 1, \"b\": {\"c\": 30}}', 'strict $.b')",
-            "[\"c\"]", "VARCHAR(2000)");
+        "[\"c\"]", "VARCHAR(2000)");
 
     // catch error test
     tester.checkFails("json_keys('{\"foo\":100}', 'invalid $.foo')",
-            "(?s).*Illegal jsonpath spec.*", true);
+        "(?s).*Illegal jsonpath spec.*", true);
     tester.checkFails("json_keys('{\"foo\":100}', 'strict $.foo1')",
-            "(?s).*No results for path.*", true);
+        "(?s).*No results for path.*", true);
 
     // nulls
     tester.checkFails("json_keys(^null^)",
@@ -6379,11 +6381,11 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("(multiset['a', 'b', 'c'] "
             + "multiset union distinct multiset['c', 'd', 'e'])"
             + " submultiset of multiset['a', 'b', 'c', 'd', 'e']",
-         Boolean.TRUE);
+        Boolean.TRUE);
     tester.checkBoolean("(multiset['a', 'b', 'c'] "
             + "multiset union distinct multiset['c', 'd', 'e'])"
             + " submultiset of multiset['a', 'b', 'c', 'd', 'e']",
-         Boolean.TRUE);
+        Boolean.TRUE);
     tester.checkScalar(
         "multiset[cast(null as double)] multiset union multiset[cast(null as double)]",
         "[null, null]",
@@ -6905,7 +6907,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar(
         "extract(epoch from date '2008-2-23')",
         "1203724800", // number of seconds elapsed since timestamp
-                      // '1970-01-01 00:00:00' for given date
+        // '1970-01-01 00:00:00' for given date
         "BIGINT NOT NULL");
 
     tester.checkScalar(
@@ -7033,7 +7035,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar(
         "extract(epoch from timestamp '2008-2-23 12:34:56')",
         "1203770096", // number of seconds elapsed since timestamp
-                      // '1970-01-01 00:00:00' for given date
+        // '1970-01-01 00:00:00' for given date
         "BIGINT NOT NULL");
 
     tester.checkScalar(

@@ -114,6 +114,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
@@ -413,6 +414,14 @@ public enum BuiltInMethod {
   UNIX_TIMESTAMP_CEIL(DateTimeUtils.class, "unixTimestampCeil",
       TimeUnitRange.class, long.class),
   LAST_DAY(SqlFunctions.class, "lastDay", int.class),
+  DAYNAME_WITH_TIMESTAMP(SqlFunctions.class,
+      "dayNameWithTimestamp", long.class, Locale.class),
+  DAYNAME_WITH_DATE(SqlFunctions.class,
+      "dayNameWithDate", int.class, Locale.class),
+  MONTHNAME_WITH_TIMESTAMP(SqlFunctions.class,
+      "monthNameWithTimestamp", long.class, Locale.class),
+  MONTHNAME_WITH_DATE(SqlFunctions.class,
+      "monthNameWithDate", int.class, Locale.class),
   CURRENT_TIMESTAMP(SqlFunctions.class, "currentTimestamp", DataContext.class),
   CURRENT_TIME(SqlFunctions.class, "currentTime", DataContext.class),
   CURRENT_DATE(SqlFunctions.class, "currentDate", DataContext.class),
@@ -421,6 +430,7 @@ public enum BuiltInMethod {
   TIME_ZONE(SqlFunctions.class, "timeZone", DataContext.class),
   USER(SqlFunctions.class, "user", DataContext.class),
   SYSTEM_USER(SqlFunctions.class, "systemUser", DataContext.class),
+  LOCALE(SqlFunctions.class, "locale", DataContext.class),
   BOOLEAN_TO_STRING(SqlFunctions.class, "toString", boolean.class),
   JDBC_ARRAY_TO_LIST(SqlFunctions.class, "arrayToList", java.sql.Array.class),
   OBJECT_TO_STRING(Object.class, "toString"),
