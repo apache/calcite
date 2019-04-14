@@ -30,6 +30,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SemiJoinType;
@@ -514,7 +515,7 @@ public class PushProjector {
       final RelDataTypeField destField = destFields.get(refIdx - offset);
       newProjects.add(
           Pair.of(
-              (RexNode) rexBuilder.makeInputRef(
+              rexBuilder.makeInputRef(
                   destField.getType(), refIdx - offset),
               destField.getName()));
     }
@@ -679,6 +680,12 @@ public class PushProjector {
         return null;
       }
       super.visitCall(call);
+      return null;
+    }
+
+    public Void visitOver(RexOver over) {
+      final ImmutableBitSet exprArgs = RelOptUtil.InputFinder.bits(over);
+      exprArgs.forEach(i -> rexRefs.set(i));
       return null;
     }
 
