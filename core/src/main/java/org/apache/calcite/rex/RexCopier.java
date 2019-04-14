@@ -18,14 +18,15 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.rel.type.RelDataType;
 
+import com.google.common.collect.ImmutableList;
+
+import java.util.List;
+
 /**
  * Shuttle which creates a deep copy of a Rex expression.
  *
  * <p>This is useful when copying objects from one type factory or builder to
  * another.
- *
- * <p>Due to the laziness of the author, not all Rex types are supported at
- * present.
  *
  * @see RexBuilder#copy(RexNode)
  */
@@ -52,11 +53,30 @@ class RexCopier extends RexShuttle {
   }
 
   public RexNode visitOver(RexOver over) {
-    throw new UnsupportedOperationException();
+    final boolean[] update = null;
+    return new RexOver(copy(over.getType()), over.getAggOperator(),
+        visitList(over.getOperands(), update), visitWindow(over.getWindow()),
+        over.isDistinct(), over.ignoreNulls());
   }
 
   public RexWindow visitWindow(RexWindow window) {
-    throw new UnsupportedOperationException();
+    final boolean[] update = null;
+    final List<RexNode> partitionKeys =
+        visitList(window.partitionKeys, update);
+    final ImmutableList.Builder<RexFieldCollation> orderKeys =
+        ImmutableList.builder();
+    window.orderKeys.forEach(collation ->
+        orderKeys.add(
+            new RexFieldCollation(collation.left.accept(this),
+                collation.right)));
+    final RexWindowBound lowerBound = window.getLowerBound().accept(this);
+    final RexWindowBound upperBound = window.getUpperBound().accept(this);
+    return new RexWindow(
+        partitionKeys,
+        orderKeys.build(),
+        lowerBound,
+        upperBound,
+        window.isRows());
   }
 
   public RexNode visitCall(final RexCall call) {
@@ -67,7 +87,7 @@ class RexCopier extends RexShuttle {
   }
 
   public RexNode visitCorrelVariable(RexCorrelVariable variable) {
-    throw new UnsupportedOperationException();
+    return builder.makeCorrel(copy(variable.getType()), variable.id);
   }
 
   public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
@@ -80,7 +100,7 @@ class RexCopier extends RexShuttle {
   }
 
   public RexNode visitLocalRef(RexLocalRef localRef) {
-    throw new UnsupportedOperationException();
+    return new RexLocalRef(localRef.getIndex(), copy(localRef.getType()));
   }
 
   public RexNode visitLiteral(RexLiteral literal) {
@@ -90,11 +110,13 @@ class RexCopier extends RexShuttle {
   }
 
   public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
-    throw new UnsupportedOperationException();
+    return builder.makeDynamicParam(copy(dynamicParam.getType()),
+        dynamicParam.getIndex());
   }
 
   public RexNode visitRangeRef(RexRangeRef rangeRef) {
-    throw new UnsupportedOperationException();
+    return builder.makeRangeReference(copy(rangeRef.getType()),
+        rangeRef.getOffset(), false);
   }
 }
 

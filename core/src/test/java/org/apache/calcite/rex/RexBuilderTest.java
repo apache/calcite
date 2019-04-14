@@ -17,10 +17,14 @@
 package org.apache.calcite.rex;
 
 import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
@@ -29,6 +33,9 @@ import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.junit.Test;
 
@@ -44,6 +51,7 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -556,6 +564,101 @@ public class RexBuilderTest {
     checkBigDecimalLiteral(builder, "-100000.111111111111111111");
     checkBigDecimalLiteral(builder, "73786976294838206464"); // 2^66
     checkBigDecimalLiteral(builder, "-73786976294838206464");
+  }
+
+  /** Tests {@link RexCopier#visitOver(RexOver)} */
+  @Test public void testCopyOver() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RexOver node = (RexOver) builder.makeOver(type,
+        SqlStdOperatorTable.COUNT,
+        ImmutableList.of(builder.makeInputRef(type, 0)),
+        ImmutableList.of(builder.makeInputRef(type, 1)),
+        ImmutableList.of(
+            new RexFieldCollation(
+                builder.makeInputRef(type, 2), ImmutableSet.of())),
+        RexWindowBound.create(
+            SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO), null),
+        RexWindowBound.create(
+            SqlWindow.createCurrentRow(SqlParserPos.ZERO), null),
+        true, true, false, false, false);
+    final RexNode copy = builder.copy(node);
+    assertTrue(copy instanceof RexOver);
+
+    RexOver result = (RexOver) copy;
+    assertThat(result.getType(), is(node.getType()));
+    assertThat(result.getWindow(), is(node.getWindow()));
+    assertThat(result.getAggOperator(), is(node.getAggOperator()));
+    assertThat(result.getAggOperator(), is(node.getAggOperator()));
+    assertEquals(node.isDistinct(), result.isDistinct());
+    assertEquals(node.ignoreNulls(), result.ignoreNulls());
+    for (int i = 0; i < node.getOperands().size(); i++) {
+      assertThat(result.getOperands().get(i).getType(),
+          is(node.getOperands().get(i).getType()));
+    }
+  }
+
+  /** Tests {@link RexCopier#visitCorrelVariable(RexCorrelVariable)} */
+  @Test public void testCopyCorrelVariable() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RexCorrelVariable node =
+        (RexCorrelVariable) builder.makeCorrel(type, new CorrelationId(0));
+    final RexNode copy = builder.copy(node);
+    assertTrue(copy instanceof RexCorrelVariable);
+
+    final RexCorrelVariable result = (RexCorrelVariable) copy;
+    assertThat(result.id, is(node.id));
+    assertThat(result.getType(), is(node.getType()));
+  }
+
+  /** Tests {@link RexCopier#visitLocalRef(RexLocalRef)} */
+  @Test public void testCopyLocalRef() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RexLocalRef node = new RexLocalRef(0, type);
+    final RexNode copy = builder.copy(node);
+    assertTrue(copy instanceof RexLocalRef);
+
+    final RexLocalRef result = (RexLocalRef) copy;
+    assertThat(result.getIndex(), is(node.getIndex()));
+    assertThat(result.getType(), is(node.getType()));
+  }
+
+  /** Tests {@link RexCopier#visitDynamicParam(RexDynamicParam)} */
+  @Test public void testCopyDynamicParam() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RexDynamicParam node = builder.makeDynamicParam(type, 0);
+    final RexNode copy = builder.copy(node);
+    assertTrue(copy instanceof RexDynamicParam);
+
+    final RexDynamicParam result = (RexDynamicParam) copy;
+    assertThat(result.getIndex(), is(node.getIndex()));
+    assertThat(result.getType(), is(node.getType()));
+  }
+
+  /** Tests {@link RexCopier#visitRangeRef(RexRangeRef)} */
+  @Test public void testCopyRangeRef() {
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(
+        RelDataTypeSystem.DEFAULT);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RexRangeRef node = builder.makeRangeReference(type, 1, true);
+    final RexNode copy = builder.copy(node);
+    assertTrue(copy instanceof RexRangeRef);
+
+    final RexRangeRef result = (RexRangeRef) copy;
+    assertThat(result.getOffset(), is(node.getOffset()));
+    assertThat(result.getType(), is(node.getType()));
   }
 
   private void checkBigDecimalLiteral(RexBuilder builder, String val) {
