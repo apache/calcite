@@ -1435,6 +1435,40 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(ProjectJoinTransposeRule.INSTANCE).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2343">[CALCITE-2343]
+   * Should not push over whose columns are all from left child past join since
+   * join will affect row count.</a>. */
+  @Test public void testPushProjectWithOverPastJoin1() {
+    checkPlanning(ProjectJoinTransposeRule.INSTANCE,
+        "select e.sal + b.comm,\n"
+            + "count(e.empno) over (partition by e.deptno)\n"
+            + "from emp e join bonus b\n"
+            + "on e.ename = b.ename and e.deptno = 10");
+  }
+
+  /** As {@link #testPushProjectWithOverPastJoin1()};
+   * should not push over whose columns are all from right child past join since
+   * join will affect row count. */
+  @Test public void testPushProjectWithOverPastJoin2() {
+    checkPlanning(ProjectJoinTransposeRule.INSTANCE,
+        "select e.sal + b.comm,\n"
+            + "count(b.sal) over (partition by b.job)\n"
+            + "from emp e join bonus b\n"
+            + "on e.ename = b.ename and e.deptno = 10");
+  }
+
+  /** As {@link #testPushProjectWithOverPastJoin2()};
+   * should not push over past join but should push the operands of over past
+   * join. */
+  @Test public void testPushProjectWithOverPastJoin3() {
+    checkPlanning(ProjectJoinTransposeRule.INSTANCE,
+        "select e.sal + b.comm,\n"
+            + "sum(b.sal + b.sal + 100) over (partition by b.job)\n"
+            + "from emp e join bonus b\n"
+            + "on e.ename = b.ename and e.deptno = 10");
+  }
+
   @Test public void testPushProjectPastSetOp() {
     checkPlanning(ProjectSetOpTransposeRule.INSTANCE,
         "select sal from "
