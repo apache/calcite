@@ -154,6 +154,22 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction JSON_STORAGE_SIZE = new SqlJsonStorageSizeFunction();
 
+  /** The "MONTHNAME(datetime)" function; returns the name of the month,
+   * in the current locale, of a TIMESTAMP or DATE argument. */
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction MONTHNAME =
+      new SqlFunction("MONTHNAME", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000, null, OperandTypes.DATETIME,
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "DAYNAME(datetime)" function; returns the name of the day of the week,
+   * in the current locale, of a TIMESTAMP or DATE argument. */
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction DAYNAME =
+      new SqlFunction("DAYNAME", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000, null, OperandTypes.DATETIME,
+          SqlFunctionCategory.TIMEDATE);
+
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
   public static final SqlFunction LEFT =
       new SqlFunction("LEFT", SqlKind.OTHER_FUNCTION,

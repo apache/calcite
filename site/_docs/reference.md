@@ -1511,10 +1511,6 @@ Not implemented:
 | {fn TIMESTAMPADD(timeUnit, count, datetime)} | Adds an interval of *count* *timeUnit*s to a datetime
 | {fn TIMESTAMPDIFF(timeUnit, timestamp1, timestamp2)} | Subtracts *timestamp1* from *timestamp2* and returns the result in *timeUnit*s
 
-Not implemented:
-
-* {fn DAYNAME(date)}
-* {fn MONTHNAME(date)}
 
 #### System
 
@@ -2106,6 +2102,8 @@ semantics.
 | m p | LEFT(string, length)                         | Returns the leftmost *length* characters from the *string*
 | m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string
 | m | FROM_BASE64(string)                            | Returns the decoded result of a base-64 *string* as a string
+| m | {fn DAYNAME(date)}                             | Returns the date of the name of the weekday in a value of datatype DATE; For example, it returns '星期日' for both DATE'2020-02-10' and TIMESTAMP'2020-02-10 10:10:10'
+| m | {fn MONTHNAME(date)}                           | Returns the date of the name of the month in a value of datatype DATE; For example, it returns '二月' for both DATE'2020-02-10' and TIMESTAMP'2020-02-10 10:10:10'
 | o | LTRIM(string)                                  | Returns *string* with all blanks removed from the start
 | o | NVL(value1, value2)                            | Returns *value1* if *value1* is not null, otherwise *value2*
 | m p | REPEAT(string, integer)                      | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
