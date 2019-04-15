@@ -19,6 +19,8 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * Reusable {@link RelDataType} fixtures for tests.
  */
@@ -60,6 +62,16 @@ class SqlTypeFixture {
       typeFactory.createArrayType(arrayBigInt, -1), false);
   final RelDataType arrayOfArrayFloat = typeFactory.createTypeWithNullability(
       typeFactory.createArrayType(arrayFloat, -1), false);
+  final RelDataType structOfInt = typeFactory.createTypeWithNullability(
+      typeFactory.createStructType(
+          ImmutableList.of(sqlInt, sqlInt),
+          ImmutableList.of("i", "j")
+      ), false);
+  final RelDataType structOfIntNullable = typeFactory.createTypeWithNullability(
+      typeFactory.createStructType(
+          ImmutableList.of(sqlInt, sqlInt),
+          ImmutableList.of("i", "j")
+      ), true);
 }
 
 // End SqlTypeFixture.java
