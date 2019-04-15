@@ -2656,7 +2656,21 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test
   public void testSelectNestedColumnType() {
     final String sql =
-        "select coord from customer.contact_peek where coord.x = 1";
+        "select\n"
+            + "  char_length(coord.\"unit\") as unit_length\n"
+            + "from\n"
+            + "  (\n"
+            + "    select\n"
+            + "      fname,\n"
+            + "      coord\n"
+            + "    from\n"
+            + "      customer.contact_peek\n"
+            + "    where\n"
+            + "      coord.x > 1\n"
+            + "      and coord.y > 1\n"
+            + "  ) as view\n"
+            + "where\n"
+            + "  fname = 'john'";
     sql(sql).ok();
   }
 
