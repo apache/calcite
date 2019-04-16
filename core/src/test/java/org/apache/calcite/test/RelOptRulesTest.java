@@ -1458,6 +1458,17 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "on e.ename = b.ename and e.deptno = 10");
   }
 
+  /** As {@link #testPushProjectWithOverPastJoin2()};
+   * should not push over past join but should push the operands of over past
+   * join. */
+  @Test public void testPushProjectWithOverPastJoin3() {
+    checkPlanning(ProjectJoinTransposeRule.INSTANCE,
+        "select e.sal + b.comm,\n"
+            + "sum(b.sal + b.sal + 100) over (partition by b.job)\n"
+            + "from emp e join bonus b\n"
+            + "on e.ename = b.ename and e.deptno = 10");
+  }
+
   @Test public void testPushProjectPastSetOp() {
     checkPlanning(ProjectSetOpTransposeRule.INSTANCE,
         "select sal from "
