@@ -9778,6 +9778,35 @@ LogicalProject(NAME=[$0], ENAME=[$2])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testProjectSetOpTranspose">
+        <Resource name="sql">
+            <![CDATA[select job, sum(sal + 100) over (partition by deptno) from
+(select * from emp e1 union all select * from emp e2)
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(JOB=[$2], EXPR$1=[SUM(+($5, 100)) OVER (PARTITION BY $7 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+  LogicalUnion(all=[true])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(JOB=[$0], EXPR$1=[SUM($2) OVER (PARTITION BY $1 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+  LogicalUnion(all=[true])
+    LogicalProject(JOB=[$2], DEPTNO=[$7], +=[+($5, 100)])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(JOB=[$2], DEPTNO=[$7], +=[+($5, 100)])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testProjectCorrelateTransposeDynamic">
         <Resource name="sql">
             <![CDATA[select t1.c_nationkey, t2.a as fake_col2 from SALES.CUSTOMER as t1, unnest(t1.fake_col) as t2(a)]]>
@@ -9826,6 +9855,36 @@ LogicalProject(NAME=[$0], ENAME=[$2])
     LogicalProject(NAME=[$1], EMPLOYEES=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
     LogicalProject(ENAME=[$1])
+      Uncollect
+        LogicalProject(EMPLOYEES=[$cor1.EMPLOYEES])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testProjectCorrelateTransposeWithOver">
+        <Resource name="sql">
+            <![CDATA[select sum(t1.deptno + 1) over (partition by t1.name),
+count(t2.empno) over ()
+from DEPT_NESTED as t1, unnest(t1.employees) as t2
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EXPR$0=[SUM(+($0, 1)) OVER (PARTITION BY $1 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)], EXPR$1=[COUNT($4) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{3}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    Uncollect
+      LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EXPR$0=[SUM($2) OVER (PARTITION BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)], EXPR$1=[COUNT($3) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+  LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{1}])
+    LogicalProject(NAME=[$1], EMPLOYEES=[$3], +=[+($0, 1)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    LogicalProject(EMPNO=[$0])
       Uncollect
         LogicalProject(EMPLOYEES=[$cor1.EMPLOYEES])
           LogicalValues(tuples=[[{ 0 }]])

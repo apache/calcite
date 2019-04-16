@@ -1205,6 +1205,16 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "on e.ename = b.ename and e.deptno = 10");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3004">[CALCITE-3004]
+   * Should not push over past union but its operands can since setop
+   * will affect row count</a>. */
+  @Test public void testProjectSetOpTranspose() {
+    checkPlanning(ProjectSetOpTransposeRule.INSTANCE,
+        "select job, sum(sal + 100) over (partition by deptno) from\n"
+            + "(select * from emp e1 union all select * from emp e2)");
+  }
+
   @Test public void testProjectCorrelateTransposeDynamic() {
     ProjectCorrelateTransposeRule customPCTrans =
         new ProjectCorrelateTransposeRule(skipItem, RelFactories.LOGICAL_BUILDER);
@@ -1333,6 +1343,17 @@ public class RelOptRulesTest extends RelOptTestBase {
 
     checkPlanning(customPCTrans,
         "select t1.name, t2.ename "
+            + "from DEPT_NESTED as t1, "
+            + "unnest(t1.employees) as t2");
+  }
+
+  /** As {@link #testProjectSetOpTranspose()};
+   * should not push over past correlate but its operands can since correlate
+   * will affect row count. */
+  @Test public void testProjectCorrelateTransposeWithOver() {
+    checkPlanning(ProjectCorrelateTransposeRule.INSTANCE,
+        "select sum(t1.deptno + 1) over (partition by t1.name),\n"
+            + "count(t2.empno) over ()\n"
             + "from DEPT_NESTED as t1, "
             + "unnest(t1.employees) as t2");
   }
