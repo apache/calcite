@@ -931,10 +931,9 @@ public class RexToLixTranslator {
       // (boxed or not) when hint was provided.
       // It is favourable to get the type matching desired type
       if (desiredType == null && !isNullable(rex)) {
-        // TODO Remove this!!!
-        // assert !Primitive.isBox(translate.getType())
-        //    : "Not-null boxed primitive should come back as primitive: "
-        //    + rex + ", " + translate.getType();
+        assert !Primitive.isBox(translate.getType())
+            : "Not-null boxed primitive should come back as primitive: "
+            + rex + ", " + translate.getType();
       }
     }
     return list;

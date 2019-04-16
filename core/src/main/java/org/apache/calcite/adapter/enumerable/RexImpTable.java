@@ -610,7 +610,7 @@ public class RexImpTable {
         final Expression offs = Expressions.multiply(translator.translate(offset),
                 Expressions.constant(-1));
         ((EnumerableMatch.PrevInputGetter) translator.inputGetter).setOffset(offs);
-        return translator.translate(node);
+        return translator.translate(node, nullAs);
       }
     });
   }
