@@ -35,11 +35,11 @@ public class EnumerableJoinTest {
    *
    */
   public static class T1 {
-    public Integer c1;
+    public int c1;
     public String c2;
     public BigDecimal c3;
 
-    public T1(Integer c1, String c2, BigDecimal c3) {
+    public T1(int c1, String c2, BigDecimal c3) {
       this.c1 = c1;
       this.c2 = c2;
       this.c3 = c3;

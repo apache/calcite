@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.core;
 
+import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
@@ -106,7 +107,13 @@ public abstract class EquiJoin extends Join {
     int size = leftKeysClassList.size();
     for (int i = 0; i < size; i++) {
       Class leftKeyClass = leftKeysClassList.get(i);
+      if (Primitive.is(leftKeyClass)) {
+        leftKeyClass = Primitive.box(leftKeyClass);
+      }
       Class rightKeyClass = rightKeysClassList.get(i);
+      if (Primitive.is(rightKeyClass)) {
+        rightKeyClass = Primitive.box(rightKeyClass);
+      }
       if (leftKeyClass == rightKeyClass) {
         targetFieldClasses.add(leftKeyClass);
       } else {
