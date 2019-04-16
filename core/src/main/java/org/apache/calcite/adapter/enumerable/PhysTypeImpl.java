@@ -319,8 +319,8 @@ public class PhysTypeImpl implements PhysType {
               == RelFieldCollation.Direction.DESCENDING;
       final Method method = (fieldNullable(index)
           ? (nullsFirst ^ descending
-              ? BuiltInMethod.COMPARE_NULLS_FIRST
-              : BuiltInMethod.COMPARE_NULLS_LAST)
+          ? BuiltInMethod.COMPARE_NULLS_FIRST
+          : BuiltInMethod.COMPARE_NULLS_LAST)
           : BuiltInMethod.COMPARE).method;
       body.add(
           Expressions.statement(
@@ -544,15 +544,8 @@ public class PhysTypeImpl implements PhysType {
     return rowType.getFieldList().get(field).getType().isNullable();
   }
 
-  public static String convert2String(Object o) {
-    return o == null ? null : o.toString();
-  }
-
-  private static final Method CONVERT2STRING_METHOD = Types.lookupMethod(
-      PhysTypeImpl.class, "convert2String", Object.class);
-
   public Expression generateAccessor(
-      List<Integer> fields) {
+      List<Integer> fields, List<Class> targetFieldClassList) {
     ParameterExpression v1 =
         Expressions.parameter(javaRowClass, "v1");
     switch (fields.size()) {
@@ -571,15 +564,21 @@ public class PhysTypeImpl implements PhysType {
       //        return v1.<fieldN>;
       //    }
       // }
-      Class returnType = fieldClasses.get(field0);
-      Expression fieldReference =
-          Types.castIfNecessary(
-              returnType,
-              fieldReference(v1, field0));
+      Class returnType = targetFieldClassList.get(0);
+      Class storageType = fieldClass(field0);
+      Expression fieldReference;
+      if (returnType != storageType) {
+        fieldReference = RexToLixTranslator.convert(fieldReference(v1, field0),
+            returnType);
+      } else {
+        fieldReference =
+            Types.castIfNecessary(
+                returnType,
+                fieldReference(v1, field0));
+      }
       return Expressions.lambda(
           Function1.class,
-          Expressions.call(CONVERT2STRING_METHOD,
-              fieldReference),
+          fieldReference,
           v1);
     default:
       // new Function1<Employee, List> {
@@ -589,9 +588,18 @@ public class PhysTypeImpl implements PhysType {
       //    }
       // }
       Expressions.FluentList<Expression> list = Expressions.list();
+      int i = 0;
       for (int field : fields) {
-        list.add(
-            Expressions.call(CONVERT2STRING_METHOD, fieldReference(v1, field)));
+        returnType = targetFieldClassList.get(i);
+        storageType = fieldClass(field);
+        if (returnType != storageType) {
+          fieldReference = RexToLixTranslator.convert(fieldReference(v1, field),
+              returnType);
+        } else {
+          fieldReference = fieldReference(v1, field);
+        }
+        list.add(fieldReference);
+        i++;
       }
       switch (list.size()) {
       case 2:

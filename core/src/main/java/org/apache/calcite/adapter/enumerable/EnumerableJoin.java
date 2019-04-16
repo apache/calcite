@@ -40,7 +40,9 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Join} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -203,6 +205,19 @@ public class EnumerableJoin extends EquiJoin implements EnumerableRel {
     final PhysType keyPhysType =
         leftResult.physType.project(
             leftKeys, JavaRowFormat.LIST);
+    //if leftKeys classes are not equals to rightKeys classes,we can try to
+    // convert them to same classes
+    List<Class> leftKeysClassList = leftKeys.stream()
+        .map(leftResult.physType::fieldClass)
+        .collect(
+            Collectors.toList());
+    List<Class> rightKeysClassList = rightKeys.stream()
+        .map(rightResult.physType::fieldClass)
+        .collect(
+            Collectors.toList());
+    List<Class> targetFieldClassList = consistentKeyTypes(
+        leftKeysClassList,
+        rightKeysClassList);
     return implementor.result(
         physType,
         builder.append(
@@ -211,8 +226,14 @@ public class EnumerableJoin extends EquiJoin implements EnumerableRel {
                 BuiltInMethod.JOIN.method,
                 Expressions.list(
                     rightExpression,
-                    leftResult.physType.generateAccessor(leftKeys),
-                    rightResult.physType.generateAccessor(rightKeys),
+                    leftResult.physType.generateAccessor(leftKeys,
+                        targetFieldClassList == null
+                            ? leftKeysClassList
+                            : targetFieldClassList),
+                    rightResult.physType.generateAccessor(rightKeys,
+                        targetFieldClassList == null
+                            ? rightKeysClassList
+                            : targetFieldClassList),
                     EnumUtils.joinSelector(joinType,
                         physType,
                         ImmutableList.of(
