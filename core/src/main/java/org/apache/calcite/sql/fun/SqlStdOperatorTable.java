@@ -2452,6 +2452,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    *
    * <p>For example, converts {@code TUMBLE_START(rowtime, INTERVAL '1' HOUR))}
    * to {@code TUMBLE(rowtime, INTERVAL '1' HOUR))}. */
+  @Deprecated // use convertGroupToAuxiliaryCalls(SqlCall, AuxiliaryConverterFactory)
   public static List<Pair<SqlNode, AuxiliaryConverter>> convertGroupToAuxiliaryCalls(
       SqlCall call) {
     return convertGroupToAuxiliaryCalls(call, new AuxiliaryConverterFactory.Impl());
