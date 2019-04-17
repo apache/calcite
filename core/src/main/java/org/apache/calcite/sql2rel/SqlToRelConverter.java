@@ -243,6 +243,7 @@ public class SqlToRelConverter {
   private final SqlOperatorTable opTab;
   protected final RelDataTypeFactory typeFactory;
   private final SqlNodeToRexConverter exprConverter;
+  private final AuxiliaryConverterFactory auxiliaryConverterFactory;
   private int explainParamCount;
   public final SqlToRelConverter.Config config;
   private final RelBuilder relBuilder;
@@ -304,11 +305,25 @@ public class SqlToRelConverter {
         Config.DEFAULT);
   }
 
+  @Deprecated // to be removed before 2.0
+  public SqlToRelConverter(
+      RelOptTable.ViewExpander viewExpander,
+      SqlValidator validator,
+      Prepare.CatalogReader catalogReader,
+      RelOptCluster cluster,
+      SqlRexConvertletTable convertletTable,
+      Config config) {
+    this(viewExpander, validator, catalogReader,
+        new AuxiliaryConverterFactory.Impl(), cluster, convertletTable,
+        config);
+  }
+
   /* Creates a converter. */
   public SqlToRelConverter(
       RelOptTable.ViewExpander viewExpander,
       SqlValidator validator,
       Prepare.CatalogReader catalogReader,
+      AuxiliaryConverterFactory auxiliaryConverterFactory,
       RelOptCluster cluster,
       SqlRexConvertletTable convertletTable,
       Config config) {
@@ -322,6 +337,7 @@ public class SqlToRelConverter {
     this.subQueryConverter = new NoOpSubQueryConverter();
     this.rexBuilder = cluster.getRexBuilder();
     this.typeFactory = rexBuilder.getTypeFactory();
+    this.auxiliaryConverterFactory = auxiliaryConverterFactory;
     this.cluster = Objects.requireNonNull(cluster);
     this.exprConverter = new SqlNodeToRexConverterImpl(convertletTable);
     this.explainParamCount = 0;
@@ -4935,7 +4951,7 @@ public class SqlToRelConverter {
       if (expr instanceof SqlCall) {
         SqlCall call = (SqlCall) expr;
         for (Pair<SqlNode, AuxiliaryConverter> p
-            : SqlStdOperatorTable.convertGroupToAuxiliaryCalls(call)) {
+            : SqlStdOperatorTable.convertGroupToAuxiliaryCalls(call, auxiliaryConverterFactory)) {
           addAuxiliaryGroupExpr(p.left, index, p.right);
         }
       }

@@ -60,6 +60,7 @@ import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql2rel.AuxiliaryConverter;
+import org.apache.calcite.sql2rel.AuxiliaryConverterFactory;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Pair;
@@ -2453,6 +2454,16 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * to {@code TUMBLE(rowtime, INTERVAL '1' HOUR))}. */
   public static List<Pair<SqlNode, AuxiliaryConverter>> convertGroupToAuxiliaryCalls(
       SqlCall call) {
+    return convertGroupToAuxiliaryCalls(call, new AuxiliaryConverterFactory.Impl());
+  }
+
+  /** Converts a call to a grouped window function to a call to its auxiliary
+   * window function(s). For other calls returns null.
+   *
+   * <p>For example, converts {@code TUMBLE_START(rowtime, INTERVAL '1' HOUR))}
+   * to {@code TUMBLE(rowtime, INTERVAL '1' HOUR))}. */
+  public static List<Pair<SqlNode, AuxiliaryConverter>> convertGroupToAuxiliaryCalls(
+      SqlCall call, AuxiliaryConverterFactory auxiliaryConverterFactory) {
     final SqlOperator op = call.getOperator();
     if (op instanceof SqlGroupedWindowFunction
         && op.isGroup()) {
@@ -2462,7 +2473,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           : ((SqlGroupedWindowFunction) op).getAuxiliaryFunctions()) {
         builder.add(
             Pair.of(copy(call, f),
-                new AuxiliaryConverter.Impl(f)));
+                auxiliaryConverterFactory.getConverter(f)));
       }
       return builder.build();
     }
