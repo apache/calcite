@@ -357,6 +357,8 @@ public class DiffRepository {
       boolean checkOverride,
       List<Pair<String, Element>> elements) {
     final NodeList childNodes = root.getChildNodes();
+    final List<Element> testCases = new ArrayList<>();
+
     for (int i = 0; i < childNodes.getLength(); i++) {
       Node child = childNodes.item(i);
       if (child.getNodeName().equals(TEST_CASE_TAG)) {
@@ -369,18 +371,30 @@ public class DiffRepository {
               && !"true".equals(
                   testCase.getAttribute(TEST_CASE_OVERRIDES_ATTR))) {
             throw new RuntimeException(
-                "TestCase  '" + testCaseName + "' overrides a "
+                "TestCase '" + testCaseName + "' overrides a "
                 + "test case in the base repository, but does "
                 + "not specify 'overrides=true'");
           }
-          return testCase;
-        }
-        if (elements != null) {
-          elements.add(Pair.of(name, testCase));
+          // Make sure that the test case is unique.
+          if (testCases.isEmpty()) {
+            testCases.add(testCase);
+          } else {
+            throw new RuntimeException(
+                "TestCase '" + testCaseName + "' is duplicate");
+          }
+        } else {
+          if (elements != null && testCases.isEmpty()) {
+            elements.add(Pair.of(name, testCase));
+          }
         }
       }
     }
-    return null;
+    if (!testCases.isEmpty()) {
+      assert testCases.size() == 1;
+      return testCases.get(0);
+    } else {
+      return null;
+    }
   }
 
   /**
