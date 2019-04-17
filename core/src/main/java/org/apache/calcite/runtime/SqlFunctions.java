@@ -67,6 +67,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
+import javax.annotation.Nonnull;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -257,6 +258,54 @@ public class SqlFunctions {
     return SOUNDEX_LENGTH;
   }
 
+  /** SQL LEFT(string, integer) function. */
+  public static @Nonnull String left(@Nonnull String s, int n) {
+    if (n <= 0) {
+      return "";
+    }
+    int len = s.length();
+    if (n >= len) {
+      return s;
+    }
+    return s.substring(0, n);
+  }
+
+  /** SQL LEFT(ByteString, integer) function. */
+  public static @Nonnull ByteString left(@Nonnull ByteString s, int n) {
+    if (n <= 0) {
+      return ByteString.EMPTY;
+    }
+    int len = s.length();
+    if (n >= len) {
+      return s;
+    }
+    return s.substring(0, n);
+  }
+
+  /** SQL RIGHT(string, integer) function. */
+  public static @Nonnull String right(@Nonnull String s, int n) {
+    if (n <= 0) {
+      return "";
+    }
+    int len = s.length();
+    if (n >= len) {
+      return s;
+    }
+    return s.substring(len - n);
+  }
+
+  /** SQL RIGHT(ByteString, integer) function. */
+  public static @Nonnull ByteString right(@Nonnull ByteString s, int n) {
+    if (n <= 0) {
+      return ByteString.EMPTY;
+    }
+    final int len = s.length();
+    if (n >= len) {
+      return s;
+    }
+    return s.substring(len - n);
+  }
+
   /** SQL CHARACTER_LENGTH(string) function. */
   public static int charLength(String s) {
     return s.length();
@@ -361,9 +410,6 @@ public class SqlFunctions {
 
   /** SQL {@code OVERLAY} function. */
   public static String overlay(String s, String r, int start) {
-    if (s == null || r == null) {
-      return null;
-    }
     return s.substring(0, start - 1)
         + r
         + s.substring(start - 1 + r.length());
@@ -371,9 +417,6 @@ public class SqlFunctions {
 
   /** SQL {@code OVERLAY} function. */
   public static String overlay(String s, String r, int start, int length) {
-    if (s == null || r == null) {
-      return null;
-    }
     return s.substring(0, start - 1)
         + r
         + s.substring(start - 1 + length);
@@ -381,9 +424,6 @@ public class SqlFunctions {
 
   /** SQL {@code OVERLAY} function applied to binary strings. */
   public static ByteString overlay(ByteString s, ByteString r, int start) {
-    if (s == null || r == null) {
-      return null;
-    }
     return s.substring(0, start - 1)
            .concat(r)
            .concat(s.substring(start - 1 + r.length()));
@@ -392,9 +432,6 @@ public class SqlFunctions {
   /** SQL {@code OVERLAY} function applied to binary strings. */
   public static ByteString overlay(ByteString s, ByteString r, int start,
       int length) {
-    if (s == null || r == null) {
-      return null;
-    }
     return s.substring(0, start - 1)
            .concat(r)
            .concat(s.substring(start - 1 + length));

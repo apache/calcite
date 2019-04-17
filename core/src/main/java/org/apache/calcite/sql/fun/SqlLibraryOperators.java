@@ -154,6 +154,12 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction JSON_STORAGE_SIZE = new SqlJsonStorageSizeFunction();
 
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  public static final SqlFunction LEFT =
+      new SqlFunction("LEFT", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_NULLABLE_VARYING, null,
+          OperandTypes.CBSTRING_INTEGER, SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
   public static final SqlFunction REPEAT =
       new SqlFunction(
           "REPEAT",
@@ -162,6 +168,12 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.STRING_INTEGER,
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  public static final SqlFunction RIGHT =
+      new SqlFunction("RIGHT", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_NULLABLE_VARYING, null,
+          OperandTypes.CBSTRING_INTEGER, SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction SPACE =
