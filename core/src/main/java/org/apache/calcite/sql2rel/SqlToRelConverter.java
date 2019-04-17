@@ -337,7 +337,10 @@ public class SqlToRelConverter {
     this.subQueryConverter = new NoOpSubQueryConverter();
     this.rexBuilder = cluster.getRexBuilder();
     this.typeFactory = rexBuilder.getTypeFactory();
-    this.auxiliaryConverterFactory = auxiliaryConverterFactory;
+    this.auxiliaryConverterFactory =
+        (auxiliaryConverterFactory
+            == null) ? new AuxiliaryConverterFactory.Impl()
+            : auxiliaryConverterFactory;
     this.cluster = Objects.requireNonNull(cluster);
     this.exprConverter = new SqlNodeToRexConverterImpl(convertletTable);
     this.explainParamCount = 0;
