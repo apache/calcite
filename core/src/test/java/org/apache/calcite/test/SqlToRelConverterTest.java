@@ -2294,6 +2294,20 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /**
    * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2948">[CALCITE-2948]
+   * SqlToRelConverter generates complicated logical plan for in subquery
+   * with non-equi condition</a>.
+   */
+  @Test public void testSubQueryIN() {
+    final String sql = "select deptno\n"
+        + "from EMP e\n"
+        + "where deptno in (select deptno\n"
+        + "from EMP where empno=e.empno+1)";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-710">[CALCITE-710]
    * When look up sub-queries, perform the same logic as the way when ones were
    * registered</a>.

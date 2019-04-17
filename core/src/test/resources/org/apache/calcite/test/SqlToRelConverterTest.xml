@@ -3324,6 +3324,24 @@ LogicalProject(DEPTNO=[$7])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSubQueryIN">
+        <Resource name="sql">
+            <![CDATA[select deptno
+from EMP e
+where deptno in (select deptno
+from EMP where empno=e.empno+1)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalJoin(condition=[=($0, +($9, 1))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testIdenticalExpressionInSubQuery">
         <Resource name="sql">
             <![CDATA[select deptno

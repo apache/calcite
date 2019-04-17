@@ -53,6 +53,8 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.FilterCorrelateRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
+import org.apache.calcite.rel.rules.SemiJoinRemoveRule;
+import org.apache.calcite.rel.rules.SemiJoinRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -263,6 +265,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
               new FilterJoinRule.JoinConditionPushRule(
                   f,
                   FilterJoinRule.TRUE_PREDICATE))
+          .addRuleInstance(SemiJoinRule.PROJECT)
+          .addRuleInstance(SemiJoinRemoveRule.PROJECT)
           .build();
 
       final HepPlanner planner2 = createPlanner(program2);
