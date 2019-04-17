@@ -3551,6 +3551,254 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
+  // outer join, group by on non-join keys, group by on non-null generating side only
+  @Test public void testPushAggregateThroughtOuterJoin1() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select e.ename\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "left outer join sales.dept as d on e.job = d.name\n"
+        + "group by e.ename";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  // outer join, group by on non-join keys, on null generating side only
+  @Test public void testPushAggregateThroughtOuterJoin2() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select d.ename\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "left outer join sales.emp as d on e.job = d.job\n"
+        + "group by d.ename";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  // outer join, group by on both side on non-join keys
+  @Test public void testPushAggregateThroughtOuterJoin3() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select e.ename, d.mgr\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "left outer join sales.emp as d on e.job = d.job\n"
+        + "group by e.ename,d.mgr";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  // outer join, group by on key same as join key, group by on non-null generating side
+  @Test public void testPushAggregateThroughtOuterJoin4() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select e.job\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "left outer join sales.dept as d on e.job = d.name\n"
+        + "group by e.job";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  // outer join, group by on key same as join key, group by on null generating side
+  @Test public void testPushAggregateThroughtOuterJoin5() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select d.name\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "left outer join sales.dept as d on e.job = d.name\n"
+        + "group by d.name";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  // outer join, group by on key same as join key, group by on both side
+  @Test public void testPushAggregateThroughtOuterJoin6() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select e.job,d.name\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "left outer join sales.dept as d on e.job = d.name\n"
+        + "group by e.job,d.name";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  // outer join, group by key is susbset of join keys, group by on non-null generating side
+  @Test public void testPushAggregateThroughtOuterJoin7() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select e.job\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "left outer join sales.dept as d on e.job = d.name\n"
+        + "and e.deptno + e.empno = d.deptno + 5\n"
+        + "group by e.job";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  // outer join, group by key is susbset of join keys, group by on null generating side
+  @Test public void testPushAggregateThroughtOuterJoin8() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select d.name\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "left outer join sales.dept as d on e.job = d.name\n"
+        + "and e.deptno + e.empno = d.deptno + 5\n"
+        + "group by d.name";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  // outer join, group by key is susbset of join keys, group by on both sides
+  @Test public void testPushAggregateThroughtOuterJoin9() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select e.job, d.name\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "left outer join sales.dept as d on e.job = d.name\n"
+        + "and e.deptno + e.empno = d.deptno + 5\n"
+        + "group by e.job, d.name";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  // outer join, with aggregate functions
+  @Test public void testPushAggregateThroughtOuterJoin10() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select count(e.ename) \n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "left outer join sales.emp as d on e.job = d.job\n"
+        + "group by e.ename,d.mgr";
+    sql(sql).withPre(preProgram).with(program).checkUnchanged();
+  }
+
+  // non-equi outer join
+  @Test public void testPushAggregateThroughtOuterJoin11() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select e.empno,d.deptno\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "left outer join sales.dept as d on e.empno < d.deptno\n"
+        + "group by e.empno,d.deptno";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql, true);
+  }
+
+  // right outer join, group by on key same as join key, group by on (left)null generating side
+  @Test public void testPushAggregateThroughtOuterJoin12() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select e.job\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "right outer join sales.dept as d on e.job = d.name\n"
+        + "group by e.job";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  // full outer join, group by on key same as join key, group by on one side
+  @Ignore("[CALCITE-3012]")
+  @Test public void testPushAggregateThroughtOuterJoin13() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select e.job\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "full outer join sales.dept as d on e.job = d.name\n"
+        + "group by e.job";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  // full outer join, group by on key same as join key, group by on both side
+  @Ignore("[CALCITE-3012]")
+  @Test public void testPushAggregateThroughtOuterJoin14() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select e.mgr, d.mgr\n"
+        + "from sales.emp as e\n"
+        + "full outer join sales.emp as d on e.mgr = d.mgr\n"
+        + "group by d.mgr, e.mgr";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  // full outer join, group by on both side on non-join keys
+  @Ignore("[CALCITE-3012]")
+  @Test public void testPushAggregateThroughtOuterJoin15() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select e.ename, d.mgr\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "full outer join sales.emp as d on e.job = d.job\n"
+        + "group by e.ename,d.mgr";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  // full outer join, group by key is susbset of join keys
+  @Ignore("[CALCITE-3012]")
+  @Test public void testPushAggregateThroughtOuterJoin16() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select e.job\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "full outer join sales.dept as d on e.job = d.name\n"
+        + "and e.deptno + e.empno = d.deptno + 5\n"
+        + "group by e.job";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
   @Test public void testPushAggregateThroughJoin2() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
