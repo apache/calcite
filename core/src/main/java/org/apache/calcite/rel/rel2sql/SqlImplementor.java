@@ -1165,6 +1165,22 @@ public abstract class SqlImplementor {
     }
 
     public SqlSelect subSelect() {
+      if (node instanceof SqlSelect && aliases != null
+          && aliases.size() > 1 && neededType != null) {
+        final SqlSelect select = (SqlSelect) node;
+        if (select.getSelectList() == null) {
+          final SqlNodeList nodes = new SqlNodeList(POS);
+          final Context ctx = aliasContext(aliases, true);
+          final Iterator<String> fieldNames = neededType.getFieldNames().iterator();
+          for (int i = 0; i < neededType.getFieldCount(); i++) {
+            nodes.add(
+                SqlStdOperatorTable.AS.createCall(POS, ctx.field(i),
+                    new SqlIdentifier(fieldNames.next(), POS))
+            );
+          }
+          select.setSelectList(nodes);
+        }
+      }
       return wrapSelect(asFrom());
     }
 
