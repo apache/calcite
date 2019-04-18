@@ -4199,6 +4199,30 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * testing type created by SubQueryRemoveRule
+   * ANY subquery is non-nullable therefore plan should have cast
+   */
+  @Test public void testAnyInProjectNonNullable() {
+    final String sql = "select name, \n"
+        + " deptno > ANY (\n"
+        + " select deptno from emp) \n"
+        + " from dept";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  /** Test case for
+   * testing type created by SubQueryRemoveRule
+   * ANY subquery is nullable therefore plan should not have cast
+   */
+  @Test public void testAnyInProjectNullable() {
+    final String sql = "select deptno, \n"
+        + " name = ANY (\n"
+        + " select mgr from emp) \n"
+        + " from dept";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1546">[CALCITE-1546]
    * Sub-queries connected by OR</a>. */
   @Test public void testWhereOrSubQuery() {

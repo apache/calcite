@@ -163,26 +163,34 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     builder.push(e.rel)
         .aggregate(builder.groupKey(),
             op.comparisonKind == SqlKind.GREATER_THAN
-              || op.comparisonKind == SqlKind.GREATER_THAN_OR_EQUAL
-              ? builder.min("m", builder.field(0))
-              : builder.max("m", builder.field(0)),
+                || op.comparisonKind == SqlKind.GREATER_THAN_OR_EQUAL
+                ? builder.min("m", builder.field(0))
+                : builder.max("m", builder.field(0)),
             builder.count(false, "c"),
             builder.count(false, "d", builder.field(0)))
         .as("q")
         .join(JoinRelType.INNER);
-    return builder.call(SqlStdOperatorTable.CASE,
-      builder.call(SqlStdOperatorTable.EQUALS,
-          builder.field("q", "c"), builder.literal(0)),
-      builder.literal(false),
-      builder.call(SqlStdOperatorTable.IS_TRUE,
-          builder.call(RelOptUtil.op(op.comparisonKind, null),
-              e.operands.get(0), builder.field("q", "m"))),
-      builder.literal(true),
-      builder.call(SqlStdOperatorTable.GREATER_THAN,
-          builder.field("q", "c"), builder.field("q", "d")),
-      builder.literal(null),
-      builder.call(RelOptUtil.op(op.comparisonKind, null),
-          e.operands.get(0), builder.field("q", "m")));
+    final RexNode caseRexNode = builder.call(SqlStdOperatorTable.CASE,
+        builder.call(SqlStdOperatorTable.EQUALS,
+            builder.field("q", "c"), builder.literal(0)),
+        builder.literal(false),
+        builder.call(SqlStdOperatorTable.IS_TRUE,
+            builder.call(RelOptUtil.op(op.comparisonKind, null),
+                e.operands.get(0), builder.field("q", "m"))),
+        builder.literal(true),
+        builder.call(SqlStdOperatorTable.GREATER_THAN,
+            builder.field("q", "c"), builder.field("q", "d")),
+        builder.literal(null),
+        builder.call(RelOptUtil.op(op.comparisonKind, null),
+            e.operands.get(0), builder.field("q", "m")));
+    // case statement above is created with nullable boolean type, but it might not be correct.
+    // if the original subquery node's type is not nullable it is guranteed for case statement
+    // to not produce NULLs. Therefore to avoid planner complaining we need to add cast
+    // Note that nullable type is created due to MIN aggcall, since there is no groupby.
+    if (!e.getType().isNullable()) {
+      return builder.cast(caseRexNode, e.getType().getSqlTypeName());
+    }
+    return caseRexNode;
   }
 
   /**
