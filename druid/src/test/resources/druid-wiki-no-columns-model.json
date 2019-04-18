@@ -34,7 +34,7 @@
           "name": "wiki",
           "factory": "org.apache.calcite.adapter.druid.DruidTableFactory",
           "operand": {
-            "dataSource": "wikiticker",
+            "dataSource": "wikipedia",
             "interval": "1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z",
             "timestampColumn": "time"
           }
