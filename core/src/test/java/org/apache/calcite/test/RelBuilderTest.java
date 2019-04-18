@@ -1307,7 +1307,7 @@ public class RelBuilderTest {
                 builder.call(SqlStdOperatorTable.PLUS,
                     builder.field(0),
                     builder.literal(1)))
-            .repeatUnion("DELTA_TABLE")
+            .repeatUnion("DELTA_TABLE", true)
             .build();
     final String expected = "LogicalRepeatUnion(all=[true])\n"
         + "  LogicalTableSpool(readType=[LAZY], writeType=[LAZY], tableName=[DELTA_TABLE])\n"
@@ -1347,7 +1347,7 @@ public class RelBuilderTest {
                             builder.literal(1)),
                         builder.field("fact"))),
                 Arrays.asList("n", "fact"))
-            .repeatUnion("AUX")
+            .repeatUnion("AUX", true)
             .build();
     final String expected = "LogicalRepeatUnion(all=[true])\n"
         + "  LogicalTableSpool(readType=[LAZY], writeType=[LAZY], tableName=[AUX])\n"

@@ -46,23 +46,24 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * Simple modifiable table backed by a Java list.
- * It can be used, for example, in a repeat union to accumulate all intermediate results.
+ * Modifiable table backed by a Java list.
+ * It will be automatically added to the current schema when {@link #scan(DataContext)}
+ * method gets called.
  *
  * <p>NOTE: The current API is experimental and subject to change without notice.</p>
  */
 @Experimental
-public class TransientTable extends AbstractQueryableTable
+public class ListTransientTable extends AbstractQueryableTable
     implements ModifiableTable, ScannableTable {
   private static final Type TYPE = Object[].class;
   private final List rows = new ArrayList();
   private final String name;
-  private final RelDataType rowType;
+  private final RelDataType protoRowType;
 
-  public TransientTable(String name, RelDataType rowType) {
+  public ListTransientTable(String name, RelDataType rowType) {
     super(TYPE);
     this.name = name;
-    this.rowType = rowType;
+    this.protoRowType = rowType;
   }
 
   @Override public TableModify toModificationRel(
@@ -89,7 +90,7 @@ public class TransientTable extends AbstractQueryableTable
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
         return new Enumerator<Object[]>() {
-          private final List list = rows;
+          private final List list = new ArrayList(rows);
           private int i = -1;
 
           // TODO cleaner way to handle non-array objects?
@@ -131,7 +132,7 @@ public class TransientTable extends AbstractQueryableTable
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-    return rowType;
+    return typeFactory.copyType(protoRowType);
   }
 
   @Override public Type getElementType() {
@@ -139,4 +140,4 @@ public class TransientTable extends AbstractQueryableTable
   }
 }
 
-// End TransientTable.java
+// End ListTransientTable.java

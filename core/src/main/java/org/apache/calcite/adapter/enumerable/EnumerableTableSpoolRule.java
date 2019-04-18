@@ -30,7 +30,7 @@ import org.apache.calcite.rel.logical.LogicalTableSpool;
 @Experimental
 public class EnumerableTableSpoolRule extends ConverterRule {
 
-  public EnumerableTableSpoolRule() {
+  EnumerableTableSpoolRule() {
     super(
         LogicalTableSpool.class,
         Convention.NONE,
@@ -41,14 +41,11 @@ public class EnumerableTableSpoolRule extends ConverterRule {
 
   @Override public RelNode convert(RelNode rel) {
     LogicalTableSpool spool = (LogicalTableSpool) rel;
-
-    return new EnumerableTableSpool(
-        spool.getCluster(),
-        spool.getTraitSet().replace(EnumerableConvention.INSTANCE),
+    return EnumerableTableSpool.create(
         convert(spool.getInput(),
             spool.getInput().getTraitSet().replace(EnumerableConvention.INSTANCE)),
-        spool.getReadType(),
-        spool.getWriteType(),
+        spool.readType,
+        spool.writeType,
         spool.getTableName());
   }
 }

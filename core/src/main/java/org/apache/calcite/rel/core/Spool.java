@@ -26,7 +26,8 @@ import org.apache.calcite.rel.SingleRel;
 import java.util.List;
 
 /**
- * Relational expression that consumes a set of data, and stores it in a temporary structure.
+ * Relational expression that iterates over its input and, apart from returning its results,
+ * will forward them into other consumers.
  *
  * <p>NOTE: The current API is experimental and subject to change without notice.</p>
  */
@@ -36,19 +37,19 @@ public abstract class Spool extends SingleRel {
   /**
    * Enumeration representing spool read / write type (all four combinations are possible):
    *   Read type
-   *     - EAGER: the spool will consume the data from its input at once at the initial request
-   *     - LAZY: the spool will consume the data from its input one by one by request
+   *     - EAGER: the spool will consume the elements from its input at once at the initial request
+   *     - LAZY: the spool will consume the elements from its input one by one by request
    *   Write type
-   *     - EAGER: the spool will write each result as soon as it propagates it
-   *     - LAZY: the spool will write all results when it is done propagating all of them
+   *     - EAGER: the spool will forward each element as soon as it returns it
+   *     - LAZY: the spool will forward all elements at once when it is done retuning all of them
    */
   public enum Type {
     EAGER,
     LAZY
   }
 
-  protected final Type readType;
-  protected final Type writeType;
+  public final Type readType;
+  public final Type writeType;
 
   //~ Constructors -----------------------------------------------------------
   protected Spool(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
@@ -58,17 +59,9 @@ public abstract class Spool extends SingleRel {
     this.writeType = writeType;
   }
 
-  public Type getReadType() {
-    return readType;
-  }
-
-  public Type getWriteType() {
-    return writeType;
-  }
-
   @Override public final RelNode copy(RelTraitSet traitSet,
                                       List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs), getReadType(), getWriteType());
+    return copy(traitSet, sole(inputs), readType, writeType);
   }
 
   protected abstract Spool copy(RelTraitSet traitSet, RelNode input,

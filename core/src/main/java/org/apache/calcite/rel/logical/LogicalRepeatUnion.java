@@ -36,24 +36,26 @@ public class LogicalRepeatUnion extends RepeatUnion {
 
   //~ Constructors -----------------------------------------------------------
   private LogicalRepeatUnion(
-            int maxRep,
             RelOptCluster cluster,
             RelTraitSet traitSet,
             RelNode seed,
-            RelNode iterative) {
-    super(maxRep, cluster, traitSet, seed, iterative);
+            RelNode iterative,
+            boolean all,
+            int maxRep) {
+    super(cluster, traitSet, seed, iterative, all, maxRep);
   }
 
   /** Creates a LogicalRepeatUnion. */
-  public static LogicalRepeatUnion create(RelNode seed, RelNode iterative) {
-    return create(seed, iterative, -1);
+  public static LogicalRepeatUnion create(RelNode seed, RelNode iterative, boolean all) {
+    return create(seed, iterative, all, -1);
   }
 
   /** Creates a LogicalRepeatUnion. */
-  public static LogicalRepeatUnion create(RelNode seed, RelNode iterative, int maxRep) {
+  public static LogicalRepeatUnion create(RelNode seed, RelNode iterative, boolean all,
+                                          int maxRep) {
     RelOptCluster cluster = seed.getCluster();
     RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
-    return new LogicalRepeatUnion(maxRep, cluster, traitSet, seed, iterative);
+    return new LogicalRepeatUnion(cluster, traitSet, seed, iterative, all, maxRep);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -61,8 +63,8 @@ public class LogicalRepeatUnion extends RepeatUnion {
   @Override public LogicalRepeatUnion copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     assert inputs.size() == 2;
-    return new LogicalRepeatUnion(maxRep, getCluster(),
-            traitSet, inputs.get(0), inputs.get(1));
+    return new LogicalRepeatUnion(getCluster(), traitSet,
+        inputs.get(0), inputs.get(1), all, maxRep);
   }
 
 }

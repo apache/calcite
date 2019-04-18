@@ -144,7 +144,7 @@ public class EnumerableRepeatUnionHierarchyTest {
         .project(
             builder.field("emps", "empid"),
             builder.field("emps", "name"))
-        .repeatUnion("#DELTA#", maxDepth)
+        .repeatUnion("#DELTA#", true, maxDepth)
         .build();
   }
 

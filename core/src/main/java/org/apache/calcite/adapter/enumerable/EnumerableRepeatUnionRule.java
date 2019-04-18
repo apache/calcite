@@ -27,7 +27,7 @@ import org.apache.calcite.rel.logical.LogicalRepeatUnion;
  */
 public class EnumerableRepeatUnionRule extends ConverterRule {
 
-  public EnumerableRepeatUnionRule() {
+  EnumerableRepeatUnionRule() {
     super(
       LogicalRepeatUnion.class,
       Convention.NONE,
@@ -44,11 +44,12 @@ public class EnumerableRepeatUnionRule extends ConverterRule {
     RelNode iterativeRel = union.getIterativeRel();
 
     return new EnumerableRepeatUnion(
-        union.getMaxRep(),
         rel.getCluster(),
         traitSet,
-        convert(seedRel, seedRel.getTraitSet().replace(EnumerableConvention.INSTANCE)),
-        convert(iterativeRel, iterativeRel.getTraitSet().replace(EnumerableConvention.INSTANCE)));
+        convert(seedRel, seedRel.getTraitSet().replace(out)),
+        convert(iterativeRel, iterativeRel.getTraitSet().replace(out)),
+        union.all,
+        union.maxRep);
   }
 }
 

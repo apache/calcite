@@ -20,9 +20,12 @@ import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Spool;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 
 /**
  * Spool that writes into a temporary table.
@@ -45,7 +48,12 @@ public class LogicalTableSpool extends Spool {
   public static LogicalTableSpool create(RelNode input, Type readType, Type writeType,
                                          String tableName) {
     RelOptCluster cluster = input.getCluster();
-    RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
+    RelMetadataQuery mq = cluster.getMetadataQuery();
+    RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE)
+        .replaceIfs(RelCollationTraitDef.INSTANCE,
+            () -> mq.collations(input))
+        .replaceIf(RelDistributionTraitDef.INSTANCE,
+            () -> mq.distribution(input));
     return new LogicalTableSpool(cluster, traitSet, input, readType, writeType, tableName);
   }
 

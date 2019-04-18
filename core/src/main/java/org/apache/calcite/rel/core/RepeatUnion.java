@@ -35,9 +35,8 @@ import java.util.List;
  *
  * The structure of a Recursive Union is always: non-recursive term + UNION [ALL] + recursive term,
  * where only the recursive term can contain a reference to the query's own output.
- * (TODO only UNION ALL is supported for the moment)
  *
- * Such an operation is executed as follows:
+ * This operation is executed as follows:
  *   - Evaluate the non-recursive term once. For UNION (but not UNION ALL), discard duplicate
  *   results.
  *   - (Re)Evaluate the recursive term over and over until it produces no more results. For UNION
@@ -54,36 +53,44 @@ import java.util.List;
 @Experimental
 public abstract class RepeatUnion extends BiRel {
 
-  protected final boolean all = true; // TODO for the moment only RepeatUnion 'all' is supported
+  /**
+   * Whether duplicates will be considered or not
+   */
+  public final boolean all;
 
-  // maximum number of times to repeat the iterative relational expression,
-  // -1 means no limit, 0 means only seed will be evaluated
-  protected final int maxRep;
+  /**
+   * Maximum number of times to repeat the iterative relational expression,
+   * -1 means no limit, 0 means only seed will be evaluated
+   */
+  public final int maxRep;
+
+
 
   //~ Constructors -----------------------------------------------------------
   protected RepeatUnion(
-          int maxRep,
           RelOptCluster cluster,
           RelTraitSet traitSet,
           RelNode seed,
-          RelNode iterative) {
+          RelNode iterative,
+          boolean all,
+          int maxRep) {
 
     super(cluster, traitSet, seed, iterative);
     if (maxRep < -1) {
       throw new IllegalArgumentException("Wrong maxRep value");
     }
     this.maxRep = maxRep;
+    this.all = all;
   }
-
 
   @Override public double estimateRowCount(RelMetadataQuery mq) {
     // TODO implement a more accurate row count?
-    double seedRowCount = getSeedRel().estimateRowCount(mq);
+    double seedRowCount = mq.getRowCount(getSeedRel());
     if (maxRep == 0) {
       return seedRowCount;
     }
     return seedRowCount
-              + getIterativeRel().estimateRowCount(mq) * (maxRep != -1 ? maxRep : 10);
+              + mq.getRowCount(getIterativeRel()) * (maxRep != -1 ? maxRep : 10);
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
@@ -92,10 +99,6 @@ public abstract class RepeatUnion extends BiRel {
       pw.item("maxRep", maxRep);
     }
     return pw.item("all", all);
-  }
-
-  public int getMaxRep() {
-    return maxRep;
   }
 
   public RelNode getSeedRel() {

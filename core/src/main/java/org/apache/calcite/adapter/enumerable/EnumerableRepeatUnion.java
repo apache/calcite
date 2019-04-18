@@ -39,24 +39,30 @@ import java.util.List;
 public class EnumerableRepeatUnion extends RepeatUnion implements EnumerableRel {
 
   /**
-   * Create an EnumerableRepeatUnion
+   * Creates an EnumerableRepeatUnion
    */
-  public EnumerableRepeatUnion(
-          int maxRep,
+  EnumerableRepeatUnion(
           RelOptCluster cluster,
           RelTraitSet traits,
           RelNode seed,
-          RelNode iterative) {
-    super(maxRep, cluster, traits, seed, iterative);
+          RelNode iterative,
+          boolean all,
+          int maxRep) {
+    super(cluster, traits, seed, iterative, all, maxRep);
   }
 
   @Override public EnumerableRepeatUnion copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.size() == 2;
-    return new EnumerableRepeatUnion(maxRep, getCluster(),
-            traitSet, inputs.get(0), inputs.get(1));
+    return new EnumerableRepeatUnion(getCluster(), traitSet,
+        inputs.get(0), inputs.get(1), all, maxRep);
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+    // TODO only UNION ALL is supported for the moment
+    if (!all) {
+      throw new UnsupportedOperationException(
+          "Only EnumerableRepeatUnion ALL is supported for the moment");
+    }
 
     // return repeatUnionAll(<seedExp>, <iterativeExp>, maxRep);
 

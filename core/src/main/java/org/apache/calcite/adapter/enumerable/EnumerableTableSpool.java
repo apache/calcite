@@ -22,9 +22,12 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Spool;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.util.BuiltInMethod;
 
@@ -38,7 +41,9 @@ import org.apache.calcite.util.BuiltInMethod;
 @Experimental
 public class EnumerableTableSpool extends Spool implements EnumerableRel {
 
-  // table name, it must refer to an existing ModifiableTable
+  /**
+   * Table name, it must refer to a ModifiableTable that exists on the current schema
+   */
   protected final String tableName;
 
   protected EnumerableTableSpool(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
@@ -47,9 +52,22 @@ public class EnumerableTableSpool extends Spool implements EnumerableRel {
     this.tableName = tableName;
   }
 
+  /** Creates a LogicalTableSpool. */
+  public static EnumerableTableSpool create(RelNode input, Type readType, Type writeType,
+                                            String tableName) {
+    RelOptCluster cluster = input.getCluster();
+    RelMetadataQuery mq = cluster.getMetadataQuery();
+    RelTraitSet traitSet = cluster.traitSetOf(EnumerableConvention.INSTANCE)
+        .replaceIfs(RelCollationTraitDef.INSTANCE,
+            () -> mq.collations(input))
+        .replaceIf(RelDistributionTraitDef.INSTANCE,
+            () -> mq.distribution(input));
+    return new EnumerableTableSpool(cluster, traitSet, input, readType, writeType, tableName);
+  }
+
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // TODO for the moment only LAZY read & write is supported
-    if (!(readType == Type.LAZY && writeType == Type.LAZY)) {
+    if (readType != Type.LAZY || writeType != Type.LAZY) {
       throw new UnsupportedOperationException(
           "EnumerableTableSpool supports for the moment only LAZY read and LAZY write");
     }

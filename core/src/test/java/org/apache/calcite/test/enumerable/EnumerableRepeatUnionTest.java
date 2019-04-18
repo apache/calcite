@@ -54,7 +54,7 @@ public class EnumerableRepeatUnionTest {
                     builder.call(SqlStdOperatorTable.PLUS,
                         builder.field(0),
                         builder.literal(1)))
-                .repeatUnion("DELTA")
+                .repeatUnion("DELTA", true)
                 .build()
         )
         .returnsOrdered("i=1", "i=2", "i=3", "i=4", "i=5", "i=6", "i=7", "i=8", "i=9", "i=10");
@@ -89,7 +89,7 @@ public class EnumerableRepeatUnionTest {
                                 builder.literal(1)),
                             builder.field("fact"))),
                     Arrays.asList("n", "fact"))
-                .repeatUnion("D")
+                .repeatUnion("D", true)
                 .build()
         )
         .returnsOrdered("n=0; fact=1",
@@ -130,7 +130,7 @@ public class EnumerableRepeatUnionTest {
                         SqlStdOperatorTable.PLUS,
                         builder.field("n"),
                         builder.literal(1)))
-                .repeatUnion("T_IN")
+                .repeatUnion("T_IN", true)
 
                 .transientScan("T_OUT")
                 .filter(
@@ -143,7 +143,7 @@ public class EnumerableRepeatUnionTest {
                         SqlStdOperatorTable.MULTIPLY,
                         builder.field("n"),
                         builder.literal(10)))
-                .repeatUnion("T_OUT")
+                .repeatUnion("T_OUT", true)
                 .build()
         )
         .returnsOrdered(

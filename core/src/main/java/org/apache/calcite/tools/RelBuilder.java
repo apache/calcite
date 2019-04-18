@@ -73,7 +73,7 @@ import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.impl.TransientTable;
+import org.apache.calcite.schema.impl.ListTransientTable;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -1712,8 +1712,8 @@ public class RelBuilder {
   }
 
   /**
-   * Creates a {@link LogicalTableScan} on a {@link TransientTable} (used e.g. to accumulate
-   * results in repeat union operation), using as its row type the top of the stack's row type.
+   * Creates a {@link LogicalTableScan} on a {@link ListTransientTable}, using as its row type
+   * the top of the stack's row type.
    * Returns this builder.
    */
   @Experimental
@@ -1722,15 +1722,14 @@ public class RelBuilder {
   }
 
   /**
-   * Creates a {@link LogicalTableScan} on a {@link TransientTable} (used e.g. to accumulate
-   * results in repeat union operation).
+   * Creates a {@link LogicalTableScan} on a {@link ListTransientTable}.
    * Returns this builder.
    * @param tableName table name
    * @param rowType row type of the table
    */
   @Experimental
   public RelBuilder transientScan(String tableName, RelDataType rowType) {
-    TransientTable transientTable = new TransientTable(tableName, rowType);
+    ListTransientTable transientTable = new ListTransientTable(tableName, rowType);
     RelOptTable relOptTable = RelOptTableImpl.create(
         relOptSchema,
         rowType,
@@ -1743,12 +1742,13 @@ public class RelBuilder {
   }
 
   /**
-   * Creates a {@link LogicalRepeatUnion} with no maxRep, i.e. repeatUnion(tableName, -1).
+   * Creates a {@link LogicalRepeatUnion} with no maxRep, i.e. repeatUnion(tableName, all, -1).
+   * Returns this builder.
    * @param tableName transient table name associated to the repeat union
+   * @param all whether duplicates will be considered or not
    */
-  @Experimental
-  public RelBuilder repeatUnion(String tableName) {
-    return this.repeatUnion(tableName, -1);
+  public RelBuilder repeatUnion(String tableName, boolean all) {
+    return repeatUnion(tableName, all, -1);
   }
 
   /**
@@ -1757,13 +1757,13 @@ public class RelBuilder {
    * this operation might lead to an infinite loop.
    * Returns this builder.
    * @param tableName transient table name associated to the repeat union
+   * @param all whether duplicates will be considered or not
    * @param maxRep maximum number of iterations, -1 means no limit
    */
-  @Experimental
-  public RelBuilder repeatUnion(String tableName, int maxRep) {
+  public RelBuilder repeatUnion(String tableName, boolean all, int maxRep) {
     RelNode iter = LogicalTableSpool.create(build(), Spool.Type.LAZY, Spool.Type.LAZY, tableName);
     RelNode seed = LogicalTableSpool.create(build(), Spool.Type.LAZY, Spool.Type.LAZY, tableName);
-    return this.push(LogicalRepeatUnion.create(seed, iter, maxRep));
+    return this.push(LogicalRepeatUnion.create(seed, iter, all, maxRep));
   }
 
   /** Creates a {@link Join}. */
