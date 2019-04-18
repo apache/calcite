@@ -50,8 +50,7 @@ Connection connection =
 CalciteConnection calciteConnection =
     connection.unwrap(CalciteConnection.class);
 SchemaPlus rootSchema = calciteConnection.getRootSchema();
-Schema schema = ReflectiveSchema.create(calciteConnection,
-    rootSchema, "hr", new HrSchema());
+Schema schema = new ReflectiveSchema(new HrSchema());
 rootSchema.add("hr", schema);
 Statement statement = calciteConnection.createStatement();
 ResultSet resultSet = statement.executeQuery(
@@ -68,7 +67,7 @@ connection.close();
 {% endhighlight %}
 
 Where is the database? There is no database. The connection is
-completely empty until `ReflectiveSchema.create` registers a Java
+completely empty until `new ReflectiveSchema` registers a Java
 object as a schema and its collection fields `emps` and `depts` as
 tables.
 
@@ -79,8 +78,7 @@ library. But Calcite can also process data in other data formats, such
 as JDBC. In the first example, replace
 
 {% highlight java %}
-Schema schema = ReflectiveSchema.create(calciteConnection,
-    rootSchema, "hr", new HrSchema());
+Schema schema = new ReflectiveSchema(new HrSchema());
 {% endhighlight %}
 
 with
