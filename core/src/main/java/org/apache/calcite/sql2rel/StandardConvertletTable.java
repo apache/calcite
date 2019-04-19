@@ -45,6 +45,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlPostfixOperator;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlArrayValueConstructor;
@@ -77,8 +78,11 @@ import com.google.common.collect.Lists;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Standard implementation of {@link SqlRexConvertletTable}.
@@ -116,8 +120,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     registerOp(SqlStdOperatorTable.MINUS,
         (cx, call) -> {
           final RexCall e =
-              (RexCall) StandardConvertletTable.this.convertCall(cx, call,
-                  call.getOperator());
+              (RexCall) StandardConvertletTable.this.convertCall(cx, call.getOperator(),
+                  call.getOperandList());
           switch (e.getOperands().get(0).getType().getSqlTypeName()) {
           case DATE:
           case TIME:
@@ -208,6 +212,19 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             SqlStdOperatorTable.POWER.createCall(SqlParserPos.ZERO,
                 call.operand(0),
                 SqlLiteral.createExactNumeric("0.5", SqlParserPos.ZERO))));
+
+    registerOp(SqlStdOperatorTable.JSON_API_COMMON_SYNTAX,
+        new JsonOperatorValueExprConvertlet(0));
+    registerOp(SqlStdOperatorTable.JSON_PRETTY,
+        new JsonOperatorValueExprConvertlet(0));
+    registerOp(SqlStdOperatorTable.JSON_TYPE,
+        new JsonOperatorValueExprConvertlet(0));
+    registerOp(SqlStdOperatorTable.JSON_DEPTH,
+        new JsonOperatorValueExprConvertlet(0));
+    registerOp(SqlStdOperatorTable.JSON_LENGTH,
+        new JsonOperatorValueExprConvertlet(0));
+    registerOp(SqlStdOperatorTable.JSON_KEYS,
+        new JsonOperatorValueExprConvertlet(0));
 
     // Convert json_value('{"foo":"bar"}', 'lax $.foo', returning varchar(2000))
     // to cast(json_value('{"foo":"bar"}', 'lax $.foo') as varchar(2000))
@@ -747,16 +764,13 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   public RexNode convertCall(
       SqlRexContext cx,
       SqlCall call) {
-    return convertCall(cx, call, call.getOperator());
+    return convertCall(cx, call.getOperator(), call.getOperandList());
   }
 
   /** Converts a {@link SqlCall} to a {@link RexCall} with a perhaps different
    * operator. */
   private RexNode convertCall(
-      SqlRexContext cx,
-      SqlCall call,
-      SqlOperator op) {
-    final List<SqlNode> operands = call.getOperandList();
+      SqlRexContext cx, SqlOperator op, List<SqlNode> operands) {
     final RexBuilder rexBuilder = cx.getRexBuilder();
     final SqlOperandTypeChecker.Consistency consistency =
         op.getOperandTypeChecker() == null
@@ -1429,6 +1443,58 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   private class FloorCeilConvertlet implements SqlRexConvertlet {
     public RexNode convertCall(SqlRexContext cx, SqlCall call) {
       return convertFloorCeil(cx, call);
+    }
+  }
+
+  /** Convertlet that adds implicit calls to
+   * {@link org.apache.calcite.sql.fun.SqlJsonValueExpressionOperator}
+   * for a series fo JSON operators.
+   *
+   * <p> A call to JSON operator sometimes has a specific expression
+   * argument (it's always the first argument of the call), which implies
+   * a "FORMAT JSON" postfix when the argument is not a explicit call to the
+   * {@link org.apache.calcite.sql.fun.SqlJsonValueExpressionOperator}. */
+  private class JsonOperatorValueExprConvertlet implements SqlRexConvertlet {
+    private final int[] implicitJsonValueExprOrdinals;
+
+    private JsonOperatorValueExprConvertlet(int[] implicitJsonValueExprOrdinals) {
+      this.implicitJsonValueExprOrdinals = implicitJsonValueExprOrdinals;
+    }
+
+    private JsonOperatorValueExprConvertlet(int implicitJsonValueExprOrdinal) {
+      this(new int[]{implicitJsonValueExprOrdinal});
+    }
+
+    public RexNode convertCall(SqlRexContext cx, SqlCall call) {
+      List<SqlNode> newOperands = new ArrayList<>(call.getOperandList());
+      for (int ordinal : implicitJsonValueExprOrdinals) {
+        assert ordinal < newOperands.size();
+        final SqlNode operand = call.operand(ordinal);
+        if (operand.getKind() != SqlKind.JSON_VALUE_EXPRESSION) {
+          final SqlPostfixOperator newOp = SqlStdOperatorTable.JSON_VALUE_EXPRESSION;
+
+          // Validate the original operand using the new operator. JSON value expression
+          // accepts only a character input.
+          //
+          // Once CALCITE-2869 is fixed, we can validate the original operand during SQL
+          // validation using SqlTypeName.JSON.
+          RelDataType validateOperandType = cx.getValidator().getValidatedNodeType(operand);
+          assert validateOperandType != null;
+          if (!SqlTypeUtil.inCharFamily(validateOperandType)) {
+            // must be character type
+            throw cx.getValidator().newValidationError(call,
+                RESOURCE.canNotApplyOp2Type(newOp.getName(),
+                    SqlUtil.getOperatorSignature(newOp,
+                        Collections.singletonList(validateOperandType)),
+                    newOp.getAllowedSignatures()));
+          }
+
+          final SqlNode replacement = newOp
+              .createCall(SqlParserPos.ZERO, operand);
+          newOperands.set(ordinal, replacement);
+        }
+      }
+      return StandardConvertletTable.this.convertCall(cx, call.getOperator(), newOperands);
     }
   }
 

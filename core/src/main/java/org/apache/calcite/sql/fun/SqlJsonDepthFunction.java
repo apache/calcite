@@ -28,6 +28,7 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.validate.SqlValidator;
 
 /**
@@ -37,7 +38,8 @@ public class SqlJsonDepthFunction extends SqlFunction {
   public SqlJsonDepthFunction() {
     super("JSON_DEPTH",
         SqlKind.OTHER_FUNCTION,
-        ReturnTypes.INTEGER_NULLABLE,
+        ReturnTypes.cascade(ReturnTypes.INTEGER,
+            SqlTypeTransforms.FORCE_NULLABLE),
         null,
         OperandTypes.ANY,
         SqlFunctionCategory.SYSTEM);

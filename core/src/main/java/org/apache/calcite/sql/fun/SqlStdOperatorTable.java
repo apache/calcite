@@ -807,6 +807,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           null,
           OperandTypes.CHARACTER);
 
+  public static final SqlPostfixOperator JSON_VALUE_EXPRESSION =
+      new SqlJsonValueExpressionOperator();
+
 
   //-------------------------------------------------------------
   //                   PREFIX OPERATORS
@@ -1291,18 +1294,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlThrowOperator THROW = new SqlThrowOperator();
 
-  public static final SqlJsonValueExpressionOperator JSON_VALUE_EXPRESSION =
-      new SqlJsonValueExpressionOperator("JSON_VALUE_EXPRESSION", false);
-
-  public static final SqlJsonValueExpressionOperator JSON_STRUCTURED_VALUE_EXPRESSION =
-      new SqlJsonValueExpressionOperator("JSON_STRUCTURED_VALUE_EXPRESSION",
-          true);
-
   public static final SqlJsonApiCommonSyntaxOperator JSON_API_COMMON_SYNTAX =
-      new SqlJsonApiCommonSyntaxOperator("JSON_API_COMMON_SYNTAX", true);
-
-  public static final SqlJsonApiCommonSyntaxOperator JSON_API_COMMON_SYNTAX_WITHOUT_PATH =
-      new SqlJsonApiCommonSyntaxOperator("JSON_API_COMMON_SYNTAX_WITHOUT_PATH", false);
+      new SqlJsonApiCommonSyntaxOperator("JSON_API_COMMON_SYNTAX");
 
   public static final SqlFunction JSON_EXISTS = new SqlJsonExistsFunction();
 

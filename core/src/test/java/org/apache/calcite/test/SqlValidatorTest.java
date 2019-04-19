@@ -8882,9 +8882,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "DOT -\n"
         + "ITEM -\n"
         + "JSON_API_COMMON_SYNTAX -\n"
-        + "JSON_API_COMMON_SYNTAX_WITHOUT_PATH -\n"
-        + "JSON_STRUCTURED_VALUE_EXPRESSION -\n"
-        + "JSON_VALUE_EXPRESSION -\n"
         + "NEXT_VALUE -\n"
         + "PATTERN_EXCLUDE -\n"
         + "PATTERN_PERMUTE -\n"
@@ -8956,6 +8953,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "SUBMULTISET OF left\n"
         + "SUCCEEDS left\n"
         + "\n"
+        + "FORMAT JSON post\n"
         + "IS A SET post\n"
         + "IS EMPTY post\n"
         + "IS FALSE post\n"
@@ -10886,6 +10884,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             .fails(onError);
   }
 
+  @Test public void testJsonValueExpressionOperator() {
+    checkExp("'{}' format json");
+    checkExp("'{}' format json encoding utf8");
+    checkExp("'{}' format json encoding utf16");
+    checkExp("'{}' format json encoding utf32");
+    checkExpType("'{}' format json", "ANY NOT NULL");
+    checkExpFails("^null^ format json", "(?s).*Illegal use of .NULL.*");
+  }
+
   @Test public void testJsonExists() {
     checkExp("json_exists('{}', 'lax $')");
     checkExpType("json_exists('{}', 'lax $')", "BOOLEAN");
@@ -10952,6 +10959,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExp("json_pretty('{\"foo\":\"bar\"}')");
     checkExpType("json_pretty('{\"foo\":\"bar\"}')", "VARCHAR(2000) NOT NULL");
     checkFails("select json_pretty(^NULL^) from emp", "(?s).*Illegal use of .NULL.*");
+
+    if (!Bug.CALCITE_2869_FIXED) {
+      // the case should throw an error but currently validation
+      // is done during sql-to-rel process.
+      //
+      // see StandardConvertletTable.JsonOperatorValueExprConvertlet
+      return;
+    }
     checkFails("select json_pretty(^1^) from emp",
             "(.*)JSON_VALUE_EXPRESSION(.*)");
   }
@@ -10960,6 +10975,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     check("select json_type(ename) from emp");
     checkExp("json_type('{\"foo\":\"bar\"}')");
     checkExpType("json_type('{\"foo\":\"bar\"}')", "VARCHAR(20) NOT NULL");
+
+    if (!Bug.CALCITE_2869_FIXED) {
+      return;
+    }
     checkFails("select json_type(^1^) from emp",
         "(.*)JSON_VALUE_EXPRESSION(.*)");
   }
@@ -10968,6 +10987,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     check("select json_depth(ename) from emp");
     checkExp("json_depth('{\"foo\":\"bar\"}')");
     checkExpType("json_depth('{\"foo\":\"bar\"}')", "INTEGER");
+
+    if (!Bug.CALCITE_2869_FIXED) {
+      return;
+    }
     checkFails("select json_depth(^1^) from emp",
             "(.*)JSON_VALUE_EXPRESSION(.*)");
   }

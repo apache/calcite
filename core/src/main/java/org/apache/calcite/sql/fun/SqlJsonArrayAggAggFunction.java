@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -44,9 +45,9 @@ public class SqlJsonArrayAggAggFunction extends SqlAggFunction {
 
   public SqlJsonArrayAggAggFunction(SqlKind kind,
       SqlJsonConstructorNullClause nullClause) {
-    super(kind + "_" + nullClause.name(), null, kind, ReturnTypes.VARCHAR_2000, null,
-        OperandTypes.family(SqlTypeFamily.ANY), SqlFunctionCategory.SYSTEM,
-        false, false, Optionality.OPTIONAL);
+    super(kind + "_" + nullClause.name(), null, kind, ReturnTypes.VARCHAR_2000,
+        InferTypes.ANY_NULLABLE, OperandTypes.family(SqlTypeFamily.ANY),
+        SqlFunctionCategory.SYSTEM, false, false, Optionality.OPTIONAL);
     this.nullClause = Objects.requireNonNull(nullClause);
   }
 

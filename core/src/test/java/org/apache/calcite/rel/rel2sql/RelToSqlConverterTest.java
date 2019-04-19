@@ -3147,6 +3147,19 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testJsonValueExpressionOperator() {
+    String query = "select \"product_name\" format json, "
+        + "\"product_name\" format json encoding utf8, "
+        + "\"product_name\" format json encoding utf16, "
+        + "\"product_name\" format json encoding utf32 from \"product\"";
+    final String expected = "SELECT \"product_name\" FORMAT JSON, "
+        + "\"product_name\" FORMAT JSON, "
+        + "\"product_name\" FORMAT JSON, "
+        + "\"product_name\" FORMAT JSON\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
   @Test public void testJsonExists() {
     String query = "select json_exists(\"product_name\", 'lax $') from \"product\"";
     final String expected = "SELECT JSON_EXISTS(\"product_name\" FORMAT JSON, 'lax $')\n"

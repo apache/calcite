@@ -22,10 +22,8 @@ import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.validate.SqlValidator;
 
 /**
  * The JSON API common syntax including a path specification, which is for
@@ -33,38 +31,20 @@ import org.apache.calcite.sql.validate.SqlValidator;
  */
 public class SqlJsonApiCommonSyntaxOperator extends SqlSpecialOperator {
 
-  // If true, the syntax must contain a JSON path expression, e.g. '{'foo':'bar'}', 'lax $.foo';
-  // otherwise the syntax can be specified within JSON text only, e.g. '{'foo':'bar'}'.
-  private final boolean hasPath;
-
-  public SqlJsonApiCommonSyntaxOperator(String name, boolean hasPath) {
+  public SqlJsonApiCommonSyntaxOperator(String name) {
     super(name, SqlKind.JSON_API_COMMON_SYNTAX, 100, true,
         ReturnTypes.explicit(SqlTypeName.ANY), null,
-        hasPath ? OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING)
-            : OperandTypes.family(SqlTypeFamily.ANY));
-    this.hasPath = hasPath;
-  }
-
-  @Override protected void checkOperandCount(SqlValidator validator,
-      SqlOperandTypeChecker argType, SqlCall call) {
-    if (hasPath) {
-      if (call.operandCount() < 2) {
-        throw new UnsupportedOperationException(
-            "JSON API common syntax requires at least 2 parameters");
-      }
-    } else {
-      if (call.operandCount() < 1) {
-        throw new UnsupportedOperationException(
-            "JSON API common syntax requires at least 1 parameter");
-      }
-    }
+        OperandTypes.or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING),
+            OperandTypes.family(SqlTypeFamily.ANY)));
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
+    final boolean hasPath = call.operandCount() % 2 == 0;
     SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
     call.operand(0).unparse(writer, 0, 0);
     if (hasPath) {
+      // the case '{'foo':'bar'}', 'lax $.foo'
       writer.sep(",", true);
       call.operand(1).unparse(writer, 0, 0);
     }

@@ -4462,26 +4462,6 @@ public abstract class SqlOperatorBaseTest {
 
   }
 
-  @Test public void testJsonObject() {
-    tester.checkString("json_object()", "{}", "VARCHAR(2000) NOT NULL");
-    tester.checkString("json_object('foo': 'bar')",
-        "{\"foo\":\"bar\"}", "VARCHAR(2000) NOT NULL");
-    tester.checkString("json_object('foo': 'bar', 'foo2': 'bar2')",
-        "{\"foo\":\"bar\",\"foo2\":\"bar2\"}", "VARCHAR(2000) NOT NULL");
-    tester.checkString("json_object('foo': null)",
-        "{\"foo\":null}", "VARCHAR(2000) NOT NULL");
-    tester.checkString("json_object('foo': null null on null)",
-        "{\"foo\":null}", "VARCHAR(2000) NOT NULL");
-    tester.checkString("json_object('foo': null absent on null)",
-        "{}", "VARCHAR(2000) NOT NULL");
-    tester.checkString("json_object('foo': 100)",
-        "{\"foo\":100}", "VARCHAR(2000) NOT NULL");
-    tester.checkString("json_object('foo': json_object('foo': 'bar'))",
-        "{\"foo\":\"{\\\"foo\\\":\\\"bar\\\"}\"}", "VARCHAR(2000) NOT NULL");
-    tester.checkString("json_object('foo': json_object('foo': 'bar') format json)",
-        "{\"foo\":{\"foo\":\"bar\"}}", "VARCHAR(2000) NOT NULL");
-  }
-
   @Test public void testJsonPretty() {
     tester.checkString("json_pretty('{\"foo\":100}')",
         "{\n  \"foo\" : 100\n}", "VARCHAR(2000) NOT NULL");
@@ -4643,8 +4623,29 @@ public abstract class SqlOperatorBaseTest {
             "(?s).*No results for path.*", true);
   }
 
+  @Test public void testJsonObject() {
+    tester.checkString("json_object()", "{}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': 'bar')",
+        "{\"foo\":\"bar\"}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': 'bar', 'foo2': 'bar2')",
+        "{\"foo\":\"bar\",\"foo2\":\"bar2\"}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': null)",
+        "{\"foo\":null}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': null null on null)",
+        "{\"foo\":null}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': null absent on null)",
+        "{}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': 100)",
+        "{\"foo\":100}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': json_object('foo': 'bar'))",
+        "{\"foo\":\"{\\\"foo\\\":\\\"bar\\\"}\"}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': json_object('foo': 'bar') format json)",
+        "{\"foo\":{\"foo\":\"bar\"}}", "VARCHAR(2000) NOT NULL");
+  }
+
   @Test public void testJsonObjectAgg() {
     checkAggType(tester, "json_objectagg('foo': 'bar')", "VARCHAR(2000) NOT NULL");
+    checkAggType(tester, "json_objectagg('foo': null)", "VARCHAR(2000) NOT NULL");
     tester.checkFails("^json_objectagg(100: 'bar')^",
         "(?s).*Cannot apply.*", false);
     final String[][] values = {
@@ -4688,6 +4689,7 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testJsonArrayAgg() {
     checkAggType(tester, "json_arrayagg('foo')", "VARCHAR(2000) NOT NULL");
+    checkAggType(tester, "json_arrayagg(null)", "VARCHAR(2000) NOT NULL");
     final String[] values = {
         "'foo'",
         "cast(null as varchar(2000))",
