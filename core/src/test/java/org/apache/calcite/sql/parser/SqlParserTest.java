@@ -721,8 +721,8 @@ public class SqlParserTest {
         "(?s).*Encountered \".1\" at line 1, column 13.\n"
             + "Was expecting one of:\n"
             + "    <EOF> \n"
-            + "    \"AND\" \\.\\.\\.\n"
             + "    \"AS\" \\.\\.\\.\n"
+            + "    \"EXCEPT\" \\.\\.\\.\n"
             + ".*");
   }
 
@@ -6691,8 +6691,8 @@ public class SqlParserTest {
         "(?s)Encountered \"to year\" at line 1, column 19.\n"
             + "Was expecting one of:\n"
             + "    <EOF> \n"
-            + "    \"AND\" \\.\\.\\.\n"
-            + "    \"BETWEEN\" \\.\\.\\..*");
+            + "    \"\\(\" \\.\\.\\.\n"
+            + "    \"\\.\" \\.\\.\\..*");
     checkExpFails("interval '1-2' year ^to^ day", ANY);
     checkExpFails("interval '1-2' year ^to^ hour", ANY);
     checkExpFails("interval '1-2' year ^to^ minute", ANY);
@@ -8357,64 +8357,83 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testJsonValueExpressionOperator() {
+    checkExp("foo format json",
+        "`FOO` FORMAT JSON");
+    // Currently, encoding js not valid
+    checkExp("foo format json encoding utf8",
+        "`FOO` FORMAT JSON");
+    checkExp("foo format json encoding utf16",
+        "`FOO` FORMAT JSON");
+    checkExp("foo format json encoding utf32",
+        "`FOO` FORMAT JSON");
+    checkExp("null format json", "NULL FORMAT JSON");
+    // Test case to eliminate choice conflict on token <FORMAT>
+    check("select foo format from tab", "SELECT `FOO` AS `FORMAT`\n"
+        + "FROM `TAB`");
+    // Test case to eliminate choice conflict on token <ENCODING>
+    check("select foo format json encoding from tab", "SELECT `FOO` FORMAT JSON AS `ENCODING`\n"
+        + "FROM `TAB`");
+  }
+
   @Test public void testJsonExists() {
     checkExp("json_exists('{\"foo\": \"bar\"}', 'lax $.foo')",
-        "JSON_EXISTS('{\"foo\": \"bar\"}' FORMAT JSON, 'lax $.foo')");
+        "JSON_EXISTS('{\"foo\": \"bar\"}', 'lax $.foo')");
     checkExp("json_exists('{\"foo\": \"bar\"}', 'lax $.foo' error on error)",
-        "JSON_EXISTS('{\"foo\": \"bar\"}' FORMAT JSON, 'lax $.foo' ERROR ON ERROR)");
+        "JSON_EXISTS('{\"foo\": \"bar\"}', 'lax $.foo' ERROR ON ERROR)");
   }
 
   @Test public void testJsonValue() {
     checkExp("json_value('{\"foo\": \"100\"}', 'lax $.foo' "
             + "returning integer)",
-        "JSON_VALUE('{\"foo\": \"100\"}' FORMAT JSON, 'lax $.foo' "
+        "JSON_VALUE('{\"foo\": \"100\"}', 'lax $.foo' "
             + "RETURNING INTEGER NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_value('{\"foo\": \"100\"}', 'lax $.foo' "
             + "returning integer default 10 on empty error on error)",
-        "JSON_VALUE('{\"foo\": \"100\"}' FORMAT JSON, 'lax $.foo' "
+        "JSON_VALUE('{\"foo\": \"100\"}', 'lax $.foo' "
             + "RETURNING INTEGER DEFAULT 10 ON EMPTY ERROR ON ERROR)");
   }
 
   @Test public void testJsonQuery() {
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITHOUT ARRAY WRAPPER)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITH WRAPPER)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITH UNCONDITIONAL ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITH UNCONDITIONAL WRAPPER)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITH UNCONDITIONAL ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITH CONDITIONAL WRAPPER)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITH CONDITIONAL ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' NULL ON EMPTY)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' ERROR ON EMPTY)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER ERROR ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY ARRAY ON EMPTY)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER EMPTY ARRAY ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY OBJECT ON EMPTY)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER EMPTY OBJECT ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' NULL ON ERROR)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' ERROR ON ERROR)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY ERROR ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY ARRAY ON ERROR)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY EMPTY ARRAY ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY OBJECT ON ERROR)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY EMPTY OBJECT ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY ARRAY ON EMPTY "
             + "EMPTY OBJECT ON ERROR)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER EMPTY ARRAY ON EMPTY EMPTY OBJECT ON ERROR)");
   }
 
@@ -8438,43 +8457,43 @@ public class SqlParserTest {
   }
 
   @Test public void testJsonType() {
-    checkExp("json_type('11.56')", "JSON_TYPE('11.56' FORMAT JSON)");
-    checkExp("json_type('{}')", "JSON_TYPE('{}' FORMAT JSON)");
-    checkExp("json_type(null)", "JSON_TYPE(NULL FORMAT JSON)");
+    checkExp("json_type('11.56')", "JSON_TYPE('11.56')");
+    checkExp("json_type('{}')", "JSON_TYPE('{}')");
+    checkExp("json_type(null)", "JSON_TYPE(NULL)");
     checkExp("json_type('[\"foo\",null]')",
-            "JSON_TYPE('[\"foo\",null]' FORMAT JSON)");
+            "JSON_TYPE('[\"foo\",null]')");
     checkExp("json_type('{\"foo\": \"100\"}')",
-            "JSON_TYPE('{\"foo\": \"100\"}' FORMAT JSON)");
+            "JSON_TYPE('{\"foo\": \"100\"}')");
   }
 
   @Test public void testJsonDepth() {
-    checkExp("json_depth('11.56')", "JSON_DEPTH('11.56' FORMAT JSON)");
-    checkExp("json_depth('{}')", "JSON_DEPTH('{}' FORMAT JSON)");
-    checkExp("json_depth(null)", "JSON_DEPTH(NULL FORMAT JSON)");
+    checkExp("json_depth('11.56')", "JSON_DEPTH('11.56')");
+    checkExp("json_depth('{}')", "JSON_DEPTH('{}')");
+    checkExp("json_depth(null)", "JSON_DEPTH(NULL)");
     checkExp("json_depth('[\"foo\",null]')",
-            "JSON_DEPTH('[\"foo\",null]' FORMAT JSON)");
+            "JSON_DEPTH('[\"foo\",null]')");
     checkExp("json_depth('{\"foo\": \"100\"}')",
-            "JSON_DEPTH('{\"foo\": \"100\"}' FORMAT JSON)");
+            "JSON_DEPTH('{\"foo\": \"100\"}')");
   }
 
   @Test public void testJsonLength() {
     checkExp("json_length('{\"foo\": \"bar\"}')",
-            "JSON_LENGTH('{\"foo\": \"bar\"}' FORMAT JSON)");
+            "JSON_LENGTH('{\"foo\": \"bar\"}')");
     checkExp("json_length('{\"foo\": \"bar\"}', 'lax $')",
-            "JSON_LENGTH('{\"foo\": \"bar\"}' FORMAT JSON, 'lax $')");
+            "JSON_LENGTH('{\"foo\": \"bar\"}', 'lax $')");
     checkExp("json_length('{\"foo\": \"bar\"}', 'strict $')",
-            "JSON_LENGTH('{\"foo\": \"bar\"}' FORMAT JSON, 'strict $')");
+            "JSON_LENGTH('{\"foo\": \"bar\"}', 'strict $')");
     checkExp("json_length('{\"foo\": \"bar\"}', 'invalid $')",
-            "JSON_LENGTH('{\"foo\": \"bar\"}' FORMAT JSON, 'invalid $')");
+            "JSON_LENGTH('{\"foo\": \"bar\"}', 'invalid $')");
   }
 
   @Test public void testJsonKeys() {
     checkExp("json_keys('{\"foo\": \"bar\"}', 'lax $')",
-            "JSON_KEYS('{\"foo\": \"bar\"}' FORMAT JSON, 'lax $')");
+            "JSON_KEYS('{\"foo\": \"bar\"}', 'lax $')");
     checkExp("json_keys('{\"foo\": \"bar\"}', 'strict $')",
-            "JSON_KEYS('{\"foo\": \"bar\"}' FORMAT JSON, 'strict $')");
+            "JSON_KEYS('{\"foo\": \"bar\"}', 'strict $')");
     checkExp("json_keys('{\"foo\": \"bar\"}', 'invalid $')",
-            "JSON_KEYS('{\"foo\": \"bar\"}' FORMAT JSON, 'invalid $')");
+            "JSON_KEYS('{\"foo\": \"bar\"}', 'invalid $')");
   }
 
   @Test public void testJsonObjectAgg() {
@@ -8507,9 +8526,9 @@ public class SqlParserTest {
 
   @Test public void testJsonPretty() {
     checkExp("json_pretty('foo')",
-            "JSON_PRETTY('foo' FORMAT JSON)");
+            "JSON_PRETTY('foo')");
     checkExp("json_pretty(null)",
-            "JSON_PRETTY(NULL FORMAT JSON)");
+            "JSON_PRETTY(NULL)");
   }
 
   @Test public void testJsonArrayAgg1() {

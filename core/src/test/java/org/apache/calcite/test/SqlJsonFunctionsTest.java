@@ -62,12 +62,6 @@ public class SqlJsonFunctionsTest {
   }
 
   @Test
-  public void testJsonStructuredValueExpression() {
-    assertJsonStructuredValueExpression("bar", is("bar"));
-    assertJsonStructuredValueExpression(100, is(100));
-  }
-
-  @Test
   public void testJsonApiCommonSyntax() {
     assertJsonApiCommonSyntax(ImmutableMap.of("foo", "bar"), "lax $.foo",
         contextMatches(
@@ -604,13 +598,6 @@ public class SqlJsonFunctionsTest {
         SqlFunctions.jsonValueExpression(input), matcher);
   }
 
-  private void assertJsonStructuredValueExpression(Object input,
-      Matcher<Object> matcher) {
-    assertThat(
-        invocationDesc(BuiltInMethod.JSON_STRUCTURED_VALUE_EXPRESSION.getMethodName(), input),
-        SqlFunctions.jsonStructuredValueExpression(input), matcher);
-  }
-
   private void assertJsonApiCommonSyntax(Object input, String pathSpec,
       Matcher<? super SqlFunctions.PathContext> matcher) {
     assertThat(
@@ -706,7 +693,7 @@ public class SqlJsonFunctionsTest {
         matcher);
   }
 
-  private void assertJsonLength(Object input,
+  private void assertJsonLength(SqlFunctions.PathContext input,
       Matcher<? super Integer> matcher) {
     assertThat(
         invocationDesc(BuiltInMethod.JSON_LENGTH.getMethodName(), input),

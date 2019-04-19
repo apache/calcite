@@ -16,16 +16,12 @@
  */
 package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 
 /**
@@ -37,20 +33,9 @@ public class SqlJsonLengthFunction extends SqlFunction {
         ReturnTypes.cascade(ReturnTypes.INTEGER,
             SqlTypeTransforms.FORCE_NULLABLE),
         null,
-        OperandTypes.ANY,
+        OperandTypes.or(OperandTypes.ANY,
+            OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER)),
         SqlFunctionCategory.SYSTEM);
-  }
-
-  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
-      int rightPrec) {
-    final SqlWriter.Frame frame = writer.startFunCall(getName());
-    call.operand(0).unparse(writer, 0, 0);
-    writer.endFunCall(frame);
-  }
-
-  @Override public SqlCall createCall(SqlLiteral functionQualifier,
-      SqlParserPos pos, SqlNode... operands) {
-    return super.createCall(functionQualifier, pos, operands);
   }
 }
 

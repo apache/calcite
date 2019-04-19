@@ -16,46 +16,23 @@
  */
 package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlSpecialOperator;
-import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.SqlPostfixOperator;
 import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 
 /**
  * The JSON value expression operator that indicates that the value expression
  * should be parsed as JSON.
  */
-public class SqlJsonValueExpressionOperator extends SqlSpecialOperator {
-  private final boolean structured;
+public class SqlJsonValueExpressionOperator extends SqlPostfixOperator {
 
-  public SqlJsonValueExpressionOperator(String name, boolean structured) {
-    super(name, SqlKind.JSON_VALUE_EXPRESSION, 100, true,
-        opBinding -> {
-          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-          return typeFactory.createTypeWithNullability(
-              typeFactory.createSqlType(SqlTypeName.ANY), true);
-        },
-        (callBinding, returnType, operandTypes) -> {
-          if (callBinding.isOperandNull(0, false)) {
-            final RelDataTypeFactory typeFactory =
-                callBinding.getTypeFactory();
-            operandTypes[0] = typeFactory.createTypeWithNullability(
-                typeFactory.createSqlType(SqlTypeName.ANY), true);
-          }
-        },
-        structured ? OperandTypes.ANY : OperandTypes.STRING);
-    this.structured = structured;
-  }
-
-  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
-      int rightPrec) {
-    call.operand(0).unparse(writer, 0, 0);
-    if (!structured) {
-      writer.keyword("FORMAT JSON");
-    }
+  public SqlJsonValueExpressionOperator() {
+    super("FORMAT JSON", SqlKind.JSON_VALUE_EXPRESSION, 28,
+        ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.ANY),
+            SqlTypeTransforms.TO_NULLABLE), null, OperandTypes.CHARACTER);
   }
 }
 

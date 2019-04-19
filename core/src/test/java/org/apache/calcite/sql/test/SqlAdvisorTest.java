@@ -292,6 +292,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(BETWEEN)",
           "KEYWORD(CONTAINS)",
           "KEYWORD(EQUALS)",
+          "KEYWORD(FORMAT)",
           "KEYWORD(IMMEDIATELY)",
           "KEYWORD(IN)",
           "KEYWORD(IS)",

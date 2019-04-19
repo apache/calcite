@@ -2456,10 +2456,6 @@ public class SqlFunctions {
     }
   }
 
-  public static Object jsonStructuredValueExpression(Object input) {
-    return input;
-  }
-
   public static PathContext jsonApiCommonSyntax(Object input) {
     return jsonApiCommonSyntax(input, "strict $");
   }
@@ -2807,14 +2803,17 @@ public class SqlFunctions {
   }
 
   public static Integer jsonLength(Object input) {
+    return jsonLength(jsonApiCommonSyntax(input));
+  }
+
+  public static Integer jsonLength(Object input, String pathSpec) {
+    return jsonLength(jsonApiCommonSyntax(input, pathSpec));
+  }
+
+  public static Integer jsonLength(PathContext context) {
     final Integer result;
     final Object value;
     try {
-      if (!isJsonPathContext(input)) {
-        throw RESOURCE.invalidInputForJsonLength(
-            input.toString()).ex();
-      }
-      PathContext context = (PathContext) input;
       if (context.exc != null) {
         throw toUnchecked(context.exc);
       }
@@ -2835,20 +2834,23 @@ public class SqlFunctions {
       }
     } catch (Exception ex) {
       throw RESOURCE.invalidInputForJsonLength(
-          input.toString()).ex();
+          context.toString()).ex();
     }
     return result;
   }
 
   public static String jsonKeys(Object input) {
+    return jsonKeys(jsonApiCommonSyntax(input));
+  }
+
+  public static String jsonKeys(Object input, String pathSpec) {
+    return jsonKeys(jsonApiCommonSyntax(input, pathSpec));
+  }
+
+  public static String jsonKeys(PathContext context) {
     List<String> list = new ArrayList<>();
     final Object value;
     try {
-      if (!isJsonPathContext(input)) {
-        throw RESOURCE.invalidInputForJsonLength(
-            input.toString()).ex();
-      }
-      PathContext context = (PathContext) input;
       if (context.exc != null) {
         throw toUnchecked(context.exc);
       }
@@ -2864,7 +2866,7 @@ public class SqlFunctions {
       }
     } catch (Exception ex) {
       throw RESOURCE.invalidInputForJsonKeys(
-              input.toString()).ex();
+              context.toString()).ex();
     }
     return jsonize(list);
   }
