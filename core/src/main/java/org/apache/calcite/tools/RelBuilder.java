@@ -54,7 +54,6 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalRepeatUnion;
 import org.apache.calcite.rel.logical.LogicalTableScan;
-import org.apache.calcite.rel.logical.LogicalTableSpool;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -156,6 +155,8 @@ public class RelBuilder {
   private final RelFactories.TableFunctionScanFactory tableFunctionScanFactory;
   private final RelFactories.SnapshotFactory snapshotFactory;
   private final RelFactories.MatchFactory matchFactory;
+  private final RelFactories.SpoolFactory spoolFactory;
+  private final RelFactories.RepeatUnionFactory repeatUnionFactory;
   private final Deque<Frame> stack = new ArrayDeque<>();
   private final boolean simplify;
   private final RexSimplify simplifier;
@@ -213,6 +214,12 @@ public class RelBuilder {
     this.matchFactory =
         Util.first(context.unwrap(RelFactories.MatchFactory.class),
             RelFactories.DEFAULT_MATCH_FACTORY);
+    this.spoolFactory =
+        Util.first(context.unwrap(RelFactories.SpoolFactory.class),
+            RelFactories.DEFAULT_SPOOL_FACTORY);
+    this.repeatUnionFactory =
+        Util.first(context.unwrap(RelFactories.RepeatUnionFactory.class),
+            RelFactories.DEFAULT_REPEAT_UNION_FACTORY);
     final RexExecutor executor =
         Util.first(context.unwrap(RexExecutor.class),
             Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR));
@@ -1761,9 +1768,11 @@ public class RelBuilder {
    * @param maxRep maximum number of iterations, -1 means no limit
    */
   public RelBuilder repeatUnion(String tableName, boolean all, int maxRep) {
-    RelNode iter = LogicalTableSpool.create(build(), Spool.Type.LAZY, Spool.Type.LAZY, tableName);
-    RelNode seed = LogicalTableSpool.create(build(), Spool.Type.LAZY, Spool.Type.LAZY, tableName);
-    return this.push(LogicalRepeatUnion.create(seed, iter, all, maxRep));
+    RelNode iterative =
+        spoolFactory.createTableSpool(build(), Spool.Type.LAZY, Spool.Type.LAZY, tableName);
+    RelNode seed =
+        spoolFactory.createTableSpool(build(), Spool.Type.LAZY, Spool.Type.LAZY, tableName);
+    return this.push(repeatUnionFactory.createRepeatUnion(seed, iterative, all, maxRep));
   }
 
   /** Creates a {@link Join}. */
