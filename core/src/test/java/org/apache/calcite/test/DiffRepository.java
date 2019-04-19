@@ -40,8 +40,10 @@ import java.io.Writer;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -210,10 +212,7 @@ public class DiffRepository {
         flushDoc();
       }
       this.root = doc.getDocumentElement();
-      if (!root.getNodeName().equals(ROOT_TAG)) {
-        throw new RuntimeException("expected root element of type '" + ROOT_TAG
-            + "', but found '" + root.getNodeName() + "'");
-      }
+      validate(this.root);
     } catch (ParserConfigurationException | SAXException e) {
       throw new RuntimeException("error while creating xml parser", e);
     }
@@ -357,8 +356,6 @@ public class DiffRepository {
       boolean checkOverride,
       List<Pair<String, Element>> elements) {
     final NodeList childNodes = root.getChildNodes();
-    final List<Element> testCases = new ArrayList<>();
-
     for (int i = 0; i < childNodes.getLength(); i++) {
       Node child = childNodes.item(i);
       if (child.getNodeName().equals(TEST_CASE_TAG)) {
@@ -371,30 +368,18 @@ public class DiffRepository {
               && !"true".equals(
                   testCase.getAttribute(TEST_CASE_OVERRIDES_ATTR))) {
             throw new RuntimeException(
-                "TestCase '" + testCaseName + "' overrides a "
+                "TestCase  '" + testCaseName + "' overrides a "
                 + "test case in the base repository, but does "
                 + "not specify 'overrides=true'");
           }
-          // Make sure that the test case is unique.
-          if (testCases.isEmpty()) {
-            testCases.add(testCase);
-          } else {
-            throw new RuntimeException(
-                "TestCase '" + testCaseName + "' is duplicate");
-          }
-        } else {
-          if (elements != null && testCases.isEmpty()) {
-            elements.add(Pair.of(name, testCase));
-          }
+          return testCase;
+        }
+        if (elements != null) {
+          elements.add(Pair.of(name, testCase));
         }
       }
     }
-    if (!testCases.isEmpty()) {
-      assert testCases.size() == 1;
-      return testCases.get(0);
-    } else {
-      return null;
-    }
+    return null;
   }
 
   /**
@@ -544,6 +529,30 @@ public class DiffRepository {
     } catch (IOException e) {
       throw new RuntimeException("error while writing test reference log '"
           + logFile + "'", e);
+    }
+  }
+
+  /** Validates the element. */
+  private static void validate(Element root) {
+    if (!root.getNodeName().equals(ROOT_TAG)) {
+      throw new RuntimeException("expected root element of type '" + ROOT_TAG
+          + "', but found '" + root.getNodeName() + "'");
+    }
+
+    // Make sure that there are no duplicate test cases.
+    final Set<String> testCases = new HashSet<>();
+    final NodeList childNodes = root.getChildNodes();
+    for (int i = 0; i < childNodes.getLength(); i++) {
+      Node child = childNodes.item(i);
+      if (child.getNodeName().equals(TEST_CASE_TAG)) {
+        Element testCase = (Element) child;
+        final String name = testCase.getAttribute(TEST_CASE_NAME_ATTR);
+        if (testCases.contains(name)) {
+          throw new RuntimeException("TestCase '" + name + "' is duplicate");
+        } else {
+          testCases.add(name);
+        }
+      }
     }
   }
 
