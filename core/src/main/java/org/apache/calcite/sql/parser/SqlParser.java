@@ -136,7 +136,8 @@ public class SqlParser {
     }
   }
 
-  private SqlParseException handleException(Throwable ex) throws SqlParseException {
+  /** Normalizes a SQL exception */
+  private SqlParseException handleException(Throwable ex) {
     if (ex instanceof CalciteContextException) {
       final String originalSql = parser.getOriginalSql();
       if (originalSql != null) {
@@ -158,8 +159,7 @@ public class SqlParser {
     try {
       return parser.parseSqlStmtEof();
     } catch (Throwable ex) {
-      SqlParseException sqlException = handleException(ex);
-      throw sqlException;
+      throw handleException(ex);
     }
   }
 
@@ -199,8 +199,7 @@ public class SqlParser {
     try {
       return parser.parseSqlStmtList();
     } catch (Throwable ex) {
-      SqlParseException sqlException = handleException(ex);
-      throw sqlException;
+      throw handleException(ex);
     }
   }
 

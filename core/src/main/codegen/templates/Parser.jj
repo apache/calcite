@@ -958,31 +958,20 @@ SqlNodeList SqlStmtList() :
     SqlNode stmt;
 }
 {
-    stmt = SqlStmtWithSemiColon() {
+    stmt = SqlStmt() {
         stmtList.add(stmt);
     }
     (
-        stmt = SqlStmtWithSemiColon() {
-           stmtList.add(stmt);
-        }
+        <SEMICOLON>
+        [
+            stmt = SqlStmt() {
+                stmtList.add(stmt);
+            }
+        ]
     )*
+    <EOF>
     {
         return new SqlNodeList(stmtList, Span.of(stmtList).pos());
-    }
-}
-
-/**
- * Parses an SQL statement, optionally followed by a semicolon
- */
-SqlNode SqlStmtWithSemiColon() :
-{
-    SqlNode stmt;
-}
-{
-    stmt = SqlStmt()
-	[<SEMICOLON>]
-    {
-        return stmt;
     }
 }
 

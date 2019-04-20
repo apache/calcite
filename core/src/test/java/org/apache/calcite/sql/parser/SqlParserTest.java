@@ -1241,6 +1241,19 @@ public class SqlParserTest {
              "DELETE FROM `EMP`");
   }
 
+  @Test public void testStmtListWithError1() {
+    sqlList("select * from emp where name like 'toto' "
+        + "^delete^ from emp")
+        .fails("(?s).*Encountered \"delete\" at .*");
+  }
+
+  @Test public void testStmtListWithError2() {
+    sqlList("select * from emp where name like 'toto'; "
+        + "delete from emp; "
+        + "delete from emp ^select^ * from dept")
+        .fails("(?s).*Encountered \"select\" at .*");
+  }
+
   @Test public void testIsDistinctFrom() {
     check(
         "select x is distinct from y from t",
@@ -8649,7 +8662,7 @@ public class SqlParserTest {
 
     void checkExp(String sql, String expected);
 
-    void checkFails(String sql, String expectedMsgPattern);
+    void checkFails(String sql, boolean containsMultipleStatements, String expectedMsgPattern);
 
     void checkExpFails(String sql, String expectedMsgPattern);
 
@@ -8735,11 +8748,17 @@ public class SqlParserTest {
 
     public void checkFails(
         String sql,
+        boolean containsMultipleStatements,
         String expectedMsgPattern) {
       SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
       Throwable thrown = null;
       try {
-        final SqlNode sqlNode = getSqlParser(sap.sql).parseStmt();
+        final SqlNode sqlNode;
+        if (containsMultipleStatements) {
+          sqlNode = getSqlParser(sap.sql).parseStmtList();
+        } else {
+          sqlNode = getSqlParser(sap.sql).parseStmt();
+        }
         Util.discard(sqlNode);
       } catch (Throwable ex) {
         thrown = ex;
@@ -8908,7 +8927,8 @@ public class SqlParserTest {
       assertEquals(expected, linux(actual2));
     }
 
-    @Override public void checkFails(String sql, String expectedMsgPattern) {
+    @Override public void checkFails(String sql,
+        boolean containsMultipleStatements, String expectedMsgPattern) {
       // Do nothing. We're not interested in unparsing invalid SQL
     }
 
@@ -8952,7 +8972,7 @@ public class SqlParserTest {
       if (expression) {
         getTester().checkExpFails(sql, expectedMsgPattern);
       } else {
-        getTester().checkFails(sql, expectedMsgPattern);
+        getTester().checkFails(sql, false, expectedMsgPattern);
       }
       return this;
     }
@@ -8988,6 +9008,11 @@ public class SqlParserTest {
 
     public SqlList ok(String... expected) {
       getTester().checkList(sql, Lists.newArrayList(expected));
+      return this;
+    }
+
+    public SqlList fails(String expectedMsgPattern) {
+      getTester().checkFails(sql, true, expectedMsgPattern);
       return this;
     }
   }
