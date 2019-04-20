@@ -16,7 +16,9 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.type.RelDataType;
@@ -45,6 +47,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
+import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
@@ -1013,6 +1016,78 @@ public abstract class SqlUtil {
     @Override public Void visit(SqlDataTypeSpec type) {
       return check(type);
     }
+  }
+
+  /**
+   * Find the best matched method in the functionClass
+   * @param functionClass Function Class
+   * @param name          Method Name
+   * @param argTypes      The  argument types
+   * @param typeFactory   Java TypeFactory
+   * @return null if the argTypes is not match with the methods in functionClass
+   */
+  public static Method findBestMatchMethod(Class<?> functionClass, String name,
+       List<RelDataType> argTypes, JavaTypeFactory typeFactory) {
+    Method[] methods = functionClass.getMethods();
+    List<Method> matchMethods = new ArrayList<>();
+    // find the methods that can match the name and argTypes
+    for (Method method : methods) {
+      if (!method.getName().equals(name)) {
+        continue;
+      }
+      List<RelDataType> paramTypes = new ArrayList<>();
+      for (Class<?> paramClass : method.getParameterTypes()) {
+        paramTypes.add(JavaTypeFactoryImpl.toSql
+            (typeFactory, typeFactory
+                .createType(paramClass)));
+      }
+      // check the operand count
+      if (paramTypes.size() != argTypes.size()) {
+        continue;
+      }
+      int i;
+      for (i = 0; i < argTypes.size(); i++) {
+        if (!SqlTypeUtil.canCastFrom(paramTypes.get(i),
+            argTypes.get(i), false)) {
+          break;
+        }
+      }
+      if (i != argTypes.size()) { // not all arg type can cast to param type
+        continue;
+      }
+      matchMethods.add(method);
+    }
+    // find the best match method
+    for (int i = 0; i < argTypes.size(); i++) {
+      RelDataType argType = argTypes.get(i);
+      RelDataTypePrecedenceList precedenceList = argType.getPrecedenceList();
+
+      RelDataType bestMatchType = null;
+      for (Method method : matchMethods) {
+        RelDataType paramType =
+            typeFactory.createType(method.getParameterTypes()[i]);
+        if (bestMatchType == null
+            || precedenceList.compareTypePrecedence(bestMatchType,
+            paramType) < 0) {
+          bestMatchType = paramType;
+        }
+      }
+      if (bestMatchType != null) {
+        final int index = i;
+        final RelDataType bestType = bestMatchType;
+        matchMethods = matchMethods.stream().filter(method -> {
+          RelDataType paramType =
+              typeFactory.createType(method.getParameterTypes()[index]);
+          return precedenceList.compareTypePrecedence(paramType, bestType) >= 0;
+        }).collect(Collectors.toList());
+      }
+    }
+    // no match found for the argTypes
+    if (matchMethods.size() == 0) {
+      return null;
+    }
+    assert matchMethods.size() == 1;
+    return matchMethods.get(0);
   }
 }
 

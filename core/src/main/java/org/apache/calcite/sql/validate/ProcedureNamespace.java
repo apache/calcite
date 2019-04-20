@@ -59,7 +59,8 @@ public class ProcedureNamespace extends AbstractNamespace {
           : "User-defined table function should have CURSOR type, not " + type;
       final SqlUserDefinedTableFunction udf =
           (SqlUserDefinedTableFunction) operator;
-      return udf.getRowType(validator.typeFactory, callBinding.operands());
+      return udf.getRowType(validator.typeFactory,
+          callBinding.collectOperandTypes(), callBinding.operands());
     } else if (operator instanceof SqlUserDefinedTableMacro) {
       assert type.getSqlTypeName() == SqlTypeName.CURSOR
           : "User-defined table macro should have CURSOR type, not " + type;

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
@@ -794,7 +795,8 @@ public class RexImpTable {
 
   public static final RexImpTable INSTANCE = new RexImpTable();
 
-  public CallImplementor get(final SqlOperator operator) {
+  public CallImplementor get(final SqlOperator operator,
+      List<RelDataType> argTypes, JavaTypeFactory typeFactory) {
     if (operator instanceof SqlUserDefinedFunction) {
       org.apache.calcite.schema.Function udf =
           ((SqlUserDefinedFunction) operator).getFunction();
@@ -802,7 +804,7 @@ public class RexImpTable {
         throw new IllegalStateException("User defined function " + operator
             + " must implement ImplementableFunction");
       }
-      return ((ImplementableFunction) udf).getImplementor();
+      return ((ImplementableFunction) udf).getImplementor(argTypes, typeFactory);
     }
     return map.get(operator);
   }

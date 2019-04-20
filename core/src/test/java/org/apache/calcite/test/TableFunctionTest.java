@@ -76,7 +76,10 @@ public class TableFunctionTest {
         + "           name: 'fibonacci2',\n"
         + "           className: '" + c + "',\n"
         + "           methodName: '" + m3 + "'\n"
-        + "         }\n"
+        + "         }, {\n"
+        + "            className: '"
+        + Smalls.MyUdtfFunction.class.getName()
+        + "'}\n"
         + "       ]\n"
         + "     }\n"
         + "   ]\n"
@@ -471,6 +474,23 @@ public class TableFunctionTest {
           + "F0=5; N=4; C=abcd\n";
       assertThat(CalciteAssert.toString(resultSet), equalTo(expected));
     }
+  }
+
+  @Test public void testOverloadTableFunction() throws SQLException {
+    final String sql1 = "select * from (select 1 as f0),"
+        + " lateral table(\"s\".my_udtf('a')) as t(n)";
+    with().query(sql1)
+        .returnsUnordered("F0=1; N=eval(String: a)");
+
+    final String sql2 = "select * from (select 1 as f0),"
+        + " lateral table(\"s\".my_udtf(cast(1 as bigint))) as t(n)";
+    with().query(sql2)
+        .returnsUnordered("F0=1; N=eval(long:1)");
+
+    final String sql3 = "select * from (select 1 as f0),"
+        + " lateral table(\"s\".my_udtf(cast(1 as int))) as t(n)";
+    with().query(sql3)
+        .returnsUnordered("F0=1; N=eval(int:1)");
   }
 }
 

@@ -16,24 +16,22 @@
  */
 package org.apache.calcite.schema;
 
-import org.apache.calcite.adapter.enumerable.CallImplementor;
-import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlFunctionCategory;
 
-import java.util.List;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * Function that can be translated to java code.
- *
- * @see ScalarFunction
- * @see TableFunction
+ * description for udf class
  */
-public interface ImplementableFunction extends Function {
-  /**
-   * Returns implementor that translates the function to linq4j expression.
-   * @return implementor that translates the function to linq4j expression.
-   */
-  CallImplementor getImplementor(List<RelDataType> argTypes, JavaTypeFactory typeFactory);
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE})
+public @interface UDFDescription {
+    String name();
+    SqlFunctionCategory category()
+        default SqlFunctionCategory.USER_DEFINED_FUNCTION;
 }
 
-// End ImplementableFunction.java
+// End UDFDescription.java

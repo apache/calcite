@@ -32,14 +32,18 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFactory;
 import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.schema.TableMacro;
+import org.apache.calcite.schema.UDFDescription;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
+import org.apache.calcite.schema.impl.JavaScalarFunction;
+import org.apache.calcite.schema.impl.JavaTableFunction;
 import org.apache.calcite.schema.impl.MaterializedViewTable;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.sql.SqlDialectFactory;
+import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -129,6 +133,25 @@ public class ModelHandler {
     } catch (ClassNotFoundException e) {
       throw new RuntimeException("UDF class '"
           + className + "' not found");
+    }
+    UDFDescription udfDescription = clazz.getAnnotation(UDFDescription.class);
+    if (udfDescription != null) {
+      if (udfDescription.name() != null) {
+        functionName = udfDescription.name();
+      }
+      SqlFunctionCategory category = udfDescription.category();
+      if (category == SqlFunctionCategory.USER_DEFINED_FUNCTION) {
+        JavaScalarFunction scalarFunction = new JavaScalarFunction(clazz);
+        schema.add(functionName, scalarFunction);
+        return;
+      } else if (category == SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION) {
+        JavaTableFunction tableFunction = new JavaTableFunction(clazz);
+        schema.add(functionName, tableFunction);
+        return;
+      } else {
+        throw new UnsupportedOperationException("UnSupport " + category
+            + " in " + UDFDescription.class.getName());
+      }
     }
     final TableFunction tableFunction =
         TableFunctionImpl.create(clazz, Util.first(methodName, "eval"));

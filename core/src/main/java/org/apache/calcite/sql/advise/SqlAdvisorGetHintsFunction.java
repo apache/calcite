@@ -20,6 +20,7 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.CallImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -71,12 +72,13 @@ public class SqlAdvisorGetHintsFunction
           .add(int.class, "pos")
           .build();
 
-  public CallImplementor getImplementor() {
+  public CallImplementor getImplementor(List<RelDataType> argTypes,
+      JavaTypeFactory typeFactory) {
     return IMPLEMENTOR;
   }
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory,
-      List<Object> arguments) {
+      List<RelDataType> argTypes, List<Object> arguments) {
     return typeFactory.createJavaType(SqlAdvisorHint.class);
   }
 

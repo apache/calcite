@@ -23,29 +23,37 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.schema.impl.JavaScalarFunction;
+import org.apache.calcite.schema.impl.JavaTableFunction;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
+import org.apache.calcite.sql.util.ListSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlAbstractConformance;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
+import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.test.catalog.CountingFactory;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Smalls;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
@@ -11026,6 +11034,44 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     }
   }
 
+  @Test public void testOverloadUdf() throws Exception {
+    JavaScalarFunction udfFunction =
+        new JavaScalarFunction(Smalls.MyUdfFunction.class);
+    SqlUserDefinedFunction udf =
+        new SqlUserDefinedFunction(
+            new SqlIdentifier("MY_UDF", SqlParserPos.ZERO), udfFunction);
+    JavaTableFunction tableFunction =
+        new JavaTableFunction(Smalls.MyUdtfFunction.class);
+    SqlUserDefinedTableFunction  udtf =
+        new SqlUserDefinedTableFunction(
+            new SqlIdentifier("MY_UDTF", SqlParserPos.ZERO), tableFunction);
+
+    ListSqlOperatorTable listOp = new ListSqlOperatorTable();
+    listOp.add(udf);
+    listOp.add(udtf);
+    tester = tester.withOperatorTable(ChainedSqlOperatorTable.of
+        (listOp,
+            SqlStdOperatorTable.instance()));
+
+    sql("select my_udf('a') from emp").ok();
+    sql("select my_udf(1,2) from emp").ok();
+    sql("select ^my_udf(1,2,3)^")
+        .fails("Cannot apply 'MY_UDF' to arguments of type"
+           + " 'MY_UDF\\(<INTEGER>, <INTEGER>, <INTEGER>\\)'\\."
+           + " Supported form\\(s\\): MY_UDF\\(Long,int\\) MY_UDF\\(String\\)"
+           + " MY_UDF\\(String,String\\) MY_UDF\\(String,int\\) MY_UDF\\(int,int\\).*");
+
+    sql("select * from (select 1 as f0) s,"
+        + " lateral table(my_udtf('a')) as t(n)").ok();
+    sql("select * from (select 1 as f0) s,"
+        + " lateral table(my_udtf(1)) as t(n)").ok();
+    sql("select * from (select 1 as f0) s,"
+        + " lateral table(^my_udtf(1, 2, 3)^) as t(n)")
+        .fails("Cannot apply 'MY_UDTF' to arguments of type "
+          +  "'MY_UDTF\\(<INTEGER>, <INTEGER>, <INTEGER>\\)'\\. "
+          +  "Supported form\\(s\\): MY_UDTF\\(String\\) "
+          +  "MY_UDTF\\(int\\) MY_UDTF\\(long\\).*");
+  }
 }
 
 // End SqlValidatorTest.java

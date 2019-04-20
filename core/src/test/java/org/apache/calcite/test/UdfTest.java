@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.enumerable.CallImplementor;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.Ord;
@@ -168,7 +169,11 @@ public class UdfTest {
         + Smalls.AllTypesFunction.class.getName()
         + "',\n"
         + "           methodName: '*'\n"
-        + "         }\n"
+        + "         },\n"
+        + "         {\n"
+        + "           className: '"
+        + Smalls.MyUdfFunction.class.getName()
+        + "'}\n"
         + "       ]\n"
         + "     }\n"
         + "   ]\n"
@@ -217,6 +222,21 @@ public class UdfTest {
         + "P=20\n"
         + "P=20\n";
     withUdf().query(sql).returns(expected);
+  }
+
+  @Test public void testOverloadFunction() throws Exception {
+    final String sql = "select "
+        + "\"adhoc\".my_udf('a'),"
+        + "\"adhoc\".my_udf('a', 'b'),"
+        + "\"adhoc\".my_udf('a', cast('1' as integer)),"
+        + " \"adhoc\".my_udf(cast('1' as bigint), cast('2' as integer)),"
+        + "\"adhoc\".my_udf(cast('1' as integer), cast('2' as integer))";
+    withUdf().query(sql).returns(""
+        + "EXPR$0=eval(String:a); "
+        + "EXPR$1=eval(String:a, String:b); "
+        + "EXPR$2=eval(String:a, int:1); "
+        + "EXPR$3=eval(Long:1, int:2); "
+        + "EXPR$4=eval(int:1,int:2)\n");
   }
 
   /** Test case for
@@ -995,7 +1015,8 @@ public class UdfTest {
 
     protected abstract List<RelProtoDataType> getParams();
 
-    @Override public CallImplementor getImplementor() {
+    @Override public CallImplementor getImplementor(List<RelDataType> argTypes,
+                  JavaTypeFactory typeFactory) {
       return (translator, call, nullAs) -> {
         Method lookupMethod =
             Types.lookupMethod(Smalls.AllTypesFunction.class,

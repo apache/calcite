@@ -19,6 +19,7 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.FunctionParameter;
+import org.apache.calcite.schema.impl.JavaScalarFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -67,6 +68,21 @@ public class SqlUserDefinedFunction extends SqlFunction {
   }
 
   /**
+   * Constructor used to define a scalar function that contains
+   * all the overload "eval" methods in a function class.
+   * @param opName   Function name
+   * @param function JavaScalarFunction
+   */
+  public SqlUserDefinedFunction(SqlIdentifier opName,
+       JavaScalarFunction function) {
+    this(opName,
+        getReturnTypeInferenceForClass(function.getFunctionClass()),
+        getOperandTypeInferenceForClass(function.getFunctionClass()),
+        getOperandTypeCheckerForClass(function.getFunctionClass()),
+        null, function);
+  }
+
+  /**
    * Returns function that implements given operator call.
    * @return function that implements given operator call
    */
@@ -78,6 +94,7 @@ public class SqlUserDefinedFunction extends SqlFunction {
     return Lists.transform(function.getParameters(),
         FunctionParameter::getName);
   }
+
 }
 
 // End SqlUserDefinedFunction.java

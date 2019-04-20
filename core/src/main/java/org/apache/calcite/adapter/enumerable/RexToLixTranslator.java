@@ -66,6 +66,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.sql.fun.OracleSqlOperatorTable.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
@@ -713,8 +714,12 @@ public class RexToLixTranslator {
   /** Translates a call to an operator or function. */
   private Expression translateCall(RexCall call, RexImpTable.NullAs nullAs) {
     final SqlOperator operator = call.getOperator();
+    List<RelDataType> argTypes
+        = call.getOperands().stream()
+        .map(RexNode::getType)
+        .collect(Collectors.toList());
     CallImplementor implementor =
-        RexImpTable.INSTANCE.get(operator);
+        RexImpTable.INSTANCE.get(operator, argTypes, typeFactory);
     if (implementor == null) {
       throw new RuntimeException("cannot translate call " + call);
     }
