@@ -7184,6 +7184,17 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("ceiling(cast(null as timestamp) to month)");
   }
 
+  @Test public void testCeilFuncBigInt() {
+    tester.checkScalar("ceil(1555554165197 to second)",
+            "1555554166000", "BIGINT NOT NULL");
+    tester.checkScalar("ceil(1555554165197 to hour)",
+        "1555556400000", "BIGINT NOT NULL");
+    tester.checkScalar("ceil(1555554165197 to day)",
+        "1555632000000", "BIGINT NOT NULL");
+    tester.checkScalar("ceil(1555554165197 to year)",
+        "1577836800000", "BIGINT NOT NULL");
+    }
+
   @Test public void testFloorFuncInterval() {
     if (!enable) {
       return;

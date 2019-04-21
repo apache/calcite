@@ -202,6 +202,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker INTEGER =
       family(SqlTypeFamily.INTEGER);
 
+  public static final SqlSingleOperandTypeChecker BIGINT =
+      family(SqlTypeFamily.BIGINT);
+
   public static final SqlSingleOperandTypeChecker NUMERIC_OPTIONAL_INTEGER =
       family(ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER),
           // Second operand optional (operand index 0, 1)
@@ -493,6 +496,9 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker NUMERIC_OR_INTERVAL =
       OperandTypes.or(NUMERIC, INTERVAL);
+
+  public static final SqlSingleOperandTypeChecker BIGINT_OR_INTERVAL =
+      OperandTypes.or(BIGINT, INTERVAL);
 
   public static final SqlSingleOperandTypeChecker NUMERIC_OR_STRING =
       OperandTypes.or(NUMERIC, STRING);

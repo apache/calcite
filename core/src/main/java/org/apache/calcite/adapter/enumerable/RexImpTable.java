@@ -2026,6 +2026,10 @@ public class RexImpTable {
           type = long.class;
           floorMethod = timestampMethod;
           break;
+        case BIGINT:
+          type = long.class;
+          floorMethod = timestampMethod;
+          break;
         default:
           type = int.class;
           floorMethod = dateMethod;

@@ -46,6 +46,10 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
                 + "'" + kind + "(<TIME> TO <TIME_UNIT>)'\n"
                 + "'" + kind + "(<TIMESTAMP> TO <TIME_UNIT>)'",
                 OperandTypes.DATETIME,
+                OperandTypes.ANY),
+            OperandTypes.sequence(
+                "'" + kind + "(<BIGINT> TO <TIME_UNIT>)'",
+                OperandTypes.BIGINT,
                 OperandTypes.ANY)),
         SqlFunctionCategory.NUMERIC);
     Preconditions.checkArgument(kind == SqlKind.FLOOR || kind == SqlKind.CEIL);

@@ -163,6 +163,9 @@ public enum SqlTypeName {
   public static final List<SqlTypeName> INT_TYPES =
       ImmutableList.of(TINYINT, SMALLINT, INTEGER, BIGINT);
 
+  public static final List<SqlTypeName> BIGINT_TYPES =
+      ImmutableList.of(BIGINT);
+
   public static final List<SqlTypeName> EXACT_TYPES =
       combine(INT_TYPES, ImmutableList.of(DECIMAL));
 
