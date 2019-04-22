@@ -1241,6 +1241,28 @@ public class SqlParserTest {
              "DELETE FROM `EMP`");
   }
 
+  @Test public void testStmtListWithSelectInsert() {
+    sqlList("select * from emp where name like 'toto;'; "
+        + "insert into dept (name, deptno) values ('a', 123)")
+        .ok("SELECT *\n"
+                + "FROM `EMP`\n"
+                + "WHERE (`NAME` LIKE 'toto;')",
+            "INSERT INTO `DEPT` (`NAME`, `DEPTNO`)\n"
+                + "VALUES (ROW('a', 123))");
+  }
+
+  @Test public void testStmtListWithInsertSelect() {
+    sqlList("insert into dept (name, deptno) values ('a', 123); "
+        + "select * from emp where name like 'toto;';"
+        + "delete from emp")
+        .ok("INSERT INTO `DEPT` (`NAME`, `DEPTNO`)\n"
+                + "VALUES (ROW('a', 123))",
+            "SELECT *\n"
+                + "FROM `EMP`\n"
+                + "WHERE (`NAME` LIKE 'toto;')",
+            "DELETE FROM `EMP`");
+  }
+
   @Test public void testStmtListWithError1() {
     sqlList("select * from emp where name like 'toto' "
         + "^delete^ from emp")
@@ -1252,6 +1274,13 @@ public class SqlParserTest {
         + "delete from emp; "
         + "delete from emp ^select^ * from dept")
         .fails("(?s).*Encountered \"select\" at .*");
+  }
+
+  @Test public void testStmtListWithError3() {
+    sqlList("select * from emp where name like 'toto'; "
+        + "delete from emp "
+        + "^insert^ into dept (name, deptno) values ('a', 123)")
+        .fails("(?s).*Encountered \"insert\" at .*");
   }
 
   @Test public void testIsDistinctFrom() {
