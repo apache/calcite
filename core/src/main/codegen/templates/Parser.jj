@@ -6406,15 +6406,10 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < JSON: "JSON" >
 |   < JSON_ARRAY: "JSON_ARRAY">
 |   < JSON_ARRAYAGG: "JSON_ARRAYAGG">
-|   < JSON_DEPTH: "JSON_DEPTH">
 |   < JSON_EXISTS: "JSON_EXISTS" >
-|   < JSON_KEYS: "JSON_KEYS" >
-|   < JSON_LENGTH: "JSON_LENGTH">
 |   < JSON_OBJECT: "JSON_OBJECT">
 |   < JSON_OBJECTAGG: "JSON_OBJECTAGG">
-|   < JSON_PRETTY: "JSON_PRETTY" >
 |   < JSON_QUERY: "JSON_QUERY" >
-|   < JSON_TYPE: "JSON_TYPE">
 |   < JSON_VALUE: "JSON_VALUE" >
 |   < K: "K" >
 |   < KEY: "KEY" >
