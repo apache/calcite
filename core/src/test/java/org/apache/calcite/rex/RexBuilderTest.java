@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
@@ -58,6 +59,30 @@ import static org.junit.Assert.fail;
  * Test for {@link RexBuilder}.
  */
 public class RexBuilderTest {
+
+  private static final int PRECISION = 256;
+
+  /**
+   * MySqlTypeFactoryImpl provides a specific implementation of
+   * {@link SqlTypeFactoryImpl} which sets precision to 256 for VARCHAR.
+   */
+  private static class MySqlTypeFactoryImpl extends SqlTypeFactoryImpl {
+
+    MySqlTypeFactoryImpl(RelDataTypeSystem typeSystem) {
+      super(typeSystem);
+    }
+
+    @Override public RelDataType createTypeWithNullability(
+        final RelDataType type,
+        final boolean nullable) {
+      if (type.getSqlTypeName() == SqlTypeName.VARCHAR) {
+        return new BasicSqlType(this.typeSystem, type.getSqlTypeName(),
+            PRECISION);
+      }
+      return super.createTypeWithNullability(type, nullable);
+    }
+  }
+
 
   /**
    * Test RexBuilder.ensureType()
@@ -568,10 +593,14 @@ public class RexBuilderTest {
 
   /** Tests {@link RexCopier#visitOver(RexOver)} */
   @Test public void testCopyOver() {
-    final RelDataTypeFactory typeFactory =
+    final RelDataTypeFactory sourceTypeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    final RexBuilder builder = new RexBuilder(typeFactory);
-    final RelDataType type = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    RelDataType type = sourceTypeFactory.createSqlType(SqlTypeName.VARCHAR, 65536);
+
+    final RelDataTypeFactory targetTypeFactory =
+        new MySqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder builder = new RexBuilder(targetTypeFactory);
+
     final RexOver node = (RexOver) builder.makeOver(type,
         SqlStdOperatorTable.COUNT,
         ImmutableList.of(builder.makeInputRef(type, 0)),
@@ -588,24 +617,31 @@ public class RexBuilderTest {
     assertTrue(copy instanceof RexOver);
 
     RexOver result = (RexOver) copy;
-    assertThat(result.getType(), is(node.getType()));
+    assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.VARCHAR));
+    assertThat(result.getType().getPrecision(), is(PRECISION));
     assertThat(result.getWindow(), is(node.getWindow()));
     assertThat(result.getAggOperator(), is(node.getAggOperator()));
     assertThat(result.getAggOperator(), is(node.getAggOperator()));
     assertEquals(node.isDistinct(), result.isDistinct());
     assertEquals(node.ignoreNulls(), result.ignoreNulls());
     for (int i = 0; i < node.getOperands().size(); i++) {
-      assertThat(result.getOperands().get(i).getType(),
-          is(node.getOperands().get(i).getType()));
+      assertThat(result.getOperands().get(i).getType().getSqlTypeName(),
+          is(node.getOperands().get(i).getType().getSqlTypeName()));
+      assertThat(result.getOperands().get(i).getType().getPrecision(),
+          is(PRECISION));
     }
   }
 
   /** Tests {@link RexCopier#visitCorrelVariable(RexCorrelVariable)} */
   @Test public void testCopyCorrelVariable() {
-    final RelDataTypeFactory typeFactory =
+    final RelDataTypeFactory sourceTypeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    final RexBuilder builder = new RexBuilder(typeFactory);
-    final RelDataType type = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    RelDataType type = sourceTypeFactory.createSqlType(SqlTypeName.VARCHAR, 65536);
+
+    final RelDataTypeFactory targetTypeFactory =
+        new MySqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder builder = new RexBuilder(targetTypeFactory);
+
     final RexCorrelVariable node =
         (RexCorrelVariable) builder.makeCorrel(type, new CorrelationId(0));
     final RexNode copy = builder.copy(node);
@@ -613,52 +649,68 @@ public class RexBuilderTest {
 
     final RexCorrelVariable result = (RexCorrelVariable) copy;
     assertThat(result.id, is(node.id));
-    assertThat(result.getType(), is(node.getType()));
+    assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.VARCHAR));
+    assertThat(result.getType().getPrecision(), is(PRECISION));
   }
 
   /** Tests {@link RexCopier#visitLocalRef(RexLocalRef)} */
   @Test public void testCopyLocalRef() {
-    final RelDataTypeFactory typeFactory =
+    final RelDataTypeFactory sourceTypeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    final RexBuilder builder = new RexBuilder(typeFactory);
-    final RelDataType type = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    RelDataType type = sourceTypeFactory.createSqlType(SqlTypeName.VARCHAR, 65536);
+
+    final RelDataTypeFactory targetTypeFactory =
+        new MySqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder builder = new RexBuilder(targetTypeFactory);
+
     final RexLocalRef node = new RexLocalRef(0, type);
     final RexNode copy = builder.copy(node);
     assertTrue(copy instanceof RexLocalRef);
 
     final RexLocalRef result = (RexLocalRef) copy;
     assertThat(result.getIndex(), is(node.getIndex()));
-    assertThat(result.getType(), is(node.getType()));
+    assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.VARCHAR));
+    assertThat(result.getType().getPrecision(), is(PRECISION));
   }
 
   /** Tests {@link RexCopier#visitDynamicParam(RexDynamicParam)} */
   @Test public void testCopyDynamicParam() {
-    final RelDataTypeFactory typeFactory =
+    final RelDataTypeFactory sourceTypeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    final RexBuilder builder = new RexBuilder(typeFactory);
-    final RelDataType type = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    RelDataType type = sourceTypeFactory.createSqlType(SqlTypeName.VARCHAR, 65536);
+
+    final RelDataTypeFactory targetTypeFactory =
+        new MySqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder builder = new RexBuilder(targetTypeFactory);
+
     final RexDynamicParam node = builder.makeDynamicParam(type, 0);
     final RexNode copy = builder.copy(node);
     assertTrue(copy instanceof RexDynamicParam);
 
     final RexDynamicParam result = (RexDynamicParam) copy;
     assertThat(result.getIndex(), is(node.getIndex()));
-    assertThat(result.getType(), is(node.getType()));
+    assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.VARCHAR));
+    assertThat(result.getType().getPrecision(), is(PRECISION));
   }
 
   /** Tests {@link RexCopier#visitRangeRef(RexRangeRef)} */
   @Test public void testCopyRangeRef() {
-    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(
-        RelDataTypeSystem.DEFAULT);
-    final RexBuilder builder = new RexBuilder(typeFactory);
-    final RelDataType type = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataTypeFactory sourceTypeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RelDataType type = sourceTypeFactory.createSqlType(SqlTypeName.VARCHAR, 65536);
+
+    final RelDataTypeFactory targetTypeFactory =
+        new MySqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder builder = new RexBuilder(targetTypeFactory);
+
     final RexRangeRef node = builder.makeRangeReference(type, 1, true);
     final RexNode copy = builder.copy(node);
     assertTrue(copy instanceof RexRangeRef);
 
     final RexRangeRef result = (RexRangeRef) copy;
     assertThat(result.getOffset(), is(node.getOffset()));
-    assertThat(result.getType(), is(node.getType()));
+    assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.VARCHAR));
+    assertThat(result.getType().getPrecision(), is(PRECISION));
   }
 
   private void checkBigDecimalLiteral(RexBuilder builder, String val) {
