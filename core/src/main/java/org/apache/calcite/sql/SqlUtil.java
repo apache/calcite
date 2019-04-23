@@ -267,6 +267,7 @@ public abstract class SqlUtil {
       SqlOperator operator,
       SqlWriter writer,
       SqlCall call) {
+    String funcName;
     if (operator instanceof SqlFunction) {
       SqlFunction function = (SqlFunction) operator;
 
@@ -275,26 +276,26 @@ public abstract class SqlUtil {
       }
       SqlIdentifier id = function.getSqlIdentifier();
       if (id == null) {
-        writer.keyword(operator.getName());
+        funcName = operator.getName();
       } else {
-        id.unparse(writer, 0, 0);
+        funcName = id.toString();
       }
     } else {
-      writer.print(operator.getName());
+      funcName = operator.getName();
     }
     if (call.operandCount() == 0) {
       switch (call.getOperator().getSyntax()) {
       case FUNCTION_ID:
         // For example, the "LOCALTIME" function appears as "LOCALTIME"
         // when it has 0 args, not "LOCALTIME()".
+        writer.print(funcName);
         return;
       case FUNCTION_STAR: // E.g. "COUNT(*)"
       case FUNCTION: // E.g. "RANK()"
         // fall through - dealt with below
       }
     }
-    final SqlWriter.Frame frame =
-        writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
+    final SqlWriter.Frame frame = writer.startFunCall(funcName);
     final SqlLiteral quantifier = call.getFunctionQuantifier();
     if (quantifier != null) {
       quantifier.unparse(writer, 0, 0);
@@ -309,7 +310,7 @@ public abstract class SqlUtil {
       writer.sep(",");
       operand.unparse(writer, 0, 0);
     }
-    writer.endList(frame);
+    writer.endFunCall(frame);
   }
 
   public static void unparseBinarySyntax(
