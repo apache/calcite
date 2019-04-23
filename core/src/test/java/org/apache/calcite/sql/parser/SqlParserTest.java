@@ -597,6 +597,8 @@ public class SqlParserTest {
     return new Sql(sql);
   }
 
+  /** Generates a helper class {@link SqlList} to test parsing a list
+   * of statements. */
   protected SqlList sqlList(String sql) {
     return new SqlList(sql);
   }
@@ -1241,46 +1243,33 @@ public class SqlParserTest {
              "DELETE FROM `EMP`");
   }
 
-  @Test public void testStmtListWithSelectInsert() {
-    sqlList("select * from emp where name like 'toto;'; "
-        + "insert into dept (name, deptno) values ('a', 123)")
-        .ok("SELECT *\n"
-                + "FROM `EMP`\n"
-                + "WHERE (`NAME` LIKE 'toto;')",
-            "INSERT INTO `DEPT` (`NAME`, `DEPTNO`)\n"
-                + "VALUES (ROW('a', 123))");
-  }
-
-  @Test public void testStmtListWithInsertSelect() {
+  @Test public void testStmtListWithInsertSelectInsert() {
     sqlList("insert into dept (name, deptno) values ('a', 123); "
-        + "select * from emp where name like 'toto;';"
-        + "delete from emp")
+        + "select * from emp where name like 'toto;'; "
+        + "insert into dept (name, deptno) values ('b', 123);")
         .ok("INSERT INTO `DEPT` (`NAME`, `DEPTNO`)\n"
                 + "VALUES (ROW('a', 123))",
             "SELECT *\n"
                 + "FROM `EMP`\n"
                 + "WHERE (`NAME` LIKE 'toto;')",
-            "DELETE FROM `EMP`");
+            "INSERT INTO `DEPT` (`NAME`, `DEPTNO`)\n"
+                + "VALUES (ROW('b', 123))");
   }
 
-  @Test public void testStmtListWithError1() {
+  /** Should fail since the first statement lacks semicolon */
+  @Test public void testStmtListWithoutSemiColon1() {
     sqlList("select * from emp where name like 'toto' "
         + "^delete^ from emp")
         .fails("(?s).*Encountered \"delete\" at .*");
   }
 
-  @Test public void testStmtListWithError2() {
+  /** Should fail since the third statement lacks semicolon */
+  @Test public void testStmtListWithoutSemiColon2() {
     sqlList("select * from emp where name like 'toto'; "
         + "delete from emp; "
-        + "delete from emp ^select^ * from dept")
+        + "insert into dept (name, deptno) values ('a', 123) "
+        + "^select^ * from dept")
         .fails("(?s).*Encountered \"select\" at .*");
-  }
-
-  @Test public void testStmtListWithError3() {
-    sqlList("select * from emp where name like 'toto'; "
-        + "delete from emp "
-        + "^insert^ into dept (name, deptno) values ('a', 123)")
-        .fails("(?s).*Encountered \"insert\" at .*");
   }
 
   @Test public void testIsDistinctFrom() {
@@ -8719,7 +8708,7 @@ public class SqlParserTest {
         String sql,
         List<String> expected) {
       final SqlNodeList sqlNodeList = parseStmtsAndHandleEx(sql);
-      Assert.assertEquals(expected.size(), sqlNodeList.size());
+      assertThat(sqlNodeList.size(), is(expected.size()));
 
       for (int i = 0; i < sqlNodeList.size(); i++) {
         SqlNode sqlNode = sqlNodeList.get(i);
@@ -8744,6 +8733,7 @@ public class SqlParserTest {
       return sqlNode;
     }
 
+    /** Parses a list of statements. */
     protected SqlNodeList parseStmtsAndHandleEx(String sql) {
       final SqlNodeList sqlNodeList;
       try {
