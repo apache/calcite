@@ -3058,7 +3058,7 @@ public class DruidAdapterIT {
         + "(count(distinct \"user_id\") * 2) from \"wiki\"";
     wikiApprox(sql)
         .queryContains(druidChecker(druid))
-        .returnsUnordered("EXPR$0=100");
+        .returnsUnordered("EXPR$0=-10590");
 
     // Change COUNT(DISTINCT ...) to APPROX_COUNT_DISTINCT(...) and get
     // same result even if approximation is off by default.
@@ -3066,7 +3066,7 @@ public class DruidAdapterIT {
         + "(approx_count_distinct(\"user_id\") * 2) from \"wiki\"";
     sql(sql2, WIKI)
         .queryContains(druidChecker(druid))
-        .returnsUnordered("EXPR$0=100");
+        .returnsUnordered("EXPR$0=-10590");
   }
 
   /**
