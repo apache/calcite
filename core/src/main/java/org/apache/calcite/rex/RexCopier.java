@@ -18,10 +18,6 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.rel.type.RelDataType;
 
-import com.google.common.collect.ImmutableList;
-
-import java.util.List;
-
 /**
  * Shuttle which creates a deep copy of a Rex expression.
  *
@@ -60,23 +56,9 @@ class RexCopier extends RexShuttle {
   }
 
   public RexWindow visitWindow(RexWindow window) {
-    final boolean[] update = null;
-    final List<RexNode> partitionKeys =
-        visitList(window.partitionKeys, update);
-    final ImmutableList.Builder<RexFieldCollation> orderKeys =
-        ImmutableList.builder();
-    window.orderKeys.forEach(collation ->
-        orderKeys.add(
-            new RexFieldCollation(collation.left.accept(this),
-                collation.right)));
-    final RexWindowBound lowerBound = window.getLowerBound().accept(this);
-    final RexWindowBound upperBound = window.getUpperBound().accept(this);
-    return new RexWindow(
-        partitionKeys,
-        orderKeys.build(),
-        lowerBound,
-        upperBound,
-        window.isRows());
+    // Since every other methods create a new instance of a RexNode,
+    // it is safe to use this method in super class.
+    return super.visitWindow(window);
   }
 
   public RexNode visitCall(final RexCall call) {
