@@ -31,22 +31,14 @@ import com.google.common.collect.Lists;
 import java.util.List;
 
 /**
- * Relational expression that computes a Repeat Union (a.k.a. Recursive Union in SQL terminology).
- *
- * The structure of a Recursive Union is always: non-recursive term + UNION [ALL] + recursive term,
- * where only the recursive term can contain a reference to the query's own output.
+ * Relational expression that computes a Repeat Union (Recursive Union in SQL terminology).
  *
  * This operation is executed as follows:
- *   - Evaluate the non-recursive term once. For UNION (but not UNION ALL), discard duplicate
- *   results.
- *   - (Re)Evaluate the recursive term over and over until it produces no more results. For UNION
- *   (but not UNION ALL), discard duplicate results.
- * Note: strictly speaking, this process is iteration not recursion, but RECURSIVE is the
- * terminology chosen by the SQL standards committee.
- *
- * In this RepeatUnion relational expression, the left part will represent the non-recursive
- * term (or "seed" relational expression), and the right part will represent the recursive term
- * (or "iterative" relational expression).
+ *   - Evaluate the left term (aka seed relational expression) once. For UNION (but not UNION ALL),
+ *   discard duplicated results.
+ *   - Evaluate the right term (aka iterative relational expression) over and over until it
+ *   produces no more results (or until an optional maximum number of iterations is reached).
+ *   For UNION (but not UNION ALL), discard duplicated results.
  *
  * <p>NOTE: The current API is experimental and subject to change without notice.</p>
  */

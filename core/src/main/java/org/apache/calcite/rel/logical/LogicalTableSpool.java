@@ -23,25 +23,22 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Spool;
+import org.apache.calcite.rel.core.TableSpool;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 
 /**
- * Spool that writes into a temporary table.
+ * Sub-class of {@link TableSpool} not targeted at any particular engine or calling convention.
  *
  * <p>NOTE: The current API is experimental and subject to change without notice.</p>
  */
 @Experimental
-public class LogicalTableSpool extends Spool {
-
-  protected final String tableName;
+public class LogicalTableSpool extends TableSpool {
 
   //~ Constructors -----------------------------------------------------------
   public LogicalTableSpool(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
                            Type readType, Type writeType, String tableName) {
-    super(cluster, traitSet, input, readType, writeType);
-    this.tableName = tableName;
+    super(cluster, traitSet, input, readType, writeType, tableName);
   }
 
   /** Creates a LogicalTableSpool. */
@@ -63,15 +60,6 @@ public class LogicalTableSpool extends Spool {
                                  Type readType, Type writeType) {
     return new LogicalTableSpool(input.getCluster(), traitSet, input,
         readType, writeType, tableName);
-  }
-
-  public String getTableName() {
-    return tableName;
-  }
-
-  @Override public RelWriter explainTerms(RelWriter pw) {
-    super.explainTerms(pw);
-    return pw.item("tableName", tableName);
   }
 }
 

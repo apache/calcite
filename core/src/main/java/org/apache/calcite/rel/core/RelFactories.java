@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.core;
 
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
@@ -596,8 +597,9 @@ public class RelFactories {
    * Can create a {@link Spool} of
    * the appropriate type for a rule's calling convention.
    */
+  @Experimental
   public interface SpoolFactory {
-    /** Creates a TableSpool. */
+    /** Creates a {@link TableSpool}. */
     RelNode createTableSpool(RelNode input, Spool.Type readType, Spool.Type writeType,
                              String tableName);
   }
@@ -617,6 +619,7 @@ public class RelFactories {
    * Can create a {@link RepeatUnion} of
    * the appropriate type for a rule's calling convention.
    */
+  @Experimental
   public interface RepeatUnionFactory {
     /** Creates a {@link RepeatUnion}. */
     RelNode createRepeatUnion(RelNode seed, RelNode iterative, boolean all, int maxRep);

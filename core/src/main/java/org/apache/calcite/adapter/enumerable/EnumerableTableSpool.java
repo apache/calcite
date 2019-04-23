@@ -25,31 +25,25 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Spool;
+import org.apache.calcite.rel.core.TableSpool;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.util.BuiltInMethod;
 
 /**
- * Implementation of {@link Spool} in
+ * Implementation of {@link TableSpool} in
  * {@link EnumerableConvention enumerable calling convention}
- * that writes into a {@link ModifiableTable}
+ * that writes into a {@link ModifiableTable} (which must exist in the current schema).
  *
  * <p>NOTE: The current API is experimental and subject to change without notice.</p>
  */
 @Experimental
-public class EnumerableTableSpool extends Spool implements EnumerableRel {
-
-  /**
-   * Table name, it must refer to a ModifiableTable that exists on the current schema
-   */
-  protected final String tableName;
+public class EnumerableTableSpool extends TableSpool implements EnumerableRel {
 
   protected EnumerableTableSpool(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
                                  Type readType, Type writeType, String tableName) {
-    super(cluster, traitSet, input, readType, writeType);
-    this.tableName = tableName;
+    super(cluster, traitSet, input, readType, writeType, tableName);
   }
 
   /** Creates a LogicalTableSpool. */
@@ -111,11 +105,6 @@ public class EnumerableTableSpool extends Spool implements EnumerableRel {
                                  Type readType, Type writeType) {
     return new EnumerableTableSpool(input.getCluster(), traitSet, input,
         readType, writeType, tableName);
-  }
-
-  @Override public RelWriter explainTerms(RelWriter pw) {
-    super.explainTerms(pw);
-    return pw.item("tableName", tableName);
   }
 }
 

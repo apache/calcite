@@ -39,6 +39,7 @@ import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.TransientTable;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -46,15 +47,14 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * Modifiable table backed by a Java list.
- * It will be automatically added to the current schema when {@link #scan(DataContext)}
- * method gets called.
+ * {@link TransientTable} backed by a Java list. It will be automatically added to the
+ * current schema when {@link #scan(DataContext)} method gets called.
  *
  * <p>NOTE: The current API is experimental and subject to change without notice.</p>
  */
 @Experimental
 public class ListTransientTable extends AbstractQueryableTable
-    implements ModifiableTable, ScannableTable {
+    implements TransientTable, ModifiableTable, ScannableTable {
   private static final Type TYPE = Object[].class;
   private final List rows = new ArrayList();
   private final String name;
