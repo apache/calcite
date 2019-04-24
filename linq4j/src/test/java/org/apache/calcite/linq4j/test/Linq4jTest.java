@@ -57,6 +57,8 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.TreeSet;
 
+import static org.apache.calcite.linq4j.function.Functions.arrayComparer;
+
 import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -904,6 +906,19 @@ public class Linq4jTest {
                     return employee.deptno;
                   }
                 })
+            .count());
+  }
+
+  @Test public void testDistinctWithArrayEqualityComparer() {
+    final Object[][] items = {
+        {1, "a", new Object[]{1}},
+        {2, "b", new Object[]{2}},
+        {2, "b", new Object[]{2}},
+    };
+    assertEquals(
+        2,
+        Linq4j.asEnumerable(items)
+            .distinct(arrayComparer())
             .count());
   }
 
