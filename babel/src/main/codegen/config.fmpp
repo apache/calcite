@@ -824,12 +824,22 @@ data: {
       ]
 
       # List of methods for parsing custom literals.
+      # Return type of method implementation should be "SqlNode".
       # Example: ParseJsonLiteral().
       literalParserMethods: [
       ]
 
       # List of methods for parsing custom data types.
+      # Return type of method implementation should be "SqlIdentifier".
+      # Example: SqlParseTimeStampZ().
       dataTypeParserMethods: [
+      ]
+
+      # List of methods for parsing builtin function calls.
+      # Return type of method implementation should be "SqlNode".
+      # Example: DateFunctionCall().
+      builtinFunctionCallMethods: [
+         "DateFunctionCall()"
       ]
 
       # List of methods for parsing extensions to "ALTER <scope>" calls.

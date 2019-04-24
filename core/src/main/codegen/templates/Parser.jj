@@ -294,16 +294,6 @@ void SqlInsertKeywords(List<SqlLiteral> keywords) :
     E()
 }
 
-SqlNode ExtendedBuiltinFunctionCall() :
-{
-}
-{
-    UnusedExtension()
-    {
-        return null;
-    }
-}
-
 /*
 * Parse Floor/Ceil function parameters
 */
@@ -4906,8 +4896,10 @@ SqlNode BuiltinFunctionCall() :
     |
         node = TimestampDiffFunctionCall() { return node; }
     |
-        node = ExtendedBuiltinFunctionCall() { return node; }
+<#list parser.builtinFunctionCallMethods as method>
+        node = ${method} { return node; }
     |
+</#list>
         node = MatchRecognizeFunctionCall() { return node; }
     |
         node = JsonExistsFunctionCall() { return node; }

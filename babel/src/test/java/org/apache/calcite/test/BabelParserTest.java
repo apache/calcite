@@ -155,8 +155,31 @@ public class BabelParserTest extends SqlParserTest {
         "(?s)Encountered \"when then\" at .*");
   }
 
+  /** In Redshift, DATE is a function. It requires special treatment in the
+   * parser because it is a reserved keyword.
+   * (Curiously, TIMESTAMP and TIME are not functions.) */
+  @Test public void testDateFunction() {
+    final String expected = "SELECT `DATE`(`X`)\n"
+        + "FROM `T`";
+    sql("select date(x) from t").ok(expected);
+  }
+
+  /** PostgreSQL and Redshift allow TIMESTAMP literals that contain only a
+   * date part. */
+  @Test public void testShortTimestampLiteral() {
+    sql("select timestamp '1969-07-20'")
+        .ok("SELECT TIMESTAMP '1969-07-20 00:00:00'");
+    // PostgreSQL allows the following. We should too.
+    sql("select ^timestamp '1969-07-20 1:2'^")
+        .fails("Illegal TIMESTAMP literal '1969-07-20 1:2': not in format "
+            + "'yyyy-MM-dd HH:mm:ss'"); // PostgreSQL gives 1969-07-20 01:02:00
+    sql("select ^timestamp '1969-07-20:23:'^")
+        .fails("Illegal TIMESTAMP literal '1969-07-20:23:': not in format "
+            + "'yyyy-MM-dd HH:mm:ss'"); // PostgreSQL gives 1969-07-20 23:00:00
+  }
+
   /**
-   * Babel parser's global {@code OOKAHEAD} is larger than the core
+   * Babel parser's global {@code LOOKAHEAD} is larger than the core
    * parser's. This causes different parse error message between these two
    * parsers. Here we define a looser error checker for Babel, so that we can
    * reuse failure testing codes from {@link SqlParserTest}.
