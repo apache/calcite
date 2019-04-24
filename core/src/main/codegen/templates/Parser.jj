@@ -4988,48 +4988,41 @@ SqlNode JsonPathSpec() :
     }
 }
 
-SqlNode JsonApiCommonSyntax(boolean acceptNonPath) :
+List<SqlNode> JsonApiCommonSyntax() :
 {
     SqlNode e;
     List<SqlNode> args = new ArrayList<SqlNode>();
-    Span span;
 }
 {
     e = Expression(ExprContext.ACCEPT_NON_QUERY) {
         args.add(e);
-        span = Span.of(e);
     }
     (
         <COMMA>
         e = Expression(ExprContext.ACCEPT_NON_QUERY) {
             args.add(e);
         }
-    |
-        {
-            if (!acceptNonPath) {
-              throw new ParseException(RESOURCE.jsonPathMustBeSpecified().str());
-            }
-        }
     )
     [
+        // We currently don't support JSON passing clause, leave the java code blocks no-op
         <PASSING> e = Expression(ExprContext.ACCEPT_NON_QUERY) {
-            args.add(e);
+            // no-op
         }
         <AS> e = SimpleIdentifier() {
-            args.add(e);
+            // no-op
         }
         (
             <COMMA>
             e = Expression(ExprContext.ACCEPT_NON_QUERY) {
-                        args.add(e);
+                // no-op
             }
             <AS> e = SimpleIdentifier() {
-                        args.add(e);
+                // no-op
             }
         )*
     ]
     {
-        return SqlStdOperatorTable.JSON_API_COMMON_SYNTAX.createCall(span.end(this), args);
+        return args;
     }
 }
 
@@ -5050,15 +5043,15 @@ SqlJsonExistsErrorBehavior JsonExistsErrorBehavior() :
 SqlCall JsonExistsFunctionCall() :
 {
     List<SqlNode> args;
-    SqlNode e;
+    List<SqlNode> commonSyntax;
     final Span span;
     SqlJsonExistsErrorBehavior errorBehavior;
 }
 {
     <JSON_EXISTS> { span = span(); }
-    <LPAREN> e = JsonApiCommonSyntax(false) {
+    <LPAREN> commonSyntax = JsonApiCommonSyntax() {
         args = new ArrayList<SqlNode>();
-        args.add(e);
+        args.addAll(commonSyntax);
     }
     [
         errorBehavior = JsonExistsErrorBehavior() { args.add(SqlLiteral.createSymbol(errorBehavior, getPos())); }
@@ -5106,19 +5099,21 @@ List<SqlNode> JsonValueEmptyOrErrorBehavior() :
 
 SqlCall JsonValueFunctionCall() :
 {
-    final SqlNode[] args = new SqlNode[6];
+    final SqlNode[] args = new SqlNode[7];
     SqlNode e;
+    List<SqlNode> commonSyntax;
     final Span span;
     List<SqlNode> behavior;
 }
 {
     <JSON_VALUE> { span = span(); }
-    <LPAREN> e = JsonApiCommonSyntax(false) {
-        args[0] = e;
+    <LPAREN> commonSyntax = JsonApiCommonSyntax() {
+        args[0] = commonSyntax.get(0);
+        args[1] = commonSyntax.get(1);
     }
     [
         e = JsonReturningClause() {
-            args[5] = e;
+            args[6] = e;
         }
     ]
     (
@@ -5127,12 +5122,12 @@ SqlCall JsonValueFunctionCall() :
                 ((SqlLiteral) behavior.get(2)).getValueAs(SqlJsonEmptyOrError.class);
             switch (symbol) {
             case EMPTY:
-                args[1] = behavior.get(0);
-                args[2] = behavior.get(1);
+                args[2] = behavior.get(0);
+                args[3] = behavior.get(1);
                 break;
             case ERROR:
-                args[3] = behavior.get(0);
-                args[4] = behavior.get(1);
+                args[4] = behavior.get(0);
+                args[5] = behavior.get(1);
                 break;
             }
         }
@@ -5200,19 +5195,21 @@ SqlNode JsonQueryWrapperBehavior() :
 
 SqlCall JsonQueryFunctionCall() :
 {
-    final SqlNode[] args = new SqlNode[4];
+    final SqlNode[] args = new SqlNode[5];
     SqlNode e;
+    List<SqlNode> commonSyntax;
     final Span span;
     List<SqlNode> behavior;
 }
 {
     <JSON_QUERY> { span = span(); }
-    <LPAREN> e = JsonApiCommonSyntax(false) {
-        args[0] = e;
+    <LPAREN> commonSyntax = JsonApiCommonSyntax() {
+        args[0] = commonSyntax.get(0);
+        args[1] = commonSyntax.get(1);
     }
     [
         e = JsonQueryWrapperBehavior() <WRAPPER> {
-            args[1] = e;
+            args[2] = e;
         }
     ]
     (
@@ -5221,10 +5218,10 @@ SqlCall JsonQueryFunctionCall() :
                 ((SqlLiteral) behavior.get(1)).getValueAs(SqlJsonEmptyOrError.class);
             switch (symbol) {
             case EMPTY:
-                args[2] = behavior.get(0);
+                args[3] = behavior.get(0);
                 break;
             case ERROR:
-                args[3] = behavior.get(0);
+                args[4] = behavior.get(0);
                 break;
             }
         }
