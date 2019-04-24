@@ -20,11 +20,11 @@ import org.apache.calcite.linq4j.function.Experimental;
 
 /**
  * A transient table is a named table that may come into existence implicitly during the
- * evaluation of a <query expression> or the execution of a trigger. A transient table is
- * identified by a <query name> if it arises during the evaluation of a <query expression>,
- * or by a <transition table name> if it arises during the execution of a trigger.
+ * evaluation of a query expression or the execution of a trigger. A transient table is
+ * identified by a query name if it arises during the evaluation of a query expression,
+ * or by a transition table name if it arises during the execution of a trigger.
  * Such tables exist only for the duration of the executing SQL-statement containing the
- * <query expression> or for the duration of the executing trigger.
+ * query expression or for the duration of the executing trigger.
  */
 @Experimental
 public interface TransientTable extends Table {
