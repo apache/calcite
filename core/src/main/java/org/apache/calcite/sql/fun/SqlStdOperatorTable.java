@@ -1294,9 +1294,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlThrowOperator THROW = new SqlThrowOperator();
 
-  public static final SqlJsonApiCommonSyntaxOperator JSON_API_COMMON_SYNTAX =
-      new SqlJsonApiCommonSyntaxOperator("JSON_API_COMMON_SYNTAX");
-
   public static final SqlFunction JSON_EXISTS = new SqlJsonExistsFunction();
 
   public static final SqlFunction JSON_VALUE =

@@ -3162,14 +3162,14 @@ public class RelToSqlConverterTest {
 
   @Test public void testJsonExists() {
     String query = "select json_exists(\"product_name\", 'lax $') from \"product\"";
-    final String expected = "SELECT JSON_EXISTS(\"product_name\" FORMAT JSON, 'lax $')\n"
+    final String expected = "SELECT JSON_EXISTS(\"product_name\", 'lax $')\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }
 
   @Test public void testJsonPretty() {
     String query = "select json_pretty(\"product_name\") from \"product\"";
-    final String expected = "SELECT JSON_PRETTY(\"product_name\" FORMAT JSON)\n"
+    final String expected = "SELECT JSON_PRETTY(\"product_name\")\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }
@@ -3177,7 +3177,7 @@ public class RelToSqlConverterTest {
   @Test public void testJsonValue() {
     String query = "select json_value(\"product_name\", 'lax $') from \"product\"";
     // todo translate to JSON_VALUE rather than CAST
-    final String expected = "SELECT CAST(JSON_VALUE_ANY(\"product_name\" FORMAT JSON, "
+    final String expected = "SELECT CAST(JSON_VALUE_ANY(\"product_name\", "
         + "'lax $' NULL ON EMPTY NULL ON ERROR) AS VARCHAR(2000) CHARACTER SET \"ISO-8859-1\")\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
@@ -3185,7 +3185,7 @@ public class RelToSqlConverterTest {
 
   @Test public void testJsonQuery() {
     String query = "select json_query(\"product_name\", 'lax $') from \"product\"";
-    final String expected = "SELECT JSON_QUERY(\"product_name\" FORMAT JSON, 'lax $' "
+    final String expected = "SELECT JSON_QUERY(\"product_name\", 'lax $' "
         + "WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
@@ -3260,7 +3260,7 @@ public class RelToSqlConverterTest {
   @Test public void testJsonType() {
     String query = "select json_type(\"product_name\") from \"product\"";
     final String expected = "SELECT "
-        + "JSON_TYPE(\"product_name\" FORMAT JSON)\n"
+        + "JSON_TYPE(\"product_name\")\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }
@@ -3268,7 +3268,7 @@ public class RelToSqlConverterTest {
   @Test public void testJsonDepth() {
     String query = "select json_depth(\"product_name\") from \"product\"";
     final String expected = "SELECT "
-        + "JSON_DEPTH(\"product_name\" FORMAT JSON)\n"
+        + "JSON_DEPTH(\"product_name\")\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }
@@ -3276,15 +3276,15 @@ public class RelToSqlConverterTest {
   @Test public void testJsonLength() {
     String query = "select json_length(\"product_name\", 'lax $'), "
         + "json_length(\"product_name\") from \"product\"";
-    final String expected = "SELECT JSON_LENGTH(\"product_name\" FORMAT JSON, 'lax $'), "
-        + "JSON_LENGTH(\"product_name\" FORMAT JSON)\n"
+    final String expected = "SELECT JSON_LENGTH(\"product_name\", 'lax $'), "
+        + "JSON_LENGTH(\"product_name\")\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }
 
   @Test public void testJsonKeys() {
     String query = "select json_keys(\"product_name\", 'lax $') from \"product\"";
-    final String expected = "SELECT JSON_KEYS(\"product_name\" FORMAT JSON, 'lax $')\n"
+    final String expected = "SELECT JSON_KEYS(\"product_name\", 'lax $')\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }
