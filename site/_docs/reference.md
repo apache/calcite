@@ -2111,8 +2111,9 @@ semantics.
 
 Note:
 
-* `JSON_TYPE` / `JSON_DEPTH` return null if the argument is null
+* `JSON_TYPE` / `JSON_DEPTH` / `JSON_PRETTY` return null if the argument is null
 * `JSON_TYPE` / `JSON_DEPTH` / `JSON_PRETTY` throw error if the argument is not a valid JSON value
+* `JSON_LENGTH` / `JSON_KEYS` return null if the first argument is null
 * `JSON_TYPE` generally returns an upper-case string flag indicating the type of the JSON input. Currently supported supported type flags are:
   * INTEGER
   * STRING

@@ -753,11 +753,6 @@ public enum SqlKind {
   JSON_VALUE_EXPRESSION,
 
   /**
-   * The JSON API common syntax.
-   */
-  JSON_API_COMMON_SYNTAX,
-
-  /**
    * The {@code JSON_ARRAYAGG} aggregate function.
    */
   JSON_ARRAYAGG,
@@ -1214,7 +1209,7 @@ public enum SqlKind {
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
                   VALUES, WITH, WITH_ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
-                  JSON_VALUE_EXPRESSION, JSON_API_COMMON_SYNTAX),
+                  JSON_VALUE_EXPRESSION),
               AGGREGATE, DML, DDL));
 
   /**

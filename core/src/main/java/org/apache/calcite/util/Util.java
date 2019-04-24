@@ -857,6 +857,18 @@ public class Util {
   }
 
   /**
+   * Wraps an exception with {@link RuntimeException} and return it.
+   * If the exception is already an instance of RuntimeException,
+   * returns it directly.
+   */
+  public static RuntimeException toUnchecked(Exception e) {
+    if (e instanceof RuntimeException) {
+      return (RuntimeException) e;
+    }
+    return new RuntimeException(e);
+  }
+
+  /**
    * Retrieves messages in a exception and writes them to a string. In the
    * string returned, each message will appear on a different line.
    *
