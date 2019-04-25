@@ -45,6 +45,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * {@link TransientTable} backed by a Java list. It will be automatically added to the
@@ -87,6 +88,8 @@ public class ListTransientTable extends AbstractQueryableTable
     // add the table into the schema, so that it is accessible by any potential operator
     root.getRootSchema().add(name, this);
 
+    final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
+
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
         return new Enumerator<Object[]>() {
@@ -102,6 +105,10 @@ public class ListTransientTable extends AbstractQueryableTable
           }
 
           @Override public boolean moveNext() {
+            if (cancelFlag != null && cancelFlag.get()) {
+              return false;
+            }
+
             return ++i < list.size();
           }
 
