@@ -2087,7 +2087,8 @@ connect string parameter.
 
 The 'C' (compatibility) column contains value
 'm' for MySQL ('fun=mysql' in the connect string),
-'o' for Oracle ('fun=oracle' in the connect string).
+'o' for Oracle ('fun=oracle' in the connect string),
+'p' for PostgreSQL ('fun=postgresql' in the connect string).
 
 One operator name may correspond to multiple SQL dialects, but with different
 semantics.
@@ -2106,7 +2107,7 @@ semantics.
 | o | SUBSTR(string, position [, substring_length ]) | Returns a portion of *string*, beginning at character *position*, *substring_length* characters long. SUBSTR calculates lengths using characters as defined by the input character set
 | o | GREATEST(expr [, expr ]*)                      | Returns the greatest of the expressions
 | o | LEAST(expr [, expr ]* )                        | Returns the least of the expressions
-| o | TRANSLATE(expr, fromString, toString)          | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
+| o p | TRANSLATE(expr, fromString, toString)          | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
 
 Note:
 

@@ -27,7 +27,8 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
-import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.test.SqlTester;
@@ -35,7 +36,6 @@ import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlAbstractConformance;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -803,8 +803,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkWholeExpFails("translate('aabbcc', 'ab', '+-')",
         "No match found for function signature TRANSLATE3\\(<CHARACTER>, <CHARACTER>, <CHARACTER>\\)");
     tester = tester.withOperatorTable(
-        ChainedSqlOperatorTable.of(OracleSqlOperatorTable.instance(),
-            SqlStdOperatorTable.instance()));
+        SqlLibraryOperatorTableFactory.INSTANCE
+            .getOperatorTable(SqlLibrary.STANDARD, SqlLibrary.ORACLE));
     checkExpType("translate('aabbcc', 'ab', '+-')",
         "VARCHAR(6) NOT NULL");
     checkWholeExpFails("translate('abc', 'ab')",

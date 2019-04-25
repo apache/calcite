@@ -19,7 +19,8 @@ package org.apache.calcite.sql.test;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
-import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlOverlapsOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
@@ -37,6 +38,7 @@ import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.PrintWriter;
 import java.nio.file.Paths;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -100,53 +102,74 @@ public class DocumentationTest {
    * reference.md. */
   @Test public void testAllFunctionsAreDocumented() throws IOException {
     final FileFixture f = new FileFixture();
-    final Map<String, Pattern> map = new TreeMap<>();
-    final Set<String> functionsSeen = new HashSet<>();
+    final Map<String, PatternOp> map = new TreeMap<>();
     addOperators(map, "", SqlStdOperatorTable.instance().getOperatorList());
-    addOperators(map, "\\| o ",
-        OracleSqlOperatorTable.instance().getOperatorList());
+    for (SqlLibrary library : SqlLibrary.values()) {
+      switch (library) {
+      case STANDARD:
+      case SPATIAL:
+        continue;
+      }
+      addOperators(map, "\\| [^|]*" + library.abbrev + "[^|]* ",
+          SqlLibraryOperatorTableFactory.INSTANCE
+              .getOperatorTable(EnumSet.of(library)).getOperatorList());
+    }
+    final Set<String> regexSeen = new HashSet<>();
     try (LineNumberReader r = new LineNumberReader(Util.reader(f.inFile))) {
       for (;;) {
         final String line = r.readLine();
         if (line == null) {
           break;
         }
-        for (Map.Entry<String, Pattern> entry : map.entrySet()) {
-          if (entry.getValue().matcher(line).matches()) {
-            functionsSeen.add(entry.getKey()); // function is documented
+        for (Map.Entry<String, PatternOp> entry : map.entrySet()) {
+          if (entry.getValue().pattern.matcher(line).matches()) {
+            regexSeen.add(entry.getKey()); // function is documented
           }
         }
       }
     }
-    final Set<String> functionsNotSeen = new TreeSet<>(map.keySet());
-    functionsNotSeen.removeAll(functionsSeen);
-    assertThat("some functions are documented: " + map.entrySet().stream()
-            .filter(e -> functionsNotSeen.contains(e.getKey()))
-            .map(Object::toString)
+    final Set<String> regexNotSeen = new TreeSet<>(map.keySet());
+    regexNotSeen.removeAll(regexSeen);
+    assertThat("some functions are not documented: " + map.entrySet().stream()
+            .filter(e -> regexNotSeen.contains(e.getKey()))
+            .map(e -> e.getValue().opName + "(" + e.getKey() + ")")
             .collect(Collectors.joining(", ")),
-        functionsNotSeen.isEmpty(), is(true));
+        regexNotSeen.isEmpty(), is(true));
   }
 
-  private void addOperators(Map<String, Pattern> map, String prefix,
+  private void addOperators(Map<String, PatternOp> map, String prefix,
       List<SqlOperator> operatorList) {
     for (SqlOperator op : operatorList) {
-      if (op.getName().startsWith("$")
-          || op.getName().isEmpty()
-          || op instanceof SqlSpecialOperator
-          || !op.getName().matches("^[a-zA-Z_]*$")) {
+      final String name = op.getName().equals("TRANSLATE3") ? "TRANSLATE"
+          : op.getName();
+      if (op instanceof SqlSpecialOperator
+          || !name.matches("^[a-zA-Z][a-zA-Z0-9_]*$")) {
         continue;
       }
       final String regex;
       if (op instanceof SqlOverlapsOperator) {
-        regex = "[ ]*<td>period1 " + op.getName() + " period2</td>";
+        regex = "[ ]*<td>period1 " + name + " period2</td>";
       } else if (op instanceof SqlFunction
           && (op.getOperandTypeChecker() == null
-          || op.getOperandTypeChecker().getOperandCountRange().getMin() != 0)) {
-        regex = prefix + "\\| .*" + op.getName() + "\\(.*";
+              || op.getOperandTypeChecker().getOperandCountRange().getMin()
+                  != 0)) {
+        regex = prefix + "\\| .*" + name + "\\(.*";
       } else {
-        regex = prefix + "\\| .*" + op.getName() + ".*";
+        regex = prefix + "\\| .*" + name + ".*";
       }
-      map.put(op.getName(), Pattern.compile(regex));
+      map.put(regex, new PatternOp(Pattern.compile(regex), name));
+    }
+  }
+
+  /** A compiled regex and an operator name. An item to be found in the
+   * documentation. */
+  private static class PatternOp {
+    final Pattern pattern;
+    final String opName;
+
+    private PatternOp(Pattern pattern, String opName) {
+      this.pattern = pattern;
+      this.opName = opName;
     }
   }
 

@@ -47,12 +47,12 @@ import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlPostfixOperator;
 import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlArrayValueConstructor;
 import org.apache.calcite.sql.fun.SqlBetweenOperator;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator;
 import org.apache.calcite.sql.fun.SqlExtractFunction;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlLiteralChainOperator;
 import org.apache.calcite.sql.fun.SqlMapValueConstructor;
 import org.apache.calcite.sql.fun.SqlMultisetQueryConstructor;
@@ -133,15 +133,15 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
           }
         });
 
-    registerOp(OracleSqlOperatorTable.LTRIM,
+    registerOp(SqlLibraryOperators.LTRIM,
         new TrimConvertlet(SqlTrimFunction.Flag.LEADING));
-    registerOp(OracleSqlOperatorTable.RTRIM,
+    registerOp(SqlLibraryOperators.RTRIM,
         new TrimConvertlet(SqlTrimFunction.Flag.TRAILING));
 
-    registerOp(OracleSqlOperatorTable.GREATEST, new GreatestConvertlet());
-    registerOp(OracleSqlOperatorTable.LEAST, new GreatestConvertlet());
+    registerOp(SqlLibraryOperators.GREATEST, new GreatestConvertlet());
+    registerOp(SqlLibraryOperators.LEAST, new GreatestConvertlet());
 
-    registerOp(OracleSqlOperatorTable.NVL,
+    registerOp(SqlLibraryOperators.NVL,
         (cx, call) -> {
           final RexBuilder rexBuilder = cx.getRexBuilder();
           final RexNode operand0 =
@@ -158,7 +158,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
                   rexBuilder.makeCast(type, operand1)));
         });
 
-    registerOp(OracleSqlOperatorTable.DECODE,
+    registerOp(SqlLibraryOperators.DECODE,
         (cx, call) -> {
           final RexBuilder rexBuilder = cx.getRexBuilder();
           final List<RexNode> operands = convertExpressionList(cx,
@@ -215,15 +215,15 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     registerOp(SqlStdOperatorTable.JSON_API_COMMON_SYNTAX,
         new JsonOperatorValueExprConvertlet(0));
-    registerOp(SqlStdOperatorTable.JSON_PRETTY,
+    registerOp(SqlLibraryOperators.JSON_PRETTY,
         new JsonOperatorValueExprConvertlet(0));
-    registerOp(SqlStdOperatorTable.JSON_TYPE,
+    registerOp(SqlLibraryOperators.JSON_TYPE,
         new JsonOperatorValueExprConvertlet(0));
-    registerOp(SqlStdOperatorTable.JSON_DEPTH,
+    registerOp(SqlLibraryOperators.JSON_DEPTH,
         new JsonOperatorValueExprConvertlet(0));
-    registerOp(SqlStdOperatorTable.JSON_LENGTH,
+    registerOp(SqlLibraryOperators.JSON_LENGTH,
         new JsonOperatorValueExprConvertlet(0));
-    registerOp(SqlStdOperatorTable.JSON_KEYS,
+    registerOp(SqlLibraryOperators.JSON_KEYS,
         new JsonOperatorValueExprConvertlet(0));
 
     // Convert json_value('{"foo":"bar"}', 'lax $.foo', returning varchar(2000))

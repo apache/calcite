@@ -22,8 +22,8 @@ import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlCaseOperator;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -100,7 +100,7 @@ public class RexSqlStandardConvertletTable
     registerEquivOp(SqlStdOperatorTable.TRANSLATE);
     registerEquivOp(SqlStdOperatorTable.OVERLAY);
     registerEquivOp(SqlStdOperatorTable.TRIM);
-    registerEquivOp(OracleSqlOperatorTable.TRANSLATE3);
+    registerEquivOp(SqlLibraryOperators.TRANSLATE3);
     registerEquivOp(SqlStdOperatorTable.POSITION);
     registerEquivOp(SqlStdOperatorTable.CHAR_LENGTH);
     registerEquivOp(SqlStdOperatorTable.CHARACTER_LENGTH);
