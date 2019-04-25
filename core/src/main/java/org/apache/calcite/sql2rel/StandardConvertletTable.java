@@ -47,11 +47,11 @@ import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlPostfixOperator;
 import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlArrayValueConstructor;
 import org.apache.calcite.sql.fun.SqlBetweenOperator;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator;
+import org.apache.calcite.sql.fun.SqlDialectOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlExtractFunction;
 import org.apache.calcite.sql.fun.SqlLiteralChainOperator;
 import org.apache.calcite.sql.fun.SqlMapValueConstructor;
@@ -133,15 +133,15 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
           }
         });
 
-    registerOp(OracleSqlOperatorTable.LTRIM,
+    registerOp(SqlDialectOperatorTableFactory.LTRIM,
         new TrimConvertlet(SqlTrimFunction.Flag.LEADING));
-    registerOp(OracleSqlOperatorTable.RTRIM,
+    registerOp(SqlDialectOperatorTableFactory.RTRIM,
         new TrimConvertlet(SqlTrimFunction.Flag.TRAILING));
 
-    registerOp(OracleSqlOperatorTable.GREATEST, new GreatestConvertlet());
-    registerOp(OracleSqlOperatorTable.LEAST, new GreatestConvertlet());
+    registerOp(SqlDialectOperatorTableFactory.GREATEST, new GreatestConvertlet());
+    registerOp(SqlDialectOperatorTableFactory.LEAST, new GreatestConvertlet());
 
-    registerOp(OracleSqlOperatorTable.NVL,
+    registerOp(SqlDialectOperatorTableFactory.NVL,
         (cx, call) -> {
           final RexBuilder rexBuilder = cx.getRexBuilder();
           final RexNode operand0 =
@@ -158,7 +158,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
                   rexBuilder.makeCast(type, operand1)));
         });
 
-    registerOp(OracleSqlOperatorTable.DECODE,
+    registerOp(SqlDialectOperatorTableFactory.DECODE,
         (cx, call) -> {
           final RexBuilder rexBuilder = cx.getRexBuilder();
           final List<RexNode> operands = convertExpressionList(cx,

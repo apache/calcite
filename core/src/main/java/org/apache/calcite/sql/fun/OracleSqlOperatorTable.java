@@ -32,7 +32,11 @@ import java.util.List;
 
 /**
  * Operator table that contains only Oracle-specific functions and operators.
+ *
+ * @deprecated Use {@link SqlDialectOperatorTableFactory#getOperatorTable(SqlDialect.Dialect)}
+ * instead.
  */
+@Deprecated // To be removed before 2.0
 public class OracleSqlOperatorTable extends ReflectiveSqlOperatorTable {
   //~ Static fields/initializers ---------------------------------------------
 

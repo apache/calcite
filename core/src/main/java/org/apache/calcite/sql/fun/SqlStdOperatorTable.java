@@ -1435,7 +1435,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * alters the character set of a string value from one base character set to another.
    *
    * <p>It is defined in the SQL standard. See also non-standard
-   * {@link OracleSqlOperatorTable#TRANSLATE3}.
+   * {@link SqlDialectOperatorTableFactory#TRANSLATE3}.
    */
   public static final SqlFunction TRANSLATE =
       new SqlConvertFunction("TRANSLATE");

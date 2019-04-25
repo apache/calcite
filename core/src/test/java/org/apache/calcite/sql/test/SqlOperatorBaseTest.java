@@ -37,7 +37,8 @@ import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
-import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
+import org.apache.calcite.sql.fun.SqlDialect;
+import org.apache.calcite.sql.fun.SqlDialectOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
@@ -308,7 +309,8 @@ public abstract class SqlOperatorBaseTest {
 
   protected SqlTester oracleTester() {
     return tester.withOperatorTable(
-        ChainedSqlOperatorTable.of(OracleSqlOperatorTable.instance(),
+        ChainedSqlOperatorTable.of(SqlDialectOperatorTableFactory
+                .instance().getOperatorTable(SqlDialect.Dialect.ORACLE),
             SqlStdOperatorTable.instance()))
         .withConnectionFactory(
             CalciteAssert.EMPTY_CONNECTION_FACTORY
@@ -324,7 +326,8 @@ public abstract class SqlOperatorBaseTest {
     return tester
         .withConformance(conformance)
         .withOperatorTable(
-            ChainedSqlOperatorTable.of(OracleSqlOperatorTable.instance(),
+            ChainedSqlOperatorTable.of(SqlDialectOperatorTableFactory
+                    .instance().getOperatorTable(SqlDialect.Dialect.ORACLE),
                 SqlStdOperatorTable.instance()))
         .withConnectionFactory(
             CalciteAssert.EMPTY_CONNECTION_FACTORY
@@ -4096,7 +4099,7 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testTranslate3Func() {
     final SqlTester tester1 = oracleTester();
-    tester1.setFor(OracleSqlOperatorTable.TRANSLATE3);
+    tester1.setFor(SqlDialectOperatorTableFactory.TRANSLATE3);
     tester1.checkString(
         "translate('aabbcc', 'ab', '+-')",
         "++--cc",
@@ -5888,21 +5891,21 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testRtrimFunc() {
-    tester.setFor(OracleSqlOperatorTable.RTRIM);
+    tester.setFor(SqlDialectOperatorTableFactory.RTRIM);
     final SqlTester tester1 = oracleTester();
     tester1.checkString("rtrim(' aAa  ')", " aAa", "VARCHAR(6) NOT NULL");
     tester1.checkNull("rtrim(CAST(NULL AS VARCHAR(6)))");
   }
 
   @Test public void testLtrimFunc() {
-    tester.setFor(OracleSqlOperatorTable.LTRIM);
+    tester.setFor(SqlDialectOperatorTableFactory.LTRIM);
     final SqlTester tester1 = oracleTester();
     tester1.checkString("ltrim(' aAa  ')", "aAa  ", "VARCHAR(6) NOT NULL");
     tester1.checkNull("ltrim(CAST(NULL AS VARCHAR(6)))");
   }
 
   @Test public void testGreatestFunc() {
-    tester.setFor(OracleSqlOperatorTable.GREATEST);
+    tester.setFor(SqlDialectOperatorTableFactory.GREATEST);
     final SqlTester tester1 = oracleTester();
     tester1.checkString("greatest('on', 'earth')", "on   ", "CHAR(5) NOT NULL");
     tester1.checkString("greatest('show', 'on', 'earth')", "show ",
@@ -5917,7 +5920,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testLeastFunc() {
-    tester.setFor(OracleSqlOperatorTable.LEAST);
+    tester.setFor(SqlDialectOperatorTableFactory.LEAST);
     final SqlTester tester1 = oracleTester();
     tester1.checkString("least('on', 'earth')", "earth", "CHAR(5) NOT NULL");
     tester1.checkString("least('show', 'on', 'earth')", "earth",
@@ -5932,7 +5935,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testNvlFunc() {
-    tester.setFor(OracleSqlOperatorTable.NVL);
+    tester.setFor(SqlDialectOperatorTableFactory.NVL);
     final SqlTester tester1 = oracleTester();
     tester1.checkScalar("nvl(1, 2)", "1", "INTEGER NOT NULL");
     tester1.checkFails("^nvl(1, true)^", "Parameters must be of the same type",
@@ -5960,7 +5963,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testDecodeFunc() {
-    tester.setFor(OracleSqlOperatorTable.DECODE);
+    tester.setFor(SqlDialectOperatorTableFactory.DECODE);
     final SqlTester tester1 = oracleTester();
     tester1.checkScalar("decode(0, 0, 'a', 1, 'b', 2, 'c')", "a", "CHAR(1)");
     tester1.checkScalar("decode(1, 0, 'a', 1, 'b', 2, 'c')", "b", "CHAR(1)");
