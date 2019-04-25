@@ -213,7 +213,7 @@ public class SqlDialectOperatorTableFactory {
   }
 
   /** Returns an immutable sql operator table by specific sql dialect. */
-  public ImmutableSqlOperatorTable getOperatorTable(Dialect dialect) {
+  public SqlOperatorTable getOperatorTable(Dialect dialect) {
     assert initialized : "Please invoke init() to initialize this operator table first.";
     return new ImmutableSqlOperatorTable(dialectSqlOperatorTableMapping.get(dialect));
   }
