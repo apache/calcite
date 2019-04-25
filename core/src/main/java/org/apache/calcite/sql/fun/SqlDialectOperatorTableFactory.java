@@ -45,7 +45,7 @@ import static org.apache.calcite.sql.fun.SqlDialect.Dialect;
 
 /**
  * Operator table factory for multiple sql dialects. You can use method
- * {@link #getOperatorTable(Dialect)} to fetch dialect specific operator table.
+ * {@link #getOperatorTable} to fetch dialect specific operator table.
  *
  * <p>If you want to extend the sql dialect, add the sql dialect in {@link SqlDialect},
  * if the sql dialect already exists, and you want to add a sql function, annotate the function
