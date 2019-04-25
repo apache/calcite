@@ -34,19 +34,4 @@ select * from (values
 !ok
 !}
 
-# [CALCITE-3021] ArrayEqualityComparer should use Arrays#deepEquals/deepHashCode instead of Arrays#equals/hashCode
-select distinct * from (values
-    (1, ROW(1,1)),
-    (1, ROW(1,1)),
-    (2, ROW(2,2))) as v(id,struct);
-+----+--------+
-| ID | STRUCT |
-+----+--------+
-|  1 | {1, 1} |
-|  2 | {2, 2} |
-+----+--------+
-(2 rows)
-
-!ok
-
 # End struct.iq

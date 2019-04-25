@@ -465,11 +465,11 @@ public abstract class Functions {
   private static class ArrayEqualityComparer
       implements EqualityComparer<Object[]> {
     public boolean equal(Object[] v1, Object[] v2) {
-      return Arrays.deepEquals(v1, v2);
+      return Arrays.equals(v1, v2);
     }
 
     public int hashCode(Object[] t) {
-      return Arrays.deepHashCode(t);
+      return Arrays.hashCode(t);
     }
   }
 
