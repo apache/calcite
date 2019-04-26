@@ -727,6 +727,10 @@ public class RexImpTable {
             return NullAs.TRUE;
           case TRUE:
             return NullAs.FALSE;
+          case IS_NULL:
+            return NullAs.IS_NOT_NULL;
+          case IS_NOT_NULL:
+            return NullAs.IS_NULL;
           default:
             return nullAs;
           }

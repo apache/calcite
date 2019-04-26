@@ -297,6 +297,29 @@ public class CsvTest {
         .returns("EMPNO=130; GENDER=F; NAME=Alice").ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2272">[CALCITE-2272]
+   * Incorrect result for {@code name like '%E%' and city not like '%W%'}</a>.
+   */
+  @Test public void testFilterableWhereWithNot1() throws SQLException {
+    sql("filterable-model",
+        "select name, empno from EMPS "
+            + "where name like '%E%' and city not like '%W%' ")
+        .returns("NAME=Eric; EMPNO=110")
+        .ok();
+  }
+
+  /** Similar to {@link #testFilterableWhereWithNot1()};
+   * But use the same column. */
+  @Test public void testFilterableWhereWithNot2() throws SQLException {
+    sql("filterable-model",
+        "select name, empno from EMPS "
+            + "where name like '%i%' and name not like '%W%' ")
+        .returns("NAME=Eric; EMPNO=110",
+            "NAME=Alice; EMPNO=130")
+        .ok();
+  }
+
   @Test public void testJson() throws SQLException {
     final String sql = "select _MAP['id'] as id,\n"
         + " _MAP['title'] as title,\n"
