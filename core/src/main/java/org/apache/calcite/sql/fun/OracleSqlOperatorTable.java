@@ -33,7 +33,7 @@ import java.util.List;
 /**
  * Operator table that contains only Oracle-specific functions and operators.
  *
- * @deprecated Use {@link SqlDialectOperatorTableFactory#getOperatorTable(SqlDialect.Dialect)}
+ * @deprecated Use {@link SqlDialectOperatorTableFactory#getOperatorTable(SqlFlavor.Flavor)}
  * instead.
  */
 @Deprecated // To be removed before 2.0

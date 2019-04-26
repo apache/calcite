@@ -41,13 +41,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.calcite.sql.fun.SqlDialect.Dialect;
+import static org.apache.calcite.sql.fun.SqlFlavor.Flavor;
 
 /**
  * Operator table factory for multiple sql dialects. You can use method
  * {@link #getOperatorTable} to fetch dialect specific operator table.
  *
- * <p>If you want to extend the sql dialect, add the sql dialect in {@link SqlDialect},
+ * <p>If you want to extend the sql dialect, add the sql dialect in {@link SqlFlavor},
  * if the sql dialect already exists, and you want to add a sql function, annotate the function
  * with the specific sql dialects that function belongs.
  */
@@ -62,7 +62,7 @@ public class SqlDialectOperatorTableFactory {
   private boolean initialized = false;
 
   // A container holding the operators for all the sql dialects.
-  private final Map<Dialect, ListSqlOperatorTable> dialectSqlOperatorTableMapping =
+  private final Map<Flavor, ListSqlOperatorTable> dialectSqlOperatorTableMapping =
       new HashMap<>();
 
   /** Return type inference for {@code DECODE}. */
@@ -84,13 +84,13 @@ public class SqlDialectOperatorTableFactory {
       };
 
   /** The "DECODE(v, v1, result1, [v2, result2, ...], resultN)" function. */
-  @SqlDialect(dialects = {Dialect.ORACLE})
+  @SqlFlavor(flavors = {Flavor.ORACLE})
   public static final SqlFunction DECODE =
       new SqlFunction("DECODE", SqlKind.DECODE, DECODE_RETURN_TYPE, null,
           OperandTypes.VARIADIC, SqlFunctionCategory.SYSTEM);
 
   /** The "NVL(value, value)" function. */
-  @SqlDialect(dialects = {Dialect.ORACLE})
+  @SqlFlavor(flavors = {Flavor.ORACLE})
   public static final SqlFunction NVL =
       new SqlFunction("NVL", SqlKind.NVL,
           ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
@@ -98,7 +98,7 @@ public class SqlDialectOperatorTableFactory {
           null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
 
   /** The "LTRIM(string)" function. */
-  @SqlDialect(dialects = {Dialect.ORACLE})
+  @SqlFlavor(flavors = {Flavor.ORACLE})
   public static final SqlFunction LTRIM =
       new SqlFunction("LTRIM", SqlKind.LTRIM,
           ReturnTypes.cascade(ReturnTypes.ARG0, SqlTypeTransforms.TO_NULLABLE,
@@ -106,7 +106,7 @@ public class SqlDialectOperatorTableFactory {
           OperandTypes.STRING, SqlFunctionCategory.STRING);
 
   /** The "RTRIM(string)" function. */
-  @SqlDialect(dialects = {Dialect.ORACLE})
+  @SqlFlavor(flavors = {Flavor.ORACLE})
   public static final SqlFunction RTRIM =
       new SqlFunction("RTRIM", SqlKind.RTRIM,
           ReturnTypes.cascade(ReturnTypes.ARG0, SqlTypeTransforms.TO_NULLABLE,
@@ -117,14 +117,14 @@ public class SqlDialectOperatorTableFactory {
    *
    * <p>It has similar semantics to standard SQL's
    * {@link SqlStdOperatorTable#SUBSTRING} function but different syntax. */
-  @SqlDialect(dialects = {Dialect.ORACLE})
+  @SqlFlavor(flavors = {SqlFlavor.Flavor.ORACLE})
   public static final SqlFunction SUBSTR =
       new SqlFunction("SUBSTR", SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
           SqlFunctionCategory.STRING);
 
   /** The "GREATEST(value, value)" function. */
-  @SqlDialect(dialects = {Dialect.ORACLE})
+  @SqlFlavor(flavors = {SqlFlavor.Flavor.ORACLE})
   public static final SqlFunction GREATEST =
       new SqlFunction("GREATEST", SqlKind.GREATEST,
           ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
@@ -132,7 +132,7 @@ public class SqlDialectOperatorTableFactory {
           OperandTypes.SAME_VARIADIC, SqlFunctionCategory.SYSTEM);
 
   /** The "LEAST(value, value)" function. */
-  @SqlDialect(dialects = {Dialect.ORACLE})
+  @SqlFlavor(flavors = {Flavor.ORACLE})
   public static final SqlFunction LEAST =
       new SqlFunction("LEAST", SqlKind.LEAST,
           ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
@@ -146,7 +146,7 @@ public class SqlDialectOperatorTableFactory {
    *
    * <p>It is not defined in the SQL standard, but occurs in Oracle and PostgreSQL.
    */
-  @SqlDialect(dialects = {Dialect.ORACLE, Dialect.POSTGRES})
+  @SqlFlavor(flavors = {Flavor.ORACLE, Flavor.POSTGRES})
   public static final SqlFunction TRANSLATE3 = new SqlTranslate3Function();
 
   /**
@@ -170,8 +170,8 @@ public class SqlDialectOperatorTableFactory {
    */
   public final void init() {
     // Initialize the dialect to SqlOperator mapping.
-    for (Dialect dialect : Dialect.values()) {
-      dialectSqlOperatorTableMapping.put(dialect, new ListSqlOperatorTable());
+    for (Flavor flavor : Flavor.values()) {
+      dialectSqlOperatorTableMapping.put(flavor, new ListSqlOperatorTable());
     }
 
     // Use reflection to register the expressions stored in public fields.
@@ -196,26 +196,26 @@ public class SqlDialectOperatorTableFactory {
   }
 
   /** Extract supported sql dialects from the field annotation. */
-  private Dialect[] getSqlDialectsFromField(String operatorName, Field field) {
-    SqlDialect sqlDialect = field.getAnnotation(SqlDialect.class);
-    assert sqlDialect != null : "Must annotate with SqlDialect annotation for operator "
+  private Flavor[] getSqlDialectsFromField(String operatorName, Field field) {
+    SqlFlavor sqlFlavor = field.getAnnotation(SqlFlavor.class);
+    assert sqlFlavor != null : "Must annotate with SqlDialect annotation for operator "
         + operatorName;
-    Dialect[] dialects = sqlDialect.dialects();
-    assert dialects.length > 0 : "Must specify at least one dialect for operator "
+    SqlFlavor.Flavor[] flavors = sqlFlavor.flavors();
+    assert flavors.length > 0 : "Must specify at least one dialect for operator "
         + operatorName;
-    return dialects;
+    return flavors;
   }
 
-  private void register(SqlOperator operator, Dialect[] dialects) {
-    for (Dialect dialect : dialects) {
-      dialectSqlOperatorTableMapping.get(dialect).add(operator);
+  private void register(SqlOperator operator, Flavor[] flavors) {
+    for (Flavor flavor : flavors) {
+      dialectSqlOperatorTableMapping.get(flavor).add(operator);
     }
   }
 
   /** Returns an immutable sql operator table by specific sql dialect. */
-  public SqlOperatorTable getOperatorTable(Dialect dialect) {
+  public SqlOperatorTable getOperatorTable(Flavor flavor) {
     assert initialized : "Please invoke init() to initialize this operator table first.";
-    return new ImmutableSqlOperatorTable(dialectSqlOperatorTableMapping.get(dialect));
+    return new ImmutableSqlOperatorTable(dialectSqlOperatorTableMapping.get(flavor));
   }
 
   /**

@@ -37,8 +37,8 @@ import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
-import org.apache.calcite.sql.fun.SqlDialect;
 import org.apache.calcite.sql.fun.SqlDialectOperatorTableFactory;
+import org.apache.calcite.sql.fun.SqlFlavor;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
@@ -309,9 +309,11 @@ public abstract class SqlOperatorBaseTest {
 
   protected SqlTester oracleTester() {
     return tester.withOperatorTable(
-        ChainedSqlOperatorTable.of(SqlDialectOperatorTableFactory
-                .instance().getOperatorTable(SqlDialect.Dialect.ORACLE),
-            SqlStdOperatorTable.instance()))
+        ChainedSqlOperatorTable
+            .of(SqlDialectOperatorTableFactory
+                    .instance()
+                    .getOperatorTable(SqlFlavor.Flavor.ORACLE),
+                SqlStdOperatorTable.instance()))
         .withConnectionFactory(
             CalciteAssert.EMPTY_CONNECTION_FACTORY
                 .with(new CalciteAssert
@@ -326,9 +328,10 @@ public abstract class SqlOperatorBaseTest {
     return tester
         .withConformance(conformance)
         .withOperatorTable(
-            ChainedSqlOperatorTable.of(SqlDialectOperatorTableFactory
-                    .instance().getOperatorTable(SqlDialect.Dialect.ORACLE),
-                SqlStdOperatorTable.instance()))
+            ChainedSqlOperatorTable
+                .of(SqlDialectOperatorTableFactory
+                        .instance().getOperatorTable(SqlFlavor.Flavor.ORACLE),
+                    SqlStdOperatorTable.instance()))
         .withConnectionFactory(
             CalciteAssert.EMPTY_CONNECTION_FACTORY
                 .with(new CalciteAssert

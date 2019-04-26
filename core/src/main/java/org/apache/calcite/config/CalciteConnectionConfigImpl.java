@@ -23,8 +23,8 @@ import org.apache.calcite.model.JsonSchema;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.fun.SqlDialect;
 import org.apache.calcite.sql.fun.SqlDialectOperatorTableFactory;
+import org.apache.calcite.sql.fun.SqlFlavor;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -112,7 +112,7 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     case "oracle":
       tables.add(SqlDialectOperatorTableFactory
           .instance()
-          .getOperatorTable(SqlDialect.Dialect.ORACLE));
+          .getOperatorTable(SqlFlavor.Flavor.ORACLE));
       return;
     case "spatial":
       tables.add(

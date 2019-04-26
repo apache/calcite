@@ -24,17 +24,19 @@ import java.lang.annotation.Target;
 /**
  * An annotation used by {@link SqlDialectOperatorTableFactory} to mark which sql dialects
  * a sql function belongs to.
+ *
+ * <p>We name it SqlFlavor cause there is already a class {@link org.apache.calcite.sql.SqlDialect}.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
-public @interface SqlDialect {
+public @interface SqlFlavor {
 
   /** Supported sql dialects for the annotation. */
-  enum Dialect {
+  enum Flavor {
     MYSQL, ORACLE, POSTGRES
   }
 
-  Dialect[] dialects(); // The dialects must be an array and never null.
+  Flavor[] flavors(); // The flavors must be an array and never null.
 }
 
-// End SqlDialect.java
+// End SqlFlavor.java
