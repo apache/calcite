@@ -925,6 +925,21 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertUniqueConsistent(rel);
   }
 
+  @Test public void testFullOuterJoinUniqueness1() {
+    final String sql = "select e.empno, d.deptno \n"
+        + "from (select cast(null as int) empno from sales.emp "
+        + " where empno = 10 group by cast(null as int)) as e \n"
+        + "full outer join (select cast (null as int) deptno from sales.dept "
+        + "group by cast(null as int)) as d on e.empno = d.deptno \n"
+        + "group by e.empno, d.deptno";
+    RelNode rel = convertSql(sql);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final ImmutableBitSet allCols =
+        ImmutableBitSet.range(0, rel.getRowType().getFieldCount());
+    Boolean areGroupByKeysUnique = mq.areColumnsUnique(rel.getInput(0), allCols);
+    assertThat(areGroupByKeysUnique, is(false));
+  }
+
   @Test public void testGroupBy() {
     RelNode rel = convertSql("select deptno, count(*), sum(sal) from emp\n"
             + "group by deptno");
