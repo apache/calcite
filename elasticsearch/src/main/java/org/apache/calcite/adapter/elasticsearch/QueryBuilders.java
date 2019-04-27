@@ -138,6 +138,10 @@ class QueryBuilders {
     return new RangeQueryBuilder(name);
   }
 
+  static WildcardQueryBuilder wildcardQuery(String name, String wildcard) {
+    return new WildcardQueryBuilder(name, wildcard);
+  }
+
   /**
    * A Query that matches documents containing terms with a specified regular expression.
    *
@@ -401,6 +405,52 @@ class QueryBuilders {
       generator.writeEndObject();
       generator.writeEndObject();
       generator.writeEndObject();
+    }
+  }
+
+  /**
+   * A Query that does fuzzy matching for a specific value.
+   * It is equivalent to a wildcard search in Elasticsearch.
+   *
+   * <p>Attention:
+   * In Elasticsearch, the wildcard searches for the contents of the inverted index table,
+   * so the behavior is different for fields of type text and field type of keyword:
+   * 1.If the field type is keyword, es will index the entire field content,
+   * so the es wildcard search behavior is the same as sql's like.
+   * 2.If the field type is text, the content of the field will be saved into the index
+   * table after being segmented. So in this case, the es wildcard search is different
+   * from the like search in sql. In fact, at this time we recommend using full-text search
+   * instead of wildcard search.
+   *
+   */
+  static class WildcardQueryBuilder extends QueryBuilder {
+
+    private final String fieldName;
+    private final String value;
+
+    WildcardQueryBuilder(String fieldName, String value) {
+      this.fieldName = fieldName;
+      this.value = transformValue(value);
+    }
+
+    @Override void writeJson(JsonGenerator generator) throws IOException {
+      generator.writeStartObject();
+      generator.writeFieldName("wildcard");
+      generator.writeStartObject();
+      generator.writeFieldName(fieldName);
+      writeObject(generator, value);
+      generator.writeEndObject();
+      generator.writeEndObject();
+    }
+
+    // The symbols % and _ in sql are equivalent to the symbols * and ? in es, respectively.
+    private String transformValue(String value) {
+      if (value != null) {
+        value = value
+                .replaceAll("%", "*")
+                .replaceAll("_", "?");
+      }
+      return value;
     }
   }
 

@@ -220,6 +220,33 @@ public class ElasticSearchAdapterTest {
                 "size: 3"));
   }
 
+  @Test public void testLike() {
+    CalciteAssert.that()
+            .with(newConnectionFactory())
+            .query("select city from zips where city like '%RID%'")
+            .returnsCount(3);
+
+    CalciteAssert.that()
+            .with(newConnectionFactory())
+            .query("select city from zips where city not like '%RID%'")
+            .returnsCount(146);
+
+    CalciteAssert.that()
+            .with(newConnectionFactory())
+            .query("select city from zips where city like '%ON'")
+            .returnsCount(14);
+
+    CalciteAssert.that()
+            .with(newConnectionFactory())
+            .query("select city from zips where city like 'NEW YORK'")
+            .returnsCount(1);
+
+    CalciteAssert.that()
+            .with(newConnectionFactory())
+            .query("select city from zips where city like '_EW YO_K'")
+            .returnsCount(1);
+  }
+
   /**
    * Throws {@code AssertionError} if result set is not sorted by {@code column}.
    * {@code null}s are ignored.

@@ -48,8 +48,8 @@ import java.util.stream.Collectors;
 import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.boolQuery;
 import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.existsQuery;
 import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.rangeQuery;
-import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.regexpQuery;
 import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.termQuery;
+import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.wildcardQuery;
 
 import static java.lang.String.format;
 
@@ -349,7 +349,7 @@ class PredicateAnalyzer {
 
       switch (call.getKind()) {
       case LIKE:
-        throw new UnsupportedOperationException("LIKE not yet supported");
+        return QueryExpression.create(pair.getKey()).like(pair.getValue());
       case EQUALS:
         return QueryExpression.create(pair.getKey()).equals(pair.getValue());
       case NOT_EQUALS:
@@ -736,7 +736,7 @@ class PredicateAnalyzer {
     }
 
     @Override public QueryExpression like(LiteralExpression literal) {
-      builder = regexpQuery(getFieldReference(), literal.stringValue());
+      builder = wildcardQuery(getFieldReference(), literal.stringValue());
       return this;
     }
 
@@ -744,7 +744,7 @@ class PredicateAnalyzer {
       builder = boolQuery()
               // NOT LIKE should return false when field is NULL
               .must(existsQuery(getFieldReference()))
-              .mustNot(regexpQuery(getFieldReference(), literal.stringValue()));
+              .mustNot(wildcardQuery(getFieldReference(), literal.stringValue()));
       return this;
     }
 
