@@ -55,12 +55,6 @@ class RexCopier extends RexShuttle {
         over.isDistinct(), over.ignoreNulls());
   }
 
-  public RexWindow visitWindow(RexWindow window) {
-    // Since every other methods create a new instance of a RexNode,
-    // it is safe to use this method in super class.
-    return super.visitWindow(window);
-  }
-
   public RexNode visitCall(final RexCall call) {
     final boolean[] update = null;
     return builder.makeCall(copy(call.getType()),
