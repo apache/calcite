@@ -882,6 +882,36 @@ LogicalProject(UNIT_LENGTH=[CHAR_LENGTH($3)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testGroupByNestedColumn">
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(X=[$1], A=[$0], EXPR$2=[$2])
+  LogicalAggregate(group=[{0, 1}], EXPR$2=[AVG($2)])
+    LogicalProject(A=[$5.SUB.A], X=[$4.X], $f2=[$4.Y])
+      LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testGroupingSetsWithNestedColumn">
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(X=[$1], unit=[$2], A=[$0], EXPR$3=[$3])
+  LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {1, 2}]], EXPR$3=[AVG($3)])
+    LogicalProject(A=[$5.SUB.A], X=[$4.X], unit=[$4.unit], $f3=[$4.Y])
+      LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testGroupByCubeWithNestedColumn">
+    <Resource name="plan">
+    <![CDATA[
+LogicalProject(X=[$1], unit=[$2], A=[$0], EXPR$3=[$3])
+  LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {0, 1}, {0, 2}, {0}, {1, 2}, {1}, {2}, {}]], EXPR$3=[AVG($3)])
+    LogicalProject(A=[$5.SUB.A], X=[$4.X], unit=[$4.unit], $f3=[$4.Y])
+      LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+]]>
+    </Resource>
+    </TestCase>
     <TestCase name="testDynamicSchemaUnnest">
         <Resource name="sql">
             <![CDATA[select t1.c_nationkey, t3.fake_col3

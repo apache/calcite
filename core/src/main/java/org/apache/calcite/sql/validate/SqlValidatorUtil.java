@@ -836,7 +836,7 @@ public class SqlValidatorUtil {
       SqlIdentifier expr = (SqlIdentifier) expandedGroupExpr;
 
       // column references should be fully qualified.
-      assert expr.names.size() == 2;
+      assert expr.names.size() >= 2;
       String originalRelName = expr.names.get(0);
       String originalFieldName = expr.names.get(1);
 
