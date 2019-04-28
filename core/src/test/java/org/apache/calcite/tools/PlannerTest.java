@@ -70,6 +70,7 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.test.SqlTests;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -98,6 +99,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -702,6 +704,23 @@ public class PlannerTest {
             + "  EnumerableProject(empid=[$0], deptno=[$1])\n"
             + "    EnumerableTableScan(table=[[hr, emps]])\n"));
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3029">[CALCITE-3029]
+   * Java-oriented field type is wrongly forced to be NOT NULL after being converted to
+   * SQL-oriented</a>. */
+  @Test public void testInsertSourceRelTypeWithNullValues() throws Exception {
+    Planner planner = getPlanner(null, Programs.standard());
+    SqlNode parse = planner.parse(
+        "insert into \"emps\" values(1, 1, null, 1, 1)");
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.rel(validate).rel;
+    RelDataType insertSourceType = convert.getInput(0).getRowType();
+    String typeString = SqlTests.getTypeString(insertSourceType);
+    assertEquals("RecordType(INTEGER NOT NULL empid, INTEGER NOT NULL deptno, VARCHAR name, "
+            + "REAL NOT NULL salary, INTEGER commission) NOT NULL", typeString);
+  }
+
 
   /** Unit test that parses, validates, converts and plans. Planner is
    * provided with a list of RelTraitDefs to register. */
