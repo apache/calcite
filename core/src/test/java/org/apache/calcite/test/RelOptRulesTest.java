@@ -2120,42 +2120,6 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "where e.deptno = d.deptno");
   }
 
-  @Test public void testRemoveSemiJoin1() {
-    final HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(SubQueryRemoveRule.PROJECT)
-        .addRuleInstance(SubQueryRemoveRule.FILTER)
-        .addRuleInstance(SubQueryRemoveRule.JOIN)
-        .addRuleInstance(SemiJoinRule.PROJECT)
-        .addRuleInstance(SemiJoinRemoveRule.JOIN)
-        .addRuleInstance(SemiJoinRemoveRule.PROJECT)
-        .build();
-    final String sql = "select deptno\n"
-        + "from EMP e\n"
-        + "where deptno in (select deptno\n"
-        + "from EMP where empno=e.empno+1)";
-
-    sql(sql).with(program).expand(false)
-        .withDecorrelation(false).withLateDecorrelation(true).check();
-  }
-
-  @Test public void testRemoveSemiJoin2() {
-    final HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(SubQueryRemoveRule.PROJECT)
-        .addRuleInstance(SubQueryRemoveRule.FILTER)
-        .addRuleInstance(SubQueryRemoveRule.JOIN)
-        .addRuleInstance(SemiJoinRule.PROJECT)
-        .addRuleInstance(SemiJoinRemoveRule.JOIN)
-        .addRuleInstance(SemiJoinRemoveRule.PROJECT)
-        .build();
-    final String sql = "select deptno\n"
-        + "from EMP e\n"
-        + "where deptno in (select deptno\n"
-        + "from EMP where empno>e.empno)";
-
-    sql(sql).with(program).expand(false)
-        .withDecorrelation(false).withLateDecorrelation(true).check();
-  }
-
   @Test public void testRemoveSemiJoinWithFilter() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)

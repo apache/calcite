@@ -2298,11 +2298,52 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * SqlToRelConverter generates complicated logical plan for in subquery
    * with non-equi condition</a>.
    */
-  @Test public void testSubQueryIN() {
+  @Test public void testInSubqueryWithNonEqualCondition() {
     final String sql = "select deptno\n"
         + "from EMP e\n"
         + "where deptno in (select deptno\n"
         + "from EMP where empno=e.empno+1)";
+    sql(sql).ok();
+  }
+
+  /**
+   * Same as testSubQueryIN but with join condition empno=1+e.empno.
+   */
+  @Test public void testInSubqueryWithNonEqualCondition1() {
+    final String sql = "select deptno\n"
+        + "from EMP e\n"
+        + "where deptno in (select deptno\n"
+        + "from EMP where empno=1+e.empno)";
+    sql(sql).ok();
+  }
+
+  /**
+   * Same as testSubQueryIN but with join condition empno=e.empno-1.
+   */
+  @Test public void testInSubqueryWithNonEqualCondition2() {
+    final String sql = "select deptno\n"
+        + "from EMP e\n"
+        + "where deptno in (select deptno\n"
+        + "from EMP where empno=e.empno-1)";
+    sql(sql).ok();
+  }
+
+  /**
+   * Same as testSubQueryIN but with join condition empno=1-e.empno.
+   */
+  @Test public void testInSubqueryWithNonEqualCondition3() {
+    final String sql = "select deptno\n"
+        + "from EMP e\n"
+        + "where deptno in (select deptno\n"
+        + "from EMP where empno=1-e.empno)";
+    sql(sql).ok();
+  }
+
+  @Test public void testInSubqueryWithNonEqualCondition4() {
+    final String sql = "select deptno "
+        + "from dept d "
+        + "where deptno in (select deptno "
+        + "from EMP where empno=d.deptno+1)";
     sql(sql).ok();
   }
 

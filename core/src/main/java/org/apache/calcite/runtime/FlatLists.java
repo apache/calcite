@@ -454,14 +454,21 @@ public class FlatLists {
       }
       if (o instanceof Flat2List) {
         Flat2List that = (Flat2List) o;
-        return Objects.equals(this.t0, that.t0)
-            && Objects.equals(this.t1, that.t1);
+        return equalAny(this.t0, that.t0)
+            && equalAny(this.t1, that.t1);
       }
       if (o instanceof List) {
         List lo = (List) o;
         return lo.size() == 2 && o.equals(this);
       }
       return false;
+    }
+
+    // Short.valueOf("123") should equals to Integer.valueOf("123").
+    private boolean equalAny(Object v0, Object v1) {
+      return v0 != null && v1 != null
+          ? SqlFunctions.eqAny(v0, v1)
+          : Objects.equals(v0, v1);
     }
 
     public int hashCode() {

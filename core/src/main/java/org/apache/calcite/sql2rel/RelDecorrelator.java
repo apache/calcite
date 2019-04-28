@@ -53,8 +53,6 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.FilterCorrelateRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
-import org.apache.calcite.rel.rules.SemiJoinRemoveRule;
-import org.apache.calcite.rel.rules.SemiJoinRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -265,8 +263,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
               new FilterJoinRule.JoinConditionPushRule(
                   f,
                   FilterJoinRule.TRUE_PREDICATE))
-          .addRuleInstance(SemiJoinRule.PROJECT)
-          .addRuleInstance(SemiJoinRemoveRule.PROJECT)
           .build();
 
       final HepPlanner planner2 = createPlanner(program2);
@@ -951,6 +947,13 @@ public class RelDecorrelator implements ReflectiveVisitor {
       if (references(operands.get(1), correlation)) {
         throw new Util.FoundOne(operands.get(0));
       }
+      RexNode equiv = references2(operands.get(0), operands.get(1), correlation);
+      if (equiv == null) {
+        equiv = references2(operands.get(1), operands.get(0), correlation);
+      }
+      if (equiv != null) {
+        throw new Util.FoundOne(equiv);
+      }
       break;
     case AND:
       for (RexNode operand : ((RexCall) e).getOperands()) {
@@ -979,6 +982,63 @@ public class RelDecorrelator implements ReflectiveVisitor {
     default:
       return false;
     }
+  }
+
+  /**
+   * Check if there is correlate variable reference in the EQUALS call operand's operands.
+   * Only supports (+, -) operators now.
+   *
+   * Saying we have expression a = $b + 1, the equivalent expr for $b is (a - 1), the whole
+   * inferring logic is:
+   *
+   * <pre>
+   *   a = $b + 1 &rarr; $b = a - 1
+   *   a = 1 + $b &rarr; $b = a - 1
+   *   a = $b - 1 &rarr; $b = a + 1
+   *   a = 1 - $b &rarr; $b = 1 - a
+   * </pre>
+   *
+   * We do not support * and / inferences because divided by 0 is invalid.
+   *
+   * @param equi        The EQUALS operator operand that do not have this
+   *                    correlation reference
+   * @param e           The EQUALS operator operand that expects to
+   *                    reference this correlation
+   * @param correlation The correlation
+   * @return            The equivalent expression for this correlation
+   */
+  private RexNode references2(RexNode equi, RexNode e, CorRef correlation) {
+    final SqlKind kind = e.getKind();
+    // Only supports +, -, *, / operators.
+    if (kind != SqlKind.PLUS
+        && kind != SqlKind.MINUS
+        && kind != SqlKind.TIMES
+        && kind != SqlKind.DIVIDE) {
+      return null;
+    }
+    final RexNode operand0 = ((RexCall) e).getOperands().get(0);
+    final RexNode operand1 = ((RexCall) e).getOperands().get(1);
+    switch (e.getKind()) {
+    case PLUS:
+      if (references(operand0, correlation)) {
+        return relBuilder.call(SqlStdOperatorTable.MINUS, equi, operand1);
+      }
+      if (references(operand1, correlation)) {
+        return relBuilder.call(SqlStdOperatorTable.MINUS, equi, operand0);
+      }
+      break;
+    case MINUS:
+      if (references(operand0, correlation)) {
+        return relBuilder.call(SqlStdOperatorTable.PLUS, equi, operand1);
+      }
+      if (references(operand1, correlation)) {
+        return relBuilder.call(SqlStdOperatorTable.MINUS, operand0, equi);
+      }
+      break;
+    default:
+      // fall through
+    }
+    return null;
   }
 
   /** Returns whether one type is just a widening of another.
@@ -1036,20 +1096,23 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     // If this Filter has correlated reference, create value generator
     // and produce the correlated variables in the new output.
-    if (false) {
-      if (cm.mapRefRelToCorRef.containsKey(rel)) {
-        frame = decorrelateInputWithValueGenerator(rel, frame);
-      }
-    } else {
-      frame = maybeAddValueGenerator(rel, frame);
-    }
+    frame = maybeAddValueGenerator(rel, frame);
 
     final CorelMap cm2 = new CorelMapBuilder().build(rel);
+    final RexNode newCondition = decorrelateExpr(currentRel, map, cm2, rel.getCondition());
 
-    // Replace the filter expression to reference output of the join
-    // Map filter to the new filter over join
-    relBuilder.push(frame.r)
-        .filter(decorrelateExpr(currentRel, map, cm2, rel.getCondition()));
+    if (RexUtil.simplifyCondition(relBuilder.getRexBuilder(),
+        newCondition,
+        frame.r).isAlwaysTrue()) {
+      // If the filer condition is always true, replace the filter expression
+      // to the new reference output
+      relBuilder.push(frame.r);
+    } else {
+      // Replace the filter expression to reference output of the join
+      // Map filter to the new filter over join
+      relBuilder.push(frame.r)
+          .filter(newCondition);
+    }
 
     // Filter does not change the input ordering.
     // Filter rel does not permute the input.

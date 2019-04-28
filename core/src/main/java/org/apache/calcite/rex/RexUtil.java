@@ -22,9 +22,11 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
@@ -450,6 +452,129 @@ public class RexUtil {
       }
     }
     return false;
+  }
+
+  /**
+   * Simplify the condition to replace the always true condition to RelLiteral true. This is
+   * different with constant reduction cause we do not really make some computation,
+   * the equivalence completely depends on the
+   * RexCall's digest(operator name and operands sequence).
+   *
+   * Supported patterns:
+   * <pre>
+   *   f0 = f0           &rarr; true
+   *   f0 = f0 + 1 - 1   &rarr; true
+   *   f0 = f0 - 1 + 1   &rarr; true
+   *   f0 = f0 AND expr2 &rarr; expr2
+   *   f0 = f0 OR expr2  &rarr; true
+   * </pre>
+   *
+   * @param rexBuilder builder to construct auxiliary RexCall
+   * @param condition  the condition to simplify
+   * @param r          the RelNode this condition applies on,
+   *                   r should always expect to be a Project
+   * @return simplified condition, returns the old condition if nothing simplified
+   */
+  public static RexNode simplifyCondition(RexBuilder rexBuilder, RexNode condition, RelNode r) {
+    if (!(condition instanceof RexCall)
+        || ((RexCall) condition).getOperands().size() != 2) {
+      // Only supports binary RexCall like EQUALS, AND, OR
+      return condition;
+    }
+    final RexNode operand0 = ((RexCall) condition).getOperands().get(0);
+    final RexNode operand1 = ((RexCall) condition).getOperands().get(1);
+
+    if (!(r instanceof LogicalProject)) {
+      return condition;
+    }
+    final List<RexNode> projects = ((LogicalProject) r).getProjects();
+    switch (condition.getKind()) {
+    case EQUALS:
+      if (operand0.equals(operand1)) {
+        return rexBuilder.makeLiteral(true);
+      }
+      final RexNode newExpr = condition.accept(new InputRefReplacer(projects));
+      final RexNode newOperand0 = ((RexCall) newExpr).getOperands().get(0);
+      final RexNode newOperand1 = ((RexCall) newExpr).getOperands().get(1);
+      if (newOperand0.getKind() == SqlKind.PLUS || newOperand0.getKind() == SqlKind.MINUS) {
+        return simplifyConditionInternal(rexBuilder, newOperand1, newOperand0, condition);
+      }
+      if (newOperand1.getKind() == SqlKind.PLUS || newOperand1.getKind() == SqlKind.MINUS) {
+        return simplifyConditionInternal(rexBuilder, newOperand0, newOperand1, condition);
+      }
+      break;
+    case AND: {
+      final RexNode left = ((RexCall) condition).getOperands().get(0);
+      final RexNode right = ((RexCall) condition).getOperands().get(1);
+      final RexNode left1 = simplifyCondition(rexBuilder, left, r);
+      final RexNode right1 = simplifyCondition(rexBuilder, right, r);
+      if (left1.isAlwaysTrue()) {
+        return right1;
+      }
+      if (right1.isAlwaysTrue()) {
+        return left1;
+      }
+      break;
+    }
+    case OR: {
+      final RexNode left = ((RexCall) condition).getOperands().get(0);
+      final RexNode right = ((RexCall) condition).getOperands().get(1);
+      final RexNode left1 = simplifyCondition(rexBuilder, left, r);
+      final RexNode right1 = simplifyCondition(rexBuilder, right, r);
+      if (left1.isAlwaysTrue() || right1.isAlwaysTrue()) {
+        return rexBuilder.makeLiteral(true);
+      }
+      break;
+    }
+    }
+    return condition;
+  }
+
+  private static RexNode simplifyConditionInternal(RexBuilder builder, RexNode equiv,
+      RexNode operand, RexNode condition) {
+    assert operand.getKind() == SqlKind.PLUS || operand.getKind() == SqlKind.MINUS;
+    final RexNode operand0 = ((RexCall) operand).getOperands().get(0);
+    final RexNode operand1 = ((RexCall) operand).getOperands().get(1);
+    switch (operand.getKind()) {
+    case PLUS:
+      if (operand0.equals(builder
+          .makeCall(SqlStdOperatorTable.MINUS, equiv, operand1))
+          || operand1.equals(builder
+          .makeCall(SqlStdOperatorTable.MINUS, equiv, operand0))) {
+        return builder.makeLiteral(true);
+      } else {
+        return condition;
+      }
+    case MINUS:
+      if (operand0.equals(builder
+          .makeCall(SqlStdOperatorTable.PLUS, equiv, operand1))
+          || operand0.equals(builder
+          .makeCall(SqlStdOperatorTable.PLUS, operand1, equiv))
+          || operand1.equals(builder
+          .makeCall(SqlStdOperatorTable.MINUS, operand0, equiv))) {
+        return builder.makeLiteral(true);
+      } else {
+        return condition;
+      }
+    default:
+      return condition;
+    }
+  }
+
+  /**
+   * Replace all the InputRef to the replacing nodes.
+   */
+  private static class InputRefReplacer extends RexShuttle {
+    private final List<RexNode> nodes;
+
+    InputRefReplacer(List<RexNode> nodes) {
+      this.nodes = nodes;
+    }
+
+    @Override public RexNode visitInputRef(RexInputRef inputRef) {
+      assert inputRef.getIndex() < nodes.size();
+      return nodes.get(inputRef.getIndex());
+    }
   }
 
   /**

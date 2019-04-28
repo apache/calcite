@@ -2031,6 +2031,38 @@ EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t1])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+# Test in subquery with non-equi join condition
+select deptno from emp e where deptno in (select deptno from EMP where empno=e.deptno+1);
+ DEPTNO
+--------
+(0 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], DEPTNO=[$t1])
+  EnumerableSemiJoin(condition=[AND(=($1, $3), =($1, $2))], joinType=[inner])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t0):INTEGER NOT NULL], expr#9=[1], expr#10=[-($t8, $t9)], DEPTNO=[$t7], $f8=[$t10])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test in subquery with non-equi join condition
+select deptno from EMP e where deptno in (select deptno from EMP where empno=e.empno+22);
+ DEPTNO
+--------
+     30
+(1 row)
+
+!ok
+EnumerableCalc(expr#0..1=[{inputs}], DEPTNO=[$t1])
+  EnumerableSemiJoin(condition=[AND(=($0, $3), =($1, $2))], joinType=[inner])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t0):INTEGER NOT NULL], expr#9=[22], expr#10=[-($t8, $t9)], DEPTNO=[$t7], $f8=[$t10])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 !use scott
 
 # [CALCITE-1513] Correlated NOT IN query throws AssertionError
@@ -2054,13 +2086,8 @@ EnumerableAggregate(group=[{}], C=[COUNT()])
           EnumerableTableScan(table=[[scott, EMP]])
         EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1:BIGINT], expr#4=[IS NOT NULL($t1)], DNAME=[$t1], $f1=[$t3], $f2=[$t3], $condition=[$t4])
           EnumerableTableScan(table=[[scott, DEPT]])
-      EnumerableCalc(expr#0..4=[{inputs}], DEPTNO=[$t2], i=[$t3], DNAME=[$t4], SAL=[$t0])
-        EnumerableJoin(condition=[=($1, $2)], joinType=[inner])
-          EnumerableCalc(expr#0=[{inputs}], expr#1=[100], expr#2=[+($t0, $t1)], SAL=[$t0], $f1=[$t2])
-            EnumerableAggregate(group=[{5}])
-              EnumerableTableScan(table=[[scott, EMP]])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[IS NOT NULL($t1)], DEPTNO=[$t0], i=[$t3], DNAME=[$t1], $condition=[$t4])
-            EnumerableTableScan(table=[[scott, DEPT]])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[100], expr#5=[-($t0, $t4)], expr#6=[IS NOT NULL($t1)], DEPTNO=[$t0], i=[$t3], DNAME=[$t1], $f3=[$t5], $condition=[$t6])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # End sub-query.iq
