@@ -2679,6 +2679,66 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-3003">[CALCITE-3003]
+   * AssertionError when GROUP BY nested field</a>.
+   */
+  @Test
+  public void testGroupByNestedColumn() {
+    final String sql =
+        "select\n"
+            + "  coord.x,\n"
+            + "  coord_ne.sub.a,\n"
+            + "  avg(coord.y)\n"
+            + "from\n"
+            + "  customer.contact_peek\n"
+            + "group by\n"
+            + "  coord_ne.sub.a,\n"
+            + "  coord.x";
+    sql(sql).ok();
+  }
+
+  /**
+   * Similar to {@link #testGroupByNestedColumn()},
+   * but with grouping sets.
+   */
+  @Test
+  public void testGroupingSetsWithNestedColumn() {
+    final String sql =
+        "select\n"
+            + "  coord.x,\n"
+            + "  coord.\"unit\",\n"
+            + "  coord_ne.sub.a,\n"
+            + "  avg(coord.y)\n"
+            + "from\n"
+            + "  customer.contact_peek\n"
+            + "group by\n"
+            + "  grouping sets (\n"
+            + "    (coord_ne.sub.a, coord.x, coord.\"unit\"),\n"
+            + "    (coord.x, coord.\"unit\")\n"
+            + "  )";
+    sql(sql).ok();
+  }
+
+  /**
+   * Similar to {@link #testGroupByNestedColumn()},
+   * but with cube.
+   */
+  @Test
+  public void testGroupByCubeWithNestedColumn() {
+    final String sql =
+        "select\n"
+            + "  coord.x,\n"
+            + "  coord.\"unit\",\n"
+            + "  coord_ne.sub.a,\n"
+            + "  avg(coord.y)\n"
+            + "from\n"
+            + "  customer.contact_peek\n"
+            + "group by\n"
+            + "  cube (coord_ne.sub.a, coord.x, coord.\"unit\")";
+    sql(sql).ok();
+  }
+
   @Test public void testDynamicSchemaUnnest() {
     final String sql3 = "select t1.c_nationkey, t3.fake_col3\n"
         + "from SALES.CUSTOMER as t1,\n"
