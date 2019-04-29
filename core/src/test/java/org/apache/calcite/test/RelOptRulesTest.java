@@ -5133,6 +5133,20 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).withLateDecorrelation(true).check();
   }
 
+  @Test public void testSelectAnyCorrelated() {
+    final String sql = "select empno > ANY (\n"
+        + " select deptno from dept where emp.job = dept.name) \n"
+        + "from emp\n";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  @Test public void testWhereAnyCorrelatedInSelect() {
+    final String sql =
+        "select * from emp where empno > ANY (\n"
+            + " select deptno from dept where emp.job = dept.name) \n";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
   @Test public void testSomeWithEquality() {
     final String sql = "select * from emp e1\n"
         + "  where e1.deptno = SOME (select deptno from dept)";

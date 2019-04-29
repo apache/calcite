@@ -39,6 +39,7 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -93,7 +94,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     case SCALAR_QUERY:
       return rewriteScalarQuery(e, variablesSet, builder, inputCount, offset);
     case SOME:
-      return rewriteSome(e, builder);
+      return rewriteSome(e, variablesSet, builder);
     case IN:
       return rewriteIn(e, variablesSet, logic, builder, offset);
     case EXISTS:
@@ -138,7 +139,8 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
    *
    * @return Expression that may be used to replace the RexSubQuery
    */
-  private RexNode rewriteSome(RexSubQuery e, RelBuilder builder) {
+  private RexNode rewriteSome(RexSubQuery e, Set<CorrelationId> variablesSet,
+      RelBuilder builder) {
     // Most general case, where the left and right keys might have nulls, and
     // caller requires 3-valued logic return.
     //
@@ -161,31 +163,89 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     //
     final SqlQuantifyOperator op = (SqlQuantifyOperator) e.op;
 
-    // SOME_EQ (=SOME) should have been rewritten into IN
-    assert op != SqlStdOperatorTable.SOME_EQ;
-    builder.push(e.rel)
-        .aggregate(builder.groupKey(),
-            op.comparisonKind == SqlKind.GREATER_THAN
-                || op.comparisonKind == SqlKind.GREATER_THAN_OR_EQUAL
-                ? builder.min("m", builder.field(0))
-                : builder.max("m", builder.field(0)),
-            builder.count(false, "c"),
-            builder.count(false, "d", builder.field(0)))
-        .as("q")
-        .join(JoinRelType.INNER);
-    final RexNode caseRexNode = builder.call(SqlStdOperatorTable.CASE,
-        builder.call(SqlStdOperatorTable.EQUALS,
-            builder.field("q", "c"), builder.literal(0)),
-        builder.literal(false),
-        builder.call(SqlStdOperatorTable.IS_TRUE,
-            builder.call(RelOptUtil.op(op.comparisonKind, null),
-                e.operands.get(0), builder.field("q", "m"))),
-        builder.literal(true),
-        builder.call(SqlStdOperatorTable.GREATER_THAN,
-            builder.field("q", "c"), builder.field("q", "d")),
-        builder.literal(null),
-        builder.call(RelOptUtil.op(op.comparisonKind, null),
-            e.operands.get(0), builder.field("q", "m")));
+    // SOME_EQ & SOME_NE should have been rewritten into IN/ NOT IN
+    assert op == SqlStdOperatorTable.SOME_GE || op == SqlStdOperatorTable.SOME_LE
+        || op == SqlStdOperatorTable.SOME_LT || op == SqlStdOperatorTable.SOME_GT;
+
+    RexNode caseRexNode = null;
+    if (variablesSet.isEmpty()) {
+      // for non-correlated case queries such as
+      // select e.deptno, e.deptno < some (select deptno from emp) as v
+      // from emp as e
+      //
+      // becomes
+      //
+      // select e.deptno,
+      //   case
+      //   when q.c = 0 then false // sub-query is empty
+      //   when (e.deptno < q.m) is true then true
+      //   when q.c > q.d then unknown // sub-query has at least one null
+      //   else e.deptno < q.m
+      //   end as v
+      // from emp as e
+      // cross join (
+      //   select max(deptno) as m, count(*) as c, count(deptno) as d
+      //   from emp) as q
+      builder.push(e.rel).aggregate(builder.groupKey(), op.comparisonKind == SqlKind.GREATER_THAN
+              || op.comparisonKind == SqlKind.GREATER_THAN_OR_EQUAL ? builder
+              .min("m", builder.field(0)) : builder.max("m", builder.field(0)),
+          builder.count(false, "c"), builder.count(false, "d", builder.field(0))).as("q")
+          .join(JoinRelType.INNER);
+      caseRexNode = builder.call(SqlStdOperatorTable.CASE,
+          builder.call(SqlStdOperatorTable.EQUALS, builder.field("q", "c"), builder.literal(0)),
+          builder.literal(false), builder.call(SqlStdOperatorTable.IS_TRUE, builder
+              .call(RelOptUtil.op(op.comparisonKind, null), e.operands.get(0),
+                  builder.field("q", "m"))), builder.literal(true), builder
+              .call(SqlStdOperatorTable.GREATER_THAN, builder.field("q", "c"),
+                  builder.field("q", "d")),
+          e.rel.getCluster().getRexBuilder().makeNullLiteral(SqlTypeName.BOOLEAN), builder
+              .call(RelOptUtil.op(op.comparisonKind, null), e.operands.get(0),
+                  builder.field("q", "m")));
+    } else {
+      // for correlated case queries such as
+      // select e.deptno, e.deptno < some (select deptno from emp where emp.name = e.name) as v
+      // from emp as e
+      //
+      // becomes
+      //
+      // select e.deptno,
+      //   case
+      //   when indicator is null then false // sub-query is empty for corresponding corr value
+      //   when q.c = 0 then false // sub-query is empty
+      //   when (e.deptno < q.m) is true then true
+      //   when q.c > q.d then unknown // sub-query has at least one null
+      //   else e.deptno < q.m
+      //   end as v
+      // from emp as e
+      // left outer join (
+      //   select max(deptno) as m, count(*) as c, count(deptno) as d, "alwaysTrue" as indicator
+      //   group by name from emp) as q on e.name = q.name
+      builder.push(e.rel);
+      builder.aggregate(builder.groupKey(), op.comparisonKind == SqlKind.GREATER_THAN
+              || op.comparisonKind == SqlKind.GREATER_THAN_OR_EQUAL ? builder
+              .min("m", builder.field(0)) : builder.max("m", builder.field(0)),
+          builder.count(false, "c"), builder.count(false, "d", builder.field(0)));
+
+      final List<RexNode> parentQueryFields = new ArrayList<>();
+      parentQueryFields.addAll(builder.fields());
+      String indicator = "trueLiteral";
+      parentQueryFields.add(builder.alias(builder.literal(true), indicator));
+      builder.project(parentQueryFields).as("q");
+      builder.join(JoinRelType.LEFT, builder.literal(true), variablesSet);
+      caseRexNode = builder.call(SqlStdOperatorTable.CASE,
+          builder.call(SqlStdOperatorTable.IS_NULL, builder.field("q", indicator)),
+          builder.literal(false),
+          builder.call(SqlStdOperatorTable.EQUALS, builder.field("q", "c"), builder.literal(0)),
+          builder.literal(false), builder.call(SqlStdOperatorTable.IS_TRUE, builder
+              .call(RelOptUtil.op(op.comparisonKind, null), e.operands.get(0),
+                  builder.field("q", "m"))), builder.literal(true), builder
+              .call(SqlStdOperatorTable.GREATER_THAN, builder.field("q", "c"),
+                  builder.field("q", "d")),
+          e.rel.getCluster().getRexBuilder().makeNullLiteral(SqlTypeName.BOOLEAN), builder
+              .call(RelOptUtil.op(op.comparisonKind, null), e.operands.get(0),
+                  builder.field("q", "m")));
+    }
+
     // CASE statement above is created with nullable boolean type, but it might
     // not be correct.  If the original sub-query node's type is not nullable it
     // is guranteed for case statement to not produce NULLs. Therefore to avoid
