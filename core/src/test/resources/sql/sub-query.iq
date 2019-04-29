@@ -2063,4 +2063,70 @@ EnumerableAggregate(group=[{}], C=[COUNT()])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
+# Correlated ANY sub-query 
+select empno from "scott".emp as e 
+where e.empno > ANY(
+  select 2 from "scott".dept e2 where e2.deptno = e.deptno) ;
+EnumerableCalc(expr#0..6=[{inputs}], expr#7=[>($t0, $t2)], expr#8=[IS NULL($t5)], expr#9=[0], expr#10=[=($t3, $t9)], expr#11=[OR($t8, $t10)], expr#12=[IS NOT TRUE($t11)], expr#13=[AND($t7, $t12)], expr#14=[IS NOT TRUE($t7)], expr#15=[>($t3, $t4)], expr#16=[IS NOT TRUE($t15)], expr#17=[AND($t7, $t12, $t14, $t16)], expr#18=[OR($t13, $t17)], EMPNO=[$t0], $condition=[$t18])
+  EnumerableHashJoin(condition=[=($1, $6)], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[2], expr#4=[1:BIGINT], expr#5=[true], m=[$t3], c=[$t4], d=[$t4], trueLiteral=[$t5], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+ EMPNO
+-------
+  7369
+  7499
+  7521
+  7566
+  7654
+  7698
+  7782
+  7788
+  7839
+  7844
+  7876
+  7900
+  7902
+  7934
+(14 rows)
+
+!ok
+
+# # inner query produces empty result therefore ANY should produce 'false'
+select empno,
+e.deptno > ANY(
+  select 2 from "scott".dept e2 where e2.deptno = e.empno) from "scott".emp as e;
+
+EnumerableCalc(expr#0..6=[{inputs}], expr#7=[>($t1, $t2)], expr#8=[IS TRUE($t7)], expr#9=[IS NULL($t5)], expr#10=[0], expr#11=[=($t3, $t10)], expr#12=[OR($t9, $t11)], expr#13=[IS NOT TRUE($t12)], expr#14=[AND($t8, $t13)], expr#15=[>($t3, $t4)], expr#16=[IS TRUE($t15)], expr#17=[null:BOOLEAN], expr#18=[IS NOT TRUE($t7)], expr#19=[AND($t16, $t17, $t13, $t18)], expr#20=[IS NOT TRUE($t15)], expr#21=[AND($t7, $t13, $t18, $t20)], expr#22=[OR($t14, $t19, $t21)], EMPNO=[$t0], EXPR$1=[$t22])
+  EnumerableHashJoin(condition=[=($0, $6)], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], m=[$t1], c=[$t2], d=[$t3], trueLiteral=[$t4], DEPTNO0=[$t0])
+      EnumerableAggregate(group=[{0}], m=[MIN($1)], c=[COUNT()], d=[COUNT($1)])
+        EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):SMALLINT NOT NULL], expr#4=[2], DEPTNO0=[$t3], EXPR$0=[$t4])
+          EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+ EMPNO | EXPR$1
+-------+--------
+  7369 | false
+  7499 | false
+  7521 | false
+  7566 | false
+  7654 | false
+  7698 | false
+  7782 | false
+  7788 | false
+  7839 | false
+  7844 | false
+  7876 | false
+  7900 | false
+  7902 | false
+  7934 | false
+(14 rows)
+
+!ok
+
+
 # End sub-query.iq
