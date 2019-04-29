@@ -2043,15 +2043,24 @@ Note:
 | jsonValue IS JSON ARRAY           | Whether *jsonValue* is a JSON array
 | jsonValue IS NOT JSON ARRAY       | Whether *jsonValue* is not a JSON array
 
-#### MySQL Specific Operators
+### SQL Dialect Operators
+Sql dialect operators are only supported by specific sql dialects. One operator name may corresponds to multiple sql dialects, but with different semantics.
 
-| Operator syntax                   | Description
-|:--------------------------------- |:-----------
-| JSON_TYPE(jsonValue)              | Returns a string value indicating the type of a *jsonValue*
-| JSON_DEPTH(jsonValue)             | Returns an integer value indicating the depth of a *jsonValue*
-| JSON_PRETTY(jsonValue)            | Returns a pretty-printing of *jsonValue*
-| JSON_LENGTH(jsonValue [, path ])  | Returns a integer indicating the length of *jsonValue*
-| JSON_KEYS(jsonValue [, path ])    | Returns a string indicating the keys of a JSON *jsonValue*
+| Operator syntax                                      | Dialects        | Description
+|:---------------------------------------------------- |:--------------- |:-----------
+| JSON_TYPE(jsonValue)                                 | `MYSQL`         | Returns a string value indicating the type of a *jsonValue*
+| JSON_DEPTH(jsonValue)                                | `MYSQL`         | Returns an integer value indicating the depth of a *jsonValue*
+| JSON_PRETTY(jsonValue)                               | `MYSQL`         | Returns a pretty-printing of *jsonValue*
+| JSON_LENGTH(jsonValue [, path ])                     | `MYSQL`         | Returns a integer indicating the length of *jsonValue*
+| JSON_KEYS(jsonValue [, path ])                       | `MYSQL`         | Returns a string indicating the keys of a JSON *jsonValue*
+| DECODE(v, v1, result1, [v2, result2, ...], default)  | `ORACLE`        | DECODE compares *v* to each *v#* value one by one. If *v* is equal to a *v#*, then returns the corresponding *result#*. If no match is found, then returns *default*. If *default* is omitted, then returns null
+| NVL(v1, v2)                                          | `ORACLE`        | NVL lets you replace null (returned as a blank) with a string in the results of a query. If *v1* is null, then NVL returns *v2*. If *v1* is not null, then NVL returns *v1*
+| LTRIM(char)                                          | `ORACLE`        | LTRIM removes from the left end of *char* all of the blanks
+| RTRIM(char)                                          | `ORACLE`        | RTRIM removes from the right end of *char* all of the blanks
+| SUBSTR(char, position [, substring_length ])         | `ORACLE`        | SUBSTR returns a portion of *char*, beginning at character *position*, *substring_length* characters long. SUBSTR calculates lengths using characters as defined by the input character set
+| GREATEST(expr1 [, expr2, ... ])                      | `ORACLE`        | GREATEST returns the greatest of the list of one or more expressions
+| LEAST(expr1 [, expr2, ... ])                         | `ORACLE`        | LEAST returns the least of the list of exprs
+| TRANSLATE3(expr, from_string, to_string)             | `ORACLE`        | TRANSLATE returns *expr* with all occurrences of each character in *from_string* replaced by its corresponding character in *to_string*. Characters in *expr* that are not in *from_string* are not replaced
 
 Note:
 
@@ -2154,6 +2163,42 @@ LIMIT 10;
 | c1         | c2   | c3    | c4   | c5   |
 | ---------- | ---- | ----- | ---- | ---- |
 | ["a", "b"] | NULL | ["c"] | NULL | NULL |
+
+#### DECODE example
+
+SQL
+
+```SQL
+SELECT DECODE (f1, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c1
+, DECODE (f2, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c2
+, DECODE (f3, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c3
+, DECODE (f4, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c4
+, DECODE (f5, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c5
+FROM (VALUES (1, 2, 3, 4, 5)) AS t(f1, f2, f3, f4, f5);
+
+```
+ Result
+
+| c1          | c2          | c3          | c4          | c5          |
+| ----------- | ----------- | ----------- | ----------- | ----------- |
+| aa          | bb          | cc          | dd          | ee          |
+
+#### TRANSLATE3 example
+
+SQL
+
+```SQL
+SELECT TRANSLATE3('Aa*Bb*Cc''D*d', ' */''%', '_') as c1
+, TRANSLATE3('Aa/Bb/Cc''D/d', ' */''%', '_') as c2
+, TRANSLATE3('Aa Bb Cc''D d', ' */''%', '_') as c3
+, TRANSLATE3('Aa%Bb%Cc''D%d', ' */''%', '_') as c4
+FROM (VALUES (true)) AS t(f0);
+```
+ Result
+ 
+| c1          | c2          | c3          | c4          |
+| ----------- | ----------- | ----------- | ----------- |
+| Aa_Bb_CcD_d | Aa_Bb_CcD_d | Aa_Bb_CcD_d | Aa_Bb_CcD_d |
 
 Not implemented:
 
