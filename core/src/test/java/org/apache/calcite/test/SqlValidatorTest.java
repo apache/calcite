@@ -5197,6 +5197,24 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s)Cannot apply '\\+' to arguments of type.*");
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-3003">[CALCITE-3003]
+   * AssertionError when GROUP BY nested field</a>.
+   */
+  @Test
+  public void testInvalidGroupBy4() {
+    final String sql =
+        "select\n"
+            + "  coord.x,\n"
+            + "  avg(coord.y)\n"
+            + "from\n"
+            + "  customer.contact_peek\n"
+            + "group by\n"
+            + "  ^unknown_table_alias.coord^.x";
+    sql(sql)
+        .fails("Table 'UNKNOWN_TABLE_ALIAS.COORD' not found");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1781">[CALCITE-1781]
    * Allow expression in CUBE and ROLLUP</a>. */
