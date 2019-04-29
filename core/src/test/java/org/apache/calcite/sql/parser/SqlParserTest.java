@@ -3791,6 +3791,29 @@ public class SqlParserTest {
         .node(not(isDdl()));
   }
 
+  /** Same as testMergeSelectSource but set with compound identifier. */
+  @Test public void testMergeSelectSource2() {
+    final String sql = "merge into emps e "
+        + "using (select * from tempemps where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set e.name = t.name, e.deptno = t.deptno, e.salary = t.salary * .1 "
+        + "when not matched then insert (name, dept, salary) "
+        + "values(t.name, 10, t.salary * .15)";
+    final String expected = "MERGE INTO `EMPS` AS `E`\n"
+        + "USING (SELECT *\n"
+        + "FROM `TEMPEMPS`\n"
+        + "WHERE (`DEPTNO` IS NULL)) AS `T`\n"
+        + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
+        + "WHEN MATCHED THEN UPDATE SET `E`.`NAME` = `T`.`NAME`\n"
+        + ", `E`.`DEPTNO` = `T`.`DEPTNO`\n"
+        + ", `E`.`SALARY` = (`T`.`SALARY` * 0.1)\n"
+        + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
+        + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
+    sql(sql).ok(expected)
+        .node(not(isDdl()));
+  }
+
   @Test public void testMergeTableRefSource() {
     check(
         "merge into emps e "
@@ -3807,6 +3830,27 @@ public class SqlParserTest {
             + "WHEN MATCHED THEN UPDATE SET `NAME` = `T`.`NAME`\n"
             + ", `DEPTNO` = `T`.`DEPTNO`\n"
             + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
+            + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
+            + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))");
+  }
+
+  /** Same with testMergeTableRefSource but set with compound identifier. */
+  @Test public void testMergeTableRefSource2() {
+    check(
+        "merge into emps e "
+            + "using tempemps as t "
+            + "on e.empno = t.empno "
+            + "when matched then update "
+            + "set e.name = t.name, e.deptno = t.deptno, e.salary = t.salary * .1 "
+            + "when not matched then insert (name, dept, salary) "
+            + "values(t.name, 10, t.salary * .15)",
+
+        "MERGE INTO `EMPS` AS `E`\n"
+            + "USING `TEMPEMPS` AS `T`\n"
+            + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
+            + "WHEN MATCHED THEN UPDATE SET `E`.`NAME` = `T`.`NAME`\n"
+            + ", `E`.`DEPTNO` = `T`.`DEPTNO`\n"
+            + ", `E`.`SALARY` = (`T`.`SALARY` * 0.1)\n"
             + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
             + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))");
   }

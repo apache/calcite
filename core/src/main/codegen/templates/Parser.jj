@@ -1500,7 +1500,7 @@ SqlUpdate WhenMatchedClause(SqlNode table, SqlIdentifier alias) :
 }
 {
     <WHEN> { s = span(); } <MATCHED> <THEN>
-    <UPDATE> <SET> id = SimpleIdentifier() {
+    <UPDATE> <SET> id = CompoundIdentifier() {
         updateColumnList.add(id);
     }
     <EQ> exp = Expression(ExprContext.ACCEPT_SUB_QUERY) {
@@ -1508,7 +1508,7 @@ SqlUpdate WhenMatchedClause(SqlNode table, SqlIdentifier alias) :
     }
     (
         <COMMA>
-        id = SimpleIdentifier() {
+        id = CompoundIdentifier() {
             updateColumnList.add(id);
         }
         <EQ> exp = Expression(ExprContext.ACCEPT_SUB_QUERY) {
