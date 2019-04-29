@@ -297,6 +297,15 @@ public class CsvTest {
         .returns("EMPNO=130; GENDER=F; NAME=Alice").ok();
   }
 
+  /** Filter that can be slightly handled by CsvFilterableTable. */
+  @Test public void testFilterableWhere3() throws SQLException {
+    final String sql = "select empno, gender, name from EMPS\n"
+            + " where gender <> 'M' and empno > 125";
+    sql("filterable-model", sql)
+        .returns("EMPNO=130; GENDER=F; NAME=Alice")
+        .ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2272">[CALCITE-2272]
    * Incorrect result for {@code name like '%E%' and city not like '%W%'}</a>.
