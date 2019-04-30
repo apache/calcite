@@ -5200,9 +5200,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   /**
    * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-3003">[CALCITE-3003]
    * AssertionError when GROUP BY nested field</a>.
+   *
+   * <p>Make sure table name of GROUP BY item could be properly validated.
    */
   @Test
-  public void testInvalidGroupBy4() {
+  public void testInvalidGroupByWithInvalidTableName() {
     final String sql =
         "select\n"
             + "  coord.x,\n"
