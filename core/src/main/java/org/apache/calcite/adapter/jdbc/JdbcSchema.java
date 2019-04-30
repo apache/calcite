@@ -17,7 +17,9 @@
 package org.apache.calcite.adapter.jdbc;
 
 import org.apache.calcite.avatica.AvaticaUtils;
+import org.apache.calcite.avatica.MetaImpl;
 import org.apache.calcite.avatica.SqlType;
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -36,23 +38,29 @@ import org.apache.calcite.sql.SqlDialectFactory;
 import org.apache.calcite.sql.SqlDialectFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Ordering;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiFunction;
 import javax.sql.DataSource;
 
 /**
@@ -71,6 +79,12 @@ public class JdbcSchema implements Schema {
   private ImmutableMap<String, JdbcTable> tableMap;
   private final boolean snapshot;
 
+  @Experimental
+  public static final ThreadLocal<Foo> THREAD_METADATA = new ThreadLocal<>();
+
+  private static final Ordering<Iterable<Integer>> VERSION_ORDERING =
+      Ordering.<Integer>natural().lexicographical();
+
   /**
    * Creates a JDBC schema.
    *
@@ -88,7 +102,6 @@ public class JdbcSchema implements Schema {
   private JdbcSchema(DataSource dataSource, SqlDialect dialect,
       JdbcConvention convention, String catalog, String schema,
       ImmutableMap<String, JdbcTable> tableMap) {
-    super();
     this.dataSource = Objects.requireNonNull(dataSource);
     this.dialect = Objects.requireNonNull(dialect);
     this.convention = convention;
@@ -231,31 +244,31 @@ public class JdbcSchema implements Schema {
     ResultSet resultSet = null;
     try {
       connection = dataSource.getConnection();
-      DatabaseMetaData metaData = connection.getMetaData();
-      String catalog;
-      String schema;
-      if (metaData.getJDBCMajorVersion() > 4
-          || (metaData.getJDBCMajorVersion() == 4 && metaData.getJDBCMinorVersion() >= 1)) {
-        // From JDBC 4.1, catalog and schema can be retrieved from the connection object,
-        // hence try to get it from there if it was not specified by user
-        catalog = Util.first(this.catalog, connection.getCatalog());
-        schema = Util.first(this.schema, connection.getSchema());
+      final Pair<String, String> catalogSchema = getCatalogSchema(connection);
+      final String catalog = catalogSchema.left;
+      final String schema = catalogSchema.right;
+      final Iterable<MetaImpl.MetaTable> tableDefs;
+      if (THREAD_METADATA.get() != null) {
+        tableDefs = THREAD_METADATA.get().apply(catalog, schema);
       } else {
-        catalog = this.catalog;
-        schema = this.schema;
+        final List<MetaImpl.MetaTable> tableDefList = new ArrayList<>();
+        final DatabaseMetaData metaData = connection.getMetaData();
+        resultSet = metaData.getTables(catalog, schema, null, null);
+        while (resultSet.next()) {
+          final String catalogName = resultSet.getString(1);
+          final String schemaName = resultSet.getString(2);
+          final String tableName = resultSet.getString(3);
+          final String tableTypeName = resultSet.getString(4);
+          tableDefList.add(
+              new MetaImpl.MetaTable(catalogName, schemaName, tableName,
+                  tableTypeName));
+        }
+        tableDefs = tableDefList;
       }
-      resultSet = metaData.getTables(
-          catalog,
-          schema,
-          null,
-          null);
+
       final ImmutableMap.Builder<String, JdbcTable> builder =
           ImmutableMap.builder();
-      while (resultSet.next()) {
-        final String tableName = resultSet.getString(3);
-        final String catalogName = resultSet.getString(1);
-        final String schemaName = resultSet.getString(2);
-        final String tableTypeName = resultSet.getString(4);
+      for (MetaImpl.MetaTable tableDef : tableDefs) {
         // Clean up table type. In particular, this ensures that 'SYSTEM TABLE',
         // returned by Phoenix among others, maps to TableType.SYSTEM_TABLE.
         // We know enum constants are upper-case without spaces, so we can't
@@ -266,17 +279,18 @@ public class JdbcSchema implements Schema {
         // The tables are not designed to be queried by users, however we do
         // not filter them as we keep all the other table types.
         final String tableTypeName2 =
-            tableTypeName == null
+            tableDef.tableType == null
             ? null
-            : tableTypeName.toUpperCase(Locale.ROOT).replace(' ', '_');
+            : tableDef.tableType.toUpperCase(Locale.ROOT).replace(' ', '_');
         final TableType tableType =
             Util.enumVal(TableType.OTHER, tableTypeName2);
         if (tableType == TableType.OTHER  && tableTypeName2 != null) {
           System.out.println("Unknown table type: " + tableTypeName2);
         }
         final JdbcTable table =
-            new JdbcTable(this, catalogName, schemaName, tableName, tableType);
-        builder.put(tableName, table);
+            new JdbcTable(this, tableDef.tableCat, tableDef.tableSchem,
+                tableDef.tableName, tableType);
+        builder.put(tableDef.tableName, table);
       }
       return builder.build();
     } catch (SQLException e) {
@@ -285,6 +299,46 @@ public class JdbcSchema implements Schema {
     } finally {
       close(connection, null, resultSet);
     }
+  }
+
+  /** Returns [major, minor] version from a database metadata. */
+  private List<Integer> version(DatabaseMetaData metaData) throws SQLException {
+    return ImmutableList.of(metaData.getJDBCMajorVersion(),
+        metaData.getJDBCMinorVersion());
+  }
+
+  /** Returns a pair of (catalog, schema) for the current connection. */
+  private Pair<String, String> getCatalogSchema(Connection connection)
+      throws SQLException {
+    final DatabaseMetaData metaData = connection.getMetaData();
+    final List<Integer> version41 = ImmutableList.of(4, 1); // JDBC 4.1
+    String catalog = this.catalog;
+    String schema = this.schema;
+    final boolean jdbc41OrAbove =
+        VERSION_ORDERING.compare(version(metaData), version41) >= 0;
+    if (catalog == null && jdbc41OrAbove) {
+      // From JDBC 4.1, catalog and schema can be retrieved from the connection
+      // object, hence try to get it from there if it was not specified by user
+      catalog = connection.getCatalog();
+    }
+    if (schema == null && jdbc41OrAbove) {
+      schema = connection.getSchema();
+      if ("".equals(schema)) {
+        schema = null; // PostgreSQL returns useless "" sometimes
+      }
+    }
+    if ((catalog == null || schema == null)
+        && metaData.getDatabaseProductName().equals("PostgreSQL")) {
+      final String sql = "select current_database(), current_schema()";
+      try (Statement statement = connection.createStatement();
+           ResultSet resultSet = statement.executeQuery(sql)) {
+        if (resultSet.next()) {
+          catalog = resultSet.getString(1);
+          schema = resultSet.getString(2);
+        }
+      }
+    }
+    return Pair.of(catalog, schema);
   }
 
   public Table getTable(String name) {
@@ -505,6 +559,12 @@ public class JdbcSchema implements Schema {
         Map<String, Object> operand) {
       return JdbcSchema.create(parentSchema, name, operand);
     }
+  }
+
+  /** Do not use */
+  @Experimental
+  public interface Foo
+      extends BiFunction<String, String, Iterable<MetaImpl.MetaTable>> {
   }
 }
 

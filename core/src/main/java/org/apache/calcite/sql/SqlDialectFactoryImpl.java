@@ -209,12 +209,20 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
         return NullCollation.LOW;
       } else if (databaseMetaData.nullsAreSortedHigh()) {
         return NullCollation.HIGH;
+      } else if (isBigQuery(databaseMetaData)) {
+        return NullCollation.LOW;
       } else {
         throw new IllegalArgumentException("cannot deduce null collation");
       }
     } catch (SQLException e) {
       throw new IllegalArgumentException("cannot deduce null collation", e);
     }
+  }
+
+  private static boolean isBigQuery(DatabaseMetaData databaseMetaData)
+      throws SQLException {
+    return databaseMetaData.getDatabaseProductName()
+        .equals("Google Big Query");
   }
 
   private String getIdentifierQuoteString(DatabaseMetaData databaseMetaData) {
