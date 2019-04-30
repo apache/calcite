@@ -653,10 +653,26 @@ public class RelBuilder {
   /**
    * Returns an expression wrapped in an alias.
    *
+   * <p>This method is idempotent: If the expression is already wrapped in the
+   * correct alias, does nothing; if wrapped in an incorrect alias, removes
+   * the incorrect alias and applies the correct alias.
+   *
    * @see #project
    */
   public RexNode alias(RexNode expr, String alias) {
-    return call(SqlStdOperatorTable.AS, expr, literal(alias));
+    final RexNode aliasLiteral = literal(alias);
+    switch (expr.getKind()) {
+    case AS:
+      final RexCall call = (RexCall) expr;
+      if (call.operands.get(1).equals(aliasLiteral)) {
+        // current alias is correct
+        return expr;
+      }
+      expr = call.operands.get(0);
+      // strip current (incorrect) alias, and fall through
+    default:
+      return call(SqlStdOperatorTable.AS, expr, aliasLiteral);
+    }
   }
 
   /** Converts a sort expression to descending. */

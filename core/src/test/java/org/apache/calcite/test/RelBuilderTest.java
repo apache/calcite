@@ -112,7 +112,6 @@ import static org.junit.Assert.fail;
  *      {@link RelBuilder#alias(RexNode, String)} is removed if not a top-level
  *      project</li>
  *   <li>{@link RelBuilder#aggregate} with grouping sets</li>
- *   <li>{@link RelBuilder#aggregateCall} with filter</li>
  *   <li>Add call to create {@link TableFunctionScan}</li>
  *   <li>Add call to create {@link Window}</li>
  *   <li>Add call to create {@link TableModify}</li>
@@ -1674,6 +1673,41 @@ public class RelBuilderTest {
         + "LogicalFilter(condition=[>($1, $2)])\n"
         + "  LogicalProject($f1=[20], $f2=[10], DEPTNO=[$7])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Tests that the {@link RelBuilder#alias(RexNode, String)} function is
+   * idempotent. */
+  @Test public void testScanAlias() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.scan("EMP");
+
+    // Simplify "emp.deptno as d as d" to "emp.deptno as d".
+    final RexNode e0 =
+        builder.alias(builder.alias(builder.field("DEPTNO"), "D"), "D");
+    assertThat(e0.toString(), is("AS($7, 'D')"));
+
+    // It would be nice if RelBuilder could simplify
+    // "emp.deptno as deptno" to "emp.deptno", but there is not
+    // enough information in RexInputRef.
+    final RexNode e1 = builder.alias(builder.field("DEPTNO"), "DEPTNO");
+    assertThat(e1.toString(), is("AS($7, 'DEPTNO')"));
+
+    // The intervening alias 'DEPTNO' is removed
+    final RexNode e2 =
+        builder.alias(builder.alias(builder.field("DEPTNO"), "DEPTNO"), "D1");
+    assertThat(e2.toString(), is("AS($7, 'D1')"));
+
+    // Simplify "emp.deptno as d2 as d3" to "emp.deptno as d3"
+    // because "d3" alias overrides "d2".
+    final RexNode e3 =
+        builder.alias(builder.alias(builder.field("DEPTNO"), "D2"), "D3");
+    assertThat(e3.toString(), is("AS($7, 'D3')"));
+
+    final RelNode root = builder.project(e0, e1, e2, e3).build();
+    final String expected = ""
+        + "LogicalProject(D=[$7], DEPTNO=[$7], D1=[$7], D3=[$7])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }
 
