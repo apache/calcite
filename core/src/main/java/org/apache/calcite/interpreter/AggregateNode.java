@@ -536,7 +536,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
    */
   public static class MinDouble extends NumericComparison<Double> {
     public MinDouble() {
-      super(Double.MAX_VALUE, Math::max);
+      super(Double.MAX_VALUE, Math::min);
     }
   }
 
