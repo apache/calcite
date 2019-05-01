@@ -527,17 +527,17 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     }
     SqlDataTypeSpec dataType = (SqlDataTypeSpec) right;
     RelDataType type = dataType.deriveType(typeFactory);
+    if (type == null) {
+      type = cx.getValidator().getValidatedNodeType(dataType.getTypeName());
+    }
+    RexNode arg = cx.convertExpression(left);
+    if (arg.getType().isNullable()) {
+      type = typeFactory.createTypeWithNullability(type, true);
+    }
     if (SqlUtil.isNullLiteral(left, false)) {
       final SqlValidatorImpl validator = (SqlValidatorImpl) cx.getValidator();
       validator.setValidatedNodeType(left, type);
       return cx.convertExpression(left);
-    }
-    RexNode arg = cx.convertExpression(left);
-    if (type == null) {
-      type = cx.getValidator().getValidatedNodeType(dataType.getTypeName());
-    }
-    if (arg.getType().isNullable()) {
-      type = typeFactory.createTypeWithNullability(type, true);
     }
     if (null != dataType.getCollectionsTypeName()) {
       final RelDataType argComponentType =
