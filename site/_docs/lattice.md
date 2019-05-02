@@ -49,7 +49,7 @@ recommendation algorithm is derived from this.
 
 The lattice definition uses a SQL statement to represent the star. SQL
 is a useful short-hand to represent several tables joined together,
-and assigning aliases to the column names (it more convenient than
+and assigning aliases to the column names (it's more convenient than
 inventing a new language to represent relationships, join conditions
 and cardinalities).
 
