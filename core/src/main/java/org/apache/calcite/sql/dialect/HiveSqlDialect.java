@@ -104,12 +104,10 @@ public class HiveSqlDialect extends SqlDialect {
       break;
     case SUBSTRING:
       final SqlWriter.Frame substringFrame = writer.startFunCall("SUBSTR");
-      writer.sep(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      call.operand(2).unparse(writer, leftPrec, rightPrec);
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
       writer.endFunCall(substringFrame);
       break;
     case EXTRACT:
