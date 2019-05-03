@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -27,12 +28,12 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Optionality;
 
-import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -42,10 +43,16 @@ public class SqlJsonObjectAggAggFunction extends SqlAggFunction {
   private final SqlJsonConstructorNullClause nullClause;
 
   /** Creates a SqlJsonObjectAggAggFunction. */
-  public SqlJsonObjectAggAggFunction(String name,
+  public SqlJsonObjectAggAggFunction(SqlKind kind,
       SqlJsonConstructorNullClause nullClause) {
-    super(name, null, SqlKind.JSON_OBJECTAGG, ReturnTypes.VARCHAR_2000, null,
-        OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.ANY),
+    super(kind + "_" + nullClause.name(), null, kind, ReturnTypes.VARCHAR_2000,
+        (callBinding, returnType, operandTypes) -> {
+          RelDataTypeFactory typeFactory = callBinding.getTypeFactory();
+          operandTypes[0] = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+          operandTypes[1] = typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(SqlTypeName.ANY), true);
+        }, OperandTypes.family(SqlTypeFamily.CHARACTER,
+            SqlTypeFamily.ANY),
         SqlFunctionCategory.SYSTEM, false, false, Optionality.FORBIDDEN);
     this.nullClause = Objects.requireNonNull(nullClause);
   }
@@ -72,13 +79,9 @@ public class SqlJsonObjectAggAggFunction extends SqlAggFunction {
     return validateOperands(validator, scope, call);
   }
 
-  @Override public String toString() {
-    return getName() + String.format(Locale.ROOT, "<%s>", nullClause);
-  }
-
   public SqlJsonObjectAggAggFunction with(SqlJsonConstructorNullClause nullClause) {
     return this.nullClause == nullClause ? this
-        : new SqlJsonObjectAggAggFunction(getName(), nullClause);
+        : new SqlJsonObjectAggAggFunction(getKind(), nullClause);
   }
 
   public SqlJsonConstructorNullClause getNullClause() {

@@ -18,6 +18,7 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.Spaces;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -141,7 +142,7 @@ public class Util {
       Pattern.compile("[a-zA-Z_$][a-zA-Z0-9$]*");
 
   private static final Charset DEFAULT_CHARSET =
-      Charset.forName(SaffronProperties.INSTANCE.defaultCharset().get());
+      Charset.forName(CalciteSystemProperty.DEFAULT_CHARSET.value());
 
   /**
    * Maps classes to the map of their enum values. Uses a weak map so that
@@ -478,24 +479,33 @@ public class Util {
    * Prints a string, enclosing in double quotes (") and escaping if
    * necessary. For examples, <code>printDoubleQuoted(w,"x\"y",false)</code>
    * prints <code>"x\"y"</code>.
+   *
+   * <p>The appendable where the value is printed must not incur I/O operations. This method is
+   * not meant to be used for writing the values to permanent storage.</p>
+   *
+   * @throws IllegalStateException if the print to the specified appendable fails due to I/O
    */
   public static void printJavaString(
-      PrintWriter pw,
+      Appendable appendable,
       String s,
       boolean nullMeansNull) {
-    if (s == null) {
-      if (nullMeansNull) {
-        pw.print("null");
+    try {
+      if (s == null) {
+        if (nullMeansNull) {
+          appendable.append("null");
+        }
+      } else {
+        String s1 = replace(s, "\\", "\\\\");
+        String s2 = replace(s1, "\"", "\\\"");
+        String s3 = replace(s2, "\n\r", "\\n");
+        String s4 = replace(s3, "\n", "\\n");
+        String s5 = replace(s4, "\r", "\\r");
+        appendable.append('"');
+        appendable.append(s5);
+        appendable.append('"');
       }
-    } else {
-      String s1 = replace(s, "\\", "\\\\");
-      String s2 = replace(s1, "\"", "\\\"");
-      String s3 = replace(s2, "\n\r", "\\n");
-      String s4 = replace(s3, "\n", "\\n");
-      String s5 = replace(s4, "\r", "\\r");
-      pw.print("\"");
-      pw.print(s5);
-      pw.print("\"");
+    } catch (IOException ioe) {
+      throw new IllegalStateException("The specified appendable should not incur I/O.", ioe);
     }
   }
 
@@ -792,7 +802,7 @@ public class Util {
 
   /**
    * Returns the {@link Charset} object representing the value of
-   * {@link SaffronProperties#defaultCharset}
+   * {@link CalciteSystemProperty#DEFAULT_CHARSET}
    *
    * @throws java.nio.charset.IllegalCharsetNameException If the given charset
    *                                                      name is illegal
@@ -2274,30 +2284,6 @@ public class Util {
     }
   }
 
-  /** Returns the value of a system property as a boolean.
-   *
-   * <p>For example, the property "foo" is considered true if you supply
-   * {@code -Dfoo} or {@code -Dfoo=true} or {@code -Dfoo=TRUE},
-   * false if you omit the flag or supply {@code -Dfoo=false}.
-   *
-   * @param property Property name
-   * @return Whether property is true
-   */
-  public static boolean getBooleanProperty(String property) {
-    return getBooleanProperty(property, false);
-  }
-
-  /** Returns the value of a system property as a boolean, returning a given
-   * default value if the property is not specified. */
-  public static boolean getBooleanProperty(String property,
-      boolean defaultValue) {
-    final String v = System.getProperties().getProperty(property);
-    if (v == null) {
-      return defaultValue;
-    }
-    return "".equals(v) || "true".equalsIgnoreCase(v);
-  }
-
   /** Returns a copy of a list of lists, making the component lists immutable if
    * they are not already. */
   public static <E> List<List<E>> immutableCopy(
@@ -2414,6 +2400,20 @@ public class Util {
   public static <E> Iterator<E> filter(Iterator<E> iterator,
       Predicate<E> predicate) {
     return new FilteringIterator<>(iterator, predicate);
+  }
+
+  /** Returns a view of a list, picking the elements of a list with the given
+   * set of ordinals. */
+  public static <E> List<E> select(List<E> list, List<Integer> ordinals) {
+    return new AbstractList<E>() {
+      @Override public int size() {
+        return ordinals.size();
+      }
+
+      @Override public E get(int index) {
+        return list.get(ordinals.get(index));
+      }
+    };
   }
 
   //~ Inner Classes ----------------------------------------------------------

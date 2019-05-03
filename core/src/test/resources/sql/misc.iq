@@ -2109,14 +2109,14 @@ and "sqlTimestamp" < {ts '1998-01-01 00:00:00'};
 !ok
 
 # [CALCITE-1188] NullPointerException in EXTRACT with WHERE ... IN clause if field has null value
-select extract(YEAR from "sqlTimestamp") Y
+select "sqlTimestamp" T
 from "everyTypes"
 where extract(YEAR from "sqlTimestamp") IN (1969, 1970);
-+------+
-| Y    |
-+------+
-| 1970 |
-+------+
++---------------------+
+| T                   |
++---------------------+
+| 1970-01-01 00:00:00 |
++---------------------+
 (1 row)
 
 !ok
@@ -2217,6 +2217,27 @@ true
 values json_exists('{"foo":"bar"}', 'strict $.foo' false on error);
 EXPR$0
 true
+!ok
+
+# [CALCITE-2908] Implement SQL LAST_DAY function
+with data(c_date, c_timestamp) as (select * from (values
+    (DATE'1965-01-10', TIMESTAMP '1965-01-10 20:20:20'),
+    (DATE'2019-01-01', TIMESTAMP '2019-01-01 18:19:20'),
+    (DATE'2019-02-20', TIMESTAMP '2019-02-20 00:00:00'),
+    (DATE'2019-02-28', TIMESTAMP '2019-02-28 03:04:05'),
+    (DATE'2019-03-02', TIMESTAMP '2019-03-02 15:10:05'),
+    (DATE'2019-06-28', TIMESTAMP '2019-06-28 17:32:01'),
+    (DATE'2019-12-12', TIMESTAMP '2019-12-12 12:12:01')))
+select last_day(c_date), last_day(c_timestamp) from data;
+
+EXPR$0, EXPR$1
+1965-01-31, 1965-01-31
+2019-01-31, 2019-01-31
+2019-02-28, 2019-02-28
+2019-02-28, 2019-02-28
+2019-03-31, 2019-03-31
+2019-06-30, 2019-06-30
+2019-12-31, 2019-12-31
 !ok
 
 # End misc.iq

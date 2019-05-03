@@ -39,7 +39,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
-import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -80,18 +79,7 @@ public class GeodeRules {
   }
 
   static List<String> geodeFieldNames(final RelDataType rowType) {
-
-    List<String> fieldNames = new AbstractList<String>() {
-      @Override public String get(int index) {
-        return rowType.getFieldList().get(index).getName();
-      }
-
-      @Override public int size() {
-        return rowType.getFieldCount();
-      }
-    };
-
-    return SqlValidatorUtil.uniquify(fieldNames, true);
+    return SqlValidatorUtil.uniquify(rowType.getFieldNames(), true);
   }
 
   /**

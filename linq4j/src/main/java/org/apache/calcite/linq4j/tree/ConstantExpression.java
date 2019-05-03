@@ -132,7 +132,7 @@ public class ConstantExpression extends Expression {
     }
     final Primitive primitive2 = Primitive.ofBox(type);
     if (primitive2 != null) {
-      writer.append(primitive2.boxClass.getSimpleName() + ".valueOf(");
+      writer.append(primitive2.boxName + ".valueOf(");
       write(writer, value, primitive2.primitiveClass);
       return writer.append(")");
     }

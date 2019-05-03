@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.geode.cache.CacheClosedException;
 import org.apache.geode.cache.GemFireCache;
 import org.apache.geode.cache.Region;
+import org.apache.geode.cache.RegionExistsException;
 import org.apache.geode.cache.client.ClientCache;
 import org.apache.geode.cache.client.ClientCacheFactory;
 import org.apache.geode.cache.client.ClientRegionShortcut;
@@ -131,8 +132,9 @@ public class GeodeUtils {
         region = ((ClientCache) cache)
             .createClientRegionFactory(ClientRegionShortcut.PROXY)
             .create(regionName);
-      } catch (IllegalStateException e) {
-        // means this is a server cache (probably part of embedded testing)
+      } catch (IllegalStateException | RegionExistsException e) {
+        // means this is a server cache (probably part of embedded testing
+        // or clientCache is passed directly)
         region = cache.getRegion(regionName);
       }
 

@@ -28,7 +28,7 @@ services:
     volumes:
       - .:/srv/jekyll
   generate-javadoc:
-    image: maven:alpine
+    image: maven
     working_dir: /usr/src/calcite
     command: sh -c "mvn -DskipTests site; rm -rf site/target/apidocs site/target/testapidocs; mkdir -p site/target; mv target/site/apidocs target/site/testapidocs site/target"
     volumes:

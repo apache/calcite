@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.rel.core;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
@@ -74,7 +74,7 @@ public abstract class Filter extends SingleRel {
     assert RexUtil.isFlat(condition) : condition;
     this.condition = condition;
     // Too expensive for everyday use:
-    assert !CalcitePrepareImpl.DEBUG || isValid(Litmus.THROW, null);
+    assert !CalciteSystemProperty.DEBUG.value() || isValid(Litmus.THROW, null);
   }
 
   /**

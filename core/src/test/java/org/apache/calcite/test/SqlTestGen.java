@@ -22,12 +22,11 @@ import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.test.SqlValidatorTester;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.BarfingInvocationHandler;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
@@ -56,11 +55,8 @@ public class SqlTestGen {
         final Object result = method.invoke(test);
         assert result == null;
       }
-    } catch (IOException | IllegalAccessException
-        | IllegalArgumentException e) {
-      throw new RuntimeException(e);
-    } catch (InvocationTargetException e) {
-      throw new RuntimeException(e.getCause());
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
     }
   }
 

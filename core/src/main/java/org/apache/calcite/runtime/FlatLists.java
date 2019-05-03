@@ -140,7 +140,7 @@ public class FlatLists {
    * @param t Array of members of list
    * @return List containing the given members
    */
-  private static <T extends Object & Comparable> ComparableList<T> flatList_(
+  private static <T extends Comparable> ComparableList<T> flatList_(
       T[] t, boolean copy) {
     switch (t.length) {
     case 0:
@@ -263,7 +263,14 @@ public class FlatLists {
   /** Returns a map that consists of a given map plus an (key, value),
    * guaranteed to be an {@link ImmutableMap}. */
   public static <K, V> ImmutableMap<K, V> append(Map<K, V> map, K k, V v) {
-    return ImmutableMap.<K, V>builder().putAll(map).put(k, v).build();
+    final ImmutableMap.Builder<K, V> builder = ImmutableMap.builder();
+    builder.put(k, v);
+    map.forEach((k2, v2) -> {
+      if (!k.equals(k2)) {
+        builder.put(k2, v2);
+      }
+    });
+    return builder.build();
   }
 
   /** Base class for flat lists.

@@ -38,7 +38,7 @@ public class SqlBasicCall extends SqlCall {
     this(operator, operands, pos, false, null);
   }
 
-  protected SqlBasicCall(
+  public SqlBasicCall(
       SqlOperator operator,
       SqlNode[] operands,
       SqlParserPos pos,

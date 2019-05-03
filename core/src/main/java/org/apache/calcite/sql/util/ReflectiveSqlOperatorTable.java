@@ -22,6 +22,8 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -43,7 +45,11 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
 
   //~ Instance fields --------------------------------------------------------
 
-  private final Multimap<Key, SqlOperator> operators = HashMultimap.create();
+  private final Multimap<CaseSensitiveKey, SqlOperator> caseSensitiveOperators =
+      HashMultimap.create();
+
+  private final Multimap<CaseInsensitiveKey, SqlOperator> caseInsensitiveOperators =
+      HashMultimap.create();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -80,9 +86,8 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
 
   // implement SqlOperatorTable
   public void lookupOperatorOverloads(SqlIdentifier opName,
-      SqlFunctionCategory category,
-      SqlSyntax syntax,
-      List<SqlOperator> operatorList) {
+      SqlFunctionCategory category, SqlSyntax syntax,
+      List<SqlOperator> operatorList, SqlNameMatcher nameMatcher) {
     // NOTE jvs 3-Mar-2005:  ignore category until someone cares
 
     String simpleName;
@@ -97,10 +102,8 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
       simpleName = opName.getSimple();
     }
 
-    // Always look up built-in operators case-insensitively. Even in sessions
-    // with unquotedCasing=UNCHANGED and caseSensitive=true.
     final Collection<SqlOperator> list =
-        operators.get(new Key(simpleName, syntax));
+        lookUpOperators(simpleName, syntax, nameMatcher);
     if (list.isEmpty()) {
       return;
     }
@@ -121,7 +124,8 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
     case BINARY:
     case PREFIX:
     case POSTFIX:
-      for (SqlOperator extra : operators.get(new Key(simpleName, syntax))) {
+      for (SqlOperator extra
+          : lookUpOperators(simpleName, syntax, nameMatcher)) {
         // REVIEW: should only search operators added during this method?
         if (extra != null && !operatorList.contains(extra)) {
           operatorList.add(extra);
@@ -132,32 +136,57 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
   }
 
   /**
+   * Look up operators based on case-sensitiveness.
+   */
+  private Collection<SqlOperator> lookUpOperators(String name, SqlSyntax syntax,
+      SqlNameMatcher nameMatcher) {
+    // Case sensitive only works for UDFs.
+    // Always look up built-in operators case-insensitively. Even in sessions
+    // with unquotedCasing=UNCHANGED and caseSensitive=true.
+    if (nameMatcher.isCaseSensitive()
+        && !(this instanceof SqlStdOperatorTable)) {
+      return caseSensitiveOperators.get(new CaseSensitiveKey(name, syntax));
+    } else {
+      return caseInsensitiveOperators.get(new CaseInsensitiveKey(name, syntax));
+    }
+  }
+
+  /**
    * Registers a function or operator in the table.
    */
   public void register(SqlOperator op) {
-    operators.put(new Key(op.getName(), op.getSyntax()), op);
+    // Register both for case-sensitive and case-insensitive look up.
+    caseSensitiveOperators.put(new CaseSensitiveKey(op.getName(), op.getSyntax()), op);
+    caseInsensitiveOperators.put(new CaseInsensitiveKey(op.getName(), op.getSyntax()), op);
   }
 
   public List<SqlOperator> getOperatorList() {
-    return ImmutableList.copyOf(operators.values());
+    return ImmutableList.copyOf(caseSensitiveOperators.values());
   }
 
   /** Key for looking up operators. The name is stored in upper-case because we
    * store case-insensitively, even in a case-sensitive session. */
-  private static class Key extends Pair<String, SqlSyntax> {
-    Key(String name, SqlSyntax syntax) {
+  private static class CaseInsensitiveKey extends Pair<String, SqlSyntax> {
+    CaseInsensitiveKey(String name, SqlSyntax syntax) {
       super(name.toUpperCase(Locale.ROOT), normalize(syntax));
     }
+  }
 
-    private static SqlSyntax normalize(SqlSyntax syntax) {
-      switch (syntax) {
-      case BINARY:
-      case PREFIX:
-      case POSTFIX:
-        return syntax;
-      default:
-        return SqlSyntax.FUNCTION;
-      }
+  /** Key for looking up operators. The name kept as what it is to look up case-sensitively. */
+  private static class CaseSensitiveKey extends Pair<String, SqlSyntax> {
+    CaseSensitiveKey(String name, SqlSyntax syntax) {
+      super(name, normalize(syntax));
+    }
+  }
+
+  private static SqlSyntax normalize(SqlSyntax syntax) {
+    switch (syntax) {
+    case BINARY:
+    case PREFIX:
+    case POSTFIX:
+      return syntax;
+    default:
+      return SqlSyntax.FUNCTION;
     }
   }
 }

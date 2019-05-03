@@ -124,6 +124,7 @@ data: {
         "GOTO"
         "GRANTED"
         "HIERARCHY"
+        "IGNORE"
         "IMMEDIATE"
         "IMMEDIATELY"
         "IMPLEMENTATION"
@@ -139,7 +140,6 @@ data: {
         "ISOLATION"
         "JAVA"
         "JSON"
-        "JSON_TYPE"
         "K"
         "KEY"
         "KEY_MEMBER"
@@ -206,6 +206,7 @@ data: {
         "RELATIVE"
         "REPEATABLE"
         "REPLACE"
+        "RESPECT"
         "RESTART"
         "RESTRICT"
         "RETURNED_CARDINALITY"
@@ -362,7 +363,7 @@ data: {
 #       "ANY",
         "ARE",
         "ARRAY",
-#       # "ARRAY_AGG", # not a keyword in Calcite
+#       "ARRAY_AGG", # not a keyword in Calcite
         "ARRAY_MAX_CARDINALITY",
         "AS",
         "ASC",
@@ -381,7 +382,7 @@ data: {
         "BIGINT",
         "BINARY",
         "BIT",
-#       # "BIT_LENGTH", # not a keyword in Calcite
+#       "BIT_LENGTH", # not a keyword in Calcite
         "BLOB",
         "BOOLEAN",
         "BOTH",
@@ -446,12 +447,12 @@ data: {
         "DATA",
 #       "DATE",
         "DAY",
-#       # "DAYS", # not a keyword in Calcite
+#       "DAYS", # not a keyword in Calcite
         "DEALLOCATE",
         "DEC",
         "DECIMAL",
         "DECLARE",
-#       # "DEFAULT",
+#       "DEFAULT",
         "DEFERRABLE",
         "DEFERRED",
 #       "DEFINE",
@@ -461,42 +462,42 @@ data: {
         "DEREF",
         "DESC",
 #       "DESCRIBE", # must be reserved
-       "DESCRIPTOR",
-       "DETERMINISTIC",
-       "DIAGNOSTICS",
-       "DISALLOW",
-       "DISCONNECT",
+        "DESCRIPTOR",
+        "DETERMINISTIC",
+        "DIAGNOSTICS",
+        "DISALLOW",
+        "DISCONNECT",
 #       "DISTINCT",
-#       # "DO",  # not a keyword in Calcite
-       "DOMAIN",
-       "DOUBLE",
+#       "DO",  # not a keyword in Calcite
+        "DOMAIN",
+        "DOUBLE",
 #       "DROP", # probably must be reserved
-       "DYNAMIC",
-       "EACH",
-       "ELEMENT",
-       "ELSE",
-#       # "ELSEIF", # not a keyword in Calcite
-       "EMPTY",
-       "END",
-#       # "END-EXEC", # not a keyword in Calcite, and contains '-'
-       "END_FRAME",
-       "END_PARTITION",
-       "EQUALS",
-       "ESCAPE",
-       "EVERY",
+        "DYNAMIC",
+        "EACH",
+        "ELEMENT",
+        "ELSE",
+#       "ELSEIF", # not a keyword in Calcite
+        "EMPTY",
+        "END",
+#       "END-EXEC", # not a keyword in Calcite, and contains '-'
+        "END_FRAME",
+        "END_PARTITION",
+        "EQUALS",
+        "ESCAPE",
+        "EVERY",
 #       "EXCEPT", # must be reserved
-       "EXCEPTION",
-       "EXEC",
-       "EXECUTE",
-       "EXISTS",
-#       # "EXIT", # not a keyword in Calcite
-       "EXP",
+        "EXCEPTION",
+        "EXEC",
+        "EXECUTE",
+        "EXISTS",
+#       "EXIT", # not a keyword in Calcite
+        "EXP",
 #       "EXPLAIN", # must be reserved
-       "EXTEND",
-       "EXTERNAL",
-       "EXTRACT",
-       "FALSE",
-#        "FETCH",
+        "EXTEND",
+        "EXTERNAL",
+        "EXTRACT",
+        "FALSE",
+#       "FETCH",
         "FILTER",
         "FIRST",
         "FIRST_VALUE",
@@ -504,7 +505,7 @@ data: {
         "FLOOR",
         "FOR",
         "FOREIGN",
-#       # "FOREVER", # not a keyword in Calcite
+#       "FOREVER", # not a keyword in Calcite
         "FOUND",
         "FRAME_ROW",
         "FREE",
@@ -521,13 +522,13 @@ data: {
 #       "GROUP",
 #       "GROUPING",
         "GROUPS",
-#       # "HANDLER", # not a keyword in Calcite
+#       "HANDLER", # not a keyword in Calcite
 #       "HAVING",
         "HOLD",
         "HOUR",
-#       # "HOURS", # not a keyword in Calcite
+#       "HOURS", # not a keyword in Calcite
         "IDENTITY",
-#       # "IF", # not a keyword in Calcite
+#       "IF", # not a keyword in Calcite
         "IMMEDIATE",
         "IMMEDIATELY",
         "IMPORT",
@@ -548,16 +549,16 @@ data: {
 #       "INTO",
         "IS",
         "ISOLATION",
-#       # "ITERATE", # not a keyword in Calcite
+#       "ITERATE", # not a keyword in Calcite
 #       "JOIN",
         "JSON_ARRAY",
         "JSON_ARRAYAGG",
         "JSON_EXISTS",
-        "JSON_VALUE",
         "JSON_OBJECT",
         "JSON_OBJECTAGG",
         "JSON_QUERY",
-#       # "KEEP", # not a keyword in Calcite
+        "JSON_VALUE",
+#       "KEEP", # not a keyword in Calcite
         "KEY",
         "LAG",
         "LANGUAGE",
@@ -567,7 +568,7 @@ data: {
 #       "LATERAL",
         "LEAD",
         "LEADING",
-#       # "LEAVE", # not a keyword in Calcite
+#       "LEAVE", # not a keyword in Calcite
 #       "LEFT",
         "LEVEL",
         "LIKE",
@@ -578,7 +579,7 @@ data: {
         "LOCALTIME",
         "LOCALTIMESTAMP",
         "LOCATOR",
-#       # "LOOP", # not a keyword in Calcite
+#       "LOOP", # not a keyword in Calcite
         "LOWER",
         "MAP",
         "MATCH",
@@ -586,7 +587,7 @@ data: {
         "MATCH_NUMBER",
 #       "MATCH_RECOGNIZE",
         "MAX",
-#       # "MAX_CARDINALITY", # not a keyword in Calcite
+#       "MAX_CARDINALITY", # not a keyword in Calcite
         "MEASURES",
         "MEMBER",
 #       "MERGE",
@@ -594,7 +595,7 @@ data: {
         "MIN",
 #       "MINUS",
         "MINUTE",
-#       # "MINUTES", # not a keyword in Calcite
+#       "MINUTES", # not a keyword in Calcite
         "MOD",
         "MODIFIES",
         "MODULE",
@@ -684,9 +685,9 @@ data: {
         "REGR_SYY",
         "RELATIVE",
         "RELEASE",
-#       # "REPEAT", # not a keyword in Calcite
+#       "REPEAT", # not a keyword in Calcite
         "RESET",
-#       # "RESIGNAL", # not a keyword in Calcite
+#       "RESIGNAL", # not a keyword in Calcite
         "RESTRICT",
         "RESULT",
         "RETURN",
@@ -707,7 +708,7 @@ data: {
         "SCROLL",
         "SEARCH",
         "SECOND",
-#       # "SECONDS", # not a keyword in Calcite
+#       "SECONDS", # not a keyword in Calcite
         "SECTION",
         "SEEK",
 #       "SELECT",
@@ -717,18 +718,18 @@ data: {
 #       "SET",
 #       "SETS",
         "SHOW",
-#       # "SIGNAL", # not a keyword in Calcite
+#       "SIGNAL", # not a keyword in Calcite
         "SIMILAR",
         "SIZE",
-#       # "SKIP", # messes with JavaCC's <SKIP> token
+#       "SKIP", # messes with JavaCC's <SKIP> token
         "SMALLINT",
 #       "SOME",
         "SPACE",
         "SPECIFIC",
         "SPECIFICTYPE",
         "SQL",
-#       # "SQLCODE", # not a keyword in Calcite
-#       # "SQLERROR", # not a keyword in Calcite
+#       "SQLCODE", # not a keyword in Calcite
+#       "SQLERROR", # not a keyword in Calcite
         "SQLEXCEPTION",
         "SQLSTATE",
         "SQLWARNING",
@@ -772,12 +773,12 @@ data: {
         "TRUNCATE",
         "UESCAPE",
         "UNDER",
-#       # "UNDO", # not a keyword in Calcite
+#       "UNDO", # not a keyword in Calcite
 #       "UNION",
         "UNIQUE",
         "UNKNOWN",
 #       "UNNEST",
-#       # "UNTIL", # not a keyword in Calcite
+#       "UNTIL", # not a keyword in Calcite
 #       "UPDATE",
         "UPPER",
         "UPSERT",
@@ -794,12 +795,12 @@ data: {
         "VAR_SAMP",
         "VERSION",
         "VERSIONING",
-#       # "VERSIONS", # not a keyword in Calcite
+#       "VERSIONS", # not a keyword in Calcite
         "VIEW",
 #       "WHEN",
         "WHENEVER",
 #       "WHERE",
-#       # "WHILE", # not a keyword in Calcite
+#       "WHILE", # not a keyword in Calcite
         "WIDTH_BUCKET",
 #       "WINDOW",
 #       "WITH",
@@ -808,7 +809,7 @@ data: {
         "WORK",
         "WRITE",
         "YEAR",
-        # "YEARS", # not a keyword in Calcite
+#       "YEARS", # not a keyword in Calcite
         "ZONE",
       ]
 

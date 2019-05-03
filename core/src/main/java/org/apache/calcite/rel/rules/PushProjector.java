@@ -514,7 +514,7 @@ public class PushProjector {
       final RelDataTypeField destField = destFields.get(refIdx - offset);
       newProjects.add(
           Pair.of(
-              (RexNode) rexBuilder.makeInputRef(
+              rexBuilder.makeInputRef(
                   destField.getType(), refIdx - offset),
               destField.getName()));
     }
@@ -629,7 +629,7 @@ public class PushProjector {
       for (Ord<RelDataTypeField> field : Ord.zip(childFields)) {
         projects.add(
             Pair.of(
-                (RexNode) rexBuilder.makeInputRef(
+                rexBuilder.makeInputRef(
                     field.e.getType(), field.i), field.e.getName()));
       }
     }

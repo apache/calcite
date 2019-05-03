@@ -20,6 +20,9 @@ import com.google.common.annotations.VisibleForTesting;
 
 import org.junit.ComparisonFailure;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -40,6 +43,14 @@ public abstract class TestUtil {
 
   private static final String JAVA_VERSION =
       System.getProperties().getProperty("java.version");
+
+  /** This is to be used by {@link #rethrow(Throwable, String)} to add extra information via
+   * {@link Throwable#addSuppressed(Throwable)}. */
+  private static class ExtraInformation extends Throwable {
+    ExtraInformation(String message) {
+      super(message);
+    }
+  }
 
   //~ Methods ----------------------------------------------------------------
 
@@ -229,6 +240,42 @@ public abstract class TestUtil {
     }
 
     return Integer.parseInt(matcher.group());
+  }
+
+  /** Checks if exceptions have give substring. That is handy to prevent logging SQL text twice */
+  public static boolean hasMessage(Throwable t, String substring) {
+    while (t != null) {
+      String message = t.getMessage();
+      if (message != null && message.contains(substring)) {
+        return true;
+      }
+      t = t.getCause();
+    }
+    return false;
+  }
+
+  /** Rethrows given exception keeping stacktraces clean and compact. */
+  public static <E extends Throwable> RuntimeException rethrow(Throwable e) throws E {
+    if (e instanceof InvocationTargetException) {
+      e = e.getCause();
+    }
+    throw (E) e;
+  }
+
+  /** Rethrows given exception keeping stacktraces clean and compact. */
+  public static <E extends Throwable> RuntimeException rethrow(Throwable e,
+      String message) throws E {
+    e.addSuppressed(new ExtraInformation(message));
+    throw (E) e;
+  }
+
+  /** Returns string representation of the given {@link Throwable}. */
+  public static String printStackTrace(Throwable t) {
+    StringWriter sw = new StringWriter();
+    PrintWriter pw = new PrintWriter(sw);
+    t.printStackTrace(pw);
+    pw.flush();
+    return sw.toString();
   }
 
 }

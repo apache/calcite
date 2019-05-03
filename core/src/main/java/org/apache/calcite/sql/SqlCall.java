@@ -29,6 +29,7 @@ import org.apache.calcite.util.Litmus;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import javax.annotation.Nonnull;
 
 /**
  * A <code>SqlCall</code> is a call to an {@link SqlOperator operator}.
@@ -68,9 +69,9 @@ public abstract class SqlCall extends SqlNode {
     return getOperator().getKind();
   }
 
-  public abstract SqlOperator getOperator();
+  public abstract @Nonnull SqlOperator getOperator();
 
-  public abstract List<SqlNode> getOperandList();
+  public abstract @Nonnull List<SqlNode> getOperandList();
 
   @SuppressWarnings("unchecked")
   public <S extends SqlNode> S operand(int i) {
@@ -187,7 +188,9 @@ public abstract class SqlCall extends SqlNode {
    * @return boolean true if function call to COUNT(*)
    */
   public boolean isCountStar() {
-    if (getOperator().isName("COUNT") && operandCount() == 1) {
+    SqlOperator sqlOperator = getOperator();
+    if (sqlOperator.getName().equals("COUNT")
+        && operandCount() == 1) {
       final SqlNode parm = operand(0);
       if (parm instanceof SqlIdentifier) {
         SqlIdentifier id = (SqlIdentifier) parm;

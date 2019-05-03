@@ -43,6 +43,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.sql.SqlMatchRecognize;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -54,6 +55,7 @@ import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.tools.RelRunners;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
@@ -74,12 +76,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.NoSuchElementException;
 import java.util.TreeSet;
 
 import static org.apache.calcite.test.Matchers.hasTree;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -124,7 +128,7 @@ public class RelBuilderTest {
     return Frameworks.newConfigBuilder()
         .parserConfig(SqlParser.Config.DEFAULT)
         .defaultSchema(
-            CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.SCOTT))
+            CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL))
         .traitDefs((List<RelTraitDef>) null)
         .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2));
   }
@@ -278,6 +282,98 @@ public class RelBuilderTest {
             .build();
     final String expected = "LogicalFilter(condition=[=($7, 20)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test public void testSnapshotTemporalTable() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM products_temporal FOR SYSTEM_TIME AS OF TIMESTAMP '2011-07-20 12:34:56'
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("products_temporal")
+            .snapshot(
+                builder.getRexBuilder().makeTimestampLiteral(
+                    new TimestampString("2011-07-20 12:34:56"), 0))
+            .build();
+    final String expected = "LogicalSnapshot(period=[2011-07-20 12:34:56])\n"
+            + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test public void testTableFunctionScan() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM TABLE(
+    //       DEDUP(CURSOR(select * from emp),
+    //             CURSOR(select * from DEPT), 'NAME'))
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final SqlOperator dedupFunction =
+        new MockSqlOperatorTable.DedupFunction();
+    RelNode root = builder.scan("EMP")
+        .scan("DEPT")
+        .functionScan(dedupFunction, 2, builder.cursor(2, 0),
+            builder.cursor(2, 1))
+        .build();
+    final String expected = "LogicalTableFunctionScan("
+        + "invocation=[DEDUP(CURSOR($0), CURSOR($1))], "
+        + "rowType=[RecordType(VARCHAR(1024) NAME)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
+
+    // Make sure that the builder's stack is empty.
+    try {
+      RelNode node = builder.build();
+      fail("expected error, got " + node);
+    } catch (NoSuchElementException e) {
+      assertNull(e.getMessage());
+    }
+  }
+
+  @Test public void testTableFunctionScanZeroInputs() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM TABLE(RAMP(3))
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final SqlOperator rampFunction = new MockSqlOperatorTable.RampFunction();
+    RelNode root = builder.functionScan(rampFunction, 0, builder.literal(3))
+        .build();
+    final String expected = "LogicalTableFunctionScan(invocation=[RAMP(3)], "
+        + "rowType=[RecordType(INTEGER I)])\n";
+    assertThat(root, hasTree(expected));
+
+    // Make sure that the builder's stack is empty.
+    try {
+      RelNode node = builder.build();
+      fail("expected error, got " + node);
+    } catch (NoSuchElementException e) {
+      assertNull(e.getMessage());
+    }
+  }
+
+  @Test public void testJoinTemporalTable() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM orders
+    //   JOIN products_temporal FOR SYSTEM_TIME AS OF TIMESTAMP '2011-07-20 12:34:56'
+    //   ON orders.product = products_temporal.id
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("orders")
+            .scan("products_temporal")
+            .snapshot(
+                builder.getRexBuilder().makeTimestampLiteral(
+                    new TimestampString("2011-07-20 12:34:56"), 0))
+            .join(JoinRelType.INNER,
+                builder.call(SqlStdOperatorTable.EQUALS,
+                    builder.field(2, 0, "PRODUCT"),
+                    builder.field(2, 1, "ID")))
+            .build();
+    final String expected = "LogicalJoin(condition=[=($2, $4)], joinType=[inner])\n"
+        + "  LogicalTableScan(table=[[scott, orders]])\n"
+        + "  LogicalSnapshot(period=[2011-07-20 12:34:56])\n"
+        + "    LogicalTableScan(table=[[scott, products_temporal]])\n";
     assertThat(root, hasTree(expected));
   }
 
@@ -810,6 +906,25 @@ public class RelBuilderTest {
         + "  LogicalFilter(condition=[>($1, 3)])\n"
         + "    LogicalAggregate(group=[{1}], C=[COUNT()])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2946">[CALCITE-2946]
+   * RelBuilder wrongly skips creation of Aggregate that prunes columns if input
+   * produces one row at most</a>. */
+  @Test public void testAggregate5() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .aggregate(builder.groupKey(), builder.count().as("C"))
+            .project(builder.literal(4), builder.literal(2), builder.field(0))
+            .aggregate(builder.groupKey(builder.field(0), builder.field(1)))
+            .build();
+    final String expected = ""
+        + "LogicalProject($f0=[4], $f1=[2])\n"
+        + "  LogicalAggregate(group=[{}], C=[COUNT()])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }
 
@@ -1386,6 +1501,28 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  @Test public void testAntiJoin() {
+    // Equivalent SQL:
+    //   SELECT * FROM dept d
+    //   WHERE NOT EXISTS (SELECT 1 FROM emp e WHERE e.deptno = d.deptno)
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root = builder
+        .scan("DEPT")
+        .scan("EMP")
+        .antiJoin(
+            builder.equals(
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "DEPTNO")))
+        .build();
+    // AntiJoin implemented as LogicalCorrelate with joinType=anti
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[anti], requiredColumns=[{0}])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "  LogicalFilter(condition=[=($cor0.DEPTNO, $7)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
   @Test public void testAlias() {
     // Equivalent SQL:
     //   SELECT *
@@ -1535,8 +1672,35 @@ public class RelBuilderTest {
             .build();
     final String expected = ""
         + "LogicalFilter(condition=[>($1, $2)])\n"
-        + "  LogicalProject($f1=[20], $f12=[10], DEPTNO=[$7])\n"
+        + "  LogicalProject($f1=[20], $f2=[10], DEPTNO=[$7])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /**
+   * Tests that project field name aliases are suggested incrementally.
+   */
+  @Test public void testAliasSuggester() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root = builder.scan("EMP")
+        .project(builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0),
+            builder.field(0))
+        .build();
+    final String expected = ""
+        + "LogicalProject(EMPNO=[$0], EMPNO0=[$0], EMPNO1=[$0], "
+        + "EMPNO2=[$0], EMPNO3=[$0], EMPNO4=[$0], EMPNO5=[$0], "
+        + "EMPNO6=[$0], EMPNO7=[$0], EMPNO8=[$0], EMPNO9=[$0], EMPNO10=[$0])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }
 

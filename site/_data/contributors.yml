@@ -48,6 +48,11 @@
   githubId: beikov
   org: Blazebit
   role: Committer
+- name: Chunwei Lei
+  apacheId: chunwei
+  githubId: chunweilei
+  org: Alibaba
+  role: Committer
 - name: Edmon Begoli
   apacheId: ebegoli
   githubId: ebegoli
@@ -62,6 +67,16 @@
   apacheId: gian
   githubId: gianm
   org: Imply
+  role: Committer
+- name: Haisheng Yuan
+  apacheId: hyuan
+  githubId: hsyuan
+  org: Alibaba
+  role: Committer
+- name: Hongze Zhang
+  apacheId: hongze
+  githubId: zhztheplayer
+  org: Tencent
   role: Committer
 - name: James R. Taylor
   apacheId: jamestaylor
@@ -152,6 +167,11 @@
   githubId: nishantmonu51
   org: Hortonworks
   role: Committer
+- name: Ruben Quesada Lopez
+  apacheId: rubenql
+  githubId: rubenada
+  org: TIBCO
+  role: Committer
 - name: Sergey Nuyanzin
   apacheId: snuyanzin
   githubId: snuyanzin
@@ -167,6 +187,11 @@
   githubId: b-slim
   org: Hortonworks
   role: Committer
+- name: Stamatis Zampetakis
+  apacheId: zabetak
+  githubId: zabetak
+  org: TIBCO
+  role: PMC
 - name: Steven Noels
   apacheId: stevenn
   githubId: stevenn
@@ -197,6 +222,11 @@
   apacheId: zhiqianghe
   githubId: Zhiqiang-He
   org: Huawei
+  role: Committer
+- name: Zhiwei Peng
+  apacheId: zhiwei
+  githubId: pengzhiwei2018
+  org: Ant Financial Group
   role: Committer
 - name: Zoltan Haindrich
   apacheId: kgyrtkirk

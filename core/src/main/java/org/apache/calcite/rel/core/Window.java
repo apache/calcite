@@ -315,9 +315,9 @@ public abstract class Window extends SingleRel {
         public AggregateCall get(int index) {
           final RexWinAggCall aggCall = aggCalls.get(index);
           final SqlAggFunction op = (SqlAggFunction) aggCall.getOperator();
-          return AggregateCall.create(op, aggCall.distinct,
-              false, getProjectOrdinals(aggCall.getOperands()), -1,
-              RelCollations.EMPTY,
+          return AggregateCall.create(op, aggCall.distinct, false,
+              aggCall.ignoreNulls, getProjectOrdinals(aggCall.getOperands()),
+              -1, RelCollations.EMPTY,
               aggCall.getType(), fieldNames.get(aggCall.ordinal));
         }
       };
@@ -342,6 +342,19 @@ public abstract class Window extends SingleRel {
    /** Whether to eliminate duplicates before applying aggregate function. */
     public final boolean distinct;
 
+    /** Whether to ignore nulls. */
+    public final boolean ignoreNulls;
+
+    @Deprecated // to be removed before 2.0
+    public RexWinAggCall(
+        SqlAggFunction aggFun,
+        RelDataType type,
+        List<RexNode> operands,
+        int ordinal,
+        boolean distinct) {
+      this(aggFun, type, operands, ordinal, distinct, false);
+    }
+
     /**
      * Creates a RexWinAggCall.
      *
@@ -356,10 +369,12 @@ public abstract class Window extends SingleRel {
         RelDataType type,
         List<RexNode> operands,
         int ordinal,
-        boolean distinct) {
+        boolean distinct,
+        boolean ignoreNulls) {
       super(type, aggFun, operands);
       this.ordinal = ordinal;
       this.distinct = distinct;
+      this.ignoreNulls = ignoreNulls;
     }
 
     /** {@inheritDoc}

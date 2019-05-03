@@ -197,30 +197,6 @@ public abstract class Types {
     }
   }
 
-  /**
-   * Boxes a type, if it is primitive, and returns the type name.
-   * The type is abbreviated if it is in the "java.lang" package.
-   *
-   * <p>For example,
-   * boxClassName(int) returns "Integer";
-   * boxClassName(List&lt;String&gt;) returns "List&lt;String&gt;"</p>
-   *
-   * @param type Type
-   *
-   * @return Class name
-   */
-  static String boxClassName(Type type) {
-    if (!(type instanceof Class)) {
-      return type.toString();
-    }
-    Primitive primitive = Primitive.of(type);
-    if (primitive != null) {
-      return primitive.boxClass.getSimpleName();
-    } else {
-      return className(type);
-    }
-  }
-
   public static Type box(Type type) {
     Primitive primitive = Primitive.of(type);
     if (primitive != null) {

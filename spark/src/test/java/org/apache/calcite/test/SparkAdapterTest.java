@@ -576,7 +576,7 @@ public class SparkAdapterTest {
         + "where x is null";
 
     final String plan = "PLAN="
-        + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[false], proj#0..1=[{exprs}], $condition=[$t2])\n"
+        + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t0)], proj#0..1=[{exprs}], $condition=[$t2])\n"
         + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
 
     final String expectedResult = "";

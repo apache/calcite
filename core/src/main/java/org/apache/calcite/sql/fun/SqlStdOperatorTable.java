@@ -32,6 +32,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLateralOperator;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNullTreatmentOperator;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
@@ -43,6 +44,7 @@ import org.apache.calcite.sql.SqlRankFunction;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlValuesOperator;
@@ -805,6 +807,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           null,
           OperandTypes.CHARACTER);
 
+  public static final SqlPostfixOperator JSON_VALUE_EXPRESSION =
+      new SqlJsonValueExpressionOperator();
+
 
   //-------------------------------------------------------------
   //                   PREFIX OPERATORS
@@ -1169,6 +1174,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   //-------------------------------------------------------------
   public static final SqlRowOperator ROW = new SqlRowOperator("ROW");
 
+  /** <code>IGNORE NULLS</code> operator. */
+  public static final SqlNullTreatmentOperator IGNORE_NULLS =
+      new SqlNullTreatmentOperator(SqlKind.IGNORE_NULLS);
+
+  /** <code>RESPECT NULLS</code> operator. */
+  public static final SqlNullTreatmentOperator RESPECT_NULLS =
+      new SqlNullTreatmentOperator(SqlKind.RESPECT_NULLS);
+
   /**
    * A special operator for the subtraction of two DATETIMEs. The format of
    * DATETIME subtraction is:
@@ -1281,20 +1294,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlThrowOperator THROW = new SqlThrowOperator();
 
-  public static final SqlJsonValueExpressionOperator JSON_VALUE_EXPRESSION =
-      new SqlJsonValueExpressionOperator("JSON_VALUE_EXPRESSION", false);
-
-  public static final SqlJsonValueExpressionOperator JSON_STRUCTURED_VALUE_EXPRESSION =
-      new SqlJsonValueExpressionOperator("JSON_STRUCTURED_VALUE_EXPRESSION",
-          true);
-
   public static final SqlJsonApiCommonSyntaxOperator JSON_API_COMMON_SYNTAX =
-      new SqlJsonApiCommonSyntaxOperator();
+      new SqlJsonApiCommonSyntaxOperator("JSON_API_COMMON_SYNTAX");
 
   public static final SqlFunction JSON_EXISTS = new SqlJsonExistsFunction();
 
   public static final SqlFunction JSON_VALUE =
       new SqlJsonValueFunction("JSON_VALUE", false);
+
+  public static final SqlFunction JSON_KEYS = new SqlJsonKeysFunction();
+
+  public static final SqlFunction JSON_PRETTY =
+          new SqlJsonPrettyFunction();
 
   public static final SqlFunction JSON_VALUE_ANY =
       new SqlJsonValueFunction("JSON_VALUE_ANY", true);
@@ -1305,15 +1316,19 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlFunction JSON_TYPE = new SqlJsonTypeFunction();
 
+  public static final SqlFunction JSON_DEPTH = new SqlJsonDepthFunction();
+
+  public static final SqlFunction JSON_LENGTH = new SqlJsonLengthFunction();
+
   public static final SqlJsonObjectAggAggFunction JSON_OBJECTAGG =
-      new SqlJsonObjectAggAggFunction("JSON_OBJECTAGG",
+      new SqlJsonObjectAggAggFunction(SqlKind.JSON_OBJECTAGG,
           SqlJsonConstructorNullClause.NULL_ON_NULL);
 
   public static final SqlFunction JSON_ARRAY = new SqlJsonArrayFunction();
 
   public static final SqlJsonArrayAggAggFunction JSON_ARRAYAGG =
-      new SqlJsonArrayAggAggFunction("JSON_ARRAYAGG",
-          SqlJsonConstructorNullClause.NULL_ON_NULL);
+      new SqlJsonArrayAggAggFunction(SqlKind.JSON_ARRAYAGG,
+          SqlJsonConstructorNullClause.ABSENT_ON_NULL);
 
   public static final SqlBetweenOperator BETWEEN =
       new SqlBetweenOperator(
@@ -1473,6 +1488,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "INITCAP",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0_NULLABLE,
+          null,
+          OperandTypes.CHARACTER,
+          SqlFunctionCategory.STRING);
+
+  public static final SqlFunction ASCII =
+      new SqlFunction(
+          "ASCII",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
           null,
           OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
@@ -1672,8 +1696,17 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction PI =
-      new SqlBaseContextVariable("PI", ReturnTypes.DOUBLE,
-          SqlFunctionCategory.NUMERIC);
+      new SqlFunction(
+          "PI",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.NUMERIC) {
+        public SqlSyntax getSyntax() {
+          return SqlSyntax.FUNCTION_ID;
+        }
+      };
 
   /** {@code FIRST} function to be used within {@code MATCH_RECOGNIZE}. */
   public static final SqlFunction FIRST =
@@ -1942,6 +1975,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlDatePartFunction SECOND =
       new SqlDatePartFunction("SECOND", TimeUnit.SECOND);
 
+  public static final SqlFunction LAST_DAY =
+      new SqlFunction(
+          "LAST_DAY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE,
+          null,
+          OperandTypes.DATETIME,
+          SqlFunctionCategory.TIMEDATE);
+
   /**
    * The ELEMENT operator, used to convert a multiset with only one item to a
    * "regular" type. Example ... log(ELEMENT(MULTISET[1])) ...
@@ -2105,6 +2147,20 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.TO_MULTISET,
           null,
           OperandTypes.ANY,
+          SqlFunctionCategory.SYSTEM, false, false,
+          Optionality.OPTIONAL) {
+      };
+
+  /**
+   * The LISTAGG operator. Multiset aggregator function.
+   */
+  public static final SqlAggFunction LISTAGG =
+      new SqlAggFunction("LISTAGG",
+          null,
+          SqlKind.LISTAGG,
+          ReturnTypes.ARG0_NULLABLE,
+          null,
+          OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING),
           SqlFunctionCategory.SYSTEM, false, false,
           Optionality.OPTIONAL) {
       };

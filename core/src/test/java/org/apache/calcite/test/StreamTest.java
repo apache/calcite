@@ -33,9 +33,11 @@ import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFactory;
+import org.apache.calcite.schema.TemporalTable;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 
@@ -337,7 +339,7 @@ public class StreamTest {
           assertThat(actualRow, equalTo(expectedRow));
         }
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     };
   }
@@ -534,6 +536,48 @@ public class StreamTest {
     }
 
     public Schema.TableType getJdbcTableType() {
+      return Schema.TableType.TABLE;
+    }
+
+    @Override public boolean isRolledUp(String column) {
+      return false;
+    }
+
+    @Override public boolean rolledUpColumnValidInsideAgg(String column,
+        SqlCall call, SqlNode parent, CalciteConnectionConfig config) {
+      return false;
+    }
+  }
+
+  /**
+   * Table representing the PRODUCTS_TEMPORAL temporal table.
+   */
+  public static class ProductsTemporalTable implements TemporalTable {
+
+    private final RelProtoDataType protoRowType = a0 -> a0.builder()
+        .add("ID", SqlTypeName.VARCHAR, 32)
+        .add("SUPPLIER", SqlTypeName.INTEGER)
+        .add("SYS_START", SqlTypeName.TIMESTAMP)
+        .add("SYS_END", SqlTypeName.TIMESTAMP)
+        .build();
+
+    @Override public String getSysStartFieldName() {
+      return "SYS_START";
+    }
+
+    @Override public String getSysEndFieldName() {
+      return "SYS_END";
+    }
+
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return protoRowType.apply(typeFactory);
+    }
+
+    @Override public Statistic getStatistic() {
+      return Statistics.of(200d, ImmutableList.of());
+    }
+
+    @Override public Schema.TableType getJdbcTableType() {
       return Schema.TableType.TABLE;
     }
 

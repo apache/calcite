@@ -29,6 +29,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.util.TestUtil;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -255,7 +256,7 @@ public class JdbcFrontLinqBackTest {
           assertThat(count, is(1));
         }
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     });
     with.query("select count(*) as c from \"foo\".\"bar\"")

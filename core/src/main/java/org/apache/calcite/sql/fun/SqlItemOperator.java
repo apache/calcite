@@ -87,13 +87,13 @@ class SqlItemOperator extends SqlSpecialOperator {
         throwOnFailure)) {
       return false;
     }
-    final RelDataType operandType = callBinding.getOperandType(0);
-    final SqlSingleOperandTypeChecker checker = getChecker(operandType);
+    final SqlSingleOperandTypeChecker checker = getChecker(callBinding);
     return checker.checkSingleOperandType(callBinding, right, 0,
         throwOnFailure);
   }
 
-  private SqlSingleOperandTypeChecker getChecker(RelDataType operandType) {
+  private SqlSingleOperandTypeChecker getChecker(SqlCallBinding callBinding) {
+    final RelDataType operandType = callBinding.getOperandType(0);
     switch (operandType.getSqlTypeName()) {
     case ARRAY:
       return OperandTypes.family(SqlTypeFamily.INTEGER);
@@ -106,7 +106,7 @@ class SqlItemOperator extends SqlSpecialOperator {
           OperandTypes.family(SqlTypeFamily.INTEGER),
           OperandTypes.family(SqlTypeFamily.CHARACTER));
     default:
-      throw new AssertionError(operandType.getSqlTypeName());
+      throw callBinding.newValidationSignatureError();
     }
   }
 

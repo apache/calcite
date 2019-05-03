@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.rel.logical;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
@@ -71,7 +71,7 @@ public final class LogicalCorrelate extends Correlate {
         correlationId,
         requiredColumns,
         joinType);
-    assert !CalcitePrepareImpl.DEBUG || isValid(Litmus.THROW, null);
+    assert !CalciteSystemProperty.DEBUG.value() || isValid(Litmus.THROW, null);
   }
 
   @Deprecated // to be removed before 2.0

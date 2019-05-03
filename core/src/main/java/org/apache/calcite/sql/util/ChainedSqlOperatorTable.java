@@ -21,6 +21,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.validate.SqlNameMatcher;
 
 import com.google.common.collect.ImmutableList;
 
@@ -67,9 +68,10 @@ public class ChainedSqlOperatorTable implements SqlOperatorTable {
 
   public void lookupOperatorOverloads(SqlIdentifier opName,
       SqlFunctionCategory category, SqlSyntax syntax,
-      List<SqlOperator> operatorList) {
+      List<SqlOperator> operatorList, SqlNameMatcher nameMatcher) {
     for (SqlOperatorTable table : tableList) {
-      table.lookupOperatorOverloads(opName, category, syntax, operatorList);
+      table.lookupOperatorOverloads(opName, category, syntax, operatorList,
+          nameMatcher);
     }
   }
 

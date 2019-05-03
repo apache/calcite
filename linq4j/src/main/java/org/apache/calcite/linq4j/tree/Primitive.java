@@ -57,6 +57,7 @@ public enum Primitive {
   public final Class primitiveClass;
   public final Class boxClass;
   public final String primitiveName; // e.g. "int"
+  public final String boxName;
   private final int family;
 
   /** The default value of this primitive class. This is the value
@@ -105,6 +106,7 @@ public enum Primitive {
     this.primitiveName =
         primitiveClass != null ? primitiveClass.getSimpleName() : null;
     this.boxClass = boxClass;
+    this.boxName = boxClass != null ? boxClass.getSimpleName() : null;
     this.defaultValue = defaultValue;
     this.min = min;
     this.maxNegative = maxNegative;

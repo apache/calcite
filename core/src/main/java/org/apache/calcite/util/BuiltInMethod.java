@@ -18,8 +18,9 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.AggregateLambdaFactory;
-import org.apache.calcite.adapter.enumerable.OrderedAggregateLambdaFactory;
-import org.apache.calcite.adapter.enumerable.SequencedAdderAggregateLambdaFactory;
+import org.apache.calcite.adapter.enumerable.BasicAggregateLambdaFactory;
+import org.apache.calcite.adapter.enumerable.BasicLazyAccumulator;
+import org.apache.calcite.adapter.enumerable.LazyAggregateLambdaFactory;
 import org.apache.calcite.adapter.enumerable.SourceSorter;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
@@ -265,11 +266,11 @@ public enum BuiltInMethod {
   ANY_ITEM(SqlFunctions.class, "itemOptional", Object.class, Object.class),
   UPPER(SqlFunctions.class, "upper", String.class),
   LOWER(SqlFunctions.class, "lower", String.class),
+  ASCII(SqlFunctions.class, "ascii", String.class),
   JSONIZE(SqlFunctions.class, "jsonize", Object.class),
+  DEJSONIZE(SqlFunctions.class, "dejsonize", String.class),
   JSON_VALUE_EXPRESSION(SqlFunctions.class, "jsonValueExpression",
       String.class),
-  JSON_STRUCTURED_VALUE_EXPRESSION(SqlFunctions.class,
-      "jsonStructuredValueExpression", Object.class),
   JSON_API_COMMON_SYNTAX(SqlFunctions.class, "jsonApiCommonSyntax",
       Object.class, String.class),
   JSON_EXISTS(SqlFunctions.class, "jsonExists", Object.class),
@@ -283,6 +284,10 @@ public enum BuiltInMethod {
   JSON_OBJECT(SqlFunctions.class, "jsonObject",
       SqlJsonConstructorNullClause.class),
   JSON_TYPE(SqlFunctions.class, "jsonType", Object.class),
+  JSON_DEPTH(SqlFunctions.class, "jsonDepth", Object.class),
+  JSON_KEYS(SqlFunctions.class, "jsonKeys", Object.class),
+  JSON_PRETTY(SqlFunctions.class, "jsonPretty", Object.class),
+  JSON_LENGTH(SqlFunctions.class, "jsonLength", Object.class),
   JSON_OBJECTAGG_ADD(SqlFunctions.class, "jsonObjectAggAdd", Map.class,
       String.class, Object.class, SqlJsonConstructorNullClause.class),
   JSON_ARRAY(SqlFunctions.class, "jsonArray",
@@ -387,6 +392,7 @@ public enum BuiltInMethod {
       TimeUnitRange.class, long.class),
   UNIX_TIMESTAMP_CEIL(DateTimeUtils.class, "unixTimestampCeil",
       TimeUnitRange.class, long.class),
+  LAST_DAY(SqlFunctions.class, "lastDay", int.class),
   CURRENT_TIMESTAMP(SqlFunctions.class, "currentTimestamp", DataContext.class),
   CURRENT_TIME(SqlFunctions.class, "currentTime", DataContext.class),
   CURRENT_DATE(SqlFunctions.class, "currentDate", DataContext.class),
@@ -482,9 +488,10 @@ public enum BuiltInMethod {
       String.class),
   SOURCE_SORTER(SourceSorter.class, Function2.class, Function1.class,
       Comparator.class),
-  ORDERED_AGGREGATE_LAMBDA_FACTORY(OrderedAggregateLambdaFactory.class,
+  BASIC_LAZY_ACCUMULATOR(BasicLazyAccumulator.class, Function2.class),
+  LAZY_AGGREGATE_LAMBDA_FACTORY(LazyAggregateLambdaFactory.class,
       Function0.class, List.class),
-  SEQUENCED_ADDER_AGGREGATE_LAMBDA_FACTORY(SequencedAdderAggregateLambdaFactory.class,
+  BASIC_AGGREGATE_LAMBDA_FACTORY(BasicAggregateLambdaFactory.class,
       Function0.class, List.class),
   AGG_LAMBDA_FACTORY_ACC_INITIALIZER(AggregateLambdaFactory.class,
       "accumulatorInitializer"),
@@ -531,6 +538,10 @@ public enum BuiltInMethod {
   BuiltInMethod(Class clazz, String fieldName, boolean dummy) {
     this(null, null, Types.lookupField(clazz, fieldName));
     assert dummy : "dummy value for method overloading must be true";
+  }
+
+  public String getMethodName() {
+    return method.getName();
   }
 }
 

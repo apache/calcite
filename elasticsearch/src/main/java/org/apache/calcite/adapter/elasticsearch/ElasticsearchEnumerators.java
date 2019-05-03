@@ -23,6 +23,7 @@ import org.apache.calcite.linq4j.tree.Primitive;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Util functions which convert
@@ -52,7 +53,7 @@ class ElasticsearchEnumerators {
       final Object value;
       if (ElasticsearchConstants.ID.equals(key)
           || ElasticsearchConstants.ID.equals(mapping.getOrDefault(fieldName, fieldName))) {
-        // is the original projection on _id field ?
+        // is the original projection on _id field?
         value = hit.id();
       } else {
         value = hit.valueOrNull(key);
@@ -86,7 +87,7 @@ class ElasticsearchEnumerators {
         if (ElasticsearchConstants.ID.equals(key)
             || ElasticsearchConstants.ID.equals(mapping.get(field.getKey()))
             || ElasticsearchConstants.ID.equals(field.getKey())) {
-          // is the original projection on _id field ?
+          // is the original projection on _id field?
           value = hit.id();
         } else {
           value = hit.valueOrNull(key);
@@ -101,13 +102,12 @@ class ElasticsearchEnumerators {
 
   static Function1<ElasticsearchJson.SearchHit, Object> getter(
       List<Map.Entry<String, Class>> fields, Map<String, String> mapping) {
+    Objects.requireNonNull(fields, "fields");
     //noinspection unchecked
     final Function1 getter;
-    if (fields == null || fields.size() == 1 && "_MAP".equals(fields.get(0).getKey())) {
-      // select * from table
-      getter = mapGetter();
-    } else if (fields.size() == 1) {
+    if (fields.size() == 1) {
       // select foo from table
+      // select * from table
       getter = singletonGetter(fields.get(0).getKey(), fields.get(0).getValue(), mapping);
     } else {
       // select a, b, c from table

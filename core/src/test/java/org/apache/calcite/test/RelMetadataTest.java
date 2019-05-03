@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -90,7 +91,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
-import org.apache.calcite.util.SaffronProperties;
+import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -677,6 +678,17 @@ public class RelMetadataTest extends SqlToRelTestBase {
     checkRowCount(sql, 1D, 1D, 1D);
   }
 
+  @Test public void testRowCountAggregateConstantKey() {
+    final String sql = "select count(*) from emp where deptno=2 and ename='emp1' "
+        + "group by deptno, ename";
+    checkRowCount(sql, 1D, 0D, 1D);
+  }
+
+  @Test public void testRowCountAggregateConstantKeys() {
+    final String sql = "select distinct deptno from emp where deptno=4";
+    checkRowCount(sql, 1D, 0D, 1D);
+  }
+
   @Test public void testRowCountFilterAggregateEmptyKey() {
     final String sql = "select count(*) from emp where 1 = 0";
     checkRowCount(sql, 1D, 1D, 1D);
@@ -793,10 +805,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
    * OutOfMemoryError</a>. */
   @Test public void testMetadataHandlerCacheLimit() {
     Assume.assumeTrue("too slow to run every day, and it does not reproduce the issue",
-        CalciteAssert.ENABLE_SLOW);
+        CalciteSystemProperty.TEST_SLOW.value());
     Assume.assumeTrue("If cache size is too large, this test may fail and the "
             + "test won't be to blame",
-        SaffronProperties.INSTANCE.metadataHandlerCacheMaximumSize().get()
+        CalciteSystemProperty.METADATA_HANDLER_CACHE_MAXIMUM_SIZE.value()
             < 10_000);
     final int iterationCount = 2_000;
     final RelNode rel = convertSql("select * from emp");
@@ -911,6 +923,21 @@ public class RelMetadataTest extends SqlToRelTestBase {
         CoreMatchers.equalTo(
             ImmutableSet.of(ImmutableBitSet.of())));
     assertUniqueConsistent(rel);
+  }
+
+  @Test public void testFullOuterJoinUniqueness1() {
+    final String sql = "select e.empno, d.deptno \n"
+        + "from (select cast(null as int) empno from sales.emp "
+        + " where empno = 10 group by cast(null as int)) as e \n"
+        + "full outer join (select cast (null as int) deptno from sales.dept "
+        + "group by cast(null as int)) as d on e.empno = d.deptno \n"
+        + "group by e.empno, d.deptno";
+    RelNode rel = convertSql(sql);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final ImmutableBitSet allCols =
+        ImmutableBitSet.range(0, rel.getRowType().getFieldCount());
+    Boolean areGroupByKeysUnique = mq.areColumnsUnique(rel.getInput(0), allCols);
+    assertThat(areGroupByKeysUnique, is(false));
   }
 
   @Test public void testGroupBy() {
@@ -1108,7 +1135,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
       join = EnumerableMergeJoin.create(project, deptSort,
           rexBuilder.makeLiteral(true), leftKeys, rightKeys, JoinRelType.INNER);
     } catch (InvalidRelException e) {
-      throw new RuntimeException(e);
+      throw TestUtil.rethrow(e);
     }
     collations =
         RelMdCollation.mergeJoin(mq, project, deptSort, leftKeys,
@@ -1351,7 +1378,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
             ImmutableList.of(),
             ImmutableList.of(
                 AggregateCall.create(SqlStdOperatorTable.COUNT,
-                    false, false, ImmutableIntList.of(),
+                    false, false, false, ImmutableIntList.of(),
                     -1, RelCollations.EMPTY, 2, join, null, null)));
     rowSize = mq.getAverageRowSize(aggregate);
     columnSizes = mq.getAverageColumnSizes(aggregate);
