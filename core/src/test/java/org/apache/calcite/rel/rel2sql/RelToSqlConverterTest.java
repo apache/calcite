@@ -300,12 +300,12 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\")\n"
-        + "ORDER BY \"product_class_id\", COUNT(*)";
+        + "ORDER BY \"product_class_id\", \"C\"";
     final String expectedMySql = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `product_class_id` WITH ROLLUP\n"
         + "ORDER BY `product_class_id` IS NULL, `product_class_id`,"
-        + " COUNT(*) IS NULL, COUNT(*)";
+        + " `C` IS NULL, `C`";
     sql(query)
         .ok(expected)
         .withMysql()
@@ -342,14 +342,14 @@ public class RelToSqlConverterTest {
         + " COUNT(*) AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\", \"brand_name\")\n"
-        + "ORDER BY \"product_class_id\", \"brand_name\", COUNT(*)";
+        + "ORDER BY \"product_class_id\", \"brand_name\", \"C\"";
     final String expectedMySql = "SELECT `product_class_id`, `brand_name`,"
         + " COUNT(*) AS `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `product_class_id`, `brand_name` WITH ROLLUP\n"
         + "ORDER BY `product_class_id` IS NULL, `product_class_id`,"
         + " `brand_name` IS NULL, `brand_name`,"
-        + " COUNT(*) IS NULL, COUNT(*)";
+        + " `C` IS NULL, `C`";
     sql(query)
         .ok(expected)
         .withMysql()
