@@ -701,8 +701,12 @@ public class RexSimplify {
       return simplify(rexBuilder.makeCall(notKind, arg), UNKNOWN);
     }
     RexNode a2 = simplify(a, UNKNOWN);
-    if (a != a2) {
-      return rexBuilder.makeCall(RexUtil.op(kind), ImmutableList.of(a2));
+    if (!a.equals(a2)) {
+      // Now we've simplified the argument, call ourselves recursively to
+      // and see whether we can make more progress. For example, given
+      // "(CASE WHEN FALSE THEN 1 ELSE 2) IS NULL" we first simplify the
+      // argument to "2", and only then we can simplify "2 IS NULL" to "FALSE".
+      return simplifyIs2(kind, a2, unknownAs);
     }
     return null; // cannot be simplified
   }

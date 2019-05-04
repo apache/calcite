@@ -1954,6 +1954,14 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplify(isNotNull(lt(i2, i3)), "true");
     checkSimplify(isNotNull(lt(i0, one)), "IS NOT NULL($0)");
     checkSimplify(isNotNull(lt(i0, null_)), "false");
+    // "(CASE WHEN FALSE THEN +(v0) ELSE -1 END) IS UNKNOWN" should simplify to
+    // "FALSE", but a bug simplified it only to "(-1 IS UNKNOWN)"
+    checkSimplify(
+        isNull(case_(falseLiteral, unaryPlus(i0), literal(-1))),
+        "false");
+    checkSimplify(
+        isNotNull(case_(falseLiteral, unaryPlus(i0), literal(-1))),
+        "true");
   }
 
   /** Unit test for
