@@ -569,7 +569,7 @@ Calcite generates Java code, compiles it, and executes inside its own JVM.
 Enumerable convention is less efficient than, say, a distributed engine
 running over column-oriented data files, but it can implement all core
 relational operators and all built-in SQL functions and operators. If a data
-source cannot an implement a relational operator, enumerable convention is
+source cannot implement a relational operator, enumerable convention is
 a fall-back.
 
 ### Statistics and cost
