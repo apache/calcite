@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.TestKtTest;
 import org.apache.calcite.adapter.clone.ArrayTableTest;
+import org.apache.calcite.adapter.enumerable.TypeFinderTest;
 import org.apache.calcite.jdbc.CalciteRemoteDriverTest;
 import org.apache.calcite.materialize.LatticeSuggesterTest;
 import org.apache.calcite.plan.RelOptPlanReaderTest;
@@ -131,6 +132,7 @@ import org.junit.runners.Suite;
     SqlTypeFactoryTest.class,
     SqlTypeUtilTest.class,
     SqlValidatorUtilTest.class,
+    TypeFinderTest.class,
 
     // medium tests (above 0.1s)
     SqlParserTest.class,
