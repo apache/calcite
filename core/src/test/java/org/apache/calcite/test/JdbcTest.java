@@ -6744,6 +6744,21 @@ public class JdbcTest {
     connection.close();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3039">[CALCITE-3039]
+   * In Interpreter, min() incorrectly returns maximum double value</a>. */
+  @Test public void testAggWithSelectList() {
+    try (Hook.Closeable ignored = Hook.ENABLE_BINDABLE.addThread(Hook.propertyJ(true))) {
+      CalciteAssert.hr()
+          .query(
+              "select min(div) as _min from ("
+                  + "select \"empid\", \"deptno\", CAST(\"empid\" AS DOUBLE)/\"deptno\" as div from \"hr\".\"emps\")")
+          .explainContains("BindableAggregate(group=[{}], _MIN=[MIN($0)])\n"
+              + "  BindableProject(DIV=[/(CAST($0):DOUBLE NOT NULL, $1)])\n"
+              + "    BindableTableScan(table=[[hr, emps]])")
+          .returns("_MIN=10.0\n");
+    }
+  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2224">[CALCITE-2224]
