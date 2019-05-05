@@ -700,18 +700,20 @@ public class RexSimplify {
       final RexNode arg = ((RexCall) a).operands.get(0);
       return simplify(rexBuilder.makeCall(notKind, arg), UNKNOWN);
     }
-    RexNode a2 = simplify(a, UNKNOWN);
-    if (!a.equals(a2)) {
-      // Now we've simplified the argument, call ourselves recursively to
-      // and see whether we can make more progress. For example, given
-      // "(CASE WHEN FALSE THEN 1 ELSE 2) IS NULL" we first simplify the
-      // argument to "2", and only then we can simplify "2 IS NULL" to "FALSE".
-      return simplifyIs2(kind, a2, unknownAs);
+    final RexNode a2 = simplify(a, UNKNOWN);
+    if (a != a2) {
+      return rexBuilder.makeCall(RexUtil.op(kind), ImmutableList.of(a2));
     }
     return null; // cannot be simplified
   }
 
   private RexNode simplifyIsNotNull(RexNode a) {
+    // Simplify the argument first,
+    // call ourselves recursively to see whether we can make more progress.
+    // For example, given
+    // "(CASE WHEN FALSE THEN 1 ELSE 2) IS NOT NULL" we first simplify the
+    // argument to "2", and only then we can simplify "2 IS NOT NULL" to "TRUE".
+    a = simplify(a, UNKNOWN);
     if (!a.getType().isNullable() && isSafeExpression(a)) {
       return rexBuilder.makeLiteral(true);
     }
@@ -755,6 +757,12 @@ public class RexSimplify {
   }
 
   private RexNode simplifyIsNull(RexNode a) {
+    // Simplify the argument first,
+    // call ourselves recursively to see whether we can make more progress.
+    // For example, given
+    // "(CASE WHEN FALSE THEN 1 ELSE 2) IS NULL" we first simplify the
+    // argument to "2", and only then we can simplify "2 IS NULL" to "FALSE".
+    a = simplify(a, UNKNOWN);
     if (!a.getType().isNullable() && isSafeExpression(a)) {
       return rexBuilder.makeLiteral(false);
     }
