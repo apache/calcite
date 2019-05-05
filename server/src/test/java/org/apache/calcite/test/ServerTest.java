@@ -125,6 +125,10 @@ public class ServerTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3046">[CALCITE-3046]
+   * CompileException when inserting casted value of composited user defined type
+   * into table</a>. */
   @Test public void testCreateTable() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
@@ -146,6 +150,19 @@ public class ServerTest {
       b = s.execute("create table w (i int not null, j mytype)");
       assertThat(b, is(false));
       x = s.executeUpdate("insert into w values (1, NULL)");
+      assertThat(x, is(1));
+    }
+  }
+
+  @Test public void testInsertCastedValueOfCompositeUdt() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      boolean b = s.execute("create type mytype as (i int, j int)");
+      assertThat(b, is(false));
+      b = s.execute("create table w (i int not null, j mytype)");
+      assertThat(b, is(false));
+      int x = s.executeUpdate("insert into w "
+          + "values (1, cast((select j from w limit 1) as mytype))");
       assertThat(x, is(1));
     }
   }
