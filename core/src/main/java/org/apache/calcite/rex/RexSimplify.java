@@ -655,14 +655,14 @@ public class RexSimplify {
       // x IS NULL ==> FALSE (if x is not nullable)
       simplified = simplifyIsNull(a);
       if (simplified != null) {
-        return simplify(simplified, unknownAs);
+        return simplified;
       }
       break;
     case IS_NOT_NULL:
       // x IS NOT NULL ==> TRUE (if x is not nullable)
       simplified = simplifyIsNotNull(a);
       if (simplified != null) {
-        return simplify(simplified, unknownAs);
+        return simplified;
       }
       break;
     case IS_TRUE:
