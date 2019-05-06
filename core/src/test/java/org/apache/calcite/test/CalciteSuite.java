@@ -47,6 +47,7 @@ import org.apache.calcite.sql.SqlSetOptionOperatorTest;
 import org.apache.calcite.sql.parser.SqlParserTest;
 import org.apache.calcite.sql.parser.SqlUnParserTest;
 import org.apache.calcite.sql.parser.parserextensiontesting.ExtensionSqlParserTest;
+import org.apache.calcite.sql.test.DocumentationTest;
 import org.apache.calcite.sql.test.SqlAdvisorTest;
 import org.apache.calcite.sql.test.SqlOperatorTest;
 import org.apache.calcite.sql.test.SqlPrettyWriterTest;
@@ -162,6 +163,7 @@ import org.junit.runners.Suite;
     MutableRelTest.class,
 
     // slow tests (above 1s)
+    DocumentationTest.class,
     UdfTest.class,
     UdtTest.class,
     TableFunctionTest.class,

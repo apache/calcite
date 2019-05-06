@@ -43,10 +43,6 @@ public class BabelParserTest extends SqlParserTest {
     return SqlBabelParserImpl.FACTORY;
   }
 
-  @Override public void testGenerateKeyWords() {
-    // by design, method only works in base class; no-ops in this sub-class
-  }
-
   @Test public void testReservedWords() {
     assertThat(isReserved("escape"), is(false));
   }

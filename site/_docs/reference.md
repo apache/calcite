@@ -19,6 +19,36 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+The following functions do not need to be documented. They are listed
+here to appease testAllFunctionsAreDocumented:
+
+| Function       | Reason not documented
+|:-------------- |:---------------------
+| CALL           | TODO: document
+| CLASSIFIER()   | Documented with MATCH_RECOGNIZE
+| CONVERT()      | In SqlStdOperatorTable, but not fully implemented
+| CUME_DIST()    | In SqlStdOperatorTable, but not fully implemented
+| DESC           | Described as part of ORDER BY syntax
+| EQUALS         | Documented as an period operator
+| FILTER         | Documented as part of aggregateCall syntax
+| FINAL          | TODO: Document with MATCH_RECOGNIZE
+| FIRST()        | TODO: Documented with MATCH_RECOGNIZE
+| JSON_ARRAYAGG_ABSENT_ON_NULL() | Covered by JSON_ARRAYAGG
+| JSON_OBJECTAGG_NULL_ON_NULL() | Covered by JSON_OBJECTAGG
+| JSON_VALUE_ANY() | Covered by JSON_VALUE
+| LAST()         | TODO: document with MATCH_RECOGNIZE
+| NEW            | TODO: document
+| NEXT()         | Documented with MATCH_RECOGNIZE
+| OVERLAPS       | Documented as a period operator
+| PERCENT_RANK() | In SqlStdOperatorTable, but not fully implemented
+| PRECEDES       | Documented as a period operator
+| PREV()         | Documented with MATCH_RECOGNIZE
+| RUNNING        | TODO: document with MATCH_RECOGNIZE
+| SINGLE_VALUE() | Internal (but should it be?)
+| SUCCEEDS       | Documented as a period operator
+| TABLE          | Documented as part of FROM syntax
+| VARIANCE()     | In SqlStdOperatorTable, but not fully implemented
 {% endcomment %}
 -->
 
@@ -1264,6 +1294,7 @@ Not implemented:
 | SYSTEM_USER     | Returns the name of the current data store user as identified by the operating system
 | CURRENT_PATH    | Returns a character string representing the current lookup scope for references to user-defined routines and types
 | CURRENT_ROLE    | Returns the current active role
+| CURRENT_SCHEMA  | Returns the current schema
 
 ### Conditional functions and operators
 
@@ -1547,6 +1578,7 @@ and `LISTAGG`).
 | BIT_OR( [ ALL &#124; DISTINCT ] value)        | Returns the bitwise OR of all non-null input values, or null if none
 | STDDEV_POP( [ ALL &#124; DISTINCT ] numeric)  | Returns the population standard deviation of *numeric* across all input values
 | STDDEV_SAMP( [ ALL &#124; DISTINCT ] numeric) | Returns the sample standard deviation of *numeric* across all input values
+| STDDEV( [ ALL &#124; DISTINCT ] numeric)      | Synonym for `STDDEV_SAMP`
 | VAR_POP( [ ALL &#124; DISTINCT ] value)       | Returns the population variance (square of the population standard deviation) of *numeric* across all input values
 | VAR_SAMP( [ ALL &#124; DISTINCT ] numeric)    | Returns the sample variance (square of the sample standard deviation) of *numeric* across all input values
 | COVAR_POP(numeric1, numeric2)      | Returns the population covariance of the pair (*numeric1*, *numeric2*) across all input values
@@ -2043,24 +2075,38 @@ Note:
 | jsonValue IS JSON ARRAY           | Whether *jsonValue* is a JSON array
 | jsonValue IS NOT JSON ARRAY       | Whether *jsonValue* is not a JSON array
 
-### SQL Dialect Operators
-Sql dialect operators are only supported by specific sql dialects. One operator name may corresponds to multiple sql dialects, but with different semantics.
+### Dialect-specific Operators
 
-| Operator syntax                                      | Dialects        | Description
-|:---------------------------------------------------- |:--------------- |:-----------
-| JSON_TYPE(jsonValue)                                 | `MYSQL`         | Returns a string value indicating the type of a *jsonValue*
-| JSON_DEPTH(jsonValue)                                | `MYSQL`         | Returns an integer value indicating the depth of a *jsonValue*
-| JSON_PRETTY(jsonValue)                               | `MYSQL`         | Returns a pretty-printing of *jsonValue*
-| JSON_LENGTH(jsonValue [, path ])                     | `MYSQL`         | Returns a integer indicating the length of *jsonValue*
-| JSON_KEYS(jsonValue [, path ])                       | `MYSQL`         | Returns a string indicating the keys of a JSON *jsonValue*
-| DECODE(v, v1, result1, [v2, result2, ...], default)  | `ORACLE`        | DECODE compares *v* to each *v#* value one by one. If *v* is equal to a *v#*, then returns the corresponding *result#*. If no match is found, then returns *default*. If *default* is omitted, then returns null
-| NVL(v1, v2)                                          | `ORACLE`        | NVL lets you replace null (returned as a blank) with a string in the results of a query. If *v1* is null, then NVL returns *v2*. If *v1* is not null, then NVL returns *v1*
-| LTRIM(char)                                          | `ORACLE`        | LTRIM removes from the left end of *char* all of the blanks
-| RTRIM(char)                                          | `ORACLE`        | RTRIM removes from the right end of *char* all of the blanks
-| SUBSTR(char, position [, substring_length ])         | `ORACLE`        | SUBSTR returns a portion of *char*, beginning at character *position*, *substring_length* characters long. SUBSTR calculates lengths using characters as defined by the input character set
-| GREATEST(expr1 [, expr2, ... ])                      | `ORACLE`        | GREATEST returns the greatest of the list of one or more expressions
-| LEAST(expr1 [, expr2, ... ])                         | `ORACLE`        | LEAST returns the least of the list of exprs
-| TRANSLATE3(expr, from_string, to_string)             | `ORACLE`        | TRANSLATE returns *expr* with all occurrences of each character in *from_string* replaced by its corresponding character in *to_string*. Characters in *expr* that are not in *from_string* are not replaced
+The following operators are not in the SQL standard, and are not enabled in
+Calcite's default operator table. They are only available for use in queries
+if your session has enabled an extra operator table.
+
+To enable an operator table, set the
+[fun]({{ site.baseurl }}/docs/adapter.html#jdbc-connect-string-parameters)
+connect string parameter.
+
+The 'C' (compatibility) column contains value
+'m' for MySQL ('fun=mysql' in the connect string),
+'o' for Oracle ('fun=oracle' in the connect string).
+
+One operator name may correspond to multiple SQL dialects, but with different
+semantics.
+
+| C | Operator syntax                                | Description
+|:- |:-----------------------------------------------|:-----------
+| m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of a *jsonValue*
+| m | JSON_DEPTH(jsonValue)                          | Returns an integer value indicating the depth of a *jsonValue*
+| m | JSON_PRETTY(jsonValue)                         | Returns a pretty-printing of *jsonValue*
+| m | JSON_LENGTH(jsonValue [, path ])               | Returns a integer indicating the length of *jsonValue*
+| m | JSON_KEYS(jsonValue [, path ])                 | Returns a string indicating the keys of a JSON *jsonValue*
+| o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
+| o | NVL(value1, value2)                            | Returns *value1* if *value1* is not null, otherwise *value2*
+| o | LTRIM(string)                                  | Returns *string* with all blanks removed from the start
+| o | RTRIM(string)                                  | Returns *string* with all blanks removed from the end
+| o | SUBSTR(string, position [, substring_length ]) | Returns a portion of *string*, beginning at character *position*, *substring_length* characters long. SUBSTR calculates lengths using characters as defined by the input character set
+| o | GREATEST(expr [, expr ]*)                      | Returns the greatest of the expressions
+| o | LEAST(expr [, expr ]* )                        | Returns the least of the expressions
+| o | TRANSLATE(expr, fromString, toString)          | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
 
 Note:
 
@@ -2092,10 +2138,10 @@ Usage Examples:
 SQL
 
 ```SQL
-SELECT JSON_TYPE(v) AS c1
-,JSON_TYPE(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2
-,JSON_TYPE(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3
-,JSON_TYPE(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4
+SELECT JSON_TYPE(v) AS c1,
+  JSON_TYPE(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2,
+  JSON_TYPE(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3,
+  JSON_TYPE(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4
 FROM (VALUES ('{"a": [10, true],"b": "[10, true]"}')) AS t(v)
 LIMIT 10;
 ```
@@ -2111,10 +2157,10 @@ Result
 SQL
 
 ```SQL
-SELECT JSON_DEPTH(v) AS c1
-,JSON_DEPTH(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2
-,JSON_DEPTH(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3
-,JSON_DEPTH(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4
+SELECT JSON_DEPTH(v) AS c1,
+  JSON_DEPTH(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2,
+  JSON_DEPTH(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3,
+  JSON_DEPTH(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4
 FROM (VALUES ('{"a": [10, true],"b": "[10, true]"}')) AS t(v)
 LIMIT 10;
 ```
@@ -2130,10 +2176,10 @@ Result
 SQL
 
 ```SQL
-SELECT JSON_LENGTH(v) AS c1
-,JSON_LENGTH(v, 'lax $.a') AS c2
-,JSON_LENGTH(v, 'strict $.a[0]') AS c3
-,JSON_LENGTH(v, 'strict $.a[1]') AS c4
+SELECT JSON_LENGTH(v) AS c1,
+  JSON_LENGTH(v, 'lax $.a') AS c2,
+  JSON_LENGTH(v, 'strict $.a[0]') AS c3,
+  JSON_LENGTH(v, 'strict $.a[1]') AS c4
 FROM (VALUES ('{"a": [10, true]}')) AS t(v)
 LIMIT 10;
 ```
@@ -2149,11 +2195,11 @@ Result
 SQL
 
  ```SQL
-SELECT JSON_KEYS(v) AS c1
-,JSON_KEYS(v, 'lax $.a') AS c2
-,JSON_KEYS(v, 'lax $.b') AS c2
-,JSON_KEYS(v, 'strict $.a[0]') AS c3
-,JSON_KEYS(v, 'strict $.a[1]') AS c4
+SELECT JSON_KEYS(v) AS c1,
+  JSON_KEYS(v, 'lax $.a') AS c2,
+  JSON_KEYS(v, 'lax $.b') AS c2,
+  JSON_KEYS(v, 'strict $.a[0]') AS c3,
+  JSON_KEYS(v, 'strict $.a[1]') AS c4
 FROM (VALUES ('{"a": [10, true],"b": {"c": 30}}')) AS t(v)
 LIMIT 10;
 ```
@@ -2169,11 +2215,11 @@ LIMIT 10;
 SQL
 
 ```SQL
-SELECT DECODE (f1, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c1
-, DECODE (f2, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c2
-, DECODE (f3, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c3
-, DECODE (f4, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c4
-, DECODE (f5, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c5
+SELECT DECODE(f1, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c1,
+  DECODE(f2, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c2,
+  DECODE(f3, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c3,
+  DECODE(f4, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c4,
+  DECODE(f5, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c5
 FROM (VALUES (1, 2, 3, 4, 5)) AS t(f1, f2, f3, f4, f5);
 
 ```
@@ -2183,19 +2229,20 @@ FROM (VALUES (1, 2, 3, 4, 5)) AS t(f1, f2, f3, f4, f5);
 | ----------- | ----------- | ----------- | ----------- | ----------- |
 | aa          | bb          | cc          | dd          | ee          |
 
-#### TRANSLATE3 example
+#### TRANSLATE example
 
 SQL
 
 ```SQL
-SELECT TRANSLATE3('Aa*Bb*Cc''D*d', ' */''%', '_') as c1
-, TRANSLATE3('SQL/Plus/User''s/Guide', ' */''%', '_') as c2
-, TRANSLATE3('SQL Plus User''s Guide', ' */''%', '_') as c3
-, TRANSLATE3('SQL%Plus%User''s%Guide', ' */''%', '_') as c4
+SELECT TRANSLATE('Aa*Bb*Cc''D*d', ' */''%', '_') as c1,
+  TRANSLATE('Aa/Bb/Cc''D/d', ' */''%', '_') as c2,
+  TRANSLATE('Aa Bb Cc''D d', ' */''%', '_') as c3,
+  TRANSLATE('Aa%Bb%Cc''D%d', ' */''%', '_') as c4
 FROM (VALUES (true)) AS t(f0);
 ```
- Result
- 
+
+Result
+
 | c1          | c2          | c3          | c4          |
 | ----------- | ----------- | ----------- | ----------- |
 | Aa_Bb_CcD_d | Aa_Bb_CcD_d | Aa_Bb_CcD_d | Aa_Bb_CcD_d |

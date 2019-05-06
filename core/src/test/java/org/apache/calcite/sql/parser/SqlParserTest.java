@@ -34,7 +34,6 @@ import org.apache.calcite.test.SqlValidatorTestCase;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.SourceStringReader;
-import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -50,14 +49,8 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.StringReader;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -610,7 +603,7 @@ public class SqlParserTest {
     return SqlParserImpl.FACTORY;
   }
 
-  protected SqlParser getSqlParser(String sql) {
+  public SqlParser getSqlParser(String sql) {
     return getSqlParser(new SourceStringReader(sql));
   }
 
@@ -7457,64 +7450,6 @@ public class SqlParserTest {
         + DiffTestCase.diffLines(ImmutableList.copyOf(getReservedKeywords()),
             ImmutableList.copyOf(reservedKeywords));
     assertThat(reason, reservedKeywords, is(getReservedKeywords()));
-  }
-
-  /** Generates a copy of {@code reference.md} with the current set of key
-   * words. Fails if the copy is different from the original. */
-  @Test public void testGenerateKeyWords() throws IOException {
-    assumeTrue("don't run this test for sub-classes", isNotSubclass());
-    // inUrl = "file:/home/x/calcite/core/target/test-classes/hsqldb-model.json"
-    String path = "hsqldb-model.json";
-    File hsqlDbModel = Sources.of(SqlParserTest.class.getResource("/" + path)).file();
-    assert hsqlDbModel.getAbsolutePath().endsWith(
-        Paths.get("core", "target", "test-classes", "hsqldb-model.json").toString())
-        : hsqlDbModel.getAbsolutePath()
-        + " should end with core/target/test-classes/hsqldb-model.json";
-    // skip hsqldb-model.json, test-classes, target, core
-    // The assertion above protects us from walking over unrelated paths
-    final File base = hsqlDbModel.getAbsoluteFile()
-        .getParentFile().getParentFile().getParentFile().getParentFile();
-    final File inFile = new File(base, "site/_docs/reference.md");
-    final File outFile = new File(base, "core/target/surefire/reference.md");
-    outFile.getParentFile().mkdirs();
-    try (BufferedReader r = Util.reader(inFile);
-         FileOutputStream fos = new FileOutputStream(outFile);
-         PrintWriter w = Util.printWriter(outFile)) {
-      String line;
-      int stage = 0;
-      while ((line = r.readLine()) != null) {
-        if (line.equals("{% comment %} end {% endcomment %}")) {
-          ++stage;
-        }
-        if (stage != 1) {
-          w.println(line);
-        }
-        if (line.equals("{% comment %} start {% endcomment %}")) {
-          ++stage;
-          SqlAbstractParserImpl.Metadata metadata =
-              getSqlParser("").getMetadata();
-          int z = 0;
-          for (String s : metadata.getTokens()) {
-            if (z++ > 0) {
-              w.println(",");
-            }
-            if (metadata.isKeyword(s)) {
-              w.print(metadata.isReservedWord(s) ? ("**" + s + "**") : s);
-            }
-          }
-          w.println(".");
-        }
-      }
-      w.flush();
-      fos.flush();
-      fos.getFD().sync();
-    }
-    String diff = DiffTestCase.diff(outFile, inFile);
-    if (!diff.isEmpty()) {
-      throw new AssertionError("Mismatch between " + outFile
-          + " and " + inFile + ":\n"
-          + diff);
-    }
   }
 
   @Test public void testTabStop() {

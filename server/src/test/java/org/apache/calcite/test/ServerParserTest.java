@@ -50,10 +50,6 @@ public class ServerParserTest extends SqlParserTest {
     return SqlDdlParserImpl.FACTORY;
   }
 
-  @Override public void testGenerateKeyWords() {
-    // by design, method only works in base class; no-ops in this sub-class
-  }
-
   @Test public void testCreateSchema() {
     sql("create schema x")
         .ok("CREATE SCHEMA `X`");
