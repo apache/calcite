@@ -64,18 +64,19 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
 
     final List<String> fields = new ArrayList<>();
     final List<String> scriptFields = new ArrayList<>();
+    // registers wherever "select *" is present
     boolean hasSelectStar = false;
     for (Pair<RexNode, String> pair: getNamedProjects()) {
       final String name = pair.right;
       final String expr = pair.left.accept(translator);
 
-      if (ElasticsearchRules.isItem(pair.left)) {
-        implementor.addExpressionItemMapping(name, ElasticsearchRules.stripQuotes(expr));
-      }
-
+      // "select *" present ?
       hasSelectStar |= ElasticsearchConstants.isSelectAll(name);
 
-      if (expr.equals(name)) {
+      if (ElasticsearchRules.isItem(pair.left)) {
+        implementor.addExpressionItemMapping(name, expr);
+        fields.add(expr);
+      } else if (expr.equals(name)) {
         fields.add(name);
       } else if (expr.matches("\"literal\":.+")) {
         scriptFields.add(ElasticsearchRules.quote(name)
@@ -96,9 +97,12 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
       return;
     }
 
-    StringBuilder query = new StringBuilder();
+    final StringBuilder query = new StringBuilder();
     if (scriptFields.isEmpty()) {
-      List<String> newList = fields.stream().map(ElasticsearchRules::quote)
+      List<String> newList = fields.stream()
+          // _id field is available implicitly
+          .filter(f -> !ElasticsearchConstants.ID.equals(f))
+          .map(ElasticsearchRules::quote)
           .collect(Collectors.toList());
 
       final String findString = String.join(", ", newList);
