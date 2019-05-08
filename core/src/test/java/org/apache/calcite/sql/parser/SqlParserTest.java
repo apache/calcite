@@ -3360,7 +3360,7 @@ public class SqlParserTest {
 
     checkFails(
         "select * from (table ^(^select empno from emp))",
-        "(?s)Encountered \"\\(\".*");
+        "(?s)Encountered \"\\( select\".*");
   }
 
   @Test public void testCollectionTable() {
@@ -3407,8 +3407,8 @@ public class SqlParserTest {
     sql("select * from lateral table(ramp(1)) as t(x)")
         .ok(expected + " AS `T` (`X`)");
     // Bad: Parentheses make it look like a sub-query
-    sql("select * from lateral (table^(^ramp(1)))")
-        .fails("(?s)Encountered \"\\(\" at .*");
+    sql("select * from lateral (table(ramp(1))^)^")
+        .fails("(?s)Encountered \"\\)\" at .*");
 
     // Good: LATERAL (subQuery)
     final String expected2 = "SELECT *\n"
@@ -4039,8 +4039,8 @@ public class SqlParserTest {
         "(NULLIF(`V1`, `V2`))");
     if (isReserved("NULLIF")) {
       checkExpFails(
-          "1 + ^nullif^ + 3",
-          "(?s)Encountered \"nullif \\+\" at line 1, column 5.*");
+          "1 ^+^ nullif + 3",
+          "(?s)Encountered \"\\+ nullif \\+\" at line 1, column 3\\.\n.*");
     }
   }
 
@@ -7325,23 +7325,23 @@ public class SqlParserTest {
     // UNNEST may not occur within parentheses.
     // FIXME should fail at "unnest"
     checkFails(
-        "select *from ^(^unnest(x))",
-        "(?s)Encountered \"\\( unnest\" at .*");
+        "select *from (unnest(x)^)^",
+        "(?s)Encountered \"\\)\" at .*");
 
     // <table-name> may not occur within parentheses.
     checkFails(
-        "select * from (^emp^)",
-        "(?s)Non-query expression encountered in illegal context.*");
+        "select * from (emp^)^",
+        "(?s)Encountered \"\\)\" at.*");
 
     // <table-name> may not occur within parentheses.
     checkFails(
-        "select * from (^emp^ as x)",
-        "(?s)Non-query expression encountered in illegal context.*");
+        "select * from (emp as x^)^",
+        "(?s)Encountered \"\\)\" at.*");
 
     // <table-name> may not occur within parentheses.
     checkFails(
-        "select * from (^emp^) as x",
-        "(?s)Non-query expression encountered in illegal context.*");
+        "select * from (emp^)^ as x",
+        "(?s)Encountered \"\\)\" at.*");
 
     // Parentheses around JOINs are OK, and sometimes necessary.
     if (false) {
@@ -8783,6 +8783,37 @@ public class SqlParserTest {
     SqlParser sqlParserString = getSqlParser(query);
     SqlNode node2 = sqlParserString.parseQuery();
     assertEquals(node2.toString(), node1.toString());
+  }
+
+  /**
+   * Test parsing parenthesized joins
+   */
+  @Test public void testParenthesizedJoins() {
+    final String sql = "SELECT * FROM "
+        + "(((S.C c INNER JOIN S.N n ON n.id = c.id) "
+        + "INNER JOIN S.A a ON (NOT a.isactive)) "
+        + "INNER JOIN S.T t ON t.id = a.id)";
+    final String expected = "SELECT *\n"
+        + "FROM `S`.`C` AS `C`\n"
+        + "INNER JOIN `S`.`N` AS `N` ON (`N`.`ID` = `C`.`ID`)\n"
+        + "INNER JOIN `S`.`A` AS `A` ON (NOT `A`.`ISACTIVE`)\n"
+        + "INNER JOIN `S`.`T` AS `T` ON (`T`.`ID` = `A`.`ID`)";
+    sql(sql).ok(expected);
+  }
+
+  /**
+   * Test parsing parenthesized queries
+   */
+  @Test public void testParenthesizedQueries() {
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM `TAB`) AS `X`";
+
+    final String sql1 = "SELECT * FROM (((SELECT * FROM tab))) X";
+    sql(sql1).ok(expected);
+
+    final String sql2 = "SELECT * FROM ((((((((((((SELECT * FROM tab)))))))))))) X";
+    sql(sql2).ok(expected);
   }
 
   //~ Inner Interfaces -------------------------------------------------------
