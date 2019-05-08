@@ -352,6 +352,24 @@ public class AggregationTest {
                           "cat1=b; EXPR$1=1",
                           "cat1=null; EXPR$1=1");
   }
+
+  /**
+   * {@code select max(cast(_MAP['foo'] as integer)) from tbl}
+   */
+  @Test
+  public void aggregationWithCast() {
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query(
+            String.format(Locale.ROOT, "select max(cast(_MAP['val1'] as integer)) as v1, "
+                + "min(cast(_MAP['val2'] as integer)) as v2 from elastic.%s", NAME))
+        .queryContains(
+            ElasticsearchChecker.elasticsearchChecker("_source:false, size:0",
+            "aggregations:{'v1.max.field': 'val1'",
+            "'v2.min.field': 'val2'}"))
+        .returnsUnordered("v1=7; v2=5");
+
+  }
 }
 
 // End AggregationTest.java
