@@ -10855,4 +10855,27 @@ LogicalProject(EXPR$0=[+($0, $3)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testDynamicStarWithUnion">
+        <Resource name="sql">
+            <![CDATA[(select n_nationkey from SALES.CUSTOMER) union all (select n_name from CUSTOMER_MODIFIABLEVIEW)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalUnion(all=[true])
+  LogicalProject(N_NATIONKEY=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+  LogicalProject(N_NAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableUnion(all=[true])
+  EnumerableProject(N_NATIONKEY=[$0])
+    EnumerableTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+  EnumerableProject(N_NAME=[$1])
+    EnumerableTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

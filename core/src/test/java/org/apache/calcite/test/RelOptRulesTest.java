@@ -16,9 +16,13 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
@@ -28,6 +32,7 @@ import org.apache.calcite.plan.hep.HepMatchOrder;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
@@ -135,7 +140,11 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.catalog.MockCatalogReader;
+import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RuleSet;
+import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
@@ -146,6 +155,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Properties;
@@ -5476,6 +5486,40 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(ProjectJoinTransposeRule.INSTANCE,
         "select e.sal + b.comm from emp e inner join bonus b "
             + "on (e.ename || e.job) IS NOT DISTINCT FROM (b.ename || b.job) and e.deptno = 10");
+  }
+
+  @Test public void testDynamicStarWithUnion() {
+    String sql = "(select n_nationkey from SALES.CUSTOMER) union all\n"
+        + "(select n_name from CUSTOMER_MODIFIABLEVIEW)";
+
+    VolcanoPlanner planner = new VolcanoPlanner(null, null);
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+
+    Tester dynamicTester = createDynamicTester().withDecorrelation(true)
+        .withClusterFactory(
+            relOptCluster -> RelOptCluster.create(planner, relOptCluster.getRexBuilder()));
+
+    RelRoot root = dynamicTester.convertSqlToRel(sql);
+
+    String planBefore = NL + RelOptUtil.toString(root.rel);
+    getDiffRepos().assertEquals("planBefore", "${planBefore}", planBefore);
+
+    RuleSet ruleSet =
+        RuleSets.ofList(
+            EnumerableRules.ENUMERABLE_PROJECT_RULE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
+            EnumerableRules.ENUMERABLE_UNION_RULE);
+    Program program = Programs.of(ruleSet);
+
+    RelTraitSet toTraits =
+        root.rel.getCluster().traitSet()
+            .replace(0, EnumerableConvention.INSTANCE);
+
+    RelNode relAfter = program.run(planner, root.rel, toTraits,
+        Collections.emptyList(), Collections.emptyList());
+
+    String planAfter = NL + RelOptUtil.toString(relAfter);
+    getDiffRepos().assertEquals("planAfter", "${planAfter}", planAfter);
   }
 }
 
