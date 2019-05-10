@@ -1578,7 +1578,7 @@ public class SqlParserTest {
     checkExp("1-2+3*4/5/6-7", "(((1 - 2) + (((3 * 4) / 5) / 6)) - 7)");
     checkExp("power(2,3)", "POWER(2, 3)");
     checkExp("aBs(-2.3e-2)", "ABS(-2.3E-2)");
-    checkExp("MOD(5             ,\t\f\r\n2)", "(MOD(5, 2))");
+    checkExp("MOD(5             ,\t\f\r\n2)", "MOD(5, 2)");
     checkExp("ln(5.43  )", "LN(5.43)");
     checkExp("log10(- -.2  )", "LOG10(0.2)");
   }
@@ -1637,7 +1637,7 @@ public class SqlParserTest {
             + "FROM `EMP`");
     checkExp(
         "log10(1)\r\n+power(2, mod(\r\n3\n\t\t\f\n,ln(4))*log10(5)-6*log10(7/abs(8)+9))*power(10,11)",
-        "(LOG10(1) + (POWER(2, (((MOD(3, LN(4))) * LOG10(5)) - (6 * LOG10(((7 / ABS(8)) + 9))))) * POWER(10, 11)))");
+        "(LOG10(1) + (POWER(2, ((MOD(3, LN(4)) * LOG10(5)) - (6 * LOG10(((7 / ABS(8)) + 9))))) * POWER(10, 11)))");
   }
 
   @Test public void testFunctionWithDistinct() {
@@ -1864,7 +1864,7 @@ public class SqlParserTest {
   @Test public void testGrouping() {
     sql("select deptno, grouping(deptno) from emp\n"
         + "group by grouping sets (deptno, (deptno, gender), ())")
-        .ok("SELECT `DEPTNO`, (GROUPING(`DEPTNO`))\n"
+        .ok("SELECT `DEPTNO`, GROUPING(`DEPTNO`)\n"
             + "FROM `EMP`\n"
             + "GROUP BY GROUPING SETS(`DEPTNO`, (`DEPTNO`, `GENDER`), ())");
   }
@@ -4029,7 +4029,7 @@ public class SqlParserTest {
   @Test public void testNullIf() {
     checkExp(
         "nullif(v1,v2)",
-        "(NULLIF(`V1`, `V2`))");
+        "NULLIF(`V1`, `V2`)");
     if (isReserved("NULLIF")) {
       checkExpFails(
           "1 + ^nullif^ + 3",
@@ -4040,13 +4040,13 @@ public class SqlParserTest {
   @Test public void testCoalesce() {
     checkExp(
         "coalesce(v1)",
-        "(COALESCE(`V1`))");
+        "COALESCE(`V1`)");
     checkExp(
         "coalesce(v1,v2)",
-        "(COALESCE(`V1`, `V2`))");
+        "COALESCE(`V1`, `V2`)");
     checkExp(
         "coalesce(v1,v2,v3)",
-        "(COALESCE(`V1`, `V2`, `V3`))");
+        "COALESCE(`V1`, `V2`, `V3`)");
   }
 
   @Test public void testLiteralCollate() {
@@ -4118,7 +4118,7 @@ public class SqlParserTest {
     // checkFails("SELECT CURRENT_TIME() FROM foo",
     //     "SELECT CURRENT_TIME() FROM `FOO`");
 
-    checkExp("CURRENT_TIME", "`CURRENT_TIME`");
+    checkExp("CURRENT_TIME", "CURRENT_TIME");
     checkExp("CURRENT_TIME(x+y)", "CURRENT_TIME((`X` + `Y`))");
 
     // LOCALTIME returns time w/o TZ
@@ -4127,7 +4127,7 @@ public class SqlParserTest {
     // checkFails("SELECT LOCALTIME() FROM foo",
     //     "SELECT LOCALTIME() FROM `FOO`");
 
-    checkExp("LOCALTIME", "`LOCALTIME`");
+    checkExp("LOCALTIME", "LOCALTIME");
     checkExp("LOCALTIME(x+y)", "LOCALTIME((`X` + `Y`))");
 
     // LOCALTIMESTAMP - returns timestamp w/o TZ
@@ -4136,7 +4136,7 @@ public class SqlParserTest {
     // checkFails("SELECT LOCALTIMESTAMP() FROM foo",
     //     "SELECT LOCALTIMESTAMP() FROM `FOO`");
 
-    checkExp("LOCALTIMESTAMP", "`LOCALTIMESTAMP`");
+    checkExp("LOCALTIMESTAMP", "LOCALTIMESTAMP");
     checkExp("LOCALTIMESTAMP(x+y)", "LOCALTIMESTAMP((`X` + `Y`))");
 
     // CURRENT_DATE - returns DATE
@@ -4144,7 +4144,7 @@ public class SqlParserTest {
 
     // checkFails("SELECT CURRENT_DATE() FROM foo",
     //     "SELECT CURRENT_DATE() FROM `FOO`");
-    checkExp("CURRENT_DATE", "`CURRENT_DATE`");
+    checkExp("CURRENT_DATE", "CURRENT_DATE");
 
     // checkFails("SELECT CURRENT_DATE(x+y) FROM foo",
     //     "CURRENT_DATE((`X` + `Y`))");
@@ -4155,7 +4155,7 @@ public class SqlParserTest {
     // checkFails("SELECT CURRENT_TIMESTAMP() FROM foo",
     //     "SELECT CURRENT_TIMESTAMP() FROM `FOO`");
 
-    checkExp("CURRENT_TIMESTAMP", "`CURRENT_TIMESTAMP`");
+    checkExp("CURRENT_TIMESTAMP", "CURRENT_TIMESTAMP");
     checkExp("CURRENT_TIMESTAMP(x+y)", "CURRENT_TIMESTAMP((`X` + `Y`))");
 
     // Date literals
@@ -4231,8 +4231,8 @@ public class SqlParserTest {
     checkExp(
         "trim (coalesce(cast(null as varchar(2)))||"
             + "' '||coalesce('junk ',''))",
-        "TRIM(BOTH ' ' FROM (((COALESCE(CAST(NULL AS VARCHAR(2)))) || "
-            + "' ') || (COALESCE('junk ', ''))))");
+        "TRIM(BOTH ' ' FROM ((COALESCE(CAST(NULL AS VARCHAR(2))) || "
+            + "' ') || COALESCE('junk ', '')))");
 
     checkFails(
         "trim(^from^ 'beard')",
@@ -7234,8 +7234,8 @@ public class SqlParserTest {
         .build();
 
     List<String> functions = ImmutableList.<String>builder()
-        .add("timestampadd(%1$s, 12, %2$scurrent_timestamp%2$s)")
-        .add("timestampdiff(%1$s, %2$scurrent_timestamp%2$s, %2$scurrent_timestamp%2$s)")
+        .add("timestampadd(%1$s, 12, current_timestamp)")
+        .add("timestampdiff(%1$s, current_timestamp, current_timestamp)")
         .build();
 
     for (Map.Entry<String, List<String>> intervalGroup : tsi.entrySet()) {
