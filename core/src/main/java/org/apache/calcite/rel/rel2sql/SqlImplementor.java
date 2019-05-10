@@ -100,7 +100,11 @@ import javax.annotation.Nonnull;
  */
 public abstract class SqlImplementor {
 
-  public static final SqlParserPos POS = SqlParserPos.ZERO;
+  // Always use quoted position, the "isQuoted" info is only used when
+  // unparsing a SqlIdentifier. For some rex nodes, saying RexInputRef, we have
+  // no idea about whether it is quoted or not for the original sql statement.
+  // So we just quote it.
+  public static final SqlParserPos POS = SqlParserPos.QUOTED_ZERO;
 
   public final SqlDialect dialect;
   protected final Set<String> aliasSet = new LinkedHashSet<>();

@@ -278,21 +278,7 @@ public class SqlIdentifier extends SqlNode {
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
-    final SqlWriter.Frame frame =
-        writer.startList(SqlWriter.FrameTypeEnum.IDENTIFIER);
-    for (String name : names) {
-      writer.sep(".");
-      if (name.equals("")) {
-        writer.print("*");
-      } else {
-        writer.identifier(name);
-      }
-    }
-
-    if (null != collation) {
-      collation.unparse(writer, leftPrec, rightPrec);
-    }
-    writer.endList(frame);
+    SqlUtil.unparseSqlIdentifierSyntax(writer, this, false);
   }
 
   public void validate(SqlValidator validator, SqlValidatorScope scope) {
