@@ -1234,9 +1234,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
           "(?s).*Encountered \"FROM\" at .*");
 
       // Without the "FROM" noise word, TRIM is parsed as a regular
-      // function, not as a built-in. So we can parse with and without
-      // quoting.
-      checkExpType("\"TRIM\"('b')", "VARCHAR(1) NOT NULL");
+      // function without quoting and built-in function with quoting.
+      checkExpType("\"TRIM\"('b', 'FROM', 'a')", "VARCHAR(1) NOT NULL");
       checkExpType("TRIM('b')", "VARCHAR(1) NOT NULL");
     }
   }
