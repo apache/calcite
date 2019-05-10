@@ -10797,6 +10797,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     sql("select ^slackingmin^ from nest.emp_r")
             .fails(error);
+
+    sql("with emp_r as (select 1 as slackingmin) select slackingmin from emp_r")
+            .ok();
+
+    sql("with emp_r as (select ^slackingmin^ from emp_r) select slackingmin from emp_r")
+            .fails(error);
+
+    sql("with emp_r1 as (select 1 as slackingmin) select emp_r1.slackingmin from emp_r, emp_r1")
+            .ok();
+
+    sql("with emp_r1 as (select 1 as slackingmin) select ^emp_r.slackingmin^ from emp_r, emp_r1")
+            .fails(error);
   }
 
   @Test public void testSelectAggregateOnRolledUpColumn() {
