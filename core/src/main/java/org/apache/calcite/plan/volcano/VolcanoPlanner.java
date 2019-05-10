@@ -235,7 +235,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   private final Map<List<String>, RelOptLattice> latticeByName =
       new LinkedHashMap<>();
 
-  final Map<RelNode, Provenance> provenanceMap = new HashMap<>();
+  final Map<RelNode, Provenance> provenanceMap;
 
   final Deque<VolcanoRuleCall> ruleCallStack = new ArrayDeque<>();
 
@@ -276,6 +276,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     super(costFactory == null ? VolcanoCost.FACTORY : costFactory, //
         externalContext);
     this.zeroCost = this.costFactory.makeZeroCost();
+    // If LOGGER is debug enabled, enable provenance information to be captured
+    this.provenanceMap = LOGGER.isDebugEnabled() ? new HashMap<>()
+        : Util.blackholeMap();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -435,6 +438,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     this.ruleNames.clear();
     this.materializations.clear();
     this.latticeByName.clear();
+    this.provenanceMap.clear();
   }
 
   public List<RelOptRule> getRules() {
@@ -656,7 +660,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       LOGGER.debug(
           "Cheapest plan:\n{}", RelOptUtil.toString(cheapest, SqlExplainLevel.ALL_ATTRIBUTES));
 
-      LOGGER.debug("Provenance:\n{}", provenance(cheapest));
+      if (!provenanceMap.isEmpty()) {
+        LOGGER.debug("Provenance:\n{}", provenance(cheapest));
+      }
     }
     return cheapest;
   }
