@@ -416,6 +416,18 @@ public class RexImpTable {
     defineImplementor(NOT_SIMILAR_TO, NullPolicy.STRICT,
         NotImplementor.of(similarImplementor), false);
 
+    // POSIX REGEX
+    final MethodImplementor posixRegexImplementor =
+        new MethodImplementor(BuiltInMethod.POSIX_REGEX.method);
+    defineImplementor(SqlStdOperatorTable.POSIX_REGEX_CASE_INSENSITIVE, NullPolicy.STRICT,
+        posixRegexImplementor, false);
+    defineImplementor(SqlStdOperatorTable.POSIX_REGEX_CASE_SENSITIVE, NullPolicy.STRICT,
+        posixRegexImplementor, false);
+    defineImplementor(SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_INSENSITIVE, NullPolicy.STRICT,
+        NotImplementor.of(posixRegexImplementor), false);
+    defineImplementor(SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_SENSITIVE, NullPolicy.STRICT,
+        NotImplementor.of(posixRegexImplementor), false);
+
     // Multisets & arrays
     defineMethod(CARDINALITY, BuiltInMethod.COLLECTION_SIZE.method,
         NullPolicy.STRICT);

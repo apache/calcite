@@ -417,6 +417,16 @@ public enum SqlKind {
   SIMILAR,
 
   /**
+   * The "~" operator.
+   */
+  POSIX_REGEX_CASE_SENSITIVE,
+
+  /**
+   * The "~*" operator.
+   */
+  POSIX_REGEX_CASE_INSENSITIVE,
+
+  /**
    * The "BETWEEN" operator.
    */
   BETWEEN,
