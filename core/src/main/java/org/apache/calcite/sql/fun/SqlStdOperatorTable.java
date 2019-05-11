@@ -1369,6 +1369,20 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlSpecialOperator SIMILAR_TO =
       new SqlLikeOperator("SIMILAR TO", SqlKind.SIMILAR, false);
 
+  public static final SqlBinaryOperator POSIX_REGEX_CASE_SENSITIVE = new SqlPosixRegexOperator(
+      "POSIX REGEX CASE SENSITIVE", SqlKind.POSIX_REGEX_CASE_SENSITIVE, true, false);
+
+  public static final SqlBinaryOperator POSIX_REGEX_CASE_INSENSITIVE = new SqlPosixRegexOperator(
+      "POSIX REGEX CASE INSENSITIVE", SqlKind.POSIX_REGEX_CASE_INSENSITIVE, false, false);
+
+  public static final SqlBinaryOperator NEGATED_POSIX_REGEX_CASE_SENSITIVE =
+      new SqlPosixRegexOperator("NEGATED POSIX REGEX CASE SENSITIVE",
+          SqlKind.POSIX_REGEX_CASE_SENSITIVE, true, true);
+
+  public static final SqlBinaryOperator NEGATED_POSIX_REGEX_CASE_INSENSITIVE =
+      new SqlPosixRegexOperator("NEGATED POSIX REGEX CASE INSENSITIVE",
+          SqlKind.POSIX_REGEX_CASE_INSENSITIVE, false, true);
+
   /**
    * Internal operator used to represent the ESCAPE clause of a LIKE or
    * SIMILAR TO expression.
