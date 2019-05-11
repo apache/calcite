@@ -39,6 +39,7 @@ import static org.apache.calcite.runtime.SqlFunctions.initcap;
 import static org.apache.calcite.runtime.SqlFunctions.lesser;
 import static org.apache.calcite.runtime.SqlFunctions.lower;
 import static org.apache.calcite.runtime.SqlFunctions.ltrim;
+import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.subtractMonths;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
@@ -70,6 +71,26 @@ public class SqlFunctionsTest {
     assertEquals("anull", concat("a", null));
     assertEquals("nullnull", concat((String) null, null));
     assertEquals("nullb", concat(null, "b"));
+  }
+
+  @Test public void testPosixRegex() {
+    assertEquals(true, posixRegex("abc", "abc", true));
+    assertEquals(true, posixRegex("abc", "^a", true));
+    assertEquals(true, posixRegex("abc", "(b|d)", true));
+    assertEquals(false, posixRegex("abc", "^(b|c)", true));
+
+    assertEquals(true, posixRegex("abc", "ABC", false));
+    assertEquals(true, posixRegex("abc", "^A", false));
+    assertEquals(true, posixRegex("abc", "(B|D)", false));
+    assertEquals(false, posixRegex("abc", "^(B|C)", false));
+
+    assertEquals(false, posixRegex("abc", "^[[:xdigit:]]$", false));
+    assertEquals(true, posixRegex("abc", "^[[:xdigit:]]+$", false));
+    assertEquals(false, posixRegex("abcq", "^[[:xdigit:]]+$", false));
+
+    assertEquals(true, posixRegex("abc", "[[:xdigit:]]", false));
+    assertEquals(true, posixRegex("abc", "[[:xdigit:]]+", false));
+    assertEquals(true, posixRegex("abcq", "[[:xdigit:]]", false));
   }
 
   @Test public void testLower() {

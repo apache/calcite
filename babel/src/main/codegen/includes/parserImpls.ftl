@@ -42,4 +42,12 @@ SqlNode DateFunctionCall() :
     }
 }
 
+/* Extra operators */
+
+<DEFAULT, DQID, BTID> TOKEN :
+{
+    < NEGATE: "!" >
+|   < TILDE: "~" >
+}
+
 // End parserImpls.ftl

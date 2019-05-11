@@ -416,6 +416,7 @@ data: {
         "parserImpls.ftl"
       ]
 
+      includePosixOperators: false
       includeCompoundIdentifier: true
       includeBraces: true
       includeAdditionalDeclarations: false

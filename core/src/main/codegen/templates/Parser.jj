@@ -3190,16 +3190,26 @@ List<Object> Expression2(ExprContext exprContext) :
                     s.clear().add(this);
                 }
                 (
-                    <NOT>
                     (
-                        <LIKE> { op = SqlStdOperatorTable.NOT_LIKE; }
+                        <NOT>
+                        (
+                            <LIKE> { op = SqlStdOperatorTable.NOT_LIKE; }
+                        |
+                            <SIMILAR> <TO> { op = SqlStdOperatorTable.NOT_SIMILAR_TO; }
+                        )
                     |
-                        <SIMILAR> <TO> { op = SqlStdOperatorTable.NOT_SIMILAR_TO; }
+                        <LIKE> { op = SqlStdOperatorTable.LIKE; }
+                    |
+                        <SIMILAR> <TO> { op = SqlStdOperatorTable.SIMILAR_TO; }
                     )
+                <#if parser.includePosixOperators>
                 |
-                    <LIKE> { op = SqlStdOperatorTable.LIKE; }
+                    <NEGATE> <TILDE> { op = SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_SENSITIVE; }
+                    [ <STAR> { op = SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_INSENSITIVE; } ]
                 |
-                    <SIMILAR> <TO> { op = SqlStdOperatorTable.SIMILAR_TO; }
+                    <TILDE> { op = SqlStdOperatorTable.POSIX_REGEX_CASE_SENSITIVE; }
+                    [ <STAR> { op = SqlStdOperatorTable.POSIX_REGEX_CASE_INSENSITIVE; } ]
+                </#if>
                 )
                 list2 = Expression2(ExprContext.ACCEPT_SUB_QUERY) {
                     list.add(new SqlParserUtil.ToTreeListItem(op, s.pos()));
