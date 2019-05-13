@@ -48,7 +48,6 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 
 /**
@@ -369,13 +368,6 @@ public class SqlDialect {
       quoteIdentifier(buf, identifier);
     }
     return buf;
-  }
-
-  /**
-   * Returns whether a given identifier needs to be quoted.
-   */
-  public boolean identifierNeedsToBeQuoted(String val) {
-    return !Pattern.compile("^[A-Z_$0-9]+").matcher(val).matches();
   }
 
   /**

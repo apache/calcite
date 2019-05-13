@@ -241,6 +241,14 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         query.druidTable, intervals, query.rels, query.getOperatorConversionMap());
   }
 
+  /** Check if it is needed to use UTC for DATE and TIMESTAMP types. **/
+  private static boolean needUtcTimeExtract(RexNode rexNode) {
+    return rexNode.getType().getSqlTypeName() == SqlTypeName.DATE
+        || rexNode.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP
+        || rexNode.getType().getSqlTypeName()
+        == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE;
+  }
+
   /**
    * @param rexNode    leaf Input Ref to Druid Column
    * @param rowType    row type
@@ -257,11 +265,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     switch (rexNode.getKind()) {
     case INPUT_REF:
       columnName = extractColumnName(rexNode, rowType, druidQuery);
-      if (rexNode.getType().getSqlTypeName() == SqlTypeName.DATE
-          || rexNode.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP
-          || rexNode.getType().getSqlTypeName()
-          == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
-        // Use UTC for DATE and TIMESTAMP types
+      if (needUtcTimeExtract(rexNode)) {
         extractionFunction = TimeExtractionFunction.createDefault(
             DateTimeUtils.UTC_ZONE.getID());
       } else {
@@ -308,10 +312,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         return Pair.of(null, null);
       }
       RexNode floorValueNode = ((RexCall) rexNode).getOperands().get(0);
-      if (floorValueNode.getType().getSqlTypeName() == SqlTypeName.DATE
-          || floorValueNode.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP
-          || floorValueNode.getType().getSqlTypeName()
-          == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+      if (needUtcTimeExtract(floorValueNode)) {
         // Use 'UTC' at the extraction level, since all datetime types
         // are represented in 'UTC'
         extractionFunction =
@@ -327,12 +328,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       if (!isValidLeafCast(rexNode)) {
         return Pair.of(null, null);
       }
+      RexNode operand0 = ((RexCall) rexNode).getOperands().get(0);
       columnName =
-          extractColumnName(((RexCall) rexNode).getOperands().get(0), rowType, druidQuery);
-      // CASE CAST to TIME/DATE need to make sure that we have valid extraction fn
-      final SqlTypeName toTypeName = rexNode.getType().getSqlTypeName();
-      if (toTypeName == SqlTypeName.DATE || toTypeName == SqlTypeName.TIMESTAMP
-          || toTypeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+          extractColumnName(operand0, rowType, druidQuery);
+      if (needUtcTimeExtract(rexNode)) {
+        // CASE CAST to TIME/DATE need to make sure that we have valid extraction fn
         extractionFunction = TimeExtractionFunction.translateCastToTimeExtract(rexNode,
             TimeZone.getTimeZone(druidQuery.getConnectionConfig().timeZone()));
         if (extractionFunction == null) {
@@ -761,7 +761,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     for (RexNode project : projects) {
       Pair<String, ExtractionFunction> druidColumn =
           toDruidColumn(project, inputRowType, druidQuery);
-      if (druidColumn.left == null || druidColumn.right != null) {
+      boolean needExtractForOperand = project instanceof RexCall
+          && ((RexCall) project).getOperands().stream().anyMatch(DruidQuery::needUtcTimeExtract);
+      if (druidColumn.left == null || druidColumn.right != null || needExtractForOperand) {
         // It is a complex project pushed as expression
         final String expression = DruidExpressions
             .toDruidExpression(project, inputRowType, druidQuery);

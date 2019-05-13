@@ -3769,7 +3769,6 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * full outer join, group by on key same as join key, group by on one side */
-  @Ignore("[CALCITE-3012]")
   @Test public void testPushAggregateThroughtOuterJoin13() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
@@ -3786,7 +3785,6 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * full outer join, group by on key same as join key, group by on both side */
-  @Ignore("[CALCITE-3012]")
   @Test public void testPushAggregateThroughtOuterJoin14() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
@@ -3803,7 +3801,6 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * full outer join, group by on both side on non-join keys */
-  @Ignore("[CALCITE-3012]")
   @Test public void testPushAggregateThroughtOuterJoin15() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
@@ -3820,7 +3817,6 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * full outer join, group by key is susbset of join keys */
-  @Ignore("[CALCITE-3012]")
   @Test public void testPushAggregateThroughtOuterJoin16() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
@@ -5182,6 +5178,16 @@ public class RelOptRulesTest extends RelOptTestBase {
         + " stddev_samp(deptno), var_pop(deptno), var_samp(deptno)\n"
         + "from sales.dept group by name";
     sql(sql).with(program).check();
+  }
+
+  /** Test case for
+  * <a href="https://issues.apache.org/jira/browse/CALCITE-2803">[CALCITE-2803]
+  * Identify expanded IS NOT DISTINCT FROM expression when pushing project past join</a>.
+  */
+  @Test public void testPushProjectWithIsNotDistinctFromPastJoin() {
+    checkPlanning(ProjectJoinTransposeRule.INSTANCE,
+        "select e.sal + b.comm from emp e inner join bonus b "
+            + "on e.ename IS NOT DISTINCT FROM b.ename and e.deptno = 10");
   }
 }
 

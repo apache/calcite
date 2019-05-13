@@ -16,50 +16,58 @@
  */
 package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
-import org.apache.calcite.sql.type.SqlOperandTypeChecker;
-import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
-import org.apache.calcite.sql.validate.SqlValidator;
+
+import java.util.Locale;
 
 /**
- * The <code>JSON_TYPE</code> function.
+ * The <code>JSON_REMOVE</code> function.
  */
-public class SqlJsonTypeFunction extends SqlFunction {
-  public SqlJsonTypeFunction() {
-    super("JSON_TYPE",
+public class SqlJsonRemoveFunction extends SqlFunction {
+
+  public SqlJsonRemoveFunction() {
+    super("JSON_REMOVE",
         SqlKind.OTHER_FUNCTION,
-        ReturnTypes.cascade(
-            ReturnTypes.explicit(SqlTypeName.VARCHAR, 20),
+        ReturnTypes.cascade(ReturnTypes.VARCHAR_2000,
             SqlTypeTransforms.FORCE_NULLABLE),
         null,
-        OperandTypes.ANY,
+        null,
         SqlFunctionCategory.SYSTEM);
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.of(1);
+    return SqlOperandCountRanges.from(2);
   }
 
-  @Override protected void checkOperandCount(SqlValidator validator,
-      SqlOperandTypeChecker argType, SqlCall call) {
-    assert call.operandCount() == 1;
+  @Override public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+    final int operandCount = callBinding.getOperandCount();
+    assert operandCount >= 2;
+    if (!OperandTypes.ANY.checkSingleOperandType(
+        callBinding, callBinding.operand(0), 0, throwOnFailure)) {
+      return false;
+    }
+    for (int i = 1; i < operandCount; i++) {
+      if (!OperandTypes.CHARACTER.checkSingleOperandType(
+          callBinding, callBinding.operand(i), 0, throwOnFailure)) {
+        return false;
+      }
+    }
+    return true;
   }
 
-  @Override public SqlCall createCall(SqlLiteral functionQualifier,
-      SqlParserPos pos, SqlNode... operands) {
-    return super.createCall(functionQualifier, pos, operands);
+  @Override public String getAllowedSignatures(String opNameToUse) {
+    return String.format(Locale.ROOT, "'%s(<%s>, <%s>, <%s>...)'", getName(), SqlTypeFamily.ANY,
+        SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER);
   }
 }
 
-// End SqlJsonTypeFunction.java
+// End SqlJsonRemoveFunction.java

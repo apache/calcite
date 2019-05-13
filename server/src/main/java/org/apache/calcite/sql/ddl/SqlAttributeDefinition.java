@@ -67,7 +67,7 @@ public class SqlAttributeDefinition extends SqlCall {
     dataType.unparse(writer, 0, 0);
     if (collation != null) {
       writer.keyword("COLLATE");
-      collation.unparse(writer, 0, 0);
+      collation.unparse(writer);
     }
     if (dataType.getNullable() != null && !dataType.getNullable()) {
       writer.keyword("NOT NULL");

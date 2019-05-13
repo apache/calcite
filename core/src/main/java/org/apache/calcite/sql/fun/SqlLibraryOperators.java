@@ -133,19 +133,72 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction TRANSLATE3 = new SqlTranslate3Function();
 
   @LibraryOperator(libraries = {MYSQL})
-  public static final SqlFunction JSON_TYPE = SqlStdOperatorTable.JSON_TYPE;
+  public static final SqlFunction JSON_TYPE = new SqlJsonTypeFunction();
 
   @LibraryOperator(libraries = {MYSQL})
-  public static final SqlFunction JSON_DEPTH = SqlStdOperatorTable.JSON_DEPTH;
+  public static final SqlFunction JSON_DEPTH = new SqlJsonDepthFunction();
 
   @LibraryOperator(libraries = {MYSQL})
-  public static final SqlFunction JSON_LENGTH = SqlStdOperatorTable.JSON_LENGTH;
+  public static final SqlFunction JSON_LENGTH = new SqlJsonLengthFunction();
 
   @LibraryOperator(libraries = {MYSQL})
-  public static final SqlFunction JSON_KEYS = SqlStdOperatorTable.JSON_KEYS;
+  public static final SqlFunction JSON_KEYS = new SqlJsonKeysFunction();
 
   @LibraryOperator(libraries = {MYSQL})
-  public static final SqlFunction JSON_PRETTY = SqlStdOperatorTable.JSON_PRETTY;
+  public static final SqlFunction JSON_PRETTY = new SqlJsonPrettyFunction();
+
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction JSON_REMOVE = new SqlJsonRemoveFunction();
+
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  public static final SqlFunction REPEAT =
+      new SqlFunction(
+          "REPEAT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_NULLABLE_VARYING,
+          null,
+          OperandTypes.STRING_INTEGER,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction SPACE =
+      new SqlFunction(
+          "SPACE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE,
+          null,
+          OperandTypes.INTEGER,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL, ORACLE})
+  public static final SqlFunction SOUNDEX =
+      new SqlFunction(
+          "SOUNDEX",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_4_NULLABLE,
+          null,
+          OperandTypes.CHARACTER,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction DIFFERENCE =
+      new SqlFunction(
+          "DIFFERENCE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction REVERSE =
+      new SqlFunction(
+          "REVERSE",
+          SqlKind.REVERSE,
+          ReturnTypes.ARG0_NULLABLE_VARYING,
+          null,
+          OperandTypes.CHARACTER,
+          SqlFunctionCategory.STRING);
 }
 
 // End SqlLibraryOperators.java

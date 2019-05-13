@@ -1294,18 +1294,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlThrowOperator THROW = new SqlThrowOperator();
 
-  public static final SqlJsonApiCommonSyntaxOperator JSON_API_COMMON_SYNTAX =
-      new SqlJsonApiCommonSyntaxOperator("JSON_API_COMMON_SYNTAX");
-
   public static final SqlFunction JSON_EXISTS = new SqlJsonExistsFunction();
 
   public static final SqlFunction JSON_VALUE =
       new SqlJsonValueFunction("JSON_VALUE", false);
-
-  public static final SqlFunction JSON_KEYS = new SqlJsonKeysFunction();
-
-  public static final SqlFunction JSON_PRETTY =
-          new SqlJsonPrettyFunction();
 
   public static final SqlFunction JSON_VALUE_ANY =
       new SqlJsonValueFunction("JSON_VALUE_ANY", true);
@@ -1314,17 +1306,29 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlFunction JSON_OBJECT = new SqlJsonObjectFunction();
 
-  public static final SqlFunction JSON_TYPE = new SqlJsonTypeFunction();
-
-  public static final SqlFunction JSON_DEPTH = new SqlJsonDepthFunction();
-
-  public static final SqlFunction JSON_LENGTH = new SqlJsonLengthFunction();
-
   public static final SqlJsonObjectAggAggFunction JSON_OBJECTAGG =
       new SqlJsonObjectAggAggFunction(SqlKind.JSON_OBJECTAGG,
           SqlJsonConstructorNullClause.NULL_ON_NULL);
 
   public static final SqlFunction JSON_ARRAY = new SqlJsonArrayFunction();
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_TYPE = SqlLibraryOperators.JSON_TYPE;
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_DEPTH = SqlLibraryOperators.JSON_DEPTH;
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_LENGTH = SqlLibraryOperators.JSON_LENGTH;
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_KEYS = SqlLibraryOperators.JSON_KEYS;
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_PRETTY = SqlLibraryOperators.JSON_PRETTY;
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_REMOVE = SqlLibraryOperators.JSON_REMOVE;
 
   public static final SqlJsonArrayAggAggFunction JSON_ARRAYAGG =
       new SqlJsonArrayAggAggFunction(SqlKind.JSON_ARRAYAGG,

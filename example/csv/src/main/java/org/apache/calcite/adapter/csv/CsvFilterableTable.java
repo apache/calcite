@@ -63,7 +63,11 @@ public class CsvFilterableTable extends CsvTable
   }
 
   private boolean addFilter(RexNode filter, Object[] filterValues) {
-    if (filter.isA(SqlKind.EQUALS)) {
+    if (filter.isA(SqlKind.AND)) {
+        // We cannot refine(remove) the operands of AND,
+        // it will cause o.a.c.i.TableScanNode.createFilterable filters check failed.
+      ((RexCall) filter).getOperands().forEach(subFilter -> addFilter(subFilter, filterValues));
+    } else if (filter.isA(SqlKind.EQUALS)) {
       final RexCall call = (RexCall) filter;
       RexNode left = call.getOperands().get(0);
       if (left.isA(SqlKind.CAST)) {
