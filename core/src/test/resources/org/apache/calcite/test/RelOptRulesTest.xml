@@ -8925,6 +8925,155 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSortJoinCopyInnerJoinOrderBy">
+        <Resource name="sql">
+            <![CDATA[select * from sales.emp join sales.dept on sales.emp.deptno = sales.dept.deptno order by sal]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalSort(sort0=[$5], dir0=[ASC])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalSort(sort0=[$5], dir0=[ASC])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalSort(sort0=[$5], dir0=[ASC])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortJoinCopyInnerJoinOrderByLimit">
+        <Resource name="sql">
+            <![CDATA[select * from sales.emp e join (
+  select * from sales.dept d) d on e.deptno = d.deptno
+order by sal limit 10]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalSort(sort0=[$5], dir0=[ASC], fetch=[10])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalSort(sort0=[$5], dir0=[ASC], fetch=[10])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalSort(sort0=[$5], dir0=[ASC])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortJoinCopyInnerJoinOrderByTwoFields">
+        <Resource name="sql">
+            <![CDATA[select * from sales.emp e join  sales.dept d on e.deptno = d.deptno order by e.sal,d.name]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalSort(sort0=[$5], sort1=[$10], dir0=[ASC], dir1=[ASC])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalSort(sort0=[$5], sort1=[$10], dir0=[ASC], dir1=[ASC])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalSort(sort0=[$5], dir0=[ASC])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalSort(sort0=[$1], dir0=[ASC])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortJoinCopySemiJoinOrderBy">
+        <Resource name="sql">
+            <![CDATA[select * from sales.dept d where d.deptno in (select e.deptno from sales.emp e) order by d.deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC])
+  SemiJoin(condition=[=($0, $2)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC])
+  SemiJoin(condition=[=($0, $2)], joinType=[inner])
+    LogicalSort(sort0=[$0], dir0=[ASC])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortJoinCopySemiJoinOrderByLimitOffset">
+        <Resource name="sql">
+            <![CDATA[select * from sales.dept d where d.deptno in (select e.deptno from sales.emp e) order by d.deptno limit 10 offset 2]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[2], fetch=[10])
+  SemiJoin(condition=[=($0, $2)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[2], fetch=[10])
+  SemiJoin(condition=[=($0, $2)], joinType=[inner])
+    LogicalSort(sort0=[$0], dir0=[ASC])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortJoinCopySemiJoinOrderByOffset">
+        <Resource name="sql">
+            <![CDATA[select * from sales.dept d where d.deptno in (select e.deptno from sales.emp e) order by d.deptno offset 2]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[2])
+  SemiJoin(condition=[=($0, $2)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[2])
+  SemiJoin(condition=[=($0, $2)], joinType=[inner])
+    LogicalSort(sort0=[$0], dir0=[ASC])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSortRemovalAllKeysConstant">
         <Resource name="sql">
             <![CDATA[select count(*) as c
