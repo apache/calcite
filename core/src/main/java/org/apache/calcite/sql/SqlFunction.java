@@ -16,8 +16,10 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -25,8 +27,13 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.google.common.collect.ImmutableList;
 
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nonnull;
@@ -295,6 +302,116 @@ public class SqlFunction extends SqlOperator {
       }
     }
     return false;
+  }
+
+  /**
+   * Return a {@link SqlReturnTypeInference} to infer return type
+   * from all the overload methods in function class according to the argument types.
+   * @param functionClass Function Class
+   */
+  public static  SqlReturnTypeInference getReturnTypeInferenceForClass(Class<?> functionClass) {
+    return opBinding -> {
+      JavaTypeFactory typeFactory =
+          (JavaTypeFactory) opBinding.getTypeFactory();
+      Method method = SqlUtil.findBestMatchMethod(functionClass,
+          "eval", opBinding.collectOperandTypes(), typeFactory);
+      if (method == null) {
+        throw ((SqlCallBinding) opBinding).newValidationSignatureError();
+      }
+      return typeFactory.createType(method.getReturnType());
+    };
+  }
+
+  /**
+   * Return a {@link SqlOperandTypeInference} to infer operand types
+   * from all the overload methods in function class according to the argument types.
+   * @param functionClass Function Class
+   */
+  public static  SqlOperandTypeInference getOperandTypeInferenceForClass(Class<?> functionClass) {
+    return (callBinding, returnType, operandTypes) -> {
+      JavaTypeFactory typeFactory =
+          (JavaTypeFactory) callBinding.getTypeFactory();
+      Method method = SqlUtil.findBestMatchMethod(functionClass,
+          "eval", callBinding.collectOperandTypes(), typeFactory);
+      if (method == null) {
+        throw callBinding.newValidationSignatureError();
+      }
+      Class<?>[] paramJavaTypes = method.getParameterTypes();
+      for (int i = 0; i < operandTypes.length; i++) {
+        operandTypes[i] = typeFactory.createType(paramJavaTypes[i]);
+      }
+    };
+  }
+
+  /**
+   * Return a {@link SqlOperandTypeChecker} to check operand types
+   * from all the overload methods in function class according to the argument types.
+   * @param functionClass Function Class
+   */
+  public static SqlOperandTypeChecker getOperandTypeCheckerForClass(Class<?> functionClass) {
+    final List<Class[]> typesList = getAllEvalParamTypes(functionClass);
+
+    return new SqlOperandTypeChecker() {
+
+      public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+        JavaTypeFactory typeFactory =
+            (JavaTypeFactory) callBinding.getTypeFactory();
+        Method method = SqlUtil.findBestMatchMethod(functionClass,
+            "eval", callBinding.collectOperandTypes(), typeFactory);
+        if (method == null && throwOnFailure) { // no matched method found
+          throw callBinding.newValidationSignatureError();
+        }
+        return true;
+      }
+
+      @Override public SqlOperandCountRange getOperandCountRange() {
+        int min = 255;
+        int max = -1;
+        for (Class[] ts : typesList) {
+          int paramLength = ts.length;
+          max = Math.max(paramLength, max);
+          min = Math.min(paramLength, min);
+        }
+        return SqlOperandCountRanges.between(min, max);
+      }
+
+      @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+        List<String> allowedSignList = new ArrayList<>();
+        for (Class[] ts : typesList) {
+          StringBuilder builder = new StringBuilder();
+          builder.append(opName).append("(");
+          for (int i = 0; i < ts.length; i++) {
+            if (i > 0) {
+              builder.append(",");
+            }
+            builder.append(ts[i].getSimpleName());
+          }
+          builder.append(")");
+          allowedSignList.add(builder.toString());
+        }
+        Collections.sort(allowedSignList);
+        return StringUtils.join(allowedSignList, " ");
+      }
+
+      @Override public Consistency getConsistency() {
+        return Consistency.NONE;
+      }
+
+      @Override public boolean isOptional(int i) {
+        return false;
+      }
+    };
+  }
+
+  private static List<Class[]> getAllEvalParamTypes(Class<?> functionClass) {
+    Method[] methods = functionClass.getMethods();
+    List<Class[]> types = new ArrayList<>();
+    for (Method method : methods) {
+      if ("eval".equals(method.getName())) {
+        types.add(method.getParameterTypes());
+      }
+    }
+    return types;
   }
 }
 

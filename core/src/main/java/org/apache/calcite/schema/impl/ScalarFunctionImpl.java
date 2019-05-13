@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.enumerable.CallImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.ReflectiveCallNotNullImplementor;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.function.SemiStrict;
 import org.apache.calcite.linq4j.function.Strict;
 import org.apache.calcite.rel.type.RelDataType;
@@ -32,6 +33,7 @@ import com.google.common.collect.ImmutableMultimap;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -110,11 +112,11 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
     return typeFactory.createJavaType(method.getReturnType());
   }
 
-  public CallImplementor getImplementor() {
+  public CallImplementor getImplementor(List<RelDataType> argTypes, JavaTypeFactory typeFactory) {
     return implementor;
   }
 
-  private static CallImplementor createImplementor(final Method method) {
+  public static CallImplementor createImplementor(final Method method) {
     final NullPolicy nullPolicy = getNullPolicy(method);
     return RexImpTable.createImplementor(
         new ReflectiveCallNotNullImplementor(method), nullPolicy, false);

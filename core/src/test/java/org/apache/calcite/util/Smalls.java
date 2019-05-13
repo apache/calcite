@@ -41,9 +41,11 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.schema.UDFDescription;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -887,6 +889,119 @@ public class Smalls {
     public final WideProductSale[] prod = {
         new WideProductSale(100, 10)
     };
+  }
+
+  /**
+   * Udf function with overload methods
+   */
+  @UDFDescription(name = "MY_UDF", category = SqlFunctionCategory.USER_DEFINED_FUNCTION)
+  public static class MyUdfFunction {
+    public static String eval(String a) {
+      return "eval(String:" + a + ")";
+    }
+
+    public static String eval(String a, String b) {
+      return "eval(String:" + a + ", String:" + b + ")";
+    }
+
+    public static String eval(String a, int c) {
+      return "eval(String:" + a + ", int:" + c + ")";
+    }
+
+    public static String eval(Long a, int b) {
+      return "eval(Long:" + a + ", int:" + b + ")";
+    }
+
+    public static String eval(int a, int b) {
+      return "eval(int:" + a + ",int:" + b + ")";
+    }
+  }
+
+  /**
+   * User-defined table function with overload methods
+   */
+  @UDFDescription(name = "MY_UDTF", category = SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION)
+  public static class MyUdtfFunction {
+
+    public static MyScannableTable eval(String a) {
+      return new MyScannableTable("eval(String: " + a + ")");
+    }
+
+    public static MyScannableTable eval(long a) {
+      return new MyScannableTable("eval(long:" + a + ")");
+    }
+
+    public static MyScannableTable eval(int a) {
+      return new MyScannableTable("eval(int:" + a + ")");
+    }
+  }
+
+  /**
+   * ScannableTable for {@link MyUdtfFunction}
+   */
+  public static class MyScannableTable implements ScannableTable {
+
+    private String msg;
+
+    public MyScannableTable(String msg) {
+      this.msg = msg;
+    }
+
+    public MyScannableTable() {
+      this("default");
+    }
+
+    public Enumerable<Object[]> scan(DataContext root) {
+      return new AbstractEnumerable<Object[]>() {
+        private long pos = 1;
+        public Enumerator<Object[]> enumerator() {
+
+          return new Enumerator<Object[]>() {
+            public Object[] current() {
+              return new Object[] {msg};
+            }
+
+            public boolean moveNext() {
+              if (pos > 0) {
+                pos--;
+                return true;
+              }
+              return false;
+            }
+
+            public void reset() {
+              pos = 1;
+            }
+
+            public void close() {
+
+            }
+          };
+        }
+      };
+    }
+
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return typeFactory.builder()
+          .add("N", SqlTypeName.VARCHAR).build();
+    }
+
+    public Statistic getStatistic() {
+      return Statistics.UNKNOWN;
+    }
+
+    public Schema.TableType getJdbcTableType() {
+      return Schema.TableType.TABLE;
+    }
+
+    public boolean isRolledUp(String column) {
+      return false;
+    }
+
+    public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+        SqlNode parent, CalciteConnectionConfig config) {
+      return false;
+    }
   }
 
   /** Table with a lot of columns. */

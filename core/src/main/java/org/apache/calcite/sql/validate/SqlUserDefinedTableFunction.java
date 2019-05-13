@@ -19,9 +19,11 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.TableFunction;
+import org.apache.calcite.schema.impl.JavaTableFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -47,6 +49,20 @@ public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction {
   }
 
   /**
+   * Constructor used to define a table function that contains
+   * all the overload "eval" methods in a function class.
+   * @param opName   Function name
+   * @param function JavaTableFunction
+   */
+  public SqlUserDefinedTableFunction(SqlIdentifier opName, JavaTableFunction function) {
+    this(opName,
+        ReturnTypes.CURSOR,
+        getOperandTypeInferenceForClass(function.getFunctionClass()),
+        getOperandTypeCheckerForClass(function.getFunctionClass()),
+        null, function);
+  }
+
+  /**
    * Returns function that implements given operator call.
    * @return function that implements given operator call
    */
@@ -60,16 +76,17 @@ public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction {
    * non-literal are replaced with default values (null, 0, false, etc).
    *
    * @param typeFactory Type factory
+   * @param argTypes    type of arguments
    * @param operandList arguments of a function call (only literal arguments
    *                    are passed, nulls for non-literal ones)
    * @return row type of the table
    */
   public RelDataType getRowType(RelDataTypeFactory typeFactory,
-      List<SqlNode> operandList) {
+      List<RelDataType> argTypes, List<SqlNode> operandList) {
     List<Object> arguments =
         SqlUserDefinedTableMacro.convertArguments(typeFactory, operandList,
           function, getNameAsId(), false);
-    return getFunction().getRowType(typeFactory, arguments);
+    return getFunction().getRowType(typeFactory, argTypes, arguments);
   }
 
   /**
