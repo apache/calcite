@@ -121,6 +121,7 @@ statement:
   |   explain
   |   describe
   |   insert
+  |   load
   |   update
   |   merge
   |   delete
@@ -154,6 +155,9 @@ insert:
       ( INSERT | UPSERT ) INTO tablePrimary
       [ '(' column [, column ]* ')' ]
       query
+      
+load:
+    LOAD DATA [LOCAL] INFILE 'filepath' [OVERWRITE] INTO TABLE tableName      
 
 update:
       UPDATE tablePrimary

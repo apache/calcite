@@ -301,6 +301,12 @@ public class ServerParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testLoadData() {
+    final String sql = "load data infile '/root/student.txt' overwrite into table x.t";
+    final String expected = "LOAD DATA INFILE '/root/student.txt' OVERWRITE INTO TABLE `X`.`T`";
+    sql(sql).ok(expected);
+  }
+
 }
 
 // End ServerParserTest.java
