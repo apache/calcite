@@ -970,7 +970,7 @@ public class RexLiteral extends RexNode {
       }
       break;
     case DECIMAL:
-      if (clazz == Long.class) {
+      if (clazz == Long.class || clazz == long.class) {
         return clazz.cast(((BigDecimal) value).unscaledValue().longValue());
       }
       // fall through
@@ -981,29 +981,29 @@ public class RexLiteral extends RexNode {
     case DOUBLE:
     case REAL:
     case FLOAT:
-      if (clazz == Long.class) {
+      if (clazz == Long.class || clazz == long.class) {
         return clazz.cast(((BigDecimal) value).longValue());
-      } else if (clazz == Integer.class) {
+      } else if (clazz == Integer.class || clazz == int.class) {
         return clazz.cast(((BigDecimal) value).intValue());
-      } else if (clazz == Short.class) {
+      } else if (clazz == Short.class || clazz == short.class) {
         return clazz.cast(((BigDecimal) value).shortValue());
-      } else if (clazz == Byte.class) {
+      } else if (clazz == Byte.class || clazz == byte.class) {
         return clazz.cast(((BigDecimal) value).byteValue());
-      } else if (clazz == Double.class) {
+      } else if (clazz == Double.class || clazz == double.class) {
         return clazz.cast(((BigDecimal) value).doubleValue());
-      } else if (clazz == Float.class) {
+      } else if (clazz == Float.class || clazz == float.class) {
         return clazz.cast(((BigDecimal) value).floatValue());
       }
       break;
     case DATE:
-      if (clazz == Integer.class) {
+      if (clazz == Integer.class || clazz == int.class) {
         return clazz.cast(((DateString) value).getDaysSinceEpoch());
       } else if (clazz == Calendar.class) {
         return clazz.cast(((DateString) value).toCalendar());
       }
       break;
     case TIME:
-      if (clazz == Integer.class) {
+      if (clazz == Integer.class || clazz == int.class) {
         return clazz.cast(((TimeString) value).getMillisOfDay());
       } else if (clazz == Calendar.class) {
         // Note: Nanos are ignored
@@ -1011,13 +1011,13 @@ public class RexLiteral extends RexNode {
       }
       break;
     case TIME_WITH_LOCAL_TIME_ZONE:
-      if (clazz == Integer.class) {
+      if (clazz == Integer.class || clazz == int.class) {
         // Milliseconds since 1970-01-01 00:00:00
         return clazz.cast(((TimeString) value).getMillisOfDay());
       }
       break;
     case TIMESTAMP:
-      if (clazz == Long.class) {
+      if (clazz == Long.class || clazz == long.class) {
         // Milliseconds since 1970-01-01 00:00:00
         return clazz.cast(((TimestampString) value).getMillisSinceEpoch());
       } else if (clazz == Calendar.class) {
@@ -1026,7 +1026,7 @@ public class RexLiteral extends RexNode {
       }
       break;
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-      if (clazz == Long.class) {
+      if (clazz == Long.class || clazz == long.class) {
         // Milliseconds since 1970-01-01 00:00:00
         return clazz.cast(((TimestampString) value).getMillisSinceEpoch());
       } else if (clazz == Calendar.class) {
@@ -1047,13 +1047,13 @@ public class RexLiteral extends RexNode {
     case INTERVAL_MINUTE:
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
-      if (clazz == Integer.class) {
+      if (clazz == Integer.class || clazz == int.class) {
         return clazz.cast(((BigDecimal) value).intValue());
-      } else if (clazz == Long.class) {
+      } else if (clazz == Long.class || clazz == long.class) {
         return clazz.cast(((BigDecimal) value).longValue());
       } else if (clazz == String.class) {
         return clazz.cast(intervalString(getValueAs(BigDecimal.class).abs()));
-      } else if (clazz == Boolean.class) {
+      } else if (clazz == Boolean.class || clazz == boolean.class) {
         // return whether negative
         return clazz.cast(getValueAs(BigDecimal.class).signum() < 0);
       }
