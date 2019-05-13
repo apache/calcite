@@ -335,6 +335,19 @@ public abstract class SqlOperatorBaseTest {
                 .with("conformance", conformance));
   }
 
+  /** Creates a tester with special sql library. */
+  protected SqlTester tester(SqlLibrary library) {
+    return tester.withOperatorTable(
+        SqlLibraryOperatorTableFactory.INSTANCE
+            .getOperatorTable(SqlLibrary.STANDARD, library))
+        .withConnectionFactory(
+            CalciteAssert.EMPTY_CONNECTION_FACTORY
+                .with(new CalciteAssert
+                    .AddSchemaSpecPostProcessor(CalciteAssert.SchemaSpec.HR))
+                .with("fun", library.name())
+        );
+  }
+
   //--- Tests -----------------------------------------------------------
 
   /**
@@ -4253,6 +4266,18 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalarExact("ASCII(_UTF8'\u5B57')", "23383");
     tester.checkScalarExact("ASCII(_UTF8'\u03a9')", "937"); // omega
     tester.checkNull("ASCII(cast(null as varchar(1)))");
+  }
+
+  @Test public void testReverseFunc() {
+    final SqlTester testerMysql = tester(SqlLibrary.MYSQL);
+    testerMysql.setFor(SqlLibraryOperators.REVERSE);
+    testerMysql.checkString("reverse('')", "", "VARCHAR(0) NOT NULL");
+    testerMysql.checkString("reverse('123')", "321", "VARCHAR(3) NOT NULL");
+    testerMysql.checkString("reverse('abc')", "cba", "VARCHAR(3) NOT NULL");
+    testerMysql.checkString("reverse('ABC')", "CBA", "VARCHAR(3) NOT NULL");
+    testerMysql.checkString("reverse('Hello World')", "dlroW olleH", "VARCHAR(11) NOT NULL");
+    testerMysql.checkString("reverse(_UTF8'\u4F60\u597D')", "好你", "VARCHAR(2) NOT NULL");
+    testerMysql.checkNull("reverse(cast(null as varchar(1)))");
   }
 
   @Test public void testUpperFunc() {

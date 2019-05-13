@@ -237,6 +237,12 @@ public class SqlFunctions {
     return newS.toString();
   }
 
+  /** SQL REVERSE(string) function. */
+  public static String reverse(String s) {
+    final StringBuilder buf = new StringBuilder(s);
+    return buf.reverse().toString();
+  }
+
   /** SQL ASCII(string) function. */
   public static int ascii(String s) {
     return s.isEmpty()

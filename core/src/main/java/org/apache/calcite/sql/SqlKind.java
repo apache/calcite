@@ -733,6 +733,11 @@ public enum SqlKind {
   EXTRACT,
 
   /**
+   * The "REVERSE" function (SQL Server, MySQL).
+   */
+  REVERSE,
+
+  /**
    * Call to a function using JDBC function syntax.
    */
   JDBC_FN,
@@ -1228,10 +1233,10 @@ public enum SqlKind {
    * Category consisting of regular and special functions.
    *
    * <p>Consists of regular functions {@link #OTHER_FUNCTION} and special
-   * functions {@link #ROW}, {@link #TRIM}, {@link #CAST}, {@link #JDBC_FN}.
+   * functions {@link #ROW}, {@link #TRIM}, {@link #CAST}, {@link #REVERSE}, {@link #JDBC_FN}.
    */
   public static final Set<SqlKind> FUNCTION =
-      EnumSet.of(OTHER_FUNCTION, ROW, TRIM, LTRIM, RTRIM, CAST, JDBC_FN, POSITION);
+      EnumSet.of(OTHER_FUNCTION, ROW, TRIM, LTRIM, RTRIM, CAST, REVERSE, JDBC_FN, POSITION);
 
   /**
    * Category of SqlAvgAggFunction.

@@ -267,6 +267,7 @@ public enum BuiltInMethod {
   UPPER(SqlFunctions.class, "upper", String.class),
   LOWER(SqlFunctions.class, "lower", String.class),
   ASCII(SqlFunctions.class, "ascii", String.class),
+  REVERSE(SqlFunctions.class, "reverse", String.class),
   JSONIZE(SqlFunctions.class, "jsonize", Object.class),
   DEJSONIZE(SqlFunctions.class, "dejsonize", String.class),
   JSON_VALUE_EXPRESSION(SqlFunctions.class, "jsonValueExpression",

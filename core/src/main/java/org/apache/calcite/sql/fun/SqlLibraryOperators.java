@@ -146,6 +146,17 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction JSON_PRETTY = SqlStdOperatorTable.JSON_PRETTY;
+
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction REVERSE =
+      new SqlFunction(
+          "REVERSE",
+          SqlKind.REVERSE,
+          ReturnTypes.ARG0_NULLABLE_VARYING,
+          null,
+          OperandTypes.CHARACTER,
+          SqlFunctionCategory.STRING);
+
 }
 
 // End SqlLibraryOperators.java
