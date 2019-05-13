@@ -272,6 +272,7 @@ public enum BuiltInMethod {
   SPACE(SqlFunctions.class, "space", int.class),
   SOUNDEX(SqlFunctions.class, "soundex", String.class),
   DIFFERENCE(SqlFunctions.class, "difference", String.class, String.class),
+  REVERSE(SqlFunctions.class, "reverse", String.class),
   JSONIZE(JsonFunctions.class, "jsonize", Object.class),
   DEJSONIZE(JsonFunctions.class, "dejsonize", String.class),
   JSON_VALUE_EXPRESSION(JsonFunctions.class, "jsonValueExpression",
