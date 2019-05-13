@@ -189,6 +189,16 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction REVERSE =
+      new SqlFunction(
+          "REVERSE",
+          SqlKind.REVERSE,
+          ReturnTypes.ARG0_NULLABLE_VARYING,
+          null,
+          OperandTypes.CHARACTER,
+          SqlFunctionCategory.STRING);
 }
 
 // End SqlLibraryOperators.java
