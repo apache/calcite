@@ -408,6 +408,14 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testCastDecimal1() {
+    final String query = "select -0.0000000123\n"
+        + " from \"expense_fact\"";
+    final String expected = "SELECT -1.23E-8\n"
+        + "FROM \"foodmart\".\"expense_fact\"";
+    sql(query).ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2713">[CALCITE-2713]
    * JDBC adapter may generate casts on PostgreSQL for VARCHAR type exceeding
