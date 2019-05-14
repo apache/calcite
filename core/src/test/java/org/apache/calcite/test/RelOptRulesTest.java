@@ -3770,7 +3770,6 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * full outer join, group by on key same as join key, group by on one side */
-  @Ignore("[CALCITE-3012]")
   @Test public void testPushAggregateThroughtOuterJoin13() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
@@ -3787,7 +3786,6 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * full outer join, group by on key same as join key, group by on both side */
-  @Ignore("[CALCITE-3012]")
   @Test public void testPushAggregateThroughtOuterJoin14() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
@@ -3804,7 +3802,6 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * full outer join, group by on both side on non-join keys */
-  @Ignore("[CALCITE-3012]")
   @Test public void testPushAggregateThroughtOuterJoin15() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
@@ -3821,7 +3818,6 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * full outer join, group by key is susbset of join keys */
-  @Ignore("[CALCITE-3012]")
   @Test public void testPushAggregateThroughtOuterJoin16() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
