@@ -19,6 +19,7 @@ package org.apache.calcite.sql.parser;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -616,6 +617,11 @@ public class SqlParserTest {
             .setQuotedCasing(quotedCasing)
             .setConformance(conformance)
             .build());
+  }
+
+  protected SqlParser getDialectSqlParser(String sql, SqlDialect dialect) {
+    return SqlParser.create(new SourceStringReader(sql),
+        dialect.configureParser(SqlParser.configBuilder()).build());
   }
 
   protected void checkExp(
@@ -8725,6 +8731,41 @@ public class SqlParserTest {
     SqlParser sqlParserString = getSqlParser(query);
     SqlNode node2 = sqlParserString.parseQuery();
     assertEquals(node2.toString(), node1.toString());
+  }
+
+  @Test public void testConfigureFromDialect() throws SqlParseException {
+    // Calcite's default converts unquoted identifiers to upper case
+    checkDialect(SqlDialect.DatabaseProduct.CALCITE.getDialect(),
+        "select unquotedColumn from \"doubleQuotedTable\"",
+        is("SELECT \"UNQUOTEDCOLUMN\"\n"
+            + "FROM \"doubleQuotedTable\""));
+    // MySQL leaves unquoted identifiers unchanged
+    checkDialect(SqlDialect.DatabaseProduct.MYSQL.getDialect(),
+        "select unquotedColumn from `doubleQuotedTable`",
+        is("SELECT `unquotedColumn`\n"
+            + "FROM `doubleQuotedTable`"));
+    // Oracle converts unquoted identifiers to upper case
+    checkDialect(SqlDialect.DatabaseProduct.ORACLE.getDialect(),
+        "select unquotedColumn from \"doubleQuotedTable\"",
+        is("SELECT \"UNQUOTEDCOLUMN\"\n"
+            + "FROM \"doubleQuotedTable\""));
+    // PostgreSQL converts unquoted identifiers to lower case
+    checkDialect(SqlDialect.DatabaseProduct.POSTGRESQL.getDialect(),
+        "select unquotedColumn from \"doubleQuotedTable\"",
+        is("SELECT \"unquotedcolumn\"\n"
+            + "FROM \"doubleQuotedTable\""));
+    // Redshift converts all identifiers to lower case
+    checkDialect(SqlDialect.DatabaseProduct.REDSHIFT.getDialect(),
+        "select unquotedColumn from \"doubleQuotedTable\"",
+        is("SELECT \"unquotedcolumn\"\n"
+            + "FROM \"doublequotedtable\""));
+  }
+
+  protected void checkDialect(SqlDialect dialect, String sql,
+      Matcher<String> matcher) throws SqlParseException {
+    final SqlParser parser = getDialectSqlParser(sql, dialect);
+    final SqlNode node = parser.parseStmt();
+    assertThat(node.toSqlString(dialect).getSql(), matcher);
   }
 
   //~ Inner Interfaces -------------------------------------------------------
