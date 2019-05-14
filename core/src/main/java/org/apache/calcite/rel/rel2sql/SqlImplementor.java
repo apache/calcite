@@ -500,10 +500,10 @@ public abstract class SqlImplementor {
         case NUMERIC:
         case EXACT_NUMERIC:
           return SqlLiteral.createExactNumeric(
-              literal.getValueAs(BigDecimal.class).toString(), POS);
+              literal.getValueAs(BigDecimal.class).toPlainString(), POS);
         case APPROXIMATE_NUMERIC:
           return SqlLiteral.createApproxNumeric(
-              literal.getValueAs(BigDecimal.class).toString(), POS);
+              literal.getValueAs(BigDecimal.class).toPlainString(), POS);
         case BOOLEAN:
           return SqlLiteral.createBoolean(literal.getValueAs(Boolean.class),
               POS);
