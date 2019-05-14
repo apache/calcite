@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.dialect;
 
+import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
@@ -27,7 +28,10 @@ public class RedshiftSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT =
       new RedshiftSqlDialect(EMPTY_CONTEXT
           .withDatabaseProduct(DatabaseProduct.REDSHIFT)
-          .withIdentifierQuoteString("\""));
+          .withIdentifierQuoteString("\"")
+          .withQuotedCasing(Casing.TO_LOWER)
+          .withUnquotedCasing(Casing.TO_LOWER)
+          .withCaseSensitive(false));
 
   /** Creates a RedshiftSqlDialect. */
   public RedshiftSqlDialect(Context context) {

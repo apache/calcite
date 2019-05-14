@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.dialect;
 
+import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -59,6 +60,7 @@ public class PostgresqlSqlDialect extends SqlDialect {
       new PostgresqlSqlDialect(EMPTY_CONTEXT
           .withDatabaseProduct(DatabaseProduct.POSTGRESQL)
           .withIdentifierQuoteString("\"")
+          .withUnquotedCasing(Casing.TO_LOWER)
           .withDataTypeSystem(POSTGRESQL_TYPE_SYSTEM));
 
   /** Creates a PostgresqlSqlDialect. */
