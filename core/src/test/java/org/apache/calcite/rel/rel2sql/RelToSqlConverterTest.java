@@ -408,6 +408,55 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testSelectWithDistinct() {
+    String query = "select distinct \"product_id\","
+        + " sum(\"product_class_id\") over (partition by \"product_id\") "
+        + " from \"product\" ";
+    final String expected = "SELECT \"product_id\", \"EXPR$1\"\n"
+        + "FROM (SELECT \"product_id\", SUM(\"product_class_id\") OVER "
+        + "(PARTITION BY \"product_id\" RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)\n"
+        + "FROM \"foodmart\".\"product\") AS \"t\"\n"
+        + "GROUP BY \"product_id\", \"EXPR$1\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testSelectWithDistinct1() {
+    String query = "select \"product_id\","
+        + " sum(\"product_class_id\") over (partition by \"product_id\") "
+        + " from \"product\" order by 2";
+    final String expected = "SELECT \"product_id\", SUM(\"product_class_id\") OVER"
+        + " (PARTITION BY \"product_id\" "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY SUM(\"product_class_id\") OVER (PARTITION BY \"product_id\" RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testSelectWithDistinct2() {
+    String query = "select distinct \"product_id\","
+        + " sum(\"product_class_id\") as xyz"
+        + " from \"product\" group by \"product_id\"";
+    final String expected = "SELECT \"product_id\", \"XYZ\"\n"
+        + "FROM (SELECT \"product_id\", SUM(\"product_class_id\") AS \"XYZ\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_id\") AS \"t0\"\n"
+        + "GROUP BY \"product_id\", \"XYZ\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testSelectWithDistinct3() {
+    String query = "select distinct *"
+        + " from (select \"product_id\", "
+        + "         sum(\"product_class_id\") over (partition by \"product_id\") "
+        + "        from \"product\") subq";
+    final String expected = "SELECT \"product_id\", \"EXPR$1\"\n"
+        + "FROM (SELECT \"product_id\", SUM(\"product_class_id\")"
+        + " OVER (PARTITION BY \"product_id\" RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)\n"
+        + "FROM \"foodmart\".\"product\") AS \"t\"\n"
+        + "GROUP BY \"product_id\", \"EXPR$1\"";
+    sql(query).ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2713">[CALCITE-2713]
    * JDBC adapter may generate casts on PostgreSQL for VARCHAR type exceeding

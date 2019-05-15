@@ -24,6 +24,7 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
@@ -66,6 +67,8 @@ import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
@@ -88,7 +91,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -947,11 +949,6 @@ public abstract class SqlImplementor {
         final List<RelDataTypeField> fields = alias.getValue().getFieldList();
         if (ordinal < fields.size()) {
           RelDataTypeField field = fields.get(ordinal);
-          final SqlNode mappedSqlNode =
-              ordinalMap.get(field.getName().toLowerCase(Locale.ROOT));
-          if (mappedSqlNode != null) {
-            return mappedSqlNode;
-          }
           return new SqlIdentifier(!qualified
               ? ImmutableList.of(field.getName())
               : ImmutableList.of(alias.getKey(), field.getName()),
@@ -1042,6 +1039,11 @@ public abstract class SqlImplementor {
         needNew = true;
       }
 
+      if (rel instanceof LogicalAggregate
+          && groupKeyHasAggExpressions((LogicalAggregate) rel)) {
+        needNew = true;
+      }
+
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
       if (needNew) {
@@ -1104,6 +1106,41 @@ public abstract class SqlImplementor {
                 }
               }
             }
+          }
+        }
+      }
+      return false;
+    }
+
+    /* JIRA:- https://issues.apache.org/jira/browse/CALCITE-2757 */
+    private boolean groupKeyHasAggExpressions(LogicalAggregate relNode) {
+      // Doing this check because Projections are the only place where
+      // we can create Aggregate Expressions which are then used as group by key.
+      if (relNode.getInput() instanceof LogicalProject && node instanceof SqlSelect) {
+
+        SqlVisitor<Boolean> visitor = new SqlBasicVisitor<Boolean>() {
+          Boolean flag = Boolean.FALSE;
+
+          @Override public Boolean visit(final SqlCall call) {
+            if (call.getKind().belongsTo(SqlKind.AGGREGATE)) {
+              flag = Boolean.TRUE;
+              return flag;
+            } else {
+              for (SqlNode node : call.getOperandList()) {
+                if (node == null) {
+                  continue;
+                }
+                node.accept(this);
+              }
+              return flag;
+            }
+          }
+        };
+
+        for (int group : relNode.getGroupSet()) {
+          SqlNode projection = ((SqlSelect) node).getSelectList().get(group);
+          if (projection.accept(visitor) == Boolean.TRUE) {
+            return true;
           }
         }
       }
