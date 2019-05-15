@@ -36,6 +36,7 @@ import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.MockSqlOperatorTable;
 import org.apache.calcite.test.catalog.MockCatalogReader;
 import org.apache.calcite.test.catalog.MockCatalogReaderSimple;
+import org.apache.calcite.util.SourceStringReader;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -112,7 +113,7 @@ public class SqlTestFactory {
   }
 
   public SqlParser createParser(String sql) {
-    return SqlParser.create(sql, parserConfig.get());
+    return SqlParser.create(new SourceStringReader(sql), parserConfig.get());
   }
 
   public static SqlParser.Config createParserConfig(ImmutableMap<String, Object> options) {
@@ -174,6 +175,13 @@ public class SqlTestFactory {
     if (conformance.shouldConvertRaggedUnionTypesToVarying()) {
       typeSystem = new DelegatingTypeSystem(typeSystem) {
         public boolean shouldConvertRaggedUnionTypesToVarying() {
+          return true;
+        }
+      };
+    }
+    if (conformance.allowExtendedTrim()) {
+      typeSystem = new DelegatingTypeSystem(typeSystem) {
+        public boolean allowExtendedTrim() {
           return true;
         }
       };

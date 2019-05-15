@@ -47,7 +47,11 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
   private final JavaSparkContext sparkContext =
       new JavaSparkContext("local[1]", "calcite");
 
-  private static SparkHandlerImpl instance;
+  /** Thread-safe holder */
+  private static class Holder {
+    private static final SparkHandlerImpl INSTANCE = new SparkHandlerImpl();
+  }
+
   private static final File CLASS_DIR = new File("target/classes");
 
   /** Creates a SparkHandlerImpl. */
@@ -73,10 +77,7 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
    * this via reflection. */
   @SuppressWarnings("UnusedDeclaration")
   public static CalcitePrepare.SparkHandler instance() {
-    if (instance == null) {
-      instance = new SparkHandlerImpl();
-    }
-    return instance;
+    return Holder.INSTANCE;
   }
 
   public RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel,

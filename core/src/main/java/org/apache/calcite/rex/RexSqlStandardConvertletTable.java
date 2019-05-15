@@ -196,7 +196,7 @@ public class RexSqlStandardConvertletTable
             return null;
           }
           List<SqlNode> operandList =
-              new ArrayList<SqlNode>(Arrays.asList(operands));
+              new ArrayList<>(Arrays.asList(operands));
           SqlDataTypeSpec typeSpec =
               SqlTypeUtil.convertTypeToSpec(call.getType());
           operandList.add(typeSpec);
@@ -232,11 +232,7 @@ public class RexSqlStandardConvertletTable
             ++i;
           }
           SqlNode elseExpr = operands[i];
-          SqlNode[] newOperands = new SqlNode[3];
-          newOperands[0] = whenList;
-          newOperands[1] = thenList;
-          newOperands[2] = elseExpr;
-          return op.createCall(null, SqlParserPos.ZERO, newOperands);
+          return op.createCall(null, SqlParserPos.ZERO, null, whenList, thenList, elseExpr);
         });
   }
 

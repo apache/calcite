@@ -61,7 +61,7 @@ public class JoinPushExpressionsRule extends RelOptRule {
     // If the join is the same, we bail out
     if (newJoin instanceof Join) {
       final RexNode newCondition = ((Join) newJoin).getCondition();
-      if (join.getCondition().toString().equals(newCondition.toString())) {
+      if (join.getCondition().equals(newCondition)) {
         return;
       }
     }

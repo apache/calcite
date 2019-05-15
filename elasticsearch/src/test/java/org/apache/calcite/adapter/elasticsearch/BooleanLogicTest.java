@@ -54,7 +54,7 @@ public class BooleanLogicTest {
   @BeforeClass
   public static void setupInstance() throws Exception {
 
-    final Map<String, String> mapping = ImmutableMap.of("A", "keyword", "b", "keyword",
+    final Map<String, String> mapping = ImmutableMap.of("a", "keyword", "b", "keyword",
         "c", "keyword", "int", "long");
 
     NODE.createIndex(NAME, mapping);
@@ -80,7 +80,8 @@ public class BooleanLogicTest {
                 +  " from \"elastic\".\"%s\"", NAME);
 
         ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
-                Collections.singletonList("elastic"), Arrays.asList("elastic", "view"), false);
+            Collections.singletonList("elastic"),
+            Arrays.asList("elastic", "view"), false);
         root.add("VIEW", macro);
 
         return connection;
@@ -128,9 +129,41 @@ public class BooleanLogicTest {
     assertSingle("select * from view where num > 41");
     assertSingle("select * from view where num > 0");
     assertSingle("select * from view where (a = 'a' and b = 'b') or (num = 42 and c = 'c')");
+    assertSingle("select * from view where c = 'c' and (a in ('a', 'b') or num in (41, 42))");
     assertSingle("select * from view where (a = 'a' or b = 'b') or (num = 42 and c = 'c')");
     assertSingle("select * from view where a = 'a' and (b = '0' or (b = 'b' and "
-            +  "(c = '0' or (c = 'c' and num = 42))))");
+        +  "(c = '0' or (c = 'c' and num = 42))))");
+  }
+
+  /**
+   * Tests negations ({@code NOT} operator).
+   */
+  @Test
+  public void notExpression() {
+    assertEmpty("select * from view where not a = 'a'");
+    assertSingle("select * from view where not not a = 'a'");
+    assertEmpty("select * from view where not not not a = 'a'");
+    assertSingle("select * from view where not a <> 'a'");
+    assertSingle("select * from view where not not not a <> 'a'");
+    assertEmpty("select * from view where not 'a' = a");
+    assertSingle("select * from view where not 'a' <> a");
+    assertSingle("select * from view where not a = 'b'");
+    assertSingle("select * from view where not 'b' = a");
+    assertEmpty("select * from view where not a in ('a')");
+    assertEmpty("select * from view where a not in ('a')");
+    assertSingle("select * from view where not a not in ('a')");
+    assertEmpty("select * from view where not a not in ('b')");
+    assertEmpty("select * from view where not not a not in ('a')");
+    assertSingle("select * from view where not not a not in ('b')");
+    assertEmpty("select * from view where not a in ('a', 'b')");
+    assertEmpty("select * from view where a not in ('a', 'b')");
+    assertEmpty("select * from view where not a not in ('z')");
+    assertEmpty("select * from view where not a not in ('z')");
+    assertSingle("select * from view where not a in ('z')");
+    assertSingle("select * from view where not (not num = 42 or not a in ('a', 'c'))");
+    assertEmpty("select * from view where not num > 0");
+    assertEmpty("select * from view where num = 42 and a not in ('a', 'c')");
+    assertSingle("select * from view where not (num > 42 or num < 42 and num = 42)");
   }
 
   private void assertSingle(String query) {

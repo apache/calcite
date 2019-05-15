@@ -258,4 +258,46 @@ select "value" from "nullables" a
 
 !ok
 
+# Test case for [CALCITE-2726] based on [HIVE-20617]
+with ax(s, t) as (values ('a','a'),('a','a '),('b','bb'))
+select 'expected 1' as e,count(*) as c
+from ax where ((s,t) in (('a','a'),(null, 'bb'))) is null;
++------------+---+
+| E          | C |
++------------+---+
+| expected 1 | 1 |
++------------+---+
+(1 row)
+
+!ok
+
+with ax(s) as (values (1),(0))
+select case when s=0 then false else 100/s > 0 end from ax;
+
++--------+
+| EXPR$0 |
++--------+
+| false  |
+| true   |
++--------+
+(2 rows)
+
+!ok
+
+# Test case for CALCITE-2783
+with ax(s) as (values (true),(false),(cast(null as boolean)))
+select s, (s or s is null), (s and s is not null) from ax;
+
++-------+--------+--------+
+| S     | EXPR$1 | EXPR$2 |
++-------+--------+--------+
+| false | false  | false  |
+| true  | true   | true   |
+|       | true   | false  |
++-------+--------+--------+
+(3 rows)
+
+!ok
+
+
 # End conditions.iq

@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 
-import static org.apache.calcite.adapter.geode.util.GeodeUtils.createRelDataType;
+import static org.apache.calcite.adapter.geode.util.GeodeUtils.autodetectRelTypeFromRegion;
 
 /**
  * Geode Simple Schema.
@@ -64,12 +64,9 @@ public class GeodeSimpleSchema extends AbstractSchema {
 
       for (String regionName : regionNames) {
 
-        Region region = GeodeUtils.createRegionProxy(clientCache, regionName);
+        Region region = GeodeUtils.createRegion(clientCache, regionName);
 
-        // TODO: What if the region is empty
-        Object regionEntry = region.get(region.keySetOnServer().iterator().next());
-
-        Table table = new GeodeSimpleScannableTable(regionName, createRelDataType(regionEntry),
+        Table table = new GeodeSimpleScannableTable(regionName, autodetectRelTypeFromRegion(region),
             clientCache);
 
         builder.put(regionName, table);

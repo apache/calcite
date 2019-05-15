@@ -28,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TimeZone;
 
 import static org.apache.calcite.avatica.ConnectionConfigImpl.PropEnv;
 
@@ -128,8 +129,10 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    * generates code that implements the Enumerable interface. */
   SPARK("spark", Type.BOOLEAN, false, false),
 
-  /** Time zone, for example 'gmt-3'. Default is the JVM's time zone. */
-  TIME_ZONE("timeZone", Type.STRING, null, false),
+  /** Returns the time zone from the connect string, for example 'gmt-3'.
+   * If the time zone is not set then the JVM time zone is returned.
+   * Never null. */
+  TIME_ZONE("timeZone", Type.STRING, TimeZone.getDefault().getID(), false),
 
   /** If the planner should try de-correlating as much as it is possible.
    * If true (the default), Calcite de-correlates the plan. */

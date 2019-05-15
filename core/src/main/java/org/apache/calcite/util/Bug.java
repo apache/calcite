@@ -40,13 +40,6 @@ package org.apache.calcite.util;
  * the fix is integrated into other branches, the constant will be removed from
  * those branches.</p>
  *
- * <p><b>To do</b></p>
- *
- * <p>The following is a list of tasks to be completed before committing to
- * master branch.</p>
- *
- * <ul>
- * </ul>
  */
 public abstract class Bug {
   //~ Static fields/initializers ---------------------------------------------

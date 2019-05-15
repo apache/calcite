@@ -65,7 +65,7 @@ public abstract class Exchange extends SingleRel {
   }
 
   /**
-   * Creates a Exchange by parsing serialized output.
+   * Creates an Exchange by parsing serialized output.
    */
   public Exchange(RelInput input) {
     this(input.getCluster(), input.getTraitSet().plus(input.getCollation()),

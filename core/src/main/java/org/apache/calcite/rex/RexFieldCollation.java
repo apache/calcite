@@ -20,7 +20,9 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 import java.util.Set;
 
@@ -28,28 +30,45 @@ import java.util.Set;
  * Expression combined with sort flags (DESCENDING, NULLS LAST).
  */
 public class RexFieldCollation extends Pair<RexNode, ImmutableSet<SqlKind>> {
+  /** Canonical map of all combinations of {@link SqlKind} values that can ever
+   * occur. We use a canonical map to save a bit of memory. Because the sets
+   * are EnumSets they have predictable order for toString(). */
+  private static final ImmutableMap<Set<SqlKind>, ImmutableSet<SqlKind>> KINDS =
+      new Initializer()
+          .add()
+          .add(SqlKind.NULLS_FIRST)
+          .add(SqlKind.NULLS_LAST)
+          .add(SqlKind.DESCENDING)
+          .add(SqlKind.DESCENDING, SqlKind.NULLS_FIRST)
+          .add(SqlKind.DESCENDING, SqlKind.NULLS_LAST)
+          .build();
+
   public RexFieldCollation(RexNode left, Set<SqlKind> right) {
-    super(left, ImmutableSet.copyOf(right));
+    super(left, KINDS.get(right));
   }
 
   @Override public String toString() {
-    String s = left.toString();
+    final String s = left.toString();
+    if (right.isEmpty()) {
+      return s;
+    }
+    final StringBuilder b = new StringBuilder(s);
     for (SqlKind operator : right) {
       switch (operator) {
       case DESCENDING:
-        s += " DESC";
+        b.append(" DESC");
         break;
       case NULLS_FIRST:
-        s += " NULLS FIRST";
+        b.append(" NULLS FIRST");
         break;
       case NULLS_LAST:
-        s += " NULLS LAST";
+        b.append(" NULLS LAST");
         break;
       default:
         throw new AssertionError(operator);
       }
     }
-    return s;
+    return b.toString();
   }
 
   public RelFieldCollation.Direction getDirection() {
@@ -64,6 +83,30 @@ public class RexFieldCollation extends Pair<RexNode, ImmutableSet<SqlKind>> {
         : right.contains(SqlKind.NULLS_FIRST)
             ? RelFieldCollation.NullDirection.FIRST
             : getDirection().defaultNullDirection();
+  }
+
+  /** Helper, used during initialization, that builds a canonizing map from
+   * sets of {@code SqlKind} to immutable sets of {@code SqlKind}. */
+  private static class Initializer {
+    final ImmutableMap.Builder<Set<SqlKind>, ImmutableSet<SqlKind>> builder =
+        ImmutableMap.builder();
+
+    public Initializer add() {
+      return add(ImmutableSet.of());
+    }
+
+    public Initializer add(SqlKind kind, SqlKind... kinds) {
+      return add(Sets.immutableEnumSet(kind, kinds));
+    }
+
+    private Initializer add(ImmutableSet<SqlKind> set) {
+      builder.put(set, set);
+      return this;
+    }
+
+    public ImmutableMap<Set<SqlKind>, ImmutableSet<SqlKind>> build() {
+      return builder.build();
+    }
   }
 }
 

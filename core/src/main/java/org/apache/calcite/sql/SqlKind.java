@@ -118,6 +118,26 @@ public enum SqlKind {
   OTHER_FUNCTION,
 
   /**
+   * POSITION Function
+   */
+  POSITION,
+
+  /**
+   * CHAR_LENGTH Function
+   * */
+  CHAR_LENGTH,
+
+  /**
+   * CHARACTER_LENGTH Function
+   * */
+  CHARACTER_LENGTH,
+
+  /**
+   * SUBSTRING Function
+   * */
+  SUBSTRING,
+
+  /**
    * EXPLAIN statement
    */
   EXPLAIN,
@@ -213,6 +233,11 @@ public enum SqlKind {
   FILTER,
 
   /**
+   * WITHIN_GROUP operator
+   */
+  WITHIN_GROUP,
+
+  /**
    * Window specification
    */
   WINDOW,
@@ -261,6 +286,13 @@ public enum SqlKind {
    * @see #MINUS_PREFIX
    */
   MINUS,
+
+  /**
+   * The truncate operator, "-".
+   *
+   * @see #TRUNCATE
+   */
+  TRUNCATE,
 
   /**
    * the alternation operator in a pattern expression within a match_recognize clause
@@ -722,6 +754,26 @@ public enum SqlKind {
   MULTISET_QUERY_CONSTRUCTOR,
 
   /**
+   * The JSON value expression.
+   */
+  JSON_VALUE_EXPRESSION,
+
+  /**
+   * The JSON API common syntax.
+   */
+  JSON_API_COMMON_SYNTAX,
+
+  /**
+   * The {@code JSON_ARRAYAGG} aggregate function.
+   */
+  JSON_ARRAYAGG,
+
+  /**
+   * The {@code JSON_OBJECTAGG} aggregate function.
+   */
+  JSON_OBJECTAGG,
+
+  /**
    * The "UNNEST" operator.
    */
   UNNEST,
@@ -894,6 +946,12 @@ public enum SqlKind {
   /** The {@code SINGLE_VALUE} aggregate function. */
   SINGLE_VALUE,
 
+  /** The {@code BIT_AND} aggregate function. */
+  BIT_AND,
+
+  /** The {@code BIT_OR} aggregate function. */
+  BIT_OR,
+
   /** The {@code ROW_NUMBER} window function. */
   ROW_NUMBER,
 
@@ -1034,6 +1092,12 @@ public enum SqlKind {
   /** {@code DROP TYPE} DDL statement. */
   DROP_TYPE,
 
+  /** {@code CREATE FUNCTION} DDL statement. */
+  CREATE_FUNCTION,
+
+  /** {@code DROP FUNCTION} DDL statement. */
+  DROP_FUNCTION,
+
   /** DDL statement not handled above.
    *
    * <p><b>Note to other projects</b>: If you are extending Calcite's SQL parser
@@ -1041,7 +1105,12 @@ public enum SqlKind {
    * commands for them. Use OTHER_DDL in the short term, but we are happy to add
    * new enum values for your object types. Just ask!
    */
-  OTHER_DDL;
+  OTHER_DDL,
+
+  /**
+   * CONCAT Function
+   */
+  CONCAT;
 
   //~ Static fields/initializers ---------------------------------------------
 
@@ -1067,7 +1136,7 @@ public enum SqlKind {
           LAST_VALUE, COVAR_POP, COVAR_SAMP, REGR_COUNT, REGR_SXX, REGR_SYY,
           AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
           FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
-          CUME_DIST);
+          CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR);
 
   /**
    * Category consisting of all DML operators.
@@ -1147,11 +1216,13 @@ public enum SqlKind {
               EnumSet.of(AS, ARGUMENT_ASSIGNMENT, DEFAULT,
                   RUNNING, FINAL, LAST, FIRST, PREV, NEXT,
                   DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
-                  SELECT, JOIN, OTHER_FUNCTION, CAST, TRIM, FLOOR, CEIL,
+                  SELECT, JOIN, OTHER_FUNCTION, POSITION, CHAR_LENGTH,
+                  CHARACTER_LENGTH, SUBSTRING, TRUNCATE, CAST, TRIM, FLOOR, CEIL,
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, EXTRACT,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
-                  VALUES, WITH, WITH_ITEM, SKIP_TO_FIRST, SKIP_TO_LAST),
+                  VALUES, WITH, WITH_ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
+                  JSON_VALUE_EXPRESSION, JSON_API_COMMON_SYNTAX),
               AGGREGATE, DML, DDL));
 
   /**
@@ -1168,7 +1239,8 @@ public enum SqlKind {
    * functions {@link #ROW}, {@link #TRIM}, {@link #CAST}, {@link #JDBC_FN}.
    */
   public static final Set<SqlKind> FUNCTION =
-      EnumSet.of(OTHER_FUNCTION, ROW, TRIM, LTRIM, RTRIM, CAST, JDBC_FN);
+      EnumSet.of(OTHER_FUNCTION, ROW, TRIM, LTRIM, RTRIM, CAST,
+                 JDBC_FN, POSITION, CHAR_LENGTH, CHARACTER_LENGTH, SUBSTRING, TRUNCATE);
 
   /**
    * Category of SqlAvgAggFunction.

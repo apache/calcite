@@ -574,7 +574,6 @@ EXPR$0
 # Not implemented
 
 # ST_Y(geom) Returns the y-value of the first coordinate of *geom*
-# Not implemented
 
 SELECT ST_Y(ST_GeomFromText('POINT Z(1 2 3)'));
 EXPR$0

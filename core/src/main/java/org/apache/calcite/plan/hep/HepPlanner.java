@@ -68,7 +68,7 @@ import java.util.Set;
 public class HepPlanner extends AbstractRelOptPlanner {
   //~ Instance fields --------------------------------------------------------
 
-  private HepProgram mainProgram;
+  private final HepProgram mainProgram;
 
   private HepProgram currentProgram;
 
@@ -76,9 +76,11 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   private RelTraitSet requestedRootTraits;
 
-  private Map<String, HepRelVertex> mapDigestToVertex;
+  private final Map<String, HepRelVertex> mapDigestToVertex = new HashMap<>();
 
-  private final Set<RelOptRule> allRules;
+  // NOTE jvs 24-Apr-2006:  We use LinkedHashSet
+  // in order to provide deterministic behavior.
+  private final Set<RelOptRule> allRules = new LinkedHashSet<>();
 
   private int nTransformations;
 
@@ -86,14 +88,15 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   private int nTransformationsLastGC;
 
-  private boolean noDAG;
+  private final boolean noDag;
 
   /**
    * Query graph, with edges directed from parent to child. This is a
    * single-rooted DAG, possibly with additional roots corresponding to
    * discarded plan fragments which remain to be garbage-collected.
    */
-  private DirectedGraph<HepRelVertex, DefaultEdge> graph;
+  private final DirectedGraph<HepRelVertex, DefaultEdge> graph =
+      DefaultDirectedGraph.create();
 
   private final Function2<RelNode, RelNode, Void> onCopyHook;
 
@@ -123,28 +126,23 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   /**
    * Creates a new HepPlanner with the option to keep the graph a
-   * tree(noDAG=true) or allow DAG(noDAG=false).
+   * tree (noDag = true) or allow DAG (noDag = false).
    *
-   * @param program    program controlling rule application
+   * @param noDag      If false, create shared nodes if expressions are
+   *                   identical
+   * @param program    Program controlling rule application
    * @param onCopyHook Function to call when a node is copied
    */
   public HepPlanner(
       HepProgram program,
       Context context,
-      boolean noDAG,
+      boolean noDag,
       Function2<RelNode, RelNode, Void> onCopyHook,
       RelOptCostFactory costFactory) {
     super(costFactory, context);
     this.mainProgram = program;
-    this.onCopyHook =
-        Util.first(onCopyHook, Functions.ignore2());
-    mapDigestToVertex = new HashMap<>();
-    graph = DefaultDirectedGraph.create();
-
-    // NOTE jvs 24-Apr-2006:  We use LinkedHashSet here and below
-    // in order to provide deterministic behavior.
-    allRules = new LinkedHashSet<>();
-    this.noDAG = noDAG;
+    this.onCopyHook = Util.first(onCopyHook, Functions.ignore2());
+    this.noDag = noDag;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -822,7 +820,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     rel.recomputeDigest();
 
     // try to find equivalent rel only if DAG is allowed
-    if (!noDAG) {
+    if (!noDag) {
       // Now, check if an equivalent vertex already exists in graph.
       String digest = rel.getDigest();
       HepRelVertex equivVertex = mapDigestToVertex.get(digest);

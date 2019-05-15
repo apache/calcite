@@ -25,6 +25,7 @@ import org.apache.calcite.plan.RelOptSamplingParameters;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.RelCollation;
@@ -198,6 +199,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 
@@ -703,8 +706,8 @@ public class SqlToRelConverter {
       final List<Integer> origins = new ArrayList<>();
       int dupCount = 0;
       for (int i = 0; i < projectExprs.size(); i++) {
-        int x = findExpr(projectExprs.get(i), projectExprs, i);
-        if (x >= 0) {
+        int x = projectExprs.indexOf(projectExprs.get(i));
+        if (x >= 0 && x < i) {
           origins.add(x);
           ++dupCount;
         } else {
@@ -767,18 +770,11 @@ public class SqlToRelConverter {
         false);
   }
 
-  private int findExpr(RexNode seek, List<RexNode> exprs, int count) {
-    for (int i = 0; i < count; i++) {
-      RexNode expr = exprs.get(i);
-      if (expr.toString().equals(seek.toString())) {
-        return i;
-      }
-    }
-    return -1;
-  }
-
   /**
    * Converts a query's ORDER BY clause, if any.
+   *
+   * <p>Ignores the ORDER BY clause if the query is not top-level and FETCH or
+   * OFFSET are not present.
    *
    * @param select        Query
    * @param bb            Blackboard
@@ -796,9 +792,10 @@ public class SqlToRelConverter {
       List<SqlNode> orderExprList,
       SqlNode offset,
       SqlNode fetch) {
-    if (select.getOrderList() == null
+    if (!bb.top
+        || select.getOrderList() == null
         || select.getOrderList().getList().isEmpty()) {
-      assert collation.getFieldCollations().isEmpty();
+      assert !bb.top || collation.getFieldCollations().isEmpty();
       if ((offset == null
             || (offset instanceof SqlLiteral
                 && ((SqlLiteral) offset).bigDecimalValue().equals(BigDecimal.ZERO)))
@@ -1122,9 +1119,10 @@ public class SqlToRelConverter {
             LogicalAggregate.create(seek, ImmutableBitSet.of(), null,
                 ImmutableList.of(
                     AggregateCall.create(SqlStdOperatorTable.COUNT, false,
-                        false, ImmutableList.of(), -1, longType, null),
+                        false, ImmutableList.of(), -1, RelCollations.EMPTY,
+                        longType, null),
                     AggregateCall.create(SqlStdOperatorTable.COUNT, false,
-                        false, args, -1, longType, null)));
+                        false, args, -1, RelCollations.EMPTY, longType, null)));
         LogicalJoin join =
             LogicalJoin.create(bb.root, aggregate, rexBuilder.makeLiteral(true),
                 ImmutableSet.of(), JoinRelType.INNER);
@@ -1437,14 +1435,12 @@ public class SqlToRelConverter {
         assert (call.getOperator() instanceof SqlRowOperator)
             && call.operandCount() == leftKeys.size();
         rexComparison =
-            RexUtil.composeConjunction(
-                rexBuilder,
+            RexUtil.composeConjunction(rexBuilder,
                 Iterables.transform(
                     Pair.zip(leftKeys, call.getOperandList()),
                     pair -> rexBuilder.makeCall(comparisonOp, pair.left,
                         ensureSqlType(pair.left.getType(),
-                            bb.convertExpression(pair.right)))),
-                false);
+                            bb.convertExpression(pair.right)))));
       }
       comparisons.add(rexComparison);
     }
@@ -2217,7 +2213,7 @@ public class SqlToRelConverter {
       SqlIdentifier left = (SqlIdentifier) operands.get(0);
       patternVarsSet.add(left.getSimple());
       SqlNodeList rights = (SqlNodeList) operands.get(1);
-      final TreeSet<String> list = new TreeSet<String>();
+      final TreeSet<String> list = new TreeSet<>();
       for (SqlNode right : rights) {
         assert right instanceof SqlIdentifier;
         list.add(((SqlIdentifier) right).getSimple());
@@ -2634,7 +2630,7 @@ public class SqlToRelConverter {
    * @return Expression to match columns from name list, or true if name list
    * is empty
    */
-  private RexNode convertUsing(SqlValidatorNamespace leftNamespace,
+  private @Nonnull RexNode convertUsing(SqlValidatorNamespace leftNamespace,
       SqlValidatorNamespace rightNamespace,
       List<String> nameList) {
     final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
@@ -2653,7 +2649,7 @@ public class SqlToRelConverter {
       }
       list.add(rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, operands));
     }
-    return RexUtil.composeConjunction(rexBuilder, list, false);
+    return RexUtil.composeConjunction(rexBuilder, list);
   }
 
   private static JoinRelType convertJoinType(JoinType joinType) {
@@ -2725,6 +2721,10 @@ public class SqlToRelConverter {
 
     // also replace sub-queries inside filters in the aggregates
     replaceSubQueries(bb, aggregateFinder.filterList,
+        RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+
+    // also replace sub-queries inside ordering spec in the aggregates
+    replaceSubQueries(bb, aggregateFinder.orderList,
         RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
     // If group-by clause is missing, pretend that it has zero elements.
@@ -2948,6 +2948,18 @@ public class SqlToRelConverter {
     if (orderList == null) {
       return;
     }
+
+    if (!bb.top) {
+      SqlNode offset = select.getOffset();
+      if ((offset == null
+              || (offset instanceof SqlLiteral
+                  && ((SqlLiteral) offset).bigDecimalValue()
+                      .equals(BigDecimal.ZERO)))
+          && select.getFetch() == null) {
+        return;
+      }
+    }
+
     for (SqlNode orderItem : orderList) {
       collationList.add(
           convertOrderItem(select, orderItem, extraOrderExprs,
@@ -3208,20 +3220,7 @@ public class SqlToRelConverter {
   }
 
   private RelOptTable.ToRelContext createToRelContext() {
-    return new RelOptTable.ToRelContext() {
-      public RelOptCluster getCluster() {
-        return cluster;
-      }
-
-      @Override public RelRoot expandView(
-          RelDataType rowType,
-          String queryString,
-          List<String> schemaPath,
-          List<String> viewPath) {
-        return viewExpander.expandView(rowType, queryString, schemaPath, viewPath);
-      }
-
-    };
+    return ViewExpanders.toRelContext(viewExpander, cluster);
   }
 
   public RelNode toRel(final RelOptTable table) {
@@ -4680,7 +4679,9 @@ public class SqlToRelConverter {
       if (agg != null) {
         final SqlOperator op = call.getOperator();
         if (window == null
-            && (op.isAggregator() || op.getKind() == SqlKind.FILTER)) {
+            && (op.isAggregator()
+            || op.getKind() == SqlKind.FILTER
+            || op.getKind() == SqlKind.WITHIN_GROUP)) {
           return agg.lookupAggregates(call);
         }
       }
@@ -4931,7 +4932,8 @@ public class SqlToRelConverter {
     public Void visit(SqlCall call) {
       switch (call.getKind()) {
       case FILTER:
-        translateAgg((SqlCall) call.operand(0), call.operand(1), call);
+      case WITHIN_GROUP:
+        translateAgg(call);
         return null;
       case SELECT:
         // rchen 2006-10-17:
@@ -4965,7 +4967,7 @@ public class SqlToRelConverter {
           inOver = false;
         } else {
           // We're beyond the one ignored level
-          translateAgg(call, null, call);
+          translateAgg(call);
           return null;
         }
       }
@@ -4980,13 +4982,29 @@ public class SqlToRelConverter {
       return null;
     }
 
-    private void translateAgg(SqlCall call, SqlNode filter, SqlCall outerCall) {
+    private void translateAgg(SqlCall call) {
+      translateAgg(call, null, null, call);
+    }
+
+    private void translateAgg(SqlCall call, SqlNode filter,
+        SqlNodeList orderList, SqlCall outerCall) {
       assert bb.agg == this;
+      assert outerCall != null;
+      switch (call.getKind()) {
+      case FILTER:
+        assert filter == null;
+        translateAgg(call.operand(0), call.operand(1), orderList, outerCall);
+        return;
+      case WITHIN_GROUP:
+        assert orderList == null;
+        translateAgg(call.operand(0), filter, call.operand(1), outerCall);
+        return;
+      }
       final List<Integer> args = new ArrayList<>();
       int filterArg = -1;
       final List<RelDataType> argTypes =
           call.getOperator() instanceof SqlCountAggFunction
-              ? new ArrayList<RelDataType>(call.getOperandList().size())
+              ? new ArrayList<>(call.getOperandList().size())
               : null;
       try {
         // switch out of agg mode
@@ -5039,6 +5057,24 @@ public class SqlToRelConverter {
         distinct = true;
         approximate = true;
       }
+      final RelCollation collation;
+      if (orderList == null || orderList.size() == 0) {
+        collation = RelCollations.EMPTY;
+      } else {
+        collation = RelCollations.of(
+            orderList.getList()
+                .stream()
+                .map(order ->
+                    bb.convertSortExpression(order,
+                        RelFieldCollation.Direction.ASCENDING,
+                        RelFieldCollation.NullDirection.UNSPECIFIED))
+                .map(fieldCollation ->
+                    new RelFieldCollation(
+                        lookupOrCreateGroupExpr(fieldCollation.left),
+                        fieldCollation.getDirection(),
+                        fieldCollation.getNullDirection()))
+                .collect(Collectors.toList()));
+      }
       final AggregateCall aggCall =
           AggregateCall.create(
               aggFunction,
@@ -5046,6 +5082,7 @@ public class SqlToRelConverter {
               approximate,
               args,
               filterArg,
+              collation,
               type,
               nameMap.get(outerCall.toString()));
       final AggregatingSelectScope.Resolved r =
@@ -5064,7 +5101,7 @@ public class SqlToRelConverter {
     private int lookupOrCreateGroupExpr(RexNode expr) {
       int index = 0;
       for (RexNode convertedInputExpr : Pair.left(convertedInputExprs)) {
-        if (expr.toString().equals(convertedInputExpr.toString())) {
+        if (expr.equals(convertedInputExpr)) {
           return index;
         }
         ++index;
@@ -5371,6 +5408,7 @@ public class SqlToRelConverter {
   private static class AggregateFinder extends SqlBasicVisitor<Void> {
     final SqlNodeList list = new SqlNodeList(SqlParserPos.ZERO);
     final SqlNodeList filterList = new SqlNodeList(SqlParserPos.ZERO);
+    final SqlNodeList orderList = new SqlNodeList(SqlParserPos.ZERO);
 
     @Override public Void visit(SqlCall call) {
       // ignore window aggregates and ranking functions (associated with OVER operator)
@@ -5385,6 +5423,16 @@ public class SqlToRelConverter {
         final SqlNode whereCall = call.getOperandList().get(1);
         list.add(aggCall);
         filterList.add(whereCall);
+        return null;
+      }
+
+      if (call.getOperator().getKind() == SqlKind.WITHIN_GROUP) {
+        // the WHERE in a WITHIN_GROUP must be tracked too so we can call replaceSubQueries on it.
+        // see https://issues.apache.org/jira/browse/CALCITE-1910
+        final SqlNode aggCall = call.getOperandList().get(0);
+        final SqlNodeList orderList = (SqlNodeList) call.getOperandList().get(1);
+        list.add(aggCall);
+        orderList.getList().forEach(this.orderList::add);
         return null;
       }
 

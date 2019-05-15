@@ -28,6 +28,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -76,6 +77,14 @@ public class RexBuilder {
    */
   public static final SqlSpecialOperator GET_OPERATOR =
       new SqlSpecialOperator("_get", SqlKind.OTHER_FUNCTION);
+
+  /** The smallest valid {@code int} value, as a {@link BigDecimal}. */
+  private static final BigDecimal INT_MIN =
+      BigDecimal.valueOf(Integer.MIN_VALUE);
+
+  /** The largest valid {@code int} value, as a {@link BigDecimal}. */
+  private static final BigDecimal INT_MAX =
+      BigDecimal.valueOf(Integer.MAX_VALUE);
 
   //~ Instance fields --------------------------------------------------------
 
@@ -293,7 +302,8 @@ public class RexBuilder {
       final List<Integer> args = aggCall.getArgList();
       final List<Integer> nullableArgs = nullableArgs(args, aggArgTypes);
       if (!nullableArgs.equals(args)) {
-        aggCall = aggCall.copy(nullableArgs, aggCall.filterArg);
+        aggCall = aggCall.copy(nullableArgs, aggCall.filterArg,
+            aggCall.collation);
       }
     }
     RexNode rex = aggCallMapping.get(aggCall);
@@ -926,12 +936,10 @@ public class RexBuilder {
   public RexLiteral makeExactLiteral(BigDecimal bd) {
     RelDataType relType;
     int scale = bd.scale();
-    long l = bd.unscaledValue().longValue();
     assert scale >= 0;
     assert scale <= typeFactory.getTypeSystem().getMaxNumericScale() : scale;
-    assert BigDecimal.valueOf(l, scale).equals(bd);
     if (scale == 0) {
-      if ((l >= Integer.MIN_VALUE) && (l <= Integer.MAX_VALUE)) {
+      if (bd.compareTo(INT_MIN) >= 0 && bd.compareTo(INT_MAX) <= 0) {
         relType = typeFactory.createSqlType(SqlTypeName.INTEGER);
       } else {
         relType = typeFactory.createSqlType(SqlTypeName.BIGINT);
@@ -1022,14 +1030,21 @@ public class RexBuilder {
     assert s != null;
     if (s.equals("")) {
       return charEmpty;
-    } else {
-      return makeLiteral(
-          new NlsString(s, null, null),
-          typeFactory.createSqlType(
-              SqlTypeName.CHAR,
-              s.length()),
-          SqlTypeName.CHAR);
     }
+    return makeCharLiteral(new NlsString(s, null, null));
+  }
+
+  /**
+   * Creates a character string literal with type CHAR.
+   *
+   * @param value       String value in bytes
+   * @param charsetName SQL-level charset name
+   * @param collation   Sql collation
+   * @return String     literal
+   */
+  protected RexLiteral makePreciseStringLiteral(ByteString value,
+      String charsetName, SqlCollation collation) {
+    return makeCharLiteral(new NlsString(value, charsetName, collation));
   }
 
   /**

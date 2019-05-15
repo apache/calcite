@@ -88,10 +88,10 @@ public class EnumerableValues extends Values implements EnumerableRel {
             pref.preferCustom());
     final Type rowClass = physType.getJavaRowType();
 
-    final List<Expression> expressions = new ArrayList<Expression>();
+    final List<Expression> expressions = new ArrayList<>();
     final List<RelDataTypeField> fields = rowType.getFieldList();
     for (List<RexLiteral> tuple : tuples) {
-      final List<Expression> literals = new ArrayList<Expression>();
+      final List<Expression> literals = new ArrayList<>();
       for (Pair<RelDataTypeField, RexLiteral> pair
           : Pair.zip(fields, tuple)) {
         literals.add(

@@ -105,10 +105,9 @@ public class AggregateExtractProjectRule extends RelOptRule {
     final ImmutableBitSet newGroupSet =
         Mappings.apply(mapping, aggregate.getGroupSet());
 
-    final ImmutableList<ImmutableBitSet> newGroupSets =
-        ImmutableList.copyOf(
-            Iterables.transform(aggregate.getGroupSets(),
-                bitSet -> Mappings.apply(mapping, bitSet)));
+    final Iterable<ImmutableBitSet> newGroupSets =
+        Iterables.transform(aggregate.getGroupSets(),
+            bitSet -> Mappings.apply(mapping, bitSet));
     final List<RelBuilder.AggCall> newAggCallList = new ArrayList<>();
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
       final ImmutableList<RexNode> args =
@@ -117,9 +116,12 @@ public class AggregateExtractProjectRule extends RelOptRule {
       final RexNode filterArg = aggCall.filterArg < 0 ? null
           : relBuilder.field(Mappings.apply(mapping, aggCall.filterArg));
       newAggCallList.add(
-          relBuilder.aggregateCall(aggCall.getAggregation(),
-              aggCall.isDistinct(), aggCall.isApproximate(),
-              filterArg, aggCall.name, args));
+          relBuilder.aggregateCall(aggCall.getAggregation(), args)
+              .distinct(aggCall.isDistinct())
+              .filter(filterArg)
+              .approximate(aggCall.isApproximate())
+              .sort(relBuilder.fields(aggCall.collation))
+              .as(aggCall.name));
     }
 
     final RelBuilder.GroupKey groupKey =

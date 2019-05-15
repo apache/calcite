@@ -24,10 +24,12 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
@@ -56,10 +58,20 @@ public class EnumerableSemiJoin extends SemiJoin implements EnumerableRel {
   public static EnumerableSemiJoin create(RelNode left, RelNode right, RexNode condition,
       ImmutableIntList leftKeys, ImmutableIntList rightKeys) {
     final RelOptCluster cluster = left.getCluster();
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
+    final RelTraitSet traitSet =
+        cluster.traitSetOf(EnumerableConvention.INSTANCE)
+            .replaceIfs(RelCollationTraitDef.INSTANCE,
+                () -> RelMdCollation.enumerableSemiJoin(mq, left, right));
     try {
-      return new EnumerableSemiJoin(cluster,
-          cluster.traitSetOf(EnumerableConvention.INSTANCE), left,
-          right, condition, leftKeys, rightKeys);
+      return new EnumerableSemiJoin(
+          cluster,
+          traitSet,
+          left,
+          right,
+          condition,
+          leftKeys,
+          rightKeys);
     } catch (InvalidRelException e) {
       // Semantic error not possible. Must be a bug. Convert to
       // internal error.

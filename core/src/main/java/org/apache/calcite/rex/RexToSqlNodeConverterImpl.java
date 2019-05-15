@@ -122,6 +122,11 @@ public class RexToSqlNodeConverterImpl implements RexToSqlNodeConverter {
           SqlParserPos.ZERO);
     }
 
+    // Null
+    if (SqlTypeFamily.NULL == literal.getTypeName().getFamily()) {
+      return SqlLiteral.createNull(SqlParserPos.ZERO);
+    }
+
     return null;
   }
 

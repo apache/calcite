@@ -17,6 +17,7 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.sql.validate.SqlConformance;
 
 /**
  * This is a marker interface for a callback used to convert a tree of
@@ -25,6 +26,8 @@ import org.apache.calcite.rel.RelNode;
  * tree, and correspondingly have their own implementors
  */
 public interface RelImplementor {
+  /** Returns the desired SQL conformance. */
+  SqlConformance getConformance();
 }
 
 // End RelImplementor.java

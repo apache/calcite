@@ -56,7 +56,7 @@ public interface SqlConformance {
   @SuppressWarnings("unused")
   @Deprecated // to be removed before 2.0
   SqlConformanceEnum STRICT_2003 = SqlConformanceEnum.STRICT_2003;
-  /** Short-cut for {@link SqlConformanceEnum#PRAGMATIC_2003}. */
+  /** Short-cut for {@link SqlConformanceEnum#PRAGMATIC_2003}. zxz */
   @SuppressWarnings("unused")
   @Deprecated // to be removed before 2.0
   SqlConformanceEnum PRAGMATIC_2003 = SqlConformanceEnum.PRAGMATIC_2003;
@@ -133,8 +133,10 @@ public interface SqlConformance {
    * {@link SqlConformanceEnum#MYSQL_5},
    * {@link SqlConformanceEnum#ORACLE_10},
    * {@link SqlConformanceEnum#ORACLE_12},
-   * {@link SqlConformanceEnum#STRICT_92};
+   * {@link SqlConformanceEnum#STRICT_92},
    * {@link SqlConformanceEnum#SQL_SERVER_2008};
+   * {@link SqlConformanceEnum#BIG_QUERY};
+   * {@link SqlConformanceEnum#HIVE};
    * false otherwise.
    */
   boolean isSortByAlias();
@@ -372,6 +374,27 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean shouldConvertRaggedUnionTypesToVarying();
+
+  /**
+   * Whether TRIM should support more than one trim character.
+   *
+   * <p>For example, consider the query
+   *
+   * <blockquote><pre>SELECT TRIM('eh' FROM 'hehe__hehe')</pre></blockquote>
+   *
+   * <p>Under strict behavior, if the length of trim character is not 1,
+   * TRIM throws an exception, and the query fails.
+   * However many implementations (in databases such as MySQL and SQL Server)
+   * trim all the characters, resulting in a return value of '__'.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#LENIENT},
+   * {@link SqlConformanceEnum#MYSQL_5},
+   * {@link SqlConformanceEnum#SQL_SERVER_2008};
+   * false otherwise.
+   */
+  boolean allowExtendedTrim();
 }
 
 // End SqlConformance.java

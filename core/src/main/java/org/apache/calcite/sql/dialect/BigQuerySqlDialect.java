@@ -20,10 +20,12 @@ import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 /**
  * A <code>SqlDialect</code> implementation for Google BigQuery's "Standard SQL"
@@ -34,17 +36,31 @@ public class BigQuerySqlDialect extends SqlDialect {
       new BigQuerySqlDialect(
           EMPTY_CONTEXT
               .withDatabaseProduct(SqlDialect.DatabaseProduct.BIG_QUERY)
-              .withNullCollation(NullCollation.LOW));
+              .withNullCollation(NullCollation.LOW)
+              .withSqlConformance(SqlConformanceEnum.BIG_QUERY));
 
   /** Creates a BigQuerySqlDialect. */
   public BigQuerySqlDialect(SqlDialect.Context context) {
     super(context);
   }
 
+  @Override public boolean supportsColumnAliasInSort() {
+    return true;
+  }
+
+  @Override public boolean supportsAliasedValues() {
+    return false;
+  }
+
+  @Override public boolean supportsCharSet() {
+    return false;
+  }
+
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,
       final int rightPrec) {
-    switch (call.getOperator().getName()) {
-    case "POSITION":
+
+    switch (call.getKind()) {
+    case POSITION:
       final SqlWriter.Frame frame = writer.startFunCall("STRPOS");
       writer.sep(",");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
@@ -55,16 +71,104 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       writer.endFunCall(frame);
       break;
-    case "UNION":
-      SqlSyntax.BINARY.unparse(writer, UNION_DISTINCT, call, leftPrec, rightPrec);
+    case UNION:
+      if (!((SqlSetOperator) call.getOperator()).isAll()) {
+        SqlSyntax.BINARY.unparse(writer, UNION_DISTINCT, call, leftPrec, rightPrec);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
+    case EXCEPT:
+      if (!((SqlSetOperator) call.getOperator()).isAll()) {
+        SqlSyntax.BINARY.unparse(writer, EXCEPT_DISTINCT, call, leftPrec, rightPrec);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
+    case INTERSECT:
+      if (!((SqlSetOperator) call.getOperator()).isAll()) {
+        SqlSyntax.BINARY.unparse(writer, INTERSECT_DISTINCT, call, leftPrec, rightPrec);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
+    case CHAR_LENGTH:
+    case CHARACTER_LENGTH:
+      final SqlWriter.Frame lengthFrame = writer.startFunCall("LENGTH");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(lengthFrame);
+      break;
+    case SUBSTRING:
+      final SqlWriter.Frame substringFrame = writer.startFunCall("SUBSTR");
+      writer.sep(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(2).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(substringFrame);
+      break;
+    case TRUNCATE:
+      final SqlWriter.Frame truncateFrame = writer.startFunCall("TRUNC");
+      writer.sep(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(truncateFrame);
+      break;
+    case CONCAT:
+      final SqlWriter.Frame concatFrame = writer.startFunCall("CONCAT");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(concatFrame);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
 
+  @Override public SqlNode emulateNullDirection(SqlNode node,
+      boolean nullsFirst, boolean desc) {
+    return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
+  }
+
+  /**
+   * List of BigQuery Specific Operators needed to form Syntactically Correct SQL.
+   */
   private static final SqlOperator UNION_DISTINCT = new SqlSetOperator(
-      "UNION DISTINCT", SqlKind.UNION, 14, true);
+      "UNION DISTINCT", SqlKind.UNION, 14, false);
+
+  private static final SqlSetOperator EXCEPT_DISTINCT =
+      new SqlSetOperator("EXCEPT DISTINCT", SqlKind.EXCEPT, 14, false);
+
+  private static final SqlSetOperator INTERSECT_DISTINCT =
+      new SqlSetOperator("INTERSECT DISTINCT", SqlKind.INTERSECT, 18, false);
+
+  @Override public void unparseSqlDatetimeArithmetic(SqlWriter writer,
+      SqlCall call, SqlKind sqlKind, int leftPrec, int rightPrec) {
+    switch (sqlKind) {
+    case PLUS:
+      final SqlWriter.Frame dateAddFrame = writer.startFunCall("DATE_ADD");
+      writer.sep(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(dateAddFrame);
+      break;
+    case MINUS:
+      final SqlWriter.Frame dateDiffFrame = writer.startFunCall("DATE_DIFF");
+      writer.sep(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      writer.literal("DAY");
+      writer.endFunCall(dateDiffFrame);
+      break;
+    }
+  }
 }
 
 // End BigQuerySqlDialect.java

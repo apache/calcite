@@ -25,7 +25,9 @@ import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
+import org.apache.calcite.util.SourceStringReader;
 
+import java.io.Reader;
 import java.io.StringReader;
 import java.util.Objects;
 
@@ -40,14 +42,11 @@ public class SqlParser {
 
   //~ Instance fields --------------------------------------------------------
   private final SqlAbstractParserImpl parser;
-  private final String originalInput;
 
   //~ Constructors -----------------------------------------------------------
-  private SqlParser(String s, SqlAbstractParserImpl parser,
+  private SqlParser(SqlAbstractParserImpl parser,
       Config config) {
-    this.originalInput = s;
     this.parser = parser;
-    parser.setOriginalSql(s);
     parser.setTabSize(1);
     parser.setQuotedCasing(config.quotedCasing());
     parser.setUnquotedCasing(config.unquotedCasing());
@@ -88,15 +87,33 @@ public class SqlParser {
    * parser implementation created from given {@link SqlParserImplFactory}
    * with given quoting syntax and casing policies for identifiers.
    *
-   * @param sql A SQL statement or expression to parse.
+   * @param sql A SQL statement or expression to parse
    * @param config The parser configuration (identifier max length, etc.)
    * @return A parser
    */
   public static SqlParser create(String sql, Config config) {
-    SqlAbstractParserImpl parser =
-        config.parserFactory().getParser(new StringReader(sql));
+    return create(new SourceStringReader(sql), config);
+  }
 
-    return new SqlParser(sql, parser, config);
+  /**
+   * Creates a <code>SqlParser</code> to parse the given string using the
+   * parser implementation created from given {@link SqlParserImplFactory}
+   * with given quoting syntax and casing policies for identifiers.
+   *
+   * <p>Unlike
+   * {@link #create(java.lang.String, org.apache.calcite.sql.parser.SqlParser.Config)},
+   * the parser is not able to return the original query string, but will
+   * instead return "?".
+   *
+   * @param reader The source for the SQL statement or expression to parse
+   * @param config The parser configuration (identifier max length, etc.)
+   * @return A parser
+   */
+  public static SqlParser create(Reader reader, Config config) {
+    SqlAbstractParserImpl parser =
+        config.parserFactory().getParser(reader);
+
+    return new SqlParser(parser, config);
   }
 
   /**
@@ -108,10 +125,11 @@ public class SqlParser {
     try {
       return parser.parseSqlExpressionEof();
     } catch (Throwable ex) {
-      if ((ex instanceof CalciteContextException)
-          && (originalInput != null)) {
-        ((CalciteContextException) ex).setOriginalStatement(
-            originalInput);
+      if (ex instanceof CalciteContextException) {
+        final String originalSql = parser.getOriginalSql();
+        if (originalSql != null) {
+          ((CalciteContextException) ex).setOriginalStatement(originalSql);
+        }
       }
       throw parser.normalizeException(ex);
     }
@@ -129,10 +147,11 @@ public class SqlParser {
     try {
       return parser.parseSqlStmtEof();
     } catch (Throwable ex) {
-      if ((ex instanceof CalciteContextException)
-          && (originalInput != null)) {
-        ((CalciteContextException) ex).setOriginalStatement(
-            originalInput);
+      if (ex instanceof CalciteContextException) {
+        final String originalSql = parser.getOriginalSql();
+        if (originalSql != null) {
+          ((CalciteContextException) ex).setOriginalStatement(originalSql);
+        }
       }
       throw parser.normalizeException(ex);
     }

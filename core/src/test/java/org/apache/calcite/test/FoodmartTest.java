@@ -19,26 +19,22 @@ package org.apache.calcite.test;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.util.IntegerIntervalSet;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.lang.ref.SoftReference;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Test case that runs the FoodMart reference queries.
  */
+@Category(SlowTests.class)
 @RunWith(Parameterized.class)
 public class FoodmartTest {
 
@@ -101,7 +97,7 @@ public class FoodmartTest {
 
   // 202 and others: strip away "CAST(the_year AS UNSIGNED) = 1997"
 
-  private final FoodmartQuery query;
+  private final FoodMartQuerySet.FoodmartQuery query;
 
   @Parameterized.Parameters(name = "{index}: foodmart({0})={1}")
   public static List<Object[]> getSqls() throws IOException {
@@ -123,13 +119,13 @@ public class FoodmartTest {
         idList = buf.toString();
       }
       for (Integer id : IntegerIntervalSet.of(idList)) {
-        final FoodmartQuery query1 = set.queries.get(id);
+        final FoodMartQuerySet.FoodmartQuery query1 = set.queries.get(id);
         if (query1 != null) {
           list.add(new Object[] {id /*, query1.sql */});
         }
       }
     } else {
-      for (FoodmartQuery query1 : set.queries.values()) {
+      for (FoodMartQuerySet.FoodmartQuery query1 : set.queries.values()) {
         if (!CalciteAssert.ENABLE_SLOW && query1.id != 2) {
           // If slow queries are not enabled, only run query #2.
           continue;
@@ -145,7 +141,7 @@ public class FoodmartTest {
 
   public FoodmartTest(int id) throws IOException {
     if (id < 0) {
-      this.query = new FoodmartQuery();
+      this.query = new FoodMartQuerySet.FoodmartQuery();
       query.id = id;
       query.sql = "select * from (values 1) as t(c)";
     } else {
@@ -185,61 +181,6 @@ public class FoodmartTest {
     }
   }
 
-  /** Set of queries against the FoodMart database. */
-  public static class FoodMartQuerySet {
-    private static SoftReference<FoodMartQuerySet> ref;
-
-    final Map<Integer, FoodmartQuery> queries =
-        new LinkedHashMap<Integer, FoodmartQuery>();
-
-    private FoodMartQuerySet() throws IOException {
-      final ObjectMapper mapper = new ObjectMapper();
-      mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
-      mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
-
-      final InputStream inputStream =
-          new net.hydromatic.foodmart.queries.FoodmartQuerySet().getQueries();
-      FoodmartRoot root = mapper.readValue(inputStream, FoodmartRoot.class);
-      for (FoodmartQuery query : root.queries) {
-        queries.put(query.id, query);
-      }
-    }
-
-    /** Returns the singleton instance of the query set. It is backed by a
-     * soft reference, so it may be freed if memory is short and no one is
-     * using it. */
-    public static synchronized FoodMartQuerySet instance() throws IOException {
-      final SoftReference<FoodMartQuerySet> refLocal = ref;
-      if (refLocal != null) {
-        final FoodMartQuerySet set = refLocal.get();
-        if (set != null) {
-          return set;
-        }
-      }
-      final FoodMartQuerySet set = new FoodMartQuerySet();
-      ref = new SoftReference<FoodMartQuerySet>(set);
-      return set;
-    }
-  }
-
-  /** JSON root element. */
-  public static class FoodmartRoot {
-    public final List<FoodmartQuery> queries = new ArrayList<FoodmartQuery>();
-  }
-
-  /** JSON query element. */
-  public static class FoodmartQuery {
-    public int id;
-    public String sql;
-    public final List<FoodmartColumn> columns = new ArrayList<FoodmartColumn>();
-    public final List<List> rows = new ArrayList<List>();
-  }
-
-  /** JSON column element. */
-  public static class FoodmartColumn {
-    public String name;
-    public String type;
-  }
 }
 
 // End FoodmartTest.java

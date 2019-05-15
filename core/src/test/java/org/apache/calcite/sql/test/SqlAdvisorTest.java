@@ -165,6 +165,13 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(GROUPING)",
           "KEYWORD(HOUR)",
           "KEYWORD(INTERVAL)",
+          "KEYWORD(JSON_ARRAY)",
+          "KEYWORD(JSON_ARRAYAGG)",
+          "KEYWORD(JSON_EXISTS)",
+          "KEYWORD(JSON_OBJECT)",
+          "KEYWORD(JSON_OBJECTAGG)",
+          "KEYWORD(JSON_QUERY)",
+          "KEYWORD(JSON_VALUE)",
           "KEYWORD(LAG)",
           "KEYWORD(LAST_VALUE)",
           "KEYWORD(LEAD)",
@@ -667,7 +674,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertSimplify(sql, "SELECT ax _suggest_ FROM ( SELECT * FROM dummy a )");
   }
 
-  @Test public void testSimlifySubqueryStar() {
+  @Test public void testSimlifySubQueryStar() {
     String sql;
     sql = "select ax^ from (select (select * from dummy) axc from dummy a)";
     assertSimplify(sql,
@@ -691,7 +698,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertSimplify(sql, "SELECT _suggest_ FROM ( SELECT a.x + b.y FROM dummy a , dummy b )");
   }
 
-  @Test public void testSimlifySubqueryMultipleFrom() {
+  @Test public void testSimlifySubQueryMultipleFrom() {
     String sql;
     // "dummy b" should be removed
     sql = "select axc from (select (select ^ from dummy) axc from dummy a), dummy b";

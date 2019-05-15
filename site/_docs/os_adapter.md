@@ -187,7 +187,7 @@ To find out what columns a table has, use `explain`:
 {% highlight bash %}
 $ sqlsh explain plan with type for select \* from du
 size_k BIGINT NOT NULL,
-path VARCHAR CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL,
+path VARCHAR NOT NULL,
 size_b BIGINT NOT NULL
 {% endhighlight %}
 

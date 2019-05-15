@@ -412,6 +412,9 @@ public class RelMetadataQuery {
     // Determine the simple origin of the first column in the
     // RelNode.  If it's simple, then that means that the underlying
     // table is also simple, even if the column itself is derived.
+    if (rel.getRowType().getFieldCount() == 0) {
+      return null;
+    }
     final Set<RelColumnOrigin> colOrigins = getColumnOrigins(rel, 0);
     if (colOrigins == null || colOrigins.size() == 0) {
       return null;

@@ -148,7 +148,7 @@ public class Graphs {
 //      }
       final List<V> prefix = new ArrayList<>();
       prefix.add(from);
-      findPathsExcluding(from, to, list, new HashSet<V>(), prefix);
+      findPathsExcluding(from, to, list, new HashSet<>(), prefix);
     }
 
     /**

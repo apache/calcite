@@ -251,7 +251,7 @@ public class CsvTest {
         + "select max(empno) from EMPS where gender='F'";
     final String expected = "PLAN="
         + "EnumerableAggregate(group=[{}], EXPR$0=[MAX($0)])\n"
-        + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=['F'], "
+        + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=['F':VARCHAR], "
         + "expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
         + "    CsvTableScan(table=[[SALES, EMPS]], fields=[[0, 3]])\n";
     sql("smart", sql).returns(expected).ok();
@@ -512,8 +512,8 @@ public class CsvTest {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
 
-    try (Connection connection
-        = DriverManager.getConnection("jdbc:calcite:", info)) {
+    try (Connection connection =
+        DriverManager.getConnection("jdbc:calcite:", info)) {
       ResultSet res = connection.getMetaData().getColumns(null, null,
           "DATE", "JOINEDAT");
       res.next();
@@ -560,8 +560,8 @@ public class CsvTest {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
 
-    try (Connection connection
-        = DriverManager.getConnection("jdbc:calcite:", info)) {
+    try (Connection connection =
+        DriverManager.getConnection("jdbc:calcite:", info)) {
       Statement statement = connection.createStatement();
       final String sql = "select * from \"DATE\"\n"
           + "where EMPNO >= 140 and EMPNO < 200";

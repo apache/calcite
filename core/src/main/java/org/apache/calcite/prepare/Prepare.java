@@ -31,6 +31,7 @@ import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
@@ -175,7 +176,7 @@ public abstract class Prepare {
         if (node instanceof TableScan) {
           final RelOptCluster cluster = node.getCluster();
           final RelOptTable.ToRelContext context =
-              RelOptUtil.getContext(cluster);
+              ViewExpanders.simpleContext(cluster);
           final RelNode r = node.getTable().toRel(context);
           planner.registerClass(r);
         }
@@ -396,11 +397,6 @@ public abstract class Prepare {
     // near the leaves created by trim migrate past joins and seem to
     // prevent join-reordering.
     return THREAD_TRIM.get() || RelOptUtil.countJoins(rootRel) < 2;
-  }
-
-  public RelRoot expandView(RelDataType rowType, String queryString,
-      List<String> schemaPath, List<String> viewPath) {
-    throw new UnsupportedOperationException();
   }
 
   protected abstract void init(Class runtimeContextClass);

@@ -1448,7 +1448,7 @@ group by deptno;
 
 !ok
 EnumerableAggregate(group=[{0}], CF=[COUNT() FILTER $1], C=[COUNT()])
-  EnumerableCalc(expr#0..1=[{inputs}], expr#2=['CLERK'], expr#3=[=($t0, $t2)], expr#4=[IS TRUE($t3)], DEPTNO=[$t1], $f1=[$t4])
+  EnumerableCalc(expr#0..1=[{inputs}], expr#2=['CLERK':VARCHAR(9)], expr#3=[=($t0, $t2)], expr#4=[IS TRUE($t3)], DEPTNO=[$t1], $f1=[$t4])
     EnumerableUnion(all=[true])
       EnumerableCalc(expr#0..7=[{inputs}], expr#8=[20], expr#9=[<($t7, $t8)], JOB=[$t2], DEPTNO=[$t7], $condition=[$t9])
         EnumerableTableScan(table=[[scott, EMP]])
@@ -2148,7 +2148,7 @@ from (values (1,2),(3,4));
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[0], expr#2=[=($t0, $t1)], expr#3=[null], expr#4=[CAST($t0):BIGINT], expr#5=[CASE($t2, $t3, $t4)], EXPR$0=[$t5])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[0:BIGINT], expr#2=[=($t0, $t1)], expr#3=[null:BIGINT], expr#4=[CASE($t2, $t3, $t0)], EXPR$0=[$t4])
   EnumerableAggregate(group=[{}], agg#0=[COUNT($0)])
     EnumerableAggregate(group=[{0}])
       EnumerableCalc(expr#0..1=[{inputs}], expr#2=['1'], $f0=[$t2])
@@ -2378,6 +2378,193 @@ group by MONTH(HIREDATE);
 |     9 |          -175000.0000 |   490000.0000 |        31250.0000 |
 +-------+-----------------------+---------------+-------------------+
 (8 rows)
+
+!ok
+
+# [CALCITE-2224] WITHIN GROUP clause for aggregate functions
+select deptno, collect(empno) within group (order by empno asc) as empnos
+from "scott".emp
+group by deptno;
+
++--------+--------------------------------------+
+| DEPTNO | EMPNOS                               |
++--------+--------------------------------------+
+|     10 | [7782, 7839, 7934]                   |
+|     20 | [7369, 7566, 7788, 7876, 7902]       |
+|     30 | [7499, 7521, 7654, 7698, 7844, 7900] |
++--------+--------------------------------------+
+(3 rows)
+
+!ok
+EnumerableAggregate(group=[{7}], EMPNOS=[COLLECT($0) WITHIN GROUP ([0])])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+select deptno, collect(empno) within group (order by empno desc) as empnos
+from "scott".emp
+group by deptno;
+
++--------+--------------------------------------+
+| DEPTNO | EMPNOS                               |
++--------+--------------------------------------+
+|     10 | [7934, 7839, 7782]                   |
+|     20 | [7902, 7876, 7788, 7566, 7369]       |
+|     30 | [7900, 7844, 7698, 7654, 7521, 7499] |
++--------+--------------------------------------+
+(3 rows)
+
+!ok
+EnumerableAggregate(group=[{7}], EMPNOS=[COLLECT($0) WITHIN GROUP ([0 DESC])])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+select deptno, collect(empno) within group (order by empno desc)
+filter (where empno > 7500) as empnos
+from "scott".emp
+group by deptno;
+
++--------+--------------------------------+
+| DEPTNO | EMPNOS                         |
++--------+--------------------------------+
+|     10 | [7934, 7839, 7782]             |
+|     20 | [7902, 7876, 7788, 7566]       |
+|     30 | [7900, 7844, 7698, 7654, 7521] |
++--------+--------------------------------+
+(3 rows)
+
+!ok
+EnumerableAggregate(group=[{0}], EMPNOS=[COLLECT($1) WITHIN GROUP ([1 DESC]) FILTER $2])
+  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[7500], expr#9=[>($t0, $t8)], DEPTNO=[$t7], EMPNO=[$t0], $f2=[$t9])
+    EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+select deptno, collect(empno) within group (order by empno desc) as empnos1,
+collect(empno) within group (order by empno asc) as empnos2
+from "scott".emp
+group by deptno;
+
++--------+--------------------------------------+--------------------------------------+
+| DEPTNO | EMPNOS1                              | EMPNOS2                              |
++--------+--------------------------------------+--------------------------------------+
+|     10 | [7934, 7839, 7782]                   | [7782, 7839, 7934]                   |
+|     20 | [7902, 7876, 7788, 7566, 7369]       | [7369, 7566, 7788, 7876, 7902]       |
+|     30 | [7900, 7844, 7698, 7654, 7521, 7499] | [7499, 7521, 7654, 7698, 7844, 7900] |
++--------+--------------------------------------+--------------------------------------+
+(3 rows)
+
+!ok
+EnumerableAggregate(group=[{7}], EMPNOS1=[COLLECT($0) WITHIN GROUP ([0 DESC])], EMPNOS2=[COLLECT($0) WITHIN GROUP ([0])])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Aggregate WITHIN GROUP with JOIN
+select dept.deptno,
+  collect(sal) within group (order by sal desc) as s,
+  collect(sal) within group (order by 1)as s1,
+  collect(sal) within group (order by sal) filter (where sal > 2000) as s2
+from "scott".emp
+join "scott".dept using (deptno)
+group by dept.deptno;
+
++--------+-------------------------------------------------------+-------------------------------------------------------+-----------------------------+
+| DEPTNO | S                                                     | S1                                                    | S2                          |
++--------+-------------------------------------------------------+-------------------------------------------------------+-----------------------------+
+|     10 | [5000.00, 2450.00, 1300.00]                           | [2450.00, 5000.00, 1300.00]                           | [2450.00, 5000.00]          |
+|     20 | [3000.00, 3000.00, 2975.00, 1100.00, 800.00]          | [800.00, 2975.00, 3000.00, 1100.00, 3000.00]          | [2975.00, 3000.00, 3000.00] |
+|     30 | [2850.00, 1600.00, 1500.00, 1250.00, 1250.00, 950.00] | [1600.00, 1250.00, 1250.00, 2850.00, 1500.00, 950.00] | [2850.00]                   |
++--------+-------------------------------------------------------+-------------------------------------------------------+-----------------------------+
+(3 rows)
+
+!ok
+EnumerableAggregate(group=[{0}], S=[COLLECT($1) WITHIN GROUP ([1 DESC])], S1=[COLLECT($1) WITHIN GROUP ([2])], S2=[COLLECT($1) WITHIN GROUP ([1]) FILTER $3])
+  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[2000], expr#6=[>($t2, $t5)], expr#7=[IS TRUE($t6)], DEPTNO=[$t0], SAL=[$t2], $f2=[$t4], $f3=[$t7])
+    EnumerableJoin(condition=[=($0, $3)], joinType=[inner])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+        EnumerableTableScan(table=[[scott, DEPT]])
+      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+        EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+select deptno, collect(empno + 1) within group (order by 1) as empnos
+from "scott".emp
+group by deptno;
+
++--------+--------------------------------------+
+| DEPTNO | EMPNOS                               |
++--------+--------------------------------------+
+|     10 | [7783, 7840, 7935]                   |
+|     20 | [7370, 7567, 7789, 7877, 7903]       |
+|     30 | [7500, 7522, 7655, 7699, 7845, 7901] |
++--------+--------------------------------------+
+(3 rows)
+
+!ok
+EnumerableAggregate(group=[{0}], EMPNOS=[COLLECT($1) WITHIN GROUP ([2])])
+  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[1], expr#9=[+($t0, $t8)], DEPTNO=[$t7], $f1=[$t9], $f2=[$t8])
+    EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# BIT_AND, BIT_OR aggregate functions
+select bit_and(deptno), bit_or(deptno) from "scott".emp;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|      0 |     30 |
++--------+--------+
+(1 row)
+
+!ok
+
+select deptno, bit_and(empno), bit_or(empno) from "scott".emp group by deptno;
++--------+--------+--------+
+| DEPTNO | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|     10 |   7686 |   7935 |
+|     20 |   7168 |   8191 |
+|     30 |   7168 |   8191 |
++--------+--------+--------+
+(3 rows)
+
+!ok
+
+# [CALCITE-2266] JSON_OBJECTAGG, JSON_ARRAYAGG
+
+!use post
+
+select gender, json_objectagg(ename: deptno absent on null) from emp group by gender;
++--------+-------------------------------------------------------+
+| GENDER | EXPR$1                                                |
++--------+-------------------------------------------------------+
+| F      | {"Eve":50,"Grace":60,"Susan":30,"Alice":30,"Jane":10} |
+| M      | {"Adam":50,"Bob":10,"Eric":20}                        |
++--------+-------------------------------------------------------+
+(2 rows)
+
+!ok
+
+select gender, json_arrayagg(json_object('ename': ename, 'deptno': deptno) format json) from emp group by gender;
++--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| GENDER | EXPR$1                                                                                                                                                                               |
++--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| F      | [{"ename":"Jane","deptno":10},{"ename":"Susan","deptno":30},{"ename":"Alice","deptno":30},{"ename":"Eve","deptno":50},{"ename":"Grace","deptno":60},{"ename":"Wilma","deptno":null}] |
+| M      | [{"ename":"Bob","deptno":10},{"ename":"Eric","deptno":20},{"ename":"Adam","deptno":50}]                                                                                              |
++--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+(2 rows)
+
+!ok
+
+select json_object('deptno': deptno, 'employees': json_arrayagg(json_object('ename': ename, 'gender': gender) format json) format json) from emp group by deptno;
++-------------------------------------------------------------------------------------------+
+| EXPR$0                                                                                    |
++-------------------------------------------------------------------------------------------+
+| {"employees":[{"ename":"Adam","gender":"M"},{"ename":"Eve","gender":"F"}],"deptno":50}    |
+| {"employees":[{"ename":"Eric","gender":"M"}],"deptno":20}                                 |
+| {"employees":[{"ename":"Grace","gender":"F"}],"deptno":60}                                |
+| {"employees":[{"ename":"Jane","gender":"F"},{"ename":"Bob","gender":"M"}],"deptno":10}    |
+| {"employees":[{"ename":"Susan","gender":"F"},{"ename":"Alice","gender":"F"}],"deptno":30} |
+| {"employees":[{"ename":"Wilma","gender":"F"}],"deptno":null}                              |
++-------------------------------------------------------------------------------------------+
+(6 rows)
 
 !ok
 

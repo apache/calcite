@@ -173,9 +173,23 @@ public class RexInterpreter implements RexVisitor<Comparable> {
       return values.get(0).equals(false);
     case IS_NOT_FALSE:
       return !values.get(0).equals(false);
+    case PLUS_PREFIX:
+      return values.get(0);
+    case MINUS_PREFIX:
+      return containsNull(values) ? N
+          : number(values.get(0)).negate();
     case PLUS:
       return containsNull(values) ? N
           : number(values.get(0)).add(number(values.get(1)));
+    case MINUS:
+      return containsNull(values) ? N
+          : number(values.get(0)).subtract(number(values.get(1)));
+    case TIMES:
+      return containsNull(values) ? N
+          : number(values.get(0)).multiply(number(values.get(1)));
+    case DIVIDE:
+      return containsNull(values) ? N
+          : number(values.get(0)).divide(number(values.get(1)));
     case CAST:
       return cast(call, values);
     case COALESCE:

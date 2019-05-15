@@ -219,7 +219,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
       diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
       if (planBefore.equals(planAfter)) {
         throw new AssertionError("Expected plan before and after is the same.\n"
-            + "You must use unchanged=true or call checkPlanUnchanged");
+            + "You must use unchanged=true or call checkUnchanged");
       }
     }
     SqlToRelTestBase.assertValid(r);

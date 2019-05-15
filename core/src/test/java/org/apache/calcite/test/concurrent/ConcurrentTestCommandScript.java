@@ -1391,7 +1391,6 @@ public class ConcurrentTestCommandScript
      */
     private String readSql(String startOfSql, BufferedReader in)
         throws IOException {
-      // REVIEW mb StringBuffer not always needed
       StringBuilder sql = new StringBuilder(startOfSql);
       sql.append('\n');
 

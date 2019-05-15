@@ -31,6 +31,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.fun.SqlAnyValueAggFunction;
+import org.apache.calcite.sql.fun.SqlBitOpAggFunction;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -65,6 +66,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
     SUPPORTED_AGGREGATES.put(SqlSumAggFunction.class, true);
     SUPPORTED_AGGREGATES.put(SqlSumEmptyIsZeroAggFunction.class, true);
     SUPPORTED_AGGREGATES.put(SqlAnyValueAggFunction.class, true);
+    SUPPORTED_AGGREGATES.put(SqlBitOpAggFunction.class, true);
   }
 
   /** Creates an AggregateUnionTransposeRule. */
@@ -127,7 +129,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
       relBuilder.push(input);
       if (!alreadyUnique) {
         ++transformCount;
-        relBuilder.aggregate(relBuilder.groupKey(aggRel.getGroupSet(), null),
+        relBuilder.aggregate(relBuilder.groupKey(aggRel.getGroupSet()),
             aggRel.getAggCallList());
       }
     }
@@ -173,8 +175,12 @@ public class AggregateUnionTransposeRule extends RelOptRule {
       AggregateCall newCall =
           AggregateCall.create(aggFun, origCall.isDistinct(),
               origCall.isApproximate(),
-              ImmutableList.of(groupCount + ord.i), -1, groupCount, input,
-              aggType, origCall.getName());
+              ImmutableList.of(groupCount + ord.i), -1,
+              origCall.collation,
+              groupCount,
+              input,
+              aggType,
+              origCall.getName());
       newCalls.add(newCall);
     }
     return newCalls;

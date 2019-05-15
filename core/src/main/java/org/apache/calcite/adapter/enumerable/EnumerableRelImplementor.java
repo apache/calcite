@@ -40,6 +40,8 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.VisitorImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.Collections2;
@@ -122,13 +124,6 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     final List<MemberDeclaration> memberDeclarations = new ArrayList<>();
     new TypeRegistrar(memberDeclarations).go(result);
 
-    // The following is a workaround to
-    // http://jira.codehaus.org/browse/JANINO-169. Otherwise we'd remove the
-    // member variable, rename the "root0" parameter as "root", and reference it
-    // directly from inner classes.
-    final ParameterExpression root0_ =
-        Expressions.parameter(Modifier.FINAL, DataContext.class, "root0");
-
     // This creates the following code
     // final Integer v1stashed = (Integer) root.get("v1stashed")
     // It is convenient for passing non-literal "compile-time" constants
@@ -143,20 +138,14 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
 
     final BlockStatement block = Expressions.block(
         Iterables.concat(
-            ImmutableList.of(
-                Expressions.statement(
-                    Expressions.assign(DataContext.ROOT, root0_))),
             stashed,
             result.block.statements));
-    memberDeclarations.add(
-        Expressions.fieldDecl(0, DataContext.ROOT, null));
-
     memberDeclarations.add(
         Expressions.methodDecl(
             Modifier.PUBLIC,
             Enumerable.class,
             BuiltInMethod.BINDABLE_BIND.method.getName(),
-            Expressions.list(root0_),
+            Expressions.list(DataContext.ROOT),
             block));
     memberDeclarations.add(
         Expressions.methodDecl(Modifier.PUBLIC, Class.class,
@@ -180,7 +169,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
             type.getName(),
             null,
             ImmutableList.of(Serializable.class),
-            new ArrayList<MemberDeclaration>());
+            new ArrayList<>());
 
     // For each field:
     //   public T0 f0;
@@ -426,8 +415,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         || input instanceof Integer
         || input instanceof Long
         || input instanceof Float
-        || input instanceof Double
-        ) {
+        || input instanceof Double) {
       return Expressions.constant(input, clazz);
     }
     ParameterExpression cached = stashedParameters.get(input);
@@ -468,6 +456,11 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
   public EnumerableRel.Result result(PhysType physType, BlockStatement block) {
     return new EnumerableRel.Result(
         block, physType, ((PhysTypeImpl) physType).format);
+  }
+
+  public SqlConformance getConformance() {
+    return (SqlConformance) map.getOrDefault("_conformance",
+        SqlConformanceEnum.DEFAULT);
   }
 
   /** Visitor that finds types in an {@link Expression} tree. */

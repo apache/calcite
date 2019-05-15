@@ -24,6 +24,7 @@ import org.apache.calcite.schema.SchemaPlus;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -61,8 +62,8 @@ public class GeodeSchemaFactory implements SchemaFactory {
           GeoFunctions.class.getName(), "*", true);
     }
 
-    return new GeodeSchema(locatorHost, locatorPort, regionNames,
-        pbxSerializablePackagePath, parentSchema);
+    return new GeodeSchema(locatorHost, locatorPort, Arrays.asList(regionNames),
+        pbxSerializablePackagePath);
   }
 }
 

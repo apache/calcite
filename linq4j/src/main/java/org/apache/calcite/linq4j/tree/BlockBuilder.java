@@ -133,8 +133,7 @@ public class BlockBuilder {
             ParameterExpression pe = Expressions.parameter(
                 declaration.parameter.type, newName);
             DeclarationStatement newDeclaration = Expressions.declare(
-                declaration.modifiers, pe, declaration.initializer
-            );
+                declaration.modifiers, pe, declaration.initializer);
             x = pe;
             add(newDeclaration);
           }

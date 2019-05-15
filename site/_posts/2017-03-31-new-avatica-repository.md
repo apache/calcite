@@ -32,5 +32,5 @@ next logical step given the maturity of the project.
 
 The previous "/avatica" directory in the Calcite repository has been removed, so
 further contributions should be submitted agains the new repository. The de-facto
-repository can be found at the ASF's [Git hosting](https://git-wip-us.apache.org/repos/asf/calcite-avatica.git),
+repository can be found at the ASF's [Git hosting](https://gitbox.apache.org/repos/asf/calcite-avatica.git),
 with a mirrored-copy also available on Github at [apache/calcite-avatica](https://github.com/apache/calcite-avatica).

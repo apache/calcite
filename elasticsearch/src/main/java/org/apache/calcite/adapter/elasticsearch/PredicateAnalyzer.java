@@ -78,6 +78,16 @@ class PredicateAnalyzer {
     }
   }
 
+  /**
+   * Thrown when {@link org.apache.calcite.rel.RelNode} expression can't be processed
+   * (or converted into ES query)
+   */
+  static class ExpressionNotAnalyzableException extends Exception {
+    ExpressionNotAnalyzableException(String message, Throwable cause) {
+      super(message, cause);
+    }
+  }
+
   private PredicateAnalyzer() {}
 
   /**
@@ -187,12 +197,15 @@ class PredicateAnalyzer {
         case IS_NOT_NULL:
         case IS_NULL:
           return true;
-        default: // fall through
         }
-        // fall through
+      case PREFIX: // NOT()
+        switch (call.getKind()) {
+        case NOT:
+          return true;
+        }
+      // fall through
       case FUNCTION_ID:
       case FUNCTION_STAR:
-      case PREFIX: // NOT()
       default:
         return false;
       }
@@ -211,6 +224,8 @@ class PredicateAnalyzer {
         return binary(call);
       case POSTFIX:
         return postfix(call);
+      case PREFIX:
+        return prefix(call);
       case SPECIAL:
         switch (call.getKind()) {
         case CAST:
@@ -262,6 +277,19 @@ class PredicateAnalyzer {
       } catch (Exception e) {
         throw new PredicateAnalyzerException(e);
       }
+    }
+
+    private QueryExpression prefix(RexCall call) {
+      Preconditions.checkArgument(call.getKind() == SqlKind.NOT,
+          "Expected %s got %s", SqlKind.NOT, call.getKind());
+
+      if (call.getOperands().size() != 1) {
+        String message = String.format(Locale.ROOT, "Unsupported NOT operator: [%s]", call);
+        throw new PredicateAnalyzerException(message);
+      }
+
+      QueryExpression expr = (QueryExpression) call.getOperands().get(0).accept(this);
+      return expr.not();
     }
 
     private QueryExpression postfix(RexCall call) {
@@ -512,6 +540,11 @@ class PredicateAnalyzer {
       return false;
     }
 
+    /**
+     * Negate {@code this} QueryExpression (not the next one).
+     */
+    public abstract QueryExpression not();
+
     public abstract QueryExpression exists();
 
     public abstract QueryExpression notExists();
@@ -545,6 +578,7 @@ class PredicateAnalyzer {
         throw new PredicateAnalyzerException(message);
       }
     }
+
   }
 
   /**
@@ -553,7 +587,7 @@ class PredicateAnalyzer {
   static class CompoundQueryExpression extends QueryExpression {
 
     private final boolean partial;
-    private final BoolQueryBuilder builder = boolQuery();
+    private final BoolQueryBuilder builder;
 
     public static CompoundQueryExpression or(QueryExpression... expressions) {
       CompoundQueryExpression bqe = new CompoundQueryExpression(false);
@@ -580,15 +614,25 @@ class PredicateAnalyzer {
     }
 
     private CompoundQueryExpression(boolean partial) {
+      this(partial, boolQuery());
+    }
+
+    private CompoundQueryExpression(boolean partial, BoolQueryBuilder builder) {
       this.partial = partial;
+      this.builder = Objects.requireNonNull(builder, "builder");
     }
 
     @Override public boolean isPartial() {
       return partial;
     }
 
+
     @Override public QueryBuilder builder() {
-      return Objects.requireNonNull(builder);
+      return builder;
+    }
+
+    @Override public QueryExpression not() {
+      return new CompoundQueryExpression(partial, QueryBuilders.boolQuery().mustNot(builder()));
     }
 
     @Override public QueryExpression exists() {
@@ -668,7 +712,15 @@ class PredicateAnalyzer {
     }
 
     @Override public QueryBuilder builder() {
-      return Objects.requireNonNull(builder);
+      if (builder == null) {
+        throw new IllegalStateException("Builder was not initialized");
+      }
+      return builder;
+    }
+
+    @Override public QueryExpression not() {
+      builder = boolQuery().mustNot(builder());
+      return this;
     }
 
     @Override public QueryExpression exists() {

@@ -69,7 +69,15 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   /** Conformance value that instructs Calcite to use SQL semantics
    * consistent with Microsoft SQL Server version 2008. */
-  SQL_SERVER_2008;
+  SQL_SERVER_2008,
+
+  /** Conformance value that instructs Calcite to use SQL semantics
+   * consistent with Google BigQuery. */
+  BIG_QUERY,
+
+  /** Conformance value that instructs Calcite to use SQL semantics
+   * consistent with Apache Hive. */
+  HIVE;
 
   public boolean isLiberal() {
     switch (this) {
@@ -141,6 +149,8 @@ public enum SqlConformanceEnum implements SqlConformance {
     case ORACLE_12:
     case STRICT_92:
     case SQL_SERVER_2008:
+    case HIVE:
+    case BIG_QUERY:
       return true;
     default:
       return false;
@@ -291,6 +301,19 @@ public enum SqlConformanceEnum implements SqlConformance {
       return false;
     }
   }
+
+  public boolean allowExtendedTrim() {
+    switch (this) {
+    case BABEL:
+    case LENIENT:
+    case MYSQL_5:
+    case SQL_SERVER_2008:
+      return true;
+    default:
+      return false;
+    }
+  }
+
 }
 
 // End SqlConformanceEnum.java

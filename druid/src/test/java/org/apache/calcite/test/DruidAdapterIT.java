@@ -98,7 +98,7 @@ public class DruidAdapterIT {
       Util.getBooleanProperty("calcite.test.druid", true);
 
   private static final String VARCHAR_TYPE =
-      "VARCHAR CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"";
+      "VARCHAR";
 
   private static final String FOODMART_TABLE = "\"foodmart\"";
 
@@ -4313,7 +4313,7 @@ public class DruidAdapterIT {
             + "SUM_T_OTHER_OK=[$3], HR_T_TIMESTAMP_OK2=[$2])\n"
             + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
             + "2992-01-10T00:00:00.000Z]], projects=[[CAST(SUBSTRING(CAST(CAST($0):TIMESTAMP(0) "
-            + "NOT NULL):VARCHAR CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" "
+            + "NOT NULL):VARCHAR "
             + "NOT NULL, 12, 2)):INTEGER NOT NULL, EXTRACT(FLAG(MINUTE), $0), "
             + "EXTRACT(FLAG(HOUR), $0), $90]], groups=[{0, 1, 2}], aggs=[[SUM($3)]], fetch=[1])")
         .queryContains(druidChecker("\"queryType\":\"groupBy\""));
@@ -4370,7 +4370,7 @@ public class DruidAdapterIT {
             + "2992-01-10T00:00:00.000Z]], projects=[[$90, $91]], groups=[{}], aggs=[[COUNT(), "
             + "SUM($0), SUM($1)]], post_projects=[[||(||(CAST(+($0, $1)):VARCHAR CHARACTER SET "
             + "\"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", '_'), CAST($2):"
-            + "VARCHAR CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\")]])");
+            + "VARCHAR)]])");
   }
 
   @Test
@@ -4528,8 +4528,7 @@ public class DruidAdapterIT {
                     + "[{\"type\":\"default\",\"dimension\":\"vc\",\"outputName\":\"vc\",\"outputType\":\"LONG\"},"
                     + "{\"type\":\"default\",\"dimension\":\"product_id\",\"outputName\":\"product_id\",\"outputType\":\"STRING\"}],"
                     + "\"virtualColumns\":[{\"type\":\"expression\",\"name\":\"vc\",\"expression\":\"timestamp_extract(\\\"__time\\\",",
-                "QUARTER"
-            ));
+                "QUARTER"));
   }
 
   @Test
@@ -4547,8 +4546,7 @@ public class DruidAdapterIT {
                 "{\"queryType\":\"groupBy\",\"dataSource\":\"foodmart\",\"granularity\":\"all\","
                     + "\"dimensions\":[{\"type\":\"default\",\"dimension\":\"vc\",\"outputName\":\"vc\",\"outputType\":\"LONG\"}],"
                     + "\"virtualColumns\":[{\"type\":\"expression\",\"name\":\"vc\",\"expression\":\"timestamp_extract(\\\"__time\\\",",
-                "QUARTER"
-            ));
+                "QUARTER"));
   }
 
 

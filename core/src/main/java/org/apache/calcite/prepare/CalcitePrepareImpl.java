@@ -943,7 +943,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   }
 
   private static String getClassName(RelDataType type) {
-    return null;
+    return Object.class.getName(); // CALCITE-2613
   }
 
   private static int getScale(RelDataType type) {
@@ -1233,6 +1233,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
         try {
           CatalogReader.THREAD_LOCAL.set(catalogReader);
+          final SqlConformance conformance = context.config().conformance();
+          internalParameters.put("_conformance", conformance);
           bindable = EnumerableInterpretable.toBindable(internalParameters,
               context.spark(), enumerable, prefer);
         } finally {

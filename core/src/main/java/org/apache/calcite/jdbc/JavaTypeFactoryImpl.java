@@ -213,6 +213,8 @@ public class JavaTypeFactoryImpl
         return ByteString.class;
       case GEOMETRY:
         return GeoFunctions.Geom.class;
+      case SYMBOL:
+        return Enum.class;
       case ANY:
         return Object.class;
       }
@@ -241,18 +243,26 @@ public class JavaTypeFactoryImpl
   /** Converts a type in Java format to a SQL-oriented type. */
   public static RelDataType toSql(final RelDataTypeFactory typeFactory,
       RelDataType type) {
+    return toSql(typeFactory, type, true);
+  }
+
+  private static RelDataType toSql(final RelDataTypeFactory typeFactory,
+      RelDataType type, boolean mustSetNullability) {
+    RelDataType sqlType = type;
     if (type instanceof RelRecordType) {
-      return typeFactory.createStructType(
-          Lists.transform(type.getFieldList(),
-              field -> toSql(typeFactory, field.getType())),
-          type.getFieldNames());
+      // We do not need to change the nullability of the nested fields,
+      // since it can be overridden by the existing implementation of createTypeWithNullability
+      // when we treat the nullability of the root struct type.
+      sqlType = typeFactory.createStructType(
+              Lists.transform(type.getFieldList(),
+                field -> toSql(typeFactory, field.getType(), false)),
+              type.getFieldNames());
+    } else if (type instanceof JavaType) {
+      sqlType = typeFactory.createSqlType(type.getSqlTypeName());
     }
-    if (type instanceof JavaType) {
-      return typeFactory.createTypeWithNullability(
-          typeFactory.createSqlType(type.getSqlTypeName()),
-          type.isNullable());
-    }
-    return type;
+    return mustSetNullability
+            ? typeFactory.createTypeWithNullability(sqlType, type.isNullable())
+            : sqlType;
   }
 
   public Type createSyntheticType(List<Type> types) {

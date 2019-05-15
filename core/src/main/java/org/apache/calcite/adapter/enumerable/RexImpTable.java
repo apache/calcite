@@ -32,8 +32,6 @@ import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
-import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
@@ -47,6 +45,8 @@ import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlJsonArrayAggAggFunction;
+import org.apache.calcite.sql.fun.SqlJsonObjectAggAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -58,6 +58,7 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -98,6 +99,8 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARRAY_VALUE_CONSTRU
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN2;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_AND;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_OR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CARDINALITY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
@@ -140,14 +143,33 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.INITCAP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_A_SET;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_EMPTY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_FALSE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_JSON_ARRAY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_JSON_OBJECT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_JSON_SCALAR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_JSON_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_A_SET;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_EMPTY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_FALSE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_JSON_ARRAY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_JSON_OBJECT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_JSON_SCALAR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_JSON_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_NULL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_TRUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NULL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_TRUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ITEM;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_API_COMMON_SYNTAX;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_ARRAY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_ARRAYAGG;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_EXISTS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECTAGG;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_QUERY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_STRUCTURED_VALUE_EXPRESSION;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_TYPE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_VALUE_ANY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_VALUE_EXPRESSION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAG;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LEAD;
@@ -203,6 +225,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SIMILAR_TO;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SINGLE_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SLICE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.STRUCT_ACCESS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBMULTISET_OF;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBSTRING;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUM;
@@ -371,6 +394,7 @@ public class RexImpTable {
         NullPolicy.STRICT);
     defineMethod(SLICE, BuiltInMethod.SLICE.method, NullPolicy.NONE);
     defineMethod(ELEMENT, BuiltInMethod.ELEMENT.method, NullPolicy.STRICT);
+    defineMethod(STRUCT_ACCESS, BuiltInMethod.STRUCT_ACCESS.method, NullPolicy.ANY);
     defineMethod(MEMBER_OF, BuiltInMethod.MEMBER_OF.method, NullPolicy.NONE);
     final MethodImplementor isEmptyImplementor =
         new MethodImplementor(BuiltInMethod.IS_EMPTY.method);
@@ -413,12 +437,48 @@ public class RexImpTable {
     map.put(DEFAULT, (translator, call, nullAs) -> Expressions.constant(null));
 
     // Sequences
-    defineImplementor(CURRENT_VALUE, NullPolicy.STRICT,
-        new SequenceImplementor(BuiltInMethod.SEQUENCE_CURRENT_VALUE.method),
-        false);
-    defineImplementor(NEXT_VALUE, NullPolicy.STRICT,
-        new SequenceImplementor(BuiltInMethod.SEQUENCE_NEXT_VALUE.method),
-        false);
+    defineMethod(CURRENT_VALUE, BuiltInMethod.SEQUENCE_CURRENT_VALUE.method, NullPolicy.STRICT);
+    defineMethod(NEXT_VALUE, BuiltInMethod.SEQUENCE_NEXT_VALUE.method, NullPolicy.STRICT);
+
+    // Json Operators
+    defineMethod(JSON_VALUE_EXPRESSION,
+        BuiltInMethod.JSON_VALUE_EXPRESSION.method, NullPolicy.STRICT);
+    defineMethod(JSON_STRUCTURED_VALUE_EXPRESSION,
+        BuiltInMethod.JSON_STRUCTURED_VALUE_EXPRESSION.method, NullPolicy.STRICT);
+    defineMethod(JSON_API_COMMON_SYNTAX, BuiltInMethod.JSON_API_COMMON_SYNTAX.method,
+        NullPolicy.NONE);
+    defineMethod(JSON_EXISTS, BuiltInMethod.JSON_EXISTS.method, NullPolicy.NONE);
+    defineMethod(JSON_VALUE_ANY, BuiltInMethod.JSON_VALUE_ANY.method, NullPolicy.NONE);
+    defineMethod(JSON_QUERY, BuiltInMethod.JSON_QUERY.method, NullPolicy.NONE);
+    defineMethod(JSON_OBJECT, BuiltInMethod.JSON_OBJECT.method, NullPolicy.NONE);
+    defineMethod(JSON_TYPE, BuiltInMethod.JSON_TYPE.method, NullPolicy.NONE);
+    aggMap.put(JSON_OBJECTAGG,
+        JsonObjectAggImplementor
+            .supplierFor(BuiltInMethod.JSON_OBJECTAGG_ADD.method));
+    defineMethod(JSON_ARRAY, BuiltInMethod.JSON_ARRAY.method, NullPolicy.NONE);
+    aggMap.put(JSON_ARRAYAGG,
+        JsonArrayAggImplementor
+            .supplierFor(BuiltInMethod.JSON_ARRAYAGG_ADD.method));
+    defineImplementor(IS_JSON_VALUE, NullPolicy.NONE,
+            new MethodImplementor(BuiltInMethod.IS_JSON_VALUE.method), false);
+    defineImplementor(IS_JSON_OBJECT, NullPolicy.NONE,
+            new MethodImplementor(BuiltInMethod.IS_JSON_OBJECT.method), false);
+    defineImplementor(IS_JSON_ARRAY, NullPolicy.NONE,
+            new MethodImplementor(BuiltInMethod.IS_JSON_ARRAY.method), false);
+    defineImplementor(IS_JSON_SCALAR, NullPolicy.NONE,
+            new MethodImplementor(BuiltInMethod.IS_JSON_SCALAR.method), false);
+    defineImplementor(IS_NOT_JSON_VALUE, NullPolicy.NONE,
+        NotImplementor.of(
+            new MethodImplementor(BuiltInMethod.IS_JSON_VALUE.method)), false);
+    defineImplementor(IS_NOT_JSON_OBJECT, NullPolicy.NONE,
+        NotImplementor.of(
+            new MethodImplementor(BuiltInMethod.IS_JSON_OBJECT.method)), false);
+    defineImplementor(IS_NOT_JSON_ARRAY, NullPolicy.NONE,
+        NotImplementor.of(
+            new MethodImplementor(BuiltInMethod.IS_JSON_ARRAY.method)), false);
+    defineImplementor(IS_NOT_JSON_SCALAR, NullPolicy.NONE,
+        NotImplementor.of(
+            new MethodImplementor(BuiltInMethod.IS_JSON_SCALAR.method)), false);
 
     // System functions
     final SystemFunctionImplementor systemFunctionImplementor =
@@ -447,6 +507,9 @@ public class RexImpTable {
     aggMap.put(MIN, minMax);
     aggMap.put(MAX, minMax);
     aggMap.put(ANY_VALUE, minMax);
+    final Supplier<BitOpImplementor> bitop = constructorSupplier(BitOpImplementor.class);
+    aggMap.put(BIT_AND, bitop);
+    aggMap.put(BIT_OR, bitop);
     aggMap.put(SINGLE_VALUE, constructorSupplier(SingleValueImplementor.class));
     aggMap.put(COLLECT, constructorSupplier(CollectImplementor.class));
     aggMap.put(FUSION, constructorSupplier(FusionImplementor.class));
@@ -543,7 +606,10 @@ public class RexImpTable {
             + String.valueOf(call.getOperator());
         final RexCall call2 = call2(false, translator, call);
         switch (nullAs) {
-        case NOT_POSSIBLE: // Just foldAnd
+        case NOT_POSSIBLE:
+          // This doesn't mean that none of the arguments might be null, ex: (s and s is not null)
+          nullAs = NullAs.TRUE;
+          // fallthru
         case TRUE:
           // AND call should return false iff has FALSEs,
           // thus if we convert nulls to true then no harm is made
@@ -585,7 +651,10 @@ public class RexImpTable {
             + String.valueOf(call.getOperator());
         final RexCall call2 = call2(harmonize, translator, call);
         switch (nullAs) {
-        case NOT_POSSIBLE: // Just foldOr
+        case NOT_POSSIBLE:
+          // This doesn't mean that none of the arguments might be null, ex: (s or s is null)
+          nullAs = NullAs.FALSE;
+          // fallthru
         case TRUE:
           // This should return false iff all arguments are FALSE,
           // thus we convert nulls to TRUE and foldOr
@@ -1300,6 +1369,35 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the {@code BIT_AND} and {@code BIT_OR} aggregate function. */
+  static class BitOpImplementor extends StrictAggImplementor {
+    @Override protected void implementNotNullReset(AggContext info,
+        AggResetContext reset) {
+      Object initValue = info.aggregation() == BIT_AND ? -1 : 0;
+      Expression start = Expressions.constant(initValue, info.returnType());
+
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(0), start)));
+    }
+
+    @Override public void implementNotNullAdd(AggContext info,
+        AggAddContext add) {
+      Expression acc = add.accumulator().get(0);
+      Expression arg = add.arguments().get(0);
+      SqlAggFunction aggregation = info.aggregation();
+      final Method method = (aggregation == BIT_AND
+          ? BuiltInMethod.BIT_AND
+          : BuiltInMethod.BIT_OR).method;
+      Expression next = Expressions.call(
+          method.getDeclaringClass(),
+          method.getName(),
+          acc,
+          Expressions.unbox(arg));
+      accAdvance(add, acc, next);
+    }
+  }
+
   /** Implementor for the {@code GROUPING} aggregate function. */
   static class GroupingImplementor implements AggImplementor {
     public List<Type> getStateType(AggContext info) {
@@ -1726,10 +1824,100 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the {@code JSON_OBJECTAGG} aggregate function. */
+  static class JsonObjectAggImplementor implements AggImplementor {
+    private final Method m;
+
+    JsonObjectAggImplementor(Method m) {
+      this.m = m;
+    }
+
+    static Supplier<JsonObjectAggImplementor> supplierFor(Method m) {
+      return () -> new JsonObjectAggImplementor(m);
+    }
+
+    @Override public List<Type> getStateType(AggContext info) {
+      return Collections.singletonList(Map.class);
+    }
+
+    @Override public void implementReset(AggContext info,
+        AggResetContext reset) {
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(0),
+                  Expressions.new_(HashMap.class))));
+    }
+
+    @Override public void implementAdd(AggContext info, AggAddContext add) {
+      final SqlJsonObjectAggAggFunction function =
+          (SqlJsonObjectAggAggFunction) info.aggregation();
+      add.currentBlock().add(
+          Expressions.statement(
+              Expressions.call(m,
+                  Iterables.concat(
+                      Collections.singletonList(add.accumulator().get(0)),
+                      add.arguments(),
+                      Collections.singletonList(
+                          Expressions.constant(function.getNullClause()))))));
+    }
+
+    @Override public Expression implementResult(AggContext info,
+        AggResultContext result) {
+      return Expressions.call(BuiltInMethod.JSONIZE.method,
+          result.accumulator().get(0));
+    }
+  }
+
+  /** Implementor for the {@code JSON_ARRAYAGG} aggregate function. */
+  static class JsonArrayAggImplementor implements AggImplementor {
+    private final Method m;
+
+    JsonArrayAggImplementor(Method m) {
+      this.m = m;
+    }
+
+    static Supplier<JsonArrayAggImplementor> supplierFor(Method m) {
+      return () -> new JsonArrayAggImplementor(m);
+    }
+
+    @Override public List<Type> getStateType(AggContext info) {
+      return Collections.singletonList(List.class);
+    }
+
+    @Override public void implementReset(AggContext info,
+        AggResetContext reset) {
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(0),
+                  Expressions.new_(ArrayList.class))));
+    }
+
+    @Override public void implementAdd(AggContext info,
+        AggAddContext add) {
+      final SqlJsonArrayAggAggFunction function =
+          (SqlJsonArrayAggAggFunction) info.aggregation();
+      add.currentBlock().add(
+          Expressions.statement(
+              Expressions.call(m,
+                  Iterables.concat(
+                      Collections.singletonList(add.accumulator().get(0)),
+                      add.arguments(),
+                      Collections.singletonList(
+                          Expressions.constant(function.getNullClause()))))));
+    }
+
+    @Override public Expression implementResult(AggContext info,
+        AggResultContext result) {
+      return Expressions.call(BuiltInMethod.JSONIZE.method,
+          result.accumulator().get(0));
+    }
+  }
+
   /** Implementor for the {@code TRIM} function. */
   private static class TrimImplementor implements NotNullImplementor {
     public Expression implement(RexToLixTranslator translator, RexCall call,
         List<Expression> translatedOperands) {
+      final boolean strict = !translator.conformance.allowExtendedTrim();
       final Object value =
           ((ConstantExpression) translatedOperands.get(0)).value;
       SqlTrimFunction.Flag flag = (SqlTrimFunction.Flag) value;
@@ -1742,7 +1930,8 @@ public class RexImpTable {
               flag == SqlTrimFunction.Flag.BOTH
               || flag == SqlTrimFunction.Flag.TRAILING),
           translatedOperands.get(1),
-          translatedOperands.get(2));
+          translatedOperands.get(2),
+          Expressions.constant(strict));
     }
   }
 
@@ -1837,27 +2026,6 @@ public class RexImpTable {
       final Type returnType =
           translator.typeFactory.getJavaClass(call.getType());
       return Types.castIfNecessary(returnType, expression);
-    }
-  }
-
-  /** Implementor for a function that generates calls to a given method. */
-  private static class SequenceImplementor extends MethodImplementor {
-    SequenceImplementor(Method method) {
-      super(method);
-    }
-
-    public Expression implement(
-        RexToLixTranslator translator,
-        RexCall call,
-        List<Expression> translatedOperands) {
-      assert translatedOperands.size() == 1;
-      ConstantExpression x = (ConstantExpression) translatedOperands.get(0);
-      List<String> names = Util.stringToList((String) x.value);
-      final Prepare.CatalogReader catalogReader =
-          Prepare.CatalogReader.THREAD_LOCAL.get();
-      RelOptTable table = catalogReader.getTable(names);
-      System.out.println("Now, do something with table " + table);
-      return super.implement(translator, call, translatedOperands);
     }
   }
 
@@ -2409,6 +2577,12 @@ public class RexImpTable {
         RexToLixTranslator translator, RexCall call, NullAs nullAs) {
       List<RexNode> operands = call.getOperands();
       assert operands.size() == 1;
+      switch (nullAs) {
+      case IS_NOT_NULL:
+        return BOXED_TRUE_EXPR;
+      case IS_NULL:
+        return BOXED_FALSE_EXPR;
+      }
       if (seek == null) {
         return translator.translate(operands.get(0),
             negate ? NullAs.IS_NOT_NULL : NullAs.IS_NULL);
@@ -2493,11 +2667,16 @@ public class RexImpTable {
         case MINUS:
           trop1 = Expressions.negate(trop1);
         }
-        final BuiltInMethod method =
-            operand0.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP
-                ? BuiltInMethod.ADD_MONTHS
-                : BuiltInMethod.ADD_MONTHS_INT;
-        return Expressions.call(method.method, trop0, trop1);
+        switch (typeName) {
+        case TIME:
+          return Expressions.convert_(trop0, long.class);
+        default:
+          final BuiltInMethod method =
+              operand0.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP
+                  ? BuiltInMethod.ADD_MONTHS
+                  : BuiltInMethod.ADD_MONTHS_INT;
+          return Expressions.call(method.method, trop0, trop1);
+        }
 
       case INTERVAL_DAY:
       case INTERVAL_DAY_HOUR:

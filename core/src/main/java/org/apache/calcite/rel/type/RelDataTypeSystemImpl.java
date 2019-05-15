@@ -248,6 +248,10 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     return false;
   }
 
+  public boolean allowExtendedTrim() {
+    return false;
+  }
+
 }
 
 // End RelDataTypeSystemImpl.java

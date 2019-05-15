@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlGroupedWindowFunction;
 import org.apache.calcite.sql.SqlInternalOperator;
+import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLateralOperator;
 import org.apache.calcite.sql.SqlLiteral;
@@ -46,6 +47,7 @@ import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlValuesOperator;
 import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.SqlWithinGroupOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -57,6 +59,7 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql2rel.AuxiliaryConverter;
 import org.apache.calcite.util.Litmus;
+import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -177,6 +180,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    *  aggregate function. */
   public static final SqlFilterOperator FILTER = new SqlFilterOperator();
 
+  /** <code>WITHIN_GROUP</code> operator performs aggregations on ordered data input. */
+  public static final SqlWithinGroupOperator WITHIN_GROUP = new SqlWithinGroupOperator();
+
   /** {@code CUBE} operator, occurs within {@code GROUP BY} clause
    * or nested within a {@code GROUPING SETS}. */
   public static final SqlInternalOperator CUBE =
@@ -226,7 +232,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlBinaryOperator CONCAT =
       new SqlBinaryOperator(
           "||",
-          SqlKind.OTHER,
+          SqlKind.CONCAT,
           60,
           true,
           ReturnTypes.DYADIC_STRING_SUM_PRECISION_NULLABLE,
@@ -727,6 +733,79 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           null,
           OperandTypes.COLLECTION_OR_MAP);
 
+  public static final SqlPostfixOperator IS_JSON_VALUE =
+      new SqlPostfixOperator(
+          "IS JSON VALUE",
+          SqlKind.OTHER,
+          28,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.CHARACTER);
+
+  public static final SqlPostfixOperator IS_NOT_JSON_VALUE =
+      new SqlPostfixOperator(
+          "IS NOT JSON VALUE",
+          SqlKind.OTHER,
+          28,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.CHARACTER);
+
+  public static final SqlPostfixOperator IS_JSON_OBJECT =
+      new SqlPostfixOperator(
+          "IS JSON OBJECT",
+          SqlKind.OTHER,
+          28,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.CHARACTER);
+
+  public static final SqlPostfixOperator IS_NOT_JSON_OBJECT =
+      new SqlPostfixOperator(
+          "IS NOT JSON OBJECT",
+          SqlKind.OTHER,
+          28,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.CHARACTER);
+
+  public static final SqlPostfixOperator IS_JSON_ARRAY =
+      new SqlPostfixOperator(
+          "IS JSON ARRAY",
+          SqlKind.OTHER,
+          28,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.CHARACTER);
+
+  public static final SqlPostfixOperator IS_NOT_JSON_ARRAY =
+      new SqlPostfixOperator(
+          "IS NOT JSON ARRAY",
+          SqlKind.OTHER,
+          28,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.CHARACTER);
+
+  public static final SqlPostfixOperator IS_JSON_SCALAR =
+      new SqlPostfixOperator(
+          "IS JSON SCALAR",
+          SqlKind.OTHER,
+          28,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.CHARACTER);
+
+  public static final SqlPostfixOperator IS_NOT_JSON_SCALAR =
+      new SqlPostfixOperator(
+          "IS NOT JSON SCALAR",
+          SqlKind.OTHER,
+          28,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.CHARACTER);
+
+
   //-------------------------------------------------------------
   //                   PREFIX OPERATORS
   //-------------------------------------------------------------
@@ -974,6 +1053,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlAggFunction VARIANCE =
       new SqlAvgAggFunction("VARIANCE", SqlKind.VAR_SAMP);
 
+  /**
+   * <code>BIT_AND</code> aggregate function.
+   */
+  public static final SqlAggFunction BIT_AND =
+      new SqlBitOpAggFunction(SqlKind.BIT_AND);
+
+  /**
+   * <code>BIT_OR</code> aggregate function.
+   */
+  public static final SqlAggFunction BIT_OR =
+      new SqlBitOpAggFunction(SqlKind.BIT_OR);
+
   //-------------------------------------------------------------
   // WINDOW Aggregate Functions
   //-------------------------------------------------------------
@@ -1190,6 +1281,40 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlThrowOperator THROW = new SqlThrowOperator();
 
+  public static final SqlJsonValueExpressionOperator JSON_VALUE_EXPRESSION =
+      new SqlJsonValueExpressionOperator("JSON_VALUE_EXPRESSION", false);
+
+  public static final SqlJsonValueExpressionOperator JSON_STRUCTURED_VALUE_EXPRESSION =
+      new SqlJsonValueExpressionOperator("JSON_STRUCTURED_VALUE_EXPRESSION",
+          true);
+
+  public static final SqlJsonApiCommonSyntaxOperator JSON_API_COMMON_SYNTAX =
+      new SqlJsonApiCommonSyntaxOperator();
+
+  public static final SqlFunction JSON_EXISTS = new SqlJsonExistsFunction();
+
+  public static final SqlFunction JSON_VALUE =
+      new SqlJsonValueFunction("JSON_VALUE", false);
+
+  public static final SqlFunction JSON_VALUE_ANY =
+      new SqlJsonValueFunction("JSON_VALUE_ANY", true);
+
+  public static final SqlFunction JSON_QUERY = new SqlJsonQueryFunction();
+
+  public static final SqlFunction JSON_OBJECT = new SqlJsonObjectFunction();
+
+  public static final SqlFunction JSON_TYPE = new SqlJsonTypeFunction();
+
+  public static final SqlJsonObjectAggAggFunction JSON_OBJECTAGG =
+      new SqlJsonObjectAggAggFunction("JSON_OBJECTAGG",
+          SqlJsonConstructorNullClause.NULL_ON_NULL);
+
+  public static final SqlFunction JSON_ARRAY = new SqlJsonArrayFunction();
+
+  public static final SqlJsonArrayAggAggFunction JSON_ARRAYAGG =
+      new SqlJsonArrayAggAggFunction("JSON_ARRAYAGG",
+          SqlJsonConstructorNullClause.NULL_ON_NULL);
+
   public static final SqlBetweenOperator BETWEEN =
       new SqlBetweenOperator(
           SqlBetweenOperator.Flag.ASYMMETRIC,
@@ -1310,7 +1435,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction CHAR_LENGTH =
       new SqlFunction(
           "CHAR_LENGTH",
-          SqlKind.OTHER_FUNCTION,
+          SqlKind.CHAR_LENGTH,
           ReturnTypes.INTEGER_NULLABLE,
           null,
           OperandTypes.CHARACTER,
@@ -1319,7 +1444,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction CHARACTER_LENGTH =
       new SqlFunction(
           "CHARACTER_LENGTH",
-          SqlKind.OTHER_FUNCTION,
+          SqlKind.CHARACTER_LENGTH,
           ReturnTypes.INTEGER_NULLABLE,
           null,
           OperandTypes.CHARACTER,
@@ -1540,7 +1665,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction TRUNCATE =
       new SqlFunction(
           "TRUNCATE",
-          SqlKind.OTHER_FUNCTION,
+          SqlKind.TRUNCATE,
           ReturnTypes.ARG0_NULLABLE,
           null,
           OperandTypes.NUMERIC_OPTIONAL_INTEGER,
@@ -1947,6 +2072,17 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       };
 
   /**
+   * The internal {@code $STRUCT_ACCESS} operator is used to access a
+   * field of a record.
+   *
+   * <p>In contrast with {@link #DOT} operator, it never appears in an
+   * {@link SqlNode} tree and allows to access fields by position and
+   * not by name.
+   */
+  public static final SqlInternalOperator STRUCT_ACCESS =
+      new SqlInternalOperator("$STRUCT_ACCESS", SqlKind.OTHER);
+
+  /**
    * The CARDINALITY operator, used to retrieve the number of elements in a
    * MULTISET, ARRAY or MAP.
    */
@@ -1969,7 +2105,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.TO_MULTISET,
           null,
           OperandTypes.ANY,
-          SqlFunctionCategory.SYSTEM, false, false) {
+          SqlFunctionCategory.SYSTEM, false, false,
+          Optionality.OPTIONAL) {
       };
 
   /**
@@ -1981,7 +2118,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.ARG0,
           null,
           OperandTypes.MULTISET,
-          SqlFunctionCategory.SYSTEM, false, false) {
+          SqlFunctionCategory.SYSTEM, false, false,
+          Optionality.FORBIDDEN) {
       };
 
   /**

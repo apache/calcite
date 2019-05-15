@@ -26,6 +26,7 @@ import com.google.common.base.Preconditions;
 
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.Nonnull;
 
 /**
  * Call to an aggregate function over a window.
@@ -88,19 +89,13 @@ public class RexOver extends RexCall {
     return distinct;
   }
 
-  @Override protected String computeDigest(boolean withType) {
+  @Override protected @Nonnull String computeDigest(boolean withType) {
     final StringBuilder sb = new StringBuilder(op.getName());
     sb.append("(");
     if (distinct) {
       sb.append("DISTINCT ");
     }
-    for (int i = 0; i < operands.size(); i++) {
-      if (i > 0) {
-        sb.append(", ");
-      }
-      RexNode operand = operands.get(i);
-      sb.append(operand.toString());
-    }
+    appendOperands(sb);
     sb.append(")");
     if (withType) {
       sb.append(":");

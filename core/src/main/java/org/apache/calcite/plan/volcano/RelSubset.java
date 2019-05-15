@@ -28,9 +28,12 @@ import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.Litmus;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -40,9 +43,14 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Subset of an equivalence class where all relational expressions have the
@@ -277,9 +285,9 @@ public class RelSubset extends AbstractRelNode {
           "rowtype of set", getRowType(), Litmus.THROW);
     }
     set.addInternal(rel);
-    Set<CorrelationId> variablesSet = RelOptUtil.getVariablesSet(rel);
-    Set<CorrelationId> variablesStopped = rel.getVariablesSet();
     if (false) {
+      Set<CorrelationId> variablesSet = RelOptUtil.getVariablesSet(rel);
+      Set<CorrelationId> variablesStopped = rel.getVariablesSet();
       Set<CorrelationId> variablesPropagated =
           Util.minus(variablesSet, variablesStopped);
       assert set.variablesPropagated.containsAll(variablesPropagated);
@@ -406,6 +414,75 @@ public class RelSubset extends AbstractRelNode {
   //~ Inner Classes ----------------------------------------------------------
 
   /**
+   * Identifies the leaf-most non-implementable nodes.
+   */
+  static class DeadEndFinder {
+    final Set<RelSubset> deadEnds = new HashSet<>();
+    // To save time
+    private final Set<RelNode> visitedNodes = new HashSet<>();
+    // For cycle detection
+    private final Set<RelNode> activeNodes = new HashSet<>();
+
+    private boolean visit(RelNode p) {
+      if (p instanceof RelSubset) {
+        visitSubset((RelSubset) p);
+        return false;
+      }
+      return visitRel(p);
+    }
+
+    private void visitSubset(RelSubset subset) {
+      RelNode cheapest = subset.getBest();
+      if (cheapest != null) {
+        // Subset is implementable, and we are looking for bad ones, so stop here
+        return;
+      }
+
+      boolean isEmpty = true;
+      for (RelNode rel : subset.getRels()) {
+        if (rel instanceof AbstractConverter) {
+          // Converters are not implementable
+          continue;
+        }
+        if (!activeNodes.add(rel)) {
+          continue;
+        }
+        boolean res = visit(rel);
+        isEmpty &= res;
+        activeNodes.remove(rel);
+      }
+      if (isEmpty) {
+        deadEnds.add(subset);
+      }
+    }
+
+    /**
+     * Returns true when input {@code RelNode} is cyclic.
+     */
+    private boolean visitRel(RelNode p) {
+      // If one of the inputs is in "active" set, that means the rel forms a cycle,
+      // then we just ignore it. Cyclic rels are not implementable.
+      for (RelNode oldInput : p.getInputs()) {
+        if (activeNodes.contains(oldInput)) {
+          return true;
+        }
+      }
+      // The same subset can be used multiple times (e.g. union all with the same inputs),
+      // so it is important to perform "contains" and "add" in different loops
+      activeNodes.addAll(p.getInputs());
+      for (RelNode oldInput : p.getInputs()) {
+        if (!visitedNodes.add(oldInput)) {
+          // We don't want to explore the same subset twice
+          continue;
+        }
+        visit(oldInput);
+      }
+      activeNodes.removeAll(p.getInputs());
+      return false;
+    }
+  }
+
+  /**
    * Visitor which walks over a tree of {@link RelSet}s, replacing each node
    * with the cheapest implementation of the expression.
    */
@@ -415,6 +492,14 @@ public class RelSubset extends AbstractRelNode {
     CheapestPlanReplacer(VolcanoPlanner planner) {
       super();
       this.planner = planner;
+    }
+
+    private static String traitDiff(RelTraitSet original, RelTraitSet desired) {
+      return Pair.zip(original, desired)
+          .stream()
+          .filter(p -> !p.left.satisfies(p.right))
+          .map(p -> p.left.getTraitDef().getSimpleName() + ": " + p.left + " -> " + p.right)
+          .collect(Collectors.joining(", ", "[", "]"));
     }
 
     public RelNode visit(
@@ -429,8 +514,73 @@ public class RelSubset extends AbstractRelNode {
           // out why we reached impasse.
           StringWriter sw = new StringWriter();
           final PrintWriter pw = new PrintWriter(sw);
-          pw.println("Node [" + subset.getDescription()
-              + "] could not be implemented; planner state:\n");
+
+          pw.print("There are not enough rules to produce a node with desired properties");
+          RelTraitSet desiredTraits = subset.getTraitSet();
+          String sep = ": ";
+          for (RelTrait trait : desiredTraits) {
+            pw.print(sep);
+            pw.print(trait.getTraitDef().getSimpleName());
+            pw.print("=");
+            pw.print(trait);
+            sep = ", ";
+          }
+          pw.print(".");
+          DeadEndFinder finder = new DeadEndFinder();
+          finder.visit(subset);
+          if (finder.deadEnds.isEmpty()) {
+            pw.print(" All the inputs have relevant nodes, however the cost is still infinite.");
+          } else {
+            Map<String, Long> problemCounts =
+                finder.deadEnds.stream()
+                    .filter(deadSubset -> deadSubset.getOriginal() != null)
+                    .map(x -> x.getOriginal().getClass().getSimpleName()
+                        + traitDiff(x.getOriginal().getTraitSet(), x.getTraitSet()))
+                    .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+            // Sort problems from most often to less often ones
+            String problems = problemCounts.entrySet().stream()
+                .sorted(Comparator.comparingLong(Map.Entry<String, Long>::getValue).reversed())
+                .map(e -> e.getKey() + (e.getValue() > 1 ? " (" + e.getValue() + " cases)" : ""))
+                .collect(Collectors.joining(", "));
+            pw.println();
+            pw.print("Missing conversion");
+            pw.print(finder.deadEnds.size() == 1 ? " is " : "s are ");
+            pw.print(problems);
+            pw.println();
+            if (finder.deadEnds.size() == 1) {
+              pw.print("There is 1 empty subset: ");
+            }
+            if (finder.deadEnds.size() > 1) {
+              pw.println("There are " + finder.deadEnds.size() + " empty subsets:");
+            }
+            int i = 0;
+            int rest = finder.deadEnds.size();
+            for (RelSubset deadEnd : finder.deadEnds) {
+              if (finder.deadEnds.size() > 1) {
+                pw.print("Empty subset ");
+                pw.print(i);
+                pw.print(": ");
+              }
+              pw.print(deadEnd);
+              pw.println(", the relevant part of the original plan is as follows");
+              RelNode original = deadEnd.getOriginal();
+              original.explain(
+                  new RelWriterImpl(pw, SqlExplainLevel.EXPPLAN_ATTRIBUTES, true));
+              i++;
+              rest--;
+              if (rest > 0) {
+                pw.println();
+              }
+              if (i >= 10 && rest > 1) {
+                pw.print("The rest ");
+                pw.print(rest);
+                pw.println(" leafs are omitted.");
+                break;
+              }
+            }
+          }
+          pw.println();
+
           planner.dump(pw);
           pw.flush();
           final String dump = sw.toString();

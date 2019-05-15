@@ -370,7 +370,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
         buff.append(pair.getKey());
       }
     }
-    final List<Object> argList = new ArrayList<Object>(Pair.right(providerList));
+    final List<Object> argList = new ArrayList<>(Pair.right(providerList));
     argList.add(0, ImmutableList.copyOf(relClasses));
     try {
       return compile(name, buff.toString(), def, argList);

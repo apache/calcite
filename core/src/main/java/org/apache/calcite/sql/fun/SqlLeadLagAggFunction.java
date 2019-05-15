@@ -28,6 +28,7 @@ import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeTransform;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.util.Optionality;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -78,7 +79,8 @@ public class SqlLeadLagAggFunction extends SqlAggFunction {
         OPERAND_TYPES,
         SqlFunctionCategory.NUMERIC,
         false,
-        true);
+        true,
+        Optionality.FORBIDDEN);
     Preconditions.checkArgument(kind == SqlKind.LEAD
         || kind == SqlKind.LAG);
   }

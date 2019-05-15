@@ -168,8 +168,7 @@ public class SqlValidatorUtil {
       SqlNodeList extendedColumns) {
     final List list = extendedColumns.getList();
     //noinspection unchecked
-    return Pair.zip(Util.quotientList(list, 2, 0),
-        Util.quotientList(list, 2, 1));
+    return Util.pairs(list);
   }
 
   /**
@@ -1166,6 +1165,13 @@ public class SqlValidatorUtil {
   public static final Suggester F_SUGGESTER =
       (original, attempt, size) -> Util.first(original, "$f")
           + Math.max(size, attempt);
+
+  public static final Suggester ATTEMPT_SUGGESTER =
+      new Suggester() {
+        public String apply(String original, int attempt, int size) {
+          return Util.first(original, "$") + attempt;
+        }
+      };
 
   /** Builds a list of GROUP BY expressions. */
   static class GroupAnalyzer {

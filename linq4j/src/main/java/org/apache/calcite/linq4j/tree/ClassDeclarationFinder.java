@@ -35,8 +35,7 @@ public class ClassDeclarationFinder extends Shuttle {
   /**
    * The list of new final static fields to be added to the current class.
    */
-  protected final List<MemberDeclaration> addedDeclarations =
-      new ArrayList<MemberDeclaration>();
+  protected final List<MemberDeclaration> addedDeclarations = new ArrayList<>();
 
   private final Function1<ClassDeclarationFinder, ClassDeclarationFinder> childFactory;
 
@@ -93,13 +92,7 @@ public class ClassDeclarationFinder extends Shuttle {
       return a0 -> {
         try {
           return constructor.newInstance(a0);
-        } catch (InstantiationException e) {
-          throw new IllegalStateException(
-              "Unable to create optimizer via " + constructor, e);
-        } catch (IllegalAccessException e) {
-          throw new IllegalStateException(
-              "Unable to create optimizer via " + constructor, e);
-        } catch (InvocationTargetException e) {
+        } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
           throw new IllegalStateException(
               "Unable to create optimizer via " + constructor, e);
         }

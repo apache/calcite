@@ -27,8 +27,8 @@ import java.util.Comparator;
  *
  * <p>In a collection sorted on this comparator, we can find case-insensitive matches
  * for a given string using
- * {@link org.apache.calcite.util.CaseInsensitiveComparator#floorKey(java.lang.String)}
- * and {@link org.apache.calcite.util.CaseInsensitiveComparator#ceilingKey(java.lang.String)}.
+ * {@link #floorKey(java.lang.String)}
+ * and {@link #ceilingKey(java.lang.String)}.
  */
 class CaseInsensitiveComparator implements Comparator {
   static final CaseInsensitiveComparator COMPARATOR = new CaseInsensitiveComparator();
@@ -50,11 +50,11 @@ class CaseInsensitiveComparator implements Comparator {
     }
   }
 
-  static Object floorKey(String key) {
+  Object floorKey(String key) {
     return new Key(key, -1);
   }
 
-  static Object ceilingKey(String key) {
+  Object ceilingKey(String key) {
     return new Key(key, 1);
   }
 

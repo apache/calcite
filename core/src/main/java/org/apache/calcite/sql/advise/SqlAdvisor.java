@@ -172,7 +172,7 @@ public class SqlAdvisor {
     if (wordStart < wordEnd) {
       sql =
           sql.substring(0, wordStart)
-              + sql.substring(wordEnd, sql.length());
+              + sql.substring(wordEnd);
     }
 
     final List<SqlMoniker> completionHints =
@@ -324,7 +324,7 @@ public class SqlAdvisor {
   public List<SqlMoniker> getCompletionHints(String sql, SqlParserPos pos) {
     // First try the statement they gave us. If this fails, just return
     // the tokens which were expected at the failure point.
-    List<SqlMoniker> hintList = new ArrayList<SqlMoniker>();
+    List<SqlMoniker> hintList = new ArrayList<>();
     SqlNode sqlNode = tryParse(sql, hintList);
     if (sqlNode == null) {
       return hintList;
@@ -433,9 +433,7 @@ public class SqlAdvisor {
     SqlParserPos pos = new SqlParserPos(1, cursor + 1);
     try {
       return validator.lookupQualifiedName(sqlNode, pos);
-    } catch (CalciteContextException e) {
-      return null;
-    } catch (java.lang.AssertionError e) {
+    } catch (CalciteContextException | AssertionError e) {
       return null;
     }
   }
@@ -475,7 +473,7 @@ public class SqlAdvisor {
    */
   public List<ValidateErrorInfo> validate(String sql) {
     SqlNode sqlNode;
-    List<ValidateErrorInfo> errorList = new ArrayList<ValidateErrorInfo>();
+    List<ValidateErrorInfo> errorList = new ArrayList<>();
 
     sqlNode = collectParserError(sql, errorList);
     if (!errorList.isEmpty()) {
@@ -542,7 +540,7 @@ public class SqlAdvisor {
     List<String> l =
         Arrays.asList(
             getParserMetadata().getJdbcKeywords().split(","));
-    List<String> al = new ArrayList<String>();
+    List<String> al = new ArrayList<>();
     al.addAll(c);
     al.addAll(l);
     reservedWordsList = al;

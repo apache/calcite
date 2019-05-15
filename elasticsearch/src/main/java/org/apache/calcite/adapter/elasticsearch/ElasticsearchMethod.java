@@ -22,13 +22,23 @@ import com.google.common.collect.ImmutableMap;
 
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Builtin methods in the Elasticsearch adapter.
  */
 enum ElasticsearchMethod {
-  ELASTICSEARCH_QUERYABLE_FIND(AbstractElasticsearchTable.ElasticsearchQueryable.class,
-      "find", List.class, List.class);
+
+  ELASTICSEARCH_QUERYABLE_FIND(ElasticsearchTable.ElasticsearchQueryable.class,
+      "find",
+      List.class, // ops  - projections and other stuff
+      List.class, // fields
+      List.class, // sort
+      List.class, // groupBy
+      List.class, // aggregations
+      Map.class, // item to expression mapping. Eg. _MAP['a.b.c'] and EXPR$1
+      Long.class, // offset
+      Long.class); // fetch
 
   public final Method method;
 

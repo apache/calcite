@@ -31,7 +31,7 @@
 - name: Andrei Sereda
   apacheId: sereda
   githubId: asereda-gs
-  org: 
+  org:
   role: Committer
 - name: Ashutosh Chauhan
   apacheId: hashutosh
@@ -57,7 +57,7 @@
   apacheId: francischuang
   githubId: F21
   org: Boostport
-  role: PMC
+  role: PMC Chair
 - name: Gian Merlino
   apacheId: gian
   githubId: gianm
@@ -128,7 +128,7 @@
   apacheId: mmior
   githubId: michaelmior
   org: Rochester Institute of Technology
-  role: PMC Chair
+  role: PMC
   homepage: https://michael.mior.ca/
 - name: Milinda Pathirage
   apacheId: milinda
@@ -197,5 +197,10 @@
   apacheId: zhiqianghe
   githubId: Zhiqiang-He
   org: Huawei
+  role: Committer
+- name: Zoltan Haindrich
+  apacheId: kgyrtkirk
+  githubId: kgyrtkirk
+  org: Hortonworks
   role: Committer
 # End contributors.yml

@@ -232,6 +232,18 @@ public class JdbcSchema implements Schema {
     try {
       connection = dataSource.getConnection();
       DatabaseMetaData metaData = connection.getMetaData();
+      String catalog;
+      String schema;
+      if (metaData.getJDBCMajorVersion() > 4
+          || (metaData.getJDBCMajorVersion() == 4 && metaData.getJDBCMinorVersion() >= 1)) {
+        // From JDBC 4.1, catalog and schema can be retrieved from the connection object,
+        // hence try to get it from there if it was not specified by user
+        catalog = Util.first(this.catalog, connection.getCatalog());
+        schema = Util.first(this.schema, connection.getSchema());
+      } else {
+        catalog = this.catalog;
+        schema = this.schema;
+      }
       resultSet = metaData.getTables(
           catalog,
           schema,

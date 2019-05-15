@@ -16,12 +16,15 @@
  */
 package org.apache.calcite.rex;
 
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
@@ -29,6 +32,8 @@ import org.apache.calcite.util.Util;
 
 import org.junit.Test;
 
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.TimeZone;
 
@@ -245,7 +250,7 @@ public class RexBuilderTest {
   }
 
   private void checkTimestampWithLocalTimeZone(RexNode node) {
-    assertThat(node.toString(), is("1969-07-21 02:56:15"));
+    assertThat(node.toString(), is("1969-07-21 02:56:15:TIMESTAMP_WITH_LOCAL_TIME_ZONE(0)"));
     RexLiteral literal = (RexLiteral) node;
     assertThat(literal.getValue() instanceof TimestampString, is(true));
     assertThat(literal.getValue2() instanceof Long, is(true));
@@ -487,6 +492,77 @@ public class RexBuilderTest {
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(), containsString("Second out of range: [60]"));
     }
+  }
+
+  /**
+   * Test string literal encoding.
+   */
+  @Test public void testStringLiteral() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType varchar =
+        typeFactory.createSqlType(SqlTypeName.VARCHAR);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+
+    final NlsString latin1 = new NlsString("foobar", "LATIN1", SqlCollation.IMPLICIT);
+    final NlsString utf8 = new NlsString("foobar", "UTF8", SqlCollation.IMPLICIT);
+
+    RexNode literal = builder.makePreciseStringLiteral("foobar");
+    assertEquals("'foobar'", literal.toString());
+    literal = builder.makePreciseStringLiteral(
+        new ByteString(new byte[] { 'f', 'o', 'o', 'b', 'a', 'r'}),
+        "UTF8",
+        SqlCollation.IMPLICIT);
+    assertEquals("_UTF8'foobar'", literal.toString());
+    assertEquals("_UTF8'foobar':CHAR(6) CHARACTER SET \"UTF-8\"",
+        ((RexLiteral) literal).computeDigest(RexDigestIncludeType.ALWAYS));
+    literal = builder.makePreciseStringLiteral(
+        new ByteString("\u82f1\u56fd".getBytes(StandardCharsets.UTF_8)),
+        "UTF8",
+        SqlCollation.IMPLICIT);
+    assertEquals("_UTF8'\u82f1\u56fd'", literal.toString());
+    // Test again to check decode cache.
+    literal = builder.makePreciseStringLiteral(
+        new ByteString("\u82f1".getBytes(StandardCharsets.UTF_8)),
+        "UTF8",
+        SqlCollation.IMPLICIT);
+    assertEquals("_UTF8'\u82f1'", literal.toString());
+    try {
+      literal = builder.makePreciseStringLiteral(
+          new ByteString("\u82f1\u56fd".getBytes(StandardCharsets.UTF_8)),
+          "GB2312",
+          SqlCollation.IMPLICIT);
+      fail("expected exception, got " + literal);
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(), containsString("Failed to encode"));
+    }
+    literal = builder.makeLiteral(latin1, varchar, false);
+    assertEquals("_LATIN1'foobar'", literal.toString());
+    literal = builder.makeLiteral(utf8, varchar, false);
+    assertEquals("_UTF8'foobar'", literal.toString());
+  }
+
+  /** Tests {@link RexBuilder#makeExactLiteral(java.math.BigDecimal)}. */
+  @Test public void testBigDecimalLiteral() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    checkBigDecimalLiteral(builder, "25");
+    checkBigDecimalLiteral(builder, "9.9");
+    checkBigDecimalLiteral(builder, "0");
+    checkBigDecimalLiteral(builder, "-75.5");
+    checkBigDecimalLiteral(builder, "10000000");
+    checkBigDecimalLiteral(builder, "100000.111111111111111111");
+    checkBigDecimalLiteral(builder, "-100000.111111111111111111");
+    checkBigDecimalLiteral(builder, "73786976294838206464"); // 2^66
+    checkBigDecimalLiteral(builder, "-73786976294838206464");
+  }
+
+  private void checkBigDecimalLiteral(RexBuilder builder, String val) {
+    final RexLiteral literal = builder.makeExactLiteral(new BigDecimal(val));
+    assertThat("builder.makeExactLiteral(new BigDecimal(" + val
+            + ")).getValueAs(BigDecimal.class).toString()",
+        literal.getValueAs(BigDecimal.class).toString(), is(val));
   }
 
 }

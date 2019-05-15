@@ -49,12 +49,13 @@ import java.util.function.Predicate;
  */
 public class GeodeRules {
 
-  public static final RelOptRule[] RULES = {
+  static final RelOptRule[] RULES = {
+      GeodeSortLimitRule.INSTANCE,
       GeodeFilterRule.INSTANCE,
       GeodeProjectRule.INSTANCE,
-      GeodeSortLimitRule.INSTANCE,
-      GeodeAggregateRule.INSTANCE
+      GeodeAggregateRule.INSTANCE,
   };
+
 
   private GeodeRules() {
   }
@@ -274,6 +275,14 @@ public class GeodeRules {
      */
     private boolean isEqualityOnKey(RexNode node, List<String> fieldNames) {
 
+      if (isBooleanColumnReference(node, fieldNames)) {
+        return true;
+      }
+
+      if (!SqlKind.COMPARISON.contains(node.getKind())) {
+        return false;
+      }
+
       RexCall call = (RexCall) node;
       final RexNode left = call.operands.get(0);
       final RexNode right = call.operands.get(1);
@@ -283,6 +292,24 @@ public class GeodeRules {
       }
       return checkConditionContainsInputRefOrLiterals(right, left, fieldNames);
 
+    }
+
+    private boolean isBooleanColumnReference(RexNode node, List<String> fieldNames) {
+      // FIXME Ignore casts for rel and assume they aren't really necessary
+      if (node.isA(SqlKind.CAST)) {
+        node = ((RexCall) node).getOperands().get(0);
+      }
+      if (node.isA(SqlKind.NOT)) {
+        node = ((RexCall) node).getOperands().get(0);
+      }
+      if (node.isA(SqlKind.INPUT_REF)) {
+        if (node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
+          final RexInputRef left1 = (RexInputRef) node;
+          String name = fieldNames.get(left1.getIndex());
+          return name != null;
+        }
+      }
+      return false;
     }
 
     /**
@@ -318,7 +345,8 @@ public class GeodeRules {
 
         return (leftName != null) && (rightName != null);
       }
-      if (left.isA(SqlKind.OTHER_FUNCTION) && right.isA(SqlKind.LITERAL)) {
+      if ((left.isA(SqlKind.OTHER_FUNCTION))
+          && right.isA(SqlKind.LITERAL)) {
         if (((RexCall) left).getOperator() != SqlStdOperatorTable.ITEM) {
           return false;
         }

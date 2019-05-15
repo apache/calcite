@@ -37,7 +37,7 @@ on emp.deptno = dept.deptno or emp.ename = dept.dname;
 !ok
 
 # As an INNER join, it can be executed as an equi-join followed by a filter
-EnumerableCalc(expr#0..4=[{inputs}], expr#5=[=($t1, $t3)], expr#6=[CAST($t0):CHAR(11) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL], expr#7=[=($t6, $t4)], expr#8=[OR($t5, $t7)], proj#0..4=[{exprs}], $condition=[$t8])
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[=($t1, $t3)], expr#6=[CAST($t0):CHAR(11) NOT NULL], expr#7=[=($t6, $t4)], expr#8=[OR($t5, $t7)], proj#0..4=[{exprs}], $condition=[$t8])
   EnumerableJoin(condition=[true], joinType=[inner])
     EnumerableUnion(all=[true])
       EnumerableCalc(expr#0=[{inputs}], expr#1=['Jane'], expr#2=[10], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
@@ -56,7 +56,7 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[=($t1, $t3)], expr#6=[CAST($t0):CHA
         EnumerableValues(tuples=[[{ 0 }]])
       EnumerableCalc(expr#0=[{inputs}], expr#1=['Grace'], expr#2=[60], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
         EnumerableValues(tuples=[[{ 0 }]])
-      EnumerableCalc(expr#0=[{inputs}], expr#1=['Wilma'], expr#2=[null], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=['Wilma'], expr#2=[null:INTEGER], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
         EnumerableValues(tuples=[[{ 0 }]])
     EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
 !plan
@@ -84,7 +84,7 @@ on emp.deptno = dept.deptno or emp.ename = dept.dname;
 !ok
 
 # Cannot be decomposed into an equi-join; plan uses EnumerableThetaJoin
-EnumerableThetaJoin(condition=[OR(=($1, $3), =(CAST($0):CHAR(11) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL, $4))], joinType=[left])
+EnumerableThetaJoin(condition=[OR(=($1, $3), =(CAST($0):CHAR(11) NOT NULL, $4))], joinType=[left])
   EnumerableUnion(all=[true])
     EnumerableCalc(expr#0=[{inputs}], expr#1=['Jane'], expr#2=[10], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
       EnumerableValues(tuples=[[{ 0 }]])
@@ -102,7 +102,7 @@ EnumerableThetaJoin(condition=[OR(=($1, $3), =(CAST($0):CHAR(11) CHARACTER SET "
       EnumerableValues(tuples=[[{ 0 }]])
     EnumerableCalc(expr#0=[{inputs}], expr#1=['Grace'], expr#2=[60], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Wilma'], expr#2=[null], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Wilma'], expr#2=[null:INTEGER], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
       EnumerableValues(tuples=[[{ 0 }]])
   EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
 !plan
@@ -281,11 +281,10 @@ order by empno limit 10;
 !ok
 EnumerableCalc(expr#0..10=[{inputs}], expr#11=[COALESCE($t7, $t8)], DEPTNO=[$t11], EMPNO=[$t0], ENAME=[$t1], JOB=[$t2], MGR=[$t3], HIREDATE=[$t4], SAL=[$t5], COMM=[$t6], DNAME=[$t9], LOC=[$t10])
   EnumerableLimit(fetch=[10])
-    EnumerableSort(sort0=[$0], dir0=[ASC])
-      EnumerableJoin(condition=[=($7, $8)], joinType=[left])
-        EnumerableLimit(fetch=[10])
-          EnumerableTableScan(table=[[scott, EMP]])
-        EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableJoin(condition=[=($7, $8)], joinType=[left])
+      EnumerableLimit(fetch=[10])
+        EnumerableTableScan(table=[[scott, EMP]])
+      EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # End join.iq

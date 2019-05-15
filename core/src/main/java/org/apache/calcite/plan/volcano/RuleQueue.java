@@ -117,7 +117,7 @@ class RuleQueue {
 
     // init empty sets for all phases
     for (VolcanoPlannerPhase phase : VolcanoPlannerPhase.values()) {
-      phaseRuleMapping.put(phase, new HashSet<String>());
+      phaseRuleMapping.put(phase, new HashSet<>());
     }
 
     // configure phases
@@ -238,16 +238,12 @@ class RuleQueue {
       public int compare(RelSubset o1, RelSubset o2) {
         int o1children = countChildren(o1);
         int o2children = countChildren(o2);
-        int c = compare(o1children, o2children);
+        int c = Integer.compare(o1children, o2children);
         if (c == 0) {
           // for determinism
-          c = compare(o1.getId(), o2.getId());
+          c = Integer.compare(o1.getId(), o2.getId());
         }
         return c;
-      }
-
-      private int compare(int i1, int i2) {
-        return (i1 < i2) ? -1 : ((i1 == i2) ? 0 : 1);
       }
 
       private int countChildren(RelSubset subset) {
@@ -376,7 +372,7 @@ class RuleQueue {
    * <p>where W<sub>n, p</sub>, the weight of n within its parent p, is
    *
    * <blockquote>W<sub>n, p</sub> = Cost<sub>n</sub> / (SelfCost<sub>p</sub> +
-   * Cost<sub>n<sub>0</sub></sub> + ... + Cost<sub>n<sub>k</sub></sub>)
+   * Cost<sub>n0</sub> + ... + Cost<sub>nk</sub>)
    * </blockquote>
    */
   double computeImportance(RelSubset subset) {

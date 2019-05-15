@@ -78,6 +78,16 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).convertsTo(plan);
   }
 
+  @Test public void testDotLiteralAfterNestedRow() {
+    final String sql = "select ((1,2),(3,4,5)).\"EXPR$1\".\"EXPR$2\" from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testDotLiteralAfterRow() {
+    final String sql = "select row(1,2).\"EXPR$1\" from emp";
+    sql(sql).ok();
+  }
+
   @Test public void testIntegerLiteral() {
     final String sql = "select 1 from emp";
     sql(sql).ok();
@@ -110,6 +120,16 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         + "  select a, b, c from (values (1, 2, 3)) as t (c, b, a)\n"
         + ") join dept on dept.deptno = c\n"
         + "order by c + a";
+    sql(sql).ok();
+  }
+
+  /** Test case for:
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2468">[CALCITE-2468]
+   * struct type alias should not cause IOOBE.</a>.
+   */
+  @Test public void testStructTypeAlias() {
+    final String sql = "select t.r AS myRow \n"
+        + "from (select row(row(1)) r from dept) t";
     sql(sql).ok();
   }
 
@@ -2860,6 +2880,113 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         null, null, SqlToRelConverter.Config.DEFAULT,
         SqlConformanceEnum.DEFAULT, Contexts.of(connectionConfig));
     sql(sql).with(tester).ok();
+  }
+
+  @Test public void testJsonExists() {
+    final String sql = "select json_exists(ename, 'lax $')\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonValue() {
+    final String sql = "select json_value(ename, 'lax $')\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonQuery() {
+    final String sql = "select json_query(ename, 'lax $')\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonArray() {
+    final String sql = "select json_array(ename, ename)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonArrayAgg() {
+    final String sql = "select json_arrayagg(ename)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonObject() {
+    final String sql = "select json_object(ename: deptno, ename: deptno)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonObjectAgg() {
+    final String sql = "select json_objectagg(ename: deptno)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonPredicate() {
+    final String sql = "select\n"
+        + "ename is json,\n"
+        + "ename is json value,\n"
+        + "ename is json object,\n"
+        + "ename is json array,\n"
+        + "ename is json scalar,\n"
+        + "ename is not json,\n"
+        + "ename is not json value,\n"
+        + "ename is not json object,\n"
+        + "ename is not json array,\n"
+        + "ename is not json scalar\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testWithinGroup1() {
+    final String sql = "select deptno,\n"
+        + " collect(empno) within group (order by deptno, hiredate desc)\n"
+        + "from emp\n"
+        + "group by deptno";
+    sql(sql).ok();
+  }
+
+  @Test public void testWithinGroup2() {
+    final String sql = "select dept.deptno,\n"
+        + " collect(sal) within group (order by sal desc) as s,\n"
+        + " collect(sal) within group (order by 1)as s1,\n"
+        + " collect(sal) within group (order by sal)\n"
+        + "  filter (where sal > 2000) as s2\n"
+        + "from emp\n"
+        + "join dept using (deptno)\n"
+        + "group by dept.deptno";
+    sql(sql).ok();
+  }
+
+  @Test public void testWithinGroup3() {
+    final String sql = "select deptno,\n"
+        + " collect(empno) within group (order by empno not in (1, 2)), count(*)\n"
+        + "from emp\n"
+        + "group by deptno";
+    sql(sql).ok();
+  }
+
+  @Test public void testOrderByRemoval1() {
+    final String sql = "select * from (\n"
+        + "  select empno from emp order by deptno offset 0) t\n"
+        + "order by empno desc";
+    sql(sql).ok();
+  }
+
+  @Test public void testOrderByRemoval2() {
+    final String sql = "select * from (\n"
+        + "  select empno from emp order by deptno offset 1) t\n"
+        + "order by empno desc";
+    sql(sql).ok();
+  }
+
+  @Test public void testOrderByRemoval3() {
+    final String sql = "select * from (\n"
+        + "  select empno from emp order by deptno limit 10) t\n"
+        + "order by empno";
+    sql(sql).ok();
   }
 
   /**

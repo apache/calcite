@@ -49,7 +49,61 @@ select * from t;
 
 !ok
 
+
+# Create a table with complex structure type
+# This is to test struct type inference in
+# <a href="https://issues.apache.org/jira/browse/CALCITE-2468">[CALCITE-2468]
+
+create type mytype1 as (ii int not null);
+(0 rows modified)
+
+!update
+
+# Create a complex table
+create table v (i int not null, j mytype1 not null);
+(0 rows modified)
+
+!update
+
+select i AS myInt, j AS myStruct from v;
+MYINT INTEGER(10) NOT NULL
+MYSTRUCT STRUCT NOT NULL
+!type
+
+
+# Create a table with nullable complex structure type
+# This is to test nullability for columns of structured types
+# <a href="https://issues.apache.org/jira/browse/CALCITE-2464">[CALCITE-2464]
+
+# Create a complex table
+create table w (i int not null, j mytype1);
+(0 rows modified)
+
+!update
+
+select i AS myInt, j AS myNullableStruct from w;
+MYINT INTEGER(10) NOT NULL
+MYNULLABLESTRUCT STRUCT
+!type
+
+insert into w values (1, NULL);
+(1 row modified)
+
+!update
+
+select * from w;
++---+---+
+| I | J |
++---+---+
+| 1 |   |
++---+---+
+(1 row)
+
+!ok
+
 drop table t;
+drop table v;
+drop table w;
 (0 rows modified)
 
 !update

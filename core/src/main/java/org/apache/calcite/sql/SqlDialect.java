@@ -23,6 +23,7 @@ import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
@@ -30,9 +31,12 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +48,7 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
@@ -73,6 +78,58 @@ public class SqlDialect {
   public static final SqlDialect CALCITE =
       CalciteSqlDialect.DEFAULT;
 
+  /** Built-in scalar functions and operators common for every dialect. */
+  protected static final Set<SqlOperator> BUILT_IN_OPERATORS_LIST =
+      ImmutableSet.<SqlOperator>builder()
+          .add(SqlStdOperatorTable.ABS)
+          .add(SqlStdOperatorTable.ACOS)
+          .add(SqlStdOperatorTable.AND)
+          .add(SqlStdOperatorTable.ASIN)
+          .add(SqlStdOperatorTable.BETWEEN)
+          .add(SqlStdOperatorTable.CASE)
+          .add(SqlStdOperatorTable.CAST)
+          .add(SqlStdOperatorTable.CEIL)
+          .add(SqlStdOperatorTable.CHAR_LENGTH)
+          .add(SqlStdOperatorTable.CHARACTER_LENGTH)
+          .add(SqlStdOperatorTable.COALESCE)
+          .add(SqlStdOperatorTable.CONCAT)
+          .add(SqlStdOperatorTable.COS)
+          .add(SqlStdOperatorTable.COT)
+          .add(SqlStdOperatorTable.DIVIDE)
+          .add(SqlStdOperatorTable.EQUALS)
+          .add(SqlStdOperatorTable.FLOOR)
+          .add(SqlStdOperatorTable.GREATER_THAN)
+          .add(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL)
+          .add(SqlStdOperatorTable.IN)
+          .add(SqlStdOperatorTable.IS_NOT_NULL)
+          .add(SqlStdOperatorTable.IS_NULL)
+          .add(SqlStdOperatorTable.LESS_THAN)
+          .add(SqlStdOperatorTable.LESS_THAN_OR_EQUAL)
+          .add(SqlStdOperatorTable.LIKE)
+          .add(SqlStdOperatorTable.LN)
+          .add(SqlStdOperatorTable.LOG10)
+          .add(SqlStdOperatorTable.MINUS)
+          .add(SqlStdOperatorTable.MOD)
+          .add(SqlStdOperatorTable.MULTIPLY)
+          .add(SqlStdOperatorTable.NOT)
+          .add(SqlStdOperatorTable.NOT_BETWEEN)
+          .add(SqlStdOperatorTable.NOT_EQUALS)
+          .add(SqlStdOperatorTable.NOT_IN)
+          .add(SqlStdOperatorTable.NOT_LIKE)
+          .add(SqlStdOperatorTable.OR)
+          .add(SqlStdOperatorTable.PI)
+          .add(SqlStdOperatorTable.PLUS)
+          .add(SqlStdOperatorTable.POWER)
+          .add(SqlStdOperatorTable.RAND)
+          .add(SqlStdOperatorTable.ROUND)
+          .add(SqlStdOperatorTable.ROW)
+          .add(SqlStdOperatorTable.SIN)
+          .add(SqlStdOperatorTable.SQRT)
+          .add(SqlStdOperatorTable.SUBSTRING)
+          .add(SqlStdOperatorTable.TAN)
+          .build();
+
+
   //~ Instance fields --------------------------------------------------------
 
   private final String identifierQuoteString;
@@ -80,6 +137,8 @@ public class SqlDialect {
   private final String identifierEscapedQuote;
   private final DatabaseProduct databaseProduct;
   protected final NullCollation nullCollation;
+  private final RelDataTypeSystem dataTypeSystem;
+  private final SqlConformance sqlConformance;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -136,7 +195,9 @@ public class SqlDialect {
    * @param context All the information necessary to create a dialect
    */
   public SqlDialect(Context context) {
+    this.sqlConformance = Objects.requireNonNull(context.sqlConformance());
     this.nullCollation = Objects.requireNonNull(context.nullCollation());
+    this.dataTypeSystem = Objects.requireNonNull(context.dataTypeSystem());
     this.databaseProduct =
         Objects.requireNonNull(context.databaseProduct());
     String identifierQuoteString = context.identifierQuoteString();
@@ -161,7 +222,8 @@ public class SqlDialect {
   /** Creates an empty context. Use {@link #EMPTY_CONTEXT} if possible. */
   protected static Context emptyContext() {
     return new ContextImpl(DatabaseProduct.UNKNOWN, null, null, -1, -1, null,
-        NullCollation.HIGH, JethroDataSqlDialect.JethroInfo.EMPTY);
+      NullCollation.HIGH, RelDataTypeSystemImpl.DEFAULT, JethroDataSqlDialect.JethroInfo.EMPTY,
+      SqlConformanceEnum.DEFAULT);
   }
 
   /**
@@ -236,6 +298,11 @@ public class SqlDialect {
     } else {
       return DatabaseProduct.UNKNOWN;
     }
+  }
+
+  /** Returns the type system implementation for this dialect. */
+  public RelDataTypeSystem getTypeSystem() {
+    return dataTypeSystem;
   }
 
   /**
@@ -487,6 +554,13 @@ public class SqlDialect {
     return true;
   }
 
+  /**Setting hasDualTable as false by default ,
+  *because most of the dialects supports SELECT without FROM clause .
+   */
+  public boolean hasDualTable() {
+    return false;
+  }
+
   // -- behaviors --
   protected boolean requiresAliasForFromItems() {
     return false;
@@ -588,10 +662,42 @@ public class SqlDialect {
     return true;
   }
 
-  /** Returns whether this dialect supports a given function or operator. */
+  /** Returns whether this dialect supports a given function or operator.
+   * It only applies to built-in scalar functions and operators, since
+   * user-defined functions and procedures should be read by JdbcSchema. */
   public boolean supportsFunction(SqlOperator operator, RelDataType type,
       List<RelDataType> paramTypes) {
-    return true;
+    switch (operator.kind) {
+    case AND:
+    case BETWEEN:
+    case CASE:
+    case CAST:
+    case CEIL:
+    case COALESCE:
+    case DIVIDE:
+    case EQUALS:
+    case FLOOR:
+    case GREATER_THAN:
+    case GREATER_THAN_OR_EQUAL:
+    case IN:
+    case IS_NULL:
+    case IS_NOT_NULL:
+    case LESS_THAN:
+    case LESS_THAN_OR_EQUAL:
+    case MINUS:
+    case MOD:
+    case NOT:
+    case NOT_IN:
+    case NOT_EQUALS:
+    case NVL:
+    case OR:
+    case PLUS:
+    case ROW:
+    case TIMES:
+      return true;
+    default:
+      return BUILT_IN_OPERATORS_LIST.contains(operator);
+    }
   }
 
   public CalendarPolicy getCalendarPolicy() {
@@ -600,9 +706,18 @@ public class SqlDialect {
 
   public SqlNode getCastSpec(RelDataType type) {
     if (type instanceof BasicSqlType) {
+      int precision = type.getPrecision();
+      switch (type.getSqlTypeName()) {
+      case VARCHAR:
+        // if needed, adjust varchar length to max length supported by the system
+        int maxPrecision = getTypeSystem().getMaxPrecision(type.getSqlTypeName());
+        if (type.getPrecision() > maxPrecision) {
+          precision = maxPrecision;
+        }
+      }
       return new SqlDataTypeSpec(
           new SqlIdentifier(type.getSqlTypeName().name(), SqlParserPos.ZERO),
-              type.getPrecision(),
+              precision,
               type.getScale(),
               type.getCharset() != null
                   && supportsCharSet()
@@ -636,6 +751,10 @@ public class SqlDialect {
   public SqlNode emulateNullDirection(SqlNode node, boolean nullsFirst,
       boolean desc) {
     return null;
+  }
+
+  public JoinType emulateJoinTypeForCrossJoin() {
+    return JoinType.COMMA;
   }
 
   protected SqlNode emulateNullDirectionWithIsNull(SqlNode node,
@@ -749,10 +868,25 @@ public class SqlDialect {
     return true;
   }
 
+  /**
+   * Returns whether the dialect supports column alias in sorting, for instance
+   * {@code SELECT SKU+1 AS A FROM "PRODUCT" ORDER BY A }.
+   */
+  public boolean supportsColumnAliasInSort() {
+    return false;
+  }
+
   /** Returns how NULL values are sorted if an ORDER BY item does not contain
    * NULLS ASCENDING or NULLS DESCENDING. */
   public NullCollation getNullCollation() {
     return nullCollation;
+  }
+
+  /**
+   * Returns SqlConformance for current SqlDialect
+   */
+  public SqlConformance getSqlConformance() {
+    return this.sqlConformance;
   }
 
   /** Returns whether NULL values are sorted first or last, in this dialect,
@@ -883,6 +1017,7 @@ public class SqlDialect {
     HSQLDB("Hsqldb", null, NullCollation.HIGH),
     VERTICA("Vertica", "\"", NullCollation.HIGH),
     SQLSTREAM("SQLstream", "\"", NullCollation.HIGH),
+    SPARK("Spark", null, NullCollation.LOW),
 
     /** Paraccel, now called Actian Matrix. Redshift is based on this, so
      * presumably the dialect capabilities are similar. */
@@ -953,8 +1088,12 @@ public class SqlDialect {
     Context withIdentifierQuoteString(String identifierQuoteString);
     @Nonnull NullCollation nullCollation();
     Context withNullCollation(@Nonnull NullCollation nullCollation);
+    @Nonnull RelDataTypeSystem dataTypeSystem();
+    Context withDataTypeSystem(@Nonnull RelDataTypeSystem dataTypeSystem);
     JethroDataSqlDialect.JethroInfo jethroInfo();
     Context withJethroInfo(JethroDataSqlDialect.JethroInfo jethroInfo);
+    @Nonnull SqlConformance sqlConformance();
+    Context withSqlConformance(@Nonnull SqlConformance sqlConformance);
   }
 
   /** Implementation of Context. */
@@ -966,13 +1105,17 @@ public class SqlDialect {
     private final int databaseMinorVersion;
     private final String identifierQuoteString;
     private final NullCollation nullCollation;
+    private final RelDataTypeSystem dataTypeSystem;
     private final JethroDataSqlDialect.JethroInfo jethroInfo;
+    private final SqlConformance sqlConformance;
 
     private ContextImpl(DatabaseProduct databaseProduct,
         String databaseProductName, String databaseVersion,
         int databaseMajorVersion, int databaseMinorVersion,
         String identifierQuoteString, NullCollation nullCollation,
-        JethroDataSqlDialect.JethroInfo jethroInfo) {
+        RelDataTypeSystem dataTypeSystem,
+        JethroDataSqlDialect.JethroInfo jethroInfo,
+        SqlConformance sqlConformance) {
       this.databaseProduct = Objects.requireNonNull(databaseProduct);
       this.databaseProductName = databaseProductName;
       this.databaseVersion = databaseVersion;
@@ -980,7 +1123,9 @@ public class SqlDialect {
       this.databaseMinorVersion = databaseMinorVersion;
       this.identifierQuoteString = identifierQuoteString;
       this.nullCollation = Objects.requireNonNull(nullCollation);
+      this.dataTypeSystem = Objects.requireNonNull(dataTypeSystem);
       this.jethroInfo = Objects.requireNonNull(jethroInfo);
+      this.sqlConformance = Objects.requireNonNull(sqlConformance);
     }
 
     @Nonnull public DatabaseProduct databaseProduct() {
@@ -991,7 +1136,7 @@ public class SqlDialect {
         @Nonnull DatabaseProduct databaseProduct) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
     }
 
     public String databaseProductName() {
@@ -1001,7 +1146,7 @@ public class SqlDialect {
     public Context withDatabaseProductName(String databaseProductName) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
     }
 
     public String databaseVersion() {
@@ -1011,7 +1156,7 @@ public class SqlDialect {
     public Context withDatabaseVersion(String databaseVersion) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
     }
 
     public int databaseMajorVersion() {
@@ -1021,7 +1166,7 @@ public class SqlDialect {
     public Context withDatabaseMajorVersion(int databaseMajorVersion) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
     }
 
     public int databaseMinorVersion() {
@@ -1031,7 +1176,7 @@ public class SqlDialect {
     public Context withDatabaseMinorVersion(int databaseMinorVersion) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
     }
 
     public String identifierQuoteString() {
@@ -1041,7 +1186,7 @@ public class SqlDialect {
     public Context withIdentifierQuoteString(String identifierQuoteString) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
     }
 
     @Nonnull public NullCollation nullCollation() {
@@ -1051,7 +1196,17 @@ public class SqlDialect {
     public Context withNullCollation(@Nonnull NullCollation nullCollation) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
+    }
+
+    @Nonnull public RelDataTypeSystem dataTypeSystem() {
+      return dataTypeSystem;
+    }
+
+    public Context withDataTypeSystem(@Nonnull RelDataTypeSystem dataTypeSystem) {
+      return new ContextImpl(databaseProduct, databaseProductName,
+          databaseVersion, databaseMajorVersion, databaseMinorVersion,
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
     }
 
     @Nonnull public JethroDataSqlDialect.JethroInfo jethroInfo() {
@@ -1061,7 +1216,17 @@ public class SqlDialect {
     public Context withJethroInfo(JethroDataSqlDialect.JethroInfo jethroInfo) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
-          identifierQuoteString, nullCollation, jethroInfo);
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
+    }
+
+    public Context withSqlConformance(@Nonnull SqlConformance sqlConformance) {
+      return new ContextImpl(databaseProduct, databaseProductName,
+          databaseVersion, databaseMajorVersion, databaseMinorVersion,
+          identifierQuoteString, nullCollation, dataTypeSystem, jethroInfo, sqlConformance);
+    }
+
+    @Nonnull public SqlConformance sqlConformance() {
+      return sqlConformance;
     }
   }
 }

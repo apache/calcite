@@ -18,6 +18,8 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.rel.type.RelDataType;
 
+import java.util.Objects;
+
 /**
  * A row-expression which references a field.
  */
@@ -32,11 +34,9 @@ public abstract class RexVariable extends RexNode {
   protected RexVariable(
       String name,
       RelDataType type) {
-    assert type != null;
-    assert name != null;
-    this.name = name;
-    this.digest = name;
-    this.type = type;
+    this.name = Objects.requireNonNull(name);
+    this.digest = Objects.requireNonNull(name);
+    this.type = Objects.requireNonNull(type);
   }
 
   //~ Methods ----------------------------------------------------------------

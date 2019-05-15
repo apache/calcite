@@ -354,13 +354,10 @@ public abstract class AbstractRelNode implements RelNode {
 
   public String recomputeDigest() {
     String tempDigest = computeDigest();
-    assert tempDigest != null : "post: return != null";
-    String prefix = "rel#" + id + ":";
+    assert tempDigest != null : "computeDigest() should be non-null";
 
-    // Substring uses the same underlying array of chars, so saves a bit
-    // of memory.
-    this.desc = prefix + tempDigest;
-    this.digest = this.desc.substring(prefix.length());
+    this.desc = "rel#" + id + ":" + tempDigest;
+    this.digest = tempDigest;
     return this.digest;
   }
 
@@ -412,7 +409,16 @@ public abstract class AbstractRelNode implements RelNode {
               if (j++ > 0) {
                 pw.write(",");
               }
-              pw.write(value.left + "=" + value.right);
+              pw.write(value.left);
+              pw.write("=");
+              if (value.right instanceof RelNode) {
+                RelNode input = (RelNode) value.right;
+                pw.write(input.getRelTypeName());
+                pw.write("#");
+                pw.write(Integer.toString(input.getId()));
+              } else {
+                pw.write(String.valueOf(value.right));
+              }
             }
             pw.write(")");
           }

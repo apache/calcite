@@ -43,7 +43,7 @@ public class UnmodifiableArrayList<E>
   }
 
   public static <E> UnmodifiableArrayList<E> of(E... elements) {
-    return new UnmodifiableArrayList<E>(elements);
+    return new UnmodifiableArrayList<>(elements);
   }
 
   @Override public E get(int index) {

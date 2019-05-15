@@ -20,12 +20,12 @@ limitations under the License.
   <parent>
     <groupId>org.apache.calcite</groupId>
     <artifactId>calcite</artifactId>
-    <version>1.18.0-SNAPSHOT</version>
+    <version>1.19.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>calcite-core</artifactId>
   <packaging>jar</packaging>
-  <version>1.18.0-SNAPSHOT</version>
+  <version>1.19.0-SNAPSHOT</version>
   <name>Calcite Core</name>
   <description>Core Calcite APIs and engine.</description>
 
@@ -62,6 +62,7 @@ limitations under the License.
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-pool2</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.esri.geometry</groupId>
@@ -86,6 +87,7 @@ limitations under the License.
     <dependency>
       <groupId>com.google.code.findbugs</groupId>
       <artifactId>jsr305</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
@@ -101,8 +103,32 @@ limitations under the License.
       <artifactId>sketches-core</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.jayway.jsonpath</groupId>
+      <artifactId>json-path</artifactId>
+    </dependency>
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.stephenc.jcip</groupId>
+      <artifactId>jcip-annotations</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-stdlib</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-test-junit</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -211,8 +237,43 @@ limitations under the License.
         </executions>
       </plugin>
       <plugin>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
+        <!-- http://kotlinlang.org/docs/reference/using-maven.html#compiling-kotlin-and-java-sources
+             Ensure kotlin-compile comes before maven-compiler-plugin, so Kotlin files
+             can be used in Java code (this especially important so CalciteSuite.java
+             can include Kotlin tests as well)
+         -->
+        <executions>
+          <!-- Replacing default-compile as it is treated specially by maven -->
+          <execution>
+            <id>default-compile</id>
+            <phase>none</phase>
+          </execution>
+          <!-- Replacing default-testCompile as it is treated specially by maven -->
+          <execution>
+            <id>default-testCompile</id>
+            <phase>none</phase>
+          </execution>
+          <execution>
+            <id>java-compile</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>java-test-compile</id>
+            <phase>test-compile</phase>
+            <goals>
+              <goal>testCompile</goal>
+            </goals>
+          </execution>
+        </executions>
         <configuration>
           <source>8</source>
           <target>8</target>
@@ -496,6 +557,25 @@ limitations under the License.
             <filtering>true</filtering>
           </resource>
         </resources>
+      </build>
+    </profile>
+    <profile>
+      <id>skipSlowTests</id>
+      <activation>
+        <property>
+          <name>skipSlowTests</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <excludedGroups>org.apache.calcite.test.SlowTests</excludedGroups>
+            </configuration>
+          </plugin>
+        </plugins>
       </build>
     </profile>
   </profiles>
