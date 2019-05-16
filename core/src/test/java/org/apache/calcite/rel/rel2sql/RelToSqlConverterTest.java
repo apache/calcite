@@ -3284,7 +3284,7 @@ public class RelToSqlConverterTest {
   @Test public void testFloorInSpark() {
     final String query = "select floor(\"hire_date\" TO MINUTE) "
         + "from \"employee\"";
-    final String expected = "SELECT DATE_TRUNC(hire_date, 'MINUTE')\n"
+    final String expected = "SELECT DATE_TRUNC('MINUTE', hire_date)\n"
         + "FROM foodmart.employee";
     sql(query).withSpark().ok(expected);
   }
