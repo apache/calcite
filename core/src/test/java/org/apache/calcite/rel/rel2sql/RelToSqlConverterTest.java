@@ -3265,6 +3265,38 @@ public class RelToSqlConverterTest {
     sql(query).withSpark().ok(expected);
   }
 
+  @Test public void testSubstringInSpark() {
+    final String query = "select substring(\"brand_name\" from 2) "
+        + "from \"product\"\n";
+    final String expected = "SELECT SUBSTRING(brand_name, 2)\n"
+        + "FROM foodmart.product";
+    sql(query).withSpark().ok(expected);
+  }
+
+  @Test public void testSubstringWithForInSpark() {
+    final String query = "select substring(\"brand_name\" from 2 for 3) "
+        + "from \"product\"\n";
+    final String expected = "SELECT SUBSTRING(brand_name, 2, 3)\n"
+        + "FROM foodmart.product";
+    sql(query).withSpark().ok(expected);
+  }
+
+  @Test public void testFloorInSpark() {
+    final String query = "select floor(\"hire_date\" TO MINUTE) "
+        + "from \"employee\"";
+    final String expected = "SELECT DATE_TRUNC('MINUTE', hire_date)\n"
+        + "FROM foodmart.employee";
+    sql(query).withSpark().ok(expected);
+  }
+
+  @Test public void testNumericFloorInSpark() {
+    final String query = "select floor(\"salary\") "
+        + "from \"employee\"";
+    final String expected = "SELECT FLOOR(salary)\n"
+        + "FROM foodmart.employee";
+    sql(query).withSpark().ok(expected);
+  }
+
   @Test public void testJsonType() {
     String query = "select json_type(\"product_name\") from \"product\"";
     final String expected = "SELECT "
