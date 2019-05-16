@@ -271,11 +271,17 @@ public class MysqlSqlDialect extends SqlDialect {
     case MINUTE:
     case HOUR:
     case DAY:
-    case WEEK:
     case MONTH:
-    case QUARTER:
     case YEAR:
       return timeUnit;
+
+    // Intervals cannot hold WEEK or QUARTERs. This can be the time unit
+    // if a TimestampAdd call was transformed to Datetime_plus through the
+    // TimestampAdd convertlet.
+    case WEEK:
+      return TimeUnit.DAY;
+    case QUARTER:
+      return TimeUnit.MONTH;
     default:
       throw new AssertionError(" Time unit " + timeUnit + "is not supported now.");
     }

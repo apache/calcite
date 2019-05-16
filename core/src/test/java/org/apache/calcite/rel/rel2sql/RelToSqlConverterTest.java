@@ -1611,44 +1611,455 @@ public class RelToSqlConverterTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2625">[CALCITE-2625]
-   * Removing Window Boundaries from SqlWindow of Aggregate Function which do not allow Framing</a>
-   * */
-  @Test public void testRowNumberFunctionForPrintingOfFrameBoundary() {
-    String query = "SELECT row_number() over (order by \"hire_date\") FROM \"employee\"";
-    String expected = "SELECT ROW_NUMBER() OVER (ORDER BY \"hire_date\")\n"
-        + "FROM \"foodmart\".\"employee\"";
-    sql(query).ok(expected);
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2339">[CALCITE-2339]
+   * Conversion of datetime_plus to timestampadd for dialects that only
+   * support timestampadd</a>. */
+  @Test public void testTimestampAddToTimestampAddMssql() {
+    String query = "SELECT TIMESTAMPADD(MONTH, 10, \"hire_date\") FROM \"employee\"";
+    String expected = "SELECT DATEADD(MONTH, 10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(YEAR, -10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT DATEADD(YEAR, -10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(YEAR, 10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT DATEADD(YEAR, 10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(YEAR, -10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT DATEADD(YEAR, -10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(DAY, 10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT DATEADD(DAY, 10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(DAY, -10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT DATEADD(DAY, -10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(HOUR, 10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT DATEADD(HOUR, 10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(HOUR, -10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT DATEADD(HOUR, -10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(MINUTE, 10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT DATEADD(MINUTE, 10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(MINUTE, -10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT DATEADD(MINUTE, -10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(SECOND, 10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT DATEADD(SECOND, 10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(SECOND, -10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT DATEADD(SECOND, -10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(QUARTER, 10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT DATEADD(QUARTER, 10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(QUARTER, -10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT DATEADD(QUARTER, -10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(WEEK, 10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT DATEADD(WEEK, 10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(WEEK, -10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT DATEADD(WEEK, -10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(WEEK, \"employee_id\", \"hire_date\") FROM \"employee\"";
+    expected = "SELECT DATEADD(WEEK, [employee_id], [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(QUARTER, \"employee_id\", \"hire_date\") FROM \"employee\"";
+    expected = "SELECT DATEADD(QUARTER, [employee_id], [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
   }
 
-  @Test public void testRankFunctionForPrintingOfFrameBoundary() {
-    String query = "SELECT rank() over (order by \"hire_date\") FROM \"employee\"";
-    String expected = "SELECT RANK() OVER (ORDER BY \"hire_date\")\n"
-        + "FROM \"foodmart\".\"employee\"";
-    sql(query).ok(expected);
+  @Test public void testDatetimePlusToTimestampAddMssql() {
+    String query = "SELECT \"hire_date\" + INTERVAL '10' MONTH FROM \"employee\"";
+    String expected = "SELECT DATEADD(MONTH, 10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" - INTERVAL '10' MONTH FROM \"employee\"";
+    expected = "SELECT DATEADD(MONTH, -10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" + INTERVAL '-10' MONTH FROM \"employee\"";
+    expected = "SELECT DATEADD(MONTH, -10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" + INTERVAL -'10' MONTH FROM \"employee\"";
+    expected = "SELECT DATEADD(MONTH, -10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" + INTERVAL '10' SECOND FROM \"employee\"";
+    expected = "SELECT DATEADD(SECOND, 10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" - INTERVAL '10' SECOND FROM \"employee\"";
+    expected = "SELECT DATEADD(SECOND, -10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" + INTERVAL '-10' SECOND FROM \"employee\"";
+    expected = "SELECT DATEADD(SECOND, -10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" + INTERVAL -'10' SECOND FROM \"employee\"";
+    expected = "SELECT DATEADD(SECOND, -10, [hire_date])\nFROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" + \"employee_id\" * INTERVAL -'10' SECOND FROM \"employee\"";
+    expected = "SELECT DATEADD(SECOND, -10 * [employee_id], [hire_date])\n"
+        + "FROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" + INTERVAL -'10' SECOND * \"employee_id\" FROM \"employee\"";
+    expected = "SELECT DATEADD(SECOND, -10 * [employee_id], [hire_date])\n"
+        + "FROM [foodmart].[employee]";
+    sql(query)
+            .withMssql()
+            .ok(expected);
   }
 
-  @Test public void testLeadFunctionForPrintingOfFrameBoundary() {
-    String query = "SELECT lead(\"employee_id\",1,'NA') over "
-        + "(partition by \"hire_date\" order by \"employee_id\") FROM \"employee\"";
-    String expected = "SELECT LEAD(\"employee_id\", 1, 'NA') OVER "
-        + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\")\n"
-        + "FROM \"foodmart\".\"employee\"";
-    sql(query).ok(expected);
+  @Test public void testDatetimePlusToDatetimePlusDb2() {
+    String query = "SELECT \"hire_date\" + INTERVAL '10' MONTH FROM \"employee\"";
+    String expected = "SELECT (employee.hire_date + 10 MONTH)\nFROM foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" - INTERVAL '10' MONTH FROM \"employee\"";
+    expected = "SELECT (employee.hire_date - 10 MONTH)\nFROM foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" + INTERVAL '-10' MONTH FROM \"employee\"";
+    expected = "SELECT (employee.hire_date + -10 MONTH)\nFROM foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" + INTERVAL -'10' MONTH FROM \"employee\"";
+    expected = "SELECT (employee.hire_date + -10 MONTH)\nFROM foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" + INTERVAL '10' YEAR FROM \"employee\"";
+    expected = "SELECT (employee.hire_date + 10 YEAR)\nFROM foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" + INTERVAL '-10' YEAR FROM \"employee\"";
+    expected = "SELECT (employee.hire_date + -10 YEAR)\nFROM foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" + INTERVAL -'10' YEAR FROM \"employee\"";
+    expected = "SELECT (employee.hire_date + -10 YEAR)\nFROM foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" - INTERVAL '10' YEAR FROM \"employee\"";
+    expected = "SELECT (employee.hire_date - 10 YEAR)\nFROM foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" + INTERVAL '10' HOUR FROM \"employee\"";
+    expected = "SELECT (employee.hire_date + 10 HOUR)\nFROM foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" + INTERVAL '-10' HOUR FROM \"employee\"";
+    expected = "SELECT (employee.hire_date + -10 HOUR)\nFROM foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" + INTERVAL -'10' HOUR FROM \"employee\"";
+    expected = "SELECT (employee.hire_date + -10 HOUR)\nFROM foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" - INTERVAL '10' HOUR FROM \"employee\"";
+    expected = "SELECT (employee.hire_date - 10 HOUR)\nFROM foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" + \"employee_id\" * INTERVAL -'10' SECOND FROM \"employee\"";
+    expected = "SELECT (employee.hire_date + employee.employee_id * -10 SECOND)\n"
+        + "FROM foodmart.employee AS employee";
+
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT \"hire_date\" + INTERVAL -'10' SECOND * \"employee_id\" FROM \"employee\"";
+    expected = "SELECT (employee.hire_date + -10 SECOND * employee.employee_id)\n"
+        + "FROM foodmart.employee AS employee";
+
+    sql(query)
+            .withDb2()
+            .ok(expected);
   }
 
-  @Test public void testLagFunctionForPrintingOfFrameBoundary() {
-    String query = "SELECT lag(\"employee_id\",1,'NA') over "
-        + "(partition by \"hire_date\" order by \"employee_id\") FROM \"employee\"";
-    String expected = "SELECT LAG(\"employee_id\", 1, 'NA') OVER "
-        + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\")\n"
+  @Test public void testTimestampAddToDatetimePlusDb2() {
+    String query = "SELECT TIMESTAMPADD(MONTH, 10, \"hire_date\") FROM \"employee\"";
+    String expected = "SELECT (employee.hire_date + 1 MONTH * 10)\n"
+        + "FROM foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(MONTH, -10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (employee.hire_date + 1 MONTH * -10)\nFROM foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(HOUR, -10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (employee.hire_date + 1 HOUR * -10)\nFROM foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(HOUR, 10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (employee.hire_date + 1 HOUR * 10)\nFROM foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(WEEK, 10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (employee.hire_date + 7 DAY * 10)\nFROM foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(WEEK, -10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (employee.hire_date + 7 DAY * -10)\nFROM foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+
+    query = "SELECT TIMESTAMPADD(QUARTER, 10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (employee.hire_date + 3 MONTH * 10)\nFROM foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(WEEK, \"employee_id\", \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (employee.hire_date + 7 DAY * employee.employee_id)\nFROM "
+        + "foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(QUARTER, \"employee_id\", \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (employee.hire_date + 3 MONTH * employee.employee_id)\nFROM "
+        + "foodmart.employee AS employee";
+    sql(query)
+            .withDb2()
+            .ok(expected);
+  }
+
+  @Test public void testTimestampAddToDatetimePlusMySql() {
+    String query = "SELECT TIMESTAMPADD(MONTH, 10, \"hire_date\") FROM \"employee\"";
+    String expected = "SELECT (`hire_date` + INTERVAL '1' MONTH * 10)\nFROM `foodmart`.`employee`";
+    sql(query)
+            .withMysql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(MONTH, -10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (`hire_date` + INTERVAL '1' MONTH * -10)\nFROM `foodmart`.`employee`";
+    sql(query)
+            .withMysql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(HOUR, -10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (`hire_date` + INTERVAL '1' HOUR * -10)\nFROM `foodmart`.`employee`";
+    sql(query)
+            .withMysql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(HOUR, 10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (`hire_date` + INTERVAL '1' HOUR * 10)\nFROM `foodmart`.`employee`";
+    sql(query)
+            .withMysql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(WEEK, 10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (`hire_date` + INTERVAL '7' DAY * 10)\nFROM `foodmart`.`employee`";
+    sql(query)
+            .withMysql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(WEEK, -10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (`hire_date` + INTERVAL '7' DAY * -10)\nFROM `foodmart`.`employee`";
+    sql(query)
+            .withMysql()
+            .ok(expected);
+
+
+    query = "SELECT TIMESTAMPADD(QUARTER, 10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (`hire_date` + INTERVAL '3' MONTH * 10)\nFROM `foodmart`.`employee`";
+    sql(query)
+            .withMysql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(WEEK, \"employee_id\", \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (`hire_date` + INTERVAL '7' DAY * `employee_id`)\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query)
+            .withMysql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(QUARTER, \"employee_id\", \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (`hire_date` + INTERVAL '3' MONTH * `employee_id`)\nFROM"
+        + " `foodmart`.`employee`";
+    sql(query)
+            .withMysql()
+            .ok(expected);
+  }
+
+  @Test public void testTimestampAddToDatetimePlusPostgresql() {
+    String query = "SELECT TIMESTAMPADD(MONTH, 10, \"hire_date\") FROM \"employee\"";
+    String expected = "SELECT (\"hire_date\" + INTERVAL '1' MONTH * 10)\n"
         + "FROM \"foodmart\".\"employee\"";
-    sql(query).ok(expected);
+    sql(query)
+            .withPostgresql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(MONTH, -10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (\"hire_date\" + INTERVAL '1' MONTH * -10)\nFROM \"foodmart\".\"employee\"";
+    sql(query)
+            .withPostgresql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(HOUR, -10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (\"hire_date\" + INTERVAL '1' HOUR * -10)\nFROM \"foodmart\".\"employee\"";
+    sql(query)
+            .withPostgresql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(HOUR, 10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (\"hire_date\" + INTERVAL '1' HOUR * 10)\nFROM \"foodmart\".\"employee\"";
+    sql(query)
+            .withPostgresql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(WEEK, 10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (\"hire_date\" + INTERVAL '7' DAY * 10)\nFROM \"foodmart\".\"employee\"";
+    sql(query)
+            .withPostgresql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(WEEK, -10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (\"hire_date\" + INTERVAL '7' DAY * -10)\nFROM \"foodmart\".\"employee\"";
+    sql(query)
+            .withPostgresql()
+            .ok(expected);
+
+
+    query = "SELECT TIMESTAMPADD(QUARTER, 10, \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (\"hire_date\" + INTERVAL '3' MONTH * 10)\nFROM \"foodmart\".\"employee\"";
+    sql(query)
+            .withPostgresql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(WEEK, \"employee_id\", \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (\"hire_date\" + INTERVAL '7' DAY * \"employee_id\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+            .withPostgresql()
+            .ok(expected);
+
+    query = "SELECT TIMESTAMPADD(QUARTER, \"employee_id\", \"hire_date\") FROM \"employee\"";
+    expected = "SELECT (\"hire_date\" + INTERVAL '3' MONTH * \"employee_id\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+            .withPostgresql()
+            .ok(expected);
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1798">[CALCITE-1798]
-   * Generate dialect-specific SQL for FLOOR operator</a>. */
+     * <a href="https://issues.apache.org/jira/browse/CALCITE-1798">[CALCITE-1798]
+     * Generate dialect-specific SQL for FLOOR operator</a>. */
   @Test public void testFloor() {
     String query = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
     String expected = "SELECT TRUNC(hire_date, 'MI')\nFROM foodmart.employee";

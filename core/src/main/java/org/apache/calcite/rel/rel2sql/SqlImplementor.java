@@ -641,6 +641,7 @@ public abstract class SqlImplementor {
           // SqlCall requires exactly 2. So, convert to a left-deep binary tree.
           return createLeftCall(op, nodeList);
         }
+
         return op.createCall(new SqlNodeList(nodeList, POS));
       }
     }

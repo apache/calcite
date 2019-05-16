@@ -48,9 +48,20 @@ public class MssqlSqlDialect extends SqlDialect {
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
           SqlFunctionCategory.STRING);
 
+  private static final SqlFunction MSSQL_DATEADD =
+      new SqlFunction("DATEADD", SqlStdOperatorTable.TIMESTAMP_ADD.getKind(),
+          SqlStdOperatorTable.TIMESTAMP_ADD.getReturnTypeInference(),
+          SqlStdOperatorTable.TIMESTAMP_ADD.getOperandTypeInference(),
+          SqlStdOperatorTable.TIMESTAMP_ADD.getOperandTypeChecker(),
+          SqlStdOperatorTable.TIMESTAMP_ADD.getFunctionType());
+
   /** Creates a MssqlSqlDialect. */
   public MssqlSqlDialect(Context context) {
     super(context);
+  }
+
+  @Override public boolean useTimestampAddInsteadOfDatetimePlus() {
+    return true;
   }
 
   @Override public void unparseDateTimeLiteral(SqlWriter writer,
@@ -65,6 +76,8 @@ public class MssqlSqlDialect extends SqlDialect {
         throw new IllegalArgumentException("MSSQL SUBSTRING requires FROM and FOR arguments");
       }
       SqlUtil.unparseFunctionSyntax(MSSQL_SUBSTRING, writer, call);
+    } else if (call.getOperator() == SqlStdOperatorTable.TIMESTAMP_ADD) {
+      SqlUtil.unparseFunctionSyntax(MSSQL_DATEADD, writer, call);
     } else {
       switch (call.getKind()) {
       case FLOOR:

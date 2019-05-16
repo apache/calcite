@@ -463,13 +463,37 @@ public class SqlDialect {
       SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
     SqlIntervalLiteral.IntervalValue interval =
         (SqlIntervalLiteral.IntervalValue) literal.getValue();
+
+    final SqlIntervalQualifier qualifier;
+    final String intervalString = literal.getValue().toString();
+
+    // Correct invalid single-field interval literals, such as those holding weeks or quarters.
+    // These could have been created as part of the TimestampAddConvertlet.
+    if (interval.getIntervalQualifier().isSingleDatetimeField()) {
+      switch (interval.getIntervalQualifier().getStartUnit()) {
+      case WEEK:
+        qualifier = new SqlIntervalQualifier(TimeUnit.DAY, null, SqlParserPos.ZERO);
+        break;
+
+      case QUARTER:
+        qualifier = new SqlIntervalQualifier(TimeUnit.MONTH, null, SqlParserPos.ZERO);
+        break;
+
+      default:
+        qualifier = interval.getIntervalQualifier();
+        break;
+      }
+    } else {
+      qualifier = interval.getIntervalQualifier();
+    }
+
     writer.keyword("INTERVAL");
     if (interval.getSign() == -1) {
       writer.print("-");
     }
-    writer.literal("'" + literal.getValue().toString() + "'");
-    unparseSqlIntervalQualifier(writer, interval.getIntervalQualifier(),
-        RelDataTypeSystem.DEFAULT);
+
+    writer.literal("'" + intervalString + "'");
+    unparseSqlIntervalQualifier(writer, qualifier, RelDataTypeSystem.DEFAULT);
   }
 
   /**
@@ -634,6 +658,14 @@ public class SqlDialect {
     case MAX:
       return true;
     }
+    return false;
+  }
+
+  /**
+   * Indicates that datetime_plus operations should be unparsed as timestampadd
+   * when possible.
+   */
+  public boolean useTimestampAddInsteadOfDatetimePlus() {
     return false;
   }
 
