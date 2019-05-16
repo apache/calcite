@@ -133,19 +133,22 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction TRANSLATE3 = new SqlTranslate3Function();
 
   @LibraryOperator(libraries = {MYSQL})
-  public static final SqlFunction JSON_TYPE = SqlStdOperatorTable.JSON_TYPE;
+  public static final SqlFunction JSON_TYPE = new SqlJsonTypeFunction();
 
   @LibraryOperator(libraries = {MYSQL})
-  public static final SqlFunction JSON_DEPTH = SqlStdOperatorTable.JSON_DEPTH;
+  public static final SqlFunction JSON_DEPTH = new SqlJsonDepthFunction();
 
   @LibraryOperator(libraries = {MYSQL})
-  public static final SqlFunction JSON_LENGTH = SqlStdOperatorTable.JSON_LENGTH;
+  public static final SqlFunction JSON_LENGTH = new SqlJsonLengthFunction();
 
   @LibraryOperator(libraries = {MYSQL})
-  public static final SqlFunction JSON_KEYS = SqlStdOperatorTable.JSON_KEYS;
+  public static final SqlFunction JSON_KEYS = new SqlJsonKeysFunction();
 
   @LibraryOperator(libraries = {MYSQL})
-  public static final SqlFunction JSON_PRETTY = SqlStdOperatorTable.JSON_PRETTY;
+  public static final SqlFunction JSON_PRETTY = new SqlJsonPrettyFunction();
+
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction JSON_REMOVE = new SqlJsonRemoveFunction();
 }
 
 // End SqlLibraryOperators.java
