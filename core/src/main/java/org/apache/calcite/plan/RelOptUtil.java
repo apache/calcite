@@ -26,6 +26,7 @@ import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
@@ -201,7 +202,7 @@ public abstract class RelOptUtil {
    */
   public static List<RelOptTable> findAllTables(RelNode rel) {
     final Multimap<Class<? extends RelNode>, RelNode> nodes =
-        RelMetadataQuery.instance().getNodeTypes(rel);
+        rel.getCluster().getMetadataQuery().getNodeTypes(rel);
     final List<RelOptTable> usedTables = new ArrayList<>();
     for (Entry<Class<? extends RelNode>, Collection<RelNode>> e : nodes.asMap().entrySet()) {
       if (TableScan.class.isAssignableFrom(e.getKey())) {
@@ -467,24 +468,10 @@ public abstract class RelOptUtil {
       final RelBuilder relBuilder =
           RelFactories.LOGICAL_BUILDER.create(cluster, null);
       ret = relBuilder.push(ret)
-          .project(ImmutableList.of(extraExpr))
+          .project(extraExpr)
+          .aggregate(relBuilder.groupKey(),
+              relBuilder.min(relBuilder.field(0)).as(extraName))
           .build();
-
-      final AggregateCall aggCall =
-          AggregateCall.create(SqlStdOperatorTable.MIN,
-              false,
-              false,
-              ImmutableList.of(0),
-              -1,
-              RelCollations.EMPTY,
-              0,
-              ret,
-              null,
-              extraName);
-
-      ret =
-          LogicalAggregate.create(ret,
-              ImmutableBitSet.of(), null, ImmutableList.of(aggCall));
     }
 
     return ret;
@@ -561,22 +548,12 @@ public abstract class RelOptUtil {
     final int projectedKeyCount = exprs.size();
     exprs.add(rexBuilder.makeLiteral(true));
 
-    ret = relBuilder.push(ret).project(exprs).build();
-
-    final AggregateCall aggCall =
-        AggregateCall.create(SqlStdOperatorTable.MIN,
-            false,
-            false,
-            ImmutableList.of(projectedKeyCount),
-            -1,
-            RelCollations.EMPTY,
-            projectedKeyCount,
-            ret,
-            null,
-            null);
-
-    ret = LogicalAggregate.create(ret, ImmutableBitSet.range(projectedKeyCount),
-        null, ImmutableList.of(aggCall));
+    ret = relBuilder.push(ret)
+        .project(exprs)
+        .aggregate(
+            relBuilder.groupKey(ImmutableBitSet.range(projectedKeyCount)),
+            relBuilder.min(relBuilder.field(projectedKeyCount)))
+        .build();
 
     switch (logic) {
     case TRUE_FALSE_UNKNOWN:
@@ -774,7 +751,7 @@ public abstract class RelOptUtil {
     for (int i = 0; i < aggCallCnt; i++) {
       aggCalls.add(
           AggregateCall.create(SqlStdOperatorTable.SINGLE_VALUE, false, false,
-              ImmutableList.of(i), -1, RelCollations.EMPTY, 0, rel, null,
+              false, ImmutableList.of(i), -1, RelCollations.EMPTY, 0, rel, null,
               null));
     }
 
@@ -2379,9 +2356,10 @@ public abstract class RelOptUtil {
     final List<RelDataTypeField> rightFields =
         joinRel.getInputs().get(1).getRowType().getFieldList();
     final int nFieldsRight = rightFields.size();
-    assert nTotalFields == (joinRel instanceof SemiJoin
-        ? nSysFields + nFieldsLeft
-        : nSysFields + nFieldsLeft + nFieldsRight);
+
+    assert nTotalFields == (returnsJustFirstInput(joinRel)
+            ? nSysFields + nFieldsLeft
+            : nSysFields + nFieldsLeft + nFieldsRight);
 
     // set the reference bitmaps for the left and right children
     ImmutableBitSet leftBitmap =
@@ -2466,6 +2444,13 @@ public abstract class RelOptUtil {
 
     // Did anything change?
     return !filtersToRemove.isEmpty();
+  }
+
+  private static boolean returnsJustFirstInput(RelNode joinRel) {
+    // SemiJoin, CorrelateSemiJoin, CorrelateAntiJoin: right fields are not returned
+    return joinRel instanceof SemiJoin
+            || (joinRel instanceof Correlate
+                && ((Correlate) joinRel).getJoinType().returnsJustFirstInput());
   }
 
   private static RexNode shiftFilter(
@@ -3014,16 +2999,7 @@ public abstract class RelOptUtil {
         return relBuilder.getRexBuilder().makeInputRef(child, pos);
       }
     };
-    final List<String> names = new AbstractList<String>() {
-      public int size() {
-        return posList.size();
-      }
-
-      public String get(int index) {
-        final int pos = posList.get(index);
-        return fieldNames.get(pos);
-      }
-    };
+    final List<String> names = Util.select(fieldNames, posList);
     return relBuilder
         .push(child)
         .projectNamed(exprs, names, false)

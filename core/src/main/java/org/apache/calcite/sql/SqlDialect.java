@@ -876,6 +876,41 @@ public class SqlDialect {
     return false;
   }
 
+  /**
+   * Returns whether this dialect supports "WITH ROLLUP" in the "GROUP BY"
+   * clause.
+   *
+   * <p>For instance, in MySQL version 5,
+   *
+   * <blockquote>
+   *   <code>
+   *     SELECT deptno, job, COUNT(*) AS c
+   *     FROM emp
+   *     GROUP BY deptno, job WITH ROLLUP
+   *   </code>
+   * </blockquote>
+   *
+   * <p>is equivalent to standard SQL
+   *
+   * <blockquote>
+   *   <code>
+   *     SELECT deptno, job, COUNT(*) AS c
+   *     FROM emp
+   *     GROUP BY ROLLUP(deptno, job)
+   *     ORDER BY deptno, job
+   *   </code>
+   * </blockquote>
+   *
+   * <p>The "WITH ROLLUP" clause was introduced in MySQL and is not standard
+   * SQL.
+   *
+   * <p>See also {@link #supportsAggregateFunction(SqlKind)} applied to
+   * {@link SqlKind#ROLLUP}, which returns true in MySQL 8 and higher.
+   */
+  public boolean supportsGroupByWithRollup() {
+    return false;
+  }
+
   /** Returns how NULL values are sorted if an ORDER BY item does not contain
    * NULLS ASCENDING or NULLS DESCENDING. */
   public NullCollation getNullCollation() {
@@ -891,7 +926,7 @@ public class SqlDialect {
 
   /** Returns whether NULL values are sorted first or last, in this dialect,
    * in an ORDER BY item of a given direction. */
-  public RelFieldCollation.NullDirection defaultNullDirection(
+  public @Nonnull RelFieldCollation.NullDirection defaultNullDirection(
       RelFieldCollation.Direction direction) {
     switch (direction) {
     case ASCENDING:
@@ -1087,7 +1122,7 @@ public class SqlDialect {
     String identifierQuoteString();
     Context withIdentifierQuoteString(String identifierQuoteString);
     @Nonnull NullCollation nullCollation();
-    Context withNullCollation(@Nonnull NullCollation nullCollation);
+    @Nonnull Context withNullCollation(@Nonnull NullCollation nullCollation);
     @Nonnull RelDataTypeSystem dataTypeSystem();
     Context withDataTypeSystem(@Nonnull RelDataTypeSystem dataTypeSystem);
     JethroDataSqlDialect.JethroInfo jethroInfo();

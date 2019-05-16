@@ -48,7 +48,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-import static org.apache.calcite.adapter.enumerable.EnumUtils.javaRowClass;
 import static org.apache.calcite.adapter.enumerable.EnumUtils.overridingMethodDecl;
 
 /** Implementation of {@link PhysType}. */
@@ -70,7 +69,8 @@ public class PhysTypeImpl implements PhysType {
     this.javaRowClass = javaRowClass;
     this.format = format;
     for (RelDataTypeField field : rowType.getFieldList()) {
-      fieldClasses.add(javaRowClass(typeFactory, field.getType()));
+      Type fieldType = typeFactory.getJavaClass(field.getType());
+      fieldClasses.add(fieldType instanceof Class ? (Class) fieldType : Object[].class);
     }
   }
 
@@ -235,16 +235,32 @@ public class PhysTypeImpl implements PhysType {
         Primitive.box(javaRowClass), format);
   }
 
+  @SuppressWarnings("deprecation")
   public Expression convertTo(Expression exp, PhysType targetPhysType) {
-    final JavaRowFormat targetFormat = targetPhysType.getFormat();
+    return convertTo(exp, targetPhysType.getFormat());
+  }
+
+  public Expression convertTo(Expression exp, JavaRowFormat targetFormat) {
     if (format == targetFormat) {
       return exp;
     }
     final ParameterExpression o_ =
         Expressions.parameter(javaRowClass, "o");
     final int fieldCount = rowType.getFieldCount();
-    return Expressions.call(exp, BuiltInMethod.SELECT.method,
-        generateSelector(o_, Util.range(fieldCount), targetFormat));
+    // The conversion must be strict so optimizations of the targetFormat should not be performed
+    // by the code that follows. If necessary the target format can be optimized before calling
+    // this method.
+    PhysType targetPhysType = PhysTypeImpl.of(typeFactory, rowType, targetFormat, false);
+    final Expression selector;
+    switch (targetPhysType.getFormat()) {
+    case SCALAR:
+      selector = Expressions.call(BuiltInMethod.IDENTITY_SELECTOR.method);
+      break;
+    default:
+      selector = Expressions.lambda(Function1.class,
+          targetPhysType.record(fieldReferences(o_, Util.range(fieldCount))), o_);
+    }
+    return Expressions.call(exp, BuiltInMethod.SELECT.method, selector);
   }
 
   public Pair<Expression, Expression> generateCollationKey(

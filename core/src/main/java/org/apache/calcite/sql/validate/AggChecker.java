@@ -22,7 +22,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
@@ -96,10 +95,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
     }
 
     // Is it a call to a parentheses-free function?
-    SqlCall call =
-        SqlUtil.makeCall(
-            validator.getOperatorTable(),
-            id);
+    final SqlCall call = validator.makeNullaryCall(id);
     if (call != null) {
       return call.accept(this);
     }
@@ -152,11 +148,11 @@ class AggChecker extends SqlBasicVisitor<Void> {
       // BY deptno'
       return null;
     }
-    if (call.getKind() == SqlKind.FILTER) {
-      call.operand(0).accept(this);
-      return null;
-    }
-    if (call.getKind() == SqlKind.WITHIN_GROUP) {
+    switch (call.getKind()) {
+    case FILTER:
+    case WITHIN_GROUP:
+    case RESPECT_NULLS:
+    case IGNORE_NULLS:
       call.operand(0).accept(this);
       return null;
     }

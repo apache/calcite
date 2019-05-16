@@ -46,6 +46,7 @@ limitations under the License.
 
   <!-- And likewise in ubenchmark -->
   <suppress checks="JavadocPackage" files="StatementTest.java"/>
+  <suppress checks="JavadocPackage" files="CodeGenerationBenchmark.java"/>
 
   <!-- Method names in Resource can have underscores -->
   <suppress checks="MethodName" files="CalciteResource.java"/>

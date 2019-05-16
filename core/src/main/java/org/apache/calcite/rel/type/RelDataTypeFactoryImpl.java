@@ -221,6 +221,8 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     final int fieldCount = type0.getFieldCount();
 
     // precheck that all types are structs with same number of fields
+    // and register desired nullability for the result
+    boolean isNullable = false;
     for (RelDataType type : types) {
       if (!type.isStruct()) {
         return null;
@@ -228,6 +230,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       if (type.getFieldList().size() != fieldCount) {
         return null;
       }
+      isNullable |= type.isNullable();
     }
 
     // recursively compute column-wise least restrictive
@@ -249,7 +252,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
                 }
               }));
     }
-    return builder.build();
+    return createTypeWithNullability(builder.build(), isNullable);
   }
 
   // copy a non-record type, setting nullability

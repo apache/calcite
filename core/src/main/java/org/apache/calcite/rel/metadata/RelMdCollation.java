@@ -146,22 +146,21 @@ public class RelMdCollation
   public ImmutableList<RelCollation> collations(EnumerableThetaJoin join,
       RelMetadataQuery mq) {
     return ImmutableList.copyOf(
-        RelMdCollation.enumerableThetaJoin(mq, join.getLeft(), join.getRight(), join.getJoinType())
-    );
+        RelMdCollation.enumerableThetaJoin(mq, join.getLeft(), join.getRight(),
+            join.getJoinType()));
   }
 
   public ImmutableList<RelCollation> collations(EnumerableCorrelate join,
       RelMetadataQuery mq) {
     return ImmutableList.copyOf(
-        RelMdCollation.enumerableCorrelate(mq, join.getLeft(), join.getRight(), join.getJoinType())
-    );
+        RelMdCollation.enumerableCorrelate(mq, join.getLeft(), join.getRight(),
+            join.getJoinType()));
   }
 
   public ImmutableList<RelCollation> collations(EnumerableSemiJoin join,
       RelMetadataQuery mq) {
     return ImmutableList.copyOf(
-        RelMdCollation.enumerableSemiJoin(mq, join.getLeft(), join.getRight())
-    );
+        RelMdCollation.enumerableSemiJoin(mq, join.getLeft(), join.getRight()));
   }
 
   public ImmutableList<RelCollation> collations(Sort sort,
@@ -211,6 +210,12 @@ public class RelMdCollation
    * {@link org.apache.calcite.rel.core.TableScan}'s collation. */
   public static List<RelCollation> table(RelOptTable table) {
     return table.getCollationList();
+  }
+
+  /** Helper method to determine a
+   * {@link org.apache.calcite.rel.core.Snapshot}'s collation. */
+  public static List<RelCollation> snapshot(RelMetadataQuery mq, RelNode input) {
+    return mq.collations(input);
   }
 
   /** Helper method to determine a
@@ -271,7 +276,7 @@ public class RelMdCollation
         if (integers.isEmpty()) {
           continue loop; // cannot do this collation
         }
-        fieldCollations.add(ifc.copy(integers.iterator().next()));
+        fieldCollations.add(ifc.withFieldIndex(integers.iterator().next()));
       }
       assert !fieldCollations.isEmpty();
       collations.add(RelCollations.of(fieldCollations));

@@ -20,12 +20,12 @@ import org.apache.calcite.adapter.druid.DruidQuery;
 import org.apache.calcite.adapter.druid.DruidSchema;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.Util;
+import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -77,25 +77,19 @@ public class DruidAdapterIT {
       DruidAdapterIT.class.getResource("/druid-foodmart-model.json");
 
   /** URL of the "druid-wiki" model
-   * and the "wikiticker" data set. */
+   * and the "wikipedia" data set. */
   public static final URL WIKI =
       DruidAdapterIT.class.getResource("/druid-wiki-model.json");
 
   /** URL of the "druid-wiki-no-columns" model
-   * and the "wikiticker" data set. */
+   * and the "wikipedia" data set. */
   public static final URL WIKI_AUTO =
       DruidAdapterIT.class.getResource("/druid-wiki-no-columns-model.json");
 
   /** URL of the "druid-wiki-no-tables" model
-   * and the "wikiticker" data set. */
+   * and the "wikipedia" data set. */
   public static final URL WIKI_AUTO2 =
       DruidAdapterIT.class.getResource("/druid-wiki-no-tables-model.json");
-
-  /** Whether to run Druid tests. Enabled by default, however test is only
-   * included if "it" profile is activated ({@code -Pit}). To disable,
-   * specify {@code -Dcalcite.test.druid=false} on the Java command line. */
-  public static final boolean ENABLED =
-      Util.getBooleanProperty("calcite.test.druid", true);
 
   private static final String VARCHAR_TYPE =
       "VARCHAR";
@@ -104,7 +98,7 @@ public class DruidAdapterIT {
 
   /** Whether to run this test. */
   protected boolean enabled() {
-    return ENABLED;
+    return CalciteSystemProperty.TEST_DRUID.value();
   }
 
   /** Returns a consumer that checks that a particular Druid query is
@@ -160,7 +154,7 @@ public class DruidAdapterIT {
   /** Tests a query against the {@link #WIKI} data set.
    *
    * <p>Most of the others in this suite are against {@link #FOODMART},
-   * but our examples in "druid-adapter.md" use wikiticker. */
+   * but our examples in "druid-adapter.md" use wikipedia. */
   @Test public void testSelectDistinctWiki() {
     final String explain = "PLAN="
         + "EnumerableInterpreter\n"
@@ -176,7 +170,7 @@ public class DruidAdapterIT {
         + "EnumerableInterpreter\n"
         + "  DruidQuery(table=[[wiki, wiki]], "
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-        + "filter=[=($17, 'Jeremy Corbyn')], groups=[{7}], aggs=[[]])\n";
+        + "filter=[=($16, 'Jeremy Corbyn')], groups=[{6}], aggs=[[]])\n";
     checkSelectDistinctWiki(WIKI_AUTO, "wiki")
         .explainContains(explain);
   }
@@ -187,15 +181,15 @@ public class DruidAdapterIT {
     // different. This is expected.
     // Interval is different, as default is taken.
     final String sql = "select distinct \"countryName\"\n"
-        + "from \"wikiticker\"\n"
+        + "from \"wikipedia\"\n"
         + "where \"page\" = 'Jeremy Corbyn'";
     final String explain = "PLAN="
         + "EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[wiki, wikiticker]], "
+        + "  DruidQuery(table=[[wiki, wikipedia]], "
         + "intervals=[[1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z]], "
-        + "filter=[=($17, 'Jeremy Corbyn')], groups=[{7}], aggs=[[]])\n";
+        + "filter=[=($16, 'Jeremy Corbyn')], groups=[{6}], aggs=[[]])\n";
     final String druidQuery = "{'queryType':'groupBy',"
-        + "'dataSource':'wikiticker','granularity':'all',"
+        + "'dataSource':'wikipedia','granularity':'all',"
         + "'dimensions':[{'type':'default','dimension':'countryName','outputName':'countryName',"
         + "'outputType':'STRING'}],'limitSpec':{'type':'default'},"
         + "'filter':{'type':'selector','dimension':'page','value':'Jeremy Corbyn'},"
@@ -215,14 +209,14 @@ public class DruidAdapterIT {
     // Since columns are not explicitly declared, we use the default time
     // column in the query.
     final String sql = "select sum(\"added\")\n"
-        + "from \"wikiticker\"\n"
+        + "from \"wikipedia\"\n"
         + "group by floor(\"__time\" to DAY)";
     final String explain = "PLAN="
         + "EnumerableInterpreter\n"
         + "  BindableProject(EXPR$0=[$1])\n"
-        + "    DruidQuery(table=[[wiki, wikiticker]], intervals=[[1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(DAY)), $1]], groups=[{0}], aggs=[[SUM($1)]])\n";
+        + "    DruidQuery(table=[[wiki, wikipedia]], intervals=[[1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(DAY)), $1]], groups=[{0}], aggs=[[SUM($1)]])\n";
     final String druidQuery = "{'queryType':'timeseries',"
-        + "'dataSource':'wikiticker','descending':false,'granularity':{'type':'period','period':'P1D','timeZone':'UTC'},"
+        + "'dataSource':'wikipedia','descending':false,'granularity':{'type':'period','period':'P1D','timeZone':'UTC'},"
         + "'aggregations':[{'type':'longSum','name':'EXPR$0','fieldName':'added'}],"
         + "'intervals':['1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z'],"
         + "'context':{'skipEmptyBuckets':true}}";
@@ -235,14 +229,14 @@ public class DruidAdapterIT {
     // Since columns are not explicitly declared, we use the default time
     // column in the query.
     final String sql = "select cast(\"__time\" as timestamp) as \"__time\"\n"
-        + "from \"wikiticker\"\n"
+        + "from \"wikipedia\"\n"
         + "limit 1\n";
     final String explain =
         "PLAN=EnumerableInterpreter\n"
-            + "  DruidQuery(table=[[wiki, wikiticker]], intervals=[[1900-01-01T00:00:00.000Z/"
+            + "  DruidQuery(table=[[wiki, wikipedia]], intervals=[[1900-01-01T00:00:00.000Z/"
             + "3000-01-01T00:00:00.000Z]], projects=[[CAST($0):TIMESTAMP(0) NOT NULL]], fetch=[1])";
     final String druidQuery = "{'queryType':'scan',"
-        + "'dataSource':'wikiticker',"
+        + "'dataSource':'wikipedia',"
         + "'intervals':['1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z'],"
         + "'columns':['__time'],'granularity':'all',"
         + "'resultFormat':'compactedList','limit':1}";
@@ -257,13 +251,13 @@ public class DruidAdapterIT {
     // column in the query.
     final String sql =
         "select cast(floor(\"__time\" to DAY) as timestamp) as \"day\", sum(\"added\")\n"
-        + "from \"wikiticker\"\n"
+        + "from \"wikipedia\"\n"
         + "group by floor(\"__time\" to DAY)";
     final String explain =
         "PLAN=EnumerableInterpreter\n"
-            + "  DruidQuery(table=[[wiki, wikiticker]], intervals=[[1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(DAY)), $1]], groups=[{0}], aggs=[[SUM($1)]], post_projects=[[CAST($0):TIMESTAMP(0) NOT NULL, $1]])";
+            + "  DruidQuery(table=[[wiki, wikipedia]], intervals=[[1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(DAY)), $1]], groups=[{0}], aggs=[[SUM($1)]], post_projects=[[CAST($0):TIMESTAMP(0) NOT NULL, $1]])";
     final String druidQuery = "{'queryType':'timeseries',"
-        + "'dataSource':'wikiticker','descending':false,'granularity':{'type':'period','period':'P1D','timeZone':'UTC'},"
+        + "'dataSource':'wikipedia','descending':false,'granularity':{'type':'period','period':'P1D','timeZone':'UTC'},"
         + "'aggregations':[{'type':'longSum','name':'EXPR$1','fieldName':'added'}],"
         + "'intervals':['1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z'],"
         + "'context':{'skipEmptyBuckets':true}}";
@@ -278,11 +272,11 @@ public class DruidAdapterIT {
     // column in the query.
     final String sql = "select sum(\"added\") as \"s\", \"page\", "
         + "cast(floor(\"__time\" to DAY) as timestamp) as \"day\"\n"
-        + "from \"wikiticker\"\n"
+        + "from \"wikipedia\"\n"
         + "group by \"page\", floor(\"__time\" to DAY)\n"
         + "order by \"s\" desc";
     final String explain = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[wiki, wikiticker]], intervals=[[1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z]], projects=[[$17, FLOOR($0, FLAG(DAY)), $1]], groups=[{0, 1}], aggs=[[SUM($2)]], post_projects=[[$2, $0, CAST($1):TIMESTAMP(0) NOT NULL]], sort0=[0], dir0=[DESC])";
+        + "  DruidQuery(table=[[wiki, wikipedia]], intervals=[[1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z]], projects=[[$16, FLOOR($0, FLAG(DAY)), $1]], groups=[{0, 1}], aggs=[[SUM($2)]], post_projects=[[$2, $0, CAST($1):TIMESTAMP(0) NOT NULL]], sort0=[0], dir0=[DESC])";
     sql(sql, WIKI_AUTO2)
         .limit(1)
         .returnsUnordered("s=199818; page=User:QuackGuru/Electronic cigarettes 1; "
@@ -296,11 +290,11 @@ public class DruidAdapterIT {
   @Test public void testSkipEmptyBuckets() {
     final String sql =
         "select cast(floor(\"__time\" to SECOND) as timestamp) as \"second\", sum(\"added\")\n"
-        + "from \"wikiticker\"\n"
+        + "from \"wikipedia\"\n"
         + "where \"page\" = 'Jeremy Corbyn'\n"
         + "group by floor(\"__time\" to SECOND)";
     final String druidQuery = "{'queryType':'timeseries',"
-        + "'dataSource':'wikiticker','descending':false,'granularity':{'type':'period','period':'PT1S','timeZone':'UTC'},"
+        + "'dataSource':'wikipedia','descending':false,'granularity':{'type':'period','period':'PT1S','timeZone':'UTC'},"
         + "'filter':{'type':'selector','dimension':'page','value':'Jeremy Corbyn'},"
         + "'aggregations':[{'type':'longSum','name':'EXPR$1','fieldName':'added'}],"
         + "'intervals':['1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z'],"
@@ -317,7 +311,7 @@ public class DruidAdapterIT {
         + "from \"" + tableName + "\"\n"
         + "where \"page\" = 'Jeremy Corbyn'";
     final String druidQuery = "{'queryType':'groupBy',"
-        + "'dataSource':'wikiticker','granularity':'all',"
+        + "'dataSource':'wikipedia','granularity':'all',"
         + "'dimensions':[{'type':'default','dimension':'countryName','outputName':'countryName',"
         + "'outputType':'STRING'}],'limitSpec':{'type':'default'},"
         + "'filter':{'type':'selector','dimension':'page','value':'Jeremy Corbyn'},"
@@ -335,14 +329,14 @@ public class DruidAdapterIT {
    * UTC</a>. */
   @Test public void testFilterTime() {
     final String sql = "select cast(\"__time\" as timestamp) as \"__time\"\n"
-        + "from \"wikiticker\"\n"
+        + "from \"wikipedia\"\n"
         + "where \"__time\" < '2015-10-12 00:00:00 UTC'";
     final String explain = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[wiki, wikiticker]],"
+        + "  DruidQuery(table=[[wiki, wikipedia]],"
         + " intervals=[[1900-01-01T00:00:00.000Z/2015-10-12T00:00:00.000Z]], "
         + "projects=[[CAST($0):TIMESTAMP(0) NOT NULL]])";
     final String druidQuery = "{'queryType':'scan',"
-        + "'dataSource':'wikiticker',"
+        + "'dataSource':'wikipedia',"
         + "'intervals':['1900-01-01T00:00:00.000Z/2015-10-12T00:00:00.000Z'],"
         + "'virtualColumns':[{'type':'expression','name':'vc','expression':";
     sql(sql, WIKI_AUTO2)
@@ -356,13 +350,13 @@ public class DruidAdapterIT {
   @Test public void testFilterTimeDistinct() {
     final String sql = "select CAST(\"c1\" AS timestamp) as \"time\" from\n"
         + "(select distinct \"__time\" as \"c1\"\n"
-        + "from \"wikiticker\"\n"
+        + "from \"wikipedia\"\n"
         + "where \"__time\" < '2015-10-12 00:00:00 UTC')";
     final String explain = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[wiki, wikiticker]], intervals=[[1900-01-01T00:00:00.000Z/"
+        + "  DruidQuery(table=[[wiki, wikipedia]], intervals=[[1900-01-01T00:00:00.000Z/"
         + "3000-01-01T00:00:00.000Z]], projects=[[$0]], groups=[{0}], aggs=[[]], "
         + "filter=[<($0, 2015-10-12 00:00:00)], projects=[[CAST($0):TIMESTAMP(0) NOT NULL]])\n";
-    final String subDruidQuery = "{'queryType':'groupBy','dataSource':'wikiticker',"
+    final String subDruidQuery = "{'queryType':'groupBy','dataSource':'wikipedia',"
         + "'granularity':'all','dimensions':[{'type':'extraction',"
         + "'dimension':'__time','outputName':'extract',"
         + "'extractionFn':{'type':'timeFormat'";
@@ -385,7 +379,7 @@ public class DruidAdapterIT {
             while (r.next()) {
               map.put(r.getString("TYPE_NAME"), true);
             }
-            if (CalcitePrepareImpl.DEBUG) {
+            if (CalciteSystemProperty.DEBUG.value()) {
               System.out.println(map);
             }
             // 1 timestamp, 2 float measure, 1 int measure, 88 dimensions
@@ -396,7 +390,7 @@ public class DruidAdapterIT {
             assertThat(map.get("BIGINT").size(), is(1));
             assertThat(map.get(VARCHAR_TYPE).size(), is(88));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -502,7 +496,7 @@ public class DruidAdapterIT {
             assertThat(input.wasNull(), is(false));
             assertThat(input.next(), is(false));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -795,7 +789,7 @@ public class DruidAdapterIT {
             }
             assertFalse(resultSet.next());
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         })
         .queryContains(druidChecker(druidQuery));
@@ -824,7 +818,7 @@ public class DruidAdapterIT {
             }
             assertFalse(resultSet.next());
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         })
         .queryContains(druidChecker(druidQuery));
@@ -870,7 +864,7 @@ public class DruidAdapterIT {
             }
             assertFalse(resultSet.next());
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         })
         .queryContains(druidChecker(druidQuery, druidFilter, druidQuery2));
@@ -1030,8 +1024,8 @@ public class DruidAdapterIT {
         .returnsUnordered("state_province=CA; A=3; S=74748; C=16347; C0=24441",
             "state_province=OR; A=3; S=67659; C=21610; C0=21610")
         .explainContains("PLAN=EnumerableInterpreter\n"
-            + "  BindableProject(state_province=[$0], A=[CAST(/(CASE(=($2, 0), null, $1), $2)):BIGINT],"
-            + " S=[CASE(=($2, 0), null, $1)], C=[$3], C0=[$4])\n"
+            + "  BindableProject(state_province=[$0], A=[/(CASE(=($2, 0), null:BIGINT, $1), $2)], "
+            + "S=[CASE(=($2, 0), null:BIGINT, $1)], C=[$3], C0=[$4])\n"
             + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
             + "2992-01-10T00:00:00.000Z]], projects=[[$30, $89, $71]], groups=[{0}], "
             + "aggs=[[$SUM0($1), COUNT($1), COUNT($2), COUNT()]], sort0=[0], dir0=[ASC])")
@@ -1402,15 +1396,15 @@ public class DruidAdapterIT {
 
   /** Tests a query that exposed several bugs in the interpreter. */
   @Test public void testWhereGroupBy() {
-    String sql = "select \"wikiticker\".\"countryName\" as \"c0\",\n"
-        + " sum(\"wikiticker\".\"count\") as \"m1\",\n"
-        + " sum(\"wikiticker\".\"deleted\") as \"m2\",\n"
-        + " sum(\"wikiticker\".\"delta\") as \"m3\"\n"
-        + "from \"wiki\" as \"wikiticker\"\n"
-        + "where (\"wikiticker\".\"countryName\" in ('Colombia', 'France',\n"
+    String sql = "select \"wikipedia\".\"countryName\" as \"c0\",\n"
+        + " sum(\"wikipedia\".\"count\") as \"m1\",\n"
+        + " sum(\"wikipedia\".\"deleted\") as \"m2\",\n"
+        + " sum(\"wikipedia\".\"delta\") as \"m3\"\n"
+        + "from \"wiki\" as \"wikipedia\"\n"
+        + "where (\"wikipedia\".\"countryName\" in ('Colombia', 'France',\n"
         + " 'Germany', 'India', 'Italy', 'Russia', 'United Kingdom',\n"
-        + " 'United States') or \"wikiticker\".\"countryName\" is null)\n"
-        + "group by \"wikiticker\".\"countryName\"";
+        + " 'United States') or \"wikipedia\".\"countryName\" is null)\n"
+        + "group by \"wikipedia\".\"countryName\"";
     String druidQuery = "{'type':'selector','dimension':'countryName','value':null}";
     sql(sql, WIKI)
         .queryContains(druidChecker(druidQuery))
@@ -1941,10 +1935,9 @@ public class DruidAdapterIT {
         + "where \"product_id\" = cast(NULL as varchar)\n"
         + "group by \"product_id\" order by \"product_id\" limit 5";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  BindableSort(sort0=[$0], dir0=[ASC], fetch=[5])\n"
-        + "    BindableFilter(condition=[=($0, null)])\n"
-        + "      DruidQuery(table=[[foodmart, foodmart]], intervals="
-        + "[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], groups=[{1}], aggs=[[]])";
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+        + "filter=[false], groups=[{1}], aggs=[[]], sort0=[0], dir0=[ASC], fetch=[5])";
     final String query = "{\"queryType\":\"groupBy\"";
     sql(sql)
         .explainContains(plan)
@@ -2199,9 +2192,9 @@ public class DruidAdapterIT {
         + "'expression':'case_searched((\\'$f3\\' == 0),1.0,CAST(\\'$f3\\'";
     final String plan =
         "DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
-        + "2992-01-10T00:00:00.000Z]], projects=[[$63, $89, $90, $91]], groups=[{0}], "
-        + "aggs=[[SUM($2), SUM($3), SUM($1)]], post_projects=[[$0, /($1, $2), "
-        + "CASE(=($3, 0), 1.0, CAST($3):DECIMAL(19, 0))]], sort0=[1], dir0=[DESC])";
+            + "2992-01-10T00:00:00.000Z]], projects=[[$63, $89, $90, $91]], groups=[{0}], "
+            + "aggs=[[SUM($2), SUM($3), SUM($1)]], post_projects=[[$0, /($1, $2), "
+            + "CASE(=($3, 0), 1.0:DECIMAL(19, 0), CAST($3):DECIMAL(19, 0))]], sort0=[1], dir0=[DESC])";
     sql(sqlQuery, FOODMART)
         .returnsOrdered("store_state=OR; A=2.506091302943239; B=67659.0",
             "store_state=CA; A=2.505379741272971; B=74748.0",
@@ -2218,9 +2211,9 @@ public class DruidAdapterIT {
         + "{'type':'expression','name':'C','expression':'((\\'$f1\\' + 100) - \\'B\\')'}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], groups=[{63}], "
-        + "aggs=[[SUM($90), SUM($91)]], post_projects=[[$0, +($1, 100), -(+($1, 100), $2)]], "
-        + "sort0=[1], dir0=[DESC]";
+        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+        + "projects=[[$63, $90, $91]], groups=[{0}], aggs=[[SUM($1), SUM($2)]], "
+        + "post_projects=[[$0, +($1, 100), -(+($1, 100), $2)]], sort0=[1], dir0=[DESC])";
     sql(sqlQuery, FOODMART)
         .returnsOrdered("store_state=WA; A=263893.2200000001; C=158568.91210000002",
             "store_state=CA; A=159267.83999999994; C=95737.41489999992",
@@ -2253,7 +2246,7 @@ public class DruidAdapterIT {
     final String plan = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
         + "2992-01-10T00:00:00.000Z]], projects=[[$63, $91]], groups=[{0}], aggs=[[SUM($1)]], "
-        + "post_projects=[[$0, /(*(-1.0, $1), 0)]], sort0=[1], dir0=[DESC])";
+        + "post_projects=[[$0, /(*(-1.0:DECIMAL(2, 1), $1), 0)]], sort0=[1], dir0=[DESC])";
     sql(sqlQuery, FOODMART)
         .returnsOrdered("store_state=CA; A=-Infinity",
             "store_state=OR; A=-Infinity",
@@ -2306,9 +2299,8 @@ public class DruidAdapterIT {
         + "\"expression\":\"(\\\"$f2\\\" - \\\"$f3\\\")\"}";
     final String plan = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
-        + "2992-01-10T00:00:00.000Z]], projects=[[$63, $2, $90, $91]], groups=[{0, 1}], "
-        + "aggs=[[SUM($2), SUM($3)]], post_projects=[[$0, $1, -($2, $3)]]"
-        + ", sort0=[2], dir0=[ASC], fetch=[5])";
+        + "2992-01-10T00:00:00.000Z]], groups=[{2, 63}], aggs=[[SUM($90), SUM($91)]], "
+        + "post_projects=[[$1, $0, -($2, $3)]], sort0=[2], dir0=[ASC], fetch=[5])";
     sql(sqlQuery, FOODMART)
         .returnsOrdered("store_state=CA; brand_name=King; A=21.4632",
             "store_state=OR; brand_name=Symphony; A=32.176",
@@ -2801,24 +2793,24 @@ public class DruidAdapterIT {
    */
   @Test public void testCountColumn() {
     final String sql = "SELECT count(\"countryName\") FROM (SELECT \"countryName\" FROM "
-        + "\"wikiticker\" WHERE \"countryName\"  IS NOT NULL) as a";
+        + "\"wikipedia\" WHERE \"countryName\"  IS NOT NULL) as a";
     sql(sql, WIKI_AUTO2)
         .returnsUnordered("EXPR$0=3799");
 
     final String sql2 = "SELECT count(\"countryName\") FROM (SELECT \"countryName\" FROM "
-        + "\"wikiticker\") as a";
+        + "\"wikipedia\") as a";
     final String plan2 = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[wiki, wikiticker]], "
-        + "intervals=[[1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z]], projects=[[$7]], "
+        + "  DruidQuery(table=[[wiki, wikipedia]], "
+        + "intervals=[[1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z]], projects=[[$6]], "
         + "groups=[{}], aggs=[[COUNT($0)]])";
     sql(sql2, WIKI_AUTO2)
         .returnsUnordered("EXPR$0=3799")
         .explainContains(plan2);
 
-    final String sql3 = "SELECT count(*), count(\"countryName\") FROM \"wikiticker\"";
+    final String sql3 = "SELECT count(*), count(\"countryName\") FROM \"wikipedia\"";
     final String plan3 = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[wiki, wikiticker]], "
-        + "intervals=[[1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z]], projects=[[$7]], "
+        + "  DruidQuery(table=[[wiki, wikipedia]], "
+        + "intervals=[[1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z]], projects=[[$6]], "
         + "groups=[{}], aggs=[[COUNT(), COUNT($0)]])";
     sql(sql3, WIKI_AUTO2)
         .explainContains(plan3);
@@ -2827,7 +2819,7 @@ public class DruidAdapterIT {
 
   @Test public void testCountColumn2() {
     final String sql = "SELECT count(\"countryName\") FROM (SELECT \"countryName\" FROM "
-        + "\"wikiticker\" WHERE \"countryName\"  IS NOT NULL) as a";
+        + "\"wikipedia\" WHERE \"countryName\"  IS NOT NULL) as a";
     sql(sql, WIKI_AUTO2)
         .queryContains(druidChecker("timeseries"))
         .returnsUnordered("EXPR$0=3799");
@@ -3106,7 +3098,7 @@ public class DruidAdapterIT {
     sql(sql, WIKI)
         // make sure user_id column is not present
         .queryContains(
-            druidChecker("{'queryType':'scan','dataSource':'wikiticker','intervals':"
+            druidChecker("{'queryType':'scan','dataSource':'wikipedia','intervals':"
                 + "['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],'virtualColumns':"
                 + "[{'type':'expression','name':'vc','expression':'\\'__time\\'',"
                 + "'outputType':'LONG'}],'columns':['vc','channel','cityName','comment',"
@@ -3121,7 +3113,7 @@ public class DruidAdapterIT {
    * */
   @Test public void testTableMapReused() {
     AbstractSchema schema = new DruidSchema("http://localhost:8082", "http://localhost:8081", true);
-    assertSame(schema.getTable("wikiticker"), schema.getTable("wikiticker"));
+    assertSame(schema.getTable("wikipedia"), schema.getTable("wikipedia"));
   }
 
   @Test public void testPushEqualsCastDimension() {
@@ -3253,7 +3245,7 @@ public class DruidAdapterIT {
 
   @Test public void testTimeWithFilterOnFloorOnTimeWithTimezone() {
     final String sql = "Select cast(\"__time\" as timestamp) as t from "
-        + "\"wikiticker\" where floor(\"__time\" to HOUR) >= cast('2015-09-12 08:00:00'"
+        + "\"wikipedia\" where floor(\"__time\" to HOUR) >= cast('2015-09-12 08:00:00'"
         + " as TIMESTAMP) order by t limit 1";
     final String druidQueryPart1 = "filter\":{\"type\":\"bound\",\"dimension\":\"__time\","
         + "\"lower\":\"2015-09-12T08:00:00.000Z\",\"lowerStrict\":false,"
@@ -3275,7 +3267,7 @@ public class DruidAdapterIT {
 
   @Test public void testTimeWithFilterOnFloorOnTimeWithTimezoneConversion() {
     final String sql = "Select cast(\"__time\" as timestamp) as t, \"countryName\" as s, "
-        + "count(*) as c from \"wikiticker\" where floor(\"__time\" to HOUR)"
+        + "count(*) as c from \"wikipedia\" where floor(\"__time\" to HOUR)"
         + " >= '2015-09-12 08:00:00 Asia/Kolkata' group by cast(\"__time\" as timestamp), \"countryName\""
         + " order by t limit 4";
     final String druidQueryPart1 = "filter\":{\"type\":\"bound\",\"dimension\":\"__time\","
@@ -3300,7 +3292,7 @@ public class DruidAdapterIT {
 
   @Test public void testTimeWithFilterOnFloorOnTimeWithTimezoneConversionCast() {
     final String sql = "Select cast(\"__time\" as timestamp) as t, \"countryName\" as s, "
-        + "count(*) as c from \"wikiticker\" where floor(\"__time\" to HOUR)"
+        + "count(*) as c from \"wikipedia\" where floor(\"__time\" to HOUR)"
         + " >= '2015-09-12 08:00:00 Asia/Kolkata' group by cast(\"__time\" as timestamp), \"countryName\""
         + " order by t limit 4";
     final String druidQueryPart1 = "filter\":{\"type\":\"bound\",\"dimension\":\"__time\","
@@ -3479,19 +3471,16 @@ public class DruidAdapterIT {
         + "(\"city\" as INTEGER)) IS NULL";
     sql(sql, FOODMART)
         .explainContains("PLAN=EnumerableInterpreter\n"
-            + "  BindableAggregate(group=[{}], EXPR$0=[$SUM0($1)])\n"
-            + "    BindableFilter(condition=[IS NULL(+(null, CAST($0):INTEGER))])\n"
-            + "      DruidQuery(table=[[foodmart, foodmart]], "
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
             + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-            + "groups=[{29}], aggs=[[COUNT()]])")
+            + "projects=[[0]], groups=[{}], aggs=[[COUNT()]])")
         .queryContains(
             druidChecker(
-                "{\"queryType\":\"groupBy\",\"dataSource\":\"foodmart\","
-                    + "\"granularity\":\"all\",\"dimensions\":[{\"type\":\"default\","
-                    + "\"dimension\":\"city\",\"outputName\":\"city\",\"outputType\":\"STRING\"}],"
-                    + "\"limitSpec\":{\"type\":\"default\"},"
+                "{\"queryType\":\"timeseries\",\"dataSource\":\"foodmart\","
+                    + "\"descending\":false,\"granularity\":\"all\","
                     + "\"aggregations\":[{\"type\":\"count\",\"name\":\"EXPR$0\"}],"
-                    + "\"intervals\":[\"1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z\"]}"))
+                    + "\"intervals\":[\"1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z\"],"
+                    + "\"context\":{\"skipEmptyBuckets\":false}}"))
         .returnsUnordered("EXPR$0=86829");
   }
 
@@ -3587,8 +3576,7 @@ public class DruidAdapterIT {
         .explainContains("PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], "
             + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-            + "filter=[=(CAST(CAST($0):DATE NOT NULL):VARCHAR CHARACTER SET \"ISO-8859-1\" "
-            + "COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL, '1997-01-01')], "
+            + "filter=[=(CAST(CAST($0):DATE NOT NULL):VARCHAR NOT NULL, '1997-01-01')], "
             + "groups=[{}], aggs=[[COUNT()]])")
         .queryContains(
             druidChecker("{\"type\":\"expression\","
@@ -3724,10 +3712,9 @@ public class DruidAdapterIT {
             + " CAST('1997-01-01' as DATE) GROUP BY  floor(\"timestamp\" to DAY) order by d limit 3";
     final String plan = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
-        + "2992-01-10T00:00:00.000Z]], filter=[=(CAST(FLOOR(CAST($0):DATE NOT NULL, "
-        + "FLAG(MONTH))):DATE NOT NULL, 1997-01-01)], projects=[[FLOOR($0, FLAG(DAY))]], "
-        + "groups=[{0}], aggs=[[]], post_projects=[[CAST($0):TIMESTAMP(0) NOT NULL]]"
-        + ", sort0=[0], dir0=[ASC], fetch=[3])";
+        + "2992-01-10T00:00:00.000Z]], filter=[=(FLOOR(CAST($0):DATE NOT NULL, FLAG(MONTH)), "
+        + "1997-01-01)], projects=[[FLOOR($0, FLAG(DAY))]], groups=[{0}], aggs=[[]], "
+        + "post_projects=[[CAST($0):TIMESTAMP(0) NOT NULL]], sort0=[0], dir0=[ASC], fetch=[3])";
     sql(sql, FOODMART)
         .explainContains(plan)
         .returnsOrdered("D=1997-01-01 00:00:00", "D=1997-01-02 00:00:00", "D=1997-01-03 00:00:00");
@@ -3814,8 +3801,9 @@ public class DruidAdapterIT {
         + " WHERE (CAST((\"product_id\" <> '1') AS BOOLEAN)) IS TRUE";
     sql(sql, FOODMART)
         .explainContains("PLAN=EnumerableInterpreter\n"
-                         + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]],"
-                         + " filter=[IS TRUE(CAST(<>($1, '1')):BOOLEAN)], groups=[{}], aggs=[[COUNT()]])")
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+            + "filter=[<>($1, '1')], groups=[{}], aggs=[[COUNT()]])")
         .queryContains(druidChecker("\"queryType\":\"timeseries\""))
         .returnsOrdered("EXPR$0=86803");
   }
@@ -3852,15 +3840,18 @@ public class DruidAdapterIT {
     final String quarterAsExpressionFilter2 = "MONTH";
     final String quarterAsExpressionFilterTimeZone = "UTC";
     final String quarterAsExpressionFilter3 = "/ 4) + 1) == 1)'}]}";
-    final String booleanAsFilter = "> 0";
+    // should use JSON filter instead of Druid expression after the fix of:
+    // 1. https://issues.apache.org/jira/browse/CALCITE-2590
+    // 2. https://issues.apache.org/jira/browse/CALCITE-2838
+    final String booleanAsFilter = "{\"type\":\"bound\",\"dimension\":\"store_sales\","
+        + "\"lower\":\"0\",\"lowerStrict\":true,\"ordering\":\"numeric\"}";
     final String plan = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], "
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-        + "filter=[AND(<=(/(+(CAST($1):INTEGER, *(1, $90)), -($91, 5)), +(*(FLOOR($90), 25), 2)),"
-        + " IS TRUE(CAST(>($90, 0)):BOOLEAN), "
-        + "LIKE($1, '1%'), >($91, 1), <($0, 1997-01-02 00:00:00), =(EXTRACT(FLAG(MONTH), $0), 1), "
-        + "=(EXTRACT(FLAG(DAY), $0), 1), =(+(/(EXTRACT(FLAG(MONTH), $0), 4), 1), 1))], "
-        + "groups=[{}], aggs=[[COUNT()]])";
+        + "filter=[AND(<=(/(+(CAST($1):INTEGER, *(1, $90)), -($91, 5)), +(*(FLOOR($90), 25), 2)), "
+        + ">($90, 0), LIKE($1, '1%'), >($91, 1), <($0, 1997-01-02 00:00:00), "
+        + "=(EXTRACT(FLAG(MONTH), $0), 1), =(EXTRACT(FLAG(DAY), $0), 1), "
+        + "=(+(/(EXTRACT(FLAG(MONTH), $0), 4), 1), 1))], groups=[{}], aggs=[[COUNT()]])";
     sql(sql, FOODMART)
         .returnsOrdered("EXPR$0=36")
         .explainContains(plan)
@@ -4030,7 +4021,7 @@ public class DruidAdapterIT {
         .explainContains("PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], "
             + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-            + "filter=[AND(IS NOT TRUE(=($1, 1020)), IS FALSE(=($1, 1020)))],"
+            + "filter=[AND(IS NOT TRUE(=($1, 1020)), <>($1, 1020))],"
             + " groups=[{}], aggs=[[COUNT()]])");
     final String sql2 = "SELECT COUNT(*) FROM " + FOODMART_TABLE + "WHERE "
         + "\"product_id\" <> 1020";
@@ -4190,11 +4181,11 @@ public class DruidAdapterIT {
 
   @Test
   public void testAggOnTimeExtractColumn() {
-    final String sql = "SELECT SUM(EXTRACT(MONTH FROM \"__time\")) FROM \"wikiticker\"";
+    final String sql = "SELECT SUM(EXTRACT(MONTH FROM \"__time\")) FROM \"wikipedia\"";
     sql(sql, WIKI_AUTO2)
         .returnsOrdered("EXPR$0=353196")
         .queryContains(
-            druidChecker("{'queryType':'timeseries','dataSource':'wikiticker',"
+            druidChecker("{'queryType':'timeseries','dataSource':'wikipedia',"
                 + "'descending':false,'granularity':'all','aggregations':[{"
                 + "'type':'longSum','name':'EXPR$0','expression':'timestamp_extract(\\'__time\\'"));
   }
@@ -4271,11 +4262,11 @@ public class DruidAdapterIT {
         .returnsOrdered(
             "QR_TIMESTAMP_OK=1; SUM_STORE_SALES=139628.34999999971; YR_TIMESTAMP_OK=1997")
         .queryContains(druidChecker("\"queryType\":\"groupBy\"", extract_year, extract_expression))
-        .explainContains("BindableProject(QR_TIMESTAMP_OK=[$0], SUM_STORE_SALES=[$2], "
-            + "YR_TIMESTAMP_OK=[$1])\n"
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  BindableProject(QR_TIMESTAMP_OK=[$0], SUM_STORE_SALES=[$2], YR_TIMESTAMP_OK=[$1])\n"
             + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
-            + "2992-01-10T00:00:00.000Z]], projects=[[CAST(+(/(-(EXTRACT(FLAG(MONTH), $0), 1), 3), 1))"
-            + ":BIGINT NOT NULL, EXTRACT(FLAG(YEAR), $0), $90]], groups=[{0, 1}], aggs=[[SUM($2)]], fetch=[1])");
+            + "2992-01-10T00:00:00.000Z]], projects=[[+(/(-(EXTRACT(FLAG(MONTH), $0), 1), 3), 1), "
+            + "EXTRACT(FLAG(YEAR), $0), $90]], groups=[{0, 1}], aggs=[[SUM($2)]], fetch=[1])");
   }
 
   @Test
@@ -4340,7 +4331,7 @@ public class DruidAdapterIT {
     final String sql = "SELECT * FROM (SELECT QUARTER(\"__time\") AS QUARTER ,"
         + "EXTRACT(WEEK FROM \"__time\") AS WEEK, DAYOFWEEK(\"__time\") AS DAYOFWEEK, "
         + "DAYOFMONTH(\"__time\") AS DAYOFMONTH, DAYOFYEAR(\"__time\") AS DAYOFYEAR, "
-        + "SUM(\"added\") AS sum_added  FROM \"wikiticker\" GROUP BY EXTRACT(WEEK FROM \"__time\"),"
+        + "SUM(\"added\") AS sum_added  FROM \"wikipedia\" GROUP BY EXTRACT(WEEK FROM \"__time\"),"
         + " DAYOFWEEK(\"__time\"), DAYOFMONTH(\"__time\"), DAYOFYEAR(\"__time\") ,"
         + " QUARTER(\"__time\") order by sum_added) LIMIT_ZERO LIMIT 1";
 
@@ -4348,13 +4339,13 @@ public class DruidAdapterIT {
         .returnsOrdered("QUARTER=3; WEEK=37; DAYOFWEEK=6; DAYOFMONTH=12;"
             + " DAYOFYEAR=255; SUM_ADDED=9385573")
         .explainContains("PLAN=EnumerableInterpreter\n"
-            + "  BindableProject(QUARTER=[$4], WEEK=[$0], DAYOFWEEK=[$1], DAYOFMONTH=[$2], "
-            + "DAYOFYEAR=[$3], SUM_ADDED=[$5])\n"
-            + "    BindableSort(fetch=[1])\n"
-            + "      DruidQuery(table=[[wiki, wikiticker]], intervals=[[1900-01-01T00:00:00.000Z/"
-            + "3000-01-01T00:00:00.000Z]], projects=[[EXTRACT(FLAG(WEEK), $0), EXTRACT(FLAG(DOW), $0),"
-            + " EXTRACT(FLAG(DAY), $0), EXTRACT(FLAG(DOY), $0), EXTRACT(FLAG(QUARTER), $0), $1]],"
-            + " groups=[{0, 1, 2, 3, 4}], aggs=[[SUM($5)]], sort0=[5], dir0=[ASC])")
+            + "  BindableProject(QUARTER=[$4], WEEK=[$0], DAYOFWEEK=[$1], "
+            + "DAYOFMONTH=[$2], DAYOFYEAR=[$3], SUM_ADDED=[$5])\n"
+            + "    DruidQuery(table=[[wiki, wikipedia]], "
+            + "intervals=[[1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z]], "
+            + "projects=[[EXTRACT(FLAG(WEEK), $0), EXTRACT(FLAG(DOW), $0), "
+            + "EXTRACT(FLAG(DAY), $0), EXTRACT(FLAG(DOY), $0), EXTRACT(FLAG(QUARTER), $0), $1]], "
+            + "groups=[{0, 1, 2, 3, 4}], aggs=[[SUM($5)]], fetch=[1])")
         .queryContains(druidChecker("\"queryType\":\"groupBy\""));
   }
 
@@ -4368,9 +4359,8 @@ public class DruidAdapterIT {
         .explainContains("PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
             + "2992-01-10T00:00:00.000Z]], projects=[[$90, $91]], groups=[{}], aggs=[[COUNT(), "
-            + "SUM($0), SUM($1)]], post_projects=[[||(||(CAST(+($0, $1)):VARCHAR CHARACTER SET "
-            + "\"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", '_'), CAST($2):"
-            + "VARCHAR)]])");
+            + "SUM($0), SUM($1)]], post_projects=[[||(||(CAST(+($0, $1)):VARCHAR, '_'), "
+            + "CAST($2):VARCHAR)]])");
   }
 
   @Test

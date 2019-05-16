@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.Ordering;
@@ -71,7 +72,7 @@ public class SqlTest {
         }
         assertEquals(expected, actual);
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
       return null;
     };
@@ -89,7 +90,7 @@ public class SqlTest {
         Collections.sort(lines);
         Assert.assertEquals(expectedLines, lines);
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
       return null;
     };
@@ -263,7 +264,7 @@ public class SqlTest {
         String actual = toString(resultSet);
         assertThat(actual, is(""));
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
       return null;
     });
@@ -322,7 +323,7 @@ public class SqlTest {
         checkSql(sql, model, expect);
         return this;
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     }
 

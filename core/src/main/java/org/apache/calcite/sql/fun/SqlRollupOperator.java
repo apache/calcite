@@ -34,6 +34,24 @@ class SqlRollupOperator extends SqlInternalOperator {
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
+    switch (kind) {
+    case ROLLUP:
+      if (!writer.getDialect().supportsAggregateFunction(kind)
+          && writer.getDialect().supportsGroupByWithRollup()) {
+        // MySQL version 5: generate "GROUP BY x, y WITH ROLLUP".
+        // MySQL version 8 and higher is SQL-compliant,
+        // so generate "GROUP BY ROLLUP(x, y)"
+        final SqlWriter.Frame groupFrame =
+            writer.startList(SqlWriter.FrameTypeEnum.GROUP_BY_LIST);
+        for (SqlNode operand : call.getOperandList()) {
+          writer.sep(",");
+          operand.unparse(writer, 2, 3);
+        }
+        writer.endList(groupFrame);
+        writer.keyword("WITH ROLLUP");
+        return;
+      }
+    }
     unparseCube(writer, call);
   }
 

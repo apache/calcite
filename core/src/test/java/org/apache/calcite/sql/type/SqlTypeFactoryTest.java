@@ -22,6 +22,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelRecordType;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.junit.Test;
@@ -59,6 +60,17 @@ public class SqlTypeFactoryTest {
     RelDataType leastRestrictive =
         f.typeFactory.leastRestrictive(Lists.newArrayList(f.sqlVarcharNullable, f.sqlAny));
     assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.ANY));
+    assertThat(leastRestrictive.isNullable(), is(true));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2994">[CALCITE-2994]
+   * Least restrictive type among structs does not consider nullability</a>. */
+  @Test public void testLeastRestrictiveWithNullableStruct() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(ImmutableList.of(f.structOfIntNullable, f.structOfInt));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.ROW));
     assertThat(leastRestrictive.isNullable(), is(true));
   }
 

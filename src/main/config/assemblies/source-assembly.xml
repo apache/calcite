@@ -66,6 +66,8 @@ limitations under the License.
         <exclude>%regex[(?!((?!${project.build.directory}/)[^/]+/)*src/)(.*/)?\.wtpmodules(/.*)?]
         </exclude>
 
+        <!-- Maven Wrapper -->
+        <exclude>**/maven-wrapper.jar</exclude>
 
         <!-- scm -->
         <exclude>%regex[(?!((?!${project.build.directory}/)[^/]+/)*src/)(.*/)?\.gitignore(/.*)?]

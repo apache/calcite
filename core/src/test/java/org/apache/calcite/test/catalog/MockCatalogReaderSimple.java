@@ -86,7 +86,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     // Register "EMP" table.
     final MockTable empTable =
         MockTable.create(this, salesSchema, "EMP", false, 14, null,
-            countingInitializerExpressionFactory);
+            countingInitializerExpressionFactory, false);
     empTable.addColumn("EMPNO", fixture.intType, true);
     empTable.addColumn("ENAME", fixture.varchar20Type);
     empTable.addColumn("JOB", fixture.varchar10Type);
@@ -115,7 +115,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     // Register "EMPDEFAULTS" table with default values for some columns.
     final MockTable empDefaultsTable =
         MockTable.create(this, salesSchema, "EMPDEFAULTS", false, 14, null,
-            new EmpInitializerExpressionFactory());
+            new EmpInitializerExpressionFactory(), false);
     empDefaultsTable.addColumn("EMPNO", fixture.intType, true);
     empDefaultsTable.addColumn("ENAME", fixture.varchar20Type);
     empDefaultsTable.addColumn("JOB", fixture.varchar10TypeNull);
@@ -240,6 +240,17 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     productsTable.addColumn("NAME", fixture.varchar20Type);
     productsTable.addColumn("SUPPLIERID", fixture.intType);
     registerTable(productsTable);
+
+    // Register "PRODUCTS_TEMPORAL" table.
+    MockTable productsTemporalTable =
+        MockTable.create(this, salesSchema, "PRODUCTS_TEMPORAL", false, 200D,
+        null, NullInitializerExpressionFactory.INSTANCE, true);
+    productsTemporalTable.addColumn("PRODUCTID", fixture.intType);
+    productsTemporalTable.addColumn("NAME", fixture.varchar20Type);
+    productsTemporalTable.addColumn("SUPPLIERID", fixture.intType);
+    productsTemporalTable.addColumn("SYS_START", fixture.timestampType);
+    productsTemporalTable.addColumn("SYS_END", fixture.timestampType);
+    registerTable(productsTemporalTable);
 
     // Register "SUPPLIERS" table.
     MockTable suppliersTable = MockTable.create(this, salesSchema, "SUPPLIERS",

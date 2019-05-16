@@ -18,8 +18,11 @@ package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
@@ -40,8 +43,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
 
 import org.hamcrest.BaseMatcher;
+import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -59,6 +64,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -589,6 +596,12 @@ public class SqlParserTest {
     return new Sql(sql);
   }
 
+  /** Creates an instance of helper class {@link SqlList} to test parsing a
+   * list of statements. */
+  protected SqlList sqlList(String sql) {
+    return new SqlList(sql);
+  }
+
   /**
    * Implementors of custom parsing logic who want to reuse this test should
    * override this method with the factory for their extension parser.
@@ -653,6 +666,21 @@ public class SqlParserTest {
     };
   }
 
+  /** Returns a {@link Matcher} that succeeds if the given {@link SqlNode} is a
+   * VALUES that contains a ROW that contains an identifier whose {@code i}th
+   * element is quoted. */
+  @Nonnull private static Matcher<SqlNode> isQuoted(final int i,
+      final boolean quoted) {
+    return new CustomTypeSafeMatcher<SqlNode>("quoting") {
+      protected boolean matchesSafely(SqlNode item) {
+        final SqlCall valuesCall = (SqlCall) item;
+        final SqlCall rowCall = valuesCall.operand(0);
+        final SqlIdentifier id = rowCall.operand(0);
+        return id.isComponentQuoted(i) == quoted;
+      }
+    };
+  }
+
   protected SortedSet<String> getReservedKeywords() {
     return keywords("c");
   }
@@ -702,8 +730,8 @@ public class SqlParserTest {
         "(?s).*Encountered \".1\" at line 1, column 13.\n"
             + "Was expecting one of:\n"
             + "    <EOF> \n"
-            + "    \"ORDER\" ...\n"
-            + "    \"LIMIT\" ...\n"
+            + "    \"AS\" \\.\\.\\.\n"
+            + "    \"EXCEPT\" \\.\\.\\.\n"
             + ".*");
   }
 
@@ -1148,6 +1176,110 @@ public class SqlParserTest {
     }
   }
 
+  /** Parses a list of statements (that contains only one statement). */
+  @Test public void testStmtListWithSelect() {
+    final String expected = "SELECT *\n"
+        + "FROM `EMP`,\n"
+        + "`DEPT`";
+    sqlList("select * from emp, dept")
+         .ok(expected);
+  }
+
+  @Test public void testStmtListWithSelectAndSemicolon() {
+    final String expected = "SELECT *\n"
+        + "FROM `EMP`,\n"
+        + "`DEPT`";
+    sqlList("select * from emp, dept;")
+         .ok(expected);
+  }
+
+  @Test public void testStmtListWithTwoSelect() {
+    final String expected = "SELECT *\n"
+        + "FROM `EMP`,\n"
+        + "`DEPT`";
+    sqlList("select * from emp, dept ; select * from emp, dept")
+        .ok(expected, expected);
+  }
+
+  @Test public void testStmtListWithTwoSelectSemicolon() {
+    final String expected = "SELECT *\n"
+        + "FROM `EMP`,\n"
+        + "`DEPT`";
+    sqlList("select * from emp, dept ; select * from emp, dept;")
+        .ok(expected, expected);
+  }
+
+  @Test public void testStmtListWithSelectDelete() {
+    final String expected = "SELECT *\n"
+        + "FROM `EMP`,\n"
+        + "`DEPT`";
+    final String expected1 = "DELETE FROM `EMP`";
+    sqlList("select * from emp, dept; delete from emp")
+         .ok(expected, expected1);
+  }
+
+  @Test public void testStmtListWithSelectDeleteUpdate() {
+    final String sql = "select * from emp, dept; "
+        + "delete from emp; "
+        + "update emps set empno = empno + 1";
+    final String expected = "SELECT *\n"
+        + "FROM `EMP`,\n"
+        + "`DEPT`";
+    final String expected1 = "DELETE FROM `EMP`";
+    final String expected2 = "UPDATE `EMPS` SET `EMPNO` = (`EMPNO` + 1)";
+    sqlList(sql).ok(expected, expected1, expected2);
+  }
+
+  @Test public void testStmtListWithSemiColonInComment() {
+    final String sql = ""
+        + "select * from emp, dept; // comment with semicolon ; values 1\n"
+        + "values 2";
+    final String expected = "SELECT *\n"
+        + "FROM `EMP`,\n"
+        + "`DEPT`";
+    final String expected1 = "VALUES (ROW(2))";
+    sqlList(sql).ok(expected, expected1);
+  }
+
+  @Test public void testStmtListWithSemiColonInWhere() {
+    final String expected = "SELECT *\n"
+        + "FROM `EMP`\n"
+        + "WHERE (`NAME` LIKE 'toto;')";
+    final String expected1 = "DELETE FROM `EMP`";
+    sqlList("select * from emp where name like 'toto;'; delete from emp")
+         .ok(expected, expected1);
+  }
+
+  @Test public void testStmtListWithInsertSelectInsert() {
+    final String sql = "insert into dept (name, deptno) values ('a', 123); "
+        + "select * from emp where name like 'toto;'; "
+        + "insert into dept (name, deptno) values ('b', 123);";
+    final String expected = "INSERT INTO `DEPT` (`NAME`, `DEPTNO`)\n"
+        + "VALUES (ROW('a', 123))";
+    final String expected1 = "SELECT *\n"
+        + "FROM `EMP`\n"
+        + "WHERE (`NAME` LIKE 'toto;')";
+    final String expected2 = "INSERT INTO `DEPT` (`NAME`, `DEPTNO`)\n"
+        + "VALUES (ROW('b', 123))";
+    sqlList(sql).ok(expected, expected1, expected2);
+  }
+
+  /** Should fail since the first statement lacks semicolon */
+  @Test public void testStmtListWithoutSemiColon1() {
+    sqlList("select * from emp where name like 'toto' "
+        + "^delete^ from emp")
+        .fails("(?s).*Encountered \"delete\" at .*");
+  }
+
+  /** Should fail since the third statement lacks semicolon */
+  @Test public void testStmtListWithoutSemiColon2() {
+    sqlList("select * from emp where name like 'toto'; "
+        + "delete from emp; "
+        + "insert into dept (name, deptno) values ('a', 123) "
+        + "^select^ * from dept")
+        .fails("(?s).*Encountered \"select\" at .*");
+  }
+
   @Test public void testIsDistinctFrom() {
     check(
         "select x is distinct from y from t",
@@ -1383,10 +1515,9 @@ public class SqlParserTest {
         "VALUES (ROW((`A` SIMILAR TO (`B` LIKE (`C` SIMILAR TO `D` ESCAPE `E`) ESCAPE `F`))))");
 
     if (isReserved("ESCAPE")) {
-      // FIXME should fail at "escape"
       checkFails(
-          "select * from t ^where^ escape 'e'",
-          "(?s).*Encountered \"where escape\" at .*");
+          "select * from t where ^escape^ 'e'",
+          "(?s).*Encountered \"escape\" at .*");
     }
 
     // LIKE with +
@@ -1401,7 +1532,6 @@ public class SqlParserTest {
 
     // ESCAPE with no expression
     if (isReserved("ESCAPE")) {
-      // FIXME should fail at "escape"
       checkFails(
           "values a ^like^ escape d",
           "(?s).*Encountered \"like escape\" at .*");
@@ -1577,8 +1707,8 @@ public class SqlParserTest {
         .fails("(?s)Encountered \"\\+ DEFAULT\" at .*");
     sql("select power(0, DEFAULT ^+^ empno) from emp")
         .fails("(?s)Encountered \"\\+\" at .*");
-    sql("select * from emp join dept ^on^ DEFAULT")
-        .fails("(?s)Encountered \"on DEFAULT\" at .*");
+    sql("select * from emp join dept on ^DEFAULT^")
+        .fails("(?s)Encountered \"DEFAULT\" at .*");
     sql("select * from emp where empno ^>^ DEFAULT or deptno < 10")
         .fails("(?s)Encountered \"> DEFAULT\" at .*");
     sql("select * from emp order by ^DEFAULT^ desc")
@@ -1589,19 +1719,22 @@ public class SqlParserTest {
         .ok(expected);
     sql("insert into dept (name, deptno) values ('a', 1 ^+^ DEFAULT)")
         .fails("(?s)Encountered \"\\+ DEFAULT\" at .*");
-    sql("insert into dept (name, deptno) select 'a'^,^ DEFAULT from (values 0)")
-        .fails("(?s)Encountered \", DEFAULT\" at .*");
+    sql("insert into dept (name, deptno) select 'a', ^DEFAULT^ from (values 0)")
+        .fails("(?s)Encountered \"DEFAULT\" at .*");
   }
 
   @Test public void testAggregateFilter() {
-    sql("select sum(sal) filter (where gender = 'F') as femaleSal,\n"
+    final String sql = "select\n"
+        + " sum(sal) filter (where gender = 'F') as femaleSal,\n"
         + " sum(sal) filter (where true) allSal,\n"
         + " count(distinct deptno) filter (where (deptno < 40))\n"
-        + "from emp")
-        .ok("SELECT (SUM(`SAL`) FILTER (WHERE (`GENDER` = 'F'))) AS `FEMALESAL`,"
-                + " (SUM(`SAL`) FILTER (WHERE TRUE)) AS `ALLSAL`,"
-                + " (COUNT(DISTINCT `DEPTNO`) FILTER (WHERE (`DEPTNO` < 40)))\n"
-                + "FROM `EMP`");
+        + "from emp";
+    final String expected = "SELECT"
+        + " SUM(`SAL`) FILTER (WHERE (`GENDER` = 'F')) AS `FEMALESAL`,"
+        + " SUM(`SAL`) FILTER (WHERE TRUE) AS `ALLSAL`,"
+        + " COUNT(DISTINCT `DEPTNO`) FILTER (WHERE (`DEPTNO` < 40))\n"
+        + "FROM `EMP`";
+    sql(sql).ok(expected);
   }
 
   @Test public void testGroup() {
@@ -1824,6 +1957,11 @@ public class SqlParserTest {
 
     checkExp("myMap[field] + myArray[1 + 2]",
         "(`MYMAP`[`FIELD`] + `MYARRAY`[(1 + 2)])");
+
+    getTester().checkNode("VALUES a", isQuoted(0, false));
+    getTester().checkNode("VALUES \"a\"", isQuoted(0, true));
+    getTester().checkNode("VALUES \"a\".\"b\"", isQuoted(1, true));
+    getTester().checkNode("VALUES \"a\".b", isQuoted(1, false));
   }
 
   @Test public void testBackTickIdentifier() {
@@ -1837,6 +1975,9 @@ public class SqlParserTest {
 
     checkExp("myMap[field] + myArray[1 + 2]",
         "(`MYMAP`[`FIELD`] + `MYARRAY`[(1 + 2)])");
+
+    getTester().checkNode("VALUES a", isQuoted(0, false));
+    getTester().checkNode("VALUES `a`", isQuoted(0, true));
   }
 
   @Test public void testBracketIdentifier() {
@@ -1863,6 +2004,9 @@ public class SqlParserTest {
         "SELECT *\n"
             + "FROM `MYMAP` AS `field`,\n"
             + "`MYARRAY` AS `1 + 2`");
+
+    getTester().checkNode("VALUES a", isQuoted(0, false));
+    getTester().checkNode("VALUES [a]", isQuoted(0, true));
   }
 
   @Test public void testBackTickQuery() {
@@ -2103,11 +2247,11 @@ public class SqlParserTest {
    * standard.) */
   @Test public void testMinusIsReserved() {
     sql("select ^minus^ from t")
-        .fails("(?s).*Encountered \"minus from\" at .*");
+        .fails("(?s).*Encountered \"minus\" at .*");
     sql("select ^minus^ select")
-        .fails("(?s).*Encountered \"minus select\" at .*");
-    sql("select * from t ^as^ minus where x < y")
-        .fails("(?s).*Encountered \"as minus\" at .*");
+        .fails("(?s).*Encountered \"minus\" at .*");
+    sql("select * from t as ^minus^ where x < y")
+        .fails("(?s).*Encountered \"minus\" at .*");
   }
 
   @Test public void testIntersect() {
@@ -3129,22 +3273,24 @@ public class SqlParserTest {
 
   @Test public void testFromValuesWithoutParens() {
     checkFails(
-        "select 1 ^from^ values('x')",
-        "(?s)Encountered \"from values\" at line 1, column 10\\.\n"
+        "select 1 from ^values^('x')",
+        "(?s)Encountered \"values\" at line 1, column 15\\.\n"
             + "Was expecting one of:\n"
-            + "    <EOF> \n"
-            + "    \"ORDER\" \\.\\.\\.\n"
-            + "    \"LIMIT\" \\.\\.\\.\n"
-            + ".*"
-            + "    \"FROM\" <IDENTIFIER> \\.\\.\\.\n"
-            + "    \"FROM\" <QUOTED_IDENTIFIER> \\.\\.\\.\n"
-            + ".*");
+            + "    \"LATERAL\" \\.\\.\\.\n"
+            + "    \"TABLE\" \\.\\.\\.\n"
+            + "    \"UNNEST\" \\.\\.\\.\n"
+            + "    <IDENTIFIER> \\.\\.\\.\n"
+            + "    <QUOTED_IDENTIFIER> \\.\\.\\.\n"
+            + "    <BACK_QUOTED_IDENTIFIER> \\.\\.\\.\n"
+            + "    <BRACKET_QUOTED_IDENTIFIER> \\.\\.\\.\n"
+            + "    <UNICODE_QUOTED_IDENTIFIER> \\.\\.\\.\n"
+            + "    \"\\(\" \\.\\.\\.\n.*");
   }
 
   @Test public void testEmptyValues() {
     checkFails(
-        "select * from (values^(^))",
-        "(?s).*Encountered \"\\( \\)\" at .*");
+        "select * from (values(^)^)",
+        "(?s).*Encountered \"\\)\" at .*");
   }
 
   /** Test case for
@@ -3188,10 +3334,9 @@ public class SqlParserTest {
   @Test public void testExplicitTable() {
     check("table emp", "(TABLE `EMP`)");
 
-    // FIXME should fail at "123"
     checkFails(
-        "^table^ 123",
-        "(?s)Encountered \"table 123\" at line 1, column 1\\.\n.*");
+        "table ^123^",
+        "(?s)Encountered \"123\" at line 1, column 7\\.\n.*");
   }
 
   @Test public void testExplicitTableOrdered() {
@@ -3209,14 +3354,13 @@ public class SqlParserTest {
   }
 
   @Test public void testSelectFromBareExplicitTableFails() {
-    // FIXME should fail at "emp"
     checkFails(
-        "select * from ^table^ emp",
-        "(?s).*Encountered \"table emp\" at .*");
+        "select * from table ^emp^",
+        "(?s).*Encountered \"emp\" at .*");
 
     checkFails(
-        "select * from (^table^ (select empno from emp))",
-        "(?s)Encountered \"table \\(\".*");
+        "select * from (table ^(^select empno from emp))",
+        "(?s)Encountered \"\\(\".*");
   }
 
   @Test public void testCollectionTable() {
@@ -3245,8 +3389,8 @@ public class SqlParserTest {
 
   @Test public void testLateral() {
     // Bad: LATERAL table
-    sql("select * from ^lateral^ emp")
-        .fails("(?s)Encountered \"lateral emp\" at .*");
+    sql("select * from lateral ^emp^")
+        .fails("(?s)Encountered \"emp\" at .*");
     sql("select * from lateral table ^emp^ as e")
         .fails("(?s)Encountered \"emp\" at .*");
 
@@ -3263,8 +3407,8 @@ public class SqlParserTest {
     sql("select * from lateral table(ramp(1)) as t(x)")
         .ok(expected + " AS `T` (`X`)");
     // Bad: Parentheses make it look like a sub-query
-    sql("select * from lateral (^table^(ramp(1)))")
-        .fails("(?s)Encountered \"table \\(\" at .*");
+    sql("select * from lateral (table^(^ramp(1)))")
+        .fails("(?s)Encountered \"\\(\" at .*");
 
     // Good: LATERAL (subQuery)
     final String expected2 = "SELECT *\n"
@@ -3432,10 +3576,10 @@ public class SqlParserTest {
         + "VALUES (ROW(1, 'a'))";
     check("describe insert into emps values (1, 'a')", expected3);
     // only allow query or DML, not explain, inside describe
-    checkFails("^describe^ explain plan for select * from emps",
-        "(?s).*Encountered \"describe explain\" at .*");
-    checkFails("describe ^statement^ explain plan for select * from emps",
-        "(?s).*Encountered \"statement explain\" at .*");
+    checkFails("describe ^explain^ plan for select * from emps",
+        "(?s).*Encountered \"explain\" at .*");
+    checkFails("describe statement ^explain^ plan for select * from emps",
+        "(?s).*Encountered \"explain\" at .*");
   }
 
   @Test public void testSelectIsNotDdl() {
@@ -3482,8 +3626,8 @@ public class SqlParserTest {
   @Test public void testInsertValuesRawDefault() {
     final String expected = "INSERT INTO `EMPS`\n"
         + "VALUES (ROW(DEFAULT))";
-    sql("insert into emps ^values^ default")
-        .fails("(?s).*Encountered \"values default\" at .*");
+    sql("insert into emps values ^default^")
+        .fails("(?s).*Encountered \"default\" at .*");
     sql("insert into emps values (default)")
         .ok(expected)
         .node(not(isDdl()));
@@ -3647,6 +3791,29 @@ public class SqlParserTest {
         .node(not(isDdl()));
   }
 
+  /** Same as testMergeSelectSource but set with compound identifier. */
+  @Test public void testMergeSelectSource2() {
+    final String sql = "merge into emps e "
+        + "using (select * from tempemps where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set e.name = t.name, e.deptno = t.deptno, e.salary = t.salary * .1 "
+        + "when not matched then insert (name, dept, salary) "
+        + "values(t.name, 10, t.salary * .15)";
+    final String expected = "MERGE INTO `EMPS` AS `E`\n"
+        + "USING (SELECT *\n"
+        + "FROM `TEMPEMPS`\n"
+        + "WHERE (`DEPTNO` IS NULL)) AS `T`\n"
+        + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
+        + "WHEN MATCHED THEN UPDATE SET `E`.`NAME` = `T`.`NAME`\n"
+        + ", `E`.`DEPTNO` = `T`.`DEPTNO`\n"
+        + ", `E`.`SALARY` = (`T`.`SALARY` * 0.1)\n"
+        + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
+        + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
+    sql(sql).ok(expected)
+        .node(not(isDdl()));
+  }
+
   @Test public void testMergeTableRefSource() {
     check(
         "merge into emps e "
@@ -3663,6 +3830,27 @@ public class SqlParserTest {
             + "WHEN MATCHED THEN UPDATE SET `NAME` = `T`.`NAME`\n"
             + ", `DEPTNO` = `T`.`DEPTNO`\n"
             + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
+            + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
+            + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))");
+  }
+
+  /** Same with testMergeTableRefSource but set with compound identifier. */
+  @Test public void testMergeTableRefSource2() {
+    check(
+        "merge into emps e "
+            + "using tempemps as t "
+            + "on e.empno = t.empno "
+            + "when matched then update "
+            + "set e.name = t.name, e.deptno = t.deptno, e.salary = t.salary * .1 "
+            + "when not matched then insert (name, dept, salary) "
+            + "values(t.name, 10, t.salary * .15)",
+
+        "MERGE INTO `EMPS` AS `E`\n"
+            + "USING `TEMPEMPS` AS `T`\n"
+            + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
+            + "WHEN MATCHED THEN UPDATE SET `E`.`NAME` = `T`.`NAME`\n"
+            + ", `E`.`DEPTNO` = `T`.`DEPTNO`\n"
+            + ", `E`.`SALARY` = (`T`.`SALARY` * 0.1)\n"
             + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
             + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))");
   }
@@ -3825,8 +4013,8 @@ public class SqlParserTest {
         "(CASE WHEN (`X` IN (2, 4)) THEN 3 ELSE 4 END)");
     // comma-list must not be empty
     checkFails(
-        "case x when 2, 4 then 3 ^when^ then 5 else 4 end",
-        "(?s)Encountered \"when then\" at .*");
+        "case x when 2, 4 then 3 when ^then^ 5 else 4 end",
+        "(?s)Encountered \"then\" at .*");
     // commas not allowed in boolean case
     checkFails(
         "case when b1, b2 ^when^ 2, 4 then 3 else 4 end",
@@ -4184,10 +4372,9 @@ public class SqlParserTest {
         "(?s).*Encountered \"unbounded\".*");
 
     // WINDOW keyword is not permissible.
-    // FIXME should fail at "window"
     checkFails(
-        "select sum(x) ^over^ window (order by x) from bids",
-        "(?s).*Encountered \"over window\".*");
+        "select sum(x) over ^window^ (order by x) from bids",
+        "(?s).*Encountered \"window\".*");
 
     // ORDER BY must be before Frame spec
     checkFails(
@@ -4217,6 +4404,44 @@ public class SqlParserTest {
         "select sum(x) over (order by x) from bids",
         "SELECT (SUM(`X`) OVER (ORDER BY `X`))\n"
             + "FROM `BIDS`");
+  }
+
+  @Test public void testNullTreatment() {
+    sql("select lead(x) respect nulls over (w) from t")
+        .ok("SELECT (LEAD(`X`) RESPECT NULLS OVER (`W`))\n"
+            + "FROM `T`");
+    sql("select deptno, sum(sal) respect nulls from emp group by deptno")
+        .ok("SELECT `DEPTNO`, SUM(`SAL`) RESPECT NULLS\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY `DEPTNO`");
+    sql("select deptno, sum(sal) ignore nulls from emp group by deptno")
+        .ok("SELECT `DEPTNO`, SUM(`SAL`) IGNORE NULLS\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY `DEPTNO`");
+    final String sql = "select col1,\n"
+        + " collect(col2) ignore nulls\n"
+        + "   within group (order by col3)\n"
+        + "   filter (where 1 = 0)\n"
+        + "   over (rows 10 preceding)\n"
+        + " as c\n"
+        + "from t\n"
+        + "order by col1 limit 10";
+    final String expected = "SELECT `COL1`, (COLLECT(`COL2`) IGNORE NULLS"
+        + " WITHIN GROUP (ORDER BY `COL3`)"
+        + " FILTER (WHERE (1 = 0)) OVER (ROWS 10 PRECEDING)) AS `C`\n"
+        + "FROM `T`\n"
+        + "ORDER BY `COL1`\n"
+        + "FETCH NEXT 10 ROWS ONLY";
+    sql(sql).ok(expected);
+
+    // See [CALCITE-2993] ParseException may be thrown for legal
+    // SQL queries due to incorrect "LOOKAHEAD(1)" hints
+    sql("select lead(x) ignore from t")
+        .ok("SELECT LEAD(`X`) AS `IGNORE`\n"
+            + "FROM `T`");
+    sql("select lead(x) respect from t")
+        .ok("SELECT LEAD(`X`) AS `RESPECT`\n"
+            + "FROM `T`");
   }
 
   @Test public void testAs() {
@@ -4277,8 +4502,8 @@ public class SqlParserTest {
 
     // must have at least one column
     checkFails(
-        "select x from (values (1, 2), (3, 4)) as t1 ^(^)",
-        "(?s).*Encountered \"\\( \\)\" at .*");
+        "select x from (values (1, 2), (3, 4)) as t1 (^)^",
+        "(?s).*Encountered \"\\)\" at .*");
 
     // cannot have expressions
     checkFails(
@@ -6618,12 +6843,12 @@ public class SqlParserTest {
         "interval '1^'^",
         "Encountered \"<EOF>\" at line 1, column 12\\.\n"
             + "Was expecting one of:\n"
-            + "    \"YEAR\" \\.\\.\\.\n"
-            + "    \"MONTH\" \\.\\.\\.\n"
             + "    \"DAY\" \\.\\.\\.\n"
             + "    \"HOUR\" \\.\\.\\.\n"
             + "    \"MINUTE\" \\.\\.\\.\n"
+            + "    \"MONTH\" \\.\\.\\.\n"
             + "    \"SECOND\" \\.\\.\\.\n"
+            + "    \"YEAR\" \\.\\.\\.\n"
             + "    ");
 
     // illegal qualifiers, no precision in either field
@@ -6632,8 +6857,8 @@ public class SqlParserTest {
         "(?s)Encountered \"to year\" at line 1, column 19.\n"
             + "Was expecting one of:\n"
             + "    <EOF> \n"
-            + "    \"\\.\" \\.\\.\\.\n"
-            + "    \"NOT\" \\.\\.\\..*");
+            + "    \"\\(\" \\.\\.\\.\n"
+            + "    \"\\.\" \\.\\.\\..*");
     checkExpFails("interval '1-2' year ^to^ day", ANY);
     checkExpFails("interval '1-2' year ^to^ hour", ANY);
     checkExpFails("interval '1-2' year ^to^ minute", ANY);
@@ -6793,24 +7018,23 @@ public class SqlParserTest {
     checkExpFails("interval '1-2' second(3) ^to^ second(2,6)", ANY);
 
     // precision of -1 (< minimum allowed)
-    // FIXME should fail at "-" or "-1"
-    checkExpFails("INTERVAL '0' YEAR^(^-1)", ANY);
-    checkExpFails("INTERVAL '0-0' YEAR^(^-1) TO MONTH", ANY);
-    checkExpFails("INTERVAL '0' MONTH^(^-1)", ANY);
-    checkExpFails("INTERVAL '0' DAY^(^-1)", ANY);
-    checkExpFails("INTERVAL '0 0' DAY^(^-1) TO HOUR", ANY);
-    checkExpFails("INTERVAL '0 0' DAY^(^-1) TO MINUTE", ANY);
-    checkExpFails("INTERVAL '0 0:0:0' DAY^(^-1) TO SECOND", ANY);
-    checkExpFails("INTERVAL '0 0:0:0' DAY TO SECOND^(^-1)", ANY);
-    checkExpFails("INTERVAL '0' HOUR^(^-1)", ANY);
-    checkExpFails("INTERVAL '0:0' HOUR^(^-1) TO MINUTE", ANY);
-    checkExpFails("INTERVAL '0:0:0' HOUR^(^-1) TO SECOND", ANY);
-    checkExpFails("INTERVAL '0:0:0' HOUR TO SECOND^(^-1)", ANY);
-    checkExpFails("INTERVAL '0' MINUTE^(^-1)", ANY);
-    checkExpFails("INTERVAL '0:0' MINUTE^(^-1) TO SECOND", ANY);
-    checkExpFails("INTERVAL '0:0' MINUTE TO SECOND^(^-1)", ANY);
-    checkExpFails("INTERVAL '0' SECOND^(^-1)", ANY);
-    checkExpFails("INTERVAL '0' SECOND(1^,^ -1)", ANY);
+    checkExpFails("INTERVAL '0' YEAR(^-^1)", ANY);
+    checkExpFails("INTERVAL '0-0' YEAR(^-^1) TO MONTH", ANY);
+    checkExpFails("INTERVAL '0' MONTH(^-^1)", ANY);
+    checkExpFails("INTERVAL '0' DAY(^-^1)", ANY);
+    checkExpFails("INTERVAL '0 0' DAY(^-^1) TO HOUR", ANY);
+    checkExpFails("INTERVAL '0 0' DAY(^-^1) TO MINUTE", ANY);
+    checkExpFails("INTERVAL '0 0:0:0' DAY(^-^1) TO SECOND", ANY);
+    checkExpFails("INTERVAL '0 0:0:0' DAY TO SECOND(^-^1)", ANY);
+    checkExpFails("INTERVAL '0' HOUR(^-^1)", ANY);
+    checkExpFails("INTERVAL '0:0' HOUR(^-^1) TO MINUTE", ANY);
+    checkExpFails("INTERVAL '0:0:0' HOUR(^-^1) TO SECOND", ANY);
+    checkExpFails("INTERVAL '0:0:0' HOUR TO SECOND(^-^1)", ANY);
+    checkExpFails("INTERVAL '0' MINUTE(^-^1)", ANY);
+    checkExpFails("INTERVAL '0:0' MINUTE(^-^1) TO SECOND", ANY);
+    checkExpFails("INTERVAL '0:0' MINUTE TO SECOND(^-^1)", ANY);
+    checkExpFails("INTERVAL '0' SECOND(^-^1)", ANY);
+    checkExpFails("INTERVAL '0' SECOND(1, ^-^1)", ANY);
 
     // These may actually be legal per SQL2003, as the first field is
     // "more significant" than the last, but we do not support them
@@ -7079,8 +7303,8 @@ public class SqlParserTest {
     sql(sql).ok(expected);
 
     // LATERAL UNNEST is not valid
-    sql("select * from dept, ^lateral^ unnest(dept.employees)")
-        .fails("(?s)Encountered \"lateral unnest\" at .*");
+    sql("select * from dept, lateral ^unnest^(dept.employees)")
+        .fails("(?s)Encountered \"unnest\" at .*");
   }
 
   @Test public void testUnnestWithOrdinality() {
@@ -8084,6 +8308,31 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2993">[CALCITE-2993]
+   * ParseException may be thrown for legal SQL queries due to incorrect
+   * "LOOKAHEAD(1)" hints</a>. */
+  @Test public void testMatchRecognizePatternSkip6() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "     after match skip to last\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "AFTER MATCH SKIP TO LAST `LAST`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
   @Test public void testMatchRecognizeSubset1() {
     final String sql = "select *\n"
         + "  from t match_recognize\n"
@@ -8247,7 +8496,7 @@ public class SqlParserTest {
         + "from t\n"
         + "order by col1 limit 10";
     final String expected = "SELECT `COL1`,"
-        + " (COLLECT(`COL2`) WITHIN GROUP (ORDER BY `COL3`))\n"
+        + " COLLECT(`COL2`) WITHIN GROUP (ORDER BY `COL3`)\n"
         + "FROM `T`\n"
         + "ORDER BY `COL1`\n"
         + "FETCH NEXT 10 ROWS ONLY";
@@ -8259,7 +8508,7 @@ public class SqlParserTest {
         + "from t\n"
         + "order by col1 limit 10";
     final String expected = "SELECT"
-        + " (COLLECT(`COL2`) WITHIN GROUP (ORDER BY `COL3`))\n"
+        + " COLLECT(`COL2`) WITHIN GROUP (ORDER BY `COL3`)\n"
         + "FROM `T`\n"
         + "ORDER BY `COL1`\n"
         + "FETCH NEXT 10 ROWS ONLY";
@@ -8278,7 +8527,7 @@ public class SqlParserTest {
         + "from t\n"
         + "order by col1 limit 10";
     final String expected = "SELECT `COL1`,"
-        + " (COLLECT(`COL2`) WITHIN GROUP (ORDER BY `COL3`, `COL4`))\n"
+        + " COLLECT(`COL2`) WITHIN GROUP (ORDER BY `COL3`, `COL4`)\n"
         + "FROM `T`\n"
         + "ORDER BY `COL1`\n"
         + "FETCH NEXT 10 ROWS ONLY";
@@ -8291,72 +8540,91 @@ public class SqlParserTest {
         + "  order by col3 desc nulls first, col4 asc nulls last)\n"
         + "from t\n"
         + "order by col1 limit 10";
-    final String expected = "SELECT `COL1`, (COLLECT(`COL2`) "
-        + "WITHIN GROUP (ORDER BY `COL3` DESC NULLS FIRST, `COL4` NULLS LAST))\n"
+    final String expected = "SELECT `COL1`, COLLECT(`COL2`) "
+        + "WITHIN GROUP (ORDER BY `COL3` DESC NULLS FIRST, `COL4` NULLS LAST)\n"
         + "FROM `T`\n"
         + "ORDER BY `COL1`\n"
         + "FETCH NEXT 10 ROWS ONLY";
     sql(sql).ok(expected);
   }
 
+  @Test public void testJsonValueExpressionOperator() {
+    checkExp("foo format json",
+        "`FOO` FORMAT JSON");
+    // Currently, encoding js not valid
+    checkExp("foo format json encoding utf8",
+        "`FOO` FORMAT JSON");
+    checkExp("foo format json encoding utf16",
+        "`FOO` FORMAT JSON");
+    checkExp("foo format json encoding utf32",
+        "`FOO` FORMAT JSON");
+    checkExp("null format json", "NULL FORMAT JSON");
+    // Test case to eliminate choice conflict on token <FORMAT>
+    check("select foo format from tab", "SELECT `FOO` AS `FORMAT`\n"
+        + "FROM `TAB`");
+    // Test case to eliminate choice conflict on token <ENCODING>
+    check("select foo format json encoding from tab", "SELECT `FOO` FORMAT JSON AS `ENCODING`\n"
+        + "FROM `TAB`");
+  }
+
   @Test public void testJsonExists() {
     checkExp("json_exists('{\"foo\": \"bar\"}', 'lax $.foo')",
-        "JSON_EXISTS('{\"foo\": \"bar\"}' FORMAT JSON, 'lax $.foo')");
+        "JSON_EXISTS('{\"foo\": \"bar\"}', 'lax $.foo')");
     checkExp("json_exists('{\"foo\": \"bar\"}', 'lax $.foo' error on error)",
-        "JSON_EXISTS('{\"foo\": \"bar\"}' FORMAT JSON, 'lax $.foo' ERROR ON ERROR)");
+        "JSON_EXISTS('{\"foo\": \"bar\"}', 'lax $.foo' ERROR ON ERROR)");
   }
 
   @Test public void testJsonValue() {
     checkExp("json_value('{\"foo\": \"100\"}', 'lax $.foo' "
             + "returning integer)",
-        "JSON_VALUE('{\"foo\": \"100\"}' FORMAT JSON, 'lax $.foo' "
+        "JSON_VALUE('{\"foo\": \"100\"}', 'lax $.foo' "
             + "RETURNING INTEGER NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_value('{\"foo\": \"100\"}', 'lax $.foo' "
             + "returning integer default 10 on empty error on error)",
-        "JSON_VALUE('{\"foo\": \"100\"}' FORMAT JSON, 'lax $.foo' "
+        "JSON_VALUE('{\"foo\": \"100\"}', 'lax $.foo' "
             + "RETURNING INTEGER DEFAULT 10 ON EMPTY ERROR ON ERROR)");
   }
 
   @Test public void testJsonQuery() {
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITHOUT ARRAY WRAPPER)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITH WRAPPER)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITH UNCONDITIONAL ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITH UNCONDITIONAL WRAPPER)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITH UNCONDITIONAL ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' WITH CONDITIONAL WRAPPER)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITH CONDITIONAL ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' NULL ON EMPTY)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' ERROR ON EMPTY)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER ERROR ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY ARRAY ON EMPTY)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER EMPTY ARRAY ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY OBJECT ON EMPTY)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER EMPTY OBJECT ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' NULL ON ERROR)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' ERROR ON ERROR)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY ERROR ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY ARRAY ON ERROR)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY EMPTY ARRAY ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY OBJECT ON ERROR)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER NULL ON EMPTY EMPTY OBJECT ON ERROR)");
     checkExp("json_query('{\"foo\": \"bar\"}', 'lax $' EMPTY ARRAY ON EMPTY "
             + "EMPTY OBJECT ON ERROR)",
-        "JSON_QUERY('{\"foo\": \"bar\"}' FORMAT JSON, "
+        "JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER EMPTY ARRAY ON EMPTY EMPTY OBJECT ON ERROR)");
   }
 
@@ -8377,16 +8645,58 @@ public class SqlParserTest {
         "JSON_OBJECT(KEY 'foo' VALUE "
             + "JSON_OBJECT(KEY 'foo' VALUE 'bar' NULL ON NULL) "
             + "FORMAT JSON NULL ON NULL)");
+
+    if (!Bug.TODO_FIXED) {
+      return;
+    }
+    // "LOOKAHEAD(2) list = JsonNameAndValue()" does not generate
+    // valid LOOKAHEAD codes for the case "key: value".
+    //
+    // You can see the generated codes that are located at method
+    // SqlParserImpl#JsonObjectFunctionCall. Looking ahead fails
+    // immediately after seeking the tokens <KEY> and <COLON>.
+    checkExp("json_object(key: value)",
+        "JSON_OBJECT(KEY `KEY` VALUE `VALUE` NULL ON NULL)");
   }
 
   @Test public void testJsonType() {
-    checkExp("json_type('11.56')", "JSON_TYPE('11.56' FORMAT JSON)");
-    checkExp("json_type('{}')", "JSON_TYPE('{}' FORMAT JSON)");
-    checkExp("json_type(null)", "JSON_TYPE(NULL FORMAT JSON)");
+    checkExp("json_type('11.56')", "JSON_TYPE('11.56')");
+    checkExp("json_type('{}')", "JSON_TYPE('{}')");
+    checkExp("json_type(null)", "JSON_TYPE(NULL)");
     checkExp("json_type('[\"foo\",null]')",
-            "JSON_TYPE('[\"foo\",null]' FORMAT JSON)");
+            "JSON_TYPE('[\"foo\",null]')");
     checkExp("json_type('{\"foo\": \"100\"}')",
-            "JSON_TYPE('{\"foo\": \"100\"}' FORMAT JSON)");
+            "JSON_TYPE('{\"foo\": \"100\"}')");
+  }
+
+  @Test public void testJsonDepth() {
+    checkExp("json_depth('11.56')", "JSON_DEPTH('11.56')");
+    checkExp("json_depth('{}')", "JSON_DEPTH('{}')");
+    checkExp("json_depth(null)", "JSON_DEPTH(NULL)");
+    checkExp("json_depth('[\"foo\",null]')",
+            "JSON_DEPTH('[\"foo\",null]')");
+    checkExp("json_depth('{\"foo\": \"100\"}')",
+            "JSON_DEPTH('{\"foo\": \"100\"}')");
+  }
+
+  @Test public void testJsonLength() {
+    checkExp("json_length('{\"foo\": \"bar\"}')",
+            "JSON_LENGTH('{\"foo\": \"bar\"}')");
+    checkExp("json_length('{\"foo\": \"bar\"}', 'lax $')",
+            "JSON_LENGTH('{\"foo\": \"bar\"}', 'lax $')");
+    checkExp("json_length('{\"foo\": \"bar\"}', 'strict $')",
+            "JSON_LENGTH('{\"foo\": \"bar\"}', 'strict $')");
+    checkExp("json_length('{\"foo\": \"bar\"}', 'invalid $')",
+            "JSON_LENGTH('{\"foo\": \"bar\"}', 'invalid $')");
+  }
+
+  @Test public void testJsonKeys() {
+    checkExp("json_keys('{\"foo\": \"bar\"}', 'lax $')",
+            "JSON_KEYS('{\"foo\": \"bar\"}', 'lax $')");
+    checkExp("json_keys('{\"foo\": \"bar\"}', 'strict $')",
+            "JSON_KEYS('{\"foo\": \"bar\"}', 'strict $')");
+    checkExp("json_keys('{\"foo\": \"bar\"}', 'invalid $')",
+            "JSON_KEYS('{\"foo\": \"bar\"}', 'invalid $')");
   }
 
   @Test public void testJsonObjectAgg() {
@@ -8417,13 +8727,30 @@ public class SqlParserTest {
         "JSON_ARRAY(JSON_ARRAY('foo', 'bar' ABSENT ON NULL) FORMAT JSON ABSENT ON NULL)");
   }
 
-  @Test public void testJsonArrayAgg() {
+  @Test public void testJsonPretty() {
+    checkExp("json_pretty('foo')",
+            "JSON_PRETTY('foo')");
+    checkExp("json_pretty(null)",
+            "JSON_PRETTY(NULL)");
+  }
+
+  @Test public void testJsonArrayAgg1() {
     checkExp("json_arrayagg(\"column\")",
         "JSON_ARRAYAGG(`column` ABSENT ON NULL)");
     checkExp("json_arrayagg(\"column\" null on null)",
         "JSON_ARRAYAGG(`column` NULL ON NULL)");
     checkExp("json_arrayagg(json_array(\"column\") format json)",
         "JSON_ARRAYAGG(JSON_ARRAY(`column` ABSENT ON NULL) FORMAT JSON ABSENT ON NULL)");
+  }
+
+  @Test public void testJsonArrayAgg2() {
+    checkExp("json_arrayagg(\"column\" order by \"column\")",
+        "JSON_ARRAYAGG(`column` ABSENT ON NULL) WITHIN GROUP (ORDER BY `column`)");
+    checkExp("json_arrayagg(\"column\") within group (order by \"column\")",
+        "JSON_ARRAYAGG(`column` ABSENT ON NULL) WITHIN GROUP (ORDER BY `column`)");
+    checkFails("^json_arrayagg(\"column\" order by \"column\") within group (order by \"column\")^",
+        "(?s).*Including both WITHIN GROUP\\(\\.\\.\\.\\) and inside ORDER BY "
+            + "in a single JSON_ARRAYAGG call is not allowed.*");
   }
 
   @Test public void testJsonPredicate() {
@@ -8464,11 +8791,13 @@ public class SqlParserTest {
    * Callback to control how test actions are performed.
    */
   protected interface Tester {
+    void checkList(String sql, List<String> expected);
+
     void check(String sql, String expected);
 
     void checkExp(String sql, String expected);
 
-    void checkFails(String sql, String expectedMsgPattern);
+    void checkFails(String sql, boolean list, String expectedMsgPattern);
 
     void checkExpFails(String sql, String expectedMsgPattern);
 
@@ -8481,17 +8810,34 @@ public class SqlParserTest {
    * Default implementation of {@link Tester}.
    */
   protected class TesterImpl implements Tester {
-    public void check(
-        String sql,
+    private void check(
+        SqlNode sqlNode,
         String expected) {
-      final SqlNode sqlNode = parseStmtAndHandleEx(sql);
-
       // no dialect, always parenthesize
       String actual = sqlNode.toSqlString(null, true).getSql();
       if (LINUXIFY.get()[0]) {
         actual = Util.toLinux(actual);
       }
       TestUtil.assertEqualsVerbose(expected, actual);
+    }
+
+    @Override public void checkList(
+        String sql,
+        List<String> expected) {
+      final SqlNodeList sqlNodeList = parseStmtsAndHandleEx(sql);
+      assertThat(sqlNodeList.size(), is(expected.size()));
+
+      for (int i = 0; i < sqlNodeList.size(); i++) {
+        SqlNode sqlNode = sqlNodeList.get(i);
+        check(sqlNode, expected.get(i));
+      }
+    }
+
+    public void check(
+        String sql,
+        String expected) {
+      final SqlNode sqlNode = parseStmtAndHandleEx(sql);
+      check(sqlNode, expected);
     }
 
     protected SqlNode parseStmtAndHandleEx(String sql) {
@@ -8502,6 +8848,17 @@ public class SqlParserTest {
         throw new RuntimeException("Error while parsing SQL: " + sql, e);
       }
       return sqlNode;
+    }
+
+    /** Parses a list of statements. */
+    protected SqlNodeList parseStmtsAndHandleEx(String sql) {
+      final SqlNodeList sqlNodeList;
+      try {
+        sqlNodeList = getSqlParser(sql).parseStmtList();
+      } catch (SqlParseException e) {
+        throw new RuntimeException("Error while parsing SQL: " + sql, e);
+      }
+      return sqlNodeList;
     }
 
     public void checkExp(
@@ -8527,17 +8884,23 @@ public class SqlParserTest {
 
     public void checkFails(
         String sql,
+        boolean list,
         String expectedMsgPattern) {
       SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
       Throwable thrown = null;
       try {
-        final SqlNode sqlNode = getSqlParser(sap.sql).parseStmt();
+        final SqlNode sqlNode;
+        if (list) {
+          sqlNode = getSqlParser(sap.sql).parseStmtList();
+        } else {
+          sqlNode = getSqlParser(sap.sql).parseStmt();
+        }
         Util.discard(sqlNode);
       } catch (Throwable ex) {
         thrown = ex;
       }
 
-      SqlValidatorTestCase.checkEx(thrown, expectedMsgPattern, sap);
+      checkEx(expectedMsgPattern, sap, thrown);
     }
 
     public void checkNode(String sql, Matcher<SqlNode> matcher) {
@@ -8546,7 +8909,7 @@ public class SqlParserTest {
         final SqlNode sqlNode = getSqlParser(sap.sql).parseStmt();
         assertThat(sqlNode, matcher);
       } catch (SqlParseException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     }
 
@@ -8566,6 +8929,11 @@ public class SqlParserTest {
         thrown = ex;
       }
 
+      checkEx(expectedMsgPattern, sap, thrown);
+    }
+
+    protected void checkEx(String expectedMsgPattern, SqlParserUtil.StringAndPos sap,
+        Throwable thrown) {
       SqlValidatorTestCase.checkEx(thrown, expectedMsgPattern, sap);
     }
   }
@@ -8579,6 +8947,54 @@ public class SqlParserTest {
    * unparsing a query are consistent with the original query.
    */
   public class UnparsingTesterImpl extends TesterImpl {
+
+    private String toSqlString(SqlNodeList sqlNodeList) {
+      List<String> sqls = sqlNodeList.getList().stream()
+          .map(it -> it.toSqlString(CalciteSqlDialect.DEFAULT, false).getSql())
+          .collect(Collectors.toList());
+      return String.join(";", sqls);
+    }
+
+    private void checkList(SqlNodeList sqlNodeList, List<String> expected) {
+      Assert.assertEquals(expected.size(), sqlNodeList.size());
+
+      for (int i = 0; i < sqlNodeList.size(); i++) {
+        SqlNode sqlNode = sqlNodeList.get(i);
+        // Unparse with no dialect, always parenthesize.
+        final String actual = sqlNode.toSqlString(null, true).getSql();
+        assertEquals(expected.get(i), linux(actual));
+      }
+    }
+
+    @Override public void checkList(String sql, List<String> expected) {
+      SqlNodeList sqlNodeList = parseStmtsAndHandleEx(sql);
+
+      checkList(sqlNodeList, expected);
+
+      // Unparse again in Calcite dialect (which we can parse), and
+      // minimal parentheses.
+      final String sql1 = toSqlString(sqlNodeList);
+
+      // Parse and unparse again.
+      SqlNodeList sqlNodeList2;
+      final Quoting q = quoting;
+      try {
+        quoting = Quoting.DOUBLE_QUOTE;
+        sqlNodeList2 = parseStmtsAndHandleEx(sql1);
+      } finally {
+        quoting = q;
+      }
+      final String sql2 = toSqlString(sqlNodeList2);
+
+      // Should be the same as we started with.
+      assertEquals(sql1, sql2);
+
+      // Now unparse again in the null dialect.
+      // If the unparser is not including sufficient parens to override
+      // precedence, the problem will show up here.
+      checkList(sqlNodeList2, expected);
+    }
+
     @Override public void check(String sql, String expected) {
       SqlNode sqlNode = parseStmtAndHandleEx(sql);
 
@@ -8647,7 +9063,8 @@ public class SqlParserTest {
       assertEquals(expected, linux(actual2));
     }
 
-    @Override public void checkFails(String sql, String expectedMsgPattern) {
+    @Override public void checkFails(String sql,
+        boolean list, String expectedMsgPattern) {
       // Do nothing. We're not interested in unparsing invalid SQL
     }
 
@@ -8691,7 +9108,7 @@ public class SqlParserTest {
       if (expression) {
         getTester().checkExpFails(sql, expectedMsgPattern);
       } else {
-        getTester().checkFails(sql, expectedMsgPattern);
+        getTester().checkFails(sql, false, expectedMsgPattern);
       }
       return this;
     }
@@ -8711,6 +9128,28 @@ public class SqlParserTest {
      * at a conformance level where it succeeds. */
     public Sql sansCarets() {
       return new Sql(sql.replace("^", ""), expression);
+    }
+  }
+
+  /** Helper class for building fluent code,
+   * similar to {@link Sql}, but used to manipulate
+   * a list of statements, such as
+   * {@code sqlList("select * from a;").ok();}. */
+  protected class SqlList {
+    private final String sql;
+
+    SqlList(String sql) {
+      this.sql = sql;
+    }
+
+    public SqlList ok(String... expected) {
+      getTester().checkList(sql, ImmutableList.copyOf(expected));
+      return this;
+    }
+
+    public SqlList fails(String expectedMsgPattern) {
+      getTester().checkFails(sql, true, expectedMsgPattern);
+      return this;
     }
   }
 

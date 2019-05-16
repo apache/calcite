@@ -20,10 +20,12 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
@@ -61,6 +63,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     // using reflection when we are deserializing from JSON.
     opTab.addOperator(new RampFunction());
     opTab.addOperator(new DedupFunction());
+    opTab.addOperator(new MyFunction());
   }
 
   /** "RAMP" user-defined function. */
@@ -100,6 +103,26 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
       return typeFactory.builder()
           .add("NAME", SqlTypeName.VARCHAR, 1024)
           .build();
+    }
+  }
+
+  /** "MYFUN" user-defined scalar function. */
+  public static class MyFunction extends SqlFunction {
+    public MyFunction() {
+      super("MYFUN",
+          new SqlIdentifier("MYFUN", SqlParserPos.ZERO),
+          SqlKind.OTHER_FUNCTION,
+          null,
+          null,
+          OperandTypes.NUMERIC,
+          null,
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+      final RelDataTypeFactory typeFactory =
+          opBinding.getTypeFactory();
+      return typeFactory.createSqlType(SqlTypeName.BIGINT);
     }
   }
 }

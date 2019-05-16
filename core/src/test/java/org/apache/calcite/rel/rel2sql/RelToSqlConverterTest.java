@@ -55,6 +55,7 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
+import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 
@@ -237,6 +238,140 @@ public class RelToSqlConverterTest {
     final String expectedMySql = "SELECT 42 AS `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY ()";
+    sql(query)
+        .ok(expected)
+        .withMysql()
+        .ok(expectedMySql);
+  }
+
+  /** Tests GROUP BY ROLLUP of two columns. The SQL for MySQL has
+   * "GROUP BY ... ROLLUP" but no "ORDER BY". */
+  @Test public void testSelectQueryWithGroupByRollup() {
+    final String query = "select \"product_class_id\", \"brand_name\"\n"
+        + "from \"product\"\n"
+        + "group by rollup(\"product_class_id\", \"brand_name\")\n"
+        + "order by 1, 2";
+    final String expected = "SELECT \"product_class_id\", \"brand_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ROLLUP(\"product_class_id\", \"brand_name\")\n"
+        + "ORDER BY \"product_class_id\", \"brand_name\"";
+    final String expectedMySql = "SELECT `product_class_id`, `brand_name`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY `product_class_id`, `brand_name` WITH ROLLUP";
+    final String expectedMySql8 = "SELECT `product_class_id`, `brand_name`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ROLLUP(`product_class_id`, `brand_name`)\n"
+        + "ORDER BY `product_class_id` NULLS LAST, `brand_name` NULLS LAST";
+    sql(query)
+        .ok(expected)
+        .withMysql()
+        .ok(expectedMySql)
+        .withMysql8()
+        .ok(expectedMySql8);
+  }
+
+  /** As {@link #testSelectQueryWithGroupByRollup()},
+   * but ORDER BY columns reversed. */
+  @Test public void testSelectQueryWithGroupByRollup2() {
+    final String query = "select \"product_class_id\", \"brand_name\"\n"
+        + "from \"product\"\n"
+        + "group by rollup(\"product_class_id\", \"brand_name\")\n"
+        + "order by 2, 1";
+    final String expected = "SELECT \"product_class_id\", \"brand_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ROLLUP(\"product_class_id\", \"brand_name\")\n"
+        + "ORDER BY \"brand_name\", \"product_class_id\"";
+    final String expectedMySql = "SELECT `product_class_id`, `brand_name`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY `brand_name`, `product_class_id` WITH ROLLUP";
+    sql(query)
+        .ok(expected)
+        .withMysql()
+        .ok(expectedMySql);
+  }
+
+  /** CUBE of one column is equivalent to ROLLUP, and Calcite recognizes
+   * this. */
+  @Test public void testSelectQueryWithSingletonCube() {
+    final String query = "select \"product_class_id\", count(*) as c\n"
+        + "from \"product\"\n"
+        + "group by cube(\"product_class_id\")\n"
+        + "order by 1, 2";
+    final String expected = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ROLLUP(\"product_class_id\")\n"
+        + "ORDER BY \"product_class_id\", \"C\"";
+    final String expectedMySql = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY `product_class_id` WITH ROLLUP\n"
+        + "ORDER BY `product_class_id` IS NULL, `product_class_id`,"
+        + " `C` IS NULL, `C`";
+    sql(query)
+        .ok(expected)
+        .withMysql()
+        .ok(expectedMySql);
+  }
+
+  /** As {@link #testSelectQueryWithSingletonCube()}, but no ORDER BY
+   * clause. */
+  @Test public void testSelectQueryWithSingletonCubeNoOrderBy() {
+    final String query = "select \"product_class_id\", count(*) as c\n"
+        + "from \"product\"\n"
+        + "group by cube(\"product_class_id\")";
+    final String expected = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ROLLUP(\"product_class_id\")";
+    final String expectedMySql = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY `product_class_id` WITH ROLLUP";
+    sql(query)
+        .ok(expected)
+        .withMysql()
+        .ok(expectedMySql);
+  }
+
+  /** Cannot rewrite if ORDER BY contains a column not in GROUP BY (in this
+   * case COUNT(*)). */
+  @Test public void testSelectQueryWithRollupOrderByCount() {
+    final String query = "select \"product_class_id\", \"brand_name\",\n"
+        + " count(*) as c\n"
+        + "from \"product\"\n"
+        + "group by rollup(\"product_class_id\", \"brand_name\")\n"
+        + "order by 1, 2, 3";
+    final String expected = "SELECT \"product_class_id\", \"brand_name\","
+        + " COUNT(*) AS \"C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ROLLUP(\"product_class_id\", \"brand_name\")\n"
+        + "ORDER BY \"product_class_id\", \"brand_name\", \"C\"";
+    final String expectedMySql = "SELECT `product_class_id`, `brand_name`,"
+        + " COUNT(*) AS `C`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY `product_class_id`, `brand_name` WITH ROLLUP\n"
+        + "ORDER BY `product_class_id` IS NULL, `product_class_id`,"
+        + " `brand_name` IS NULL, `brand_name`,"
+        + " `C` IS NULL, `C`";
+    sql(query)
+        .ok(expected)
+        .withMysql()
+        .ok(expectedMySql);
+  }
+
+  /** As {@link #testSelectQueryWithSingletonCube()}, but with LIMIT. */
+  @Test public void testSelectQueryWithCubeLimit() {
+    final String query = "select \"product_class_id\", count(*) as c\n"
+        + "from \"product\"\n"
+        + "group by cube(\"product_class_id\")\n"
+        + "limit 5";
+    final String expected = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ROLLUP(\"product_class_id\")\n"
+        + "FETCH NEXT 5 ROWS ONLY";
+    // If a MySQL 5 query has GROUP BY ... ROLLUP, you cannot add ORDER BY,
+    // but you can add LIMIT.
+    final String expectedMySql = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY `product_class_id` WITH ROLLUP\n"
+        + "LIMIT 5";
     sql(query)
         .ok(expected)
         .withMysql()
@@ -1376,19 +1511,21 @@ public class RelToSqlConverterTest {
         + "WHERE v2.job LIKE 'PRESIDENT'";
     final String expected = "SELECT \"DEPT\".\"DEPTNO\","
         + " \"EMP\".\"DEPTNO\" AS \"DEPTNO0\"\n"
-        + "FROM \"JDBC_SCOTT\".\"DEPT\"\n"
-        + "LEFT JOIN \"JDBC_SCOTT\".\"EMP\""
+        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "LEFT JOIN \"SCOTT\".\"EMP\""
         + " ON \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\"\n"
         + "WHERE \"EMP\".\"JOB\" LIKE 'PRESIDENT'";
-    final String expected2 = "SELECT DEPT.DEPTNO, EMP.DEPTNO AS DEPTNO0\n"
-        + "FROM JDBC_SCOTT.DEPT AS DEPT\n"
-        + "LEFT JOIN JDBC_SCOTT.EMP AS EMP ON DEPT.DEPTNO = EMP.DEPTNO\n"
+    // DB2 does not have implicit aliases, so generates explicit "AS DEPT"
+    // and "AS EMP"
+    final String expectedDb2 = "SELECT DEPT.DEPTNO, EMP.DEPTNO AS DEPTNO0\n"
+        + "FROM SCOTT.DEPT AS DEPT\n"
+        + "LEFT JOIN SCOTT.EMP AS EMP ON DEPT.DEPTNO = EMP.DEPTNO\n"
         + "WHERE EMP.JOB LIKE 'PRESIDENT'";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected)
         .withDb2()
-        .ok(expected2);
+        .ok(expectedDb2);
   }
 
   /** Test case for
@@ -1795,6 +1932,12 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2)\n"
         + "FROM `foodmart`.`product`";
+    final String expectedHive = "SELECT SUBSTR(brand_name, 2)\n"
+        + "FROM foodmart.product";
+    final String expectedSpark = "SELECT SUBSTR(brand_name, 2)\n"
+        + "FROM foodmart.product";
+    final String expectedBiqQuery = "SELECT SUBSTR(brand_name, 2)\n"
+        + "FROM foodmart.product";
     sql(query)
         .withOracle()
         .ok(expectedOracle)
@@ -1804,7 +1947,13 @@ public class RelToSqlConverterTest {
         .ok(expectedMysql)
         .withMssql()
         // mssql does not support this syntax and so should fail
-        .throws_("MSSQL SUBSTRING requires FROM and FOR arguments");
+        .throws_("MSSQL SUBSTRING requires FROM and FOR arguments")
+        .withHive()
+        .ok(expectedHive)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigquery()
+        .ok(expectedBiqQuery);
   }
 
   @Test public void testSubstringWithFor() {
@@ -2920,6 +3069,34 @@ public class RelToSqlConverterTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testMatchRecognizeIn() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "    partition by \"product_class_id\", \"brand_name\" \n"
+        + "    order by \"product_class_id\" asc, \"brand_name\" desc \n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" in (0, 1),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "PARTITION BY \"product_class_id\", \"brand_name\"\n"
+        + "ORDER BY \"product_class_id\", \"brand_name\" DESC\n"
+        + "ONE ROW PER MATCH\n"
+        + "AFTER MATCH SKIP TO NEXT ROW\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) = "
+        + "0 OR PREV(\"DOWN\".\"net_weight\", 0) = 1, "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
   @Test public void testValues() {
     final String sql = "select \"a\"\n"
         + "from (values (1, 'x'), (2, 'yy')) as t(\"a\", \"b\")";
@@ -3079,9 +3256,29 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testJsonValueExpressionOperator() {
+    String query = "select \"product_name\" format json, "
+        + "\"product_name\" format json encoding utf8, "
+        + "\"product_name\" format json encoding utf16, "
+        + "\"product_name\" format json encoding utf32 from \"product\"";
+    final String expected = "SELECT \"product_name\" FORMAT JSON, "
+        + "\"product_name\" FORMAT JSON, "
+        + "\"product_name\" FORMAT JSON, "
+        + "\"product_name\" FORMAT JSON\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
   @Test public void testJsonExists() {
     String query = "select json_exists(\"product_name\", 'lax $') from \"product\"";
     final String expected = "SELECT JSON_EXISTS(\"product_name\" FORMAT JSON, 'lax $')\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonPretty() {
+    String query = "select json_pretty(\"product_name\") from \"product\"";
+    final String expected = "SELECT JSON_PRETTY(\"product_name\" FORMAT JSON)\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }
@@ -3172,8 +3369,32 @@ public class RelToSqlConverterTest {
   @Test public void testJsonType() {
     String query = "select json_type(\"product_name\") from \"product\"";
     final String expected = "SELECT "
-            + "JSON_TYPE(\"product_name\" FORMAT JSON)\n"
-            + "FROM \"foodmart\".\"product\"";
+        + "JSON_TYPE(\"product_name\" FORMAT JSON)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonDepth() {
+    String query = "select json_depth(\"product_name\") from \"product\"";
+    final String expected = "SELECT "
+        + "JSON_DEPTH(\"product_name\" FORMAT JSON)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonLength() {
+    String query = "select json_length(\"product_name\", 'lax $'), "
+        + "json_length(\"product_name\") from \"product\"";
+    final String expected = "SELECT JSON_LENGTH(\"product_name\" FORMAT JSON, 'lax $'), "
+        + "JSON_LENGTH(\"product_name\" FORMAT JSON)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonKeys() {
+    String query = "select json_keys(\"product_name\", 'lax $') from \"product\"";
+    final String expected = "SELECT JSON_KEYS(\"product_name\" FORMAT JSON, 'lax $')\n"
+        + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }
 
@@ -3225,6 +3446,14 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     sql(query)
         .withBigquery().ok(expectedBigQuery);
+  }
+
+  @Test public void truncateFunctionWithSingleOperandEmulationForBigQuery() {
+    String query = "select truncate(2.30259) from \"employee\"";
+    final String expectedBigQuery = "SELECT TRUNC(2.30259)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+      .withBigquery().ok(expectedBigQuery);
   }
 
   @Test public void extractFunctionEmulationForHiveAndSparkAndBigQuery() {
@@ -3337,6 +3566,17 @@ public class RelToSqlConverterTest {
       return dialect(SqlDialect.DatabaseProduct.MYSQL.getDialect());
     }
 
+    Sql withMysql8() {
+      final SqlDialect mysqlDialect = DatabaseProduct.MYSQL.getDialect();
+      return dialect(
+          new SqlDialect(SqlDialect.EMPTY_CONTEXT
+              .withDatabaseProduct(DatabaseProduct.MYSQL)
+              .withDatabaseMajorVersion(8)
+              .withIdentifierQuoteString(mysqlDialect.quoteIdentifier("")
+                  .substring(0, 1))
+              .withNullCollation(mysqlDialect.getNullCollation())));
+    }
+
     Sql withOracle() {
       return dialect(SqlDialect.DatabaseProduct.ORACLE.getDialect());
     }
@@ -3382,10 +3622,10 @@ public class RelToSqlConverterTest {
               .withDataTypeSystem(new RelDataTypeSystemImpl() {
                 @Override public int getMaxPrecision(SqlTypeName typeName) {
                   switch (typeName) {
-                    case VARCHAR:
-                      return 256;
-                    default:
-                      return super.getMaxPrecision(typeName);
+                  case VARCHAR:
+                    return 256;
+                  default:
+                    return super.getMaxPrecision(typeName);
                   }
                 }
               }));
@@ -3432,10 +3672,8 @@ public class RelToSqlConverterTest {
           rel = transform.apply(rel);
         }
         return toSql(rel, dialect);
-      } catch (RuntimeException e) {
-        throw e;
       } catch (Exception e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     }
 

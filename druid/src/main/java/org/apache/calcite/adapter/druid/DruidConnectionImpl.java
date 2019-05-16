@@ -19,12 +19,12 @@ package org.apache.calcite.adapter.druid;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.interpreter.Sink;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
@@ -103,7 +103,7 @@ class DruidConnectionImpl implements DruidConnection {
     final String url = this.url + "/druid/v2/?pretty";
     final Map<String, String> requestHeaders =
         ImmutableMap.of("Content-Type", "application/json");
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       System.out.println(data);
     }
     try (InputStream in0 = post(url, data, requestHeaders, 10000, 1800000);
@@ -122,7 +122,7 @@ class DruidConnectionImpl implements DruidConnection {
     final JsonFactory factory = new JsonFactory();
     final Row.RowBuilder rowBuilder = Row.newBuilder(fieldNames.size());
 
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       try {
         final byte[] bytes = AvaticaUtils.readFullyToBytes(in);
         System.out.println("Response: "
@@ -565,7 +565,7 @@ class DruidConnectionImpl implements DruidConnection {
     final Map<String, String> requestHeaders =
         ImmutableMap.of("Content-Type", "application/json");
     final String data = DruidQuery.metadataQuery(dataSourceName, intervals);
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       System.out.println("Druid: " + data);
     }
     try (InputStream in0 = post(url, data, requestHeaders, 10000, 1800000);
@@ -624,7 +624,7 @@ class DruidConnectionImpl implements DruidConnection {
         ImmutableMap.of("Content-Type", "application/json");
     final String data = null;
     final String url = coordinatorUrl + "/druid/coordinator/v1/metadata/datasources";
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       System.out.println("Druid: table names" + data + "; " + url);
     }
     try (InputStream in0 = post(url, data, requestHeaders, 10000, 1800000);
@@ -641,7 +641,7 @@ class DruidConnectionImpl implements DruidConnection {
   }
 
   private InputStream traceResponse(InputStream in) {
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       try {
         final byte[] bytes = AvaticaUtils.readFullyToBytes(in);
         in.close();

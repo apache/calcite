@@ -22,6 +22,7 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.util.Sources;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
@@ -199,7 +200,7 @@ public class CsvTest {
         assertThat(o, is(300L));
         assertThat(resultSet.next(), is(false));
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     }).ok();
   }
@@ -296,6 +297,29 @@ public class CsvTest {
         .returns("EMPNO=130; GENDER=F; NAME=Alice").ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2272">[CALCITE-2272]
+   * Incorrect result for {@code name like '%E%' and city not like '%W%'}</a>.
+   */
+  @Test public void testFilterableWhereWithNot1() throws SQLException {
+    sql("filterable-model",
+        "select name, empno from EMPS "
+            + "where name like '%E%' and city not like '%W%' ")
+        .returns("NAME=Eric; EMPNO=110")
+        .ok();
+  }
+
+  /** Similar to {@link #testFilterableWhereWithNot1()};
+   * But use the same column. */
+  @Test public void testFilterableWhereWithNot2() throws SQLException {
+    sql("filterable-model",
+        "select name, empno from EMPS "
+            + "where name like '%i%' and name not like '%W%' ")
+        .returns("NAME=Eric; EMPNO=110",
+            "NAME=Alice; EMPNO=130")
+        .ok();
+  }
+
   @Test public void testJson() throws SQLException {
     final String sql = "select _MAP['id'] as id,\n"
         + " _MAP['title'] as title,\n"
@@ -320,7 +344,7 @@ public class CsvTest {
         CsvTest.collect(lines, resultSet);
         Assert.assertEquals(Arrays.asList(expected), lines);
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     };
   }
@@ -337,7 +361,7 @@ public class CsvTest {
         Collections.sort(lines);
         Assert.assertEquals(expectedLines, lines);
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     };
   }
@@ -951,7 +975,7 @@ public class CsvTest {
     try {
       output(resultSet, System.out);
     } catch (SQLException e) {
-      throw new RuntimeException(e);
+      throw TestUtil.rethrow(e);
     }
     return null;
   }
@@ -1016,7 +1040,7 @@ public class CsvTest {
         checkSql(sql, model, expect);
         return this;
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     }
 

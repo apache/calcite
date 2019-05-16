@@ -59,7 +59,7 @@ enum FileFieldType {
       builder.put(value.clazz.getSimpleName(), value);
 
       if (value.primitive != null) {
-        builder.put(value.primitive.primitiveClass.getSimpleName(), value);
+        builder.put(value.primitive.primitiveName, value);
       }
     }
     MAP = builder.build();

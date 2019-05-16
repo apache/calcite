@@ -38,26 +38,25 @@ import java.util.List;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-
-
 /**
  * Test validating the order preserving properties of join algorithms in
- * {@link org.apache.calcite.linq4j.ExtendedEnumerable}. The correctness of the join algorithm is
- * not examined by this set of tests.
+ * {@link org.apache.calcite.linq4j.ExtendedEnumerable}. The correctness of the
+ * join algorithm is not examined by this set of tests.
  *
- * To verify that the order of left/right/both input(s) is preserved they must be all ordered by at
- * least one column. The inputs are either sorted on the join or some other column. For the tests to
- * be meaningful the result of the join must not be empty.
+ * <p>To verify that the order of left/right/both input(s) is preserved they
+ * must be all ordered by at least one column. The inputs are either sorted on
+ * the join or some other column. For the tests to be meaningful the result of
+ * the join must not be empty.
  *
- * Interesting variants that may affect the join output and thus destroy the order of one or both
- * inputs is when the join column or the sorted column (when join column != sort column)
- * contain nulls or duplicate values.
+ * <p>Interesting variants that may affect the join output and thus destroy the
+ * order of one or both inputs is when the join column or the sorted column
+ * (when join column != sort column) contain nulls or duplicate values.
  *
- * In addition, the way that nulls are sorted before the join can also play an important role
- * regarding the order preserving semantics of the join.
+ * <p>In addition, the way that nulls are sorted before the join can also play
+ * an important role regarding the order preserving semantics of the join.
  *
- * Last but not least, the type of the join (left/right/full/inner/semi/anti) has a major impact on
- * the preservation of order for the various joins.
+ * <p>Last but not least, the type of the join (left/right/full/inner/semi/anti)
+ * has a major impact on the preservation of order for the various joins.
  */
 @RunWith(Parameterized.class)
 public final class JoinPreserveOrderTest {
@@ -143,8 +142,7 @@ public final class JoinPreserveOrderTest {
                     deptOrderColNames.get(j),
                     deptOrderColSelectors.get(j),
                     ascendingR,
-                    nullsFirstR
-                );
+                    nullsFirstR);
                 data.add(params);
               }
             }
@@ -239,8 +237,9 @@ public final class JoinPreserveOrderTest {
         left.correlateJoin(
             joinType,
             emp -> right.where(dept ->
-                emp.deptno != null && dept.deptno != null && emp.deptno.equals(dept.deptno)
-            ),
+                emp.deptno != null
+                    && dept.deptno != null
+                    && emp.deptno.equals(dept.deptno)),
             RESULT_SELECTOR);
   }
 
@@ -277,8 +276,7 @@ public final class JoinPreserveOrderTest {
             left,
             right,
             emp -> emp.deptno,
-            dept -> dept.deptno).select(emp -> Arrays.asList(emp.eid, null)
-        );
+            dept -> dept.deptno).select(emp -> Arrays.asList(emp.eid, null));
   }
 
   /**

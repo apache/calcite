@@ -44,6 +44,7 @@ import org.apache.calcite.schema.ImplementableFunction;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlJsonArrayAggAggFunction;
 import org.apache.calcite.sql.fun.SqlJsonObjectAggAggFunction;
@@ -96,6 +97,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ACOS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.AND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ANY_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASCII;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN2;
@@ -162,20 +164,25 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ITEM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_API_COMMON_SYNTAX;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_ARRAY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_ARRAYAGG;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_DEPTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_EXISTS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_KEYS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECTAGG;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_PRETTY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_QUERY;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_STRUCTURED_VALUE_EXPRESSION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_TYPE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_VALUE_ANY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_VALUE_EXPRESSION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAG;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST_DAY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LEAD;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LIKE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LISTAGG;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LOCALTIME;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LOCALTIMESTAMP;
@@ -249,6 +256,8 @@ public class RexImpTable {
       Expressions.constant(false);
   public static final ConstantExpression TRUE_EXPR =
       Expressions.constant(true);
+  public static final ConstantExpression COMMA_EXPR =
+      Expressions.constant(",");
   public static final MemberExpression BOXED_FALSE_EXPR =
       Expressions.field(null, Boolean.class, "FALSE");
   public static final MemberExpression BOXED_TRUE_EXPR =
@@ -276,6 +285,7 @@ public class RexImpTable {
         NullPolicy.STRICT);
     defineMethod(OVERLAY, BuiltInMethod.OVERLAY.method, NullPolicy.STRICT);
     defineMethod(POSITION, BuiltInMethod.POSITION.method, NullPolicy.STRICT);
+    defineMethod(ASCII, BuiltInMethod.ASCII.method, NullPolicy.STRICT);
 
     final TrimImplementor trimImplementor = new TrimImplementor();
     defineImplementor(TRIM, NullPolicy.STRICT, trimImplementor, false);
@@ -370,6 +380,8 @@ public class RexImpTable {
             BuiltInMethod.UNIX_TIMESTAMP_CEIL.method,
             BuiltInMethod.UNIX_DATE_CEIL.method), false);
 
+    defineMethod(LAST_DAY, "lastDay", NullPolicy.STRICT);
+
     map.put(IS_NULL, new IsXxxImplementor(null, false));
     map.put(IS_NOT_NULL, new IsXxxImplementor(null, true));
     map.put(IS_TRUE, new IsXxxImplementor(true, false));
@@ -443,20 +455,28 @@ public class RexImpTable {
     // Json Operators
     defineMethod(JSON_VALUE_EXPRESSION,
         BuiltInMethod.JSON_VALUE_EXPRESSION.method, NullPolicy.STRICT);
-    defineMethod(JSON_STRUCTURED_VALUE_EXPRESSION,
-        BuiltInMethod.JSON_STRUCTURED_VALUE_EXPRESSION.method, NullPolicy.STRICT);
     defineMethod(JSON_API_COMMON_SYNTAX, BuiltInMethod.JSON_API_COMMON_SYNTAX.method,
-        NullPolicy.NONE);
+            NullPolicy.NONE);
     defineMethod(JSON_EXISTS, BuiltInMethod.JSON_EXISTS.method, NullPolicy.NONE);
     defineMethod(JSON_VALUE_ANY, BuiltInMethod.JSON_VALUE_ANY.method, NullPolicy.NONE);
     defineMethod(JSON_QUERY, BuiltInMethod.JSON_QUERY.method, NullPolicy.NONE);
     defineMethod(JSON_OBJECT, BuiltInMethod.JSON_OBJECT.method, NullPolicy.NONE);
+    defineMethod(JSON_ARRAY, BuiltInMethod.JSON_ARRAY.method, NullPolicy.NONE);
     defineMethod(JSON_TYPE, BuiltInMethod.JSON_TYPE.method, NullPolicy.NONE);
-    aggMap.put(JSON_OBJECTAGG,
+    defineMethod(JSON_DEPTH, BuiltInMethod.JSON_DEPTH.method, NullPolicy.NONE);
+    defineMethod(JSON_KEYS, BuiltInMethod.JSON_KEYS.method, NullPolicy.NONE);
+    defineMethod(JSON_PRETTY, BuiltInMethod.JSON_PRETTY.method, NullPolicy.NONE);
+    defineMethod(JSON_LENGTH, BuiltInMethod.JSON_LENGTH.method, NullPolicy.NONE);
+    aggMap.put(JSON_OBJECTAGG.with(SqlJsonConstructorNullClause.ABSENT_ON_NULL),
         JsonObjectAggImplementor
             .supplierFor(BuiltInMethod.JSON_OBJECTAGG_ADD.method));
-    defineMethod(JSON_ARRAY, BuiltInMethod.JSON_ARRAY.method, NullPolicy.NONE);
-    aggMap.put(JSON_ARRAYAGG,
+    aggMap.put(JSON_OBJECTAGG.with(SqlJsonConstructorNullClause.NULL_ON_NULL),
+        JsonObjectAggImplementor
+            .supplierFor(BuiltInMethod.JSON_OBJECTAGG_ADD.method));
+    aggMap.put(JSON_ARRAYAGG.with(SqlJsonConstructorNullClause.ABSENT_ON_NULL),
+        JsonArrayAggImplementor
+            .supplierFor(BuiltInMethod.JSON_ARRAYAGG_ADD.method));
+    aggMap.put(JSON_ARRAYAGG.with(SqlJsonConstructorNullClause.NULL_ON_NULL),
         JsonArrayAggImplementor
             .supplierFor(BuiltInMethod.JSON_ARRAYAGG_ADD.method));
     defineImplementor(IS_JSON_VALUE, NullPolicy.NONE,
@@ -512,6 +532,7 @@ public class RexImpTable {
     aggMap.put(BIT_OR, bitop);
     aggMap.put(SINGLE_VALUE, constructorSupplier(SingleValueImplementor.class));
     aggMap.put(COLLECT, constructorSupplier(CollectImplementor.class));
+    aggMap.put(LISTAGG, constructorSupplier(ListaggImplementor.class));
     aggMap.put(FUSION, constructorSupplier(FusionImplementor.class));
     final Supplier<GroupingImplementor> grouping =
         constructorSupplier(GroupingImplementor.class);
@@ -706,6 +727,10 @@ public class RexImpTable {
             return NullAs.TRUE;
           case TRUE:
             return NullAs.FALSE;
+          case IS_NULL:
+            return NullAs.IS_NOT_NULL;
+          case IS_NOT_NULL:
+            return NullAs.IS_NULL;
           default:
             return nullAs;
           }
@@ -1344,6 +1369,31 @@ public class RexImpTable {
               Expressions.call(add.accumulator().get(0),
                   BuiltInMethod.COLLECTION_ADD.method,
                   add.arguments().get(0))));
+    }
+  }
+
+  /** Implementor for the {@code LISTAGG} aggregate function. */
+  static class ListaggImplementor extends StrictAggImplementor {
+    @Override protected void implementNotNullReset(AggContext info,
+        AggResetContext reset) {
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(0), NULL_EXPR)));
+    }
+
+    @Override public void implementNotNullAdd(AggContext info,
+        AggAddContext add) {
+      final Expression accValue = add.accumulator().get(0);
+      final Expression arg0 = add.arguments().get(0);
+      final Expression arg1 = add.arguments().size() == 2
+          ? add.arguments().get(1) : COMMA_EXPR;
+      final Expression result = Expressions.condition(
+          Expressions.equal(NULL_EXPR, accValue),
+          arg0,
+          Expressions.call(BuiltInMethod.STRING_CONCAT.method, accValue,
+              Expressions.call(BuiltInMethod.STRING_CONCAT.method, arg1, arg0)));
+
+      add.currentBlock().add(Expressions.statement(Expressions.assign(accValue, result)));
     }
   }
 
@@ -2225,8 +2275,8 @@ public class RexImpTable {
               Expressions.call(BuiltInMethod.TIME_ZONE.method, translator.getRoot()));
           // fall through
         case TIMESTAMP:
-          operand = Expressions.divide(operand,
-              Expressions.constant(TimeUnit.DAY.multiplier.longValue()));
+          operand = Expressions.call(BuiltInMethod.FLOOR_DIV.method,
+              operand, Expressions.constant(TimeUnit.DAY.multiplier.longValue()));
           // fall through
         case DATE:
           return Expressions.call(BuiltInMethod.UNIX_DATE_EXTRACT.method,
@@ -2236,11 +2286,9 @@ public class RexImpTable {
         }
         break;
       case MILLISECOND:
-        return Expressions.modulo(
-              operand, Expressions.constant(TimeUnit.MINUTE.multiplier.longValue()));
+        return mod(operand, TimeUnit.MINUTE.multiplier.longValue());
       case MICROSECOND:
-        operand = Expressions.modulo(
-              operand, Expressions.constant(TimeUnit.MINUTE.multiplier.longValue()));
+        operand = mod(operand, TimeUnit.MINUTE.multiplier.longValue());
         return Expressions.multiply(
               operand, Expressions.constant(TimeUnit.SECOND.multiplier.longValue()));
       case EPOCH:
@@ -2306,7 +2354,8 @@ public class RexImpTable {
     if (factor == 1L) {
       return operand;
     } else {
-      return Expressions.modulo(operand, Expressions.constant(factor));
+      return Expressions.call(BuiltInMethod.FLOOR_MOD.method,
+          operand, Expressions.constant(factor));
     }
   }
 

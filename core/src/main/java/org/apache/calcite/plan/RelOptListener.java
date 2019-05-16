@@ -73,7 +73,7 @@ public interface RelOptListener extends EventListener {
   /**
    * Notifies this listener that a relational expression has been chosen as
    * part of the final implementation of the query plan. After the plan is
-   * copmlete, this is called one more time with null for the rel.
+   * complete, this is called one more time with null for the rel.
    *
    * @param event details about the event
    */
@@ -154,7 +154,7 @@ public interface RelOptListener extends EventListener {
     }
   }
 
-  /** Event indicating that a planner rule has been attemptedd. */
+  /** Event indicating that a planner rule has been attempted. */
   class RuleAttemptedEvent extends RuleEvent {
     private final boolean before;
 

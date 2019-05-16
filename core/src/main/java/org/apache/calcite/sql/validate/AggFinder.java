@@ -39,10 +39,11 @@ class AggFinder extends AggVisitor {
    * @param aggregate Whether to find non-windowed aggregate calls
    * @param group Whether to find group functions (e.g. {@code TUMBLE})
    * @param delegate Finder to which to delegate when processing the arguments
+   * @param nameMatcher Whether to match the agg function case-sensitively
    */
   AggFinder(SqlOperatorTable opTab, boolean over, boolean aggregate,
-      boolean group, AggFinder delegate) {
-    super(opTab, over, aggregate, group, delegate);
+      boolean group, AggFinder delegate, SqlNameMatcher nameMatcher) {
+    super(opTab, over, aggregate, group, delegate, nameMatcher);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -83,7 +84,7 @@ class AggFinder extends AggVisitor {
    * then returns the list of all aggregates found. */
   Iterable<SqlCall> findAll(Iterable<SqlNode> nodes) {
     final AggIterable aggIterable =
-        new AggIterable(opTab, over, aggregate, group, delegate);
+        new AggIterable(opTab, over, aggregate, group, delegate, nameMatcher);
     for (SqlNode node : nodes) {
       node.accept(aggIterable);
     }
@@ -95,8 +96,8 @@ class AggFinder extends AggVisitor {
     private final List<SqlCall> calls = new ArrayList<>();
 
     AggIterable(SqlOperatorTable opTab, boolean over, boolean aggregate,
-        boolean group, AggFinder delegate) {
-      super(opTab, over, aggregate, group, delegate);
+        boolean group, AggFinder delegate, SqlNameMatcher nameMatcher) {
+      super(opTab, over, aggregate, group, delegate, nameMatcher);
     }
 
     @Override protected Void found(SqlCall call) {

@@ -34,6 +34,7 @@ import org.apache.calcite.prepare.LookupOperatorOverloadsTest;
 import org.apache.calcite.profile.ProfilerTest;
 import org.apache.calcite.rel.RelCollationTest;
 import org.apache.calcite.rel.RelDistributionTest;
+import org.apache.calcite.rel.rel2sql.RelToSqlConverterStructsTest;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverterTest;
 import org.apache.calcite.rel.rules.DateRangeRulesTest;
 import org.apache.calcite.rel.rules.SortRemoveRuleTest;
@@ -53,6 +54,7 @@ import org.apache.calcite.sql.test.SqlTypeNameTest;
 import org.apache.calcite.sql.type.SqlTypeFactoryTest;
 import org.apache.calcite.sql.type.SqlTypeUtilTest;
 import org.apache.calcite.sql.validate.LexCaseSensitiveTest;
+import org.apache.calcite.sql.validate.LexEscapeTest;
 import org.apache.calcite.sql.validate.SqlValidatorUtilTest;
 import org.apache.calcite.test.enumerable.EnumerableCorrelateTest;
 import org.apache.calcite.test.fuzzer.RexProgramFuzzyTest;
@@ -146,12 +148,14 @@ import org.junit.runners.Suite;
     SqlLimitsTest.class,
     JdbcFrontLinqBackTest.class,
     RelToSqlConverterTest.class,
+    RelToSqlConverterStructsTest.class,
     SqlOperatorTest.class,
     ChunkListTest.class,
     FrameworksTest.class,
     EnumerableCorrelateTest.class,
     LookupOperatorOverloadsTest.class,
     LexCaseSensitiveTest.class,
+    LexEscapeTest.class,
     CollationConversionTest.class,
     TraitConversionTest.class,
     ComboRuleTest.class,
@@ -171,6 +175,7 @@ import org.junit.runners.Suite;
     RexProgramFuzzyTest.class,
     SqlToRelConverterTest.class,
     ProfilerTest.class,
+    SqlStatisticProviderTest.class,
     SqlAdvisorJdbcTest.class,
     CoreQuidemTest.class,
     CalciteRemoteDriverTest.class,

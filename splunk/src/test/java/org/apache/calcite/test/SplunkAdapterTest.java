@@ -16,7 +16,8 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.util.Util;
+import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -46,16 +47,10 @@ public class SplunkAdapterTest {
   public static final String SPLUNK_USER = "admin";
   public static final String SPLUNK_PASSWORD = "changeme";
 
-  /** Whether to run Splunk tests. Disabled by default, because we do not expect
-   * Splunk to be installed and populated data set. To enable,
-   * specify {@code -Dcalcite.test.splunk} on the Java command line. */
-  public static final boolean ENABLED =
-      Util.getBooleanProperty("calcite.test.splunk");
-
   /** Whether this test is enabled. Tests are disabled unless we know that
    * Splunk is present and loaded with the requisite data. */
   private boolean enabled() {
-    return ENABLED;
+    return CalciteSystemProperty.TEST_SPLUNK.value();
   }
 
   private void loadDriverClass() {
@@ -201,7 +196,7 @@ public class SplunkAdapterTest {
         }
         return null;
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     });
   }
@@ -224,7 +219,7 @@ public class SplunkAdapterTest {
         assertThat(actual, equalTo(expected));
         return null;
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     };
   }
@@ -243,7 +238,7 @@ public class SplunkAdapterTest {
             assertThat(actual.contains("404"), is(true));
             return null;
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }

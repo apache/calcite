@@ -19,6 +19,7 @@ package org.apache.calcite.rex;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCollation;
@@ -32,17 +33,15 @@ import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
-import org.apache.calcite.util.SaffronProperties;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
-import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -382,21 +381,19 @@ public class RexLiteral extends RexNode {
     if (value == null) {
       return includeType == RexDigestIncludeType.NO_TYPE ? "null" : "null:" + fullTypeString;
     }
-    StringWriter sw = new StringWriter();
-    PrintWriter pw = new PrintWriter(sw);
-    printAsJava(value, pw, typeName, false, includeType);
-    pw.flush();
+    StringBuilder sb = new StringBuilder();
+    appendAsJava(value, sb, typeName, false, includeType);
 
     if (includeType != RexDigestIncludeType.NO_TYPE) {
-      sw.append(':');
+      sb.append(':');
       if (!fullTypeString.endsWith("NOT NULL")) {
-        sw.append(fullTypeString);
+        sb.append(fullTypeString);
       } else {
         // Trim " NOT NULL". Apparently, the literal is not null, so we just print the data type.
-        Unsafe.append(sw, fullTypeString, 0, fullTypeString.length() - 9);
+        sb.append(fullTypeString, 0, fullTypeString.length() - 9);
       }
     }
-    return sw.toString();
+    return sb.toString();
   }
 
   /**
@@ -551,14 +548,14 @@ public class RexLiteral extends RexNode {
    * Prints the value this literal as a Java string constant.
    */
   public void printAsJava(PrintWriter pw) {
-    printAsJava(value, pw, typeName, true, RexDigestIncludeType.NO_TYPE);
+    appendAsJava(value, pw, typeName, true, RexDigestIncludeType.NO_TYPE);
   }
 
   /**
-   * Prints a value as a Java string. The value must be consistent with the
-   * type, as per {@link #valueMatchesType}.
+   * Appends the specified value in the provided destination as a Java string. The value must be
+   * consistent with the type, as per {@link #valueMatchesType}.
    *
-   * <p>Typical return values:
+   * <p>Typical return values:</p>
    *
    * <ul>
    * <li>true</li>
@@ -567,122 +564,130 @@ public class RexLiteral extends RexNode {
    * <li>1.25</li>
    * <li>1234ABCD</li>
    * </ul>
-   *  @param value    Value
-   * @param pw       Writer to write to
-   * @param typeName Type family
-   * @param includeType if representation should include data type
+   *
+   * <p>The destination where the value is appended must not incur I/O operations. This method is
+   * not meant to be used for writing the values to permanent storage.</p>
+   *
+   * @param value a value to be appended to the provided destination as a Java string
+   * @param destination a destination where to append the specified value
+   * @param typeName a type name to be used for the transformation of the value to a Java string
+   * @param includeType an indicator whether to include the data type in the Java representation
+   * @throws IllegalStateException if the appending to the destination <code>Appendable</code> fails
+   *         due to I/O
    */
-  private static void printAsJava(
+  private static void appendAsJava(
       Comparable value,
-      PrintWriter pw,
+      Appendable destination,
       SqlTypeName typeName,
       boolean java, RexDigestIncludeType includeType) {
-    switch (typeName) {
-    case CHAR:
-      NlsString nlsString = (NlsString) value;
-      if (java) {
-        Util.printJavaString(
-            pw,
-            nlsString.getValue(),
-            true);
-      } else {
-        boolean includeCharset =
-            (nlsString.getCharsetName() != null)
-                && !nlsString.getCharsetName().equals(
-                    SaffronProperties.INSTANCE.defaultCharset().get());
-        pw.print(nlsString.asSql(includeCharset, false));
-      }
-      break;
-    case BOOLEAN:
-      assert value instanceof Boolean;
-      pw.print(((Boolean) value).booleanValue());
-      break;
-    case DECIMAL:
-      assert value instanceof BigDecimal;
-      pw.print(value.toString());
-      break;
-    case DOUBLE:
-      assert value instanceof BigDecimal;
-      pw.print(Util.toScientificNotation((BigDecimal) value));
-      break;
-    case BIGINT:
-      assert value instanceof BigDecimal;
-      pw.print(((BigDecimal) value).longValue());
-      pw.print('L');
-      break;
-    case BINARY:
-      assert value instanceof ByteString;
-      pw.print("X'");
-      pw.print(((ByteString) value).toString(16));
-      pw.print("'");
-      break;
-    case NULL:
-      assert value == null;
-      pw.print("null");
-      break;
-    case SYMBOL:
-      assert value instanceof Enum;
-      pw.print("FLAG(");
-      pw.print(value);
-      pw.print(")");
-      break;
-    case DATE:
-      assert value instanceof DateString;
-      pw.print(value);
-      break;
-    case TIME:
-      assert value instanceof TimeString;
-      pw.print(value);
-      break;
-    case TIME_WITH_LOCAL_TIME_ZONE:
-      assert value instanceof TimeString;
-      pw.print(value);
-      break;
-    case TIMESTAMP:
-      assert value instanceof TimestampString;
-      pw.print(value);
-      break;
-    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-      assert value instanceof TimestampString;
-      pw.print(value);
-      break;
-    case INTERVAL_YEAR:
-    case INTERVAL_YEAR_MONTH:
-    case INTERVAL_MONTH:
-    case INTERVAL_DAY:
-    case INTERVAL_DAY_HOUR:
-    case INTERVAL_DAY_MINUTE:
-    case INTERVAL_DAY_SECOND:
-    case INTERVAL_HOUR:
-    case INTERVAL_HOUR_MINUTE:
-    case INTERVAL_HOUR_SECOND:
-    case INTERVAL_MINUTE:
-    case INTERVAL_MINUTE_SECOND:
-    case INTERVAL_SECOND:
-      if (value instanceof BigDecimal) {
-        pw.print(value.toString());
-      } else {
+    try {
+      switch (typeName) {
+      case CHAR:
+        NlsString nlsString = (NlsString) value;
+        if (java) {
+          Util.printJavaString(
+              destination,
+              nlsString.getValue(),
+              true);
+        } else {
+          boolean includeCharset =
+              (nlsString.getCharsetName() != null)
+                  && !nlsString.getCharsetName().equals(
+                  CalciteSystemProperty.DEFAULT_CHARSET.value());
+          destination.append(nlsString.asSql(includeCharset, false));
+        }
+        break;
+      case BOOLEAN:
+        assert value instanceof Boolean;
+        destination.append(value.toString());
+        break;
+      case DECIMAL:
+        assert value instanceof BigDecimal;
+        destination.append(value.toString());
+        break;
+      case DOUBLE:
+        assert value instanceof BigDecimal;
+        destination.append(Util.toScientificNotation((BigDecimal) value));
+        break;
+      case BIGINT:
+        assert value instanceof BigDecimal;
+        long narrowLong = ((BigDecimal) value).longValue();
+        destination.append(String.valueOf(narrowLong));
+        destination.append('L');
+        break;
+      case BINARY:
+        assert value instanceof ByteString;
+        destination.append("X'");
+        destination.append(((ByteString) value).toString(16));
+        destination.append("'");
+        break;
+      case NULL:
         assert value == null;
-        pw.print("null");
-      }
-      break;
-    case MULTISET:
-    case ROW:
-      @SuppressWarnings("unchecked") final List<RexLiteral> list = (List) value;
-      pw.print(
-          new AbstractList<String>() {
-            public String get(int index) {
-              return list.get(index).computeDigest(includeType);
-            }
+        destination.append("null");
+        break;
+      case SYMBOL:
+        assert value instanceof Enum;
+        destination.append("FLAG(");
+        destination.append(value.toString());
+        destination.append(")");
+        break;
+      case DATE:
+        assert value instanceof DateString;
+        destination.append(value.toString());
+        break;
+      case TIME:
+        assert value instanceof TimeString;
+        destination.append(value.toString());
+        break;
+      case TIME_WITH_LOCAL_TIME_ZONE:
+        assert value instanceof TimeString;
+        destination.append(value.toString());
+        break;
+      case TIMESTAMP:
+        assert value instanceof TimestampString;
+        destination.append(value.toString());
+        break;
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+        assert value instanceof TimestampString;
+        destination.append(value.toString());
+        break;
+      case INTERVAL_YEAR:
+      case INTERVAL_YEAR_MONTH:
+      case INTERVAL_MONTH:
+      case INTERVAL_DAY:
+      case INTERVAL_DAY_HOUR:
+      case INTERVAL_DAY_MINUTE:
+      case INTERVAL_DAY_SECOND:
+      case INTERVAL_HOUR:
+      case INTERVAL_HOUR_MINUTE:
+      case INTERVAL_HOUR_SECOND:
+      case INTERVAL_MINUTE:
+      case INTERVAL_MINUTE_SECOND:
+      case INTERVAL_SECOND:
+        assert value instanceof BigDecimal;
+        destination.append(value.toString());
+        break;
+      case MULTISET:
+      case ROW:
+        @SuppressWarnings("unchecked")
+        final List<RexLiteral> list = (List) value;
+        destination.append(
+            (new AbstractList<String>() {
+              public String get(int index) {
+                return list.get(index).computeDigest(includeType);
+              }
 
-            public int size() {
-              return list.size();
-            }
-          });
-      break;
-    default:
-      assert valueMatchesType(value, typeName, true);
-      throw Util.needToImplement(typeName);
+              public int size() {
+                return list.size();
+              }
+            }).toString());
+        break;
+      default:
+        assert valueMatchesType(value, typeName, true);
+        throw Util.needToImplement(typeName);
+      }
+    } catch (IOException e) {
+      throw new IllegalStateException("The destination Appendable should not incur I/O.", e);
     }
   }
 

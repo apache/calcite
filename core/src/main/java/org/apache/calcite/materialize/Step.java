@@ -16,11 +16,13 @@
  */
 package org.apache.calcite.materialize;
 
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.util.graph.AttributedDirectedGraph;
 import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Ordering;
 
 import java.util.List;
 import java.util.Objects;
@@ -81,17 +83,42 @@ class Step extends DefaultEdge {
   }
 
   boolean isBackwards(SqlStatisticProvider statisticProvider) {
-    return source == target
-        ? keys.get(0).source < keys.get(0).target // want PK on the right
-        : cardinality(statisticProvider, source())
-            < cardinality(statisticProvider, target());
+    final RelOptTable sourceTable = source().t;
+    final List<Integer> sourceColumns = IntPair.left(keys);
+    final RelOptTable targetTable = target().t;
+    final List<Integer> targetColumns = IntPair.right(keys);
+    final boolean forwardForeignKey =
+        statisticProvider.isForeignKey(sourceTable, sourceColumns, targetTable,
+            targetColumns)
+        && statisticProvider.isKey(targetTable, targetColumns);
+    final boolean backwardForeignKey =
+        statisticProvider.isForeignKey(targetTable, targetColumns, sourceTable,
+            sourceColumns)
+        && statisticProvider.isKey(sourceTable, sourceColumns);
+    if (backwardForeignKey != forwardForeignKey) {
+      return backwardForeignKey;
+    }
+    // Tie-break if it's a foreign key in neither or both directions
+    return compare(sourceTable, sourceColumns, targetTable, targetColumns) < 0;
+  }
+
+  /** Arbitrarily compares (table, columns). */
+  private static int compare(RelOptTable table1, List<Integer> columns1,
+      RelOptTable table2, List<Integer> columns2) {
+    int c = Ordering.natural().<String>lexicographical()
+        .compare(table1.getQualifiedName(), table2.getQualifiedName());
+    if (c == 0) {
+      c = Ordering.natural().<Integer>lexicographical()
+          .compare(columns1, columns2);
+    }
+    return c;
   }
 
   /** Temporary method. We should use (inferred) primary keys to figure out
    * the direction of steps. */
   private double cardinality(SqlStatisticProvider statisticProvider,
       LatticeTable table) {
-    return statisticProvider.tableCardinality(table.t.getQualifiedName());
+    return statisticProvider.tableCardinality(table.t);
   }
 
   /** Creates {@link Step} instances. */

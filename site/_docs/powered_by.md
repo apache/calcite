@@ -39,6 +39,13 @@ on your site.
 
 ![Powered By]({{ site.baseurl }}/img/pb-calcite-240.png)
 
+### Alibaba MaxCompute
+
+<a href="https://www.alibabacloud.com">Alibaba</a>'s
+<a href="https://www.alibabacloud.com/product/maxcompute">MaxCompute</a>
+big data computing and storage platform
+uses Calcite for cost-based query optimization.
+
 ### Apache Apex
 
 <a href="https://apex.apache.org">Apache Apex</a>

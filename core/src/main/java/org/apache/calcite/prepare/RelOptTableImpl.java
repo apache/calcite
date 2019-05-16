@@ -49,6 +49,7 @@ import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.TemporalTable;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.sql.SqlAccessType;
@@ -325,6 +326,10 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     default:
       return !(table instanceof StreamableTable);
     }
+  }
+
+  @Override public boolean isTemporal() {
+    return table instanceof TemporalTable;
   }
 
   public List<String> getQualifiedName() {

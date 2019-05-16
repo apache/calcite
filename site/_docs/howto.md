@@ -38,8 +38,8 @@ Unpack the source distribution `.tar.gz` file,
 then build using the included maven wrapper:
 
 {% highlight bash %}
-$ tar xvfz calcite-1.18.0-source.tar.gz
-$ cd calcite-1.18.0
+$ tar xvfz calcite-1.19.0-source.tar.gz
+$ cd calcite-1.19.0
 $ ./mvnw install
 {% endhighlight %}
 

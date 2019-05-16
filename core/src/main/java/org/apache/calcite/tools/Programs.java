@@ -18,6 +18,7 @@ package org.apache.calcite.tools;
 
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.NoneToBindableConverterRule;
 import org.apache.calcite.plan.RelOptCostImpl;
 import org.apache.calcite.plan.RelOptLattice;
@@ -30,7 +31,6 @@ import org.apache.calcite.plan.hep.HepMatchOrder;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.RelFactories;
@@ -123,7 +123,7 @@ public class Programs {
           SemiJoinRule.PROJECT,
           SemiJoinRule.JOIN,
           TableScanRule.INSTANCE,
-          CalcitePrepareImpl.COMMUTE
+          CalciteSystemProperty.COMMUTE.value()
               ? JoinAssociateRule.INSTANCE
               : ProjectMergeRule.INSTANCE,
           AggregateStarTableRule.INSTANCE,
@@ -194,6 +194,12 @@ public class Programs {
         list.add(metadataProvider);
       }
       hepPlanner.registerMetadataProviders(list);
+      for (RelOptMaterialization materialization : materializations) {
+        hepPlanner.addMaterialization(materialization);
+      }
+      for (RelOptLattice lattice : lattices) {
+        hepPlanner.addLattice(lattice);
+      }
       RelMetadataProvider plannerChain =
           ChainedRelMetadataProvider.of(list);
       rel.getCluster().setMetadataProvider(plannerChain);
@@ -266,8 +272,8 @@ public class Programs {
   }
 
   public static Program getProgram() {
-    return (planner, rel, requiredOutputTraits, materializations, lattices)
-        -> null;
+    return (planner, rel, requiredOutputTraits, materializations, lattices) ->
+        null;
   }
 
   /** Returns the standard program used by Prepare. */

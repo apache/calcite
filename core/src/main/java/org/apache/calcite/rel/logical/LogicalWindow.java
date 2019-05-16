@@ -155,7 +155,8 @@ public final class LogicalWindow extends Window {
                 over.getType(),
                 toInputRefs(over.operands),
                 aggMap.size(),
-                over.isDistinct());
+                over.isDistinct(),
+                over.ignoreNulls());
         aggCalls.add(aggCall);
         aggMap.put(over, aggCall);
       }

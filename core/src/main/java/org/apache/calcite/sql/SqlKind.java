@@ -228,6 +228,16 @@ public enum SqlKind {
   OVER,
 
   /**
+   * RESPECT NULLS operator
+   */
+  RESPECT_NULLS("RESPECT NULLS"),
+
+  /**
+   * IGNORE NULLS operator
+   */
+  IGNORE_NULLS("IGNORE NULLS"),
+
+  /**
    * FILTER operator
    */
   FILTER,
@@ -256,6 +266,12 @@ public enum SqlKind {
    * MATCH_RECOGNIZE clause
    */
   MATCH_RECOGNIZE,
+
+  /**
+   * SNAPSHOT operator
+   */
+  SNAPSHOT,
+
   // binary operators
 
   /**
@@ -937,6 +953,9 @@ public enum SqlKind {
   /** The {@code NTH_VALUE} aggregate function. */
   NTH_VALUE,
 
+  /** The {@code LISTAGG} aggregate function. */
+  LISTAGG,
+
   /** The {@code COLLECT} aggregate function. */
   COLLECT,
 
@@ -1136,7 +1155,7 @@ public enum SqlKind {
           LAST_VALUE, COVAR_POP, COVAR_SAMP, REGR_COUNT, REGR_SXX, REGR_SYY,
           AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
           FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
-          CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR);
+          CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, LISTAGG);
 
   /**
    * Category consisting of all DML operators.
@@ -1215,6 +1234,7 @@ public enum SqlKind {
           concat(
               EnumSet.of(AS, ARGUMENT_ASSIGNMENT, DEFAULT,
                   RUNNING, FINAL, LAST, FIRST, PREV, NEXT,
+                  FILTER, WITHIN_GROUP, IGNORE_NULLS, RESPECT_NULLS,
                   DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
                   SELECT, JOIN, OTHER_FUNCTION, POSITION, CHAR_LENGTH,
                   CHARACTER_LENGTH, SUBSTRING, TRUNCATE, CAST, TRIM, FLOOR, CEIL,

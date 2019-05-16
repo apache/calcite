@@ -23,6 +23,7 @@ import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.ElasticsearchChecker;
+import org.apache.calcite.util.TestUtil;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
@@ -257,15 +258,16 @@ public class ElasticSearchAdapterTest {
           }
         }
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     };
   }
 
   /**
-   * Sorting directly on items without a view.
+   * Sorting (and aggregating) directly on items without a view.
    *
-   * Queries of type: {@code select _MAP['a'] from elastic order by _MAP['b']}
+   * <p>Queries of type:
+   * {@code select _MAP['a'] from elastic order by _MAP['b']}
    */
   @Test public void testSortNoSchema() {
     CalciteAssert.that()
@@ -281,7 +283,10 @@ public class ElasticSearchAdapterTest {
             "query:{'constant_score':{filter:{term:{state:'NY'}}}}",
             "sort:[{city:'asc'}]",
             String.format(Locale.ROOT, "size:%s", ElasticsearchTransport.DEFAULT_FETCH_SIZE)))
-        .returnsCount(3);
+        .returnsOrdered(
+          "_MAP={id=11226, city=BROOKLYN, loc=[-73.956985, 40.646694], pop=111396, state=NY}",
+          "_MAP={id=11373, city=JACKSON HEIGHTS, loc=[-73.878551, 40.740388], pop=88241, state=NY}",
+          "_MAP={id=10021, city=NEW YORK, loc=[-73.958805, 40.768476], pop=106564, state=NY}");
 
     CalciteAssert.that()
         .with(newConnectionFactory())
@@ -322,7 +327,7 @@ public class ElasticSearchAdapterTest {
         .with(newConnectionFactory())
         .query("select max(_MAP['pop']), min(_MAP['pop']), _MAP['state'] from elastic.zips "
             + "where _MAP['state'] = 'NY' group by _MAP['state'] order by _MAP['state'] limit 3")
-        .returnsCount(1);
+        .returns("EXPR$0=111396.0; EXPR$1=88241.0; EXPR$2=NY\n");
   }
 
   /**

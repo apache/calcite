@@ -53,7 +53,9 @@ public interface RelWriter {
    * @param term  Term for input, e.g. "left" or "input #1".
    * @param input Input relational expression
    */
-  RelWriter input(String term, RelNode input);
+  default RelWriter input(String term, RelNode input) {
+    return item(term, input);
+  }
 
   /**
    * Adds an attribute to the explanation of the current node.
@@ -67,7 +69,9 @@ public interface RelWriter {
    * Adds an input to the explanation of the current node, if a condition
    * holds.
    */
-  RelWriter itemIf(String term, Object value, boolean condition);
+  default RelWriter itemIf(String term, Object value, boolean condition) {
+    return condition ? item(term, value) : this;
+  }
 
   /**
    * Writes the completed explanation.
@@ -78,7 +82,9 @@ public interface RelWriter {
    * Returns whether the writer prefers nested values. Traditional explain
    * writers prefer flattened values.
    */
-  boolean nest();
+  default boolean nest() {
+    return false;
+  }
 }
 
 // End RelWriter.java

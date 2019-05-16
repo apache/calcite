@@ -203,10 +203,7 @@ public class EnumerableTableScan
           typeFactory, relFieldType.getComponentType(), JavaRowFormat.CUSTOM);
       final MethodCallExpression e2 =
           Expressions.call(BuiltInMethod.AS_ENUMERABLE2.method, e);
-      final RelDataType dummyType = this.rowType;
-      final Expression e3 =
-          elementPhysType.convertTo(e2,
-              PhysTypeImpl.of(typeFactory, dummyType, JavaRowFormat.LIST));
+      final Expression e3 = elementPhysType.convertTo(e2, JavaRowFormat.LIST);
       return Expressions.call(e3, BuiltInMethod.ENUMERABLE_TO_LIST.method);
     default:
       return e;

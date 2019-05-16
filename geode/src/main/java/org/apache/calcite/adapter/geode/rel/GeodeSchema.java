@@ -30,8 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static org.apache.calcite.adapter.geode.util.GeodeUtils.createClientCache;
-
 /**
  * Schema mapped onto a Geode Region.
  */
@@ -41,13 +39,7 @@ public class GeodeSchema extends AbstractSchema {
   private final List<String> regionNames;
   private ImmutableMap<String, Table> tableMap;
 
-  GeodeSchema(String locatorHost, int locatorPort,
-      Iterable<String> regionNames, String pdxAutoSerializerPackageExp) {
-    this(createClientCache(locatorHost, locatorPort, pdxAutoSerializerPackageExp, true),
-        regionNames);
-  }
-
-  GeodeSchema(final GemFireCache cache, final Iterable<String> regionNames) {
+  public GeodeSchema(final GemFireCache cache, final Iterable<String> regionNames) {
     super();
     this.cache = Objects.requireNonNull(cache, "clientCache");
     this.regionNames = ImmutableList.copyOf(Objects.requireNonNull(regionNames, "regionNames"));

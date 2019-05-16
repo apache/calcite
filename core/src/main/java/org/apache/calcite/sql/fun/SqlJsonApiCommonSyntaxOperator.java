@@ -22,10 +22,8 @@ import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.validate.SqlValidator;
 
 /**
  * The JSON API common syntax including a path specification, which is for
@@ -33,26 +31,25 @@ import org.apache.calcite.sql.validate.SqlValidator;
  */
 public class SqlJsonApiCommonSyntaxOperator extends SqlSpecialOperator {
 
-  public SqlJsonApiCommonSyntaxOperator() {
-    super("JSON_API_COMMON_SYNTAX", SqlKind.JSON_API_COMMON_SYNTAX, 100, true,
+  public SqlJsonApiCommonSyntaxOperator(String name) {
+    super(name, SqlKind.JSON_API_COMMON_SYNTAX, 100, true,
         ReturnTypes.explicit(SqlTypeName.ANY), null,
-        OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING));
-  }
-
-  @Override protected void checkOperandCount(SqlValidator validator,
-      SqlOperandTypeChecker argType, SqlCall call) {
-    if (call.operandCount() != 2) {
-      throw new UnsupportedOperationException("json passing syntax is not yet supported");
-    }
+        OperandTypes.or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING),
+            OperandTypes.family(SqlTypeFamily.ANY)));
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
+    final boolean hasPath = call.operandCount() % 2 == 0;
     SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
     call.operand(0).unparse(writer, 0, 0);
-    writer.sep(",", true);
-    call.operand(1).unparse(writer, 0, 0);
-    if (call.operandCount() > 2) {
+    if (hasPath) {
+      // the case '{'foo':'bar'}', 'lax $.foo'
+      writer.sep(",", true);
+      call.operand(1).unparse(writer, 0, 0);
+    }
+    if (hasPath && call.operandCount() > 2
+        || !hasPath && call.operandCount() > 1) {
       writer.keyword("PASSING");
       for (int i = 2; i < call.getOperandList().size(); i += 2) {
         call.operand(i).unparse(writer, 0, 0);
