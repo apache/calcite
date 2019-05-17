@@ -268,7 +268,7 @@ public enum BuiltInMethod {
   UPPER(SqlFunctions.class, "upper", String.class),
   LOWER(SqlFunctions.class, "lower", String.class),
   ASCII(SqlFunctions.class, "ascii", String.class),
-  REVERSE(SqlFunctions.class, "reverse", String.class),                      
+  REVERSE(SqlFunctions.class, "reverse", String.class),
   REPEAT(SqlFunctions.class, "repeat", String.class, int.class),
   SPACE(SqlFunctions.class, "space", int.class),
   SOUNDEX(SqlFunctions.class, "soundex", String.class),

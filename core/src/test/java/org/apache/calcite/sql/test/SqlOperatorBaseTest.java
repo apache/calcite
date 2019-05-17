@@ -4323,7 +4323,7 @@ public abstract class SqlOperatorBaseTest {
     tester1.checkNull("DIFFERENCE('muller', cast(null as varchar(1)))");
     tester1.checkNull("DIFFERENCE(cast(null as varchar(1)), 'muller')");
   }
-  
+
   @Test public void testReverseFunc() {
     final SqlTester tester1 = tester(SqlLibrary.MYSQL);
     tester1.setFor(SqlLibraryOperators.REVERSE);
