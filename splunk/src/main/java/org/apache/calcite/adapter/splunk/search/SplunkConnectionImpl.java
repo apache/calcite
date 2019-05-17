@@ -58,7 +58,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
   private static final Pattern SESSION_KEY =
       Pattern.compile(
-          "<response>\\s*<sessionKey>([0-9a-f]+)</sessionKey>\\s*</response>");
+          "<sessionKey>(.+)<\\/sessionKey>");
 
   final URL url;
   final String username;
