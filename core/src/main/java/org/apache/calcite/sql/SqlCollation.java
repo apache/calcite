@@ -263,11 +263,9 @@ public class SqlCollation implements Serializable {
   }
 
   public void unparse(
-      SqlWriter writer,
-      int leftPrec,
-      int rightPrec) {
+      SqlWriter writer) {
     writer.keyword("COLLATE");
-    writer.identifier(collationName);
+    writer.identifier(collationName, false);
   }
 
   public Charset getCharset() {

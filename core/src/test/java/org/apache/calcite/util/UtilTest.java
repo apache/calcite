@@ -58,6 +58,7 @@ import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -75,6 +76,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Random;
@@ -2467,6 +2469,25 @@ public class UtilTest {
     assertThat(c.classCount(), is(0));
   }
 
+  @Test public void testBlackHoleMap() {
+    final Map<Integer, Integer> map = BlackholeMap.of();
+
+    for (int i = 0; i < 100; i++) {
+      assertThat(map.put(i, i * i), is(nullValue()));
+      assertThat(map.size(), is(0));
+      assertThat(map.entrySet().add(new SimpleEntry<>(i, i * i)), is(true));
+      assertThat(map.entrySet().size(), is(0));
+      assertThat(map.keySet().size(), is(0));
+      assertThat(map.values().size(), is(0));
+      assertThat(map.entrySet().iterator().hasNext(), is(false));
+      try {
+        map.entrySet().iterator().next();
+        fail();
+      } catch (NoSuchElementException e) {
+        // Success
+      }
+    }
+  }
   private static <E> Matcher<Iterable<E>> isIterable(final Iterable<E> iterable) {
     final List<E> list = toList(iterable);
     return new TypeSafeMatcher<Iterable<E>>() {

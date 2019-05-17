@@ -25,7 +25,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -3927,16 +3926,25 @@ public class DruidAdapterIT2 {
   }
 
   @Test
-  public void testCastTimestamp() {
+  public void testCastTimestamp1() {
+    final String sql = "Select cast(\"timestamp\" as varchar) as t"
+        + " from \"foodmart\" order by t limit 1";
+
+    sql(sql, FOODMART)
+        .returnsOrdered("T=1997-01-01 00:00:00")
+        .queryContains(
+            druidChecker("UTC"));
+  }
+
+  @Test
+  public void testCastTimestamp2() {
     final String sql = "Select cast(cast(\"timestamp\" as timestamp) as varchar) as t"
         + " from \"foodmart\" order by t limit 1";
 
-    if (Bug.CALCITE_2933_FIXED) {
-      sql(sql, FOODMART)
-          .returnsOrdered("T=1997-01-01 00:00:00")
-          .queryContains(
-              druidChecker("UTC"));
-    }
+    sql(sql, FOODMART)
+        .returnsOrdered("T=1997-01-01 00:00:00")
+        .queryContains(
+            druidChecker("UTC"));
   }
 }
 

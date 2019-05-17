@@ -190,7 +190,7 @@ public class SqlLiteralChainOperator extends SqlSpecialOperator {
       }
     }
     if (collation != null) {
-      collation.unparse(writer, 0, 0);
+      collation.unparse(writer);
     }
     writer.endList(frame);
   }

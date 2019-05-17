@@ -874,7 +874,7 @@ public interface CalciteResource {
   @BaseMessage("Not a valid input for JSON_DEPTH: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonDepth(String value);
 
-  @BaseMessage("Cannot serialize object to JSON, and the object is: ''{0}''")
+  @BaseMessage("Cannot serialize object to JSON: ''{0}''")
   ExInst<CalciteException> exceptionWhileSerializingToJson(String value);
 
   @BaseMessage("Not a valid input for JSON_LENGTH: ''{0}''")
@@ -882,6 +882,9 @@ public interface CalciteResource {
 
   @BaseMessage("Not a valid input for JSON_KEYS: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonKeys(String value);
+
+  @BaseMessage("Invalid input for JSON_REMOVE: document: ''{0}'', jsonpath expressions: ''{1}''")
+  ExInst<CalciteException> invalidInputForJsonRemove(String value, String pathSpecs);
 }
 
 // End CalciteResource.java

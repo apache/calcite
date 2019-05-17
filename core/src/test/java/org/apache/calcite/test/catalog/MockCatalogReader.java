@@ -400,6 +400,17 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       @Override public int getExtendedColumnOffset() {
         return rowType.getFieldCount();
       }
+
+      @Override public boolean isRolledUp(String column) {
+        return rolledUpColumns.contains(column);
+      }
+
+      @Override public boolean rolledUpColumnValidInsideAgg(String column,
+          SqlCall call, SqlNode parent, CalciteConnectionConfig config) {
+        // For testing
+        return call.getKind() != SqlKind.MAX
+            && (parent.getKind() == SqlKind.SELECT || parent.getKind() == SqlKind.FILTER);
+      }
     }
 
     @Override protected RelOptTable extend(final Table extendedTable) {
