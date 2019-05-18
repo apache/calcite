@@ -3289,6 +3289,14 @@ public class RelToSqlConverterTest {
     sql(query).withSpark().ok(expected);
   }
 
+  @Test public void testNumericFloorInSpark() {
+    final String query = "select floor(\"salary\") "
+        + "from \"employee\"";
+    final String expected = "SELECT FLOOR(salary)\n"
+        + "FROM foodmart.employee";
+    sql(query).withSpark().ok(expected);
+  }
+
   @Test public void testJsonType() {
     String query = "select json_type(\"product_name\") from \"product\"";
     final String expected = "SELECT "
