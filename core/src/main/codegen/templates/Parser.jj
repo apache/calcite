@@ -5137,6 +5137,7 @@ SqlCall JsonValueFunctionCall() :
     }
 }
 
+
 List<SqlNode> JsonQueryEmptyOrErrorBehavior() :
 {
     final List<SqlNode> list = new ArrayList<SqlNode>();

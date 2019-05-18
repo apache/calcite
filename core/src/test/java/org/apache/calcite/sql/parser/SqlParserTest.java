@@ -8676,6 +8676,13 @@ public class SqlParserTest {
             "JSON_PRETTY(NULL)");
   }
 
+  @Test public void testJsonStorageSize() {
+    checkExp("json_storage_size('foo')",
+            "JSON_STORAGE_SIZE('foo')");
+    checkExp("json_storage_size(null)",
+            "JSON_STORAGE_SIZE(NULL)");
+  }
+
   @Test public void testJsonArrayAgg1() {
     checkExp("json_arrayagg(\"column\")",
         "JSON_ARRAYAGG(`column` ABSENT ON NULL)");

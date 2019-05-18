@@ -534,13 +534,26 @@ public class SqlJsonFunctionsTest {
   @Test
   public void testJsonRemove() {
     assertJsonRemove(
-        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
-        new String[]{"$.a"},
-        is("{\"b\":[2]}"));
+            JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+            new String[]{"$.a"},
+            is("{\"b\":[2]}"));
     assertJsonRemove(
-        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
-        new String[]{"$.a", "$.b"},
-        is("{}"));
+            JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+            new String[]{"$.a", "$.b"},
+            is("{}"));
+  }
+
+  public void testJsonStorageSize() {
+    assertJsonStorageSize("[100, \"sakila\", [1, 3, 5], 425.05]", is(29));
+    assertJsonStorageSize("null", is(4));
+    assertJsonStorageSize(null, nullValue());
+
+    Object input = new Object() {
+      private final Object self = this;
+    };
+    CalciteException expected = new CalciteException(
+            "Not a valid input for JSON_STORAGE_SIZE: '" + input + "'", null);
+    assertJsonStorageSizeFailed(input, errorMatches(expected));
   }
 
   @Test
@@ -751,8 +764,22 @@ public class SqlJsonFunctionsTest {
   private void assertJsonRemove(JsonFunctions.JsonValueContext input, String[] pathSpecs,
       Matcher<? super String> matcher) {
     assertThat(invocationDesc(BuiltInMethod.JSON_REMOVE.getMethodName(), input, pathSpecs),
-             JsonFunctions.jsonRemove(input, pathSpecs),
-             matcher);
+            JsonFunctions.jsonRemove(input, pathSpecs),
+            matcher);
+  }
+
+  private void assertJsonStorageSize(Object input,
+                                Matcher<? super Integer> matcher) {
+    assertThat(invocationDesc(BuiltInMethod.JSON_STORAGE_SIZE.getMethodName(), input),
+            JsonFunctions.jsonStorageSize(input),
+            matcher);
+  }
+
+  private void assertJsonStorageSizeFailed(Object input,
+                                    Matcher<? super Throwable> matcher) {
+    assertFailed(invocationDesc(BuiltInMethod.JSON_STORAGE_SIZE.getMethodName(), input),
+        () -> JsonFunctions.jsonStorageSize(input),
+        matcher);
   }
 
   private void assertDejsonize(String input,

@@ -2099,6 +2099,7 @@ semantics.
 | m | JSON_KEYS(jsonValue [, path ])                 | Returns a string indicating the keys of a JSON *jsonValue*
 | m | JSON_REMOVE(jsonValue, path[, path])           | Removes data from *jsonValue* using a series of *path* expressions and returns the result
 | m | REVERSE(string)                                | Returns the reverse order of *string*
+| m | JSON_STORAGE_SIZE(jsonValue)                   | Returns an integer value indicating the size of a *jsonValue*
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | o | NVL(value1, value2)                            | Returns *value1* if *value1* is not null, otherwise *value2*
 | o | LTRIM(string)                                  | Returns *string* with all blanks removed from the start
@@ -2111,6 +2112,7 @@ semantics.
 | p | DIFFERENCE(string, string)                     | Returns the difference between the SOUNDEX values of two character expressions as an integer. For example, returns 4 if the SOUNDEX values are same and returns 0 if the SOUNDEX values are totally different.
 | m p | REPEAT(string, integer)                      | Returns a string of *integer* times *string*; Returns an empty string if *integer* is less than 1
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; Returns an empty string if *integer* is less than 1
+
 
 Note:
 
@@ -2230,6 +2232,27 @@ LIMIT 10;
 | c1         |
 | ---------- |
 | ["a", "d"] |
+
+
+##### JSON_STORAGE_SIZE example
+
+SQL
+
+ ```SQL
+SELECT
+JSON_STORAGE_SIZE('[100, \"sakila\", [1, 3, 5], 425.05]') AS c1,
+JSON_STORAGE_SIZE('{\"a\": 10, \"b\": \"a\", \"c\": \"[1, 3, 5, 7]\"}') AS c2,
+JSON_STORAGE_SIZE('{\"a\": 10, \"b\": \"xyz\", \"c\": \"[1, 3, 5, 7]\"}') AS c3,
+JSON_STORAGE_SIZE('[100, \"json\", [[10, 20, 30], 3, 5], 425.05]') AS c4
+limit 10;
+```
+
+ Result
+
+| c1 | c2 | c3 | c4 |
+| -- | ---| ---| -- |
+| 29 | 35 | 37 | 36 |
+
 
 #### DECODE example
 

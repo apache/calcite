@@ -3291,10 +3291,17 @@ public class RelToSqlConverterTest {
 
   @Test public void testNumericFloorInSpark() {
     final String query = "select floor(\"salary\") "
-        + "from \"employee\"";
+            + "from \"employee\"";
     final String expected = "SELECT FLOOR(salary)\n"
-        + "FROM foodmart.employee";
+            + "FROM foodmart.employee";
     sql(query).withSpark().ok(expected);
+  }
+
+  @Test public void testJsonStorageSize() {
+    String query = "select json_storage_size(\"product_name\") from \"product\"";
+    final String expected = "SELECT JSON_STORAGE_SIZE(\"product_name\")\n"
+            + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
   }
 
   @Test public void testJsonType() {
