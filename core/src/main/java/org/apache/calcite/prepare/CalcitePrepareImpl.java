@@ -100,8 +100,10 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql2rel.AuxiliaryConvertletTable;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.sql2rel.StandardAuxiliaryConvertletTable;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
@@ -226,7 +228,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     final CalcitePreparingStmt preparingStmt =
         new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
             context.getRootSchema(), null, planner, resultConvention,
-            createConvertletTable());
+            createSqlRelConvertletTable(), createAuxiliaryConvertletTable());
     final SqlToRelConverter converter =
         preparingStmt.getSqlToRelConverter(validator, catalogReader,
             configBuilder.build());
@@ -386,8 +388,13 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   }
 
   /** Factory method for default convertlet table. */
-  protected SqlRexConvertletTable createConvertletTable() {
+  protected SqlRexConvertletTable createSqlRelConvertletTable() {
     return StandardConvertletTable.INSTANCE;
+  }
+
+  /** Factory method for default convertlet table. */
+  protected AuxiliaryConvertletTable createAuxiliaryConvertletTable() {
+    return StandardAuxiliaryConvertletTable.INSTANCE;
   }
 
   /** Factory method for cluster. */
@@ -589,7 +596,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     final CalcitePreparingStmt preparingStmt =
         new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
             context.getRootSchema(), prefer, planner, resultConvention,
-            createConvertletTable());
+            createSqlRelConvertletTable(), createAuxiliaryConvertletTable());
 
     final RelDataType x;
     final Prepare.PreparedResult preparedResult;
@@ -868,7 +875,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
               context.config());
       final CalciteMaterializer materializer =
           new CalciteMaterializer(this, context, catalogReader, schema, planner,
-              createConvertletTable());
+              createSqlRelConvertletTable(), createAuxiliaryConvertletTable());
       materializer.populate(materialization);
     } catch (Exception e) {
       throw new RuntimeException("While populating materialization "
@@ -924,7 +931,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     protected final CalcitePrepareImpl prepare;
     protected final CalciteSchema schema;
     protected final RelDataTypeFactory typeFactory;
-    protected final SqlRexConvertletTable convertletTable;
+    protected final SqlRexConvertletTable sqlRelConvertletTable;
+    protected final AuxiliaryConvertletTable auxiliaryConvertletTable;
     private final EnumerableRel.Prefer prefer;
     private final Map<String, Object> internalParameters =
         new LinkedHashMap<>();
@@ -939,14 +947,16 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         EnumerableRel.Prefer prefer,
         RelOptPlanner planner,
         Convention resultConvention,
-        SqlRexConvertletTable convertletTable) {
+        SqlRexConvertletTable sqlRelConvertletTable,
+        AuxiliaryConvertletTable auxiliaryConvertletTable) {
       super(context, catalogReader, resultConvention);
       this.prepare = prepare;
       this.schema = schema;
       this.prefer = prefer;
       this.planner = planner;
       this.typeFactory = typeFactory;
-      this.convertletTable = convertletTable;
+      this.sqlRelConvertletTable = sqlRelConvertletTable;
+      this.auxiliaryConvertletTable = auxiliaryConvertletTable;
       this.rexBuilder = new RexBuilder(typeFactory);
     }
 
@@ -1018,7 +1028,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         SqlToRelConverter.Config config) {
       final RelOptCluster cluster = prepare.createCluster(planner, rexBuilder);
       return new SqlToRelConverter(this, validator, catalogReader, cluster,
-          convertletTable, config);
+          sqlRelConvertletTable, auxiliaryConvertletTable, config);
     }
 
     @Override public RelNode flattenTypes(

@@ -48,6 +48,7 @@ import org.apache.calcite.schema.impl.StarTable;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql2rel.AuxiliaryConvertletTable;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 
@@ -63,10 +64,11 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
   CalciteMaterializer(CalcitePrepareImpl prepare,
       CalcitePrepare.Context context,
       CatalogReader catalogReader, CalciteSchema schema,
-      RelOptPlanner planner, SqlRexConvertletTable convertletTable) {
+      RelOptPlanner planner, SqlRexConvertletTable convertletTable,
+      AuxiliaryConvertletTable auxiliaryConvertletTable) {
     super(prepare, context, catalogReader, catalogReader.getTypeFactory(),
         schema, EnumerableRel.Prefer.ANY, planner, BindableConvention.INSTANCE,
-        convertletTable);
+        convertletTable, auxiliaryConvertletTable);
   }
 
   /** Populates a materialization record, converting a table path

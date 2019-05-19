@@ -48,6 +48,7 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql2rel.AuxiliaryConvertletTable;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
@@ -78,7 +79,8 @@ public class PlannerImpl implements Planner, ViewExpander {
 
   private final SqlParser.Config parserConfig;
   private final SqlToRelConverter.Config sqlToRelConverterConfig;
-  private final SqlRexConvertletTable convertletTable;
+  private final SqlRexConvertletTable sqlRexConvertletTable;
+  private final AuxiliaryConvertletTable auxiliaryConvertletTable;
 
   private State state;
 
@@ -109,7 +111,8 @@ public class PlannerImpl implements Planner, ViewExpander {
     this.sqlToRelConverterConfig = config.getSqlToRelConverterConfig();
     this.state = State.STATE_0_CLOSED;
     this.traitDefs = config.getTraitDefs();
-    this.convertletTable = config.getConvertletTable();
+    this.sqlRexConvertletTable = config.getSqlRexConvertletTable();
+    this.auxiliaryConvertletTable = config.getAuxiliaryConvertletTable();
     this.executor = config.getExecutor();
     this.context = config.getContext();
     this.connectionConfig = connConfig();
@@ -248,8 +251,8 @@ public class PlannerImpl implements Planner, ViewExpander {
         .withConvertTableAccess(false)
         .build();
     final SqlToRelConverter sqlToRelConverter =
-        new SqlToRelConverter(this, validator,
-            createCatalogReader(), cluster, convertletTable, config);
+        new SqlToRelConverter(this, validator, createCatalogReader(), cluster,
+            sqlRexConvertletTable, auxiliaryConvertletTable, config);
     root =
         sqlToRelConverter.convertQuery(validatedSqlNode, false, true);
     root = root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));
@@ -305,8 +308,8 @@ public class PlannerImpl implements Planner, ViewExpander {
         .withConvertTableAccess(false)
         .build();
     final SqlToRelConverter sqlToRelConverter =
-        new SqlToRelConverter(this, validator,
-            catalogReader, cluster, convertletTable, config);
+        new SqlToRelConverter(this, validator, catalogReader, cluster,
+            sqlRexConvertletTable, auxiliaryConvertletTable, config);
 
     final RelRoot root =
         sqlToRelConverter.convertQuery(sqlNode, true, false);

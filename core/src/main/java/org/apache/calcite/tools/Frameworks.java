@@ -35,6 +35,7 @@ import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql2rel.AuxiliaryConvertletTable;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
@@ -212,7 +213,8 @@ public class Frameworks {
    * where values aren't required.
    */
   public static class ConfigBuilder {
-    private SqlRexConvertletTable convertletTable;
+    private SqlRexConvertletTable sqlRexConvertletTable;
+    private AuxiliaryConvertletTable auxiliaryConvertletTable;
     private SqlOperatorTable operatorTable;
     private ImmutableList<Program> programs;
     private Context context;
@@ -229,7 +231,7 @@ public class Frameworks {
 
     /** Creates a ConfigBuilder, initializing to defaults. */
     private ConfigBuilder() {
-      convertletTable = StandardConvertletTable.INSTANCE;
+      sqlRexConvertletTable = StandardConvertletTable.INSTANCE;
       operatorTable = SqlStdOperatorTable.instance();
       programs = ImmutableList.of();
       context = Contexts.empty();
@@ -242,7 +244,7 @@ public class Frameworks {
 
     /** Creates a ConfigBuilder, initializing from an existing config. */
     private ConfigBuilder(FrameworkConfig config) {
-      convertletTable = config.getConvertletTable();
+      sqlRexConvertletTable = config.getSqlRexConvertletTable();
       operatorTable = config.getOperatorTable();
       programs = config.getPrograms();
       context = config.getContext();
@@ -258,8 +260,8 @@ public class Frameworks {
     }
 
     public FrameworkConfig build() {
-      return new StdFrameworkConfig(context, convertletTable, operatorTable,
-          programs, traitDefs, parserConfig, sqlToRelConverterConfig,
+      return new StdFrameworkConfig(context, sqlRexConvertletTable, auxiliaryConvertletTable,
+          operatorTable, programs, traitDefs, parserConfig, sqlToRelConverterConfig,
           defaultSchema, costFactory, typeSystem, executor, evolveLattice,
           statisticProvider, viewExpander);
     }
@@ -274,9 +276,15 @@ public class Frameworks {
       return this;
     }
 
-    public ConfigBuilder convertletTable(
+    public ConfigBuilder sqlRexConvertletTable(
         SqlRexConvertletTable convertletTable) {
-      this.convertletTable = Objects.requireNonNull(convertletTable);
+      this.sqlRexConvertletTable = Objects.requireNonNull(convertletTable);
+      return this;
+    }
+
+    public ConfigBuilder auxiliaryConvertletTable(
+        AuxiliaryConvertletTable convertletTable) {
+      this.auxiliaryConvertletTable = Objects.requireNonNull(convertletTable);
       return this;
     }
 
@@ -367,7 +375,8 @@ public class Frameworks {
    */
   static class StdFrameworkConfig implements FrameworkConfig {
     private final Context context;
-    private final SqlRexConvertletTable convertletTable;
+    private final SqlRexConvertletTable sqlRexConvertletTable;
+    private final AuxiliaryConvertletTable auxiliaryConvertletTable;
     private final SqlOperatorTable operatorTable;
     private final ImmutableList<Program> programs;
     private final ImmutableList<RelTraitDef> traitDefs;
@@ -382,7 +391,8 @@ public class Frameworks {
     private final RelOptTable.ViewExpander viewExpander;
 
     StdFrameworkConfig(Context context,
-        SqlRexConvertletTable convertletTable,
+        SqlRexConvertletTable sqlRexConvertletTable,
+        AuxiliaryConvertletTable auxiliaryConvertletTable,
         SqlOperatorTable operatorTable,
         ImmutableList<Program> programs,
         ImmutableList<RelTraitDef> traitDefs,
@@ -396,7 +406,8 @@ public class Frameworks {
         SqlStatisticProvider statisticProvider,
         RelOptTable.ViewExpander viewExpander) {
       this.context = context;
-      this.convertletTable = convertletTable;
+      this.sqlRexConvertletTable = sqlRexConvertletTable;
+      this.auxiliaryConvertletTable = auxiliaryConvertletTable;
       this.operatorTable = operatorTable;
       this.programs = programs;
       this.traitDefs = traitDefs;
@@ -439,8 +450,12 @@ public class Frameworks {
       return traitDefs;
     }
 
-    public SqlRexConvertletTable getConvertletTable() {
-      return convertletTable;
+    public SqlRexConvertletTable getSqlRexConvertletTable() {
+      return sqlRexConvertletTable;
+    }
+
+    public AuxiliaryConvertletTable getAuxiliaryConvertletTable() {
+      return auxiliaryConvertletTable;
     }
 
     public Context getContext() {

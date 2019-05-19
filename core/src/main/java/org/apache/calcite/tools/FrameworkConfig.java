@@ -26,6 +26,7 @@ import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql2rel.AuxiliaryConvertletTable;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 
@@ -108,7 +109,13 @@ public interface FrameworkConfig {
    * Returns the convertlet table that should be used when converting from SQL
    * to row expressions
    */
-  SqlRexConvertletTable getConvertletTable();
+  SqlRexConvertletTable getSqlRexConvertletTable();
+
+  /**
+   * Returns the convertlet table that should be used when converting from
+   * row expressions to auxiliary row expressions
+   */
+  AuxiliaryConvertletTable getAuxiliaryConvertletTable();
 
   /**
    * Returns the PlannerContext that should be made available during planning by

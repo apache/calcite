@@ -59,6 +59,7 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorTable;
 import org.apache.calcite.sql2rel.RelFieldTrimmer;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.sql2rel.StandardAuxiliaryConvertletTable;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.test.catalog.MockCatalogReader;
 import org.apache.calcite.test.catalog.MockCatalogReaderDynamic;
@@ -636,7 +637,8 @@ public abstract class SqlToRelTestBase {
       RelOptTable.ViewExpander viewExpander =
           new MockViewExpander(validator, catalogReader, cluster, config);
       return new SqlToRelConverter(viewExpander, validator, catalogReader, cluster,
-          StandardConvertletTable.INSTANCE, config);
+          StandardConvertletTable.INSTANCE, StandardAuxiliaryConvertletTable.INSTANCE,
+          config);
     }
 
     protected final RelDataTypeFactory getTypeFactory() {

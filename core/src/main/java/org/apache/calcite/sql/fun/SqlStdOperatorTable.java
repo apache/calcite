@@ -59,7 +59,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlModality;
-import org.apache.calcite.sql2rel.AuxiliaryConverter;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Pair;
@@ -2428,24 +2427,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     return instance;
   }
 
-  /** Returns the group function for which a given kind is an auxiliary
-   * function, or null if it is not an auxiliary function. */
-  public static SqlGroupedWindowFunction auxiliaryToGroup(SqlKind kind) {
-    switch (kind) {
-    case TUMBLE_START:
-    case TUMBLE_END:
-      return TUMBLE;
-    case HOP_START:
-    case HOP_END:
-      return HOP;
-    case SESSION_START:
-    case SESSION_END:
-      return SESSION;
-    default:
-      return null;
-    }
-  }
-
   /** Converts a call to a grouped auxiliary function
    * to a call to the grouped window function. For other calls returns null.
    *
@@ -2465,18 +2446,17 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    *
    * <p>For example, converts {@code TUMBLE_START(rowtime, INTERVAL '1' HOUR))}
    * to {@code TUMBLE(rowtime, INTERVAL '1' HOUR))}. */
-  public static List<Pair<SqlNode, AuxiliaryConverter>> convertGroupToAuxiliaryCalls(
+  public static List<Pair<SqlNode, SqlGroupedWindowFunction>> convertGroupToAuxiliaryCalls(
       SqlCall call) {
     final SqlOperator op = call.getOperator();
     if (op instanceof SqlGroupedWindowFunction
         && op.isGroup()) {
-      ImmutableList.Builder<Pair<SqlNode, AuxiliaryConverter>> builder =
+      ImmutableList.Builder<Pair<SqlNode, SqlGroupedWindowFunction>> builder =
           ImmutableList.builder();
       for (final SqlGroupedWindowFunction f
           : ((SqlGroupedWindowFunction) op).getAuxiliaryFunctions()) {
         builder.add(
-            Pair.of(copy(call, f),
-                new AuxiliaryConverter.Impl(f)));
+            Pair.of(copy(call, f), f));
       }
       return builder.build();
     }

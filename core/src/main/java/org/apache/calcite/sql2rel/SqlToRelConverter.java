@@ -105,6 +105,7 @@ import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlGroupedWindowFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -242,6 +243,7 @@ public class SqlToRelConverter {
   private final SqlOperatorTable opTab;
   protected final RelDataTypeFactory typeFactory;
   private final SqlNodeToRexConverter exprConverter;
+  private final RexToRexAuxiliaryConverter auxiliaryConverter;
   private int explainParamCount;
   public final SqlToRelConverter.Config config;
   private final RelBuilder relBuilder;
@@ -272,12 +274,13 @@ public class SqlToRelConverter {
   /**
    * Creates a converter.
    *
-   * @param viewExpander    Preparing statement
-   * @param validator       Validator
-   * @param catalogReader   Schema
-   * @param planner         Planner
-   * @param rexBuilder      Rex builder
-   * @param convertletTable Expression converter
+   * @param viewExpander             Preparing statement
+   * @param validator                Validator
+   * @param catalogReader            Schema
+   * @param planner                  Planner
+   * @param rexBuilder               Rex builder
+   * @param sqlRexConvertletTable    Expression converter
+   * @param auxiliaryConvertletTable Auxiliary converter
    */
   @Deprecated // to be removed before 2.0
   public SqlToRelConverter(
@@ -286,10 +289,11 @@ public class SqlToRelConverter {
       Prepare.CatalogReader catalogReader,
       RelOptPlanner planner,
       RexBuilder rexBuilder,
-      SqlRexConvertletTable convertletTable) {
+      SqlRexConvertletTable sqlRexConvertletTable,
+      AuxiliaryConvertletTable auxiliaryConvertletTable) {
     this(viewExpander, validator, catalogReader,
-        RelOptCluster.create(planner, rexBuilder), convertletTable,
-        Config.DEFAULT);
+        RelOptCluster.create(planner, rexBuilder), sqlRexConvertletTable,
+        auxiliaryConvertletTable, Config.DEFAULT);
   }
 
   @Deprecated // to be removed before 2.0
@@ -298,9 +302,10 @@ public class SqlToRelConverter {
       SqlValidator validator,
       Prepare.CatalogReader catalogReader,
       RelOptCluster cluster,
-      SqlRexConvertletTable convertletTable) {
-    this(viewExpander, validator, catalogReader, cluster, convertletTable,
-        Config.DEFAULT);
+      SqlRexConvertletTable sqlRexConvertletTable,
+      AuxiliaryConvertletTable auxiliaryConvertletTable) {
+    this(viewExpander, validator, catalogReader, cluster, sqlRexConvertletTable,
+        auxiliaryConvertletTable, Config.DEFAULT);
   }
 
   /* Creates a converter. */
@@ -309,7 +314,8 @@ public class SqlToRelConverter {
       SqlValidator validator,
       Prepare.CatalogReader catalogReader,
       RelOptCluster cluster,
-      SqlRexConvertletTable convertletTable,
+      SqlRexConvertletTable sqlRexConvertletTable,
+      AuxiliaryConvertletTable auxiliaryConvertletTable,
       Config config) {
     this.viewExpander = viewExpander;
     this.opTab =
@@ -322,7 +328,8 @@ public class SqlToRelConverter {
     this.rexBuilder = cluster.getRexBuilder();
     this.typeFactory = rexBuilder.getTypeFactory();
     this.cluster = Objects.requireNonNull(cluster);
-    this.exprConverter = new SqlNodeToRexConverterImpl(convertletTable);
+    this.exprConverter = new SqlNodeToRexConverterImpl(sqlRexConvertletTable);
+    this.auxiliaryConverter = new RexToRexAuxiliaryConverterImpl(auxiliaryConvertletTable);
     this.explainParamCount = 0;
     this.config = new ConfigBuilder().withConfig(config).build();
     this.relBuilder = config.getRelBuilderFactory().create(cluster, null);
@@ -4877,7 +4884,7 @@ public class SqlToRelConverter {
     /**
      * The auxiliary group-by expressions.
      */
-    private final Map<SqlNode, Ord<AuxiliaryConverter>> auxiliaryGroupExprs =
+    private final Map<SqlNode, Ord<SqlGroupedWindowFunction>> auxiliaryGroupExprs =
         new HashMap<>();
 
     /**
@@ -4949,7 +4956,7 @@ public class SqlToRelConverter {
 
       if (expr instanceof SqlCall) {
         SqlCall call = (SqlCall) expr;
-        for (Pair<SqlNode, AuxiliaryConverter> p
+        for (Pair<SqlNode, SqlGroupedWindowFunction> p
             : SqlStdOperatorTable.convertGroupToAuxiliaryCalls(call)) {
           addAuxiliaryGroupExpr(p.left, index, p.right);
         }
@@ -4959,13 +4966,13 @@ public class SqlToRelConverter {
     }
 
     void addAuxiliaryGroupExpr(SqlNode node, int index,
-        AuxiliaryConverter converter) {
+        SqlGroupedWindowFunction op) {
       for (SqlNode node2 : auxiliaryGroupExprs.keySet()) {
         if (node2.equalsDeep(node, Litmus.IGNORE)) {
           return;
         }
       }
-      auxiliaryGroupExprs.put(node, Ord.of(index, converter));
+      auxiliaryGroupExprs.put(node, Ord.of(index, op));
     }
 
     /**
@@ -5225,12 +5232,13 @@ public class SqlToRelConverter {
       // assert call.getOperator().isAggregator();
       assert bb.agg == this;
 
-      for (Map.Entry<SqlNode, Ord<AuxiliaryConverter>> e
+      for (Map.Entry<SqlNode, Ord<SqlGroupedWindowFunction>> e
           : auxiliaryGroupExprs.entrySet()) {
         if (call.equalsDeep(e.getKey(), Litmus.IGNORE)) {
-          AuxiliaryConverter converter = e.getValue().e;
           final int groupOrdinal = e.getValue().i;
-          return converter.convert(rexBuilder,
+          SqlGroupedWindowFunction sqlGroupedWindowFunction = e.getValue().e;
+          return auxiliaryConverter.convert(rexBuilder,
+              sqlGroupedWindowFunction,
               convertedInputExprs.get(groupOrdinal).left,
               rexBuilder.makeInputRef(bb.root, groupOrdinal));
         }
