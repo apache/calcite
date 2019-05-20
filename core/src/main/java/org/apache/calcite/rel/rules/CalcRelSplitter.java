@@ -31,6 +31,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
@@ -53,6 +54,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -274,6 +276,9 @@ public abstract class CalcRelSplitter {
 
     int levelCount = 0;
     final MaxInputFinder maxInputFinder = new MaxInputFinder(exprLevels);
+    final InputWindowLevelFinder inputWindowLevelFinder =
+        new InputWindowLevelFinder(exprLevels, exprs);
+
     boolean[] relTypesPossibleForTopLevel = new boolean[relTypes.length];
     Arrays.fill(relTypesPossibleForTopLevel, true);
 
@@ -295,6 +300,16 @@ public abstract class CalcRelSplitter {
       // Deduce the minimum level of the expression. An expression must
       // be at a level greater than or equal to all of its inputs.
       int level = maxInputFinder.maxInputFor(expr);
+
+      // For a window expression, we need to check whether its inputs contain
+      // window expressions. If so, they cannot be implemented in same level.
+      if (expr instanceof RexOver) {
+        Set<Integer> inputWindowLevelSet =
+            inputWindowLevelFinder.findInputWindowExprLevelsFor(expr);
+        if (inputWindowLevelSet.contains(level)) {
+          ++level;
+        }
+      }
 
       // If the expression is in a cohort, it can occur no lower than the
       // levels of other expressions in the same cohort.
@@ -333,10 +348,6 @@ public abstract class CalcRelSplitter {
               // implement this expression.
               exprLevels[i] = level;
               levelTypeOrdinals[level] = relTypeOrdinal;
-              assert (level == 0)
-                  || (levelTypeOrdinals[level - 1]
-                  != levelTypeOrdinals[level])
-                  : "successive levels of same type";
 
               // Figure out which of the other reltypes are
               // still possible for this level.
@@ -948,6 +959,36 @@ public abstract class CalcRelSplitter {
       level = 0;
       expr.accept(this);
       return level;
+    }
+  }
+
+  /**
+   * Visits the given expression to find levels of window inputs.
+   */
+  private static class InputWindowLevelFinder extends RexVisitorImpl<Void> {
+    Set<Integer> windowLevels;
+    private final int[] exprLevels;
+    private final RexNode[] exprList;
+
+    InputWindowLevelFinder(int[] exprLevels, RexNode[] exprList) {
+      super(true);
+      this.exprLevels = exprLevels;
+      this.exprList = exprList;
+    }
+
+    public Void visitLocalRef(RexLocalRef localRef) {
+      int index = localRef.getIndex();
+      if (exprList[index] instanceof RexOver) {
+        int inputWindowLevel = exprLevels[index];
+        windowLevels.add(inputWindowLevel);
+      }
+      return null;
+    }
+
+    public Set<Integer> findInputWindowExprLevelsFor(RexNode expr) {
+      windowLevels = new HashSet<>();
+      expr.accept(this);
+      return windowLevels;
     }
   }
 

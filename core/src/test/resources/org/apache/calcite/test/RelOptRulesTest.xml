@@ -267,6 +267,29 @@ LogicalProject(COUNT1=[COUNT() OVER (PARTITION BY $0 ORDER BY $5 RANGE BETWEEN U
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testProjectToWindowRuleForSuccessiveDependentWindows">
+        <Resource name="sql">
+            <![CDATA[select sum(max1) over(partition by job) as sum1
+from emp (
+ select job, max(sal) over(partition by deptno) as max1
+ from emp) t1]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject($0=[$2])
+  LogicalWindow(window#0=[window(partition {0} order by [] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [SUM($1)])])
+    LogicalProject(JOB=[$2], $1=[$9])
+      LogicalWindow(window#0=[window(partition {7} order by [] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [MAX($5)])])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(SUM1=[SUM(MAX($5) OVER (PARTITION BY $7 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)) OVER (PARTITION BY $2 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testUnionToDistinctRule">
         <Resource name="sql">
             <![CDATA[select * from dept union select * from dept]]>

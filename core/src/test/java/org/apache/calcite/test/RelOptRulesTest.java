@@ -352,6 +352,22 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, preProgram, hepPlanner, sql);
   }
 
+  @Test public void testProjectToWindowRuleForSuccessiveDependentWindows() {
+    HepProgram preProgram = new HepProgramBuilder()
+        .build();
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ProjectToWindowRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(ProjectToWindowRule.PROJECT);
+
+    final String sql = "select sum(max1) over(partition by job) as sum1\n"
+        + "from (\n"
+        + " select job, max(sal) over(partition by deptno) as max1\n"
+        + " from emp) t1";
+    checkPlanning(tester, preProgram, hepPlanner, sql);
+  }
+
   @Test public void testUnionToDistinctRule() {
     checkPlanning(UnionToDistinctRule.INSTANCE,
         "select * from dept union select * from dept");
