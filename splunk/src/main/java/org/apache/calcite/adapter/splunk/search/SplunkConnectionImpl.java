@@ -58,7 +58,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
   private static final Pattern SESSION_KEY =
       Pattern.compile(
-          "<sessionKey>(.+)<\\/sessionKey>");
+          "<sessionKey>([0-9a-zA-Z^_]+)<\\/sessionKey>");
 
   final URL url;
   final String username;
@@ -100,7 +100,6 @@ public class SplunkConnectionImpl implements SplunkConnection {
       StringBuilder data = new StringBuilder();
       appendURLEncodedArgs(
           data, "username", username, "password", password);
-
       rd = Util.reader(post(loginUrl, data, requestHeaders));
 
       String line;
