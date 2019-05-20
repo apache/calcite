@@ -4087,6 +4087,28 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3076">[CALCITE-3076]
+   * AggregateJoinTransposeRule throws error for unique under aggregate keys when
+   * generating merged calls</a>.*/
+  @Test public void testPushAggregateThroughJoinOnEmptyLogicalValues() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.FilterReduceExpressionsRule.FILTER_INSTANCE)
+        .build();
+
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+
+    final String sql =
+        "select count(*) volume, sum(C1.sal) C1_sum_sal "
+            + "from (select sal, ename from sales.emp where 1=2) C1 "
+            + "inner join (select ename from sales.emp) C2   "
+            + "on C1.ename = C2.ename ";
+    sql(sql).withPre(preProgram).with(program).check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2249">[CALCITE-2249]
    * AggregateJoinTransposeRule generates inequivalent nodes if Aggregate relNode contains
    * distinct aggregate function.</a>. */
