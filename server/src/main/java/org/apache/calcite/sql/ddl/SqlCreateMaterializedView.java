@@ -125,7 +125,7 @@ public class SqlCreateMaterializedView extends SqlCreate
     SqlDdlNodes.populate(name, query, context);
     table.key =
         MaterializationService.instance().defineMaterialization(pair.left, null,
-            sql, schemaPath, pair.right, true, true);
+            sql, schemaPath, pair.right, null, true, true);
   }
 
   /** A table that implements a materialized view. */

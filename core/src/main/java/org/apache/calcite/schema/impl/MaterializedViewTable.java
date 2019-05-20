@@ -108,7 +108,7 @@ public class MaterializedViewTable extends ViewTable {
           Boolean.TRUE);
       this.key = Objects.requireNonNull(
           MaterializationService.instance().defineMaterialization(
-              schema, null, viewSql, schemaPath, suggestedTableName, true,
+              schema, null, viewSql, schemaPath, suggestedTableName, null, true,
               existing));
     }
 

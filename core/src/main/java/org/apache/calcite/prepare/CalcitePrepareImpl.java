@@ -994,9 +994,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       // Trim unused fields.
       root = trimUnusedFields(root);
 
-      final List<Materialization> materializations = ImmutableList.of();
-      final List<CalciteSchema.LatticeEntry> lattices = ImmutableList.of();
-      root = optimize(root, materializations, lattices);
+      root = optimize(root, getMaterializations(root.rel.getCluster().getPlanner()), getLattices());
 
       if (timingTracer != null) {
         timingTracer.traceTime("end optimization");
@@ -1140,10 +1138,17 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
 
     @Override protected List<Materialization> getMaterializations() {
+      return getMaterializations(null);
+    }
+
+    private List<Materialization> getMaterializations(RelOptPlanner planner) {
       final List<Prepare.Materialization> materializations =
           context.config().materializationsEnabled()
               ? MaterializationService.instance().query(schema)
               : ImmutableList.of();
+      if (planner == null) {
+        planner = this.planner;
+      }
       for (Prepare.Materialization materialization : materializations) {
         prepare.populateMaterializations(context, planner, materialization);
       }
