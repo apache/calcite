@@ -257,8 +257,10 @@ public class AggregateJoinTransposeRule extends RelOptRule {
               final int index = ((RexInputRef) singleton).getIndex();
               if (!belowAggregateKey.get(index)) {
                 projects.add(singleton);
+                side.split.put(aggCall.i, projects.size() - 1);
+              } else {
+                side.split.put(aggCall.i, index);
               }
-              side.split.put(aggCall.i, index);
             } else {
               projects.add(singleton);
               side.split.put(aggCall.i, projects.size() - 1);
