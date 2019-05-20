@@ -100,6 +100,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
       StringBuilder data = new StringBuilder();
       appendURLEncodedArgs(
           data, "username", username, "password", password);
+
       rd = Util.reader(post(loginUrl, data, requestHeaders));
 
       String line;
