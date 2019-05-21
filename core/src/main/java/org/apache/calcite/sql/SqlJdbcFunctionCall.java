@@ -702,6 +702,11 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put("LCASE", simple(SqlStdOperatorTable.LOWER));
       map.put("LENGTH", simple(SqlStdOperatorTable.CHARACTER_LENGTH));
       map.put("LOCATE", simple(SqlStdOperatorTable.POSITION));
+      map.put("ASCII", simple(SqlStdOperatorTable.ASCII));
+      map.put("DIFFERENCE", simple(SqlLibraryOperators.DIFFERENCE));
+      map.put("REPEAT", simple(SqlLibraryOperators.REPEAT));
+      map.put("SOUNDEX", simple(SqlLibraryOperators.SOUNDEX));
+      map.put("SPACE", simple(SqlLibraryOperators.SPACE));
       map.put("REVERSE", simple(SqlLibraryOperators.REVERSE));
       map.put("LTRIM",
           new SimpleMakeCall(SqlStdOperatorTable.TRIM) {
