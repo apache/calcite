@@ -39,6 +39,10 @@ import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
+import org.apache.commons.codec.language.Soundex;
+
+import com.google.common.base.Strings;
+
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -83,6 +87,10 @@ public class SqlFunctions {
       NumberUtil.decimalFormat("0.0E0");
 
   private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
+
+  private static final Soundex SOUNDEX = new Soundex();
+
+  private static final int SOUNDEX_LENGTH = 4;
 
   private static final Function1<List<Object>, Enumerable<Object>> LIST_AS_ENUMERABLE =
       Linq4j::asEnumerable;
@@ -206,10 +214,46 @@ public class SqlFunctions {
     return newS.toString();
   }
 
+  /** SQL REVERSE(string) function. */
+  public static String reverse(String s) {
+    final StringBuilder buf = new StringBuilder(s);
+    return buf.reverse().toString();
+  }
+
   /** SQL ASCII(string) function. */
   public static int ascii(String s) {
     return s.isEmpty()
         ? 0 : s.codePointAt(0);
+  }
+
+  /** SQL REPEAT(string, int) function. */
+  public static String repeat(String s, int n) {
+    if (n < 1) {
+      return "";
+    }
+    return Strings.repeat(s, n);
+  }
+
+  /** SQL SPACE(int) function. */
+  public static String space(int n) {
+    return repeat(" ", n);
+  }
+
+  /** SQL SOUNDEX(string) function. */
+  public static String soundex(String s) {
+    return SOUNDEX.soundex(s);
+  }
+
+  /** SQL DIFFERENCE(string, string) function. */
+  public static int difference(String s0, String s1) {
+    String result0 = soundex(s0);
+    String result1 = soundex(s1);
+    for (int i = 0; i < SOUNDEX_LENGTH; i++) {
+      if (result0.charAt(i) != result1.charAt(i)) {
+        return i;
+      }
+    }
+    return SOUNDEX_LENGTH;
   }
 
   /** SQL CHARACTER_LENGTH(string) function. */

@@ -251,6 +251,7 @@ public class HepPlannerTest extends RelOptTestBase {
     subprogramBuilder.addMatchOrder(HepMatchOrder.TOP_DOWN);
     subprogramBuilder.addMatchLimit(1);
     subprogramBuilder.addRuleInstance(ProjectToCalcRule.INSTANCE);
+    subprogramBuilder.addRuleInstance(FilterToCalcRule.INSTANCE);
     subprogramBuilder.addRuleInstance(CalcMergeRule.INSTANCE);
 
     HepProgramBuilder programBuilder = HepProgram.builder();
@@ -258,7 +259,7 @@ public class HepPlannerTest extends RelOptTestBase {
 
     checkPlanning(
         programBuilder.build(),
-        "select upper(ename) from (select lower(ename) as ename from emp)");
+        "select upper(ename) from (select lower(ename) as ename from emp where empno = 100)");
   }
 
   @Test public void testGroup() throws Exception {

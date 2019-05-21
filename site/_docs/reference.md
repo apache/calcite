@@ -1483,16 +1483,13 @@ period:
 | {fn UCASE(string)} | Returns a string in which all alphabetic characters in *string* have been converted to upper case
 | {fn REPLACE(string, search, replacement)} | Returns a string in which all the occurrences of *search* in *string* are replaced with *replacement*; if *replacement* is the empty string, the occurrences of *search* are removed
 | {fn ASCII(string)} | Returns the corresponding ASCII code of the first character of *string*; Returns 0 if *string* is empty; Returns NULL if *string* is NULL; Returns the Unicode code point for non-ASCII character
+| {fn REVERSE(string)} | Returns the *string* with the order of the characters reversed.
 
 Not implemented:
 
 * {fn CHAR(string)}
-* {fn DIFFERENCE(string, string)}
 * {fn LEFT(string, integer)}
-* {fn REPEAT(string, integer)}
 * {fn RIGHT(string, integer)}
-* {fn SOUNDEX(string)}
-* {fn SPACE(integer)}
 
 #### Date/time
 
@@ -2101,6 +2098,7 @@ semantics.
 | m | JSON_LENGTH(jsonValue [, path ])               | Returns a integer indicating the length of *jsonValue*
 | m | JSON_KEYS(jsonValue [, path ])                 | Returns a string indicating the keys of a JSON *jsonValue*
 | m | JSON_REMOVE(jsonValue, path[, path])           | Removes data from *jsonValue* using a series of *path* expressions and returns the result
+| m | REVERSE(string)                                | Returns the reverse order of *string*
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | o | NVL(value1, value2)                            | Returns *value1* if *value1* is not null, otherwise *value2*
 | o | LTRIM(string)                                  | Returns *string* with all blanks removed from the start
@@ -2108,7 +2106,11 @@ semantics.
 | o | SUBSTR(string, position [, substring_length ]) | Returns a portion of *string*, beginning at character *position*, *substring_length* characters long. SUBSTR calculates lengths using characters as defined by the input character set
 | o | GREATEST(expr [, expr ]*)                      | Returns the greatest of the expressions
 | o | LEAST(expr [, expr ]* )                        | Returns the least of the expressions
-| o p | TRANSLATE(expr, fromString, toString)          | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
+| o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
+| m o p | SOUNDEX(string)                            | Returns the phonetic representation of *string*. Throws exception when *string* is encoded with multi-byte encoding such as UTF-8
+| p | DIFFERENCE(string, string)                     | Returns the difference between the SOUNDEX values of two character expressions as an integer. For example, returns 4 if the SOUNDEX values are same and returns 0 if the SOUNDEX values are totally different.
+| m p | REPEAT(string, integer)                      | Returns a string of *integer* times *string*; Returns an empty string if *integer* is less than 1
+| m | SPACE(integer)                                 | Returns a string of *integer* spaces; Returns an empty string if *integer* is less than 1
 
 Note:
 

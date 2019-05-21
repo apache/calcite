@@ -51,7 +51,7 @@ public class HepProgram {
 
   /**
    * Creates a new empty HepProgram. The program has an initial match order of
-   * {@link org.apache.calcite.plan.hep.HepMatchOrder#ARBITRARY}, and an initial
+   * {@link org.apache.calcite.plan.hep.HepMatchOrder#DEPTH_FIRST}, and an initial
    * match limit of {@link #MATCH_UNTIL_FIXPOINT}.
    */
   HepProgram(List<HepInstruction> instructions) {
