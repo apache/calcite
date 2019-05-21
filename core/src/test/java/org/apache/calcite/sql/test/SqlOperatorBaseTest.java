@@ -1848,6 +1848,7 @@ public abstract class SqlOperatorBaseTest {
           null,
           "");
     }
+    tester.checkString("{fn REVERSE('abc')}", "cba", "VARCHAR(3) NOT NULL");
 
     // REVIEW: is this result correct? I think it should be "abcCdef"
     tester.checkScalar(
