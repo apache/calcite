@@ -534,13 +534,13 @@ public class SqlJsonFunctionsTest {
   @Test
   public void testJsonRemove() {
     assertJsonRemove(
-            JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
-            new String[]{"$.a"},
-            is("{\"b\":[2]}"));
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new String[]{"$.a"},
+        is("{\"b\":[2]}"));
     assertJsonRemove(
-            JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
-            new String[]{"$.a", "$.b"},
-            is("{}"));
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new String[]{"$.a", "$.b"},
+        is("{}"));
   }
 
   public void testJsonStorageSize() {
@@ -548,9 +548,7 @@ public class SqlJsonFunctionsTest {
     assertJsonStorageSize("null", is(4));
     assertJsonStorageSize(null, nullValue());
 
-    Object input = new Object() {
-      private final Object self = this;
-    };
+    String input = null;
     CalciteException expected = new CalciteException(
             "Not a valid input for JSON_STORAGE_SIZE: '" + input + "'", null);
     assertJsonStorageSizeFailed(input, errorMatches(expected));
@@ -768,15 +766,15 @@ public class SqlJsonFunctionsTest {
             matcher);
   }
 
-  private void assertJsonStorageSize(Object input,
-                                Matcher<? super Integer> matcher) {
+  private void assertJsonStorageSize(String input,
+      Matcher<? super Integer> matcher) {
     assertThat(invocationDesc(BuiltInMethod.JSON_STORAGE_SIZE.getMethodName(), input),
             JsonFunctions.jsonStorageSize(input),
             matcher);
   }
 
-  private void assertJsonStorageSizeFailed(Object input,
-                                    Matcher<? super Throwable> matcher) {
+  private void assertJsonStorageSizeFailed(String input,
+      Matcher<? super Throwable> matcher) {
     assertFailed(invocationDesc(BuiltInMethod.JSON_STORAGE_SIZE.getMethodName(), input),
         () -> JsonFunctions.jsonStorageSize(input),
         matcher);

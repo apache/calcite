@@ -631,12 +631,12 @@ public class JsonFunctions {
     }
   }
 
-  public static Integer jsonStorageSize(Object input) {
+  public static Integer jsonStorageSize(String input) {
     try {
       return input == null ? null : JSON_PATH_JSON_PROVIDER.getObjectMapper()
-              .writeValueAsBytes(dejsonize(input.toString())).length;
+              .writeValueAsBytes(dejsonize(input)).length;
     } catch (Exception e) {
-      throw RESOURCE.invalidInputForJsonStorageSize(input.toString()).ex();
+      throw RESOURCE.invalidInputForJsonStorageSize(input).ex();
     }
   }
 
