@@ -43,6 +43,9 @@ public class SqlParserPos implements Serializable {
    */
   public static final SqlParserPos ZERO = new SqlParserPos(0, 0);
 
+  /** Same as {@link #ZERO} but always quoted. **/
+  public static final SqlParserPos QUOTED_ZERO = new QuotedParserPos(0, 0, 0, 0);
+
   private static final long serialVersionUID = 1L;
 
   //~ Instance fields --------------------------------------------------------

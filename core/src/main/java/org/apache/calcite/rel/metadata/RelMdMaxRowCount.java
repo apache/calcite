@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.adapter.enumerable.EnumerableLimit;
+import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -29,6 +30,7 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.BuiltInMethod;
@@ -129,11 +131,33 @@ public class RelMdMaxRowCount
       // Aggregate with no GROUP BY always returns 1 row (even on empty table).
       return 1D;
     }
+
+    // Aggregate with constant GROUP BY always returns 1 row
+    if (rel.getGroupType() == Aggregate.Group.SIMPLE) {
+      final RelOptPredicateList predicateList =
+          mq.getPulledUpPredicates(rel.getInput());
+      if (predicateList != null
+          && allGroupKeysAreConstant(rel, predicateList)) {
+        return 1D;
+      }
+    }
     final Double rowCount = mq.getMaxRowCount(rel.getInput());
     if (rowCount == null) {
       return null;
     }
     return rowCount * rel.getGroupSets().size();
+  }
+
+  private static boolean allGroupKeysAreConstant(Aggregate aggregate,
+      RelOptPredicateList predicateList) {
+    final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
+    for (int key : aggregate.getGroupSet()) {
+      if (!predicateList.constantMap.containsKey(
+          rexBuilder.makeInputRef(aggregate.getInput(), key))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public Double getMaxRowCount(Join rel, RelMetadataQuery mq) {

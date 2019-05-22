@@ -104,6 +104,20 @@ public abstract class InferTypes {
         }
       };
 
+  /**
+   * Operand type-inference strategy where an unknown operand type is assumed
+   * to be nullable ANY.
+   */
+  public static final SqlOperandTypeInference ANY_NULLABLE =
+      (callBinding, returnType, operandTypes) -> {
+        RelDataTypeFactory typeFactory = callBinding.getTypeFactory();
+        for (int i = 0; i < operandTypes.length; ++i) {
+          operandTypes[i] =
+              typeFactory.createTypeWithNullability(
+                  typeFactory.createSqlType(SqlTypeName.ANY), true);
+        }
+      };
+
   /** Returns an {@link SqlOperandTypeInference} that returns a given list of
    * types. */
   public static SqlOperandTypeInference explicit(List<RelDataType> types) {

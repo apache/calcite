@@ -27,6 +27,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SemiJoin;
@@ -253,6 +254,13 @@ public class RelMdColumnUniqueness
             columns);
     final ImmutableBitSet leftColumns = leftAndRightColumns.left;
     final ImmutableBitSet rightColumns = leftAndRightColumns.right;
+
+    // for FULL OUTER JOIN if columns contain column from both inputs it is not
+    // guaranteed that the result will be unique
+    if (!ignoreNulls && rel.getJoinType() == JoinRelType.FULL
+        && leftColumns.cardinality() > 0 && rightColumns.cardinality() > 0) {
+      return false;
+    }
 
     // If the original column mask contains columns from both the left and
     // right hand side, then the columns are unique if and only if they're

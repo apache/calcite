@@ -72,10 +72,11 @@ limitations under the License.
     <cassandra.version>3.11.2</cassandra.version>
     <checksum-maven-plugin.version>1.2</checksum-maven-plugin.version>
     <chinook-data-hsqldb.version>0.1</chinook-data-hsqldb.version>
+    <commons-codec.version>1.12</commons-codec.version>
     <commons-dbcp2.version>2.5.0</commons-dbcp2.version>
     <commons-lang3.version>3.8</commons-lang3.version>
     <commons-pool2.version>2.6.0</commons-pool2.version>
-    <elasticsearch.version>6.2.4</elasticsearch.version>
+    <elasticsearch.version>7.0.1</elasticsearch.version>
     <esri-geometry-api.version>2.2.0</esri-geometry-api.version>
     <findbugs.version>3.0.1</findbugs.version>
     <drill-fmpp-maven-plugin.version>1.14.0</drill-fmpp-maven-plugin.version>
@@ -236,6 +237,11 @@ limitations under the License.
       </dependency>
 
       <!-- Now third-party dependencies, sorted by groupId and artifactId. -->
+      <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>${commons-codec.version}</version>
+      </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-dbcp2</artifactId>

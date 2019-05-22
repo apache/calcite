@@ -25,7 +25,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -1895,7 +1894,7 @@ public class DruidAdapterIT2 {
         + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
         + "2992-01-10T00:00:00.000Z]], filter=[AND(=($2, 'Bird Call'), "
         + "OR(=(EXTRACT(FLAG(WEEK), $0), 10), =(EXTRACT(FLAG(WEEK), $0), 11)))], "
-        + "projects=[[$63, $90, $91]], groups=[{0}], aggs=[[SUM($1), SUM($2)]], "
+        + "projects=[[$0, $2, $63, $90, $91]], groups=[{2}], aggs=[[SUM($3), SUM($4)]], "
         + "post_projects=[[$0, 'Bird Call', -($1, $2)]])";
     sql(sql, FOODMART)
         .returnsOrdered("store_state=CA; brand_name=Bird Call; A=34.364599999999996",
@@ -3927,16 +3926,25 @@ public class DruidAdapterIT2 {
   }
 
   @Test
-  public void testCastTimestamp() {
+  public void testCastTimestamp1() {
+    final String sql = "Select cast(\"timestamp\" as varchar) as t"
+        + " from \"foodmart\" order by t limit 1";
+
+    sql(sql, FOODMART)
+        .returnsOrdered("T=1997-01-01 00:00:00")
+        .queryContains(
+            druidChecker("UTC"));
+  }
+
+  @Test
+  public void testCastTimestamp2() {
     final String sql = "Select cast(cast(\"timestamp\" as timestamp) as varchar) as t"
         + " from \"foodmart\" order by t limit 1";
 
-    if (Bug.CALCITE_2933_FIXED) {
-      sql(sql, FOODMART)
-          .returnsOrdered("T=1997-01-01 00:00:00")
-          .queryContains(
-              druidChecker("UTC"));
-    }
+    sql(sql, FOODMART)
+        .returnsOrdered("T=1997-01-01 00:00:00")
+        .queryContains(
+            druidChecker("UTC"));
   }
 }
 

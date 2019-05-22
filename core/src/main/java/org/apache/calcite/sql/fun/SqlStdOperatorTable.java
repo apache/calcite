@@ -807,6 +807,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           null,
           OperandTypes.CHARACTER);
 
+  public static final SqlPostfixOperator JSON_VALUE_EXPRESSION =
+      new SqlJsonValueExpressionOperator();
+
 
   //-------------------------------------------------------------
   //                   PREFIX OPERATORS
@@ -1291,28 +1294,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlThrowOperator THROW = new SqlThrowOperator();
 
-  public static final SqlJsonValueExpressionOperator JSON_VALUE_EXPRESSION =
-      new SqlJsonValueExpressionOperator("JSON_VALUE_EXPRESSION", false);
-
-  public static final SqlJsonValueExpressionOperator JSON_STRUCTURED_VALUE_EXPRESSION =
-      new SqlJsonValueExpressionOperator("JSON_STRUCTURED_VALUE_EXPRESSION",
-          true);
-
-  public static final SqlJsonApiCommonSyntaxOperator JSON_API_COMMON_SYNTAX =
-      new SqlJsonApiCommonSyntaxOperator("JSON_API_COMMON_SYNTAX", true);
-
-  public static final SqlJsonApiCommonSyntaxOperator JSON_API_COMMON_SYNTAX_WITHOUT_PATH =
-      new SqlJsonApiCommonSyntaxOperator("JSON_API_COMMON_SYNTAX_WITHOUT_PATH", false);
-
   public static final SqlFunction JSON_EXISTS = new SqlJsonExistsFunction();
 
   public static final SqlFunction JSON_VALUE =
       new SqlJsonValueFunction("JSON_VALUE", false);
-
-  public static final SqlFunction JSON_KEYS = new SqlJsonKeysFunction();
-
-  public static final SqlFunction JSON_PRETTY =
-          new SqlJsonPrettyFunction();
 
   public static final SqlFunction JSON_VALUE_ANY =
       new SqlJsonValueFunction("JSON_VALUE_ANY", true);
@@ -1321,17 +1306,29 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlFunction JSON_OBJECT = new SqlJsonObjectFunction();
 
-  public static final SqlFunction JSON_TYPE = new SqlJsonTypeFunction();
-
-  public static final SqlFunction JSON_DEPTH = new SqlJsonDepthFunction();
-
-  public static final SqlFunction JSON_LENGTH = new SqlJsonLengthFunction();
-
   public static final SqlJsonObjectAggAggFunction JSON_OBJECTAGG =
       new SqlJsonObjectAggAggFunction(SqlKind.JSON_OBJECTAGG,
           SqlJsonConstructorNullClause.NULL_ON_NULL);
 
   public static final SqlFunction JSON_ARRAY = new SqlJsonArrayFunction();
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_TYPE = SqlLibraryOperators.JSON_TYPE;
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_DEPTH = SqlLibraryOperators.JSON_DEPTH;
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_LENGTH = SqlLibraryOperators.JSON_LENGTH;
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_KEYS = SqlLibraryOperators.JSON_KEYS;
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_PRETTY = SqlLibraryOperators.JSON_PRETTY;
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_REMOVE = SqlLibraryOperators.JSON_REMOVE;
 
   public static final SqlJsonArrayAggAggFunction JSON_ARRAYAGG =
       new SqlJsonArrayAggAggFunction(SqlKind.JSON_ARRAYAGG,
@@ -1441,8 +1438,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * The <code>TRANSLATE(<i>char_value</i> USING <i>translation_name</i>)</code> function
    * alters the character set of a string value from one base character set to another.
    *
-   * <p>It is defined in the SQL standard. See also non-standard
-   * {@link OracleSqlOperatorTable#TRANSLATE3}.
+   * <p>It is defined in the SQL standard. See also the non-standard
+   * {@link SqlLibraryOperators#TRANSLATE3}, which has a different purpose.
    */
   public static final SqlFunction TRANSLATE =
       new SqlConvertFunction("TRANSLATE");
@@ -1852,7 +1849,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlFunction IN_FENNEL =
       new SqlMonotonicUnaryFunction(
-          "IN_FENNEL",
+          "$IN_FENNEL",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0,
           null,
@@ -2154,6 +2151,20 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.TO_MULTISET,
           null,
           OperandTypes.ANY,
+          SqlFunctionCategory.SYSTEM, false, false,
+          Optionality.OPTIONAL) {
+      };
+
+  /**
+   * The LISTAGG operator. Multiset aggregator function.
+   */
+  public static final SqlAggFunction LISTAGG =
+      new SqlAggFunction("LISTAGG",
+          null,
+          SqlKind.LISTAGG,
+          ReturnTypes.ARG0_NULLABLE,
+          null,
+          OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING),
           SqlFunctionCategory.SYSTEM, false, false,
           Optionality.OPTIONAL) {
       };

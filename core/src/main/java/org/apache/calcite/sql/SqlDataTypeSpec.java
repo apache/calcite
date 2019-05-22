@@ -231,7 +231,7 @@ public class SqlDataTypeSpec extends SqlNode {
 
       if (charSetName != null) {
         writer.keyword("CHARACTER SET");
-        writer.identifier(charSetName);
+        writer.identifier(charSetName, false);
       }
 
       if (collectionsTypeName != null) {

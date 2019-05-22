@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
+import org.apache.calcite.adapter.jdbc.JdbcTable;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
@@ -291,8 +292,16 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** @see #dispatch */
   public Result visit(TableScan e) {
-    final SqlIdentifier identifier =
-        new SqlIdentifier(e.getTable().getQualifiedName(), SqlParserPos.ZERO);
+    final SqlIdentifier identifier;
+    final JdbcTable jdbcTable = e.getTable().unwrap(JdbcTable.class);
+    if (jdbcTable != null) {
+      // Use the foreign catalog, schema and table names, if they exist,
+      // rather than the qualified name of the shadow table in Calcite.
+      identifier = jdbcTable.tableName();
+    } else {
+      final List<String> qualifiedName = e.getTable().getQualifiedName();
+      identifier = new SqlIdentifier(qualifiedName, SqlParserPos.ZERO);
+    }
     return result(identifier, ImmutableList.of(Clause.FROM), e, null);
   }
 

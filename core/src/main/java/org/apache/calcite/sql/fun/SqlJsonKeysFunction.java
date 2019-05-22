@@ -16,17 +16,13 @@
  */
 package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SqlOperandTypeChecker;
-import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 
 /**
  * The <code>JSON_KEYS</code> function.
@@ -34,20 +30,11 @@ import org.apache.calcite.sql.validate.SqlValidator;
 public class SqlJsonKeysFunction extends SqlFunction {
   public SqlJsonKeysFunction() {
     super("JSON_KEYS", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.VARCHAR_2000,
+          ReturnTypes.cascade(ReturnTypes.VARCHAR_2000, SqlTypeTransforms.FORCE_NULLABLE),
           null,
-          OperandTypes.ANY,
+          OperandTypes.or(OperandTypes.ANY,
+              OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER)),
           SqlFunctionCategory.SYSTEM);
-  }
-
-  @Override protected void checkOperandCount(SqlValidator validator,
-      SqlOperandTypeChecker argType, SqlCall call) {
-    assert call.operandCount() == 1;
-  }
-
-  @Override public SqlCall createCall(SqlLiteral functionQualifier,
-                                        SqlParserPos pos, SqlNode... operands) {
-    return super.createCall(functionQualifier, pos, operands);
   }
 }
 

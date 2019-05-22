@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.TestKtTest;
 import org.apache.calcite.adapter.clone.ArrayTableTest;
+import org.apache.calcite.adapter.enumerable.TypeFinderTest;
 import org.apache.calcite.jdbc.CalciteRemoteDriverTest;
 import org.apache.calcite.materialize.LatticeSuggesterTest;
 import org.apache.calcite.plan.RelOptPlanReaderTest;
@@ -47,6 +48,7 @@ import org.apache.calcite.sql.SqlSetOptionOperatorTest;
 import org.apache.calcite.sql.parser.SqlParserTest;
 import org.apache.calcite.sql.parser.SqlUnParserTest;
 import org.apache.calcite.sql.parser.parserextensiontesting.ExtensionSqlParserTest;
+import org.apache.calcite.sql.test.DocumentationTest;
 import org.apache.calcite.sql.test.SqlAdvisorTest;
 import org.apache.calcite.sql.test.SqlOperatorTest;
 import org.apache.calcite.sql.test.SqlPrettyWriterTest;
@@ -130,6 +132,7 @@ import org.junit.runners.Suite;
     SqlTypeFactoryTest.class,
     SqlTypeUtilTest.class,
     SqlValidatorUtilTest.class,
+    TypeFinderTest.class,
 
     // medium tests (above 0.1s)
     SqlParserTest.class,
@@ -162,6 +165,7 @@ import org.junit.runners.Suite;
     MutableRelTest.class,
 
     // slow tests (above 1s)
+    DocumentationTest.class,
     UdfTest.class,
     UdtTest.class,
     TableFunctionTest.class,
@@ -175,6 +179,7 @@ import org.junit.runners.Suite;
     RexProgramFuzzyTest.class,
     SqlToRelConverterTest.class,
     ProfilerTest.class,
+    SqlStatisticProviderTest.class,
     SqlAdvisorJdbcTest.class,
     CoreQuidemTest.class,
     CalciteRemoteDriverTest.class,

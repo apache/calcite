@@ -21,6 +21,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -87,6 +88,37 @@ public class Strong {
    * given whether its arguments are null. */
   public static Policy policy(SqlKind kind) {
     return MAP.getOrDefault(kind, Policy.AS_IS);
+  }
+
+  /**
+   * Returns whether a given expression is strong.
+   *
+   * <p>Examples:</p>
+   * <ul>
+   *   <li>Returns true for {@code c = 1} since it returns null if and only if
+   *   c is null
+   *   <li>Returns false for {@code c IS NULL} since it always returns TRUE
+   *   or FALSE
+   *</ul>
+   *
+   * @param e Expression
+   * @return true if the expression is strong, false otherwise
+   */
+  public static boolean isStrong(RexNode e) {
+    final ImmutableBitSet.Builder nullColumns = ImmutableBitSet.builder();
+    e.accept(
+        new RexVisitorImpl<Void>(true) {
+          public Void visitInputRef(RexInputRef inputRef) {
+            nullColumns.set(inputRef.getIndex());
+            return super.visitInputRef(inputRef);
+          }
+        });
+    return isNull(e, nullColumns.build());
+  }
+
+  /** Returns whether all expressions in a list are strong. */
+  public static boolean allStrong(List<RexNode> operands) {
+    return operands.stream().allMatch(Strong::isStrong);
   }
 
   /** Returns whether an expression is definitely not true. */

@@ -28,6 +28,17 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.20.0">1.20.0</a> / under development
+{: #v1-20-0}
+
+
+Compatibility: This release is tested
+on Linux, macOS, Microsoft Windows;
+using Oracle JDK 8, 9, 10, 11, 12 and OpenJDK 8, 9, 10, 11, 12;
+Guava versions 19.0 to 27.1-jre;
+Apache Druid version 0.14.0-incubating;
+other software versions as specified in `pom.xml`.
+
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.19.0">1.19.0</a> / 2019-03-25
 {: #v1-19-0}
 

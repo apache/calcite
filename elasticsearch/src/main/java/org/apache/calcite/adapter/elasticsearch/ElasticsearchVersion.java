@@ -25,11 +25,21 @@ import java.util.Objects;
  */
 enum ElasticsearchVersion {
 
-  ES2,
-  ES5,
-  ES6,
-  ES7,
-  UNKNOWN;
+  ES2(2),
+  ES5(5),
+  ES6(6),
+  ES7(7),
+  UNKNOWN(0);
+
+  private final int elasticVersionMajor;
+
+  ElasticsearchVersion(final int elasticVersionMajor) {
+    this.elasticVersionMajor = elasticVersionMajor;
+  }
+
+  public int elasticVersionMajor() {
+    return elasticVersionMajor;
+  }
 
   static ElasticsearchVersion fromString(String version) {
     Objects.requireNonNull(version, "version");

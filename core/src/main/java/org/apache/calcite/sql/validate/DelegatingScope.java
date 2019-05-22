@@ -273,8 +273,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       final RelDataTypeField field =
           nameMatcher.field(namespace.getRowType(), columnName);
       if (field != null) {
-        if (hasAmbiguousUnresolvedStar(namespace.getRowType(), field,
-            columnName)) {
+        if (hasAmbiguousField(namespace.getRowType(), field,
+            columnName, nameMatcher)) {
           throw validator.newValidationError(identifier,
               RESOURCE.columnAmbiguous(columnName));
         }
@@ -492,7 +492,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
           if (!fieldName.equals(name)) {
             identifier = identifier.setName(k, fieldName);
           }
-          if (hasAmbiguousUnresolvedStar(step.rowType, field0, name)) {
+          if (hasAmbiguousField(step.rowType, field0, name, nameMatcher)) {
             throw validator.newValidationError(identifier,
                 RESOURCE.columnAmbiguous(name));
           }
@@ -542,10 +542,10 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     return parent.getOrderList();
   }
 
-  /** Returns whether {@code rowType} contains more than one star column.
-   * Having more than one star columns implies ambiguous column. */
-  private boolean hasAmbiguousUnresolvedStar(RelDataType rowType,
-      RelDataTypeField field, String columnName) {
+  /** Returns whether {@code rowType} contains more than one star column or
+   * fields with the same name, which implies ambiguous column. */
+  private boolean hasAmbiguousField(RelDataType rowType,
+      RelDataTypeField field, String columnName, SqlNameMatcher nameMatcher) {
     if (field.isDynamicStar()
         && !DynamicRecordType.isDynamicStarColName(columnName)) {
       int count = 0;
@@ -555,6 +555,16 @@ public abstract class DelegatingScope implements SqlValidatorScope {
             return true;
           }
         }
+      }
+    } else { // check if there are fields with the same name
+      int count = 0;
+      for (RelDataTypeField f : rowType.getFieldList()) {
+        if (Util.matches(nameMatcher.isCaseSensitive(), f.getName(), columnName)) {
+          count++;
+        }
+      }
+      if (count > 1) {
+        return true;
       }
     }
     return false;

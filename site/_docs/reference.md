@@ -19,6 +19,36 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+The following functions do not need to be documented. They are listed
+here to appease testAllFunctionsAreDocumented:
+
+| Function       | Reason not documented
+|:-------------- |:---------------------
+| CALL           | TODO: document
+| CLASSIFIER()   | Documented with MATCH_RECOGNIZE
+| CONVERT()      | In SqlStdOperatorTable, but not fully implemented
+| CUME_DIST()    | In SqlStdOperatorTable, but not fully implemented
+| DESC           | Described as part of ORDER BY syntax
+| EQUALS         | Documented as an period operator
+| FILTER         | Documented as part of aggregateCall syntax
+| FINAL          | TODO: Document with MATCH_RECOGNIZE
+| FIRST()        | TODO: Documented with MATCH_RECOGNIZE
+| JSON_ARRAYAGG_ABSENT_ON_NULL() | Covered by JSON_ARRAYAGG
+| JSON_OBJECTAGG_NULL_ON_NULL() | Covered by JSON_OBJECTAGG
+| JSON_VALUE_ANY() | Covered by JSON_VALUE
+| LAST()         | TODO: document with MATCH_RECOGNIZE
+| NEW            | TODO: document
+| NEXT()         | Documented with MATCH_RECOGNIZE
+| OVERLAPS       | Documented as a period operator
+| PERCENT_RANK() | In SqlStdOperatorTable, but not fully implemented
+| PRECEDES       | Documented as a period operator
+| PREV()         | Documented with MATCH_RECOGNIZE
+| RUNNING        | TODO: document with MATCH_RECOGNIZE
+| SINGLE_VALUE() | Internal (but should it be?)
+| SUCCEEDS       | Documented as a period operator
+| TABLE          | Documented as part of FROM syntax
+| VARIANCE()     | In SqlStdOperatorTable, but not fully implemented
 {% endcomment %}
 -->
 
@@ -95,6 +125,9 @@ statement:
   |   merge
   |   delete
   |   query
+
+statementList:
+      statement [ ';' statement ]* [ ';' ]
 
 setStatement:
       [ ALTER ( SYSTEM | SESSION ) ] SET identifier '=' expression
@@ -565,15 +598,10 @@ JAVA,
 JSON,
 **JSON_ARRAY**,
 **JSON_ARRAYAGG**,
-JSON_DEPTH,
 **JSON_EXISTS**,
-JSON_KEYS,
-JSON_LENGTH,
 **JSON_OBJECT**,
 **JSON_OBJECTAGG**,
-JSON_PRETTY,
 **JSON_QUERY**,
-JSON_TYPE,
 **JSON_VALUE**,
 K,
 KEY,
@@ -1266,6 +1294,7 @@ Not implemented:
 | SYSTEM_USER     | Returns the name of the current data store user as identified by the operating system
 | CURRENT_PATH    | Returns a character string representing the current lookup scope for references to user-defined routines and types
 | CURRENT_ROLE    | Returns the current active role
+| CURRENT_SCHEMA  | Returns the current schema
 
 ### Conditional functions and operators
 
@@ -1454,16 +1483,13 @@ period:
 | {fn UCASE(string)} | Returns a string in which all alphabetic characters in *string* have been converted to upper case
 | {fn REPLACE(string, search, replacement)} | Returns a string in which all the occurrences of *search* in *string* are replaced with *replacement*; if *replacement* is the empty string, the occurrences of *search* are removed
 | {fn ASCII(string)} | Returns the corresponding ASCII code of the first character of *string*; Returns 0 if *string* is empty; Returns NULL if *string* is NULL; Returns the Unicode code point for non-ASCII character
+| {fn REVERSE(string)} | Returns the *string* with the order of the characters reversed.
 
 Not implemented:
 
 * {fn CHAR(string)}
-* {fn DIFFERENCE(string, string)}
 * {fn LEFT(string, integer)}
-* {fn REPEAT(string, integer)}
 * {fn RIGHT(string, integer)}
-* {fn SOUNDEX(string)}
-* {fn SPACE(integer)}
 
 #### Date/time
 
@@ -1535,6 +1561,7 @@ and `LISTAGG`).
 | Operator syntax                    | Description
 |:---------------------------------- |:-----------
 | COLLECT( [ ALL &#124; DISTINCT ] value)       | Returns a multiset of the values
+| LISTAGG( [ ALL &#124; DISTINCT ] value [, separator]) | Returns values concatenated into a string, delimited by separator (default ',')
 | COUNT( [ ALL &#124; DISTINCT ] value [, value ]*) | Returns the number of input rows for which *value* is not null (wholly not null if *value* is composite)
 | COUNT(*)                           | Returns the number of input rows
 | FUSION(multiset)                   | Returns the multiset union of *multiset* across all input values
@@ -1548,6 +1575,7 @@ and `LISTAGG`).
 | BIT_OR( [ ALL &#124; DISTINCT ] value)        | Returns the bitwise OR of all non-null input values, or null if none
 | STDDEV_POP( [ ALL &#124; DISTINCT ] numeric)  | Returns the population standard deviation of *numeric* across all input values
 | STDDEV_SAMP( [ ALL &#124; DISTINCT ] numeric) | Returns the sample standard deviation of *numeric* across all input values
+| STDDEV( [ ALL &#124; DISTINCT ] numeric)      | Synonym for `STDDEV_SAMP`
 | VAR_POP( [ ALL &#124; DISTINCT ] value)       | Returns the population variance (square of the population standard deviation) of *numeric* across all input values
 | VAR_SAMP( [ ALL &#124; DISTINCT ] numeric)    | Returns the sample variance (square of the sample standard deviation) of *numeric* across all input values
 | COVAR_POP(numeric1, numeric2)      | Returns the population covariance of the pair (*numeric1*, *numeric2*) across all input values
@@ -1558,7 +1586,6 @@ and `LISTAGG`).
 
 Not implemented:
 
-* LISTAGG(string)
 * REGR_AVGX(numeric1, numeric2)
 * REGR_AVGY(numeric1, numeric2)
 * REGR_INTERCEPT(numeric1, numeric2)
@@ -2045,20 +2072,51 @@ Note:
 | jsonValue IS JSON ARRAY           | Whether *jsonValue* is a JSON array
 | jsonValue IS NOT JSON ARRAY       | Whether *jsonValue* is not a JSON array
 
-#### MySQL Specific Operators
+### Dialect-specific Operators
 
-| Operator syntax                   | Description
-|:--------------------------------- |:-----------
-| JSON_TYPE(jsonValue)              | Returns a string value indicating the type of a *jsonValue*
-| JSON_DEPTH(jsonValue)             | Returns an integer value indicating the depth of a *jsonValue*
-| JSON_PRETTY(jsonValue)            | Returns a pretty-printing of *jsonValue*
-| JSON_LENGTH(jsonValue [, path ])  | Returns a integer indicating the length of *jsonValue*
-| JSON_KEYS(jsonValue [, path ])    | Returns a string indicating the keys of a JSON *jsonValue*
+The following operators are not in the SQL standard, and are not enabled in
+Calcite's default operator table. They are only available for use in queries
+if your session has enabled an extra operator table.
+
+To enable an operator table, set the
+[fun]({{ site.baseurl }}/docs/adapter.html#jdbc-connect-string-parameters)
+connect string parameter.
+
+The 'C' (compatibility) column contains value
+'m' for MySQL ('fun=mysql' in the connect string),
+'o' for Oracle ('fun=oracle' in the connect string),
+'p' for PostgreSQL ('fun=postgresql' in the connect string).
+
+One operator name may correspond to multiple SQL dialects, but with different
+semantics.
+
+| C | Operator syntax                                | Description
+|:- |:-----------------------------------------------|:-----------
+| m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of a *jsonValue*
+| m | JSON_DEPTH(jsonValue)                          | Returns an integer value indicating the depth of a *jsonValue*
+| m | JSON_PRETTY(jsonValue)                         | Returns a pretty-printing of *jsonValue*
+| m | JSON_LENGTH(jsonValue [, path ])               | Returns a integer indicating the length of *jsonValue*
+| m | JSON_KEYS(jsonValue [, path ])                 | Returns a string indicating the keys of a JSON *jsonValue*
+| m | JSON_REMOVE(jsonValue, path[, path])           | Removes data from *jsonValue* using a series of *path* expressions and returns the result
+| m | REVERSE(string)                                | Returns the reverse order of *string*
+| o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
+| o | NVL(value1, value2)                            | Returns *value1* if *value1* is not null, otherwise *value2*
+| o | LTRIM(string)                                  | Returns *string* with all blanks removed from the start
+| o | RTRIM(string)                                  | Returns *string* with all blanks removed from the end
+| o | SUBSTR(string, position [, substring_length ]) | Returns a portion of *string*, beginning at character *position*, *substring_length* characters long. SUBSTR calculates lengths using characters as defined by the input character set
+| o | GREATEST(expr [, expr ]*)                      | Returns the greatest of the expressions
+| o | LEAST(expr [, expr ]* )                        | Returns the least of the expressions
+| o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
+| m o p | SOUNDEX(string)                            | Returns the phonetic representation of *string*. Throws exception when *string* is encoded with multi-byte encoding such as UTF-8
+| p | DIFFERENCE(string, string)                     | Returns the difference between the SOUNDEX values of two character expressions as an integer. For example, returns 4 if the SOUNDEX values are same and returns 0 if the SOUNDEX values are totally different.
+| m p | REPEAT(string, integer)                      | Returns a string of *integer* times *string*; Returns an empty string if *integer* is less than 1
+| m | SPACE(integer)                                 | Returns a string of *integer* spaces; Returns an empty string if *integer* is less than 1
 
 Note:
 
-* `JSON_TYPE` / `JSON_DEPTH` return null if the argument is null
+* `JSON_TYPE` / `JSON_DEPTH` / `JSON_PRETTY` return null if the argument is null
 * `JSON_TYPE` / `JSON_DEPTH` / `JSON_PRETTY` throw error if the argument is not a valid JSON value
+* `JSON_LENGTH` / `JSON_KEYS` / `JSON_REMOVE` return null if the first argument is null
 * `JSON_TYPE` generally returns an upper-case string flag indicating the type of the JSON input. Currently supported supported type flags are:
   * INTEGER
   * STRING
@@ -2085,10 +2143,10 @@ Usage Examples:
 SQL
 
 ```SQL
-SELECT JSON_TYPE(v) AS c1
-,JSON_TYPE(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2
-,JSON_TYPE(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3
-,JSON_TYPE(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4
+SELECT JSON_TYPE(v) AS c1,
+  JSON_TYPE(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2,
+  JSON_TYPE(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3,
+  JSON_TYPE(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4
 FROM (VALUES ('{"a": [10, true],"b": "[10, true]"}')) AS t(v)
 LIMIT 10;
 ```
@@ -2104,10 +2162,10 @@ Result
 SQL
 
 ```SQL
-SELECT JSON_DEPTH(v) AS c1
-,JSON_DEPTH(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2
-,JSON_DEPTH(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3
-,JSON_DEPTH(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4
+SELECT JSON_DEPTH(v) AS c1,
+  JSON_DEPTH(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2,
+  JSON_DEPTH(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3,
+  JSON_DEPTH(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4
 FROM (VALUES ('{"a": [10, true],"b": "[10, true]"}')) AS t(v)
 LIMIT 10;
 ```
@@ -2123,10 +2181,10 @@ Result
 SQL
 
 ```SQL
-SELECT JSON_LENGTH(v) AS c1
-,JSON_LENGTH(v, 'lax $.a') AS c2
-,JSON_LENGTH(v, 'strict $.a[0]') AS c3
-,JSON_LENGTH(v, 'strict $.a[1]') AS c4
+SELECT JSON_LENGTH(v) AS c1,
+  JSON_LENGTH(v, 'lax $.a') AS c2,
+  JSON_LENGTH(v, 'strict $.a[0]') AS c3,
+  JSON_LENGTH(v, 'strict $.a[1]') AS c4
 FROM (VALUES ('{"a": [10, true]}')) AS t(v)
 LIMIT 10;
 ```
@@ -2142,11 +2200,11 @@ Result
 SQL
 
  ```SQL
-SELECT JSON_KEYS(v) AS c1
-,JSON_KEYS(v, 'lax $.a') AS c2
-,JSON_KEYS(v, 'lax $.b') AS c2
-,JSON_KEYS(v, 'strict $.a[0]') AS c3
-,JSON_KEYS(v, 'strict $.a[1]') AS c4
+SELECT JSON_KEYS(v) AS c1,
+  JSON_KEYS(v, 'lax $.a') AS c2,
+  JSON_KEYS(v, 'lax $.b') AS c2,
+  JSON_KEYS(v, 'strict $.a[0]') AS c3,
+  JSON_KEYS(v, 'strict $.a[1]') AS c4
 FROM (VALUES ('{"a": [10, true],"b": {"c": 30}}')) AS t(v)
 LIMIT 10;
 ```
@@ -2157,12 +2215,64 @@ LIMIT 10;
 | ---------- | ---- | ----- | ---- | ---- |
 | ["a", "b"] | NULL | ["c"] | NULL | NULL |
 
+##### JSON_REMOVE example
+
+SQL
+
+ ```SQL
+SELECT JSON_REMOVE(v, '$[1]') AS c1
+FROM (VALUES ('["a", ["b", "c"], "d"]')) AS t(v)
+LIMIT 10;
+```
+
+ Result
+
+| c1         |
+| ---------- |
+| ["a", "d"] |
+
+#### DECODE example
+
+SQL
+
+```SQL
+SELECT DECODE(f1, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c1,
+  DECODE(f2, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c2,
+  DECODE(f3, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c3,
+  DECODE(f4, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c4,
+  DECODE(f5, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c5
+FROM (VALUES (1, 2, 3, 4, 5)) AS t(f1, f2, f3, f4, f5);
+
+```
+ Result
+
+| c1          | c2          | c3          | c4          | c5          |
+| ----------- | ----------- | ----------- | ----------- | ----------- |
+| aa          | bb          | cc          | dd          | ee          |
+
+#### TRANSLATE example
+
+SQL
+
+```SQL
+SELECT TRANSLATE('Aa*Bb*Cc''D*d', ' */''%', '_') as c1,
+  TRANSLATE('Aa/Bb/Cc''D/d', ' */''%', '_') as c2,
+  TRANSLATE('Aa Bb Cc''D d', ' */''%', '_') as c3,
+  TRANSLATE('Aa%Bb%Cc''D%d', ' */''%', '_') as c4
+FROM (VALUES (true)) AS t(f0);
+```
+
+Result
+
+| c1          | c2          | c3          | c4          |
+| ----------- | ----------- | ----------- | ----------- |
+| Aa_Bb_CcD_d | Aa_Bb_CcD_d | Aa_Bb_CcD_d | Aa_Bb_CcD_d |
+
 Not implemented:
 
 * JSON_INSERT
 * JSON_SET
 * JSON_REPLACE
-* JSON_REMOVE
 
 ## User-defined functions
 

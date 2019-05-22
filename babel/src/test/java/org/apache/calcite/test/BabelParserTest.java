@@ -19,13 +19,17 @@ package org.apache.calcite.test;
 import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.parser.SqlParserTest;
+import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
+
+import com.google.common.base.Throwables;
 
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.Objects;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -37,10 +41,6 @@ public class BabelParserTest extends SqlParserTest {
 
   @Override protected SqlParserImplFactory parserImplFactory() {
     return SqlBabelParserImpl.FACTORY;
-  }
-
-  @Override public void testGenerateKeyWords() {
-    // by design, method only works in base class; no-ops in this sub-class
   }
 
   @Test public void testReservedWords() {
@@ -139,6 +139,62 @@ public class BabelParserTest extends SqlParserTest {
         + "FROM `T`\n"
         + "ORDER BY `DESC`, `DESC` DESC";
     sql(sql).ok(expected);
+  }
+
+  /**
+   * This is a failure test making sure the LOOKAHEAD for WHEN clause is 2 in Babel, where
+   * in core parser this number is 1.
+   *
+   * @see SqlParserTest#testCaseExpression()
+   * @see <a href="https://issues.apache.org/jira/browse/CALCITE-2847">[CALCITE-2847]
+   * Optimize global LOOKAHEAD for SQL parsers</a>
+   */
+  @Test public void testCaseExpressionBabel() {
+    checkFails(
+        "case x when 2, 4 then 3 ^when^ then 5 else 4 end",
+        "(?s)Encountered \"when then\" at .*");
+  }
+
+  /**
+   * Babel parser's global {@code OOKAHEAD} is larger than the core
+   * parser's. This causes different parse error message between these two
+   * parsers. Here we define a looser error checker for Babel, so that we can
+   * reuse failure testing codes from {@link SqlParserTest}.
+   *
+   * <p>If a test case is written in this file -- that is, not inherited -- it
+   * is still checked by {@link SqlParserTest}'s checker.
+   */
+  @Override protected Tester getTester() {
+    return new TesterImpl() {
+      @Override protected void checkEx(String expectedMsgPattern,
+          SqlParserUtil.StringAndPos sap, Throwable thrown) {
+        if (thrownByBabelTest(thrown)) {
+          super.checkEx(expectedMsgPattern, sap, thrown);
+        } else {
+          checkExNotNull(sap, thrown);
+        }
+      }
+
+      private boolean thrownByBabelTest(Throwable ex) {
+        Throwable rootCause = Throwables.getRootCause(ex);
+        StackTraceElement[] stackTrace = rootCause.getStackTrace();
+        for (StackTraceElement stackTraceElement : stackTrace) {
+          String className = stackTraceElement.getClassName();
+          if (Objects.equals(className, BabelParserTest.class.getName())) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      private void checkExNotNull(SqlParserUtil.StringAndPos sap, Throwable thrown) {
+        if (thrown == null) {
+          throw new AssertionError("Expected query to throw exception, "
+              + "but it did not; query [" + sap.sql
+              + "]");
+        }
+      }
+    };
   }
 }
 

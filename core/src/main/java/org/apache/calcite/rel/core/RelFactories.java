@@ -162,8 +162,10 @@ public class RelFactories {
         RexNode fetch);
 
     @Deprecated // to be removed before 2.0
-    RelNode createSort(RelTraitSet traits, RelNode input,
-        RelCollation collation, RexNode offset, RexNode fetch);
+    default RelNode createSort(RelTraitSet traitSet, RelNode input,
+        RelCollation collation, RexNode offset, RexNode fetch) {
+      return createSort(input, collation, offset, fetch);
+    }
   }
 
   /**
@@ -174,12 +176,6 @@ public class RelFactories {
     public RelNode createSort(RelNode input, RelCollation collation,
         RexNode offset, RexNode fetch) {
       return LogicalSort.create(input, collation, offset, fetch);
-    }
-
-    @Deprecated // to be removed before 2.0
-    public RelNode createSort(RelTraitSet traits, RelNode input,
-        RelCollation collation, RexNode offset, RexNode fetch) {
-      return createSort(input, collation, offset, fetch);
     }
   }
 
@@ -331,9 +327,12 @@ public class RelFactories {
         boolean semiJoinDone);
 
     @Deprecated // to be removed before 2.0
-    RelNode createJoin(RelNode left, RelNode right, RexNode condition,
+    default RelNode createJoin(RelNode left, RelNode right, RexNode condition,
         JoinRelType joinType, Set<String> variablesStopped,
-        boolean semiJoinDone);
+        boolean semiJoinDone) {
+      return createJoin(left, right, condition,
+          CorrelationId.setOf(variablesStopped), joinType, semiJoinDone);
+    }
   }
 
   /**
@@ -346,13 +345,6 @@ public class RelFactories {
         JoinRelType joinType, boolean semiJoinDone) {
       return LogicalJoin.create(left, right, condition, variablesSet, joinType,
           semiJoinDone, ImmutableList.of());
-    }
-
-    public RelNode createJoin(RelNode left, RelNode right, RexNode condition,
-        JoinRelType joinType, Set<String> variablesStopped,
-        boolean semiJoinDone) {
-      return createJoin(left, right, condition,
-          CorrelationId.setOf(variablesStopped), joinType, semiJoinDone);
     }
   }
 

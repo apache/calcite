@@ -165,6 +165,8 @@ public abstract class RelOptRuleCall {
    * children, and hence where the matched children are not retrievable by any
    * other means.
    *
+   * <p>Warning: it produces wrong result for {@code unordered(...)} case.
+   *
    * @param rel Relational expression
    * @return Children of relational expression
    */

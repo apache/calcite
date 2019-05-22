@@ -19,6 +19,7 @@ package org.apache.calcite.plan.volcano;
 import org.apache.calcite.plan.RelOptListener;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelOptRuleOperandChildPolicy;
 import org.apache.calcite.rel.RelNode;
 
 import com.google.common.collect.ImmutableList;
@@ -28,8 +29,10 @@ import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * <code>VolcanoRuleCall</code> implements the {@link RelOptRuleCall} interface
@@ -281,11 +284,38 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         final int parentOrdinal = operand.getParent().ordinalInRule;
         final RelNode parentRel = rels[parentOrdinal];
         final List<RelNode> inputs = parentRel.getInputs();
-        if (operand.ordinalInParent < inputs.size()) {
+        // if the child is unordered, then add all rels in all input subsets to the successors list
+        // because unordered can match child in any ordinal
+        if (parentOperand.childPolicy == RelOptRuleOperandChildPolicy.UNORDERED) {
+          if (operand.getMatchedClass() == RelSubset.class) {
+            successors = inputs;
+          } else {
+            List<RelNode> allRelsInAllSubsets = new ArrayList<>();
+            Set<RelNode> duplicates = new HashSet<>();
+            for (RelNode input : inputs) {
+              if (!duplicates.add(input)) {
+                // Ignore duplicate subsets
+                continue;
+              }
+              RelSubset inputSubset = (RelSubset) input;
+              for (RelNode rel : inputSubset.getRels()) {
+                if (!duplicates.add(rel)) {
+                  // Ignore duplicate relations
+                  continue;
+                }
+                allRelsInAllSubsets.add(rel);
+              }
+            }
+            successors = allRelsInAllSubsets;
+          }
+        } else if (operand.ordinalInParent < inputs.size()) {
+          // child policy is not unordered
+          // we need to find the exact input node based on child operand's ordinalInParent
           final RelSubset subset =
               (RelSubset) inputs.get(operand.ordinalInParent);
           if (operand.getMatchedClass() == RelSubset.class) {
-            successors = subset.set.subsets;
+            // If the rule wants the whole subset, we just provide it
+            successors = ImmutableList.of(subset);
           } else {
             successors = subset.getRelList();
           }
@@ -300,7 +330,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         if (!operand.matches(rel)) {
           continue;
         }
-        if (ascending) {
+        if (ascending && operand.childPolicy != RelOptRuleOperandChildPolicy.UNORDERED) {
           // We know that the previous operand was *a* child of its parent,
           // but now check that it is the *correct* child.
           final RelSubset input =
@@ -314,6 +344,11 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         // Assign "childRels" if the operand is UNORDERED.
         switch (parentOperand.childPolicy) {
         case UNORDERED:
+          // Note: below is ill-defined. Suppose there's a union with 3 inputs,
+          // and the rule is written as Union.class, unordered(...)
+          // What should be provided for the rest 2 arguments?
+          // RelSubsets? Random relations from those subsets?
+          // For now, Calcite code does not use getChildRels, so the bug is just waiting its day
           if (ascending) {
             final List<RelNode> inputs = Lists.newArrayList(rel.getInputs());
             inputs.set(previousOperand.ordinalInParent, previous);

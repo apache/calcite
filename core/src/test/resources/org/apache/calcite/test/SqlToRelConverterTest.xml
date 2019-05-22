@@ -870,6 +870,48 @@ LogicalProject(ZIP=[$4])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSelectNestedColumnType">
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(UNIT_LENGTH=[CHAR_LENGTH($3)])
+  LogicalFilter(condition=[=($0, 'john')])
+    LogicalProject(FNAME=[$1], COORD=[$4], COORD2=[$5], COORD3=[$6])
+      LogicalFilter(condition=[AND(>($4, 1), >($5, 1))])
+        LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+          LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testGroupByNestedColumn">
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(X=[$1], A=[$0], EXPR$2=[$2])
+  LogicalAggregate(group=[{0, 1}], EXPR$2=[AVG($2)])
+    LogicalProject(A=[$5.SUB.A], X=[$4.X], $f2=[$4.Y])
+      LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testGroupingSetsWithNestedColumn">
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(X=[$1], unit=[$2], A=[$0], EXPR$3=[$3])
+  LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {1, 2}]], EXPR$3=[AVG($3)])
+    LogicalProject(A=[$5.SUB.A], X=[$4.X], unit=[$4.unit], $f3=[$4.Y])
+      LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testGroupByCubeWithNestedColumn">
+    <Resource name="plan">
+    <![CDATA[
+LogicalProject(X=[$1], unit=[$2], A=[$0], EXPR$3=[$3])
+  LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {0, 1}, {0, 2}, {0}, {1, 2}, {1}, {2}, {}]], EXPR$3=[AVG($3)])
+    LogicalProject(A=[$5.SUB.A], X=[$4.X], unit=[$4.unit], $f3=[$4.Y])
+      LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+]]>
+    </Resource>
+    </TestCase>
     <TestCase name="testDynamicSchemaUnnest">
         <Resource name="sql">
             <![CDATA[select t1.c_nationkey, t3.fake_col3
@@ -3027,6 +3069,26 @@ LogicalAggregate(group=[{0}])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testMatchRecognizeIn">
+        <Resource name="sql">
+            <![CDATA[select *
+  from emp match_recognize
+  (
+    partition by job, sal
+    order by job asc, sal desc, empno
+    pattern (strt down+ up+)
+    define
+      down as down.mgr in (0, 1),
+      up as up.mgr > prev(up.mgr)) as mr]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalMatch(partition=[[$2, $5]], order=[[2, 5 DESC, 0]], outputFields=[[EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, SLACKER]], allRows=[false], after=[FLAG(SKIP TO NEXT ROW)], pattern=[(('STRT', PATTERN_QUANTIFIER('DOWN', 1, -1, false)), PATTERN_QUANTIFIER('UP', 1, -1, false))], isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], patternDefinitions=[[OR(=(PREV(DOWN.$3, 0), 0), =(PREV(DOWN.$3, 0), 1)), >(PREV(UP.$3, 0), PREV(UP.$3, 1))]], inputFields=[[EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, SLACKER]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testAggNoDuplicateColumnNames">
         <Resource name="sql">
             <![CDATA[SELECT  empno, EXPR$2, COUNT(empno) FROM (
@@ -3246,6 +3308,60 @@ group by deptno]]>
             <![CDATA[
 LogicalAggregate(group=[{0}], EXPR$1=[SUM($1) FILTER $2], EXPR$2=[COUNT()])
   LogicalProject(DEPTNO=[$7], $f1=[*($5, 2)], $f2=[AND(<>($0, 1), <>($0, 2))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSimplifyExistsAggregateSubQuery">
+        <Resource name="sql">
+            <![CDATA[SELECT e1.empno
+        FROM emp e1 where exists
+        (select avg(sal) from emp e2 where e1.empno = e2.empno)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSimplifyNotExistsAggregateSubQuery">
+        <Resource name="sql">
+            <![CDATA[SELECT e1.empno
+        FROM emp e1 where not exists
+        (select avg(sal) from emp e2 where e1.empno = e2.empno)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[NOT(true)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSimplifyExistsValuesSubQuery">
+        <Resource name="sql">
+            <![CDATA[select deptno
+        from EMP
+        where exists (values 10)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSimplifyNotExistsValuesSubQuery">
+        <Resource name="sql">
+            <![CDATA[select deptno
+        from EMP
+        where not exists (values 10)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[NOT(true)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -4479,19 +4595,13 @@ set empno = (
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[EMPNO]], sourceExpressionList=[[]], flattened=[true])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[$9])
-    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[$10])
-      LogicalJoin(condition=[=($7, $9)], joinType=[left])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-        LogicalAggregate(group=[{0}], EXPR$0=[MIN($1)])
-          LogicalProject(DEPTNO0=[$1], EMPNO=[$0])
-            LogicalProject(EMPNO=[$0], DEPTNO0=[$9])
-              LogicalJoin(condition=[=($7, $9)], joinType=[inner])
-                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-                LogicalAggregate(group=[{0}])
-                  LogicalProject(DEPTNO=[$7])
-                    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[EMPNO]], sourceExpressionList=[[$0]], flattened=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[$10])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}], EXPR$0=[MIN($1)])
+        LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -4503,6 +4613,22 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColu
             <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSomeWithEquality">
+        <Resource name="sql">
+            <![CDATA[select empno from emp where deptno = some (
+  select deptno from dept)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[IN($7, {
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -5482,6 +5608,21 @@ LogicalProject(ANYEMPNO=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testJsonValueExpressionOperator">
+        <Resource name="sql">
+            <![CDATA[select ename format json,
+ename format json encoding utf8,
+ename format json encoding utf16,
+ename format json encoding utf32
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[FORMAT JSON($1)], EXPR$1=[FORMAT JSON($1)], EXPR$2=[FORMAT JSON($1)], EXPR$3=[FORMAT JSON($1)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testJsonExists">
         <Resource name="sql">
             <![CDATA[select json_exists(ename, 'lax $')
@@ -5489,7 +5630,7 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[JSON_EXISTS(JSON_API_COMMON_SYNTAX(JSON_VALUE_EXPRESSION($1), 'lax $'))])
+LogicalProject(EXPR$0=[JSON_EXISTS($1, 'lax $')])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -5501,7 +5642,7 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CAST(JSON_VALUE_ANY(JSON_API_COMMON_SYNTAX(JSON_VALUE_EXPRESSION($1), 'lax $'), FLAG(SqlJsonValueEmptyOrErrorBehavior[NULL]), null:ANY, FLAG(SqlJsonValueEmptyOrErrorBehavior[NULL]), null:ANY)):VARCHAR(2000)])
+LogicalProject(EXPR$0=[CAST(JSON_VALUE_ANY($1, 'lax $', FLAG(SqlJsonValueEmptyOrErrorBehavior[NULL]), null:ANY, FLAG(SqlJsonValueEmptyOrErrorBehavior[NULL]), null:ANY)):VARCHAR(2000)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -5513,7 +5654,67 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[JSON_QUERY(JSON_API_COMMON_SYNTAX(JSON_VALUE_EXPRESSION($1), 'lax $'), FLAG(WITHOUT_ARRAY), FLAG(SqlJsonQueryEmptyOrErrorBehavior[NULL]), FLAG(SqlJsonQueryEmptyOrErrorBehavior[NULL]))])
+LogicalProject(EXPR$0=[JSON_QUERY($1, 'lax $', FLAG(WITHOUT_ARRAY), FLAG(SqlJsonQueryEmptyOrErrorBehavior[NULL]), FLAG(SqlJsonQueryEmptyOrErrorBehavior[NULL]))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJsonType">
+        <Resource name="sql">
+            <![CDATA[select json_type(ename)
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[JSON_TYPE($1)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJsonPretty">
+        <Resource name="sql">
+            <![CDATA[select json_pretty(ename)
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[JSON_PRETTY($1)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJsonDepth">
+        <Resource name="sql">
+            <![CDATA[select json_depth(ename)
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[JSON_DEPTH($1)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJsonLength">
+        <Resource name="sql">
+            <![CDATA[select json_length(ename, 'strict $')
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[JSON_LENGTH($1, 'strict $')])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJsonKeys">
+        <Resource name="sql">
+            <![CDATA[select json_keys(ename, 'strict $')
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[JSON_KEYS($1, 'strict $')])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -5525,7 +5726,7 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[JSON_ARRAY(FLAG(ABSENT_ON_NULL), JSON_STRUCTURED_VALUE_EXPRESSION($1), JSON_STRUCTURED_VALUE_EXPRESSION($1))])
+LogicalProject(EXPR$0=[JSON_ARRAY(FLAG(ABSENT_ON_NULL), $1, $1)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -5538,7 +5739,7 @@ from emp]]>
         <Resource name="plan">
             <![CDATA[
 LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG_ABSENT_ON_NULL($0)])
-  LogicalProject($f0=[JSON_STRUCTURED_VALUE_EXPRESSION($1)])
+  LogicalProject(ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -5550,8 +5751,8 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG_ABSENT_ON_NULL($0) WITHIN GROUP ([1])])
-  LogicalProject($f0=[JSON_STRUCTURED_VALUE_EXPRESSION($1)], ENAME=[$1])
+LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG_ABSENT_ON_NULL($0) WITHIN GROUP ([0])])
+  LogicalProject(ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -5563,8 +5764,8 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG_NULL_ON_NULL($0) WITHIN GROUP ([1])])
-  LogicalProject($f0=[JSON_STRUCTURED_VALUE_EXPRESSION($1)], ENAME=[$1])
+LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG_NULL_ON_NULL($0) WITHIN GROUP ([0])])
+  LogicalProject(ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -5576,8 +5777,8 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG_NULL_ON_NULL($0) WITHIN GROUP ([1])])
-  LogicalProject($f0=[JSON_STRUCTURED_VALUE_EXPRESSION($1)], ENAME=[$1])
+LogicalAggregate(group=[{}], EXPR$0=[JSON_ARRAYAGG_NULL_ON_NULL($0) WITHIN GROUP ([0])])
+  LogicalProject(ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -5589,7 +5790,7 @@ from emp]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[JSON_OBJECT(FLAG(NULL_ON_NULL), $1, JSON_STRUCTURED_VALUE_EXPRESSION($7), $1, JSON_STRUCTURED_VALUE_EXPRESSION($7))])
+LogicalProject(EXPR$0=[JSON_OBJECT(FLAG(NULL_ON_NULL), $1, $7, $1, $7)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -5602,7 +5803,7 @@ from emp]]>
         <Resource name="plan">
             <![CDATA[
 LogicalAggregate(group=[{}], EXPR$0=[JSON_OBJECTAGG_NULL_ON_NULL($0, $1)])
-  LogicalProject(ENAME=[$1], $f1=[JSON_STRUCTURED_VALUE_EXPRESSION($7)])
+  LogicalProject(ENAME=[$1], DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>

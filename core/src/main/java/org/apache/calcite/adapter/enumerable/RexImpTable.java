@@ -91,7 +91,18 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.OrElse;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
-import static org.apache.calcite.sql.fun.OracleSqlOperatorTable.TRANSLATE3;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DIFFERENCE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_DEPTH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_KEYS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_LENGTH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_PRETTY;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_REMOVE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_TYPE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SOUNDEX;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPACE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ABS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ACOS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.AND;
@@ -161,20 +172,12 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_TRUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NULL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_TRUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ITEM;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_API_COMMON_SYNTAX;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_API_COMMON_SYNTAX_WITHOUT_PATH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_ARRAY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_ARRAYAGG;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_DEPTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_EXISTS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_KEYS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECTAGG;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_PRETTY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_QUERY;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_STRUCTURED_VALUE_EXPRESSION;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_TYPE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_VALUE_ANY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_VALUE_EXPRESSION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAG;
@@ -184,6 +187,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LEAD;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LIKE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LISTAGG;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LOCALTIME;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LOCALTIMESTAMP;
@@ -257,6 +261,8 @@ public class RexImpTable {
       Expressions.constant(false);
   public static final ConstantExpression TRUE_EXPR =
       Expressions.constant(true);
+  public static final ConstantExpression COMMA_EXPR =
+      Expressions.constant(",");
   public static final MemberExpression BOXED_FALSE_EXPR =
       Expressions.field(null, Boolean.class, "FALSE");
   public static final MemberExpression BOXED_TRUE_EXPR =
@@ -285,6 +291,11 @@ public class RexImpTable {
     defineMethod(OVERLAY, BuiltInMethod.OVERLAY.method, NullPolicy.STRICT);
     defineMethod(POSITION, BuiltInMethod.POSITION.method, NullPolicy.STRICT);
     defineMethod(ASCII, BuiltInMethod.ASCII.method, NullPolicy.STRICT);
+    defineMethod(REPEAT, BuiltInMethod.REPEAT.method, NullPolicy.STRICT);
+    defineMethod(SPACE, BuiltInMethod.SPACE.method, NullPolicy.STRICT);
+    defineMethod(SOUNDEX, BuiltInMethod.SOUNDEX.method, NullPolicy.STRICT);
+    defineMethod(DIFFERENCE, BuiltInMethod.DIFFERENCE.method, NullPolicy.STRICT);
+    defineMethod(REVERSE, BuiltInMethod.REVERSE.method, NullPolicy.STRICT);
 
     final TrimImplementor trimImplementor = new TrimImplementor();
     defineImplementor(TRIM, NullPolicy.STRICT, trimImplementor, false);
@@ -454,22 +465,17 @@ public class RexImpTable {
     // Json Operators
     defineMethod(JSON_VALUE_EXPRESSION,
         BuiltInMethod.JSON_VALUE_EXPRESSION.method, NullPolicy.STRICT);
-    defineMethod(JSON_STRUCTURED_VALUE_EXPRESSION,
-        BuiltInMethod.JSON_STRUCTURED_VALUE_EXPRESSION.method, NullPolicy.STRICT);
-    defineMethod(JSON_API_COMMON_SYNTAX, BuiltInMethod.JSON_API_COMMON_SYNTAX.method,
-            NullPolicy.NONE);
-    defineMethod(JSON_API_COMMON_SYNTAX_WITHOUT_PATH,
-        BuiltInMethod.JSON_API_COMMON_SYNTAX_WITHOUT_PATH.method, NullPolicy.NONE);
-    defineMethod(JSON_EXISTS, BuiltInMethod.JSON_EXISTS.method, NullPolicy.NONE);
-    defineMethod(JSON_VALUE_ANY, BuiltInMethod.JSON_VALUE_ANY.method, NullPolicy.NONE);
-    defineMethod(JSON_QUERY, BuiltInMethod.JSON_QUERY.method, NullPolicy.NONE);
+    defineMethod(JSON_EXISTS, BuiltInMethod.JSON_EXISTS.method, NullPolicy.ARG0);
+    defineMethod(JSON_VALUE_ANY, BuiltInMethod.JSON_VALUE_ANY.method, NullPolicy.ARG0);
+    defineMethod(JSON_QUERY, BuiltInMethod.JSON_QUERY.method, NullPolicy.ARG0);
+    defineMethod(JSON_TYPE, BuiltInMethod.JSON_TYPE.method, NullPolicy.ARG0);
+    defineMethod(JSON_DEPTH, BuiltInMethod.JSON_DEPTH.method, NullPolicy.ARG0);
+    defineMethod(JSON_KEYS, BuiltInMethod.JSON_KEYS.method, NullPolicy.ARG0);
+    defineMethod(JSON_PRETTY, BuiltInMethod.JSON_PRETTY.method, NullPolicy.ARG0);
+    defineMethod(JSON_LENGTH, BuiltInMethod.JSON_LENGTH.method, NullPolicy.ARG0);
+    defineMethod(JSON_REMOVE, BuiltInMethod.JSON_REMOVE.method, NullPolicy.ARG0);
     defineMethod(JSON_OBJECT, BuiltInMethod.JSON_OBJECT.method, NullPolicy.NONE);
     defineMethod(JSON_ARRAY, BuiltInMethod.JSON_ARRAY.method, NullPolicy.NONE);
-    defineMethod(JSON_TYPE, BuiltInMethod.JSON_TYPE.method, NullPolicy.NONE);
-    defineMethod(JSON_DEPTH, BuiltInMethod.JSON_DEPTH.method, NullPolicy.NONE);
-    defineMethod(JSON_KEYS, BuiltInMethod.JSON_KEYS.method, NullPolicy.NONE);
-    defineMethod(JSON_PRETTY, BuiltInMethod.JSON_PRETTY.method, NullPolicy.NONE);
-    defineMethod(JSON_LENGTH, BuiltInMethod.JSON_LENGTH.method, NullPolicy.NONE);
     aggMap.put(JSON_OBJECTAGG.with(SqlJsonConstructorNullClause.ABSENT_ON_NULL),
         JsonObjectAggImplementor
             .supplierFor(BuiltInMethod.JSON_OBJECTAGG_ADD.method));
@@ -535,6 +541,7 @@ public class RexImpTable {
     aggMap.put(BIT_OR, bitop);
     aggMap.put(SINGLE_VALUE, constructorSupplier(SingleValueImplementor.class));
     aggMap.put(COLLECT, constructorSupplier(CollectImplementor.class));
+    aggMap.put(LISTAGG, constructorSupplier(ListaggImplementor.class));
     aggMap.put(FUSION, constructorSupplier(FusionImplementor.class));
     final Supplier<GroupingImplementor> grouping =
         constructorSupplier(GroupingImplementor.class);
@@ -607,6 +614,7 @@ public class RexImpTable {
     case ANY:
     case STRICT:
     case SEMI_STRICT:
+    case ARG0:
       return (translator, call, nullAs) -> implementNullSemantics0(
           translator, call, nullAs, nullPolicy, harmonize,
           implementor);
@@ -729,6 +737,10 @@ public class RexImpTable {
             return NullAs.TRUE;
           case TRUE:
             return NullAs.FALSE;
+          case IS_NULL:
+            return NullAs.IS_NOT_NULL;
+          case IS_NOT_NULL:
+            return NullAs.IS_NULL;
           default:
             return nullAs;
           }
@@ -963,8 +975,10 @@ public class RexImpTable {
       case NOT_POSSIBLE:
         throw e;
       case FALSE:
+      case IS_NOT_NULL:
         return FALSE_EXPR;
       case TRUE:
+      case IS_NULL:
         return TRUE_EXPR;
       default:
         return NULL_EXPR;
@@ -979,10 +993,15 @@ public class RexImpTable {
       NullPolicy nullPolicy,
       NotNullImplementor implementor) {
     final List<Expression> list = new ArrayList<>();
+    final List<RexNode> conditionalOps
+        = nullPolicy == NullPolicy.ARG0 ? Collections.singletonList(call.getOperands().get(0))
+        : call.getOperands();
     switch (nullAs) {
     case NULL:
+    case IS_NULL:
+    case IS_NOT_NULL:
       // v0 == null || v1 == null ? null : f(v0, v1)
-      for (Ord<RexNode> operand : Ord.zip(call.getOperands())) {
+      for (Ord<RexNode> operand : Ord.zip(conditionalOps)) {
         if (translator.isNullable(operand.e)) {
           list.add(
               translator.translate(
@@ -993,14 +1012,28 @@ public class RexImpTable {
       final Expression box =
           Expressions.box(
               implementCall(translator, call, implementor, nullAs));
+      final Expression ifTrue;
+      switch (nullAs) {
+      case NULL:
+        ifTrue = Types.castIfNecessary(box.getType(), NULL_EXPR);
+        break;
+      case IS_NULL:
+        ifTrue = TRUE_EXPR;
+        break;
+      case IS_NOT_NULL:
+        ifTrue = FALSE_EXPR;
+        break;
+      default:
+        throw new AssertionError();
+      }
       return optimize(
           Expressions.condition(
               Expressions.foldOr(list),
-              Types.castIfNecessary(box.getType(), NULL_EXPR),
+              ifTrue,
               box));
     case FALSE:
       // v0 != null && v1 != null && f(v0, v1)
-      for (Ord<RexNode> operand : Ord.zip(call.getOperands())) {
+      for (Ord<RexNode> operand : Ord.zip(conditionalOps)) {
         if (translator.isNullable(operand.e)) {
           list.add(
               translator.translate(
@@ -1012,7 +1045,7 @@ public class RexImpTable {
       return Expressions.foldAnd(list);
     case TRUE:
       // v0 == null || v1 == null || f(v0, v1)
-      for (Ord<RexNode> operand : Ord.zip(call.getOperands())) {
+      for (Ord<RexNode> operand : Ord.zip(conditionalOps)) {
         if (translator.isNullable(operand.e)) {
           list.add(
               translator.translate(
@@ -1367,6 +1400,31 @@ public class RexImpTable {
               Expressions.call(add.accumulator().get(0),
                   BuiltInMethod.COLLECTION_ADD.method,
                   add.arguments().get(0))));
+    }
+  }
+
+  /** Implementor for the {@code LISTAGG} aggregate function. */
+  static class ListaggImplementor extends StrictAggImplementor {
+    @Override protected void implementNotNullReset(AggContext info,
+        AggResetContext reset) {
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(0), NULL_EXPR)));
+    }
+
+    @Override public void implementNotNullAdd(AggContext info,
+        AggAddContext add) {
+      final Expression accValue = add.accumulator().get(0);
+      final Expression arg0 = add.arguments().get(0);
+      final Expression arg1 = add.arguments().size() == 2
+          ? add.arguments().get(1) : COMMA_EXPR;
+      final Expression result = Expressions.condition(
+          Expressions.equal(NULL_EXPR, accValue),
+          arg0,
+          Expressions.call(BuiltInMethod.STRING_CONCAT.method, accValue,
+              Expressions.call(BuiltInMethod.STRING_CONCAT.method, arg1, arg0)));
+
+      add.currentBlock().add(Expressions.statement(Expressions.assign(accValue, result)));
     }
   }
 

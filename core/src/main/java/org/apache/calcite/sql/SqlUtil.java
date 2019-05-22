@@ -32,6 +32,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.BarfingInvocationHandler;
 import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.Glossary;
@@ -277,7 +278,7 @@ public abstract class SqlUtil {
       if (id == null) {
         writer.keyword(operator.getName());
       } else {
-        id.unparse(writer, 0, 0);
+        unparseSqlIdentifierSyntax(writer, id, true);
       }
     } else {
       writer.print(operator.getName());
@@ -308,6 +309,60 @@ public abstract class SqlUtil {
     for (SqlNode operand : call.getOperandList()) {
       writer.sep(",");
       operand.unparse(writer, 0, 0);
+    }
+    writer.endList(frame);
+  }
+
+  /**
+   * Unparse a SqlIdentifier syntax.
+   * @param writer       Writer
+   * @param identifier   SqlIdentifier
+   * @param asFunctionID Whether this identifier comes from a SqlFunction
+   */
+  public static void unparseSqlIdentifierSyntax(
+      SqlWriter writer,
+      SqlIdentifier identifier,
+      boolean asFunctionID) {
+    final boolean isUnquotedSimple = identifier.isSimple()
+        && !identifier.getParserPosition().isQuoted();
+    final SqlOperator operator = isUnquotedSimple
+        ? SqlValidatorUtil.lookupSqlFunctionByID(SqlStdOperatorTable.instance(), identifier, null)
+        : null;
+    boolean unparsedAsFunc = false;
+    final SqlWriter.Frame frame =
+        writer.startList(SqlWriter.FrameTypeEnum.IDENTIFIER);
+    if (isUnquotedSimple && operator != null) {
+      // Unparse conditions:
+      // 1. If the identifier is quoted or is component, unparse as normal.
+      // 2. If the identifier comes from a sql function, lookup in the
+      // standard sql operator table to see if the function is a builtin,
+      // unparse without quoting for builtins.
+
+      // 3. If the identifier does not come from a function(resolved as a SqlIdentifier),
+      // look up in the standard sql operator table to see if it is a function
+      // with empty argument list, e.g. LOCALTIME, we should not quote
+      // such identifier cause quoted `LOCALTIME` always represents a sql identifier.
+      if (asFunctionID
+          || operator.getSyntax() == SqlSyntax.FUNCTION_ID) {
+        writer.keyword(identifier.getSimple());
+        unparsedAsFunc = true;
+      }
+    }
+
+    if (!unparsedAsFunc) {
+      for (int i = 0; i < identifier.names.size(); i++) {
+        writer.sep(".");
+        final String name = identifier.names.get(i);
+        final SqlParserPos pos = identifier.getComponentParserPosition(i);
+        if (name.equals("")) {
+          writer.print("*");
+        } else {
+          writer.identifier(name, pos.isQuoted());
+        }
+      }
+    }
+    if (null != identifier.getCollation()) {
+      identifier.getCollation().unparse(writer);
     }
     writer.endList(frame);
   }

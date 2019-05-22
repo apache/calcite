@@ -73,8 +73,7 @@ public final class SortRemoveRuleTest {
     RelRoot planRoot = planner.rel(validate);
     RelNode planBefore = planRoot.rel;
     RelTraitSet desiredTraits = planBefore.getTraitSet()
-        .replace(EnumerableConvention.INSTANCE)
-        .replace(planRoot.collation).simplify();
+        .replace(EnumerableConvention.INSTANCE);
     RelNode planAfter = planner.transform(0, desiredTraits, planBefore);
     return planner.transform(1, desiredTraits, planAfter);
   }

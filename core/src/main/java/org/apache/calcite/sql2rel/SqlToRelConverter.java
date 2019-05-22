@@ -1166,8 +1166,23 @@ public class SqlToRelConverter {
       if (!config.isExpand()) {
         return;
       }
-      converted = convertExists(query, RelOptUtil.SubQueryType.EXISTS,
-          subQuery.logic, true, null);
+      final SqlValidatorScope seekScope =
+          (query instanceof SqlSelect)
+              ? validator.getSelectScope((SqlSelect) query)
+              : null;
+      final Blackboard seekBb = createBlackboard(seekScope, null, false);
+      final RelNode seekRel = convertQueryOrInList(seekBb, query, null);
+      // An EXIST sub-query whose inner child has at least 1 tuple
+      // (e.g. an Aggregate with no grouping columns or non-empty Values
+      // node) should be simplified to a Boolean constant expression.
+      final RelMetadataQuery mq = seekRel.getCluster().getMetadataQuery();
+      final Double minRowCount = mq.getMinRowCount(seekRel);
+      if (minRowCount != null && minRowCount >= 1D) {
+        subQuery.expr = rexBuilder.makeLiteral(true);
+        return;
+      }
+      converted = RelOptUtil.createExistsPlan(seekRel,
+          RelOptUtil.SubQueryType.EXISTS, subQuery.logic, true, relBuilder);
       assert !converted.indicator;
       if (convertNonCorrelatedSubQuery(subQuery, bb, converted.r, true)) {
         return;
@@ -2276,6 +2291,7 @@ public class SqlToRelConverter {
     final ImmutableMap.Builder<String, RexNode> definitionNodes =
         ImmutableMap.builder();
     for (SqlNode def : matchRecognize.getPatternDefList()) {
+      replaceSubQueries(matchBb, def, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
       List<SqlNode> operands = ((SqlCall) def).getOperandList();
       String alias = ((SqlIdentifier) operands.get(1)).getSimple();
       RexNode rex = matchBb.convertExpression(operands.get(0));
@@ -3551,6 +3567,8 @@ public class SqlToRelConverter {
   private RelNode convertUpdate(SqlUpdate call) {
     final SqlValidatorScope scope = validator.getWhereScope(call.getSourceSelect());
     Blackboard bb = createBlackboard(scope, null, false);
+
+    replaceSubQueries(bb, call, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
     Builder<RexNode> rexNodeSourceExpressionListBuilder = ImmutableList.builder();
     for (SqlNode n : call.getSourceExpressionList()) {

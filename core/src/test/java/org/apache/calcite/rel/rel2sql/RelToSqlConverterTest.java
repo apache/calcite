@@ -408,6 +408,14 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testCastDecimal1() {
+    final String query = "select -0.0000000123\n"
+        + " from \"expense_fact\"";
+    final String expected = "SELECT -1.23E-8\n"
+        + "FROM \"foodmart\".\"expense_fact\"";
+    sql(query).ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2713">[CALCITE-2713]
    * JDBC adapter may generate casts on PostgreSQL for VARCHAR type exceeding
@@ -508,14 +516,11 @@ public class RelToSqlConverterTest {
         + "FROM (SELECT SUM(`net_weight`) AS `net_weight1`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `product_id`) AS `t1`";
-    final String expectedVertica = "SELECT SUM(\"net_weight1\") AS \"net_weight_converted\"\n"
-        + "FROM (SELECT SUM(\"net_weight\") AS \"net_weight1\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_id\") AS \"t1\"";
     final String expectedPostgresql = "SELECT SUM(\"net_weight1\") AS \"net_weight_converted\"\n"
         + "FROM (SELECT SUM(\"net_weight\") AS \"net_weight1\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_id\") AS \"t1\"";
+    final String expectedVertica = expectedPostgresql;
     sql(query)
         .withOracle()
         .ok(expectedOracle)
@@ -773,7 +778,7 @@ public class RelToSqlConverterTest {
     final String query = "select position('A' IN 'ABC') from \"product\"";
     final String expected = "SELECT STRPOS('ABC', 'A')\n"
         + "FROM foodmart.product";
-    sql(query).withBigquery().ok(expected);
+    sql(query).withBigQuery().ok(expected);
   }
 
   @Test public void testModFunctionForHive() {
@@ -789,7 +794,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT MOD(11, 3)\n"
         + "FROM foodmart.product\n"
         + "UNION DISTINCT\nSELECT 1\nFROM foodmart.product";
-    sql(query).withBigquery().ok(expected);
+    sql(query).withBigQuery().ok(expected);
   }
 
   @Test public void testIntersectOperatorForBigQuery() {
@@ -798,7 +803,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT MOD(11, 3)\n"
         + "FROM foodmart.product\n"
         + "INTERSECT DISTINCT\nSELECT 1\nFROM foodmart.product";
-    sql(query).withBigquery().ok(expected);
+    sql(query).withBigQuery().ok(expected);
   }
 
   @Test public void testExceptOperatorForBigQuery() {
@@ -807,7 +812,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT MOD(11, 3)\n"
         + "FROM foodmart.product\n"
         + "EXCEPT DISTINCT\nSELECT 1\nFROM foodmart.product";
-    sql(query).withBigquery().ok(expected);
+    sql(query).withBigQuery().ok(expected);
   }
 
   @Test public void testHiveSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
@@ -1440,19 +1445,21 @@ public class RelToSqlConverterTest {
         + "WHERE v2.job LIKE 'PRESIDENT'";
     final String expected = "SELECT \"DEPT\".\"DEPTNO\","
         + " \"EMP\".\"DEPTNO\" AS \"DEPTNO0\"\n"
-        + "FROM \"JDBC_SCOTT\".\"DEPT\"\n"
-        + "LEFT JOIN \"JDBC_SCOTT\".\"EMP\""
+        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "LEFT JOIN \"SCOTT\".\"EMP\""
         + " ON \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\"\n"
         + "WHERE \"EMP\".\"JOB\" LIKE 'PRESIDENT'";
-    final String expected2 = "SELECT DEPT.DEPTNO, EMP.DEPTNO AS DEPTNO0\n"
-        + "FROM JDBC_SCOTT.DEPT AS DEPT\n"
-        + "LEFT JOIN JDBC_SCOTT.EMP AS EMP ON DEPT.DEPTNO = EMP.DEPTNO\n"
+    // DB2 does not have implicit aliases, so generates explicit "AS DEPT"
+    // and "AS EMP"
+    final String expectedDb2 = "SELECT DEPT.DEPTNO, EMP.DEPTNO AS DEPTNO0\n"
+        + "FROM SCOTT.DEPT AS DEPT\n"
+        + "LEFT JOIN SCOTT.EMP AS EMP ON DEPT.DEPTNO = EMP.DEPTNO\n"
         + "WHERE EMP.JOB LIKE 'PRESIDENT'";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected)
         .withDb2()
-        .ok(expected2);
+        .ok(expectedDb2);
   }
 
   /** Test case for
@@ -1857,6 +1864,8 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedPostgresql = "SELECT SUBSTRING(\"brand_name\" FROM 2)\n"
         + "FROM \"foodmart\".\"product\"";
+    final String expectedSnowflake = expectedPostgresql;
+    final String expectedRedshift = expectedPostgresql;
     final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2)\n"
         + "FROM `foodmart`.`product`";
     sql(query)
@@ -1864,6 +1873,10 @@ public class RelToSqlConverterTest {
         .ok(expectedOracle)
         .withPostgresql()
         .ok(expectedPostgresql)
+        .withSnowflake()
+        .ok(expectedSnowflake)
+        .withRedshift()
+        .ok(expectedRedshift)
         .withMysql()
         .ok(expectedMysql)
         .withMssql()
@@ -1878,6 +1891,8 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedPostgresql = "SELECT SUBSTRING(\"brand_name\" FROM 2 FOR 3)\n"
         + "FROM \"foodmart\".\"product\"";
+    final String expectedSnowflake = expectedPostgresql;
+    final String expectedRedshift = expectedPostgresql;
     final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2 FOR 3)\n"
         + "FROM `foodmart`.`product`";
     final String expectedMssql = "SELECT SUBSTRING([brand_name], 2, 3)\n"
@@ -1887,6 +1902,10 @@ public class RelToSqlConverterTest {
         .ok(expectedOracle)
         .withPostgresql()
         .ok(expectedPostgresql)
+        .withSnowflake()
+        .ok(expectedSnowflake)
+        .withRedshift()
+        .ok(expectedRedshift)
         .withMysql()
         .ok(expectedMysql)
         .withMssql()
@@ -2976,6 +2995,34 @@ public class RelToSqlConverterTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testMatchRecognizeIn() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "    partition by \"product_class_id\", \"brand_name\" \n"
+        + "    order by \"product_class_id\" asc, \"brand_name\" desc \n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" in (0, 1),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "PARTITION BY \"product_class_id\", \"brand_name\"\n"
+        + "ORDER BY \"product_class_id\", \"brand_name\" DESC\n"
+        + "ONE ROW PER MATCH\n"
+        + "AFTER MATCH SKIP TO NEXT ROW\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) = "
+        + "0 OR PREV(\"DOWN\".\"net_weight\", 0) = 1, "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
   @Test public void testValues() {
     final String sql = "select \"a\"\n"
         + "from (values (1, 'x'), (2, 'yy')) as t(\"a\", \"b\")";
@@ -2991,13 +3038,19 @@ public class RelToSqlConverterTest {
         + "UNION ALL\n"
         + "SELECT 2 \"a\", 'yy' \"b\"\n"
         + "FROM \"DUAL\")";
+    final String expectedSnowflake = expectedPostgresql;
+    final String expectedRedshift = expectedPostgresql;
     sql(sql)
         .withHsqldb()
         .ok(expectedHsqldb)
         .withPostgresql()
         .ok(expectedPostgresql)
         .withOracle()
-        .ok(expectedOracle);
+        .ok(expectedOracle)
+        .withSnowflake()
+        .ok(expectedSnowflake)
+        .withRedshift()
+        .ok(expectedRedshift);
   }
 
   /** Test case for
@@ -3117,16 +3170,29 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testJsonValueExpressionOperator() {
+    String query = "select \"product_name\" format json, "
+        + "\"product_name\" format json encoding utf8, "
+        + "\"product_name\" format json encoding utf16, "
+        + "\"product_name\" format json encoding utf32 from \"product\"";
+    final String expected = "SELECT \"product_name\" FORMAT JSON, "
+        + "\"product_name\" FORMAT JSON, "
+        + "\"product_name\" FORMAT JSON, "
+        + "\"product_name\" FORMAT JSON\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
   @Test public void testJsonExists() {
     String query = "select json_exists(\"product_name\", 'lax $') from \"product\"";
-    final String expected = "SELECT JSON_EXISTS(\"product_name\" FORMAT JSON, 'lax $')\n"
+    final String expected = "SELECT JSON_EXISTS(\"product_name\", 'lax $')\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }
 
   @Test public void testJsonPretty() {
     String query = "select json_pretty(\"product_name\") from \"product\"";
-    final String expected = "SELECT JSON_PRETTY(\"product_name\" FORMAT JSON)\n"
+    final String expected = "SELECT JSON_PRETTY(\"product_name\")\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }
@@ -3134,7 +3200,7 @@ public class RelToSqlConverterTest {
   @Test public void testJsonValue() {
     String query = "select json_value(\"product_name\", 'lax $') from \"product\"";
     // todo translate to JSON_VALUE rather than CAST
-    final String expected = "SELECT CAST(JSON_VALUE_ANY(\"product_name\" FORMAT JSON, "
+    final String expected = "SELECT CAST(JSON_VALUE_ANY(\"product_name\", "
         + "'lax $' NULL ON EMPTY NULL ON ERROR) AS VARCHAR(2000) CHARACTER SET \"ISO-8859-1\")\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
@@ -3142,7 +3208,7 @@ public class RelToSqlConverterTest {
 
   @Test public void testJsonQuery() {
     String query = "select json_query(\"product_name\", 'lax $') from \"product\"";
-    final String expected = "SELECT JSON_QUERY(\"product_name\" FORMAT JSON, 'lax $' "
+    final String expected = "SELECT JSON_QUERY(\"product_name\", 'lax $' "
         + "WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
@@ -3214,10 +3280,42 @@ public class RelToSqlConverterTest {
     sql(query).withSpark().ok(expected);
   }
 
+  @Test public void testSubstringInSpark() {
+    final String query = "select substring(\"brand_name\" from 2) "
+        + "from \"product\"\n";
+    final String expected = "SELECT SUBSTRING(brand_name, 2)\n"
+        + "FROM foodmart.product";
+    sql(query).withSpark().ok(expected);
+  }
+
+  @Test public void testSubstringWithForInSpark() {
+    final String query = "select substring(\"brand_name\" from 2 for 3) "
+        + "from \"product\"\n";
+    final String expected = "SELECT SUBSTRING(brand_name, 2, 3)\n"
+        + "FROM foodmart.product";
+    sql(query).withSpark().ok(expected);
+  }
+
+  @Test public void testFloorInSpark() {
+    final String query = "select floor(\"hire_date\" TO MINUTE) "
+        + "from \"employee\"";
+    final String expected = "SELECT DATE_TRUNC('MINUTE', hire_date)\n"
+        + "FROM foodmart.employee";
+    sql(query).withSpark().ok(expected);
+  }
+
+  @Test public void testNumericFloorInSpark() {
+    final String query = "select floor(\"salary\") "
+        + "from \"employee\"";
+    final String expected = "SELECT FLOOR(salary)\n"
+        + "FROM foodmart.employee";
+    sql(query).withSpark().ok(expected);
+  }
+
   @Test public void testJsonType() {
     String query = "select json_type(\"product_name\") from \"product\"";
     final String expected = "SELECT "
-        + "JSON_TYPE(\"product_name\" FORMAT JSON)\n"
+        + "JSON_TYPE(\"product_name\")\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }
@@ -3225,7 +3323,7 @@ public class RelToSqlConverterTest {
   @Test public void testJsonDepth() {
     String query = "select json_depth(\"product_name\") from \"product\"";
     final String expected = "SELECT "
-        + "JSON_DEPTH(\"product_name\" FORMAT JSON)\n"
+        + "JSON_DEPTH(\"product_name\")\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }
@@ -3233,16 +3331,23 @@ public class RelToSqlConverterTest {
   @Test public void testJsonLength() {
     String query = "select json_length(\"product_name\", 'lax $'), "
         + "json_length(\"product_name\") from \"product\"";
-    final String expected = "SELECT JSON_LENGTH(\"product_name\" FORMAT JSON, 'lax $'), "
-        + "JSON_LENGTH(\"product_name\" FORMAT JSON)\n"
+    final String expected = "SELECT JSON_LENGTH(\"product_name\", 'lax $'), "
+        + "JSON_LENGTH(\"product_name\")\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }
 
   @Test public void testJsonKeys() {
     String query = "select json_keys(\"product_name\", 'lax $') from \"product\"";
-    final String expected = "SELECT JSON_KEYS(\"product_name\" FORMAT JSON, 'lax $')\n"
+    final String expected = "SELECT JSON_KEYS(\"product_name\", 'lax $')\n"
         + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonRemove() {
+    String query = "select json_remove(\"product_name\", '$[0]') from \"product\"";
+    final String expected = "SELECT JSON_REMOVE(\"product_name\", '$[0]')\n"
+           + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }
 
@@ -3318,11 +3423,19 @@ public class RelToSqlConverterTest {
       return dialect(SqlDialect.DatabaseProduct.POSTGRESQL.getDialect());
     }
 
+    Sql withRedshift() {
+      return dialect(DatabaseProduct.REDSHIFT.getDialect());
+    }
+
+    Sql withSnowflake() {
+      return dialect(DatabaseProduct.SNOWFLAKE.getDialect());
+    }
+
     Sql withVertica() {
       return dialect(SqlDialect.DatabaseProduct.VERTICA.getDialect());
     }
 
-    Sql withBigquery() {
+    Sql withBigQuery() {
       return dialect(SqlDialect.DatabaseProduct.BIG_QUERY.getDialect());
     }
 

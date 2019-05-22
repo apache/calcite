@@ -29,6 +29,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.validate.SqlValidator;
 
 /**
@@ -38,7 +39,9 @@ public class SqlJsonTypeFunction extends SqlFunction {
   public SqlJsonTypeFunction() {
     super("JSON_TYPE",
         SqlKind.OTHER_FUNCTION,
-        ReturnTypes.explicit(SqlTypeName.VARCHAR, 20),
+        ReturnTypes.cascade(
+            ReturnTypes.explicit(SqlTypeName.VARCHAR, 20),
+            SqlTypeTransforms.FORCE_NULLABLE),
         null,
         OperandTypes.ANY,
         SqlFunctionCategory.SYSTEM);

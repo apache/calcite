@@ -24,6 +24,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
@@ -733,6 +734,20 @@ public abstract class RelOptUtil {
       return projectFactory.createProject(rel, castExps,
           rowType.getFieldNames());
     }
+  }
+
+  /** Gets all fields in an aggregate. */
+  public static Set<Integer> getAllFields(Aggregate aggregate) {
+    final Set<Integer> allFields = new TreeSet<>();
+    allFields.addAll(aggregate.getGroupSet().asList());
+    for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
+      allFields.addAll(aggregateCall.getArgList());
+      if (aggregateCall.filterArg >= 0) {
+        allFields.add(aggregateCall.filterArg);
+      }
+      allFields.addAll(RelCollations.ordinals(aggregateCall.collation));
+    }
+    return allFields;
   }
 
   /**
@@ -1474,6 +1489,8 @@ public abstract class RelOptUtil {
   }
 
   /**
+   * Collapse an expanded version of IS NOT DISTINCT FROM expression
+   *
    * Helper method for
    * {@link #splitJoinCondition(RexBuilder, int, RexNode, List, List, List, List)} and
    * {@link #splitJoinCondition(List, List, RexNode, List, List, List, List)}.
@@ -1492,8 +1509,22 @@ public abstract class RelOptUtil {
    *         return a IS NOT DISTINCT FROM function call. Otherwise return the input
    *         function call as it is.
    */
-  private static RexCall collapseExpandedIsNotDistinctFromExpr(final RexCall call,
+  public static RexCall collapseExpandedIsNotDistinctFromExpr(final RexCall call,
       final RexBuilder rexBuilder) {
+    switch (call.getKind()) {
+    case OR:
+      return doCollapseExpandedIsNotDistinctFromOrExpr(call, rexBuilder);
+
+    case CASE:
+      return doCollapseExpandedIsNotDistinctFromCaseExpr(call, rexBuilder);
+
+    default:
+      return call;
+    }
+  }
+
+  private static RexCall doCollapseExpandedIsNotDistinctFromOrExpr(final RexCall call,
+        final RexBuilder rexBuilder) {
     if (call.getKind() != SqlKind.OR || call.getOperands().size() != 2) {
       return call;
     }
@@ -1508,11 +1539,22 @@ public abstract class RelOptUtil {
     RexCall opEqCall = (RexCall) op0;
     RexCall opNullEqCall = (RexCall) op1;
 
+    // Swapping the operands if necessary
     if (opEqCall.getKind() == SqlKind.AND
-        && opNullEqCall.getKind() == SqlKind.EQUALS) {
+        && (opNullEqCall.getKind() == SqlKind.EQUALS
+        || opNullEqCall.getKind() == SqlKind.IS_TRUE)) {
       RexCall temp = opEqCall;
       opEqCall = opNullEqCall;
       opNullEqCall = temp;
+    }
+
+    // Check if EQUALS is actually wrapped in IS TRUE expression
+    if (opEqCall.getKind() == SqlKind.IS_TRUE) {
+      RexNode tmp = opEqCall.getOperands().get(0);
+      if (!(tmp instanceof RexCall)) {
+        return call;
+      }
+      opEqCall = (RexCall) tmp;
     }
 
     if (opNullEqCall.getKind() != SqlKind.AND
@@ -1527,18 +1569,62 @@ public abstract class RelOptUtil {
         || op11.getKind() != SqlKind.IS_NULL) {
       return call;
     }
-    final RexNode isNullInput0 = ((RexCall) op10).getOperands().get(0);
-    final RexNode isNullInput1 = ((RexCall) op11).getOperands().get(0);
 
-    final String isNullInput0Digest = isNullInput0.toString();
-    final String isNullInput1Digest = isNullInput1.toString();
-    final String equalsInput0Digest = opEqCall.getOperands().get(0).toString();
-    final String equalsInput1Digest = opEqCall.getOperands().get(1).toString();
+    return doCollapseExpandedIsNotDistinctFrom(rexBuilder, call, (RexCall) op10, (RexCall) op11,
+        opEqCall);
+  }
 
-    if ((isNullInput0Digest.equals(equalsInput0Digest)
-            && isNullInput1Digest.equals(equalsInput1Digest))
-        || (isNullInput1Digest.equals(equalsInput0Digest)
-            && isNullInput0Digest.equals(equalsInput1Digest))) {
+  private static RexCall doCollapseExpandedIsNotDistinctFromCaseExpr(final RexCall call,
+      final RexBuilder rexBuilder) {
+    if (call.getKind() != SqlKind.CASE || call.getOperands().size() != 5) {
+      return call;
+    }
+
+    final RexNode op0 = call.getOperands().get(0);
+    final RexNode op1 = call.getOperands().get(1);
+    final RexNode op2 = call.getOperands().get(2);
+    final RexNode op3 = call.getOperands().get(3);
+    final RexNode op4 = call.getOperands().get(4);
+
+    if (!(op0 instanceof RexCall) || !(op1 instanceof RexCall) || !(op2 instanceof RexCall)
+        || !(op3 instanceof RexCall) || !(op4 instanceof RexCall)) {
+      return call;
+    }
+
+    RexCall ifCall = (RexCall) op0;
+    RexCall thenCall = (RexCall) op1;
+    RexCall elseIfCall = (RexCall) op2;
+    RexCall elseIfThenCall = (RexCall) op3;
+    RexCall elseCall = (RexCall) op4;
+
+    if (ifCall.getKind() != SqlKind.IS_NULL
+        || thenCall.getKind() != SqlKind.IS_NULL
+        || elseIfCall.getKind() != SqlKind.IS_NULL
+        || elseIfThenCall.getKind() != SqlKind.IS_NULL
+        || elseCall.getKind() != SqlKind.EQUALS) {
+      return call;
+    }
+
+    if (!ifCall.equals(elseIfThenCall)
+        || !thenCall.equals(elseIfCall)) {
+      return call;
+    }
+
+    return doCollapseExpandedIsNotDistinctFrom(rexBuilder, call, ifCall, elseIfCall, elseCall);
+  }
+
+  private static RexCall doCollapseExpandedIsNotDistinctFrom(final RexBuilder rexBuilder,
+      final RexCall call, RexCall ifNull0Call, RexCall ifNull1Call, RexCall equalsCall) {
+    final RexNode isNullInput0 = ifNull0Call.getOperands().get(0);
+    final RexNode isNullInput1 = ifNull1Call.getOperands().get(0);
+
+    final RexNode equalsInput0 = RexUtil
+        .removeNullabilityCast(rexBuilder.getTypeFactory(), equalsCall.getOperands().get(0));
+    final RexNode equalsInput1 = RexUtil
+        .removeNullabilityCast(rexBuilder.getTypeFactory(), equalsCall.getOperands().get(1));
+
+    if ((isNullInput0.equals(equalsInput0) && isNullInput1.equals(equalsInput1))
+        || (isNullInput1.equals(equalsInput0) && isNullInput0.equals(equalsInput1))) {
       return (RexCall) rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
           ImmutableList.of(isNullInput0, isNullInput1));
     }

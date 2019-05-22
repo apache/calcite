@@ -678,6 +678,17 @@ public class RelMetadataTest extends SqlToRelTestBase {
     checkRowCount(sql, 1D, 1D, 1D);
   }
 
+  @Test public void testRowCountAggregateConstantKey() {
+    final String sql = "select count(*) from emp where deptno=2 and ename='emp1' "
+        + "group by deptno, ename";
+    checkRowCount(sql, 1D, 0D, 1D);
+  }
+
+  @Test public void testRowCountAggregateConstantKeys() {
+    final String sql = "select distinct deptno from emp where deptno=4";
+    checkRowCount(sql, 1D, 0D, 1D);
+  }
+
   @Test public void testRowCountFilterAggregateEmptyKey() {
     final String sql = "select count(*) from emp where 1 = 0";
     checkRowCount(sql, 1D, 1D, 1D);
@@ -912,6 +923,21 @@ public class RelMetadataTest extends SqlToRelTestBase {
         CoreMatchers.equalTo(
             ImmutableSet.of(ImmutableBitSet.of())));
     assertUniqueConsistent(rel);
+  }
+
+  @Test public void testFullOuterJoinUniqueness1() {
+    final String sql = "select e.empno, d.deptno \n"
+        + "from (select cast(null as int) empno from sales.emp "
+        + " where empno = 10 group by cast(null as int)) as e \n"
+        + "full outer join (select cast (null as int) deptno from sales.dept "
+        + "group by cast(null as int)) as d on e.empno = d.deptno \n"
+        + "group by e.empno, d.deptno";
+    RelNode rel = convertSql(sql);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final ImmutableBitSet allCols =
+        ImmutableBitSet.range(0, rel.getRowType().getFieldCount());
+    Boolean areGroupByKeysUnique = mq.areColumnsUnique(rel.getInput(0), allCols);
+    assertThat(areGroupByKeysUnique, is(false));
   }
 
   @Test public void testGroupBy() {

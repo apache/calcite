@@ -124,6 +124,7 @@ data: {
         "GOTO"
         "GRANTED"
         "HIERARCHY"
+        "IGNORE"
         "IMMEDIATE"
         "IMMEDIATELY"
         "IMPLEMENTATION"
@@ -139,11 +140,6 @@ data: {
         "ISOLATION"
         "JAVA"
         "JSON"
-        "JSON_DEPTH"
-        "JSON_KEYS"
-        "JSON_LENGTH"
-        "JSON_PRETTY"
-        "JSON_TYPE"
         "K"
         "KEY"
         "KEY_MEMBER"
@@ -210,6 +206,7 @@ data: {
         "RELATIVE"
         "REPEATABLE"
         "REPLACE"
+        "RESPECT"
         "RESTART"
         "RESTRICT"
         "RETURNED_CARDINALITY"
@@ -556,14 +553,10 @@ data: {
 #       "JOIN",
         "JSON_ARRAY",
         "JSON_ARRAYAGG",
-        "JSON_DEPTH",
         "JSON_EXISTS",
-        "JSON_KEYS",
         "JSON_OBJECT",
         "JSON_OBJECTAGG",
-        "JSON_PRETTY",
         "JSON_QUERY",
-        "JSON_TYPE",
         "JSON_VALUE",
 #       "KEEP", # not a keyword in Calcite
         "KEY",

@@ -53,11 +53,13 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -753,20 +755,30 @@ public class MongoAdapterTest implements SchemaFactory {
         return;
       }
 
-      final BsonDocument expectedBson = BsonDocument.parse(String.join(",", expected));
-      final BsonDocument actualBson = BsonDocument.parse(((List<?>) actual.get(0))
+      // comparing list of Bsons (expected and actual)
+      final List<BsonDocument> expectedBsons = Arrays.stream(expected).map(BsonDocument::parse)
+          .collect(Collectors.toList());
+
+      final List<BsonDocument> actualBsons =  ((List<?>) actual.get(0))
           .stream()
           .map(Objects::toString)
-          .collect(Collectors.joining("\n")));
+          .map(BsonDocument::parse)
+          .collect(Collectors.toList());
 
       // compare Bson (not string) representation
-      if (!expectedBson.equals(actualBson)) {
+      if (!expectedBsons.equals(actualBsons)) {
         final JsonWriterSettings settings = JsonWriterSettings.builder().indent(true).build();
+        // outputs Bson in pretty Json format (with new lines)
+        // so output is human friendly in IDE diff tool
+        final Function<List<BsonDocument>, String> prettyFn = bsons -> bsons.stream()
+            .map(b -> b.toJson(settings)).collect(Collectors.joining("\n"));
+
         // used to pretty print Assertion error
-        Assert.assertEquals("expected and actual Mongo queries do not match",
-            expectedBson.toJson(settings),
-            actualBson.toJson(settings));
-        Assert.fail("Should have failed previously because (expected != actual) is already known");
+        Assert.assertEquals("expected and actual Mongo queries (pipelines) do not match",
+            prettyFn.apply(expectedBsons),
+            prettyFn.apply(actualBsons));
+
+        Assert.fail("Should have failed previously because expected != actual is known to be true");
       }
     };
   }

@@ -21,6 +21,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.ElasticsearchChecker;
 import org.apache.calcite.util.TestUtil;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -190,6 +191,28 @@ public class Projection2Test {
             String.format(Locale.ROOT,
                 "select *, _MAP['_id'] from \"elastic\".\"%s\"", NAME))
         .returns(regexMatch("_MAP={a=1, b={a=2, b=3, c={a=foo}}}; EXPR$1=\\p{Graph}+"));
+  }
+
+  /**
+   * Avoid using scripting for simple projections
+   *
+   * <p> When projecting simple fields (without expression) no
+   * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-scripting.html">scripting</a>
+   * should be used just
+   * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-source-filtering.html">_source</a>
+   */
+  @Test
+  public void simpleProjectionNoScripting() {
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query(
+            String.format(Locale.ROOT, "select _MAP['_id'], _MAP['a'], _MAP['b.a'] from "
+                + " \"elastic\".\"%s\" where _MAP['b.a'] = 2", NAME))
+        .queryContains(
+            ElasticsearchChecker.elasticsearchChecker("'query.constant_score.filter.term.b.a':2",
+            "_source:['a', 'b.a']", "size:5196"))
+        .returns(regexMatch("EXPR$0=\\p{Graph}+; EXPR$1=1; EXPR$2=2"));
+
   }
 
   /**

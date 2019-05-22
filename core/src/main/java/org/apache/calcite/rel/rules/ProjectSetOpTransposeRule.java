@@ -24,6 +24,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.ArrayList;
@@ -40,7 +41,7 @@ import java.util.List;
  */
 public class ProjectSetOpTransposeRule extends RelOptRule {
   public static final ProjectSetOpTransposeRule INSTANCE =
-      new ProjectSetOpTransposeRule(expr -> false,
+      new ProjectSetOpTransposeRule(expr -> !(expr instanceof RexOver),
           RelFactories.LOGICAL_BUILDER);
 
   //~ Instance fields --------------------------------------------------------
@@ -90,23 +91,35 @@ public class ProjectSetOpTransposeRule extends RelOptRule {
     List<RelNode> newSetOpInputs = new ArrayList<>();
     int[] adjustments = pushProject.getAdjustments();
 
-    // push the projects completely below the setop; this
-    // is different from pushing below a join, where we decompose
-    // to try to keep expensive expressions above the join,
-    // because UNION ALL does not have any filtering effect,
-    // and it is the only operator this rule currently acts on
-    for (RelNode input : setOp.getInputs()) {
-      // be lazy:  produce two ProjectRels, and let another rule
-      // merge them (could probably just clone origProj instead?)
-      Project p = pushProject.createProjectRefsAndExprs(input, true, false);
-      newSetOpInputs.add(pushProject.createNewProject(p, adjustments));
+    final RelNode node;
+    if (RexOver.containsOver(origProj.getProjects(), null)) {
+      // should not push over past setop but can push its operand down.
+      for (RelNode input : setOp.getInputs()) {
+        Project p = pushProject.createProjectRefsAndExprs(input, true, false);
+        // make sure that it is not a trivial project to avoid infinite loop.
+        if (p.getRowType().equals(input.getRowType())) {
+          return;
+        }
+        newSetOpInputs.add(p);
+      }
+      SetOp newSetOp =
+          setOp.copy(setOp.getTraitSet(), newSetOpInputs);
+      node = pushProject.createNewProject(newSetOp, adjustments);
+    } else {
+      // push some expressions below the setop; this
+      // is different from pushing below a join, where we decompose
+      // to try to keep expensive expressions above the join,
+      // because UNION ALL does not have any filtering effect,
+      // and it is the only operator this rule currently acts on
+      setOp.getInputs().forEach(input ->
+          newSetOpInputs.add(
+              pushProject.createNewProject(
+                  pushProject.createProjectRefsAndExprs(
+                      input, true, false), adjustments)));
+      node = setOp.copy(setOp.getTraitSet(), newSetOpInputs);
     }
 
-    // create a new setop whose children are the ProjectRels created above
-    SetOp newSetOp =
-        setOp.copy(setOp.getTraitSet(), newSetOpInputs);
-
-    call.transformTo(newSetOp);
+    call.transformTo(node);
   }
 }
 

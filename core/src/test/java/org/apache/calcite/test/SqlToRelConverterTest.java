@@ -596,7 +596,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * and rename the second column to "e0". */
   @Test public void testDuplicateColumnsInSubQuery() {
     String sql = "select \"e\" from (\n"
-        + "select empno as \"e\", deptno as d, 1 as \"e\" from EMP)";
+        + "select empno as \"e\", deptno as d, 1 as \"e0\" from EMP)";
     sql(sql).ok();
   }
 
@@ -1389,6 +1389,12 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).expand(false).ok();
   }
 
+  @Test public void testSomeWithEquality() {
+    final String sql = "select empno from emp where deptno = some (\n"
+        + "  select deptno from dept)";
+    sql(sql).expand(false).ok();
+  }
+
   @Test public void testNotInUncorrelatedSubQueryRex() {
     final String sql = "select empno from emp where deptno not in"
         + " (select deptno from dept)";
@@ -2110,7 +2116,6 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Ignore("CALCITE-1527")
   @Test public void testUpdateSubQuery() {
     final String sql = "update emp\n"
         + "set empno = (\n"
@@ -2241,6 +2246,46 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testUpdateWithCustomColumnResolving() {
     final String sql = "update struct.t set c0 = c0 + 1";
     sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2936">[CALCITE-2936]
+   * Existential sub-query that has aggregate without grouping key
+   * should be simplified to constant boolean expression</a>.
+   */
+  @Test public void testSimplifyExistsAggregateSubQuery() {
+    final String sql = "SELECT e1.empno\n"
+        + "FROM emp e1 where exists\n"
+        + "(select avg(sal) from emp e2 where e1.empno = e2.empno)";
+    sql(sql).decorrelate(true).ok();
+  }
+
+  @Test public void testSimplifyNotExistsAggregateSubQuery() {
+    final String sql = "SELECT e1.empno\n"
+        + "FROM emp e1 where not exists\n"
+        + "(select avg(sal) from emp e2 where e1.empno = e2.empno)";
+    sql(sql).decorrelate(true).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2936">[CALCITE-2936]
+   * Existential sub-query that has Values with at least 1 tuple
+   * should be simplified to constant boolean expression</a>.
+   */
+  @Test public void testSimplifyExistsValuesSubQuery() {
+    final String sql = "select deptno\n"
+        + "from EMP\n"
+        + "where exists (values 10)";
+    sql(sql).decorrelate(true).ok();
+  }
+
+  @Test public void testSimplifyNotExistsValuesSubQuery() {
+    final String sql = "select deptno\n"
+        + "from EMP\n"
+        + "where not exists (values 10)";
+    sql(sql).decorrelate(true).ok();
   }
 
   /**
@@ -2649,6 +2694,91 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2962">[CALCITE-2962]
+   * RelStructuredTypeFlattener generates wrong types for nested column when flattenProjection</a>.
+   */
+  @Test
+  public void testSelectNestedColumnType() {
+    final String sql =
+        "select\n"
+            + "  char_length(coord.\"unit\") as unit_length\n"
+            + "from\n"
+            + "  (\n"
+            + "    select\n"
+            + "      fname,\n"
+            + "      coord\n"
+            + "    from\n"
+            + "      customer.contact_peek\n"
+            + "    where\n"
+            + "      coord.x > 1\n"
+            + "      and coord.y > 1\n"
+            + "  ) as view\n"
+            + "where\n"
+            + "  fname = 'john'";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-3003">[CALCITE-3003]
+   * AssertionError when GROUP BY nested field</a>.
+   */
+  @Test
+  public void testGroupByNestedColumn() {
+    final String sql =
+        "select\n"
+            + "  coord.x,\n"
+            + "  coord_ne.sub.a,\n"
+            + "  avg(coord.y)\n"
+            + "from\n"
+            + "  customer.contact_peek\n"
+            + "group by\n"
+            + "  coord_ne.sub.a,\n"
+            + "  coord.x";
+    sql(sql).ok();
+  }
+
+  /**
+   * Similar to {@link #testGroupByNestedColumn()},
+   * but with grouping sets.
+   */
+  @Test
+  public void testGroupingSetsWithNestedColumn() {
+    final String sql =
+        "select\n"
+            + "  coord.x,\n"
+            + "  coord.\"unit\",\n"
+            + "  coord_ne.sub.a,\n"
+            + "  avg(coord.y)\n"
+            + "from\n"
+            + "  customer.contact_peek\n"
+            + "group by\n"
+            + "  grouping sets (\n"
+            + "    (coord_ne.sub.a, coord.x, coord.\"unit\"),\n"
+            + "    (coord.x, coord.\"unit\")\n"
+            + "  )";
+    sql(sql).ok();
+  }
+
+  /**
+   * Similar to {@link #testGroupByNestedColumn()},
+   * but with cube.
+   */
+  @Test
+  public void testGroupByCubeWithNestedColumn() {
+    final String sql =
+        "select\n"
+            + "  coord.x,\n"
+            + "  coord.\"unit\",\n"
+            + "  coord_ne.sub.a,\n"
+            + "  avg(coord.y)\n"
+            + "from\n"
+            + "  customer.contact_peek\n"
+            + "group by\n"
+            + "  cube (coord_ne.sub.a, coord.x, coord.\"unit\")";
+    sql(sql).ok();
+  }
+
   @Test public void testDynamicSchemaUnnest() {
     final String sql3 = "select t1.c_nationkey, t3.fake_col3\n"
         + "from SALES.CUSTOMER as t1,\n"
@@ -2973,6 +3103,19 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testMatchRecognizeIn() {
+    final String sql = "select *\n"
+        + "  from emp match_recognize\n"
+        + "  (\n"
+        + "    partition by job, sal\n"
+        + "    order by job asc, sal desc, empno\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.mgr in (0, 1),\n"
+        + "      up as up.mgr > prev(up.mgr)) as mr";
+    sql(sql).ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2323">[CALCITE-2323]
    * Validator should allow alternative nullCollations for ORDER BY in
@@ -2994,6 +3137,15 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).with(tester).ok();
   }
 
+  @Test public void testJsonValueExpressionOperator() {
+    final String sql = "select ename format json,\n"
+        + "ename format json encoding utf8,\n"
+        + "ename format json encoding utf16,\n"
+        + "ename format json encoding utf32\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
   @Test public void testJsonExists() {
     final String sql = "select json_exists(ename, 'lax $')\n"
         + "from emp";
@@ -3008,6 +3160,36 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testJsonQuery() {
     final String sql = "select json_query(ename, 'lax $')\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonType() {
+    final String sql = "select json_type(ename)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonPretty() {
+    final String sql = "select json_pretty(ename)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonDepth() {
+    final String sql = "select json_depth(ename)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonLength() {
+    final String sql = "select json_length(ename, 'strict $')\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonKeys() {
+    final String sql = "select json_keys(ename, 'strict $')\n"
         + "from emp";
     sql(sql).ok();
   }
