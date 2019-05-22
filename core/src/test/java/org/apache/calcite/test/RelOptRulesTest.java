@@ -5477,6 +5477,14 @@ public class RelOptRulesTest extends RelOptTestBase {
         "select e.sal + b.comm from emp e inner join bonus b "
             + "on (e.ename || e.job) IS NOT DISTINCT FROM (b.ename || b.job) and e.deptno = 10");
   }
+
+  @Test public void testRangeSimplification() {
+    final String sql = "select *"
+        + "FROM (VALUES({ts '2018-01-01 01:23:45'})) tbl(d) "
+        + "WHERE d = '2018-01-01 01:23:45' AND d > '2018-01-01 01:23:45'";
+
+    checkPlanning(ReduceExpressionsRule.FILTER_INSTANCE, sql);
+  }
 }
 
 // End RelOptRulesTest.java

@@ -27,6 +27,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Bug;
@@ -42,6 +43,7 @@ import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -1493,7 +1495,7 @@ public class RexSimplify {
     final C v0 = comparison.literal.getValueAs(clazz);
     final Range<C> range = range(comparison.kind, v0);
     final Range<C> range2 =
-        residue(comparison.ref, range, predicates.pulledUpPredicates,
+        residue(comparison, range, predicates.pulledUpPredicates,
             clazz);
     if (range2 == null) {
       // Term is impossible to satisfy given these predicates
@@ -1537,7 +1539,7 @@ public class RexSimplify {
    * <li>{@code residue($0 < 10, [$0 < 20, $0 > 0])} returns {@code $0 < 10}
    * </ul>
    */
-  private <C extends Comparable<C>> Range<C> residue(RexNode ref, Range<C> r0,
+  private <C extends Comparable<C>> Range<C> residue(Comparison comparison, Range<C> r0,
       List<RexNode> predicates, Class<C> clazz) {
     for (RexNode predicate : predicates) {
       switch (predicate.getKind()) {
@@ -1547,18 +1549,19 @@ public class RexSimplify {
       case GREATER_THAN:
       case GREATER_THAN_OR_EQUAL:
         final RexCall call = (RexCall) predicate;
-        if (call.operands.get(0).equals(ref)
+        if (call.operands.get(0).equals(comparison.ref)
             && call.operands.get(1) instanceof RexLiteral) {
-          final RexLiteral literal = (RexLiteral) call.operands.get(1);
-          final C c1 = literal.getValueAs(clazz);
+          final C c1 = Comparison.of(call).getConsistentTypeLiteral(this).getValueAs(clazz);
           final Range<C> r1 = range(predicate.getKind(), c1);
-          if (r0.encloses(r1)) {
+          final Range<C> r2 = range(comparison.kind,
+              comparison.getConsistentTypeLiteral(this).getValueAs(clazz));
+          if (r2.encloses(r1)) {
             // Given these predicates, term is always satisfied.
             // e.g. r0 is "$0 < 10", r1 is "$0 < 5"
             return Range.all();
           }
-          if (r0.isConnected(r1)) {
-            return r0.intersection(r1);
+          if (r2.isConnected(r1)) {
+            return r2.intersection(r1);
           }
           // Ranges do not intersect. Return null meaning the empty range.
           return null;
@@ -2102,6 +2105,20 @@ public class RexSimplify {
         }
       }
       return null;
+    }
+
+    public RexLiteral getConsistentTypeLiteral(RexSimplify simplify) {
+      if (literal != null) {
+        final RexBuilder rexBuilder = simplify.rexBuilder;
+        List<RelDataType> types = RexUtil.types(Arrays.asList(ref, literal));
+        RelDataType type = SqlTypeUtil.consistentType(rexBuilder.getTypeFactory(),
+            SqlOperandTypeChecker.Consistency.COMPARE, types);
+        if ((type != null) && !(types.stream().allMatch(type::equals))) {
+          return (RexLiteral) simplify.simplify(
+              rexBuilder.ensureType(type, (RexLiteral) literal, true));
+        }
+      }
+      return literal;
     }
   }
 

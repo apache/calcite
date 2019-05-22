@@ -21,7 +21,6 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCallBinding;
@@ -63,7 +62,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
-import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -788,7 +786,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     }
     if (exprs.size() > 1) {
       final RelDataType type =
-          consistentType(cx, consistency, RexUtil.types(exprs));
+          SqlTypeUtil.consistentType(cx.getTypeFactory(), consistency, RexUtil.types(exprs));
       if (type != null) {
         final List<RexNode> oldExprs = Lists.newArrayList(exprs);
         exprs.clear();
@@ -798,46 +796,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       }
     }
     return exprs;
-  }
-
-  private static RelDataType consistentType(SqlRexContext cx,
-      SqlOperandTypeChecker.Consistency consistency, List<RelDataType> types) {
-    switch (consistency) {
-    case COMPARE:
-      if (SqlTypeUtil.areSameFamily(types)) {
-        // All arguments are of same family. No need for explicit casts.
-        return null;
-      }
-      final List<RelDataType> nonCharacterTypes = new ArrayList<>();
-      for (RelDataType type : types) {
-        if (type.getFamily() != SqlTypeFamily.CHARACTER) {
-          nonCharacterTypes.add(type);
-        }
-      }
-      if (!nonCharacterTypes.isEmpty()) {
-        final int typeCount = types.size();
-        types = nonCharacterTypes;
-        if (nonCharacterTypes.size() < typeCount) {
-          final RelDataTypeFamily family =
-              nonCharacterTypes.get(0).getFamily();
-          if (family instanceof SqlTypeFamily) {
-            // The character arguments might be larger than the numeric
-            // argument. Give ourselves some headroom.
-            switch ((SqlTypeFamily) family) {
-            case INTEGER:
-            case NUMERIC:
-              nonCharacterTypes.add(
-                  cx.getTypeFactory().createSqlType(SqlTypeName.BIGINT));
-            }
-          }
-        }
-      }
-      // fall through
-    case LEAST_RESTRICTIVE:
-      return cx.getTypeFactory().leastRestrictive(types);
-    default:
-      return null;
-    }
   }
 
   private RexNode convertPlus(SqlRexContext cx, SqlCall call) {
