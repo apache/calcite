@@ -8761,6 +8761,21 @@ public class SqlParserTest {
             + "FROM \"doublequotedtable\""));
   }
 
+  /**
+   * Test parsing parenthesized queries
+   */
+  @Test public void testParenthesizedQueries() {
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM `TAB`) AS `X`";
+
+    final String sql1 = "SELECT * FROM (((SELECT * FROM tab))) X";
+    sql(sql1).ok(expected);
+
+    final String sql2 = "SELECT * FROM ((((((((((((SELECT * FROM tab)))))))))))) X";
+    sql(sql2).ok(expected);
+  }
+
   protected void checkDialect(SqlDialect dialect, String sql,
       Matcher<String> matcher) throws SqlParseException {
     final SqlParser parser = getDialectSqlParser(sql, dialect);
