@@ -8765,7 +8765,7 @@ public class SqlParserTest {
       Matcher<String> matcher) throws SqlParseException {
     final SqlParser parser = getDialectSqlParser(sql, dialect);
     final SqlNode node = parser.parseStmt();
-    assertThat(node.toSqlString(dialect).getSql(), matcher);
+    assertThat(linux(node.toSqlString(dialect).getSql()), matcher);
   }
 
   //~ Inner Interfaces -------------------------------------------------------
@@ -8797,11 +8797,8 @@ public class SqlParserTest {
         SqlNode sqlNode,
         String expected) {
       // no dialect, always parenthesize
-      String actual = sqlNode.toSqlString(null, true).getSql();
-      if (LINUXIFY.get()[0]) {
-        actual = Util.toLinux(actual);
-      }
-      TestUtil.assertEqualsVerbose(expected, actual);
+      final String actual = sqlNode.toSqlString(null, true).getSql();
+      TestUtil.assertEqualsVerbose(expected, linux(actual));
     }
 
     @Override public void checkList(
@@ -8848,11 +8845,8 @@ public class SqlParserTest {
         String sql,
         String expected) {
       final SqlNode sqlNode = parseExpressionAndHandleEx(sql);
-      String actual = sqlNode.toSqlString(null, true).getSql();
-      if (LINUXIFY.get()[0]) {
-        actual = Util.toLinux(actual);
-      }
-      TestUtil.assertEqualsVerbose(expected, actual);
+      final String actual = sqlNode.toSqlString(null, true).getSql();
+      TestUtil.assertEqualsVerbose(expected, linux(actual));
     }
 
     protected SqlNode parseExpressionAndHandleEx(String sql) {
@@ -9056,6 +9050,8 @@ public class SqlParserTest {
     }
   }
 
+  /** Converts a string to linux format (LF line endings rather than CR-LF),
+   * except if disabled in {@link #LINUXIFY}. */
   private String linux(String s) {
     if (LINUXIFY.get()[0]) {
       s = Util.toLinux(s);
