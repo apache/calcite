@@ -46,6 +46,7 @@ import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
@@ -632,7 +633,9 @@ public abstract class SqlToRelTestBase {
       if (clusterFactory != null) {
         cluster = clusterFactory.apply(cluster);
       }
-      return new SqlToRelConverter(null, validator, catalogReader, cluster,
+      RelOptTable.ViewExpander viewExpander =
+          new MockViewExpander(validator, catalogReader, cluster, config);
+      return new SqlToRelConverter(viewExpander, validator, catalogReader, cluster,
           StandardConvertletTable.INSTANCE, config);
     }
 
@@ -846,6 +849,38 @@ public abstract class SqlToRelTestBase {
     // override SqlValidator
     public boolean shouldExpandIdentifiers() {
       return true;
+    }
+  }
+
+  /**
+   * {@link RelOptTable.ViewExpander} implementation for testing usage.
+   */
+  private static class MockViewExpander implements RelOptTable.ViewExpander {
+    private final SqlValidator validator;
+    private final Prepare.CatalogReader catalogReader;
+    private final RelOptCluster cluster;
+    private final SqlToRelConverter.Config config;
+
+    MockViewExpander(SqlValidator validator, Prepare.CatalogReader catalogReader,
+        RelOptCluster cluster, SqlToRelConverter.Config config) {
+      this.validator = validator;
+      this.catalogReader = catalogReader;
+      this.cluster = cluster;
+      this.config = config;
+    }
+
+    @Override public RelRoot expandView(RelDataType rowType, String queryString,
+        List<String> schemaPath, List<String> viewPath) {
+      try {
+        SqlNode parsedNode = SqlParser.create(queryString).parseStmt();
+        SqlNode validatedNode = validator.validate(parsedNode);
+        SqlToRelConverter converter = new SqlToRelConverter(
+            this, validator, catalogReader, cluster,
+            StandardConvertletTable.INSTANCE, config);
+        return converter.convertQuery(validatedNode, false, true);
+      } catch (SqlParseException e) {
+        throw new RuntimeException("Error happened while expanding view.", e);
+      }
     }
   }
 }
