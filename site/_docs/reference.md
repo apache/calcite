@@ -2098,6 +2098,7 @@ semantics.
 | m | JSON_LENGTH(jsonValue [, path ])               | Returns a integer indicating the length of *jsonValue*
 | m | JSON_KEYS(jsonValue [, path ])                 | Returns a string indicating the keys of a JSON *jsonValue*
 | m | JSON_REMOVE(jsonValue, path[, path])           | Removes data from *jsonValue* using a series of *path* expressions and returns the result
+| m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of a *jsonValue*
 | m | REVERSE(string)                                | Returns the reverse order of *string*
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | o | NVL(value1, value2)                            | Returns *value1* if *value1* is not null, otherwise *value2*
@@ -2114,8 +2115,7 @@ semantics.
 
 Note:
 
-* `JSON_TYPE` / `JSON_DEPTH` / `JSON_PRETTY` return null if the argument is null
-* `JSON_TYPE` / `JSON_DEPTH` / `JSON_PRETTY` throw error if the argument is not a valid JSON value
+* `JSON_TYPE` / `JSON_DEPTH` / `JSON_PRETTY` / `JSON_STORAGE_SIZE` return null if the argument is null
 * `JSON_LENGTH` / `JSON_KEYS` / `JSON_REMOVE` return null if the first argument is null
 * `JSON_TYPE` generally returns an upper-case string flag indicating the type of the JSON input. Currently supported supported type flags are:
   * INTEGER
@@ -2230,6 +2230,27 @@ LIMIT 10;
 | c1         |
 | ---------- |
 | ["a", "d"] |
+
+
+##### JSON_STORAGE_SIZE example
+
+SQL
+
+ ```SQL
+SELECT
+JSON_STORAGE_SIZE('[100, \"sakila\", [1, 3, 5], 425.05]') AS c1,
+JSON_STORAGE_SIZE('{\"a\": 10, \"b\": \"a\", \"c\": \"[1, 3, 5, 7]\"}') AS c2,
+JSON_STORAGE_SIZE('{\"a\": 10, \"b\": \"xyz\", \"c\": \"[1, 3, 5, 7]\"}') AS c3,
+JSON_STORAGE_SIZE('[100, \"json\", [[10, 20, 30], 3, 5], 425.05]') AS c4
+limit 10;
+```
+
+ Result
+
+| c1 | c2 | c3 | c4 |
+| -- | ---| ---| -- |
+| 29 | 35 | 37 | 36 |
+
 
 #### DECODE example
 

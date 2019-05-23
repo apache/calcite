@@ -631,6 +631,19 @@ public class JsonFunctions {
     }
   }
 
+  public static Integer jsonStorageSize(String input) {
+    return jsonStorageSize(jsonValueExpression(input));
+  }
+
+  public static Integer jsonStorageSize(JsonValueContext input) {
+    try {
+      return JSON_PATH_JSON_PROVIDER.getObjectMapper()
+          .writeValueAsBytes(input.obj).length;
+    } catch (Exception e) {
+      throw RESOURCE.invalidInputForJsonStorageSize(Objects.toString(input.obj)).ex();
+    }
+  }
+
   public static boolean isJsonValue(String input) {
     try {
       dejsonize(input);
