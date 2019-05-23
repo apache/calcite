@@ -3312,6 +3312,13 @@ public class RelToSqlConverterTest {
     sql(query).withSpark().ok(expected);
   }
 
+  @Test public void testJsonStorageSize() {
+    String query = "select json_storage_size(\"product_name\") from \"product\"";
+    final String expected = "SELECT JSON_STORAGE_SIZE(\"product_name\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
   @Test public void testJsonType() {
     String query = "select json_type(\"product_name\") from \"product\"";
     final String expected = "SELECT "
