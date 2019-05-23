@@ -16,10 +16,12 @@
  */
 package org.apache.calcite.test.catalog;
 
+import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -45,8 +47,8 @@ import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelProtoDataType;
-import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -60,9 +62,11 @@ import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.ModifiableViewTable;
+import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.sql.SqlCall;
@@ -93,6 +97,7 @@ import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -201,6 +206,21 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     } else {
       registerTable(table.names, wrapperTable);
     }
+  }
+
+  void registerTable(MockDynamicTable table) {
+    registerTable(table.names, table);
+  }
+
+  void reregisterTable(MockDynamicTable table) {
+    List<String> names = table.names;
+    assert names.get(0).equals(DEFAULT_CATALOG);
+    List<String> schemaPath = Util.skipLast(names);
+    String tableName = Util.last(names);
+    CalciteSchema schema = SqlValidatorUtil.getSchema(rootSchema,
+        schemaPath, SqlNameMatchers.withCaseSensitive(true));
+    schema.removeTable(tableName);
+    schema.add(tableName, table);
   }
 
   private void registerTable(final List<String> names, final Table table) {
@@ -690,6 +710,52 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
   }
 
   /**
+   * Mock implementation of {@link Prepare.AbstractPreparingTable} which holds {@link ViewTable}
+   * and delegates {@link MockTable#toRel} call to the view.
+   */
+  public static class MockRelViewTable extends MockTable {
+    private final ViewTable viewTable;
+
+    private MockRelViewTable(ViewTable viewTable,
+        MockCatalogReader catalogReader, String catalogName, String schemaName, String name,
+        boolean stream, double rowCount, ColumnResolver resolver,
+        InitializerExpressionFactory initializerExpressionFactory) {
+      super(catalogReader, ImmutableList.of(catalogName, schemaName, name),
+          stream, false, rowCount, resolver, initializerExpressionFactory);
+      this.viewTable = viewTable;
+    }
+
+    public static MockRelViewTable create(ViewTable viewTable,
+        MockCatalogReader catalogReader, String catalogName, String schemaName, String name,
+        boolean stream, double rowCount, ColumnResolver resolver) {
+      Table underlying = viewTable.unwrap(Table.class);
+      InitializerExpressionFactory initializerExpressionFactory =
+          underlying instanceof Wrapper
+              ? ((Wrapper) underlying).unwrap(InitializerExpressionFactory.class)
+              : NullInitializerExpressionFactory.INSTANCE;
+      return new MockRelViewTable(viewTable,
+          catalogReader, catalogName, schemaName, name, stream, rowCount,
+          resolver, Util.first(initializerExpressionFactory,
+          NullInitializerExpressionFactory.INSTANCE));
+    }
+
+    @Override public RelDataType getRowType() {
+      return viewTable.getRowType(catalogReader.typeFactory);
+    }
+
+    @Override public RelNode toRel(RelOptTable.ToRelContext context) {
+      return viewTable.toRel(context, this);
+    }
+
+    @Override public <T> T unwrap(Class<T> clazz) {
+      if (clazz.isInstance(viewTable)) {
+        return clazz.cast(viewTable);
+      }
+      return super.unwrap(clazz);
+    }
+  }
+
+  /**
    * Mock implementation of
    * {@link org.apache.calcite.prepare.Prepare.PreparingTable} for views.
    */
@@ -827,29 +893,30 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
   }
 
   /**
-   * Mock implementation of
-   * {@link org.apache.calcite.prepare.Prepare.PreparingTable} with dynamic record type.
+   * Mock implementation of {@link AbstractQueryableTable} with dynamic record type.
    */
-  public static class MockDynamicTable extends MockTable {
-    public MockDynamicTable(MockCatalogReader catalogReader, String catalogName,
-        String schemaName, String name, boolean stream, double rowCount) {
-      super(catalogReader, catalogName, schemaName, name, stream, false,
-          rowCount, null, NullInitializerExpressionFactory.INSTANCE);
+  public static class MockDynamicTable
+      extends AbstractQueryableTable implements TranslatableTable {
+    private final DynamicRecordTypeImpl rowType;
+    protected final List<String> names;
+
+    MockDynamicTable(String catalogName, String schemaName, String name) {
+      super(Object.class);
+      this.names = Arrays.asList(catalogName, schemaName, name);
+      this.rowType = new DynamicRecordTypeImpl(new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT));
     }
 
-    public void onRegister(RelDataTypeFactory typeFactory) {
-      rowType = new DynamicRecordTypeImpl(typeFactory);
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return rowType;
     }
 
-    /**
-     * Recreates an immutable rowType, if the table has Dynamic Record Type,
-     * when converts table to Rel.
-     */
-    public RelNode toRel(ToRelContext context) {
-      if (rowType.isDynamicStruct()) {
-        rowType = new RelRecordType(rowType.getFieldList());
-      }
-      return super.toRel(context);
+    @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+        SchemaPlus schema, String tableName) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
+      return LogicalTableScan.create(context.getCluster(), relOptTable);
     }
   }
 

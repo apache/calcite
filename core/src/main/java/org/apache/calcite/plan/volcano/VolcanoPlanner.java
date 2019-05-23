@@ -60,6 +60,7 @@ import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.rules.SemiJoinRule;
 import org.apache.calcite.rel.rules.SortRemoveRule;
 import org.apache.calcite.rel.rules.UnionToDistinctRule;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.Litmus;
@@ -153,7 +154,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * {@code Project(child=rel#1, a=null)} where a is a null INTEGER or a
    * null VARCHAR(10).
    */
-  private final Map<String, RelNode> mapDigestToRel =
+  private final Map<Pair<String, RelDataType>, RelNode> mapDigestToRel =
       new HashMap<>();
 
   /**
@@ -1188,6 +1189,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
   }
 
+  /** Computes the key for {@link #mapDigestToRel}. */
+  private static Pair<String, RelDataType> key(RelNode rel) {
+    return Pair.of(rel.getDigest(), rel.getRowType());
+  }
+
   public String toDot() {
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);
@@ -1430,11 +1436,14 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   void rename(RelNode rel) {
     final String oldDigest = rel.getDigest();
     if (fixUpInputs(rel)) {
-      final RelNode removed = mapDigestToRel.remove(oldDigest);
+      final Pair<String, RelDataType> oldKey =
+          Pair.of(oldDigest, rel.getRowType());
+      final RelNode removed = mapDigestToRel.remove(oldKey);
       assert removed == rel;
       final String newDigest = rel.recomputeDigest();
       LOGGER.trace("Rename #{} from '{}' to '{}'", rel.getId(), oldDigest, newDigest);
-      final RelNode equivRel = mapDigestToRel.put(newDigest, rel);
+      final Pair<String, RelDataType> key = key(rel);
+      final RelNode equivRel = mapDigestToRel.put(key, rel);
       if (equivRel != null) {
         assert equivRel != rel;
 
@@ -1443,14 +1452,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         LOGGER.trace("After renaming rel#{} it is now equivalent to rel#{}",
             rel.getId(), equivRel.getId());
 
-        assert RelOptUtil.equal(
-            "rel rowtype",
-            rel.getRowType(),
-            "equivRel rowtype",
-            equivRel.getRowType(),
-            Litmus.THROW);
-
-        mapDigestToRel.put(newDigest, equivRel);
+        mapDigestToRel.put(key, equivRel);
 
         RelSubset equivRelSubset = getSubset(equivRel);
         ruleQueue.recompute(equivRelSubset, true);
@@ -1493,16 +1495,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // Is there an equivalent relational expression? (This might have
     // just occurred because the relational expression's child was just
     // found to be equivalent to another set.)
-    RelNode equivRel = mapDigestToRel.get(rel.getDigest());
+    final Pair<String, RelDataType> key = key(rel);
+    RelNode equivRel = mapDigestToRel.get(key);
     if (equivRel != null && equivRel != rel) {
       assert equivRel.getClass() == rel.getClass();
       assert equivRel.getTraitSet().equals(rel.getTraitSet());
-      assert RelOptUtil.equal(
-          "rel rowtype",
-          rel.getRowType(),
-          "equivRel rowtype",
-          equivRel.getRowType(),
-          Litmus.THROW);
 
       RelSubset equivRelSubset = getSubset(equivRel);
       ruleQueue.recompute(equivRelSubset, true);
@@ -1703,7 +1700,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // If it is equivalent to an existing expression, return the set that
     // the equivalent expression belongs to.
-    String key = rel.getDigest();
+    Pair<String, RelDataType> key = key(rel);
     RelNode equivExp = mapDigestToRel.get(key);
     if (equivExp == null) {
       // do nothing
@@ -1741,15 +1738,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         // expression.
         if (fixUpInputs(rel)) {
           rel.recomputeDigest();
-          key = rel.getDigest();
+          key = key(rel);
           RelNode equivRel = mapDigestToRel.get(key);
           if ((equivRel != rel) && (equivRel != null)) {
-            assert RelOptUtil.equal(
-                "rel rowtype",
-                rel.getRowType(),
-                "equivRel rowtype",
-                equivRel.getRowType(),
-                Litmus.THROW);
 
             // make sure this bad rel didn't get into the
             // set in any way (fixupInputs will do this but it

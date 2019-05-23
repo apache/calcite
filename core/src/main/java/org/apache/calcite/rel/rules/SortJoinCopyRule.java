@@ -41,7 +41,8 @@ import java.util.List;
  * Original {@link org.apache.calcite.rel.core.Sort} is preserved but
  * can be removed by {@link org.apache.calcite.rel.rules.SortRemoveRule} if redundant.
  *
- * {@link org.apache.calcite.rel.rules.SortJoinCopyRule} allows a {@link org.apache.calcite.rel.core.Sort} to be
+ * {@link org.apache.calcite.rel.rules.SortJoinCopyRule} allows a {
+ * @link org.apache.calcite.rel.core.Sort} to be
  * incorporated in an index scan, it makes the use of operators requiring
  * sorted inputs easier and it can reduce the size of the relations being sorted.
  */
