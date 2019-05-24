@@ -3319,6 +3319,38 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testCubeInSpark() {
+    final String query = "select count(*) "
+        + "from \"foodmart\".\"product\" "
+        + "group by cube(\"product_id\",\"product_class_id\")";
+    final String expected = "SELECT COUNT(*)\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY CUBE(\"product_id\", \"product_class_id\")";
+    final String expectedInSpark = "SELECT COUNT(*)\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY product_id, product_class_id WITH CUBE";
+    sql(query)
+        .ok(expected)
+        .withSpark()
+        .ok(expectedInSpark);
+  }
+
+  @Test public void testRollupInSpark() {
+    final String query = "select count(*) "
+        + "from \"foodmart\".\"product\" "
+        + "group by rollup(\"product_id\",\"product_class_id\")";
+    final String expected = "SELECT COUNT(*)\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ROLLUP(\"product_id\", \"product_class_id\")";
+    final String expectedInSpark = "SELECT COUNT(*)\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY product_id, product_class_id WITH ROLLUP";
+    sql(query)
+        .ok(expected)
+        .withSpark()
+        .ok(expectedInSpark);
+  }
+
   @Test public void testJsonType() {
     String query = "select json_type(\"product_name\") from \"product\"";
     final String expected = "SELECT "
