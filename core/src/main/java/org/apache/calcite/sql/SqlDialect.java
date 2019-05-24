@@ -895,6 +895,13 @@ public class SqlDialect {
     return false;
   }
 
+  /**
+   * Returns whether this dialect supports "WITH CUBE" in "GROUP BY" clause.
+   */
+  public boolean supportsGroupByWithCube() {
+    return false;
+  }
+
   /** Returns how NULL values are sorted if an ORDER BY item does not contain
    * NULLS ASCENDING or NULLS DESCENDING. */
   public NullCollation getNullCollation() {
