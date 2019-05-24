@@ -37,7 +37,7 @@ if [ ! -f target/fullclasspath.txt ]; then
 fi
 
 CP=
-for module in core cassandra druid elasticsearch file mongodb server spark splunk geode example/csv example/function; do
+for module in core cassandra druid elasticsearch file kafka mongodb server spark splunk geode example/csv example/function; do
   CP=${CP}${module}/target/classes:
   CP=${CP}${module}/target/test-classes:
 done
