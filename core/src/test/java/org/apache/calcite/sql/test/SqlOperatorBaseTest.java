@@ -335,6 +335,19 @@ public abstract class SqlOperatorBaseTest {
                 .with("conformance", conformance));
   }
 
+  /** Creates a tester with special sql library. */
+  protected SqlTester tester(SqlLibrary library) {
+    return tester.withOperatorTable(
+        SqlLibraryOperatorTableFactory.INSTANCE
+            .getOperatorTable(SqlLibrary.STANDARD, library))
+        .withConnectionFactory(
+            CalciteAssert.EMPTY_CONNECTION_FACTORY
+                .with(new CalciteAssert
+                    .AddSchemaSpecPostProcessor(CalciteAssert.SchemaSpec.HR))
+                .with("fun", library.name())
+        );
+  }
+
   //--- Tests -----------------------------------------------------------
 
   /**
@@ -1835,6 +1848,7 @@ public abstract class SqlOperatorBaseTest {
           null,
           "");
     }
+    tester.checkString("{fn REVERSE('abc')}", "cba", "VARCHAR(3) NOT NULL");
 
     // REVIEW: is this result correct? I think it should be "abcCdef"
     tester.checkScalar(
@@ -4255,6 +4269,74 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("ASCII(cast(null as varchar(1)))");
   }
 
+  @Test public void testRepeatFunc() {
+    final SqlTester tester1 = tester(SqlLibrary.MYSQL);
+    tester1.setFor(SqlLibraryOperators.REPEAT);
+    tester1.checkString("REPEAT('a', -100)", "", "VARCHAR(1) NOT NULL");
+    tester1.checkString("REPEAT('a', -1)", "", "VARCHAR(1) NOT NULL");
+    tester1.checkString("REPEAT('a', 0)", "", "VARCHAR(1) NOT NULL");
+    tester1.checkString("REPEAT('a', 2)", "aa", "VARCHAR(1) NOT NULL");
+    tester1.checkString("REPEAT('abc', 3)", "abcabcabc", "VARCHAR(3) NOT NULL");
+    tester1.checkNull("REPEAT(cast(null as varchar(1)), -1)");
+    tester1.checkNull("REPEAT(cast(null as varchar(1)), 2)");
+    tester1.checkNull("REPEAT('abc', cast(null as integer))");
+    tester1.checkNull("REPEAT(cast(null as varchar(1)), cast(null as integer))");
+
+  }
+
+  @Test public void testSpaceFunc() {
+    final SqlTester tester1 = tester(SqlLibrary.MYSQL);
+    tester1.setFor(SqlLibraryOperators.SPACE);
+    tester1.checkString("SPACE(-100)", "", "VARCHAR(2000) NOT NULL");
+    tester1.checkString("SPACE(-1)", "", "VARCHAR(2000) NOT NULL");
+    tester1.checkString("SPACE(0)", "", "VARCHAR(2000) NOT NULL");
+    tester1.checkString("SPACE(2)", "  ", "VARCHAR(2000) NOT NULL");
+    tester1.checkString("SPACE(5)", "     ", "VARCHAR(2000) NOT NULL");
+    tester1.checkNull("SPACE(cast(null as integer))");
+  }
+
+  @Test public void testSoundexFunc() {
+    final SqlTester tester1 = oracleTester();
+    tester1.setFor(SqlLibraryOperators.SOUNDEX);
+    tester1.checkString("SOUNDEX('TECH ON THE NET')", "T253", "VARCHAR(4) NOT NULL");
+    tester1.checkString("SOUNDEX('Miller')", "M460", "VARCHAR(4) NOT NULL");
+    tester1.checkString("SOUNDEX('miler')", "M460", "VARCHAR(4) NOT NULL");
+    tester1.checkString("SOUNDEX('myller')", "M460", "VARCHAR(4) NOT NULL");
+    tester1.checkString("SOUNDEX('muller')", "M460", "VARCHAR(4) NOT NULL");
+    tester1.checkString("SOUNDEX('m')", "M000", "VARCHAR(4) NOT NULL");
+    tester1.checkString("SOUNDEX('mu')", "M000", "VARCHAR(4) NOT NULL");
+    tester1.checkString("SOUNDEX('mile')", "M400", "VARCHAR(4) NOT NULL");
+    tester1.checkNull("SOUNDEX(cast(null as varchar(1)))");
+    tester1.checkFails("SOUNDEX(_UTF8'\u5B57\u5B57')", "The character is not mapped.*", true);
+  }
+
+  @Test public void testDifferenceFunc() {
+    final SqlTester tester1 = tester(SqlLibrary.POSTGRESQL);
+    tester1.setFor(SqlLibraryOperators.DIFFERENCE);
+    tester1.checkScalarExact("DIFFERENCE('Miller', 'miller')", "4");
+    tester1.checkScalarExact("DIFFERENCE('Miller', 'myller')", "4");
+    tester1.checkScalarExact("DIFFERENCE('muller', 'miller')", "4");
+    tester1.checkScalarExact("DIFFERENCE('muller', 'miller')", "4");
+    tester1.checkScalarExact("DIFFERENCE('muller', 'milk')", "2");
+    tester1.checkScalarExact("DIFFERENCE('muller', 'mile')", "2");
+    tester1.checkScalarExact("DIFFERENCE('muller', 'm')", "1");
+    tester1.checkScalarExact("DIFFERENCE('muller', 'lee')", "0");
+    tester1.checkNull("DIFFERENCE('muller', cast(null as varchar(1)))");
+    tester1.checkNull("DIFFERENCE(cast(null as varchar(1)), 'muller')");
+  }
+
+  @Test public void testReverseFunc() {
+    final SqlTester testerMysql = tester(SqlLibrary.MYSQL);
+    testerMysql.setFor(SqlLibraryOperators.REVERSE);
+    testerMysql.checkString("reverse('')", "", "VARCHAR(0) NOT NULL");
+    testerMysql.checkString("reverse('123')", "321", "VARCHAR(3) NOT NULL");
+    testerMysql.checkString("reverse('abc')", "cba", "VARCHAR(3) NOT NULL");
+    testerMysql.checkString("reverse('ABC')", "CBA", "VARCHAR(3) NOT NULL");
+    testerMysql.checkString("reverse('Hello World')", "dlroW olleH", "VARCHAR(11) NOT NULL");
+    testerMysql.checkString("reverse(_UTF8'\u4F60\u597D')", "好你", "VARCHAR(2) NOT NULL");
+    testerMysql.checkNull("reverse(cast(null as varchar(1)))");
+  }
+
   @Test public void testUpperFunc() {
     tester.setFor(SqlStdOperatorTable.UPPER);
     tester.checkString("upper('a')", "A", "CHAR(1) NOT NULL");
@@ -4493,6 +4575,28 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("json_pretty(cast(null as varchar))");
   }
 
+  @Test public void testJsonStorageSize() {
+    tester.checkString("json_storage_size('[100, \"sakila\", [1, 3, 5], 425.05]')",
+        "29", "INTEGER");
+    tester.checkString("json_storage_size('{\"a\": 1000,\"b\": \"aa\", \"c\": \"[1, 3, 5]\"}')",
+        "35", "INTEGER");
+    tester.checkString("json_storage_size('{\"a\": 1000, \"b\": \"wxyz\", \"c\": \"[1, 3]\"}')",
+        "34", "INTEGER");
+    tester.checkString("json_storage_size('[100, \"json\", [[10, 20, 30], 3, 5], 425.05]')",
+        "36", "INTEGER");
+    tester.checkString("json_storage_size('12')",
+        "2", "INTEGER");
+    tester.checkString("json_storage_size('12' format json)",
+        "2", "INTEGER");
+    tester.checkString("json_storage_size('null')",
+        "4", "INTEGER");
+
+    // nulls
+    tester.checkFails("json_storage_size(^null^)",
+        "(?s).*Illegal use of 'NULL'.*", false);
+    tester.checkNull("json_storage_size(cast(null as varchar))");
+  }
+
   @Test public void testJsonType() {
     tester.setFor(SqlLibraryOperators.JSON_TYPE);
     tester.checkString("json_type('\"1\"')",
@@ -4662,6 +4766,26 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails("json_keys(^null^)",
         "(?s).*Illegal use of 'NULL'.*", false);
     tester.checkNull("json_keys(cast(null as varchar))");
+  }
+
+  @Test public void testJsonRemove() {
+    tester.checkString("json_remove('{\"foo\":100}', '$.foo')",
+        "{}", "VARCHAR(2000)");
+    tester.checkString("json_remove('{\"foo\":100, \"foo1\":100}', '$.foo')",
+        "{\"foo1\":100}", "VARCHAR(2000)");
+    tester.checkString("json_remove('[\"a\", [\"b\", \"c\"], \"d\"]', '$[1][0]')",
+        "[\"a\",[\"c\"],\"d\"]", "VARCHAR(2000)");
+    tester.checkString("json_remove('[\"a\", [\"b\", \"c\"], \"d\"]', '$[1]')",
+        "[\"a\",\"d\"]", "VARCHAR(2000)");
+    tester.checkString("json_remove('[\"a\", [\"b\", \"c\"], \"d\"]', '$[0]', '$[0]')",
+        "[\"d\"]", "VARCHAR(2000)");
+    tester.checkFails("json_remove('[\"a\", [\"b\", \"c\"], \"d\"]', '$')",
+        "(?s).*Invalid input for.*", true);
+
+    // nulls
+    tester.checkFails("json_remove(^null^, '$')",
+        "(?s).*Illegal use of 'NULL'.*", false);
+    tester.checkNull("json_remove(cast(null as varchar), '$')");
   }
 
   @Test public void testJsonObject() {

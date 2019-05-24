@@ -24,6 +24,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
@@ -733,6 +734,20 @@ public abstract class RelOptUtil {
       return projectFactory.createProject(rel, castExps,
           rowType.getFieldNames());
     }
+  }
+
+  /** Gets all fields in an aggregate. */
+  public static Set<Integer> getAllFields(Aggregate aggregate) {
+    final Set<Integer> allFields = new TreeSet<>();
+    allFields.addAll(aggregate.getGroupSet().asList());
+    for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
+      allFields.addAll(aggregateCall.getArgList());
+      if (aggregateCall.filterArg >= 0) {
+        allFields.add(aggregateCall.filterArg);
+      }
+      allFields.addAll(RelCollations.ordinals(aggregateCall.collation));
+    }
+    return allFields;
   }
 
   /**
@@ -3223,8 +3238,8 @@ public abstract class RelOptUtil {
     // yet.
     if (!containsGet(joinCond)
         && RexUtil.SubQueryFinder.find(joinCond) == null) {
-      joinCond = pushDownEqualJoinConditions(
-          joinCond, leftCount, rightCount, extraLeftExprs, extraRightExprs);
+      joinCond = pushDownEqualJoinConditions(joinCond, leftCount, rightCount, extraLeftExprs,
+          extraRightExprs, relBuilder.getRexBuilder());
     }
 
     relBuilder.push(originalJoin.getLeft());
@@ -3342,14 +3357,21 @@ public abstract class RelOptUtil {
    * of AND, equals, and input fields.
    */
   private static RexNode pushDownEqualJoinConditions(
-      RexNode node,
+      RexNode condition,
       int leftCount,
       int rightCount,
       List<RexNode> extraLeftExprs,
-      List<RexNode> extraRightExprs) {
+      List<RexNode> extraRightExprs,
+      RexBuilder builder) {
+    // Normalize the condition first
+    RexNode node = (condition instanceof RexCall)
+        ? collapseExpandedIsNotDistinctFromExpr((RexCall) condition, builder)
+        : condition;
+
     switch (node.getKind()) {
     case AND:
     case EQUALS:
+    case IS_NOT_DISTINCT_FROM:
       final RexCall call = (RexCall) node;
       final List<RexNode> list = new ArrayList<>();
       List<RexNode> operands = Lists.newArrayList(call.getOperands());
@@ -3363,7 +3385,8 @@ public abstract class RelOptUtil {
                 leftCount,
                 rightCount,
                 extraLeftExprs,
-                extraRightExprs);
+                extraRightExprs,
+                builder);
         final List<RexNode> remainingOperands = Util.skip(operands, i + 1);
         final int left3 = leftCount + extraLeftExprs.size();
         fix(remainingOperands, left2, left3);

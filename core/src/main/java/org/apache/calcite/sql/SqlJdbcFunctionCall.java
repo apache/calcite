@@ -17,6 +17,7 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -218,6 +219,10 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <tr>
  * <td>RTRIM(string)</td>
  * <td>The characters of string with no trailing blanks</td>
+ * </tr>
+ * <tr>
+ * <td>REVERSE(string)</td>
+ * <td>The string with the order of the characters reversed</td>
  * </tr>
  * <tr>
  * <td>SOUNDEX(string)</td>
@@ -697,6 +702,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put("LCASE", simple(SqlStdOperatorTable.LOWER));
       map.put("LENGTH", simple(SqlStdOperatorTable.CHARACTER_LENGTH));
       map.put("LOCATE", simple(SqlStdOperatorTable.POSITION));
+      map.put("REVERSE", simple(SqlLibraryOperators.REVERSE));
       map.put("LTRIM",
           new SimpleMakeCall(SqlStdOperatorTable.TRIM) {
             @Override public SqlCall createCall(SqlParserPos pos,

@@ -14,29 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql.dialect;
+package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.avatica.util.Casing;
-import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 
 /**
- * A <code>SqlDialect</code> implementation for the Vertica database.
+ * The <code>JSON_STORAGE_SIZE</code> function.
  */
-public class VerticaSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new VerticaSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.VERTICA)
-          .withIdentifierQuoteString("\"")
-          .withUnquotedCasing(Casing.UNCHANGED));
+public class SqlJsonStorageSizeFunction extends SqlFunction {
 
-  /** Creates a VerticaSqlDialect. */
-  public VerticaSqlDialect(Context context) {
-    super(context);
-  }
-
-  @Override public boolean supportsNestedAggregations() {
-    return false;
+  public SqlJsonStorageSizeFunction() {
+    super("JSON_STORAGE_SIZE",
+        SqlKind.OTHER_FUNCTION,
+        ReturnTypes.cascade(ReturnTypes.INTEGER,
+            SqlTypeTransforms.FORCE_NULLABLE),
+        null,
+        OperandTypes.ANY,
+        SqlFunctionCategory.SYSTEM);
   }
 }
 
-// End VerticaSqlDialect.java
+// End SqlJsonStorageSizeFunction.java

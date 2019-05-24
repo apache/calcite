@@ -6891,6 +6891,25 @@ public class JdbcTest {
         .returns("C1=[\"a\",\"b\"]; C2=null; C3=[\"c\"]; C4=null; C5=null\n");
   }
 
+  @Test public void testJsonRemove() {
+    CalciteAssert.that()
+        .query("SELECT JSON_REMOVE(v, '$[1]') AS c1\n"
+            + "FROM (VALUES ('[\"a\", [\"b\", \"c\"], \"d\"]')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1=[\"a\",\"d\"]\n");
+  }
+
+  @Test public void testJsonStorageSize() {
+    CalciteAssert.that()
+        .query("SELECT\n"
+            + "JSON_STORAGE_SIZE('[100, \"sakila\", [1, 3, 5], 425.05]') AS A,\n"
+            + "JSON_STORAGE_SIZE('{\"a\": 10, \"b\": \"a\", \"c\": \"[1, 3, 5, 7]\"}') AS B,\n"
+            + "JSON_STORAGE_SIZE('{\"a\": 10, \"b\": \"xyz\", \"c\": \"[1, 3, 5, 7]\"}') AS C,\n"
+            + "JSON_STORAGE_SIZE('[100, \"json\", [[10, 20, 30], 3, 5], 425.05]') AS D\n"
+            + "limit 10")
+        .returns("A=29; B=35; C=37; D=36\n");
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2609">[CALCITE-2609]

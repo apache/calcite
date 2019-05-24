@@ -56,14 +56,12 @@ import static org.junit.Assert.fail;
  */
 public class SqlJsonFunctionsTest {
 
-  @Test
-  public void testJsonValueExpression() {
+  @Test public void testJsonValueExpression() {
     assertJsonValueExpression("{}",
         is(JsonFunctions.JsonValueContext.withJavaObj(Collections.emptyMap())));
   }
 
-  @Test
-  public void testJsonApiCommonSyntax() {
+  @Test public void testJsonApiCommonSyntax() {
     assertJsonApiCommonSyntax("{\"foo\": \"bar\"}", "lax $.foo",
         contextMatches(
             JsonFunctions.JsonPathContext.withJavaObj(JsonFunctions.PathMode.LAX, "bar")));
@@ -82,8 +80,7 @@ public class SqlJsonFunctionsTest {
             JsonFunctions.JsonPathContext.withJavaObj(JsonFunctions.PathMode.LAX, 100)));
   }
 
-  @Test
-  public void testJsonExists() {
+  @Test public void testJsonExists() {
     assertJsonExists(
         JsonFunctions.JsonPathContext.withJavaObj(JsonFunctions.PathMode.STRICT, "bar"),
         SqlJsonExistsErrorBehavior.FALSE,
@@ -145,8 +142,7 @@ public class SqlJsonFunctionsTest {
         errorMatches(new RuntimeException("java.lang.Exception: test message")));
   }
 
-  @Test
-  public void testJsonValueAny() {
+  @Test public void testJsonValueAny() {
     assertJsonValueAny(
         JsonFunctions.JsonPathContext
             .withJavaObj(JsonFunctions.PathMode.LAX, "bar"),
@@ -260,8 +256,7 @@ public class SqlJsonFunctionsTest {
                 + "and the actual value is: '[]'", null)));
   }
 
-  @Test
-  public void testJsonQuery() {
+  @Test public void testJsonQuery() {
     assertJsonQuery(
         JsonFunctions.JsonPathContext
             .withJavaObj(JsonFunctions.PathMode.LAX, Collections.singletonList("bar")),
@@ -413,14 +408,12 @@ public class SqlJsonFunctionsTest {
         is("[\"bar\"]"));
   }
 
-  @Test
-  public void testJsonize() {
+  @Test public void testJsonize() {
     assertJsonize(new HashMap<>(),
         is("{}"));
   }
 
-  @Test
-  public void assertJsonPretty() {
+  @Test public void assertJsonPretty() {
     assertJsonPretty(
         JsonFunctions.JsonValueContext.withJavaObj(new HashMap<>()), is("{ }"));
     assertJsonPretty(
@@ -430,13 +423,12 @@ public class SqlJsonFunctionsTest {
       private final Object self = this;
     };
     CalciteException expected = new CalciteException(
-        "Cannot serialize object to JSON, and the object is: '" + input + "'", null);
+        "Cannot serialize object to JSON: '" + input + "'", null);
     assertJsonPrettyFailed(
         JsonFunctions.JsonValueContext.withJavaObj(input), errorMatches(expected));
   }
 
-  @Test
-  public void testDejsonize() {
+  @Test public void testDejsonize() {
     assertDejsonize("{}",
         is(Collections.emptyMap()));
     assertDejsonize("[]",
@@ -451,8 +443,7 @@ public class SqlJsonFunctionsTest {
         errorMatches(new InvalidJsonException(message)));
   }
 
-  @Test
-  public void testJsonObject() {
+  @Test public void testJsonObject() {
     assertJsonObject(is("{}"), SqlJsonConstructorNullClause.NULL_ON_NULL);
     assertJsonObject(
         is("{\"foo\":\"bar\"}"), SqlJsonConstructorNullClause.NULL_ON_NULL,
@@ -468,8 +459,7 @@ public class SqlJsonFunctionsTest {
         null);
   }
 
-  @Test
-  public void testJsonType() {
+  @Test public void testJsonType() {
     assertJsonType(is("OBJECT"), "{}");
     assertJsonType(is("ARRAY"),
         "[\"foo\",null]");
@@ -479,8 +469,7 @@ public class SqlJsonFunctionsTest {
     assertJsonType(is("DOUBLE"), "11.22");
   }
 
-  @Test
-  public void testJsonDepth() {
+  @Test public void testJsonDepth() {
     assertJsonDepth(is(1), "{}");
     assertJsonDepth(is(1), "false");
     assertJsonDepth(is(1), "12");
@@ -492,8 +481,7 @@ public class SqlJsonFunctionsTest {
     assertJsonDepth(nullValue(), "null");
   }
 
-  @Test
-  public void testJsonLength() {
+  @Test public void testJsonLength() {
     assertJsonLength(
         JsonFunctions.JsonPathContext
             .withJavaObj(JsonFunctions.PathMode.LAX, Collections.singletonList("bar")),
@@ -512,7 +500,7 @@ public class SqlJsonFunctionsTest {
         is(1));
   }
 
-  public void testJsonKeys() {
+  @Test public void testJsonKeys() {
     assertJsonKeys(
         JsonFunctions.JsonPathContext
             .withJavaObj(JsonFunctions.PathMode.LAX, Collections.singletonList("bar")),
@@ -531,8 +519,24 @@ public class SqlJsonFunctionsTest {
         is("null"));
   }
 
-  @Test
-  public void testJsonObjectAggAdd() {
+  @Test public void testJsonRemove() {
+    assertJsonRemove(
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new String[]{"$.a"},
+        is("{\"b\":[2]}"));
+    assertJsonRemove(
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new String[]{"$.a", "$.b"},
+        is("{}"));
+  }
+
+  @Test public void testJsonStorageSize() {
+    assertJsonStorageSize("[100, \"sakila\", [1, 3, 5], 425.05]", is(29));
+    assertJsonStorageSize("null", is(4));
+    assertJsonStorageSize(JsonFunctions.JsonValueContext.withJavaObj(null), is(4));
+  }
+
+  @Test public void testJsonObjectAggAdd() {
     Map<String, Object> map = new HashMap<>();
     Map<String, Object> expected = new HashMap<>();
     expected.put("foo", "bar");
@@ -545,8 +549,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonConstructorNullClause.ABSENT_ON_NULL, is(expected));
   }
 
-  @Test
-  public void testJsonArray() {
+  @Test public void testJsonArray() {
     assertJsonArray(is("[]"), SqlJsonConstructorNullClause.NULL_ON_NULL);
     assertJsonArray(
         is("[\"foo\"]"), SqlJsonConstructorNullClause.NULL_ON_NULL, "foo");
@@ -561,8 +564,7 @@ public class SqlJsonFunctionsTest {
         null);
   }
 
-  @Test
-  public void testJsonArrayAggAdd() {
+  @Test public void testJsonArrayAggAdd() {
     List<Object> list = new ArrayList<>();
     List<Object> expected = new ArrayList<>();
     expected.add("foo");
@@ -575,8 +577,7 @@ public class SqlJsonFunctionsTest {
         SqlJsonConstructorNullClause.ABSENT_ON_NULL, is(expected));
   }
 
-  @Test
-  public void testJsonPredicate() {
+  @Test public void testJsonPredicate() {
     assertIsJsonValue("[]", is(true));
     assertIsJsonValue("{}", is(true));
     assertIsJsonValue("100", is(true));
@@ -733,6 +734,34 @@ public class SqlJsonFunctionsTest {
       Matcher<? super Throwable> matcher) {
     assertFailed(invocationDesc(BuiltInMethod.JSON_KEYS.getMethodName(), input),
         () -> JsonFunctions.jsonKeys(input),
+        matcher);
+  }
+
+  private void assertJsonRemove(JsonFunctions.JsonValueContext input, String[] pathSpecs,
+      Matcher<? super String> matcher) {
+    assertThat(invocationDesc(BuiltInMethod.JSON_REMOVE.getMethodName(), input, pathSpecs),
+        JsonFunctions.jsonRemove(input, pathSpecs),
+        matcher);
+  }
+
+  private void assertJsonStorageSize(String input,
+      Matcher<? super Integer> matcher) {
+    assertThat(invocationDesc(BuiltInMethod.JSON_STORAGE_SIZE.getMethodName(), input),
+        JsonFunctions.jsonStorageSize(input),
+        matcher);
+  }
+
+  private void assertJsonStorageSize(JsonFunctions.JsonValueContext input,
+      Matcher<? super Integer> matcher) {
+    assertThat(invocationDesc(BuiltInMethod.JSON_STORAGE_SIZE.getMethodName(), input),
+        JsonFunctions.jsonStorageSize(input),
+        matcher);
+  }
+
+  private void assertJsonStorageSizeFailed(String input,
+      Matcher<? super Throwable> matcher) {
+    assertFailed(invocationDesc(BuiltInMethod.JSON_STORAGE_SIZE.getMethodName(), input),
+        () -> JsonFunctions.jsonStorageSize(input),
         matcher);
   }
 

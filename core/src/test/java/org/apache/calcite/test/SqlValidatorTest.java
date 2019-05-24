@@ -11011,6 +11011,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             "(.*)JSON_VALUE_EXPRESSION(.*)");
   }
 
+  @Test public void testJsonStorageSize() {
+    check("select json_storage_size(ename) from emp");
+    checkExp("json_storage_size('{\"foo\":\"bar\"}')");
+    checkExpType("json_storage_size('{\"foo\":\"bar\"}')", "INTEGER");
+  }
+
   @Test public void testJsonType() {
     check("select json_type(ename) from emp");
     checkExp("json_type('{\"foo\":\"bar\"}')");
@@ -11047,6 +11053,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExp("json_keys('{\"foo\":\"bar\"}', 'lax $')");
     checkExpType("json_keys('{\"foo\":\"bar\"}', 'lax $')", "VARCHAR(2000)");
     checkExpType("json_keys('{\"foo\":\"bar\"}', 'strict $')", "VARCHAR(2000)");
+  }
+
+  @Test public void testJsonRemove() {
+    checkExp("json_remove('{\"foo\":\"bar\"}', '$')");
+    checkExpType("json_remove('{\"foo\":\"bar\"}', '$')", "VARCHAR(2000)");
+    checkFails("select ^json_remove('{\"foo\":\"bar\"}')^",
+            "(?s).*Invalid number of arguments.*");
   }
 
   @Test public void testJsonObjectAgg() {

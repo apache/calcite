@@ -2428,6 +2428,11 @@ public class Util {
     };
   }
 
+  /** Returns a map which ignores any write operation. */
+  public static <K, V> Map<K, V> blackholeMap() {
+    return BlackholeMap.of();
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**
