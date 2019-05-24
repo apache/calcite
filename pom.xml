@@ -1107,18 +1107,6 @@ limitations under the License.
     </plugins>
   </reporting>
 
-  <repositories>
-    <repository>
-      <id>central</id>
-      <name>Central Repository</name>
-      <url>http://repo.maven.apache.org/maven2</url>
-      <layout>default</layout>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
-
   <profiles>
     <profile>
       <!-- This profile adds/overrides few features of the 'apache-release'
