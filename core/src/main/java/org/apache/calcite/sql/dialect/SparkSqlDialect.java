@@ -65,6 +65,13 @@ public class SparkSqlDialect extends SqlDialect {
     return JoinType.CROSS;
   }
 
+  @Override public boolean supportsGroupByWithRollup() {
+    return true;
+  }
+
+  @Override public boolean supportsGroupByWithCube() {
+    return true;
+  }
 
   @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
       SqlNode fetch) {
