@@ -144,6 +144,8 @@ limitations under the License.
     <fmpp.version>0.9.16</fmpp.version>
     <jsonpath.version>2.4.0</jsonpath.version>
 
+    <kafka.client.version>2.0.0</kafka.client.version>
+
     <!-- Other properties (not version numbers) -->
     <!-- Java 1.8 does not support -html5, so override via profile for Java 1.8 -->
     <maven-javadoc-html5>-html5</maven-javadoc-html5>
@@ -189,6 +191,7 @@ limitations under the License.
     <module>spark</module>
     <module>splunk</module>
     <module>ubenchmark</module>
+    <module>kafka</module>
   </modules>
 
   <!-- No dependencies here. Declare dependency VERSIONS in
@@ -607,6 +610,11 @@ limitations under the License.
         <artifactId>jcip-annotations</artifactId>
         <version>${jcip-annotations.version}</version>
         <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.kafka</groupId>
+        <artifactId>kafka-clients</artifactId>
+        <version>${kafka.client.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
