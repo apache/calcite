@@ -67,9 +67,9 @@ import java.util.Set;
  *
  */
 public class AggregateJoinJoinRemoveRule extends RelOptRule {
-  public static final AggregateJoinJoinRemoveRule INSTANCE
-      = new AggregateJoinJoinRemoveRule(LogicalAggregate.class,
-      LogicalJoin.class, RelFactories.LOGICAL_BUILDER);
+  public static final AggregateJoinJoinRemoveRule INSTANCE =
+      new AggregateJoinJoinRemoveRule(LogicalAggregate.class,
+          LogicalJoin.class, RelFactories.LOGICAL_BUILDER);
 
   /** Creates an AggregateJoinJoinRemoveRule. */
   public AggregateJoinJoinRemoveRule(

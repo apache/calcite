@@ -70,7 +70,7 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
       final String name = pair.right;
       final String expr = pair.left.accept(translator);
 
-      // "select *" present ?
+      // "select *" present?
       hasSelectStar |= ElasticsearchConstants.isSelectAll(name);
 
       if (ElasticsearchRules.isItem(pair.left)) {

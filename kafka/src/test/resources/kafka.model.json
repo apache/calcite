@@ -28,8 +28,7 @@
           "operand": {
             "consumer.cust": "org.apache.calcite.adapter.kafka.KafkaMockConsumer"
           }
-        }
-        ,{
+        }, {
           "name": "MOCKTABLE_CUST_ROW_CONVERTER",
           "type": "custom",
           "factory": "org.apache.calcite.adapter.kafka.KafkaTableFactory",

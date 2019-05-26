@@ -1489,21 +1489,22 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Collapse an expanded version of IS NOT DISTINCT FROM expression
+   * Collapses an expanded version of {@code IS NOT DISTINCT FROM} expression.
    *
-   * Helper method for
-   * {@link #splitJoinCondition(RexBuilder, int, RexNode, List, List, List, List)} and
+   * <p>Helper method for
+   * {@link #splitJoinCondition(RexBuilder, int, RexNode, List, List, List, List)}
+   * and
    * {@link #splitJoinCondition(List, List, RexNode, List, List, List, List)}.
    *
    * <p>If the given expr <code>call</code> is an expanded version of
-   * IS NOT DISTINCT FROM function call, collapse it and return a
-   * IS NOT DISTINCT FROM function call.
+   * {@code IS NOT DISTINCT FROM} function call, collapses it and return a
+   * {@code IS NOT DISTINCT FROM} function call.
    *
    * <p>For example: {@code t1.key IS NOT DISTINCT FROM t2.key}
    * can rewritten in expanded form as
    * {@code t1.key = t2.key OR (t1.key IS NULL AND t2.key IS NULL)}.
    *
-   * @param call       Function expression to try collapsing.
+   * @param call       Function expression to try collapsing
    * @param rexBuilder {@link RexBuilder} instance to create new {@link RexCall} instances.
    * @return If the given function is an expanded IS NOT DISTINCT FROM function call,
    *         return a IS NOT DISTINCT FROM function call. Otherwise return the input

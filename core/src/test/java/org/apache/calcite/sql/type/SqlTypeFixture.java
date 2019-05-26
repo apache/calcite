@@ -65,13 +65,11 @@ class SqlTypeFixture {
   final RelDataType structOfInt = typeFactory.createTypeWithNullability(
       typeFactory.createStructType(
           ImmutableList.of(sqlInt, sqlInt),
-          ImmutableList.of("i", "j")
-      ), false);
+          ImmutableList.of("i", "j")), false);
   final RelDataType structOfIntNullable = typeFactory.createTypeWithNullability(
       typeFactory.createStructType(
           ImmutableList.of(sqlInt, sqlInt),
-          ImmutableList.of("i", "j")
-      ), true);
+          ImmutableList.of("i", "j")), true);
 }
 
 // End SqlTypeFixture.java
