@@ -88,4 +88,5 @@ public class KafkaMessageEnumerator<K, V> implements Enumerator<Object[]> {
     consumer.close();
   }
 }
+
 // End KafkaMessageEnumerator.java

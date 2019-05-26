@@ -344,8 +344,7 @@ public abstract class SqlOperatorBaseTest {
             CalciteAssert.EMPTY_CONNECTION_FACTORY
                 .with(new CalciteAssert
                     .AddSchemaSpecPostProcessor(CalciteAssert.SchemaSpec.HR))
-                .with("fun", library.name())
-        );
+                .with("fun", library.name()));
   }
 
   //--- Tests -----------------------------------------------------------
@@ -4332,8 +4331,10 @@ public abstract class SqlOperatorBaseTest {
     testerMysql.checkString("reverse('123')", "321", "VARCHAR(3) NOT NULL");
     testerMysql.checkString("reverse('abc')", "cba", "VARCHAR(3) NOT NULL");
     testerMysql.checkString("reverse('ABC')", "CBA", "VARCHAR(3) NOT NULL");
-    testerMysql.checkString("reverse('Hello World')", "dlroW olleH", "VARCHAR(11) NOT NULL");
-    testerMysql.checkString("reverse(_UTF8'\u4F60\u597D')", "好你", "VARCHAR(2) NOT NULL");
+    testerMysql.checkString("reverse('Hello World')", "dlroW olleH",
+        "VARCHAR(11) NOT NULL");
+    testerMysql.checkString("reverse(_UTF8'\u4F60\u597D')", "\u597D\u4F60",
+        "VARCHAR(2) NOT NULL");
     testerMysql.checkNull("reverse(cast(null as varchar(1)))");
   }
 

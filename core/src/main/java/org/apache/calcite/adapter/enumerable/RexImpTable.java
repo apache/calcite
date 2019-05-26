@@ -995,9 +995,10 @@ public class RexImpTable {
       NullPolicy nullPolicy,
       NotNullImplementor implementor) {
     final List<Expression> list = new ArrayList<>();
-    final List<RexNode> conditionalOps
-        = nullPolicy == NullPolicy.ARG0 ? Collections.singletonList(call.getOperands().get(0))
-        : call.getOperands();
+    final List<RexNode> conditionalOps =
+        nullPolicy == NullPolicy.ARG0
+            ? Collections.singletonList(call.getOperands().get(0))
+            : call.getOperands();
     switch (nullAs) {
     case NULL:
     case IS_NULL:

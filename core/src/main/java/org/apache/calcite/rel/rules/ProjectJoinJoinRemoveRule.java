@@ -62,9 +62,9 @@ import java.util.stream.Collectors;
  *
  */
 public class ProjectJoinJoinRemoveRule extends RelOptRule {
-  public static final ProjectJoinJoinRemoveRule INSTANCE
-      = new ProjectJoinJoinRemoveRule(LogicalProject.class,
-      LogicalJoin.class, RelFactories.LOGICAL_BUILDER);
+  public static final ProjectJoinJoinRemoveRule INSTANCE =
+      new ProjectJoinJoinRemoveRule(LogicalProject.class,
+          LogicalJoin.class, RelFactories.LOGICAL_BUILDER);
 
   /** Creates a ProjectJoinJoinRemoveRule. */
   public ProjectJoinJoinRemoveRule(

@@ -44,7 +44,9 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * A table which maps to an Apache Kafka topic, currently only {@link KafkaStreamTable} is
+ * A table that maps to an Apache Kafka topic.
+ *
+ * <p>Currently only {@link KafkaStreamTable} is
  * implemented as a STREAM table.
  */
 public class KafkaStreamTable implements ScannableTable, StreamableTable {
@@ -87,7 +89,6 @@ public class KafkaStreamTable implements ScannableTable, StreamableTable {
     return tableOptions.getRowConverter().rowDataType(tableOptions.getTopicName());
   }
 
-  /** Returns a provider of statistics about this table. */
   @Override public Statistic getStatistic() {
     return Statistics.of(100d, ImmutableList.of(),
         RelCollations.createSingleton(0));
@@ -107,9 +108,9 @@ public class KafkaStreamTable implements ScannableTable, StreamableTable {
     return this;
   }
 
-  /** Type of table. */
   @Override public Schema.TableType getJdbcTableType() {
     return Schema.TableType.STREAM;
   }
 }
+
 // End KafkaStreamTable.java

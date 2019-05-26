@@ -26,4 +26,5 @@ interface KafkaTableConstants {
   String SCHEMA_CUST_CONSUMER = "consumer.cust";
   String SCHEMA_CONSUMER_PARAMS = "consumer.params";
 }
+
 // End KafkaTableConstants.java

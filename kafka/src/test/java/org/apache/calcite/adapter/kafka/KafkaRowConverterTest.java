@@ -60,4 +60,5 @@ public class KafkaRowConverterTest implements KafkaRowConverter<String, String> 
     return fields;
   }
 }
+
 // End KafkaRowConverterTest.java
