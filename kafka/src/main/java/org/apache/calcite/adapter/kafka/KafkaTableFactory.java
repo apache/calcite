@@ -35,32 +35,28 @@ public class KafkaTableFactory implements TableFactory<KafkaStreamTable> {
   public KafkaTableFactory() {
   }
 
-  /** Creates a Table.
-   *  @param schema Schema this table belongs to
-   * @param name Name of this table
-   * @param operand The "operand" JSON property
-   * @param rowType Row type. Specified if the "columns" JSON property.
-   */
   @Override public KafkaStreamTable create(SchemaPlus schema,
       String name,
       Map<String, Object> operand,
       RelDataType rowType) {
-    KafkaTableOptions tableOptionBuilder = new KafkaTableOptions();
+    final KafkaTableOptions tableOptionBuilder = new KafkaTableOptions();
 
     tableOptionBuilder.setBootstrapServers(
         (String) operand.getOrDefault(KafkaTableConstants.SCHEMA_BOOTSTRAP_SERVERS, null));
     tableOptionBuilder.setTopicName(
         (String) operand.getOrDefault(KafkaTableConstants.SCHEMA_TOPIC_NAME, null));
 
-    KafkaRowConverter rowConverter = null;
+    final KafkaRowConverter rowConverter;
     if (operand.containsKey(KafkaTableConstants.SCHEMA_ROW_CONVERTER)) {
       String rowConverterClass = (String) operand.get(KafkaTableConstants.SCHEMA_ROW_CONVERTER);
       try {
-        rowConverter = (KafkaRowConverter) Class.forName(rowConverterClass).newInstance();
-      } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-        final String details = String.format(
-            Locale.ROOT,
-            "Fail to create table '%s' with configuration: \n"
+        final Class<?> klass = Class.forName(rowConverterClass);
+        rowConverter = (KafkaRowConverter) klass.getDeclaredConstructor().newInstance();
+      } catch (InstantiationException | InvocationTargetException
+          | IllegalAccessException | ClassNotFoundException
+          | NoSuchMethodException e) {
+        final String details = String.format(Locale.ROOT,
+            "Failed to create table '%s' with configuration:\n"
                 + "'%s'\n"
                 + "KafkaRowConverter '%s' is invalid",
             name, operand, rowConverterClass);
