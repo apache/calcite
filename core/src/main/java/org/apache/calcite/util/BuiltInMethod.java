@@ -280,6 +280,8 @@ public enum BuiltInMethod {
   REVERSE(SqlFunctions.class, "reverse", String.class),
   LEFT(SqlFunctions.class, "left", String.class, int.class),
   RIGHT(SqlFunctions.class, "right", String.class, int.class),
+  TO_BASE64(SqlFunctions.class, "toBase64", String.class),
+  FROM_BASE64(SqlFunctions.class, "fromBase64", String.class),
   JSONIZE(JsonFunctions.class, "jsonize", Object.class),
   DEJSONIZE(JsonFunctions.class, "dejsonize", String.class),
   JSON_VALUE_EXPRESSION(JsonFunctions.class, "jsonValueExpression",
