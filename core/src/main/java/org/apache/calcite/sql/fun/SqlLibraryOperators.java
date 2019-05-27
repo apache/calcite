@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 
 import java.util.ArrayList;
@@ -213,6 +214,28 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.ARG0_NULLABLE_VARYING,
           null,
           OperandTypes.CHARACTER,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction FROM_BASE64 =
+      new SqlFunction(
+          "FROM_BASE64",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.cascade(
+                  ReturnTypes.explicit(SqlTypeName.VARBINARY), SqlTypeTransforms.TO_NULLABLE),
+          null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction TO_BASE64 =
+      new SqlFunction(
+          "TO_BASE64",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.cascade(
+                  ReturnTypes.explicit(SqlTypeName.VARCHAR), SqlTypeTransforms.TO_NULLABLE),
+          null,
+          OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 }
 

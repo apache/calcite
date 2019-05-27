@@ -41,6 +41,7 @@ import org.apache.calcite.util.Util;
 
 import org.apache.commons.codec.language.Soundex;
 
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 
 import java.lang.reflect.Field;
@@ -53,6 +54,7 @@ import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -70,6 +72,8 @@ import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Helper methods to implement SQL functions in generated code.
@@ -93,6 +97,8 @@ public class SqlFunctions {
   private static final Soundex SOUNDEX = new Soundex();
 
   private static final int SOUNDEX_LENGTH = 4;
+
+  private static final Pattern FROM_BASE64_REGEXP = Pattern.compile("[\\t\\n\\r\\s]");
 
   private static final Function1<List<Object>, Enumerable<Object>> LIST_AS_ENUMERABLE =
       Linq4j::asEnumerable;
@@ -126,6 +132,36 @@ public class SqlFunctions {
       ThreadLocal.withInitial(HashMap::new);
 
   private SqlFunctions() {
+  }
+
+  /** SQL TO_BASE64(string) function. */
+  public static String toBase64(String string) {
+    return toBase64_(string.getBytes(UTF_8));
+  }
+
+  /** SQL TO_BASE64(string) function for binary string. */
+  public static String toBase64(ByteString string) {
+    return toBase64_(string.getBytes());
+  }
+
+  private static String toBase64_(byte[] bytes) {
+    String base64 = Base64.getEncoder().encodeToString(bytes);
+    StringBuilder str = new StringBuilder(base64.length() + base64.length() / 76);
+    Splitter.fixedLength(76).split(base64).iterator().forEachRemaining(s -> {
+      str.append(s);
+      str.append("\n");
+    });
+    return str.substring(0, str.length() - 1);
+  }
+
+  /** SQL FROM_BASE64(string) function. */
+  public static ByteString fromBase64(String base64) {
+    try {
+      base64 = FROM_BASE64_REGEXP.matcher(base64).replaceAll("");
+      return new ByteString(Base64.getDecoder().decode(base64));
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
   }
 
   /** SQL SUBSTRING(string FROM ... FOR ...) function. */
