@@ -2104,6 +2104,8 @@ semantics.
 | m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of a *jsonValue*
 | o | LEAST(expr [, expr ]* )                        | Returns the least of the expressions
 | m p | LEFT(string, length)                         | Returns the leftmost *length* characters from the *string*
+| m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string
+| m | FROM_BASE64(string)                            | Returns the decoded result of a base-64 *string* as a string
 | o | LTRIM(string)                                  | Returns *string* with all blanks removed from the start
 | o | NVL(value1, value2)                            | Returns *value1* if *value1* is not null, otherwise *value2*
 | m p | REPEAT(string, integer)                      | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
