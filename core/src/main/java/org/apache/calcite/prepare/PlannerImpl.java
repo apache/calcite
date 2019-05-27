@@ -20,19 +20,27 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.Context;
+import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable.ViewExpander;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexExecutor;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
@@ -44,14 +52,12 @@ import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.FrameworkConfig;
-import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -63,7 +69,9 @@ import java.util.Properties;
 public class PlannerImpl implements Planner, ViewExpander {
   private final SqlOperatorTable operatorTable;
   private final ImmutableList<Program> programs;
-  private final FrameworkConfig config;
+  private final FrameworkConfig frameworkConfig;
+  private final Context context;
+  private final CalciteConnectionConfig connectionConfig;
 
   /** Holds the trait definitions to be registered with planner. May be null. */
   private final ImmutableList<RelTraitDef> traitDefs;
@@ -84,7 +92,7 @@ public class PlannerImpl implements Planner, ViewExpander {
   private RexExecutor executor;
 
   // set in STATE_4_VALIDATE
-  private CalciteSqlValidator validator;
+  private SqlValidator validator;
   private SqlNode validatedSqlNode;
 
   // set in STATE_5_CONVERT
@@ -93,7 +101,7 @@ public class PlannerImpl implements Planner, ViewExpander {
   /** Creates a planner. Not a public API; call
    * {@link org.apache.calcite.tools.Frameworks#getPlanner} instead. */
   public PlannerImpl(FrameworkConfig config) {
-    this.config = config;
+    this.frameworkConfig = config;
     this.defaultSchema = config.getDefaultSchema();
     this.operatorTable = config.getOperatorTable();
     this.programs = config.getPrograms();
@@ -103,7 +111,22 @@ public class PlannerImpl implements Planner, ViewExpander {
     this.traitDefs = config.getTraitDefs();
     this.convertletTable = config.getConvertletTable();
     this.executor = config.getExecutor();
+    this.context = config.getContext();
+    this.connectionConfig = connConfig();
     reset();
+  }
+
+  private CalciteConnectionConfig connConfig() {
+    CalciteConnectionConfig unwrapped = context.unwrap(CalciteConnectionConfig.class);
+    if (unwrapped != null) {
+      return unwrapped;
+    }
+    Properties properties = new Properties();
+    properties.setProperty(CalciteConnectionProperty.CASE_SENSITIVE.camelName(),
+        String.valueOf(parserConfig.caseSensitive()));
+    properties.setProperty(CalciteConnectionProperty.CONFORMANCE.camelName(),
+        String.valueOf(frameworkConfig.getParserConfig().conformance()));
+    return new CalciteConnectionConfigImpl(properties);
   }
 
   /** Makes sure that the state is at least the given state. */
@@ -140,23 +163,27 @@ public class PlannerImpl implements Planner, ViewExpander {
       reset();
     }
     ensure(State.STATE_1_RESET);
-    Frameworks.withPlanner(
-        (cluster, relOptSchema, rootSchema) -> {
-          Util.discard(rootSchema); // use our own defaultSchema
-          typeFactory = (JavaTypeFactory) cluster.getTypeFactory();
-          planner = cluster.getPlanner();
-          planner.setExecutor(executor);
-          return null;
-        },
-        config);
+
+    RelDataTypeSystem typeSystem =
+        connectionConfig.typeSystem(RelDataTypeSystem.class,
+            RelDataTypeSystem.DEFAULT);
+    typeFactory = new JavaTypeFactoryImpl(typeSystem);
+    planner = new VolcanoPlanner(frameworkConfig.getCostFactory(), context);
+    RelOptUtil.registerDefaultRules(planner,
+        connectionConfig.materializationsEnabled(),
+        Hook.ENABLE_BINDABLE.get(false));
+    planner.setExecutor(executor);
 
     state = State.STATE_2_READY;
 
     // If user specify own traitDef, instead of default default trait,
-    // first, clear the default trait def registered with planner
-    // then, register the trait def specified in traitDefs.
-    if (this.traitDefs != null) {
-      planner.clearRelTraitDefs();
+    // register the trait def specified in traitDefs.
+    if (this.traitDefs == null) {
+      planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+      if (CalciteSystemProperty.ENABLE_COLLATION_TRAIT.value()) {
+        planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
+      }
+    } else {
       for (RelTraitDef def : this.traitDefs) {
         planner.addRelTraitDef(def);
       }
@@ -194,15 +221,7 @@ public class PlannerImpl implements Planner, ViewExpander {
   }
 
   private SqlConformance conformance() {
-    final Context context = config.getContext();
-    if (context != null) {
-      final CalciteConnectionConfig connectionConfig =
-          context.unwrap(CalciteConnectionConfig.class);
-      if (connectionConfig != null) {
-        return connectionConfig.conformance();
-      }
-    }
-    return config.getParserConfig().conformance();
+    return connectionConfig.conformance();
   }
 
   public Pair<SqlNode, RelDataType> validateAndGetType(SqlNode sqlNode)
@@ -302,17 +321,6 @@ public class PlannerImpl implements Planner, ViewExpander {
   // CalciteCatalogReader is stateless; no need to store one
   private CalciteCatalogReader createCatalogReader() {
     final SchemaPlus rootSchema = rootSchema(defaultSchema);
-    final Context context = config.getContext();
-    final CalciteConnectionConfig connectionConfig;
-
-    if (context != null) {
-      connectionConfig = context.unwrap(CalciteConnectionConfig.class);
-    } else {
-      Properties properties = new Properties();
-      properties.setProperty(CalciteConnectionProperty.CASE_SENSITIVE.camelName(),
-              String.valueOf(parserConfig.caseSensitive()));
-      connectionConfig = new CalciteConnectionConfigImpl(properties);
-    }
 
     return new CalciteCatalogReader(
         CalciteSchema.from(rootSchema),
