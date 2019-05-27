@@ -109,7 +109,8 @@ public interface PhysType {
    * }
    * }</pre></blockquote>
    */
-  Expression generateAccessor(List<Integer> fields);
+  Expression generateAccessor(List<Integer> fields,
+      List<Class> targetFieldClassList);
 
   /** Generates a selector for the given fields from an expression, with the
    * default row format. */

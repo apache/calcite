@@ -36,6 +36,9 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 /** Implementation of {@link org.apache.calcite.rel.core.SemiJoin} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableSemiJoin extends SemiJoin implements EnumerableRel {
@@ -128,6 +131,19 @@ public class EnumerableSemiJoin extends SemiJoin implements EnumerableRel {
         builder.append(
             "right", rightResult.block);
     final PhysType physType = leftResult.physType;
+    //if leftKeys classes are not equals to rightKeys classes,we can try to
+    // convert them to same classes
+    List<Class> leftKeysClassList = leftKeys.stream()
+        .map(leftResult.physType::fieldClass)
+        .collect(
+            Collectors.toList());
+    List<Class> rightKeysClassList = rightKeys.stream()
+        .map(rightResult.physType::fieldClass)
+        .collect(
+            Collectors.toList());
+    List<Class> targetFieldClassList = consistentKeyTypes(
+        leftKeysClassList,
+        rightKeysClassList);
     return implementor.result(
         physType,
         builder.append(
@@ -136,8 +152,14 @@ public class EnumerableSemiJoin extends SemiJoin implements EnumerableRel {
                 Expressions.list(
                     leftExpression,
                     rightExpression,
-                    leftResult.physType.generateAccessor(leftKeys),
-                    rightResult.physType.generateAccessor(rightKeys))))
+                    leftResult.physType.generateAccessor(leftKeys,
+                        targetFieldClassList == null
+                            ? leftKeysClassList
+                            : targetFieldClassList),
+                    rightResult.physType.generateAccessor(rightKeys,
+                        targetFieldClassList == null
+                            ? rightKeysClassList
+                            : targetFieldClassList))))
             .toBlock());
   }
 }
