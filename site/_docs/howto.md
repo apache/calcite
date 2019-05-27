@@ -31,7 +31,7 @@ adapters.
 
 ## Building from a source distribution
 
-Prerequisite is Java (JDK 8, 9, 10 or 11) on your path.
+Prerequisite is Java (JDK 8, 9, 10, 11, or 12) on your path.
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
@@ -49,7 +49,7 @@ tests.
 ## Building from git
 
 Prerequisites are git
-and Java (JDK 8, 9, 10 or 11) on your path.
+and Java (JDK 8, 9, 10, 11, or 12) on your path.
 
 Create a local copy of the github repository,
 `cd` to its root directory,
