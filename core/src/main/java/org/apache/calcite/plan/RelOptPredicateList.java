@@ -36,7 +36,7 @@ import java.util.Objects;
  *
  * <p>For example, if you apply {@code Filter(x > 1)} to a relational
  * expression that has a predicate {@code y < 10} then the pulled up predicates
- * for the Filter are {@code [y < 10, x > ]}.
+ * for the Filter are {@code [y < 10, x > 1]}.
  *
  * <p><b>Inferred predicates</b> only apply to joins. If there there is a
  * predicate on the left input to a join, and that predicate is over columns
