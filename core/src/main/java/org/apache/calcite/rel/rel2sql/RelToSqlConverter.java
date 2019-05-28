@@ -67,6 +67,7 @@ import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Permutation;
 import org.apache.calcite.util.ReflectUtil;
@@ -279,14 +280,21 @@ public class RelToSqlConverter extends SqlImplementor
           SqlStdOperatorTable.GROUPING_SETS.createCall(SqlParserPos.ZERO,
               aggregate.getGroupSets().stream()
                   .map(groupSet ->
-                      new SqlNodeList(
-                          groupSet.asList().stream()
-                              .map(key ->
-                                  groupKeys.get(aggregate.getGroupSet()
-                                      .indexOf(key)))
-                          .collect(Collectors.toList()),
-                          SqlParserPos.ZERO))
+                      groupItem(groupKeys, groupSet, aggregate.getGroupSet()))
                   .collect(Collectors.toList())));
+    }
+  }
+
+  private SqlNode groupItem(List<SqlNode> groupKeys,
+      ImmutableBitSet groupSet, ImmutableBitSet wholeGroupSet) {
+    final List<SqlNode> nodes = groupSet.asList().stream()
+        .map(key -> groupKeys.get(wholeGroupSet.indexOf(key)))
+        .collect(Collectors.toList());
+    switch (nodes.size()) {
+    case 1:
+      return nodes.get(0);
+    default:
+      return SqlStdOperatorTable.ROW.createCall(SqlParserPos.ZERO, nodes);
     }
   }
 
