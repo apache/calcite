@@ -1810,6 +1810,12 @@ public class SqlParserTest {
             + "FROM `EMP`\n"
             + "GROUP BY GROUPING SETS(`DEPTNO`, (`DEPTNO`, `GENDER`), ())");
 
+    sql("select deptno from emp\n"
+        + "group by grouping sets ((deptno, gender), (deptno), (), gender)")
+        .ok("SELECT `DEPTNO`\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY GROUPING SETS((`DEPTNO`, `GENDER`), `DEPTNO`, (), `GENDER`)");
+
     // Grouping sets must have parentheses
     sql("select deptno from emp\n"
         + "group by grouping sets ^deptno^, (deptno, gender), ()")
