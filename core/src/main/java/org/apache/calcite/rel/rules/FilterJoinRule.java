@@ -79,7 +79,7 @@ public abstract class FilterJoinRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a FilterProjectTransposeRule with an explicit root operand and
+   * Creates a FilterJoinRule with an explicit root operand and
    * factories.
    */
   protected FilterJoinRule(RelOptRuleOperand operand, String id,
@@ -102,7 +102,7 @@ public abstract class FilterJoinRule extends RelOptRule {
   }
 
   /**
-   * Creates a FilterProjectTransposeRule with an explicit root operand and
+   * Creates a FilterJoinRule with an explicit root operand and
    * factories.
    */
   @Deprecated // to be removed before 2.0
