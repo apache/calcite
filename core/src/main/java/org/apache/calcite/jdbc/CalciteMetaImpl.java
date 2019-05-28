@@ -608,8 +608,10 @@ public class CalciteMetaImpl extends MetaImpl {
             new ArrayList<List<Object>>());
     boolean done = fetchMaxRowCount == 0 || rows.size() < fetchMaxRowCount;
     @SuppressWarnings("unchecked") List<Object> rows1 = (List<Object>) rows;
-    // Set ResultSet to null for supporting multi queries in same statement.
-    stmt.setResultSet(null);
+    if (done) {
+      // Set ResultSet to null for supporting multi queries in same statement.
+      stmt.setResultSet(null);
+    }
     return new Meta.Frame(offset, done, rows1);
   }
 
