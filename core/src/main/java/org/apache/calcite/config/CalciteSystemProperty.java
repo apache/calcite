@@ -66,6 +66,22 @@ public final class CalciteSystemProperty<T> {
   public static final CalciteSystemProperty<Boolean> COMMUTE =
       booleanProperty("calcite.enable.join.commute", false);
 
+  /** Whether to enable the collation trait in the default planner configuration.
+   *
+   * Some extra optimizations are possible if enabled, but queries should work either way.
+   * At some point this will become a preference, or we will run multiple phases: first
+   * disabled, then enabled. */
+  public static final CalciteSystemProperty<Boolean> ENABLE_COLLATION_TRAIT =
+      booleanProperty("calcite.enable.collation.trait", true);
+
+  /** Whether the enumerable convention is enabled in the default planner configuration. */
+  public static final CalciteSystemProperty<Boolean> ENABLE_ENUMERABLE =
+      booleanProperty("calcite.enable.enumerable", true);
+
+  /** Whether streaming is enabled in the default planner configuration. */
+  public static final CalciteSystemProperty<Boolean> ENABLE_STREAM =
+      booleanProperty("calcite.enable.stream", true);
+
   /**
    *  Whether to follow the SQL standard strictly.
    */
