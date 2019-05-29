@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.dialect.AccessSqlDialect;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
@@ -42,6 +43,7 @@ import org.apache.calcite.sql.dialect.ParaccelSqlDialect;
 import org.apache.calcite.sql.dialect.PhoenixSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.dialect.RedshiftSqlDialect;
+import org.apache.calcite.sql.dialect.SnowflakeSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.dialect.SybaseSqlDialect;
 import org.apache.calcite.sql.dialect.TeradataSqlDialect;
@@ -82,12 +84,18 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
         databaseProductName.toUpperCase(Locale.ROOT).trim();
     final String quoteString = getIdentifierQuoteString(databaseMetaData);
     final NullCollation nullCollation = getNullCollation(databaseMetaData);
+    final Casing unquotedCasing = getCasing(databaseMetaData, false);
+    final Casing quotedCasing = getCasing(databaseMetaData, true);
+    final boolean caseSensitive = isCaseSensitive(databaseMetaData);
     final SqlDialect.Context c = SqlDialect.EMPTY_CONTEXT
         .withDatabaseProductName(databaseProductName)
         .withDatabaseMajorVersion(databaseMajorVersion)
         .withDatabaseMinorVersion(databaseMinorVersion)
         .withDatabaseVersion(databaseVersion)
         .withIdentifierQuoteString(quoteString)
+        .withUnquotedCasing(unquotedCasing)
+        .withQuotedCasing(quotedCasing)
+        .withCaseSensitive(caseSensitive)
         .withNullCollation(nullCollation);
     switch (upperProductName) {
     case "ACCESS":
@@ -117,6 +125,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return new MysqlSqlDialect(c);
     case "REDSHIFT":
       return new RedshiftSqlDialect(c);
+    case "SNOWFLAKE":
+      return new SnowflakeSqlDialect(c);
     case "SPARK":
       return new SparkSqlDialect(c);
     }
@@ -147,10 +157,45 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return new H2SqlDialect(c);
     } else if (upperProductName.contains("VERTICA")) {
       return new VerticaSqlDialect(c);
+    } else if (upperProductName.contains("SNOWFLAKE")) {
+      return new SnowflakeSqlDialect(c);
     } else if (upperProductName.contains("SPARK")) {
       return new SparkSqlDialect(c);
     } else {
       return new AnsiSqlDialect(c);
+    }
+  }
+
+  private Casing getCasing(DatabaseMetaData databaseMetaData, boolean quoted) {
+    try {
+      if (quoted
+          ? databaseMetaData.storesUpperCaseQuotedIdentifiers()
+          : databaseMetaData.storesUpperCaseIdentifiers()) {
+        return Casing.TO_UPPER;
+      } else if (quoted
+          ? databaseMetaData.storesLowerCaseQuotedIdentifiers()
+          : databaseMetaData.storesLowerCaseIdentifiers()) {
+        return Casing.TO_LOWER;
+      } else if (quoted
+          ? (databaseMetaData.storesMixedCaseQuotedIdentifiers()
+              || databaseMetaData.supportsMixedCaseQuotedIdentifiers())
+          : (databaseMetaData.storesMixedCaseIdentifiers()
+              || databaseMetaData.supportsMixedCaseIdentifiers())) {
+        return Casing.UNCHANGED;
+      } else {
+        return Casing.UNCHANGED;
+      }
+    } catch (SQLException e) {
+      throw new IllegalArgumentException("cannot deduce casing", e);
+    }
+  }
+
+  private boolean isCaseSensitive(DatabaseMetaData databaseMetaData) {
+    try {
+      return databaseMetaData.supportsMixedCaseIdentifiers()
+          || databaseMetaData.supportsMixedCaseQuotedIdentifiers();
+    } catch (SQLException e) {
+      throw new IllegalArgumentException("cannot deduce case-sensitivity", e);
     }
   }
 

@@ -1489,21 +1489,22 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Collapse an expanded version of IS NOT DISTINCT FROM expression
+   * Collapses an expanded version of {@code IS NOT DISTINCT FROM} expression.
    *
-   * Helper method for
-   * {@link #splitJoinCondition(RexBuilder, int, RexNode, List, List, List, List)} and
+   * <p>Helper method for
+   * {@link #splitJoinCondition(RexBuilder, int, RexNode, List, List, List, List)}
+   * and
    * {@link #splitJoinCondition(List, List, RexNode, List, List, List, List)}.
    *
    * <p>If the given expr <code>call</code> is an expanded version of
-   * IS NOT DISTINCT FROM function call, collapse it and return a
-   * IS NOT DISTINCT FROM function call.
+   * {@code IS NOT DISTINCT FROM} function call, collapses it and return a
+   * {@code IS NOT DISTINCT FROM} function call.
    *
    * <p>For example: {@code t1.key IS NOT DISTINCT FROM t2.key}
    * can rewritten in expanded form as
    * {@code t1.key = t2.key OR (t1.key IS NULL AND t2.key IS NULL)}.
    *
-   * @param call       Function expression to try collapsing.
+   * @param call       Function expression to try collapsing
    * @param rexBuilder {@link RexBuilder} instance to create new {@link RexCall} instances.
    * @return If the given function is an expanded IS NOT DISTINCT FROM function call,
    *         return a IS NOT DISTINCT FROM function call. Otherwise return the input
@@ -3238,8 +3239,8 @@ public abstract class RelOptUtil {
     // yet.
     if (!containsGet(joinCond)
         && RexUtil.SubQueryFinder.find(joinCond) == null) {
-      joinCond = pushDownEqualJoinConditions(
-          joinCond, leftCount, rightCount, extraLeftExprs, extraRightExprs);
+      joinCond = pushDownEqualJoinConditions(joinCond, leftCount, rightCount, extraLeftExprs,
+          extraRightExprs, relBuilder.getRexBuilder());
     }
 
     relBuilder.push(originalJoin.getLeft());
@@ -3357,14 +3358,21 @@ public abstract class RelOptUtil {
    * of AND, equals, and input fields.
    */
   private static RexNode pushDownEqualJoinConditions(
-      RexNode node,
+      RexNode condition,
       int leftCount,
       int rightCount,
       List<RexNode> extraLeftExprs,
-      List<RexNode> extraRightExprs) {
+      List<RexNode> extraRightExprs,
+      RexBuilder builder) {
+    // Normalize the condition first
+    RexNode node = (condition instanceof RexCall)
+        ? collapseExpandedIsNotDistinctFromExpr((RexCall) condition, builder)
+        : condition;
+
     switch (node.getKind()) {
     case AND:
     case EQUALS:
+    case IS_NOT_DISTINCT_FROM:
       final RexCall call = (RexCall) node;
       final List<RexNode> list = new ArrayList<>();
       List<RexNode> operands = Lists.newArrayList(call.getOperands());
@@ -3378,7 +3386,8 @@ public abstract class RelOptUtil {
                 leftCount,
                 rightCount,
                 extraLeftExprs,
-                extraRightExprs);
+                extraRightExprs,
+                builder);
         final List<RexNode> remainingOperands = Util.skip(operands, i + 1);
         final int left3 = leftCount + extraLeftExprs.size();
         fix(remainingOperands, left2, left3);

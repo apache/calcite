@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.dialect;
 
+import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.sql.SqlDialect;
 
 /**
@@ -25,7 +26,8 @@ public class VerticaSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT =
       new VerticaSqlDialect(EMPTY_CONTEXT
           .withDatabaseProduct(DatabaseProduct.VERTICA)
-          .withIdentifierQuoteString("\""));
+          .withIdentifierQuoteString("\"")
+          .withUnquotedCasing(Casing.UNCHANGED));
 
   /** Creates a VerticaSqlDialect. */
   public VerticaSqlDialect(Context context) {

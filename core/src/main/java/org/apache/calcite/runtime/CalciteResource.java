@@ -885,6 +885,9 @@ public interface CalciteResource {
 
   @BaseMessage("Invalid input for JSON_REMOVE: document: ''{0}'', jsonpath expressions: ''{1}''")
   ExInst<CalciteException> invalidInputForJsonRemove(String value, String pathSpecs);
+
+  @BaseMessage("Not a valid input for JSON_STORAGE_SIZE: ''{0}''")
+  ExInst<CalciteException> invalidInputForJsonStorageSize(String value);
 }
 
 // End CalciteResource.java

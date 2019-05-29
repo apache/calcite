@@ -11011,6 +11011,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             "(.*)JSON_VALUE_EXPRESSION(.*)");
   }
 
+  @Test public void testJsonStorageSize() {
+    check("select json_storage_size(ename) from emp");
+    checkExp("json_storage_size('{\"foo\":\"bar\"}')");
+    checkExpType("json_storage_size('{\"foo\":\"bar\"}')", "INTEGER");
+  }
+
   @Test public void testJsonType() {
     check("select json_type(ename) from emp");
     checkExp("json_type('{\"foo\":\"bar\"}')");

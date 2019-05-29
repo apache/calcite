@@ -97,6 +97,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_KEYS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_LENGTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_PRETTY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_REMOVE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_STORAGE_SIZE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_TYPE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
@@ -474,6 +475,7 @@ public class RexImpTable {
     defineMethod(JSON_PRETTY, BuiltInMethod.JSON_PRETTY.method, NullPolicy.ARG0);
     defineMethod(JSON_LENGTH, BuiltInMethod.JSON_LENGTH.method, NullPolicy.ARG0);
     defineMethod(JSON_REMOVE, BuiltInMethod.JSON_REMOVE.method, NullPolicy.ARG0);
+    defineMethod(JSON_STORAGE_SIZE, BuiltInMethod.JSON_STORAGE_SIZE.method, NullPolicy.ARG0);
     defineMethod(JSON_OBJECT, BuiltInMethod.JSON_OBJECT.method, NullPolicy.NONE);
     defineMethod(JSON_ARRAY, BuiltInMethod.JSON_ARRAY.method, NullPolicy.NONE);
     aggMap.put(JSON_OBJECTAGG.with(SqlJsonConstructorNullClause.ABSENT_ON_NULL),
@@ -993,9 +995,10 @@ public class RexImpTable {
       NullPolicy nullPolicy,
       NotNullImplementor implementor) {
     final List<Expression> list = new ArrayList<>();
-    final List<RexNode> conditionalOps
-        = nullPolicy == NullPolicy.ARG0 ? Collections.singletonList(call.getOperands().get(0))
-        : call.getOperands();
+    final List<RexNode> conditionalOps =
+        nullPolicy == NullPolicy.ARG0
+            ? Collections.singletonList(call.getOperands().get(0))
+            : call.getOperands();
     switch (nullAs) {
     case NULL:
     case IS_NULL:

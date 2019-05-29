@@ -16,9 +16,13 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
@@ -28,6 +32,7 @@ import org.apache.calcite.plan.hep.HepMatchOrder;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
@@ -135,7 +140,11 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.catalog.MockCatalogReader;
+import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RuleSet;
+import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
@@ -146,6 +155,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Properties;
@@ -3578,7 +3588,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * outer join, group by on non-join keys, group by on non-null generating side only */
-  @Test public void testPushAggregateThroughtOuterJoin1() {
+  @Test public void testPushAggregateThroughOuterJoin1() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -3594,7 +3604,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * outer join, group by on non-join keys, on null generating side only */
-  @Test public void testPushAggregateThroughtOuterJoin2() {
+  @Test public void testPushAggregateThroughOuterJoin2() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -3610,7 +3620,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * outer join, group by on both side on non-join keys */
-  @Test public void testPushAggregateThroughtOuterJoin3() {
+  @Test public void testPushAggregateThroughOuterJoin3() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -3626,7 +3636,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * outer join, group by on key same as join key, group by on non-null generating side */
-  @Test public void testPushAggregateThroughtOuterJoin4() {
+  @Test public void testPushAggregateThroughOuterJoin4() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -3642,7 +3652,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * outer join, group by on key same as join key, group by on null generating side */
-  @Test public void testPushAggregateThroughtOuterJoin5() {
+  @Test public void testPushAggregateThroughOuterJoin5() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -3658,7 +3668,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * outer join, group by on key same as join key, group by on both side */
-  @Test public void testPushAggregateThroughtOuterJoin6() {
+  @Test public void testPushAggregateThroughOuterJoin6() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -3674,7 +3684,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * outer join, group by key is susbset of join keys, group by on non-null generating side */
-  @Test public void testPushAggregateThroughtOuterJoin7() {
+  @Test public void testPushAggregateThroughOuterJoin7() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -3691,7 +3701,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * outer join, group by key is susbset of join keys, group by on null generating side */
-  @Test public void testPushAggregateThroughtOuterJoin8() {
+  @Test public void testPushAggregateThroughOuterJoin8() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -3708,7 +3718,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * outer join, group by key is susbset of join keys, group by on both sides */
-  @Test public void testPushAggregateThroughtOuterJoin9() {
+  @Test public void testPushAggregateThroughOuterJoin9() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -3725,14 +3735,14 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * outer join, with aggregate functions */
-  @Test public void testPushAggregateThroughtOuterJoin10() {
+  @Test public void testPushAggregateThroughOuterJoin10() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
     final HepProgram program = new HepProgramBuilder()
         .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
         .build();
-    final String sql = "select count(e.ename) \n"
+    final String sql = "select count(e.ename)\n"
         + "from (select * from sales.emp where empno = 10) as e\n"
         + "left outer join sales.emp as d on e.job = d.job\n"
         + "group by e.ename,d.mgr";
@@ -3741,7 +3751,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * non-equi outer join */
-  @Test public void testPushAggregateThroughtOuterJoin11() {
+  @Test public void testPushAggregateThroughOuterJoin11() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -3757,7 +3767,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * right outer join, group by on key same as join key, group by on (left)null generating side */
-  @Test public void testPushAggregateThroughtOuterJoin12() {
+  @Test public void testPushAggregateThroughOuterJoin12() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -3773,7 +3783,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * full outer join, group by on key same as join key, group by on one side */
-  @Test public void testPushAggregateThroughtOuterJoin13() {
+  @Test public void testPushAggregateThroughOuterJoin13() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -3789,7 +3799,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * full outer join, group by on key same as join key, group by on both side */
-  @Test public void testPushAggregateThroughtOuterJoin14() {
+  @Test public void testPushAggregateThroughOuterJoin14() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -3805,7 +3815,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * full outer join, group by on both side on non-join keys */
-  @Test public void testPushAggregateThroughtOuterJoin15() {
+  @Test public void testPushAggregateThroughOuterJoin15() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -3821,7 +3831,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * full outer join, group by key is susbset of join keys */
-  @Test public void testPushAggregateThroughtOuterJoin16() {
+  @Test public void testPushAggregateThroughOuterJoin16() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -4934,27 +4944,22 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).withLateDecorrelation(true).check();
   }
 
-  /** Test case for
-   * testing type created by SubQueryRemoveRule
-   * ANY subquery is non-nullable therefore plan should have cast
-   */
-  @Test public void testAnyInProjectNonNullable() {
-    final String sql = "select name, \n"
-        + " deptno > ANY (\n"
-        + " select deptno from emp) \n"
-        + " from dept";
+  /** Test case for testing type created by SubQueryRemoveRule: an
+   * ANY sub-query is non-nullable therefore plan should have cast. */
+  @Test public void
+  testAnyInProjectNonNullable() {
+    final String sql = "select name, deptno > ANY (\n"
+        + "  select deptno from emp)\n"
+        + "from dept";
     checkSubQuery(sql).withLateDecorrelation(true).check();
   }
 
-  /** Test case for
-   * testing type created by SubQueryRemoveRule
-   * ANY subquery is nullable therefore plan should not have cast
-   */
+  /** Test case for testing type created by SubQueryRemoveRule; an
+   * ANY sub-query is nullable therefore plan should not have cast. */
   @Test public void testAnyInProjectNullable() {
-    final String sql = "select deptno, \n"
-        + " name = ANY (\n"
-        + " select mgr from emp) \n"
-        + " from dept";
+    final String sql = "select deptno, name = ANY (\n"
+        + "  select mgr from emp)\n"
+        + "from dept";
     checkSubQuery(sql).withLateDecorrelation(true).check();
   }
 
@@ -5475,7 +5480,41 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testPushProjectWithIsNotDistinctFromPastJoin() {
     checkPlanning(ProjectJoinTransposeRule.INSTANCE,
         "select e.sal + b.comm from emp e inner join bonus b "
-            + "on e.ename IS NOT DISTINCT FROM b.ename and e.deptno = 10");
+            + "on (e.ename || e.job) IS NOT DISTINCT FROM (b.ename || b.job) and e.deptno = 10");
+  }
+
+  @Test public void testDynamicStarWithUnion() {
+    String sql = "(select n_nationkey from SALES.CUSTOMER) union all\n"
+        + "(select n_name from CUSTOMER_MODIFIABLEVIEW)";
+
+    VolcanoPlanner planner = new VolcanoPlanner(null, null);
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+
+    Tester dynamicTester = createDynamicTester().withDecorrelation(true)
+        .withClusterFactory(
+            relOptCluster -> RelOptCluster.create(planner, relOptCluster.getRexBuilder()));
+
+    RelRoot root = dynamicTester.convertSqlToRel(sql);
+
+    String planBefore = NL + RelOptUtil.toString(root.rel);
+    getDiffRepos().assertEquals("planBefore", "${planBefore}", planBefore);
+
+    RuleSet ruleSet =
+        RuleSets.ofList(
+            EnumerableRules.ENUMERABLE_PROJECT_RULE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
+            EnumerableRules.ENUMERABLE_UNION_RULE);
+    Program program = Programs.of(ruleSet);
+
+    RelTraitSet toTraits =
+        root.rel.getCluster().traitSet()
+            .replace(0, EnumerableConvention.INSTANCE);
+
+    RelNode relAfter = program.run(planner, root.rel, toTraits,
+        Collections.emptyList(), Collections.emptyList());
+
+    String planAfter = NL + RelOptUtil.toString(relAfter);
+    getDiffRepos().assertEquals("planAfter", "${planAfter}", planAfter);
   }
 }
 

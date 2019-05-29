@@ -344,8 +344,7 @@ public abstract class SqlOperatorBaseTest {
             CalciteAssert.EMPTY_CONNECTION_FACTORY
                 .with(new CalciteAssert
                     .AddSchemaSpecPostProcessor(CalciteAssert.SchemaSpec.HR))
-                .with("fun", library.name())
-        );
+                .with("fun", library.name()));
   }
 
   //--- Tests -----------------------------------------------------------
@@ -1832,9 +1831,10 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar("{fn TRUNCATE(-12.34, -1)}", -10, "DECIMAL(4, 2) NOT NULL");
 
     // String Functions
-    if (false) {
-      tester.checkScalar("{fn ASCII(string)}", null, "");
-    }
+    tester.checkScalar("{fn ASCII('a')}", 97, "INTEGER NOT NULL");
+    tester.checkScalar("{fn ASCII('ABC')}", "65", "INTEGER NOT NULL");
+    tester.checkNull("{fn ASCII(cast(null as varchar(1)))}");
+
     if (false) {
       tester.checkScalar("{fn CHAR(code)}", null, "");
     }
@@ -1842,13 +1842,12 @@ public abstract class SqlOperatorBaseTest {
         "{fn CONCAT('foo', 'bar')}",
         "foobar",
         "CHAR(6) NOT NULL");
-    if (false) {
-      tester.checkScalar(
-          "{fn DIFFERENCE(string1, string2)}",
-          null,
-          "");
-    }
+
+    tester.checkScalar("{fn DIFFERENCE('Miller', 'miller')}", "4", "INTEGER NOT NULL");
+    tester.checkNull("{fn DIFFERENCE('muller', cast(null as varchar(1)))}");
+
     tester.checkString("{fn REVERSE('abc')}", "cba", "VARCHAR(3) NOT NULL");
+    tester.checkNull("{fn REVERSE(cast(null as varchar(1)))}");
 
     // REVIEW: is this result correct? I think it should be "abcCdef"
     tester.checkScalar(
@@ -1880,9 +1879,9 @@ public abstract class SqlOperatorBaseTest {
         "xxx  ",
         "VARCHAR(6) NOT NULL");
 
-    if (false) {
-      tester.checkScalar("{fn REPEAT(string, count)}", null, "");
-    }
+    tester.checkScalar("{fn REPEAT('a', -100)}", "", "VARCHAR(1) NOT NULL");
+    tester.checkNull("{fn REPEAT('abc', cast(null as integer))}");
+    tester.checkNull("{fn REPEAT(cast(null as varchar(1)), cast(null as integer))}");
 
     tester.checkString("{fn REPLACE('JACK and JUE','J','BL')}",
         "BLACK and BLUE", "VARCHAR(12) NOT NULL");
@@ -1909,12 +1908,12 @@ public abstract class SqlOperatorBaseTest {
         " xxx",
         "VARCHAR(6) NOT NULL");
 
-    if (false) {
-      tester.checkScalar("{fn SOUNDEX(string)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn SPACE(count)}", null, "");
-    }
+    tester.checkScalar("{fn SOUNDEX('Miller')}", "M460", "VARCHAR(4) NOT NULL");
+    tester.checkNull("{fn SOUNDEX(cast(null as varchar(1)))}");
+
+    tester.checkScalar("{fn SPACE(-100)}", "", "VARCHAR(2000) NOT NULL");
+    tester.checkNull("{fn SPACE(cast(null as integer))}");
+
     tester.checkScalar(
         "{fn SUBSTRING('abcdef', 2, 3)}",
         "bcd",
@@ -4332,8 +4331,10 @@ public abstract class SqlOperatorBaseTest {
     testerMysql.checkString("reverse('123')", "321", "VARCHAR(3) NOT NULL");
     testerMysql.checkString("reverse('abc')", "cba", "VARCHAR(3) NOT NULL");
     testerMysql.checkString("reverse('ABC')", "CBA", "VARCHAR(3) NOT NULL");
-    testerMysql.checkString("reverse('Hello World')", "dlroW olleH", "VARCHAR(11) NOT NULL");
-    testerMysql.checkString("reverse(_UTF8'\u4F60\u597D')", "好你", "VARCHAR(2) NOT NULL");
+    testerMysql.checkString("reverse('Hello World')", "dlroW olleH",
+        "VARCHAR(11) NOT NULL");
+    testerMysql.checkString("reverse(_UTF8'\u4F60\u597D')", "\u597D\u4F60",
+        "VARCHAR(2) NOT NULL");
     testerMysql.checkNull("reverse(cast(null as varchar(1)))");
   }
 
@@ -4573,6 +4574,28 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails("json_pretty(^null^)",
         "(?s).*Illegal use of 'NULL'.*", false);
     tester.checkNull("json_pretty(cast(null as varchar))");
+  }
+
+  @Test public void testJsonStorageSize() {
+    tester.checkString("json_storage_size('[100, \"sakila\", [1, 3, 5], 425.05]')",
+        "29", "INTEGER");
+    tester.checkString("json_storage_size('{\"a\": 1000,\"b\": \"aa\", \"c\": \"[1, 3, 5]\"}')",
+        "35", "INTEGER");
+    tester.checkString("json_storage_size('{\"a\": 1000, \"b\": \"wxyz\", \"c\": \"[1, 3]\"}')",
+        "34", "INTEGER");
+    tester.checkString("json_storage_size('[100, \"json\", [[10, 20, 30], 3, 5], 425.05]')",
+        "36", "INTEGER");
+    tester.checkString("json_storage_size('12')",
+        "2", "INTEGER");
+    tester.checkString("json_storage_size('12' format json)",
+        "2", "INTEGER");
+    tester.checkString("json_storage_size('null')",
+        "4", "INTEGER");
+
+    // nulls
+    tester.checkFails("json_storage_size(^null^)",
+        "(?s).*Illegal use of 'NULL'.*", false);
+    tester.checkNull("json_storage_size(cast(null as varchar))");
   }
 
   @Test public void testJsonType() {

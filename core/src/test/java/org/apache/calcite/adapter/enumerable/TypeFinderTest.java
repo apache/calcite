@@ -110,8 +110,8 @@ public class TypeFinderTest {
 
   private void assertTypeContains(List<Type> expectedTypes, List<Node> nodes) {
     final HashSet<Type> types = new HashSet<>();
-    final EnumerableRelImplementor.TypeFinder typeFinder
-        = new EnumerableRelImplementor.TypeFinder(types);
+    final EnumerableRelImplementor.TypeFinder typeFinder =
+        new EnumerableRelImplementor.TypeFinder(types);
     for (Node node : nodes) {
       node.accept(typeFinder);
     }

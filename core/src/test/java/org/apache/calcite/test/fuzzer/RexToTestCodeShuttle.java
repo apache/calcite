@@ -65,6 +65,7 @@ public class RexToTestCodeShuttle extends RexVisitorImpl<String> {
           .put(SqlStdOperatorTable.UNARY_PLUS, "unaryPlus")
           .put(SqlStdOperatorTable.MINUS, "sub")
           .put(SqlStdOperatorTable.UNARY_MINUS, "unaryMinus")
+          .put(SqlStdOperatorTable.MULTIPLY, "mul")
           .build();
 
 

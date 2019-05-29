@@ -19,6 +19,7 @@ package org.apache.calcite.sql.parser;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -616,6 +617,11 @@ public class SqlParserTest {
             .setQuotedCasing(quotedCasing)
             .setConformance(conformance)
             .build());
+  }
+
+  protected SqlParser getDialectSqlParser(String sql, SqlDialect dialect) {
+    return SqlParser.create(new SourceStringReader(sql),
+        dialect.configureParser(SqlParser.configBuilder()).build());
   }
 
   protected void checkExp(
@@ -8676,6 +8682,13 @@ public class SqlParserTest {
             "JSON_PRETTY(NULL)");
   }
 
+  @Test public void testJsonStorageSize() {
+    checkExp("json_storage_size('foo')",
+        "JSON_STORAGE_SIZE('foo')");
+    checkExp("json_storage_size(null)",
+        "JSON_STORAGE_SIZE(NULL)");
+  }
+
   @Test public void testJsonArrayAgg1() {
     checkExp("json_arrayagg(\"column\")",
         "JSON_ARRAYAGG(`column` ABSENT ON NULL)");
@@ -8727,6 +8740,53 @@ public class SqlParserTest {
     assertEquals(node2.toString(), node1.toString());
   }
 
+  @Test public void testConfigureFromDialect() throws SqlParseException {
+    // Calcite's default converts unquoted identifiers to upper case
+    checkDialect(SqlDialect.DatabaseProduct.CALCITE.getDialect(),
+        "select unquotedColumn from \"doubleQuotedTable\"",
+        is("SELECT \"UNQUOTEDCOLUMN\"\n"
+            + "FROM \"doubleQuotedTable\""));
+    // MySQL leaves unquoted identifiers unchanged
+    checkDialect(SqlDialect.DatabaseProduct.MYSQL.getDialect(),
+        "select unquotedColumn from `doubleQuotedTable`",
+        is("SELECT `unquotedColumn`\n"
+            + "FROM `doubleQuotedTable`"));
+    // Oracle converts unquoted identifiers to upper case
+    checkDialect(SqlDialect.DatabaseProduct.ORACLE.getDialect(),
+        "select unquotedColumn from \"doubleQuotedTable\"",
+        is("SELECT \"UNQUOTEDCOLUMN\"\n"
+            + "FROM \"doubleQuotedTable\""));
+    // PostgreSQL converts unquoted identifiers to lower case
+    checkDialect(SqlDialect.DatabaseProduct.POSTGRESQL.getDialect(),
+        "select unquotedColumn from \"doubleQuotedTable\"",
+        is("SELECT \"unquotedcolumn\"\n"
+            + "FROM \"doubleQuotedTable\""));
+    // Redshift converts all identifiers to lower case
+    checkDialect(SqlDialect.DatabaseProduct.REDSHIFT.getDialect(),
+        "select unquotedColumn from \"doubleQuotedTable\"",
+        is("SELECT \"unquotedcolumn\"\n"
+            + "FROM \"doublequotedtable\""));
+  }
+
+  @Test public void testParenthesizedSubQueries() {
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM `TAB`) AS `X`";
+
+    final String sql1 = "SELECT * FROM (((SELECT * FROM tab))) X";
+    sql(sql1).ok(expected);
+
+    final String sql2 = "SELECT * FROM ((((((((((((SELECT * FROM tab)))))))))))) X";
+    sql(sql2).ok(expected);
+  }
+
+  protected void checkDialect(SqlDialect dialect, String sql,
+      Matcher<String> matcher) throws SqlParseException {
+    final SqlParser parser = getDialectSqlParser(sql, dialect);
+    final SqlNode node = parser.parseStmt();
+    assertThat(linux(node.toSqlString(dialect).getSql()), matcher);
+  }
+
   //~ Inner Interfaces -------------------------------------------------------
 
   /**
@@ -8756,11 +8816,8 @@ public class SqlParserTest {
         SqlNode sqlNode,
         String expected) {
       // no dialect, always parenthesize
-      String actual = sqlNode.toSqlString(null, true).getSql();
-      if (LINUXIFY.get()[0]) {
-        actual = Util.toLinux(actual);
-      }
-      TestUtil.assertEqualsVerbose(expected, actual);
+      final String actual = sqlNode.toSqlString(null, true).getSql();
+      TestUtil.assertEqualsVerbose(expected, linux(actual));
     }
 
     @Override public void checkList(
@@ -8807,11 +8864,8 @@ public class SqlParserTest {
         String sql,
         String expected) {
       final SqlNode sqlNode = parseExpressionAndHandleEx(sql);
-      String actual = sqlNode.toSqlString(null, true).getSql();
-      if (LINUXIFY.get()[0]) {
-        actual = Util.toLinux(actual);
-      }
-      TestUtil.assertEqualsVerbose(expected, actual);
+      final String actual = sqlNode.toSqlString(null, true).getSql();
+      TestUtil.assertEqualsVerbose(expected, linux(actual));
     }
 
     protected SqlNode parseExpressionAndHandleEx(String sql) {
@@ -9015,6 +9069,8 @@ public class SqlParserTest {
     }
   }
 
+  /** Converts a string to linux format (LF line endings rather than CR-LF),
+   * except if disabled in {@link #LINUXIFY}. */
   private String linux(String s) {
     if (LINUXIFY.get()[0]) {
       s = Util.toLinux(s);

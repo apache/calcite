@@ -23,6 +23,7 @@ import org.apache.calcite.test.CalciteAssert;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -69,7 +70,7 @@ public class ScrollingTest {
         final Connection connection = DriverManager.getConnection("jdbc:calcite:");
         final SchemaPlus root = connection.unwrap(CalciteConnection.class).getRootSchema();
         ElasticsearchSchema schema = new ElasticsearchSchema(NODE.restClient(), NODE.mapper(),
-            NAME, null, fetchSize);
+            NAME, fetchSize);
         root.add("elastic", schema);
         return connection;
       }
@@ -100,7 +101,7 @@ public class ScrollingTest {
   private void assertNoActiveScrolls() throws IOException  {
     // get node stats
     final Response response = NODE.restClient()
-        .performRequest("GET", "/_nodes/stats/indices/search");
+        .performRequest(new Request("GET", "/_nodes/stats/indices/search"));
 
     try (InputStream is = response.getEntity().getContent()) {
       final ObjectNode node = NODE.mapper().readValue(is, ObjectNode.class);

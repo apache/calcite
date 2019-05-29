@@ -150,6 +150,9 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction JSON_REMOVE = new SqlJsonRemoveFunction();
 
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction JSON_STORAGE_SIZE = new SqlJsonStorageSizeFunction();
+
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
   public static final SqlFunction REPEAT =
       new SqlFunction(

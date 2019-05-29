@@ -38,6 +38,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableMap;
 
+import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
 import org.slf4j.Logger;
@@ -69,7 +70,6 @@ final class ElasticsearchTransport {
   private final RestClient restClient;
 
   final String indexName;
-  final String typeName;
 
   final ElasticsearchVersion version;
 
@@ -84,12 +84,10 @@ final class ElasticsearchTransport {
   ElasticsearchTransport(final RestClient restClient,
                          final ObjectMapper mapper,
                          final String indexName,
-                         final String typeName,
                          final int fetchSize) {
     this.mapper = Objects.requireNonNull(mapper, "mapper");
     this.restClient = Objects.requireNonNull(restClient, "restClient");
     this.indexName = Objects.requireNonNull(indexName, "indexName");
-    this.typeName = Objects.requireNonNull(typeName, "typeName");
     this.fetchSize = fetchSize;
     this.version = version(); // cache version
     this.mapping = fetchAndCreateMapping(); // cache mapping
@@ -120,13 +118,13 @@ final class ElasticsearchTransport {
    * Build index mapping returning new instance of {@link ElasticsearchMapping}.
    */
   private ElasticsearchMapping fetchAndCreateMapping() {
-    final String uri = String.format(Locale.ROOT, "/%s/%s/_mapping", indexName, typeName);
+    final String uri = String.format(Locale.ROOT, "/%s/_mapping", indexName);
     final ObjectNode root = rawHttp(ObjectNode.class).apply(new HttpGet(uri));
-    ObjectNode properties = (ObjectNode) root.elements().next().get("mappings").elements().next();
+    ObjectNode properties = (ObjectNode) root.elements().next().get("mappings");
 
     ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
     ElasticsearchJson.visitMappingProperties(properties, builder::put);
-    return new ElasticsearchMapping(indexName, typeName, builder.build());
+    return new ElasticsearchMapping(indexName, builder.build());
   }
 
   ObjectMapper mapper() {
@@ -206,7 +204,7 @@ final class ElasticsearchTransport {
     Objects.requireNonNull(httpParams, "httpParams");
     return query -> {
       Hook.QUERY_PLAN.run(query);
-      String path = String.format(Locale.ROOT, "/%s/%s/_search", indexName, typeName);
+      String path = String.format(Locale.ROOT, "/%s/_search", indexName);
       final HttpPost post;
       try {
         URIBuilder builder = new URIBuilder(path);
@@ -275,11 +273,11 @@ final class ElasticsearchTransport {
       final HttpEntity entity = request instanceof HttpEntityEnclosingRequest
           ? ((HttpEntityEnclosingRequest) request).getEntity() : null;
 
-      final Response response = restClient.performRequest(
+      final Request r = new Request(
           request.getRequestLine().getMethod(),
-          request.getRequestLine().getUri(),
-          Collections.emptyMap(),
-          entity);
+          request.getRequestLine().getUri());
+      r.setEntity(entity);
+      final Response response = restClient.performRequest(r);
 
       final String payload = entity != null && entity.isRepeatable()
           ? EntityUtils.toString(entity) : "<empty>";

@@ -187,7 +187,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
         builder.call(RelOptUtil.op(op.comparisonKind, null),
             e.operands.get(0), builder.field("q", "m")));
     // CASE statement above is created with nullable boolean type, but it might
-    // not be correct.  If the original subquery node's type is not nullable it
+    // not be correct.  If the original sub-query node's type is not nullable it
     // is guranteed for case statement to not produce NULLs. Therefore to avoid
     // planner complaining we need to add cast.  Note that nullable type is
     // created due to MIN aggcall, since there is no groupby.

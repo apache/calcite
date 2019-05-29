@@ -1733,6 +1733,12 @@ public class RelBuilder {
     final boolean correlate = variablesSet.size() == 1;
     RexNode postCondition = literal(true);
     if (simplify) {
+      // Normalize expanded versions IS NOT DISTINCT FROM so that simplifier does not
+      // transform the expression to something unrecognizable
+      if (condition instanceof RexCall) {
+        condition = RelOptUtil.collapseExpandedIsNotDistinctFromExpr((RexCall) condition,
+            getRexBuilder());
+      }
       condition = simplifier.simplifyUnknownAsFalse(condition);
     }
     if (correlate) {
