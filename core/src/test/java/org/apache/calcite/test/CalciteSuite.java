@@ -59,6 +59,8 @@ import org.apache.calcite.sql.validate.LexCaseSensitiveTest;
 import org.apache.calcite.sql.validate.LexEscapeTest;
 import org.apache.calcite.sql.validate.SqlValidatorUtilTest;
 import org.apache.calcite.test.enumerable.EnumerableCorrelateTest;
+import org.apache.calcite.test.enumerable.EnumerableRepeatUnionHierarchyTest;
+import org.apache.calcite.test.enumerable.EnumerableRepeatUnionTest;
 import org.apache.calcite.test.fuzzer.RexProgramFuzzyTest;
 import org.apache.calcite.tools.FrameworksTest;
 import org.apache.calcite.tools.PlannerTest;
@@ -188,7 +190,8 @@ import org.junit.runners.Suite;
 
     // above 10sec
     JdbcFrontJdbcBackTest.class,
-
+    EnumerableRepeatUnionTest.class,
+    EnumerableRepeatUnionHierarchyTest.class,
     // above 20sec
     JdbcTest.class,
     CalciteSqlOperatorTest.class,

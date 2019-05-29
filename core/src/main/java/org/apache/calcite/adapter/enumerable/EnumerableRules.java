@@ -67,6 +67,12 @@ public class EnumerableRules {
   public static final EnumerableUnionRule ENUMERABLE_UNION_RULE =
       new EnumerableUnionRule();
 
+  public static final EnumerableRepeatUnionRule ENUMERABLE_REPEAT_UNION_RULE =
+      new EnumerableRepeatUnionRule();
+
+  public static final EnumerableTableSpoolRule ENUMERABLE_TABLE_SPOOL_RULE =
+      new EnumerableTableSpoolRule();
+
   public static final EnumerableIntersectRule ENUMERABLE_INTERSECT_RULE =
       new EnumerableIntersectRule();
 

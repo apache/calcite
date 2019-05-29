@@ -204,6 +204,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           EnumerableRules.ENUMERABLE_COLLECT_RULE,
           EnumerableRules.ENUMERABLE_UNCOLLECT_RULE,
           EnumerableRules.ENUMERABLE_UNION_RULE,
+          EnumerableRules.ENUMERABLE_REPEAT_UNION_RULE,
+          EnumerableRules.ENUMERABLE_TABLE_SPOOL_RULE,
           EnumerableRules.ENUMERABLE_INTERSECT_RULE,
           EnumerableRules.ENUMERABLE_MINUS_RULE,
           EnumerableRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
