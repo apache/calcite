@@ -24,12 +24,14 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
- * Relational expression that iterates over its input and, apart from returning its results,
- * will forward them into other consumers.
+ * Relational expression that iterates over its input and, in addition to
+ * returning its results, will forward them into other consumers.
  *
- * <p>NOTE: The current API is experimental and subject to change without notice.</p>
+ * <p>NOTE: The current API is experimental and subject to change without
+ * notice.
  */
 @Experimental
 public abstract class Spool extends SingleRel {
@@ -43,39 +45,45 @@ public abstract class Spool extends SingleRel {
   }
 
   /**
-   * The way the spool consumes elements from its input.
+   * How the spool consumes elements from its input.
+   *
    * <ul>
-   *  <li>EAGER: the spool will consume the elements from its input at once at the initial request.
-   *  </li>
-   *   <li>LAZY: the spool will consume the elements from its input one by one by request.</li>
+   * <li>EAGER: the spool consumes the elements from its input at once at the
+   *     initial request;
+   * <li>LAZY: the spool consumes the elements from its input one by one by
+   *     request.
    * </ul>
    */
   public final Type readType;
+
   /**
-   * The way the spool forwards elements to consumers.
+   * How the spool forwards elements to consumers.
+   *
    * <ul>
-   *   <li>EAGER: the spool will forward each element as soon as it returns it.</li>
-   *   <li>LAZY: the spool will forward all elements at once when it is done retuning all of them.
-   *   </li>
+   * <li>EAGER: the spool forwards each element as soon as it returns it;
+   * <li>LAZY: the spool forwards all elements at once when it is done returning
+   *     all of them.
    * </ul>
    */
   public final Type writeType;
 
   //~ Constructors -----------------------------------------------------------
+
+  /** Creates a Spool. */
   protected Spool(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
-                  Type readType, Type writeType) {
+      Type readType, Type writeType) {
     super(cluster, traitSet, input);
-    this.readType = readType;
-    this.writeType = writeType;
+    this.readType = Objects.requireNonNull(readType);
+    this.writeType = Objects.requireNonNull(writeType);
   }
 
   @Override public final RelNode copy(RelTraitSet traitSet,
-                                      List<RelNode> inputs) {
+      List<RelNode> inputs) {
     return copy(traitSet, sole(inputs), readType, writeType);
   }
 
   protected abstract Spool copy(RelTraitSet traitSet, RelNode input,
-                                Type readType, Type writeType);
+      Type readType, Type writeType);
 
   @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)

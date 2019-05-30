@@ -45,10 +45,10 @@ other software versions as specified in `pom.xml`.
 * `Correlate` use `JoinRelType` instead of `SemiJoinType`
 * Rename `EnumerableThetaJoin` to `EnumerableNestedLoopJoin`
 * Rename `EnumerableJoin` to `EnumerableHashJoin`
-* Remove `SemiJoinFactory` from `RelBuilder`, method `semiJoin` now returns a `LogicalJoin` 
-with join type `JoinRelType.SEMI` instead of a `SemiJoin`
+* Remove `SemiJoinFactory` from `RelBuilder`, method `semiJoin` now returns a `LogicalJoin`
+  with join type `JoinRelType.SEMI` instead of a `SemiJoin`
 * Rules: `SemiJoinFilterTransposeRule`, `SemiJoinJoinTransposeRule`, `SemiJoinProjectTransposeRule`
-and `SemiJoinRemoveRule` match `LogicalJoin` with join type `SEMI` instead of `SemiJoin`.  
+  and `SemiJoinRemoveRule` match `LogicalJoin` with join type `SEMI` instead of `SemiJoin`.
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.19.0">1.19.0</a> / 2019-03-25
 {: #v1-19-0}

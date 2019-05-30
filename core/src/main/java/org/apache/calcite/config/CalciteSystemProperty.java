@@ -68,9 +68,9 @@ public final class CalciteSystemProperty<T> {
 
   /** Whether to enable the collation trait in the default planner configuration.
    *
-   * Some extra optimizations are possible if enabled, but queries should work either way.
-   * At some point this will become a preference, or we will run multiple phases: first
-   * disabled, then enabled. */
+   * <p>Some extra optimizations are possible if enabled, but queries should
+   * work either way. At some point this will become a preference, or we will
+   * run multiple phases: first disabled, then enabled. */
   public static final CalciteSystemProperty<Boolean> ENABLE_COLLATION_TRAIT =
       booleanProperty("calcite.enable.collation.trait", true);
 
