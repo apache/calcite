@@ -17,8 +17,8 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.rel.RelBasicShuttle;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
@@ -92,7 +92,7 @@ public class RelOptMaterialization {
     final StarTable starTable = starRelOptTable.unwrap(StarTable.class);
     assert starTable != null;
     RelNode rel2 = rel.accept(
-        new RelShuttleImpl() {
+        new RelBasicShuttle() {
           @Override public RelNode visit(TableScan scan) {
             RelOptTable relOptTable = scan.getTable();
             final Table table = relOptTable.unwrap(Table.class);

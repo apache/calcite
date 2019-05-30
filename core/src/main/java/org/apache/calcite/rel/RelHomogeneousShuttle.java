@@ -35,7 +35,7 @@ import org.apache.calcite.rel.logical.LogicalValues;
  * Visits all the relations in a homogeneous way: always redirects calls to
  * {@code accept(RelNode)}.
  */
-public class RelHomogeneousShuttle extends RelShuttleImpl {
+public class RelHomogeneousShuttle extends RelBasicShuttle {
   @Override public RelNode visit(LogicalAggregate aggregate) {
     return visit((RelNode) aggregate);
   }
