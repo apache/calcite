@@ -99,7 +99,7 @@ public class AggregateJoinRemoveRule extends RelOptRule {
     RelNode node;
     if (isLeftJoin) {
       node = aggregate
-          .copy(aggregate.getTraitSet(), join.getLeft(), aggregate.indicator,
+          .copy(aggregate.getTraitSet(), join.getLeft(), false,
               aggregate.getGroupSet(), aggregate.getGroupSets(),
               aggregate.getAggCallList());
     } else {
