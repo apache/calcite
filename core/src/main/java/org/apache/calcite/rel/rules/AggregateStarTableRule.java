@@ -193,7 +193,6 @@ public class AggregateStarTableRule extends RelOptRule {
                   tileKey.dimensions.cardinality() + tileKey.measures.size(),
                   aggregate.getRowType().getFieldCount()) {
                 public int getSourceOpt(int source) {
-                  assert aggregate.getIndicatorCount() == 0;
                   if (source < aggregate.getGroupCount()) {
                     int in = tileKey.dimensions.nth(source);
                     return aggregate.getGroupSet().indexOf(in);

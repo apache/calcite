@@ -617,9 +617,11 @@ public class Bindables {
         List<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls)
         throws InvalidRelException {
-      super(cluster, traitSet, input, indicator, groupSet, groupSets, aggCalls);
+      super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
       assert getConvention() instanceof BindableConvention;
 
+      Preconditions.checkArgument(!indicator,
+          "indicator is not supported, use GROUPING function instead");
       for (AggregateCall aggCall : aggCalls) {
         if (aggCall.isDistinct()) {
           throw new InvalidRelException(
@@ -680,7 +682,7 @@ public class Bindables {
           agg.getTraitSet().replace(BindableConvention.INSTANCE);
       try {
         return new BindableAggregate(rel.getCluster(), traitSet,
-            convert(agg.getInput(), traitSet), agg.indicator, agg.getGroupSet(),
+            convert(agg.getInput(), traitSet), false, agg.getGroupSet(),
             agg.getGroupSets(), agg.getAggCallList());
       } catch (InvalidRelException e) {
         RelOptPlanner.LOGGER.debug(e.toString());

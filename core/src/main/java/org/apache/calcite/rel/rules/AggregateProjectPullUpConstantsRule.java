@@ -98,7 +98,6 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
     final Aggregate aggregate = call.rel(0);
     final RelNode input = call.rel(1);
 
-    assert !aggregate.indicator : "predicate ensured no grouping sets";
     final int groupCount = aggregate.getGroupCount();
     if (groupCount == 1) {
       // No room for optimization since we cannot convert from non-empty

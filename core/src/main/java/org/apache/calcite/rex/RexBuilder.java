@@ -286,7 +286,6 @@ public class RexBuilder {
    *
    * @param aggCall aggregate call to be added
    * @param groupCount number of groups in the aggregate relation
-   * @param indicator Whether the Aggregate has indicator (GROUPING) columns
    * @param aggCalls destination list of aggregate calls
    * @param aggCallMapping the dictionary of already added calls
    * @param aggArgTypes Argument types, not null
@@ -294,7 +293,7 @@ public class RexBuilder {
    * @return Rex expression for the given aggregate call
    */
   public RexNode addAggCall(AggregateCall aggCall, int groupCount,
-      boolean indicator, List<AggregateCall> aggCalls,
+      List<AggregateCall> aggCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
       final List<RelDataType> aggArgTypes) {
     if (aggCall.getAggregation() instanceof SqlCountAggFunction
@@ -308,12 +307,27 @@ public class RexBuilder {
     }
     RexNode rex = aggCallMapping.get(aggCall);
     if (rex == null) {
-      int index = aggCalls.size() + groupCount * (indicator ? 2 : 1);
+      int index = aggCalls.size() + groupCount;
       aggCalls.add(aggCall);
       rex = makeInputRef(aggCall.getType(), index);
       aggCallMapping.put(aggCall, rex);
     }
     return rex;
+  }
+
+  /**
+   * Creates a reference to an aggregate call, checking for repeated calls.
+   */
+  @Deprecated // to be removed before 2.0
+  public RexNode addAggCall(AggregateCall aggCall, int groupCount,
+      boolean indicator, List<AggregateCall> aggCalls,
+      Map<AggregateCall, RexNode> aggCallMapping,
+      final List<RelDataType> aggArgTypes) {
+    Preconditions.checkArgument(!indicator,
+        "indicator is deprecated, use GROUPING function instead");
+    return addAggCall(aggCall, groupCount, aggCalls,
+        aggCallMapping, aggArgTypes);
+
   }
 
   private static List<Integer> nullableArgs(List<Integer> list0,

@@ -150,7 +150,7 @@ public class AggregateFilterTransposeRule extends RelOptRule {
       }
       final Aggregate topAggregate =
           aggregate.copy(aggregate.getTraitSet(), newFilter,
-              aggregate.indicator, topGroupSet.build(),
+              false, topGroupSet.build(),
               newGroupingSets, topAggCallList);
       call.transformTo(topAggregate);
     }
