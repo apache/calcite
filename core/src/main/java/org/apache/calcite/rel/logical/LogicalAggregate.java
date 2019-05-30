@@ -26,6 +26,8 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.base.Preconditions;
+
 import java.util.List;
 
 /**
@@ -51,8 +53,7 @@ public final class LogicalAggregate extends Aggregate {
    * @param cluster    Cluster that this relational expression belongs to
    * @param traitSet   Traits
    * @param child      input relational expression
-   * @param indicator  Whether row type should include indicator fields to
-   *                   indicate which grouping set is active
+   * @param indicator  Unused field, alway false
    * @param groupSet Bit set of grouping fields
    * @param groupSets Grouping sets, or null to use just {@code groupSet}
    * @param aggCalls Array of aggregates to compute, not null
@@ -65,7 +66,9 @@ public final class LogicalAggregate extends Aggregate {
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
-    super(cluster, traitSet, child, indicator, groupSet, groupSets, aggCalls);
+    super(cluster, traitSet, child, groupSet, groupSets, aggCalls);
+    Preconditions.checkArgument(!indicator,
+        "indicator is not supported, use GROUPING function instead");
   }
 
   @Deprecated // to be removed before 2.0

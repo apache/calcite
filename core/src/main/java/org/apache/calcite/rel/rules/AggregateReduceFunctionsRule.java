@@ -201,15 +201,14 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
 
     List<AggregateCall> oldCalls = oldAggRel.getAggCallList();
     final int groupCount = oldAggRel.getGroupCount();
-    final int indicatorCount = oldAggRel.getIndicatorCount();
 
     final List<AggregateCall> newCalls = new ArrayList<>();
     final Map<AggregateCall, RexNode> aggCallMapping = new HashMap<>();
 
     final List<RexNode> projList = new ArrayList<>();
 
-    // pass through group key (+ indicators if present)
-    for (int i = 0; i < groupCount + indicatorCount; ++i) {
+    // pass through group key
+    for (int i = 0; i < groupCount; ++i) {
       projList.add(
           rexBuilder.makeInputRef(
               getFieldType(oldAggRel, i),
@@ -330,7 +329,6 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
               oldAggRel.getInput().getRowType(), oldCall.getArgList());
       return rexBuilder.addAggCall(oldCall,
           nGroups,
-          oldAggRel.indicator,
           newCalls,
           aggCallMapping,
           oldArgTypes);
@@ -403,14 +401,12 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
     RexNode numeratorRef =
         rexBuilder.addAggCall(sumCall,
             nGroups,
-            oldAggRel.indicator,
             newCalls,
             aggCallMapping,
             ImmutableList.of(avgInputType));
     final RexNode denominatorRef =
         rexBuilder.addAggCall(countCall,
             nGroups,
-            oldAggRel.indicator,
             newCalls,
             aggCallMapping,
             ImmutableList.of(avgInputType));
@@ -461,7 +457,6 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
     RexNode sumZeroRef =
         rexBuilder.addAggCall(sumZeroCall,
             nGroups,
-            oldAggRel.indicator,
             newCalls,
             aggCallMapping,
             ImmutableList.of(argType));
@@ -474,7 +469,6 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
     RexNode countRef =
         rexBuilder.addAggCall(countCall,
             nGroups,
-            oldAggRel.indicator,
             newCalls,
             aggCallMapping,
             ImmutableList.of(argType));
@@ -530,7 +524,6 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
     final RexNode sumArgSquared =
         rexBuilder.addAggCall(sumArgSquaredAggCall,
             nGroups,
-            oldAggRel.indicator,
             newCalls,
             aggCallMapping,
             ImmutableList.of(sumArgSquaredAggCall.getType()));
@@ -551,7 +544,6 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
     final RexNode sumArg =
         rexBuilder.addAggCall(sumArgAggCall,
             nGroups,
-            oldAggRel.indicator,
             newCalls,
             aggCallMapping,
             ImmutableList.of(sumArgAggCall.getType()));
@@ -576,7 +568,6 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
     final RexNode countArg =
         rexBuilder.addAggCall(countArgAggCall,
             nGroups,
-            oldAggRel.indicator,
             newCalls,
             aggCallMapping,
             ImmutableList.of(argOrdinalType));
@@ -648,7 +639,6 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
             null);
     return rexBuilder.addAggCall(aggregateCall,
         oldAggRel.getGroupCount(),
-        oldAggRel.indicator,
         newCalls,
         aggCallMapping,
         ImmutableList.of(aggregateCall.getType()));
@@ -668,7 +658,6 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
 
     return cluster.getRexBuilder().addAggCall(sumArgSquaredAggCall,
         oldAggRel.getGroupCount(),
-        oldAggRel.indicator,
         newCalls,
         aggCallMapping,
         ImmutableList.of(sumArgSquaredAggCall.getType()));
@@ -696,7 +685,6 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
 
     return oldAggRel.getCluster().getRexBuilder().addAggCall(countArgAggCall,
         oldAggRel.getGroupCount(),
-        oldAggRel.indicator,
         newCalls,
         aggCallMapping,
         operandTypes);
