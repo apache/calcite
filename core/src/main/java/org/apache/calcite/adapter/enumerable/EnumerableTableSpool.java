@@ -34,21 +34,23 @@ import org.apache.calcite.util.BuiltInMethod;
 /**
  * Implementation of {@link TableSpool} in
  * {@link EnumerableConvention enumerable calling convention}
- * that writes into a {@link ModifiableTable} (which must exist in the current schema).
+ * that writes into a {@link ModifiableTable} (which must exist in the current
+ * schema).
  *
- * <p>NOTE: The current API is experimental and subject to change without notice.</p>
+ * <p>NOTE: The current API is experimental and subject to change without
+ * notice.
  */
 @Experimental
 public class EnumerableTableSpool extends TableSpool implements EnumerableRel {
 
-  private EnumerableTableSpool(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
-                                 Type readType, Type writeType, String tableName) {
+  private EnumerableTableSpool(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode input, Type readType, Type writeType, String tableName) {
     super(cluster, traitSet, input, readType, writeType, tableName);
   }
 
   /** Creates an EnumerableTableSpool. */
-  public static EnumerableTableSpool create(RelNode input, Type readType, Type writeType,
-                                            String tableName) {
+  public static EnumerableTableSpool create(RelNode input, Type readType,
+      Type writeType, String tableName) {
     RelOptCluster cluster = input.getCluster();
     RelMetadataQuery mq = cluster.getMetadataQuery();
     RelTraitSet traitSet = cluster.traitSetOf(EnumerableConvention.INSTANCE)
@@ -102,7 +104,7 @@ public class EnumerableTableSpool extends TableSpool implements EnumerableRel {
   }
 
   @Override protected Spool copy(RelTraitSet traitSet, RelNode input,
-                                 Type readType, Type writeType) {
+      Type readType, Type writeType) {
     return new EnumerableTableSpool(input.getCluster(), traitSet, input,
         readType, writeType, tableName);
   }
