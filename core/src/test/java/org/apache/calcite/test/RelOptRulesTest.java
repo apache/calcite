@@ -1097,7 +1097,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .withTrim(true)
         .withPre(preProgram)
         .with(program)
-        .checkUnchanged();
+        .check();
   }
 
   @Test public void testSemiJoinTrim() throws Exception {
