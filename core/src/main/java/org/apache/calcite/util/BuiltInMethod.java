@@ -35,6 +35,7 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.EnumerableDefaults;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.ExtendedEnumerable;
+import org.apache.calcite.linq4j.JoinType;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
@@ -165,9 +166,10 @@ public enum BuiltInMethod {
   SLICE0(Enumerables.class, "slice0", Enumerable.class),
   SEMI_JOIN(EnumerableDefaults.class, "semiJoin", Enumerable.class,
       Enumerable.class, Function1.class, Function1.class),
+  ANTI_JOIN(EnumerableDefaults.class, "antiJoin", Enumerable.class,
+      Enumerable.class, Function1.class, Function1.class),
   NESTED_LOOP_JOIN(EnumerableDefaults.class, "nestedLoopJoin", Enumerable.class,
-      Enumerable.class, Predicate2.class, Function2.class, boolean.class,
-      boolean.class),
+      Enumerable.class, Predicate2.class, Function2.class, JoinType.class),
   CORRELATE_JOIN(ExtendedEnumerable.class, "correlateJoin",
       CorrelateJoinType.class, Function1.class, Function2.class),
   SELECT(ExtendedEnumerable.class, "select", Function1.class),

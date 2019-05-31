@@ -275,12 +275,15 @@ public class JdbcRules {
 
     @Override public RelNode convert(RelNode rel) {
       final Join join = (Join) rel;
-      if (join.isSemiJoin()) {
-        // It's not possible to convert semi-joins. They have fewer columns
+      switch (join.getJoinType()) {
+      case SEMI:
+      case ANTI:
+        // It's not possible to convert semi-joins or anti-joins. They have fewer columns
         // than regular joins.
         return null;
+      default:
+        return convert(join, true);
       }
-      return convert(join, true);
     }
 
     /**
