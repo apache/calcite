@@ -26,7 +26,6 @@ import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
@@ -175,10 +174,6 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
       list.add(averageTypeValueSize(aggregateCall.type));
     }
     return list.build();
-  }
-
-  public List<Double> averageColumnSizes(SemiJoin rel, RelMetadataQuery mq) {
-    return averageJoinColumnSizes(rel, mq);
   }
 
   public List<Double> averageColumnSizes(Join rel, RelMetadataQuery mq) {

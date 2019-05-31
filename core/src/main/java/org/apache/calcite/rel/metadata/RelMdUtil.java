@@ -25,7 +25,6 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
@@ -103,21 +102,6 @@ public class RelMdUtil {
     assert call.getOperator() == ARTIFICIAL_SELECTIVITY_FUNC;
     RexNode operand = call.getOperands().get(0);
     return ((RexLiteral) operand).getValueAs(Double.class);
-  }
-
-  /**
-   * Computes the selectivity of a semijoin filter if it is applied on a fact
-   * table. The computation is based on the selectivity of the dimension
-   * table/columns and the number of distinct values in the fact table
-   * columns.
-   *
-   * @param rel semijoin rel
-   * @return calculated selectivity
-   */
-  public static double computeSemiJoinSelectivity(RelMetadataQuery mq,
-      SemiJoin rel) {
-    return computeSemiJoinSelectivity(mq, rel.getLeft(), rel.getRight(),
-        rel.getLeftKeys(), rel.getRightKeys());
   }
 
   /**
@@ -740,7 +724,7 @@ public class RelMdUtil {
   }
 
   /** Returns an estimate of the number of rows returned by a
-   * {@link SemiJoin}. */
+   * join with type {@link JoinRelType#SEMI}. */
   public static Double getSemiJoinRowCount(RelMetadataQuery mq, RelNode left,
       RelNode right, JoinRelType joinType, RexNode condition) {
     final Double leftCount = mq.getRowCount(left);

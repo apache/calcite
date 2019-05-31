@@ -24,7 +24,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rex.RexBuilder;
@@ -77,9 +76,7 @@ public class JoinToCorrelateRule extends RelOptRule {
    * into a {@link org.apache.calcite.rel.logical.LogicalCorrelate}
    */
   @Deprecated // To be removed before 2.0, should use INSTANCE instead.
-  public static final JoinToCorrelateRule SEMI =
-      new JoinToCorrelateRule(SemiJoin.class, RelFactories.LOGICAL_BUILDER,
-          "SemiJoinToCorrelateRule");
+  public static final JoinToCorrelateRule SEMI = INSTANCE;
 
   //~ Constructors -----------------------------------------------------------
 
