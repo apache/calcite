@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -50,7 +51,8 @@ import static org.apache.calcite.plan.RelOptUtil.conjunctions;
 public abstract class FilterJoinRule extends RelOptRule {
   /** Predicate that always returns true. With this predicate, every filter
    * will be pushed into the ON clause. */
-  public static final Predicate TRUE_PREDICATE = (join, joinType, exp) -> true;
+  public static final Predicate TRUE_PREDICATE = (join, joinType, exp) ->
+      join.getConvention() != EnumerableConvention.INSTANCE;
 
   /** Rule that pushes predicates from a Filter into the Join below them. */
   public static final FilterJoinRule FILTER_ON_JOIN =
@@ -116,15 +118,6 @@ public abstract class FilterJoinRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
-  /** Returns if it is needed to push the filter condition above join
-   * into the join condition.
-   */
-  private boolean needsPushInto(Join join) {
-    // If the join force the join info to be based on column equality,
-    // or it is a non-correlated semijoin, returns false.
-    return !RelOptUtil.forceEquiJoin(join);
-  }
-
   protected void perform(RelOptRuleCall call, Filter filter,
       Join join) {
     final List<RexNode> joinFilters =
@@ -171,7 +164,7 @@ public abstract class FilterJoinRule extends RelOptRule {
         join,
         aboveFilters,
         joinType,
-        needsPushInto(join),
+        true,
         !joinType.generatesNullsOnLeft(),
         !joinType.generatesNullsOnRight(),
         joinFilters,

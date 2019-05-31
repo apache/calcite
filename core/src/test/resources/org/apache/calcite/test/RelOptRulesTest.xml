@@ -1239,7 +1239,7 @@ LogicalProject(SAL=[$0])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(SAL=[$0])
-  LogicalJoin(condition=[=($1, $2)], joinType=[semi])
+  LogicalJoin(condition=[=(200, $2)], joinType=[semi])
     LogicalFilter(condition=[=($1, 200)])
       LogicalProject(SAL=[$5], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
