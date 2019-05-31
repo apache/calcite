@@ -1586,12 +1586,10 @@ public class RelBuilderTest {
                 builder.field(2, 0, "DEPTNO"),
                 builder.field(2, 1, "DEPTNO")))
         .build();
-    // AntiJoin implemented as LogicalCorrelate with joinType=anti
     final String expected = ""
-        + "LogicalCorrelate(correlation=[$cor0], joinType=[anti], requiredColumns=[{0}])\n"
+        + "LogicalJoin(condition=[=($0, $10)], joinType=[anti])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n"
-        + "  LogicalFilter(condition=[=($cor0.DEPTNO, $7)])\n"
-        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }
 

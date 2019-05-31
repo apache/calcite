@@ -227,7 +227,14 @@ public class PushProjector {
       List<RelDataTypeField> rightFields =
           joinRel.getRight().getRowType().getFieldList();
       nFields = leftFields.size();
-      nFieldsRight = joinRel.isSemiJoin() ? 0 : rightFields.size();
+      switch (joinRel.getJoinType()) {
+      case SEMI:
+      case ANTI:
+        nFieldsRight = 0;
+        break;
+      default:
+        nFieldsRight = rightFields.size();
+      }
       nSysFields = joinRel.getSystemFieldList().size();
       childBitmap =
           ImmutableBitSet.range(nSysFields, nFields + nSysFields);

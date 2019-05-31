@@ -25,6 +25,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.rules.FilterCorrelateRule;
 import org.apache.calcite.rel.rules.JoinToCorrelateRule;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.JdbcTest;
 
@@ -170,6 +171,12 @@ public class EnumerableCorrelateTest {
   @Test public void antiJoinCorrelate() {
     tester(false, new JdbcTest.HrSchema())
         .query("?")
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          // force the antijoin to run via EnumerableCorrelate
+          // instead of EnumerableHashJoin(ANTI)
+          planner.addRule(JoinToCorrelateRule.INSTANCE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+        })
         .withRel(
             // Retrieve departments without employees. Equivalent SQL:
             //   SELECT d.deptno, d.name FROM depts d
@@ -181,13 +188,49 @@ public class EnumerableCorrelateTest {
                     builder.equals(
                         builder.field(2, "d", "deptno"),
                         builder.field(2, "e", "deptno")))
-                    .project(
-                        builder.field("deptno"),
-                        builder.field("name"))
-                    .build())
+                .project(
+                    builder.field("deptno"),
+                    builder.field("name"))
+                .build())
         .returnsUnordered(
             "deptno=30; name=Marketing",
             "deptno=40; name=HR");
+  }
+
+  @Test public void nonEquiAntiJoinCorrelate() {
+    tester(false, new JdbcTest.HrSchema())
+        .query("?")
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          // force the antijoin to run via EnumerableCorrelate
+          // instead of EnumerableNestedLoopJoin
+          planner.addRule(JoinToCorrelateRule.INSTANCE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+        })
+        .withRel(
+            // Retrieve employees with the top salary in their department. Equivalent SQL:
+            //   SELECT e.name, e.salary FROM emps e
+            //   WHERE NOT EXISTS (
+            //     SELECT 1 FROM emps e2
+            //     WHERE e.deptno = e2.deptno AND e2.salary > e.salary)
+            builder -> builder
+                .scan("s", "emps").as("e")
+                .scan("s", "emps").as("e2")
+                .antiJoin(
+                    builder.and(
+                        builder.equals(
+                            builder.field(2, "e", "deptno"),
+                            builder.field(2, "e2", "deptno")),
+                        builder.call(
+                            SqlStdOperatorTable.GREATER_THAN,
+                            builder.field(2, "e2", "salary"),
+                            builder.field(2, "e", "salary"))))
+                .project(
+                    builder.field("name"),
+                    builder.field("salary"))
+                .build())
+        .returnsUnordered(
+            "name=Theodore; salary=11500.0",
+            "name=Eric; salary=8000.0");
   }
 
   /** Test case for
@@ -197,6 +240,12 @@ public class EnumerableCorrelateTest {
     final Integer salesDeptNo = 10;
     tester(false, new JdbcTest.HrSchema())
         .query("?")
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          // force the antijoin to run via EnumerableCorrelate
+          // instead of EnumerableHashJoin(ANTI)
+          planner.addRule(JoinToCorrelateRule.INSTANCE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+        })
         .withRel(
             // Retrieve employees from any department other than Sales (deptno 10) whose
             // commission is different from any Sales employee commission. Since there

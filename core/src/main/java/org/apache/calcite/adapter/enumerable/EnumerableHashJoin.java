@@ -40,6 +40,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import java.lang.reflect.Method;
 import java.util.Set;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Join} in
@@ -110,18 +111,20 @@ public class EnumerableHashJoin extends EquiJoin implements EnumerableRel {
       RelMetadataQuery mq) {
     double rowCount = mq.getRowCount(this);
 
-    if (!isSemiJoin()) {
-      // Joins can be flipped, and for many algorithms, both versions are viable
-      // and have the same cost. To make the results stable between versions of
-      // the planner, make one of the versions slightly more expensive.
-      switch (joinType) {
-      case RIGHT:
+    // Joins can be flipped, and for many algorithms, both versions are viable
+    // and have the same cost. To make the results stable between versions of
+    // the planner, make one of the versions slightly more expensive.
+    switch (joinType) {
+    case SEMI:
+    case ANTI:
+      // SEMI and ANTI join cannot be flipped
+      break;
+    case RIGHT:
+      rowCount = RelMdUtil.addEpsilon(rowCount);
+      break;
+    default:
+      if (RelNodes.COMPARATOR.compare(left, right) > 0) {
         rowCount = RelMdUtil.addEpsilon(rowCount);
-        break;
-      default:
-        if (RelNodes.COMPARATOR.compare(left, right) > 0) {
-          rowCount = RelMdUtil.addEpsilon(rowCount);
-        }
       }
     }
 
@@ -147,14 +150,21 @@ public class EnumerableHashJoin extends EquiJoin implements EnumerableRel {
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-    if (isSemiJoin()) {
+    switch (joinType) {
+    case SEMI:
+    case ANTI:
       assert joinInfo.isEqui();
       return implementHashSemiJoin(implementor, pref);
+    default:
+      return implementHashJoin(implementor, pref);
     }
-    return implementHashJoin(implementor, pref);
   }
 
   private Result implementHashSemiJoin(EnumerableRelImplementor implementor, Prefer pref) {
+    assert joinType == JoinRelType.SEMI || joinType == JoinRelType.ANTI;
+    final Method method = joinType == JoinRelType.SEMI
+        ? BuiltInMethod.SEMI_JOIN.method
+        : BuiltInMethod.ANTI_JOIN.method;
     BlockBuilder builder = new BlockBuilder();
     final Result leftResult =
         implementor.visitChild(this, 0, (EnumerableRel) left, pref);
@@ -171,7 +181,7 @@ public class EnumerableHashJoin extends EquiJoin implements EnumerableRel {
         physType,
         builder.append(
             Expressions.call(
-                BuiltInMethod.SEMI_JOIN.method,
+                method,
                 Expressions.list(
                     leftExpression,
                     rightExpression,

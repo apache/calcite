@@ -76,8 +76,8 @@ public class ProjectJoinTransposeRule extends RelOptRule {
     Project origProj = call.rel(0);
     final Join join = call.rel(1);
 
-    if (join.isSemiJoin()) {
-      return; // TODO: support SemiJoin
+    if (!join.getJoinType().projectsRight()) {
+      return; // TODO: support SemiJoin / AntiJoin
     }
 
     // Normalize the join condition so we don't end up misidentified expanded
