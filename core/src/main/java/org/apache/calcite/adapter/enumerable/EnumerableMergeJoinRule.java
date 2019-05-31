@@ -95,8 +95,6 @@ class EnumerableMergeJoinRule extends ConverterRule {
           left,
           right,
           info.getEquiCondition(left, right, cluster.getRexBuilder()),
-          info.leftKeys,
-          info.rightKeys,
           join.getVariablesSet(),
           join.getJoinType());
     } catch (InvalidRelException e) {
