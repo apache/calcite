@@ -284,7 +284,7 @@ public class StreamTest {
             + "      LogicalTableScan(table=[[STREAM_JOINS, PRODUCTS]])\n")
         .explainContains(""
             + "EnumerableCalc(expr#0..6=[{inputs}], proj#0..1=[{exprs}], SUPPLIERID=[$t6])\n"
-            + "  EnumerableJoin(condition=[=($4, $5)], joinType=[inner])\n"
+            + "  EnumerableHashJoin(condition=[=($4, $5)], joinType=[inner])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t2):VARCHAR(32) NOT NULL], proj#0..4=[{exprs}])\n"
             + "      EnumerableInterpreter\n"
             + "        BindableTableScan(table=[[STREAM_JOINS, ORDERS, (STREAM)]])\n"

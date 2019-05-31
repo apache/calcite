@@ -21,7 +21,6 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.EquiJoin;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -79,7 +78,7 @@ public abstract class FilterJoinRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a FilterProjectTransposeRule with an explicit root operand and
+   * Creates a FilterJoinRule with an explicit root operand and
    * factories.
    */
   protected FilterJoinRule(RelOptRuleOperand operand, String id,
@@ -102,7 +101,7 @@ public abstract class FilterJoinRule extends RelOptRule {
   }
 
   /**
-   * Creates a FilterProjectTransposeRule with an explicit root operand and
+   * Creates a FilterJoinRule with an explicit root operand and
    * factories.
    */
   @Deprecated // to be removed before 2.0
@@ -115,6 +114,15 @@ public abstract class FilterJoinRule extends RelOptRule {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  /** Returns if it is needed to push the filter condition above join
+   * into the join condition.
+   */
+  private boolean needsPushInto(Join join) {
+    // If the join force the join info to be based on column equality,
+    // Or it is a non-correlated semijoin, returns false.
+    return !RelOptUtil.forceEquiJoin(join);
+  }
 
   protected void perform(RelOptRuleCall call, Filter filter,
       Join join) {
@@ -162,7 +170,7 @@ public abstract class FilterJoinRule extends RelOptRule {
         join,
         aboveFilters,
         joinType,
-        !(join instanceof EquiJoin),
+        needsPushInto(join),
         !joinType.generatesNullsOnLeft(),
         !joinType.generatesNullsOnRight(),
         joinFilters,
@@ -264,7 +272,6 @@ public abstract class FilterJoinRule extends RelOptRule {
     relBuilder.filter(
         RexUtil.fixUp(rexBuilder, aboveFilters,
             RelOptUtil.getFieldTypeList(relBuilder.peek().getRowType())));
-
     call.transformTo(relBuilder.build());
   }
 

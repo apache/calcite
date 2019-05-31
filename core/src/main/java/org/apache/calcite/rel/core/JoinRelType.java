@@ -16,13 +16,61 @@
  */
 package org.apache.calcite.rel.core;
 
+import org.apache.calcite.linq4j.CorrelateJoinType;
+
 import java.util.Locale;
 
 /**
  * Enumeration of join types.
  */
 public enum JoinRelType {
-  INNER, LEFT, RIGHT, FULL;
+  /**
+   * Inner join.
+   */
+  INNER,
+
+  /**
+   * Left-outer join.
+   */
+  LEFT,
+
+  /**
+   * Right-outer join.
+   */
+  RIGHT,
+
+  /**
+   * Full-outer join.
+   */
+  FULL,
+
+  /**
+   * Semi-join.
+   *
+   * <p>For example, {@code EMP semi-join DEPT} finds all {@code EMP} records
+   * that have a corresponding {@code DEPT} record:
+   *
+   * <blockquote><pre>
+   * SELECT * FROM EMP
+   * WHERE EXISTS (SELECT 1 FROM DEPT
+   *     WHERE DEPT.DEPTNO = EMP.DEPTNO)</pre>
+   * </blockquote>
+   */
+  SEMI,
+
+  /**
+   * Anti-join.
+   *
+   * <p>For example, {@code EMP anti-join DEPT} finds all {@code EMP} records
+   * that do not have a corresponding {@code DEPT} record:
+   *
+   * <blockquote><pre>
+   * SELECT * FROM EMP
+   * WHERE NOT EXISTS (SELECT 1 FROM DEPT
+   *     WHERE DEPT.DEPTNO = EMP.DEPTNO)</pre>
+   * </blockquote>
+   */
+  ANTI;
 
   /** Lower-case name. */
   public final String lowerName = name().toLowerCase(Locale.ROOT);
@@ -41,6 +89,14 @@ public enum JoinRelType {
    */
   public boolean generatesNullsOnLeft() {
     return (this == RIGHT) || (this == FULL);
+  }
+
+  /**
+   * Returns whether a join of this type is an outer join, returns true if the join type may
+   * generate NULL values, either on the left-hand side or right-hand side.
+   */
+  public boolean isOuterJoin() {
+    return (this == LEFT) || (this == RIGHT) || (this == FULL);
   }
 
   /**
@@ -93,6 +149,37 @@ public enum JoinRelType {
     default:
       return this;
     }
+  }
+
+  /** Transform this JoinRelType to CorrelateJoinType. **/
+  public CorrelateJoinType toLinq4j() {
+    switch (this) {
+    case INNER:
+      return CorrelateJoinType.INNER;
+    case LEFT:
+      return CorrelateJoinType.LEFT;
+    case SEMI:
+      return CorrelateJoinType.SEMI;
+    case ANTI:
+      return CorrelateJoinType.ANTI;
+    }
+    throw new IllegalStateException(
+        "Unable to convert " + this + " to CorrelateJoinType");
+  }
+
+  public boolean projectsRight() {
+    switch (this) {
+    case INNER:
+    case LEFT:
+    case RIGHT:
+    case FULL:
+      return true;
+    case SEMI:
+    case ANTI:
+      return false;
+    }
+    throw new IllegalStateException(
+        "Unable to convert " + this + " to JoinRelType");
   }
 }
 

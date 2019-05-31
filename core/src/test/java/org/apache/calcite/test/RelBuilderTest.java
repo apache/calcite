@@ -112,7 +112,6 @@ import static org.junit.Assert.fail;
  *      {@link RelBuilder#alias(RexNode, String)} is removed if not a top-level
  *      project</li>
  *   <li>{@link RelBuilder#aggregate} with grouping sets</li>
- *   <li>{@link RelBuilder#aggregateCall} with filter</li>
  *   <li>Add call to create {@link TableFunctionScan}</li>
  *   <li>Add call to create {@link Window}</li>
  *   <li>Add call to create {@link TableModify}</li>
@@ -1286,6 +1285,79 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  @Test public void testRepeatUnion1() {
+    // Generates the sequence 1,2,3,...10 using a repeat union. Equivalent SQL:
+    //   WITH RECURSIVE delta(n) AS (
+    //     VALUES (1)
+    //     UNION ALL
+    //     SELECT n+1 FROM delta WHERE n < 10
+    //   )
+    //   SELECT * FROM delta
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.values(new String[] { "i" }, 1)
+            .transientScan("DELTA_TABLE")
+            .filter(
+                builder.call(
+                    SqlStdOperatorTable.LESS_THAN,
+                    builder.field(0),
+                    builder.literal(10)))
+            .project(
+                builder.call(SqlStdOperatorTable.PLUS,
+                    builder.field(0),
+                    builder.literal(1)))
+            .repeatUnion("DELTA_TABLE", true)
+            .build();
+    final String expected = "LogicalRepeatUnion(all=[true])\n"
+        + "  LogicalTableSpool(readType=[LAZY], writeType=[LAZY], tableName=[DELTA_TABLE])\n"
+        + "    LogicalValues(tuples=[[{ 1 }]])\n"
+        + "  LogicalTableSpool(readType=[LAZY], writeType=[LAZY], tableName=[DELTA_TABLE])\n"
+        + "    LogicalProject($f0=[+($0, 1)])\n"
+        + "      LogicalFilter(condition=[<($0, 10)])\n"
+        + "        LogicalTableScan(table=[[DELTA_TABLE]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test public void testRepeatUnion2() {
+    // Generates the factorial function from 0 to 7. Equivalent SQL:
+    //   WITH RECURSIVE delta (n, fact) AS (
+    //     VALUES (0, 1)
+    //     UNION ALL
+    //     SELECT n+1, (n+1)*fact FROM delta WHERE n < 7
+    //   )
+    //   SELECT * FROM delta
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.values(new String[] { "n", "fact" }, 0, 1)
+            .transientScan("AUX")
+            .filter(
+                builder.call(
+                    SqlStdOperatorTable.LESS_THAN,
+                    builder.field("n"),
+                    builder.literal(7)))
+            .project(
+                Arrays.asList(
+                    builder.call(SqlStdOperatorTable.PLUS,
+                        builder.field("n"),
+                        builder.literal(1)),
+                    builder.call(SqlStdOperatorTable.MULTIPLY,
+                        builder.call(SqlStdOperatorTable.PLUS,
+                            builder.field("n"),
+                            builder.literal(1)),
+                        builder.field("fact"))),
+                Arrays.asList("n", "fact"))
+            .repeatUnion("AUX", true)
+            .build();
+    final String expected = "LogicalRepeatUnion(all=[true])\n"
+        + "  LogicalTableSpool(readType=[LAZY], writeType=[LAZY], tableName=[AUX])\n"
+        + "    LogicalValues(tuples=[[{ 0, 1 }]])\n"
+        + "  LogicalTableSpool(readType=[LAZY], writeType=[LAZY], tableName=[AUX])\n"
+        + "    LogicalProject(n=[+($0, 1)], fact=[*(+($0, 1), $1)])\n"
+        + "      LogicalFilter(condition=[<($0, 7)])\n"
+        + "        LogicalTableScan(table=[[AUX]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
   @Test public void testIntersect() {
     // Equivalent SQL:
     //   SELECT empno FROM emp
@@ -1674,6 +1746,41 @@ public class RelBuilderTest {
         + "LogicalFilter(condition=[>($1, $2)])\n"
         + "  LogicalProject($f1=[20], $f2=[10], DEPTNO=[$7])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Tests that the {@link RelBuilder#alias(RexNode, String)} function is
+   * idempotent. */
+  @Test public void testScanAlias() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.scan("EMP");
+
+    // Simplify "emp.deptno as d as d" to "emp.deptno as d".
+    final RexNode e0 =
+        builder.alias(builder.alias(builder.field("DEPTNO"), "D"), "D");
+    assertThat(e0.toString(), is("AS($7, 'D')"));
+
+    // It would be nice if RelBuilder could simplify
+    // "emp.deptno as deptno" to "emp.deptno", but there is not
+    // enough information in RexInputRef.
+    final RexNode e1 = builder.alias(builder.field("DEPTNO"), "DEPTNO");
+    assertThat(e1.toString(), is("AS($7, 'DEPTNO')"));
+
+    // The intervening alias 'DEPTNO' is removed
+    final RexNode e2 =
+        builder.alias(builder.alias(builder.field("DEPTNO"), "DEPTNO"), "D1");
+    assertThat(e2.toString(), is("AS($7, 'D1')"));
+
+    // Simplify "emp.deptno as d2 as d3" to "emp.deptno as d3"
+    // because "d3" alias overrides "d2".
+    final RexNode e3 =
+        builder.alias(builder.alias(builder.field("DEPTNO"), "D2"), "D3");
+    assertThat(e3.toString(), is("AS($7, 'D3')"));
+
+    final RelNode root = builder.project(e0, e1, e2, e3).build();
+    final String expected = ""
+        + "LogicalProject(D=[$7], DEPTNO=[$7], D1=[$7], D3=[$7])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }
 

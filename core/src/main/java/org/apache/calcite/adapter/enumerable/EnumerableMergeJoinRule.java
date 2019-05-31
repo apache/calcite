@@ -37,7 +37,7 @@ import java.util.List;
  * {@link org.apache.calcite.rel.logical.LogicalJoin} relational expression
  * {@link EnumerableConvention enumerable calling convention}.
  *
- * @see org.apache.calcite.adapter.enumerable.EnumerableJoinRule
+ * @see EnumerableJoinRule
  */
 class EnumerableMergeJoinRule extends ConverterRule {
   EnumerableMergeJoinRule() {

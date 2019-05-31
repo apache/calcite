@@ -16,11 +16,9 @@
  */
 package org.apache.calcite.prepare;
 
-import org.apache.calcite.adapter.enumerable.EnumerableBindable;
 import org.apache.calcite.adapter.enumerable.EnumerableCalc;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpretable;
-import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -31,7 +29,6 @@ import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.BindableConvention;
-import org.apache.calcite.interpreter.Bindables;
 import org.apache.calcite.interpreter.Interpreters;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
@@ -72,33 +69,6 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.rules.AbstractMaterializedViewRule;
-import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
-import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
-import org.apache.calcite.rel.rules.AggregateStarTableRule;
-import org.apache.calcite.rel.rules.AggregateValuesRule;
-import org.apache.calcite.rel.rules.ExchangeRemoveConstantKeysRule;
-import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
-import org.apache.calcite.rel.rules.FilterJoinRule;
-import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
-import org.apache.calcite.rel.rules.FilterTableScanRule;
-import org.apache.calcite.rel.rules.JoinAssociateRule;
-import org.apache.calcite.rel.rules.JoinCommuteRule;
-import org.apache.calcite.rel.rules.JoinPushExpressionsRule;
-import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
-import org.apache.calcite.rel.rules.MaterializedViewFilterScanRule;
-import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
-import org.apache.calcite.rel.rules.ProjectMergeRule;
-import org.apache.calcite.rel.rules.ProjectTableScanRule;
-import org.apache.calcite.rel.rules.ProjectWindowTransposeRule;
-import org.apache.calcite.rel.rules.ReduceExpressionsRule;
-import org.apache.calcite.rel.rules.SortJoinTransposeRule;
-import org.apache.calcite.rel.rules.SortProjectTransposeRule;
-import org.apache.calcite.rel.rules.SortRemoveConstantKeysRule;
-import org.apache.calcite.rel.rules.SortUnionTransposeRule;
-import org.apache.calcite.rel.rules.TableScanRule;
-import org.apache.calcite.rel.rules.ValuesReduceRule;
-import org.apache.calcite.rel.stream.StreamRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -165,21 +135,23 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * subject to change without notice.</p>
  */
 public class CalcitePrepareImpl implements CalcitePrepare {
-  /** Whether to enable the collation trait. Some extra optimizations are
-   * possible if enabled, but queries should work either way. At some point
-   * this will become a preference, or we will run multiple phases: first
-   * disabled, then enabled. */
-  private static final boolean ENABLE_COLLATION_TRAIT = true;
+
+  @Deprecated // to be removed before 2.0
+  public static final boolean ENABLE_ENUMERABLE =
+      CalciteSystemProperty.ENABLE_ENUMERABLE.value();
+
+  @Deprecated // to be removed before 2.0
+  public static final boolean ENABLE_STREAM =
+      CalciteSystemProperty.ENABLE_STREAM.value();
+
+  @Deprecated // to be removed before 2.0
+  public static final List<RelOptRule> ENUMERABLE_RULES =
+      EnumerableRules.ENUMERABLE_RULES;
+
 
   /** Whether the bindable convention should be the root convention of any
    * plan. If not, enumerable convention is the default. */
   public final boolean enableBindable = Hook.ENABLE_BINDABLE.get(false);
-
-  /** Whether the enumerable convention is enabled. */
-  public static final boolean ENABLE_ENUMERABLE = true;
-
-  /** Whether the streaming is enabled. */
-  public static final boolean ENABLE_STREAM = true;
 
   private static final Set<String> SIMPLE_SQLS =
       ImmutableSet.of(
@@ -189,67 +161,6 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           "select 1 from dual",
           "values 1",
           "VALUES 1");
-
-  public static final List<RelOptRule> ENUMERABLE_RULES =
-      ImmutableList.of(
-          EnumerableRules.ENUMERABLE_JOIN_RULE,
-          EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
-          EnumerableRules.ENUMERABLE_SEMI_JOIN_RULE,
-          EnumerableRules.ENUMERABLE_CORRELATE_RULE,
-          EnumerableRules.ENUMERABLE_PROJECT_RULE,
-          EnumerableRules.ENUMERABLE_FILTER_RULE,
-          EnumerableRules.ENUMERABLE_AGGREGATE_RULE,
-          EnumerableRules.ENUMERABLE_SORT_RULE,
-          EnumerableRules.ENUMERABLE_LIMIT_RULE,
-          EnumerableRules.ENUMERABLE_COLLECT_RULE,
-          EnumerableRules.ENUMERABLE_UNCOLLECT_RULE,
-          EnumerableRules.ENUMERABLE_UNION_RULE,
-          EnumerableRules.ENUMERABLE_INTERSECT_RULE,
-          EnumerableRules.ENUMERABLE_MINUS_RULE,
-          EnumerableRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
-          EnumerableRules.ENUMERABLE_VALUES_RULE,
-          EnumerableRules.ENUMERABLE_WINDOW_RULE,
-          EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
-          EnumerableRules.ENUMERABLE_TABLE_FUNCTION_SCAN_RULE);
-
-  private static final List<RelOptRule> DEFAULT_RULES =
-      ImmutableList.of(
-          AggregateStarTableRule.INSTANCE,
-          AggregateStarTableRule.INSTANCE2,
-          TableScanRule.INSTANCE,
-          CalciteSystemProperty.COMMUTE.value()
-              ? JoinAssociateRule.INSTANCE
-              : ProjectMergeRule.INSTANCE,
-          FilterTableScanRule.INSTANCE,
-          ProjectFilterTransposeRule.INSTANCE,
-          FilterProjectTransposeRule.INSTANCE,
-          FilterJoinRule.FILTER_ON_JOIN,
-          JoinPushExpressionsRule.INSTANCE,
-          AggregateExpandDistinctAggregatesRule.INSTANCE,
-          AggregateReduceFunctionsRule.INSTANCE,
-          FilterAggregateTransposeRule.INSTANCE,
-          ProjectWindowTransposeRule.INSTANCE,
-          JoinCommuteRule.INSTANCE,
-          JoinPushThroughJoinRule.RIGHT,
-          JoinPushThroughJoinRule.LEFT,
-          SortProjectTransposeRule.INSTANCE,
-          SortJoinTransposeRule.INSTANCE,
-          SortRemoveConstantKeysRule.INSTANCE,
-          SortUnionTransposeRule.INSTANCE,
-          ExchangeRemoveConstantKeysRule.EXCHANGE_INSTANCE,
-          ExchangeRemoveConstantKeysRule.SORT_EXCHANGE_INSTANCE);
-
-  private static final List<RelOptRule> CONSTANT_REDUCTION_RULES =
-      ImmutableList.of(
-          ReduceExpressionsRule.PROJECT_INSTANCE,
-          ReduceExpressionsRule.FILTER_INSTANCE,
-          ReduceExpressionsRule.CALC_INSTANCE,
-          ReduceExpressionsRule.WINDOW_INSTANCE,
-          ReduceExpressionsRule.JOIN_INSTANCE,
-          ValuesReduceRule.FILTER_INSTANCE,
-          ValuesReduceRule.PROJECT_FILTER_INSTANCE,
-          ValuesReduceRule.PROJECT_INSTANCE,
-          AggregateValuesRule.INSTANCE);
 
   public CalcitePrepareImpl() {
   }
@@ -520,71 +431,26 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     final VolcanoPlanner planner =
         new VolcanoPlanner(costFactory, externalContext);
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
-    if (ENABLE_COLLATION_TRAIT) {
+    if (CalciteSystemProperty.ENABLE_COLLATION_TRAIT.value()) {
       planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
-      planner.registerAbstractRelationalRules();
     }
-    RelOptUtil.registerAbstractRels(planner);
-    for (RelOptRule rule : DEFAULT_RULES) {
-      planner.addRule(rule);
-    }
-    if (prepareContext.config().materializationsEnabled()) {
-      planner.addRule(MaterializedViewFilterScanRule.INSTANCE);
-      planner.addRule(AbstractMaterializedViewRule.INSTANCE_PROJECT_FILTER);
-      planner.addRule(AbstractMaterializedViewRule.INSTANCE_FILTER);
-      planner.addRule(AbstractMaterializedViewRule.INSTANCE_PROJECT_JOIN);
-      planner.addRule(AbstractMaterializedViewRule.INSTANCE_JOIN);
-      planner.addRule(AbstractMaterializedViewRule.INSTANCE_PROJECT_AGGREGATE);
-      planner.addRule(AbstractMaterializedViewRule.INSTANCE_AGGREGATE);
-    }
-    if (enableBindable) {
-      for (RelOptRule rule : Bindables.RULES) {
-        planner.addRule(rule);
-      }
-    }
-    planner.addRule(Bindables.BINDABLE_TABLE_SCAN_RULE);
-    planner.addRule(ProjectTableScanRule.INSTANCE);
-    planner.addRule(ProjectTableScanRule.INTERPRETER);
+    RelOptUtil.registerDefaultRules(planner,
+        prepareContext.config().materializationsEnabled(),
+        enableBindable);
 
-    if (ENABLE_ENUMERABLE) {
-      for (RelOptRule rule : ENUMERABLE_RULES) {
-        planner.addRule(rule);
-      }
-      planner.addRule(EnumerableInterpreterRule.INSTANCE);
-    }
-
-    if (enableBindable && ENABLE_ENUMERABLE) {
-      planner.addRule(
-          EnumerableBindable.EnumerableToBindableConverterRule.INSTANCE);
-    }
-
-    if (ENABLE_STREAM) {
-      for (RelOptRule rule : StreamRules.RULES) {
-        planner.addRule(rule);
-      }
-    }
-
-    // Change the below to enable constant-reduction.
-    if (false) {
-      for (RelOptRule rule : CONSTANT_REDUCTION_RULES) {
-        planner.addRule(rule);
-      }
-    }
-
-    final SparkHandler spark = prepareContext.spark();
+    final CalcitePrepare.SparkHandler spark = prepareContext.spark();
     if (spark.enabled()) {
       spark.registerRules(
           new SparkHandler.RuleSetBuilder() {
-          public void addRule(RelOptRule rule) {
-            // TODO:
-          }
+            public void addRule(RelOptRule rule) {
+              // TODO:
+            }
 
-          public void removeRule(RelOptRule rule) {
-            // TODO:
-          }
-        });
+            public void removeRule(RelOptRule rule) {
+              // TODO:
+            }
+          });
     }
-
     Hook.PLANNER.run(planner); // allow test to add or remove rules
 
     return planner;

@@ -25,7 +25,6 @@ import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
-import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
@@ -176,8 +175,8 @@ public class Lattice {
     }
     if (rel instanceof LogicalJoin) {
       LogicalJoin join = (LogicalJoin) rel;
-      if (join.getJoinType() != JoinRelType.INNER) {
-        throw new RuntimeException("only inner join allowed, but got "
+      if (join.getJoinType().isOuterJoin()) {
+        throw new RuntimeException("only non nulls-generating join allowed, but got "
             + join.getJoinType());
       }
       populate(nodes, tempLinks, join.getLeft());

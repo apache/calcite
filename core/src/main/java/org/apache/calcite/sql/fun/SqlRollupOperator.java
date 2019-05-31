@@ -68,7 +68,7 @@ class SqlRollupOperator extends SqlInternalOperator {
     writer.keyword(keyword);
   }
 
-  private static void unparseCube(SqlWriter writer, SqlCall call) {
+  private void unparseCube(SqlWriter writer, SqlCall call) {
     writer.keyword(call.getOperator().getName());
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");

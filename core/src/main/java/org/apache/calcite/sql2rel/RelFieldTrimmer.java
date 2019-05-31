@@ -30,7 +30,6 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
@@ -133,13 +132,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       RelFactories.ProjectFactory projectFactory,
       RelFactories.FilterFactory filterFactory,
       RelFactories.JoinFactory joinFactory,
-      RelFactories.SemiJoinFactory semiJoinFactory,
       RelFactories.SortFactory sortFactory,
       RelFactories.AggregateFactory aggregateFactory,
       RelFactories.SetOpFactory setOpFactory) {
     this(validator,
         RelBuilder.proto(projectFactory, filterFactory, joinFactory,
-            semiJoinFactory, sortFactory, aggregateFactory, setOpFactory)
+            sortFactory, aggregateFactory, setOpFactory)
         .create(cluster, null));
   }
 
@@ -667,7 +665,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     relBuilder.push(newInputs.get(0));
     relBuilder.push(newInputs.get(1));
 
-    if (join instanceof SemiJoin) {
+    if (join.isSemiJoin()) {
       relBuilder.semiJoin(newConditionExpr);
       // For SemiJoins only map fields from the left-side
       Mapping inputMapping = inputMappings.get(0);

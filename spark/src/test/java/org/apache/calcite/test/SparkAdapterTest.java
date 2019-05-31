@@ -376,7 +376,7 @@ public class SparkAdapterTest {
 
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..3=[{inputs}], Y=[$t3], Z=[$t1])\n"
-        + "  EnumerableJoin(condition=[=($0, $2)], joinType=[inner])\n"
+        + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
         + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
         + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
 
@@ -399,7 +399,7 @@ public class SparkAdapterTest {
 
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..3=[{inputs}], Z=[$t1])\n"
-        + "  EnumerableJoin(condition=[=($0, $2)], joinType=[inner])\n"
+        + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
         + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
         + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
 

@@ -1019,10 +1019,10 @@ public class JdbcTest {
             "explain plan for select \"time_by_day\".\"the_year\" as \"c0\", \"time_by_day\".\"quarter\" as \"c1\", \"product_class\".\"product_family\" as \"c2\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\", \"product_class\" as \"product_class\", \"product\" as \"product\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 and \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\" and \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\" group by \"time_by_day\".\"the_year\", \"time_by_day\".\"quarter\", \"product_class\".\"product_family\"")
         .returns("PLAN=EnumerableAggregate(group=[{0, 1, 2}], m0=[SUM($3)])\n"
             + "  EnumerableCalc(expr#0..37=[{inputs}], c0=[$t9], c1=[$t13], c2=[$t4], unit_sales=[$t22])\n"
-            + "    EnumerableJoin(condition=[=($23, $0)], joinType=[inner])\n"
+            + "    EnumerableHashJoin(condition=[=($23, $0)], joinType=[inner])\n"
             + "      EnumerableTableScan(table=[[foodmart2, product_class]])\n"
-            + "      EnumerableJoin(condition=[=($10, $19)], joinType=[inner])\n"
-            + "        EnumerableJoin(condition=[=($11, $0)], joinType=[inner])\n"
+            + "      EnumerableHashJoin(condition=[=($10, $19)], joinType=[inner])\n"
+            + "        EnumerableHashJoin(condition=[=($11, $0)], joinType=[inner])\n"
             + "          EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], proj#0..9=[{exprs}], $condition=[$t12])\n"
             + "            EnumerableTableScan(table=[[foodmart2, time_by_day]])\n"
             + "          EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])\n"
@@ -1053,8 +1053,8 @@ public class JdbcTest {
             + "and p.\"brand_name\" = 'Washington'")
         .explainMatches("including all attributes ",
             CalciteAssert.checkMaskedResultContains(""
-                + "EnumerableJoin(condition=[=($0, $38)], joinType=[inner]): rowcount = 7.050660528307499E8, cumulative cost = {1.0640240216183146E9 rows, 777302.0 cpu, 0.0 io}\n"
-                + "  EnumerableJoin(condition=[=($2, $8)], joinType=[inner]): rowcount = 2.0087351932499997E7, cumulative cost = {2.117504719375143E7 rows, 724261.0 cpu, 0.0 io}\n"
+                + "EnumerableHashJoin(condition=[=($0, $38)], joinType=[inner]): rowcount = 7.050660528307499E8, cumulative cost = {1.0640240216183146E9 rows, 777302.0 cpu, 0.0 io}\n"
+                + "  EnumerableHashJoin(condition=[=($2, $8)], joinType=[inner]): rowcount = 2.0087351932499997E7, cumulative cost = {2.117504719375143E7 rows, 724261.0 cpu, 0.0 io}\n"
                 + "    EnumerableTableScan(table=[[foodmart2, sales_fact_1997]]): rowcount = 86837.0, cumulative cost = {86837.0 rows, 86838.0 cpu, 0.0 io}\n"
                 + "    EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco':VARCHAR(30)], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30]): rowcount = 1542.1499999999999, cumulative cost = {11823.15 rows, 637423.0 cpu, 0.0 io}\n"
                 + "      EnumerableTableScan(table=[[foodmart2, customer]]): rowcount = 10281.0, cumulative cost = {10281.0 rows, 10282.0 cpu, 0.0 io}\n"
@@ -2388,17 +2388,17 @@ public class JdbcTest {
   @Test public void testReuseExpressionWhenNullChecking3() {
     CalciteAssert.hr()
         .query(
-            "select substring(\"name\", \"deptno\"+case when user <> 'sa' then 1 end) from \"hr\".\"emps\"")
+            "select substring(\"name\", \"deptno\"+case when CURRENT_PATH <> '' then 1 end) from \"hr\".\"emps\"")
         .planContains(
             "final String inp2_ = current.name;")
         .planContains("static final boolean "
-            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_ne_sa_sa_ = "
-            + "org.apache.calcite.runtime.SqlFunctions.ne(\"sa\", \"sa\");")
+            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_ne_ = "
+            + "org.apache.calcite.runtime.SqlFunctions.ne(\"\", \"\");")
         .planContains("static final boolean "
-            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_ne_sa_sa_ = "
-            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_ne_sa_sa_;")
+            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_ne_ = "
+            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_ne_;")
         .planContains("return inp2_ == null "
-            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_ne_sa_sa_ ? (String) null"
+            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_ne_ ? (String) null"
             + " : org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
             + "current.deptno + 1);");
   }
@@ -2407,7 +2407,7 @@ public class JdbcTest {
     CalciteAssert.hr()
         .query("select substring(trim(\n"
             + "substring(\"name\",\n"
-            + "  \"deptno\"*0+case when user = 'sa' then 1 end)\n"
+            + "  \"deptno\"*0+case when CURRENT_PATH = '' then 1 end)\n"
             + "), case when \"empid\">\"deptno\" then 4\n" /* diff from 5 */
             + "   else\n"
             + "     case when \"deptno\"*8>8 then 5 end\n"
@@ -2419,13 +2419,13 @@ public class JdbcTest {
         .planContains(
             "final int inp1_ = current.deptno;")
         .planContains("static final boolean "
-            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ = "
-            + "org.apache.calcite.runtime.SqlFunctions.eq(\"sa\", \"sa\");")
+            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_ = "
+            + "org.apache.calcite.runtime.SqlFunctions.eq(\"\", \"\");")
         .planContains("static final boolean "
-            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ = "
-            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_;")
+            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_ = "
+            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_;")
         .planContains("return inp2_ == null "
-            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ "
+            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_ "
             + "|| !v5 && inp1_ * 8 <= 8 "
             + "? (String) null "
             + ": org.apache.calcite.runtime.SqlFunctions.substring("
@@ -2442,7 +2442,7 @@ public class JdbcTest {
     CalciteAssert.hr()
         .query("select substring(trim(\n"
             + "substring(\"name\",\n"
-            + "  \"deptno\"*0+case when user = 'sa' then 1 end)\n"
+            + "  \"deptno\"*0+case when CURRENT_PATH = '' then 1 end)\n"
             + "), case when \"empid\">\"deptno\" then 5\n" /* diff from 4 */
             + "   else\n"
             + "     case when \"deptno\"*8>8 then 5 end\n"
@@ -2456,13 +2456,13 @@ public class JdbcTest {
         .planContains(
             "static final int $L4J$C$5_2 = 5 - 2;")
         .planContains("static final boolean "
-            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ = "
-            + "org.apache.calcite.runtime.SqlFunctions.eq(\"sa\", \"sa\");")
+            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_ = "
+            + "org.apache.calcite.runtime.SqlFunctions.eq(\"\", \"\");")
         .planContains("static final boolean "
-            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ = "
-            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_;")
+            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_ = "
+            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_;")
         .planContains("return inp2_ == null "
-            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ "
+            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_ "
             + "|| current.empid <= inp1_ && inp1_ * 8 <= 8 "
             + "? (String) null "
             + ": org.apache.calcite.runtime.SqlFunctions.substring("
@@ -2581,7 +2581,7 @@ public class JdbcTest {
         .explainContains("EnumerableCalc(expr#0..1=[{inputs}], EMPNO=[$t1], DESC=[$t0])\n"
             + "  EnumerableAggregate(group=[{1, 2}])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t3):INTEGER NOT NULL], expr#5=[=($t4, $t0)], expr#6=['SameName'], expr#7=[=($t1, $t6)], expr#8=[AND($t5, $t7)], proj#0..3=[{exprs}], $condition=[$t8])\n"
-            + "      EnumerableJoin(condition=[true], joinType=[inner])\n"
+            + "      EnumerableHashJoin(condition=[true], joinType=[inner])\n"
             + "        EnumerableValues(tuples=[[{ 10, 'SameName' }]])\n"
             + "        EnumerableTableScan(table=[[SALES, EMPS]])\n")
         .returns("EMPNO=1; DESC=SameName\n");
@@ -2597,7 +2597,7 @@ public class JdbcTest {
             + " join \"hr\".\"depts\" using (\"deptno\")")
         .explainContains(""
             + "EnumerableCalc(expr#0..3=[{inputs}], empid=[$t2], deptno=[$t0], name=[$t1])\n"
-            + "  EnumerableJoin(condition=[=($0, $3)], joinType=[inner])\n"
+            + "  EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[hr, depts]])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..1=[{exprs}])\n"
@@ -2669,7 +2669,7 @@ public class JdbcTest {
         .explainContains(""
             + "EnumerableAggregate(group=[{0}], m0=[COUNT($1)])\n"
             + "  EnumerableAggregate(group=[{1, 3}])\n"
-            + "    EnumerableJoin(condition=[=($0, $2)], joinType=[inner])\n"
+            + "    EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
             + "      EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], time_id=[$t0], the_year=[$t4], $condition=[$t12])\n"
             + "        EnumerableTableScan(table=[[foodmart2, time_by_day]])\n"
             + "      EnumerableCalc(expr#0..7=[{inputs}], time_id=[$t1], unit_sales=[$t7])\n"
@@ -2732,7 +2732,7 @@ public class JdbcTest {
             + "})])\n"
             + "    EnumerableTableScan(table=[[hr, depts]])")
         .explainContains(""
-            + "EnumerableSemiJoin(condition=[=($0, $5)], joinType=[inner])\n"
+            + "EnumerableHashJoin(condition=[=($0, $5)], joinType=[semi])\n"
             + "  EnumerableTableScan(table=[[hr, depts]])\n"
             + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], expr#6=[<($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
             + "    EnumerableTableScan(table=[[hr, emps]])")
@@ -4573,7 +4573,7 @@ public class JdbcTest {
         + " where e.\"deptno\"=\"depts\".\"deptno\") on true";
     final String explain = ""
         + "EnumerableCalc(expr#0..6=[{inputs}], proj#0..4=[{exprs}], I=[$t6])\n"
-        + "  EnumerableJoin(condition=[=($1, $5)], joinType=[left])\n"
+        + "  EnumerableHashJoin(condition=[=($1, $5)], joinType=[left])\n"
         + "    EnumerableTableScan(table=[[hr, emps]])\n"
         + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])\n"
         + "      EnumerableAggregate(group=[{0}])\n"
@@ -4654,7 +4654,7 @@ public class JdbcTest {
         + "       )\n"
         + "from employee e\n"
         + "group by e.department_id\n";
-    final String explain = "EnumerableJoin(condition=[true], joinType=[left])\n"
+    final String explain = "EnumerableHashJoin(condition=[true], joinType=[left])\n"
         + "  EnumerableAggregate(group=[{7}], EXPR$1=[$SUM0($0)])\n"
         + "    EnumerableTableScan(table=[[foodmart2, employee]])\n"
         + "  EnumerableAggregate(group=[{}], EXPR$0=[SUM($0)])\n"

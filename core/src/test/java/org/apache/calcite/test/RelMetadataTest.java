@@ -42,7 +42,6 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
@@ -1436,7 +1435,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     relBuilder.semiJoin(
         relBuilder.equals(relBuilder.field(2, 0, "DEPTNO"),
             relBuilder.field(2, 1, "DEPTNO")));
-    final SemiJoin semiJoin = (SemiJoin) relBuilder.build();
+    final LogicalJoin semiJoin = (LogicalJoin) relBuilder.build();
 
     predicates = mq.getPulledUpPredicates(semiJoin);
     assertThat(predicates.pulledUpPredicates, sortsAs("[=($0, 1)]"));
