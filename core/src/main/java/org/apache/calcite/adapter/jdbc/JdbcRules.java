@@ -275,7 +275,7 @@ public class JdbcRules {
 
     @Override public RelNode convert(RelNode rel) {
       final Join join = (Join) rel;
-      if (join.isSemiJoin()) {
+      if (!join.getJoinType().projectsRight()) {
         // It's not possible to convert semi-joins. They have fewer columns
         // than regular joins.
         return null;

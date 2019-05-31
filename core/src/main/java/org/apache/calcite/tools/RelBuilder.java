@@ -1949,35 +1949,10 @@ public class RelBuilder {
    * </blockquote>
    */
   public RelBuilder antiJoin(Iterable<? extends RexNode> conditions) {
-    // There is currently no "AntiJoin" relational expression, so we
-    // simulate it using a LogicalCorrelate with SemiJoinType.ANTI.
-    final RexBuilder rexBuilder = getRexBuilder();
-    final RelNode right = build();
-    final RelNode left = peek();
-    final int leftFieldCount = left.getRowType().getFieldCount();
-    final CorrelationId correlationId = cluster.createCorrel();
-    final RexNode corrVar =
-        rexBuilder.makeCorrel(left.getRowType(), correlationId);
-    final ImmutableBitSet.Builder requiredColumns = ImmutableBitSet.builder();
-
-    // Replace all references of left input with FieldAccess(corrVar, field)
-    final RexNode condition = and(conditions).accept(new RexShuttle() {
-      @Override public RexNode visitInputRef(RexInputRef input) {
-        final int field = input.getIndex();
-        if (field >= leftFieldCount) {
-          return rexBuilder.makeInputRef(input.getType(), input.getIndex()
-              - leftFieldCount);
-        }
-        requiredColumns.set(field);
-        return rexBuilder.makeFieldAccess(corrVar, field);
-      }
-    });
-
-    final RelNode right2 = push(right).filter(condition).build();
-
+    final Frame right = stack.pop();
     final RelNode antiJoin =
-        correlateFactory.createCorrelate(left, right2, correlationId,
-            requiredColumns.build(), JoinRelType.ANTI);
+        joinFactory.createJoin(peek(), right.rel,
+            and(conditions), ImmutableSet.of(), JoinRelType.ANTI, false);
     replaceTop(antiJoin);
     return this;
   }

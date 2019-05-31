@@ -18,6 +18,7 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.EnumerableDefaults;
+import org.apache.calcite.linq4j.JoinType;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Functions;
@@ -154,14 +155,14 @@ public class EnumerablesTest {
   @Test public void testThetaJoin() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS, EQUAL_DEPTNO,
-            EMP_DEPT_TO_STRING, false, false).toList().toString(),
+            EMP_DEPT_TO_STRING, JoinType.INNER).toList().toString(),
         equalTo("[{Theodore, 20, 20, Sales}, {Sebastian, 20, 20, Sales}]"));
   }
 
   @Test public void testThetaLeftJoin() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS, EQUAL_DEPTNO,
-            EMP_DEPT_TO_STRING, false, true).toList().toString(),
+            EMP_DEPT_TO_STRING, JoinType.LEFT).toList().toString(),
         equalTo("[{Fred, 10, null, null}, {Theodore, 20, 20, Sales}, "
             + "{Sebastian, 20, 20, Sales}, {Joe, 30, null, null}]"));
   }
@@ -169,7 +170,7 @@ public class EnumerablesTest {
   @Test public void testThetaRightJoin() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS, EQUAL_DEPTNO,
-            EMP_DEPT_TO_STRING, true, false).toList().toString(),
+            EMP_DEPT_TO_STRING, JoinType.RIGHT).toList().toString(),
         equalTo("[{Theodore, 20, 20, Sales}, {Sebastian, 20, 20, Sales}, "
             + "{null, null, 15, Marketing}]"));
   }
@@ -177,7 +178,7 @@ public class EnumerablesTest {
   @Test public void testThetaFullJoin() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS, EQUAL_DEPTNO,
-            EMP_DEPT_TO_STRING, true, true).toList().toString(),
+            EMP_DEPT_TO_STRING, JoinType.FULL).toList().toString(),
         equalTo("[{Fred, 10, null, null}, {Theodore, 20, 20, Sales}, "
             + "{Sebastian, 20, 20, Sales}, {Joe, 30, null, null}, "
             + "{null, null, 15, Marketing}]"));
@@ -186,7 +187,7 @@ public class EnumerablesTest {
   @Test public void testThetaFullJoinLeftEmpty() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS.take(0), DEPTS, EQUAL_DEPTNO,
-            EMP_DEPT_TO_STRING, true, true)
+            EMP_DEPT_TO_STRING, JoinType.FULL)
             .orderBy(Functions.identitySelector()).toList().toString(),
         equalTo("[{null, null, 15, Marketing}, {null, null, 20, Sales}]"));
   }
@@ -194,7 +195,7 @@ public class EnumerablesTest {
   @Test public void testThetaFullJoinRightEmpty() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS.take(0), EQUAL_DEPTNO,
-            EMP_DEPT_TO_STRING, true, true).toList().toString(),
+            EMP_DEPT_TO_STRING, JoinType.FULL).toList().toString(),
         equalTo("[{Fred, 10, null, null}, {Theodore, 20, null, null}, "
             + "{Sebastian, 20, null, null}, {Joe, 30, null, null}]"));
   }
@@ -202,7 +203,7 @@ public class EnumerablesTest {
   @Test public void testThetaFullJoinBothEmpty() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS.take(0), DEPTS.take(0), EQUAL_DEPTNO,
-            EMP_DEPT_TO_STRING, true, true).toList().toString(),
+            EMP_DEPT_TO_STRING, JoinType.FULL).toList().toString(),
         equalTo("[]"));
   }
 

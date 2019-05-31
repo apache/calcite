@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SetOp;
@@ -665,9 +666,13 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     relBuilder.push(newInputs.get(0));
     relBuilder.push(newInputs.get(1));
 
-    if (join.isSemiJoin()) {
-      relBuilder.semiJoin(newConditionExpr);
-      // For SemiJoins only map fields from the left-side
+    if (!join.getJoinType().projectsRight()) {
+      // For SemiJoins and AntiJoins only map fields from the left-side
+      if (join.getJoinType() == JoinRelType.SEMI) {
+        relBuilder.semiJoin(newConditionExpr);
+      } else {
+        relBuilder.antiJoin(newConditionExpr);
+      }
       Mapping inputMapping = inputMappings.get(0);
       mapping = Mappings.create(MappingType.INVERSE_SURJECTION,
           join.getRowType().getFieldCount(),

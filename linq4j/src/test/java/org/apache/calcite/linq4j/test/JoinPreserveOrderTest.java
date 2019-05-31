@@ -19,6 +19,7 @@ package org.apache.calcite.linq4j.test;
 import org.apache.calcite.linq4j.CorrelateJoinType;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.EnumerableDefaults;
+import org.apache.calcite.linq4j.JoinType;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
@@ -172,21 +173,21 @@ public final class JoinPreserveOrderTest {
   }
 
   @Test public void testLeftNestedLoopJoinPreservesOrderOfLeftInput() {
-    testJoin(nestedLoopJoin(false, true), AssertOrder.PRESERVED, AssertOrder.IGNORED);
+    testJoin(nestedLoopJoin(JoinType.LEFT), AssertOrder.PRESERVED, AssertOrder.IGNORED);
   }
 
   @Test public void testRightNestedLoopJoinPreservesOrderOfLeftInput() {
     Assume.assumeFalse(leftColumn.isNullsFirst);
-    testJoin(nestedLoopJoin(true, false), AssertOrder.PRESERVED, AssertOrder.IGNORED);
+    testJoin(nestedLoopJoin(JoinType.RIGHT), AssertOrder.PRESERVED, AssertOrder.IGNORED);
   }
 
   @Test public void testFullNestedLoopJoinPreservesOrderOfLeftInput() {
     Assume.assumeFalse(leftColumn.isNullsFirst);
-    testJoin(nestedLoopJoin(true, true), AssertOrder.PRESERVED, AssertOrder.IGNORED);
+    testJoin(nestedLoopJoin(JoinType.FULL), AssertOrder.PRESERVED, AssertOrder.IGNORED);
   }
 
   @Test public void testInnerNestedLoopJoinPreservesOrderOfLeftInput() {
-    testJoin(nestedLoopJoin(false, false), AssertOrder.PRESERVED, AssertOrder.IGNORED);
+    testJoin(nestedLoopJoin(JoinType.INNER), AssertOrder.PRESERVED, AssertOrder.IGNORED);
   }
 
 
@@ -208,6 +209,10 @@ public final class JoinPreserveOrderTest {
 
   @Test public void testSemiDefaultJoinPreservesOrderOfLeftInput() {
     testJoin(semiJoin(), AssertOrder.PRESERVED, AssertOrder.IGNORED);
+  }
+
+  @Test public void testAntiDefaultJoinPreservesOrderOfLeftInput() {
+    testJoin(antiJoin(), AssertOrder.PRESERVED, AssertOrder.IGNORED);
   }
 
   private void testJoin(
@@ -256,9 +261,7 @@ public final class JoinPreserveOrderTest {
             generateNullsOnRight);
   }
 
-  private JoinAlgorithm<Employee, Department, List<Integer>> nestedLoopJoin(
-      boolean generateNullsOnLeft,
-      boolean generateNullsOnRight) {
+  private JoinAlgorithm<Employee, Department, List<Integer>> nestedLoopJoin(JoinType joinType) {
     return (left, right) ->
         EnumerableDefaults.nestedLoopJoin(
             left,
@@ -266,13 +269,21 @@ public final class JoinPreserveOrderTest {
             (emp, dept) ->
                 emp.deptno != null && dept.deptno != null && emp.deptno.equals(dept.deptno),
             RESULT_SELECTOR,
-            generateNullsOnLeft,
-            generateNullsOnRight);
+            joinType);
   }
 
   private JoinAlgorithm<Employee, Department, List<Integer>> semiJoin() {
     return (left, right) ->
         EnumerableDefaults.semiJoin(
+            left,
+            right,
+            emp -> emp.deptno,
+            dept -> dept.deptno).select(emp -> Arrays.asList(emp.eid, null));
+  }
+
+  private JoinAlgorithm<Employee, Department, List<Integer>> antiJoin() {
+    return (left, right) ->
+        EnumerableDefaults.antiJoin(
             left,
             right,
             emp -> emp.deptno,
