@@ -57,24 +57,24 @@ public class EnumerableRepeatUnionHierarchyTest {
   @Parameterized.Parameters(name = "{index} : hierarchy(startId:{0}, ascendant:{1}, maxDepth:{2})")
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][] {
-        { 1, true, -1, new String[]{EMP1} },
-        { 2, true, -1, new String[]{EMP2, EMP1} },
-        { 3, true, -1, new String[]{EMP3, EMP2, EMP1} },
-        { 4, true, -1, new String[]{EMP4, EMP1} },
-        { 5, true, -1, new String[]{EMP5, EMP2, EMP1} },
-        { 3, true,  0, new String[]{EMP3} },
-        { 3, true,  1, new String[]{EMP3, EMP2} },
-        { 3, true,  2, new String[]{EMP3, EMP2, EMP1} },
-        { 3, true, 10, new String[]{EMP3, EMP2, EMP1} },
+        { 1, true, -1, new String[]{EMP1}, "TMP0" },
+        { 2, true, -1, new String[]{EMP2, EMP1}, "TMP1" },
+        { 3, true, -1, new String[]{EMP3, EMP2, EMP1}, "TMP2" },
+        { 4, true, -1, new String[]{EMP4, EMP1}, "TMP3" },
+        { 5, true, -1, new String[]{EMP5, EMP2, EMP1}, "TMP4" },
+        { 3, true,  0, new String[]{EMP3}, "TMP5" },
+        { 3, true,  1, new String[]{EMP3, EMP2}, "TMP6" },
+        { 3, true,  2, new String[]{EMP3, EMP2, EMP1}, "TMP7" },
+        { 3, true, 10, new String[]{EMP3, EMP2, EMP1}, "TMP8" },
 
-        { 1, false, -1, new String[]{EMP1, EMP2, EMP4, EMP3, EMP5} },
-        { 2, false, -1, new String[]{EMP2, EMP3, EMP5} },
-        { 3, false, -1, new String[]{EMP3} },
-        { 4, false, -1, new String[]{EMP4} },
-        { 1, false,  0, new String[]{EMP1} },
-        { 1, false,  1, new String[]{EMP1, EMP2, EMP4} },
-        { 1, false,  2, new String[]{EMP1, EMP2, EMP4, EMP3, EMP5} },
-        { 1, false, 20, new String[]{EMP1, EMP2, EMP4, EMP3, EMP5} },
+        { 1, false, -1, new String[]{EMP1, EMP2, EMP4, EMP3, EMP5}, "TMP9" },
+        { 2, false, -1, new String[]{EMP2, EMP3, EMP5}, "TMP10" },
+        { 3, false, -1, new String[]{EMP3}, "TMP11" },
+        { 4, false, -1, new String[]{EMP4}, "TMP12" },
+        { 1, false,  0, new String[]{EMP1}, "TMP13" },
+        { 1, false,  1, new String[]{EMP1, EMP2, EMP4}, "TMP14" },
+        { 1, false,  2, new String[]{EMP1, EMP2, EMP4, EMP3, EMP5}, "TMP15" },
+        { 1, false, 20, new String[]{EMP1, EMP2, EMP4, EMP3, EMP5}, "TMP16" },
     });
   }
 
@@ -83,12 +83,15 @@ public class EnumerableRepeatUnionHierarchyTest {
   private final String fromField;
   private final String toField;
   private final String[] expected;
+  private final String transientTable;
 
   public EnumerableRepeatUnionHierarchyTest(int startId, boolean ascendant,
-                                            int maxDepth, String[] expected) {
+                                            int maxDepth, String[] expected,
+                                            String transientTable) {
     this.startId = startId;
     this.maxDepth = maxDepth;
     this.expected = expected;
+    this.transientTable = transientTable;
 
     if (ascendant) {
       this.fromField = "subordinateid";
@@ -104,20 +107,20 @@ public class EnumerableRepeatUnionHierarchyTest {
     CalciteAssert.that()
         .withSchema("s", schema)
         .query("?")
-        .withRel(hierarchy())
+        .withRel(createHierarchy())
         .returnsOrdered(expected);
   }
 
-  private Function<RelBuilder, RelNode> hierarchy() {
+  private Function<RelBuilder, RelNode> createHierarchy() {
 
-    //   WITH RECURSIVE delta(empid, name) as (
+    //   WITH RECURSIVE tmp(empid, name) as (
     //       SELECT empid, name FROM emps WHERE empid = <startId>
     //     UNION ALL
-    //       SELECT e.empid, e.name FROM delta d
-    //                              JOIN hierarchies h ON d.empid = h.<fromField>
+    //       SELECT e.empid, e.name FROM tmp t
+    //                              JOIN hierarchies h ON t.empid = h.<fromField>
     //                              JOIN emps e        ON h.<toField> = e.empid
     //   )
-    //   SELECT empid, name FROM delta
+    //   SELECT empid, name FROM tmp
     return builder -> builder
         .scan("s", "emps")
         .filter(
@@ -128,12 +131,12 @@ public class EnumerableRepeatUnionHierarchyTest {
             builder.field("emps", "empid"),
             builder.field("emps", "name"))
 
-        .transientScan("#DELTA#")
+        .transientScan(transientTable)
         .scan("s", "hierarchies")
         .join(
             JoinRelType.INNER,
             builder.equals(
-                builder.field(2, "#DELTA#", "empid"),
+                builder.field(2, transientTable, "empid"),
                 builder.field(2, "hierarchies", fromField)))
         .scan("s", "emps")
         .join(
@@ -144,7 +147,7 @@ public class EnumerableRepeatUnionHierarchyTest {
         .project(
             builder.field("emps", "empid"),
             builder.field("emps", "name"))
-        .repeatUnion("#DELTA#", true, maxDepth)
+        .repeatUnion(transientTable, true, maxDepth)
         .build();
   }
 
