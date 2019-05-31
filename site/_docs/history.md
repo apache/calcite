@@ -41,7 +41,6 @@ other software versions as specified in `pom.xml`.
 
 #### Breaking Changes
 
-* Make `EnumerableMergeJoin` extend `Join` instead of `EquiJoin`
 * `Correlate` use `JoinRelType` instead of `SemiJoinType`
 * Rename `EnumerableThetaJoin` to `EnumerableNestedLoopJoin`
 * Rename `EnumerableJoin` to `EnumerableHashJoin`

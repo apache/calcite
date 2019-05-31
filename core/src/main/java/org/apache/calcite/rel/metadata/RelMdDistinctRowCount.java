@@ -24,7 +24,6 @@ import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
@@ -141,12 +140,6 @@ public class RelMdDistinctRowCount
       ImmutableBitSet groupKey, RexNode predicate) {
     return RelMdUtil.getJoinDistinctRowCount(mq, rel, rel.getJoinType(),
         groupKey, predicate, false);
-  }
-
-  @Deprecated // to be removed before 2.0
-  public Double getDistinctRowCount(SemiJoin rel, RelMetadataQuery mq,
-      ImmutableBitSet groupKey, RexNode predicate) {
-    return RelMdUtil.getSemiJoinDistinctRowCount(rel, mq, groupKey, predicate);
   }
 
   public Double getDistinctRowCount(Aggregate rel, RelMetadataQuery mq,

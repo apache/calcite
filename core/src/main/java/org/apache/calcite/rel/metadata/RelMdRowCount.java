@@ -27,14 +27,12 @@ import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -186,17 +184,6 @@ public class RelMdRowCount
 
   public Double getRowCount(Join rel, RelMetadataQuery mq) {
     return RelMdUtil.getJoinRowCount(mq, rel, rel.getCondition());
-  }
-
-  public Double getRowCount(SemiJoin rel, RelMetadataQuery mq) {
-    // create a RexNode representing the selectivity of the
-    // semijoin filter and pass it to getSelectivity
-    RexNode semiJoinSelectivity =
-        RelMdUtil.makeSemiJoinSelectivityRexNode(mq, rel);
-
-    return NumberUtil.multiply(
-        mq.getSelectivity(rel.getLeft(), semiJoinSelectivity),
-        mq.getRowCount(rel.getLeft()));
   }
 
   public Double getRowCount(Aggregate rel, RelMetadataQuery mq) {

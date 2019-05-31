@@ -17,9 +17,13 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.SemiJoin;
+
+import com.google.common.collect.ImmutableSet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,8 +52,13 @@ class EnumerableSemiJoinRule extends ConverterRule {
       }
       newInputs.add(input);
     }
-    return EnumerableSemiJoin.create(newInputs.get(0), newInputs.get(1),
-        semiJoin.getCondition(), semiJoin.leftKeys, semiJoin.rightKeys);
+    try {
+      return EnumerableHashJoin.create(newInputs.get(0), newInputs.get(1),
+          semiJoin.getCondition(), ImmutableSet.of(), JoinRelType.SEMI);
+    } catch (InvalidRelException e) {
+      // Convert to internal error.
+      throw new AssertionError(e);
+    }
   }
 }
 
