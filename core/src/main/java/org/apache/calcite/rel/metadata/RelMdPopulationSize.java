@@ -84,6 +84,12 @@ public class RelMdPopulationSize
     return RelMdUtil.getJoinPopulationSize(mq, rel, groupKey);
   }
 
+  @Deprecated // to be removed before 1.21
+  public Double getPopulationSize(org.apache.calcite.rel.core.SemiJoin rel,
+      RelMetadataQuery mq, ImmutableBitSet groupKey) {
+    return mq.getPopulationSize(rel.getLeft(), groupKey);
+  }
+
   public Double getPopulationSize(Aggregate rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey) {
     ImmutableBitSet.Builder childKey = ImmutableBitSet.builder();

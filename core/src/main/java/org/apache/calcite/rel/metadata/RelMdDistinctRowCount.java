@@ -142,6 +142,13 @@ public class RelMdDistinctRowCount
         groupKey, predicate, false);
   }
 
+  @Deprecated // to be removed before 1.21
+  public Double getDistinctRowCount(
+      org.apache.calcite.rel.core.SemiJoin rel, RelMetadataQuery mq,
+      ImmutableBitSet groupKey, RexNode predicate) {
+    return RelMdUtil.getSemiJoinDistinctRowCount(rel, mq, groupKey, predicate);
+  }
+
   public Double getDistinctRowCount(Aggregate rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey, RexNode predicate) {
     if (predicate == null || predicate.isAlwaysTrue()) {

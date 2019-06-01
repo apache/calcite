@@ -113,6 +113,13 @@ public class RelMdNodeTypes
     return getNodeTypes(rel, Join.class, mq);
   }
 
+  @Deprecated // to be removed before 1.21
+  public Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(
+      org.apache.calcite.rel.core.SemiJoin rel,
+      RelMetadataQuery mq) {
+    return getNodeTypes(rel, org.apache.calcite.rel.core.SemiJoin.class, mq);
+  }
+
   public Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(Aggregate rel,
       RelMetadataQuery mq) {
     return getNodeTypes(rel, Aggregate.class, mq);
