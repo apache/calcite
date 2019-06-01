@@ -501,6 +501,7 @@ public class RexToLixTranslator {
       pad = true;
       // fall through
     case VARCHAR:
+    case TEXT:
     case VARBINARY:
       final int targetPrecision = targetType.getPrecision();
       if (targetPrecision >= 0) {

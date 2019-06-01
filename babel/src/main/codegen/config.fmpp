@@ -26,6 +26,7 @@ data: {
       # List of keywords.
       keywords: [
         "SEMI"
+        "TEXT"
       ]
 
       # List of keywords from "keywords" section that are not reserved.
@@ -298,6 +299,7 @@ data: {
         "SUBSTITUTE"
         "TABLE_NAME"
         "TEMPORARY"
+        "TEXT"
         "TIES"
         "TIMESTAMPADD"
         "TIMESTAMPDIFF"
@@ -833,6 +835,7 @@ data: {
       # Return type of method implementation should be "SqlIdentifier".
       # Example: SqlParseTimeStampZ().
       dataTypeParserMethods: [
+         "PostgreSQLTypes"
       ]
 
       # List of methods for parsing builtin function calls.

@@ -25,10 +25,13 @@ import org.junit.rules.ExpectedException;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Unit tests for Babel framework.
@@ -48,8 +51,15 @@ public class BabelTest {
             .build());
   }
 
-  @Test public void testFoo() {
-    assertThat(1 + 1, is(2));
+  @Test public void testCastingToText() throws SQLException {
+    try (Connection connect = connect();
+        Statement statement = connect.createStatement();
+        ResultSet rs = statement
+            .executeQuery("SELECT CAST(EXPR$0 AS text) FROM (VALUES (1, 2, 3))")) {
+      ResultSetMetaData md = rs.getMetaData();
+      assertEquals(Types.VARCHAR, md.getColumnType(1));
+      assertEquals("TEXT", md.getColumnTypeName(1));
+    }
   }
 }
 

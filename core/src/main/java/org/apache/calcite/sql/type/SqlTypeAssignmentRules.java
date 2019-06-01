@@ -153,6 +153,7 @@ public class SqlTypeAssignmentRules {
     rule.clear();
     rule.add(SqlTypeName.CHAR);
     rule.add(SqlTypeName.VARCHAR);
+    rule.add(SqlTypeName.TEXT);
     rules.add(SqlTypeName.VARCHAR, rule);
 
     // BOOLEAN is assignable from...
@@ -224,6 +225,7 @@ public class SqlTypeAssignmentRules {
 
     rule.add(SqlTypeName.CHAR);
     rule.add(SqlTypeName.VARCHAR);
+    rule.add(SqlTypeName.TEXT);
 
     coerceRules.add(SqlTypeName.TINYINT, rule);
     coerceRules.add(SqlTypeName.SMALLINT, rule);
@@ -235,6 +237,7 @@ public class SqlTypeAssignmentRules {
     coerceRules.add(SqlTypeName.DOUBLE, rule);
     coerceRules.add(SqlTypeName.CHAR, rule);
     coerceRules.add(SqlTypeName.VARCHAR, rule);
+    coerceRules.add(SqlTypeName.TEXT, rule);
 
     // Exact numeric types are castable from intervals
     for (SqlTypeName exactType : SqlTypeName.EXACT_TYPES) {
@@ -254,8 +257,20 @@ public class SqlTypeAssignmentRules {
               .add(SqlTypeName.BIGINT)
               .add(SqlTypeName.DECIMAL)
               .add(SqlTypeName.VARCHAR)
+              .add(SqlTypeName.TEXT)
               .build());
     }
+
+    // TEXT is castable from BOOLEAN, DATE, TIMESTAMP, numeric types and
+    // intervals
+    coerceRules.add(SqlTypeName.TEXT,
+        coerceRules.copyValues(SqlTypeName.TEXT)
+        .add(SqlTypeName.BOOLEAN)
+        .add(SqlTypeName.DATE)
+        .add(SqlTypeName.TIME)
+        .add(SqlTypeName.TIMESTAMP)
+        .addAll(SqlTypeName.INTERVAL_TYPES)
+        .build());
 
     // VARCHAR is castable from BOOLEAN, DATE, TIMESTAMP, numeric types and
     // intervals
@@ -283,6 +298,7 @@ public class SqlTypeAssignmentRules {
         coerceRules.copyValues(SqlTypeName.BOOLEAN)
             .add(SqlTypeName.CHAR)
             .add(SqlTypeName.VARCHAR)
+            .add(SqlTypeName.TEXT)
             .build());
 
     // DATE, TIME, and TIMESTAMP are castable from
@@ -296,6 +312,7 @@ public class SqlTypeAssignmentRules {
             .add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
             .add(SqlTypeName.CHAR)
             .add(SqlTypeName.VARCHAR)
+            .add(SqlTypeName.TEXT)
             .build());
 
     // TIME is castable from...
@@ -307,6 +324,7 @@ public class SqlTypeAssignmentRules {
             .add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
             .add(SqlTypeName.CHAR)
             .add(SqlTypeName.VARCHAR)
+            .add(SqlTypeName.TEXT)
             .build());
 
     // TIME WITH LOCAL TIME ZONE is castable from...
@@ -318,6 +336,7 @@ public class SqlTypeAssignmentRules {
             .add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
             .add(SqlTypeName.CHAR)
             .add(SqlTypeName.VARCHAR)
+            .add(SqlTypeName.TEXT)
             .build());
 
     // TIMESTAMP is castable from...
@@ -330,6 +349,7 @@ public class SqlTypeAssignmentRules {
             .add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE)
             .add(SqlTypeName.CHAR)
             .add(SqlTypeName.VARCHAR)
+            .add(SqlTypeName.TEXT)
             .build());
 
     // TIMESTAMP WITH LOCAL TIME ZONE is castable from...
@@ -342,6 +362,7 @@ public class SqlTypeAssignmentRules {
             .add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE)
             .add(SqlTypeName.CHAR)
             .add(SqlTypeName.VARCHAR)
+            .add(SqlTypeName.TEXT)
             .build());
 
     INSTANCE = new SqlTypeAssignmentRules(rules.map);

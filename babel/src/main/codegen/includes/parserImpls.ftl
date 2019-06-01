@@ -42,4 +42,11 @@ SqlNode DateFunctionCall() :
     }
 }
 
+SqlIdentifier PostgreSQLTypes(Span s) :
+{
+}
+{
+    <TEXT> { return new SqlIdentifier(SqlTypeName.TEXT.name(), s.end(this)); }
+}
+
 // End parserImpls.ftl

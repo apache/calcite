@@ -167,6 +167,7 @@ public class JavaTypeFactoryImpl
     if (type instanceof BasicSqlType || type instanceof IntervalSqlType) {
       switch (type.getSqlTypeName()) {
       case VARCHAR:
+      case TEXT:
       case CHAR:
         return String.class;
       case DATE:
