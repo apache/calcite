@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.core;
 
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -90,6 +91,14 @@ public abstract class Aggregate extends SingleRel {
   public static final com.google.common.base.Predicate<Aggregate>
       IS_NOT_GRAND_TOTAL = Aggregate::isNotGrandTotal;
 
+  /** Used internally; will removed when {@link #indicator} is removed,
+   * before 2.0. */
+  @Experimental
+  public static void checkIndicator(boolean indicator) {
+    Preconditions.checkArgument(!indicator,
+        "indicator is no longer supported; use GROUPING function instead");
+  }
+
   //~ Instance fields --------------------------------------------------------
 
   @Deprecated // unused field, to be removed before 2.0
@@ -120,20 +129,20 @@ public abstract class Aggregate extends SingleRel {
    * {@code (0, 1, 2), (1), (0, 2), (0), ()}.
    *
    * @param cluster  Cluster
-   * @param traits   Traits
-   * @param child    Child
+   * @param traitSet Trait set
+   * @param input    Input relational expression
    * @param groupSet Bit set of grouping fields
    * @param groupSets List of all grouping sets; null for just {@code groupSet}
    * @param aggCalls Collection of calls to aggregate functions
    */
   protected Aggregate(
       RelOptCluster cluster,
-      RelTraitSet traits,
-      RelNode child,
+      RelTraitSet traitSet,
+      RelNode input,
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
-    super(cluster, traits, child);
+    super(cluster, traitSet, input);
     this.aggCalls = ImmutableList.copyOf(aggCalls);
     this.groupSet = Objects.requireNonNull(groupSet);
     if (groupSets == null) {
@@ -145,11 +154,11 @@ public abstract class Aggregate extends SingleRel {
         assert groupSet.contains(set);
       }
     }
-    assert groupSet.length() <= child.getRowType().getFieldCount();
+    assert groupSet.length() <= input.getRowType().getFieldCount();
     for (AggregateCall aggCall : aggCalls) {
       assert typeMatchesInferred(aggCall, Litmus.THROW);
       Preconditions.checkArgument(aggCall.filterArg < 0
-          || isPredicate(child, aggCall.filterArg),
+          || isPredicate(input, aggCall.filterArg),
           "filter must be BOOLEAN NOT NULL");
     }
   }
@@ -167,8 +176,7 @@ public abstract class Aggregate extends SingleRel {
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     this(cluster, traits, child, groupSet, groupSets, aggCalls);
-    Preconditions.checkArgument(!indicator,
-        "indicator is not supported, use GROUPING function instead");
+    checkIndicator(indicator);
   }
 
   public static boolean isNotGrandTotal(Aggregate aggregate) {
@@ -200,15 +208,13 @@ public abstract class Aggregate extends SingleRel {
 
   @Override public final RelNode copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs), false, groupSet, groupSets,
-        aggCalls);
+    return copy(traitSet, sole(inputs), groupSet, groupSets, aggCalls);
   }
 
   /** Creates a copy of this aggregate.
    *
    * @param traitSet Traits
    * @param input Input
-   * @param indicator Deprecated, always false
    * @param groupSet Bit set of grouping fields
    * @param groupSets List of all grouping sets; null for just {@code groupSet}
    * @param aggCalls Collection of calls to aggregate functions
@@ -219,8 +225,16 @@ public abstract class Aggregate extends SingleRel {
    * @see #copy(org.apache.calcite.plan.RelTraitSet, java.util.List)
    */
   public abstract Aggregate copy(RelTraitSet traitSet, RelNode input,
-      boolean indicator, ImmutableBitSet groupSet,
+      ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls);
+
+  @Deprecated // to be removed before 2.0
+  public Aggregate copy(RelTraitSet traitSet, RelNode input,
+      boolean indicator, ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+    checkIndicator(indicator);
+    return copy(traitSet, input, groupSet, groupSets, aggCalls);
+  }
 
   /**
    * Returns a list of calls to aggregate functions.
@@ -367,8 +381,7 @@ public abstract class Aggregate extends SingleRel {
         builder.nullable(true);
       }
     }
-    Preconditions.checkArgument(!indicator,
-        "indicator is not supported, use GROUPING function instead");
+    checkIndicator(indicator);
     for (Ord<AggregateCall> aggCall : Ord.zip(aggCalls)) {
       final String base;
       if (aggCall.e.name != null) {

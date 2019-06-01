@@ -738,8 +738,7 @@ public class RelMdUtil {
     return product * mq.getSelectivity(join, condition);
   }
 
-  /** Returns an estimate of the number of rows returned by a
-   * {@link SemiJoin}. */
+  /** Returns an estimate of the number of rows returned by a semi-join. */
   public static Double getSemiJoinRowCount(RelMetadataQuery mq, RelNode left,
       RelNode right, JoinRelType joinType, RexNode condition) {
     final Double leftCount = mq.getRowCount(left);

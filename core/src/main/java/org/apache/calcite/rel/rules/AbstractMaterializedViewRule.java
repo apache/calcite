@@ -1035,7 +1035,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               aggregateViewNode.getInput().getRowType().getFieldCount(),
               aggregateViewNode.getInput().getRowType().getFieldCount() + offset));
       final Aggregate newViewNode = aggregateViewNode.copy(
-          aggregateViewNode.getTraitSet(), relBuilder.build(), false,
+          aggregateViewNode.getTraitSet(), relBuilder.build(),
           groupSet.build(), null, aggregateViewNode.getAggCallList());
 
       relBuilder.push(newViewNode);

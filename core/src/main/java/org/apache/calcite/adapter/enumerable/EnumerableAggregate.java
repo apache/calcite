@@ -47,7 +47,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Type;
@@ -62,15 +61,12 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
   public EnumerableAggregate(
       RelOptCluster cluster,
       RelTraitSet traitSet,
-      RelNode child,
-      boolean indicator,
+      RelNode input,
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls)
       throws InvalidRelException {
-    super(cluster, traitSet, child, groupSet, groupSets, aggCalls);
-    Preconditions.checkArgument(!indicator,
-        "EnumerableAggregate no longer supports indicator fields");
+    super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
     assert getConvention() instanceof EnumerableConvention;
 
     for (AggregateCall aggCall : aggCalls) {
@@ -87,11 +83,20 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
     }
   }
 
+  @Deprecated // to be removed before 2.0
+  public EnumerableAggregate(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode input, boolean indicator, ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls)
+      throws InvalidRelException {
+    this(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+    checkIndicator(indicator);
+  }
+
   @Override public EnumerableAggregate copy(RelTraitSet traitSet, RelNode input,
-      boolean indicator, ImmutableBitSet groupSet,
+      ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     try {
-      return new EnumerableAggregate(getCluster(), traitSet, input, indicator,
+      return new EnumerableAggregate(getCluster(), traitSet, input,
           groupSet, groupSets, aggCalls);
     } catch (InvalidRelException e) {
       // Semantic error not possible. Must be a bug. Convert to

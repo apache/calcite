@@ -612,7 +612,6 @@ public class Bindables {
         RelOptCluster cluster,
         RelTraitSet traitSet,
         RelNode input,
-        boolean indicator,
         ImmutableBitSet groupSet,
         List<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls)
@@ -620,8 +619,6 @@ public class Bindables {
       super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
       assert getConvention() instanceof BindableConvention;
 
-      Preconditions.checkArgument(!indicator,
-          "indicator is not supported, use GROUPING function instead");
       for (AggregateCall aggCall : aggCalls) {
         if (aggCall.isDistinct()) {
           throw new InvalidRelException(
@@ -636,11 +633,20 @@ public class Bindables {
       }
     }
 
+    @Deprecated // to be removed before 2.0
+    public BindableAggregate(RelOptCluster cluster, RelTraitSet traitSet,
+        RelNode input, boolean indicator, ImmutableBitSet groupSet,
+        List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls)
+        throws InvalidRelException {
+      this(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+      checkIndicator(indicator);
+    }
+
     @Override public BindableAggregate copy(RelTraitSet traitSet, RelNode input,
-        boolean indicator, ImmutableBitSet groupSet,
+        ImmutableBitSet groupSet,
         List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
       try {
-        return new BindableAggregate(getCluster(), traitSet, input, indicator,
+        return new BindableAggregate(getCluster(), traitSet, input,
             groupSet, groupSets, aggCalls);
       } catch (InvalidRelException e) {
         // Semantic error not possible. Must be a bug. Convert to

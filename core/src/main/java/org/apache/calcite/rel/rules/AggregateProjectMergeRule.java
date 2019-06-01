@@ -111,8 +111,7 @@ public class AggregateProjectMergeRule extends RelOptRule {
 
     final Aggregate newAggregate =
         aggregate.copy(aggregate.getTraitSet(), project.getInput(),
-            false, newGroupSet, newGroupingSets,
-            aggCalls.build());
+            newGroupSet, newGroupingSets, aggCalls.build());
 
     // Add a project if the group set is not in the same order or
     // contains duplicates.
