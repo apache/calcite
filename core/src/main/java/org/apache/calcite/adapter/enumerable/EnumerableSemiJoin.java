@@ -38,7 +38,8 @@ import org.apache.calcite.util.Util;
 /** Implementation of {@link org.apache.calcite.rel.core.SemiJoin} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
  *
- * @deprecated This class is deprecated along with {@link SemiJoin};
+ * @deprecated This class is deprecated along with
+ * {@link org.apache.calcite.rel.core.SemiJoin};
  * the function is merged into {@link EnumerableHashJoin};
  * see {@link EnumerableJoinRule} for details.
  */

@@ -98,10 +98,9 @@ public class AggregateJoinRemoveRule extends RelOptRule {
 
     RelNode node;
     if (isLeftJoin) {
-      node = aggregate
-          .copy(aggregate.getTraitSet(), join.getLeft(), false,
-              aggregate.getGroupSet(), aggregate.getGroupSets(),
-              aggregate.getAggCallList());
+      node = aggregate.copy(aggregate.getTraitSet(), join.getLeft(),
+          aggregate.getGroupSet(), aggregate.getGroupSets(),
+          aggregate.getAggCallList());
     } else {
       final Map<Integer, Integer> map = new HashMap<>();
       allFields.forEach(index -> map.put(index, index - upper));

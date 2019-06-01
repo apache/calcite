@@ -472,8 +472,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         }
         if (r instanceof Aggregate) {
           final Aggregate aggregate = (Aggregate) r;
-          if (aggregate.getGroupSets().size() != 1
-              || aggregate.indicator) {
+          if (aggregate.getGroupSets().size() != 1) {
             return litmus.fail("no grouping sets");
           }
         }

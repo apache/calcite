@@ -46,11 +46,10 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
   public GeodeAggregate(RelOptCluster cluster,
       RelTraitSet traitSet,
       RelNode input,
-      boolean indicator,
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
-    super(cluster, traitSet, input, indicator, groupSet, groupSets, aggCalls);
+    super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
 
     assert getConvention() == GeodeRel.CONVENTION;
     assert getConvention() == this.input.getConvention();
@@ -64,11 +63,23 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
     }
   }
 
-  @Override public Aggregate copy(RelTraitSet traitSet, RelNode input, boolean indicator,
+  @Deprecated // to be removed before 2.0
+  public GeodeAggregate(RelOptCluster cluster,
+      RelTraitSet traitSet,
+      RelNode input,
+      boolean indicator,
+      ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets,
+      List<AggregateCall> aggCalls) {
+    this(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+    checkIndicator(indicator);
+  }
+
+  @Override public Aggregate copy(RelTraitSet traitSet, RelNode input,
       ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
-    return new GeodeAggregate(getCluster(), traitSet, input, indicator, groupSet, groupSets,
-        aggCalls);
+    return new GeodeAggregate(getCluster(), traitSet, input, groupSet,
+        groupSets, aggCalls);
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {

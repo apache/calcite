@@ -513,7 +513,6 @@ public class MongoRules {
             rel.getCluster(),
             traitSet,
             convert(agg.getInput(), traitSet.simplify()),
-            agg.indicator,
             agg.getGroupSet(),
             agg.getGroupSets(),
             agg.getAggCallList());
