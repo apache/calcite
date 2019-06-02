@@ -155,6 +155,14 @@ public class RelMdCollation
             join.getJoinType()));
   }
 
+  @Deprecated // to be removed before 1.21
+  public ImmutableList<RelCollation> collations(
+      org.apache.calcite.adapter.enumerable.EnumerableSemiJoin join,
+      RelMetadataQuery mq) {
+    return ImmutableList.copyOf(
+        RelMdCollation.enumerableSemiJoin(mq, join.getLeft(), join.getRight()));
+  }
+
   public ImmutableList<RelCollation> collations(Sort sort,
       RelMetadataQuery mq) {
     return ImmutableList.copyOf(

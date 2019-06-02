@@ -66,17 +66,23 @@ public class JoinToCorrelateRule extends RelOptRule {
    */
   public static final JoinToCorrelateRule INSTANCE =
       new JoinToCorrelateRule(LogicalJoin.class, RelFactories.LOGICAL_BUILDER,
-              "JoinToCorrelateRule");
+          "JoinToCorrelateRule");
 
-  @Deprecated // To be removed before 2.0, should use INSTANCE instead.
+  /** Synonym for {@link #INSTANCE};
+   * {@code JOIN} is not deprecated, but {@code INSTANCE} is preferred. */
   public static final JoinToCorrelateRule JOIN = INSTANCE;
 
   /**
    * Rule that converts a {@link org.apache.calcite.rel.core.SemiJoin}
    * into a {@link org.apache.calcite.rel.logical.LogicalCorrelate}
+   *
+   * @deprecated Will be unnecessary when {@code SemiJoin} is removed before
+   * 1.21, and will be removed at that time.
    */
-  @Deprecated // To be removed before 2.0, should use INSTANCE instead.
-  public static final JoinToCorrelateRule SEMI = INSTANCE;
+  @Deprecated // to be removed before 1.21
+  public static final JoinToCorrelateRule SEMI =
+      new JoinToCorrelateRule(org.apache.calcite.rel.core.SemiJoin.class,
+          RelFactories.LOGICAL_BUILDER, "SemiJoinToCorrelateRule");
 
   //~ Constructors -----------------------------------------------------------
 
@@ -96,7 +102,8 @@ public class JoinToCorrelateRule extends RelOptRule {
   /**
    * Creates a JoinToCorrelateRule for a certain sub-class of
    * {@link org.apache.calcite.rel.core.Join} to be transformed into a
-   * {@link org.apache.calcite.rel.logical.LogicalCorrelate}
+   * {@link org.apache.calcite.rel.logical.LogicalCorrelate}.
+   *
    * @param clazz Class of relational expression to match (must not be null)
    * @param relBuilderFactory Builder for relational expressions
    * @param description Description, or null to guess description

@@ -71,7 +71,6 @@ import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
@@ -169,7 +168,7 @@ public class TraitPropagationTest {
           false, false, false, Collections.singletonList(1), -1, RelCollations.EMPTY,
           sqlBigInt, "cnt");
       RelNode agg = new LogicalAggregate(cluster,
-          cluster.traitSetOf(Convention.NONE), project, false,
+          cluster.traitSetOf(Convention.NONE), project,
           ImmutableBitSet.of(0), null, Collections.singletonList(aggCall));
 
       final RelNode rootRel = agg;
@@ -207,7 +206,7 @@ public class TraitPropagationTest {
       RelNode convertedInput = convert(rel.getInput(), desiredTraits);
       call.transformTo(
           new PhysAgg(rel.getCluster(), empty.replace(PHYSICAL),
-              convertedInput, false, rel.getGroupSet(),
+              convertedInput, rel.getGroupSet(),
               rel.getGroupSets(), rel.getAggCallList()));
     }
   }
@@ -295,18 +294,16 @@ public class TraitPropagationTest {
 
   /** Physical Aggregate RelNode */
   private static class PhysAgg extends Aggregate implements Phys {
-    PhysAgg(RelOptCluster cluster, RelTraitSet traits, RelNode child,
-        boolean indicator, ImmutableBitSet groupSet,
+    PhysAgg(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
+        ImmutableBitSet groupSet,
         List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
-      super(cluster, traits, child, groupSet, groupSets, aggCalls);
-      Preconditions.checkArgument(!indicator,
-          "indicator is not supported, use GROUPING function instead");
+      super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
     }
 
     public Aggregate copy(RelTraitSet traitSet, RelNode input,
-        boolean indicator, ImmutableBitSet groupSet,
+        ImmutableBitSet groupSet,
         List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
-      return new PhysAgg(getCluster(), traitSet, input, indicator, groupSet,
+      return new PhysAgg(getCluster(), traitSet, input, groupSet,
           groupSets, aggCalls);
     }
 

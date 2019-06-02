@@ -445,8 +445,7 @@ public class DruidRules {
         return;
       }
 
-      if (aggregate.indicator
-          || aggregate.getGroupSets().size() != 1) {
+      if (aggregate.getGroupSets().size() != 1) {
         return;
       }
       if (DruidQuery
@@ -492,8 +491,7 @@ public class DruidRules {
       if (!DruidQuery.isValidSignature(query.signature() + 'p' + 'a')) {
         return;
       }
-      if (aggregate.indicator
-          || aggregate.getGroupSets().size() != 1) {
+      if (aggregate.getGroupSets().size() != 1) {
         return;
       }
       if (DruidQuery
@@ -604,8 +602,7 @@ public class DruidRules {
         newCalls.add(aggCall);
       }
       aggregate = aggregate.copy(aggregate.getTraitSet(), aggregate.getInput(),
-              aggregate.indicator, aggregate.getGroupSet(), aggregate.getGroupSets(),
-              newCalls);
+          aggregate.getGroupSet(), aggregate.getGroupSets(), newCalls);
 
       if (containsFilter) {
         // AND the current filterNode with the filter node inside filter

@@ -33,6 +33,7 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -186,8 +187,21 @@ public class RelMdRowCount
     return RelMdUtil.getJoinRowCount(mq, rel, rel.getCondition());
   }
 
+  @Deprecated // to be removed before 1.21
+  public Double getRowCount(org.apache.calcite.rel.core.SemiJoin rel,
+      RelMetadataQuery mq) {
+    // create a RexNode representing the selectivity of the
+    // semijoin filter and pass it to getSelectivity
+    RexNode semiJoinSelectivity =
+        RelMdUtil.makeSemiJoinSelectivityRexNode(mq, rel);
+
+    return NumberUtil.multiply(
+        mq.getSelectivity(rel.getLeft(), semiJoinSelectivity),
+        mq.getRowCount(rel.getLeft()));
+  }
+
   public Double getRowCount(Aggregate rel, RelMetadataQuery mq) {
-    ImmutableBitSet groupKey = rel.getGroupSet(); // .range(rel.getGroupCount());
+    ImmutableBitSet groupKey = rel.getGroupSet();
 
     // rowCount is the cardinality of the group by columns
     Double distinctRowCount =

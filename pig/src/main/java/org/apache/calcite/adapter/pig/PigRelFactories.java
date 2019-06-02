@@ -85,11 +85,11 @@ public class PigRelFactories {
 
     public static final PigAggregateFactory INSTANCE = new PigAggregateFactory();
 
-    @Override public RelNode createAggregate(RelNode input, boolean indicator,
+    @Override public RelNode createAggregate(RelNode input,
         ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls) {
-      return new PigAggregate(input.getCluster(), input.getTraitSet(), input, indicator, groupSet,
-          groupSets, aggCalls);
+      return new PigAggregate(input.getCluster(), input.getTraitSet(), input,
+          groupSet, groupSets, aggCalls);
     }
   }
 

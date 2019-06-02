@@ -141,11 +141,11 @@ public class JdbcRules {
       };
 
   public static final RelFactories.AggregateFactory AGGREGATE_FACTORY =
-      (input, indicator, groupSet, groupSets, aggCalls) -> {
+      (input, groupSet, groupSets, aggCalls) -> {
         final RelOptCluster cluster = input.getCluster();
         final RelTraitSet traitSet = cluster.traitSetOf(input.getConvention());
         try {
-          return new JdbcAggregate(cluster, traitSet, input, false, groupSet,
+          return new JdbcAggregate(cluster, traitSet, input, groupSet,
               groupSets, aggCalls);
         } catch (InvalidRelException e) {
           throw new AssertionError(e);
@@ -683,7 +683,6 @@ public class JdbcRules {
         RelOptCluster cluster,
         RelTraitSet traitSet,
         RelNode input,
-        boolean indicator,
         ImmutableBitSet groupSet,
         List<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls)
@@ -691,7 +690,6 @@ public class JdbcRules {
       super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
       assert getConvention() instanceof JdbcConvention;
       assert this.groupSets.size() == 1 : "Grouping sets not supported";
-      assert !indicator;
       final SqlDialect dialect = ((JdbcConvention) getConvention()).dialect;
       for (AggregateCall aggCall : aggCalls) {
         if (!canImplement(aggCall.getAggregation(), dialect)) {
@@ -701,11 +699,20 @@ public class JdbcRules {
       }
     }
 
+    @Deprecated // to be removed before 2.0
+    public JdbcAggregate(RelOptCluster cluster, RelTraitSet traitSet,
+        RelNode input, boolean indicator, ImmutableBitSet groupSet,
+        List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls)
+        throws InvalidRelException {
+      this(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+      checkIndicator(indicator);
+    }
+
     @Override public JdbcAggregate copy(RelTraitSet traitSet, RelNode input,
-        boolean indicator, ImmutableBitSet groupSet,
+        ImmutableBitSet groupSet,
         List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
       try {
-        return new JdbcAggregate(getCluster(), traitSet, input, indicator,
+        return new JdbcAggregate(getCluster(), traitSet, input,
             groupSet, groupSets, aggCalls);
       } catch (InvalidRelException e) {
         // Semantic error not possible. Must be a bug. Convert to

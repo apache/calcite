@@ -44,15 +44,14 @@ public class MongoAggregate
   public MongoAggregate(
       RelOptCluster cluster,
       RelTraitSet traitSet,
-      RelNode child,
-      boolean indicator,
+      RelNode input,
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls)
       throws InvalidRelException {
-    super(cluster, traitSet, child, indicator, groupSet, groupSets, aggCalls);
+    super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
     assert getConvention() == MongoRel.CONVENTION;
-    assert getConvention() == child.getConvention();
+    assert getConvention() == input.getConvention();
 
     for (AggregateCall aggCall : aggCalls) {
       if (aggCall.isDistinct()) {
@@ -69,11 +68,20 @@ public class MongoAggregate
     }
   }
 
+  @Deprecated // to be removed before 2.0
+  public MongoAggregate(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode input, boolean indicator, ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls)
+      throws InvalidRelException {
+    this(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+    checkIndicator(indicator);
+  }
+
   @Override public Aggregate copy(RelTraitSet traitSet, RelNode input,
-      boolean indicator, ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+      ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets,
+      List<AggregateCall> aggCalls) {
     try {
-      return new MongoAggregate(getCluster(), traitSet, input, indicator,
+      return new MongoAggregate(getCluster(), traitSet, input,
           groupSet, groupSets, aggCalls);
     } catch (InvalidRelException e) {
       // Semantic error not possible. Must be a bug. Convert to

@@ -44,7 +44,10 @@ public class EnumerableRules {
   public static final RelOptRule ENUMERABLE_MERGE_JOIN_RULE =
       new EnumerableMergeJoinRule();
 
-  @Deprecated // To be removed before 2.0, use ENUMERABLE_JOIN_RULE instead.
+  /** @deprecated To be removed along with
+   * {@link org.apache.calcite.rel.core.SemiJoin};
+   * use {@link #ENUMERABLE_JOIN_RULE} instead. */
+  @Deprecated // to be removed before 1.21
   public static final RelOptRule ENUMERABLE_SEMI_JOIN_RULE =
       new EnumerableSemiJoinRule();
 
