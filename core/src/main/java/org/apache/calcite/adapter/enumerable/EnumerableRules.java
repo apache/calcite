@@ -47,6 +47,9 @@ public class EnumerableRules {
   public static final RelOptRule ENUMERABLE_CORRELATE_RULE =
       new EnumerableCorrelateRule(RelFactories.LOGICAL_BUILDER);
 
+  public static final RelOptRule ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE =
+      new EnumerableBatchNestedLoopJoinRule(RelFactories.LOGICAL_BUILDER);
+
   public static final EnumerableProjectRule ENUMERABLE_PROJECT_RULE =
       new EnumerableProjectRule();
 
