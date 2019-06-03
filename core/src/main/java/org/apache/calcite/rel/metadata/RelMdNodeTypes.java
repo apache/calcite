@@ -26,7 +26,6 @@ import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
@@ -114,9 +113,11 @@ public class RelMdNodeTypes
     return getNodeTypes(rel, Join.class, mq);
   }
 
-  public Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(SemiJoin rel,
+  @Deprecated // to be removed before 1.21
+  public Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(
+      org.apache.calcite.rel.core.SemiJoin rel,
       RelMetadataQuery mq) {
-    return getNodeTypes(rel, SemiJoin.class, mq);
+    return getNodeTypes(rel, org.apache.calcite.rel.core.SemiJoin.class, mq);
   }
 
   public Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(Aggregate rel,

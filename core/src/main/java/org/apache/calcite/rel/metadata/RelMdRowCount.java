@@ -27,7 +27,6 @@ import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
@@ -188,7 +187,9 @@ public class RelMdRowCount
     return RelMdUtil.getJoinRowCount(mq, rel, rel.getCondition());
   }
 
-  public Double getRowCount(SemiJoin rel, RelMetadataQuery mq) {
+  @Deprecated // to be removed before 1.21
+  public Double getRowCount(org.apache.calcite.rel.core.SemiJoin rel,
+      RelMetadataQuery mq) {
     // create a RexNode representing the selectivity of the
     // semijoin filter and pass it to getSelectivity
     RexNode semiJoinSelectivity =
@@ -200,7 +201,7 @@ public class RelMdRowCount
   }
 
   public Double getRowCount(Aggregate rel, RelMetadataQuery mq) {
-    ImmutableBitSet groupKey = rel.getGroupSet(); // .range(rel.getGroupCount());
+    ImmutableBitSet groupKey = rel.getGroupSet();
 
     // rowCount is the cardinality of the group by columns
     Double distinctRowCount =

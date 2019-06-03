@@ -25,7 +25,6 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
@@ -114,8 +113,9 @@ public class RelMdUtil {
    * @param rel semijoin rel
    * @return calculated selectivity
    */
+  @Deprecated // to be removed before 1.21
   public static double computeSemiJoinSelectivity(RelMetadataQuery mq,
-      SemiJoin rel) {
+      org.apache.calcite.rel.core.SemiJoin rel) {
     return computeSemiJoinSelectivity(mq, rel.getLeft(), rel.getRight(),
         rel.getLeftKeys(), rel.getRightKeys());
   }
@@ -478,8 +478,7 @@ public class RelMdUtil {
       } else {
         // aggregate column -- set a bit for each argument being
         // aggregated
-        AggregateCall agg = aggCalls.get(bit
-            - (aggRel.getGroupCount() + aggRel.getIndicatorCount()));
+        AggregateCall agg = aggCalls.get(bit - aggRel.getGroupCount());
         for (Integer arg : agg.getArgList()) {
           childKey.set(arg);
         }
@@ -739,8 +738,7 @@ public class RelMdUtil {
     return product * mq.getSelectivity(join, condition);
   }
 
-  /** Returns an estimate of the number of rows returned by a
-   * {@link SemiJoin}. */
+  /** Returns an estimate of the number of rows returned by a semi-join. */
   public static Double getSemiJoinRowCount(RelMetadataQuery mq, RelNode left,
       RelNode right, JoinRelType joinType, RexNode condition) {
     final Double leftCount = mq.getRowCount(left);

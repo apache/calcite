@@ -32,7 +32,6 @@ import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sample;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
@@ -280,6 +279,7 @@ public abstract class MutableRels {
         mutableRel -> fromMutable(mutableRel, relBuilder));
   }
 
+  @SuppressWarnings("deprecation") // directive to be removed before 1.21
   public static MutableRel toMutable(RelNode rel) {
     if (rel instanceof HepRelVertex) {
       return toMutable(((HepRelVertex) rel).getCurrentRel());
@@ -363,8 +363,13 @@ public abstract class MutableRels {
     }
     // It is necessary that SemiJoin is placed in front of Join here, since SemiJoin
     // is a sub-class of Join.
-    if (rel instanceof SemiJoin) {
-      final SemiJoin semiJoin = (SemiJoin) rel;
+    //
+    // NOTE: SemiJoin is deprecated and wil be removed before 1.21; when you
+    // remove the following lines, also remove the 'SuppressWarnings'
+    // directive at the top of this method.
+    if (rel instanceof org.apache.calcite.rel.core.SemiJoin) {
+      final org.apache.calcite.rel.core.SemiJoin semiJoin =
+          (org.apache.calcite.rel.core.SemiJoin) rel;
       final MutableRel left = toMutable(semiJoin.getLeft());
       final MutableRel right = toMutable(semiJoin.getRight());
       return MutableSemiJoin.of(semiJoin.getRowType(), left, right,

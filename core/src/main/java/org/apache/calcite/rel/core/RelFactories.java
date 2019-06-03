@@ -271,9 +271,16 @@ public class RelFactories {
    */
   public interface AggregateFactory {
     /** Creates an aggregate. */
-    RelNode createAggregate(RelNode input, boolean indicator,
+    RelNode createAggregate(RelNode input, ImmutableBitSet groupSet,
+        ImmutableList<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls);
+
+    @Deprecated // to be removed before 2.0
+    default RelNode createAggregate(RelNode input, boolean indicator,
         ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
-        List<AggregateCall> aggCalls);
+        List<AggregateCall> aggCalls) {
+      Aggregate.checkIndicator(indicator);
+      return createAggregate(input, groupSet, groupSets, aggCalls);
+    }
   }
 
   /**
@@ -281,12 +288,10 @@ public class RelFactories {
    * that returns a vanilla {@link LogicalAggregate}.
    */
   private static class AggregateFactoryImpl implements AggregateFactory {
-    @SuppressWarnings("deprecation")
-    public RelNode createAggregate(RelNode input, boolean indicator,
+    public RelNode createAggregate(RelNode input,
         ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls) {
-      return LogicalAggregate.create(input, indicator,
-          groupSet, groupSets, aggCalls);
+      return LogicalAggregate.create(input, groupSet, groupSets, aggCalls);
     }
   }
 

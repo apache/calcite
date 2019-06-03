@@ -19,7 +19,6 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.core.SemiJoin;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,15 +29,16 @@ import java.util.List;
  *
  * @deprecated Use {@link EnumerableJoinRule} instead.
  */
-@Deprecated // to be removed before 2.0
+@Deprecated // to be removed before 1.21
 class EnumerableSemiJoinRule extends ConverterRule {
   EnumerableSemiJoinRule() {
-    super(SemiJoin.class, Convention.NONE, EnumerableConvention.INSTANCE,
-        "EnumerableSemiJoinRule");
+    super(org.apache.calcite.rel.core.SemiJoin.class, Convention.NONE,
+        EnumerableConvention.INSTANCE, "EnumerableSemiJoinRule");
   }
 
   @Override public RelNode convert(RelNode rel) {
-    final SemiJoin semiJoin = (SemiJoin) rel;
+    final org.apache.calcite.rel.core.SemiJoin semiJoin =
+        (org.apache.calcite.rel.core.SemiJoin) rel;
     final List<RelNode> newInputs = new ArrayList<>();
     for (RelNode input : semiJoin.getInputs()) {
       if (!(input.getConvention() instanceof EnumerableConvention)) {

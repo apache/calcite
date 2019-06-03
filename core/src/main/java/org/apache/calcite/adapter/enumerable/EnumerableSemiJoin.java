@@ -28,7 +28,6 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
@@ -39,11 +38,14 @@ import org.apache.calcite.util.Util;
 /** Implementation of {@link org.apache.calcite.rel.core.SemiJoin} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
  *
- * @deprecated This class is deprecated, the function is merged into {@link EnumerableHashJoin},
+ * @deprecated This class is deprecated along with
+ * {@link org.apache.calcite.rel.core.SemiJoin};
+ * the function is merged into {@link EnumerableHashJoin};
  * see {@link EnumerableJoinRule} for details.
  */
-@Deprecated // to be removed before 2.0
-public class EnumerableSemiJoin extends SemiJoin implements EnumerableRel {
+@Deprecated // to be removed before 1.21
+public class EnumerableSemiJoin extends org.apache.calcite.rel.core.SemiJoin
+    implements EnumerableRel {
   /** Creates an EnumerableSemiJoin.
    *
    * <p>Use {@link #create} unless you know what you're doing. */
@@ -84,8 +86,8 @@ public class EnumerableSemiJoin extends SemiJoin implements EnumerableRel {
     }
   }
 
-  @Override public SemiJoin copy(RelTraitSet traitSet, RexNode condition,
-      RelNode left, RelNode right, JoinRelType joinType,
+  @Override public EnumerableSemiJoin copy(RelTraitSet traitSet,
+      RexNode condition, RelNode left, RelNode right, JoinRelType joinType,
       boolean semiJoinDone) {
     assert joinType == JoinRelType.INNER;
     final JoinInfo joinInfo = JoinInfo.of(left, right, condition);

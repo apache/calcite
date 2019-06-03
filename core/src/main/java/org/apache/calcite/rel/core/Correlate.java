@@ -27,7 +27,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
@@ -36,6 +35,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -86,27 +86,26 @@ public abstract class Correlate extends BiRel {
    */
   protected Correlate(
       RelOptCluster cluster,
-      RelTraitSet traits,
+      RelTraitSet traitSet,
       RelNode left,
       RelNode right,
       CorrelationId correlationId,
       ImmutableBitSet requiredColumns,
       JoinRelType joinType) {
-    super(cluster, traits, left, right);
+    super(cluster, traitSet, left, right);
     assert !joinType.generatesNullsOnLeft() : "Correlate has invalid join type " + joinType;
-    this.joinType = joinType;
-    this.correlationId = correlationId;
-    this.requiredColumns = requiredColumns;
+    this.joinType = Objects.requireNonNull(joinType);
+    this.correlationId = Objects.requireNonNull(correlationId);
+    this.requiredColumns = Objects.requireNonNull(requiredColumns);
   }
 
-  @Deprecated // To be removed before 2.0
-  protected Correlate(RelOptCluster cluster, RelTraitSet traits, RelNode left,
-      RelNode right, CorrelationId correlationId, ImmutableBitSet
-      requiredColumns, SemiJoinType joinType) {
-    super(cluster, traits, left, right);
-    this.joinType = joinType.toJoinType();
-    this.correlationId = correlationId;
-    this.requiredColumns = requiredColumns;
+  @Deprecated // to be removed before 1.21
+  protected Correlate(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode left, RelNode right, CorrelationId correlationId,
+      ImmutableBitSet requiredColumns,
+      org.apache.calcite.sql.SemiJoinType joinType) {
+    this(cluster, traitSet, left, right, correlationId, requiredColumns,
+        joinType.toJoinType());
   }
 
   /**

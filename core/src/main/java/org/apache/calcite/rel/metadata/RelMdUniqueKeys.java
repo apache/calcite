@@ -23,7 +23,6 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rex.RexInputRef;
@@ -206,8 +205,9 @@ public class RelMdUniqueKeys
     return retSet;
   }
 
-  public Set<ImmutableBitSet> getUniqueKeys(SemiJoin rel, RelMetadataQuery mq,
-      boolean ignoreNulls) {
+  @Deprecated // to be removed before 1.21
+  public Set<ImmutableBitSet> getUniqueKeys(org.apache.calcite.rel.core.SemiJoin rel,
+      RelMetadataQuery mq, boolean ignoreNulls) {
     // only return the unique keys from the LHS since a semijoin only
     // returns the LHS
     return mq.getUniqueKeys(rel.getLeft(), ignoreNulls);

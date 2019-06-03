@@ -811,9 +811,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // We have to return group keys and (if present) indicators.
     // So, pretend that the consumer asked for them.
     final int groupCount = aggregate.getGroupSet().cardinality();
-    final int indicatorCount = aggregate.getIndicatorCount();
     fieldsUsed =
-        fieldsUsed.union(ImmutableBitSet.range(groupCount + indicatorCount));
+        fieldsUsed.union(ImmutableBitSet.range(groupCount));
 
     // If the input is unchanged, and we need to project all columns,
     // there's nothing to do.
@@ -824,7 +823,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     }
 
     // Which agg calls are used by our consumer?
-    int j = groupCount + indicatorCount;
+    int j = groupCount;
     int usedAggCallCount = 0;
     for (int i = 0; i < aggregate.getAggCallList().size(); i++) {
       if (fieldsUsed.get(j++)) {
@@ -837,7 +836,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         Mappings.create(
             MappingType.INVERSE_SURJECTION,
             rowType.getFieldCount(),
-            groupCount + indicatorCount + usedAggCallCount);
+            groupCount + usedAggCallCount);
 
     final ImmutableBitSet newGroupSet =
         Mappings.apply(inputMapping, aggregate.getGroupSet());
@@ -849,14 +848,14 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     // Populate mapping of where to find the fields. System, group key and
     // indicator fields first.
-    for (j = 0; j < groupCount + indicatorCount; j++) {
+    for (j = 0; j < groupCount; j++) {
       mapping.set(j, j);
     }
 
     // Now create new agg calls, and populate mapping for them.
     relBuilder.push(newInput);
     final List<RelBuilder.AggCall> newAggCallList = new ArrayList<>();
-    j = groupCount + indicatorCount;
+    j = groupCount;
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
       if (fieldsUsed.get(j)) {
         final ImmutableList<RexNode> args =
@@ -871,7 +870,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
                 .approximate(aggCall.isApproximate())
                 .sort(relBuilder.fields(aggCall.collation))
                 .as(aggCall.name);
-        mapping.set(j, groupCount + indicatorCount + newAggCallList.size());
+        mapping.set(j, groupCount + newAggCallList.size());
         newAggCallList.add(newAggCall);
       }
       ++j;

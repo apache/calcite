@@ -82,10 +82,13 @@ public class Programs {
   public static final Program SUB_QUERY_PROGRAM =
       subQuery(DefaultRelMetadataProvider.INSTANCE);
 
+  @SuppressWarnings("deprecation") // directive to be removed before 1.21
   public static final ImmutableSet<RelOptRule> RULE_SET =
       ImmutableSet.of(
           EnumerableRules.ENUMERABLE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
+          // The following line is to be removed before 1.21;
+          // when it is removed, also remove SuppressWarnings directive, above
           EnumerableRules.ENUMERABLE_SEMI_JOIN_RULE,
           EnumerableRules.ENUMERABLE_CORRELATE_RULE,
           EnumerableRules.ENUMERABLE_PROJECT_RULE,
