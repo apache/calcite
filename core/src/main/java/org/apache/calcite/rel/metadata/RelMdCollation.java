@@ -450,6 +450,12 @@ public class RelMdCollation
     return mq.collations(left);
   }
 
+  public static List<RelCollation> enumerableBatchNestedLoopJoin(RelMetadataQuery mq,
+      RelNode left, RelNode right, JoinRelType joinType) {
+    // The current implementation always preserve the sort order of the left input
+    return mq.collations(left);
+  }
+
   private static List<RelCollation> enumerableJoin0(RelMetadataQuery mq,
       RelNode left, RelNode right, JoinRelType joinType) {
     // The current implementation can preserve the sort order of the left input if one of the
