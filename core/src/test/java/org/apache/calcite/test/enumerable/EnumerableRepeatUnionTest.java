@@ -25,8 +25,9 @@ import org.junit.Test;
 import java.util.Arrays;
 
 /**
- * Unit tests for
- * {@link EnumerableRepeatUnion}
+ * Unit tests for {@link EnumerableRepeatUnion}.
+ *
+ * <p>Added in
  * <a href="https://issues.apache.org/jira/browse/CALCITE-2812">[CALCITE-2812]
  * Add algebraic operators to allow expressing recursive queries</a>.
  */
@@ -46,8 +47,7 @@ public class EnumerableRepeatUnionTest {
                 .values(new String[] { "i" }, 1)
                 .transientScan("DELTA")
                 .filter(
-                    builder.call(
-                        SqlStdOperatorTable.LESS_THAN,
+                    builder.call(SqlStdOperatorTable.LESS_THAN,
                         builder.field(0),
                         builder.literal(10)))
                 .project(
@@ -55,8 +55,7 @@ public class EnumerableRepeatUnionTest {
                         builder.field(0),
                         builder.literal(1)))
                 .repeatUnion("DELTA", true)
-                .build()
-        )
+                .build())
         .returnsOrdered("i=1", "i=2", "i=3", "i=4", "i=5", "i=6", "i=7", "i=8", "i=9", "i=10");
   }
 
@@ -74,8 +73,7 @@ public class EnumerableRepeatUnionTest {
                 .values(new String[] { "n", "fact" }, 0, 1)
                 .transientScan("D")
                 .filter(
-                    builder.call(
-                        SqlStdOperatorTable.LESS_THAN,
+                    builder.call(SqlStdOperatorTable.LESS_THAN,
                         builder.field("n"),
                         builder.literal(7)))
                 .project(
@@ -90,8 +88,7 @@ public class EnumerableRepeatUnionTest {
                             builder.field("fact"))),
                     Arrays.asList("n", "fact"))
                 .repeatUnion("D", true)
-                .build()
-        )
+                .build())
         .returnsOrdered("n=0; fact=1",
             "n=1; fact=1",
             "n=2; fact=2",
@@ -121,31 +118,26 @@ public class EnumerableRepeatUnionTest {
                 .values(new String[] { "n" }, 1)
                 .transientScan("T_IN")
                 .filter(
-                    builder.call(
-                        SqlStdOperatorTable.LESS_THAN,
+                    builder.call(SqlStdOperatorTable.LESS_THAN,
                         builder.field("n"),
                         builder.literal(9)))
                 .project(
-                    builder.call(
-                        SqlStdOperatorTable.PLUS,
+                    builder.call(SqlStdOperatorTable.PLUS,
                         builder.field("n"),
                         builder.literal(1)))
                 .repeatUnion("T_IN", true)
 
                 .transientScan("T_OUT")
                 .filter(
-                    builder.call(
-                        SqlStdOperatorTable.LESS_THAN,
+                    builder.call(SqlStdOperatorTable.LESS_THAN,
                         builder.field("n"),
                         builder.literal(100)))
                 .project(
-                    builder.call(
-                        SqlStdOperatorTable.MULTIPLY,
+                    builder.call(SqlStdOperatorTable.MULTIPLY,
                         builder.field("n"),
                         builder.literal(10)))
                 .repeatUnion("T_OUT", true)
-                .build()
-        )
+                .build())
         .returnsOrdered(
             "n=1",   "n=2",   "n=3",   "n=4",   "n=5",   "n=6",   "n=7",   "n=8",   "n=9",
             "n=10",  "n=20",  "n=30",  "n=40",  "n=50",  "n=60",  "n=70",  "n=80",  "n=90",

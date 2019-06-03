@@ -28,27 +28,22 @@ import org.apache.calcite.util.BuiltInMethod;
 
 import java.util.List;
 
-
 /**
  * Implementation of {@link RepeatUnion} in
  * {@link EnumerableConvention enumerable calling convention}.
  *
- * <p>NOTE: The current API is experimental and subject to change without notice.</p>
+ * <p>NOTE: The current API is experimental and subject to change without
+ * notice.
  */
 @Experimental
 public class EnumerableRepeatUnion extends RepeatUnion implements EnumerableRel {
 
   /**
-   * Creates an EnumerableRepeatUnion
+   * Creates an EnumerableRepeatUnion.
    */
-  EnumerableRepeatUnion(
-          RelOptCluster cluster,
-          RelTraitSet traits,
-          RelNode seed,
-          RelNode iterative,
-          boolean all,
-          int maxRep) {
-    super(cluster, traits, seed, iterative, all, maxRep);
+  EnumerableRepeatUnion(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode seed, RelNode iterative, boolean all, int maxRep) {
+    super(cluster, traitSet, seed, iterative, all, maxRep);
   }
 
   @Override public EnumerableRepeatUnion copy(RelTraitSet traitSet, List<RelNode> inputs) {
@@ -58,10 +53,9 @@ public class EnumerableRepeatUnion extends RepeatUnion implements EnumerableRel 
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-    // TODO only UNION ALL is supported for the moment
     if (!all) {
       throw new UnsupportedOperationException(
-          "Only EnumerableRepeatUnion ALL is supported for the moment");
+          "Only EnumerableRepeatUnion ALL is supported");
     }
 
     // return repeatUnionAll(<seedExp>, <iterativeExp>, maxRep);
