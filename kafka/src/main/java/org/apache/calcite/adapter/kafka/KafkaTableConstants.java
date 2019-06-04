@@ -24,6 +24,7 @@ interface KafkaTableConstants {
   String SCHEMA_BOOTSTRAP_SERVERS = "bootstrap.servers";
   String SCHEMA_ROW_CONVERTER = "row.converter";
   String SCHEMA_CUST_CONSUMER = "consumer.cust";
+  String SCHEMA_TIMESTAMP = "timestamp";
   String SCHEMA_CONSUMER_PARAMS = "consumer.params";
 }
 

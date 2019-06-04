@@ -63,8 +63,8 @@ public class KafkaAdapterTest {
             + ", MSG_VALUE_BYTES VARBINARY NOT NULL]")
 
         .returnsUnordered(
-            "MSG_PARTITION=0; MSG_TIMESTAMP=-1; MSG_OFFSET=0; MSG_KEY_BYTES=mykey0; MSG_VALUE_BYTES=myvalue0",
-            "MSG_PARTITION=0; MSG_TIMESTAMP=-1; MSG_OFFSET=1"
+            "MSG_PARTITION=0; MSG_TIMESTAMP=0; MSG_OFFSET=0; MSG_KEY_BYTES=mykey0; MSG_VALUE_BYTES=myvalue0",
+            "MSG_PARTITION=0; MSG_TIMESTAMP=10000; MSG_OFFSET=1"
                 + "; MSG_KEY_BYTES=mykey1; MSG_VALUE_BYTES=myvalue1")
 
         .explainContains("PLAN=EnumerableInterpreter\n"
@@ -95,8 +95,8 @@ public class KafkaAdapterTest {
             + ", TIMESTAMP_TYPE VARCHAR]")
 
         .returnsUnordered(
-            "TOPIC_NAME=testtopic; PARTITION_ID=0; TIMESTAMP_TYPE=NoTimestampType",
-            "TOPIC_NAME=testtopic; PARTITION_ID=0; TIMESTAMP_TYPE=NoTimestampType")
+            "TOPIC_NAME=testTopic; PARTITION_ID=0; TIMESTAMP_TYPE=LogAppendTime",
+            "TOPIC_NAME=testTopic; PARTITION_ID=0; TIMESTAMP_TYPE=LogAppendTime")
 
         .explainContains("PLAN=EnumerableInterpreter\n"
             + "  BindableTableScan(table=[[KAFKA, MOCKTABLE_CUST_ROW_CONVERTER, (STREAM)]])\n");
@@ -107,6 +107,25 @@ public class KafkaAdapterTest {
     assertModel(MODEL)
         .query("SELECT * FROM KAFKA.MOCKTABLE")
         .failsAtValidation("Cannot convert stream 'MOCKTABLE' to relation");
+  }
+
+  @Test public void testSelectTimestamp() {
+    assertModel(MODEL)
+        .query("SELECT STREAM * FROM KAFKA.MOCKTABLE_CUST_ROW_CONVERTER_TIMESTAMP")
+        .limit(2)
+
+        .typeIs("[MSG_PARTITION INTEGER NOT NULL"
+            + ", MSG_TIMESTAMP BIGINT NOT NULL"
+            + ", MSG_OFFSET BIGINT NOT NULL"
+            + ", MSG_KEY_BYTES VARBINARY"
+            + ", MSG_VALUE_BYTES VARBINARY NOT NULL]")
+
+        .returnsUnordered(
+            "MSG_PARTITION=0; MSG_TIMESTAMP=50000; MSG_OFFSET=5; MSG_KEY_BYTES=mykey5; MSG_VALUE_BYTES=myvalue5",
+            "MSG_PARTITION=0; MSG_TIMESTAMP=60000; MSG_OFFSET=6; MSG_KEY_BYTES=mykey6; MSG_VALUE_BYTES=myvalue6")
+
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  BindableTableScan(table=[[KAFKA, MOCKTABLE_CUST_ROW_CONVERTER_TIMESTAMP, (STREAM)]])\n");
   }
 }
 

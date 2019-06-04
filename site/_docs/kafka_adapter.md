@@ -46,8 +46,8 @@ A basic example of a model file is given below:
           "name": "TABLE_NAME",
           "type": "custom",
           "factory": "org.apache.calcite.adapter.kafka.KafkaTableFactory",
-          "row.converter": "com.example.CustKafkaRowConverter",
           "operand": {
+            "row.converter": "com.example.CustKafkaRowConverter",
             "bootstrap.servers": "host1:port,host2:port",
             "topic.name": "kafka.topic.name",
             "consumer.params": {

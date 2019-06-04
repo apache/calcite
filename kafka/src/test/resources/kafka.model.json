@@ -26,15 +26,33 @@
           "type": "custom",
           "factory": "org.apache.calcite.adapter.kafka.KafkaTableFactory",
           "operand": {
-            "consumer.cust": "org.apache.calcite.adapter.kafka.KafkaMockConsumer"
+            "consumer.cust": "org.apache.calcite.adapter.kafka.KafkaMockConsumer",
+            "topic.name": "testTopic",
+            "bootstrap.servers": "127.0.0.1:9092"
           }
         }, {
           "name": "MOCKTABLE_CUST_ROW_CONVERTER",
           "type": "custom",
           "factory": "org.apache.calcite.adapter.kafka.KafkaTableFactory",
           "operand": {
+            "bootstrap.servers": "127.0.0.1:9092",
             "consumer.cust": "org.apache.calcite.adapter.kafka.KafkaMockConsumer",
             "row.converter": "org.apache.calcite.adapter.kafka.KafkaRowConverterTest",
+            "topic.name": "testTopic",
+            "consumer.params": {
+              "key.deserializer": "org.apache.kafka.common.serialization.StringDeserializer",
+              "value.deserializer": "org.apache.kafka.common.serialization.StringDeserializer"
+            }
+          }
+        }, {
+          "name": "MOCKTABLE_CUST_ROW_CONVERTER_TIMESTAMP",
+          "type": "custom",
+          "factory": "org.apache.calcite.adapter.kafka.KafkaTableFactory",
+          "operand": {
+            "bootstrap.servers": "127.0.0.1:9092",
+            "timestamp": "5000",
+            "consumer.cust": "org.apache.calcite.adapter.kafka.KafkaMockConsumer",
+            "topic.name": "testTopic",
             "consumer.params": {
               "key.deserializer": "org.apache.kafka.common.serialization.StringDeserializer",
               "value.deserializer": "org.apache.kafka.common.serialization.StringDeserializer"
