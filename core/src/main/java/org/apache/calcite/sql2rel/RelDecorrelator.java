@@ -479,6 +479,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
         newInput.getRowType().getFieldList();
 
     int newPos = 0;
+    // aggregate output mapping: old group keys and agg calls
+    Map<Integer, Integer> outputMap = new HashMap<>();
 
     // oldInput has the original group by keys in the front.
     final NavigableMap<Integer, RexLiteral> omittedConstants = new TreeMap<>();
@@ -490,9 +492,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
         omittedConstants.put(i, constant);
         continue;
       }
+
       int newInputPos = frame.oldToNewOutputs.get(i);
       projects.add(RexInputRef.of2(newInputPos, newInputOutput));
       mapNewInputToProjOutputs.put(newInputPos, newPos);
+      outputMap.put(i, newPos);
       newPos++;
     }
 
@@ -542,7 +546,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // oldInput ----> newProject
     //                   |
     //                newInput
-    Map<Integer, Integer> combinedMap = new HashMap<>();
+    final Map<Integer, Integer> combinedMap = new HashMap<>();
 
     for (Integer oldInputPos : frame.oldToNewOutputs.keySet()) {
       combinedMap.put(oldInputPos,
@@ -593,7 +597,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       // The old to new output position mapping will be the same as that
       // of newProject, plus any aggregates that the oldAgg produces.
-      combinedMap.put(
+      outputMap.put(
           oldInputOutputFieldCount + i,
           newInputOutputFieldCount + i);
     }
@@ -605,15 +609,41 @@ public class RelDecorrelator implements ReflectiveVisitor {
       final List<RexNode> postProjects = new ArrayList<>(relBuilder.fields());
       for (Map.Entry<Integer, RexLiteral> entry
           : omittedConstants.descendingMap().entrySet()) {
-        postProjects.add(entry.getKey() + frame.corDefOutputs.size(),
-            entry.getValue());
+        final int index = entry.getKey() + frame.corDefOutputs.size();
+        postProjects.add(index, entry.getValue());
+        // Shift the outputs whose index equals or bigger than the added index
+        // with 1 offset.
+        outputMap = shiftOutputMapping(outputMap, index, 1);
+        // Then add the constant key mapping.
+        outputMap.put(entry.getKey(), index);
       }
       relBuilder.project(postProjects);
     }
 
     // Aggregate does not change input ordering so corVars will be
     // located at the same position as the input newProject.
-    return register(rel, relBuilder.build(), combinedMap, corDefOutputs);
+    return register(rel, relBuilder.build(), outputMap, corDefOutputs);
+  }
+
+  /**
+   * Shift the mapping to fixed offset from the {@code startIndex}.
+   * @param mapping    the original mapping
+   * @param startIndex any output whose index equals or bigger than the staring index
+   *                   would be shift
+   * @param offset     shift offset
+   * @return a new mapping.
+   */
+  private static Map<Integer, Integer> shiftOutputMapping(Map<Integer, Integer> mapping,
+                                                          int startIndex, int offset) {
+    Map<Integer, Integer> ret = new HashMap<>();
+    for (Map.Entry<Integer, Integer> entry : mapping.entrySet()) {
+      if (entry.getValue() >= startIndex) {
+        ret.put(entry.getKey(), entry.getValue() + offset);
+      } else {
+        ret.put(entry.getKey(), entry.getValue());
+      }
+    }
+    return ret;
   }
 
   public Frame getInvoke(RelNode r, RelNode parent) {
