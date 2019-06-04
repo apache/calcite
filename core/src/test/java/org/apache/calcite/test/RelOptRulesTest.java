@@ -5278,6 +5278,44 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2744">[CALCITE-2744]
+   * RelDecorrelator use wrong output map for LogicalAggregate decorrelate</a>. */
+  @Test public void testDecorrelateAggWithConstantGroupKey() {
+    final String sql = "SELECT * FROM emp A where sal in \n"
+        + "(SELECT max(sal) FROM emp B where A.mgr = B.empno group by deptno, 'abc')";
+    sql(sql)
+        .withLateDecorrelation(true)
+        .withTrim(true)
+        .with(HepProgram.builder().build())
+        .check();
+  }
+
+  /** Test case for CALCITE-2744 for aggregate decorrelate with multi-param agg call
+   * but without group key. */
+  @Test public void testDecorrelateAggWithMultiParamsAggCall() {
+    final String sql = "SELECT * FROM (SELECT MY_AVG(sal, 1) AS c FROM emp) as m,\n"
+                       + " LATERAL TABLE(ramp(m.c)) AS T(s)";
+    sql(sql)
+        .withLateDecorrelation(true)
+        .withTrim(true)
+        .with(HepProgram.builder().build())
+        .checkUnchanged();
+  }
+
+  /** Same as {@link #testDecorrelateAggWithMultiParamsAggCall}
+   * but with constant grouping key. */
+  @Test public void testDecorrelateAggWithMultiParamsAggCall2() {
+    final String sql = "SELECT * FROM "
+        + "(SELECT MY_AVG(sal, 1) AS c FROM emp group by empno, 'abc') as m,\n"
+        + " LATERAL TABLE(ramp(m.c)) AS T(s)";
+    sql(sql)
+        .withLateDecorrelation(true)
+        .withTrim(true)
+        .with(HepProgram.builder().build())
+        .checkUnchanged();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-434">[CALCITE-434]
    * Converting predicates on date dimension columns into date ranges</a>,
    * specifically a rule that converts {@code EXTRACT(YEAR FROM ...) = constant}
