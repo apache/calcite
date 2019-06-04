@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -27,6 +28,8 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.util.ListSqlOperatorTable;
@@ -64,6 +67,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     opTab.addOperator(new RampFunction());
     opTab.addOperator(new DedupFunction());
     opTab.addOperator(new MyFunction());
+    opTab.addOperator(new MyAvgAggFunction());
   }
 
   /** "RAMP" user-defined function. */
@@ -125,6 +129,26 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
       return typeFactory.createSqlType(SqlTypeName.BIGINT);
     }
   }
+
+  /** "MY_AVG" user-defined aggregate function. */
+  public static class MyAvgAggFunction extends SqlAggFunction {
+    public MyAvgAggFunction() {
+      super("MY_AVG",
+          null,
+          SqlKind.AVG,
+          ReturnTypes.AVG_AGG_FUNCTION,
+          null,
+          OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.NUMERIC,
+          false,
+          false);
+    }
+
+    @Override public boolean isDeterministic() {
+      return false;
+    }
+  }
+
 }
 
 // End MockSqlOperatorTable.java
