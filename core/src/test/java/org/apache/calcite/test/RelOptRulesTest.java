@@ -5282,8 +5282,8 @@ public class RelOptRulesTest extends RelOptTestBase {
    * Throws RuntimeException in RelDecorrelator when optimizing a Semi-Join
    * query with a multi-param aggregate function in subquery</a> */
   @Test public void testDecorrelateWithMultiParamsAgg() {
-    final String sql = "SELECT * FROM (SELECT MY_AVG(sal, 1) AS c FROM emp) as m,\n" +
-        " LATERAL TABLE(ramp(m.c)) AS T(s)";
+    final String sql = "SELECT * FROM (SELECT MY_AVG(sal, 1) AS c FROM emp) as m,\n"
+        + " LATERAL TABLE(ramp(m.c)) AS T(s)";
     sql(sql)
         .withLateDecorrelation(true)
         .withTrim(true)
