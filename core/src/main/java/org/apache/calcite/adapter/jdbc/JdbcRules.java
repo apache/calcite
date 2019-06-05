@@ -275,7 +275,7 @@ public class JdbcRules {
     public JdbcJoinRule(JdbcConvention out,
         RelBuilderFactory relBuilderFactory) {
       super(Join.class, (Predicate<RelNode>) r -> true, Convention.NONE,
-          out, relBuilderFactory, "JdbcJoinRule");
+          out, relBuilderFactory, "JdbcJoinRule:" + out);
     }
 
     @Override public RelNode convert(RelNode rel) {
@@ -434,7 +434,7 @@ public class JdbcRules {
     private JdbcCalcRule(JdbcConvention out,
         RelBuilderFactory relBuilderFactory) {
       super(Calc.class, (Predicate<RelNode>) r -> true, Convention.NONE,
-          out, relBuilderFactory, "JdbcCalcRule");
+          out, relBuilderFactory, "JdbcCalcRule:" + out);
     }
 
     public RelNode convert(RelNode rel) {
@@ -518,7 +518,7 @@ public class JdbcRules {
               (out.dialect.supportsWindowFunctions()
                   || !RexOver.containsOver(project.getProjects(), null))
                   && !userDefinedFunctionInProject(project),
-          Convention.NONE, out, relBuilderFactory, "JdbcProjectRule");
+          Convention.NONE, out, relBuilderFactory, "JdbcProjectRule:" + out);
     }
 
     private static boolean userDefinedFunctionInProject(Project project) {
@@ -599,7 +599,7 @@ public class JdbcRules {
         RelBuilderFactory relBuilderFactory) {
       super(Filter.class,
           (Predicate<Filter>) r -> !userDefinedFunctionInFilter(r),
-          Convention.NONE, out, relBuilderFactory, "JdbcFilterRule");
+          Convention.NONE, out, relBuilderFactory, "JdbcFilterRule:" + out);
     }
 
     private static boolean userDefinedFunctionInFilter(Filter filter) {
@@ -656,7 +656,7 @@ public class JdbcRules {
     public JdbcAggregateRule(JdbcConvention out,
         RelBuilderFactory relBuilderFactory) {
       super(Aggregate.class, (Predicate<RelNode>) r -> true, Convention.NONE,
-          out, relBuilderFactory, "JdbcAggregateRule");
+          out, relBuilderFactory, "JdbcAggregateRule:" + out);
     }
 
     public RelNode convert(RelNode rel) {
@@ -748,7 +748,7 @@ public class JdbcRules {
     public JdbcSortRule(JdbcConvention out,
         RelBuilderFactory relBuilderFactory) {
       super(Sort.class, (Predicate<RelNode>) r -> true, Convention.NONE, out,
-          relBuilderFactory, "JdbcSortRule");
+          relBuilderFactory, "JdbcSortRule:" + out);
     }
 
     public RelNode convert(RelNode rel) {
@@ -819,7 +819,7 @@ public class JdbcRules {
     public JdbcUnionRule(JdbcConvention out,
         RelBuilderFactory relBuilderFactory) {
       super(Union.class, (Predicate<RelNode>) r -> true, Convention.NONE, out,
-          relBuilderFactory, "JdbcUnionRule");
+          relBuilderFactory, "JdbcUnionRule:" + out);
     }
 
     public RelNode convert(RelNode rel) {
@@ -865,7 +865,7 @@ public class JdbcRules {
     private JdbcIntersectRule(JdbcConvention out,
         RelBuilderFactory relBuilderFactory) {
       super(Intersect.class, (Predicate<RelNode>) r -> true, Convention.NONE,
-          out, relBuilderFactory, "JdbcIntersectRule");
+          out, relBuilderFactory, "JdbcIntersectRule:" + out);
     }
 
     public RelNode convert(RelNode rel) {
@@ -912,7 +912,7 @@ public class JdbcRules {
     private JdbcMinusRule(JdbcConvention out,
         RelBuilderFactory relBuilderFactory) {
       super(Minus.class, (Predicate<RelNode>) r -> true, Convention.NONE, out,
-          relBuilderFactory, "JdbcMinusRule");
+          relBuilderFactory, "JdbcMinusRule:" + out);
     }
 
     public RelNode convert(RelNode rel) {
@@ -951,7 +951,7 @@ public class JdbcRules {
     private JdbcTableModificationRule(JdbcConvention out,
         RelBuilderFactory relBuilderFactory) {
       super(TableModify.class, (Predicate<RelNode>) r -> true,
-          Convention.NONE, out, relBuilderFactory, "JdbcTableModificationRule");
+          Convention.NONE, out, relBuilderFactory, "JdbcTableModificationRule:" + out);
     }
 
     @Override public RelNode convert(RelNode rel) {
@@ -1027,7 +1027,7 @@ public class JdbcRules {
     private JdbcValuesRule(JdbcConvention out,
         RelBuilderFactory relBuilderFactory) {
       super(Values.class, (Predicate<RelNode>) r -> true, Convention.NONE,
-          out, relBuilderFactory, "JdbcValuesRule");
+          out, relBuilderFactory, "JdbcValuesRule:" + out);
     }
 
     @Override public RelNode convert(RelNode rel) {
