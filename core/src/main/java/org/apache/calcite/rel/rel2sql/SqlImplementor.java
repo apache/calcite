@@ -20,10 +20,10 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
@@ -1062,9 +1062,9 @@ public abstract class SqlImplementor {
           needNew = true;
         }
       }
-      if (rel instanceof LogicalAggregate
+      if (rel instanceof Aggregate
           && !dialect.supportsNestedAggregations()
-          && hasNestedAggregations((LogicalAggregate) rel)) {
+          && hasNestedAggregations((Aggregate) rel)) {
         needNew = true;
       }
 
@@ -1111,7 +1111,7 @@ public abstract class SqlImplementor {
           needNew ? null : aliases);
     }
 
-    private boolean hasNestedAggregations(LogicalAggregate rel) {
+    private boolean hasNestedAggregations(Aggregate rel) {
       if (node instanceof SqlSelect) {
         final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
         if (selectList != null) {
@@ -1120,15 +1120,26 @@ public abstract class SqlImplementor {
             aggregatesArgs.addAll(aggregateCall.getArgList());
           }
           for (int aggregatesArg : aggregatesArgs) {
-            if (selectList.get(aggregatesArg) instanceof SqlBasicCall) {
-              final SqlBasicCall call =
-                  (SqlBasicCall) selectList.get(aggregatesArg);
-              for (SqlNode operand : call.getOperands()) {
-                if (operand instanceof SqlCall
-                    && ((SqlCall) operand).getOperator() instanceof SqlAggFunction) {
-                  return true;
-                }
-              }
+            if (containsAggregations(selectList.get(aggregatesArg))) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    private boolean containsAggregations(SqlNode node) {
+      if (node instanceof SqlWindow) {
+        return true;
+      } else if (node instanceof SqlBasicCall) {
+        final SqlBasicCall call = (SqlBasicCall) node;
+        if (call.getOperator() instanceof SqlAggFunction) {
+          return true;
+        } else {
+          for (SqlNode operand : call.getOperands()) {
+            if (containsAggregations(operand)) {
+              return true;
             }
           }
         }

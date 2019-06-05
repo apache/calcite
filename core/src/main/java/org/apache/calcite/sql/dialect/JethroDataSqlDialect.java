@@ -111,10 +111,6 @@ public class JethroDataSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public boolean supportsNestedAggregations() {
-    return false;
-  }
-
   public static JethroInfoCache createCache() {
     return new JethroInfoCacheImpl();
   }
