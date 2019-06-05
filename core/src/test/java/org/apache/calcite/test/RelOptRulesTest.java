@@ -388,6 +388,13 @@ public class RelOptRulesTest extends RelOptTestBase {
         "select 1 from emp inner join dept on emp.deptno=dept.deptno");
   }
 
+  @Test public void testNotPushExpression() {
+    final String sql = "select 1 from emp inner join dept \n"
+        + "on emp.deptno=dept.deptno and emp.ename is not null";
+    sql(sql).withRule(JoinPushExpressionsRule.INSTANCE)
+        .checkUnchanged();
+  }
+
   @Test public void testAddRedundantSemiJoinRule() {
     checkPlanning(JoinAddRedundantSemiJoinRule.INSTANCE,
         "select 1 from emp inner join dept on emp.deptno = dept.deptno");

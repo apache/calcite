@@ -469,6 +469,28 @@ LogicalProject(EXPR$0=[1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testNotPushExpression">
+        <Resource name="sql">
+            <![CDATA[select 1 from emp inner join dept
+            on emp.deptno=dept.deptno and emp.ename is not null]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EXPR$0=[1])
+  LogicalJoin(condition=[AND(=($7, $9), IS NOT NULL($1))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EXPR$0=[1])
+  LogicalJoin(condition=[AND(=($7, $9), IS NOT NULL($1))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testAddRedundantSemiJoinRule">
         <Resource name="sql">
             <![CDATA[select 1 from emp inner join dept on emp.deptno = dept.deptno]]>
@@ -6056,11 +6078,9 @@ in (select dept.deptno from dept where emp.empno > 20)]]>
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EMPNO=[$0])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])
-    LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($7, $9), $8)], joinType=[semi])
-      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[>($0, 20)])
-        LogicalTableScan(table=[[scott, EMP]])
-      LogicalTableScan(table=[[scott, DEPT]])
+  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($7, $8), >($0, 20))], joinType=[semi])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
 ]]>
         </Resource>
     </TestCase>
