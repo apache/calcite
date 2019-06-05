@@ -5279,11 +5279,38 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2744">[CALCITE-2744]
-   * Throws RuntimeException in RelDecorrelator when optimizing a Semi-Join
-   * query with a multi-param aggregate function in subquery</a> */
-  @Test public void testDecorrelateWithMultiParamsAgg() {
+   * RelDecorrelator throws RuntimeException when decorrelating an aggregate function
+   * with more than one argument</a> */
+  @Test public void testDecorrelationWithConstantGroupKey() {
+    final String sql = "SELECT * FROM emp A where sal in \n"
+                       + "(SELECT max(sal) FROM emp B where A.mgr = B.empno group by deptno, 'abc')";
+    sql(sql)
+        .withLateDecorrelation(true)
+        .withTrim(true)
+        .with(HepProgram.builder().build())
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2744">[CALCITE-2744]
+   * RelDecorrelator throws RuntimeException when decorrelating an aggregate function
+   * with more than one argument</a> */
+  @Test public void testDecorrelationWithMultiParamsAggCall() {
     final String sql = "SELECT * FROM (SELECT MY_AVG(sal, 1) AS c FROM emp) as m,\n"
-        + " LATERAL TABLE(ramp(m.c)) AS T(s)";
+                       + " LATERAL TABLE(ramp(m.c)) AS T(s)";
+    sql(sql)
+        .withLateDecorrelation(true)
+        .withTrim(true)
+        .with(HepProgram.builder().build())
+        .checkUnchanged();
+  }
+
+  /** Same as {@link #testDecorrelationWithMultiParamsAggCall}
+   * but with constant grouping key. */
+  @Test public void testDecorrelationWithMultiParamsAggCallAndConstantGroupKey() {
+    final String sql = "SELECT * FROM "
+                       + "(SELECT MY_AVG(sal, 1) AS c FROM emp group by empno, 'abc') as m,\n"
+                       + " LATERAL TABLE(ramp(m.c)) AS T(s)";
     sql(sql)
         .withLateDecorrelation(true)
         .withTrim(true)
