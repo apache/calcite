@@ -19,6 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.test.CalciteAssert.AssertThat;
 import org.apache.calcite.test.CalciteAssert.DatabaseInstance;
+import org.apache.calcite.util.TestUtil;
 
 import org.hsqldb.jdbcDriver;
 import org.junit.Test;
@@ -652,7 +653,7 @@ public class JdbcAdapterTest {
                 connection.getMetaData().getTables(null, null, "%", null);
             assertFalse(CalciteAssert.toString(resultSet).isEmpty());
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -746,7 +747,7 @@ public class JdbcAdapterTest {
             .explainContains(explain)
             .planUpdateHasSql(jdbcSql, 1);
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     });
   }
@@ -778,7 +779,7 @@ public class JdbcAdapterTest {
             .explainContains(explain)
             .planUpdateHasSql(jdbcSql, 2);
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     });
   }
@@ -815,7 +816,7 @@ public class JdbcAdapterTest {
             .explainContains(explain)
             .planUpdateHasSql(jdbcSql, 1);
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     });
   }
@@ -843,7 +844,7 @@ public class JdbcAdapterTest {
             .planUpdateHasSql(jdbcSql, 1);
         return null;
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     });
   }
@@ -867,7 +868,7 @@ public class JdbcAdapterTest {
             .explainContains(explain)
             .planUpdateHasSql(jdbcSql, 1);
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     });
   }

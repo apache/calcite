@@ -21,6 +21,9 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
@@ -35,6 +38,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Util;
 
+import java.util.Collections;
 import java.util.function.Predicate;
 
 /**
@@ -155,8 +159,15 @@ public class FilterProjectTransposeRule extends RelOptRule {
     final RelBuilder relBuilder = call.builder();
     RelNode newFilterRel;
     if (copyFilter) {
-      newFilterRel = filter.copy(filter.getTraitSet(), project.getInput(),
-          simplifyFilterCondition(newCondition, call));
+      final RelNode input = project.getInput();
+      final RelTraitSet traitSet = filter.getTraitSet()
+          .replaceIfs(RelCollationTraitDef.INSTANCE,
+              () -> Collections.singletonList(
+                      input.getTraitSet().getTrait(RelCollationTraitDef.INSTANCE)))
+          .replaceIfs(RelDistributionTraitDef.INSTANCE,
+              () -> Collections.singletonList(
+                      input.getTraitSet().getTrait(RelDistributionTraitDef.INSTANCE)));
+      newFilterRel = filter.copy(traitSet, input, simplifyFilterCondition(newCondition, call));
     } else {
       newFilterRel =
           relBuilder.push(project.getInput()).filter(newCondition).build();
@@ -174,13 +185,13 @@ public class FilterProjectTransposeRule extends RelOptRule {
   }
 
   /**
-   * Simplifies the filter condition using a simplifier created by the information in the
-   * current call.
+   * Simplifies the filter condition using a simplifier created by the
+   * information in the current call.
    *
-   * The method is an attempt to replicate the simplification behavior of
-   * {@link RelBuilder#filter(RexNode...)} which cannot be used in the case of copying nodes. The
-   * main difference with the behavior of that method is that it does not drop entirely the filter
-   * if the condition is always false.
+   * <p>This method is an attempt to replicate the simplification behavior of
+   * {@link RelBuilder#filter(RexNode...)} which cannot be used in the case of
+   * copying nodes. The main difference with the behavior of that method is that
+   * it does not drop entirely the filter if the condition is always false.
    */
   private RexNode simplifyFilterCondition(RexNode condition, RelOptRuleCall call) {
     final RexBuilder xBuilder = call.builder().getRexBuilder();

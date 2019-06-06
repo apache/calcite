@@ -33,11 +33,14 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSnapshot;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalSortExchange;
+import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -50,6 +53,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -99,6 +103,12 @@ public class RelFactories {
   public static final TableScanFactory DEFAULT_TABLE_SCAN_FACTORY =
       new TableScanFactoryImpl();
 
+  public static final TableFunctionScanFactory
+      DEFAULT_TABLE_FUNCTION_SCAN_FACTORY = new TableFunctionScanFactoryImpl();
+
+  public static final SnapshotFactory DEFAULT_SNAPSHOT_FACTORY =
+      new SnapshotFactoryImpl();
+
   /** A {@link RelBuilderFactory} that creates a {@link RelBuilder} that will
    * create logical relational expressions for everything. */
   public static final RelBuilderFactory LOGICAL_BUILDER =
@@ -114,7 +124,8 @@ public class RelFactories {
               DEFAULT_MATCH_FACTORY,
               DEFAULT_SET_OP_FACTORY,
               DEFAULT_VALUES_FACTORY,
-              DEFAULT_TABLE_SCAN_FACTORY));
+              DEFAULT_TABLE_SCAN_FACTORY,
+              DEFAULT_SNAPSHOT_FACTORY));
 
   private RelFactories() {
   }
@@ -151,8 +162,10 @@ public class RelFactories {
         RexNode fetch);
 
     @Deprecated // to be removed before 2.0
-    RelNode createSort(RelTraitSet traits, RelNode input,
-        RelCollation collation, RexNode offset, RexNode fetch);
+    default RelNode createSort(RelTraitSet traitSet, RelNode input,
+        RelCollation collation, RexNode offset, RexNode fetch) {
+      return createSort(input, collation, offset, fetch);
+    }
   }
 
   /**
@@ -163,12 +176,6 @@ public class RelFactories {
     public RelNode createSort(RelNode input, RelCollation collation,
         RexNode offset, RexNode fetch) {
       return LogicalSort.create(input, collation, offset, fetch);
-    }
-
-    @Deprecated // to be removed before 2.0
-    public RelNode createSort(RelTraitSet traits, RelNode input,
-        RelCollation collation, RexNode offset, RexNode fetch) {
-      return createSort(input, collation, offset, fetch);
     }
   }
 
@@ -320,9 +327,12 @@ public class RelFactories {
         boolean semiJoinDone);
 
     @Deprecated // to be removed before 2.0
-    RelNode createJoin(RelNode left, RelNode right, RexNode condition,
+    default RelNode createJoin(RelNode left, RelNode right, RexNode condition,
         JoinRelType joinType, Set<String> variablesStopped,
-        boolean semiJoinDone);
+        boolean semiJoinDone) {
+      return createJoin(left, right, condition,
+          CorrelationId.setOf(variablesStopped), joinType, semiJoinDone);
+    }
   }
 
   /**
@@ -335,13 +345,6 @@ public class RelFactories {
         JoinRelType joinType, boolean semiJoinDone) {
       return LogicalJoin.create(left, right, condition, variablesSet, joinType,
           semiJoinDone, ImmutableList.of());
-    }
-
-    public RelNode createJoin(RelNode left, RelNode right, RexNode condition,
-        JoinRelType joinType, Set<String> variablesStopped,
-        boolean semiJoinDone) {
-      return createJoin(left, right, condition,
-          CorrelationId.setOf(variablesStopped), joinType, semiJoinDone);
     }
   }
 
@@ -491,6 +494,53 @@ public class RelFactories {
       }
       return tableScanFactory.createScan(cluster, table);
     };
+  }
+
+  /**
+   * Can create a {@link TableFunctionScan}
+   * of the appropriate type for a rule's calling convention.
+   */
+  public interface TableFunctionScanFactory {
+    /** Creates a {@link TableFunctionScan}. */
+    RelNode createTableFunctionScan(RelOptCluster cluster,
+        List<RelNode> inputs, RexNode rexCall, Type elementType,
+        Set<RelColumnMapping> columnMappings);
+  }
+
+  /**
+   * Implementation of
+   * {@link TableFunctionScanFactory}
+   * that returns a {@link TableFunctionScan}.
+   */
+  private static class TableFunctionScanFactoryImpl
+      implements TableFunctionScanFactory {
+    @Override public RelNode createTableFunctionScan(RelOptCluster cluster,
+        List<RelNode> inputs, RexNode rexCall, Type elementType,
+        Set<RelColumnMapping> columnMappings) {
+      return LogicalTableFunctionScan.create(cluster, inputs, rexCall,
+          elementType, rexCall.getType(), columnMappings);
+    }
+  }
+
+  /**
+   * Can create a {@link Snapshot} of
+   * the appropriate type for a rule's calling convention.
+   */
+  public interface SnapshotFactory {
+    /**
+     * Creates a {@link Snapshot}.
+     */
+    RelNode createSnapshot(RelNode input, RexNode period);
+  }
+
+  /**
+   * Implementation of {@link RelFactories.SnapshotFactory} that
+   * returns a vanilla {@link LogicalSnapshot}.
+   */
+  public static class SnapshotFactoryImpl implements SnapshotFactory {
+    public RelNode createSnapshot(RelNode input, RexNode period) {
+      return LogicalSnapshot.create(input, period);
+    }
   }
 
   /**

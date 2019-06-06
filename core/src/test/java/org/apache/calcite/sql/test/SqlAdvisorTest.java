@@ -90,6 +90,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "TABLE(CATALOG.SALES.SALGRADE)",
           "TABLE(CATALOG.SALES.SHIPMENTS)",
           "TABLE(CATALOG.SALES.PRODUCTS)",
+          "TABLE(CATALOG.SALES.PRODUCTS_TEMPORAL)",
           "TABLE(CATALOG.SALES.SUPPLIERS)",
           "TABLE(CATALOG.SALES.EMP_R)",
           "TABLE(CATALOG.SALES.DEPT_R)");
@@ -291,6 +292,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(BETWEEN)",
           "KEYWORD(CONTAINS)",
           "KEYWORD(EQUALS)",
+          "KEYWORD(FORMAT)",
           "KEYWORD(IMMEDIATELY)",
           "KEYWORD(IN)",
           "KEYWORD(IS)",
@@ -328,6 +330,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
   protected static final List<String> JOIN_KEYWORDS =
       Arrays.asList(
           "KEYWORD(FETCH)",
+          "KEYWORD(FOR)",
           "KEYWORD(OFFSET)",
           "KEYWORD(LIMIT)",
           "KEYWORD(UNION)",
@@ -828,16 +831,13 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         "select ^dummy, b.dummy from sales.emp a join sales.dept b "
             + "on a.deptno=b.deptno where empno=1";
     assertHint(
-        sql, getSelectKeywords(), EXPR_KEYWORDS, AB_TABLES, SETOPS,
-        FETCH_OFFSET);
+        sql, getSelectKeywords(), EXPR_KEYWORDS, AB_TABLES);
 
     sql = "select ^ from (values (1))";
     assertComplete(
         sql,
         getSelectKeywords(),
         EXPR_KEYWORDS,
-        SETOPS,
-        FETCH_OFFSET,
         Arrays.asList("TABLE(EXPR$0)", "COLUMN(EXPR$0)"));
 
     sql = "select ^ from (values (1)) as t(c)";
@@ -845,14 +845,11 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         sql,
         getSelectKeywords(),
         EXPR_KEYWORDS,
-        SETOPS,
-        FETCH_OFFSET,
         Arrays.asList("TABLE(T)", "COLUMN(C)"));
 
     sql = "select ^, b.dummy from sales.emp a join sales.dept b ";
     assertComplete(
-        sql, getSelectKeywords(), EXPR_KEYWORDS, SETOPS, AB_TABLES,
-        FETCH_OFFSET);
+        sql, getSelectKeywords(), EXPR_KEYWORDS, AB_TABLES);
 
     sql =
         "select dummy, ^b.dummy from sales.emp a join sales.dept b "
@@ -874,8 +871,6 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         getSelectKeywords(),
         EXPR_KEYWORDS,
         EMP_COLUMNS,
-        SETOPS,
-        FETCH_OFFSET,
         Arrays.asList("TABLE(EMP)"));
 
     sql = "select emp.^ from sales.emp";
@@ -930,8 +925,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     sql =
         "select ^t.dummy from (select 1 as x, 2 as y from sales.emp) as t where t.dummy=1";
     assertHint(
-        sql, EXPR_KEYWORDS, getSelectKeywords(), xyColumns, tTable, SETOPS,
-        FETCH_OFFSET);
+        sql, EXPR_KEYWORDS, getSelectKeywords(), xyColumns, tTable);
 
     sql = "select t.^ from (select 1 as x, 2 as y from sales.emp) as t";
     assertComplete(sql, xyColumns, STAR_KEYWORD);

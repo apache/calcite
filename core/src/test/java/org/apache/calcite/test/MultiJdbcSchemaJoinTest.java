@@ -18,8 +18,8 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.schema.SchemaPlus;
 
 import com.google.common.collect.Sets;
@@ -152,7 +152,7 @@ public class MultiJdbcSchemaJoinTest {
     Statement stmt = calciteConnection.createStatement();
     try {
       ResultSet rs;
-      if (CalcitePrepareImpl.DEBUG) {
+      if (CalciteSystemProperty.DEBUG.value()) {
         rs = stmt.executeQuery("explain plan for " + query);
         rs.next();
         System.out.println(rs.getString(1));

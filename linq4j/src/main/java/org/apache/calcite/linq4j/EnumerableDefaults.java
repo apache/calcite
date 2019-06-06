@@ -34,6 +34,8 @@ import org.apache.calcite.linq4j.function.NullableLongFunction1;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
@@ -1298,14 +1300,16 @@ public abstract class EnumerableDefaults {
       final EqualityComparer<TKey> comparer) {
     return new AbstractEnumerable<TSource>() {
       public Enumerator<TSource> enumerator() {
-        final Enumerable<TKey> innerLookup =
+        // CALCITE-2909 Delay the computation of the innerLookup until the moment when we are sure
+        // that it will be really needed, i.e. when the first outer enumerator item is processed
+        final Supplier<Enumerable<TKey>> innerLookup = Suppliers.memoize(() ->
             comparer == null
                 ? inner.select(innerKeySelector).distinct()
-                : inner.select(innerKeySelector).distinct(comparer);
+                : inner.select(innerKeySelector).distinct(comparer));
 
         return EnumerableDefaults.where(outer.enumerator(), v0 -> {
           final TKey key = outerKeySelector.apply(v0);
-          return innerLookup.contains(key);
+          return innerLookup.get().contains(key);
         });
       }
     };

@@ -75,6 +75,7 @@ final class Fixture {
         typeFactory.builder()
             .add("X", intType)
             .add("Y", intType)
+            .add("unit", varchar20Type)
             .kind(StructKind.PEEK_FIELDS)
             .build();
     rectilinearPeekNoExpandCoordType =

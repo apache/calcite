@@ -41,7 +41,7 @@ public class SqlFilterOperator extends SqlBinaryOperator {
   //~ Constructors -----------------------------------------------------------
 
   public SqlFilterOperator() {
-    super("FILTER", SqlKind.FILTER, 2, true, ReturnTypes.ARG0_FORCE_NULLABLE,
+    super("FILTER", SqlKind.FILTER, 20, true, ReturnTypes.ARG0_FORCE_NULLABLE,
         null, OperandTypes.ANY_ANY);
   }
 

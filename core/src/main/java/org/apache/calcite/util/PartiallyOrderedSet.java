@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.config.CalciteSystemProperty;
+
 import com.google.common.collect.ImmutableList;
 
 import java.util.AbstractSet;
@@ -83,10 +85,6 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    */
   private final Node<E> topNode;
   private final Node<E> bottomNode;
-
-  /** Whether to check internal consistency all the time.
-   * False unless you specify "-Dcalcite.debug" on the command line. */
-  private static final boolean DEBUG = Util.getBooleanProperty("calcite.debug");
 
   /**
    * Creates a partially-ordered set.
@@ -219,7 +217,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    */
   @Override public boolean add(E e) {
     assert e != null;
-    assert !DEBUG || isValid(true);
+    assert !CalciteSystemProperty.DEBUG.value() || isValid(true);
     Node<E> node = map.get(e);
     if (node != null) {
       // already present
@@ -266,7 +264,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     }
 
     map.put(node.e, node);
-    assert !DEBUG || isValid(true);
+    assert !CalciteSystemProperty.DEBUG.value() || isValid(true);
     return true;
   }
 

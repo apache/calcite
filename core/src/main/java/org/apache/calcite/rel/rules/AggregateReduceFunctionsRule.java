@@ -46,9 +46,11 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Planner rule that reduces aggregate functions in
@@ -97,15 +99,58 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
       new AggregateReduceFunctionsRule(operand(LogicalAggregate.class, any()),
           RelFactories.LOGICAL_BUILDER);
 
+  private final EnumSet<SqlKind> functionsToReduce;
+
   //~ Constructors -----------------------------------------------------------
 
-  /** Creates an AggregateReduceFunctionsRule. */
+  /**
+   * Creates an AggregateReduceFunctionsRule to reduce all functions
+   * handled by this rule
+   * @param operand operand to determine if rule can be applied
+   * @param relBuilderFactory builder for relational expressions
+   */
   public AggregateReduceFunctionsRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory) {
     super(operand, relBuilderFactory, null);
+    functionsToReduce = EnumSet.noneOf(SqlKind.class);
+    addDefaultSetOfFunctionsToReduce();
+  }
+
+  /**
+   * Creates an AggregateReduceFunctionsRule with client
+   * provided information on which specific functions will
+   * be reduced by this rule
+   * @param aggregateClass aggregate class
+   * @param relBuilderFactory builder for relational expressions
+   * @param functionsToReduce client provided information
+   *                          on which specific functions
+   *                          will be reduced by this rule
+   */
+  public AggregateReduceFunctionsRule(Class<? extends Aggregate> aggregateClass,
+      RelBuilderFactory relBuilderFactory, EnumSet<SqlKind> functionsToReduce) {
+    super(operand(aggregateClass, any()), relBuilderFactory, null);
+    Objects.requireNonNull(functionsToReduce,
+        "Expecting a valid handle for AggregateFunctionsToReduce");
+    this.functionsToReduce = EnumSet.noneOf(SqlKind.class);
+    for (SqlKind function : functionsToReduce) {
+      if (SqlKind.AVG_AGG_FUNCTIONS.contains(function)
+          || SqlKind.COVAR_AVG_AGG_FUNCTIONS.contains(function)
+          || function == SqlKind.SUM) {
+        this.functionsToReduce.add(function);
+      } else {
+        throw new IllegalArgumentException(
+          "AggregateReduceFunctionsRule doesn't support function: " + function.sql);
+      }
+    }
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  private void addDefaultSetOfFunctionsToReduce() {
+    functionsToReduce.addAll(SqlKind.AVG_AGG_FUNCTIONS);
+    functionsToReduce.addAll(SqlKind.COVAR_AVG_AGG_FUNCTIONS);
+    functionsToReduce.add(SqlKind.SUM);
+  }
 
   @Override public boolean matches(RelOptRuleCall call) {
     if (!super.matches(call)) {
@@ -138,20 +183,13 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
    * Returns whether the aggregate call is a reducible function
    */
   private boolean isReducible(final SqlKind kind) {
-    if (SqlKind.AVG_AGG_FUNCTIONS.contains(kind)
-        || SqlKind.COVAR_AVG_AGG_FUNCTIONS.contains(kind)) {
-      return true;
-    }
-    switch (kind) {
-    case SUM:
-      return true;
-    }
-    return false;
+    return functionsToReduce.contains(kind);
   }
 
   /**
-   * Reduces all calls to AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP in
-   * the aggregates list to.
+   * Reduces calls to functions AVG, SUM, STDDEV_POP, STDDEV_SAMP, VAR_POP,
+   * VAR_SAMP, COVAR_POP, COVAR_SAMP, REGR_SXX, REGR_SYY if the function is
+   * present in {@link AggregateReduceFunctionsRule#functionsToReduce}
    *
    * <p>It handles newly generated common subexpressions since this was done
    * at the sql2rel stage.
@@ -314,6 +352,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
     return AggregateCall.create(aggFunction,
         oldCall.isDistinct(),
         oldCall.isApproximate(),
+        oldCall.ignoreNulls(),
         ImmutableIntList.of(argOrdinal),
         filter,
         oldCall.collation,
@@ -338,6 +377,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
         AggregateCall.create(SqlStdOperatorTable.SUM,
             oldCall.isDistinct(),
             oldCall.isApproximate(),
+            oldCall.ignoreNulls(),
             oldCall.getArgList(),
             oldCall.filterArg,
             oldCall.collation,
@@ -349,6 +389,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
         AggregateCall.create(SqlStdOperatorTable.COUNT,
             oldCall.isDistinct(),
             oldCall.isApproximate(),
+            oldCall.ignoreNulls(),
             oldCall.getArgList(),
             oldCall.filterArg,
             oldCall.collation,
@@ -398,13 +439,15 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
 
     final AggregateCall sumZeroCall =
         AggregateCall.create(SqlStdOperatorTable.SUM0, oldCall.isDistinct(),
-            oldCall.isApproximate(), oldCall.getArgList(), oldCall.filterArg,
+            oldCall.isApproximate(), oldCall.ignoreNulls(),
+            oldCall.getArgList(), oldCall.filterArg,
             oldCall.collation, oldAggRel.getGroupCount(), oldAggRel.getInput(),
             null, oldCall.name);
     final AggregateCall countCall =
         AggregateCall.create(SqlStdOperatorTable.COUNT,
             oldCall.isDistinct(),
             oldCall.isApproximate(),
+            oldCall.ignoreNulls(),
             oldCall.getArgList(),
             oldCall.filterArg,
             oldCall.collation,
@@ -496,6 +539,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
         AggregateCall.create(SqlStdOperatorTable.SUM,
             oldCall.isDistinct(),
             oldCall.isApproximate(),
+            oldCall.ignoreNulls(),
             ImmutableIntList.of(argOrdinal),
             oldCall.filterArg,
             oldCall.collation,
@@ -520,6 +564,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
         AggregateCall.create(SqlStdOperatorTable.COUNT,
             oldCall.isDistinct(),
             oldCall.isApproximate(),
+            oldCall.ignoreNulls(),
             oldCall.getArgList(),
             oldCall.filterArg,
             oldCall.collation,
@@ -593,6 +638,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
         AggregateCall.create(SqlStdOperatorTable.SUM,
             oldCall.isDistinct(),
             oldCall.isApproximate(),
+            oldCall.ignoreNulls(),
             ImmutableIntList.of(argOrdinal),
             filterArg,
             oldCall.collation,
@@ -639,6 +685,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
         AggregateCall.create(SqlStdOperatorTable.REGR_COUNT,
             oldCall.isDistinct(),
             oldCall.isApproximate(),
+            oldCall.ignoreNulls(),
             argOrdinals,
             filterArg,
             oldCall.collation,

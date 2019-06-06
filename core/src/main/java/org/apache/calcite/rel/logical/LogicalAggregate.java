@@ -48,8 +48,11 @@ public final class LogicalAggregate extends Aggregate {
    *
    * <p>Use {@link #create} unless you know what you're doing.
    *
-   * @param cluster  Cluster that this relational expression belongs to
-   * @param child    input relational expression
+   * @param cluster    Cluster that this relational expression belongs to
+   * @param traitSet   Traits
+   * @param child      input relational expression
+   * @param indicator  Whether row type should include indicator fields to
+   *                   indicate which grouping set is active
    * @param groupSet Bit set of grouping fields
    * @param groupSets Grouping sets, or null to use just {@code groupSet}
    * @param aggCalls Array of aggregates to compute, not null

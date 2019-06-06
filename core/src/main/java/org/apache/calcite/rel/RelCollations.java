@@ -195,7 +195,7 @@ public class RelCollations {
       Map<Integer, Integer> mapping) {
     return of(
         Util.transform(collation.getFieldCollations(),
-            fc -> fc.copy(mapping.get(fc.getFieldIndex()))));
+            fc -> fc.withFieldIndex(mapping.get(fc.getFieldIndex()))));
   }
 
   /** Creates a copy of this collation that changes the ordinals of input
@@ -204,7 +204,7 @@ public class RelCollations {
       Mappings.TargetMapping mapping) {
     return of(
         Util.transform(collation.getFieldCollations(),
-            fc -> fc.copy(mapping.getTarget(fc.getFieldIndex()))));
+            fc -> fc.withFieldIndex(mapping.getTarget(fc.getFieldIndex()))));
   }
 }
 

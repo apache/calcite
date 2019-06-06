@@ -220,6 +220,14 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference DATE =
       explicit(SqlTypeName.DATE);
+
+  /**
+   * Type-inference strategy whereby the result type of a call is nullable
+   * Date.
+   */
+  public static final SqlReturnTypeInference DATE_NULLABLE =
+      cascade(DATE, SqlTypeTransforms.TO_NULLABLE);
+
   /**
    * Type-inference strategy whereby the result type of a call is Time(0).
    */

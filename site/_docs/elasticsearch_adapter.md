@@ -75,7 +75,7 @@ For example, in the example dataset there is an Elasticsearch type
 named `zips` under index named `usa`.
 
 We can issue a simple query to fetch the names of all the states
-stored in the type `zips`. 
+stored in the type `zips`.
 
 {% highlight sql %}
 sqlline> SELECT * from "zips";
@@ -137,12 +137,14 @@ sqlline> SELECT _MAP['city'], _MAP['state'] from "elasticsearch"."zips" order by
 {% endhighlight %}
 
 ### Use of Scrolling API
-For queries without aggregate functions (like `COUNT`, `MAX` etc.) elastic adapter 
-uses [scroll API](https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html), by default. 
+
+For queries without aggregate functions (like `COUNT`, `MAX` etc.) elastic adapter
+uses [scroll API](https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html), by default.
 This ensures that consistent and full data-set is returned to end user (lazily and in batches). Please note that
 scroll is automatically cleared (removed) when all query resuts are consumed.
 
 ### Supported versions
+
 Currently this adapter supports ElasticSearch versions 2.x (or newer). Generally
 we try to follow official [support schedule](https://www.elastic.co/support/eol).
 

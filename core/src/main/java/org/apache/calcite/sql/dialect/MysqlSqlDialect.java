@@ -58,9 +58,12 @@ public class MysqlSqlDialect extends SqlDialect {
           ReturnTypes.BOOLEAN, InferTypes.FIRST_KNOWN,
           OperandTypes.ANY, SqlFunctionCategory.SYSTEM);
 
+  private final int majorVersion;
+
   /** Creates a MysqlSqlDialect. */
   public MysqlSqlDialect(Context context) {
     super(context);
+    majorVersion = context.databaseMajorVersion();
   }
 
   @Override public boolean supportsCharSet() {
@@ -86,12 +89,20 @@ public class MysqlSqlDialect extends SqlDialect {
     case MAX:
     case SINGLE_VALUE:
       return true;
+    case ROLLUP:
+      // MySQL 5 does not support standard "GROUP BY ROLLUP(x, y)",
+      // only the non-standard "GROUP BY x, y WITH ROLLUP".
+      return majorVersion >= 8;
     }
     return false;
   }
 
   @Override public boolean supportsNestedAggregations() {
     return false;
+  }
+
+  @Override public boolean supportsGroupByWithRollup() {
+    return true;
   }
 
   @Override public CalendarPolicy getCalendarPolicy() {

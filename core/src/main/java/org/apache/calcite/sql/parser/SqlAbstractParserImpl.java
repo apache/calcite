@@ -22,11 +22,13 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlNameMatchers;
 import org.apache.calcite.util.Glossary;
 
 import com.google.common.collect.ImmutableList;
@@ -392,7 +394,8 @@ public abstract class SqlAbstractParserImpl {
     /// name when regenerating SQL).
     if (funName.isSimple()) {
       final List<SqlOperator> list = new ArrayList<>();
-      opTab.lookupOperatorOverloads(funName, funcType, SqlSyntax.FUNCTION, list);
+      opTab.lookupOperatorOverloads(funName, funcType, SqlSyntax.FUNCTION, list,
+          SqlNameMatchers.withCaseSensitive(funName.isComponentQuoted(0)));
       if (list.size() == 1) {
         fun = list.get(0);
       }
@@ -447,6 +450,15 @@ public abstract class SqlAbstractParserImpl {
    * @return constructed parse tree.
    */
   public abstract SqlNode parseSqlStmtEof() throws Exception;
+
+  /**
+   * Parses a list of SQL statements separated by semicolon and constructs a
+   * parse tree. The semicolon is required between statements, but is
+   * optional at the end.
+   *
+   * @return constructed list of SQL statements.
+   */
+  public abstract SqlNodeList parseSqlStmtList() throws Exception;
 
   /**
    * Sets the tab stop size.

@@ -32,6 +32,7 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.jdbc.CalciteConnection;
@@ -90,6 +91,7 @@ import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Smalls;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Util;
 
@@ -99,6 +101,7 @@ import com.google.common.collect.Multimap;
 
 import org.hamcrest.Matcher;
 import org.hsqldb.jdbcDriver;
+import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -308,7 +311,7 @@ public class JdbcTest {
 
           statement.close();
         } catch (SQLException e) {
-          throw new RuntimeException(e);
+          throw TestUtil.rethrow(e);
         }
       });
     }
@@ -950,7 +953,7 @@ public class JdbcTest {
                   equalTo("invalid column ordinal: 5"));
             }
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -1458,7 +1461,7 @@ public class JdbcTest {
             final BigDecimal bigDecimal = resultSet.getBigDecimal(1);
             assertThat(bigDecimal, equalTo(BigDecimal.valueOf(2008)));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -1944,7 +1947,7 @@ public class JdbcTest {
             assertThat(subResultSet.isAfterLast(), is(true));
             statement.close();
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -1970,6 +1973,7 @@ public class JdbcTest {
   }
 
   @Test public void testMultisetQueryWithSingleColumn() {
+    Assume.assumeTrue("[CALCITE-2776]", Bug.CALCITE_2776_FIXED);
     CalciteAssert.hr()
         .query("select multiset(\n"
             + "  select \"deptno\" from \"hr\".\"emps\") as a\n"
@@ -2980,7 +2984,7 @@ public class JdbcTest {
           numbers.add((Number) resultSet.getObject(2));
         }
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
       assertThat(msg, numbers.size(), is(3));
       assertThat(msg, numbers.get(nullCollation.last(desc) ? 2 : 0),
@@ -3482,7 +3486,7 @@ public class JdbcTest {
             "deptno=10; empid=110; S=21710.0; FIVE=5; M=10000.0; C=2",
             "deptno=10; empid=150; S=18760.0; FIVE=5; M=7000.0; C=2",
             "deptno=20; empid=200; S=8200.0; FIVE=5; M=8000.0; C=1")
-        .planContains(CalcitePrepareImpl.DEBUG
+        .planContains(CalciteSystemProperty.DEBUG.value()
             ? "_list.add(new Object[] {\n"
             + "        row[0],\n" // box-unbox is optimized
             + "        row[1],\n"
@@ -3551,7 +3555,7 @@ public class JdbcTest {
   @Test public void testWinAggScalarNonNullPhysType() {
     String planLine =
         "a0s0w0 = org.apache.calcite.runtime.SqlFunctions.lesser(a0s0w0, org.apache.calcite.runtime.SqlFunctions.toFloat(_rows[j]));";
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       planLine = planLine.replaceAll("a0s0w0", "MINa0s0w0");
     }
     CalciteAssert.hr()
@@ -3576,7 +3580,7 @@ public class JdbcTest {
   @Test public void testWinAggScalarNonNullPhysTypePlusOne() {
     String planLine =
         "a0s0w0 = org.apache.calcite.runtime.SqlFunctions.lesser(a0s0w0, org.apache.calcite.runtime.SqlFunctions.toFloat(_rows[j]));";
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       planLine = planLine.replaceAll("a0s0w0", "MINa0s0w0");
     }
     CalciteAssert.hr()
@@ -3919,6 +3923,30 @@ public class JdbcTest {
             + "from " + START_OF_GROUP_DATA)
         .throws_(
             "Cannot apply 'LAG' to arguments of type 'LAG(<INTEGER>, <DATE>, <INTEGER>)'");
+  }
+
+  /**
+   * Tests LAG function with IGNORE NULLS.
+   */
+  @Test public void testLagIgnoreNulls() {
+    final String sql = "select\n"
+        + "  lag(rn, expected, 42) ignore nulls over (w) l,\n"
+        + "  lead(rn, expected) over (w),\n"
+        + "  lead(rn, expected) over (order by expected)\n"
+        + "from (values"
+        + "  (1,0,1),\n"
+        + "  (2,0,1),\n"
+        + "  (2,0,1),\n"
+        + "  (3,1,2),\n"
+        + "  (4,0,3),\n"
+        + "  (cast(null as int),0,3),\n"
+        + "  (5,0,3),\n"
+        + "  (6,0,3),\n"
+        + "  (7,1,4),\n"
+        + "  (8,1,4)) as t(rn,val,expected)\n"
+        + "window w as (order by rn)";
+    CalciteAssert.that().query(sql)
+        .throws_("IGNORE NULLS not supported");
   }
 
   /**
@@ -4831,7 +4859,7 @@ public class JdbcTest {
             resultSet.close();
             statement.close();
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -4898,7 +4926,7 @@ public class JdbcTest {
             preparedStatement2.close();
             preparedStatement.close();
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -4932,7 +4960,7 @@ public class JdbcTest {
               assertThat(r, matcher);
             }
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -5080,7 +5108,7 @@ public class JdbcTest {
       try {
         assertEquals("adhoc", connection.getSchema());
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     });
     that.query("select * from \"adhoc\".ELVIS where \"deptno\" = 10")
@@ -5383,7 +5411,7 @@ public class JdbcTest {
               CalciteAssert.toString(r));
         }
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     });
   }
@@ -5508,7 +5536,7 @@ public class JdbcTest {
                 .executeQuery(sql);
             assertThat(objects.size(), is(1));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -5645,7 +5673,7 @@ public class JdbcTest {
             try {
               Thread.sleep(1000);
             } catch (InterruptedException e) {
-              throw new RuntimeException(e);
+              throw TestUtil.rethrow(e);
             }
 
             resultSet = statement.executeQuery();
@@ -5658,7 +5686,7 @@ public class JdbcTest {
                     + "s1=" + s1 + "\n",
                 s0.compareTo(s1) < 0);
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -5671,7 +5699,7 @@ public class JdbcTest {
           try {
             checkGetTimestamp(connection);
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -5821,7 +5849,7 @@ public class JdbcTest {
                 rs.getDate(1));
             assertFalse(rs.next());
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -5848,7 +5876,7 @@ public class JdbcTest {
                 rs.getTimestamp(1));
             assertFalse(rs.next());
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -5920,7 +5948,7 @@ public class JdbcTest {
             assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
                 equalTo(false));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -5950,7 +5978,7 @@ public class JdbcTest {
             assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
                 equalTo(false));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -5980,7 +6008,7 @@ public class JdbcTest {
             assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
                 equalTo(false));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -6014,7 +6042,7 @@ public class JdbcTest {
             assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
                 equalTo(false));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -6045,7 +6073,7 @@ public class JdbcTest {
             assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
                 equalTo(false));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -6080,7 +6108,7 @@ public class JdbcTest {
             assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
                 equalTo(false));
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -6674,7 +6702,7 @@ public class JdbcTest {
               }
             }
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -6791,7 +6819,6 @@ public class JdbcTest {
         .returns("EXPR$0=[250, 500, 1000]\n");
   }
 
-  @Ignore
   @Test public void testJsonType() {
     CalciteAssert.that()
         .query("SELECT JSON_TYPE(v) AS c1\n"
@@ -6801,6 +6828,52 @@ public class JdbcTest {
             + "FROM (VALUES ('{\"a\": [10, true],\"b\": \"[10, true]\"}')) AS t(v)\n"
             + "limit 10")
         .returns("C1=OBJECT; C2=ARRAY; C3=INTEGER; C4=BOOLEAN\n");
+  }
+
+  @Test public void testJsonDepth() {
+    CalciteAssert.that()
+            .query("SELECT JSON_DEPTH(v) AS c1\n"
+                    + ",JSON_DEPTH(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2\n"
+                    + ",JSON_DEPTH(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3\n"
+                    + ",JSON_DEPTH(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4\n"
+                    + "FROM (VALUES ('{\"a\": [10, true],\"b\": \"[10, true]\"}')) AS t(v)\n"
+                    + "limit 10")
+            .returns("C1=3; C2=2; C3=1; C4=1\n");
+  }
+
+  @Test public void testJsonLength() {
+    CalciteAssert.that()
+        .query("SELECT JSON_LENGTH(v) AS c1\n"
+            + ",JSON_LENGTH(v, 'lax $.a') AS c2\n"
+            + ",JSON_LENGTH(v, 'strict $.a[0]') AS c3\n"
+            + ",JSON_LENGTH(v, 'strict $.a[1]') AS c4\n"
+            + "FROM (VALUES ('{\"a\": [10, true]}')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1=1; C2=2; C3=1; C4=1\n");
+  }
+
+  @Test
+  public void testJsonPretty() {
+    CalciteAssert.that()
+        .query("SELECT JSON_PRETTY(v) AS c1\n"
+            + "FROM (VALUES ('{\"a\": [10, true],\"b\": [10, true]}')) as t(v)\n"
+            + "limit 10")
+        .returns("C1={\n"
+            + "  \"a\" : [ 10, true ],\n"
+            + "  \"b\" : [ 10, true ]\n"
+            + "}\n");
+  }
+
+  @Test public void testJsonKeys() {
+    CalciteAssert.that()
+        .query("SELECT JSON_KEYS(v) AS c1\n"
+            + ",JSON_KEYS(v, 'lax $.a') AS c2\n"
+            + ",JSON_KEYS(v, 'lax $.b') AS c3\n"
+            + ",JSON_KEYS(v, 'strict $.a[0]') AS c4\n"
+            + ",JSON_KEYS(v, 'strict $.a[1]') AS c5\n"
+            + "FROM (VALUES ('{\"a\": [10, true],\"b\": {\"c\": 30}}')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1=[\"a\",\"b\"]; C2=null; C3=[\"c\"]; C4=null; C5=null\n");
   }
 
   /**

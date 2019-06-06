@@ -103,8 +103,11 @@ class RuleQueue {
       Ordering.from(new RelImportanceComparator());
 
   /**
-   * Maps a {@link VolcanoPlannerPhase} to a set of rule names.  Named rules
+   * Maps a {@link VolcanoPlannerPhase} to a set of rule descriptions. Named rules
    * may be invoked in their corresponding phase.
+   *
+   * <p>See {@link VolcanoPlannerPhaseRuleMappingInitializer} for more
+   * information regarding the contents of this Map and how it is initialized.
    */
   private final Map<VolcanoPlannerPhase, Set<String>> phaseRuleMapping;
 
@@ -330,11 +333,10 @@ class RuleQueue {
         continue;
       }
 
-      String ruleClassName = match.getRule().getClass().getSimpleName();
-
       Set<String> phaseRuleSet = phaseRuleMapping.get(matchList.phase);
       if (phaseRuleSet != ALL_RULES) {
-        if (!phaseRuleSet.contains(ruleClassName)) {
+        String ruleDescription = match.getRule().toString();
+        if (!phaseRuleSet.contains(ruleDescription)) {
           continue;
         }
       }
@@ -354,7 +356,7 @@ class RuleQueue {
    *
    * <ul>
    * <li>the root {@link RelSubset} has an importance of 1</li>
-   * <li>the importance of any other subset is the sum of its importance to
+   * <li>the importance of any other subset is the max of its importance to
    * its parents</li>
    * <li>The importance of children is pro-rated according to the cost of the
    * children. Consider a node which has a cost of 3, and children with costs
@@ -366,7 +368,7 @@ class RuleQueue {
    *
    * <p>The formula for the importance <i>I</i> of node n is:
    *
-   * <blockquote>I<sub>n</sub> = Sum<sub>parents p of n</sub>{I<sub>p</sub> .
+   * <blockquote>I<sub>n</sub> = Max<sub>parents p of n</sub>{I<sub>p</sub> .
    * W <sub>n, p</sub>}</blockquote>
    *
    * <p>where W<sub>n, p</sub>, the weight of n within its parent p, is

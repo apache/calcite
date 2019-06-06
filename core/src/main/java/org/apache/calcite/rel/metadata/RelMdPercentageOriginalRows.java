@@ -80,8 +80,14 @@ public class RelMdPercentageOriginalRows
     // case where a huge table has been completely filtered away.
 
     for (RelNode input : rel.getInputs()) {
-      double rowCount = mq.getRowCount(input);
-      double percentage = mq.getPercentageOriginalRows(input);
+      Double rowCount = mq.getRowCount(input);
+      if (rowCount == null) {
+        continue;
+      }
+      Double percentage = mq.getPercentageOriginalRows(input);
+      if (percentage == null) {
+        continue;
+      }
       if (percentage != 0.0) {
         denominator += rowCount / percentage;
         numerator += rowCount;
@@ -100,8 +106,14 @@ public class RelMdPercentageOriginalRows
 
     // REVIEW jvs 28-Mar-2006:  need any special casing for SemiJoin?
 
-    double left = mq.getPercentageOriginalRows(rel.getLeft());
-    double right = mq.getPercentageOriginalRows(rel.getRight());
+    Double left = mq.getPercentageOriginalRows(rel.getLeft());
+    if (left == null) {
+      return null;
+    }
+    Double right = mq.getPercentageOriginalRows(rel.getRight());
+    if (right == null) {
+      return null;
+    }
     return left * right;
   }
 

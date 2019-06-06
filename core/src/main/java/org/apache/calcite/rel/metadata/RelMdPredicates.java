@@ -43,6 +43,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexSimplify;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
@@ -402,7 +403,8 @@ public class RelMdPredicates
         Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR);
     RexNode disjunctivePredicate =
         new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, executor)
-            .simplifyOrs(finalResidualPredicates);
+            .simplifyUnknownAs(rexBuilder.makeCall(SqlStdOperatorTable.OR, finalResidualPredicates),
+                RexUnknownAs.FALSE);
     if (!disjunctivePredicate.isAlwaysTrue()) {
       predicates.add(disjunctivePredicate);
     }

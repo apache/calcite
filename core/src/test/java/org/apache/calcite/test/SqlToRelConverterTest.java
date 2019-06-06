@@ -128,7 +128,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * struct type alias should not cause IOOBE.</a>.
    */
   @Test public void testStructTypeAlias() {
-    final String sql = "select t.r AS myRow \n"
+    final String sql = "select t.r AS myRow\n"
         + "from (select row(row(1)) r from dept) t";
     sql(sql).ok();
   }
@@ -596,7 +596,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * and rename the second column to "e0". */
   @Test public void testDuplicateColumnsInSubQuery() {
     String sql = "select \"e\" from (\n"
-        + "select empno as \"e\", deptno as d, 1 as \"e\" from EMP)";
+        + "select empno as \"e\", deptno as d, 1 as \"e0\" from EMP)";
     sql(sql).ok();
   }
 
@@ -1062,6 +1062,72 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql("select * from dept, lateral table(ramp(deptno))").ok();
   }
 
+  @Test public void testSnapshotOnTemporalTable() {
+    final String sql = "select * from products_temporal "
+        + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'";
+    sql(sql).ok();
+  }
+
+  @Test public void testJoinTemporalTableOnSpecificTime() {
+    final String sql = "select stream *\n"
+        + "from orders,\n"
+        + "  products_temporal for system_time as of\n"
+        + "    TIMESTAMP '2011-01-02 00:00:00'";
+    sql(sql).ok();
+  }
+
+  @Test public void testJoinTemporalTableOnColumnReference() {
+    final String sql = "select stream *\n"
+        + "from orders\n"
+        + "join products_temporal for system_time as of orders.rowtime\n"
+        + "on orders.productid = products_temporal.productid";
+    sql(sql).ok();
+  }
+
+  /**
+   * Lateral join with temporal table, both snapshot's input scan
+   * and snapshot's period reference outer columns. Should not
+   * decorrelate join.
+   */
+  @Test public void testCrossJoinTemporalTable1() {
+    final String sql = "select stream *\n"
+        + "from orders\n"
+        + "cross join lateral (\n"
+        + "  select * from products_temporal for system_time\n"
+        + "  as of orders.rowtime\n"
+        + "  where orders.productid = products_temporal.productid)\n";
+    sql(sql).ok();
+  }
+
+  /**
+   * Lateral join with temporal table, snapshot's input scan
+   * reference outer columns, but snapshot's period is static.
+   * Should be able to decorrelate join.
+   */
+  @Test public void testCrossJoinTemporalTable2() {
+    final String sql = "select stream *\n"
+        + "from orders\n"
+        + "cross join lateral (\n"
+        + "  select * from products_temporal for system_time\n"
+        + "  as of TIMESTAMP '2011-01-02 00:00:00'\n"
+        + "  where orders.productid = products_temporal.productid)\n";
+    sql(sql).ok();
+  }
+
+  /**
+   * Lateral join with temporal table, snapshot's period reference
+   * outer columns. Should not decorrelate join.
+   */
+  @Test public void testCrossJoinTemporalTable3() {
+    final String sql = "select stream *\n"
+        + "from orders\n"
+        + "cross join lateral (\n"
+        + "  select * from products_temporal for system_time\n"
+        + "  as of orders.rowtime\n"
+        + "  where products_temporal.productid > 1)\n";
+    sql(sql).ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1732">[CALCITE-1732]
    * IndexOutOfBoundsException when using LATERAL TABLE with more than one
@@ -1319,6 +1385,12 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testSome() {
     final String sql = "select empno from emp where deptno > some (\n"
+        + "  select deptno from dept)";
+    sql(sql).expand(false).ok();
+  }
+
+  @Test public void testSomeWithEquality() {
+    final String sql = "select empno from emp where deptno = some (\n"
         + "  select deptno from dept)";
     sql(sql).expand(false).ok();
   }
@@ -1710,6 +1782,28 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
+   * Tests that a window with specifying null treatment.
+   */
+  @Test public void testOverNullTreatmentWindow() {
+    final String sql = "select\n"
+        + "lead(deptno, 1) over w,\n "
+        + "lead(deptno, 2) ignore nulls over w,\n"
+        + "lead(deptno, 3) respect nulls over w,\n"
+        + "lead(deptno, 1) over w,\n"
+        + "lag(deptno, 2) ignore nulls over w,\n"
+        + "lag(deptno, 2) respect nulls over w,\n"
+        + "first_value(deptno) over w,\n"
+        + "first_value(deptno) ignore nulls over w,\n"
+        + "first_value(deptno) respect nulls over w,\n"
+        + "last_value(deptno) over w,\n"
+        + "last_value(deptno) ignore nulls over w,\n"
+        + "last_value(deptno) respect nulls over w\n"
+        + " from emp\n"
+        + "window w as (order by empno)";
+    sql(sql).ok();
+  }
+
+  /**
    * Tests that a window with a FOLLOWING bound becomes BETWEEN CURRENT ROW
    * AND FOLLOWING.
    */
@@ -2022,7 +2116,6 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Ignore("CALCITE-1527")
   @Test public void testUpdateSubQuery() {
     final String sql = "update emp\n"
         + "set empno = (\n"
@@ -2435,6 +2528,19 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).decorrelate(true).ok();
   }
 
+  /**
+   * Test case for decorrelating sub-query that has aggregate with
+   * grouping sets.
+   */
+  @Test public void testCorrelationAggregateGroupSets() {
+    final String sql = "select sum(e1.empno)\n"
+        + "from emp e1, dept d1\n"
+        + "where e1.deptno = d1.deptno\n"
+        + "and e1.sal > (select avg(e2.sal) from emp e2\n"
+        + "  where e2.deptno = d1.deptno group by cube(comm, mgr))";
+    sql(sql).decorrelate(true).ok();
+  }
+
   @Test public void testCustomColumnResolving() {
     final String sql = "select k0 from struct.t";
     sql(sql).ok();
@@ -2535,6 +2641,42 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         + "  select t2.fake_col as fake_q1\n"
         + "  from SALES.CUSTOMER as t2) as t3";
     sql(sql).with(getTesterWithDynamicTable()).ok();
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2900">[CALCITE-2900]
+   * RelStructuredTypeFlattener generates wrong types on nested columns</a>.
+   */
+  @Test
+  public void testNestedColumnType() {
+    final String sql =
+        "select empa.home_address.zip from sales.emp_address empa where empa.home_address.city = 'abc'";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2962">[CALCITE-2962]
+   * RelStructuredTypeFlattener generates wrong types for nested column when flattenProjection</a>.
+   */
+  @Test
+  public void testSelectNestedColumnType() {
+    final String sql =
+        "select\n"
+            + "  char_length(coord.\"unit\") as unit_length\n"
+            + "from\n"
+            + "  (\n"
+            + "    select\n"
+            + "      fname,\n"
+            + "      coord\n"
+            + "    from\n"
+            + "      customer.contact_peek\n"
+            + "    where\n"
+            + "      coord.x > 1\n"
+            + "      and coord.y > 1\n"
+            + "  ) as view\n"
+            + "where\n"
+            + "  fname = 'john'";
+    sql(sql).ok();
   }
 
   @Test public void testDynamicSchemaUnnest() {
@@ -2861,6 +3003,19 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testMatchRecognizeIn() {
+    final String sql = "select *\n"
+        + "  from emp match_recognize\n"
+        + "  (\n"
+        + "    partition by job, sal\n"
+        + "    order by job asc, sal desc, empno\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.mgr in (0, 1),\n"
+        + "      up as up.mgr > prev(up.mgr)) as mr";
+    sql(sql).ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2323">[CALCITE-2323]
    * Validator should allow alternative nullCollations for ORDER BY in
@@ -2882,6 +3037,16 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).with(tester).ok();
   }
 
+  @Test public void testJsonValueExpressionOperator() {
+    final String sql = "select ename format json,\n"
+        + "ename format json encoding utf8,\n"
+        + "ename format json encoding utf16,\n"
+        + "ename format json encoding utf32\n"
+        + "from emp";
+    System.out.println(sql);
+    sql(sql).ok();
+  }
+
   @Test public void testJsonExists() {
     final String sql = "select json_exists(ename, 'lax $')\n"
         + "from emp";
@@ -2900,14 +3065,62 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testJsonType() {
+    final String sql = "select json_type(ename)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonPretty() {
+    final String sql = "select json_pretty(ename)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonDepth() {
+    final String sql = "select json_depth(ename)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonLength() {
+    final String sql = "select json_length(ename, 'strict $')\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonKeys() {
+    final String sql = "select json_keys(ename, 'strict $')\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
   @Test public void testJsonArray() {
     final String sql = "select json_array(ename, ename)\n"
         + "from emp";
     sql(sql).ok();
   }
 
-  @Test public void testJsonArrayAgg() {
+  @Test public void testJsonArrayAgg1() {
     final String sql = "select json_arrayagg(ename)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonArrayAgg2() {
+    final String sql = "select json_arrayagg(ename order by ename)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonArrayAgg3() {
+    final String sql = "select json_arrayagg(ename order by ename null on null)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test public void testJsonArrayAgg4() {
+    final String sql = "select json_arrayagg(ename null on null) within group (order by ename)\n"
         + "from emp";
     sql(sql).ok();
   }
@@ -2986,6 +3199,91 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "select * from (\n"
         + "  select empno from emp order by deptno limit 10) t\n"
         + "order by empno";
+    sql(sql).ok();
+  }
+
+  /**
+   * Tests left join lateral with using
+   */
+  @Test public void testLeftJoinLateral1() {
+    final String sql = "select * from (values 4) as t(c)\n"
+        + " left join lateral\n"
+        + " (select c,a*c from (values 2) as s(a)) as r(d,c)\n"
+        + " using(c)";
+    sql(sql).ok();
+  }
+
+  /**
+   * Tests left join lateral with natural join
+   */
+  @Test public void testLeftJoinLateral2() {
+    final String sql = "select * from (values 4) as t(c)\n"
+        + " natural left join lateral\n"
+        + " (select c,a*c from (values 2) as s(a)) as r(d,c)";
+    sql(sql).ok();
+  }
+
+  /**
+   * Tests left join lateral with on condition
+   */
+  @Test public void testLeftJoinLateral3() {
+    final String sql = "select * from (values 4) as t(c)\n"
+        + " left join lateral\n"
+        + " (select c,a*c from (values 2) as s(a)) as r(d,c)\n"
+        + " on t.c=r.c";
+    sql(sql).ok();
+  }
+
+  /**
+   * Tests left join lateral with multiple columns from outer
+   */
+  @Test public void testLeftJoinLateral4() {
+    final String sql = "select * from (values (4,5)) as t(c,d)\n"
+        + " left join lateral\n"
+        + " (select c,a*c from (values 2) as s(a)) as r(d,c)\n"
+        + " on t.c+t.d=r.c";
+    sql(sql).ok();
+  }
+
+  /**
+   * Tests left join lateral with correlate variable coming
+   * from one level up join scope
+   */
+  @Test public void testLeftJoinLateral5() {
+    final String sql = "select * from (values 4) as t (c)\n"
+        + "left join lateral\n"
+        + "  (select f1+b1 from (values 2) as foo(f1)\n"
+        + "    join\n"
+        + "  (select c+1 from (values 3)) as bar(b1)\n"
+        + "  on f1=b1)\n"
+        + "as r(n) on c=n";
+    sql(sql).ok();
+  }
+
+  /**
+   * Tests cross join lateral with multiple columns from outer
+   */
+  @Test public void testCrossJoinLateral1() {
+    final String sql = "select * from (values (4,5)) as t(c,d)\n"
+        + " cross join lateral\n"
+        + " (select c,a*c as f from (values 2) as s(a)\n"
+        + " where c+d=a*c)";
+    sql(sql).ok();
+  }
+
+  /**
+   * Tests cross join lateral with correlate variable coming
+   * from one level up join scope
+   */
+  @Test public void testCrossJoinLateral2() {
+    final String sql = "select * from (values 4) as t (c)\n"
+        + "cross join lateral\n"
+        + "(select * from (\n"
+        + "  select f1+b1 from (values 2) as foo(f1)\n"
+        + "    join\n"
+        + "  (select c+1 from (values 3)) as bar(b1)\n"
+        + "  on f1=b1\n"
+        + ") as r(n) where c=n)";
     sql(sql).ok();
   }
 

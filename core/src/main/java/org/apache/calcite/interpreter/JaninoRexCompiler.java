@@ -19,6 +19,7 @@ package org.apache.calcite.interpreter;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
@@ -28,7 +29,6 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.MemberDeclaration;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -146,7 +146,7 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
         Expressions.classDecl(Modifier.PUBLIC, "Buzz", null,
             ImmutableList.of(Scalar.class), declarations);
     String s = Expressions.toString(declarations, "\n", false);
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       Util.debugCode(System.out, s);
     }
     try {
@@ -169,7 +169,7 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     cbe.setClassName(expr.name);
     cbe.setImplementedInterfaces(new Class[]{Scalar.class});
     cbe.setParentClassLoader(JaninoRexCompiler.class.getClassLoader());
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       // Add line numbers to the generated janino class
       cbe.setDebuggingInformation(true, true, true);
     }

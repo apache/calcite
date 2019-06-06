@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
@@ -79,7 +80,7 @@ public class Matchers {
           CalciteAssert.toStringList(resultSet, actualList);
           resultSet.close();
         } catch (SQLException e) {
-          throw new RuntimeException(e);
+          throw TestUtil.rethrow(e);
         }
         Collections.sort(actualList);
 

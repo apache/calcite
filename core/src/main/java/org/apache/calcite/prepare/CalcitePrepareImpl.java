@@ -29,6 +29,7 @@ import org.apache.calcite.avatica.AvaticaParameter;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.BindableConvention;
 import org.apache.calcite.interpreter.Bindables;
 import org.apache.calcite.interpreter.Interpreters;
@@ -76,6 +77,7 @@ import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
 import org.apache.calcite.rel.rules.AggregateStarTableRule;
 import org.apache.calcite.rel.rules.AggregateValuesRule;
+import org.apache.calcite.rel.rules.ExchangeRemoveConstantKeysRule;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
@@ -163,12 +165,6 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * subject to change without notice.</p>
  */
 public class CalcitePrepareImpl implements CalcitePrepare {
-
-  public static final boolean DEBUG = Util.getBooleanProperty("calcite.debug");
-
-  public static final boolean COMMUTE =
-      Util.getBooleanProperty("calcite.enable.join.commute");
-
   /** Whether to enable the collation trait. Some extra optimizations are
    * possible if enabled, but queries should work either way. At some point
    * this will become a preference, or we will run multiple phases: first
@@ -221,7 +217,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           AggregateStarTableRule.INSTANCE,
           AggregateStarTableRule.INSTANCE2,
           TableScanRule.INSTANCE,
-          COMMUTE
+          CalciteSystemProperty.COMMUTE.value()
               ? JoinAssociateRule.INSTANCE
               : ProjectMergeRule.INSTANCE,
           FilterTableScanRule.INSTANCE,
@@ -239,13 +235,16 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           SortProjectTransposeRule.INSTANCE,
           SortJoinTransposeRule.INSTANCE,
           SortRemoveConstantKeysRule.INSTANCE,
-          SortUnionTransposeRule.INSTANCE);
+          SortUnionTransposeRule.INSTANCE,
+          ExchangeRemoveConstantKeysRule.EXCHANGE_INSTANCE,
+          ExchangeRemoveConstantKeysRule.SORT_EXCHANGE_INSTANCE);
 
   private static final List<RelOptRule> CONSTANT_REDUCTION_RULES =
       ImmutableList.of(
           ReduceExpressionsRule.PROJECT_INSTANCE,
           ReduceExpressionsRule.FILTER_INSTANCE,
           ReduceExpressionsRule.CALC_INSTANCE,
+          ReduceExpressionsRule.WINDOW_INSTANCE,
           ReduceExpressionsRule.JOIN_INSTANCE,
           ValuesReduceRule.FILTER_INSTANCE,
           ValuesReduceRule.PROJECT_FILTER_INSTANCE,

@@ -64,6 +64,7 @@ public abstract class TableFunctionScan extends AbstractRelNode {
    *
    * @param cluster        Cluster that this relational expression belongs to
    * @param inputs         0 or more relational inputs
+   * @param traitSet       Trait set
    * @param rexCall        Function invocation expression
    * @param elementType    Element type of the collection that will implement
    *                       this table
@@ -72,13 +73,13 @@ public abstract class TableFunctionScan extends AbstractRelNode {
    */
   protected TableFunctionScan(
       RelOptCluster cluster,
-      RelTraitSet traits,
+      RelTraitSet traitSet,
       List<RelNode> inputs,
       RexNode rexCall,
       Type elementType,
       RelDataType rowType,
       Set<RelColumnMapping> columnMappings) {
-    super(cluster, traits);
+    super(cluster, traitSet);
     this.rexCall = rexCall;
     this.elementType = elementType;
     this.rowType = rowType;

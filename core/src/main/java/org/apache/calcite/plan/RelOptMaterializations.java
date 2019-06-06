@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
@@ -109,7 +109,7 @@ public abstract class RelOptMaterializations {
       if (queryTableNames.contains(lattice.rootTable().getQualifiedName())) {
         RelNode rel2 = lattice.rewrite(leafJoinRoot.get());
         if (rel2 != null) {
-          if (CalcitePrepareImpl.DEBUG) {
+          if (CalciteSystemProperty.DEBUG.value()) {
             System.out.println("use lattice:\n"
                 + RelOptUtil.toString(rel2));
           }

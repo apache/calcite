@@ -58,6 +58,15 @@ public class UdtTest {
         + "from (VALUES ROW(1, 'SameName')) AS \"t\" (\"id\", \"desc\")";
     withUdt().query(sql).returns("LD=1\n");
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3045">[CALCITE-3045]
+   * NullPointerException when casting null literal to composite user defined type</a>. */
+  @Test public void testCastNullLiteralToCompositeUdt() {
+    final String sql = "select CAST(null AS \"adhoc\".mytype2) as c "
+        + "from (VALUES (1))";
+    withUdt().query(sql).returns("C=null\n");
+  }
 }
 
 // End UdtTest.java

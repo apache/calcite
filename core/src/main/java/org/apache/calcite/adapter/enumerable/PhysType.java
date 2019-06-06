@@ -198,8 +198,19 @@ public interface PhysType {
   PhysType makeNullable(boolean nullable);
 
   /** Converts an enumerable of this physical type to an enumerable that uses a
-   * given physical type for its rows. */
+   * given physical type for its rows.
+   *
+   * @deprecated Use {@link #convertTo(Expression, JavaRowFormat)}.
+   * The use of PhysType as a second parameter is misleading since only the row
+   * format of the expression is affected by the conversion. Moreover it requires
+   * to have at hand a PhysType object which is not really necessary for achieving
+   * the desired result. */
+  @Deprecated // to be removed before 2.0
   Expression convertTo(Expression expression, PhysType targetPhysType);
+
+  /** Converts an enumerable of this physical type to an enumerable that uses
+   * the <code>targetFormat</code> for representing its rows. */
+  Expression convertTo(Expression expression, JavaRowFormat targetFormat);
 }
 
 // End PhysType.java

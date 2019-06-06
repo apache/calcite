@@ -47,7 +47,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -161,29 +160,41 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     //   from emp) as q
     //
     final SqlQuantifyOperator op = (SqlQuantifyOperator) e.op;
+
+    // SOME_EQ (=SOME) should have been rewritten into IN
+    assert op != SqlStdOperatorTable.SOME_EQ;
     builder.push(e.rel)
         .aggregate(builder.groupKey(),
             op.comparisonKind == SqlKind.GREATER_THAN
-              || op.comparisonKind == SqlKind.GREATER_THAN_OR_EQUAL
-              ? builder.min("m", builder.field(0))
-              : builder.max("m", builder.field(0)),
+                || op.comparisonKind == SqlKind.GREATER_THAN_OR_EQUAL
+                ? builder.min("m", builder.field(0))
+                : builder.max("m", builder.field(0)),
             builder.count(false, "c"),
             builder.count(false, "d", builder.field(0)))
         .as("q")
         .join(JoinRelType.INNER);
-    return builder.call(SqlStdOperatorTable.CASE,
-      builder.call(SqlStdOperatorTable.EQUALS,
-          builder.field("q", "c"), builder.literal(0)),
-      builder.literal(false),
-      builder.call(SqlStdOperatorTable.IS_TRUE,
-          builder.call(RelOptUtil.op(op.comparisonKind, null),
-              e.operands.get(0), builder.field("q", "m"))),
-      builder.literal(true),
-      builder.call(SqlStdOperatorTable.GREATER_THAN,
-          builder.field("q", "c"), builder.field("q", "d")),
-      builder.literal(null),
-      builder.call(RelOptUtil.op(op.comparisonKind, null),
-          e.operands.get(0), builder.field("q", "m")));
+    final RexNode caseRexNode = builder.call(SqlStdOperatorTable.CASE,
+        builder.call(SqlStdOperatorTable.EQUALS,
+            builder.field("q", "c"), builder.literal(0)),
+        builder.literal(false),
+        builder.call(SqlStdOperatorTable.IS_TRUE,
+            builder.call(RelOptUtil.op(op.comparisonKind, null),
+                e.operands.get(0), builder.field("q", "m"))),
+        builder.literal(true),
+        builder.call(SqlStdOperatorTable.GREATER_THAN,
+            builder.field("q", "c"), builder.field("q", "d")),
+        builder.literal(null),
+        builder.call(RelOptUtil.op(op.comparisonKind, null),
+            e.operands.get(0), builder.field("q", "m")));
+    // CASE statement above is created with nullable boolean type, but it might
+    // not be correct.  If the original subquery node's type is not nullable it
+    // is guranteed for case statement to not produce NULLs. Therefore to avoid
+    // planner complaining we need to add cast.  Note that nullable type is
+    // created due to MIN aggcall, since there is no groupby.
+    if (!e.getType().isNullable()) {
+      return builder.cast(caseRexNode, e.getType().getSqlTypeName());
+    }
+    return caseRexNode;
   }
 
   /**
@@ -510,7 +521,9 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
               project.getProjects(), e);
       builder.push(project.getInput());
       final int fieldCount = builder.peek().getRowType().getFieldCount();
-      final RexNode target = apply(e, ImmutableSet.of(),
+      final Set<CorrelationId>  variablesSet =
+          RelOptUtil.getVariablesUsed(e.rel);
+      final RexNode target = apply(e, variablesSet,
           logic, builder, 1, fieldCount);
       final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
       builder.project(shuttle.apply(project.getProjects()),
@@ -577,7 +590,9 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
       builder.push(join.getLeft());
       builder.push(join.getRight());
       final int fieldCount = join.getRowType().getFieldCount();
-      final RexNode target = apply(e, ImmutableSet.of(),
+      final Set<CorrelationId>  variablesSet =
+          RelOptUtil.getVariablesUsed(e.rel);
+      final RexNode target = apply(e, variablesSet,
           logic, builder, 2, fieldCount);
       final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
       builder.join(join.getJoinType(), shuttle.apply(join.getCondition()));

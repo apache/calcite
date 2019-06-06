@@ -25,6 +25,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.ArrayList;
@@ -38,7 +39,7 @@ import java.util.List;
  */
 public class ProjectJoinTransposeRule extends RelOptRule {
   public static final ProjectJoinTransposeRule INSTANCE =
-      new ProjectJoinTransposeRule(expr -> true,
+      new ProjectJoinTransposeRule(expr -> !(expr instanceof RexOver),
           RelFactories.LOGICAL_BUILDER);
 
   //~ Instance fields --------------------------------------------------------

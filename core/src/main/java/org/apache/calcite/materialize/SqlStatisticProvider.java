@@ -16,16 +16,48 @@
  */
 package org.apache.calcite.materialize;
 
+import org.apache.calcite.plan.RelOptTable;
+
 import java.util.List;
 
 /**
- * Estimates row counts for tables and columns.
+ * Estimates row counts for tables and columns, and whether combinations of
+ * columns form primary/unique and foreign keys.
  *
  * <p>Unlike {@link LatticeStatisticProvider}, works on raw tables and columns
  * and does not need a {@link Lattice}.
+ *
+ * <p>It uses {@link org.apache.calcite.plan.RelOptTable} because that contains
+ * enough information to generate and execute SQL, while not being tied to a
+ * lattice.
+ *
+ * <p>The main implementation,
+ * {@link org.apache.calcite.statistic.QuerySqlStatisticProvider}, executes
+ * queries on a populated database. Implementations that use database statistics
+ * (from {@code ANALYZE TABLE}, etc.) and catalog information (e.g. primary and
+ * foreign key constraints) would also be possible.
  */
 public interface SqlStatisticProvider {
-  double tableCardinality(List<String> qualifiedTableName);
+  /** Returns an estimate of the number of rows in {@code table}. */
+  double tableCardinality(RelOptTable table);
+
+  /** Returns whether a join is a foreign key; that is, whether every row in
+   * the referencing table is matched by at least one row in the referenced
+   * table.
+   *
+   * <p>For example, {@code isForeignKey(EMP, [DEPTNO], DEPT, [DEPTNO])}
+   * returns true.
+   *
+   * <p>To change "at least one" to "exactly one", you also need to call
+   * {@link #isKey}. */
+  boolean isForeignKey(RelOptTable fromTable, List<Integer> fromColumns,
+      RelOptTable toTable, List<Integer> toColumns);
+
+  /** Returns whether a collection of columns is a unique (or primary) key.
+   *
+   * <p>For example, {@code isKey(EMP, [DEPTNO]} returns true;
+   * <p>For example, {@code isKey(DEPT, [DEPTNO]} returns false. */
+  boolean isKey(RelOptTable table, List<Integer> columns);
 }
 
 // End SqlStatisticProvider.java

@@ -96,6 +96,9 @@ statement:
   |   delete
   |   query
 
+statementList:
+      statement [ ';' statement ]* [ ';' ]
+
 setStatement:
       [ ALTER ( SYSTEM | SESSION ) ] SET identifier '=' expression
 
@@ -194,6 +197,7 @@ joinCondition:
 
 tableReference:
       tablePrimary
+      [ FOR SYSTEM_TIME AS OF expression ]
       [ matchRecognize ]
       [ [ AS ] alias [ '(' columnAlias [, columnAlias ]* ')' ] ]
 
@@ -219,13 +223,13 @@ groupItem:
   |   ROLLUP '(' expression [, expression ]* ')'
   |   GROUPING SETS '(' groupItem [, groupItem ]* ')'
 
-windowRef:
+window:
       windowName
   |   windowSpec
 
 windowSpec:
-      [ windowName ]
       '('
+      [ windowName ]
       [ ORDER BY orderItem [, orderItem ]* ]
       [ PARTITION BY expression [, expression ]* ]
       [
@@ -530,6 +534,7 @@ HIERARCHY,
 **HOLD**,
 **HOUR**,
 **IDENTITY**,
+IGNORE,
 IMMEDIATE,
 IMMEDIATELY,
 IMPLEMENTATION,
@@ -567,7 +572,6 @@ JSON,
 **JSON_OBJECT**,
 **JSON_OBJECTAGG**,
 **JSON_QUERY**,
-JSON_TYPE,
 **JSON_VALUE**,
 K,
 KEY,
@@ -739,6 +743,7 @@ RELATIVE,
 REPEATABLE,
 REPLACE,
 **RESET**,
+RESPECT,
 RESTART,
 RESTRICT,
 **RESULT**,
@@ -1233,6 +1238,7 @@ Not implemented:
 | SECOND(date)              | Equivalent to `EXTRACT(SECOND FROM date)`. Returns an integer between 0 and 59.
 | TIMESTAMPADD(timeUnit, integer, datetime) | Returns *datetime* with an interval of (signed) *integer* *timeUnit*s added. Equivalent to `datetime + INTERVAL 'integer' timeUnit`
 | TIMESTAMPDIFF(timeUnit, datetime, datetime2) | Returns the (signed) number of *timeUnit* intervals between *datetime* and *datetime2*. Equivalent to `(datetime2 - datetime) timeUnit`
+| LAST_DAY(date)            | Returns the date of the last day of the month in a value of datatype DATE; For example, it returns DATE'2020-02-29' for both DATE'2020-02-10' and TIMESTAMP'2020-02-10 10:10:10'
 
 Calls to niladic functions such as `CURRENT_DATE` do not accept parentheses in
 standard SQL. Calls with parentheses, such as `CURRENT_DATE()` are accepted in certain
@@ -1289,7 +1295,7 @@ Not implemented:
 
 | Operator syntax | Description
 |:--------------- |:-----------
-| ELEMENT(value)  | Returns the sole element of a array or multiset; null if the collection is empty; throws if it has more than one element.
+| ELEMENT(value)  | Returns the sole element of an array or multiset; null if the collection is empty; throws if it has more than one element.
 | CARDINALITY(value) | Returns the number of elements in an array or multiset.
 | value MEMBER OF multiset | Returns whether the *value* is a member of *multiset*.
 | multiset IS A SET | Whether *multiset* is a set (has no duplicates).
@@ -1445,10 +1451,10 @@ period:
 | {fn SUBSTRING(string, offset, length)} | Returns a character string that consists of *length* characters from *string* starting at the *offset* position
 | {fn UCASE(string)} | Returns a string in which all alphabetic characters in *string* have been converted to upper case
 | {fn REPLACE(string, search, replacement)} | Returns a string in which all the occurrences of *search* in *string* are replaced with *replacement*; if *replacement* is the empty string, the occurrences of *search* are removed
+| {fn ASCII(string)} | Returns the corresponding ASCII code of the first character of *string*; Returns 0 if *string* is empty; Returns NULL if *string* is NULL; Returns the Unicode code point for non-ASCII character
 
 Not implemented:
 
-* {fn ASCII(string)} - Convert a single-character string to the corresponding ASCII code, an integer between 0 and 255
 * {fn CHAR(string)}
 * {fn DIFFERENCE(string, string)}
 * {fn LEFT(string, integer)}
@@ -1508,6 +1514,9 @@ aggregateCall:
     |   agg(*) [ FILTER (WHERE condition) ]
 {% endhighlight %}
 
+where *agg* is one of the operators in the following table, or a user-defined
+aggregate function.
+
 If `FILTER` is present, the aggregate function only considers rows for which
 *condition* evaluates to TRUE.
 
@@ -1524,9 +1533,10 @@ and `LISTAGG`).
 | Operator syntax                    | Description
 |:---------------------------------- |:-----------
 | COLLECT( [ ALL &#124; DISTINCT ] value)       | Returns a multiset of the values
+| LISTAGG( [ ALL &#124; DISTINCT ] value [, separator]) | Returns values concatenated into a string, delimited by separator (default ',')
 | COUNT( [ ALL &#124; DISTINCT ] value [, value ]*) | Returns the number of input rows for which *value* is not null (wholly not null if *value* is composite)
 | COUNT(*)                           | Returns the number of input rows
-| FUSION( multiset )                 | Returns the multiset union of *multiset* across all input values
+| FUSION(multiset)                   | Returns the multiset union of *multiset* across all input values
 | APPROX_COUNT_DISTINCT(value [, value ]*)      | Returns the approximate number of distinct values of *value*; the database is allowed to use an approximation but is not required to
 | AVG( [ ALL &#124; DISTINCT ] numeric)         | Returns the average (arithmetic mean) of *numeric* across all input values
 | SUM( [ ALL &#124; DISTINCT ] numeric)         | Returns the sum of *numeric* across all input values
@@ -1547,7 +1557,6 @@ and `LISTAGG`).
 
 Not implemented:
 
-* LISTAGG(string)
 * REGR_AVGX(numeric1, numeric2)
 * REGR_AVGY(numeric1, numeric2)
 * REGR_INTERCEPT(numeric1, numeric2)
@@ -1556,6 +1565,26 @@ Not implemented:
 * REGR_SXY(numeric1, numeric2)
 
 ### Window functions
+
+Syntax:
+
+{% highlight sql %}
+windowedAggregateCall:
+        agg( [ ALL | DISTINCT ] value [, value ]*)
+        [ RESPECT NULLS | IGNORE NULLS ]
+        [ WITHIN GROUP (ORDER BY orderItem [, orderItem ]*) ]
+        [ FILTER (WHERE condition) ]
+        OVER window
+    |   agg(*)
+        [ FILTER (WHERE condition) ]
+        OVER window
+{% endhighlight %}
+
+where *agg* is one of the operators in the following table, or a user-defined
+aggregate function.
+
+`DISTINCT`, `FILTER` and `WITHIN GROUP` are as described for aggregate
+functions.
 
 | Operator syntax                           | Description
 |:----------------------------------------- |:-----------
@@ -1575,15 +1604,19 @@ Not implemented:
 | NTH_VALUE(value, nth) OVER window         | Returns *value* evaluated at the row that is the *n*th row of the window frame
 | NTILE(value) OVER window                  | Returns an integer ranging from 1 to *value*, dividing the partition as equally as possible
 
+Note:
+
+* You may specify null treatment (`IGNORE NULLS`, `RESPECT NULLS`) for
+  `FIRST_VALUE`, `LAST_VALUE`, `NTH_VALUE`, `LEAD` and `LAG` functions. The
+  syntax handled by the parser, but only `RESPECT NULLS` is implemented at
+  runtime.
+
 Not implemented:
 
 * COUNT(DISTINCT value [, value ]*) OVER window
 * APPROX_COUNT_DISTINCT(value [, value ]*) OVER window
-* FIRST_VALUE(value) IGNORE NULLS OVER window
-* LAST_VALUE(value) IGNORE NULLS OVER window
 * PERCENT_RANK(value) OVER window
 * CUME_DIST(value) OVER window
-* NTH_VALUE(value, nth) [ FROM { FIRST &#124; LAST } ] IGNORE NULLS OVER window
 
 ### Grouping functions
 
@@ -1846,7 +1879,7 @@ The following functions modify 3D geometries.
 Not implemented:
 
 * ST_AddZ(geom, zToAdd) Adds *zToAdd* to the z-coordinate of *geom*
-* ST_Interpolate3DLine(geom) Returns *geom* with a interpolation of z values, or null if it is not a line-string or MULTILINESTRING
+* ST_Interpolate3DLine(geom) Returns *geom* with an interpolation of z values, or null if it is not a line-string or MULTILINESTRING
 * ST_MultiplyZ(geom, zFactor) Returns *geom* with its z-values multiplied by *zFactor*
 * ST_Reverse3DLine(geom [, sortOrder ]) Potentially reverses *geom* according to the z-values of its first and last coordinates
 * ST_UpdateZ(geom, newZ [, updateCondition ]) Updates the z-values of *geom*
@@ -1935,24 +1968,32 @@ Not implemented:
 
 ### JSON Functions
 
+In the following:
+
+* *jsonValue* is a character string containing a JSON value;
+* *path* is a character string containing a JSON path expression; mode flag `strict` or `lax` should be specified in the beginning of *path*.
+
 #### Query Functions
 
 | Operator syntax        | Description
 |:---------------------- |:-----------
-| JSON_EXISTS(value, path [ { TRUE &#124; FALSE &#124; UNKNOWN &#124; ERROR ) ON ERROR } ) | Test whether a JSON **value** satisfies a search criterion described using JSON path expression **path**
-| JSON_VALUE(value, path [ RETURNING type ] [ { ERROR &#124; NULL &#124; DEFAULT expr } ON EMPTY ] [ { ERROR &#124; NULL &#124; DEFAULT expr } ON ERROR ] ) | Extract an SQL scalar from a JSON **value** using JSON path expression **path**
-| JSON_QUERY(value, path [ { WITHOUT [ ARRAY ] &#124; WITH [ CONDITIONAL &#124; UNCONDITIONAL ] [ ARRAY ] } WRAPPER ] [ { ERROR &#124; NULL &#124; EMPTY ARRAY &#124; EMPTY OBJECT } ON EMPTY ] [ { ERROR &#124; NULL &#124; EMPTY ARRAY &#124; EMPTY OBJECT } ON ERROR ] ) | Extract an JSON object or an JSON array from a JSON **value** using JSON path expression **path**
+| JSON_EXISTS(jsonValue, path [ { TRUE &#124; FALSE &#124; UNKNOWN &#124; ERROR ) ON ERROR } ) | Whether a *jsonValue* satisfies a search criterion described using JSON path expression *path*
+| JSON_VALUE(jsonValue, path [ RETURNING type ] [ { ERROR &#124; NULL &#124; DEFAULT expr } ON EMPTY ] [ { ERROR &#124; NULL &#124; DEFAULT expr } ON ERROR ] ) | Extract an SQL scalar from a *jsonValue* using JSON path expression *path*
+| JSON_QUERY(jsonValue, path [ { WITHOUT [ ARRAY ] &#124; WITH [ CONDITIONAL &#124; UNCONDITIONAL ] [ ARRAY ] } WRAPPER ] [ { ERROR &#124; NULL &#124; EMPTY ARRAY &#124; EMPTY OBJECT } ON EMPTY ] [ { ERROR &#124; NULL &#124; EMPTY ARRAY &#124; EMPTY OBJECT } ON ERROR ] ) | Extract a JSON object or JSON array from *jsonValue* using the *path* JSON path expression
 
 Note:
 
-* The common structure `value, path` is JSON API common syntax. **value** is a character string type json input, and **path** is a JSON path expression (in character string type too), mode flag **strict** or **lax** should be specified in the beginning of **path**.
-* **ON ERROR** clause, and **ON EMPTY** clause define the fallback behavior of the function when an error is thrown or a null value is about to be returned.
-* **ARRAY WRAPPER** clause defines how to represent JSON array result in JSON_QUERY function. Following is a comparision to demonstrate the difference among different wrapper behaviors.
+* The `ON ERROR` and `ON EMPTY` clauses define the fallback
+  behavior of the function when an error is thrown or a null value
+  is about to be returned.
+* The `ARRAY WRAPPER` clause defines how to represent a JSON array result
+  in `JSON_QUERY` function. The following examples compare the wrapper
+  behaviors.
 
 Example Data:
 
 ```JSON
-{ "a": "[1,2]", "b": [1,2], "c": "hi"}
+{"a": "[1,2]", "b": [1,2], "c": "hi"}
 ```
 
 Comparison:
@@ -1972,36 +2013,74 @@ Not implemented:
 
 | Operator syntax        | Description
 |:---------------------- |:-----------
-| JSON_OBJECT( { [ KEY ] name VALUE value [ FORMAT JSON ] &#124; name : value [ FORMAT JSON ] } * [ { NULL &#124; ABSENT } ON NULL ] ) | Construct json object using a series of key (**name**) value (**value**) pairs
-| JSON_OBJECTAGG( { [ KEY ] name VALUE value [ FORMAT JSON ] &#124; name : value [ FORMAT JSON ] } [ { NULL &#124; ABSENT } ON NULL ] ) | Aggregate function to construct json object using a key (**name**) value (**value**) pair
-| JSON_ARRAY( { value [ FORMAT JSON ] } * [ { NULL &#124; ABSENT } ON NULL ] ) | Construct json array using a series of values (**value**)
-| JSON_ARRAYAGG( value [ FORMAT JSON ] [ { NULL &#124; ABSENT } ON NULL ] ) | Aggregate function to construct json array using a value (**value**)
+| JSON_OBJECT( { [ KEY ] name VALUE value [ FORMAT JSON ] &#124; name : value [ FORMAT JSON ] } * [ { NULL &#124; ABSENT } ON NULL ] ) | Construct JSON object using a series of key (*name*) value (*value*) pairs
+| JSON_OBJECTAGG( { [ KEY ] name VALUE value [ FORMAT JSON ] &#124; name : value [ FORMAT JSON ] } [ { NULL &#124; ABSENT } ON NULL ] ) | Aggregate function to construct a JSON object using a key (*name*) value (*value*) pair
+| JSON_ARRAY( { value [ FORMAT JSON ] } * [ { NULL &#124; ABSENT } ON NULL ] ) | Construct a JSON array using a series of values (*value*)
+| JSON_ARRAYAGG( value [ FORMAT JSON ] [ ORDER BY orderItem [, orderItem ]* ] [ { NULL &#124; ABSENT } ON NULL ] ) | Aggregate function to construct a JSON array using a value (*value*)
 
 Note:
 
-* The flag **FORMAT JSON** indicates the value is formatted as JSON character string. When **FORMAT JSON** is used, value should be de-parse from JSON character string to SQL structured value.
-* **ON NULL** clause defines how the JSON output represents null value. The default null behavior of **JSON_OBJECT** and **JSON_OBJECTAGG** is *NULL ON NULL*, and for **JSON_ARRAY** and **JSON_ARRAYAGG** it is *ABSENT ON NULL*.
+* The flag `FORMAT JSON` indicates the value is formatted as JSON
+  character string. When `FORMAT JSON` is used, the value should be
+  de-parse from JSON character string to a SQL structured value.
+* `ON NULL` clause defines how the JSON output represents null
+  values. The default null behavior of `JSON_OBJECT` and
+  `JSON_OBJECTAGG` is `NULL ON NULL`, and for `JSON_ARRAY` and
+  `JSON_ARRAYAGG` it is `ABSENT ON NULL`.
+* If `ORDER BY` clause is provided, `JSON_ARRAYAGG` sorts the
+  input rows into the specified order before performing aggregation.
 
 #### Comparison Operators
 
-| Operator syntax                                   | Description
-|:------------------------------------------------- |:-----------
-| value IS JSON [ VALUE ]                           | Whether *value* is a json value, *value* is in character string type
-| value IS NOT JSON [ VALUE ]                       | Whether *value* is not a json value, *value* is in character string type
-| value IS JSON SCALAR                              | Whether *value* is a json scalar value, *value* is in character string type
-| value IS NOT JSON SCALAR                          | Whether *value* is not a json scalar value, *value* is in character string type
-| value IS JSON OBJECT                              | Whether *value* is a json object, *value* is in character string type
-| value IS NOT JSON OBJECT                          | Whether *value* is not a json object, *value* is in character string type
-| value IS JSON ARRAY                               | Whether *value* is a json array, *value* is in character string type
-| value IS NOT JSON ARRAY                           | Whether *value* is not a json array, *value* is in character string type
+| Operator syntax                   | Description
+|:--------------------------------- |:-----------
+| jsonValue IS JSON [ VALUE ]       | Whether *jsonValue* is a JSON value
+| jsonValue IS NOT JSON [ VALUE ]   | Whether *jsonValue* is not a JSON value
+| jsonValue IS JSON SCALAR          | Whether *jsonValue* is a JSON scalar value
+| jsonValue IS NOT JSON SCALAR      | Whether *jsonValue* is not a JSON scalar value
+| jsonValue IS JSON OBJECT          | Whether *jsonValue* is a JSON object
+| jsonValue IS NOT JSON OBJECT      | Whether *jsonValue* is not a JSON object
+| jsonValue IS JSON ARRAY           | Whether *jsonValue* is a JSON array
+| jsonValue IS NOT JSON ARRAY       | Whether *jsonValue* is not a JSON array
 
 #### MySQL Specific Operators
 
-| Operator syntax                                   | Description
-|:------------------------------------------------- |:-----------
-| JSON_TYPE(value) | Returns a string indicating the type of a JSON **value**. This can be an object, an array, or a scalar type
+| Operator syntax                   | Description
+|:--------------------------------- |:-----------
+| JSON_TYPE(jsonValue)              | Returns a string value indicating the type of a *jsonValue*
+| JSON_DEPTH(jsonValue)             | Returns an integer value indicating the depth of a *jsonValue*
+| JSON_PRETTY(jsonValue)            | Returns a pretty-printing of *jsonValue*
+| JSON_LENGTH(jsonValue [, path ])  | Returns a integer indicating the length of *jsonValue*
+| JSON_KEYS(jsonValue [, path ])    | Returns a string indicating the keys of a JSON *jsonValue*
 
-Example SQL:
+Note:
+
+* `JSON_TYPE` / `JSON_DEPTH` return null if the argument is null
+* `JSON_TYPE` / `JSON_DEPTH` / `JSON_PRETTY` throw error if the argument is not a valid JSON value
+* `JSON_TYPE` generally returns an upper-case string flag indicating the type of the JSON input. Currently supported supported type flags are:
+  * INTEGER
+  * STRING
+  * FLOAT
+  * DOUBLE
+  * LONG
+  * BOOLEAN
+  * DATE
+  * OBJECT
+  * ARRAY
+  * NULL
+* `JSON_DEPTH` defines a JSON value's depth as follows:
+  * An empty array, empty object, or scalar value has depth 1;
+  * A non-empty array containing only elements of depth 1 or non-empty object containing only member values of depth 1 has depth 2;
+  * Otherwise, a JSON document has depth greater than 2.
+* `JSON_LENGTH` defines a JSON value's length as follows:
+  * A scalar value has length 1;
+  * The length of array or object is the number of elements is contains.
+
+Usage Examples:
+
+##### JSON_TYPE example
+
+SQL
 
 ```SQL
 SELECT JSON_TYPE(v) AS c1
@@ -2012,11 +2091,76 @@ FROM (VALUES ('{"a": [10, true],"b": "[10, true]"}')) AS t(v)
 LIMIT 10;
 ```
 
-Result:
+Result
 
 | c1     | c2    | c3      | c4      |
 | ------ | ----- | ------- | ------- |
 | OBJECT | ARRAY | INTEGER | BOOLEAN |
+
+##### JSON_DEPTH example
+
+SQL
+
+```SQL
+SELECT JSON_DEPTH(v) AS c1
+,JSON_DEPTH(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2
+,JSON_DEPTH(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3
+,JSON_DEPTH(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4
+FROM (VALUES ('{"a": [10, true],"b": "[10, true]"}')) AS t(v)
+LIMIT 10;
+```
+
+Result
+
+| c1     | c2    | c3      | c4      |
+| ------ | ----- | ------- | ------- |
+| 3      | 2     | 1       | 1       |
+
+##### JSON_LENGTH example
+
+SQL
+
+```SQL
+SELECT JSON_LENGTH(v) AS c1
+,JSON_LENGTH(v, 'lax $.a') AS c2
+,JSON_LENGTH(v, 'strict $.a[0]') AS c3
+,JSON_LENGTH(v, 'strict $.a[1]') AS c4
+FROM (VALUES ('{"a": [10, true]}')) AS t(v)
+LIMIT 10;
+```
+
+Result
+
+| c1     | c2    | c3      | c4      |
+| ------ | ----- | ------- | ------- |
+| 1      | 2     | 1       | 1       |
+
+##### JSON_KEYS example
+
+SQL
+
+ ```SQL
+SELECT JSON_KEYS(v) AS c1
+,JSON_KEYS(v, 'lax $.a') AS c2
+,JSON_KEYS(v, 'lax $.b') AS c2
+,JSON_KEYS(v, 'strict $.a[0]') AS c3
+,JSON_KEYS(v, 'strict $.a[1]') AS c4
+FROM (VALUES ('{"a": [10, true],"b": {"c": 30}}')) AS t(v)
+LIMIT 10;
+```
+
+ Result
+
+| c1         | c2   | c3    | c4   | c5   |
+| ---------- | ---- | ----- | ---- | ---- |
+| ["a", "b"] | NULL | ["c"] | NULL | NULL |
+
+Not implemented:
+
+* JSON_INSERT
+* JSON_SET
+* JSON_REPLACE
+* JSON_REMOVE
 
 ## User-defined functions
 

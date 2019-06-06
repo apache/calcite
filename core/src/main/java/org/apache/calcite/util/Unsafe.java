@@ -49,12 +49,6 @@ public class Unsafe {
     // Included in this class because StringBuffer is banned.
     sw.getBuffer().setLength(0);
   }
-
-  /** Appends to {@link StringWriter}. */
-  public static void append(StringWriter sw, CharSequence charSequence, int start, int end) {
-    // Included in this class because StringBuffer is banned.
-    sw.getBuffer().append(charSequence, start, end);
-  }
 }
 
 // End Unsafe.java

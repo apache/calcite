@@ -27,6 +27,7 @@ import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Values;
@@ -110,6 +111,12 @@ public class RelMdDistribution
    * {@link TableScan}'s distribution. */
   public static RelDistribution table(RelOptTable table) {
     return table.getDistribution();
+  }
+
+  /** Helper method to determine a
+   * {@link Snapshot}'s distribution. */
+  public static RelDistribution snapshot(RelMetadataQuery mq, RelNode input) {
+    return mq.distribution(input);
   }
 
   /** Helper method to determine a

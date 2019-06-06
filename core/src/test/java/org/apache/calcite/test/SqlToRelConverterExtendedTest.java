@@ -24,6 +24,7 @@ import org.apache.calcite.rel.externalize.RelJsonReader;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.util.TestUtil;
 
 import org.junit.After;
 import org.junit.Before;
@@ -71,7 +72,7 @@ public class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
       try {
         RelNode x = reader.read(json);
       } catch (IOException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
       return null;
     });

@@ -18,6 +18,7 @@ package org.apache.calcite.sql.test;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.RelDataType;
@@ -47,6 +48,7 @@ import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.sql.validate.SqlNameMatchers;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
@@ -54,6 +56,7 @@ import org.apache.calcite.test.SqlLimitsTest;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
@@ -73,7 +76,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -345,19 +347,13 @@ public abstract class SqlOperatorBaseTest {
     for (SqlOperator sqlOperator : operatorTable.getOperatorList()) {
       String operatorName = sqlOperator.getName();
       List<SqlOperator> routines = new ArrayList<>();
-      operatorTable.lookupOperatorOverloads(
-          new SqlIdentifier(operatorName, SqlParserPos.ZERO),
-          null,
-          sqlOperator.getSyntax(),
-          routines);
+      final SqlIdentifier id =
+          new SqlIdentifier(operatorName, SqlParserPos.ZERO);
+      operatorTable.lookupOperatorOverloads(id, null, sqlOperator.getSyntax(),
+          routines, SqlNameMatchers.withCaseSensitive(true));
 
-      Iterator<SqlOperator> iter = routines.iterator();
-      while (iter.hasNext()) {
-        SqlOperator operator = iter.next();
-        if (!sqlOperator.getClass().isInstance(operator)) {
-          iter.remove();
-        }
-      }
+      routines.removeIf(operator ->
+          !sqlOperator.getClass().isInstance(operator));
       assertThat(routines.size(), equalTo(1));
       assertThat(sqlOperator, equalTo(routines.get(0)));
     }
@@ -1516,7 +1512,7 @@ public abstract class SqlOperatorBaseTest {
           throw new AssertionError("unexpected time unit: " + timeUnit);
         }
       } catch (InterruptedException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     }
   }
@@ -4245,6 +4241,19 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("CHARACTER_LENGTH(cast(null as varchar(1)))");
   }
 
+  @Test public void testAsciiFunc() {
+    tester.setFor(SqlStdOperatorTable.ASCII);
+    tester.checkScalarExact("ASCII('')", "0");
+    tester.checkScalarExact("ASCII('a')", "97");
+    tester.checkScalarExact("ASCII('1')", "49");
+    tester.checkScalarExact("ASCII('abc')", "97");
+    tester.checkScalarExact("ASCII('ABC')", "65");
+    tester.checkScalarExact("ASCII(_UTF8'\u0082')", "130");
+    tester.checkScalarExact("ASCII(_UTF8'\u5B57')", "23383");
+    tester.checkScalarExact("ASCII(_UTF8'\u03a9')", "937"); // omega
+    tester.checkNull("ASCII(cast(null as varchar(1)))");
+  }
+
   @Test public void testUpperFunc() {
     tester.setFor(SqlStdOperatorTable.UPPER);
     tester.checkString("upper('a')", "A", "CHAR(1) NOT NULL");
@@ -4453,24 +4462,13 @@ public abstract class SqlOperatorBaseTest {
 
   }
 
-  @Test public void testJsonObject() {
-    tester.checkString("json_object()", "{}", "VARCHAR(2000) NOT NULL");
-    tester.checkString("json_object('foo': 'bar')",
-        "{\"foo\":\"bar\"}", "VARCHAR(2000) NOT NULL");
-    tester.checkString("json_object('foo': 'bar', 'foo2': 'bar2')",
-        "{\"foo\":\"bar\",\"foo2\":\"bar2\"}", "VARCHAR(2000) NOT NULL");
-    tester.checkString("json_object('foo': null)",
-        "{\"foo\":null}", "VARCHAR(2000) NOT NULL");
-    tester.checkString("json_object('foo': null null on null)",
-        "{\"foo\":null}", "VARCHAR(2000) NOT NULL");
-    tester.checkString("json_object('foo': null absent on null)",
-        "{}", "VARCHAR(2000) NOT NULL");
-    tester.checkString("json_object('foo': 100)",
-        "{\"foo\":100}", "VARCHAR(2000) NOT NULL");
-    tester.checkString("json_object('foo': json_object('foo': 'bar'))",
-        "{\"foo\":\"{\\\"foo\\\":\\\"bar\\\"}\"}", "VARCHAR(2000) NOT NULL");
-    tester.checkString("json_object('foo': json_object('foo': 'bar') format json)",
-        "{\"foo\":{\"foo\":\"bar\"}}", "VARCHAR(2000) NOT NULL");
+  @Test public void testJsonPretty() {
+    tester.checkString("json_pretty('{\"foo\":100}')",
+        "{\n  \"foo\" : 100\n}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_pretty('[1,2,3]')",
+        "[ 1, 2, 3 ]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_pretty('null')",
+        "null", "VARCHAR(2000) NOT NULL");
   }
 
   @Test public void testJsonType() {
@@ -4497,8 +4495,157 @@ public abstract class SqlOperatorBaseTest {
             "STRING", "VARCHAR(20) NOT NULL");
   }
 
+  @Test public void testJsonDepth() {
+    tester.setFor(SqlStdOperatorTable.JSON_DEPTH);
+    tester.checkString("json_depth('1')",
+            "1", "INTEGER");
+    tester.checkString("json_depth('11.45')",
+            "1", "INTEGER");
+    tester.checkString("json_depth('true')",
+            "1", "INTEGER");
+    tester.checkString("json_depth('\"2019-01-27 21:24:00\"')",
+            "1", "INTEGER");
+    tester.checkString("json_depth('{}')",
+            "1", "INTEGER");
+    tester.checkString("json_depth('[]')",
+            "1", "INTEGER");
+    tester.checkString("json_depth('null')",
+            null, "INTEGER");
+    tester.checkString("json_depth(cast(null as varchar(1)))",
+            null, "INTEGER");
+    tester.checkString("json_depth('[10, true]')",
+            "2", "INTEGER");
+    tester.checkString("json_depth('[[], {}]')",
+            "2", "INTEGER");
+    tester.checkString("json_depth('{\"a\": [10, true]}')",
+            "3", "INTEGER");
+    tester.checkString("json_depth('[10, {\"a\": [[1,2]]}]')",
+            "5", "INTEGER");
+  }
+
+  @Test public void testJsonLength() {
+    // no path context
+    tester.checkString("json_length('{}')",
+            "0", "INTEGER");
+    tester.checkString("json_length('[]')",
+            "0", "INTEGER");
+    tester.checkString("json_length('{\"foo\":100}')",
+            "1", "INTEGER");
+    tester.checkString("json_length('{\"a\": 1, \"b\": {\"c\": 30}}')",
+            "2", "INTEGER");
+    tester.checkString("json_length('[1, 2, {\"a\": 3}]')",
+            "3", "INTEGER");
+
+    // lax test
+    tester.checkString("json_length('{}', 'lax $')",
+            "0", "INTEGER");
+    tester.checkString("json_length('[]', 'lax $')",
+            "0", "INTEGER");
+    tester.checkString("json_length('{\"foo\":100}', 'lax $')",
+            "1", "INTEGER");
+    tester.checkString("json_length('{\"a\": 1, \"b\": {\"c\": 30}}', 'lax $')",
+            "2", "INTEGER");
+    tester.checkString("json_length('[1, 2, {\"a\": 3}]', 'lax $')",
+            "3", "INTEGER");
+    tester.checkString("json_length('{\"a\": 1, \"b\": {\"c\": 30}}', 'lax $.b')",
+            "1", "INTEGER");
+    tester.checkString("json_length('{\"foo\":100}', 'lax $.foo1')",
+            null, "INTEGER");
+
+    // strict test
+    tester.checkString("json_length('{}', 'strict $')",
+            "0", "INTEGER");
+    tester.checkString("json_length('[]', 'strict $')",
+            "0", "INTEGER");
+    tester.checkString("json_length('{\"foo\":100}', 'strict $')",
+            "1", "INTEGER");
+    tester.checkString("json_length('{\"a\": 1, \"b\": {\"c\": 30}}', 'strict $')",
+            "2", "INTEGER");
+    tester.checkString("json_length('[1, 2, {\"a\": 3}]', 'strict $')",
+            "3", "INTEGER");
+    tester.checkString("json_length('{\"a\": 1, \"b\": {\"c\": 30}}', 'strict $.b')",
+            "1", "INTEGER");
+
+    // catch error test
+    tester.checkFails("json_length('{\"foo\":100}', 'invalid $.foo')",
+            "(?s).*Illegal jsonpath spec.*", true);
+    tester.checkFails("json_length('{\"foo\":100}', 'strict $.foo1')",
+            "(?s).*No results for path.*", true);
+  }
+
+  @Test public void testJsonKeys() {
+    // no path context
+    tester.checkString("json_keys('{}')",
+            "[]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('[]')",
+            "null", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('{\"foo\":100}')",
+            "[\"foo\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('{\"a\": 1, \"b\": {\"c\": 30}}')",
+            "[\"a\",\"b\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('[1, 2, {\"a\": 3}]')",
+            "null", "VARCHAR(2000) NOT NULL");
+
+    // lax test
+    tester.checkString("json_keys('{}', 'lax $')",
+            "[]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('[]', 'lax $')",
+            "null", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('{\"foo\":100}', 'lax $')",
+            "[\"foo\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('{\"a\": 1, \"b\": {\"c\": 30}}', 'lax $')",
+            "[\"a\",\"b\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('[1, 2, {\"a\": 3}]', 'lax $')",
+            "null", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('{\"a\": 1, \"b\": {\"c\": 30}}', 'lax $.b')",
+            "[\"c\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('{\"foo\":100}', 'lax $.foo1')",
+            "null", "VARCHAR(2000) NOT NULL");
+
+    // strict test
+    tester.checkString("json_keys('{}', 'strict $')",
+            "[]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('[]', 'strict $')",
+            "null", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('{\"foo\":100}', 'strict $')",
+            "[\"foo\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('{\"a\": 1, \"b\": {\"c\": 30}}', 'strict $')",
+            "[\"a\",\"b\"]", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('[1, 2, {\"a\": 3}]', 'strict $')",
+            "null", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_keys('{\"a\": 1, \"b\": {\"c\": 30}}', 'strict $.b')",
+            "[\"c\"]", "VARCHAR(2000) NOT NULL");
+
+    // catch error test
+    tester.checkFails("json_keys('{\"foo\":100}', 'invalid $.foo')",
+            "(?s).*Illegal jsonpath spec.*", true);
+    tester.checkFails("json_keys('{\"foo\":100}', 'strict $.foo1')",
+            "(?s).*No results for path.*", true);
+  }
+
+  @Test public void testJsonObject() {
+    tester.checkString("json_object()", "{}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': 'bar')",
+        "{\"foo\":\"bar\"}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': 'bar', 'foo2': 'bar2')",
+        "{\"foo\":\"bar\",\"foo2\":\"bar2\"}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': null)",
+        "{\"foo\":null}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': null null on null)",
+        "{\"foo\":null}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': null absent on null)",
+        "{}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': 100)",
+        "{\"foo\":100}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': json_object('foo': 'bar'))",
+        "{\"foo\":\"{\\\"foo\\\":\\\"bar\\\"}\"}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("json_object('foo': json_object('foo': 'bar') format json)",
+        "{\"foo\":{\"foo\":\"bar\"}}", "VARCHAR(2000) NOT NULL");
+  }
+
   @Test public void testJsonObjectAgg() {
     checkAggType(tester, "json_objectagg('foo': 'bar')", "VARCHAR(2000) NOT NULL");
+    checkAggType(tester, "json_objectagg('foo': null)", "VARCHAR(2000) NOT NULL");
     tester.checkFails("^json_objectagg(100: 'bar')^",
         "(?s).*Cannot apply.*", false);
     final String[][] values = {
@@ -4542,6 +4689,7 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testJsonArrayAgg() {
     checkAggType(tester, "json_arrayagg('foo')", "VARCHAR(2000) NOT NULL");
+    checkAggType(tester, "json_arrayagg(null)", "VARCHAR(2000) NOT NULL");
     final String[] values = {
         "'foo'",
         "cast(null as varchar(2000))",
@@ -5031,6 +5179,12 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalarApprox("PI", "DOUBLE NOT NULL", 3.1415d, 0.0001d);
     tester.checkFails("^PI()^",
         "No match found for function signature PI\\(\\)", false);
+
+    // assert that PI function is not dynamic [CALCITE-2750]
+    assertEquals(
+        "PI operator should not be identified as dynamic function",
+        SqlStdOperatorTable.PI.isDynamicFunction(),
+        false);
   }
 
   @Test public void testRadiansFunc() {
@@ -5456,7 +5610,7 @@ public abstract class SqlOperatorBaseTest {
   protected static Pair<String, Hook.Closeable> currentTimeString(TimeZone tz) {
     final Calendar calendar;
     final Hook.Closeable closeable;
-    if (CalciteAssert.ENABLE_SLOW) {
+    if (CalciteSystemProperty.TEST_SLOW.value()) {
       calendar = getCalendarNotTooNear(Calendar.HOUR_OF_DAY);
       closeable = () -> { };
     } else {
@@ -5530,6 +5684,83 @@ public abstract class SqlOperatorBaseTest {
           dateString.substring(0, 10),
           "DATE NOT NULL");
     }
+  }
+
+  @Test public void testLastDayFunc() {
+    tester.setFor(SqlStdOperatorTable.LAST_DAY);
+    tester.checkScalar("last_day(DATE '2019-02-10')",
+        "2019-02-28", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2019-06-10')",
+        "2019-06-30", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2019-07-10')",
+        "2019-07-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2019-09-10')",
+        "2019-09-30", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2019-12-10')",
+        "2019-12-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '9999-12-10')",
+        "9999-12-31", "DATE NOT NULL");
+
+    // Edge tests
+    tester.checkScalar("last_day(DATE '1900-01-01')",
+        "1900-01-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '1935-02-01')",
+        "1935-02-28", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '1965-09-01')",
+        "1965-09-30", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '1970-01-01')",
+        "1970-01-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2019-02-28')",
+        "2019-02-28", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2019-12-31')",
+        "2019-12-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2019-01-01')",
+        "2019-01-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2019-06-30')",
+        "2019-06-30", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2020-02-20')",
+        "2020-02-29", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '2020-02-29')",
+        "2020-02-29", "DATE NOT NULL");
+    tester.checkScalar("last_day(DATE '9999-12-31')",
+        "9999-12-31", "DATE NOT NULL");
+
+    tester.checkNull("last_day(cast(null as date))");
+
+    tester.checkScalar("last_day(TIMESTAMP '2019-02-10 02:10:12')",
+        "2019-02-28", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2019-06-10 06:10:16')",
+        "2019-06-30", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2019-07-10 07:10:17')",
+        "2019-07-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2019-09-10 09:10:19')",
+        "2019-09-30", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2019-12-10 12:10:22')",
+        "2019-12-31", "DATE NOT NULL");
+
+    // Edge tests
+    tester.checkScalar("last_day(TIMESTAMP '1900-01-01 01:01:02')",
+        "1900-01-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '1935-02-01 02:01:03')",
+        "1935-02-28", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '1970-01-01 01:01:02')",
+        "1970-01-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2019-02-28 02:28:30')",
+        "2019-02-28", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2019-12-31 12:31:43')",
+        "2019-12-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2019-01-01 01:01:02')",
+        "2019-01-31", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2019-06-30 06:30:36')",
+        "2019-06-30", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2020-02-20 02:20:33')",
+        "2020-02-29", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '2020-02-29 02:29:31')",
+        "2020-02-29", "DATE NOT NULL");
+    tester.checkScalar("last_day(TIMESTAMP '9999-12-31 12:31:43')",
+        "9999-12-31", "DATE NOT NULL");
+
+    tester.checkNull("last_day(cast(null as timestamp))");
   }
 
   @Test public void testSubstringFunction() {
@@ -5964,6 +6195,27 @@ public abstract class SqlOperatorBaseTest {
     tester.checkAgg("collect(DISTINCT CASE x WHEN 0 THEN NULL ELSE -1 END)",
         values, result, (double) 0);
     tester.checkAgg("collect(DISTINCT x)", values, 2, (double) 0);
+  }
+
+  @Test public void testListaggFunc() {
+    tester.setFor(SqlStdOperatorTable.LISTAGG, VM_FENNEL, VM_JAVA);
+    tester.checkFails("listagg(^*^)", "Unknown identifier '\\*'", false);
+    tester.checkFails("^listagg(12)^",
+        "Cannot apply 'LISTAGG' to arguments of type .*'\n.*'", false);
+    tester.checkFails("^listagg(cast(12 as double))^",
+        "Cannot apply 'LISTAGG' to arguments of type .*'\n.*'", false);
+    tester.checkFails("^listagg()^",
+        "Invalid number of arguments to function 'LISTAGG'. Was expecting 1 arguments",
+        false);
+    tester.checkFails("^listagg('1', '2', '3')^",
+        "Invalid number of arguments to function 'LISTAGG'. Was expecting 1 arguments",
+        false);
+    checkAggType(tester, "listagg('test')", "CHAR(4) NOT NULL");
+    checkAggType(tester, "listagg('test', ', ')", "CHAR(4) NOT NULL");
+    final String[] values1 = {"'hello'", "CAST(null AS CHAR)", "'world'", "'!'"};
+    tester.checkAgg("listagg(x)", values1, "hello,world,!", (double) 0);
+    final String[] values2 = {"0", "1", "2", "3"};
+    tester.checkAgg("listagg(cast(x as CHAR))", values2, "0,1,2,3", (double) 0);
   }
 
   @Test public void testFusionFunc() {
@@ -6676,6 +6928,73 @@ public abstract class SqlOperatorBaseTest {
 
     tester.checkNull(
         "extract(microsecond from cast(null as time))");
+  }
+
+  @Test public void testExtractWithDatesBeforeUnixEpoch() {
+    tester.checkScalar(
+        "extract(year from TIMESTAMP '1970-01-01 00:00:00')",
+        "1970",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(year from TIMESTAMP '1969-12-31 10:13:17')",
+        "1969",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(quarter from TIMESTAMP '1969-12-31 08:13:17')",
+        "4",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(quarter from TIMESTAMP '1969-5-31 21:13:17')",
+        "2",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(month from TIMESTAMP '1969-12-31 00:13:17')",
+        "12",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(day from TIMESTAMP '1969-12-31 12:13:17')",
+        "31",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(week from TIMESTAMP '1969-2-23 01:23:45')",
+        "8",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(doy from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "365",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(dow from TIMESTAMP '1969-12-31 01:13:17.357')",
+        "4",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(decade from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "196",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(century from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "20",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(hour from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "21",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(minute from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "13",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(second from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "17",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(millisecond from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "17357",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "extract(microsecond from TIMESTAMP '1969-12-31 21:13:17.357')",
+        "17357000",
+        "BIGINT NOT NULL");
   }
 
   @Test public void testArrayValueConstructor() {
@@ -7967,7 +8286,7 @@ public abstract class SqlOperatorBaseTest {
   /** Test that calls all operators with all possible argument types, and for
    * each type, with a set of tricky values. */
   @Test public void testArgumentBounds() {
-    if (!CalciteAssert.ENABLE_SLOW) {
+    if (!CalciteSystemProperty.TEST_SLOW.value()) {
       return;
     }
     final SqlValidatorImpl validator = (SqlValidatorImpl) tester.getValidator();
@@ -8174,10 +8493,8 @@ public abstract class SqlOperatorBaseTest {
         final ResultSet resultSet =
             statement.executeQuery(query);
         resultChecker.checkResult(resultSet);
-      } catch (RuntimeException e) {
-        throw e;
       } catch (Exception e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     }
 
