@@ -6851,6 +6851,38 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     check("select localtime, deptno + 3 from emp group by deptno");
   }
 
+  @Test public void testGroupExpressionRowType() {
+    sql("select deptno as d, count(*) as c, sum(sal) as s\n"
+        + "from emp\n"
+        + "group by deptno")
+        .ok()
+        .type("RecordType(INTEGER NOT NULL D, BIGINT NOT NULL C, INTEGER NOT NULL S) NOT NULL");
+
+    sql("select deptno as d, count(*) as c, sum(sal) as s\n"
+        + "from emp\n"
+        + "group by rollup(deptno)")
+        .ok()
+        .type("RecordType(INTEGER D, BIGINT NOT NULL C, INTEGER NOT NULL S) NOT NULL");
+
+    sql("select 2*deptno + 1 as d, count(*) as c, sum(sal) as s\n"
+        + "from emp\n"
+        + "group by rollup(deptno)")
+        .ok()
+        .type("RecordType(INTEGER D, BIGINT NOT NULL C, INTEGER NOT NULL S) NOT NULL");
+
+    sql("select grouping(deptno) as d, count(*) as c, sum(sal) as s\n"
+        + "from emp\n"
+        + "group by rollup(deptno)")
+        .ok()
+        .type("RecordType(BIGINT NOT NULL D, BIGINT NOT NULL C, INTEGER NOT NULL S) NOT NULL");
+
+    sql("select deptno + 1 as d, count(deptno) as c, sum(sal) as s\n"
+        + "from emp\n"
+        + "group by rollup(deptno)")
+        .ok()
+        .type("RecordType(INTEGER D, BIGINT NOT NULL C, INTEGER NOT NULL S) NOT NULL");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-886">[CALCITE-886]
    * System functions in GROUP BY clause</a>. */

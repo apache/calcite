@@ -19,13 +19,20 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.fun.SqlAbstractGroupFunction;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -35,6 +42,7 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -176,13 +184,10 @@ public class AggregatingSelectScope
 
   @Override public RelDataType nullifyType(SqlNode node, RelDataType type) {
     final Resolved r = this.resolved.get();
-    for (Ord<SqlNode> groupExpr : Ord.zip(r.groupExprList)) {
-      if (groupExpr.e.equalsDeep(node, Litmus.IGNORE)) {
-        if (r.isNullable(groupExpr.i)) {
-          return validator.getTypeFactory().createTypeWithNullability(type,
-              true);
-        }
-      }
+    GroupExprFinder finder = new GroupExprFinder(validator, r);
+    if (finder.containsGroupExpr(node)) {
+      return validator.getTypeFactory().createTypeWithNullability(type,
+          true);
     }
     return type;
   }
@@ -275,6 +280,58 @@ public class AggregatingSelectScope
         }
       }
       return -1;
+    }
+  }
+
+  /**
+   * Finds expression in group expression list
+   */
+  private class GroupExprFinder extends SqlBasicVisitor<Void> {
+    SqlValidatorImpl validator;
+    Resolved resolved;
+
+    GroupExprFinder(SqlValidatorImpl validator, Resolved resolved) {
+      this.validator = Objects.requireNonNull(validator);
+      this.resolved = Objects.requireNonNull(resolved);
+    }
+
+    private void checkGroupExpr(SqlNode node) {
+      for (Ord<SqlNode> groupExpr : Ord.zip(resolved.groupExprList)) {
+        if (groupExpr.e.equalsDeep(node, Litmus.IGNORE)) {
+          if (resolved.isNullable(groupExpr.i)) {
+            throw Util.FoundOne.NULL;
+          }
+        }
+      }
+    }
+
+    public Void visit(SqlLiteral literal) {
+      checkGroupExpr(literal);
+      return null;
+    }
+
+    public Void visit(SqlIdentifier id) {
+      checkGroupExpr(id);
+      return null;
+    }
+
+    public Void visit(SqlCall call) {
+      SqlOperator operator = call.getOperator();
+      if (operator instanceof SqlAbstractGroupFunction
+          || operator instanceof SqlAggFunction) {
+        return null;
+      }
+      checkGroupExpr(call);
+      return super.visit(call);
+    }
+
+    boolean containsGroupExpr(SqlNode node) {
+      try {
+        node.accept(this);
+        return false;
+      } catch (Util.FoundOne e) {
+        return true;
+      }
     }
   }
 }
