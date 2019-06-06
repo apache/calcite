@@ -65,7 +65,7 @@ limitations under the License.
 
     <!-- This list is in alphabetical order. -->
     <airlift-tpch.version>0.1</airlift-tpch.version>
-    <avatica.version>1.13.0</avatica.version>
+    <avatica.version>1.15.0</avatica.version>
     <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
     <cassandra-driver-core.version>3.6.0</cassandra-driver-core.version>
     <cassandra-unit.version>3.5.0.1</cassandra-unit.version>
