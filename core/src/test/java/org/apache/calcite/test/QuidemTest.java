@@ -85,8 +85,6 @@ public abstract class QuidemTest {
           return Bug.CALCITE_1045_FIXED;
         case "calcite1048":
           return Bug.CALCITE_1048_FIXED;
-        case "calcite2776":
-          return Bug.CALCITE_2776_FIXED;
         }
         return null;
       };

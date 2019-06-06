@@ -18,7 +18,6 @@
 !use post
 !set outputformat mysql
 
-!if (fixed.calcite2776) {
 # [CALCITE-2677] Struct types with one field are not mapped correctly to Java Classes
 select * from (values
     (1, ROW(1)),
@@ -32,7 +31,6 @@ select * from (values
 (2 rows)
 
 !ok
-!}
 
 # [CALCITE-3021] Equality of nested ROWs returns false for identical values
 select distinct * from (values
