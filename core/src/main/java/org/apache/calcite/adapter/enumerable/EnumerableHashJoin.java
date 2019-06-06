@@ -111,18 +111,20 @@ public class EnumerableHashJoin extends EquiJoin implements EnumerableRel {
       RelMetadataQuery mq) {
     double rowCount = mq.getRowCount(this);
 
-    if (joinType.projectsRight()) {
-      // Joins can be flipped, and for many algorithms, both versions are viable
-      // and have the same cost. To make the results stable between versions of
-      // the planner, make one of the versions slightly more expensive.
-      switch (joinType) {
-      case RIGHT:
+    // Joins can be flipped, and for many algorithms, both versions are viable
+    // and have the same cost. To make the results stable between versions of
+    // the planner, make one of the versions slightly more expensive.
+    switch (joinType) {
+    case SEMI:
+    case ANTI:
+      // SEMI and ANTI join cannot be flipped
+      break;
+    case RIGHT:
+      rowCount = RelMdUtil.addEpsilon(rowCount);
+      break;
+    default:
+      if (RelNodes.COMPARATOR.compare(left, right) > 0) {
         rowCount = RelMdUtil.addEpsilon(rowCount);
-        break;
-      default:
-        if (RelNodes.COMPARATOR.compare(left, right) > 0) {
-          rowCount = RelMdUtil.addEpsilon(rowCount);
-        }
       }
     }
 
@@ -148,12 +150,14 @@ public class EnumerableHashJoin extends EquiJoin implements EnumerableRel {
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-    if (!joinType.projectsRight()) {
-      // SEMI join or ANTI join
+    switch (joinType) {
+    case SEMI:
+    case ANTI:
       assert joinInfo.isEqui();
       return implementHashSemiJoin(implementor, pref);
+    default:
+      return implementHashJoin(implementor, pref);
     }
-    return implementHashJoin(implementor, pref);
   }
 
   private Result implementHashSemiJoin(EnumerableRelImplementor implementor, Prefer pref) {

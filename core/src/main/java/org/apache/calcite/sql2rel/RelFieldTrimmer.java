@@ -666,7 +666,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     relBuilder.push(newInputs.get(0));
     relBuilder.push(newInputs.get(1));
 
-    if (!join.getJoinType().projectsRight()) {
+    switch (join.getJoinType()) {
+    case SEMI:
+    case ANTI:
       // For SemiJoins and AntiJoins only map fields from the left-side
       if (join.getJoinType() == JoinRelType.SEMI) {
         relBuilder.semiJoin(newConditionExpr);
@@ -685,7 +687,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       for (IntPair pair : inputMapping) {
         mapping.set(pair.source + offset, pair.target + newOffset);
       }
-    } else {
+      break;
+    default:
       relBuilder.join(join.getJoinType(), newConditionExpr);
     }
 
