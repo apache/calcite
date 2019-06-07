@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.linq4j.test;
 
-import org.apache.calcite.linq4j.CorrelateJoinType;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.EnumerableDefaults;
 import org.apache.calcite.linq4j.JoinType;
@@ -192,19 +191,19 @@ public final class JoinPreserveOrderTest {
 
 
   @Test public void testLeftCorrelateJoinPreservesOrderOfLeftInput() {
-    testJoin(correlateJoin(CorrelateJoinType.LEFT), AssertOrder.PRESERVED, AssertOrder.IGNORED);
+    testJoin(correlateJoin(JoinType.LEFT), AssertOrder.PRESERVED, AssertOrder.IGNORED);
   }
 
   @Test public void testInnerCorrelateJoinPreservesOrderOfLeftInput() {
-    testJoin(correlateJoin(CorrelateJoinType.INNER), AssertOrder.PRESERVED, AssertOrder.IGNORED);
+    testJoin(correlateJoin(JoinType.INNER), AssertOrder.PRESERVED, AssertOrder.IGNORED);
   }
 
   @Test public void testAntiCorrelateJoinPreservesOrderOfLeftInput() {
-    testJoin(correlateJoin(CorrelateJoinType.ANTI), AssertOrder.PRESERVED, AssertOrder.IGNORED);
+    testJoin(correlateJoin(JoinType.ANTI), AssertOrder.PRESERVED, AssertOrder.IGNORED);
   }
 
   @Test public void testSemiCorrelateJoinPreservesOrderOfLeftInput() {
-    testJoin(correlateJoin(CorrelateJoinType.SEMI), AssertOrder.PRESERVED, AssertOrder.IGNORED);
+    testJoin(correlateJoin(JoinType.SEMI), AssertOrder.PRESERVED, AssertOrder.IGNORED);
   }
 
   @Test public void testSemiDefaultJoinPreservesOrderOfLeftInput() {
@@ -237,7 +236,7 @@ public final class JoinPreserveOrderTest {
   }
 
   private JoinAlgorithm<Employee, Department, List<Integer>> correlateJoin(
-      CorrelateJoinType joinType) {
+      JoinType joinType) {
     return (left, right) ->
         left.correlateJoin(
             joinType,

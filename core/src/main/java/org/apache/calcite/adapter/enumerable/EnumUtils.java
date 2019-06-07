@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.JoinType;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.tree.BlockStatement;
@@ -246,6 +247,26 @@ public class EnumUtils {
       }
     }
     return e;
+  }
+
+  /** Transforms a JoinRelType to Linq4j JoinType. **/
+  static JoinType toLinq4jJoinType(JoinRelType joinRelType) {
+    switch (joinRelType) {
+    case INNER:
+      return JoinType.INNER;
+    case LEFT:
+      return JoinType.LEFT;
+    case RIGHT:
+      return JoinType.RIGHT;
+    case FULL:
+      return JoinType.FULL;
+    case SEMI:
+      return JoinType.SEMI;
+    case ANTI:
+      return JoinType.ANTI;
+    }
+    throw new IllegalStateException(
+        "Unable to convert " + joinRelType + " to Linq4j JoinType");
   }
 }
 

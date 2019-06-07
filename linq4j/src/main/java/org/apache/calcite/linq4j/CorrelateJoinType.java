@@ -18,7 +18,9 @@ package org.apache.calcite.linq4j;
 
 /**
  * Specifies the type of correlation operation: inner, left, semi, or anti.
+ * @deprecated Use {@link JoinType}
  */
+@Deprecated // to be removed before 1.21
 public enum CorrelateJoinType {
   /**
    * Inner join
@@ -45,6 +47,22 @@ public enum CorrelateJoinType {
    * <p>Note: if B.b is nullable and B has nulls, no rows must be returned.
    */
   ANTI;
+
+  /** Transforms this CorrelateJoinType to JoinType. **/
+  public JoinType toJoinType() {
+    switch (this) {
+    case INNER:
+      return JoinType.INNER;
+    case LEFT:
+      return JoinType.LEFT;
+    case SEMI:
+      return JoinType.SEMI;
+    case ANTI:
+      return JoinType.ANTI;
+    }
+    throw new IllegalStateException(
+        "Unable to convert " + this + " to JoinType");
+  }
 }
 
 // End CorrelateJoinType.java
