@@ -927,6 +927,25 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /** Tests that {@link RelBuilder#aggregate} eliminates duplicate aggregate
+   * calls and creates a {@code Project} to compensate. */
+  @Test public void testAggregateEliminatesDuplicateCalls() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .aggregate(builder.groupKey(),
+                builder.sum(builder.field(1)).as("S1"),
+                builder.count().as("C"),
+                builder.sum(builder.field(2)).as("S2"),
+                builder.sum(builder.field(1)).as("S1b"))
+            .build();
+    final String expected = ""
+        + "LogicalProject(S1=[$0], C=[$1], S2=[$2], S1b=[$0])\n"
+        + "  LogicalAggregate(group=[{}], S1=[SUM($1)], C=[COUNT()], S2=[SUM($2)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
   @Test public void testAggregateFilter() {
     // Equivalent SQL:
     //   SELECT deptno, COUNT(*) FILTER (WHERE empno > 100) AS c
