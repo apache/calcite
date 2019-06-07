@@ -372,8 +372,16 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
         generateNullsOnRight);
   }
 
+  @Deprecated // to be removed before 1.21
   public <TInner, TResult> Enumerable<TResult> correlateJoin(
-      CorrelateJoinType joinType, Function1<T, Enumerable<TInner>> inner,
+      CorrelateJoinType correlateJoinType, Function1<T, Enumerable<TInner>> inner,
+      Function2<T, TInner, TResult> resultSelector) {
+    return EnumerableDefaults.correlateJoin(correlateJoinType.toJoinType(), getThis(), inner,
+        resultSelector);
+  }
+
+  public <TInner, TResult> Enumerable<TResult> correlateJoin(
+      JoinType joinType, Function1<T, Enumerable<TInner>> inner,
       Function2<T, TInner, TResult> resultSelector) {
     return EnumerableDefaults.correlateJoin(joinType, getThis(), inner,
         resultSelector);

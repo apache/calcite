@@ -30,7 +30,6 @@ import org.apache.calcite.interpreter.Context;
 import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.interpreter.Scalar;
 import org.apache.calcite.linq4j.AbstractEnumerable;
-import org.apache.calcite.linq4j.CorrelateJoinType;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.EnumerableDefaults;
 import org.apache.calcite.linq4j.Enumerator;
@@ -171,7 +170,7 @@ public enum BuiltInMethod {
   NESTED_LOOP_JOIN(EnumerableDefaults.class, "nestedLoopJoin", Enumerable.class,
       Enumerable.class, Predicate2.class, Function2.class, JoinType.class),
   CORRELATE_JOIN(ExtendedEnumerable.class, "correlateJoin",
-      CorrelateJoinType.class, Function1.class, Function2.class),
+      JoinType.class, Function1.class, Function2.class),
   SELECT(ExtendedEnumerable.class, "select", Function1.class),
   SELECT2(ExtendedEnumerable.class, "select", Function2.class),
   SELECT_MANY(ExtendedEnumerable.class, "selectMany", Function1.class),

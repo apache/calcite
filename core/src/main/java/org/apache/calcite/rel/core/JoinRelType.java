@@ -16,9 +16,6 @@
  */
 package org.apache.calcite.rel.core;
 
-import org.apache.calcite.linq4j.CorrelateJoinType;
-import org.apache.calcite.linq4j.JoinType;
-
 import java.util.Locale;
 
 /**
@@ -150,42 +147,6 @@ public enum JoinRelType {
     default:
       return this;
     }
-  }
-
-  /** Transform this JoinRelType to CorrelateJoinType. **/
-  public CorrelateJoinType toLinq4jCorrelateJoinType() {
-    switch (this) {
-    case INNER:
-      return CorrelateJoinType.INNER;
-    case LEFT:
-      return CorrelateJoinType.LEFT;
-    case SEMI:
-      return CorrelateJoinType.SEMI;
-    case ANTI:
-      return CorrelateJoinType.ANTI;
-    }
-    throw new IllegalStateException(
-        "Unable to convert " + this + " to CorrelateJoinType");
-  }
-
-  /** Transform this JoinRelType to Linq4j JoinType. **/
-  public JoinType toLinq4jJoinType() {
-    switch (this) {
-    case INNER:
-      return JoinType.INNER;
-    case LEFT:
-      return JoinType.LEFT;
-    case RIGHT:
-      return JoinType.RIGHT;
-    case FULL:
-      return JoinType.FULL;
-    case SEMI:
-      return JoinType.SEMI;
-    case ANTI:
-      return JoinType.ANTI;
-    }
-    throw new IllegalStateException(
-        "Unable to convert " + this + " to Linq4j JoinType");
   }
 
   public boolean projectsRight() {
