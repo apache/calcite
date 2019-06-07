@@ -541,14 +541,46 @@ public interface ExtendedEnumerable<TSource> {
    * For each row of the current enumerable returns the correlated rows
    * from the {@code inner} enumerable (nested loops join).
    *
+   * @deprecated Use {@link #correlateJoin(JoinType, Function1, Function2)}
+   *
    * @param joinType inner, left, semi or anti join type
    * @param inner generator of inner enumerable
    * @param resultSelector selector of the result. For semi/anti join
    *                       inner argument is always null.
    */
+  @Deprecated // to be removed before 1.21
   <TInner, TResult> Enumerable<TResult> correlateJoin(
       CorrelateJoinType joinType, Function1<TSource, Enumerable<TInner>> inner,
       Function2<TSource, TInner, TResult> resultSelector);
+
+  /**
+   * For each row of the current enumerable returns the correlated rows
+   * from the {@code inner} enumerable (nested loops join).
+   *
+   * @param joinType inner, left, semi or anti join type
+   * @param inner generator of inner enumerable
+   * @param resultSelector selector of the result. For semi/anti join
+   *                       inner argument is always null.
+   */
+  @SuppressWarnings("deprecation")
+  default <TInner, TResult> Enumerable<TResult> correlateJoin(
+      JoinType joinType, Function1<TSource, Enumerable<TInner>> inner,
+      Function2<TSource, TInner, TResult> resultSelector) {
+    // temporary default implementation for backwards compatibility
+    switch (joinType) {
+    case INNER:
+      return correlateJoin(CorrelateJoinType.INNER, inner, resultSelector);
+    case LEFT:
+      return correlateJoin(CorrelateJoinType.LEFT, inner, resultSelector);
+    case SEMI:
+      return correlateJoin(CorrelateJoinType.SEMI, inner, resultSelector);
+    case ANTI:
+      return correlateJoin(CorrelateJoinType.ANTI, inner, resultSelector);
+    default:
+      throw new IllegalArgumentException("JoinType " + joinType + " is not valid for correlation");
+    }
+  }
+
 
   /**
    * Returns the last element of a sequence. (Defined

@@ -1151,14 +1151,17 @@ public abstract class EnumerableDefaults {
   }
 
   /**
-   * Returns elements of {@code outer} for which there is a member of
-   * {@code inner} with a matching key. A specified
-   * {@code EqualityComparer<TSource>} is used to compare keys.
+   * For each row of the {@code outer} enumerable returns the correlated rows
+   * from the {@code inner} enumerable.
    */
   public static <TSource, TInner, TResult> Enumerable<TResult> correlateJoin(
-      final CorrelateJoinType joinType, final Enumerable<TSource> outer,
+      final JoinType joinType, final Enumerable<TSource> outer,
       final Function1<TSource, Enumerable<TInner>> inner,
       final Function2<TSource, TInner, TResult> resultSelector) {
+    if (joinType == JoinType.RIGHT || joinType == JoinType.FULL) {
+      throw new IllegalArgumentException("JoinType " + joinType + " is not valid for correlation");
+    }
+
     return new AbstractEnumerable<TResult>() {
       public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
