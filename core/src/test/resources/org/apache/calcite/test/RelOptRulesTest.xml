@@ -11127,7 +11127,7 @@ EnumerableUnion(all=[true])
     </TestCase>
     <TestCase name="testFilterAndProjectWithMultiJoin">
         <Resource name="sql">
-            <![CDATA[select * from (select * from emp e1 left outer join dept d on e1.deptno = d.deptno where d.deptno > 3) where ename LIKE 'bar']]>
+            <![CDATA[select * from emp e1 left outer join dept d on e1.deptno = d.deptno where d.deptno > 3]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[

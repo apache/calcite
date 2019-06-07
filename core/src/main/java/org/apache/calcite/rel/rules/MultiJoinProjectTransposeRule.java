@@ -107,18 +107,15 @@ public class MultiJoinProjectTransposeRule extends JoinProjectTransposeRule {
 
   //~ Methods ----------------------------------------------------------------
 
-  // override JoinProjectTransposeRule
-  protected boolean hasLeftChild(RelOptRuleCall call) {
+  @Override protected boolean hasLeftChild(RelOptRuleCall call) {
     return call.rels.length != 4;
   }
 
-  // override JoinProjectTransposeRule
-  protected boolean hasRightChild(RelOptRuleCall call) {
+  @Override protected boolean hasRightChild(RelOptRuleCall call) {
     return call.rels.length > 3;
   }
 
-  // override JoinProjectTransposeRule
-  protected Project getRightChild(RelOptRuleCall call) {
+  @Override protected Project getRightChild(RelOptRuleCall call) {
     if (call.rels.length == 4) {
       return call.rel(2);
     } else {
@@ -126,8 +123,7 @@ public class MultiJoinProjectTransposeRule extends JoinProjectTransposeRule {
     }
   }
 
-  // override JoinProjectTransposeRule
-  protected RelNode getProjectChild(
+  @Override protected RelNode getProjectChild(
       RelOptRuleCall call,
       Project project,
       boolean leftChild) {
