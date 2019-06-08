@@ -335,7 +335,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
           // but now check that it is the *correct* child.
           final RelSubset input =
               (RelSubset) rel.getInput(previousOperand.ordinalInParent);
-          List<RelNode> inputRels = input.set.getRelsFromAllSubsets();
+          List<RelNode> inputRels = input.getRelList();
           if (!inputRels.contains(previous)) {
             continue;
           }
