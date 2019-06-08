@@ -24,6 +24,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
@@ -47,6 +48,18 @@ class PlannerTests {
    */
   static final Convention PHYS_CALLING_CONVENTION =
       new Convention.Impl("PHYS", RelNode.class) {
+        @Override public boolean canConvertConvention(Convention toConvention) {
+          return true;
+        }
+
+        @Override public boolean useAbstractConvertersForConversion(
+            RelTraitSet fromTraits, RelTraitSet toTraits) {
+          return true;
+        }
+      };
+
+  static final Convention PHYS_CALLING_CONVENTION_2 =
+      new Convention.Impl("PHYS_2", RelNode.class) {
         @Override public boolean canConvertConvention(Convention toConvention) {
           return true;
         }
@@ -117,6 +130,42 @@ class PlannerTests {
     }
   }
 
+  /** Relational expression with two inputs. */
+  abstract static class TestBiRel extends BiRel {
+    TestBiRel(RelOptCluster cluster, RelTraitSet traitSet, RelNode left,
+        RelNode right) {
+      super(cluster, traitSet, left, right);
+    }
+
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
+      return planner.getCostFactory().makeInfiniteCost();
+    }
+
+    @Override protected RelDataType deriveRowType() {
+      return getLeft().getRowType();
+    }
+  }
+
+  /** Relational expression with two inputs and convention PHYS. */
+  static class PhysBiRel extends TestBiRel {
+    PhysBiRel(RelOptCluster cluster, RelTraitSet traitSet, RelNode left,
+        RelNode right) {
+      super(cluster, traitSet, left, right);
+    }
+
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
+      return planner.getCostFactory().makeTinyCost();
+    }
+
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+      assert inputs.size() == 2;
+      return new PhysBiRel(getCluster(), traitSet, inputs.get(0),
+          inputs.get(1));
+    }
+  }
+
   /** Relational expression with zero inputs and convention NONE. */
   static class NoneLeafRel extends TestLeafRel {
     NoneLeafRel(RelOptCluster cluster, String label) {
@@ -132,8 +181,15 @@ class PlannerTests {
 
   /** Relational expression with zero inputs and convention PHYS. */
   static class PhysLeafRel extends TestLeafRel {
+    Convention convention;
+
     PhysLeafRel(RelOptCluster cluster, String label) {
-      super(cluster, cluster.traitSetOf(PHYS_CALLING_CONVENTION), label);
+      this(cluster, PHYS_CALLING_CONVENTION, label);
+    }
+
+    PhysLeafRel(RelOptCluster cluster, Convention convention, String label) {
+      super(cluster, cluster.traitSetOf(convention), label);
+      this.convention = convention;
     }
 
     @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
@@ -142,7 +198,7 @@ class PlannerTests {
     }
 
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      assert traitSet.comprises(PHYS_CALLING_CONVENTION);
+      assert traitSet.comprises(convention);
       assert inputs.isEmpty();
       return this;
     }
@@ -200,6 +256,26 @@ class PlannerTests {
               single.getTraitSet().replace(PHYS_CALLING_CONVENTION));
       call.transformTo(
           new PhysSingleRel(single.getCluster(), physInput));
+    }
+  }
+
+  /**
+   * Planner rule that matches a parent with two children and asserts that they
+   * are not the same.
+   */
+  static class AssertOperandsDifferentRule extends RelOptRule {
+    AssertOperandsDifferentRule() {
+      super(
+          operand(PhysBiRel.class,
+              operand(PhysLeafRel.class, any()),
+              operand(PhysLeafRel.class, any())));
+    }
+
+    public void onMatch(RelOptRuleCall call) {
+      PhysLeafRel left = call.rel(1);
+      PhysLeafRel right = call.rel(2);
+
+      assert left != right : left + " should be different from " + right;
     }
   }
 }

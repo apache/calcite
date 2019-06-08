@@ -44,10 +44,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static org.apache.calcite.plan.volcano.PlannerTests.AssertOperandsDifferentRule;
 import static org.apache.calcite.plan.volcano.PlannerTests.GoodSingleRule;
 import static org.apache.calcite.plan.volcano.PlannerTests.NoneLeafRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.NoneSingleRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.PHYS_CALLING_CONVENTION;
+import static org.apache.calcite.plan.volcano.PlannerTests.PHYS_CALLING_CONVENTION_2;
+import static org.apache.calcite.plan.volcano.PlannerTests.PhysBiRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.PhysLeafRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.PhysLeafRule;
 import static org.apache.calcite.plan.volcano.PlannerTests.PhysSingleRel;
@@ -120,6 +123,35 @@ public class VolcanoPlannerTest {
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
     assertTrue(result instanceof PhysSingleRel);
+  }
+
+  @Test public void testMatchedOperandsDifferent() {
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    RelOptCluster cluster = newCluster(planner);
+
+    // The rule that triggers the assert rule
+    planner.addRule(new PhysLeafRule());
+
+    // The rule asserting that the matched operands are different
+    planner.addRule(new AssertOperandsDifferentRule());
+
+    // Construct two children in the same set and a parent RelNode
+    NoneLeafRel leftRel = new NoneLeafRel(cluster, "a");
+    RelNode leftPhy = planner
+        .changeTraits(leftRel, cluster.traitSetOf(PHYS_CALLING_CONVENTION));
+    PhysLeafRel rightPhy =
+        new PhysLeafRel(cluster, PHYS_CALLING_CONVENTION_2, "b");
+
+    PhysBiRel parent =
+        new PhysBiRel(cluster, cluster.traitSetOf(PHYS_CALLING_CONVENTION),
+            leftPhy, rightPhy);
+    planner.setRoot(parent);
+
+    // Make sure both RelNodes are in the same set, but different subset
+    planner.ensureRegistered(leftPhy, rightPhy);
+
+    planner.chooseDelegate().findBestExp();
   }
 
   /**
