@@ -53,4 +53,6 @@ avaticaBaseurl: /avatica
 plugins:
     - jekyll-redirect-from
 
+future: true
+
 # End _config.yml
