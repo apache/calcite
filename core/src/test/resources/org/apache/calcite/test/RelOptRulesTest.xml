@@ -2732,14 +2732,14 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     </TestCase>
     <TestCase name="testDecorrelateAggWithMultiParamsAggCall">
         <Resource name="sql">
-            <![CDATA[SELECT * FROM (SELECT MY_AVG(sal, 1) AS c FROM emp) as m,
+            <![CDATA[SELECT * FROM (SELECT MYAGG(sal, 1) AS c FROM emp) as m,
  LATERAL TABLE(ramp(m.c)) AS T(s)]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
 LogicalProject(C=[$0], S=[$1])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
-    LogicalAggregate(group=[{}], C=[MY_AVG($0, $1)])
+    LogicalAggregate(group=[{}], C=[MYAGG($0, $1)])
       LogicalProject(SAL=[$5], $f1=[1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableFunctionScan(invocation=[RAMP($cor0.C)], rowType=[RecordType(INTEGER I)])
@@ -2749,7 +2749,7 @@ LogicalProject(C=[$0], S=[$1])
             <![CDATA[
 LogicalProject(C=[$0], S=[$1])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
-    LogicalAggregate(group=[{}], C=[MY_AVG($0, $1)])
+    LogicalAggregate(group=[{}], C=[MYAGG($0, $1)])
       LogicalProject(SAL=[$5], $f1=[1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableFunctionScan(invocation=[RAMP($cor0.C)], rowType=[RecordType(INTEGER I)])
@@ -2758,7 +2758,7 @@ LogicalProject(C=[$0], S=[$1])
     </TestCase>
     <TestCase name="testDecorrelateAggWithMultiParamsAggCall2">
         <Resource name="sql">
-            <![CDATA[SELECT * FROM (SELECT MY_AVG(sal, 1) AS c FROM emp group by empno, 'abc') as m,
+            <![CDATA[SELECT * FROM (SELECT MYAGG(sal, 1) AS c FROM emp group by empno, 'abc') as m,
  LATERAL TABLE(ramp(m.c)) AS T(s)]]>
         </Resource>
         <Resource name="planBefore">
@@ -2766,7 +2766,7 @@ LogicalProject(C=[$0], S=[$1])
 LogicalProject(C=[$0], S=[$1])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
     LogicalProject(C=[$2])
-      LogicalAggregate(group=[{0, 1}], C=[MY_AVG($2, $3)])
+      LogicalAggregate(group=[{0, 1}], C=[MYAGG($2, $3)])
         LogicalProject(EMPNO=[$0], $f1=['abc'], SAL=[$5], $f3=[1])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableFunctionScan(invocation=[RAMP($cor0.C)], rowType=[RecordType(INTEGER I)])
@@ -2777,7 +2777,7 @@ LogicalProject(C=[$0], S=[$1])
 LogicalProject(C=[$0], S=[$1])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
     LogicalProject(C=[$2])
-      LogicalAggregate(group=[{0, 1}], C=[MY_AVG($2, $3)])
+      LogicalAggregate(group=[{0, 1}], C=[MYAGG($2, $3)])
         LogicalProject(EMPNO=[$0], $f1=['abc'], SAL=[$5], $f3=[1])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableFunctionScan(invocation=[RAMP($cor0.C)], rowType=[RecordType(INTEGER I)])
