@@ -3280,27 +3280,6 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test public void testOrderByRemoval1() {
-    final String sql = "select * from (\n"
-        + "  select empno from emp order by deptno offset 0) t\n"
-        + "order by empno desc";
-    sql(sql).ok();
-  }
-
-  @Test public void testOrderByRemoval2() {
-    final String sql = "select * from (\n"
-        + "  select empno from emp order by deptno offset 1) t\n"
-        + "order by empno desc";
-    sql(sql).ok();
-  }
-
-  @Test public void testOrderByRemoval3() {
-    final String sql = "select * from (\n"
-        + "  select empno from emp order by deptno limit 10) t\n"
-        + "order by empno";
-    sql(sql).ok();
-  }
-
   /**
    * Tests left join lateral with using
    */

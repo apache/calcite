@@ -2338,8 +2338,10 @@ LogicalProject(EMPNO=[$0], EXPR$1=[IS NOT TRUE($11)])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(ENAME=[$1])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(ENAME=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC])
+    LogicalProject(ENAME=[$1], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -5878,52 +5880,6 @@ group by deptno]]>
 LogicalAggregate(group=[{0}], EXPR$1=[COLLECT($1) WITHIN GROUP ([2])], EXPR$2=[COUNT()])
   LogicalProject(DEPTNO=[$7], EMPNO=[$0], $f2=[AND(<>($0, 1), <>($0, 2))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testOrderByRemoval1">
-        <Resource name="sql">
-            <![CDATA[select * from (
-  select empno from emp order by deptno offset 0) t
-order by empno desc]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalSort(sort0=[$0], dir0=[DESC])
-  LogicalProject(EMPNO=[$0])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testOrderByRemoval2">
-        <Resource name="sql">
-            <![CDATA[select * from (
-  select empno from emp order by deptno offset 1) t
-order by empno desc]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalSort(sort0=[$0], dir0=[DESC])
-  LogicalProject(EMPNO=[$0])
-    LogicalSort(sort0=[$1], dir0=[ASC], offset=[1])
-      LogicalProject(EMPNO=[$0], DEPTNO=[$7])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testOrderByRemoval3">
-        <Resource name="sql">
-            <![CDATA[select * from (
-  select empno from emp order by deptno limit 10) t
-order by empno]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalSort(sort0=[$0], dir0=[ASC])
-  LogicalProject(EMPNO=[$0])
-    LogicalSort(sort0=[$1], dir0=[ASC], fetch=[10])
-      LogicalProject(EMPNO=[$0], DEPTNO=[$7])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
