@@ -10997,4 +10997,28 @@ MultiJoin(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[INNER, LEFT]],
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSubQueryWithOrderByHang">
+        <Resource name="sql">
+            <![CDATA[select n.n_regionkey from ( select * from ( select * from sales.customer) t order by t.n_regionkey) n where n.n_nationkey >1]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(N_REGIONKEY=[ITEM($0, 'N_REGIONKEY')])
+  LogicalFilter(condition=[>(ITEM($0, 'N_NATIONKEY'), 1)])
+    LogicalProject(**=[$0])
+      LogicalSort(sort0=[$1], dir0=[ASC])
+        LogicalProject(**=[$0], EXPR$1=[ITEM($0, 'N_REGIONKEY')])
+          LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableProject(N_REGIONKEY=[ITEM($0, 'N_REGIONKEY')])
+  EnumerableFilter(condition=[>(ITEM($0, 'N_NATIONKEY'), 1)])
+    EnumerableSort(sort0=[$1], dir0=[ASC])
+      EnumerableProject(**=[$0], EXPR$1=[ITEM($0, 'N_REGIONKEY')])
+        EnumerableTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

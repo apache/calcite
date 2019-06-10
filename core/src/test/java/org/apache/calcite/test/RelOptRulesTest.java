@@ -160,6 +160,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.function.Predicate;
 
@@ -5578,6 +5579,54 @@ public class RelOptRulesTest extends RelOptTestBase {
 
     sql("select * from emp e1 left outer join dept d on e1.deptno = d.deptno where d.deptno > 3")
         .withPre(preProgram).with(program).check();
+  }
+
+  @Test public void testSubQueryWithOrderByHang() {
+    String sql = "select n.n_regionkey from ( select * from "
+        + "( select * from sales.customer) t order by t.n_regionkey) n where n.n_nationkey >1 ";
+
+    VolcanoPlanner planner = new VolcanoPlanner(null, null);
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+
+    Tester dynamicTester = createDynamicTester().withDecorrelation(true)
+        .withClusterFactory(
+            relOptCluster -> RelOptCluster.create(planner, relOptCluster.getRexBuilder()));
+
+    RelRoot root = dynamicTester.convertSqlToRel(sql);
+
+    String planBefore = NL + RelOptUtil.toString(root.rel);
+    getDiffRepos().assertEquals("planBefore", "${planBefore}", planBefore);
+
+    PushProjector.ExprCondition exprCondition = expr -> {
+      if (expr instanceof RexCall) {
+        RexCall call = (RexCall) expr;
+        return "item".equals(call.getOperator().getName().toLowerCase(Locale.ROOT));
+      }
+      return false;
+    };
+    RuleSet ruleSet =
+        RuleSets.ofList(
+            FilterProjectTransposeRule.INSTANCE,
+            FilterMergeRule.INSTANCE,
+            ProjectMergeRule.INSTANCE,
+            new ProjectFilterTransposeRule(Project.class, Filter .class,
+                RelFactories.LOGICAL_BUILDER, exprCondition),
+            EnumerableRules.ENUMERABLE_PROJECT_RULE,
+            EnumerableRules.ENUMERABLE_FILTER_RULE,
+            EnumerableRules.ENUMERABLE_SORT_RULE,
+            EnumerableRules.ENUMERABLE_LIMIT_RULE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+    Program program = Programs.of(ruleSet);
+
+    RelTraitSet toTraits =
+        root.rel.getCluster().traitSet()
+            .replace(0, EnumerableConvention.INSTANCE);
+
+    RelNode relAfter = program.run(planner, root.rel, toTraits,
+        Collections.emptyList(), Collections.emptyList());
+
+    String planAfter = NL + RelOptUtil.toString(relAfter);
+    getDiffRepos().assertEquals("planAfter", "${planAfter}", planAfter);
   }
 
   /**
