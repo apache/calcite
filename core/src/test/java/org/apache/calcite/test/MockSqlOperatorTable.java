@@ -29,6 +29,7 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.util.ListSqlOperatorTable;
@@ -130,12 +131,13 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     }
   }
 
-  /** "MY_AVG" user-defined aggregate function, with two arguments. */
+  /** "MYAGG" user-defined aggregate function. This agg function accept two numeric arguments
+   * in order to reproduce the throws of CALCITE-2744. */
   public static class MyAvgAggFunction extends SqlAggFunction {
     public MyAvgAggFunction() {
-      super("MY_AVG", null, SqlKind.AVG, ReturnTypes.AVG_AGG_FUNCTION,
-          null, OperandTypes.NUMERIC_NUMERIC, SqlFunctionCategory.NUMERIC,
-          false, false, Optionality.FORBIDDEN);
+      super("MYAGG", null, SqlKind.AVG, ReturnTypes.AVG_AGG_FUNCTION,
+          null, OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.NUMERIC, false, false, Optionality.FORBIDDEN);
     }
 
     @Override public boolean isDeterministic() {

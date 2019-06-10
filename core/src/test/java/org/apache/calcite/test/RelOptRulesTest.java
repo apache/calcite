@@ -5296,8 +5296,8 @@ public class RelOptRulesTest extends RelOptTestBase {
   /** Test case for CALCITE-2744 for aggregate decorrelate with multi-param agg call
    * but without group key. */
   @Test public void testDecorrelateAggWithMultiParamsAggCall() {
-    final String sql = "SELECT * FROM (SELECT MY_AVG(sal, 1) AS c FROM emp) as m,\n"
-                       + " LATERAL TABLE(ramp(m.c)) AS T(s)";
+    final String sql = "SELECT * FROM (SELECT MYAGG(sal, 1) AS c FROM emp) as m,\n"
+        + " LATERAL TABLE(ramp(m.c)) AS T(s)";
     sql(sql)
         .withLateDecorrelation(true)
         .withTrim(true)
@@ -5306,10 +5306,10 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Same as {@link #testDecorrelateAggWithMultiParamsAggCall}
-   * but with constant grouping key. */
+   * but with a constant group key. */
   @Test public void testDecorrelateAggWithMultiParamsAggCall2() {
     final String sql = "SELECT * FROM "
-        + "(SELECT MY_AVG(sal, 1) AS c FROM emp group by empno, 'abc') as m,\n"
+        + "(SELECT MYAGG(sal, 1) AS c FROM emp group by empno, 'abc') as m,\n"
         + " LATERAL TABLE(ramp(m.c)) AS T(s)";
     sql(sql)
         .withLateDecorrelation(true)
