@@ -3999,12 +3999,17 @@ public abstract class SqlOperatorBaseTest {
             + "      \\^",
         true);   // illegal range
 
-    tester.checkFails(
-        "'yd3223' similar to '[:LOWER:]{2}[:DIGIT:]{,5}'",
-        "Illegal repetition near index 20\n"
-            + "\\[\\:LOWER\\:\\]\\{2\\}\\[\\:DIGIT\\:\\]\\{,5\\}\n"
-            + "                    \\^",
-        true);
+    // Slightly different error message from JDK 13 onwards
+    final String expectedError =
+        TestUtil.getJavaMajorVersion() >= 13
+            ? "Illegal repetition near index 22\n"
+              + "\\[\\:LOWER\\:\\]\\{2\\}\\[\\:DIGIT\\:\\]\\{,5\\}\n"
+              + "                      \\^"
+            : "Illegal repetition near index 20\n"
+                + "\\[\\:LOWER\\:\\]\\{2\\}\\[\\:DIGIT\\:\\]\\{,5\\}\n"
+                + "                    \\^";
+    tester.checkFails("'yd3223' similar to '[:LOWER:]{2}[:DIGIT:]{,5}'",
+        expectedError, true);
 
     if (Bug.CALCITE_2539_FIXED) {
       tester.checkFails(
