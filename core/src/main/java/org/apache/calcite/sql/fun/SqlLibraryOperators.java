@@ -253,6 +253,16 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction CHR =
+          new SqlFunction(
+                  "CHR",
+                  SqlKind.OTHER_FUNCTION,
+                  ReturnTypes.CHAR,
+                  null,
+                  OperandTypes.INTEGER,
+                  SqlFunctionCategory.STRING);
 }
 
 // End SqlLibraryOperators.java

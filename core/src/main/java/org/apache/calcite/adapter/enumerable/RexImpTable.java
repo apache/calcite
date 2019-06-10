@@ -92,6 +92,7 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.OrElse;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DIFFERENCE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE64;
@@ -294,6 +295,7 @@ public class RexImpTable {
     defineMethod(RIGHT, BuiltInMethod.RIGHT.method, NullPolicy.ANY);
     defineMethod(REPLACE, BuiltInMethod.REPLACE.method, NullPolicy.STRICT);
     defineMethod(TRANSLATE3, BuiltInMethod.TRANSLATE3.method, NullPolicy.STRICT);
+    defineMethod(CHR, "chr", NullPolicy.STRICT);
     defineMethod(CHARACTER_LENGTH, BuiltInMethod.CHAR_LENGTH.method,
         NullPolicy.STRICT);
     defineMethod(CHAR_LENGTH, BuiltInMethod.CHAR_LENGTH.method,

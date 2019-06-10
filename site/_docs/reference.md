@@ -2088,6 +2088,7 @@ semantics.
 
 | C | Operator syntax                                | Description
 |:- |:-----------------------------------------------|:-----------
+| o | CHR(integer) | Returns the character having the binary equivalent to *integer* as a CHAR value
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | p | DIFFERENCE(string, string)                     | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
 | o | GREATEST(expr [, expr ]*)                      | Returns the greatest of the expressions

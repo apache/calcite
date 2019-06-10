@@ -355,6 +355,11 @@ public class SqlFunctions {
     return s.substring(len - n);
   }
 
+  /** SQL CHR(long) function. */
+  public static String chr(long n) {
+    return String.valueOf(Character.toChars((int) n));
+  }
+
   /** SQL CHARACTER_LENGTH(string) function. */
   public static int charLength(String s) {
     return s.length();
