@@ -252,6 +252,12 @@ public abstract class ReturnTypes {
       cascade(DOUBLE, SqlTypeTransforms.TO_NULLABLE);
 
   /**
+   * Type-inference strategy whereby the result type of a call is a Char.
+   */
+  public static final SqlReturnTypeInference CHAR =
+          explicit(SqlTypeName.CHAR);
+
+  /**
    * Type-inference strategy whereby the result type of a call is an Integer.
    */
   public static final SqlReturnTypeInference INTEGER =

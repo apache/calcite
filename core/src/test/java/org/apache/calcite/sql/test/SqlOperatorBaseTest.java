@@ -1985,6 +1985,19 @@ public abstract class SqlOperatorBaseTest {
 
   }
 
+  @Test public void testChr() {
+    tester.setFor(SqlLibraryOperators.CHR, VM_FENNEL, VM_JAVA);
+    final SqlTester tester1 = oracleTester();
+    tester1.checkScalar("chr(97)",
+            "a", "CHAR(1) NOT NULL");
+    tester1.checkScalar("chr(48)",
+            "0", "CHAR(1) NOT NULL");
+    tester1.checkScalar("chr(0)",
+            String.valueOf('\u0000'), "CHAR(1) NOT NULL");
+    tester.checkFails("^chr(97.1)^",
+            "No match found for function signature CHR\\(<NUMERIC>\\)", false);
+  }
+
   @Test public void testSelect() {
     tester.check(
         "select * from (values(1))",
