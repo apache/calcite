@@ -24,6 +24,7 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.type.RelDataType;
@@ -2032,6 +2033,91 @@ public class RelToSqlConverterTest {
     String expected = "SELECT ROW_NUMBER() OVER (ORDER BY \"hire_date\")\n"
         + "FROM \"foodmart\".\"employee\"";
     sql(query).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3112">[CALCITE-3112]
+   * Support Window in RelToSqlConverter</a>. */
+  @Test public void testConvertWinodwToSql() {
+    String query0 = "SELECT row_number() over (order by \"hire_date\") FROM \"employee\"";
+    String expected0 = "SELECT ROW_NUMBER() OVER (ORDER BY \"hire_date\") AS \"$0\"\n"
+            + "FROM \"foodmart\".\"employee\"";
+
+    String query1 = "SELECT rank() over (order by \"hire_date\") FROM \"employee\"";
+    String expected1 = "SELECT RANK() OVER (ORDER BY \"hire_date\") AS \"$0\"\n"
+            + "FROM \"foodmart\".\"employee\"";
+
+    String query2 = "SELECT lead(\"employee_id\",1,'NA') over "
+            + "(partition by \"hire_date\" order by \"employee_id\")\n"
+            + "FROM \"employee\"";
+    String expected2 = "SELECT LEAD(\"employee_id\", 1, 'NA') OVER "
+            + "(PARTITION BY \"hire_date\" "
+            + "ORDER BY \"employee_id\") AS \"$0\"\n"
+            + "FROM \"foodmart\".\"employee\"";
+
+    String query3 = "SELECT lag(\"employee_id\",1,'NA') over "
+            + "(partition by \"hire_date\" order by \"employee_id\")\n"
+            + "FROM \"employee\"";
+    String expected3 = "SELECT LAG(\"employee_id\", 1, 'NA') OVER "
+            + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\") AS \"$0\"\n"
+            + "FROM \"foodmart\".\"employee\"";
+
+    String query4 = "SELECT lag(\"employee_id\",1,'NA') "
+            + "over (partition by \"hire_date\" order by \"employee_id\") as lag1, "
+            + "lag(\"employee_id\",1,'NA') "
+            + "over (partition by \"birth_date\" order by \"employee_id\") as lag2, "
+            + "count(*) over (partition by \"hire_date\" order by \"employee_id\") as count1, "
+            + "count(*) over (partition by \"birth_date\" order by \"employee_id\") as count2\n"
+            + "FROM \"employee\"";
+    String expected4 = "SELECT LAG(\"employee_id\", 1, 'NA') OVER "
+            + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\") AS \"$0\", "
+            + "LAG(\"employee_id\", 1, 'NA') OVER "
+            + "(PARTITION BY \"birth_date\" ORDER BY \"employee_id\") AS \"$1\", "
+            + "COUNT(*) OVER (PARTITION BY \"hire_date\" ORDER BY \"employee_id\" "
+            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"$2\", "
+            + "COUNT(*) OVER (PARTITION BY \"birth_date\" ORDER BY \"employee_id\" "
+            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"$3\"\n"
+            + "FROM \"foodmart\".\"employee\"";
+
+    String query5 = "SELECT lag(\"employee_id\",1,'NA') "
+            + "over (partition by \"hire_date\" order by \"employee_id\") as lag1, "
+            + "lag(\"employee_id\",1,'NA') "
+            + "over (partition by \"birth_date\" order by \"employee_id\") as lag2, "
+            + "max(sum(\"employee_id\")) over (partition by \"hire_date\" order by \"employee_id\") as count1, "
+            + "max(sum(\"employee_id\")) over (partition by \"birth_date\" order by \"employee_id\") as count2\n"
+            + "FROM \"employee\" group by \"employee_id\", \"hire_date\", \"birth_date\"";
+    String expected5 = "SELECT LAG(\"employee_id\", 1, 'NA') OVER "
+            + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\") AS \"$0\", "
+            + "LAG(\"employee_id\", 1, 'NA') OVER "
+            + "(PARTITION BY \"birth_date\" ORDER BY \"employee_id\") AS \"$1\", "
+            + "MAX(SUM(\"employee_id\")) OVER (PARTITION BY \"hire_date\" ORDER BY \"employee_id\" "
+            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"$2\", "
+            + "MAX(SUM(\"employee_id\")) OVER (PARTITION BY \"birth_date\" ORDER BY \"employee_id\" "
+            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"$3\"\n"
+            + "FROM \"foodmart\".\"employee\"\n"
+            + "GROUP BY \"employee_id\", \"hire_date\", \"birth_date\"";
+
+    String query6 = "SELECT lag(\"employee_id\",1,'NA') over "
+            + "(partition by \"hire_date\" order by \"employee_id\"), \"hire_date\"\n"
+            + "FROM \"employee\"\n"
+            + "group by \"hire_date\", \"employee_id\"";
+    String expected6 = "SELECT LAG(\"employee_id\", 1, 'NA') "
+            + "OVER (PARTITION BY \"hire_date\" ORDER BY \"employee_id\"), \"hire_date\"\n"
+            + "FROM \"foodmart\".\"employee\"\n"
+            + "GROUP BY \"hire_date\", \"employee_id\"";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ProjectToWindowRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(ProjectToWindowRule.PROJECT);
+
+    sql(query0).optimize(rules, hepPlanner).ok(expected0);
+    sql(query1).optimize(rules, hepPlanner).ok(expected1);
+    sql(query2).optimize(rules, hepPlanner).ok(expected2);
+    sql(query3).optimize(rules, hepPlanner).ok(expected3);
+    sql(query4).optimize(rules, hepPlanner).ok(expected4);
+    sql(query5).optimize(rules, hepPlanner).ok(expected5);
+    sql(query6).optimize(rules, hepPlanner).ok(expected6);
   }
 
   @Test public void testRankFunctionForPrintingOfFrameBoundary() {
