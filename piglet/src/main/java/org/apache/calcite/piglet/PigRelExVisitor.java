@@ -97,8 +97,8 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
    * @param inputOrdinal Input ordinal
    * @throws FrontendException Exception during processing Pig operators
    */
-  private PigRelExVisitor(OperatorPlan expressionPlan, PlanWalker walker, LogicalPigRelBuilder builder,
-      int inputCount, int inputOrdinal) throws FrontendException {
+  private PigRelExVisitor(OperatorPlan expressionPlan, PlanWalker walker,
+      LogicalPigRelBuilder builder, int inputCount, int inputOrdinal) throws FrontendException {
     super(expressionPlan, walker);
     this.builder = builder;
     this.inputCount = inputCount;
