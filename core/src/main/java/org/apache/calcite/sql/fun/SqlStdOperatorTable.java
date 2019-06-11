@@ -289,7 +289,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlBinaryOperator DIVIDE_INTEGER =
       new SqlBinaryOperator(
           "/INT",
-          SqlKind.DIVIDE,
+          SqlKind.DIVIDE_INTEGER,
           60,
           true,
           ReturnTypes.INTEGER_QUOTIENT_NULLABLE,

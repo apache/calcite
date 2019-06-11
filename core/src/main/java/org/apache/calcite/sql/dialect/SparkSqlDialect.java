@@ -122,6 +122,16 @@ public class SparkSqlDialect extends SqlDialect {
       }
       writer.endFunCall(concatFrame);
       break;
+    case DIVIDE_INTEGER:
+      final SqlWriter.Frame floorFrame = writer.startFunCall("FLOOR");
+      SqlOperator operator = call.getOperator();
+      call.operand(0).unparse(writer, leftPrec, operator.getLeftPrec());
+      writer.setNeedWhitespace(true);
+      writer.sep(SqlStdOperatorTable.DIVIDE.getName());
+      writer.setNeedWhitespace(true);
+      call.operand(1).unparse(writer, operator.getRightPrec(), rightPrec);
+      writer.endFunCall(floorFrame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
