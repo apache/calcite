@@ -117,14 +117,13 @@ public class PigRelSqlUDFs {
   }
 
   /**
-   * Creates a general SqlUDF operator from a Pig UDF.
+   * Creates a generic SqlUDF operator from a Pig UDF.
    *
    * @param udfName Name of the UDF
    * @param method Method "exec" for implementing the UDF
    * @param funcSpec Pig Funcspec
    * @param inputType Argument type for the input
    * @param returnType Function return data type
-   * @return @SqlUserDefinedFunction object
    */
   static SqlUserDefinedFunction createGeneralPigUDF(String udfName, Method method,
       FuncSpec funcSpec, RelDataType inputType, final RelDataType returnType) {

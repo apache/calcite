@@ -63,7 +63,7 @@ class PigRelExWalker extends PlanWalker {
    * Does post-order walk on the Pig expression plan from source to sinks.
    *
    * @param root The root expression operator
-   * @param visitor @{@link PigRelExVisitor}
+   * @param visitor The visitor of each Pig expression node.
    * @throws FrontendException Exception during processing Pig operator
    */
   private void postOrderWalk(Operator root, PlanVisitor visitor) throws FrontendException {

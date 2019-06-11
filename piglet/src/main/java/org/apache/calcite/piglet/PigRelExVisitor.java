@@ -90,16 +90,16 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
 
   /**
    *
-   * @param p Pig expression plan
-   * @param walker @{@link PigRelExWalker}
+   * @param expressionPlan Pig expression plan
+   * @param walker The walker over Pig expression plan.
    * @param builder Relational algebra builder
    * @param inputCount Number of inputs
    * @param inputOrdinal Input ordinal
    * @throws FrontendException Exception during processing Pig operators
    */
-  private PigRelExVisitor(OperatorPlan p, PlanWalker walker, LogicalPigRelBuilder builder,
+  private PigRelExVisitor(OperatorPlan expressionPlan, PlanWalker walker, LogicalPigRelBuilder builder,
       int inputCount, int inputOrdinal) throws FrontendException {
-    super(p, walker);
+    super(expressionPlan, walker);
     this.builder = builder;
     this.inputCount = inputCount;
     this.inputOrdinal = inputOrdinal;

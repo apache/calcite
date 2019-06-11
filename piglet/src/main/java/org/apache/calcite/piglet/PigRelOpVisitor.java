@@ -104,7 +104,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
 
   /**
    * @param plan    Pig logical plan
-   * @param walker  @{@link PigRelOpWalker}
+   * @param walker  The walker over Pig logical plan
    * @param builder Relational algebra builder
    * @throws FrontendException Exception during processing Pig operators
    */

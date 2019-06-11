@@ -66,7 +66,7 @@ class PigRelOpWalker extends PlanWalker {
    * Does post-order walk on the Pig logical relational plans from sinks to sources.
    *
    * @param root The root Pig logical relational operator
-   * @param visitor @{@link PigRelOpVisitor}
+   * @param visitor The visitor of each Pig logical operator node
    * @throws FrontendException Exception during processing Pig operator
    */
   private void postOrderWalk(Operator root, PlanPreVisitor visitor) throws FrontendException {
