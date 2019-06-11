@@ -24,6 +24,7 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
@@ -38,6 +39,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
@@ -707,6 +709,54 @@ public abstract class SqlImplementor {
         assert rexWindowBound.isCurrentRow();
         return SqlWindow.createCurrentRow(POS);
       }
+    }
+
+    public List<SqlNode> toSql(Window.Group group, ImmutableList<RexLiteral> constants,
+        int inputFieldCount) {
+      final List<SqlNode> rexOvers = new ArrayList<>();
+      final List<SqlNode> partitionKeys = new ArrayList<>();
+      final List<SqlNode> orderByKeys = new ArrayList<>();
+      for (int partition: group.keys) {
+        partitionKeys.add(this.field(partition));
+      }
+      for (RelFieldCollation collation: group.orderKeys.getFieldCollations()) {
+        this.addOrderItem(orderByKeys, collation);
+      }
+      SqlLiteral isRows = SqlLiteral.createBoolean(group.isRows, POS);
+      SqlNode lowerBound = null;
+      SqlNode upperBound = null;
+
+      final SqlLiteral allowPartial = null;
+
+      for (Window.RexWinAggCall winAggCall: group.aggCalls) {
+        SqlAggFunction aggFunction = (SqlAggFunction) winAggCall.getOperator();
+        final SqlWindow sqlWindow = SqlWindow.create(null, null,
+                new SqlNodeList(partitionKeys, POS), new SqlNodeList(orderByKeys, POS),
+                isRows, lowerBound, upperBound, allowPartial, POS);
+        if (aggFunction.allowsFraming()) {
+          lowerBound = createSqlWindowBound(group.lowerBound);
+          upperBound = createSqlWindowBound(group.upperBound);
+          sqlWindow.setLowerBound(lowerBound);
+          sqlWindow.setUpperBound(upperBound);
+        }
+
+        RexShuttle replaceConstants = new RexShuttle() {
+          @Override public RexNode visitInputRef(RexInputRef inputRef) {
+            int index = inputRef.getIndex();
+            RexNode ref;
+            if (index > inputFieldCount - 1) {
+              ref = constants.get(index - inputFieldCount);
+            } else {
+              ref = inputRef;
+            }
+            return ref;
+          }
+        };
+        RexCall aggCall = (RexCall) winAggCall.accept(replaceConstants);
+        List<SqlNode> operands = toSql(null, aggCall.operands);
+        rexOvers.add(createOverCall(aggFunction, operands, sqlWindow));
+      }
+      return rexOvers;
     }
 
     protected Context getAliasContext(RexCorrelVariable variable) {
