@@ -57,8 +57,8 @@ public class PigScriptTest extends PigRelTestBase {
                               + "LogicalSort(sort0=[$1], dir0=[DESC], fetch=[5])\n"
                               + "  LogicalProject(query=[$0], count=[CAST($1):BIGINT])\n"
                               + "    LogicalAggregate(group=[{0}], agg#0=[SUM($1)])\n"
-                              + "      LogicalTableScan(table=[[/local/hadoop/linkedin-calcite"
-                              + "/calcite/piglet/src/test/resources/input.data]])\n";
+                              + "      LogicalTableScan(table=[[" + projectRootDir
+                              + "/src/test/resources/input.data]])\n";
 
     assertThat(Util.toLinux(RelOptUtil.toString(rel)), is(epxectedPlan));
   }
