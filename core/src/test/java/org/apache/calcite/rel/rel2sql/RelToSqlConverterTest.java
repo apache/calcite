@@ -316,7 +316,7 @@ public class RelToSqlConverterTest {
         + "GROUP BY `product_class_id` WITH ROLLUP\n"
         + "ORDER BY `product_class_id` IS NULL, `product_class_id`,"
         + " `C` IS NULL, `C`";
-    final String expectedHive = "SELECT product_class_id, COUNT(*) AS C\n"
+    final String expectedHive = "SELECT product_class_id, COUNT(*) C\n"
         + "FROM foodmart.product\n"
         + "GROUP BY product_class_id WITH ROLLUP\n"
         + "ORDER BY product_class_id IS NULL, product_class_id,"
