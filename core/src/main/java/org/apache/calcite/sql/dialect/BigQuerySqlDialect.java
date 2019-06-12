@@ -44,6 +44,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     super(context);
   }
 
+  @Override public boolean supportsNestedAggregations() {
+    return false;
+  }
+
   @Override public boolean supportsColumnAliasInSort() {
     return true;
   }

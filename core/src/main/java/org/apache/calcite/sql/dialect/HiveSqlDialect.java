@@ -56,6 +56,10 @@ public class HiveSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsNestedAggregations() {
+    return false;
+  }
+
   @Override public boolean supportsColumnAliasInSort() {
     return true;
   }

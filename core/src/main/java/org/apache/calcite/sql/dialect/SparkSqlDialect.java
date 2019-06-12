@@ -50,6 +50,10 @@ public class SparkSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsNestedAggregations() {
+    return false;
+  }
+
   @Override public boolean supportsAliasedValues() {
     return false;
   }
