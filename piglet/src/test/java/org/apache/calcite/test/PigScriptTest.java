@@ -21,11 +21,17 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.Util;
 
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -36,18 +42,26 @@ import static org.hamcrest.MatcherAssert.assertThat;
  */
 public class PigScriptTest extends PigRelTestBase {
   static String projectRootDir;
+  static String dataFile;
 
   @BeforeClass
-  public static void setUpOnce() {
+  public static void setUpOnce() throws IOException {
     projectRootDir = System.getProperty("user.dir");
+    dataFile = projectRootDir + "/src/test/resources/input.data";
+    List<String> lines = Arrays.asList("yahoo 10", "twitter 3", "facebook 10",
+        "yahoo 15", "facebook 5", "twitter 2");
+    Files.write(Paths.get(dataFile), lines, StandardCharsets.UTF_8);
+  }
+
+  @AfterClass
+  public static void testClean() throws IOException {
+    Files.delete(Paths.get(dataFile));
   }
 
   @Test
   public void testReadScript() throws IOException {
     Map<String, String> params = new HashMap<>();
-    String table = projectRootDir + "/src/test/resources/input.data";
-
-    params.put("input", table);
+    params.put("input", dataFile);
     params.put("output", "outputFile");
 
     RelNode rel = converter.pigScript2Rel(projectRootDir + "/src/test/resources/testPig.pig",
