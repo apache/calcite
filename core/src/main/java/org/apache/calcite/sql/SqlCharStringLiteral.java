@@ -27,8 +27,8 @@ import java.util.List;
 /**
  * A character string literal.
  *
- * <p>Its {@link #value} field is an {@link NlsString} and {@link #typeName} is
- * {@link SqlTypeName#CHAR}.
+ * <p>Its {@link #value} field is an {@link NlsString} and
+ * {@link #getTypeName typeName} is {@link SqlTypeName#CHAR}.
  */
 public class SqlCharStringLiteral extends SqlAbstractStringLiteral {
 
@@ -62,14 +62,15 @@ public class SqlCharStringLiteral extends SqlAbstractStringLiteral {
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
+    assert value instanceof NlsString;
+    final NlsString nlsString = (NlsString) this.value;
     if (false) {
       Util.discard(Bug.FRG78_FIXED);
-      String stringValue = ((NlsString) value).getValue();
+      String stringValue = nlsString.getValue();
       writer.literal(
           writer.getDialect().quoteStringLiteral(stringValue));
     }
-    assert value instanceof NlsString;
-    writer.literal(value.toString());
+    writer.literal(nlsString.asSql(true, true, writer.getDialect()));
   }
 
   protected SqlAbstractStringLiteral concat1(List<SqlLiteral> literals) {
