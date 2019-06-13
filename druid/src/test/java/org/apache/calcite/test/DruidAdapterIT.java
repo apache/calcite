@@ -114,6 +114,19 @@ public class DruidAdapterIT {
     };
   }
 
+  /** Returns a consumer that checks that a particular Druid query is
+   * generated to implement a query. Expected lines should be exactly
+   * included in the actual query text, without changing quote types. */
+  private Consumer<List> druidOriginalChecker(final String... lines) {
+    return list -> {
+      assertThat(list.size(), is(1));
+      DruidQuery.QuerySpec querySpec = (DruidQuery.QuerySpec) list.get(0);
+      for (String line : lines) {
+        assertThat(querySpec.getQueryString(null, -1), containsString(line));
+      }
+    };
+  }
+
   /**
    * Creates a query against FOODMART with approximate parameters
    * */
@@ -577,23 +590,17 @@ public class DruidAdapterIT {
    */
   @Test public void testCastToTimestamp() {
     final String sql = "select cast(\"timestamp\" as timestamp) from \"foodmart\"";
-    final String druidQuery = "{'queryType':'scan','dataSource':'foodmart',"
-        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']',"
-        + "'virtualColumns:[{'type':'expression','name':'vc',"
-        + "'expression':'timestamp_parse("
-        + "timestamp_format(\"__time\",'yyyy-MM-dd\\u0027T\\u0027HH:mm:ss.SSS\\u0027Z\\u0027',"
-        + "'America/New_York'),'yyyy-MM-dd\\u0027T\\u0027HH:mm:ss.SSS\\u0027Z\\u0027','UTC')',"
-        + "'outputType':'LONG'}],"
-        + "'columns':['vc'],"
-        + "'resultFormat':'compactedList'}";
+    final String druidQuery = "timestamp_format(\\\"__time\\\","
+        + "'yyyy-MM-dd\\\\u0027T\\\\u0027HH:mm:ss.SSS\\\\u0027Z\\\\u0027',"
+        + "'America/New_York'),'yyyy-MM-dd\\\\u0027T\\\\u0027HH:mm:ss.SSS\\\\u0027Z\\\\u0027','UTC')\"";
 
     CalciteAssert.that()
-         .enable(enabled())
-         .withModel(FOODMART)
-         .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "America/New_York")
-         .query(sql)
-         .runs()
-         .queryContains(druidChecker(druidQuery));
+        .enable(enabled())
+        .withModel(FOODMART)
+        .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "America/New_York")
+        .query(sql)
+        .runs()
+        .queryContains(druidOriginalChecker(druidQuery));
   }
 
   @Test public void testDistinctLimit() {
