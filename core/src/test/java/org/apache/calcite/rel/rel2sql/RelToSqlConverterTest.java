@@ -63,10 +63,12 @@ import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -134,6 +136,33 @@ public class RelToSqlConverterTest {
         .withDatabaseProduct(SqlDialect.DatabaseProduct.MYSQL)
         .withIdentifierQuoteString("`")
         .withNullCollation(nullCollation));
+  }
+
+  /** Returns a collection of common dialects, and the database products they
+   * represent. */
+  private static Map<SqlDialect, DatabaseProduct> dialects() {
+    return ImmutableMap.<SqlDialect, DatabaseProduct>builder()
+        .put(SqlDialect.DatabaseProduct.BIG_QUERY.getDialect(),
+            SqlDialect.DatabaseProduct.BIG_QUERY)
+        .put(SqlDialect.DatabaseProduct.CALCITE.getDialect(),
+            SqlDialect.DatabaseProduct.CALCITE)
+        .put(SqlDialect.DatabaseProduct.DB2.getDialect(),
+            SqlDialect.DatabaseProduct.DB2)
+        .put(SqlDialect.DatabaseProduct.HIVE.getDialect(),
+            SqlDialect.DatabaseProduct.HIVE)
+        .put(jethroDataSqlDialect(),
+            SqlDialect.DatabaseProduct.JETHRO)
+        .put(SqlDialect.DatabaseProduct.MSSQL.getDialect(),
+            SqlDialect.DatabaseProduct.MSSQL)
+        .put(SqlDialect.DatabaseProduct.MYSQL.getDialect(),
+            SqlDialect.DatabaseProduct.MYSQL)
+        .put(mySqlDialect(NullCollation.HIGH),
+            SqlDialect.DatabaseProduct.MYSQL)
+        .put(SqlDialect.DatabaseProduct.ORACLE.getDialect(),
+            SqlDialect.DatabaseProduct.ORACLE)
+        .put(SqlDialect.DatabaseProduct.POSTGRESQL.getDialect(),
+            SqlDialect.DatabaseProduct.POSTGRESQL)
+        .build();
   }
 
   /** Creates a RelBuilder. */
@@ -852,6 +881,50 @@ public class RelToSqlConverterTest {
     sql(query).withBigQuery().ok(expected);
   }
 
+  /** Tests that we escape single-quotes in character literals using back-slash
+   * in BigQuery. The norm is to escape single-quotes with single-quotes. */
+  @Test public void testCharLiteralForBigQuery() {
+    final String query = "select 'that''s all folks!' from \"product\"";
+    final String expectedPostgresql = "SELECT 'that''s all folks!'\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedBigQuery = "SELECT 'that\\'s all folks!'\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withPostgresql().ok(expectedPostgresql)
+        .withBigQuery().ok(expectedBigQuery);
+  }
+
+  @Test public void testIdentifier() {
+    // Note that IGNORE is reserved in BigQuery but not in standard SQL
+    final String query = "select *\n"
+        + "from (\n"
+        + "  select 1 as \"one\", 2 as \"tWo\", 3 as \"THREE\",\n"
+        + "    4 as \"fo$ur\", 5 as \"ignore\"\n"
+        + "  from \"foodmart\".\"days\") as \"my$table\"\n"
+        + "where \"one\" < \"tWo\" and \"THREE\" < \"fo$ur\"";
+    final String expectedBigQuery = "SELECT *\n"
+        + "FROM (SELECT 1 AS one, 2 AS tWo, 3 AS THREE,"
+        + " 4 AS `fo$ur`, 5 AS `ignore`\n"
+        + "FROM foodmart.days) AS t\n"
+        + "WHERE one < tWo AND THREE < `fo$ur`";
+    final String expectedMysql =  "SELECT *\n"
+        + "FROM (SELECT 1 AS `one`, 2 AS `tWo`, 3 AS `THREE`,"
+        + " 4 AS `fo$ur`, 5 AS `ignore`\n"
+        + "FROM `foodmart`.`days`) AS `t`\n"
+        + "WHERE `one` < `tWo` AND `THREE` < `fo$ur`";
+    final String expectedPostgresql = "SELECT *\n"
+        + "FROM (SELECT 1 AS \"one\", 2 AS \"tWo\", 3 AS \"THREE\","
+        + " 4 AS \"fo$ur\", 5 AS \"ignore\"\n"
+        + "FROM \"foodmart\".\"days\") AS \"t\"\n"
+        + "WHERE \"one\" < \"tWo\" AND \"THREE\" < \"fo$ur\"";
+    final String expectedOracle = expectedPostgresql.replaceAll(" AS ", " ");
+    sql(query)
+        .withBigQuery().ok(expectedBigQuery)
+        .withMysql().ok(expectedMysql)
+        .withOracle().ok(expectedOracle)
+        .withPostgresql().ok(expectedPostgresql);
+  }
+
   @Test public void testModFunctionForHive() {
     final String query = "select mod(11,3) from \"product\"";
     final String expected = "SELECT 11 % 3\n"
@@ -1149,7 +1222,14 @@ public class RelToSqlConverterTest {
         + "ORDER BY \"net_weight\"\n"
         + "OFFSET 10 ROWS\n"
         + "FETCH NEXT 100 ROWS ONLY";
-    sql(query).ok(expected);
+    // BigQuery uses LIMIT/OFFSET, and nulls sort low by default
+    final String expectedBigQuery = "SELECT product_id, net_weight\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY net_weight IS NULL, net_weight\n"
+        + "LIMIT 100\n"
+        + "OFFSET 10";
+    sql(query).ok(expected)
+        .withBigQuery().ok(expectedBigQuery);
   }
 
   @Test public void testSelectQueryWithParameters() {
@@ -3559,6 +3639,25 @@ public class RelToSqlConverterTest {
     final SqlDialect postgresqlDialect = SqlDialect.DatabaseProduct.POSTGRESQL.getDialect();
     assertTrue(postgresqlDialect.supportsDataType(booleanDataType));
     assertTrue(postgresqlDialect.supportsDataType(integerDataType));
+  }
+
+  @Test public void testDialectQuoteStringLiteral() {
+    dialects().forEach((dialect, databaseProduct) -> {
+      assertThat(dialect.quoteStringLiteral(""), is("''"));
+      assertThat(dialect.quoteStringLiteral("can't run"),
+          databaseProduct == DatabaseProduct.BIG_QUERY
+              ? is("'can\\'t run'")
+              : is("'can''t run'"));
+
+      assertThat(dialect.unquoteStringLiteral("''"), is(""));
+      if (databaseProduct == DatabaseProduct.BIG_QUERY) {
+        assertThat(dialect.unquoteStringLiteral("'can\\'t run'"),
+            is("can't run"));
+      } else {
+        assertThat(dialect.unquoteStringLiteral("'can't run'"),
+            is("can't run"));
+      }
+    });
   }
 
   /** Fluid interface to run tests. */
