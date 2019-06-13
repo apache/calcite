@@ -30,6 +30,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -1777,7 +1778,7 @@ public class RelBuilder {
    */
   @Experimental
   public RelBuilder transientScan(String tableName, RelDataType rowType) {
-    ListTransientTable transientTable = new ListTransientTable(tableName, rowType);
+    TransientTable transientTable = new ListTransientTable(tableName, rowType);
     RelOptTable relOptTable = RelOptTableImpl.create(
         relOptSchema,
         rowType,
@@ -1794,11 +1795,10 @@ public class RelBuilder {
    *
    * @param readType Spool's read type (as described in {@link Spool.Type})
    * @param writeType Spool's write type (as described in {@link Spool.Type})
-   * @param tableName Table name
+   * @param table Table to write into
    */
-  private RelBuilder tableSpool(Spool.Type readType, Spool.Type writeType,
-      String tableName) {
-    RelNode spool =  spoolFactory.createTableSpool(peek(), readType, writeType, tableName);
+  private RelBuilder tableSpool(Spool.Type readType, Spool.Type writeType, RelOptTable table) {
+    RelNode spool =  spoolFactory.createTableSpool(peek(), readType, writeType, table);
     replaceTop(spool);
     return this;
   }
@@ -1837,14 +1837,46 @@ public class RelBuilder {
    * @param tableName Name of the {@link TransientTable} associated to the
    *     {@link RepeatUnion}
    * @param all Whether duplicates are considered
-   * @param maxRep Maximum number of iterations; -1 means no limit
+   * @param iterationLimit Maximum number of iterations; negative value means no limit
    */
   @Experimental
-  public RelBuilder repeatUnion(String tableName, boolean all, int maxRep) {
-    RelNode iterative = tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, tableName).build();
-    RelNode seed = tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, tableName).build();
-    RelNode repeatUnion = repeatUnionFactory.createRepeatUnion(seed, iterative, all, maxRep);
-    return push(repeatUnion);
+  public RelBuilder repeatUnion(String tableName, boolean all, int iterationLimit) {
+    RelOptTableFinder finder = new RelOptTableFinder(tableName);
+    for (int i = 0; i < stack.size(); i++) { // search scan(tableName) in the stack
+      peek(i).accept(finder);
+      if (finder.relOptTable != null) { // found
+        break;
+      }
+    }
+    if (finder.relOptTable == null) {
+      throw RESOURCE.tableNotFound(tableName).ex();
+    }
+
+    RelNode iterative = tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, finder.relOptTable).build();
+    RelNode seed = tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, finder.relOptTable).build();
+    RelNode repUnion = repeatUnionFactory.createRepeatUnion(seed, iterative, all, iterationLimit);
+    return push(repUnion);
+  }
+
+  /**
+   * Auxiliary class to find a certain RelOptTable based on its name
+   */
+  private static final class RelOptTableFinder extends RelHomogeneousShuttle {
+    private RelOptTable relOptTable = null;
+    private final String tableName;
+
+    private RelOptTableFinder(String tableName) {
+      this.tableName = tableName;
+    }
+
+    @Override public RelNode visit(TableScan scan) {
+      final RelOptTable scanTable = scan.getTable();
+      final List<String> qualifiedName = scanTable.getQualifiedName();
+      if (qualifiedName.get(qualifiedName.size() - 1).equals(tableName)) {
+        relOptTable = scanTable;
+      }
+      return super.visit(scan);
+    }
   }
 
   /** Creates a {@link Join}. */

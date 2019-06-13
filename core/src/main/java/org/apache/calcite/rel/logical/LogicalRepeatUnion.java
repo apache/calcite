@@ -37,8 +37,8 @@ public class LogicalRepeatUnion extends RepeatUnion {
 
   //~ Constructors -----------------------------------------------------------
   private LogicalRepeatUnion(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode seed, RelNode iterative, boolean all, int maxRep) {
-    super(cluster, traitSet, seed, iterative, all, maxRep);
+      RelNode seed, RelNode iterative, boolean all, int iterationLimit) {
+    super(cluster, traitSet, seed, iterative, all, iterationLimit);
   }
 
   /** Creates a LogicalRepeatUnion. */
@@ -49,10 +49,10 @@ public class LogicalRepeatUnion extends RepeatUnion {
 
   /** Creates a LogicalRepeatUnion. */
   public static LogicalRepeatUnion create(RelNode seed, RelNode iterative,
-      boolean all, int maxRep) {
+      boolean all, int iterationLimit) {
     RelOptCluster cluster = seed.getCluster();
     RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
-    return new LogicalRepeatUnion(cluster, traitSet, seed, iterative, all, maxRep);
+    return new LogicalRepeatUnion(cluster, traitSet, seed, iterative, all, iterationLimit);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -62,7 +62,7 @@ public class LogicalRepeatUnion extends RepeatUnion {
     assert traitSet.containsIfApplicable(Convention.NONE);
     assert inputs.size() == 2;
     return new LogicalRepeatUnion(getCluster(), traitSet,
-        inputs.get(0), inputs.get(1), all, maxRep);
+        inputs.get(0), inputs.get(1), all, iterationLimit);
   }
 }
 
