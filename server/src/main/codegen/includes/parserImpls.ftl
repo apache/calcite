@@ -423,4 +423,17 @@ SqlDrop SqlDropFunction(Span s, boolean replace) :
     }
 }
 
+SqlAlter SqlAlterView(Span s, String scope) :
+{
+    final SqlIdentifier id;
+    SqlNodeList columnList = null;
+    final SqlNode query;
+}
+{
+    <VIEW> id = CompoundIdentifier()
+    [ columnList = ParenthesizedSimpleIdentifierList() ]
+    <AS> query = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY) {
+    return SqlDdlNodes.alterView(s.end(this), scope, id, columnList, query); }
+}
+
 // End parserImpls.ftl

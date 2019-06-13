@@ -301,6 +301,16 @@ public class ServerParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testAlterView() {
+    final String sql = "alter view v as\n"
+        + "select * from (values (1, '2'), (3, '45')) as t (x, y)";
+    final String expected = "ALTER VIEW `V` AS\n"
+        + "SELECT *\n"
+        + "FROM (VALUES (ROW(1, '2')),\n"
+        + "(ROW(3, '45'))) AS `T` (`X`, `Y`)";
+    sql(sql).ok(expected);
+  }
+
 }
 
 // End ServerParserTest.java

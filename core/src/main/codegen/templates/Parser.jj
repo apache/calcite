@@ -3642,12 +3642,16 @@ SqlSetOption SqlSetOption(Span s, String scope) :
 SqlAlter SqlAlter() :
 {
     final Span s;
-    final String scope;
     final SqlAlter alterNode;
+    String scope = null;
 }
 {
-    <ALTER> { s = span(); }
-    scope = Scope()
+    <ALTER> {
+      s = span();
+      if (IfExistsScope()) {
+           scope = token.image.toUpperCase(Locale.ROOT);
+      }
+    }
     (
 <#-- additional literal parser methods are included here -->
 <#list parser.alterStatementParserMethods as method>
@@ -3660,6 +3664,17 @@ SqlAlter SqlAlter() :
     {
         return alterNode;
     }
+}
+
+boolean IfExistsScope() :
+{
+}
+{
+    ( <SYSTEM> | <SESSION> ) {
+      return true;
+    }
+|
+    { return false; }
 }
 
 String Scope() :

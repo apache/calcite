@@ -143,6 +143,12 @@ public class SqlDdlNodes {
     return new SqlDropFunction(pos, ifExists, name);
   }
 
+  /** Creates a ALTER VIEW. */
+  public static SqlAlterView alterView(SqlParserPos pos, String scope,
+      SqlIdentifier name, SqlNodeList columnList, SqlNode query) {
+    return new SqlAlterView(pos, scope, name, columnList, query);
+  }
+
   /** Creates a column declaration. */
   public static SqlNode column(SqlParserPos pos, SqlIdentifier name,
       SqlDataTypeSpec dataType, SqlNode expression, ColumnStrategy strategy) {

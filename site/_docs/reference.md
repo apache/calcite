@@ -2495,7 +2495,8 @@ to the JDBC connect string (see connect string property
 
 {% highlight sql %}
 ddlStatement:
-      createSchemaStatement
+      alterViewStatement
+  |   createSchemaStatement
   |   createForeignSchemaStatement
   |   createTableStatement
   |   createViewStatement
@@ -2509,6 +2510,11 @@ ddlStatement:
   |   dropMaterializedViewStatement
   |   dropTypeStatement
   |   dropFunctionStatement
+
+alterViewStatement:
+      ALTER VIEW name
+      [ '(' columnName [, columnName ]* ')' ]
+      AS query
 
 createSchemaStatement:
       CREATE [ OR REPLACE ] SCHEMA [ IF NOT EXISTS ] name
