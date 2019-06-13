@@ -58,36 +58,33 @@ public abstract class RepeatUnion extends BiRel {
   public final boolean all;
 
   /**
-   * Maximum number of times to repeat the iterative relational expression; -1
-   * means no limit, 0 means only seed will be evaluated
+   * Maximum number of times to repeat the iterative relational expression;
+   * negative value means no limit, 0 means only seed will be evaluated
    */
-  public final int maxRep;
+  public final int iterationLimit;
 
   //~ Constructors -----------------------------------------------------------
   protected RepeatUnion(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode seed, RelNode iterative, boolean all, int maxRep) {
+      RelNode seed, RelNode iterative, boolean all, int iterationLimit) {
     super(cluster, traitSet, seed, iterative);
-    if (maxRep < -1) {
-      throw new IllegalArgumentException("Wrong maxRep value");
-    }
-    this.maxRep = maxRep;
+    this.iterationLimit = iterationLimit;
     this.all = all;
   }
 
   @Override public double estimateRowCount(RelMetadataQuery mq) {
     // TODO implement a more accurate row count?
     double seedRowCount = mq.getRowCount(getSeedRel());
-    if (maxRep == 0) {
+    if (iterationLimit == 0) {
       return seedRowCount;
     }
     return seedRowCount
-        + mq.getRowCount(getIterativeRel()) * (maxRep != -1 ? maxRep : 10);
+        + mq.getRowCount(getIterativeRel()) * (iterationLimit < 0 ? 10 : iterationLimit);
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
-    if (maxRep != -1) {
-      pw.item("maxRep", maxRep);
+    if (iterationLimit >= 0) {
+      pw.item("iterationLimit", iterationLimit);
     }
     return pw.item("all", all);
   }

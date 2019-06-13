@@ -1403,9 +1403,9 @@ public class RelBuilderTest {
             .repeatUnion("DELTA_TABLE", true)
             .build();
     final String expected = "LogicalRepeatUnion(all=[true])\n"
-        + "  LogicalTableSpool(readType=[LAZY], writeType=[LAZY], tableName=[DELTA_TABLE])\n"
+        + "  LogicalTableSpool(readType=[LAZY], writeType=[LAZY], table=[[DELTA_TABLE]])\n"
         + "    LogicalValues(tuples=[[{ 1 }]])\n"
-        + "  LogicalTableSpool(readType=[LAZY], writeType=[LAZY], tableName=[DELTA_TABLE])\n"
+        + "  LogicalTableSpool(readType=[LAZY], writeType=[LAZY], table=[[DELTA_TABLE]])\n"
         + "    LogicalProject($f0=[+($0, 1)])\n"
         + "      LogicalFilter(condition=[<($0, 10)])\n"
         + "        LogicalTableScan(table=[[DELTA_TABLE]])\n";
@@ -1443,9 +1443,9 @@ public class RelBuilderTest {
             .repeatUnion("AUX", true)
             .build();
     final String expected = "LogicalRepeatUnion(all=[true])\n"
-        + "  LogicalTableSpool(readType=[LAZY], writeType=[LAZY], tableName=[AUX])\n"
+        + "  LogicalTableSpool(readType=[LAZY], writeType=[LAZY], table=[[AUX]])\n"
         + "    LogicalValues(tuples=[[{ 0, 1 }]])\n"
-        + "  LogicalTableSpool(readType=[LAZY], writeType=[LAZY], tableName=[AUX])\n"
+        + "  LogicalTableSpool(readType=[LAZY], writeType=[LAZY], table=[[AUX]])\n"
         + "    LogicalProject(n=[+($0, 1)], fact=[*(+($0, 1), $1)])\n"
         + "      LogicalFilter(condition=[<($0, 7)])\n"
         + "        LogicalTableScan(table=[[AUX]])\n";

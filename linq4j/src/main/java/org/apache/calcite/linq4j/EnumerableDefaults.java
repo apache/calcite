@@ -3379,21 +3379,21 @@ public abstract class EnumerableDefaults {
    * no results, or an optional maximum numbers of iterations is reached
    * @param seed seed enumerable
    * @param iteration iteration enumerable
-   * @param maxRep maximum numbers of repetitions for the iteration enumerable (-1 means no limit)
+   * @param iterationLimit maximum numbers of repetitions for the iteration enumerable
+   *                       (negative value means no limit)
    * @param <TSource> record type
    */
   @SuppressWarnings("unchecked")
   public static <TSource> Enumerable<TSource> repeatUnionAll(
           Enumerable<TSource> seed,
           Enumerable<TSource> iteration,
-          int maxRep) {
-    assert maxRep >= -1;
+          int iterationLimit) {
     return new AbstractEnumerable<TSource>() {
       @Override public Enumerator<TSource> enumerator() {
         return new Enumerator<TSource>() {
           private TSource current = (TSource) DUMMY;
           private boolean seedProcessed = false;
-          private int currentRep = 0;
+          private int currentIteration = 0;
           private final Enumerator<TSource> seedEnumerator = seed.enumerator();
           private Enumerator<TSource> iterativeEnumerator = null;
 
@@ -3417,7 +3417,7 @@ public abstract class EnumerableDefaults {
 
             // if we are done with the seed, moveNext on the iterative part
             while (true) {
-              if (maxRep != -1 && this.currentRep == maxRep) {
+              if (iterationLimit >= 0 && this.currentIteration == iterationLimit) {
                 // max number of iterations reached, we are done
                 this.current = (TSource) DUMMY;
                 return false;
@@ -3441,7 +3441,7 @@ public abstract class EnumerableDefaults {
               this.current = (TSource) DUMMY;
               this.iterativeEnumerator.close();
               this.iterativeEnumerator = null;
-              this.currentRep++;
+              this.currentIteration++;
             }
           }
 
@@ -3451,14 +3451,13 @@ public abstract class EnumerableDefaults {
               this.iterativeEnumerator.close();
               this.iterativeEnumerator = null;
             }
-            this.currentRep = 0;
+            this.currentIteration = 0;
           }
 
           @Override public void close() {
             this.seedEnumerator.close();
             if (this.iterativeEnumerator != null) {
               this.iterativeEnumerator.close();
-              this.iterativeEnumerator = null;
             }
           }
         };
