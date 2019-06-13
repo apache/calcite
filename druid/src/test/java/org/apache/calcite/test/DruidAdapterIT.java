@@ -582,17 +582,18 @@ public class DruidAdapterIT {
         + "'America/New_York'),'yyyy-MM-dd\\\\u0027T\\\\u0027HH:mm:ss.SSS\\\\u0027Z\\\\u0027','UTC')\"";
 
     CalciteAssert.that()
-         .enable(enabled())
-         .withModel(FOODMART)
-         .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "America/New_York")
-         .query(sql)
-         .runs()
-         .queryContains(list -> {
-           assertThat(list.size(), is(1));
-           //remove the replace from druidChecker to preserve the single quotes
-           DruidQuery.QuerySpec querySpec = (DruidQuery.QuerySpec) list.get(0);
-           assertThat(querySpec.getQueryString(null, -1), containsString(druidQuery));
-         });
+        .enable(enabled())
+        .withModel(FOODMART)
+        .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "America/New_York")
+        .query(sql)
+        .runs()
+        .queryContains(list -> {
+          assertThat(list.size(), is(1));
+          //remove the call to line.replace('\'', '"');
+          // from druidChecker to preserve the single quotes
+          DruidQuery.QuerySpec querySpec = (DruidQuery.QuerySpec) list.get(0);
+          assertThat(querySpec.getQueryString(null, -1), containsString(druidQuery));
+        });
   }
 
   @Test public void testDistinctLimit() {
