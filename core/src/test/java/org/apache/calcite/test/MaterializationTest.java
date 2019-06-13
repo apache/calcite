@@ -648,6 +648,15 @@ public class MaterializationTest {
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
 
+  @Test public void testPermutationError() {
+    checkMaterialize(
+        "select min(\"salary\"), count(*), max(\"salary\"), sum(\"salary\"), \"empid\" "
+            + "from \"emps\" group by \"empid\"",
+        "select count(*), \"empid\" from \"emps\" group by \"empid\"",
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains("EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
   @Test public void testSwapJoin() {
     checkMaterialize(
         "select count(*) as c from \"foodmart\".\"sales_fact_1997\" as s join \"foodmart\".\"time_by_day\" as t on s.\"time_id\" = t.\"time_id\"",

@@ -53,6 +53,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.Mapping;
+import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.Lists;
@@ -136,9 +138,16 @@ public abstract class MutableRels {
     if (Mappings.isIdentity(posList, rowType.getFieldCount())) {
       return child;
     }
+    final Mapping mapping =
+        Mappings.create(
+            MappingType.INVERSE_SURJECTION,
+            rowType.getFieldCount(),
+            posList.size());
+    for (int i = 0; i < posList.size(); i++) {
+      mapping.set(posList.get(i), i);
+    }
     return MutableProject.of(
-        RelOptUtil.permute(child.cluster.getTypeFactory(), rowType,
-            Mappings.bijection(posList).inverse()),
+        RelOptUtil.permute(child.cluster.getTypeFactory(), rowType, mapping),
         child,
         new AbstractList<RexNode>() {
           public int size() {
