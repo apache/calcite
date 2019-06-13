@@ -262,12 +262,17 @@ public class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY ROLLUP(`product_class_id`, `brand_name`)\n"
         + "ORDER BY `product_class_id` NULLS LAST, `brand_name` NULLS LAST";
+    final String expectedHive = "SELECT product_class_id, brand_name\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY product_class_id, brand_name WITH ROLLUP";
     sql(query)
         .ok(expected)
         .withMysql()
         .ok(expectedMySql)
         .withMysql8()
-        .ok(expectedMySql8);
+        .ok(expectedMySql8)
+        .withHive()
+        .ok(expectedHive);
   }
 
   /** As {@link #testSelectQueryWithGroupByRollup()},
@@ -284,10 +289,15 @@ public class RelToSqlConverterTest {
     final String expectedMySql = "SELECT `product_class_id`, `brand_name`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `brand_name`, `product_class_id` WITH ROLLUP";
+    final String expectedHive = "SELECT product_class_id, brand_name\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY brand_name, product_class_id WITH ROLLUP";
     sql(query)
         .ok(expected)
         .withMysql()
-        .ok(expectedMySql);
+        .ok(expectedMySql)
+        .withHive()
+        .ok(expectedHive);
   }
 
   /** CUBE of one column is equivalent to ROLLUP, and Calcite recognizes
@@ -306,10 +316,17 @@ public class RelToSqlConverterTest {
         + "GROUP BY `product_class_id` WITH ROLLUP\n"
         + "ORDER BY `product_class_id` IS NULL, `product_class_id`,"
         + " `C` IS NULL, `C`";
+    final String expectedHive = "SELECT product_class_id, COUNT(*) C\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY product_class_id WITH ROLLUP\n"
+        + "ORDER BY product_class_id IS NULL, product_class_id,"
+        + " C IS NULL, C";
     sql(query)
         .ok(expected)
         .withMysql()
-        .ok(expectedMySql);
+        .ok(expectedMySql)
+        .withHive()
+        .ok(expectedHive);
   }
 
   /** As {@link #testSelectQueryWithSingletonCube()}, but no ORDER BY
@@ -324,10 +341,15 @@ public class RelToSqlConverterTest {
     final String expectedMySql = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `product_class_id` WITH ROLLUP";
+    final String expectedHive = "SELECT product_class_id, COUNT(*) C\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY product_class_id WITH ROLLUP";
     sql(query)
         .ok(expected)
         .withMysql()
-        .ok(expectedMySql);
+        .ok(expectedMySql)
+        .withHive()
+        .ok(expectedHive);
   }
 
   /** Cannot rewrite if ORDER BY contains a column not in GROUP BY (in this
@@ -350,10 +372,19 @@ public class RelToSqlConverterTest {
         + "ORDER BY `product_class_id` IS NULL, `product_class_id`,"
         + " `brand_name` IS NULL, `brand_name`,"
         + " `C` IS NULL, `C`";
+    final String expectedHive = "SELECT product_class_id, brand_name,"
+        + " COUNT(*) C\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY product_class_id, brand_name WITH ROLLUP\n"
+        + "ORDER BY product_class_id IS NULL, product_class_id,"
+        + " brand_name IS NULL, brand_name,"
+        + " C IS NULL, C";
     sql(query)
         .ok(expected)
         .withMysql()
-        .ok(expectedMySql);
+        .ok(expectedMySql)
+        .withHive()
+        .ok(expectedHive);
   }
 
   /** As {@link #testSelectQueryWithSingletonCube()}, but with LIMIT. */
@@ -372,10 +403,16 @@ public class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `product_class_id` WITH ROLLUP\n"
         + "LIMIT 5";
+    final String expectedHive = "SELECT product_class_id, COUNT(*) C\n"
+            + "FROM foodmart.product\n"
+            + "GROUP BY product_class_id WITH ROLLUP\n"
+            + "LIMIT 5";
     sql(query)
         .ok(expected)
         .withMysql()
-        .ok(expectedMySql);
+        .ok(expectedMySql)
+        .withHive()
+        .ok(expectedHive);
   }
 
   @Test public void testSelectQueryWithMinAggregateFunction() {
