@@ -8669,6 +8669,14 @@ public class SqlParserTest {
             "JSON_DEPTH('{\"foo\": \"100\"}')");
   }
 
+  @Test public void testJsonQuote() {
+    checkExp("json_quote('\"foo\"')", "JSON_QUOTE('\"foo\"')");
+  }
+
+  @Test public void testJsonUnQuote() {
+    checkExp("json_unquote('\"foo\"')", "JSON_UNQUOTE('\"foo\"')");
+  }
+
   @Test public void testJsonLength() {
     checkExp("json_length('{\"foo\": \"bar\"}')",
             "JSON_LENGTH('{\"foo\": \"bar\"}')");

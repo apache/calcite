@@ -151,7 +151,10 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   TYPE_SYSTEM("typeSystem", Type.PLUGIN, null, false),
 
   /** SQL conformance level. */
-  CONFORMANCE("conformance", Type.ENUM, SqlConformanceEnum.DEFAULT, false);
+  CONFORMANCE("conformance", Type.ENUM, SqlConformanceEnum.DEFAULT, false),
+
+  /** SQL mode. */
+  SQL_MODE("sql_mode", Type.STRING, "", false);
 
   private final String camelName;
   private final Type type;

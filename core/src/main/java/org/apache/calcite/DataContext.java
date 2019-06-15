@@ -122,7 +122,13 @@ public interface DataContext {
      *
      * <p>Default value is "user.name" from
      * {@link System#getProperty(String)}. */
-    SYSTEM_USER("systemUser", String.class);
+    SYSTEM_USER("systemUser", String.class),
+
+    /** The sql mode.
+     *
+     * <p>Default value is "" from
+     * {@link System#getProperty(String)}. */
+    SQL_MODE("sqlMode", String.class);
 
     public final String camelName;
     public final Class clazz;

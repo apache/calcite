@@ -154,6 +154,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction JSON_STORAGE_SIZE = new SqlJsonStorageSizeFunction();
 
+
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
    * in the current locale, of a TIMESTAMP or DATE argument. */
   @LibraryOperator(libraries = {MYSQL})
@@ -169,6 +170,12 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("DAYNAME", SqlKind.OTHER_FUNCTION,
           ReturnTypes.VARCHAR_2000, null, OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction JSON_QUOTE = new SqlJsonQuoteFunction();
+
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction JSON_UNQUOTE = new SqlJsonUnQuoteFunction();
 
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
   public static final SqlFunction LEFT =

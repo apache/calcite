@@ -644,6 +644,47 @@ public class JsonFunctions {
     }
   }
 
+  public static String jsonQuote(String input) {
+    return jsonQuote(jsonValueExpression(input));
+  }
+
+  public static String jsonQuote(JsonValueContext input) {
+    try {
+      return input.obj == null ? null : "\"" + JSON_PATH_JSON_PROVIDER.getObjectMapper()
+          .writeValueAsString(input.obj) + "\"";
+    } catch (Exception e) {
+      throw RESOURCE.invalidInputForJsonQuote(Objects.toString(input.obj)).ex();
+    }
+  }
+
+  public static String jsonUnQuote(String input, String sqlMode) {
+    return jsonUnQuote(jsonValueExpression(input), sqlMode);
+  }
+
+  public static String jsonUnQuote(JsonValueContext input, String sqlMode) {
+    try {
+      return input.obj == null ? null
+          : getJsonUnQuoteString(JSON_PATH_JSON_PROVIDER.getObjectMapper()
+          .writeValueAsString(input.obj), sqlMode);
+    } catch (Exception e) {
+      throw RESOURCE.invalidInputForJsonUnQuote(Objects.toString(input.obj)).ex();
+    }
+  }
+
+  private static String getJsonUnQuoteString(String input, String sqlMode) {
+    if ("NO_BACKSLASH_ESCAPES".equals(sqlMode)) {
+      return input.replace("\"", "")
+          .replace("\\b", "")
+          .replace("\\f", "")
+          .replace("\\n", "")
+          .replace("\\r", "")
+          .replace("\\t", "")
+          .replace("\\\\", "");
+    } else {
+      return input.replace("\"", "");
+    }
+  }
+
   public static boolean isJsonValue(String input) {
     try {
       dejsonize(input);

@@ -169,6 +169,11 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     return CalciteConnectionProperty.LOCALE.wrap(properties)
         .getString();
   }
+
+  @Override public String sqlMode() {
+    return CalciteConnectionProperty.SQL_MODE.wrap(properties)
+        .getString();
+  }
 }
 
 // End CalciteConnectionConfigImpl.java

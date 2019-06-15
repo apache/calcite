@@ -3533,6 +3533,20 @@ public class RelToSqlConverterTest {
     assertTrue(postgresqlDialect.supportsDataType(integerDataType));
   }
 
+  @Test public void testJsonQuote() {
+    String query = "select json_quote(\"product_name\") from \"product\"";
+    final String expected = "SELECT JSON_QUOTE(\"product_name\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJsonUnQuote() {
+    String query = "select json_unquote(\"product_name\") from \"product\"";
+    final String expected = "SELECT JSON_UNQUOTE(\"product_name\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;

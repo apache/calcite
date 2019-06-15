@@ -74,6 +74,8 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   @Override String timeZone();
   /** @see CalciteConnectionProperty#LOCALE */
   String locale();
+  /** @see CalciteConnectionProperty#SQL_MODE */
+  String sqlMode();
 }
 
 // End CalciteConnectionConfig.java
