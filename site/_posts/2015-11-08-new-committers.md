@@ -1,7 +1,7 @@
 ---
 layout: news_item
 title: "Calcite adds 2 committers"
-date: "2015-11-08 19:03:07 -0800"
+date: "2015-11-08 19:03:07 +0000"
 author: jhyde
 categories: [team]
 ---

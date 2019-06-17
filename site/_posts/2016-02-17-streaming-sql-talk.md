@@ -1,7 +1,7 @@
 ---
 layout: news_item
 title: "Streaming SQL in Samza"
-date: "2016-02-17 11:53:00 -0800"
+date: "2016-02-17 11:53:00 +0000"
 author: jhyde
 categories: ["talks"]
 ---

@@ -1,7 +1,7 @@
 ---
 layout: news_item
 title: "XLDB 2015 best lightning talk"
-date: "2015-07-31 11:53:00 -0800"
+date: "2015-07-31 11:53:00 +0000"
 author: jhyde
 categories: ["talks"]
 ---

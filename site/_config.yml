@@ -55,4 +55,6 @@ plugins:
 
 future: true
 
+timezone: UTC
+
 # End _config.yml
