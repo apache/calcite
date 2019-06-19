@@ -68,6 +68,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 
@@ -1118,6 +1119,9 @@ public abstract class SqlImplementor {
           final Set<Integer> aggregatesArgs = new HashSet<>();
           for (AggregateCall aggregateCall : rel.getAggCallList()) {
             aggregatesArgs.addAll(aggregateCall.getArgList());
+          }
+          for (ImmutableBitSet groupSet: rel.getGroupSets()) {
+            aggregatesArgs.addAll(groupSet.toList());
           }
           for (int aggregatesArg : aggregatesArgs) {
             if (containsAggregations(selectList.get(aggregatesArg))) {
