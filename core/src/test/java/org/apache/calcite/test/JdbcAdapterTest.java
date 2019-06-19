@@ -92,22 +92,26 @@ public class JdbcAdapterTest {
    * to same VolcanoPlanner's RuleSet.</a>*/
   @Test public void testUnionPlan2() {
     CalciteAssert.model(JdbcTest.FOODMART_SCOTT_MODEL)
-        .query("select \"store_name\" from \"foodmart\".\"store\"\n"
+        .query("select \"store_name\" from \"foodmart\".\"store\" where \"store_id\" < 10\n"
             + "union all\n"
-            + "select ename from SCOTT.emp")
+            + "select ename from SCOTT.emp where empno > 10")
         .explainContains("PLAN=EnumerableUnion(all=[true])\n"
                     + "  JdbcToEnumerableConverter\n"
                     + "    JdbcProject(store_name=[$3])\n"
-                    + "      JdbcTableScan(table=[[foodmart, store]])\n"
+                    + "      JdbcFilter(condition=[<($0, 10)])\n"
+                    + "        JdbcTableScan(table=[[foodmart, store]])\n"
                     + "  JdbcToEnumerableConverter\n"
                     + "    JdbcProject(ENAME=[$1])\n"
-                    + "      JdbcTableScan(table=[[SCOTT, EMP]])\n")
+                    + "      JdbcFilter(condition=[>($0, 10)])\n"
+                    + "        JdbcTableScan(table=[[SCOTT, EMP]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
         .planHasSql("SELECT \"store_name\"\n"
-                + "FROM \"foodmart\".\"store\"")
+                + "FROM \"foodmart\".\"store\"\n"
+                + "WHERE \"store_id\" < 10")
         .planHasSql("SELECT \"ENAME\"\n"
-                + "FROM \"SCOTT\".\"EMP\"");
+                + "FROM \"SCOTT\".\"EMP\"\n"
+                + "WHERE \"EMPNO\" > 10");
   }
 
   @Test public void testFilterUnionPlan() {
