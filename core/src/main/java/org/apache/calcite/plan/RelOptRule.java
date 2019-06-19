@@ -536,7 +536,7 @@ public abstract class RelOptRule {
    * Returns the description of this rule.
    *
    * <p>It must be unique (for rules that are not equal) and must consist of
-   * only the characters A-Z, a-z, 0-9, '_', '.', '(', ')'. It must start with
+   * only the characters A-Z, a-z, 0-9, '-', '_', '.', '(', ')'. It must start with
    * a letter. */
   public final String toString() {
     return description;
