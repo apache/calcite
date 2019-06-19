@@ -24,6 +24,8 @@ import org.apache.calcite.rel.rules.FilterSetOpTransposeRule;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.sql.SqlDialect;
 
+import java.util.UUID;
+
 /**
  * Calling convention for relational operations that occur in a JDBC
  * database.
@@ -49,12 +51,23 @@ public class JdbcConvention extends Convention.Impl {
 
   public final SqlDialect dialect;
   public final Expression expression;
+  private final String signature;
 
   public JdbcConvention(SqlDialect dialect, Expression expression,
       String name) {
     super("JDBC." + name, JdbcRel.class);
     this.dialect = dialect;
     this.expression = expression;
+    this.signature = normalizeName();
+  }
+
+  private String normalizeName() {
+    String id = UUID.randomUUID().toString();
+    return getName().replaceAll("[^-A-Za-z0-9_.():]", ".") + "(" + id + ")";
+  }
+
+  @Override public String toString() {
+    return signature;
   }
 
   public static JdbcConvention of(SqlDialect dialect, Expression expression,
