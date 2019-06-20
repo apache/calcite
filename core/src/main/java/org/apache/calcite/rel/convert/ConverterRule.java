@@ -78,7 +78,7 @@ public abstract class ConverterRule extends RelOptRule {
     super(convertOperand(clazz, predicate, in),
         relBuilderFactory,
         description == null
-            ? "ConverterRule<in=" + in + ",out=" + out + ">"
+            ? "ConverterRule(in:" + in + ",out:" + out + ")"
             : description);
     this.inTrait = Objects.requireNonNull(in);
     this.outTrait = Objects.requireNonNull(out);
