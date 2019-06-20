@@ -16,7 +16,15 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributionTraitDef;
+import org.apache.calcite.rel.RelDistributions;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
@@ -37,6 +45,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -140,6 +149,75 @@ public class RelOptUtilTest {
       assertEquals("Derived description of rule class com.foo.Bar$1 is an "
               + "integer, not valid. Supply a description manually.",
           e.getMessage());
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3136">[CALCITE-3136]
+   * Fix the default rule description of ConverterRule</a>. */
+  @Test public void testConvertRuleDefaultRuleDescription() {
+    RelCollation collation1 =
+            RelCollations.of(new RelFieldCollation(4, RelFieldCollation.Direction.DESCENDING));
+    RelCollation collation2 =
+            RelCollations.of(new RelFieldCollation(0, RelFieldCollation.Direction.DESCENDING));
+    RelDistribution distribution1 = RelDistributions.hash(ImmutableList.of(0, 1));
+    RelDistribution distribution2 =  RelDistributions.range(ImmutableList.of());
+    RelOptRule collationConvertRule = new ConverterRule(RelNode.class,
+            collation1,
+            collation2,
+            null) {
+      @Override public RelNode convert(RelNode rel) {
+        return null;
+      }
+    };
+    RelOptRule distributionConvertRule = new ConverterRule(RelNode.class,
+            distribution1,
+            distribution2,
+            null) {
+      @Override public RelNode convert(RelNode rel) {
+        return null;
+      }
+    };
+    RelOptRule compositeConvertRule = new ConverterRule(RelNode.class,
+            RelCompositeTrait.of(RelCollationTraitDef.INSTANCE,
+                    ImmutableList.of(collation2, collation1)),
+            RelCompositeTrait.of(RelCollationTraitDef.INSTANCE,
+                    ImmutableList.of(collation1)),
+            null) {
+      @Override public RelNode convert(RelNode rel) {
+        return null;
+      }
+    };
+    RelOptRule compositeConvertRule0 = new ConverterRule(RelNode.class,
+            RelCompositeTrait.of(RelDistributionTraitDef.INSTANCE,
+                    ImmutableList.of(distribution1, distribution2)),
+            RelCompositeTrait.of(RelDistributionTraitDef.INSTANCE,
+                    ImmutableList.of(distribution1)),
+            null) {
+      @Override public RelNode convert(RelNode rel) {
+        return null;
+      }
+    };
+    assertEquals("ConverterRule(in:[4 DESC],out:[0 DESC])", collationConvertRule.toString());
+    assertEquals("ConverterRule(in:hash[0, 1],out:range)", distributionConvertRule.toString());
+    assertEquals("ConverterRule(in:[[0 DESC], [4 DESC]],out:[4 DESC])",
+            compositeConvertRule.toString());
+    assertEquals("ConverterRule(in:[hash[0, 1], range],out:hash[0, 1])",
+            compositeConvertRule0.toString());
+    try {
+      Util.discard(
+              new ConverterRule(RelNode.class,
+              new Convention.Impl("{sourceConvention}", RelNode.class),
+              new Convention.Impl("<targetConvention>", RelNode.class),
+              null) {
+          @Override public RelNode convert(RelNode rel) {
+            return null;
+          } });
+      fail("expected exception");
+    } catch (RuntimeException e) {
+      assertEquals(
+              "Rule description 'ConverterRule(in:{sourceConvention},out:<targetConvention>)' is not valid",
+              e.getMessage());
     }
   }
 
