@@ -18,6 +18,8 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -32,6 +34,7 @@ import org.apache.calcite.rel.mutable.MutableRel;
 import org.apache.calcite.rel.mutable.MutableRelVisitor;
 import org.apache.calcite.rel.mutable.MutableRels;
 import org.apache.calcite.rel.mutable.MutableScan;
+import org.apache.calcite.rel.mutable.MutableSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -54,6 +57,7 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
+import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -121,6 +125,7 @@ public class SubstitutionVisitor {
           ScanToProjectUnifyRule.INSTANCE,
           ProjectToProjectUnifyRule.INSTANCE,
           FilterToProjectUnifyRule.INSTANCE,
+          SortOnProjectToSortOnProjectUnifyRule.INSTANCE,
 //          ProjectToFilterUnifyRule.INSTANCE,
 //          FilterToFilterUnifyRule.INSTANCE,
           AggregateToAggregateUnifyRule.INSTANCE,
@@ -1199,6 +1204,80 @@ public class SubstitutionVisitor {
         return in2.result(query.replaceInParent(newFilter));
       }
       return null;
+    }
+  }
+
+  /** Implementation of {@link UnifyRule} that matches a
+   * {@link MutableSort} on {@link MutableProject} to a
+   * {@link MutableSort} on {@link MutableProject}.
+   *
+   * <p>Example: target has same collation as that of query</p>
+   * <ul>
+   * <li>query:   Sort(sort0=[$0], dir0=[ASC])
+   *                Project(projects: [$0, $1])
+   *                  Scan(table: [hr, emps])</li>
+   * <li>target:  Sort(sort0=[$0], dir0=[ASC])
+   *                Project(projects: [$0, $1, $2])
+   *                  Scan(table: [hr, emps])</li>
+   * </ul>*/
+  private static class SortOnProjectToSortOnProjectUnifyRule extends AbstractUnifyRule {
+    public static final SortOnProjectToSortOnProjectUnifyRule INSTANCE =
+        new SortOnProjectToSortOnProjectUnifyRule();
+
+    private SortOnProjectToSortOnProjectUnifyRule() {
+      super(
+          operand(MutableSort.class,
+              operand(MutableProject.class, query(0))),
+          operand(MutableSort.class,
+              operand(MutableProject.class, target(0))), 1);
+    }
+
+    protected UnifyResult apply(UnifyRuleCall call) {
+      final MutableSort query = (MutableSort) call.query;
+      final MutableSort target = (MutableSort) call.target;
+      final MutableProject queryProject = (MutableProject) query.getInput();
+      final MutableProject targetProject = (MutableProject) target.getInput();
+      if (!queryProject.getInput().equals(targetProject.getInput())) {
+        return null;
+      }
+      if (!Objects.equals(query.fetch, target.fetch)
+          || !Objects.equals(query.offset, target.offset)) {
+        return null;
+      }
+      Mappings.TargetMapping queryProjectMapping = queryProject.getMapping();
+      Mappings.TargetMapping targetProjectMapping = targetProject.getMapping();
+      if (queryProjectMapping == null || targetProjectMapping == null) {
+        return null;
+      }
+      final int queryFieldCount = query.rowType.getFieldCount();
+      final int targetFieldCount = target.rowType.getFieldCount();
+      // Create fields mapping from query to target
+      Mappings.TargetMapping mapping =
+          Mappings.create(
+              MappingType.FUNCTION, // Every source has precisely one target
+              queryFieldCount,
+              targetFieldCount);
+      List<Integer> posList = new ArrayList<>();
+      for (int ordinal = 0; ordinal < queryFieldCount; ordinal++) {
+        int inputOrdinal =
+            queryProjectMapping.getSourceOpt(ordinal);
+        assert inputOrdinal >= 0;
+        int targetOrdinal =
+            targetProjectMapping.getTargetOpt(inputOrdinal);
+        // If target does not contain all fields of query, it cannot be reused
+        if (targetOrdinal < 0) {
+          return null;
+        }
+        mapping.set(ordinal, targetOrdinal);
+        posList.add(targetOrdinal);
+      }
+      RelCollation collation =
+          RelCollations.permute(query.collation, mapping);
+      if (!target.collation.satisfies(collation)) {
+        return null;
+      }
+      MutableRel result = MutableRels.createProject(target, posList);
+      return call.result(result);
     }
   }
 

@@ -685,11 +685,95 @@ public class MaterializationTest {
         "select \"empid\" from \"emps\" order by \"deptno\"");
   }
 
-  @Ignore
-  @Test public void testOrderByQueryOnOrderByView() {
+  @Test public void testOrderByQueryOnOrderByView1() {
     checkMaterialize(
+        "select \"deptno\", \"empid\" from \"emps\" order by \"empid\"",
+        "select \"deptno\" from \"emps\" order by \"empid\"");
+  }
+
+  @Test public void testOrderByQueryOnOrderByView2() {
+    checkMaterialize(
+        "select \"deptno\", \"empid\" from \"emps\" order by \"empid\", \"deptno\"",
+        "select \"deptno\" from \"emps\" order by \"empid\"");
+  }
+
+  @Test public void testOrderByQueryOnOrderByView3() {
+    checkMaterialize(
+        "select \"deptno\", \"empid\", \"salary\" from \"emps\" order by \"empid\"",
+        "select \"empid\", \"salary\", \"deptno\" from \"emps\" order by \"empid\"");
+  }
+
+  /** MV's collation must satisfies that of query*/
+  @Test public void testOrderByQueryOnOrderByView4() {
+    checkNoMaterialize(
         "select \"deptno\", \"empid\" from \"emps\" order by \"deptno\"",
-        "select \"empid\" from \"emps\" order by \"deptno\"");
+        "select \"deptno\" from \"emps\" order by \"deptno\" desc",
+        HR_FKUK_MODEL);
+    checkNoMaterialize(
+        "select \"deptno\", \"empid\" from \"emps\" order by \"empid\", \"deptno\"",
+        "select \"empid\" from \"emps\" order by \"deptno\"",
+        HR_FKUK_MODEL);
+  }
+
+  /** MV must cover all fields in query*/
+  @Test public void testOrderByQueryOnOrderByView5() {
+    checkNoMaterialize(
+        "select \"deptno\", \"empid\" from \"emps\" order by \"deptno\"",
+        "select \"empid\", \"deptno\", \"salary\" from \"emps\" order by \"deptno\"",
+        HR_FKUK_MODEL);
+  }
+
+  /** MV is reused when (fetch1==fetch2 && offset1==offset2)*/
+  @Test public void testOrderByQueryOnOrderByView6() {
+    checkMaterialize(
+        "select \"deptno\", \"empid\", \"salary\" "
+            + "from \"emps\" order by \"empid\" "
+            + "limit 2 offset 1",
+        "select \"empid\", \"deptno\" "
+            + "from \"emps\" order by \"empid\" "
+            + "limit 2 offset 1");
+  }
+
+  @Test public void testOrderByQueryOnOrderByView7() {
+    checkMaterialize(
+        "select \"deptno\", \"empid\", \"salary\" "
+            + "from \"emps\" order by \"empid\" "
+            + "limit 2",
+        "select \"empid\", \"deptno\" "
+            + "from \"emps\" order by \"empid\" "
+            + "limit 2");
+  }
+
+  @Test public void testOrderByQueryOnOrderByView8() {
+    checkMaterialize(
+        "select \"deptno\", \"empid\", \"salary\" "
+            + "from \"emps\" order by \"empid\" "
+            + "offset 1",
+        "select \"empid\", \"deptno\" "
+            + "from \"emps\" order by \"empid\" "
+            + "offset 1");
+  }
+
+  @Test public void testOrderByQueryOnOrderByView9() {
+    checkNoMaterialize(
+        "select \"deptno\", \"empid\", \"salary\" "
+            + "from \"emps\" order by \"empid\" "
+            + "limit 1 offset 1",
+        "select \"empid\", \"deptno\" "
+            + "from \"emps\" order by \"empid\" "
+            + "limit 2 offset 1",
+        HR_FKUK_MODEL);
+  }
+
+  @Test public void testOrderByQueryOnOrderByView10() {
+    checkNoMaterialize(
+        "select \"deptno\", \"empid\", \"salary\" "
+            + "from \"emps\" order by \"empid\" "
+            + "limit 2 offset 1",
+        "select \"empid\", \"deptno\" "
+            + "from \"emps\" order by \"empid\" "
+            + "limit 2",
+        HR_FKUK_MODEL);
   }
 
   @Ignore
