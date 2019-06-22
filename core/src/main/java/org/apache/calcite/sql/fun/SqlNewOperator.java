@@ -21,6 +21,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlPrefixOperator;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.util.Litmus;
 
 /**
  * SqlNewOperator represents an SQL <code>new specification</code> such as
@@ -48,6 +49,10 @@ public class SqlNewOperator extends SqlPrefixOperator {
   // override SqlOperator
   public boolean requiresDecimalExpansion() {
     return false;
+  }
+
+  @Override public boolean validRexOperands(int count, Litmus litmus) {
+    return litmus.succeed();
   }
 }
 
