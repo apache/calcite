@@ -188,6 +188,9 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.VARCHAR_2000, null, OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction JSON_EXTRACT = new SqlJsonExtractFunction();
+
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
   public static final SqlFunction LEFT =
       new SqlFunction("LEFT", SqlKind.OTHER_FUNCTION,

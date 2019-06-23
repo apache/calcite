@@ -11456,13 +11456,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpType("json_keys('{\"foo\":\"bar\"}', 'strict $')", "VARCHAR(2000)");
   }
 
+  @Test public void testJsonExtract() {
+    checkExp("json_extract('{\"foo\":\"bar\"}', '$')");
+    checkExpType("json_extract('{\"foo\":\"bar\"}', '$')", "VARCHAR(2000)");
+    checkFails("select ^json_extract('{\"foo\":\"bar\"}')^",
+        "(?s).*Invalid number of arguments.*");
+  }
+
   @Test public void testJsonRemove() {
     checkExp("json_remove('{\"foo\":\"bar\"}', '$')");
     checkExpType("json_remove('{\"foo\":\"bar\"}', '$')", "VARCHAR(2000)");
     checkExpType("json_remove('{\"foo\":\"bar\"}', 1, '2', 3)", "VARCHAR(2000)");
     checkExpType("json_remove('{\"foo\":\"bar\"}', 1, 2, 3)", "VARCHAR(2000)");
     checkFails("select ^json_remove('{\"foo\":\"bar\"}')^",
-            "(?s).*Invalid number of arguments.*");
+        "(?s).*Invalid number of arguments.*");
   }
 
   @Test public void testJsonObjectAgg() {

@@ -338,6 +338,7 @@ public enum BuiltInMethod {
       SqlJsonConstructorNullClause.class),
   JSON_TYPE(JsonFunctions.class, "jsonType", String.class),
   JSON_DEPTH(JsonFunctions.class, "jsonDepth", String.class),
+  JSON_EXTRACT(JsonFunctions.class, "jsonExtract", String.class),
   JSON_KEYS(JsonFunctions.class, "jsonKeys", String.class),
   JSON_PRETTY(JsonFunctions.class, "jsonPretty", String.class),
   JSON_LENGTH(JsonFunctions.class, "jsonLength", String.class),

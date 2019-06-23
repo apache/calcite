@@ -894,6 +894,9 @@ public interface CalciteResource {
 
   @BaseMessage("Not a valid input for REGEXP_REPLACE: ''{0}''")
   ExInst<CalciteException> invalidInputForRegexpReplace(String value);
+
+  @BaseMessage("Invalid input for JSON_EXTRACT: document: ''{0}'', jsonpath expressions: ''{1}''")
+  ExInst<CalciteException> invalidInputForJsonExtract(String jsonDoc, String pathSpecs);
 }
 
 // End CalciteResource.java

@@ -7028,6 +7028,17 @@ public class JdbcTest {
         .returns("A=29; B=35; C=37; D=36\n");
   }
 
+  @Test public void testJsonExtract() {
+    CalciteAssert.that()
+        .query("SELECT JSON_EXTRACT(v, '$') AS c1\n"
+            + ",JSON_EXTRACT(v, '$.b') AS c2\n"
+            + ",JSON_EXTRACT(v, '$.a[0]') AS c3\n"
+            + ",JSON_EXTRACT(v,  '$.a[0]','$.b[0]') AS c4\n"
+            + "FROM (VALUES ('{\"a\": [10, true],\"b\": [11]}')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1={\"a\":[10,true],\"b\":[11]}; C2=[11]; C3=10; C4=[10,11]\n");
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2609">[CALCITE-2609]

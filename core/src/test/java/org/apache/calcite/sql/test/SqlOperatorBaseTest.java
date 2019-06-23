@@ -5030,6 +5030,26 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("json_remove(cast(null as varchar), '$')");
   }
 
+  @Test public void testJsonExtract() {
+    tester.checkString("json_extract('{\"foo\":100}', '$')",
+        "{\"foo\":100}", "VARCHAR(2000)");
+    tester.checkString("json_extract('{\"foo\":100}', '$.foo')",
+        "100", "VARCHAR(2000)");
+    tester.checkString("json_extract('{\"foo\":100}', '$.foo', '$.foo1')",
+        "[100]", "VARCHAR(2000)");
+    tester.checkString("json_extract('[10, 20, [30, 40]]', '$[1]')",
+        "20", "VARCHAR(2000)");
+    tester.checkString("json_extract('[10, 20, [30, 40]]', '$[1]', '$[0]')",
+        "[20,10]", "VARCHAR(2000)");
+    tester.checkString("json_extract('[10, 20, [30, 40]]', '$[2][*]')",
+        "[30,40]", "VARCHAR(2000)");
+
+    // nulls
+    tester.checkFails("json_extract(^null^, '$')",
+        "(?s).*Illegal use of 'NULL'.*", false);
+    tester.checkNull("json_extract(cast(null as varchar), '$')");
+  }
+
   @Test public void testJsonObject() {
     tester.checkString("json_object()", "{}", "VARCHAR(2000) NOT NULL");
     tester.checkString("json_object('foo': 'bar')",

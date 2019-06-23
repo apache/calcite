@@ -2237,6 +2237,7 @@ semantics.
 | o | GREATEST(expr [, expr ]*)                      | Returns the greatest of the expressions
 | m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of a *jsonValue*
 | m | JSON_DEPTH(jsonValue)                          | Returns an integer value indicating the depth of a *jsonValue*
+| m | JSON_EXTRACT(jsonValue, path[, path])          | Returns data if the size of the *path* expressions has only one; Returns an array if the size of the *path* expressions is greater than 1
 | m | JSON_PRETTY(jsonValue)                         | Returns a pretty-printing of *jsonValue*
 | m | JSON_LENGTH(jsonValue [, path ])               | Returns a integer indicating the length of *jsonValue*
 | m | JSON_KEYS(jsonValue [, path ])                 | Returns a string indicating the keys of a JSON *jsonValue*
@@ -2266,7 +2267,7 @@ semantics.
 Note:
 
 * `JSON_TYPE` / `JSON_DEPTH` / `JSON_PRETTY` / `JSON_STORAGE_SIZE` return null if the argument is null
-* `JSON_LENGTH` / `JSON_KEYS` / `JSON_REMOVE` return null if the first argument is null
+* `JSON_LENGTH` / `JSON_KEYS` / `JSON_REMOVE` / `JSON_EXTRACT` return null if the first argument is null
 * `JSON_TYPE` generally returns an upper-case string flag indicating the type of the JSON input. Currently supported supported type flags are:
   * INTEGER
   * STRING

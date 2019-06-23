@@ -8766,6 +8766,13 @@ public class SqlParserTest {
             "JSON_REMOVE('[\"a\", [\"b\", \"c\"], \"d\"]', '$[1]', '$[0]')");
   }
 
+  @Test public void testJsonExtract() {
+    checkExp("json_extract('[\"a\", [\"b\", \"c\"], \"d\"]', '$')",
+        "JSON_EXTRACT('[\"a\", [\"b\", \"c\"], \"d\"]', '$')");
+    checkExp("json_extract('[\"a\", [\"b\", \"c\"], \"d\"]', '$[1]', '$[0]')",
+        "JSON_EXTRACT('[\"a\", [\"b\", \"c\"], \"d\"]', '$[1]', '$[0]')");
+  }
+
   @Test public void testJsonObjectAgg() {
     checkExp("json_objectagg(k_column: v_column)",
         "JSON_OBJECTAGG(KEY `K_COLUMN` VALUE `V_COLUMN` NULL ON NULL)");
