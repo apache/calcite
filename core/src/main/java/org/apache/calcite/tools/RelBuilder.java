@@ -1634,32 +1634,33 @@ public class RelBuilder {
     if (!config.dedupAggregateCalls || Util.isDistinct(aggregateCalls)) {
       return aggregate_(groupSet, groupSets, r, aggregateCalls,
           registrar.extraNodes, frame.fields);
-    } else {
-      // There are duplicate aggregate calls.
-      final Set<AggregateCall> callSet = new HashSet<>();
-      final List<Integer> projects =
-          new ArrayList<>(Util.range(groupSet.cardinality()));
-      final List<AggregateCall> distinctAggregateCalls = new ArrayList<>();
-      for (AggregateCall aggregateCall : aggregateCalls) {
-        final int i;
-        if (callSet.add(aggregateCall)) {
-          i = distinctAggregateCalls.size();
-          distinctAggregateCalls.add(aggregateCall);
-        } else {
-          i = distinctAggregateCalls.indexOf(aggregateCall);
-          assert i >= 0;
-        }
-        projects.add(i);
-      }
-      aggregate_(groupSet, groupSets, r, distinctAggregateCalls,
-          registrar.extraNodes, frame.fields);
-      final List<RexNode> fields =
-          new ArrayList<>(fields(Util.range(groupSet.cardinality())));
-      for (Ord<Integer> project : Ord.zip(projects)) {
-        fields.add(alias(field(project.e), aggregateCalls.get(project.i).name));
-      }
-      return project(fields);
     }
+
+    // There are duplicate aggregate calls. Rebuild the list to eliminate
+    // duplicates, then add a Project.
+    final Set<AggregateCall> callSet = new HashSet<>();
+    final List<Pair<Integer, String>> projects = new ArrayList<>();
+    Util.range(groupSet.cardinality())
+        .forEach(i -> projects.add(Pair.of(i, null)));
+    final List<AggregateCall> distinctAggregateCalls = new ArrayList<>();
+    for (AggregateCall aggregateCall : aggregateCalls) {
+      final int i;
+      if (callSet.add(aggregateCall)) {
+        i = distinctAggregateCalls.size();
+        distinctAggregateCalls.add(aggregateCall);
+      } else {
+        i = distinctAggregateCalls.indexOf(aggregateCall);
+        assert i >= 0;
+      }
+      projects.add(Pair.of(groupSet.cardinality() + i, aggregateCall.name));
+    }
+    aggregate_(groupSet, groupSets, r, distinctAggregateCalls,
+        registrar.extraNodes, frame.fields);
+    final List<RexNode> fields = projects.stream()
+        .map(p -> p.right == null ? field(p.left)
+            : alias(field(p.left), p.right))
+        .collect(Collectors.toList());
+    return project(fields);
   }
 
   /** Finishes the implementation of {@link #aggregate} by creating an
@@ -2787,10 +2788,10 @@ public class RelBuilder {
   public static class Config {
     /** Default configuration. */
     public static final Config DEFAULT =
-        new Config(false, true);
+        new Config(true, true);
 
     /** Whether {@link RelBuilder#aggregate} should eliminate duplicate
-     * aggregate calls; default true but currently disabled. */
+     * aggregate calls; default true. */
     public final boolean dedupAggregateCalls;
 
     /** Whether to simplify expressions; default true. */
