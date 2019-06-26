@@ -123,6 +123,10 @@ public abstract class SqlImplementor {
     String name = rowType.getFieldNames().get(selectList.size());
     String alias = SqlValidatorUtil.getAlias(node, -1);
     if (alias == null || !alias.equals(name)) {
+      // hack to fix 'missing alias in postgres FROM clause'. Need proper fix
+      if (node.getKind() == SqlKind.AS) {
+        node = ((SqlCall) node).operand(0);
+      }
       node = SqlStdOperatorTable.AS.createCall(
           POS, node, new SqlIdentifier(name, POS));
     }
@@ -168,7 +172,20 @@ public abstract class SqlImplementor {
     }
     final List<Clause> clauses =
         Expressions.list(Clause.SET_OP);
-    return result(node, clauses, rel, null);
+
+    Result res = result(node, clauses, rel, null);
+
+    if (!dialect.requiresAliasForFromItems()) {
+      return res;
+    } else {
+      return res.withSqlNode(
+              SqlStdOperatorTable.AS.createCall(
+                      SqlParserPos.ZERO,
+                      res.node,
+                      new SqlIdentifier("s99", SqlParserPos.ZERO)
+              )
+      );
+    }
   }
 
   /**
@@ -1000,6 +1017,10 @@ public abstract class SqlImplementor {
     private final Map<String, RelDataType> aliases;
     final Expressions.FluentList<Clause> clauses;
 
+    public Result withSqlNode(SqlNode node) {
+      return new Result(node, clauses, neededAlias, neededType, aliases);
+    }
+
     public Result(SqlNode node, Collection<Clause> clauses, String neededAlias,
         RelDataType neededType, Map<String, RelDataType> aliases) {
       this.node = node;
@@ -1133,8 +1154,12 @@ public abstract class SqlImplementor {
      * equivalent to "SELECT * FROM emp AS emp".) */
     public SqlNode asFrom() {
       if (neededAlias != null) {
-        return SqlStdOperatorTable.AS.createCall(POS, node,
-            new SqlIdentifier(neededAlias, POS));
+        SqlNode n = node;
+        // hack to fix 'missing alias in postgres FROM clause'. Need proper fix
+        if (node.getKind() == SqlKind.AS) {
+          n = ((SqlCall) node).operand(0);
+        }
+        return SqlStdOperatorTable.AS.createCall(POS, n, new SqlIdentifier(neededAlias, POS));
       }
       return node;
     }
