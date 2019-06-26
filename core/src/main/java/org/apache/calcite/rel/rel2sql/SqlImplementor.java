@@ -837,7 +837,8 @@ public abstract class SqlImplementor {
         return SqlStdOperatorTable.COALESCE.createCall(POS, aggCall.isApproximate(), node,
             SqlLiteral.createExactNumeric("0", POS));
       } else {
-        return withOrder(op.createCall(qualifier, POS, operands), aggCall.isApproximate(), orderList);
+        return withOrder(op.createCall(qualifier, POS, operands),
+            aggCall.isApproximate(), orderList);
       }
     }
 
