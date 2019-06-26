@@ -99,20 +99,20 @@ public class MongoAggregate
     int i = 0;
     if (groupSet.cardinality() == 1) {
       final String inName = inNames.get(groupSet.nth(0));
-      list.add("_id: " + MongoRules.maybeQuote("$" + inName));
+      list.add("_id: " + MongoRules.maybeQuote("$" + MongoRules.encode(inName)));
       ++i;
     } else {
       List<String> keys = new ArrayList<>();
       for (int group : groupSet) {
-        final String inName = inNames.get(group);
-        keys.add(inName + ": " + MongoRules.quote("$" + inName));
+        final String inName = MongoRules.encode(inNames.get(group));
+        keys.add(MongoRules.maybeQuote(inName) + ": " + MongoRules.quote("$" + inName));
         ++i;
       }
       list.add("_id: " + Util.toString(keys, "{", ", ", "}"));
     }
     for (AggregateCall aggCall : aggCalls) {
       list.add(
-          MongoRules.maybeQuote(outNames.get(i++)) + ": "
+          MongoRules.maybeQuote(MongoRules.encode(outNames.get(i++))) + ": "
           + toMongo(aggCall.getAggregation(), inNames, aggCall.getArgList()));
     }
     implementor.add(null,
@@ -121,7 +121,7 @@ public class MongoAggregate
     if (groupSet.cardinality() == 1) {
       fixups = new AbstractList<String>() {
         @Override public String get(int index) {
-          final String outName = outNames.get(index);
+          final String outName = MongoRules.encode(outNames.get(index));
           return MongoRules.maybeQuote(outName) + ": "
               + MongoRules.maybeQuote("$" + (index == 0 ? "_id" : outName));
         }
@@ -135,14 +135,15 @@ public class MongoAggregate
       fixups.add("_id: 0");
       i = 0;
       for (int group : groupSet) {
+        final String outName = MongoRules.encode(outNames.get(group));
         fixups.add(
-            MongoRules.maybeQuote(outNames.get(group))
+            MongoRules.maybeQuote(outName)
             + ": "
-            + MongoRules.maybeQuote("$_id." + outNames.get(group)));
+            + MongoRules.maybeQuote("$_id." + outName));
         ++i;
       }
       for (AggregateCall ignored : aggCalls) {
-        final String outName = outNames.get(i++);
+        final String outName = MongoRules.encode(outNames.get(i++));
         fixups.add(
             MongoRules.maybeQuote(outName) + ": " + MongoRules.maybeQuote(
                 "$" + outName));
@@ -169,7 +170,7 @@ public class MongoAggregate
     } else if (aggregation instanceof SqlSumAggFunction
         || aggregation instanceof SqlSumEmptyIsZeroAggFunction) {
       assert args.size() == 1;
-      final String inName = inNames.get(args.get(0));
+      final String inName = MongoRules.encode(inNames.get(args.get(0)));
       return "{$sum: " + MongoRules.maybeQuote("$" + inName) + "}";
     } else if (aggregation == SqlStdOperatorTable.MIN) {
       assert args.size() == 1;

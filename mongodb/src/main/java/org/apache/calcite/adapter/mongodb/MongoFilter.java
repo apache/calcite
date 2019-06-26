@@ -210,7 +210,7 @@ public class MongoFilter extends Filter implements MongoRel {
       switch (left.getKind()) {
       case INPUT_REF:
         final RexInputRef left1 = (RexInputRef) left;
-        String name = fieldNames.get(left1.getIndex());
+        String name = MongoRules.encode(fieldNames.get(left1.getIndex()));
         translateOp2(op, name, rightLiteral);
         return true;
       case CAST:

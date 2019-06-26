@@ -417,7 +417,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$group: {_id: '$STATE', 'EXPR$0': {$sum: 1}}}",
                 "{$project: {STATE: '$_id', 'EXPR$0': '$EXPR$0'}}",
                 "{$project: {'EXPR$0': 1}}",
-                "{$sort: {EXPR$0: 1}}"));
+                "{$sort: {'EXPR$0': 1}}"));
   }
 
   @Test public void testGroupByOneColumn() {

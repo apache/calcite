@@ -84,7 +84,7 @@ class MongoEnumerator implements Enumerator<Object> {
 
   static Function1<Document, Object> singletonGetter(final String fieldName,
       final Class fieldClass) {
-    return a0 -> convert(a0.get(fieldName), fieldClass);
+    return a0 -> convert(a0.get(MongoRules.encode(fieldName)), fieldClass);
   }
 
   /**
@@ -97,7 +97,7 @@ class MongoEnumerator implements Enumerator<Object> {
       for (int i = 0; i < fields.size(); i++) {
         final Map.Entry<String, Class> field = fields.get(i);
         final String name = field.getKey();
-        objects[i] = convert(a0.get(name), field.getValue());
+        objects[i] = convert(a0.get(MongoRules.encode(name)), field.getValue());
       }
       return objects;
     };

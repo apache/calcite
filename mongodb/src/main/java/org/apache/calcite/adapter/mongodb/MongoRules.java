@@ -102,6 +102,10 @@ public class MongoRules {
         SqlValidatorUtil.EXPR_SUGGESTER, true);
   }
 
+  public static String encode(String s) {
+    return s.replace(".", "_dot_");
+  }
+
   static String maybeQuote(String s) {
     if (!needsQuote(s)) {
       return s;
@@ -172,7 +176,7 @@ public class MongoRules {
 
     @Override public String visitInputRef(RexInputRef inputRef) {
       return maybeQuote(
-          "$" + inFields.get(inputRef.getIndex()));
+          "$" + MongoRules.encode(inFields.get(inputRef.getIndex())));
     }
 
     @Override public String visitCall(RexCall call) {
