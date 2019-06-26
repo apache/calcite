@@ -535,7 +535,39 @@ public interface ExtendedEnumerable<TSource> {
       Function1<TInner, TKey> innerKeySelector,
       Function2<TSource, TInner, TResult> resultSelector,
       EqualityComparer<TKey> comparer,
-      boolean generateNullsOnLeft, boolean generateNullsOnRight);
+      boolean generateNullsOnLeft,
+      boolean generateNullsOnRight);
+
+  /**
+   * Correlates the elements of two sequences based on matching keys, with
+   * optional outer join semantics. A specified
+   * {@code EqualityComparer<TSource>} is used to compare keys. A specified
+   * {@code isConditionAlwaysTrue} is used to decide if this join is a cross
+   * join.
+   *
+   * <p>A left join generates nulls on right, and vice versa:</p>
+   *
+   * <table>
+   *   <caption>Join types</caption>
+   *   <tr>
+   *     <td>Join type</td>
+   *     <td>generateNullsOnLeft</td>
+   *     <td>generateNullsOnRight</td>
+   *   </tr>
+   *   <tr><td>INNER</td><td>false</td><td>false</td></tr>
+   *   <tr><td>LEFT</td><td>false</td><td>true</td></tr>
+   *   <tr><td>RIGHT</td><td>true</td><td>false</td></tr>
+   *   <tr><td>FULL</td><td>true</td><td>true</td></tr>
+   * </table>
+   */
+  <TInner, TKey, TResult> Enumerable<TResult> hashJoin(Enumerable<TInner> inner,
+      Function1<TSource, TKey> outerKeySelector,
+      Function1<TInner, TKey> innerKeySelector,
+      Function2<TSource, TInner, TResult> resultSelector,
+      EqualityComparer<TKey> comparer,
+      boolean generateNullsOnLeft,
+      boolean generateNullsOnRight,
+      boolean isConditionAlwaysTrue);
 
   /**
    * For each row of the current enumerable returns the correlated rows

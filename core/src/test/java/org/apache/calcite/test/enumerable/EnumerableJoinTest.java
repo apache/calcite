@@ -31,6 +31,46 @@ import org.junit.Test;
 public class EnumerableJoinTest {
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3128">[CALCITE-3128]
+   * Joining two tables producing only NULLs will return 0 rows</a>. */
+  @Test public void testCrossJoinWithNulls() {
+    tester(false, new JdbcTest.HrSchema())
+        .query("SELECT * "
+            + "FROM (SELECT NULLIF(5, 5)) a, (SELECT NULLIF(5, 5)) b")
+        .returnsUnordered("EXPR$0=null; EXPR$00=null");
+  }
+
+  @Test public void testCrossJoinWithNulls2() {
+    tester(false, new JdbcTest.HrSchema())
+        .query("SELECT * "
+            + "FROM (VALUES (NULLIF(5, 5)), (NULLIF(5, 5))) a, "
+            + "(VALUES (NULLIF(5, 5)), (NULLIF(5, 5))) b")
+        .returnsUnordered(
+            "EXPR$0=null; EXPR$00=null",
+            "EXPR$0=null; EXPR$00=null",
+            "EXPR$0=null; EXPR$00=null",
+            "EXPR$0=null; EXPR$00=null");
+  }
+
+  @Test public void testCrossJoin() {
+    tester(false, new JdbcTest.HrSchema())
+        .query("select depts.deptno, emps.name from depts, emps")
+        .returnsUnordered(
+            "deptno=10; name=Bill",
+            "deptno=10; name=Eric",
+            "deptno=10; name=Sebastian",
+            "deptno=10; name=Theodore",
+            "deptno=30; name=Bill",
+            "deptno=30; name=Eric",
+            "deptno=30; name=Sebastian",
+            "deptno=30; name=Theodore",
+            "deptno=40; name=Bill",
+            "deptno=40; name=Eric",
+            "deptno=40; name=Sebastian",
+            "deptno=40; name=Theodore");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2968">[CALCITE-2968]
    * New AntiJoin relational expression</a>. */
   @Test public void equiAntiJoin() {

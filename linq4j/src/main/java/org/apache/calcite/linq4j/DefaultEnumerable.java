@@ -366,10 +366,24 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
       Function1<TInner, TKey> innerKeySelector,
       Function2<T, TInner, TResult> resultSelector,
       EqualityComparer<TKey> comparer,
-      boolean generateNullsOnLeft, boolean generateNullsOnRight) {
+      boolean generateNullsOnLeft,
+      boolean generateNullsOnRight) {
     return EnumerableDefaults.hashJoin(getThis(), inner, outerKeySelector,
         innerKeySelector, resultSelector, comparer, generateNullsOnLeft,
         generateNullsOnRight);
+  }
+
+  public <TInner, TKey, TResult> Enumerable<TResult> hashJoin(
+      Enumerable<TInner> inner, Function1<T, TKey> outerKeySelector,
+      Function1<TInner, TKey> innerKeySelector,
+      Function2<T, TInner, TResult> resultSelector,
+      EqualityComparer<TKey> comparer,
+      boolean generateNullsOnLeft,
+      boolean generateNullsOnRight,
+      boolean isConditionAlwaysTrue) {
+    return EnumerableDefaults.hashJoin(getThis(), inner, outerKeySelector,
+        innerKeySelector, resultSelector, comparer, generateNullsOnLeft,
+        generateNullsOnRight, isConditionAlwaysTrue);
   }
 
   @Deprecated // to be removed before 1.21

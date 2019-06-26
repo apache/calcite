@@ -287,4 +287,34 @@ EnumerableCalc(expr#0..10=[{inputs}], expr#11=[COALESCE($t7, $t8)], DEPTNO=[$t11
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
+### [CALCITE-3128] Joining two tables producing only NULLs will return 0 rows
+select dept.deptno, emp.ename from dept, emp
+order by emp.ename limit 10;
++--------+-------+
+| DEPTNO | ENAME |
++--------+-------+
+|     10 | ADAMS |
+|     20 | ADAMS |
+|     30 | ADAMS |
+|     40 | ADAMS |
+|     10 | ALLEN |
+|     20 | ALLEN |
+|     30 | ALLEN |
+|     40 | ALLEN |
+|     10 | BLAKE |
+|     20 | BLAKE |
++--------+-------+
+(10 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0], ENAME=[$t2])
+  EnumerableLimit(fetch=[10])
+    EnumerableSort(sort0=[$2], dir0=[ASC])
+      EnumerableHashJoin(condition=[true], joinType=[inner])
+        EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+          EnumerableTableScan(table=[[scott, DEPT]])
+        EnumerableCalc(expr#0..7=[{inputs}], proj#0..1=[{exprs}])
+          EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End join.iq

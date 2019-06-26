@@ -4378,7 +4378,10 @@ public class JdbcTest {
             "value=T; value=null",
             "value=F; value=T",
             "value=F; value=F",
-            "value=F; value=null");
+            "value=F; value=null",
+            "value=null; value=F",
+            "value=null; value=T",
+            "value=null; value=null");
   }
 
   /** Tests the LIKE operator. */

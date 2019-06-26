@@ -1007,7 +1007,7 @@ public class Linq4jTest {
                 Linq4j.asEnumerable(depts),
                 EMP_DEPTNO_SELECTOR,
                 DEPT_DEPTNO_SELECTOR, (v1, v2) -> v1.name + " works in "
-                    + (v2 == null ? null : v2.name), null, false, true)
+                    + (v2 == null ? null : v2.name), null, false, true, false)
             .orderBy(Functions.identitySelector())
             .toList()
             .toString();
@@ -1032,7 +1032,7 @@ public class Linq4jTest {
                 Linq4j.asEnumerable(depts),
                 EMP_DEPTNO_SELECTOR,
                 DEPT_DEPTNO_SELECTOR, (v1, v2) -> (v1 == null ? null : v1.name)
-                    + " works in " + (v2 == null ? null : v2.name), null, true, false)
+                    + " works in " + (v2 == null ? null : v2.name), null, true, false, false)
             .orderBy(Functions.identitySelector())
             .toList()
             .toString();
@@ -1057,7 +1057,7 @@ public class Linq4jTest {
                 Linq4j.asEnumerable(depts),
                 EMP_DEPTNO_SELECTOR,
                 DEPT_DEPTNO_SELECTOR, (v1, v2) -> (v1 == null ? null : v1.name)
-                    + " works in " + (v2 == null ? null : v2.name), null, true, true)
+                    + " works in " + (v2 == null ? null : v2.name), null, true, true, false)
             .orderBy(Functions.identitySelector())
             .toList()
             .toString();
@@ -1079,6 +1079,54 @@ public class Linq4jTest {
                 (Function1) ONE_SELECTOR,
                 (Function1) ONE_SELECTOR,
                 (Function2) PAIR_SELECTOR)
+            .count();
+    assertEquals(12, n); // 4 employees times 3 departments
+  }
+
+  @Test public void testLeftJoinWithNulls() {
+    int n =
+        Linq4j.asEnumerable(emptyEmps)
+            .<Department, Integer, Integer>hashJoin(
+                Linq4j.asEnumerable(emptyDepts),
+                (Function1) ONE_SELECTOR,
+                (Function1) ONE_SELECTOR,
+                (Function2) PAIR_SELECTOR,
+                null,
+                false,
+                true,
+                true)
+            .count();
+    assertEquals(12, n); // 4 employees times 3 departments
+  }
+
+  @Test public void testRightJoinWithNulls() {
+    int n =
+        Linq4j.asEnumerable(emptyEmps)
+            .<Department, Integer, Integer>hashJoin(
+                Linq4j.asEnumerable(emptyDepts),
+                (Function1) ONE_SELECTOR,
+                (Function1) ONE_SELECTOR,
+                (Function2) PAIR_SELECTOR,
+                null,
+                true,
+                false,
+                true)
+            .count();
+    assertEquals(12, n); // 4 employees times 3 departments
+  }
+
+  @Test public void testJoinCartesianProductWithNulls() {
+    int n =
+        Linq4j.asEnumerable(emptyEmps)
+            .<Department, Integer, Integer>hashJoin(
+                Linq4j.asEnumerable(emptyDepts),
+                (Function1) ONE_SELECTOR,
+                (Function1) ONE_SELECTOR,
+                (Function2) PAIR_SELECTOR,
+                null,
+                false,
+                false,
+                true)
             .count();
     assertEquals(12, n); // 4 employees times 3 departments
   }
@@ -2168,6 +2216,21 @@ public class Linq4jTest {
       new Department("Sales", 10, Arrays.asList(emps[0], emps[2], emps[3])),
       new Department("HR", 20, ImmutableList.of()),
       new Department("Marketing", 30, ImmutableList.of(emps[1])),
+  };
+
+  //CHECKSTYLE: IGNORE 1
+  public static final Employee[] emptyEmps = {
+      null,
+      null,
+      null,
+      null,
+  };
+
+  //CHECKSTYLE: IGNORE 1
+  public static final Department[] emptyDepts = {
+      null,
+      null,
+      null,
   };
 }
 

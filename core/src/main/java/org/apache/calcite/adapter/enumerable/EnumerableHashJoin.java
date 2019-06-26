@@ -229,7 +229,10 @@ public class EnumerableHashJoin extends EquiJoin implements EnumerableRel {
                         Expressions.constant(joinType.generatesNullsOnLeft()))
                     .append(
                         Expressions.constant(
-                            joinType.generatesNullsOnRight())))).toBlock());
+                            joinType.generatesNullsOnRight()))
+                    .append(
+                        Expressions.constant(
+                            getCondition().isAlwaysTrue())))).toBlock());
   }
 }
 

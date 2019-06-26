@@ -154,21 +154,21 @@ public final class JoinPreserveOrderTest {
   }
 
   @Test public void testLeftJoinPreservesOrderOfLeftInput() {
-    testJoin(hashJoin(false, true), AssertOrder.PRESERVED, AssertOrder.IGNORED);
+    testJoin(hashJoin(false, true, false), AssertOrder.PRESERVED, AssertOrder.IGNORED);
   }
 
   @Test public void testRightJoinPreservesOrderOfLeftInput() {
     Assume.assumeFalse(leftColumn.isNullsFirst);
-    testJoin(hashJoin(true, false), AssertOrder.PRESERVED, AssertOrder.IGNORED);
+    testJoin(hashJoin(true, false, false), AssertOrder.PRESERVED, AssertOrder.IGNORED);
   }
 
   @Test public void testFullJoinPreservesOrderOfLeftInput() {
     Assume.assumeFalse(leftColumn.isNullsFirst);
-    testJoin(hashJoin(true, true), AssertOrder.PRESERVED, AssertOrder.IGNORED);
+    testJoin(hashJoin(true, true, false), AssertOrder.PRESERVED, AssertOrder.IGNORED);
   }
 
   @Test public void testInnerJoinPreservesOrderOfLeftInput() {
-    testJoin(hashJoin(false, false), AssertOrder.PRESERVED, AssertOrder.IGNORED);
+    testJoin(hashJoin(false, false, false), AssertOrder.PRESERVED, AssertOrder.IGNORED);
   }
 
   @Test public void testLeftNestedLoopJoinPreservesOrderOfLeftInput() {
@@ -249,7 +249,8 @@ public final class JoinPreserveOrderTest {
 
   private JoinAlgorithm<Employee, Department, List<Integer>> hashJoin(
       boolean generateNullsOnLeft,
-      boolean generateNullsOnRight) {
+      boolean generateNullsOnRight,
+      boolean isConditionAlwaysTrue) {
     return (left, right) ->
         left.hashJoin(right,
             e -> e.deptno,
@@ -257,7 +258,8 @@ public final class JoinPreserveOrderTest {
             RESULT_SELECTOR,
             null,
             generateNullsOnLeft,
-            generateNullsOnRight);
+            generateNullsOnRight,
+            isConditionAlwaysTrue);
   }
 
   private JoinAlgorithm<Employee, Department, List<Integer>> nestedLoopJoin(JoinType joinType) {

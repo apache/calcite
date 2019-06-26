@@ -1009,6 +1009,7 @@ public abstract class EnumerableDefaults {
         resultSelector,
         null,
         false,
+        false,
         false);
   }
 
@@ -1031,6 +1032,7 @@ public abstract class EnumerableDefaults {
         resultSelector,
         comparer,
         false,
+        false,
         false);
   }
 
@@ -1044,7 +1046,8 @@ public abstract class EnumerableDefaults {
       Function1<TSource, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
       Function2<TSource, TInner, TResult> resultSelector,
-      EqualityComparer<TKey> comparer, boolean generateNullsOnLeft,
+      EqualityComparer<TKey> comparer,
+      boolean generateNullsOnLeft,
       boolean generateNullsOnRight) {
     return hashJoin_(
         outer,
@@ -1054,7 +1057,35 @@ public abstract class EnumerableDefaults {
         resultSelector,
         comparer,
         generateNullsOnLeft,
-        generateNullsOnRight);
+        generateNullsOnRight,
+        false);
+  }
+
+  /**
+   * Correlates the elements of two sequences based on
+   * matching keys. A specified {@code EqualityComparer<TSource>} is used to
+   * compare keys. A specified {@code isConditionAlwaysTrue} is used to
+   * decide if this join is a cross join.
+   */
+  public static <TSource, TInner, TKey, TResult> Enumerable<TResult> hashJoin(
+      Enumerable<TSource> outer, Enumerable<TInner> inner,
+      Function1<TSource, TKey> outerKeySelector,
+      Function1<TInner, TKey> innerKeySelector,
+      Function2<TSource, TInner, TResult> resultSelector,
+      EqualityComparer<TKey> comparer,
+      boolean generateNullsOnLeft,
+      boolean generateNullsOnRight,
+      boolean isConditionAlwaysTrue) {
+    return hashJoin_(
+        outer,
+        inner,
+        outerKeySelector,
+        innerKeySelector,
+        resultSelector,
+        comparer,
+        generateNullsOnLeft,
+        generateNullsOnRight,
+        isConditionAlwaysTrue);
   }
 
   /** Implementation of join that builds the right input and probes with the
@@ -1064,8 +1095,10 @@ public abstract class EnumerableDefaults {
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
       final Function2<TSource, TInner, TResult> resultSelector,
-      final EqualityComparer<TKey> comparer, final boolean generateNullsOnLeft,
-      final boolean generateNullsOnRight) {
+      final EqualityComparer<TKey> comparer,
+      final boolean generateNullsOnLeft,
+      final boolean generateNullsOnRight,
+      final boolean isConditionAlwaysTrue) {
     return new AbstractEnumerable<TResult>() {
       public Enumerator<TResult> enumerator() {
         final Lookup<TKey, TInner> innerLookup =
@@ -1077,7 +1110,7 @@ public abstract class EnumerableDefaults {
           Enumerator<TSource> outers = outer.enumerator();
           Enumerator<TInner> inners = Linq4j.emptyEnumerator();
           Set<TKey> unmatchedKeys =
-              generateNullsOnLeft
+              (generateNullsOnLeft && !isConditionAlwaysTrue)
                   ? new HashSet<>(innerLookup.keySet())
                   : null;
 
@@ -1113,7 +1146,14 @@ public abstract class EnumerableDefaults {
               final TSource outer = outers.current();
               final Enumerable<TInner> innerEnumerable;
               if (outer == null) {
-                innerEnumerable = null;
+                if (isConditionAlwaysTrue) {
+                  // when the join condition is always true, the innerLookup will always
+                  // have one entry whose key is an EmptyList and value is
+                  // the whole inner enumerable.
+                  innerEnumerable = innerLookup.values().iterator().next();
+                } else {
+                  innerEnumerable = null;
+                }
               } else {
                 final TKey outerKey = outerKeySelector.apply(outer);
                 if (outerKey == null) {
