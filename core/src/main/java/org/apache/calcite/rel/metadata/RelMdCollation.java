@@ -65,6 +65,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 /**
  * RelMdCollation supplies a default implementation of
@@ -240,70 +241,19 @@ public class RelMdCollation
    * {@link org.apache.calcite.rel.core.Calc}'s collation. */
   public static List<RelCollation> calc(RelMetadataQuery mq, RelNode input,
       RexProgram program) {
-    return program.getCollations(mq.collations(input));
+    final List<RexNode> projects =
+        program
+            .getProjectList()
+            .stream()
+            .map((p) -> program.expandLocalRef(p))
+            .collect(Collectors.toList());
+    return enumrableCalc(mq, input, projects);
   }
 
   /** Helper method to determine a {@link Project}'s collation. */
   public static List<RelCollation> project(RelMetadataQuery mq,
       RelNode input, List<? extends RexNode> projects) {
-    final SortedSet<RelCollation> collations = new TreeSet<>();
-    final List<RelCollation> inputCollations = mq.collations(input);
-    if (inputCollations == null || inputCollations.isEmpty()) {
-      return ImmutableList.of();
-    }
-    final Multimap<Integer, Integer> targets = LinkedListMultimap.create();
-    final Map<Integer, SqlMonotonicity> targetsWithMonotonicity =
-        new HashMap<>();
-    for (Ord<RexNode> project : Ord.<RexNode>zip(projects)) {
-      if (project.e instanceof RexInputRef) {
-        targets.put(((RexInputRef) project.e).getIndex(), project.i);
-      } else if (project.e instanceof RexCall) {
-        final RexCall call = (RexCall) project.e;
-        final RexCallBinding binding =
-            RexCallBinding.create(input.getCluster().getTypeFactory(), call, inputCollations);
-        targetsWithMonotonicity.put(project.i, call.getOperator().getMonotonicity(binding));
-      }
-    }
-    final List<RelFieldCollation> fieldCollations = new ArrayList<>();
-  loop:
-    for (RelCollation ic : inputCollations) {
-      if (ic.getFieldCollations().isEmpty()) {
-        continue;
-      }
-      fieldCollations.clear();
-      for (RelFieldCollation ifc : ic.getFieldCollations()) {
-        final Collection<Integer> integers = targets.get(ifc.getFieldIndex());
-        if (integers.isEmpty()) {
-          continue loop; // cannot do this collation
-        }
-        fieldCollations.add(ifc.withFieldIndex(integers.iterator().next()));
-      }
-      assert !fieldCollations.isEmpty();
-      collations.add(RelCollations.of(fieldCollations));
-    }
-
-    final List<RelFieldCollation> fieldCollationsForRexCalls =
-        new ArrayList<>();
-    for (Map.Entry<Integer, SqlMonotonicity> entry
-        : targetsWithMonotonicity.entrySet()) {
-      final SqlMonotonicity value = entry.getValue();
-      switch (value) {
-      case NOT_MONOTONIC:
-      case CONSTANT:
-        break;
-      default:
-        fieldCollationsForRexCalls.add(
-            new RelFieldCollation(entry.getKey(),
-                RelFieldCollation.Direction.of(value)));
-        break;
-      }
-    }
-
-    if (!fieldCollationsForRexCalls.isEmpty()) {
-      collations.add(RelCollations.of(fieldCollationsForRexCalls));
-    }
-
-    return ImmutableList.copyOf(collations);
+    return enumrableCalc(mq, input, projects);
   }
 
   /** Helper method to determine a
@@ -477,6 +427,67 @@ public class RelMdCollation
       return leftCollations;
     }
     return ImmutableList.of();
+  }
+
+  private static List<RelCollation> enumrableCalc(RelMetadataQuery mq,
+      RelNode input, List<? extends RexNode> projects) {
+    final SortedSet<RelCollation> collations = new TreeSet<>();
+    final List<RelCollation> inputCollations = mq.collations(input);
+    if (inputCollations == null || inputCollations.isEmpty()) {
+      return ImmutableList.of();
+    }
+    final Multimap<Integer, Integer> targets = LinkedListMultimap.create();
+    final Map<Integer, SqlMonotonicity> targetsWithMonotonicity =
+        new HashMap<>();
+    for (Ord<RexNode> project : Ord.<RexNode>zip(projects)) {
+      if (project.e instanceof RexInputRef) {
+        targets.put(((RexInputRef) project.e).getIndex(), project.i);
+      } else if (project.e instanceof RexCall) {
+        final RexCall call = (RexCall) project.e;
+        final RexCallBinding binding =
+            RexCallBinding.create(input.getCluster().getTypeFactory(), call, inputCollations);
+        targetsWithMonotonicity.put(project.i, call.getOperator().getMonotonicity(binding));
+      }
+    }
+    final List<RelFieldCollation> fieldCollations = new ArrayList<>();
+    loop:
+    for (RelCollation ic : inputCollations) {
+      if (ic.getFieldCollations().isEmpty()) {
+        continue;
+      }
+      fieldCollations.clear();
+      for (RelFieldCollation ifc : ic.getFieldCollations()) {
+        final Collection<Integer> integers = targets.get(ifc.getFieldIndex());
+        if (integers.isEmpty()) {
+          continue loop; // cannot do this collation
+        }
+        fieldCollations.add(ifc.withFieldIndex(integers.iterator().next()));
+      }
+      assert !fieldCollations.isEmpty();
+      collations.add(RelCollations.of(fieldCollations));
+    }
+
+    final List<RelFieldCollation> fieldCollationsForRexCalls =
+        new ArrayList<>();
+    for (Map.Entry<Integer, SqlMonotonicity> entry : targetsWithMonotonicity.entrySet()) {
+      final SqlMonotonicity value = entry.getValue();
+      switch (value) {
+      case NOT_MONOTONIC:
+      case CONSTANT:
+        break;
+      default:
+        fieldCollationsForRexCalls.add(
+            new RelFieldCollation(entry.getKey(),
+                RelFieldCollation.Direction.of(value)));
+        break;
+      }
+    }
+
+    if (!fieldCollationsForRexCalls.isEmpty()) {
+      collations.add(RelCollations.of(fieldCollationsForRexCalls));
+    }
+
+    return ImmutableList.copyOf(collations);
   }
 }
 
