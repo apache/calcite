@@ -9132,6 +9132,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "values (1, 'Karl')");
   }
 
+  @Test public void testInsertWithNonEqualSourceSinkFieldsNum() {
+    tester.checkQueryFails("insert into ^dept^ select sid, ename, deptno "
+        + "from "
+        + "(select sum(empno) as sid, ename, deptno, sal "
+        + "from emp group by ename, deptno, sal)",
+        "Number of INSERT target columns \\(2\\) "
+            + "does not equal number of source items \\(3\\)");
+  }
+
   @Test public void testInsertSubset() {
     final SqlTester pragmaticTester =
         tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
