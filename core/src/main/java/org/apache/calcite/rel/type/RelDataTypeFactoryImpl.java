@@ -30,6 +30,8 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Interner;
+import com.google.common.collect.Interners;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -50,19 +52,20 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   //~ Instance fields --------------------------------------------------------
 
   /**
-   * Global cache. Uses soft values to allow GC.
+   * Global cache for Key to RelDataType. Uses soft values to allow GC.
    */
-  private static final LoadingCache<Object, RelDataType> CACHE =
+  private static final LoadingCache<Key, RelDataType> KEY2TYPE_CACHE =
       CacheBuilder.newBuilder()
           .softValues()
           .build(CacheLoader.from(RelDataTypeFactoryImpl::keyToType));
 
-  private static RelDataType keyToType(@Nonnull Object k) {
-    if (k instanceof RelDataType) {
-      return (RelDataType) k;
-    }
-    @SuppressWarnings("unchecked")
-    final Key key = (Key) k;
+  /**
+   * Global cache for RelDataType.
+   */
+  private static final Interner<RelDataType> DATATYPE_CACHE =
+      Interners.newWeakInterner();
+
+  private static RelDataType keyToType(@Nonnull Key key) {
     final ImmutableList.Builder<RelDataTypeField> list =
         ImmutableList.builder();
     for (int i = 0; i < key.names.size(); i++) {
@@ -347,7 +350,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
    * @throws NullPointerException if type is null
    */
   protected RelDataType canonize(final RelDataType type) {
-    return CACHE.getUnchecked(type);
+    return DATATYPE_CACHE.intern(type);
   }
 
   /**
@@ -362,13 +365,14 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       final List<String> names,
       final List<RelDataType> types,
       final boolean nullable) {
-    final RelDataType type = CACHE.getIfPresent(new Key(kind, names, types, nullable));
+    final RelDataType type = KEY2TYPE_CACHE.getIfPresent(
+        new Key(kind, names, types, nullable));
     if (type != null) {
       return type;
     }
     final ImmutableList<String> names2 = ImmutableList.copyOf(names);
     final ImmutableList<RelDataType> types2 = ImmutableList.copyOf(types);
-    return CACHE.getUnchecked(new Key(kind, names2, types2, nullable));
+    return KEY2TYPE_CACHE.getUnchecked(new Key(kind, names2, types2, nullable));
   }
 
   protected RelDataType canonize(final StructKind kind,
