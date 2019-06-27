@@ -906,7 +906,7 @@ Merge the release branch back into `master` (e.g. `git merge --ff-only branch-X.
 After 24 hours, announce the release by sending an email to
 [announce@apache.org](https://mail-archives.apache.org/mod_mbox/www-announce/).
 You can use
-[the 1.10.0 announcement](https://mail-archives.apache.org/mod_mbox/calcite-dev/201610.mbox/%3C11A13D1A-8364-4A34-A11B-A8E5EA57A740%40apache.org%3E)
+[the 1.20.0 announcement](https://mail-archives.apache.org/mod_mbox/www-announce/201906.mbox/%3CCA%2BEpF8tcJcZ41rVuwJODJmyRy-qAxZUQm9OxKsoDi07c2SKs_A%40mail.gmail.com%3E)
 as a template. Be sure to include a brief description of the project.
 
 ## Publishing the web site (for Calcite committers)
