@@ -433,6 +433,8 @@ public abstract class SqlImplementor {
 
     public abstract SqlNode field(int ordinal);
 
+    public abstract SqlNode field(int ordinal, boolean useAlias);
+
     /** Converts an expression from {@link RexNode} to {@link SqlNode}
      * format.
      *
@@ -866,6 +868,10 @@ public abstract class SqlImplementor {
       this.field = field;
     }
 
+    public SqlNode field(int ordinal, boolean useAlias) {
+      throw new IllegalStateException("SHouldn't be here");
+    }
+
     public SqlNode field(int ordinal) {
       return field.apply(ordinal);
     }
@@ -943,6 +949,12 @@ public abstract class SqlImplementor {
       this.qualified = qualified;
     }
 
+    public SqlNode field(int ordinal, boolean useAlias) {
+      //Falling back to default behaviour & ignoring useAlias.
+      // We can handle this as & when use cases arise.
+      return field(ordinal);
+    }
+
     public SqlNode field(int ordinal) {
       for (Map.Entry<String, RelDataType> alias : aliases.entrySet()) {
         final List<RelDataTypeField> fields = alias.getValue().getFieldList();
@@ -977,6 +989,10 @@ public abstract class SqlImplementor {
       super(dialect, leftContext.fieldCount + rightContext.fieldCount);
       this.leftContext = leftContext;
       this.rightContext = rightContext;
+    }
+
+    public SqlNode field(int ordinal, boolean useAlias) {
+      throw new IllegalStateException("SHouldn't be here");
     }
 
     public SqlNode field(int ordinal) {
@@ -1070,6 +1086,17 @@ public abstract class SqlImplementor {
                 return ((SqlCall) selectItem).operand(1);
               }
                 return ((SqlCall) selectItem).operand(0);
+            }
+            return selectItem;
+          }
+          public SqlNode field(int ordinal, boolean useAlias) {
+            final SqlNode selectItem = selectList.get(ordinal);
+            switch (selectItem.getKind()) {
+            case AS:
+              if (useAlias) {
+                return ((SqlCall) selectItem).operand(1);
+              }
+              return ((SqlCall) selectItem).operand(0);
             }
             return selectItem;
           }
