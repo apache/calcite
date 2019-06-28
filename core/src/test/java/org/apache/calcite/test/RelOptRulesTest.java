@@ -5586,6 +5586,10 @@ public class RelOptRulesTest extends RelOptTestBase {
         .withPre(preProgram).with(program).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3151">[CALCITE-3151
+   * RexCall's Monotonicity is not considered in determining a Calc's collation</a>
+   */
   @Test public void testMonotonicityUDF() throws Exception {
     final SqlFunction monotonicityFun =
         new SqlFunction("MONOFUN", SqlKind.OTHER_FUNCTION, ReturnTypes.BIGINT, null,
@@ -5600,7 +5604,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         };
 
     // Build a tree equivalent to the SQL
-    //  SELECT sal, MONOFUN() AS n FROM emp
+    // SELECT sal, MONOFUN() AS n FROM emp
     final RelBuilder builder =
         RelBuilder.create(RelBuilderTest.config().build());
     final RelNode root =
