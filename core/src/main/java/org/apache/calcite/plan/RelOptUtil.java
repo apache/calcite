@@ -547,14 +547,11 @@ public abstract class RelOptUtil {
       }
     }
 
-    final int projectedKeyCount = exprs.size();
     exprs.add(rexBuilder.makeLiteral(true));
 
     ret = relBuilder.push(ret)
         .project(exprs)
-        .aggregate(
-            relBuilder.groupKey(ImmutableBitSet.range(projectedKeyCount)),
-            relBuilder.min(relBuilder.field(projectedKeyCount)))
+        .aggregate(relBuilder.groupKey(ImmutableBitSet.range(exprs.size())))
         .build();
 
     switch (logic) {
