@@ -718,14 +718,14 @@ public abstract class SqlImplementor {
       final SqlNodeList partitionList = new SqlNodeList(
           toSql(program, rexWindow.partitionKeys), POS);
 
-      ImmutableList.Builder<SqlNode> orderNodes = ImmutableList.builder();
+      List<SqlNode> orderNodes = Expressions.list();
       if (rexWindow.orderKeys != null) {
         for (RexFieldCollation rfc : rexWindow.orderKeys) {
-          orderNodes.add(toSql(program, rfc));
+          addOrderItem(orderNodes, program, rfc);
         }
       }
       final SqlNodeList orderList =
-          new SqlNodeList(orderNodes.build(), POS);
+          new SqlNodeList(orderNodes, POS);
 
       final SqlLiteral isRows =
           SqlLiteral.createBoolean(rexWindow.isRows(), POS);
@@ -857,6 +857,33 @@ public abstract class SqlImplementor {
         }
       }
       orderByList.add(toSql(field));
+    }
+
+    /** Converts a RexFieldCollation to an ORDER BY item. */
+    private void addOrderItem(List<SqlNode> orderByList,
+                              RexProgram program, RexFieldCollation field) {
+      SqlNode node = toSql(program, field.left);
+      SqlNode nullDirectionNode = null;
+      if (field.getNullDirection() != RelFieldCollation.NullDirection.UNSPECIFIED) {
+        final boolean first =
+                  field.getNullDirection() == RelFieldCollation.NullDirection.FIRST;
+        nullDirectionNode = dialect.emulateNullDirection(
+                node, first, field.getDirection().isDescending());
+      }
+      if (nullDirectionNode != null) {
+        orderByList.add(nullDirectionNode);
+        switch (field.getDirection()) {
+        case DESCENDING:
+        case STRICTLY_DESCENDING:
+          node = SqlStdOperatorTable.DESC.createCall(POS, node);
+          break;
+        default:
+          break;
+        }
+        orderByList.add(node);
+      } else {
+        orderByList.add(toSql(program, field));
+      }
     }
 
     /** Converts a call to an aggregate function to an expression. */

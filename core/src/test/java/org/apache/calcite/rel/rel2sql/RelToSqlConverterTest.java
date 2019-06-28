@@ -1027,12 +1027,29 @@ public class RelToSqlConverterTest {
     sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
   }
 
+  @Test public void testHiveSelectQueryWithOverDescAndNullsFirstShouldBeEmulated() {
+    final String query = "SELECT row_number() over "
+            + "(order by \"hire_date\" desc nulls first) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() "
+            + "OVER (ORDER BY hire_date IS NULL DESC, hire_date DESC)\n"
+            + "FROM foodmart.employee";
+    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+  }
+
   @Test public void testHiveSelectQueryWithOrderByAscAndNullsLastShouldBeEmulated() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" nulls last";
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id IS NULL, product_id";
+    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+  }
+
+  @Test public void testHiveSelectQueryWithOverAscAndNullsLastShouldBeEmulated() {
+    final String query = "SELECT row_number() over "
+            + "(order by \"hire_date\" nulls last) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY hire_date IS NULL, hire_date)\n"
+            + "FROM foodmart.employee";
     sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
   }
 
@@ -1045,12 +1062,28 @@ public class RelToSqlConverterTest {
     sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
   }
 
+  @Test public void testHiveSelectQueryWithOverAscNullsFirstShouldNotAddNullEmulation() {
+    final String query = "SELECT row_number() over "
+            + "(order by \"hire_date\" nulls first) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY hire_date)\n"
+            + "FROM foodmart.employee";
+    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+  }
+
   @Test public void testHiveSelectQueryWithOrderByDescNullsLastShouldNotAddNullEmulation() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls last";
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id DESC";
+    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+  }
+
+  @Test public void testHiveSelectQueryWithOverDescNullsLastShouldNotAddNullEmulation() {
+    final String query = "SELECT row_number() over "
+            + "(order by \"hire_date\" desc nulls last) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY hire_date DESC)\n"
+            + "FROM foodmart.employee";
     sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
   }
 
@@ -1096,6 +1129,27 @@ public class RelToSqlConverterTest {
     sql(query).dialect(hive2_2_Dialect).ok(expected);
   }
 
+  @Test public void testHiveSelectQueryWithOverDescAndHighNullsWithVersionGreaterThanOrEq21() {
+    final HiveSqlDialect hive2_1Dialect =
+            new HiveSqlDialect(SqlDialect.EMPTY_CONTEXT
+                    .withDatabaseMajorVersion(2)
+                    .withDatabaseMinorVersion(1)
+                    .withNullCollation(NullCollation.LOW));
+
+    final HiveSqlDialect hive2_2_Dialect =
+            new HiveSqlDialect(SqlDialect.EMPTY_CONTEXT
+                    .withDatabaseMajorVersion(2)
+                    .withDatabaseMinorVersion(2)
+                    .withNullCollation(NullCollation.LOW));
+
+    final String query = "SELECT row_number() over "
+            + "(order by \"hire_date\" desc nulls first) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY hire_date DESC NULLS FIRST)\n"
+            + "FROM foodmart.employee";
+    sql(query).dialect(hive2_1Dialect).ok(expected);
+    sql(query).dialect(hive2_2_Dialect).ok(expected);
+  }
+
   @Test public void testHiveSelectQueryWithOrderByDescAndHighNullsWithVersion20() {
     final HiveSqlDialect hive2_1_0_Dialect =
         new HiveSqlDialect(SqlDialect.EMPTY_CONTEXT
@@ -1110,6 +1164,20 @@ public class RelToSqlConverterTest {
     sql(query).dialect(hive2_1_0_Dialect).ok(expected);
   }
 
+  @Test public void testHiveSelectQueryWithOverDescAndHighNullsWithVersion20() {
+    final HiveSqlDialect hive2_1_0_Dialect =
+            new HiveSqlDialect(SqlDialect.EMPTY_CONTEXT
+                    .withDatabaseMajorVersion(2)
+                    .withDatabaseMinorVersion(0)
+                    .withNullCollation(NullCollation.LOW));
+    final String query = "SELECT row_number() over "
+            + "(order by \"hire_date\" desc nulls first) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() OVER "
+            + "(ORDER BY hire_date IS NULL DESC, hire_date DESC)\n"
+            + "FROM foodmart.employee";
+    sql(query).dialect(hive2_1_0_Dialect).ok(expected);
+  }
+
   @Test public void testJethroDataSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls first";
@@ -1117,6 +1185,16 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"product_id\", \"product_id\" DESC";
+    sql(query).dialect(jethroDataSqlDialect()).ok(expected);
+  }
+
+  @Test public void testJethroDataSelectQueryWithOverDescAndNullsFirstShouldBeEmulated() {
+    final String query = "SELECT row_number() over "
+            + "(order by \"hire_date\" desc nulls first) FROM \"employee\"";
+
+    final String expected = "SELECT ROW_NUMBER() OVER "
+            + "(ORDER BY \"hire_date\", \"hire_date\" DESC)\n"
+            + "FROM \"foodmart\".\"employee\"";
     sql(query).dialect(jethroDataSqlDialect()).ok(expected);
   }
 
@@ -1129,12 +1207,30 @@ public class RelToSqlConverterTest {
     sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
+  @Test public void testMySqlSelectQueryWithOverDescAndNullsFirstShouldBeEmulated() {
+    final String query = "SELECT row_number() over "
+            + "(order by \"hire_date\" desc nulls first) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() OVER "
+            + "(ORDER BY `hire_date` IS NULL DESC, `hire_date` DESC)\n"
+            + "FROM `foodmart`.`employee`";
+    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
+  }
+
   @Test public void testMySqlSelectQueryWithOrderByAscAndNullsLastShouldBeEmulated() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" nulls last";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` IS NULL, `product_id`";
+    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
+  }
+
+  @Test public void testMySqlSelectQueryWithOverAscAndNullsLastShouldBeEmulated() {
+    final String query = "SELECT row_number() over "
+            + "(order by \"hire_date\" nulls last) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() OVER "
+            + "(ORDER BY `hire_date` IS NULL, `hire_date`)\n"
+            + "FROM `foodmart`.`employee`";
     sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
@@ -1147,12 +1243,28 @@ public class RelToSqlConverterTest {
     sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
+  @Test public void testMySqlSelectQueryWithOverAscNullsFirstShouldNotAddNullEmulation() {
+    final String query = "SELECT row_number() "
+            + "over (order by \"hire_date\" nulls first) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date`)\n"
+            + "FROM `foodmart`.`employee`";
+    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
+  }
+
   @Test public void testMySqlSelectQueryWithOrderByDescNullsLastShouldNotAddNullEmulation() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls last";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` DESC";
+    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
+  }
+
+  @Test public void testMySqlSelectQueryWithOverDescNullsLastShouldNotAddNullEmulation() {
+    final String query = "SELECT row_number() "
+            + "over (order by \"hire_date\" desc nulls last) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date` DESC)\n"
+            + "FROM `foodmart`.`employee`";
     sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
@@ -1165,12 +1277,29 @@ public class RelToSqlConverterTest {
     sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
+  @Test public void testMySqlWithHighNullsSelectWithOverAscNullsLastAndNoEmulation() {
+    final String query = "SELECT row_number() "
+            + "over (order by \"hire_date\" nulls last) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date`)\n"
+            + "FROM `foodmart`.`employee`";
+    sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
+  }
+
   @Test public void testMySqlWithHighNullsSelectWithOrderByAscNullsFirstAndNullEmulation() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" nulls first";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` IS NULL DESC, `product_id`";
+    sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
+  }
+
+  @Test public void testMySqlWithHighNullsSelectWithOverAscNullsFirstAndNullEmulation() {
+    final String query = "SELECT row_number() "
+            + "over (order by \"hire_date\" nulls first) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() "
+            + "OVER (ORDER BY `hire_date` IS NULL DESC, `hire_date`)\n"
+            + "FROM `foodmart`.`employee`";
     sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
@@ -1183,12 +1312,29 @@ public class RelToSqlConverterTest {
     sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
+  @Test public void testMySqlWithHighNullsSelectWithOverDescNullsFirstAndNoEmulation() {
+    final String query = "SELECT row_number() "
+            + "over (order by \"hire_date\" desc nulls first) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date` DESC)\n"
+            + "FROM `foodmart`.`employee`";
+    sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
+  }
+
   @Test public void testMySqlWithHighNullsSelectWithOrderByDescNullsLastAndNullEmulation() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls last";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` IS NULL, `product_id` DESC";
+    sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
+  }
+
+  @Test public void testMySqlWithHighNullsSelectWithOverDescNullsLastAndNullEmulation() {
+    final String query = "SELECT row_number() "
+            + "over (order by \"hire_date\" desc nulls last) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() "
+            + "OVER (ORDER BY `hire_date` IS NULL, `hire_date` DESC)\n"
+            + "FROM `foodmart`.`employee`";
     sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
@@ -1201,12 +1347,28 @@ public class RelToSqlConverterTest {
     sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
+  @Test public void testMySqlWithFirstNullsSelectWithOverDescAndNullsFirstShouldNotBeEmulated() {
+    final String query = "SELECT row_number() "
+            + "over (order by \"hire_date\" desc nulls first) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date` DESC)\n"
+            + "FROM `foodmart`.`employee`";
+    sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
+  }
+
   @Test public void testMySqlWithFirstNullsSelectWithOrderByAscAndNullsFirstShouldNotBeEmulated() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" nulls first";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id`";
+    sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
+  }
+
+  @Test public void testMySqlWithFirstNullsSelectWithOverAscAndNullsFirstShouldNotBeEmulated() {
+    final String query = "SELECT row_number() "
+            + "over (order by \"hire_date\" nulls first) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date`)\n"
+            + "FROM `foodmart`.`employee`";
     sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
@@ -1219,12 +1381,30 @@ public class RelToSqlConverterTest {
     sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
+  @Test public void testMySqlWithFirstNullsSelectWithOverDescAndNullsLastShouldBeEmulated() {
+    final String query = "SELECT row_number() "
+            + "over (order by \"hire_date\" desc nulls last) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() "
+            + "OVER (ORDER BY `hire_date` IS NULL, `hire_date` DESC)\n"
+            + "FROM `foodmart`.`employee`";
+    sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
+  }
+
   @Test public void testMySqlWithFirstNullsSelectWithOrderByAscAndNullsLastShouldBeEmulated() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" nulls last";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` IS NULL, `product_id`";
+    sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
+  }
+
+  @Test public void testMySqlWithFirstNullsSelectWithOverAscAndNullsLastShouldBeEmulated() {
+    final String query = "SELECT row_number() "
+            + "over (order by \"hire_date\" nulls last) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() "
+            + "OVER (ORDER BY `hire_date` IS NULL, `hire_date`)\n"
+            + "FROM `foodmart`.`employee`";
     sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
@@ -1237,12 +1417,30 @@ public class RelToSqlConverterTest {
     sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
+  @Test public void testMySqlWithLastNullsSelectWithOverDescAndNullsFirstShouldBeEmulated() {
+    final String query = "SELECT row_number() "
+            + "over (order by \"hire_date\" desc nulls first) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() "
+            + "OVER (ORDER BY `hire_date` IS NULL DESC, `hire_date` DESC)\n"
+            + "FROM `foodmart`.`employee`";
+    sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
+  }
+
   @Test public void testMySqlWithLastNullsSelectWithOrderByAscAndNullsFirstShouldBeEmulated() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" nulls first";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` IS NULL DESC, `product_id`";
+    sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
+  }
+
+  @Test public void testMySqlWithLastNullsSelectWithOverAscAndNullsFirstShouldBeEmulated() {
+    final String query = "SELECT row_number() "
+            + "over (order by \"hire_date\" nulls first) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() "
+            + "OVER (ORDER BY `hire_date` IS NULL DESC, `hire_date`)\n"
+            + "FROM `foodmart`.`employee`";
     sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
@@ -1255,12 +1453,28 @@ public class RelToSqlConverterTest {
     sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
+  @Test public void testMySqlWithLastNullsSelectWithOverDescAndNullsLastShouldNotBeEmulated() {
+    final String query = "SELECT row_number() "
+            + "over (order by \"hire_date\" desc nulls last) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date` DESC)\n"
+            + "FROM `foodmart`.`employee`";
+    sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
+  }
+
   @Test public void testMySqlWithLastNullsSelectWithOrderByAscAndNullsLastShouldNotBeEmulated() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" nulls last";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id`";
+    sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
+  }
+
+  @Test public void testMySqlWithLastNullsSelectWithOverAscAndNullsLastShouldNotBeEmulated() {
+    final String query = "SELECT row_number() over "
+            + "(order by \"hire_date\" nulls last) FROM \"employee\"";
+    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date`)\n"
+            + "FROM `foodmart`.`employee`";
     sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
