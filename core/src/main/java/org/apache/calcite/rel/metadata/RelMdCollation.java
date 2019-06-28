@@ -272,7 +272,7 @@ public class RelMdCollation
       }
     }
     final List<RelFieldCollation> fieldCollations = new ArrayList<>();
-    loop:
+  loop:
     for (RelCollation ic : inputCollations) {
       if (ic.getFieldCollations().isEmpty()) {
         continue;
@@ -290,8 +290,9 @@ public class RelMdCollation
     }
 
     final List<RelFieldCollation> fieldCollationsForRexCalls =
-            new ArrayList<>();
-    for (Map.Entry<Integer, SqlMonotonicity> entry : targetsWithMonotonicity.entrySet()) {
+        new ArrayList<>();
+    for (Map.Entry<Integer, SqlMonotonicity> entry
+        : targetsWithMonotonicity.entrySet()) {
       final SqlMonotonicity value = entry.getValue();
       switch (value) {
       case NOT_MONOTONIC:
