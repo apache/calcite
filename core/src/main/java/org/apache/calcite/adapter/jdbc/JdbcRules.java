@@ -333,6 +333,9 @@ public class JdbcRules {
      */
     private boolean canJoinOnCondition(RexNode node) {
       final List<RexNode> operands;
+      if (node.isAlwaysTrue() || node.isAlwaysFalse()) {
+        return true;
+      }
       switch (node.getKind()) {
       case AND:
       case OR:
