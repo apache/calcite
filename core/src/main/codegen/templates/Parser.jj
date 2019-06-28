@@ -598,7 +598,7 @@ SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
             start = UnsignedNumericLiteralOrParam()
             <COMMA> count = UnsignedNumericLiteralOrParam() {
                 if (!this.conformance.isLimitStartCountAllowed()) {
-                    throw new ParseException(RESOURCE.limitStartCountNotAllowed().str());
+                    throw SqlUtil.newContextException(getPos(), RESOURCE.limitStartCountNotAllowed());
                 }
             }
         |
@@ -1787,7 +1787,7 @@ SqlNode FromClause() :
             <CROSS> { joinType = JoinType.CROSS.symbol(getPos()); } <APPLY>
             e2 = TableRef2(true) {
                 if (!this.conformance.isApplyAllowed()) {
-                    throw new ParseException(RESOURCE.applyNotAllowed().str());
+                    throw SqlUtil.newContextException(getPos(), RESOURCE.applyNotAllowed());
                 }
                 e = new SqlJoin(joinType.getParserPosition(),
                     e,
@@ -1801,7 +1801,7 @@ SqlNode FromClause() :
             <OUTER> { joinType = JoinType.LEFT.symbol(getPos()); } <APPLY>
             e2 = TableRef2(true) {
                 if (!this.conformance.isApplyAllowed()) {
-                    throw new ParseException(RESOURCE.applyNotAllowed().str());
+                    throw SqlUtil.newContextException(getPos(), RESOURCE.applyNotAllowed());
                 }
                 e = new SqlJoin(joinType.getParserPosition(),
                     e,
@@ -1974,7 +1974,7 @@ SqlNode TableRef2(boolean lateral) :
                 if (rate.compareTo(BigDecimal.ZERO) < 0
                     || rate.compareTo(ONE_HUNDRED) > 0)
                 {
-                    throw new ParseException(RESOURCE.invalidSampleSize().str());
+                    throw SqlUtil.newContextException(getPos(), RESOURCE.invalidSampleSize());
                 }
 
                 // Treat TABLESAMPLE(0) and TABLESAMPLE(100) as no table
@@ -2054,7 +2054,7 @@ void CompoundIdentifierType(List<SqlNode> list, List<SqlNode> extendList) :
     [
         type = DataType() {
             if (!this.conformance.allowExtend()) {
-                throw new ParseException(RESOURCE.extendNotAllowed().str());
+                throw SqlUtil.newContextException(getPos(), RESOURCE.extendNotAllowed());
             }
         }
         [
@@ -3277,7 +3277,7 @@ SqlKind comp() :
 |
     <NE2> {
         if (!this.conformance.isBangEqualAllowed()) {
-            throw new ParseException(RESOURCE.bangEqualNotAllowed().str());
+            throw SqlUtil.newContextException(getPos(), RESOURCE.bangEqualNotAllowed());
         }
         return SqlKind.NOT_EQUALS;
     }
@@ -4491,7 +4491,8 @@ int UnsignedIntLiteral() :
         try {
             return Integer.parseInt(t.image);
         } catch (NumberFormatException ex) {
-            throw generateParseException();
+            throw SqlUtil.newContextException(getPos(),
+                RESOURCE.invalidLiteral(t.image, Integer.class.getCanonicalName()));
         }
     }
 }
@@ -4510,7 +4511,8 @@ int IntLiteral() :
         try {
             return Integer.parseInt(t.image);
         } catch (NumberFormatException ex) {
-            throw generateParseException();
+            throw SqlUtil.newContextException(getPos(),
+                RESOURCE.invalidLiteral(t.image, Integer.class.getCanonicalName()));
         }
     }
 |
@@ -4518,7 +4520,8 @@ int IntLiteral() :
         try {
             return -Integer.parseInt(t.image);
         } catch (NumberFormatException ex) {
-            throw generateParseException();
+            throw SqlUtil.newContextException(getPos(),
+                RESOURCE.invalidLiteral(t.image, Integer.class.getCanonicalName()));
         }
     }
 }
@@ -4624,7 +4627,7 @@ SqlTypeName SqlTypeName(Span s) :
 |
     <GEOMETRY> {
         if (!this.conformance.allowGeometry()) {
-            throw new ParseException(RESOURCE.geometryDisabled().str());
+            throw SqlUtil.newContextException(getPos(), RESOURCE.geometryDisabled());
         }
         return SqlTypeName.GEOMETRY;
     }
@@ -6038,7 +6041,7 @@ SqlBinaryOperator BinaryQueryOperator() :
         |
             <SET_MINUS> {
                 if (!this.conformance.isMinusAllowed()) {
-                    throw new ParseException(RESOURCE.minusNotAllowed().str());
+                    throw SqlUtil.newContextException(getPos(), RESOURCE.minusNotAllowed());
                 }
             }
         )
@@ -6100,7 +6103,7 @@ SqlBinaryOperator BinaryRowOperator() :
 |   <NE> { return SqlStdOperatorTable.NOT_EQUALS; }
 |   <NE2> {
         if (!this.conformance.isBangEqualAllowed()) {
-            throw new ParseException(RESOURCE.bangEqualNotAllowed().str());
+            throw SqlUtil.newContextException(getPos(), RESOURCE.bangEqualNotAllowed());
         }
         return SqlStdOperatorTable.NOT_EQUALS;
     }
@@ -6110,7 +6113,7 @@ SqlBinaryOperator BinaryRowOperator() :
 |   <SLASH> { return SqlStdOperatorTable.DIVIDE; }
 |   <PERCENT_REMAINDER> {
         if (!this.conformance.isPercentRemainderAllowed()) {
-            throw new ParseException(RESOURCE.percentRemainderNotAllowed().str());
+            throw SqlUtil.newContextException(getPos(), RESOURCE.percentRemainderNotAllowed());
         }
         return SqlStdOperatorTable.PERCENT_REMAINDER;
     }
