@@ -390,7 +390,22 @@ public class RelToSqlConverter extends SqlImplementor
                 new SqlIdentifier("DUAL", POS), null, null,
                 null, null, null, null, null));
       }
-      if (list.size() == 1) {
+      if (list.isEmpty()) {
+        //In this case we need to construct the following query:
+        // SELECT NULL as C0, NULL as C1, NULL as C2 ... FROM DUAL WHERE FALSE
+        //This would return an empty result set with the same number of columns as the field names.
+        final List<SqlNode> nullColumnNames = new ArrayList<>();
+        for (String fieldName : fieldNames) {
+          SqlCall nullColumnName = SqlStdOperatorTable.AS.createCall(
+              POS, SqlLiteral.createNull(POS),
+              new SqlIdentifier(fieldName, POS));
+          nullColumnNames.add(nullColumnName);
+        }
+        query = new SqlSelect(POS, null,
+            new SqlNodeList(nullColumnNames, POS),
+            new SqlIdentifier("DUAL", POS), SqlLiteral.createBoolean(false, POS), null,
+            null, null, null, null, null);
+      } else if (list.size() == 1) {
         query = list.get(0);
       } else {
         query = SqlStdOperatorTable.UNION_ALL.createCall(
@@ -490,10 +505,10 @@ public class RelToSqlConverter extends SqlImplementor
     return !dialect.supportsAggregateFunction(SqlKind.ROLLUP)
         && dialect.supportsGroupByWithRollup()
         && (aggregate.getGroupType() == Aggregate.Group.ROLLUP
-            || aggregate.getGroupType() == Aggregate.Group.CUBE
-                && aggregate.getGroupSet().cardinality() == 1)
+        || aggregate.getGroupType() == Aggregate.Group.CUBE
+        && aggregate.getGroupSet().cardinality() == 1)
         && e.collation.getFieldCollations().stream().allMatch(fc ->
-            fc.getFieldIndex() < aggregate.getGroupSet().cardinality());
+        fc.getFieldIndex() < aggregate.getGroupSet().cardinality());
   }
 
   /** @see #dispatch */
