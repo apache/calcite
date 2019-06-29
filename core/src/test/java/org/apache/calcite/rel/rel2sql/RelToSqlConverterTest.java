@@ -3410,6 +3410,39 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testUnionAllWithNoOperandsUsingOracleDialect() {
+    String query = "select A.\"department_id\" "
+        + "from \"foodmart\".\"employee\" A "
+        + " where A.\"department_id\" = ( select min( A.\"department_id\") from \"foodmart\".\"department\" B where 1=2 )";
+    final String expected = "SELECT \"employee\".\"department_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "INNER JOIN (SELECT \"t1\".\"department_id\" \"department_id0\", MIN(\"t1\".\"department_id\")\n"
+        + "FROM (SELECT NULL \"department_id\", NULL \"department_description\"\nFROM \"DUAL\"\nWHERE 1 = 0) \"t\",\n"
+        + "(SELECT \"department_id\"\nFROM \"foodmart\".\"employee\"\nGROUP BY \"department_id\") \"t1\"\n"
+        + "GROUP BY \"t1\".\"department_id\") \"t3\" ON \"employee\".\"department_id\" = \"t3\".\"department_id0\""
+        + " AND \"employee\".\"department_id\" = MIN(\"t1\".\"department_id\")";
+    sql(query).withOracle().ok(expected);
+  }
+
+  @Test public void testUnionAllWithNoOperands() {
+    String query = "select A.\"department_id\" "
+        + "from \"foodmart\".\"employee\" A "
+        + " where A.\"department_id\" = ( select min( A.\"department_id\") from \"foodmart\".\"department\" B where 1=2 )";
+    final String expected = "SELECT \"employee\".\"department_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "INNER JOIN (SELECT \"t1\".\"department_id\" AS \"department_id0\","
+        + " MIN(\"t1\".\"department_id\")\n"
+        + "FROM (SELECT *\nFROM (VALUES  (NULL, NULL))"
+        + " AS \"t\" (\"department_id\", \"department_description\")"
+        + "\nWHERE 1 = 0) AS \"t\","
+        + "\n(SELECT \"department_id\"\nFROM \"foodmart\".\"employee\""
+        + "\nGROUP BY \"department_id\") AS \"t1\""
+        + "\nGROUP BY \"t1\".\"department_id\") AS \"t3\" "
+        + "ON \"employee\".\"department_id\" = \"t3\".\"department_id0\""
+        + " AND \"employee\".\"department_id\" = MIN(\"t1\".\"department_id\")";
+    sql(query).ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;
