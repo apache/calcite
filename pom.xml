@@ -83,7 +83,7 @@ limitations under the License.
     <esri-geometry-api.version>2.2.0</esri-geometry-api.version>
     <findbugs.version>3.0.1</findbugs.version>
     <fmpp.version>0.9.16</fmpp.version>
-    <fongo.version>2.1.1</fongo.version>
+    <mongo-java-server.version>1.16.0</mongo-java-server.version>
     <foodmart-data-hsqldb.version>0.3</foodmart-data-hsqldb.version>
     <foodmart-data-json.version>0.4</foodmart-data-json.version>
     <foodmart-queries.version>0.4.1</foodmart-queries.version>
@@ -538,9 +538,19 @@ limitations under the License.
         <version>${mongo-java-driver.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.github.fakemongo</groupId>
-        <artifactId>fongo</artifactId>
-        <version>${fongo.version}</version>
+        <groupId>de.bwaldvogel</groupId>
+        <artifactId>mongo-java-server</artifactId>
+        <version>${mongo-java-server.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>de.bwaldvogel</groupId>
+        <artifactId>mongo-java-server-core</artifactId>
+        <version>${mongo-java-server.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>de.bwaldvogel</groupId>
+        <artifactId>mongo-java-server-memory-backend</artifactId>
+        <version>${mongo-java-server.version}</version>
       </dependency>
       <dependency>
         <groupId>net.hydromatic</groupId>
