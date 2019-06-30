@@ -81,6 +81,7 @@ import com.google.common.collect.Ordering;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -89,6 +90,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Utility to convert relational expressions to SQL abstract syntax tree.
@@ -391,9 +393,9 @@ public class RelToSqlConverter extends SqlImplementor
                 null, null, null, null, null));
       }
       if (list.isEmpty()) {
-        //In this case we need to construct the following query:
+        // In this case we need to construct the following query:
         // SELECT NULL as C0, NULL as C1, NULL as C2 ... FROM DUAL WHERE FALSE
-        //This would return an empty result set with the same number of columns as the field names.
+        // This would return an empty result set with the same number of columns as the field names.
         final List<SqlNode> nullColumnNames = new ArrayList<>();
         for (String fieldName : fieldNames) {
           SqlCall nullColumnName = SqlStdOperatorTable.AS.createCall(
@@ -417,8 +419,19 @@ public class RelToSqlConverter extends SqlImplementor
       // or, if rename is required
       //   (VALUES (v0, v1), (v2, v3)) AS t (c0, c1)
       final SqlNodeList selects = new SqlNodeList(POS);
-      for (List<RexLiteral> tuple : e.getTuples()) {
-        selects.add(ANONYMOUS_ROW.createCall(exprList(context, tuple)));
+      boolean noTuples = e.getTuples() == null || e.getTuples().isEmpty();
+      if (noTuples) {
+        // In case no tuples are present, then we need to build:
+        // select * from VALUES(NULL, NULL ...) as T (C1, C2 ...)
+        // where 1=0.
+        List<SqlNode> nulls = IntStream.range(0, fieldNames.size())
+            .mapToObj(i ->
+                SqlLiteral.createNull(POS)).collect(Collectors.toList());
+        selects.add(ANONYMOUS_ROW.createCall(new SqlNodeList(nulls, POS)));
+      } else {
+        for (List<RexLiteral> tuple : e.getTuples()) {
+          selects.add(ANONYMOUS_ROW.createCall(exprList(context, tuple)));
+        }
       }
       query = SqlStdOperatorTable.VALUES.createCall(selects);
       if (rename) {
@@ -429,6 +442,20 @@ public class RelToSqlConverter extends SqlImplementor
           list.add(new SqlIdentifier(fieldName, POS));
         }
         query = SqlStdOperatorTable.AS.createCall(POS, list);
+      }
+      if (noTuples) {
+        // Here we are building the select query in the form:
+        // select * from VALUES(NULL,NULL ...) where 1=0
+        // We are using 1=0 since "where false" does not seem to be supported
+        // on some DB vendors.
+
+        query = new SqlSelect(POS, null,
+            null, query,
+            SqlStdOperatorTable.EQUALS.createCall(POS,
+                Arrays.asList(SqlLiteral.createExactNumeric("1", POS),
+                    SqlLiteral.createExactNumeric("0", POS))),
+            null,
+            null, null, null, null, null);
       }
     }
     return result(query, clauses, e, null);
