@@ -99,15 +99,6 @@ public abstract class Correlate extends BiRel {
     this.requiredColumns = Objects.requireNonNull(requiredColumns);
   }
 
-  @Deprecated // to be removed before 1.21
-  protected Correlate(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode left, RelNode right, CorrelationId correlationId,
-      ImmutableBitSet requiredColumns,
-      org.apache.calcite.sql.SemiJoinType joinType) {
-    this(cluster, traitSet, left, right, correlationId, requiredColumns,
-        joinType.toJoinType());
-  }
-
   /**
    * Creates a Correlate by parsing serialized output.
    *
