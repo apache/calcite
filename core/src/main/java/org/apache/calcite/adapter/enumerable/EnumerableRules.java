@@ -44,13 +44,6 @@ public class EnumerableRules {
   public static final RelOptRule ENUMERABLE_MERGE_JOIN_RULE =
       new EnumerableMergeJoinRule();
 
-  /** @deprecated To be removed along with
-   * {@link org.apache.calcite.rel.core.SemiJoin};
-   * use {@link #ENUMERABLE_JOIN_RULE} instead. */
-  @Deprecated // to be removed before 1.21
-  public static final RelOptRule ENUMERABLE_SEMI_JOIN_RULE =
-      new EnumerableSemiJoinRule();
-
   public static final RelOptRule ENUMERABLE_CORRELATE_RULE =
       new EnumerableCorrelateRule(RelFactories.LOGICAL_BUILDER);
 
@@ -117,7 +110,6 @@ public class EnumerableRules {
   public static final List<RelOptRule> ENUMERABLE_RULES = ImmutableList.of(
       EnumerableRules.ENUMERABLE_JOIN_RULE,
       EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
-      EnumerableRules.ENUMERABLE_SEMI_JOIN_RULE,
       EnumerableRules.ENUMERABLE_CORRELATE_RULE,
       EnumerableRules.ENUMERABLE_PROJECT_RULE,
       EnumerableRules.ENUMERABLE_FILTER_RULE,

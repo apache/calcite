@@ -81,7 +81,6 @@ import com.google.common.collect.Ordering;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -460,7 +459,7 @@ public class RelToSqlConverter extends SqlImplementor
     // Use condition 1=0 since "where false" does not seem to be supported
     // on some DB vendors.
     return SqlStdOperatorTable.EQUALS.createCall(POS,
-            Arrays.asList(SqlLiteral.createExactNumeric("1", POS),
+            ImmutableList.of(SqlLiteral.createExactNumeric("1", POS),
                     SqlLiteral.createExactNumeric("0", POS)));
   }
 
@@ -535,10 +534,10 @@ public class RelToSqlConverter extends SqlImplementor
     return !dialect.supportsAggregateFunction(SqlKind.ROLLUP)
         && dialect.supportsGroupByWithRollup()
         && (aggregate.getGroupType() == Aggregate.Group.ROLLUP
-        || aggregate.getGroupType() == Aggregate.Group.CUBE
-        && aggregate.getGroupSet().cardinality() == 1)
+            || aggregate.getGroupType() == Aggregate.Group.CUBE
+                && aggregate.getGroupSet().cardinality() == 1)
         && e.collation.getFieldCollations().stream().allMatch(fc ->
-        fc.getFieldIndex() < aggregate.getGroupSet().cardinality());
+            fc.getFieldIndex() < aggregate.getGroupSet().cardinality());
   }
 
   /** @see #dispatch */
