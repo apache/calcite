@@ -133,6 +133,8 @@ public class RelToSqlConverter extends SqlImplementor
   public Result visit(Join e) {
     final Result leftResult = visitChild(0, e.getLeft()).resetAlias();
     final Result rightResult = visitChild(1, e.getRight()).resetAlias();
+    final SqlNode leftNode = leftResult.asFrom();
+    final SqlNode rightNode = rightResult.asFrom();
     final Context leftContext = leftResult.qualifiedContext();
     final Context rightContext = rightResult.qualifiedContext();
     SqlNode sqlCondition = null;
@@ -149,10 +151,10 @@ public class RelToSqlConverter extends SqlImplementor
     }
     SqlNode join =
         new SqlJoin(POS,
-            leftResult.asFrom(),
+            leftNode,
             SqlLiteral.createBoolean(false, POS),
             joinType.symbol(POS),
-            rightResult.asFrom(),
+            rightNode,
             condType,
             sqlCondition);
     return result(join, leftResult, rightResult);

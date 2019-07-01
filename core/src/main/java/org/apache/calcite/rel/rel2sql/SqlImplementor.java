@@ -1175,9 +1175,29 @@ public abstract class SqlImplementor {
         if (node.getKind() == SqlKind.AS) {
           n = ((SqlCall) node).operand(0);
         }
+        addColumnAliases(n);
         return SqlStdOperatorTable.AS.createCall(POS, n, new SqlIdentifier(neededAlias, POS));
       }
       return node;
+    }
+
+    /** Adds aliases to columns named implicitly as EXPR$0, EXPR$1, ... */
+    private void addColumnAliases(SqlNode node) {
+      if (node instanceof SqlSelect && neededType != null) {
+        SqlNodeList selectList = ((SqlSelect) node).getSelectList();
+        if (selectList != null) { // select * doesn't have select list
+          for (int i = 0; i < selectList.size(); i++) {
+            String name = neededType.getFieldNames().get(i);
+            if (name.startsWith("EXPR$")) {
+              SqlNode e = selectList.get(i);
+              SqlNode aliased = SqlStdOperatorTable.AS.createCall(
+                  POS, e, new SqlIdentifier(name, POS));
+              selectList.set(i, aliased);
+              ordinalMap.remove(name.toLowerCase(Locale.ROOT));
+            }
+          }
+        }
+      }
     }
 
     public SqlSelect subSelect() {
