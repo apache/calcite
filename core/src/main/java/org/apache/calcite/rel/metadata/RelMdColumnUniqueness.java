@@ -312,15 +312,6 @@ public class RelMdColumnUniqueness
     throw new AssertionError();
   }
 
-  @Deprecated // to be removed before 1.21
-  public Boolean areColumnsUnique(
-      org.apache.calcite.rel.core.SemiJoin rel, RelMetadataQuery mq,
-      ImmutableBitSet columns, boolean ignoreNulls) {
-    // only return the unique keys from the LHS since a semijoin only
-    // returns the LHS
-    return mq.areColumnsUnique(rel.getLeft(), columns, ignoreNulls);
-  }
-
   public Boolean areColumnsUnique(Aggregate rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
     // group by keys form a unique key

@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.linq4j.CorrelateJoinType;
+import org.apache.calcite.linq4j.JoinType;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
@@ -102,16 +102,16 @@ public enum SemiJoinType {
         "Unable to convert " + this + " to JoinRelType");
   }
 
-  public CorrelateJoinType toLinq4j() {
+  public JoinType toLinq4j() {
     switch (this) {
     case INNER:
-      return CorrelateJoinType.INNER;
+      return JoinType.INNER;
     case LEFT:
-      return CorrelateJoinType.LEFT;
+      return JoinType.LEFT;
     case SEMI:
-      return CorrelateJoinType.SEMI;
+      return JoinType.SEMI;
     case ANTI:
-      return CorrelateJoinType.ANTI;
+      return JoinType.ANTI;
     }
     throw new IllegalStateException(
         "Unable to convert " + this + " to JoinRelType");
