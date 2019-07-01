@@ -300,6 +300,28 @@ public class RelToSqlConverterTest {
         .ok(expectedHive);
   }
 
+  @Test public void testSimpleSelectWithGroupByAlias() {
+    final String query = "select 'literal' as \"a\", sku + 1 as b from"
+        + " \"product\" group by 'literal', sku + 1";
+    final String bigQueryExpected = "SELECT 'literal' AS a, SKU + 1 AS B\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY a, B";
+    sql(query)
+        .withBigquery()
+        .ok(bigQueryExpected);
+  }
+
+  @Test public void testSimpleSelectWithGroupByAliasAndAggregate() {
+    final String query = "select 'literal' as \"a\", sku + 1 as b, sum(\"product_id\") from"
+        + " \"product\" group by 'literal', sku + 1";
+    final String bigQueryExpected = "SELECT 'literal' AS a, SKU + 1 AS B, SUM(product_id)\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY a, B";
+    sql(query)
+        .withBigquery()
+        .ok(bigQueryExpected);
+  }
+
   /** CUBE of one column is equivalent to ROLLUP, and Calcite recognizes
    * this. */
   @Test public void testSelectQueryWithSingletonCube() {
