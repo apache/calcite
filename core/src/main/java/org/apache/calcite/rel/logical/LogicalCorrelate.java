@@ -74,15 +74,6 @@ public final class LogicalCorrelate extends Correlate {
     assert !CalciteSystemProperty.DEBUG.value() || isValid(Litmus.THROW, null);
   }
 
-  @Deprecated // to be removed before 1.21
-  public LogicalCorrelate(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode left, RelNode right, CorrelationId correlationId,
-      ImmutableBitSet requiredColumns,
-      org.apache.calcite.sql.SemiJoinType joinType) {
-    this(cluster, traitSet, left, right, correlationId, requiredColumns,
-        joinType.toJoinType());
-  }
-
   /**
    * Creates a LogicalCorrelate by parsing serialized output.
    */
@@ -102,13 +93,6 @@ public final class LogicalCorrelate extends Correlate {
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalCorrelate(cluster, traitSet, left, right, correlationId,
         requiredColumns, joinType);
-  }
-
-  @Deprecated // to be removed before 1.21
-  public static LogicalCorrelate create(RelNode left, RelNode right,
-      CorrelationId correlationId, ImmutableBitSet requiredColumns,
-      org.apache.calcite.sql.SemiJoinType joinType) {
-    return create(left, right, correlationId, requiredColumns, joinType.toJoinType());
   }
 
   //~ Methods ----------------------------------------------------------------
