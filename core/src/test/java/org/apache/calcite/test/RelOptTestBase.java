@@ -262,8 +262,12 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
           transforms);
     }
 
-    public Sql withRule(RelOptRule rule) {
-      return with(HepProgram.builder().addRuleInstance(rule).build());
+    public Sql withRule(RelOptRule... rules) {
+      final HepProgramBuilder builder = HepProgram.builder();
+      for (RelOptRule rule : rules) {
+        builder.addRuleInstance(rule);
+      }
+      return with(builder.build());
     }
 
     /** Adds a transform that will be applied to {@link #tester}

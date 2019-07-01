@@ -26,6 +26,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
@@ -100,6 +101,7 @@ public class AggregateCall {
     this.distinct = distinct;
     this.approximate = approximate;
     this.ignoreNulls = ignoreNulls;
+    Preconditions.checkArgument(filterArg < 0 || aggFunction.allowsFilter());
   }
 
   //~ Methods ----------------------------------------------------------------

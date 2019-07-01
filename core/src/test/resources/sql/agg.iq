@@ -2548,6 +2548,38 @@ select deptno, bit_and(empno), bit_or(empno) from "scott".emp group by deptno;
 
 !ok
 
+# Based on [DRUID-7593] Exact distinct-COUNT with complex expression (CASE, IN) throws
+# NullPointerException
+WITH wikipedia AS (
+  SELECT empno AS delta,
+    CASE WHEN deptno = 10 THEN 'true' ELSE 'false' END AS isRobot,
+    ename AS "user"
+  FROM "scott".emp)
+SELECT COUNT(DISTINCT
+    CASE WHEN (((CASE WHEN wikipedia.delta IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+                      THEN REPLACE('Yes', 'Yes', 'Yes')
+                      ELSE REPLACE('No', 'No', 'No') END) = 'No'))
+         AND (wikipedia.isRobot = 'true')
+         THEN (wikipedia."user")
+         ELSE NULL END)
+  - (MAX(CASE WHEN (((CASE WHEN wikipedia.delta IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+                           THEN REPLACE('Yes', 'Yes', 'Yes')
+                           ELSE REPLACE('No', 'No', 'No') END) = 'No'))
+              AND (wikipedia.isRobot = 'true')
+              THEN NULL
+              ELSE -9223372036854775807 END)
+       + 9223372036854775807 + 1) AS "wikipedia.count_distinct_filters_that_dont_work"
+FROM wikipedia
+LIMIT 500;
++-------------------------------------------------+
+| wikipedia.count_distinct_filters_that_dont_work |
++-------------------------------------------------+
+|                                               2 |
++-------------------------------------------------+
+(1 row)
+
+!ok
+
 # [CALCITE-2266] JSON_OBJECTAGG, JSON_ARRAYAGG
 !use post
 
