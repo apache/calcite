@@ -54,6 +54,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -413,7 +414,7 @@ public class RelFactories {
 
   /**
    * Implementation of {@link SemiJoinFactory} that returns a vanilla
-   * {@link SemiJoin}.
+   * {@link Join} with join type as {@link JoinRelType#SEMI}.
    *
    * @deprecated Use {@link JoinFactoryImpl} instead.
    */
@@ -421,9 +422,8 @@ public class RelFactories {
   private static class SemiJoinFactoryImpl implements SemiJoinFactory {
     public RelNode createSemiJoin(RelNode left, RelNode right,
         RexNode condition) {
-      final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
-      return SemiJoin.create(left, right,
-        condition, joinInfo.leftKeys, joinInfo.rightKeys);
+      return LogicalJoin.create(left, right, condition, ImmutableSet.of(), JoinRelType.SEMI,
+          false, ImmutableList.of());
     }
   }
 

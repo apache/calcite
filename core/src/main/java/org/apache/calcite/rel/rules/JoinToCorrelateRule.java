@@ -72,18 +72,6 @@ public class JoinToCorrelateRule extends RelOptRule {
    * {@code JOIN} is not deprecated, but {@code INSTANCE} is preferred. */
   public static final JoinToCorrelateRule JOIN = INSTANCE;
 
-  /**
-   * Rule that converts a {@link org.apache.calcite.rel.core.SemiJoin}
-   * into a {@link org.apache.calcite.rel.logical.LogicalCorrelate}
-   *
-   * @deprecated Will be unnecessary when {@code SemiJoin} is removed before
-   * 1.21, and will be removed at that time.
-   */
-  @Deprecated // to be removed before 1.21
-  public static final JoinToCorrelateRule SEMI =
-      new JoinToCorrelateRule(org.apache.calcite.rel.core.SemiJoin.class,
-          RelFactories.LOGICAL_BUILDER, "SemiJoinToCorrelateRule");
-
   //~ Constructors -----------------------------------------------------------
 
   /**

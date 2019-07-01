@@ -205,14 +205,6 @@ public class RelMdUniqueKeys
     return retSet;
   }
 
-  @Deprecated // to be removed before 1.21
-  public Set<ImmutableBitSet> getUniqueKeys(org.apache.calcite.rel.core.SemiJoin rel,
-      RelMetadataQuery mq, boolean ignoreNulls) {
-    // only return the unique keys from the LHS since a semijoin only
-    // returns the LHS
-    return mq.getUniqueKeys(rel.getLeft(), ignoreNulls);
-  }
-
   public Set<ImmutableBitSet> getUniqueKeys(Aggregate rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
     // group by keys form a unique key

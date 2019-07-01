@@ -110,22 +110,6 @@ public class RelMdUtil {
    * table/columns and the number of distinct values in the fact table
    * columns.
    *
-   * @param rel semijoin rel
-   * @return calculated selectivity
-   */
-  @Deprecated // to be removed before 1.21
-  public static double computeSemiJoinSelectivity(RelMetadataQuery mq,
-      org.apache.calcite.rel.core.SemiJoin rel) {
-    return computeSemiJoinSelectivity(mq, rel.getLeft(), rel.getRight(),
-        rel.getLeftKeys(), rel.getRightKeys());
-  }
-
-  /**
-   * Computes the selectivity of a semijoin filter if it is applied on a fact
-   * table. The computation is based on the selectivity of the dimension
-   * table/columns and the number of distinct values in the fact table
-   * columns.
-   *
    * @param factRel fact table participating in the semijoin
    * @param dimRel  dimension table participating in the semijoin
    * @param rel     semijoin rel

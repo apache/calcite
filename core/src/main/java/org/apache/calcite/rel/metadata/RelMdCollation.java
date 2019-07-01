@@ -97,7 +97,6 @@ public class RelMdCollation
    * {@link org.apache.calcite.rel.core.Intersect},
    * {@link org.apache.calcite.rel.core.Minus},
    * {@link org.apache.calcite.rel.core.Join},
-   * {@link org.apache.calcite.rel.core.SemiJoin},
    * {@link org.apache.calcite.rel.core.Correlate}
    * do not in general return sorted results
    * (but implementations using particular algorithms may).
@@ -154,14 +153,6 @@ public class RelMdCollation
     return ImmutableList.copyOf(
         RelMdCollation.enumerableCorrelate(mq, join.getLeft(), join.getRight(),
             join.getJoinType()));
-  }
-
-  @Deprecated // to be removed before 1.21
-  public ImmutableList<RelCollation> collations(
-      org.apache.calcite.adapter.enumerable.EnumerableSemiJoin join,
-      RelMetadataQuery mq) {
-    return ImmutableList.copyOf(
-        RelMdCollation.enumerableSemiJoin(mq, join.getLeft(), join.getRight()));
   }
 
   public ImmutableList<RelCollation> collations(Sort sort,

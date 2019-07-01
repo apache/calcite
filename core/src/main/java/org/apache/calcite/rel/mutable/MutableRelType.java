@@ -29,7 +29,6 @@ enum MutableRelType {
   MINUS,
   PROJECT,
   SAMPLE,
-  SEMIJOIN,
   SORT,
   TABLE_FUNCTION_SCAN,
   TABLE_MODIFY,

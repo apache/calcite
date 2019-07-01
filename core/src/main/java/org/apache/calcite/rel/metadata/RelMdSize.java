@@ -176,12 +176,6 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     return list.build();
   }
 
-  @Deprecated // to be removed before 1.21
-  public List<Double> averageColumnSizes(
-      org.apache.calcite.rel.core.SemiJoin rel, RelMetadataQuery mq) {
-    return averageJoinColumnSizes(rel, mq);
-  }
-
   public List<Double> averageColumnSizes(Join rel, RelMetadataQuery mq) {
     return averageJoinColumnSizes(rel, mq);
   }
