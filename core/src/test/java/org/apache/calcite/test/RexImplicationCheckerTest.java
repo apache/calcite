@@ -341,6 +341,24 @@ public class RexImplicationCheckerTest {
     f.checkNotImplies(f.gt(f.i, f.literal(10)), iIsNull);
   }
 
+  @Test public void testImpliesWithCast() {
+    final Fixture f = new Fixture();
+
+    final DateString dBeforeEpoch1 = DateString.fromDaysSinceEpoch(-3);
+    final DateString dBeforeEpoch2 = DateString.fromDaysSinceEpoch(-2);
+    final DateString dBeforeEpoch3 = DateString.fromDaysSinceEpoch(-1);
+
+    final RexNode iGe1 = f.ge(f.cast(f.dateDataType, f.str), f.dateLiteral(dBeforeEpoch1));
+    final RexNode iLe1 = f.le(f.cast(f.dateDataType, f.str), f.dateLiteral(dBeforeEpoch2));
+    final RexNode iGe1AndLe1 = f.and(iGe1, iLe1);
+
+    final RexNode iGe2 = f.ge(f.cast(f.dateDataType, f.str), f.dateLiteral(dBeforeEpoch1));
+    final RexNode iLe2 = f.le(f.cast(f.dateDataType, f.str), f.dateLiteral(dBeforeEpoch3));
+    final RexNode iGe2AndLe2 = f.and(iGe2, iLe2);
+
+    f.checkImplies(iGe1AndLe1, iGe2AndLe2);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2041">[CALCITE-2041]
    * When simplifying a nullable expression, allow the result to change type to

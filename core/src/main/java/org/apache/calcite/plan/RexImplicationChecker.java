@@ -20,8 +20,7 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexExecutable;
-import org.apache.calcite.rex.RexExecutorImpl;
+import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
@@ -63,12 +62,12 @@ public class RexImplicationChecker {
       new CalciteLogger(LoggerFactory.getLogger(RexImplicationChecker.class));
 
   final RexBuilder builder;
-  final RexExecutorImpl executor;
+  final RexExecutor executor;
   final RelDataType rowType;
 
   public RexImplicationChecker(
       RexBuilder builder,
-      RexExecutorImpl executor,
+      RexExecutor executor,
       RelDataType rowType) {
     this.builder = Objects.requireNonNull(builder);
     this.executor = Objects.requireNonNull(executor);
@@ -234,7 +233,7 @@ public class RexImplicationChecker {
       //
       // If it's true then we infer implication.
       final DataContext dataValues =
-          VisitorDataContext.of(rowType, usageList);
+          VisitorDataContext.of(rowType, usageList, builder, executor);
 
       if (!isSatisfiable(second, dataValues)) {
         return false;
@@ -249,14 +248,9 @@ public class RexImplicationChecker {
       return false;
     }
 
-    ImmutableList<RexNode> constExps = ImmutableList.of(second);
-    final RexExecutable exec =
-        executor.getExecutable(builder, constExps, rowType);
-
     Object[] result;
-    exec.setDataContext(dataValues);
     try {
-      result = exec.execute();
+      result = executor.execute(builder, ImmutableList.of(second), rowType, dataValues);
     } catch (Exception e) {
       // TODO: CheckSupport should not allow this exception to be thrown
       // Need to monitor it and handle all the cases raising them.

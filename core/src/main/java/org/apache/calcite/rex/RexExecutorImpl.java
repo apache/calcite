@@ -162,6 +162,13 @@ public class RexExecutorImpl implements RexExecutor {
       return RexToLixTranslator.convert(recordAccess, storageType);
     }
   }
+
+  public Object[] execute(RexBuilder rexBuilder, List<RexNode> exps,
+                                     RelDataType rowType,  DataContext dataValues) {
+    final RexExecutable exec = getExecutable(rexBuilder, exps, rowType);
+    exec.setDataContext(dataValues);
+    return exec.execute();
+  }
 }
 
 // End RexExecutorImpl.java
