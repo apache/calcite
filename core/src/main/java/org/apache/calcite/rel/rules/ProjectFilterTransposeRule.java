@@ -98,6 +98,27 @@ public class ProjectFilterTransposeRule extends RelOptRule {
       return;
     }
 
+    if ((origProj != null)
+        && origProj.getRowType().getFieldList().get(0).isDynamicStar()) {
+      // The PushProjector would change the plan:
+      //
+      //    prj(**=[$0])
+      //    : - filter
+      //        : - scan
+      //
+      // to form like:
+      //
+      //    prj(**=[$0])                    (1)
+      //    : - filter                      (2)
+      //        : - prj(**=[$0], ITEM= ...) (3)
+      //            :  - scan
+      // This new plan has more cost that the old one, because of the new
+      // redundant project (3), if we also have FilterProjectTransposeRule in
+      // the rule set, it will also trigger infinite match of the ProjectMergeRule
+      // for project (1) and (3).
+      return;
+    }
+
     PushProjector pushProjector =
         new PushProjector(
             origProj, origFilter, rel, preserveExprCondition, call.builder());
