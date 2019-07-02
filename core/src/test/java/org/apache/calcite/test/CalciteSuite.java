@@ -135,6 +135,7 @@ import org.junit.runners.Suite;
     SqlTypeUtilTest.class,
     SqlValidatorUtilTest.class,
     TypeFinderTest.class,
+    RexShuttleTest.class,
 
     // medium tests (above 0.1s)
     SqlParserTest.class,

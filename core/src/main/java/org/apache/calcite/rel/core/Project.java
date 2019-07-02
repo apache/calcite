@@ -145,6 +145,12 @@ public abstract class Project extends SingleRel {
     if (this.exps == exps) {
       return this;
     }
+    final RelDataType rowType =
+        RexUtil.createStructType(
+            getInput().getCluster().getTypeFactory(),
+            exps,
+            this.rowType.getFieldNames(),
+            null);
     return copy(traitSet, getInput(), exps, rowType);
   }
 
