@@ -93,7 +93,7 @@ public class RelSubset extends AbstractRelNode {
   /**
    * Timestamp for metadata validity
    */
-  long timestamp;
+  long timestamp = 0;
 
   /**
    * Flag indicating whether this RelSubset's importance was artificially
@@ -334,7 +334,6 @@ public class RelSubset extends AbstractRelNode {
 
   void propagateCostImprovements0(VolcanoPlanner planner, RelMetadataQuery mq,
       RelNode rel, Set<RelSubset> activeSet) {
-    ++timestamp;
 
     if (!activeSet.add(this)) {
       // This subset is already in the chain being propagated to. This
@@ -344,6 +343,7 @@ public class RelSubset extends AbstractRelNode {
       return;
     }
     try {
+      ++timestamp;
       final RelOptCost cost = planner.getCost(rel, mq);
       if (cost.isLt(bestCost)) {
         LOGGER.trace("Subset cost improved: subset [{}] cost was {} now {}", this, bestCost, cost);
