@@ -9522,6 +9522,27 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSubQueryWithDynamicStarHang">
+        <Resource name="sql">
+            <![CDATA[select n.n_regionkey from (select * from
+(select * from sales.customer) t) n where n.n_nationkey >1]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(N_REGIONKEY=[ITEM($0, 'N_REGIONKEY')])
+  LogicalFilter(condition=[>(ITEM($0, 'N_NATIONKEY'), 1)])
+    LogicalProject(**=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableProject(N_REGIONKEY=[ITEM($0, 'N_REGIONKEY')])
+  EnumerableFilter(condition=[>(ITEM($0, 'N_NATIONKEY'), 1)])
+    EnumerableTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testExpandFilterExists">
         <Resource name="sql">
             <![CDATA[select empno
