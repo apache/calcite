@@ -79,6 +79,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.NoSuchElementException;
 import java.util.TreeSet;
+import java.util.function.Function;
+import javax.annotation.Nonnull;
 
 import static org.apache.calcite.test.Matchers.hasTree;
 
@@ -155,6 +157,15 @@ public class RelBuilderTest {
     root.add("MYVIEW", macro);
 
     return Frameworks.newConfigBuilder().defaultSchema(root);
+  }
+
+  @Nonnull static RelBuilder createBuilder(
+      Function<RelBuilder.ConfigBuilder, RelBuilder.ConfigBuilder> transform) {
+    final Frameworks.ConfigBuilder configBuilder = config();
+    configBuilder.context(
+        Contexts.of(transform.apply(RelBuilder.Config.builder())
+            .build()));
+    return RelBuilder.create(configBuilder.build());
   }
 
   @Test public void testScan() {
@@ -375,6 +386,31 @@ public class RelBuilderTest {
         + "  LogicalSnapshot(period=[2011-07-20 12:34:56])\n"
         + "    LogicalTableScan(table=[[scott, products_temporal]])\n";
     assertThat(root, hasTree(expected));
+  }
+
+  /** Tests that {@link RelBuilder#project} simplifies expressions if and only if
+   * {@link RelBuilder.Config#simplify}. */
+  @Test public void testSimplify() {
+    checkSimplify(configBuilder -> configBuilder.withSimplify(true),
+        hasTree("LogicalProject($f0=[true])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n"));
+    checkSimplify(configBuilder -> configBuilder,
+        hasTree("LogicalProject($f0=[true])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n"));
+    checkSimplify(configBuilder -> configBuilder.withSimplify(false),
+        hasTree("LogicalProject($f0=[IS NOT NULL($0)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n"));
+  }
+
+  private void checkSimplify(
+      Function<RelBuilder.ConfigBuilder, RelBuilder.ConfigBuilder> transform,
+      Matcher<RelNode> matcher) {
+    final RelBuilder builder = createBuilder(transform);
+    final RelNode root =
+        builder.scan("EMP")
+            .project(builder.isNotNull(builder.field("EMPNO")))
+            .build();
+    assertThat(root, matcher);
   }
 
   @Test public void testScanFilterOr() {
@@ -931,8 +967,7 @@ public class RelBuilderTest {
   /** Tests that {@link RelBuilder#aggregate} eliminates duplicate aggregate
    * calls and creates a {@code Project} to compensate. */
   @Test public void testAggregateEliminatesDuplicateCalls() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    RelNode root =
+    final Function<RelBuilder, RelNode> fn = builder ->
         builder.scan("EMP")
             .aggregate(builder.groupKey(),
                 builder.sum(builder.field(1)).as("S1"),
@@ -940,11 +975,23 @@ public class RelBuilderTest {
                 builder.sum(builder.field(2)).as("S2"),
                 builder.sum(builder.field(1)).as("S1b"))
             .build();
+    final RelBuilder builder =
+        createBuilder(configBuilder ->
+            configBuilder.withDedupAggregateCalls(true));
     final String expected = ""
         + "LogicalProject(S1=[$0], C=[$1], S2=[$2], S1b=[$0])\n"
         + "  LogicalAggregate(group=[{}], S1=[SUM($1)], C=[COUNT()], S2=[SUM($2)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(root, hasTree(expected));
+    assertThat(fn.apply(builder), hasTree(expected));
+
+    // Now, disable the rewrite
+    final RelBuilder builder2 =
+        createBuilder(configBuilder ->
+            configBuilder.withDedupAggregateCalls(false));
+    final String expected2 = ""
+        + "LogicalAggregate(group=[{}], S1=[SUM($1)], C=[COUNT()], S2=[SUM($2)], S1b=[SUM($1)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(fn.apply(builder2), hasTree(expected2));
   }
 
   @Test public void testAggregateFilter() {
