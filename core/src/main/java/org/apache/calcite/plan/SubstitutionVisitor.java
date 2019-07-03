@@ -973,7 +973,7 @@ public class SubstitutionVisitor {
 
     public UnifyResult apply(UnifyRuleCall call) {
       if (call.query.equals(call.target)) {
-        return call.result(call.query);
+        return call.result(call.target);
       }
       return null;
     }
