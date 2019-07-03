@@ -53,6 +53,8 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
+
 /**
  * <code>SqlDialect</code> encapsulates the differences between dialects of SQL.
  *
@@ -401,6 +403,13 @@ public class SqlDialect {
   public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
     call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+  }
+
+  protected void unparseDivideInteger(final SqlWriter writer,
+      final SqlCall call, final int leftPrec, final int rightPrec) {
+    final SqlWriter.Frame floorFrame = writer.startFunCall("FLOOR");
+    DIVIDE.unparse(writer, call, leftPrec, rightPrec);
+    writer.endFunCall(floorFrame);
   }
 
   public void unparseDateTimeLiteral(SqlWriter writer,

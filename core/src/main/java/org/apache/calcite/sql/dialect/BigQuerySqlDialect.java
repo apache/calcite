@@ -25,7 +25,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 /**
@@ -125,14 +124,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case DIVIDE_INTEGER:
       final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
-      final SqlWriter.Frame floorFrame = writer.startFunCall("FLOOR");
-      SqlOperator operator = call.getOperator();
-      call.operand(0).unparse(writer, leftPrec, operator.getLeftPrec());
-      writer.setNeedWhitespace(true);
-      writer.sep(SqlStdOperatorTable.DIVIDE.getName());
-      writer.setNeedWhitespace(true);
-      call.operand(1).unparse(writer, operator.getRightPrec(), rightPrec);
-      writer.endFunCall(floorFrame);
+      unparseDivideInteger(writer, call, leftPrec, rightPrec);
       writer.sep("AS");
       writer.literal("INT64");
       writer.endFunCall(castFrame);
