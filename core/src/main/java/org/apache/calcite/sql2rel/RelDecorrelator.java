@@ -1198,7 +1198,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // because the correlate variables can only be propagated from
     // the left side, which is not supported yet.
     if (!rel.getJoinType().projectsRight()) {
-      decorrelateRel((RelNode) rel);
+      return decorrelateRel((RelNode) rel);
     }
 
     //
