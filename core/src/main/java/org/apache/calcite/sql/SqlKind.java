@@ -285,6 +285,11 @@ public enum SqlKind {
   DIVIDE,
 
   /**
+   * The arithmetic integer division operator, "/ INT".
+   */
+  DIVIDE_INTEGER,
+
+  /**
    * The arithmetic remainder operator, "MOD" (and "%" in some dialects).
    */
   MOD,

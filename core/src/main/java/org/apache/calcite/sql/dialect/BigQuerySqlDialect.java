@@ -126,6 +126,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       writer.endFunCall(concatFrame);
       break;
+    case DIVIDE_INTEGER:
+      final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
+      unparseDivideInteger(writer, call, leftPrec, rightPrec);
+      writer.sep("AS");
+      writer.literal("INT64");
+      writer.endFunCall(castFrame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }

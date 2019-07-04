@@ -126,6 +126,9 @@ public class SparkSqlDialect extends SqlDialect {
       }
       writer.endFunCall(concatFrame);
       break;
+    case DIVIDE_INTEGER:
+      unparseDivideInteger(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
