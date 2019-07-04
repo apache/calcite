@@ -2096,14 +2096,17 @@ public class RelBuilder {
    * expressions, and always produces a leaf.
    *
    * <p>The default implementation creates a {@link Values} with the same
-   * specified row type as the input, and ignores the input entirely.
+   * specified row type and aliases as the input, and ignores the input entirely.
    * But schema-on-query systems such as Drill might override this method to
    * create a relation expression that retains the input, just to read its
    * schema.
    */
   public RelBuilder empty() {
     final Frame frame = stack.pop();
-    return values(frame.rel.getRowType());
+    final RelNode values =
+        valuesFactory.createValues(cluster, frame.rel.getRowType(), ImmutableList.of());
+    stack.push(new Frame(values, frame.fields));
+    return this;
   }
 
   /** Creates a {@link Values} with a specified row type.
