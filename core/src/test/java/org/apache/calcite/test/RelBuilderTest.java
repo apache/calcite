@@ -2042,6 +2042,50 @@ public class RelBuilderTest {
     assertThat(root.getRowType().getFullTypeString(), is(expectedType));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3172">[CALCITE-3172]
+   * RelBuilder#empty does not keep aliases</a>. */
+  @Test public void testEmptyWithAlias() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final String expected =
+        "LogicalProject(DEPTNO=[$0], DNAME=[$1])\n  LogicalValues(tuples=[[]])\n";
+    final String expectedType =
+        "RecordType(TINYINT NOT NULL DEPTNO, VARCHAR(14) DNAME) NOT NULL";
+
+    // Scan + Empty + Project (without alias)
+    RelNode root =
+        builder.scan("DEPT")
+            .empty()
+            .project(
+                builder.field("DEPTNO"),
+                builder.field("DNAME"))
+            .build();
+    assertThat(root, hasTree(expected));
+    assertThat(root.getRowType().getFullTypeString(), is(expectedType));
+
+    // Scan + Empty + Project (with alias)
+    root =
+        builder.scan("DEPT").as("d")
+            .empty()
+            .project(
+                builder.field(1, "d", "DEPTNO"),
+                builder.field(1, "d", "DNAME"))
+            .build();
+    assertThat(root, hasTree(expected));
+    assertThat(root.getRowType().getFullTypeString(), is(expectedType));
+
+    // Scan + Filter false (implicitly converted into Empty) + Project (with alias)
+    root =
+        builder.scan("DEPT").as("d")
+            .filter(builder.literal(false))
+            .project(
+                builder.field(1, "d", "DEPTNO"),
+                builder.field(1, "d", "DNAME"))
+            .build();
+    assertThat(root, hasTree(expected));
+    assertThat(root.getRowType().getFullTypeString(), is(expectedType));
+  }
+
   @Test public void testValues() {
     // Equivalent SQL:
     //   VALUES (true, 1), (false, -50) AS t(a, b)
