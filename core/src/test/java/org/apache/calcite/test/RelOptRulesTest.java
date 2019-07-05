@@ -5953,6 +5953,15 @@ public class RelOptRulesTest extends RelOptTestBase {
     assertEquals(collationBefore, collationAfter);
   }
 
+  @Test public void testPushFiltertWithIsNotDistinctFromPastJoin() {
+    String query = "SELECT * FROM "
+        + "emp t1 INNER JOIN "
+        + "emp t2 "
+        + "ON t1.deptno = t2.deptno "
+        + "WHERE t1.ename is not distinct from t2.ename";
+    checkPlanning(FilterJoinRule.FILTER_ON_JOIN, query);
+  }
+
   /**
    * Custom implementation of {@link Filter} for use
    * in test case to verify that {@link FilterMultiJoinMergeRule}
