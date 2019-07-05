@@ -390,6 +390,28 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   /**
+   * {@inheritDoc}
+   *
+   * <p>This method (and {@link #hashCode} is intentionally final. We do not want
+   * sub-classes of {@link RelNode} to redefine identity. Various algorithms
+   * (e.g. visitors, planner) can define the identity as meets their needs.
+   */
+  @Override public final boolean equals(Object obj) {
+    return super.equals(obj);
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * <p>This method (and {@link #equals} is intentionally final. We do not want
+   * sub-classes of {@link RelNode} to redefine identity. Various algorithms
+   * (e.g. visitors, planner) can define the identity as meets their needs.
+   */
+  @Override public final int hashCode() {
+    return super.hashCode();
+  }
+
+  /**
    * A writer object used exclusively for computing the digest of a RelNode.
    *
    * <p>The writer is meant to be used only for computing a single digest and then thrown away.
