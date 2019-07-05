@@ -189,6 +189,10 @@ public abstract class RelOptMaterializations {
             .addRuleInstance(ProjectRemoveRule.INSTANCE)
             .build();
 
+    // Note that we should use the same HEP planner for the two optimizations below.
+    // Thus different nodes with the same digest will share the same vertex in the plan graph.
+    // By this way we achieve to share the identical node objects. This is important for
+    // the matching process.
     final HepPlanner hepPlanner = new HepPlanner(program);
     hepPlanner.setRoot(target);
     target = hepPlanner.findBestExp();

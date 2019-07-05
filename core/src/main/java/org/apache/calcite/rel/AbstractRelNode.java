@@ -390,6 +390,26 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   /**
+   * {@inheritDoc}
+   *
+   * <p>We make this method as final and forbid checking identity by it. The point is it's hard to
+   * find a universal identity checking mechanism and user should define one case by case.</p>
+   */
+  @Override public final boolean equals(Object obj) {
+    return super.equals(obj);
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * <p>We make this method as final and forbid checking identity by it. The point is it's hard to
+   * find a universal identity checking mechanism and user should define one case by case.</p>
+   */
+  @Override public final int hashCode() {
+    return super.hashCode();
+  }
+
+  /**
    * A writer object used exclusively for computing the digest of a RelNode.
    *
    * <p>The writer is meant to be used only for computing a single digest and then thrown away.
