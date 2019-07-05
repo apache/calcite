@@ -120,8 +120,10 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -6910,6 +6912,118 @@ public class JdbcTest {
 
   /**
    * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3100">[CALCITE-3100]
+   * cast(? as DATE) won't work with PreparedStatement
+   * error</a>.
+   */
+  @Test public void testPreparedStatementException() throws Exception {
+    Connection connection = CalciteAssert.that()
+            .with(CalciteAssert.SchemaSpec.DYNAMICPARAM).with(Lex.MYSQL).connect();
+
+    PreparedStatement dateStatement = connection.prepareStatement(
+            "select * from types where adate = cast(? as DATE)");
+    dateStatement.setString(1, "1996-08-03");
+    dateStatement.execute();
+    //test null
+    PreparedStatement dateNullStatement = connection.prepareStatement(
+            "select * from types where cast(? as DATE) is null");
+    dateNullStatement.setString(1, "1996-08-03");
+    dateNullStatement.execute();
+
+
+    PreparedStatement timeStatement = connection.prepareStatement(
+            "select * from types where atime = cast(? as TIME)");
+    timeStatement.setString(1, "10:15:00");
+    timeStatement.execute();
+    //test null
+    PreparedStatement timeNullStatement = connection.prepareStatement(
+            "select * from types where cast(? as TIME) is null");
+    timeNullStatement.setString(1, "10:15:00");
+    timeNullStatement.execute();
+
+
+    PreparedStatement intStatement = connection.prepareStatement(
+            "select * from types where aint = cast(? as integer)");
+    intStatement.setString(1, "1");
+    intStatement.execute();
+    //test null
+    PreparedStatement intNullStatement = connection.prepareStatement(
+            "select * from types where cast(? as integer) is null");
+    intNullStatement.setString(1, "1");
+    intNullStatement.execute();
+
+
+    PreparedStatement byteStatement = connection.prepareStatement(
+            "select * from types where abyte = cast(? as tinyint)");
+    byteStatement.setString(1, "2");
+    byteStatement.execute();
+
+    PreparedStatement shortStatement = connection.prepareStatement(
+            "select * from types where ashort = cast(? as SMALLINT)");
+    shortStatement.setString(1, "2");
+    shortStatement.execute();
+
+    PreparedStatement longStatement = connection.prepareStatement(
+            "select * from types where along = cast(? as BIGINT)");
+    longStatement.setString(1, "3");
+    longStatement.execute();
+
+
+    PreparedStatement floatStatement = connection.prepareStatement(
+            "select * from types where ashort = cast(? as FLOAT)");
+    floatStatement.setString(1, "2.5");
+    floatStatement.execute();
+
+    PreparedStatement doubleStatement = connection.prepareStatement(
+            "select * from types where adouble = cast(? as DOUBLE )");
+    doubleStatement.setString(1, "1.5");
+    doubleStatement.execute();
+    //test null
+    PreparedStatement doubleNullStatement = connection.prepareStatement(
+            "select * from types where cast(? as DOUBLE ) is null");
+    doubleNullStatement.setString(1, "1.5");
+    doubleNullStatement.execute();
+
+
+    PreparedStatement booleanStatement = connection.prepareStatement(
+            "select * from types where aboolean = cast(? as boolean)");
+    booleanStatement.setString(1, "true");
+    booleanStatement.execute();
+
+    //test null
+    PreparedStatement booleanNullStatement = connection.prepareStatement(
+            "select * from types where cast(? as boolean) is null");
+    booleanNullStatement.setString(1, "true");
+    booleanNullStatement.execute();
+
+
+    //From local time to UTC
+    SimpleDateFormat format = new SimpleDateFormat("HH:mm:ss", Locale.SIMPLIFIED_CHINESE);
+    java.util.Date date1 = format.parse("10:30:00");
+    java.util.Date date2 = format.parse("12:00:00");
+    TimeZone timeZone = TimeZone.getDefault();
+
+    String date1AsUTC = format.format(
+            new java.util.Date(date1.getTime() - timeZone.getRawOffset()));
+    String date2AsUTC = format.format(
+            new java.util.Date(date2.getTime() - timeZone.getRawOffset()));
+
+    //The following test does can not cover this chagne in fact
+    CalciteAssert.that().with(CalciteAssert.SchemaSpec.DYNAMICPARAM)
+            .query("select \"atime\", \"adate\" from \"types\" where \"adate\" = date '2019-06-08'")
+            .returnsUnordered(
+                    "atime=" + date1AsUTC + "; adate=2019-06-08",
+                    "atime=" + date2AsUTC + "; adate=2019-06-08");
+
+
+    CalciteAssert.that().with(CalciteAssert.SchemaSpec.DYNAMICPARAM)
+            .query("select \"atime\", \"adate\" from \"types\" where \"atime\" = time '10:30:00'")
+            .returnsUnordered(
+                    "atime=" + date1AsUTC + "; adate=2019-06-08");
+  }
+
+  /**
+   * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2609">[CALCITE-2609]
    * Dynamic parameters ("?") pushed to underlying JDBC schema, causing
    * error</a>.
@@ -7396,6 +7510,70 @@ public class JdbcTest {
     public MyTable[] mytable = { new MyTable() };
     public MyTable2[] mytable2 = { new MyTable2() };
   }
+
+  /**
+   * Schema for Date time test
+   */
+  public static class DynamicParamSchema {
+    @Override public String toString() {
+      return "DateTimeSchema";
+    }
+
+    public final DynamicParamData[] types = {
+        new DynamicParamData(
+                Time.valueOf("10:30:00"), new java.sql.Date(1560000000000L), 1,
+                (byte) 1, (short) 1, 1L, (float) 1.5, 1.5, true, "test1"),
+        new DynamicParamData(
+                Time.valueOf("12:00:00"), new java.sql.Date(1560002400000L), 2,
+                (byte) 2, (short) 2, 2L, (float) 2.5, 2.5, false, "test2"),
+        new DynamicParamData(
+                Time.valueOf("00:00:00"), new java.sql.Date(1560096000000L), 3,
+                (byte) 3, (short) 3, 3L, (float) 3.5, 3.5, true, "test3"),
+        new DynamicParamData(),
+
+
+    };
+  }
+
+  /**
+   * Date and time table
+   */
+  public static class DynamicParamData {
+    public Time atime;
+    public java.sql.Date adate;
+
+    public Integer aint;
+    public Byte abyte;
+    public Short ashort;
+    public Long along;
+
+    public Float afloat;
+    public Double adouble;
+
+    public Boolean aboolean;
+    public String astring;
+
+    public DynamicParamData(Time atime, Date adate,
+                            Integer aint, Byte abyte, Short ashort, Long along,
+                            Float afloat, Double adouble,
+                            Boolean aboolean,
+                            String astring) {
+      this.atime = atime;
+      this.adate = adate;
+      this.aint = aint;
+      this.abyte = abyte;
+      this.ashort = ashort;
+      this.along = along;
+      this.afloat = afloat;
+      this.adouble = adouble;
+      this.aboolean = aboolean;
+      this.astring = astring;
+    }
+
+    public DynamicParamData() {
+    }
+  }
+
 
 }
 

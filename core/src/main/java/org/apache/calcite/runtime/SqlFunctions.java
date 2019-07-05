@@ -2523,6 +2523,39 @@ public class SqlFunctions {
     return x;
   }
 
+
+  public static Integer dateStringToUnixDate(String s) {
+    return s == null ? null : DateTimeUtils.dateStringToUnixDate(s);
+  }
+
+  public static Integer timeStringToUnixDate(String s) {
+    return s == null ? null : DateTimeUtils.timeStringToUnixDate(s);
+  }
+
+  public static Integer stringToInteger(String s) {
+    return s == null ? null : Integer.valueOf(s);
+  }
+
+  public static Byte stringToByte(String s) {
+    return s == null ? null : Byte.valueOf(s);
+  }
+
+  public static Short stringToShort(String s) {
+    return s == null ? null : Short.valueOf(s);
+  }
+
+  public static Long stringToLong(String s) {
+    return s == null ? null : Long.valueOf(s);
+  }
+
+  public static Float stringToFloat(String s) {
+    return s == null ? null : Float.valueOf(s);
+  }
+
+  public static Double stringToDouble(String s) {
+    return s == null ? null : Double.valueOf(s);
+  }
+
   /**
    * Implements the {@code .} (field access) operator on an object
    * whose type is not known until runtime.
