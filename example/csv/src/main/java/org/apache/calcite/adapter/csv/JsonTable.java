@@ -16,46 +16,91 @@
  */
 package org.apache.calcite.adapter.csv;
 
-import org.apache.calcite.DataContext;
-import org.apache.calcite.linq4j.AbstractEnumerable;
-import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.impl.AbstractTable;
-import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
+
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Table based on a JSON file.
  */
-public class JsonTable extends AbstractTable implements ScannableTable {
-  private final Source source;
+public class JsonTable extends AbstractTable {
+  private final ObjectMapper objectMapper = new ObjectMapper();
+  protected final List<Object> list;
 
-  /** Creates a JsonTable. */
+  private LinkedHashMap<String, Object> jsonFieldMap = new LinkedHashMap<>(1);
+
   public JsonTable(Source source) {
-    this.source = source;
-  }
+    Object jsonObj = null;
+    try {
+      objectMapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
+          .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true)
+          .configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+      if (source.file().exists() && source.file().length() > 0) {
+        if ("file".equals(source.protocol())) {
+          //noinspection unchecked
+          jsonObj = objectMapper.readValue(source.file(), Object.class);
+        } else {
+          //noinspection unchecked
+          jsonObj = objectMapper.readValue(source.url(), Object.class);
+        }
+      }
+    } catch (MismatchedInputException e) {
+      if (!e.getMessage().contains("No content")) {
+        throw new RuntimeException(e);
+      }
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
 
-  public String toString() {
-    return "JsonTable";
+    if (jsonObj == null) {
+      list = new ArrayList<>();
+      jsonFieldMap.put("EmptyFileHasNoColumns", Boolean.TRUE);
+    } else if (jsonObj instanceof Collection) {
+      //noinspection unchecked
+      list = (List<Object>) jsonObj;
+      //noinspection unchecked
+      jsonFieldMap = (LinkedHashMap) (list.get(0));
+    } else if (jsonObj instanceof Map) {
+      //noinspection unchecked
+      jsonFieldMap = (LinkedHashMap) jsonObj;
+      //noinspection unchecked
+      list = new ArrayList(((LinkedHashMap) jsonObj).values());
+    } else {
+      jsonFieldMap.put("line", jsonObj);
+      list = new ArrayList<>();
+      list.add(0, jsonObj);
+    }
   }
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-    return typeFactory.builder().add("_MAP",
-        typeFactory.createMapType(
-            typeFactory.createSqlType(SqlTypeName.VARCHAR),
-            typeFactory.createTypeWithNullability(
-                typeFactory.createSqlType(SqlTypeName.VARCHAR), true))).build();
+    final List<RelDataType> types = new ArrayList<RelDataType>();
+    final List<String> names = new ArrayList<String>();
+
+    for (Object obj : jsonFieldMap.keySet()) {
+      final RelDataType type = typeFactory.createJavaType(jsonFieldMap.get(obj).getClass());
+      names.add(obj.toString());
+      types.add(type);
+    }
+
+    return typeFactory.createStructType(Pair.zip(names, types));
   }
 
-  public Enumerable<Object[]> scan(DataContext root) {
-    return new AbstractEnumerable<Object[]>() {
-      public Enumerator<Object[]> enumerator() {
-        return new JsonEnumerator(source);
-      }
-    };
+  public Statistic getStatistic() {
+    return Statistics.UNKNOWN;
   }
 }
 

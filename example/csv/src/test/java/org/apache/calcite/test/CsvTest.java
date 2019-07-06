@@ -330,13 +330,19 @@ public class CsvTest {
   }
 
   @Test public void testJson() throws SQLException {
-    final String sql = "select _MAP['id'] as id,\n"
-        + " _MAP['title'] as title,\n"
-        + " CHAR_LENGTH(CAST(_MAP['title'] AS VARCHAR(30))) as len\n"
-        + " from \"archers\"\n";
+    final String sql = "select * from archers\n";
+    final String[] lines = {
+        "id=19990101; dow=Friday; longDate=New Years Day; title=Tractor trouble.; "
+            + "characters=[Alice, Bob, Xavier]; script=Julian Hyde; summary=; "
+            + "lines=[Bob's tractor got stuck in a field., "
+            + "Alice and Xavier hatch a plan to surprise Charlie.]",
+        "id=19990103; dow=Sunday; longDate=Sunday 3rd January; "
+            + "title=Charlie's surprise.; characters=[Alice, Zebedee, Charlie, Xavier]; "
+            + "script=William Shakespeare; summary=; "
+            + "lines=[Charlie is very surprised by Alice and Xavier's surprise plan.]",
+    };
     sql("bug", sql)
-        .returns("ID=19990101; TITLE=Tractor trouble.; LEN=16",
-            "ID=19990103; TITLE=Charlie's surprise.; LEN=19")
+        .returns(lines)
         .ok();
   }
 

@@ -17,7 +17,7 @@
 package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.csv.CsvFilterableTable;
-import org.apache.calcite.adapter.csv.JsonTable;
+import org.apache.calcite.adapter.csv.JsonScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
@@ -44,10 +44,10 @@ class FileSchema extends AbstractSchema {
   /**
    * Creates an HTML tables schema.
    *
-   * @param parentSchema Parent schema
-   * @param name Schema name
+   * @param parentSchema  Parent schema
+   * @param name          Schema name
    * @param baseDirectory Base directory to look for relative files, or null
-   * @param tables List containing HTML table identifiers
+   * @param tables        List containing HTML table identifiers
    */
   FileSchema(SchemaPlus parentSchema, String name, File baseDirectory,
       List<Map<String, Object>> tables) {
@@ -55,17 +55,21 @@ class FileSchema extends AbstractSchema {
     this.baseDirectory = baseDirectory;
   }
 
-  /** Looks for a suffix on a string and returns
+  /**
+   * Looks for a suffix on a string and returns
    * either the string with the suffix removed
-   * or the original string. */
+   * or the original string.
+   */
   private static String trim(String s, String suffix) {
     String trimmed = trimOrNull(s, suffix);
     return trimmed != null ? trimmed : s;
   }
 
-  /** Looks for a suffix on a string and returns
+  /**
+   * Looks for a suffix on a string and returns
    * either the string with the suffix removed
-   * or null. */
+   * or null.
+   */
   private static String trimOrNull(String s, String suffix) {
     return s.endsWith(suffix)
         ? s.substring(0, s.length() - suffix.length())
@@ -103,9 +107,8 @@ class FileSchema extends AbstractSchema {
       Source sourceSansGz = source.trim(".gz");
       final Source sourceSansJson = sourceSansGz.trimOrNull(".json");
       if (sourceSansJson != null) {
-        JsonTable table = new JsonTable(source);
-        builder.put(sourceSansJson.relative(baseSource).path(), table);
-        continue;
+        addTable(builder, source, sourceSansJson.relative(baseSource).path(),
+            null);
       }
       final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
       if (sourceSansCsv != null) {
@@ -132,11 +135,11 @@ class FileSchema extends AbstractSchema {
   }
 
   private boolean addTable(ImmutableMap.Builder<String, Table> builder,
-      Source source, String tableName, Map<String, Object> tableDef)  {
+      Source source, String tableName, Map<String, Object> tableDef) {
     final Source sourceSansGz = source.trim(".gz");
     final Source sourceSansJson = sourceSansGz.trimOrNull(".json");
     if (sourceSansJson != null) {
-      JsonTable table = new JsonTable(source);
+      final Table table = new JsonScannableTable(source);
       builder.put(Util.first(tableName, sourceSansJson.path()), table);
       return true;
     }

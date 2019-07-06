@@ -18,40 +18,38 @@ package org.apache.calcite.adapter.csv;
 
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.util.Source;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
-/** Enumerator that reads from a JSON file. */
-class JsonEnumerator implements Enumerator<Object[]> {
-  private final Enumerator<Object> enumerator;
+/**
+ * Enumerator that reads from a JSON file.
+ */
+public class JsonEnumerator implements Enumerator<Object[]> {
 
-  JsonEnumerator(Source source) {
-    try {
-      final ObjectMapper mapper = new ObjectMapper();
-      mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
-      mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
-      mapper.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
-      List<Object> list;
-      if (source.protocol().equals("file")) {
+  private Enumerator<Object[]> enumerator;
+
+  public JsonEnumerator(List<Object> list) {
+    List<Object[]> objs = new ArrayList<Object[]>();
+    for (Object obj : list) {
+      if (obj instanceof Collection) {
         //noinspection unchecked
-        list = mapper.readValue(source.file(), List.class);
+        List<Object> tmp = (List<Object>) obj;
+        objs.add(tmp.toArray());
+      } else if (obj instanceof Map) {
+        objs.add(((LinkedHashMap) obj).values().toArray());
       } else {
-        //noinspection unchecked
-        list = mapper.readValue(source.url(), List.class);
+        objs.add(new Object[]{obj});
       }
-      enumerator = Linq4j.enumerator(list);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
     }
+    enumerator = Linq4j.enumerator(objs);
   }
 
   public Object[] current() {
-    return new Object[] {enumerator.current()};
+    return enumerator.current();
   }
 
   public boolean moveNext() {
@@ -63,12 +61,9 @@ class JsonEnumerator implements Enumerator<Object[]> {
   }
 
   public void close() {
-    try {
-      enumerator.close();
-    } catch (Exception e) {
-      throw new RuntimeException("Error closing JSON reader", e);
-    }
+    enumerator.close();
   }
+
 }
 
 // End JsonEnumerator.java
