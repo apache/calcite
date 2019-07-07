@@ -5987,6 +5987,36 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testCanNotPushAntiJoinConditionsToLeft">
+        <Resource name="sql">
+            <![CDATA[select * from emp
+where emp.deptno not in
+(select dept.deptno from dept where emp.deptno > 20)]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($7, $8), >($0, 20))], joinType=[anti])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testCanNotPushAntiJoinConditionsToRight">
+        <Resource name="sql">
+            <![CDATA[select * from emp
+where emp.deptno
+not in (select dept.deptno from dept where dept.dname = 'ddd')]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($7, $8), =($9, 'ddd'))], joinType=[anti])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testPushSemiJoinConditionsToLeft">
         <Resource name="sql">
             <![CDATA[select * from emp

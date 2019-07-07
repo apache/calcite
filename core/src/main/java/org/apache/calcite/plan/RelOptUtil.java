@@ -33,7 +33,6 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
-import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.EquiJoin;
 import org.apache.calcite.rel.core.Filter;
@@ -2510,7 +2509,8 @@ public abstract class RelOptUtil {
         joinRel.getInputs().get(1).getRowType().getFieldList();
     final int nFieldsRight = rightFields.size();
 
-    assert nTotalFields == (returnsJustFirstInput(joinRel)
+    // SemiJoin, CorrelateSemiJoin, CorrelateAntiJoin: right fields are not returned
+    assert nTotalFields == (!joinType.projectsRight()
             ? nSysFields + nFieldsLeft
             : nSysFields + nFieldsLeft + nFieldsRight);
 
@@ -2597,14 +2597,6 @@ public abstract class RelOptUtil {
 
     // Did anything change?
     return !filtersToRemove.isEmpty();
-  }
-
-  private static boolean returnsJustFirstInput(RelNode joinRel) {
-    // SemiJoin, CorrelateSemiJoin, CorrelateAntiJoin: right fields are not returned
-    return (joinRel instanceof Join
-                && !((Join) joinRel).getJoinType().projectsRight())
-            || (joinRel instanceof Correlate
-                && !((Correlate) joinRel).getJoinType().projectsRight());
   }
 
   private static RexNode shiftFilter(
@@ -3449,7 +3441,6 @@ public abstract class RelOptUtil {
       for (int i = 0; i < operands.size(); i++) {
         RexNode operand = operands.get(i);
         final int left2 = leftCount + extraLeftExprs.size();
-        final int right2 = rightCount + extraRightExprs.size();
         final RexNode e =
             pushDownEqualJoinConditions(
                 operand,
