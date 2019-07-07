@@ -120,7 +120,7 @@ public abstract class FilterJoinRule extends RelOptRule {
    */
   private boolean needsPushInto(Join join) {
     // If the join force the join info to be based on column equality,
-    // Or it is a non-correlated semijoin, returns false.
+    // or it is a non-correlated semijoin, returns false.
     return !RelOptUtil.forceEquiJoin(join);
   }
 
@@ -195,7 +195,18 @@ public abstract class FilterJoinRule extends RelOptRule {
     // Try to push down filters in ON clause. A ON clause filter can only be
     // pushed down if it does not affect the non-matching set, i.e. it is
     // not on the side which is preserved.
-    if (RelOptUtil.classifyFilters(
+
+    // Anti-join on conditions can not be pushed into left or right, e.g. for plan:
+    //
+    //     Join(condition=[AND(cond1, $2)], joinType=[anti])
+    //     :  - prj(f0=[$0], f1=[$1], f2=[$2])
+    //     :  - prj(f0=[$0])
+    //
+    // The semantic would change if join condition $2 is pushed into left,
+    // that is, the result set may be smaller. The right can not be pushed
+    // into for the same reason.
+    if (joinType != JoinRelType.ANTI
+        && RelOptUtil.classifyFilters(
         join,
         joinFilters,
         joinType,
