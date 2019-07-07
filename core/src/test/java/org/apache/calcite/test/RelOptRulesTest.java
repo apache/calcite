@@ -417,6 +417,82 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3170">[CALCITE-3170]
+   * ANTI join on conditions push down generates wrong plan</a>. */
+  @Test public void testCanNotPushAntiJoinConditionsToLeft() {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    // build a rel equivalent to sql:
+    // select * from emp
+    // where emp.deptno
+    // not in (select dept.deptno from dept where emp.deptno > 20)
+    RelNode left = relBuilder.scan("EMP").build();
+    RelNode right = relBuilder.scan("DEPT").build();
+    RelNode join = relBuilder.push(left)
+        .push(right)
+        .antiJoin(
+            relBuilder.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+                relBuilder.field(2, 0, "DEPTNO"),
+                relBuilder.field(2, 1, "DEPTNO")),
+            relBuilder.call(SqlStdOperatorTable.GREATER_THAN,
+            RexInputRef.of(0, left.getRowType()),
+            relBuilder.literal(20)))
+        .build();
+
+    relBuilder.push(join);
+    RelNode relNode = relBuilder.project(relBuilder.field(0))
+        .build();
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(FilterJoinRule.JOIN)
+        .build();
+
+    HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    RelNode output = hepPlanner.findBestExp();
+
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    SqlToRelTestBase.assertValid(output);
+  }
+
+  @Test public void testCanNotPushAntiJoinConditionsToRight() {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    // build a rel equivalent to sql:
+    // select * from emp
+    // where emp.deptno
+    // not in (select dept.deptno from dept where dept.dname = 'ddd')
+    RelNode left = relBuilder.scan("EMP").build();
+    RelNode right = relBuilder.scan("DEPT").build();
+    RelNode join = relBuilder.push(left)
+        .push(right)
+        .antiJoin(
+            relBuilder.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+                relBuilder.field(2, 0, "DEPTNO"),
+                relBuilder.field(2, 1, "DEPTNO")),
+            relBuilder.equals(relBuilder.field(2, 1, "DNAME"),
+                relBuilder.literal("ddd")))
+        .build();
+
+    relBuilder.push(join);
+    RelNode relNode = relBuilder.project(relBuilder.field(0))
+        .build();
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(FilterJoinRule.JOIN)
+        .build();
+
+    HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    RelNode output = hepPlanner.findBestExp();
+
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    SqlToRelTestBase.assertValid(output);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3171">[CALCITE-3171]
    * SemiJoin on conditions push down throws IndexOutOfBoundsException</a>. */
   @Test public void testPushSemiJoinConditionsToLeft() {

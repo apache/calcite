@@ -128,6 +128,36 @@ public class EnumerableJoinTest {
         .returnsUnordered("empid=200; name=Eric");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3170">[CALCITE-3170]
+   * ANTI join on conditions push down generates wrong plan</a>. */
+  @Test public void testCanNotPushAntiJoinConditionsToLeft() {
+    tester(false, new JdbcTest.HrSchema())
+        .query("?").withRel(
+            // build a rel equivalent to sql:
+            // select * from emps
+            // where emps.deptno
+            // not in (select depts.deptno from depts where emps.name = 'ddd')
+
+            // Use `equals` instead of `is not distinct from` only for testing.
+            builder -> builder
+                .scan("s", "emps")
+                .scan("s", "depts")
+                .antiJoin(
+                    builder.equals(
+                        builder.field(2, 0, "deptno"),
+                        builder.field(2, 1, "deptno")),
+                    builder.equals(builder.field(2, 0, "name"),
+                        builder.literal("ddd")))
+                .project(builder.field(0))
+                .build()
+    ).returnsUnordered(
+        "empid=100",
+        "empid=110",
+        "empid=150",
+        "empid=200");
+  }
+
   private CalciteAssert.AssertThat tester(boolean forceDecorrelate,
       Object schema) {
     return CalciteAssert.that()
