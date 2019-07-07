@@ -3367,14 +3367,17 @@ public abstract class RelOptUtil {
     relBuilder.push(
         originalJoin.copy(originalJoin.getTraitSet(),
             joinCond, left, right, joinType, originalJoin.isSemiJoinDone()));
-
     if (!extraLeftExprs.isEmpty() || !extraRightExprs.isEmpty()) {
+      final int totalFields = joinType.projectsRight()
+          ? leftCount + extraLeftExprs.size() + rightCount + extraRightExprs.size()
+          : leftCount + extraLeftExprs.size();
+      final int[] mappingRanges = joinType.projectsRight()
+          ? new int[] { 0, 0, leftCount, leftCount, leftCount + extraLeftExprs.size(), rightCount }
+          : new int[] { 0, 0, leftCount };
       Mappings.TargetMapping mapping =
           Mappings.createShiftMapping(
-              leftCount + extraLeftExprs.size()
-                  + rightCount + extraRightExprs.size(),
-              0, 0, leftCount,
-              leftCount, leftCount + extraLeftExprs.size(), rightCount);
+              totalFields,
+              mappingRanges);
       relBuilder.project(relBuilder.fields(mapping.inverse()));
     }
     return relBuilder.build();
