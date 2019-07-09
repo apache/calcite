@@ -628,7 +628,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
    * Currently a no-op. Only a hook point for clients to override.
    * @param type1 type of the first operand
    * @param type2 type of the second operand
-   * @return
+   * @return type that is the result of mod operation
    */
   public RelDataType createDecimalMod(RelDataType type1, RelDataType type2) {
     return null;
