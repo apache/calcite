@@ -449,7 +449,7 @@ public abstract class ReturnTypes {
     RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     RelDataType type1 = opBinding.getOperandType(0);
     RelDataType type2 = opBinding.getOperandType(1);
-    return typeFactory.createDecimalProduct(type1, type2);
+    return typeFactory.getTypeSystem().deriveDecimalMultiplyType(typeFactory, type1, type2);
   };
   /**
    * Same as {@link #DECIMAL_PRODUCT} but returns with nullability if any of
@@ -479,7 +479,7 @@ public abstract class ReturnTypes {
     RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     RelDataType type1 = opBinding.getOperandType(0);
     RelDataType type2 = opBinding.getOperandType(1);
-    return typeFactory.createDecimalQuotient(type1, type2);
+    return typeFactory.getTypeSystem().deriveDecimalDivideType(typeFactory, type1, type2);
   };
   /**
    * Same as {@link #DECIMAL_QUOTIENT} but returns with nullability if any of
@@ -501,52 +501,15 @@ public abstract class ReturnTypes {
   /**
    * Type-inference strategy whereby the result type of a call is the decimal
    * sum of two exact numeric operands where at least one of the operands is a
-   * decimal. Let p1, s1 be the precision and scale of the first operand Let
-   * p2, s2 be the precision and scale of the second operand Let p, s be the
-   * precision and scale of the result, Then the result type is a decimal
-   * with:
-   *
-   * <ul>
-   * <li>s = max(s1, s2)</li>
-   * <li>p = max(p1 - s1, p2 - s2) + s + 1</li>
-   * </ul>
-   *
-   * <p>p and s are capped at their maximum values
-   *
-   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
+   * decimal.
    */
   public static final SqlReturnTypeInference DECIMAL_SUM = opBinding -> {
+    RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     RelDataType type1 = opBinding.getOperandType(0);
     RelDataType type2 = opBinding.getOperandType(1);
-    if (SqlTypeUtil.isExactNumeric(type1)
-        && SqlTypeUtil.isExactNumeric(type2)) {
-      if (SqlTypeUtil.isDecimal(type1)
-          || SqlTypeUtil.isDecimal(type2)) {
-        int p1 = type1.getPrecision();
-        int p2 = type2.getPrecision();
-        int s1 = type1.getScale();
-        int s2 = type2.getScale();
-
-        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-        int scale = Math.max(s1, s2);
-        final RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
-        assert scale <= typeSystem.getMaxNumericScale();
-        int precision = Math.max(p1 - s1, p2 - s2) + scale + 1;
-        precision =
-            Math.min(
-                precision,
-                typeSystem.getMaxNumericPrecision());
-        assert precision > 0;
-
-        return typeFactory.createSqlType(
-            SqlTypeName.DECIMAL,
-            precision,
-            scale);
-      }
-    }
-
-    return null;
+    return typeFactory.getTypeSystem().deriveDecimalPlusType(typeFactory, type1, type2);
   };
+
   /**
    * Same as {@link #DECIMAL_SUM} but returns with nullability if any
    * of the operands is nullable by using
@@ -562,6 +525,28 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference NULLABLE_SUM =
       new SqlReturnTypeInferenceChain(DECIMAL_SUM_NULLABLE, LEAST_RESTRICTIVE);
+
+  public static final SqlReturnTypeInference DECIMAL_MOD = opBinding -> {
+    RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    RelDataType type1 = opBinding.getOperandType(0);
+    RelDataType type2 = opBinding.getOperandType(1);
+    return typeFactory.getTypeSystem().deriveDecimalModType(typeFactory, type1, type2);
+  };
+
+  /**
+   * Type-inference strategy whereby the result type of a call is the decimal
+   * modulus of two exact numeric operands where at least one of the operands is a
+   * decimal.
+   */
+  public static final SqlReturnTypeInference DECIMAL_MOD_NULLABLE =
+          cascade(DECIMAL_MOD, SqlTypeTransforms.TO_NULLABLE);
+  /**
+   * Type-inference strategy whereby the result type of a call is
+   * {@link #DECIMAL_MOD_NULLABLE} with a fallback to {@link #ARG1_NULLABLE}
+   * These rules are used for modulus.
+   */
+  public static final SqlReturnTypeInference NULLABLE_MOD =
+          chain(DECIMAL_MOD_NULLABLE, ARG1_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is
