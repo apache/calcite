@@ -529,7 +529,22 @@ public class MaterializationTest {
 
   /** Aggregation query at same level of aggregation as aggregation
    * materialization. */
-  @Test public void testAggregate() {
+  @Test public void testAggregate0() {
+    checkMaterialize(
+        "select count(*) as c from \"emps\" group by \"empid\"",
+        "select count(*) + 1 as c from \"emps\" group by \"empid\"");
+  }
+
+  /**
+   * Aggregation query at same level of aggregation as aggregation
+   * materialization but with different row types. */
+  @Test public void testAggregate1() {
+    checkMaterialize(
+        "select count(*) as c0 from \"emps\" group by \"empid\"",
+        "select count(*) as c1 from \"emps\" group by \"empid\"");
+  }
+
+  @Test public void testAggregate2() {
     checkMaterialize(
         "select \"deptno\", count(*) as c, sum(\"empid\") as s from \"emps\" group by \"deptno\"",
         "select count(*) + 1 as c, \"deptno\" from \"emps\" group by \"deptno\"");
