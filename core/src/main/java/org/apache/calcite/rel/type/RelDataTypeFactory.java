@@ -308,6 +308,29 @@ public interface RelDataTypeFactory {
   @SuppressWarnings("deprecation")
   FieldInfoBuilder builder();
 
+  /**
+   * Infers the return type of a decimal addition. Decimal addition involves
+   * at least one decimal operand and requires both operands to have exact
+   * numeric types.
+   *
+   * @param type1 type of the first operand
+   * @param type2 type of the second operand
+   * @return the result type for a decimal addition, or null if decimal
+   * addition should not be applied to the operands.
+   */
+  RelDataType createDecimalAddition(RelDataType type1, RelDataType type2);
+
+  /**
+   * Infers the return type of a decimal mod operation. Currently only a hook point
+   * for clients to override.
+   *
+   * @param type1 type of the first operand
+   * @param type2 type of the second operand
+   * @return the result type for a decimal mod, or null if decimal
+   * mod should not be applied to the operands.
+   */
+  RelDataType createDecimalMod(RelDataType type1, RelDataType type2);
+
   //~ Inner Interfaces -------------------------------------------------------
 
   /**
