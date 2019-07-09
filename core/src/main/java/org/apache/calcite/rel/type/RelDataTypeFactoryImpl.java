@@ -22,7 +22,6 @@ import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.Util;
 
 import com.google.common.cache.CacheBuilder;
@@ -457,125 +456,36 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   }
 
   /**
-   * {@inheritDoc}
-   *
-   * <p>Implement RelDataTypeFactory with SQL 2003 compliant behavior. Let p1,
-   * s1 be the precision and scale of the first operand Let p2, s2 be the
-   * precision and scale of the second operand Let p, s be the precision and
-   * scale of the result, Then the result type is a decimal with:
-   *
-   * <ul>
-   * <li>p = p1 + p2</li>
-   * <li>s = s1 + s2</li>
-   * </ul>
-   *
-   * <p>p and s are capped at their maximum values
-   *
-   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
+   * Delegates to
+   * {@link RelDataTypeSystem#deriveDecimalMultiplyType(RelDataTypeFactory, RelDataType, RelDataType)}
+   * to get the return type for the operation.
    */
   public RelDataType createDecimalProduct(
       RelDataType type1,
       RelDataType type2) {
-    if (SqlTypeUtil.isExactNumeric(type1)
-        && SqlTypeUtil.isExactNumeric(type2)) {
-      if (SqlTypeUtil.isDecimal(type1)
-          || SqlTypeUtil.isDecimal(type2)) {
-        int p1 = type1.getPrecision();
-        int p2 = type2.getPrecision();
-        int s1 = type1.getScale();
-        int s2 = type2.getScale();
-
-        int scale = s1 + s2;
-        scale = Math.min(scale, typeSystem.getMaxNumericScale());
-        int precision = p1 + p2;
-        precision =
-            Math.min(
-                precision,
-                typeSystem.getMaxNumericPrecision());
-
-        RelDataType ret;
-        ret =
-            createSqlType(
-                SqlTypeName.DECIMAL,
-                precision,
-                scale);
-
-        return ret;
-      }
-    }
-
-    return null;
-  }
-
-  // implement RelDataTypeFactory
-  public boolean useDoubleMultiplication(
-      RelDataType type1,
-      RelDataType type2) {
-    assert createDecimalProduct(type1, type2) != null;
-    return false;
+    return typeSystem.deriveDecimalMultiplyType(this, type1, type2);
   }
 
   /**
-   * Rules:
-   *
-   * <ul>
-   * <li>Let p1, s1 be the precision and scale of the first operand
-   * <li>Let p2, s2 be the precision and scale of the second operand
-   * <li>Let p, s be the precision and scale of the result
-   * <li>Let d be the number of whole digits in the result
-   * <li>Then the result type is a decimal with:
-   *   <ul>
-   *   <li>d = p1 - s1 + s2</li>
-   *   <li>s &lt; max(6, s1 + p2 + 1)</li>
-   *   <li>p = d + s</li>
-   *   </ul>
-   * </li>
-   * <li>p and s are capped at their maximum values</li>
-   * </ul>
-   *
-   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
+   * Delegates to
+   * {@link RelDataTypeSystem#shouldUseDoubleMultiplication(RelDataTypeFactory, RelDataType, RelDataType)}
+   * to get if double should be used for multiplication.
+   */
+  public boolean useDoubleMultiplication(
+      RelDataType type1,
+      RelDataType type2) {
+    return typeSystem.shouldUseDoubleMultiplication(this, type1, type2);
+  }
+
+  /**
+   * Delegates to
+   * {@link RelDataTypeSystem#deriveDecimalDivideType(RelDataTypeFactory, RelDataType, RelDataType)}
+   * to get the return type for the operation.
    */
   public RelDataType createDecimalQuotient(
       RelDataType type1,
       RelDataType type2) {
-    if (SqlTypeUtil.isExactNumeric(type1)
-        && SqlTypeUtil.isExactNumeric(type2)) {
-      if (SqlTypeUtil.isDecimal(type1)
-          || SqlTypeUtil.isDecimal(type2)) {
-        int p1 = type1.getPrecision();
-        int p2 = type2.getPrecision();
-        int s1 = type1.getScale();
-        int s2 = type2.getScale();
-
-        final int maxNumericPrecision = typeSystem.getMaxNumericPrecision();
-        int dout =
-            Math.min(
-                p1 - s1 + s2,
-                maxNumericPrecision);
-
-        int scale = Math.max(6, s1 + p2 + 1);
-        scale =
-            Math.min(
-                scale,
-                maxNumericPrecision - dout);
-        scale = Math.min(scale, getTypeSystem().getMaxNumericScale());
-
-        int precision = dout + scale;
-        assert precision <= maxNumericPrecision;
-        assert precision > 0;
-
-        RelDataType ret;
-        ret =
-            createSqlType(
-                SqlTypeName.DECIMAL,
-                precision,
-                scale);
-
-        return ret;
-      }
-    }
-
-    return null;
+    return typeSystem.deriveDecimalDivideType(this, type1, type2);
   }
 
   public Charset getDefaultCharset() {
