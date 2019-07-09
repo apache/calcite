@@ -877,6 +877,10 @@ public class CalciteAssert {
     case BOOKSTORE:
       return rootSchema.add(schema.schemaName,
           new ReflectiveSchema(new BookstoreSchema()));
+
+    case DYNAMICPARAM:
+      return rootSchema.add(schema.schemaName,
+              new ReflectiveSchema(new JdbcTest.DynamicParamSchema()));
     default:
       throw new AssertionError("unknown schema " + schema);
     }
@@ -1869,7 +1873,8 @@ public class CalciteAssert {
     POST("POST"),
     ORINOCO("ORINOCO"),
     AUX("AUX"),
-    BOOKSTORE("bookstore");
+    BOOKSTORE("bookstore"),
+    DYNAMICPARAM("DYNAMICPARAMSCHEMA");
 
     /** The name of the schema that is usually created from this specification.
      * (Names are not unique, and you can use another name if you wish.) */

@@ -46,6 +46,7 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.BuiltInMethod;
@@ -55,6 +56,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -66,12 +68,28 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBSTRING;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
+import static org.apache.calcite.sql.type.SqlTypeName.BIGINT;
+import static org.apache.calcite.sql.type.SqlTypeName.BOOLEAN;
+import static org.apache.calcite.sql.type.SqlTypeName.CHAR;
+import static org.apache.calcite.sql.type.SqlTypeName.DATE;
+import static org.apache.calcite.sql.type.SqlTypeName.DOUBLE;
+import static org.apache.calcite.sql.type.SqlTypeName.FLOAT;
+import static org.apache.calcite.sql.type.SqlTypeName.INTEGER;
+import static org.apache.calcite.sql.type.SqlTypeName.INTERVAL_MONTH;
+import static org.apache.calcite.sql.type.SqlTypeName.INTERVAL_YEAR;
+import static org.apache.calcite.sql.type.SqlTypeName.INTERVAL_YEAR_MONTH;
+import static org.apache.calcite.sql.type.SqlTypeName.SMALLINT;
+import static org.apache.calcite.sql.type.SqlTypeName.TIME;
+import static org.apache.calcite.sql.type.SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE;
+import static org.apache.calcite.sql.type.SqlTypeName.TINYINT;
+import static org.apache.calcite.sql.type.SqlTypeName.VARCHAR;
 
 /**
  * Translates {@link org.apache.calcite.rex.RexNode REX expressions} to
@@ -90,6 +108,14 @@ public class RexToLixTranslator {
           CHAR_LENGTH,
           findMethod(SqlFunctions.class, "translate3", String.class, String.class,
               String.class), TRANSLATE3);
+
+  public static final Set<SqlTypeName> NEED_TO_CONVERT_TYPES_FOR_DYNAMIC_PARAM = Sets.newHashSet(
+          DATE, TIME,
+          INTEGER, TINYINT, SMALLINT, BIGINT,
+          FLOAT, DOUBLE,
+          BOOLEAN,
+          VARCHAR, CHAR
+  );
 
   final JavaTypeFactory typeFactory;
   final RexBuilder builder;
@@ -727,11 +753,63 @@ public class RexToLixTranslator {
     if (storageType == null) {
       storageType = typeFactory.getJavaClass(expr.getType());
     }
-    return nullAs.handle(
-        convert(
-            Expressions.call(root, BuiltInMethod.DATA_CONTEXT_GET.method,
-                Expressions.constant("?" + expr.getIndex())),
-            storageType));
+
+    Expression expression = Expressions.call(root, BuiltInMethod.DATA_CONTEXT_GET.method,
+            Expressions.constant("?" + expr.getIndex()));
+
+    Expression midExpress = expression;
+    if (NEED_TO_CONVERT_TYPES_FOR_DYNAMIC_PARAM.contains(expr.getType().getSqlTypeName())) {
+      SqlTypeName t = expr.getType().getSqlTypeName();
+
+      switch (t) {
+      case DATE:
+        midExpress = Expressions.call(
+                BuiltInMethod.STRING_TO_DATE_ALLOW_NULLABLE.method,
+                convert(expression, String.class));
+        break;
+      case TIME:
+        midExpress = Expressions.call(
+                BuiltInMethod.STRING_TO_TIME_ALLOW_NULLABLE.method,
+                convert(expression, String.class));
+        break;
+
+      case INTEGER:
+        midExpress = Expressions.call(BuiltInMethod.STRING_TO_INTEGER.method,
+                convert(expression, String.class));
+        break;
+      case TINYINT:
+        midExpress = Expressions.call(BuiltInMethod.STRING_TO_BYTE.method,
+                convert(expression, String.class));
+
+        break;
+      case SMALLINT:
+        midExpress = Expressions.call(BuiltInMethod.STRING_TO_SHORT.method,
+                convert(expression, String.class));
+
+        break;
+      case BIGINT:
+        midExpress = Expressions.call(BuiltInMethod.STRING_TO_LONG.method,
+                convert(expression, String.class));
+        break;
+
+      case FLOAT:
+        midExpress = Expressions.call(BuiltInMethod.STRING_TO_FLOAT.method,
+                convert(expression, String.class));
+        break;
+      case DOUBLE:
+        midExpress = Expressions.call(BuiltInMethod.STRING_TO_DOUBLE.method,
+                convert(expression, String.class));
+        break;
+      case BOOLEAN:
+        midExpress = Expressions.call(BuiltInMethod.STRING_TO_BOOLEAN.method,
+                convert(expression, String.class));
+        break;
+      default:
+        //do nothing, if can't support now, just throw exception later
+        //throw new RuntimeException("Cast to " + storageType + " is not supported yet...");
+      }
+    }
+    return nullAs.handle(convert(midExpress, storageType));
   }
 
   /** Translates a literal.
