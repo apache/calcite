@@ -515,16 +515,12 @@ public abstract class ReturnTypes {
    *
    * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
    */
-  public static final SqlReturnTypeInference DECIMAL_SUM =
-      new SqlReturnTypeInference() {
-        public RelDataType inferReturnType(
-            SqlOperatorBinding opBinding) {
-          RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-          RelDataType type1 = opBinding.getOperandType(0);
-          RelDataType type2 = opBinding.getOperandType(1);
-          return typeFactory.createDecimalAddition(type1, type2);
-        }
-      };
+  public static final SqlReturnTypeInference DECIMAL_SUM = opBinding -> {
+    RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    RelDataType type1 = opBinding.getOperandType(0);
+    RelDataType type2 = opBinding.getOperandType(1);
+    return typeFactory.createDecimalAddition(type1, type2);
+  };
 
   /**
    * Same as {@link #DECIMAL_SUM} but returns with nullability if any
@@ -542,15 +538,12 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference NULLABLE_SUM =
       new SqlReturnTypeInferenceChain(DECIMAL_SUM_NULLABLE, LEAST_RESTRICTIVE);
 
-  public static final SqlReturnTypeInference DECIMAL_MOD =
-      new SqlReturnTypeInference() {
-        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-          RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-          RelDataType type1 = opBinding.getOperandType(0);
-          RelDataType type2 = opBinding.getOperandType(1);
-          return typeFactory.createDecimalMod(type1, type2);
-        }
-      };
+  public static final SqlReturnTypeInference DECIMAL_MOD = opBinding -> {
+    RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    RelDataType type1 = opBinding.getOperandType(0);
+    RelDataType type2 = opBinding.getOperandType(1);
+    return typeFactory.createDecimalMod(type1, type2);
+  };
 
   private static final SqlReturnTypeInference DECIMAL_MOD_NULLABLE =
           cascade(DECIMAL_MOD, SqlTypeTransforms.TO_NULLABLE);
@@ -560,7 +553,7 @@ public abstract class ReturnTypes {
    * These rules are used for addition and subtraction.
    */
   public static final SqlReturnTypeInference NULLABLE_MOD =
-          new SqlReturnTypeInferenceChain(DECIMAL_MOD_NULLABLE, ARG1_NULLABLE);
+          chain(DECIMAL_MOD_NULLABLE, ARG1_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is
