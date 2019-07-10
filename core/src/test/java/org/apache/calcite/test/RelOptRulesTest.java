@@ -426,7 +426,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     // not in (select dept.deptno from dept where emp.deptno > 20)
     RelNode left = relBuilder.scan("EMP").build();
     RelNode right = relBuilder.scan("DEPT").build();
-    RelNode join = relBuilder.push(left)
+    RelNode relNode = relBuilder.push(left)
         .push(right)
         .antiJoin(
             relBuilder.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
@@ -435,10 +435,7 @@ public class RelOptRulesTest extends RelOptTestBase {
             relBuilder.call(SqlStdOperatorTable.GREATER_THAN,
             RexInputRef.of(0, left.getRowType()),
             relBuilder.literal(20)))
-        .build();
-
-    relBuilder.push(join);
-    RelNode relNode = relBuilder.project(relBuilder.field(0))
+        .project(relBuilder.field(0))
         .build();
 
     HepProgram program = new HepProgramBuilder()
@@ -461,20 +458,15 @@ public class RelOptRulesTest extends RelOptTestBase {
     // select * from emp
     // where emp.deptno
     // not in (select dept.deptno from dept where dept.dname = 'ddd')
-    RelNode left = relBuilder.scan("EMP").build();
-    RelNode right = relBuilder.scan("DEPT").build();
-    RelNode join = relBuilder.push(left)
-        .push(right)
+    RelNode relNode = relBuilder.scan("EMP")
+        .scan("DEPT")
         .antiJoin(
             relBuilder.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
                 relBuilder.field(2, 0, "DEPTNO"),
                 relBuilder.field(2, 1, "DEPTNO")),
             relBuilder.equals(relBuilder.field(2, 1, "DNAME"),
                 relBuilder.literal("ddd")))
-        .build();
-
-    relBuilder.push(join);
-    RelNode relNode = relBuilder.project(relBuilder.field(0))
+        .project(relBuilder.field(0))
         .build();
 
     HepProgram program = new HepProgramBuilder()
@@ -502,7 +494,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     // in (select dept.deptno from dept where emp.empno > 20)
     RelNode left = relBuilder.scan("EMP").build();
     RelNode right = relBuilder.scan("DEPT").build();
-    RelNode join = relBuilder.push(left)
+    RelNode relNode = relBuilder.push(left)
         .push(right)
         .semiJoin(
             relBuilder.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
@@ -511,10 +503,7 @@ public class RelOptRulesTest extends RelOptTestBase {
             relBuilder.call(SqlStdOperatorTable.GREATER_THAN,
                 RexInputRef.of(0, left.getRowType()),
                 relBuilder.literal(20)))
-        .build();
-
-    relBuilder.push(join);
-    RelNode relNode = relBuilder.project(relBuilder.field(0))
+        .project(relBuilder.field(0))
         .build();
 
     HepProgram program = new HepProgramBuilder()
@@ -5314,6 +5303,36 @@ public class RelOptRulesTest extends RelOptTestBase {
 
     String planAfter = NL + RelOptUtil.toString(relAfter);
     getDiffRepos().assertEquals("planAfter", "${planAfter}", planAfter);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3188">[CALCITE-3188]
+   * IndexOutOfBoundsException in ProjectFilterTransposeRule when executing SELECT COUNT(*)</a>. */
+  @Test public void testProjectFilterTransposeRuleOnEmptyRowType() {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    // build a rel equivalent to sql:
+    // select `empty` from emp
+    // where emp.deptno = 20
+    RelNode relNode = relBuilder.scan("EMP")
+        .filter(relBuilder
+            .equals(
+                relBuilder.field(1, 0, "DEPTNO"),
+                relBuilder.literal(20)))
+        .project(ImmutableList.of())
+        .build();
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ProjectFilterTransposeRule.INSTANCE)
+        .build();
+
+    HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    RelNode output = hepPlanner.findBestExp();
+
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    SqlToRelTestBase.assertValid(output);
   }
 
   @Ignore("[CALCITE-1045]")
