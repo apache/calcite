@@ -25,6 +25,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -99,7 +100,9 @@ public class ProjectFilterTransposeRule extends RelOptRule {
     }
 
     if ((origProj != null)
-        && origProj.getRowType().getFieldList().get(0).isDynamicStar()) {
+        && origProj.getRowType().isStruct()
+        && origProj.getRowType().getFieldList().stream()
+          .anyMatch(RelDataTypeField::isDynamicStar)) {
       // The PushProjector would change the plan:
       //
       //    prj(**=[$0])
