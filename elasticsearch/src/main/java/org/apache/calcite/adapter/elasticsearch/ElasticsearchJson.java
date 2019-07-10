@@ -123,10 +123,12 @@ final class ElasticsearchJson {
     Iterable<Map.Entry<String, JsonNode>> iter = mapping::fields;
     for (Map.Entry<String, JsonNode> entry : iter) {
       final String name = entry.getKey();
-      final ObjectNode node = (ObjectNode) entry.getValue();
-      path.add(name);
-      visitMappingProperties(path, node, consumer);
-      path.removeLast();
+      if (entry.getValue() instanceof ObjectNode) {
+        final ObjectNode node = (ObjectNode) entry.getValue();
+        path.add(name);
+        visitMappingProperties(path, node, consumer);
+        path.removeLast();
+      }
     }
   }
 

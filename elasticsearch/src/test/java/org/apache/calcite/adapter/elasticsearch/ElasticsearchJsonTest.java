@@ -19,6 +19,8 @@ package org.apache.calcite.adapter.elasticsearch;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableMap;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -176,6 +178,41 @@ public class ElasticsearchJsonTest {
     assertThat(rows.get(1).get("col1"), is("k2"));
     assertThat(rows.get(1).get("col2"), is("k4"));
     assertThat(rows.get(1).get("max"), is(42));
+  }
+
+  @Test
+  public void visitMappingPropertiesTest() throws Exception {
+    String mappingJson = "{\n" +
+            "        \"mappings\":{\n" +
+            "            \"default\":{\n" +
+            "                \"properties\":{\n" +
+            "                    \"city\":{\n" +
+            "                        \"type\":\"keyword\"\n" +
+            "                    },\n" +
+            "                    \"state\":{\n" +
+            "                        \"type\":\"text\"\n" +
+            "                    },\n" +
+            "                    \"pop\":{\n" +
+            "                        \"type\":\"long\"\n" +
+            "                    }\n" +
+            "                }\n" +
+            "            },\n" +
+            "            \"type1\":{\n" +
+            "                \"_source\":{\n" +
+            "                    \"enabled\":false\n" +
+            "                }\n" +
+            "            }\n" +
+            "        }\n" +
+            "    }";
+    ObjectNode root = new ObjectMapper().readValue(mappingJson, ObjectNode.class);
+    ObjectNode properties = (ObjectNode) root.get("mappings");
+
+    ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+    ElasticsearchJson.visitMappingProperties(properties, builder::put);
+    Map<String, String> mapping = builder.build();
+    assertThat(mapping.get("default.city"), is("keyword"));
+    assertThat(mapping.get("default.state"), is("text"));
+    assertThat(mapping.get("default.pop"), is("long"));
   }
 
 }
