@@ -24,6 +24,9 @@ import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rules.UnionMergeRule;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.FlatLists;
@@ -39,9 +42,11 @@ import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
+import org.apache.calcite.sql.dialect.OracleSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
@@ -69,7 +74,9 @@ import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for {@link RelToSqlConverter}.
@@ -443,9 +450,17 @@ public class RelToSqlConverterTest {
   @Test public void testCastLongVarchar1() {
     final String query = "select cast(\"store_id\" as VARCHAR(10485761))\n"
         + " from \"expense_fact\"";
-    final String expected = "SELECT CAST(\"store_id\" AS VARCHAR(256))\n"
+    final String expectedPostgreSQL = "SELECT CAST(\"store_id\" AS VARCHAR(256))\n"
         + "FROM \"foodmart\".\"expense_fact\"";
-    sql(query).withPostgresqlModifiedTypeSystem().ok(expected);
+    sql(query)
+        .withPostgresqlModifiedTypeSystem()
+        .ok(expectedPostgreSQL);
+
+    final String expectedOracle = "SELECT CAST(\"store_id\" AS VARCHAR(512))\n"
+        + "FROM \"foodmart\".\"expense_fact\"";
+    sql(query)
+        .withOracleModifiedTypeSystem()
+        .ok(expectedOracle);
   }
 
   /** Test case for
@@ -455,9 +470,17 @@ public class RelToSqlConverterTest {
   @Test public void testCastLongVarchar2() {
     final String query = "select cast(\"store_id\" as VARCHAR(175))\n"
         + " from \"expense_fact\"";
-    final String expected = "SELECT CAST(\"store_id\" AS VARCHAR(175))\n"
+    final String expectedPostgreSQL = "SELECT CAST(\"store_id\" AS VARCHAR(175))\n"
         + "FROM \"foodmart\".\"expense_fact\"";
-    sql(query).withPostgresqlModifiedTypeSystem().ok(expected);
+    sql(query)
+        .withPostgresqlModifiedTypeSystem()
+        .ok(expectedPostgreSQL);
+
+    final String expectedOracle = "SELECT CAST(\"store_id\" AS VARCHAR(175))\n"
+        + "FROM \"foodmart\".\"expense_fact\"";
+    sql(query)
+        .withOracleModifiedTypeSystem()
+        .ok(expectedOracle);
   }
 
   /** Test case for
@@ -3443,6 +3466,73 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testSmallintOracle() {
+    String query = "SELECT CAST(\"department_id\" AS SMALLINT) FROM \"employee\"";
+    String expected = "SELECT CAST(\"department_id\" AS NUMBER(5))\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withOracle()
+        .ok(expected);
+  }
+
+  @Test public void testBigintOracle() {
+    String query = "SELECT CAST(\"department_id\" AS BIGINT) FROM \"employee\"";
+    String expected = "SELECT CAST(\"department_id\" AS NUMBER(19))\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withOracle()
+        .ok(expected);
+  }
+
+  @Test public void testDoubleOracle() {
+    String query = "SELECT CAST(\"department_id\" AS DOUBLE) FROM \"employee\"";
+    String expected = "SELECT CAST(\"department_id\" AS DOUBLE PRECISION)\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withOracle()
+        .ok(expected);
+  }
+
+  @Test public void testDateLiteralOracle() {
+    String query = "SELECT DATE '1978-05-02' FROM \"employee\"";
+    String expected = "SELECT TO_DATE ('1978-05-02', 'YYYY-MM-DD')\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withOracle()
+        .ok(expected);
+  }
+
+  @Test public void testTimestampLiteralOracle() {
+    String query = "SELECT TIMESTAMP '1978-05-02 12:34:56.78' FROM \"employee\"";
+    String expected = "SELECT TO_TIMESTAMP ('1978-05-02 12:34:56.78', 'YYYY-MM-DD HH24:MI:SS.FF')\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withOracle()
+        .ok(expected);
+  }
+
+  @Test public void testTimeLiteralOracle() {
+    String query = "SELECT TIME '12:34:56.78' FROM \"employee\"";
+    String expected = "SELECT TO_TIME ('12:34:56.78', 'HH24:MI:SS.FF')\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withOracle()
+        .ok(expected);
+  }
+
+  @Test public void testSupportsDataType() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType booleanDataType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+    final RelDataType integerDataType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final SqlDialect oracleDialect = SqlDialect.DatabaseProduct.ORACLE.getDialect();
+    assertFalse(oracleDialect.supportsDataType(booleanDataType));
+    assertTrue(oracleDialect.supportsDataType(integerDataType));
+    final SqlDialect postgresqlDialect = SqlDialect.DatabaseProduct.POSTGRESQL.getDialect();
+    assertTrue(postgresqlDialect.supportsDataType(booleanDataType));
+    assertTrue(postgresqlDialect.supportsDataType(integerDataType));
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;
@@ -3552,6 +3642,25 @@ public class RelToSqlConverterTest {
                 }
               }));
       return dialect(postgresqlSqlDialect);
+    }
+
+    Sql withOracleModifiedTypeSystem() {
+      // Oracle dialect with max length for varchar set to 512
+      final OracleSqlDialect oracleSqlDialect =
+          new OracleSqlDialect(SqlDialect.EMPTY_CONTEXT
+              .withDatabaseProduct(DatabaseProduct.ORACLE)
+              .withIdentifierQuoteString("\"")
+              .withDataTypeSystem(new RelDataTypeSystemImpl() {
+                @Override public int getMaxPrecision(SqlTypeName typeName) {
+                  switch (typeName) {
+                    case VARCHAR:
+                      return 512;
+                    default:
+                      return super.getMaxPrecision(typeName);
+                  }
+                }
+              }));
+      return dialect(oracleSqlDialect);
     }
 
     Sql config(SqlToRelConverter.Config config) {

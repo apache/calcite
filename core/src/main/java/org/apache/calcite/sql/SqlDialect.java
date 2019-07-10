@@ -696,6 +696,11 @@ public class SqlDialect {
     return CalendarPolicy.NULL;
   }
 
+  /** Returns whether this dialect supports a given type. */
+  public boolean supportsDataType(RelDataType type) {
+    return true;
+  }
+
   public SqlNode getCastSpec(RelDataType type) {
     if (type instanceof BasicSqlType) {
       int precision = type.getPrecision();
