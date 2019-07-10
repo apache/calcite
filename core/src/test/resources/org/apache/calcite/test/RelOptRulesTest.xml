@@ -9590,6 +9590,16 @@ EnumerableProject(N_REGIONKEY=[ITEM($0, 'N_REGIONKEY')])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testProjectFilterTransposeRuleOnEmptyRowType">
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject
+  LogicalFilter(condition=[=($0, 20)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[scott, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testExpandFilterExists">
         <Resource name="sql">
             <![CDATA[select empno
