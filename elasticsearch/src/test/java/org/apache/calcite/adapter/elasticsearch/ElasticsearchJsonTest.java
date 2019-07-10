@@ -18,9 +18,9 @@ package org.apache.calcite.adapter.elasticsearch;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -182,28 +182,27 @@ public class ElasticsearchJsonTest {
 
   @Test
   public void visitMappingPropertiesTest() throws Exception {
-    String mappingJson = "{\n" +
-            "        \"mappings\":{\n" +
-            "            \"default\":{\n" +
-            "                \"properties\":{\n" +
-            "                    \"city\":{\n" +
-            "                        \"type\":\"keyword\"\n" +
-            "                    },\n" +
-            "                    \"state\":{\n" +
-            "                        \"type\":\"text\"\n" +
-            "                    },\n" +
-            "                    \"pop\":{\n" +
-            "                        \"type\":\"long\"\n" +
-            "                    }\n" +
-            "                }\n" +
-            "            },\n" +
-            "            \"type1\":{\n" +
-            "                \"_source\":{\n" +
-            "                    \"enabled\":false\n" +
-            "                }\n" +
-            "            }\n" +
-            "        }\n" +
-            "    }";
+    String mappingJson = "{"
+            + "\"mappings\":{"
+            + "    \"default\":{"
+            + "        \"properties\":{"
+            + "            \"city\":{"
+            + "                \"type\":\"keyword\""
+            + "            },"
+            + "            \"state\":{"
+            + "                \"type\":\"text\""
+            + "            },"
+            + "            \"pop\":{"
+            + "                \"type\":\"long\""
+            + "            }"
+            + "        }"
+            + "    },"
+            + "    \"type1\":{"
+            + "        \"_source\":{"
+            + "            \"enabled\":false"
+            + "        }"
+            + "    }"
+            + "}}";
     ObjectNode root = new ObjectMapper().readValue(mappingJson, ObjectNode.class);
     ObjectNode properties = (ObjectNode) root.get("mappings");
 
