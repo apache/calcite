@@ -106,6 +106,15 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
     return new ScalarFunctionImpl(method, implementor);
   }
 
+
+  /**
+   * Creates unsafe version of {@link ScalarFunction} from any method. The method
+   * does not need to be static or belong to a class with default constructor. It is
+   * the responsibility of the underlying engine to initialize the UDF object that
+   * contain the method.
+   *
+   * @param method method that is used to implement the function
+   */
   public static ScalarFunction createUnsafe(Method method) {
     CallImplementor implementor = createImplementor(method);
     return new ScalarFunctionImpl(method, implementor);
