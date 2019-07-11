@@ -120,18 +120,6 @@ public class PigRelBuilder extends RelBuilder {
     return group(option, partitioner, parallel, ImmutableList.copyOf(groupKeys));
   }
 
-  protected void validateGroupList(List<GroupKeyImpl> groupKeyList) {
-    if (groupKeyList.isEmpty()) {
-      throw new IllegalArgumentException("must have at least one group");
-    }
-    final int groupCount = groupKeyList.get(0).nodes.size();
-    for (GroupKeyImpl groupKey : groupKeyList) {
-      if (groupKey.nodes.size() != groupCount) {
-        throw new IllegalArgumentException("group key size mismatch");
-      }
-    }
-  }
-
   public PigRelBuilder group(GroupOption option, Partitioner partitioner,
       int parallel, Iterable<? extends GroupKey> groupKeys) {
     @SuppressWarnings("unchecked") final List<GroupKeyImpl> groupKeyList =
@@ -162,6 +150,18 @@ public class PigRelBuilder extends RelBuilder {
       }
     }
     return this;
+  }
+
+  protected void validateGroupList(List<GroupKeyImpl> groupKeyList) {
+    if (groupKeyList.isEmpty()) {
+      throw new IllegalArgumentException("must have at least one group");
+    }
+    final int groupCount = groupKeyList.get(0).nodes.size();
+    for (GroupKeyImpl groupKey : groupKeyList) {
+      if (groupKey.nodes.size() != groupCount) {
+        throw new IllegalArgumentException("group key size mismatch");
+      }
+    }
   }
 
   public String getAlias() {
