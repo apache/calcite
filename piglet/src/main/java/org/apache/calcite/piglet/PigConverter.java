@@ -231,7 +231,8 @@ public class PigConverter extends PigServer {
     final List<String> sqlStatments = new ArrayList<>();
     for (RelNode rel : finalRels) {
       final SqlNode sqlNode = sqlConverter.visitChild(0, rel).asStatement();
-      sqlStatments.add(sqlNode.toSqlString(writer).getSql());
+      sqlNode.unparse(writer, 0, 0);
+      sqlStatments.add(writer.toString());
     }
     return  sqlStatments;
   }
