@@ -18,7 +18,6 @@ package org.apache.calcite.tools;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteSchema;
-import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.materialize.SqlStatisticProvider;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
@@ -173,7 +172,7 @@ public class Frameworks {
             config.getTypeSystem().getClass().getName());
       }
       Connection connection =
-          DriverManager.getConnection(Driver.getDefaultConnectStringPrefix(), info);
+          DriverManager.getConnection("jdbc:calcite:", info);
       final CalciteServerStatement statement =
           connection.createStatement()
               .unwrap(CalciteServerStatement.class);

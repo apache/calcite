@@ -20,7 +20,6 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
-import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.materialize.MaterializationKey;
 import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.plan.RelOptTable;
@@ -57,8 +56,7 @@ public class MaterializedViewTable extends ViewTable {
 
   static {
     try {
-      MATERIALIZATION_CONNECTION =
-          DriverManager.getConnection(Driver.getDefaultConnectStringPrefix())
+      MATERIALIZATION_CONNECTION = DriverManager.getConnection("jdbc:calcite:")
           .unwrap(CalciteConnection.class);
     } catch (SQLException e) {
       throw new RuntimeException(e);

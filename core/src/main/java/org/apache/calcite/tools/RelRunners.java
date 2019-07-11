@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.tools;
 
-import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.rel.RelNode;
 
 import java.sql.Connection;
@@ -30,8 +29,7 @@ public class RelRunners {
 
   /** Runs a relational expression by creating a JDBC connection. */
   public static PreparedStatement run(RelNode rel) {
-    try (Connection connection =
-        DriverManager.getConnection(Driver.getDefaultConnectStringPrefix())) {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
       final RelRunner runner = connection.unwrap(RelRunner.class);
       return runner.prepare(rel);
     } catch (SQLException e) {
