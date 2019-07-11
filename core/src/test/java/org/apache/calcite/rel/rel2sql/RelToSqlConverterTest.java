@@ -3328,7 +3328,7 @@ public class RelToSqlConverterTest {
         callsUnparseCallOnSqlSelect[0], is(true));
   }
 
-  @Test public void testLateralJoin() {
+  @Test public void testCorrelate() {
     final String sql = "select d.\"department_id\", d_plusOne "
         + "from \"department\" as d, "
         + "       lateral (select d.\"department_id\" + 1 as d_plusOne"
