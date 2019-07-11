@@ -583,8 +583,11 @@ public class ReflectiveSchemaTest {
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
         .planContains(
             "final Long inp13_ = current.wrapperLong;")
-        .planContains(
-            "return inp13_ == null ? (Long) null : Long.valueOf(inp13_.longValue() / current.primitiveLong);")
+        .planContains("      Long _call_result = (Long) null;\n"
+            + "              if (inp13_ != null) {\n"
+            + "                _call_result = Long.valueOf(inp13_.longValue() / current.primitiveLong);\n"
+            + "              }\n"
+            + "              final Long _call_result0 = _call_result;")
         .returns("C=null\n");
   }
 
@@ -595,8 +598,11 @@ public class ReflectiveSchemaTest {
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
         .planContains(
             "final Long inp13_ = ((org.apache.calcite.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
-        .planContains(
-            "return inp13_ == null ? (Long) null : Long.valueOf(inp13_.longValue() / inp13_.longValue());")
+        .planContains("      Long _call_result = (Long) null;\n"
+            + "              if (inp13_ != null) {\n"
+            + "                _call_result = Long.valueOf(inp13_.longValue() / inp13_.longValue());\n"
+            + "              }\n"
+            + "              final Long _call_result0 = _call_result;")
         .returns("C=null\n");
   }
 
@@ -608,8 +614,11 @@ public class ReflectiveSchemaTest {
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
         .planContains(
             "final Long inp13_ = ((org.apache.calcite.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
-        .planContains(
-            "return inp13_ == null ? (Long) null : Long.valueOf(inp13_.longValue() / inp13_.longValue() + inp13_.longValue() / inp13_.longValue());")
+        .planContains("      Long _call_result = (Long) null;\n"
+            + "              if (inp13_ != null) {\n"
+            + "                _call_result = Long.valueOf(inp13_.longValue() / inp13_.longValue() + inp13_.longValue() / inp13_.longValue());\n"
+            + "              }\n"
+            + "              final Long _call_result0 = _call_result;")
         .returns("C=null\n");
   }
 

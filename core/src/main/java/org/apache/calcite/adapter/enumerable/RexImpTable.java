@@ -1030,6 +1030,12 @@ public class RexImpTable {
         nullPolicy == NullPolicy.ARG0
             ? Collections.singletonList(call.getOperands().get(0))
             : call.getOperands();
+    final Map<RexNode, Boolean> nullable = new HashMap<>();
+
+    BlockBuilder mainBuilder = translator.getBlockBuilder();
+    BlockBuilder branchBuilder = new BlockBuilder(true, mainBuilder);
+    BlockBuilder notNullBuilder = new BlockBuilder(true, branchBuilder);
+
     switch (nullAs) {
     case NULL:
     case IS_NULL:
@@ -1040,31 +1046,32 @@ public class RexImpTable {
           list.add(
               translator.translate(
                   operand.e, NullAs.IS_NULL));
-          translator = translator.setNullable(operand.e, false);
+          nullable.put(operand.e, false);
         }
       }
-      final Expression box =
-          Expressions.box(
-              implementCall(translator, call, implementor, nullAs));
-      final Expression ifTrue;
+      // It is not null-safe to implement call by current translator
+      // even its operands have be translated with IS_NULL.
+      // We keep this code branch in another translator
+      RexToLixTranslator notNullTranslator =
+          translator.setNullable(nullable).setBlock(notNullBuilder);
+      final Expression branchValue = Expressions.box(
+          implementCall(notNullTranslator, call, implementor, nullAs));
+      final Expression defaultValue;
       switch (nullAs) {
       case NULL:
-        ifTrue = Types.castIfNecessary(box.getType(), NULL_EXPR);
+        defaultValue = Types.castIfNecessary(branchValue.getType(), NULL_EXPR);
         break;
       case IS_NULL:
-        ifTrue = TRUE_EXPR;
+        defaultValue = TRUE_EXPR;
         break;
       case IS_NOT_NULL:
-        ifTrue = FALSE_EXPR;
+        defaultValue = FALSE_EXPR;
         break;
       default:
         throw new AssertionError();
       }
-      return optimize(
-          Expressions.condition(
-              Expressions.foldOr(list),
-              ifTrue,
-              box));
+      return addBranch(mainBuilder, branchBuilder, notNullBuilder, defaultValue,
+              Expressions.not(Expressions.foldOr(list)), branchValue, true);
     case FALSE:
       // v0 != null && v1 != null && f(v0, v1)
       for (Ord<RexNode> operand : Ord.zip(conditionalOps)) {
@@ -1072,11 +1079,15 @@ public class RexImpTable {
           list.add(
               translator.translate(
                   operand.e, NullAs.IS_NOT_NULL));
-          translator = translator.setNullable(operand.e, false);
+          nullable.put(operand.e, false);
         }
       }
-      list.add(implementCall(translator, call, implementor, nullAs));
-      return Expressions.foldAnd(list);
+      RexToLixTranslator notNullTranslator2 =
+          translator.setNullable(nullable).setBlock(notNullBuilder);
+      final Expression branchValue2 =
+              implementCall(notNullTranslator2, call, implementor, nullAs);
+      return addBranch(mainBuilder, branchBuilder, notNullBuilder, FALSE_EXPR,
+              Expressions.foldAnd(list), branchValue2, false);
     case TRUE:
       // v0 == null || v1 == null || f(v0, v1)
       for (Ord<RexNode> operand : Ord.zip(conditionalOps)) {
@@ -1084,11 +1095,15 @@ public class RexImpTable {
           list.add(
               translator.translate(
                   operand.e, NullAs.IS_NULL));
-          translator = translator.setNullable(operand.e, false);
+          nullable.put(operand.e, false);
         }
       }
-      list.add(implementCall(translator, call, implementor, nullAs));
-      return Expressions.foldOr(list);
+      RexToLixTranslator notNullTranslator3 =
+          translator.setNullable(nullable).setBlock(notNullBuilder);
+      final Expression defaultValue3 =
+              implementCall(notNullTranslator3, call, implementor, nullAs);
+      return addBranch(mainBuilder, branchBuilder, notNullBuilder, TRUE_EXPR,
+              Expressions.not(Expressions.foldOr(list)), defaultValue3, false);
     case NOT_POSSIBLE:
       // Need to transmit to the implementor the fact that call cannot
       // return null. In particular, it should return a primitive (e.g.
@@ -1096,7 +1111,6 @@ public class RexImpTable {
       // The cases with setNullable above might not help since the same
       // RexNode can be referred via multiple ways: RexNode itself, RexLocalRef,
       // and may be others.
-      final Map<RexNode, Boolean> nullable = new HashMap<>();
       switch (nullPolicy) {
       case STRICT:
         // The arguments should be not nullable if STRICT operator is computed
@@ -1113,6 +1127,58 @@ public class RexImpTable {
     default:
       return implementCall(translator, call, implementor, nullAs);
     }
+  }
+
+  /**
+   * Add the code branch for RexCall implementation into the main code branch
+   * ----------------------------sample code---------------------------------
+   *     Type _call_result = "defaultValue";
+   *     if ("condition") {
+   *       .............................
+   *       _call_result = "branchValue";
+   *     }
+   *     final _call_result0 = _call_result;
+   * ------------------------------------------------------------------------
+   */
+  private static Expression addBranch(
+      final BlockBuilder mainBuilder,
+      final BlockBuilder branchBuilder,
+      final BlockBuilder notNullBuilder,
+      final Expression defaultValue,
+      final Expression condition,
+      final Expression branchValue,
+      boolean needFinalVariable) {
+    Expression result;
+
+    // Type _call_result = "defaultValue"
+    // e.g., Integer _call_result = (Integer) null;
+    String callResultName = "_call_result";
+    ParameterExpression callResult =
+        Expressions.parameter(defaultValue.getType(),
+            branchBuilder.newName(callResultName));
+    branchBuilder.add(Expressions.declare(0, callResult, defaultValue));
+
+    // Assign "branchValue" to call result variable at the end of "notNullBuilder"
+    // i.e., _call_result = "branchValue"
+    notNullBuilder.add(
+        Expressions.statement(Expressions.assign(callResult, branchValue)));
+
+    // Add if-clause into "branchBuilder"
+    branchBuilder.add(Expressions.ifThen(condition, notNullBuilder.toBlock()));
+    result = callResult;
+
+    // Create a final variable if it is necessary
+    if (needFinalVariable) {
+      ParameterExpression final_result =
+          Expressions.parameter(
+              callResult.getType(),
+                  branchBuilder.newName(callResultName));
+      branchBuilder.add(
+          Expressions.declare(Modifier.FINAL, final_result, callResult));
+      result = final_result;
+    }
+    mainBuilder.append("branch", branchBuilder.toBlock());
+    return result;
   }
 
   private static Expression implementCall(

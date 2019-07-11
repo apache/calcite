@@ -2356,12 +2356,6 @@ public class JdbcTest {
     CalciteAssert.hr()
         .query(
             "select upper((case when \"empid\">\"deptno\"*10 then 'y' else null end)) T from \"hr\".\"emps\"")
-        .planContains("static final String "
-            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_upper_y_ = "
-            + "org.apache.calcite.runtime.SqlFunctions.upper(\"y\");")
-        .planContains("return current.empid <= current.deptno * 10 "
-            + "? (String) null "
-            + ": $L4J$C$org_apache_calcite_runtime_SqlFunctions_upper_y_;")
         .returns("T=null\n"
             + "T=null\n"
             + "T=Y\n"
@@ -2374,10 +2368,6 @@ public class JdbcTest {
             "select upper((case when \"empid\">\"deptno\"*10 then \"name\" end)) T from \"hr\".\"emps\"")
         .planContains(
             "final String inp2_ = current.name;")
-        .planContains("return current.empid <= current.deptno * 10 "
-            + "|| inp2_ == null "
-            + "? (String) null "
-            + ": org.apache.calcite.runtime.SqlFunctions.upper(inp2_);")
         .returns("T=null\n"
             + "T=null\n"
             + "T=SEBASTIAN\n"
@@ -2387,19 +2377,7 @@ public class JdbcTest {
   @Test public void testReuseExpressionWhenNullChecking3() {
     CalciteAssert.hr()
         .query(
-            "select substring(\"name\", \"deptno\"+case when CURRENT_PATH <> '' then 1 end) from \"hr\".\"emps\"")
-        .planContains(
-            "final String inp2_ = current.name;")
-        .planContains("static final boolean "
-            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_ne_ = "
-            + "org.apache.calcite.runtime.SqlFunctions.ne(\"\", \"\");")
-        .planContains("static final boolean "
-            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_ne_ = "
-            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_ne_;")
-        .planContains("return inp2_ == null "
-            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_ne_ ? (String) null"
-            + " : org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
-            + "current.deptno + 1);");
+            "select substring(\"name\", \"deptno\"+case when CURRENT_PATH <> '' then 1 end) from \"hr\".\"emps\"");
   }
 
   @Test public void testReuseExpressionWhenNullChecking4() {
@@ -2413,24 +2391,6 @@ public class JdbcTest {
             + "   end-2) T\n"
             + "from\n"
             + "\"hr\".\"emps\"")
-        .planContains(
-            "final String inp2_ = current.name;")
-        .planContains(
-            "final int inp1_ = current.deptno;")
-        .planContains("static final boolean "
-            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_ = "
-            + "org.apache.calcite.runtime.SqlFunctions.eq(\"\", \"\");")
-        .planContains("static final boolean "
-            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_ = "
-            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_;")
-        .planContains("return inp2_ == null "
-            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_ "
-            + "|| !v5 && inp1_ * 8 <= 8 "
-            + "? (String) null "
-            + ": org.apache.calcite.runtime.SqlFunctions.substring("
-            + "org.apache.calcite.runtime.SqlFunctions.trim(true, true, \" \", "
-            + "org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
-            + "inp1_ * 0 + 1), true), (v5 ? 4 : 5) - 2);")
         .returns("T=ill\n"
             + "T=ric\n"
             + "T=ebastian\n"
@@ -2448,26 +2408,6 @@ public class JdbcTest {
             + "   end-2) T\n"
             + "from\n"
             + "\"hr\".\"emps\"")
-        .planContains(
-            "final String inp2_ = current.name;")
-        .planContains(
-            "final int inp1_ = current.deptno;")
-        .planContains(
-            "static final int $L4J$C$5_2 = 5 - 2;")
-        .planContains("static final boolean "
-            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_ = "
-            + "org.apache.calcite.runtime.SqlFunctions.eq(\"\", \"\");")
-        .planContains("static final boolean "
-            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_ = "
-            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_;")
-        .planContains("return inp2_ == null "
-            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_ "
-            + "|| current.empid <= inp1_ && inp1_ * 8 <= 8 "
-            + "? (String) null "
-            + ": org.apache.calcite.runtime.SqlFunctions.substring("
-            + "org.apache.calcite.runtime.SqlFunctions.trim(true, true, \" \", "
-            + "org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
-            + "inp1_ * 0 + 1), true), $L4J$C$5_2);")
         .returns("T=ll\n"
             + "T=ic\n"
             + "T=bastian\n"
@@ -2492,6 +2432,22 @@ public class JdbcTest {
     CalciteAssert.that()
         .query("values (-2-1)")
         .returns("EXPR$0=-3\n");
+  }
+
+  @Test public void testNullSafe1() {
+    CalciteAssert.hr()
+        .query("SELECT ROUND(CAST((X/Y) AS NUMERIC), 2) "
+            + "FROM (VALUES (1, 2), (NULLIF(5, 5), NULLIF(5, 5))) A(X, Y)")
+        .returns("EXPR$0=0.00\n"
+            + "EXPR$0=null\n");
+  }
+
+  @Test public void testNullSafe2() {
+    CalciteAssert.hr()
+        .query("SELECT \"name\" "
+            + "FROM \"hr\".\"emps\" "
+            + "WHERE (floor(\"commission\"*1.0)) > 567.8")
+        .returns("name=Bill\n");
   }
 
   /** Test case for
@@ -3484,34 +3440,7 @@ public class JdbcTest {
             "deptno=10; empid=100; S=10100.0; FIVE=5; M=10000.0; C=1",
             "deptno=10; empid=110; S=21710.0; FIVE=5; M=10000.0; C=2",
             "deptno=10; empid=150; S=18760.0; FIVE=5; M=7000.0; C=2",
-            "deptno=20; empid=200; S=8200.0; FIVE=5; M=8000.0; C=1")
-        .planContains(CalciteSystemProperty.DEBUG.value()
-            ? "_list.add(new Object[] {\n"
-            + "        row[0],\n" // box-unbox is optimized
-            + "        row[1],\n"
-            + "        row[2],\n"
-            + "        row[3],\n"
-            + "        COUNTa0w0,\n"
-            + "        $SUM0a1w0,\n"
-            + "        MINa2w0,\n"
-            + "        COUNTa3w0});"
-            : "_list.add(new Object[] {\n"
-            + "        row[0],\n" // box-unbox is optimized
-            + "        row[1],\n"
-            + "        row[2],\n"
-            + "        row[3],\n"
-            + "        a0w0,\n"
-            + "        a1w0,\n"
-            + "        a2w0,\n"
-            + "        a3w0});")
-        .planContains("return new Object[] {\n"
-            + "                  current[1],\n"
-            + "                  current[0],\n"
-            // Float.valueOf(SqlFunctions.toFloat(current[5])) comes from SUM0
-            + "                  org.apache.calcite.runtime.SqlFunctions.toLong(current[4]) > 0L ? Float.valueOf(org.apache.calcite.runtime.SqlFunctions.toFloat(current[5])) : (Float) null,\n"
-            + "                  5,\n"
-            + "                  current[6],\n"
-            + "                  current[7]};\n");
+            "deptno=20; empid=200; S=8200.0; FIVE=5; M=8000.0; C=1");
   }
 
   /** Tests windowed aggregation with multiple windows.

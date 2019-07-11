@@ -1212,6 +1212,10 @@ public class RexToLixTranslator {
         nullable, builder, conformance, this, correlates);
   }
 
+  BlockBuilder getBlockBuilder() {
+    return list;
+  }
+
   public RexToLixTranslator setBlock(BlockBuilder block) {
     if (block == list) {
       return this;

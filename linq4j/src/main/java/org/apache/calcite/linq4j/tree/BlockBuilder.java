@@ -89,6 +89,14 @@ public class BlockBuilder {
     return append(name, block, true);
   }
 
+  private void addVariableName(String name) {
+    BlockBuilder tmp = parent;
+    while (tmp != null) {
+      tmp.variables.add(name);
+      tmp = tmp.parent;
+    }
+  }
+
   /**
    * Appends an expression to a list of statements, optionally optimizing it
    * to a variable if it is used more than once.
@@ -121,7 +129,8 @@ public class BlockBuilder {
       }
       if (statement instanceof DeclarationStatement) {
         DeclarationStatement declaration = (DeclarationStatement) statement;
-        if (!variables.contains(declaration.parameter.name)) {
+        if (!hasVariable(declaration.parameter.name)) {
+          addVariableName(declaration.parameter.name);
           add(statement);
         } else {
           String newName = newName(declaration.parameter.name, optimize);
@@ -135,6 +144,7 @@ public class BlockBuilder {
             DeclarationStatement newDeclaration = Expressions.declare(
                 declaration.modifiers, pe, declaration.initializer);
             x = pe;
+            addVariableName(newName);
             add(newDeclaration);
           }
           statement = null;
