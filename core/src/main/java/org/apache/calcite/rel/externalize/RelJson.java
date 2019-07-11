@@ -330,6 +330,12 @@ public class RelJson {
       final Object value = literal.getValue3();
       map = jsonBuilder.map();
       map.put("literal", value);
+      if (value instanceof Enum) {
+        // Using the name "flag" to be be in consistent
+        // with the method "makeFlag" of RexBuilder, which will
+        // be used for converting an Enum object to a RexLiteral.
+        map.put("flag", value.getClass().getName());
+      }
       map.put("type", toJson(node.getType()));
       return map;
     case INPUT_REF:
@@ -516,6 +522,18 @@ public class RelJson {
           // To keep backwards compatibility, if type is not specified
           // we just interpret the literal
           return toRex(relInput, literal);
+        }
+        if (map.containsKey("flag")) {
+          // rebuild flag.
+          String className = (String) map.get("flag");
+          try {
+            Class<Enum> clazz = (Class<Enum>) Class.forName(className);
+            Enum flag = Enum.valueOf(clazz, (String) literal);
+            return rexBuilder.makeFlag(flag);
+          } catch (ClassNotFoundException e) {
+            throw new UnsupportedOperationException("cannot convert to rex "
+                + literal + " of class " + className);
+          }
         }
         return rexBuilder.makeLiteral(literal, type, false);
       }

@@ -19,7 +19,10 @@ package org.apache.calcite.plan;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.externalize.RelJsonReader;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -38,6 +41,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.JdbcTest;
+import org.apache.calcite.test.SqlToRelTestBase;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
@@ -59,7 +63,7 @@ import static org.junit.Assert.assertThat;
 /**
  * Unit test for {@link org.apache.calcite.rel.externalize.RelJson}.
  */
-public class RelWriterTest {
+public class RelWriterTest extends SqlToRelTestBase {
   public static final String XX = "{\n"
       + "  \"rels\": [\n"
       + "    {\n"
@@ -471,6 +475,39 @@ public class RelWriterTest {
         isLinux("LogicalAggregate(group=[{0}], agg#0=[COUNT(DISTINCT $1)], agg#1=[COUNT()])\n"
             + "  LogicalFilter(condition=[=($1, null:INTEGER)])\n"
             + "    LogicalTableScan(table=[[hr, emps]])\n"));
+  }
+
+  @Test public void testTrim() {
+    String sql = "select trim(ENAME) from SALES.EMP";
+    RelRoot relRoot = tester.convertSqlToRel(sql);
+    RelJsonWriter jsonWriter = new RelJsonWriter();
+    relRoot.rel.explain(jsonWriter);
+    String relJson = jsonWriter.asString();
+    // Find the schema. If there are no tables in the plan, we won't need one.
+    final RelOptSchema[] schemas = {null};
+    relRoot.rel.accept(new RelShuttleImpl() {
+      @Override public RelNode visit(TableScan scan) {
+        schemas[0] = scan.getTable().getRelOptSchema();
+        return super.visit(scan);
+      }
+    });
+    String s =
+        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+          final RelJsonReader reader = new RelJsonReader(
+              cluster,
+              schemas[0], rootSchema);
+          RelNode node;
+          try {
+            node = reader.read(relJson);
+          } catch (IOException e) {
+            throw TestUtil.rethrow(e);
+          }
+          return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
+              SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+        });
+    assertThat(s,
+        isLinux("LogicalProject(EXPR$0=[TRIM(FLAG(BOTH), ' ', $1)])\n"
+        + "  LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
   }
 }
 
