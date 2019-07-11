@@ -103,6 +103,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
+import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
@@ -884,15 +885,21 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     return typeFactory.builder().add("$0", type).build();
   }
 
-  /** Executes a prepare action. */
+  @Deprecated // to be removed before 2.0
   public <R> R perform(CalciteServerStatement statement,
       Frameworks.PrepareAction<R> action) {
+    return perform(statement, action.getConfig(), action);
+  }
+
+  /** Executes a prepare action. */
+  public <R> R perform(CalciteServerStatement statement,
+      FrameworkConfig config, Frameworks.BasePrepareAction<R> action) {
     final CalcitePrepare.Context prepareContext =
         statement.createPrepareContext();
     final JavaTypeFactory typeFactory = prepareContext.getTypeFactory();
     final CalciteSchema schema =
-        action.getConfig().getDefaultSchema() != null
-            ? CalciteSchema.from(action.getConfig().getDefaultSchema())
+        config.getDefaultSchema() != null
+            ? CalciteSchema.from(config.getDefaultSchema())
             : prepareContext.getRootSchema();
     CalciteCatalogReader catalogReader =
         new CalciteCatalogReader(schema.root(),
@@ -902,8 +909,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     final RexBuilder rexBuilder = new RexBuilder(typeFactory);
     final RelOptPlanner planner =
         createPlanner(prepareContext,
-            action.getConfig().getContext(),
-            action.getConfig().getCostFactory());
+            config.getContext(),
+            config.getCostFactory());
     final RelOptCluster cluster = createCluster(planner, rexBuilder);
     return action.apply(cluster, catalogReader,
         prepareContext.getRootSchema().plus(), statement);
