@@ -94,7 +94,7 @@ public class MongoAdapterTest implements SchemaFactory {
     // Manually insert data for data-time test.
     MongoCollection<BsonDocument> datatypes =  database.getCollection("datatypes")
         .withDocumentClass(BsonDocument.class);
-    if (datatypes.count() > 0) {
+    if (datatypes.countDocuments() > 0) {
       datatypes.deleteMany(new BsonDocument());
     }
 
@@ -112,7 +112,7 @@ public class MongoAdapterTest implements SchemaFactory {
       throws IOException {
     Objects.requireNonNull(collection, "collection");
 
-    if (collection.count() > 0) {
+    if (collection.countDocuments() > 0) {
       // delete any existing documents (run from a clean set)
       collection.deleteMany(new BsonDocument());
     }
