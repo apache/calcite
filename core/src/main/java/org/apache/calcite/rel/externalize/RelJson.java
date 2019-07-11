@@ -329,7 +329,7 @@ public class RelJson {
       final RexLiteral literal = (RexLiteral) node;
       final Object value = literal.getValue3();
       map = jsonBuilder.map();
-      map.put("literal", value);
+      map.put("literal", RelEnumTypes.fromEnum(value));
       map.put("type", toJson(node.getType()));
       return map;
     case INPUT_REF:
@@ -506,7 +506,7 @@ public class RelJson {
         return rexBuilder.makeCorrel(type, new CorrelationId(correl));
       }
       if (map.containsKey("literal")) {
-        final Object literal = map.get("literal");
+        Object literal = map.get("literal");
         final RelDataType type = toType(typeFactory, map.get("type"));
         if (literal == null) {
           return rexBuilder.makeNullLiteral(type);
@@ -516,6 +516,9 @@ public class RelJson {
           // To keep backwards compatibility, if type is not specified
           // we just interpret the literal
           return toRex(relInput, literal);
+        }
+        if (type.getSqlTypeName() == SqlTypeName.SYMBOL) {
+          literal = RelEnumTypes.toEnum((String) literal);
         }
         return rexBuilder.makeLiteral(literal, type, false);
       }

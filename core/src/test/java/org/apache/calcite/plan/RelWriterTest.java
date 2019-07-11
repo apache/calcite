@@ -19,7 +19,9 @@ package org.apache.calcite.plan;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.externalize.RelJsonReader;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -35,10 +37,15 @@ import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.JdbcTest;
+import org.apache.calcite.test.RelBuilderTest;
+import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
 
@@ -471,6 +478,57 @@ public class RelWriterTest {
         isLinux("LogicalAggregate(group=[{0}], agg#0=[COUNT(DISTINCT $1)], agg#1=[COUNT()])\n"
             + "  LogicalFilter(condition=[=($1, null:INTEGER)])\n"
             + "    LogicalTableScan(table=[[hr, emps]])\n"));
+  }
+
+  @Test public void testTrim() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder b = RelBuilder.create(config);
+    final RelNode rel =
+        b.scan("EMP")
+            .project(
+                b.alias(
+                    b.call(SqlStdOperatorTable.TRIM,
+                        b.literal(SqlTrimFunction.Flag.BOTH),
+                        b.literal(" "),
+                        b.field("ENAME")),
+                    "trimmed_ename"))
+            .build();
+
+    RelJsonWriter jsonWriter = new RelJsonWriter();
+    rel.explain(jsonWriter);
+    String relJson = jsonWriter.asString();
+    final RelOptSchema schema = getSchema(rel);
+    final String s =
+        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+          final RelJsonReader reader =
+              new RelJsonReader(cluster, schema, rootSchema);
+          RelNode node;
+          try {
+            node = reader.read(relJson);
+          } catch (IOException e) {
+            throw TestUtil.rethrow(e);
+          }
+          return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
+              SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+        });
+    final String expected = ""
+        + "LogicalProject(trimmed_ename=[TRIM(FLAG(BOTH), ' ', $1)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(s, isLinux(expected));
+  }
+
+  /** Returns the schema of a {@link org.apache.calcite.rel.core.TableScan}
+   * in this plan, or null if there are no scans. */
+  private RelOptSchema getSchema(RelNode rel) {
+    final Holder<RelOptSchema> schemaHolder = Holder.of(null);
+    rel.accept(
+        new RelShuttleImpl() {
+          @Override public RelNode visit(TableScan scan) {
+            schemaHolder.set(scan.getTable().getRelOptSchema());
+            return super.visit(scan);
+          }
+        });
+    return schemaHolder.get();
   }
 }
 
