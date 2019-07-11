@@ -114,7 +114,6 @@ public class LogicalPigRelBuilder extends PigRelBuilder {
 
   private static Frameworks.ConfigBuilder config() {
     // Set unique url connection for pig conversion jdbc driver
-    Driver.setDefaultConnectStringPrefix("jdbc:pig-calcite:");
     return Frameworks.newConfigBuilder().parserConfig(SqlParser.Config.DEFAULT).defaultSchema(
         null).traitDefs((List<RelTraitDef>) null).programs(Programs.standard());
   }

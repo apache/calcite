@@ -1245,6 +1245,12 @@ public abstract class SqlImplementor {
       }
     }
 
+    /**
+     * Resets alias for join/correlate with a customer alias name.
+     *
+     * @param newAlias Alias to reset
+     * @param type type of the node associated with the alias
+     */
     public Result resetAlias(String newAlias, RelDataType type) {
       return new Result(node, clauses, newAlias, neededType,
           ImmutableMap.<String, RelDataType>of(newAlias, type));
