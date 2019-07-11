@@ -105,8 +105,8 @@ public class PigRelToSqlConverter extends RelToSqlConverter {
           new SqlNodeList(partitionList, POS),
           new SqlNodeList(orderList, POS),
           SqlLiteral.createBoolean(winGroup.isRows, POS),
-          winGroup.lowerBound.toSqlNode(POS),
-          winGroup.upperBound.toSqlNode(POS),
+          builder.context.toSql(winGroup.lowerBound),
+          builder.context.toSql(winGroup.upperBound),
           null, // allowPartial
           POS);
 

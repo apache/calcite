@@ -684,6 +684,28 @@ public abstract class SqlImplementor {
       }
     }
 
+    /** Converts an expression from {@link RexWindowBound} to {@link SqlNode}
+     * format.
+     *
+     * @param rexWindowBound Expression to convert
+     */
+    public SqlNode toSql(RexWindowBound rexWindowBound) {
+      final SqlNode offsetLiteral =
+          rexWindowBound.getOffset() == null ? null
+              : SqlLiteral.createCharString(rexWindowBound.getOffset().toString(),
+                  SqlParserPos.ZERO);
+      if (rexWindowBound.isPreceding()) {
+        return offsetLiteral == null ? SqlWindow.createUnboundedPreceding(POS)
+                   : SqlWindow.createPreceding(offsetLiteral, POS);
+      } else if (rexWindowBound.isFollowing()) {
+        return offsetLiteral == null ? SqlWindow.createUnboundedFollowing(POS)
+                   : SqlWindow.createFollowing(offsetLiteral, POS);
+
+      }
+      assert rexWindowBound.isCurrentRow();
+      return SqlWindow.createCurrentRow(POS);
+    }
+
     protected Context getAliasContext(RexCorrelVariable variable) {
       throw new UnsupportedOperationException();
     }
