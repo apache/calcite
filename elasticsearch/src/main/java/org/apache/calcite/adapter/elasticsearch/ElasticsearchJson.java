@@ -31,10 +31,8 @@ import com.google.common.collect.ImmutableSet;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -97,41 +95,32 @@ final class ElasticsearchJson {
       BiConsumer<String, String> consumer) {
     Objects.requireNonNull(mapping, "mapping");
     Objects.requireNonNull(consumer, "consumer");
-    visitMappingProperties(new ArrayDeque<>(), mapping, consumer);
+    visitMappingProperties("", mapping, consumer);
   }
 
-  private static void visitMappingProperties(Deque<String> path,
-      ObjectNode mapping, BiConsumer<String, String> consumer) {
+  private static void visitMappingProperties(String prefix, ObjectNode mapping,
+                                             BiConsumer<String, String> consumer) {
     Objects.requireNonNull(mapping, "mapping");
-    if (mapping.isMissingNode()) {
+    if (mapping.findPath("properties").isMissingNode()) {
       return;
     }
 
-    if (mapping.has("properties")) {
-      // recurse
-      visitMappingProperties(path, (ObjectNode) mapping.get("properties"), consumer);
-      return;
-    }
-
-    if (mapping.has("type")) {
-      // this is leaf (register field / type mapping)
-      consumer.accept(String.join(".", path), mapping.get("type").asText());
-      return;
-    }
-
-    // otherwise continue visiting mapping(s)
-    Iterable<Map.Entry<String, JsonNode>> iter = mapping::fields;
+    // only find properties node
+    ObjectNode properties = (ObjectNode) mapping.findPath("properties");
+    Iterable<Map.Entry<String, JsonNode>> iter = properties::fields;
     for (Map.Entry<String, JsonNode> entry : iter) {
-      final String name = entry.getKey();
+      String name = prefix + entry.getKey();
       if (entry.getValue() instanceof ObjectNode) {
         final ObjectNode node = (ObjectNode) entry.getValue();
-        path.add(name);
-        visitMappingProperties(path, node, consumer);
-        path.removeLast();
+        if (node.has("type")) {
+          // this is leaf (register field / type mapping)
+          consumer.accept(name, entry.getValue().get("type").asText());
+        }
+        // recursive visit
+        visitMappingProperties(name + ".", node, consumer);
       }
     }
   }
-
 
   /**
    * Identifies a calcite row (as in relational algebra)

@@ -209,9 +209,9 @@ public class ElasticsearchJsonTest {
     ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
     ElasticsearchJson.visitMappingProperties(properties, builder::put);
     Map<String, String> mapping = builder.build();
-    assertThat(mapping.get("default.city"), is("keyword"));
-    assertThat(mapping.get("default.state"), is("text"));
-    assertThat(mapping.get("default.pop"), is("long"));
+    assertThat(mapping.get("city"), is("keyword"));
+    assertThat(mapping.get("state"), is("text"));
+    assertThat(mapping.get("pop"), is("long"));
   }
 
 }
