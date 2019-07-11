@@ -24,8 +24,6 @@ import com.mongodb.AuthenticationMechanism;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -46,16 +44,17 @@ public class MongoSchemaFactory implements SchemaFactory {
 
     final MongoClientOptions.Builder options = MongoClientOptions.builder();
 
-    final List<MongoCredential> credentials = new ArrayList<>();
+    final MongoCredential credential;
     if (authMechanismName != null) {
-      final MongoCredential credential = createCredentials(operand);
-      credentials.add(credential);
+      credential = createCredential(operand);
+    } else {
+      credential = null;
     }
 
-    return new MongoSchema(host, database, credentials, options.build());
+    return new MongoSchema(host, database, credential, options.build());
   }
 
-  private MongoCredential createCredentials(Map<String, Object> map) {
+  private MongoCredential createCredential(Map<String, Object> map) {
     final String authMechanismName = (String) map.get("authMechanism");
     final AuthenticationMechanism authenticationMechanism =
         AuthenticationMechanism.fromMechanismName(authMechanismName);
@@ -70,11 +69,11 @@ public class MongoSchemaFactory implements SchemaFactory {
     case SCRAM_SHA_1:
       return MongoCredential.createScramSha1Credential(username, authDatabase,
           password.toCharArray());
+    case SCRAM_SHA_256:
+      return MongoCredential.createScramSha256Credential(username, authDatabase,
+          password.toCharArray());
     case GSSAPI:
       return MongoCredential.createGSSAPICredential(username);
-    case MONGODB_CR:
-      return MongoCredential.createMongoCRCredential(username, authDatabase,
-          password.toCharArray());
     case MONGODB_X509:
       return MongoCredential.createMongoX509Credential(username);
     }
