@@ -31,6 +31,8 @@ import java.util.regex.Pattern;
  * The tuple is then resized to match the index.
  */
 public class DynamicTupleRecordType extends DynamicRecordTypeImpl {
+  private static final Pattern INDEX_PATTERN = Pattern.compile("^\\$(\\d+)$");
+
   DynamicTupleRecordType(RelDataTypeFactory typeFactory) {
     super(typeFactory);
   }
@@ -64,8 +66,8 @@ public class DynamicTupleRecordType extends DynamicRecordTypeImpl {
    * Gets index number from field name.
    * @param fieldName Field name, format example '$1'
    */
-  private int nameToIndex(String fieldName) {
-    Matcher matcher = Pattern.compile("^\\$(\\d+)$").matcher(fieldName);
+  private static int nameToIndex(String fieldName) {
+    Matcher matcher = INDEX_PATTERN.matcher(fieldName);
     if (matcher.find()) {
       return Integer.parseInt(matcher.group(1));
     }
