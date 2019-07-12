@@ -17,6 +17,8 @@
 package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import com.google.common.collect.Lists;
@@ -31,6 +33,35 @@ public class RelDataTypeFactoryTest {
 
   private static final SqlTypeFixture TYPE_FIXTURE = new SqlTypeFixture();
   private static final SqlTypeFactoryImpl TYPE_FACTORY = TYPE_FIXTURE.typeFactory;
+
+  /**
+   * Custom type system class that overrides the default decimal plus type derivation.
+   */
+  private static final class CustomTypeSystem extends RelDataTypeSystemImpl {
+
+    @Override public RelDataType deriveDecimalPlusType(RelDataTypeFactory typeFactory,
+        RelDataType type1, RelDataType type2) {
+
+      int resultScale = Math.max(type1.getScale(), type2.getScale());
+      int resultPrecision = resultScale + Math.max(type1.getPrecision() - type1.getScale(),
+              type2.getPrecision() - type2.getScale()) + 1;
+      if (resultPrecision > 38) {
+        int minScale = Math.min(resultScale, 6);
+        int delta = resultPrecision - 38;
+        resultPrecision = 38;
+        resultScale = Math.max(resultScale - delta, minScale);
+      }
+
+      return typeFactory.createSqlType(SqlTypeName.DECIMAL, resultPrecision, resultScale);
+    }
+
+    @Override public int getMaxNumericPrecision() {
+      return 38;
+    }
+  }
+
+  private static final SqlTypeFactoryImpl CUSTOM_FACTORY = new SqlTypeFactoryImpl(new
+          CustomTypeSystem());
 
   @Test
   public void testDecimalAdditionReturnTypeInference() {
@@ -62,6 +93,18 @@ public class RelDataTypeFactoryTest {
     RelDataType dataType = SqlStdOperatorTable.MOD.inferReturnType(TYPE_FACTORY, Lists
             .newArrayList(operand1, operand2));
     Assert.assertEquals(SqlTypeName.DOUBLE, dataType.getSqlTypeName());
+  }
+
+  @Test
+  public void testCustomDecimalPlusReturnTypeInference() {
+    RelDataType operand1 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 38, 10);
+    RelDataType operand2 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 38, 20);
+
+    RelDataType dataType = SqlStdOperatorTable.PLUS.inferReturnType(CUSTOM_FACTORY, Lists
+            .newArrayList(operand1, operand2));
+    Assert.assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
+    Assert.assertEquals(38, dataType.getPrecision());
+    Assert.assertEquals(9, dataType.getScale());
   }
 }
 // End RelDataTypeFactoryTest.java

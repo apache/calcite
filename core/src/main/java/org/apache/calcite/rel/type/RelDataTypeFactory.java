@@ -21,7 +21,6 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 import java.nio.charset.Charset;
@@ -308,75 +307,6 @@ public interface RelDataTypeFactory {
    */
   @SuppressWarnings("deprecation")
   FieldInfoBuilder builder();
-
-  /**
-   * Infers the return type of a decimal addition. Decimal addition involves
-   * at least one decimal operand and requires both operands to have exact
-   * numeric types.
-   *
-   * @param type1 type of the first operand
-   * @param type2 type of the second operand
-   * @return the result type for a decimal addition, or null if decimal
-   * addition should not be applied to the operands.
-   */
-  default RelDataType createDecimalAddition(RelDataType type1, RelDataType type2) {
-    /**
-     * Type-inference strategy whereby the result type of a call is the decimal
-     * sum of two exact numeric operands where at least one of the operands is a
-     * decimal. Let p1, s1 be the precision and scale of the first operand Let
-     * p2, s2 be the precision and scale of the second operand Let p, s be the
-     * precision and scale of the result, Then the result type is a decimal
-     * with:
-     *
-     * <ul>
-     * <li>s = max(s1, s2)</li>
-     * <li>p = max(p1 - s1, p2 - s2) + s + 1</li>
-     * </ul>
-     *
-     * <p>p and s are capped at their maximum values
-     *
-     * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
-     */
-    if (SqlTypeUtil.isExactNumeric(type1)
-            && SqlTypeUtil.isExactNumeric(type2)) {
-      if (SqlTypeUtil.isDecimal(type1)
-              || SqlTypeUtil.isDecimal(type2)) {
-        int p1 = type1.getPrecision();
-        int p2 = type2.getPrecision();
-        int s1 = type1.getScale();
-        int s2 = type2.getScale();
-        int scale = Math.max(s1, s2);
-        final RelDataTypeSystem typeSystem = getTypeSystem();
-        assert scale <= typeSystem.getMaxNumericScale();
-        int precision = Math.max(p1 - s1, p2 - s2) + scale + 1;
-        precision =
-                Math.min(
-                        precision,
-                        typeSystem.getMaxNumericPrecision());
-        assert precision > 0;
-
-        return createSqlType(
-                SqlTypeName.DECIMAL,
-                precision,
-                scale);
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Infers the return type of a decimal mod operation. Decimal mod involves
-   * at least one decimal operand and requires both operands to have exact
-   * numeric types.
-   *
-   * @param type1 type of the first operand
-   * @param type2 type of the second operand
-   * @return the result type for a decimal mod, or null if decimal
-   * mod should not be applied to the operands.
-   */
-  default RelDataType createDecimalMod(RelDataType type1, RelDataType type2) {
-    return null;
-  }
 
   //~ Inner Interfaces -------------------------------------------------------
 

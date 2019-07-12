@@ -449,7 +449,7 @@ public abstract class ReturnTypes {
     RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     RelDataType type1 = opBinding.getOperandType(0);
     RelDataType type2 = opBinding.getOperandType(1);
-    return typeFactory.createDecimalProduct(type1, type2);
+    return typeFactory.getTypeSystem().deriveDecimalMultiplyType(typeFactory, type1, type2);
   };
   /**
    * Same as {@link #DECIMAL_PRODUCT} but returns with nullability if any of
@@ -479,7 +479,7 @@ public abstract class ReturnTypes {
     RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     RelDataType type1 = opBinding.getOperandType(0);
     RelDataType type2 = opBinding.getOperandType(1);
-    return typeFactory.createDecimalQuotient(type1, type2);
+    return typeFactory.getTypeSystem().deriveDecimalDivideType(typeFactory, type1, type2);
   };
   /**
    * Same as {@link #DECIMAL_QUOTIENT} but returns with nullability if any of
@@ -519,7 +519,7 @@ public abstract class ReturnTypes {
     RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     RelDataType type1 = opBinding.getOperandType(0);
     RelDataType type2 = opBinding.getOperandType(1);
-    return typeFactory.createDecimalAddition(type1, type2);
+    return typeFactory.getTypeSystem().deriveDecimalPlusType(typeFactory, type1, type2);
   };
 
   /**
@@ -542,7 +542,7 @@ public abstract class ReturnTypes {
     RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     RelDataType type1 = opBinding.getOperandType(0);
     RelDataType type2 = opBinding.getOperandType(1);
-    return typeFactory.createDecimalMod(type1, type2);
+    return typeFactory.getTypeSystem().deriveDecimalModType(typeFactory, type1, type2);
   };
 
   private static final SqlReturnTypeInference DECIMAL_MOD_NULLABLE =
