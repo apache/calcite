@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
@@ -70,7 +71,9 @@ public class PigRelFactories {
 
     public static final PigFilterFactory INSTANCE = new PigFilterFactory();
 
-    @Override public RelNode createFilter(RelNode input, RexNode condition) {
+    @Override public RelNode createFilter(RelNode input, RexNode condition,
+        Set<CorrelationId> correlVariables) {
+      Preconditions.checkArgument(correlVariables.isEmpty());
       return new PigFilter(input.getCluster(), input.getTraitSet().replace(PigRel.CONVENTION),
           input, condition);
     }

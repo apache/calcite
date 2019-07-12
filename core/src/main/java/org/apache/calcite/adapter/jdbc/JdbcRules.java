@@ -74,6 +74,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.slf4j.Logger;
@@ -105,8 +106,11 @@ public class JdbcRules {
       };
 
   static final RelFactories.FilterFactory FILTER_FACTORY =
-      (input, condition) -> new JdbcRules.JdbcFilter(input.getCluster(),
-          input.getTraitSet(), input, condition);
+      (input, condition, correlVariables) -> {
+        Preconditions.checkArgument(correlVariables.isEmpty());
+        return new JdbcRules.JdbcFilter(
+            input.getCluster(), input.getTraitSet(), input, condition);
+      };
 
   static final RelFactories.JoinFactory JOIN_FACTORY =
       (left, right, condition, variablesSet, joinType, semiJoinDone) -> {

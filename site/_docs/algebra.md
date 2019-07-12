@@ -309,7 +309,7 @@ return the `RelBuilder`.
 | `functionScan(operator, n, expr...)`<br/>`functionScan(operator, n, exprList)` | Creates a [TableFunctionScan]({{ site.apiRoot }}/org/apache/calcite/rel/core/TableFunctionScan.html) of the `n` most recent relational expressions.
 | `transientScan(tableName [, rowType])` | Creates a [TableScan]({{ site.apiRoot }}/org/apache/calcite/rel/core/TableScan.html) on a [TransientTable]]({{ site.apiRoot }}/org/apache/calcite/schema/TransientTable.html) with the given type (if not specified, the most recent relational expression's type will be used).
 | `values(fieldNames, value...)`<br/>`values(rowType, tupleList)` | Creates a [Values]({{ site.apiRoot }}/org/apache/calcite/rel/core/Values.html).
-| `filter(expr...)`<br/>`filter(exprList)` | Creates a [Filter]({{ site.apiRoot }}/org/apache/calcite/rel/core/Filter.html) over the AND of the given predicates.
+| `filter(correlVariables, exprList)`<br/>`filter(expr...)`<br/>`filter(exprList)` | Creates a [Filter]({{ site.apiRoot }}/org/apache/calcite/rel/core/Filter.html) over the AND of the given predicates.<br/><br/>The first form additionally allows to set correlation variables.
 | `project(expr...)`<br/>`project(exprList [, fieldNames])` | Creates a [Project]({{ site.apiRoot }}/org/apache/calcite/rel/core/Project.html). To override the default name, wrap expressions using `alias`, or specify the `fieldNames` argument.
 | `projectPlus(expr...)`<br/>`projectPlus(exprList)` | Variant of `project` that keeps original fields and appends the given expressions.
 | `permute(mapping)` | Creates a [Project]({{ site.apiRoot }}/org/apache/calcite/rel/core/Project.html) that permutes the fields using `mapping`.
@@ -333,6 +333,7 @@ return the `RelBuilder`.
 
 Argument types:
 
+* `correlVariables` Iterable of [CorrelationId]({{ site.apiRoot }}/org/apache/calcite/rel/core/CorrelationId.html)
 * `expr`, `interval` [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
 * `expr...` Array of [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
 * `exprList`, `measureList`, `partitionKeys`, `orderKeys` Iterable of

@@ -104,6 +104,7 @@ import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
@@ -1146,7 +1147,7 @@ public class RelBuilder {
    * and optimized in a similar way to the {@link #and} method.
    * If the result is TRUE no filter is created. */
   public RelBuilder filter(RexNode... predicates) {
-    return filter(ImmutableList.copyOf(predicates));
+    return filter(ImmutableSet.of(), Arrays.asList(predicates));
   }
 
   /** Creates a {@link Filter} of a list of
@@ -1156,6 +1157,18 @@ public class RelBuilder {
    * and optimized in a similar way to the {@link #and} method.
    * If the result is TRUE no filter is created. */
   public RelBuilder filter(Iterable<? extends RexNode> predicates) {
+    return filter(ImmutableSet.of(), predicates);
+  }
+
+  /**
+   * Creates a {@link Filter} of a list of
+   * predicates and correlation variables
+   *
+   * <p>The predicates are combined using AND,
+   * and optimized in a similar way to the {@link #and} method.
+   * If the result is TRUE no filter is created. */
+  public RelBuilder filter(Iterable<CorrelationId> correlVariables,
+      Iterable<? extends RexNode> predicates) {
     final RexNode simplifiedPredicates =
         simplifier.simplifyFilterPredicates(predicates);
     if (simplifiedPredicates == null) {
@@ -1164,7 +1177,8 @@ public class RelBuilder {
 
     if (!simplifiedPredicates.isAlwaysTrue()) {
       final Frame frame = stack.pop();
-      final RelNode filter = filterFactory.createFilter(frame.rel, simplifiedPredicates);
+      final RelNode filter = filterFactory.createFilter(frame.rel,
+          simplifiedPredicates, ImmutableSet.copyOf(correlVariables));
       stack.push(new Frame(filter, frame.fields));
     }
     return this;

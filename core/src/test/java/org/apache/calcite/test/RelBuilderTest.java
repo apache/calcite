@@ -2587,6 +2587,41 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /** Tests filter builder with correlation variables */
+  @Test public void testFilterWithCorrelationVariables() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<RexCorrelVariable> v = Holder.of(null);
+    RelNode root = builder.scan("EMP")
+        .variable(v)
+        .scan("DEPT")
+        .filter(Collections.singletonList(v.get().id),
+            Collections.singletonList(
+                builder.call(SqlStdOperatorTable.OR,
+                builder.call(SqlStdOperatorTable.AND,
+                    builder.call(SqlStdOperatorTable.LESS_THAN,
+                        builder.field(v.get(), "DEPTNO"),
+                        builder.literal(30)),
+                    builder.call(SqlStdOperatorTable.GREATER_THAN,
+                        builder.field(v.get(), "DEPTNO"),
+                        builder.literal(20))),
+                builder.isNull(builder.field(2)))))
+        .join(JoinRelType.LEFT,
+            builder.equals(builder.field(2, 0, "SAL"),
+                builder.literal(1000)),
+            ImmutableSet.of(v.get().id))
+        .build();
+
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[=($cor0.SAL, 1000)])\n"
+        + "    LogicalFilter(condition=[OR(AND(<($cor0.DEPTNO, 30), >($cor0.DEPTNO, 20)), "
+        + "IS NULL($2))], variablesSet=[[$cor0]])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n";
+
+    assertThat(root, hasTree(expected));
+  }
+
   @Test public void testRelBuilderToString() {
     final RelBuilder builder = RelBuilder.create(config().build());
     builder.scan("EMP");
