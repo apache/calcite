@@ -297,12 +297,30 @@ public class RelFactories {
   }
 
   /**
-   * Can create a {@link LogicalFilter} of the appropriate type
+   * Can create a {@link Filter} of the appropriate type
    * for this rule's calling convention.
    */
   public interface FilterFactory {
-    /** Creates a filter. */
-    RelNode createFilter(RelNode input, RexNode condition);
+    /** Creates a filter.
+     *
+     * <p>Some implementations of {@code Filter} do not support correlation
+     * variables, and for these, this method will throw if {@code variablesSet}
+     * is not empty.
+     *
+     * @param input Input relational expression
+     * @param condition Filter condition; only rows for which this condition
+     *   evaluates to TRUE will be emitted
+     * @param variablesSet Correlating variables that are set when reading
+     *   a row from the input, and which may be referenced from inside the
+     *   condition
+     */
+    RelNode createFilter(RelNode input, RexNode condition,
+        Set<CorrelationId> variablesSet);
+
+    @Deprecated // to be removed before 2.0
+    default RelNode createFilter(RelNode input, RexNode condition) {
+      return createFilter(input, condition, ImmutableSet.of());
+    }
   }
 
   /**
@@ -310,8 +328,10 @@ public class RelFactories {
    * returns a vanilla {@link LogicalFilter}.
    */
   private static class FilterFactoryImpl implements FilterFactory {
-    public RelNode createFilter(RelNode input, RexNode condition) {
-      return LogicalFilter.create(input, condition);
+    public RelNode createFilter(RelNode input, RexNode condition,
+        Set<CorrelationId> variablesSet) {
+      return LogicalFilter.create(input, condition,
+          ImmutableSet.copyOf(variablesSet));
     }
   }
 

@@ -989,7 +989,8 @@ public class SqlToRelConverter {
 
     final RelFactories.FilterFactory filterFactory =
         RelFactories.DEFAULT_FILTER_FACTORY;
-    final RelNode filter = filterFactory.createFilter(bb.root, convertedWhere2);
+    final RelNode filter =
+        filterFactory.createFilter(bb.root, convertedWhere2, ImmutableSet.of());
     final RelNode r;
     final CorrelationUse p = getCorrelationUse(bb, filter);
     if (p != null) {
@@ -2490,7 +2491,7 @@ public class SqlToRelConverter {
         // Replace outer RexInputRef with RexFieldAccess,
         // and push lateral join predicate into inner child
         final RexNode newCond = joinCond.accept(shuttle);
-        innerRel = factory.createFilter(p.r, newCond);
+        innerRel = factory.createFilter(p.r, newCond, ImmutableSet.of());
         requiredCols = ImmutableBitSet
             .fromBitSet(shuttle.varCols)
             .union(p.requiredColumns);

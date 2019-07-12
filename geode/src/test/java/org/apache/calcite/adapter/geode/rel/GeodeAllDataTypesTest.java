@@ -323,11 +323,11 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
         .queryContains(
             GeodeAssertions.query("SELECT stringValue AS stringValue "
                 + "FROM /allDataTypesRegion WHERE "
-                + "stringValue IN SET('abc', 'def') OR floatValue IN SET(1.5678, null) OR dateValue "
+                + "stringValue IN SET('abc', 'def') OR floatValue = 1.5678 OR dateValue "
                 + "IN SET(DATE '2018-02-05', DATE '2018-02-06') OR timeValue "
                 + "IN SET(TIME '03:22:23', TIME '07:22:23') OR timestampValue "
                 + "IN SET(TIMESTAMP '2018-02-05 04:22:33', TIMESTAMP '2017-02-05 04:22:33') "
-                + "OR booleanValue IN SET(true, false, null)"));
+                + "OR booleanValue = true OR booleanValue = false"));
   }
 }
 
