@@ -91,7 +91,7 @@ public class PostgresqlSqlDialect extends SqlDialect {
         -1, -1, null, null, SqlParserPos.ZERO);
   }
 
-  @Override protected boolean requiresAliasForFromItems() {
+  @Override public boolean requiresAliasForFromItems() {
     return true;
   }
 
