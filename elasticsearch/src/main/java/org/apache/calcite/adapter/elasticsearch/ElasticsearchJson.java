@@ -98,8 +98,8 @@ final class ElasticsearchJson {
     visitMappingProperties("", mapping, consumer);
   }
 
-  private static void visitMappingProperties(String prefix, ObjectNode mapping,
-                                             BiConsumer<String, String> consumer) {
+  private static void visitMappingProperties(String prefix,
+      ObjectNode mapping, BiConsumer<String, String> consumer) {
     Objects.requireNonNull(mapping, "mapping");
     if (mapping.findPath("properties").isMissingNode()) {
       return;
