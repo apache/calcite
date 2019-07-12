@@ -104,6 +104,7 @@ import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
@@ -453,7 +454,7 @@ public abstract class RelOptUtil {
 
       final RelFactories.FilterFactory factory =
           RelFactories.DEFAULT_FILTER_FACTORY;
-      ret = factory.createFilter(ret, conditionExp);
+      ret = factory.createFilter(ret, conditionExp, ImmutableSet.of());
     }
 
     if (extraExpr != null) {
@@ -602,13 +603,13 @@ public abstract class RelOptUtil {
   public static RelNode createFilter(RelNode child, RexNode condition) {
     final RelFactories.FilterFactory factory =
         RelFactories.DEFAULT_FILTER_FACTORY;
-    return factory.createFilter(child, condition);
+    return factory.createFilter(child, condition, ImmutableSet.of());
   }
 
   @Deprecated // to be removed before 2.0
   public static RelNode createFilter(RelNode child, RexNode condition,
       RelFactories.FilterFactory filterFactory) {
-    return filterFactory.createFilter(child, condition);
+    return filterFactory.createFilter(child, condition, ImmutableSet.of());
   }
 
   /** Creates a filter, using the default filter factory,
@@ -631,7 +632,7 @@ public abstract class RelOptUtil {
     if (condition == null) {
       return child;
     } else {
-      return filterFactory.createFilter(child, condition);
+      return filterFactory.createFilter(child, condition, ImmutableSet.of());
     }
   }
 
@@ -681,7 +682,7 @@ public abstract class RelOptUtil {
 
     final RelFactories.FilterFactory factory =
         RelFactories.DEFAULT_FILTER_FACTORY;
-    return factory.createFilter(rel, condition);
+    return factory.createFilter(rel, condition, ImmutableSet.of());
   }
 
   /**

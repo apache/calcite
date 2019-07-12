@@ -72,7 +72,8 @@ public class SemiJoinFilterTransposeRule extends RelOptRule {
     final RelFactories.FilterFactory factory =
         RelFactories.DEFAULT_FILTER_FACTORY;
     RelNode newFilter =
-        factory.createFilter(newSemiJoin, filter.getCondition());
+        factory.createFilter(newSemiJoin, filter.getCondition(),
+            ImmutableSet.of());
 
     call.transformTo(newFilter);
   }
