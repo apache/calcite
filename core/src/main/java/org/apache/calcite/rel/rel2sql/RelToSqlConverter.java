@@ -381,14 +381,12 @@ public class RelToSqlConverter extends SqlImplementor
         final List<SqlNode> values2 = new ArrayList<>();
         final SqlNodeList exprList = exprList(context, tuple);
         for (Pair<SqlNode, String> value : Pair.zip(exprList, fieldNames)) {
-          values2.add(
-              SqlStdOperatorTable.AS.createCall(POS, value.left,
-                  new SqlIdentifier(value.right, POS)));
+          values2.add(as(value.left, value.right));
         }
         list.add(
             new SqlSelect(POS, null,
                 new SqlNodeList(values2, POS),
-                new SqlIdentifier("DUAL", POS), null, null,
+                getDual(), null, null,
                 null, null, null, null, null));
       }
       if (list.isEmpty()) {
@@ -397,15 +395,27 @@ public class RelToSqlConverter extends SqlImplementor
         // This would return an empty result set with the same number of columns as the field names.
         final List<SqlNode> nullColumnNames = new ArrayList<>();
         for (String fieldName : fieldNames) {
-          SqlCall nullColumnName = SqlStdOperatorTable.AS.createCall(
-              POS, SqlLiteral.createNull(POS),
-              new SqlIdentifier(fieldName, POS));
+          SqlCall nullColumnName = as(SqlLiteral.createNull(POS), fieldName);
           nullColumnNames.add(nullColumnName);
         }
-        query = new SqlSelect(POS, null,
-            new SqlNodeList(nullColumnNames, POS),
-            new SqlIdentifier("DUAL", POS), createAlwaysFalseCondition(), null,
-            null, null, null, null, null);
+        final SqlIdentifier dual = getDual();
+        if (dual == null) {
+          query = new SqlSelect(POS, null,
+              new SqlNodeList(nullColumnNames, POS), null, null, null, null,
+              null, null, null, null);
+
+          // Wrap "SELECT 1 AS x"
+          // as "SELECT * FROM (SELECT 1 AS x) AS t WHERE false"
+          query = new SqlSelect(POS, null,
+              new SqlNodeList(ImmutableList.of(SqlIdentifier.star(POS)), POS),
+              as(query, "t"), createAlwaysFalseCondition(), null, null,
+              null, null, null, null);
+        } else {
+          query = new SqlSelect(POS, null,
+              new SqlNodeList(nullColumnNames, POS),
+              dual, createAlwaysFalseCondition(), null,
+              null, null, null, null, null);
+        }
       } else if (list.size() == 1) {
         query = list.get(0);
       } else {
@@ -434,15 +444,12 @@ public class RelToSqlConverter extends SqlImplementor
       }
       query = SqlStdOperatorTable.VALUES.createCall(selects);
       if (rename) {
-        final List<SqlNode> list = new ArrayList<>();
-        list.add(query);
-        list.add(new SqlIdentifier("t", POS));
-        for (String fieldName : fieldNames) {
-          list.add(new SqlIdentifier(fieldName, POS));
-        }
-        query = SqlStdOperatorTable.AS.createCall(POS, list);
+        query = as(query, "t", fieldNames.toArray(new String[0]));
       }
       if (isEmpty) {
+        if (!rename) {
+          query = as(query, "t");
+        }
         query = new SqlSelect(POS, null,
                 null, query,
                 createAlwaysFalseCondition(),
@@ -451,6 +458,14 @@ public class RelToSqlConverter extends SqlImplementor
       }
     }
     return result(query, clauses, e, null);
+  }
+
+  private SqlIdentifier getDual() {
+    final List<String> names = dialect.getSingleRowTableName();
+    if (names == null) {
+      return null;
+    }
+    return new SqlIdentifier(names, POS);
   }
 
   private SqlNode createAlwaysFalseCondition() {
@@ -696,11 +711,6 @@ public class RelToSqlConverter extends SqlImplementor
         pattern, strictStart, strictEnd, patternDefList, measureList, after,
         subsetList, rowsPerMatch, partitionList, orderByList, interval);
     return result(matchRecognize, Expressions.list(Clause.FROM), e, null);
-  }
-
-  private SqlCall as(SqlNode e, String alias) {
-    return SqlStdOperatorTable.AS.createCall(POS, e,
-        new SqlIdentifier(alias, POS));
   }
 
   @Override public void addSelect(List<SqlNode> selectList, SqlNode node,

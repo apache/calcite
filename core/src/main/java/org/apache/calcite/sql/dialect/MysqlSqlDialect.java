@@ -72,6 +72,15 @@ public class MysqlSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean requiresAliasForFromItems() {
+    return true;
+  }
+
+  public boolean supportsAliasedValues() {
+    // MySQL supports VALUES only in INSERT; not in a FROM clause
+    return false;
+  }
+
   @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
       SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
