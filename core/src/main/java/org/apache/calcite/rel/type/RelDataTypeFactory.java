@@ -271,6 +271,7 @@ public interface RelDataTypeFactory {
    * @return the result type for a decimal multiplication, or null if decimal
    * multiplication should not be applied to the operands.
    */
+  @Deprecated // use RelDataTypeSystem#deriveDecimalMultiplyType instead.
   RelDataType createDecimalProduct(
       RelDataType type1,
       RelDataType type2);
@@ -295,6 +296,7 @@ public interface RelDataTypeFactory {
    * @return the result type for a decimal division, or null if decimal
    * division should not be applied to the operands.
    */
+  @Deprecated // use RelDataTypeSystem#deriveDecimalDivideType instead.
   RelDataType createDecimalQuotient(
       RelDataType type1,
       RelDataType type2);
