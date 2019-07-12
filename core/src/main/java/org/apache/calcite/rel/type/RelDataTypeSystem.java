@@ -290,6 +290,8 @@ public interface RelDataTypeSystem {
    * at least one decimal operand and requires both operands to have exact
    * numeric types.
    *
+   * Always returns the type of the second argument as the return type
+   * for the operation.
    * @param type1 type of the first operand
    * @param type2 type of the second operand
    * @return the result type for a decimal mod, or null if decimal
