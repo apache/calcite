@@ -20,6 +20,7 @@ package org.apache.calcite.piglet;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreter;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Window;
@@ -39,7 +40,7 @@ import java.util.List;
  * An extension of @{@link RelToSqlConverter} to convert a relation algebra tree,
  * translated from a Pig script, into a SQL statement.
  *
- * The input relational algebra tree can be optimized by a PigRel planner before.
+ * The input relational algebra tree can be optimized by the planner for Pig to @{@link RelNode}.
  */
 public class PigRelToSqlConverter extends RelToSqlConverter {
 

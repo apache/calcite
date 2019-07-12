@@ -70,7 +70,7 @@ import java.util.Map;
  */
 public class LogicalPigRelBuilder extends PigRelBuilder {
   /**
-   * Context constructed during PigRel translation process.
+   * Context constructed during Pig to @{@link RelNode} translation process.
    */
   public class PigRelTranslationContext {
     public Map<String, FuncSpec> pigUDFs;
@@ -568,7 +568,7 @@ public class LogicalPigRelBuilder extends PigRelBuilder {
         SqlStdOperatorTable.ROW, fields());
     project(ImmutableList.of(literal("all"), row));
 
-    // Update the PigRel map and alias map for the new projected rel.
+    // Update the alias map for the new projected rel.
     updateAlias(getPig(inputRel), getAlias(inputRel), false);
 
     // Build a single group for all rows

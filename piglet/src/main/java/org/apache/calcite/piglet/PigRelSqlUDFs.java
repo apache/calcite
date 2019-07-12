@@ -18,6 +18,7 @@
 package org.apache.calcite.piglet;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -55,7 +56,8 @@ import static org.apache.calcite.piglet.PigRelSchemaConverter.TYPE_FACTORY;
 
 
 /**
- * This class defines all @{@link SqlUserDefinedFunction} needed for PigRel translation.
+ * This class defines all @{@link SqlUserDefinedFunction} needed for Pig to @{@link RelNode}
+ * translation.
  */
 public class PigRelSqlUDFs {
   private PigRelSqlUDFs() {

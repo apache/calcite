@@ -22,11 +22,12 @@ import org.apache.calcite.piglet.PigConverter;
 import org.apache.calcite.piglet.PigRelPlanner;
 import org.apache.calcite.piglet.PigUDFWrapper;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.rel.RelNode;
 
 import org.junit.Before;
 
 /**
- * Abstract class for PigRel tests.
+ * Abstract class for Pig to @{@link RelNode} tests.
  */
 public abstract class PigRelTestBase {
   PigConverter converter;
