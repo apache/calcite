@@ -35,6 +35,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.schema.impl.VirtualTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.MultisetSqlType;
@@ -315,8 +316,8 @@ public class LogicalPigRelBuilder extends PigRelBuilder {
    * @return This builder
    */
   public RelBuilder scan(RelDataType rowType, List<String> tableNames) {
-    RelOptTable relOptTable = PigDummyTable.createDummyRelOptTable(getRelOptSchema(),
-        rowType, tableNames);
+    final RelOptTable relOptTable = VirtualTable.createRelOptTable(getRelOptSchema(), rowType,
+        tableNames);
     return scan(relOptTable);
   }
 
