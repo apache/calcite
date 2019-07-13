@@ -478,6 +478,7 @@ public class LogicalPigRelBuilder extends PigRelBuilder {
    * @return This builder
    */
   public RelBuilder multiSetFlatten(List<Integer> flattenCols, List<String> flattenOutputAliases) {
+    // CALCITE-3193 Move this method to RelBuilder
     final int colCount = peek().getRowType().getFieldCount();
     final List<RelDataTypeField> inputFields = peek().getRowType().getFieldList();
     final CorrelationId correlId = nextCorrelId();
@@ -532,6 +533,7 @@ public class LogicalPigRelBuilder extends PigRelBuilder {
    * @return This builder.
    */
   public RelBuilder multiSetFlatten() {
+    // CALCITE-3193 Move this method to RelBuilder
     Uncollect uncollect = new Uncollect(cluster,
         cluster.traitSetOf(Convention.NONE), build(), false);
     push(uncollect);
