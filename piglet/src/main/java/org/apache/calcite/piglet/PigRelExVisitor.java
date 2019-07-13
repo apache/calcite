@@ -287,29 +287,8 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
    * @param rexNode The string literal
    * @return New string literal with Pig regular expressions replaced by SQL regular expressions
    */
-  // TODO: Need correct implementation
   private RexNode replacePatternIfPossible(RexNode rexNode) {
-//    if (!(rexNode instanceof RexLiteral)
-//        || !SqlTypeName.STRING_TYPES.contains(((RexLiteral)rexNode).getTypeName())) {
-//      return rexNode;
-//    }
-//    final String pattern = ((NlsString)((RexLiteral)rexNode).getValue()).getValue();
-//    StringBuilder newPattern = new StringBuilder();
-//    for (int i = 0; i < pattern.length(); i++) {
-//      final char c = pattern.charAt(i);
-//      switch (c) {
-//        case '*':
-//          newPattern.append('%');
-//          break;
-//        case '.':
-//          newPattern.append('_');
-//          break;
-//        default:
-//          newPattern.append(c);
-//          break;
-//      }
-//    }
-//    return builder.literal(newPattern.toString());
+    // CALCITE-3194 Need implementation for converting Pig string patterns into SQL patterns
     return rexNode;
   }
 
