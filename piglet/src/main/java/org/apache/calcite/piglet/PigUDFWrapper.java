@@ -34,7 +34,7 @@ import java.util.Map;
  * Note that without this wrapper, we still correctly convert Pig to relational algebra,
  * but we just cannot run the converted plans with the Calcite enumerable engine.
  *
- * TODO: Fix the enumerable code generator or auto-generate code for this wrapper.
+ * CALCITE-3195: Fix the enumerable code generator, then remove this class.
  */
 public class PigUDFWrapper {
   private PigUDFWrapper() {}
