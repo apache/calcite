@@ -22,12 +22,14 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.CatchBlock;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.Statement;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
@@ -620,6 +622,32 @@ public class RexToLixTranslator {
     list.add(Expressions.declare(Modifier.FINAL, unboxed, nullHandled));
 
     return unboxed;
+  }
+
+  /**
+   * Handle checked Exceptions declared in Method. In such case,
+   * method call should be wrapped in a try...catch block.
+   * "
+   *      final Type method_call;
+   *      try {
+   *        method_call = callExpr
+   *      } catch (Exception e) {
+   *        throw new RuntimeException(e);
+   *      }
+   * "
+   */
+  Expression handleMethodCheckedExceptions(Expression callExpr) {
+    // Try statement
+    ParameterExpression methodCall = Expressions.parameter(
+        callExpr.getType(), list.newName("method_call"));
+    list.add(Expressions.declare(Modifier.FINAL, methodCall, null));
+    Statement st = Expressions.statement(Expressions.assign(methodCall, callExpr));
+    // Catch Block, wrap checked exception in unchecked exception
+    ParameterExpression e = Expressions.parameter(0, Exception.class, "e");
+    Expression uncheckedException = Expressions.new_(RuntimeException.class, e);
+    CatchBlock cb = Expressions.catch_(e, Expressions.throw_(uncheckedException));
+    list.add(Expressions.tryCatch(st, cb));
+    return methodCall;
   }
 
   /** Translates an expression that is not in the cache.

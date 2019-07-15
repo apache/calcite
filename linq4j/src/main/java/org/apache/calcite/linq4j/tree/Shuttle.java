@@ -250,8 +250,17 @@ public class Shuttle {
     return switchStatement;
   }
 
-  public Statement visit(TryStatement tryStatement) {
-    return tryStatement;
+  public Shuttle preVisit(TryStatement tryStatement) {
+    return this;
+  }
+
+  public Statement visit(TryStatement tryStatement,
+      Statement body, List<CatchBlock> catchBlocks, Statement fynally) {
+    return body.equals(tryStatement.body)
+           && Objects.equals(catchBlocks, tryStatement.catchBlocks)
+           && Objects.equals(fynally, tryStatement.fynally)
+           ? tryStatement
+           : new TryStatement(body, catchBlocks, fynally);
   }
 
   public Expression visit(MemberInitExpression memberInitExpression) {
