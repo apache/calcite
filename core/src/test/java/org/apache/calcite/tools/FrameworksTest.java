@@ -28,7 +28,6 @@ import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptAbstractTable;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
@@ -57,7 +56,6 @@ import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
-import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlNode;
@@ -174,23 +172,19 @@ public class FrameworksTest {
 
   private void checkTypeSystem(final int expected, FrameworkConfig config) {
     Frameworks.withPrepare(
-        new Frameworks.PrepareAction<Void>(config) {
-          @Override public Void apply(RelOptCluster cluster,
-              RelOptSchema relOptSchema, SchemaPlus rootSchema,
-              CalciteServerStatement statement) {
-            final RelDataType type =
-                cluster.getTypeFactory()
-                    .createSqlType(SqlTypeName.DECIMAL, 30, 2);
-            final RexLiteral literal =
-                cluster.getRexBuilder().makeExactLiteral(BigDecimal.ONE, type);
-            final RexNode call =
-                cluster.getRexBuilder().makeCall(SqlStdOperatorTable.PLUS,
-                    literal,
-                    literal);
-            assertEquals(expected, call.getType().getPrecision());
-            return null;
-          }
-        });
+        (Frameworks.BasePrepareAction<Void>) (cluster, relOptSchema, rootSchema, statement) -> {
+          final RelDataType type =
+              cluster.getTypeFactory()
+                  .createSqlType(SqlTypeName.DECIMAL, 30, 2);
+          final RexLiteral literal =
+              cluster.getRexBuilder().makeExactLiteral(BigDecimal.ONE, type);
+          final RexNode call =
+              cluster.getRexBuilder().makeCall(SqlStdOperatorTable.PLUS,
+                  literal,
+                  literal);
+          assertEquals(expected, call.getType().getPrecision());
+          return null;
+        }, config);
   }
 
   /** Tests that the validator expands identifiers by default.

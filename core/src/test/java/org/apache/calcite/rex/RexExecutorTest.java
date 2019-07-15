@@ -20,13 +20,10 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.linq4j.QueryProvider;
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
-import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -72,16 +69,13 @@ public class RexExecutorTest {
 
   protected void check(final Action action) throws Exception {
     Frameworks.withPrepare(
-        new Frameworks.PrepareAction<Void>() {
-          public Void apply(RelOptCluster cluster, RelOptSchema relOptSchema,
-              SchemaPlus rootSchema, CalciteServerStatement statement) {
-            final RexBuilder rexBuilder = cluster.getRexBuilder();
-            DataContext dataContext =
-                Schemas.createDataContext(statement.getConnection(), rootSchema);
-            final RexExecutorImpl executor = new RexExecutorImpl(dataContext);
-            action.check(rexBuilder, executor);
-            return null;
-          }
+        (Frameworks.BasePrepareAction<Void>) (cluster, relOptSchema, rootSchema, statement) -> {
+          final RexBuilder rexBuilder = cluster.getRexBuilder();
+          DataContext dataContext =
+              Schemas.createDataContext(statement.getConnection(), rootSchema);
+          final RexExecutorImpl executor = new RexExecutorImpl(dataContext);
+          action.check(rexBuilder, executor);
+          return null;
         });
   }
 
@@ -217,28 +211,24 @@ public class RexExecutorTest {
       final SqlOperator operator,
       final DataContext.Variable variable,
       final Object value) {
-    Frameworks.withPrepare(new Frameworks.PrepareAction<Void>() {
-      public Void apply(final RelOptCluster cluster,
-          final RelOptSchema relOptSchema,
-          final SchemaPlus rootSchema,
-          final CalciteServerStatement statement) {
-        final RexBuilder rexBuilder = cluster.getRexBuilder();
-        final RexExecutorImpl executor =
-            new RexExecutorImpl(
-                new SingleValueDataContext(variable.camelName, value));
-        try {
-          checkConstant(value, builder -> {
-            final List<RexNode> output = new ArrayList<>();
-            executor.reduce(rexBuilder,
-                ImmutableList.of(rexBuilder.makeCall(operator)), output);
-            return output.get(0);
-          });
-        } catch (Exception e) {
-          throw TestUtil.rethrow(e);
-        }
-        return null;
-      }
-    });
+    Frameworks.withPrepare(
+        (Frameworks.BasePrepareAction<Void>) (cluster, relOptSchema, rootSchema, statement) -> {
+          final RexBuilder rexBuilder = cluster.getRexBuilder();
+          final RexExecutorImpl executor =
+              new RexExecutorImpl(
+                  new SingleValueDataContext(variable.camelName, value));
+          try {
+            checkConstant(value, builder -> {
+              final List<RexNode> output = new ArrayList<>();
+              executor.reduce(rexBuilder,
+                  ImmutableList.of(rexBuilder.makeCall(operator)), output);
+              return output.get(0);
+            });
+          } catch (Exception e) {
+            throw TestUtil.rethrow(e);
+          }
+          return null;
+        });
   }
 
   @Test public void testSubstring() throws Exception {

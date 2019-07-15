@@ -19,9 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
-import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPredicateList;
-import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RexImplicationChecker;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -34,9 +32,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUnknownAs;
-import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
-import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -538,16 +534,11 @@ public class RexImplicationCheckerTest {
 
       final Holder<RexExecutorImpl> holder = Holder.of(null);
       Frameworks.withPrepare(
-          new Frameworks.PrepareAction<Void>() {
-            public Void apply(RelOptCluster cluster,
-                RelOptSchema relOptSchema,
-                SchemaPlus rootSchema,
-                CalciteServerStatement statement) {
-              DataContext dataContext =
-                  Schemas.createDataContext(statement.getConnection(), rootSchema);
-              holder.set(new RexExecutorImpl(dataContext));
-              return null;
-            }
+          (Frameworks.BasePrepareAction<Void>) (cluster, relOptSchema, rootSchema, statement) -> {
+            DataContext dataContext =
+                Schemas.createDataContext(statement.getConnection(), rootSchema);
+            holder.set(new RexExecutorImpl(dataContext));
+            return null;
           });
 
       executor = holder.get();

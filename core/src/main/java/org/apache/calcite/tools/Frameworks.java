@@ -84,6 +84,21 @@ public class Frameworks {
    * statement.
    *
    * @param <R> result type */
+  public interface BasePrepareAction<R> {
+    R apply(RelOptCluster cluster, RelOptSchema relOptSchema,
+        SchemaPlus rootSchema, CalciteServerStatement statement);
+  }
+
+  /** Piece of code to be run in a context where a planner and statement are
+   * available. The planner is accessible from the {@code cluster} parameter, as
+   * are several other useful objects. The connection and
+   * {@link org.apache.calcite.DataContext} are accessible from the
+   * statement.
+   *
+   * @deprecated Use {@link BasePrepareAction}.
+   *
+   * @param <R> result type */
+  @Deprecated // to be removed from 2.0
   public abstract static class PrepareAction<R> {
     private final FrameworkConfig config;
     public PrepareAction() {
@@ -113,15 +128,12 @@ public class Frameworks {
   public static <R> R withPlanner(final PlannerAction<R> action, //
       final FrameworkConfig config) {
     return withPrepare(
-        new Frameworks.PrepareAction<R>(config) {
-          public R apply(RelOptCluster cluster, RelOptSchema relOptSchema,
-              SchemaPlus rootSchema, CalciteServerStatement statement) {
-            final CalciteSchema schema =
-                CalciteSchema.from(
-                    Util.first(config.getDefaultSchema(), rootSchema));
-            return action.apply(cluster, relOptSchema, schema.root().plus());
-          }
-        });
+        (cluster, relOptSchema, rootSchema, statement) -> {
+          final CalciteSchema schema =
+              CalciteSchema.from(
+                  Util.first(config.getDefaultSchema(), rootSchema));
+          return action.apply(cluster, relOptSchema, schema.root().plus());
+        }, config);
   }
 
   /**
@@ -143,19 +155,33 @@ public class Frameworks {
    * @param action Callback containing user-specified code
    * @return Return value from action
    */
-  public static <R> R withPrepare(PrepareAction<R> action) {
+  public static <R> R withPrepare(BasePrepareAction<R> action) {
+    FrameworkConfig config = newConfigBuilder() //
+        .defaultSchema(Frameworks.createRootSchema(true)).build();
+    return withPrepare(action, config);
+  }
+
+  /**
+   * Initializes a container then calls user-specified code with a planner
+   * and statement.
+   *
+   * @param action Callback containing user-specified code
+   * @param config FrameworkConfig to use for planner action
+   * @return Return value from action
+   */
+  public static <R> R withPrepare(BasePrepareAction<R> action, FrameworkConfig config) {
     try {
       final Properties info = new Properties();
-      if (action.config.getTypeSystem() != RelDataTypeSystem.DEFAULT) {
+      if (config.getTypeSystem() != RelDataTypeSystem.DEFAULT) {
         info.setProperty(CalciteConnectionProperty.TYPE_SYSTEM.camelName(),
-            action.config.getTypeSystem().getClass().getName());
+            config.getTypeSystem().getClass().getName());
       }
       Connection connection =
           DriverManager.getConnection("jdbc:calcite:", info);
       final CalciteServerStatement statement =
           connection.createStatement()
               .unwrap(CalciteServerStatement.class);
-      return new CalcitePrepareImpl().perform(statement, action);
+      return new CalcitePrepareImpl().perform(statement, action, config);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
