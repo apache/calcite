@@ -442,32 +442,27 @@ public class PigRelOpTest extends PigRelTestBase {
     testPigRelOpTranslation(script, expectedPlan);
     testRunPigScript(script, expectedResult);
 
-    String expectedSql = ""
-                             + "SELECT $cor5.group, $cor5.cnt, $cor5.ENAME, $cor5.JOB, $cor5"
-                             + ".DEPTNO, $cor5.SAL, $cor5"
-                             + ".$f3\n"
-                             + "FROM (SELECT $cor4.group, COUNT(PIG_BAG($cor4.X)) AS cnt, $cor4"
-                             + ".X, BigDecimalMax"
-                             + "(PIG_BAG(MULTISET_PROJECTION($cor4.X, 3))) AS $f3\n"
-                             + "      FROM (SELECT DEPTNO AS group, COLLECT(ROW(EMPNO, ENAME, "
-                             + "JOB, MGR, HIREDATE, "
-                             + "SAL, COMM, DEPTNO)) AS A\n"
-                             + "            FROM scott.EMP\n"
-                             + "            GROUP BY DEPTNO) AS $cor4,\n"
-                             + "          LATERAL (SELECT COLLECT(ROW(ENAME, JOB, DEPTNO, SAL)) "
-                             + "AS X\n"
-                             + "            FROM (SELECT ENAME, JOB, DEPTNO, SAL\n"
-                             + "                  FROM UNNEST (SELECT $cor4.A AS $f0\n"
-                             + "                        FROM (VALUES  (0)) AS t (ZERO)) AS t3 "
-                             + "(EMPNO, ENAME, JOB, "
-                             + "MGR, HIREDATE, SAL, COMM, DEPTNO)\n"
-                             + "                  WHERE JOB <> 'CLERK'\n"
-                             + "                  ORDER BY SAL) AS t6\n"
-                             + "            GROUP BY 'all') AS t9) AS $cor5,\n"
-                             + "    LATERAL UNNEST (SELECT $cor5.X AS $f0\n"
-                             + "        FROM (VALUES  (0)) AS t (ZERO)) AS t12 (ENAME, JOB, "
-                             + "DEPTNO, SAL) AS t120\n"
-                             + "ORDER BY $cor5.group";
+    String expectedSql =
+        ""
+            + "SELECT $cor5.group, $cor5.cnt, $cor5.ENAME, $cor5.JOB, $cor5.DEPTNO, $cor5.SAL, "
+            + "$cor5.$f3\n"
+            + "FROM (SELECT $cor4.DEPTNO AS group, COUNT(PIG_BAG($cor4.X)) AS cnt, $cor4.X, "
+            + "BigDecimalMax(PIG_BAG(MULTISET_PROJECTION($cor4.X, 3))) AS $f3\n"
+            + "      FROM (SELECT DEPTNO, COLLECT(ROW(EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, "
+            + "COMM, DEPTNO)) AS A\n"
+            + "            FROM scott.EMP\n"
+            + "            GROUP BY DEPTNO) AS $cor4,\n"
+            + "          LATERAL (SELECT COLLECT(ROW(ENAME, JOB, DEPTNO, SAL)) AS X\n"
+            + "            FROM (SELECT ENAME, JOB, DEPTNO, SAL\n"
+            + "                  FROM UNNEST (SELECT $cor4.A AS $f0\n"
+            + "                        FROM (VALUES  (0)) AS t (ZERO)) AS t2 (EMPNO, ENAME, JOB, "
+            + "MGR, HIREDATE, SAL, COMM, DEPTNO)\n"
+            + "                  WHERE JOB <> 'CLERK'\n"
+            + "                  ORDER BY SAL) AS t5\n"
+            + "            GROUP BY 'all') AS t8) AS $cor5,\n"
+            + "    LATERAL UNNEST (SELECT $cor5.X AS $f0\n"
+            + "        FROM (VALUES  (0)) AS t (ZERO)) AS t11 (ENAME, JOB, DEPTNO, SAL) AS t110\n"
+            + "ORDER BY $cor5.group";
     testSQLTranslation(script, expectedSql);
   }
 
@@ -872,7 +867,7 @@ public class PigRelOpTest extends PigRelTestBase {
     testRunPigScript(script, expectedResult);
 
     String expectedSql = ""
-                             + "SELECT DEPTNO AS group, COLLECT(ROW(DEPTNO, DNAME, LOC)) AS A\n"
+                             + "SELECT DEPTNO, COLLECT(ROW(DEPTNO, DNAME, LOC)) AS A\n"
                              + "FROM scott.DEPT\n"
                              + "GROUP BY DEPTNO";
     testSQLTranslation(script, expectedSql);
@@ -1627,7 +1622,7 @@ public class PigRelOpTest extends PigRelTestBase {
     String sql =
         ""
             + "SELECT CASE WHEN t4.DEPTNO IS NOT NULL THEN t4.DEPTNO ELSE t7.DEPTNO END "
-            + "AS group, t4.A, t4.B, t7.C\n"
+            + "AS DEPTNO, t4.A, t4.B, t7.C\n"
             + "FROM (SELECT CASE WHEN t0.$f0 IS NOT NULL THEN t0.$f0 ELSE t3.DEPTNO END "
             + "AS DEPTNO, t0.A, t3.B\n"
             + "      FROM (SELECT DEPTNO + 10 AS $f0, COLLECT(ROW(DEPTNO, DNAME, LOC)) AS A\n"

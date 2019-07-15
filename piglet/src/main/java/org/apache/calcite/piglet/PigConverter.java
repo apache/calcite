@@ -18,39 +18,15 @@
 package org.apache.calcite.piglet;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
-import org.apache.calcite.adapter.enumerable.EnumerableInterpreter;
-import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.plan.RelOptLattice;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
-import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Aggregate;
-import org.apache.calcite.rel.core.Calc;
-import org.apache.calcite.rel.core.Correlate;
-import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.core.Join;
-import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
-import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.core.Uncollect;
-import org.apache.calcite.rel.core.Union;
-import org.apache.calcite.rel.core.Values;
-import org.apache.calcite.rel.core.Window;
-import org.apache.calcite.rel.logical.LogicalAggregate;
-import org.apache.calcite.rel.logical.LogicalCalc;
-import org.apache.calcite.rel.logical.LogicalCorrelate;
-import org.apache.calcite.rel.logical.LogicalFilter;
-import org.apache.calcite.rel.logical.LogicalJoin;
-import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rel.logical.LogicalSort;
-import org.apache.calcite.rel.logical.LogicalTableScan;
-import org.apache.calcite.rel.logical.LogicalUnion;
-import org.apache.calcite.rel.logical.LogicalValues;
-import org.apache.calcite.rel.logical.LogicalWindow;
+import org.apache.calcite.rel.logical.ToLogicalConverter;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
@@ -252,7 +228,7 @@ public class PigConverter extends PigServer {
           ImmutableList.<RelOptMaterialization>of(), ImmutableList.<RelOptLattice>of());
 
       // Then convert the physical plan back to logical plan
-      final RelNode logicalPlan = new ToLogicalConverter().visit(physicalPlan);
+      final RelNode logicalPlan = new ToLogicalConverter(builder).visit(physicalPlan);
       optimizedPlans.add(logicalPlan);
     }
     return optimizedPlans;
@@ -261,90 +237,90 @@ public class PigConverter extends PigServer {
   /**
    * RelNode visitor to convert any rel plan to a logical plan.
    */
-  private static class ToLogicalConverter extends RelHomogeneousShuttle {
-    @Override public RelNode visit(RelNode relNode) {
-      if (relNode instanceof Aggregate) {
-        final Aggregate agg = (Aggregate) relNode;
-        return LogicalAggregate.create(visit(agg.getInput()), agg.getGroupSet(),
-            agg.groupSets, agg.getAggCallList());
-      }
-      if (relNode instanceof TableScan) {
-        final TableScan tableScan = (TableScan) relNode;
-        return LogicalTableScan.create(tableScan.getCluster(), tableScan.getTable());
-      }
-      if (relNode instanceof Filter) {
-        final Filter filter = (Filter) relNode;
-        return LogicalFilter.create(visit(filter.getInput()), filter.getCondition());
-      }
-      if (relNode instanceof Project) {
-        final Project project = (Project) relNode;
-        return LogicalProject.create(visit(project.getInput()), project.getProjects(),
-            project.getRowType());
-      }
-      if (relNode instanceof Join) {
-        final Join join = (Join) relNode;
-        final RelNode left = visit(join.getLeft());
-        final RelNode right = visit(join.getRight());
-        return LogicalJoin.create(left, right, join.getCondition(), join.getVariablesSet(),
-            join.getJoinType());
-      }
-      if (relNode instanceof Correlate) {
-        final Correlate corr = (Correlate) relNode;
-        final RelNode left = visit(corr.getLeft());
-        final RelNode right = visit(corr.getRight());
-        return LogicalCorrelate.create(left, right, corr.getCorrelationId(),
-            corr.getRequiredColumns(), corr.getJoinType());
-      }
-      if (relNode instanceof Sort) {
-        final Sort sort = (Sort) relNode;
-        return LogicalSort.create(visit(sort.getInput()), sort.getCollation(), sort.offset,
-            sort.fetch);
-      }
-      if (relNode instanceof Union) {
-        final Union union = (Union) relNode;
-        final List<RelNode> newInputs = new ArrayList<>();
-        for (RelNode rel : union.getInputs()) {
-          newInputs.add(visit(rel));
-        }
-        return LogicalUnion.create(newInputs, union.all);
-      }
-      if (relNode instanceof Window) {
-        final Window window = (Window) relNode;
-        final RelNode input = visit(window.getInput());
-        return LogicalWindow.create(input.getTraitSet(), input, window.constants,
-            window.getRowType(), window.groups);
-      }
-      if (relNode instanceof Calc) {
-        final Calc calc = (Calc) relNode;
-        return LogicalCalc.create(visit(calc.getInput()), calc.getProgram());
-      }
-      if (relNode instanceof EnumerableInterpreter) {
-        return visit(((EnumerableInterpreter) relNode).getInput());
-      }
-      if (relNode instanceof EnumerableLimit) {
-        final EnumerableLimit limit = (EnumerableLimit) relNode;
-        if (limit.getInput() instanceof Sort) {
-          final Sort sort = (Sort) limit.getInput();
-          return LogicalSort.create(visit(sort.getInput()), sort.getCollation(), limit.offset,
-              limit.fetch);
-        } else {
-          return LogicalSort.create(visit(limit.getInput()), RelCollations.of(), limit.offset,
-              limit.fetch);
-        }
-      }
-      if (relNode instanceof Uncollect) {
-        final Uncollect uncollect = (Uncollect) relNode;
-        final RelNode input = visit(uncollect.getInput());
-        return new Uncollect(input.getCluster(), input.getTraitSet(), input,
-            uncollect.withOrdinality);
-      }
-      if (relNode instanceof Values) {
-        final Values values = (Values) relNode;
-        return LogicalValues.create(values.getCluster(), values.getRowType(), values.tuples);
-      }
-      throw new AssertionError("Need to implement " + relNode.getClass().getName());
-    }
-  }
+//  private static class ToLogicalConverter extends RelHomogeneousShuttle {
+//    @Override public RelNode visit(RelNode relNode) {
+//      if (relNode instanceof Aggregate) {
+//        final Aggregate agg = (Aggregate) relNode;
+//        return LogicalAggregate.create(visit(agg.getInput()), agg.getGroupSet(),
+//            agg.groupSets, agg.getAggCallList());
+//      }
+//      if (relNode instanceof TableScan) {
+//        final TableScan tableScan = (TableScan) relNode;
+//        return LogicalTableScan.create(tableScan.getCluster(), tableScan.getTable());
+//      }
+//      if (relNode instanceof Filter) {
+//        final Filter filter = (Filter) relNode;
+//        return LogicalFilter.create(visit(filter.getInput()), filter.getCondition());
+//      }
+//      if (relNode instanceof Project) {
+//        final Project project = (Project) relNode;
+//        return LogicalProject.create(visit(project.getInput()), project.getProjects(),
+//            project.getRowType());
+//      }
+//      if (relNode instanceof Join) {
+//        final Join join = (Join) relNode;
+//        final RelNode left = visit(join.getLeft());
+//        final RelNode right = visit(join.getRight());
+//        return LogicalJoin.create(left, right, join.getCondition(), join.getVariablesSet(),
+//            join.getJoinType());
+//      }
+//      if (relNode instanceof Correlate) {
+//        final Correlate corr = (Correlate) relNode;
+//        final RelNode left = visit(corr.getLeft());
+//        final RelNode right = visit(corr.getRight());
+//        return LogicalCorrelate.create(left, right, corr.getCorrelationId(),
+//            corr.getRequiredColumns(), corr.getJoinType());
+//      }
+//      if (relNode instanceof Sort) {
+//        final Sort sort = (Sort) relNode;
+//        return LogicalSort.create(visit(sort.getInput()), sort.getCollation(), sort.offset,
+//            sort.fetch);
+//      }
+//      if (relNode instanceof Union) {
+//        final Union union = (Union) relNode;
+//        final List<RelNode> newInputs = new ArrayList<>();
+//        for (RelNode rel : union.getInputs()) {
+//          newInputs.add(visit(rel));
+//        }
+//        return LogicalUnion.create(newInputs, union.all);
+//      }
+//      if (relNode instanceof Window) {
+//        final Window window = (Window) relNode;
+//        final RelNode input = visit(window.getInput());
+//        return LogicalWindow.create(input.getTraitSet(), input, window.constants,
+//            window.getRowType(), window.groups);
+//      }
+//      if (relNode instanceof Calc) {
+//        final Calc calc = (Calc) relNode;
+//        return LogicalCalc.create(visit(calc.getInput()), calc.getProgram());
+//      }
+//      if (relNode instanceof EnumerableInterpreter) {
+//        return visit(((EnumerableInterpreter) relNode).getInput());
+//      }
+//      if (relNode instanceof EnumerableLimit) {
+//        final EnumerableLimit limit = (EnumerableLimit) relNode;
+//        if (limit.getInput() instanceof Sort) {
+//          final Sort sort = (Sort) limit.getInput();
+//          return LogicalSort.create(visit(sort.getInput()), sort.getCollation(), limit.offset,
+//              limit.fetch);
+//        } else {
+//          return LogicalSort.create(visit(limit.getInput()), RelCollations.of(), limit.offset,
+//              limit.fetch);
+//        }
+//      }
+//      if (relNode instanceof Uncollect) {
+//        final Uncollect uncollect = (Uncollect) relNode;
+//        final RelNode input = visit(uncollect.getInput());
+//        return new Uncollect(input.getCluster(), input.getTraitSet(), input,
+//            uncollect.withOrdinality);
+//      }
+//      if (relNode instanceof Values) {
+//        final Values values = (Values) relNode;
+//        return LogicalValues.create(values.getCluster(), values.getRowType(), values.tuples);
+//      }
+//      throw new AssertionError("Need to implement " + relNode.getClass().getName());
+//    }
+//  }
 }
 
 // End PigConverter.java
