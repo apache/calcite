@@ -91,7 +91,7 @@ import java.util.Set;
 class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
   private static final String RANK_PREFIX = "rank_";
   // The relational algebra builder customized for Pig
-  protected LogicalPigRelBuilder builder;
+  protected PigRelBuilder builder;
   private Operator currentRoot;
 
   /**
@@ -109,7 +109,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
    * @param builder Relational algebra builder
    * @throws FrontendException Exception during processing Pig operators
    */
-  PigRelOpVisitor(OperatorPlan plan, PlanWalker walker, LogicalPigRelBuilder builder)
+  PigRelOpVisitor(OperatorPlan plan, PlanWalker walker, PigRelBuilder builder)
       throws FrontendException {
     super(plan, walker);
     if (!(walker instanceof PigRelOpWalker)) {

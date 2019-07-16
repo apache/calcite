@@ -54,13 +54,13 @@ import java.util.Map;
  * algebra plans and SQL statements.
  */
 public class PigConverter extends PigServer {
-  private final LogicalPigRelBuilder builder;
+  private final PigRelBuilder builder;
 
-  public PigConverter(LogicalPigRelBuilder builder) throws Exception {
+  public PigConverter(PigRelBuilder builder) throws Exception {
     this(builder, ExecType.LOCAL);
   }
 
-  PigConverter(LogicalPigRelBuilder builder, ExecType execType) throws Exception {
+  PigConverter(PigRelBuilder builder, ExecType execType) throws Exception {
     super(execType);
     this.builder = builder;
     builder.clear();
@@ -71,10 +71,10 @@ public class PigConverter extends PigServer {
   }
 
   public PigConverter(ExecType execType) throws Exception {
-    this(LogicalPigRelBuilder.create(), execType);
+    this(PigRelBuilder.create(), execType);
   }
 
-  public LogicalPigRelBuilder getBuilder() {
+  public PigRelBuilder getBuilder() {
     return builder;
   }
 

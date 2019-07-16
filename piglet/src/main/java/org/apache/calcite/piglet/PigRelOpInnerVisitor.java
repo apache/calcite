@@ -65,7 +65,7 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
    * @param builder Relational algebra builder
    * @throws FrontendException Exception during processing Pig operators
    */
-  PigRelOpInnerVisitor(OperatorPlan plan, PlanWalker walker, LogicalPigRelBuilder builder)
+  PigRelOpInnerVisitor(OperatorPlan plan, PlanWalker walker, PigRelBuilder builder)
       throws FrontendException {
     super(plan, walker, builder);
     this.inputRel = builder.peek();

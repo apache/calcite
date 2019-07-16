@@ -95,8 +95,7 @@ public class PigRelOpTest extends PigRelTestBase {
     converter.setPlanner(calcitePlanner);
     RelNode rel = converter.pigQuery2Rel(pigScript, false).get(0);
     final StringWriter sw = new StringWriter();
-    CalciteHandler pigHandler = new CalciteHandler(converter.getBuilder(), sw);
-    pigHandler.dump(rel);
+    CalciteHandler.dump(rel, new PrintWriter(sw));
     assertThat(Util.toLinux(sw.toString()), is(expectedResult));
   }
 

@@ -122,7 +122,7 @@ class PigRelUDFConverter {
    * @param returnType Function return data type
    * @return The SQL calls equivalent to the Pig function
    */
-  static RexNode convertPigFunction(LogicalPigRelBuilder builder, FuncSpec pigFunc,
+  static RexNode convertPigFunction(PigRelBuilder builder, FuncSpec pigFunc,
       ImmutableList<RexNode> operands, RelDataType returnType) throws FrontendException {
     // First, check the map for the direct mapping SQL builtin
     final SqlOperator operator = BUILTIN_FUNC.get(pigFunc.getClassName());

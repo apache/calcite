@@ -17,8 +17,8 @@
 
 package org.apache.calcite.test;
 
-import org.apache.calcite.piglet.LogicalPigRelBuilder;
 import org.apache.calcite.piglet.PigConverter;
+import org.apache.calcite.piglet.PigRelBuilder;
 import org.apache.calcite.piglet.PigRelPlanner;
 import org.apache.calcite.piglet.PigUDFWrapper;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -36,7 +36,7 @@ public abstract class PigRelTestBase {
 
   @Before
   public void testSetup() throws Exception {
-    final LogicalPigRelBuilder builder = LogicalPigRelBuilder.create(
+    final PigRelBuilder builder = PigRelBuilder.create(
         PigRelBuilderTest.config().build());
     converter = new PigConverter(builder);
     calcitePlanner = builder.getCluster().getPlanner();

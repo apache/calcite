@@ -81,7 +81,7 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
   private Stack<RexNode> stack;
 
   // The relational algebra builder customized for Pig
-  private LogicalPigRelBuilder builder;
+  private PigRelBuilder builder;
 
   // inputCount and inputOrdinal are used to select which relation in the builder
   // stack to build the projection
@@ -98,7 +98,7 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
    * @throws FrontendException Exception during processing Pig operators
    */
   private PigRelExVisitor(OperatorPlan expressionPlan, PlanWalker walker,
-      LogicalPigRelBuilder builder, int inputCount, int inputOrdinal) throws FrontendException {
+      PigRelBuilder builder, int inputCount, int inputOrdinal) throws FrontendException {
     super(expressionPlan, walker);
     this.builder = builder;
     this.inputCount = inputCount;
@@ -127,7 +127,7 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
    * @return Relational algebra expressions
    * @throws FrontendException Exception during processing Pig operators
    */
-  static RexNode translatePigEx(LogicalPigRelBuilder builder, LogicalExpressionPlan pigEx,
+  static RexNode translatePigEx(PigRelBuilder builder, LogicalExpressionPlan pigEx,
       int inputCount, int inputOrdinal) throws FrontendException {
     final PigRelExVisitor exVisitor =
         new PigRelExVisitor(pigEx, new PigRelExWalker(pigEx), builder, inputCount, inputOrdinal);
@@ -144,7 +144,7 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
    * @return Relational algebra expressions
    * @throws FrontendException Exception during processing Pig operators
    */
-  static RexNode translatePigEx(LogicalPigRelBuilder builder, LogicalExpressionPlan pigEx)
+  static RexNode translatePigEx(PigRelBuilder builder, LogicalExpressionPlan pigEx)
       throws FrontendException {
     return translatePigEx(builder, pigEx, 1, 0);
   }

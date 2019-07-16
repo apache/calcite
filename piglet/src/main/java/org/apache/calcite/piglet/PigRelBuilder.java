@@ -41,7 +41,6 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
-import org.apache.calcite.tools.PigRelBuilder;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Static;
@@ -50,7 +49,6 @@ import org.apache.calcite.util.Util;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.scripting.jython.JythonFunction;
@@ -68,7 +66,7 @@ import java.util.Map;
 /**
  * Extension to {@link RelBuilder} for Pig logical operators.
  */
-public class LogicalPigRelBuilder extends PigRelBuilder {
+public class PigRelBuilder extends RelBuilder {
   /**
    * Context constructed during Pig to @{@link RelNode} translation process.
    */
@@ -88,7 +86,7 @@ public class LogicalPigRelBuilder extends PigRelBuilder {
   private int nextCorrelId;
   private PigRelTranslationContext pigRelContext;
 
-  private LogicalPigRelBuilder(Context context, RelOptCluster cluster, RelOptSchema relOptSchema) {
+  private PigRelBuilder(Context context, RelOptCluster cluster, RelOptSchema relOptSchema) {
     super(context, cluster, relOptSchema);
     aliasMap = new HashMap<>();
     reverseAliasMap = new HashMap<>();
@@ -100,15 +98,15 @@ public class LogicalPigRelBuilder extends PigRelBuilder {
   }
 
   /** Creates a PigRelBuilder. */
-  public static LogicalPigRelBuilder create(FrameworkConfig config) {
+  public static PigRelBuilder create(FrameworkConfig config) {
     final RelBuilder relBuilder = RelBuilder.create(config);
     Hook.REL_BUILDER_SIMPLIFY.add(Hook.propertyJ(false));
-    return new LogicalPigRelBuilder(config.getContext(), relBuilder.getCluster(),
+    return new PigRelBuilder(config.getContext(), relBuilder.getCluster(),
         relBuilder.getRelOptSchema());
   }
 
   /** Creates a PigRelBuilder. */
-  public static LogicalPigRelBuilder create() {
+  public static PigRelBuilder create() {
     return create(config().build());
   }
 
@@ -151,12 +149,12 @@ public class LogicalPigRelBuilder extends PigRelBuilder {
     return false;
   }
 
-  @Override public String getAlias() {
-    RelNode input = peek();
+  public String getAlias() {
+    final RelNode input = peek();
     if (reverseAliasMap.containsKey(input)) {
       return reverseAliasMap.get(input);
     }
-    return super.getAlias();
+    return null;
   }
 
   @Override public void clear() {
@@ -402,13 +400,11 @@ public class LogicalPigRelBuilder extends PigRelBuilder {
    *
    * @param groupKeys Lists of group keys of relations to be cogrouped.
    * @return This builder
-   * @throws FrontendException Exception during processing Pig operators
    */
-  public RelBuilder cogroup(Iterable<? extends GroupKey> groupKeys)
-      throws FrontendException {
+  public RelBuilder cogroup(Iterable<? extends GroupKey> groupKeys) {
     @SuppressWarnings("unchecked") final List<GroupKeyImpl> groupKeyList =
         ImmutableList.copyOf((Iterable) groupKeys);
-    validateGroupList(groupKeyList);
+//    validateGroupList(groupKeyList);
     final int groupCount = groupKeyList.get(0).nodes.size();
 
     // Pull out all relations needed for the group
@@ -560,9 +556,8 @@ public class LogicalPigRelBuilder extends PigRelBuilder {
    * Collects all rows of the top rel into a single multiset value.
    *
    * @return This builder
-   * @throws FrontendException Exception during processing Pig operators
    */
-  public RelBuilder collect() throws FrontendException {
+  public RelBuilder collect() {
     final  RelNode inputRel = peek();
 
     // First project out a combined column which is a of all other columns
@@ -680,4 +675,4 @@ public class LogicalPigRelBuilder extends PigRelBuilder {
   }
 }
 
-// End LogicalPigRelBuilder.java
+// End PigRelBuilder.java
