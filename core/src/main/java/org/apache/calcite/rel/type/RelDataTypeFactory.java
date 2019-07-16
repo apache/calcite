@@ -285,7 +285,7 @@ public interface RelDataTypeFactory {
    * <p>Pre-condition: <code>createDecimalProduct(type1, type2) != null</code>
    *
    * @deprecated Use
-   * {@link RelDataTypeSystem#shouldUseDoubleMultiplication(RelDataType, RelDataType)}
+   * {@link RelDataTypeSystem#shouldUseDoubleMultiplication(RelDataTypeFactory, RelDataType, RelDataType)}
    */
   @Deprecated // to be removed before 2.0
   boolean useDoubleMultiplication(
