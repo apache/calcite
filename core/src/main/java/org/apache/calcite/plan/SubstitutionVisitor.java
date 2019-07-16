@@ -596,7 +596,7 @@ public class SubstitutionVisitor {
   /**
    * Equivalence checking for row types, but except for the field names.
    */
-  private Boolean rowTypesAreEquivalent(
+  private boolean rowTypesAreEquivalent(
       MutableRel rel0, MutableRel rel1, Litmus litmus) {
     // Validation checking for row type, but except for the field names.
     assert rel0.rowType.getFieldCount() == rel1.rowType.getFieldCount()
