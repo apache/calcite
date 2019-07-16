@@ -549,8 +549,8 @@ public abstract class ReturnTypes {
           cascade(DECIMAL_MOD, SqlTypeTransforms.TO_NULLABLE);
   /**
    * Type-inference strategy whereby the result type of a call is
-   * {@link #DECIMAL_SUM_NULLABLE} with a fallback to {@link #LEAST_RESTRICTIVE}
-   * These rules are used for addition and subtraction.
+   * {@link #DECIMAL_MOD_NULLABLE} with a fallback to {@link #ARG1_NULLABLE}
+   * These rules are used for modulo.
    */
   public static final SqlReturnTypeInference NULLABLE_MOD =
           chain(DECIMAL_MOD_NULLABLE, ARG1_NULLABLE);

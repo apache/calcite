@@ -107,29 +107,29 @@ public interface RelDataTypeSystem {
    * at least one decimal operand and requires both operands to have exact
    * numeric types.
    *
+   * Type-inference strategy whereby the result type of a call is the decimal
+   * sum of two exact numeric operands where at least one of the operands is a
+   * decimal. Let p1, s1 be the precision and scale of the first operand Let
+   * p2, s2 be the precision and scale of the second operand Let p, s be the
+   * precision and scale of the result, Then the result type is a decimal
+   * with:
+   *
+   * <ul>
+   * <li>s = max(s1, s2)</li>
+   * <li>p = max(p1 - s1, p2 - s2) + s + 1</li>
+   * </ul>
+   *
+   * <p>p and s are capped at their maximum values
+   *
+   * @link Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
+   *
+   * @param typeFactory typeFactory used to create output type
    * @param type1 type of the first operand
    * @param type2 type of the second operand
    * @return the result type for a decimal addition.
    */
   default RelDataType deriveDecimalPlusType(RelDataTypeFactory typeFactory,
                                             RelDataType type1, RelDataType type2) {
-    /**
-     * Type-inference strategy whereby the result type of a call is the decimal
-     * sum of two exact numeric operands where at least one of the operands is a
-     * decimal. Let p1, s1 be the precision and scale of the first operand Let
-     * p2, s2 be the precision and scale of the second operand Let p, s be the
-     * precision and scale of the result, Then the result type is a decimal
-     * with:
-     *
-     * <ul>
-     * <li>s = max(s1, s2)</li>
-     * <li>p = max(p1 - s1, p2 - s2) + s + 1</li>
-     * </ul>
-     *
-     * <p>p and s are capped at their maximum values
-     *
-     * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
-     */
     if (SqlTypeUtil.isExactNumeric(type1)
             && SqlTypeUtil.isExactNumeric(type2)) {
       if (SqlTypeUtil.isDecimal(type1)
@@ -161,6 +161,21 @@ public interface RelDataTypeSystem {
    * multiplication involves at least one decimal operand and requires both
    * operands to have exact numeric types.
    *
+   * Implemented with SQL 2003 compliant behavior. Let p1,
+   * s1 be the precision and scale of the first operand Let p2, s2 be the
+   * precision and scale of the second operand Let p, s be the precision and
+   * scale of the result, Then the result type is a decimal with:
+   *
+   * <ul>
+   * <li>p = p1 + p2</li>
+   * <li>s = s1 + s2</li>
+   * </ul>
+   *
+   * <p>p and s are capped at their maximum values
+   *
+   * @link Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
+   *
+   * @param typeFactory typeFactory used to create output type
    * @param type1 type of the first operand
    * @param type2 type of the second operand
    * @return the result type for a decimal multiplication, or null if decimal
@@ -168,21 +183,6 @@ public interface RelDataTypeSystem {
    */
   default RelDataType deriveDecimalMultiplyType(RelDataTypeFactory typeFactory,
       RelDataType type1, RelDataType type2) {
-    /**
-     * <p>Implement RelDataTypeFactory with SQL 2003 compliant behavior. Let p1,
-     * s1 be the precision and scale of the first operand Let p2, s2 be the
-     * precision and scale of the second operand Let p, s be the precision and
-     * scale of the result, Then the result type is a decimal with:
-     *
-     * <ul>
-     * <li>p = p1 + p2</li>
-     * <li>s = s1 + s2</li>
-     * </ul>
-     *
-     * <p>p and s are capped at their maximum values
-     *
-     * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
-     */
     if (SqlTypeUtil.isExactNumeric(type1)
             && SqlTypeUtil.isExactNumeric(type2)) {
       if (SqlTypeUtil.isDecimal(type1)
@@ -217,7 +217,27 @@ public interface RelDataTypeSystem {
    * Infers the return type of a decimal division. Decimal division involves
    * at least one decimal operand and requires both operands to have exact
    * numeric types.
+   /**
+   * Rules:
    *
+   * <ul>
+   * <li>Let p1, s1 be the precision and scale of the first operand
+   * <li>Let p2, s2 be the precision and scale of the second operand
+   * <li>Let p, s be the precision and scale of the result
+   * <li>Let d be the number of whole digits in the result
+   * <li>Then the result type is a decimal with:
+   *   <ul>
+   *   <li>d = p1 - s1 + s2</li>
+   *   <li>s &lt; max(6, s1 + p2 + 1)</li>
+   *   <li>p = d + s</li>
+   *   </ul>
+   * </li>
+   * <li>p and s are capped at their maximum values</li>
+   * </ul>
+   *
+   * @link Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
+   *
+   * @param typeFactory typeFactory used to create output type
    * @param type1 type of the first operand
    * @param type2 type of the second operand
    * @return the result type for a decimal division, or null if decimal
@@ -225,26 +245,7 @@ public interface RelDataTypeSystem {
    */
   default RelDataType deriveDecimalDivideType(RelDataTypeFactory typeFactory,
       RelDataType type1, RelDataType type2) {
-    /**
-     * Rules:
-     *
-     * <ul>
-     * <li>Let p1, s1 be the precision and scale of the first operand
-     * <li>Let p2, s2 be the precision and scale of the second operand
-     * <li>Let p, s be the precision and scale of the result
-     * <li>Let d be the number of whole digits in the result
-     * <li>Then the result type is a decimal with:
-     *   <ul>
-     *   <li>d = p1 - s1 + s2</li>
-     *   <li>s &lt; max(6, s1 + p2 + 1)</li>
-     *   <li>p = d + s</li>
-     *   </ul>
-     * </li>
-     * <li>p and s are capped at their maximum values</li>
-     * </ul>
-     *
-     * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
-     */
+
     if (SqlTypeUtil.isExactNumeric(type1)
             && SqlTypeUtil.isExactNumeric(type2)) {
       if (SqlTypeUtil.isDecimal(type1)
@@ -292,6 +293,7 @@ public interface RelDataTypeSystem {
    *
    * Always returns the type of the second argument as the return type
    * for the operation.
+   * @param typeFactory typeFactory used to create output type
    * @param type1 type of the first operand
    * @param type2 type of the second operand
    * @return the result type for a decimal mod, or null if decimal
