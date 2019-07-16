@@ -18,6 +18,7 @@ package org.apache.calcite.rel.type;
 
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Glossary;
 
 /**
  * Type system.
@@ -121,7 +122,7 @@ public interface RelDataTypeSystem {
    *
    * <p>p and s are capped at their maximum values
    *
-   * @link Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
+   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
    *
    * @param typeFactory typeFactory used to create output type
    * @param type1 type of the first operand
@@ -173,7 +174,7 @@ public interface RelDataTypeSystem {
    *
    * <p>p and s are capped at their maximum values
    *
-   * @link Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
+   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
    *
    * @param typeFactory typeFactory used to create output type
    * @param type1 type of the first operand
@@ -234,7 +235,7 @@ public interface RelDataTypeSystem {
    * <li>p and s are capped at their maximum values</li>
    * </ul>
    *
-   * @link Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
+   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
    *
    * @param typeFactory typeFactory used to create output type
    * @param type1 type of the first operand

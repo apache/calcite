@@ -456,7 +456,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   }
 
   /**
-   * Delegates to RelDataTypeSystem#deriveDecimalMultiplyType to get the return type
+   * Delegates to {@link RelDataTypeSystem#deriveDecimalMultiplyType} to get the return type
    * for the operation.
    */
   public RelDataType createDecimalProduct(
@@ -474,7 +474,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   }
 
   /**
-   * Delegates to RelDataTypeSystem#deriveDecimalDivideType to get the return type
+   * Delegates to {@link RelDataTypeSystem#deriveDecimalDivideType} to get the return type
    * for the operation.
    */
   public RelDataType createDecimalQuotient(
