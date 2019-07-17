@@ -78,6 +78,8 @@ public class ClickHouseSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsWindowFunctions() { return false; }
+
   @Override public CalendarPolicy getCalendarPolicy() {
     return CalendarPolicy.SHIFT;
   }
@@ -131,7 +133,7 @@ public class ClickHouseSqlDialect extends SqlDialect {
     } else if (literal instanceof SqlTimeLiteral) {
       toFunc = "toTime";
     } else {
-      throw new AssertionError("ClickHouse does not support DateTime literal: "
+      throw new RuntimeException("ClickHouse does not support DateTime literal: "
           + literal);
     }
 
@@ -171,6 +173,21 @@ public class ClickHouseSqlDialect extends SqlDialect {
         unparseFloor(writer, call);
         break;
 
+      case COUNT:
+        // CH returns NULL rather than 0 for COUNT(DISTINCT) of NULL values.
+        // https://github.com/yandex/ClickHouse/issues/2494
+        // Wrap the call in a CH specific coalesce (assumeNotNull).
+        if (call.getFunctionQuantifier() != null
+            && call.getFunctionQuantifier().toString().equals("DISTINCT")) {
+          writer.print("assumeNotNull");
+          SqlWriter.Frame frame = writer.startList("(", ")");
+          super.unparseCall(writer, call, leftPrec, rightPrec);
+          writer.endList(frame);
+        } else {
+          super.unparseCall(writer, call, leftPrec, rightPrec);
+        }
+        break;
+
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
@@ -208,7 +225,7 @@ public class ClickHouseSqlDialect extends SqlDialect {
       funName = "toStartOfMinute";
       break;
     default:
-      throw new AssertionError("ClickHouse does not support FLOOR for time unit: "
+      throw new RuntimeException("ClickHouse does not support FLOOR for time unit: "
           + unit);
     }
 
