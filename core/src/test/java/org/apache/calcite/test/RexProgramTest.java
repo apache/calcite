@@ -1493,6 +1493,54 @@ public class RexProgramTest extends RexProgramBuilderBase {
         "false");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3198">[CALCITE-3198]
+   * Enhance RexSimplify to handle (x<>a or x<>b)</a>. */
+  @Test public void testSimplifyOrNotEqualsNotNullable() {
+    checkSimplify(
+        or(
+            ne(vIntNotNull(), literal(1)),
+            ne(vIntNotNull(), literal(2))),
+        "true");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3198">[CALCITE-3198]
+   * Enhance RexSimplify to handle (x<>a or x<>b)</a>. */
+  @Test public void testSimplifyOrNotEqualsNotNullable2() {
+    checkSimplify(
+        or(
+            ne(vIntNotNull(0), literal(1)),
+            eq(vIntNotNull(1), literal(10)),
+            ne(vIntNotNull(0), literal(2))),
+        "true");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3198">[CALCITE-3198]
+   * Enhance RexSimplify to handle (x<>a or x<>b)</a>. */
+  @Test public void testSimplifyOrNotEqualsNullable() {
+    checkSimplify3(
+        or(
+            ne(vInt(), literal(1)),
+            ne(vInt(), literal(2))),
+        "OR(IS NOT NULL(?0.int0), null)", "IS NOT NULL(?0.int0)", "true");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3198">[CALCITE-3198]
+   * Enhance RexSimplify to handle (x<>a or x<>b)</a>. */
+  @Test public void testSimplifyOrNotEqualsNullable2() {
+    checkSimplify3(
+        or(
+            ne(vInt(0), literal(1)),
+            eq(vInt(1), literal(10)),
+            ne(vInt(0), literal(2))),
+        "OR(IS NOT NULL(?0.int0), null, =(?0.int1, 10))",
+        "OR(IS NOT NULL(?0.int0), =(?0.int1, 10))",
+        "true");
+  }
+
   @Test public void testSimplifyAndPush() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType rowType = typeFactory.builder()

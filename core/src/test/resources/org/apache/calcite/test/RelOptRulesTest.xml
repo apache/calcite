@@ -2095,6 +2095,117 @@ LogicalProject(DEPTNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testReduceConstantsDup3">
+        <Resource name="sql">
+            <![CDATA[select d.deptno from dept d where d.deptno<>7 or d.deptno<>8]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[OR(<>($0, 7), <>($0, 8))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceConstantsDup3Null">
+        <Resource name="sql">
+            <![CDATA[select e.empno from emp e where e.mgr<>7 or e.mgr<>8]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[OR(<>($3, 7), <>($3, 8))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[IS NOT NULL($3)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceConstantsDupNot">
+        <Resource name="sql">
+            <![CDATA[select d.deptno from dept d where not(d.deptno=7 and d.deptno=8)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[NOT(AND(=($0, 7), =($0, 8)))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceConstantsDupNotNull">
+        <Resource name="sql">
+            <![CDATA[select e.empno from emp e where not(e.mgr=7 and e.mgr=8)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[NOT(AND(=($3, 7), =($3, 8)))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[IS NOT NULL($3)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceConstantsDupNot2">
+        <Resource name="sql">
+            <![CDATA[select d.deptno from dept d where not(d.deptno=7 and d.name='foo' and d.deptno=8)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[NOT(AND(=($0, 7), =($1, 'foo'), =($0, 8)))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceConstantsDupNot2Null">
+        <Resource name="sql">
+            <![CDATA[select e.empno from emp e where not(e.mgr=7 and e.deptno=8 and e.mgr=8)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[NOT(AND(=($3, 7), =($7, 8), =($3, 8)))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[OR(IS NOT NULL($3), <>($7, 8))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testReduceConstantsEliminatesFilter">
         <Resource name="sql">
             <![CDATA[select * from (values (1,2)) where 1 + 2 > 3 + CAST(NULL AS INTEGER)]]>
