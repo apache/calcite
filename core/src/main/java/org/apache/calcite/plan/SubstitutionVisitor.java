@@ -598,13 +598,13 @@ public class SubstitutionVisitor {
    */
   private boolean rowTypesAreEquivalent(
       MutableRel rel0, MutableRel rel1, Litmus litmus) {
-    // Validation checking for row type, but except for the field names.
-    assert rel0.rowType.getFieldCount() == rel1.rowType.getFieldCount()
-        : Pair.of(rel0, rel1);
+    if (rel0.rowType.getFieldCount() != rel1.rowType.getFieldCount()) {
+      return litmus.fail("Mismatch for column count: [{}]", Pair.of(rel0, rel1));
+    }
     for (Pair<RelDataTypeField, RelDataTypeField> pair
         : Pair.zip(rel0.rowType.getFieldList(), rel0.rowType.getFieldList())) {
       if (!pair.left.getType().equals(pair.right.getType())) {
-        return litmus.fail(Pair.of(rel0, rel1).toString());
+        return litmus.fail("Mismatch for column type: [{}]", Pair.of(rel0, rel1));
       }
     }
     return litmus.succeed();
