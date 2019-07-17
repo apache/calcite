@@ -99,6 +99,8 @@ public enum SqlTypeName {
       SqlTypeFamily.CHARACTER),
   VARCHAR(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.VARCHAR,
       SqlTypeFamily.CHARACTER),
+  TEXT(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.LONGVARCHAR,
+      SqlTypeFamily.CHARACTER),
   BINARY(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.BINARY,
       SqlTypeFamily.BINARY),
   VARBINARY(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.VARBINARY,
@@ -145,7 +147,7 @@ public enum SqlTypeName {
   // SqlTypeFamily.ANY
   public static final List<SqlTypeName> ALL_TYPES =
       ImmutableList.of(
-          BOOLEAN, INTEGER, VARCHAR, DATE, TIME, TIMESTAMP, NULL, DECIMAL,
+          BOOLEAN, INTEGER, VARCHAR, TEXT, DATE, TIME, TIMESTAMP, NULL, DECIMAL,
           ANY, CHAR, BINARY, VARBINARY, TINYINT, SMALLINT, BIGINT, REAL,
           DOUBLE, SYMBOL, INTERVAL_YEAR, INTERVAL_YEAR_MONTH, INTERVAL_MONTH,
           INTERVAL_DAY, INTERVAL_DAY_HOUR, INTERVAL_DAY_MINUTE,
@@ -176,7 +178,7 @@ public enum SqlTypeName {
       combine(APPROX_TYPES, ImmutableList.of(DECIMAL));
 
   public static final List<SqlTypeName> CHAR_TYPES =
-      ImmutableList.of(CHAR, VARCHAR);
+      ImmutableList.of(CHAR, VARCHAR, TEXT);
 
   public static final List<SqlTypeName> STRING_TYPES =
       combine(CHAR_TYPES, BINARY_TYPES);
@@ -221,13 +223,13 @@ public enum SqlTypeName {
 
           .put(Types.CHAR, CHAR)
           .put(Types.VARCHAR, VARCHAR)
+          .put(Types.LONGVARCHAR, TEXT)
 
               // TODO: provide real support for these eventually
           .put(ExtraSqlTypes.NCHAR, CHAR)
           .put(ExtraSqlTypes.NVARCHAR, VARCHAR)
 
               // TODO: additional types not yet supported. See ExtraSqlTypes.
-              // .put(Types.LONGVARCHAR, Longvarchar)
               // .put(Types.CLOB, Clob)
               // .put(Types.LONGVARBINARY, Longvarbinary)
               // .put(Types.BLOB, Blob)

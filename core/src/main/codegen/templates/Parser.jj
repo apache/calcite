@@ -4629,6 +4629,8 @@ SqlTypeName SqlTypeName(Span s) :
 |
     <VARCHAR> { return SqlTypeName.VARCHAR; }
 |
+    <TEXT> { return SqlTypeName.TEXT; }
+|
     <DATE> { return SqlTypeName.DATE; }
 |
     <TIME> { return SqlTypeName.TIME; }
@@ -4680,6 +4682,7 @@ SqlJdbcDataTypeName JdbcOdbcDataTypeName() :
 {
     (<SQL_CHAR> | <CHAR>) { return SqlJdbcDataTypeName.SQL_CHAR; }
 |   (<SQL_VARCHAR> | <VARCHAR>) { return SqlJdbcDataTypeName.SQL_VARCHAR; }
+|   (<SQL_TEXT> | <TEXT>) { return SqlJdbcDataTypeName.SQL_TEXT; }
 |   (<SQL_DATE> | <DATE>) { return SqlJdbcDataTypeName.SQL_DATE; }
 |   (<SQL_TIME> | <TIME>) { return SqlJdbcDataTypeName.SQL_TIME; }
 |   (<SQL_TIMESTAMP> | <TIMESTAMP>) { return SqlJdbcDataTypeName.SQL_TIMESTAMP; }
@@ -6754,6 +6757,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SQL_NVARCHAR: "SQL_NVARCHAR" >
 |   < SQL_REAL: "SQL_REAL" >
 |   < SQL_SMALLINT: "SQL_SMALLINT" >
+|   < SQL_TEXT: "SQL_TEXT" >
 |   < SQL_TIME: "SQL_TIME" >
 |   < SQL_TIMESTAMP: "SQL_TIMESTAMP" >
 |   < SQL_TINYINT: "SQL_TINYINT" >
@@ -6795,6 +6799,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < TABLE_NAME: "TABLE_NAME" >
 |   < TABLESAMPLE: "TABLESAMPLE" >
 |   < TEMPORARY: "TEMPORARY" >
+|   < TEXT: "TEXT" >
 |   < THEN: "THEN" >
 |   < TIES: "TIES" >
 |   < TIME: "TIME" >

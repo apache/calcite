@@ -141,8 +141,8 @@ public class SqlTypeNameTest {
     SqlTypeName tn =
         SqlTypeName.getNameForJdbcType(Types.LONGVARCHAR);
     assertEquals(
-        "LONGVARCHAR did not map to null",
-        null,
+        "LONGVARCHAR did not map to TEXT",
+        SqlTypeName.TEXT,
         tn);
   }
 

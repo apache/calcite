@@ -4246,6 +4246,9 @@ public class SqlParserTest {
     checkExp(
         "Cast(DATE '2004-12-21' AS VARCHAR(10))",
         "CAST(DATE '2004-12-21' AS VARCHAR(10))");
+    checkExp(
+        "Cast(DATE '2004-12-21' AS TEXT)",
+        "CAST(DATE '2004-12-21' AS TEXT)");
   }
 
   @Test public void testTrim() {
@@ -4308,6 +4311,8 @@ public class SqlParserTest {
     checkExp("{fn insert()}", "{fn INSERT() }");
     checkExp("{fn convert(foo, SQL_VARCHAR)}",
         "{fn CONVERT(`FOO`, SQL_VARCHAR) }");
+    checkExp("{fn convert(foo, text)}",
+        "{fn CONVERT(`FOO`, SQL_TEXT) }");
     checkExp("{fn convert(log10(100), integer)}",
         "{fn CONVERT(LOG10(100), SQL_INTEGER) }");
     checkExp("{fn convert(1, SQL_INTERVAL_YEAR)}",

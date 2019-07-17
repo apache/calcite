@@ -32,6 +32,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 public enum SqlJdbcDataTypeName {
   SQL_CHAR(SqlTypeName.CHAR),
   SQL_VARCHAR(SqlTypeName.VARCHAR),
+  SQL_TEXT(SqlTypeName.TEXT),
   SQL_DATE(SqlTypeName.DATE),
   SQL_TIME(SqlTypeName.TIME),
   SQL_TIME_WITH_LOCAL_TIME_ZONE(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE),

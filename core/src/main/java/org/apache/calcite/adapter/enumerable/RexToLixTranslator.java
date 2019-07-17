@@ -500,12 +500,14 @@ public class RexToLixTranslator {
     case BINARY:
       pad = true;
       // fall through
+    case TEXT:
     case VARCHAR:
     case VARBINARY:
       final int targetPrecision = targetType.getPrecision();
       if (targetPrecision >= 0) {
         switch (sourceType.getSqlTypeName()) {
         case CHAR:
+        case TEXT:
         case VARCHAR:
         case BINARY:
         case VARBINARY:
