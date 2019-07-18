@@ -244,7 +244,7 @@ public class JdbcRules {
     <R extends RelNode> JdbcConverterRule(Class<R> clazz,
         Predicate<? super R> predicate, RelTrait in, JdbcConvention out,
         RelBuilderFactory relBuilderFactory, String description) {
-      super(clazz, predicate, in, out, relBuilderFactory, description);
+      super(clazz, predicate, in, out, relBuilderFactory, description + ":" + out);
       this.out = out;
     }
 
