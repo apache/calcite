@@ -65,7 +65,6 @@ val skipSpotless by props()
 val skipJavadoc by props()
 val enableMavenLocal by props()
 val enableGradleMetadata by props()
-val includeTestTags by props("!org.apache.calcite.test.SlowTests")
 // By default use Java implementation to sign artifacts
 // When useGpgCmd=true, then gpg command line tool is used for signing
 val useGpgCmd by props()
@@ -503,9 +502,7 @@ allprojects {
             }
             withType<Test>().configureEach {
                 useJUnitPlatform {
-                    if (includeTestTags.isNotBlank()) {
-                        includeTags.add(includeTestTags)
-                    }
+                    excludeTags("slow")
                 }
                 testLogging {
                     exceptionFormat = TestExceptionFormat.FULL
@@ -576,6 +573,16 @@ allprojects {
                         printResult(descriptor, result)
                     }
                 }))
+            }
+            // Cannot be moved above otherwise configure each will override
+            // also the specific configurations below.
+            register<Test>("testSlow") {
+                group = LifecycleBasePlugin.VERIFICATION_GROUP
+                description = "Runs the slow unit tests."
+                useJUnitPlatform() {
+                    includeTags("slow")
+                }
+                jvmArgs("-Xmx6g")
             }
             withType<SpotBugsTask>().configureEach {
                 group = LifecycleBasePlugin.VERIFICATION_GROUP
