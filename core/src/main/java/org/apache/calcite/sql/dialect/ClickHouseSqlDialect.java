@@ -78,7 +78,9 @@ public class ClickHouseSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public boolean supportsWindowFunctions() { return false; }
+  @Override public boolean supportsWindowFunctions() {
+    return false;
+  }
 
   @Override public CalendarPolicy getCalendarPolicy() {
     return CalendarPolicy.SHIFT;
