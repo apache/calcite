@@ -17,7 +17,6 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.avatica.util.ByteString;
-import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.Strong;
@@ -994,7 +993,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
    * to CNF. */
   @Test public void testCnfExponential() {
     // run out of memory if limit is higher than about 20
-    final int limit = CalciteSystemProperty.TEST_SLOW.value() ? 16 : 6;
+    int limit = 16;
     for (int i = 2; i < limit; i++) {
       checkExponentialCnf(i);
     }

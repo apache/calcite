@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.adapter.tpcds;
 
-import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -34,8 +33,9 @@ import org.apache.calcite.util.Holder;
 
 import net.hydromatic.tpcds.query.Query;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Random;
@@ -47,8 +47,9 @@ import static org.junit.Assert.assertThat;
 
 /** Unit test for {@link org.apache.calcite.adapter.tpcds.TpcdsSchema}.
  *
- * <p>Only runs if {@link org.apache.calcite.config.CalciteSystemProperty#TEST_SLOW} is set.</p>
+ * <p>Only runs as part of slow test suite.</p>
  */
+@Tag("slow")
 public class TpcdsTest {
   private static Consumer<Holder<Program>> handler(
       final boolean bushy, final int minJoinCount) {
@@ -82,8 +83,7 @@ public class TpcdsTest {
       + "}";
 
   private CalciteAssert.AssertThat with() {
-    return CalciteAssert.model(TPCDS_MODEL)
-        .enable(CalciteSystemProperty.TEST_SLOW.value());
+    return CalciteAssert.model(TPCDS_MODEL);
   }
 
   @Test public void testCallCenter() {
@@ -201,14 +201,14 @@ public class TpcdsTest {
   }
 
   /** Tests the customer table with scale factor 5. */
-  @Ignore("add tests like this that count each table")
+  @Disabled("add tests like this that count each table")
   @Test public void testCustomer5() {
     with()
         .query("select * from tpcds_5.customer")
         .returnsCount(750000);
   }
 
-  @Ignore("throws 'RuntimeException: Cannot convert null to long'")
+  @Disabled("throws 'RuntimeException: Cannot convert null to long'")
   @Test public void testQuery01() {
     checkQuery(1).runs();
   }
@@ -244,29 +244,29 @@ public class TpcdsTest {
                 + "                EnumerableTableScan(table=[[TPCDS, CATALOG_SALES]]): rowcount = 1441548.0, cumulative cost = {1441548.0 rows, 1441549.0 cpu, 0.0 io}\n"));
   }
 
-  @Ignore("throws 'RuntimeException: Cannot convert null to long'")
+  @Disabled("throws 'RuntimeException: Cannot convert null to long'")
   @Test public void testQuery27() {
     checkQuery(27).runs();
   }
 
-  @Ignore("throws 'RuntimeException: Cannot convert null to long'")
+  @Disabled("throws 'RuntimeException: Cannot convert null to long'")
   @Test public void testQuery58() {
     checkQuery(58).explainContains("PLAN").runs();
   }
 
-  @Ignore("takes too long to optimize")
+  @Disabled("takes too long to optimize")
   @Test public void testQuery72() {
     checkQuery(72).runs();
   }
 
-  @Ignore("work in progress")
+  @Disabled("work in progress")
   @Test public void testQuery72Plan() {
     checkQuery(72)
         .withHook(Hook.PROGRAM, handler(true, 2))
         .planContains("xx");
   }
 
-  @Ignore("throws 'java.lang.AssertionError: type mismatch'")
+  @Disabled("throws 'java.lang.AssertionError: type mismatch'")
   @Test public void testQuery95() {
     checkQuery(95)
         .withHook(Hook.PROGRAM, handler(false, 6))

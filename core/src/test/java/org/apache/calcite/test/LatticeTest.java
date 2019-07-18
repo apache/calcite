@@ -33,9 +33,9 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Assume;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -62,7 +62,7 @@ import static org.junit.Assert.assertThat;
 /**
  * Unit test for lattices.
  */
-@Category(SlowTests.class)
+@Tag("slow")
 public class LatticeTest {
   private static final String SALES_LATTICE = "{\n"
       + "  name: 'star',\n"
@@ -683,7 +683,7 @@ public class LatticeTest {
   /** Runs all queries against the Foodmart schema, using a lattice.
    *
    * <p>Disabled for normal runs, because it is slow. */
-  @Ignore
+  @Disabled
   @Test public void testAllFoodmartQueries() throws IOException {
     // Test ids that had bugs in them until recently. Useful for a sanity check.
     final List<Integer> fixed = ImmutableList.of(13, 24, 28, 30, 61, 76, 79, 81,
@@ -885,7 +885,7 @@ public class LatticeTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-760">[CALCITE-760]
    * Aggregate recommender blows up if row count estimate is too high</a>. */
-  @Ignore
+  @Disabled
   @Test public void testLatticeWithBadRowCountEstimate() {
     final String lattice =
         INVENTORY_LATTICE.replace("rowCountEstimate: 4070,",

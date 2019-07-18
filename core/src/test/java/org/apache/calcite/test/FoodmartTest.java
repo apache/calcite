@@ -20,23 +20,22 @@ import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.util.IntegerIntervalSet;
 
-import com.google.common.collect.ImmutableList;
-
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Test case that runs the FoodMart reference queries.
  */
-@Category(SlowTests.class)
-@RunWith(Parameterized.class)
+@Tag("slow")
 public class FoodmartTest {
 
   private static final int[] DISABLED_IDS = {
@@ -97,19 +96,10 @@ public class FoodmartTest {
   //
 
   // 202 and others: strip away "CAST(the_year AS UNSIGNED) = 1997"
-
-  private final FoodMartQuerySet.FoodmartQuery query;
-
-  @Parameterized.Parameters(name = "{index}: foodmart({0})={1}")
-  public static List<Object[]> getSqls() throws IOException {
+  public static Stream<FoodMartQuerySet.FoodmartQuery> queries() throws IOException {
     String idList = CalciteSystemProperty.TEST_FOODMART_QUERY_IDS.value();
-    if (!CalciteSystemProperty.TEST_SLOW.value() && idList == null) {
-      // Avoid loading the query set in a regular test suite run. It burns too
-      // much memory.
-      return ImmutableList.of();
-    }
     final FoodMartQuerySet set = FoodMartQuerySet.instance();
-    final List<Object[]> list = new ArrayList<Object[]>();
+    final List<FoodMartQuerySet.FoodmartQuery> list = new ArrayList<>();
     if (idList != null) {
       if (idList.endsWith(",-disabled")) {
         StringBuilder buf = new StringBuilder(idList);
@@ -122,64 +112,45 @@ public class FoodmartTest {
       for (Integer id : IntegerIntervalSet.of(idList)) {
         final FoodMartQuerySet.FoodmartQuery query1 = set.queries.get(id);
         if (query1 != null) {
-          list.add(new Object[] {id /*, query1.sql */});
+          list.add(query1);
         }
       }
     } else {
       for (FoodMartQuerySet.FoodmartQuery query1 : set.queries.values()) {
-        if (!CalciteSystemProperty.TEST_SLOW.value() && query1.id != 2) {
-          // If slow queries are not enabled, only run query #2.
-          continue;
-        }
         if (Primitive.asList(DISABLED_IDS).contains(query1.id)) {
           continue;
         }
-        list.add(new Object[]{query1.id /*, query1.sql */});
+        list.add(query1);
       }
     }
-    return list;
+    return list.stream();
   }
 
-  public FoodmartTest(int id) throws IOException {
-    if (id < 0) {
-      this.query = new FoodMartQuerySet.FoodmartQuery();
-      query.id = id;
-      query.sql = "select * from (values 1) as t(c)";
-    } else {
-      this.query = FoodMartQuerySet.instance().queries.get(id);
-    }
-    assert query.id == id : id + ":" + query.id;
-  }
-
-  @Test(timeout = 120000)
-  public void test() {
-    try {
+  @ParameterizedTest
+  @MethodSource("queries")
+  public void test(FoodMartQuerySet.FoodmartQuery query) {
+    Assertions.assertTimeoutPreemptively(Duration.ofMinutes(2), () -> {
       CalciteAssert.that()
-          .with(CalciteAssert.Config.FOODMART_CLONE)
-          .pooled()
-          .query(query.sql)
-          .runs();
-    } catch (Throwable e) {
-      throw new RuntimeException("Test failed, id=" + query.id + ", sql="
-          + query.sql, e);
-    }
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .pooled()
+        .query(query.sql)
+        .runs();
+    });
   }
 
-  @Test(timeout = 60000)
-  @Ignore
-  public void testWithLattice() {
-    try {
+  @ParameterizedTest
+  @Disabled
+  @MethodSource("queries")
+  public void testWithLattice(FoodMartQuerySet.FoodmartQuery query) {
+    Assertions.assertTimeoutPreemptively(Duration.ofMinutes(2), () -> {
       CalciteAssert.that()
-          .with(CalciteAssert.Config.JDBC_FOODMART_WITH_LATTICE)
-          .pooled()
-          .withDefaultSchema("foodmart")
-          .query(query.sql)
-          .enableMaterializations(true)
-          .runs();
-    } catch (Throwable e) {
-      throw new RuntimeException("Test failed, id=" + query.id + ", sql="
-          + query.sql, e);
-    }
+        .with(CalciteAssert.Config.JDBC_FOODMART_WITH_LATTICE)
+        .pooled()
+        .withDefaultSchema("foodmart")
+        .query(query.sql)
+        .enableMaterializations(true)
+        .runs();
+    });
   }
 
 }

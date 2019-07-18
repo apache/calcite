@@ -104,12 +104,11 @@ import com.google.common.collect.Sets;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Matcher;
-import org.hamcrest.core.Is;
 import org.junit.Assume;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -222,14 +221,14 @@ public class RelMetadataTest extends SqlToRelTestBase {
         1.0);
   }
 
-  @Ignore
+  @Disabled
   @Test public void testPercentageOriginalRowsOneFilter() {
     checkPercentageOriginalRows(
         "select * from dept where deptno = 20",
         DEFAULT_EQUAL_SELECTIVITY);
   }
 
-  @Ignore
+  @Disabled
   @Test public void testPercentageOriginalRowsTwoFilters() {
     checkPercentageOriginalRows("select * from (\n"
         + "  select * from dept where name='X')\n"
@@ -237,7 +236,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         DEFAULT_EQUAL_SELECTIVITY_SQUARED);
   }
 
-  @Ignore
+  @Disabled
   @Test public void testPercentageOriginalRowsRedundantFilter() {
     checkPercentageOriginalRows("select * from (\n"
         + "  select * from dept where deptno=20)\n"
@@ -251,7 +250,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         1.0);
   }
 
-  @Ignore
+  @Disabled
   @Test public void testPercentageOriginalRowsJoinTwoFilters() {
     checkPercentageOriginalRows("select * from (\n"
         + "  select * from emp where deptno=10) e\n"
@@ -266,7 +265,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         1.0);
   }
 
-  @Ignore
+  @Disabled
   @Test public void testPercentageOriginalRowsUnionLittleFilter() {
     checkPercentageOriginalRows(
         "select name from dept where deptno=20"
@@ -275,7 +274,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
             / (DEPT_SIZE + EMP_SIZE));
   }
 
-  @Ignore
+  @Disabled
   @Test public void testPercentageOriginalRowsUnionBigFilter() {
     checkPercentageOriginalRows(
         "select name from dept"
@@ -835,10 +834,11 @@ public class RelMetadataTest extends SqlToRelTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1808">[CALCITE-1808]
    * JaninoRelMetadataProvider loading cache might cause
-   * OutOfMemoryError</a>. */
+   * OutOfMemoryError</a>.
+   *
+   * Too slow to run every day, and it does not reproduce the issue. */
+  @Tag("slow")
   @Test public void testMetadataHandlerCacheLimit() {
-    Assume.assumeTrue("too slow to run every day, and it does not reproduce the issue",
-        CalciteSystemProperty.TEST_SLOW.value());
     Assume.assumeTrue("If cache size is too large, this test may fail and the "
             + "test won't be to blame",
         CalciteSystemProperty.METADATA_HANDLER_CACHE_MAXIMUM_SIZE.value()
@@ -1795,11 +1795,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2205">[CALCITE-2205]</a>.
    * Since this is a performance problem, the test result does not
    * change, but takes over 15 minutes before the fix and 6 seconds after. */
-  @Test(timeout = 20_000) public void testPullUpPredicatesForExprsItr() {
-    // If we're running Windows, we are probably in a VM and the test may
-    // exceed timeout by a small margin.
-    Assume.assumeThat("Too slow to run on Windows",
-        File.separatorChar, Is.is('/'));
+  @Test
+  public void testPullUpPredicatesForExprsItr() {
     final String sql = "select a.EMPNO, a.ENAME\n"
         + "from (select * from sales.emp ) a\n"
         + "join (select * from sales.emp  ) b\n"

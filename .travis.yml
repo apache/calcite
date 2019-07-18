@@ -22,9 +22,6 @@ matrix:
   include:
     - jdk: openjdk8
     - jdk: openjdk11
-    - jdk: openjdk11
-      env:
-        - SLOW_TESTS=Y
 branches:
   only:
     - master
@@ -34,9 +31,7 @@ branches:
     - /^[0-9]+-.*$/
 install: true
 script:
-  # Print surefire output to the console instead of files
-  - if [ $SLOW_TESTS = "Y" ]; then export TEST_TAGS=-PincludeTestTags=org.apache.calcite.test.SlowTests; fi
-  - ./gradlew --no-daemon build $TEST_TAGS
+  - ./gradlew --no-daemon build
 git:
   depth: 100
 cache:

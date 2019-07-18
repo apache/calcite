@@ -171,12 +171,6 @@ public final class CalciteSystemProperty<T> {
       });
 
   /**
-   * Whether to run slow tests.
-   */
-  public static final CalciteSystemProperty<Boolean> TEST_SLOW =
-      booleanProperty("calcite.test.slow", false);
-
-  /**
    * Whether to run MongoDB tests.
    */
   public static final CalciteSystemProperty<Boolean> TEST_MONGODB =
