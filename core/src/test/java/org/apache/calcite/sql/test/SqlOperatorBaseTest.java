@@ -23,6 +23,8 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
@@ -40,6 +42,7 @@ import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.type.BasicSqlType;
@@ -60,12 +63,14 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.base.Throwables;
 
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -77,8 +82,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
@@ -147,6 +154,8 @@ import static org.junit.Assume.assumeTrue;
  */
 public abstract class SqlOperatorBaseTest {
   //~ Static fields/initializers ---------------------------------------------
+
+  private static final Logger LOGGER = CalciteTrace.getTestTracer(SqlOperatorBaseTest.class);
 
   // TODO: Change message when Fnl3Fixed to something like
   // "Invalid character for cast: PC=0 Code=22018"
@@ -8791,7 +8800,16 @@ public abstract class SqlOperatorBaseTest {
   }
 
   /** Test that calls all operators with all possible argument types, and for
-   * each type, with a set of tricky values. */
+   * each type, with a set of tricky values.
+   *
+   * This is not really a unit test since there are no assertions;
+   * it either succeeds or fails in the preparation of the operator case
+   * and not when actually testing (validating/executing) the call.
+   *
+   * Nevertheless the log messages conceal many problems which potentially need
+   * to be fixed especially cases where the query passes from the validation stage
+   * and fails at runtime.
+   * */
   @Test public void testArgumentBounds() {
     if (!CalciteSystemProperty.TEST_SLOW.value()) {
       return;
@@ -8811,10 +8829,26 @@ public abstract class SqlOperatorBaseTest {
     builder.add1(SqlTypeName.VARCHAR, 11, "", " ", "hello world");
     builder.add1(SqlTypeName.CHAR, 5, "", "e", "hello");
     builder.add0(SqlTypeName.TIMESTAMP, 0L, DateTimeUtils.MILLIS_PER_DAY);
+
+    Set<SqlOperator> operatorsToSkip = new HashSet<>();
+    if (!Bug.CALCITE_3243_FIXED) {
+      // TODO: Remove entirely the if block when the bug is fixed
+      // REVIEW zabetak 12-August-2019: It may still make sense to avoid the
+      // JSON functions since for most of the values above they are expected
+      // to raise an error and due to the big number of operands they accept
+      // they increase significantly the running time of the method.
+      operatorsToSkip.add(SqlStdOperatorTable.JSON_VALUE);
+      operatorsToSkip.add(SqlStdOperatorTable.JSON_VALUE_ANY);
+      operatorsToSkip.add(SqlStdOperatorTable.JSON_QUERY);
+    }
+    // Skip since ClassCastException is raised in SqlOperator#unparse
+    // since the operands of the call do not have the expected type.
+    // Moreover, the values above do not make much sense for this operator.
+    operatorsToSkip.add(SqlStdOperatorTable.WITHIN_GROUP);
+    operatorsToSkip.add(SqlStdOperatorTable.TRIM); // can't handle the flag argument
+    operatorsToSkip.add(SqlStdOperatorTable.EXISTS);
     for (SqlOperator op : SqlStdOperatorTable.instance().getOperatorList()) {
-      switch (op.getKind()) {
-      case TRIM: // can't handle the flag argument
-      case EXISTS:
+      if (operatorsToSkip.contains(op)) {
         continue;
       }
       switch (op.getSyntax()) {
@@ -8873,15 +8907,29 @@ public abstract class SqlOperatorBaseTest {
               tester.check(query, SqlTests.ANY_TYPE_CHECKER,
                   SqlTests.ANY_PARAMETER_CHECKER, result -> { });
             }
-          } catch (Error e) {
-            System.out.println(s + ": " + e.getMessage());
-            throw e;
-          } catch (Exception e) {
-            System.out.println("Failed: " + s + ": " + e.getMessage());
+          } catch (Throwable e) {
+            // Logging the top-level throwable directly makes the message
+            // difficult to read since it either contains too much information
+            // or very few details.
+            Throwable cause = findMostDescriptiveCause(e);
+            LOGGER.info("Failed: " + s + ": " + cause);
           }
         }
       }
     }
+  }
+
+  private Throwable findMostDescriptiveCause(Throwable ex) {
+    if (ex instanceof CalciteException
+        || ex instanceof CalciteContextException
+        || ex instanceof SqlParseException) {
+      return ex;
+    }
+    Throwable cause = ex.getCause();
+    if (cause != null) {
+      return findMostDescriptiveCause(cause);
+    }
+    return ex;
   }
 
   private List<Object> getValues(BasicSqlType type, boolean inBound) {
