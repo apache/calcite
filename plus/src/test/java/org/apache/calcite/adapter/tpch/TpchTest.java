@@ -19,11 +19,12 @@ package org.apache.calcite.adapter.tpch;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -800,15 +801,10 @@ public class TpchTest {
         .returnsCount(150000);
   }
 
-  private CalciteAssert.AssertThat with(boolean enable) {
-    return CalciteAssert.model(TPCH_MODEL)
-        .enable(enable);
-  }
-
   private CalciteAssert.AssertThat with() {
     // Only run on JDK 1.7 or higher. The io.airlift.tpch library requires it.
     // Only run if slow tests are enabled; the library uses lots of memory.
-    return with(ENABLE);
+    return CalciteAssert.model(TPCH_MODEL).enable(ENABLE);
   }
 
   /** Tests the customer table with scale factor 5. */
@@ -822,14 +818,14 @@ public class TpchTest {
     checkQuery(1);
   }
 
-  @Ignore("slow")
+  @Ignore("Infinite planning")
   @Test public void testQuery02() {
     checkQuery(2);
   }
 
+  @Ignore("Infinite planning")
   @Test public void testQuery02Conversion() {
-    query(2, true)
-        .enable(ENABLE)
+    query(2)
         .convertMatches(relNode -> {
           String s = RelOptUtil.toString(relNode);
           assertThat(s, not(containsString("Correlator")));
@@ -857,6 +853,7 @@ public class TpchTest {
 
   @Ignore("slow")
   @Test public void testQuery07() {
+    Assume.assumeTrue(Bug.CALCITE_2223_FIXED);
     checkQuery(7);
   }
 
@@ -931,19 +928,16 @@ public class TpchTest {
   }
 
   private void checkQuery(int i) {
-    query(i, null).runs();
+    query(i).runs();
   }
 
   /** Runs with query #i.
+   *  @param i Ordinal of query, per the benchmark, 1-based
    *
-   * @param i Ordinal of query, per the benchmark, 1-based
-   * @param enable Whether to enable query execution.
-   *     If null, use the value of {@link #ENABLE}.
-   *     Pass true only for 'fast' tests that do not read any data.
    */
-  private CalciteAssert.AssertQuery query(int i, Boolean enable) {
-    return with(Util.first(enable, ENABLE))
-        .query(QUERIES.get(i - 1).replaceAll("tpch\\.", "tpch_01."));
+  private CalciteAssert.AssertQuery query(int i) {
+    return with()
+      .query(QUERIES.get(i - 1).replaceAll("tpch\\.", "tpch_01."));
   }
 }
 

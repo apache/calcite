@@ -151,7 +151,7 @@ public class FoodmartTest {
     assert query.id == id : id + ":" + query.id;
   }
 
-  @Test(timeout = 60000)
+  @Test(timeout = 120000)
   public void test() {
     try {
       CalciteAssert.that()
