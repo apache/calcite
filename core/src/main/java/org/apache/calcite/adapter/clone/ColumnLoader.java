@@ -25,7 +25,9 @@ import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.sql.type.SqlTypeName;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 
 import java.lang.reflect.Type;
@@ -39,6 +41,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Column loader.
@@ -183,6 +186,8 @@ class ColumnLoader<T> {
               repList.get(pair.i),
               sliceList,
               elementType.getFieldList().get(pair.i).getType());
+      final Function<Object, Object> unwrapper = getUnwrapper(
+          repList.get(pair.i), elementType.getFieldList().get(pair.i).getType());
       final Class clazz = pair.e instanceof Class
           ? (Class) pair.e
           : Object.class;
@@ -220,7 +225,7 @@ class ColumnLoader<T> {
           }
         }
       }
-      representationValues.add(valueSet.freeze(pair.i, sources));
+      representationValues.add(valueSet.freeze(pair.i, sources, unwrapper));
     }
   }
 
@@ -231,7 +236,8 @@ class ColumnLoader<T> {
    * value needs to be converted to a {@link Long}. Similarly
    * {@link java.sql.Date} and {@link java.sql.Time} values to
    * {@link Integer}. */
-  private static List wrap(ColumnMetaData.Rep rep, List list,
+  @VisibleForTesting
+  static List wrap(ColumnMetaData.Rep rep, List list,
       RelDataType type) {
     switch (type.getSqlTypeName()) {
     case TIMESTAMP:
@@ -262,6 +268,26 @@ class ColumnLoader<T> {
       break;
     }
     return list;
+  }
+
+  @VisibleForTesting
+  static Function<Object, Object> getUnwrapper(
+      ColumnMetaData.Rep rep, RelDataType type) {
+    if (type.getSqlTypeName() == SqlTypeName.TIMESTAMP
+        && rep == ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP) {
+      return o -> o == null
+          ? null : new Timestamp((Long) o);
+    } else if (type.getSqlTypeName() == SqlTypeName.TIME
+        && rep == ColumnMetaData.Rep.JAVA_SQL_TIME) {
+      return o -> o == null
+          ? null : new Time((Long) o);
+    } else if (type.getSqlTypeName() == SqlTypeName.DATE
+        && rep == ColumnMetaData.Rep.JAVA_SQL_DATE) {
+      return o -> o == null
+          ? null : new Date((Long) o * DateTimeUtils.MILLIS_PER_DAY);
+    } else {
+      return Function.identity();
+    }
   }
 
   /**
@@ -305,10 +331,17 @@ class ColumnLoader<T> {
     /** Freezes the contents of this value set into a column, optionally
      * re-ordering if {@code sources} is specified. */
     ArrayTable.Column freeze(int ordinal, int[] sources) {
+      return freeze(ordinal, sources, Function.identity());
+    }
+
+    /** Freezes the contents of this value set into a column, optionally
+     * re-ordering if {@code sources} is specified, optionally unwrap
+     * records if {@code unwrapper} is specified */
+    ArrayTable.Column freeze(int ordinal, int[] sources, Function<Object, Object> unwrapper) {
       ArrayTable.Representation representation = chooseRep(ordinal);
       final int cardinality = map.size() + (containsNull ? 1 : 0);
       final Object data = representation.freeze(this, sources);
-      return new ArrayTable.Column(representation, data, cardinality);
+      return new ArrayTable.Column(representation, data, cardinality, unwrapper);
     }
 
     ArrayTable.Representation chooseRep(int ordinal) {

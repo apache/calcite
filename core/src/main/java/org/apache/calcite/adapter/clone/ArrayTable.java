@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Implementation of table that reads rows from column stores, one per column.
@@ -200,18 +201,22 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
     final Representation representation;
     final Object dataSet;
     final int cardinality;
+    final Function<Object, Object> unwrapper;
 
-    Column(Representation representation, Object data, int cardinality) {
+    Column(Representation representation, Object data, int cardinality,
+        Function<Object, Object> unwrapper) {
       this.representation = representation;
       this.dataSet = data;
       this.cardinality = cardinality;
+      this.unwrapper = unwrapper;
     }
 
     public Column permute(int[] sources) {
       return new Column(
           representation,
           representation.permute(dataSet, sources),
-          cardinality);
+          cardinality,
+          unwrapper);
     }
 
     @Override public String toString() {
@@ -838,16 +843,18 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
       final int rowCount;
       final Object dataSet;
       final Representation representation;
+      final Function<Object, Object> unwrapper;
       int i = -1;
 
       ObjectEnumerator(int rowCount, Column column) {
         this.rowCount = rowCount;
         this.dataSet = column.dataSet;
         this.representation = column.representation;
+        this.unwrapper = column.unwrapper;
       }
 
       public Object current() {
-        return representation.getObject(dataSet, i);
+        return unwrapper.apply(representation.getObject(dataSet, i));
       }
 
       public boolean moveNext() {
@@ -878,7 +885,8 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
         Object[] objects = new Object[columns.size()];
         for (int j = 0; j < objects.length; j++) {
           final Column pair = columns.get(j);
-          objects[j] = pair.representation.getObject(pair.dataSet, i);
+          objects[j] = pair.unwrapper.apply(
+              pair.representation.getObject(pair.dataSet, i));
         }
         return objects;
       }

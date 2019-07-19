@@ -16,16 +16,25 @@
  */
 package org.apache.calcite.adapter.clone;
 
+import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 
+import com.google.common.collect.Lists;
+
 import org.junit.Test;
 
+import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.List;
+import java.util.function.Function;
+
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -178,6 +187,35 @@ public class ArrayTableTest {
 
     assertEquals(0, representation.getInt(pair.dataSet, 0));
     assertEquals(1, pair.cardinality);
+  }
+
+  @Test public void testValueSetTimestamp() {
+    ArrayTable.Column pair;
+    final JavaTypeFactoryImpl typeFactory =
+        new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RelDataType type = typeFactory.createType(Timestamp.class);
+    List<Timestamp> timestamps = Lists.newArrayList(
+        new Timestamp(1562947200000L),
+        new Timestamp(1563033600000L),
+        new Timestamp(1563120000000L));
+    List<?> wrapped = ColumnLoader.wrap(
+        ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP, timestamps, type);
+    Function<Object, Object> unwrapper =
+        ColumnLoader.getUnwrapper(ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP, type);
+    final ColumnLoader.ValueSet valueSet =
+        new ColumnLoader.ValueSet(Timestamp.class);
+    wrapped.stream().forEach(x -> valueSet.add((Comparable) x));
+    pair = valueSet.freeze(0, null, unwrapper);
+
+    ArrayTable.Content content = new ArrayTable.Content(
+        Lists.newArrayList(pair), 3, RelCollations.createSingleton(0));
+    Enumerator<Object> enumerator = content.enumerator();
+    int i = 0;
+    while (enumerator.moveNext()) {
+      timestamps.get(i).equals(enumerator.current());
+      ++i;
+    }
+    assertEquals(i, timestamps.size());
   }
 
   @Test public void testStrings() {

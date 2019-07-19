@@ -2427,6 +2427,12 @@ public class MaterializationTest {
             + "  join\n"
             + "  \"depts\" \"y\"\n"
             + "  on \"x\".\"deptno\"=\"y\".\"deptno\"\n";
+  }
+
+  @Test public void testTimestampType() {
+    String sql = "select \"eventid\", \"ts\"\n"
+          + "from \"events\"\n"
+          + "where \"eventid\" > 5";
     checkMaterialize(sql, sql);
   }
 
