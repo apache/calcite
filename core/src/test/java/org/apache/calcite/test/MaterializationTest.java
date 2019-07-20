@@ -550,6 +550,17 @@ public class MaterializationTest {
         "select count(*) + 1 as c, \"deptno\" from \"emps\" group by \"deptno\"");
   }
 
+  @Test public void testAggregate3() {
+    checkMaterialize(
+        "select \"deptno\", count(1), 2 * sum(\"empid\") from "
+            + "(select * from \"emps\" union all select * from \"emps\")"
+            + "group by \"deptno\"",
+        "select \"deptno\", 2 * sum(\"empid\") from "
+            + "(select * from \"emps\" union all select * from \"emps\")"
+            + "group by \"deptno\"");
+  }
+
+
   /** Aggregation query at same level of aggregation as aggregation
    * materialization with grouping sets. */
   @Test public void testAggregateGroupSets1() {

@@ -17,6 +17,8 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.mutable.MutableAggregate;
 import org.apache.calcite.rel.mutable.MutableFilter;
 import org.apache.calcite.rel.mutable.MutableProject;
 import org.apache.calcite.rel.mutable.MutableRel;
@@ -29,6 +31,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -41,6 +44,7 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
           .add(ProjectToProjectUnifyRule1.INSTANCE)
           .add(FilterToFilterUnifyRule1.INSTANCE)
           .add(FilterToProjectUnifyRule1.INSTANCE)
+          .add(ProjectAggregateToProjectAggregateUnifyRule.INSTANCE)
           .build();
 
   public MaterializedViewSubstitutionVisitor(RelNode target_, RelNode query_) {
@@ -256,6 +260,77 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
         }
       }
       return null;
+    }
+  }
+
+  /**
+   * Implementation of {@link SubstitutionVisitor.UnifyRule} that matches a
+   * {@link MutableProject} on top of a {@link MutableAggregate} to a
+   * {@link MutableProject} on top of a {@link MutableAggregate}.
+   *
+   * <p>Example: aggregate calls of query is a subset of target.</p>
+   * <ul>
+   * <li>query:   Project(projects: [$0, *(2, $1)])
+   *                Aggregate(groupSet: {0}, groupSets: [{0}], calls: [SUM($1)])
+   *                  Scan(table: [hr, emps])</li>
+   * <li>target:  Project(projects: [$0, *(2, $1), *(2, $2)])
+   *                Aggregate(groupSet: {0}, groupSets: [{0}], calls: [SUM($1), COUNT()])
+   *                  Scan(table: [hr, emps])</li>
+   * </ul>
+   */
+  private static class ProjectAggregateToProjectAggregateUnifyRule
+      extends AbstractUnifyRule {
+    public static final ProjectAggregateToProjectAggregateUnifyRule INSTANCE =
+        new ProjectAggregateToProjectAggregateUnifyRule();
+    private ProjectAggregateToProjectAggregateUnifyRule() {
+      super(
+          operand(MutableProject.class,
+              operand(MutableAggregate.class, query(0))),
+          operand(MutableProject.class,
+              operand(MutableAggregate.class, target(0))), 1);
+    }
+
+    public UnifyResult apply(UnifyRuleCall call) {
+      final MutableProject query = (MutableProject) call.query;
+      final MutableProject target = (MutableProject) call.target;
+      final MutableAggregate agg0 = (MutableAggregate) query.getInput();
+      final MutableAggregate agg1 = (MutableAggregate) target.getInput();
+
+      if (agg0.getInput() != agg1.getInput()) {
+        return null;
+      }
+      if (!agg0.groupSets.equals(agg1.groupSets)) {
+        return null;
+      }
+
+      final List<Integer> mapping = new ArrayList<>();
+      for (int i = 0; i < agg0.groupSet.cardinality(); i++) {
+        mapping.add(i);
+      }
+      for (AggregateCall aggregateCall : agg0.aggCalls) {
+        final int i = agg1.aggCalls.indexOf(aggregateCall);
+        if (i < 0) {
+          return null;
+        } else {
+          mapping.add(i + agg1.groupSet.cardinality());
+        }
+      }
+
+      final RexShuttle shuttle0 = new RexShuttle() {
+        @Override public RexNode visitInputRef(RexInputRef ref) {
+          return new RexInputRef(mapping.get(ref.getIndex()), ref.getType());
+        }
+      };
+      final List<RexNode> transformedProjects = shuttle0.apply(query.projects);
+      final RexShuttle shuttle1 = getRexShuttle(target);
+      try {
+        final List<RexNode> newProjects = shuttle1.apply(transformedProjects);
+        final MutableProject newProject = MutableProject.of(
+            query.rowType, target, newProjects);
+        return call.result(newProject);
+      } catch (MatchFailed e) {
+        return null;
+      }
     }
   }
 
