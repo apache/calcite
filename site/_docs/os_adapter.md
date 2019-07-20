@@ -242,6 +242,22 @@ $ ./sqlsh -o mysql select min\(size_k\), max\(size_k\) from du
 
 {% endhighlight %}
 
+## Example: jps
+
+provides a display of all current java process pids In `sqlsh`:
+
+{% highlight bash %}
+$ ./sqlsh select distinct jps.\`pid\`, jps.\`info\` from jps
++--------+---------------------+
+| pid    |  info               |
++--------+---------------------+
+|  49457 | RemoteMavenServer   |
+|  48326 | KotlinCompileDaemon |
++--------+---------------------+
+(1 row)
+
+{% endhighlight %}
+
 Format options:
 
 * spaced - spaces between fields (the default)
