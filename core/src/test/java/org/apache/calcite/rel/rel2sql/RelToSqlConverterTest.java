@@ -305,7 +305,7 @@ public class RelToSqlConverterTest {
         + " \"product\" group by 'literal', sku + 1";
     final String bigQueryExpected = "SELECT 'literal' AS a, SKU + 1 AS B\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY a, B";
+        + "GROUP BY 'literal', B";
     sql(query)
         .withBigquery()
         .ok(bigQueryExpected);
@@ -316,7 +316,7 @@ public class RelToSqlConverterTest {
         + " \"product\" group by 'literal', sku + 1";
     final String bigQueryExpected = "SELECT 'literal' AS a, SKU + 1 AS B, SUM(product_id)\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY a, B";
+        + "GROUP BY 'literal', B";
     sql(query)
         .withBigquery()
         .ok(bigQueryExpected);
