@@ -3572,6 +3572,16 @@ public class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  @Test public void testSelectQueryWithGroupByOrdinal() {
+    String query = "select '100', \"product_id\"  from \"product\" group by 1, \"product_id\"";
+    final String expected = "SELECT '100', product_id\n" +
+      "FROM foodmart.product\n" +
+      "GROUP BY 1, product_id";
+    sql(query)
+        .withBigquery()
+        .ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;
