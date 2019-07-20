@@ -207,6 +207,20 @@ public class OsAdapterTest {
         "author=Julian Hyde <jhyde@apache.org>");
   }
 
+  @Test public void testJps() {
+    final String q = "select pid, info from jps";
+    sql(q).returns(r -> {
+      try {
+        assertThat(r.next(), is(true));
+        assertThat(r.getString(1), notNullValue());
+        assertThat(r.getString(2), notNullValue());
+        assertThat(r.wasNull(), is(false));
+      } catch (SQLException e) {
+        throw TestUtil.rethrow(e);
+      }
+    });
+  }
+
   @Test public void testVmstat() {
     Assume.assumeFalse("Skip: the 'files' table does not work on Windows",
         isWindows());
