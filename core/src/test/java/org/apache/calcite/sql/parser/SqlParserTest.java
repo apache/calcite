@@ -8807,9 +8807,9 @@ public class SqlParserTest {
             + "FROM \"doubleQuotedTable\""));
     // PostgreSQL converts unquoted identifiers to lower case
     checkDialect(SqlDialect.DatabaseProduct.POSTGRESQL.getDialect(),
-        "select unquotedColumn from \"doubleQuotedTable\"",
-        is("SELECT \"unquotedcolumn\"\n"
-            + "FROM \"doubleQuotedTable\""));
+        "select unquotedColumn from `doubleQuotedTable`",
+        is("SELECT `unquotedcolumn`\n"
+            + "FROM `doubleQuotedTable`"));
     // Redshift converts all identifiers to lower case
     checkDialect(SqlDialect.DatabaseProduct.REDSHIFT.getDialect(),
         "select unquotedColumn from \"doubleQuotedTable\"",
