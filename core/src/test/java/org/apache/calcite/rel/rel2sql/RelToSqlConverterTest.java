@@ -305,7 +305,7 @@ public class RelToSqlConverterTest {
         + " \"product\" group by 'literal', sku + 1";
     final String bigQueryExpected = "SELECT 'literal' AS a, SKU + 1 AS B\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY a, B";
+        + "GROUP BY 'literal', B";
     sql(query)
         .withBigquery()
         .ok(bigQueryExpected);
@@ -316,7 +316,7 @@ public class RelToSqlConverterTest {
         + " \"product\" group by 'literal', sku + 1";
     final String bigQueryExpected = "SELECT 'literal' AS a, SKU + 1 AS B, SUM(product_id)\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY a, B";
+        + "GROUP BY 'literal', B";
     sql(query)
         .withBigquery()
         .ok(bigQueryExpected);
@@ -3568,6 +3568,16 @@ public class RelToSqlConverterTest {
         .ok(expected)
         .withSpark()
         .ok(expected)
+        .withBigquery()
+        .ok(expected);
+  }
+
+  @Test public void testSelectQueryWithGroupByOrdinal() {
+    String query = "select '100', \"product_id\"  from \"product\" group by 1, \"product_id\"";
+    final String expected = "SELECT '100', product_id\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY 1, product_id";
+    sql(query)
         .withBigquery()
         .ok(expected);
   }
