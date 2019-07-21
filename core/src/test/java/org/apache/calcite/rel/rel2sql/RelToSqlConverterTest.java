@@ -305,7 +305,7 @@ public class RelToSqlConverterTest {
         + " \"product\" group by 'literal', sku + 1";
     final String bigQueryExpected = "SELECT 'literal' AS a, SKU + 1 AS B\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY 'literal', B";
+        + "GROUP BY 1, B";
     sql(query)
         .withBigquery()
         .ok(bigQueryExpected);
@@ -313,10 +313,10 @@ public class RelToSqlConverterTest {
 
   @Test public void testSimpleSelectWithGroupByAliasAndAggregate() {
     final String query = "select 'literal' as \"a\", sku + 1 as b, sum(\"product_id\") from"
-        + " \"product\" group by 'literal', sku + 1";
+        + " \"product\" group by sku + 1, 'literal'";
     final String bigQueryExpected = "SELECT 'literal' AS a, SKU + 1 AS B, SUM(product_id)\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY 'literal', B";
+        + "GROUP BY B, 1";
     sql(query)
         .withBigquery()
         .ok(bigQueryExpected);
