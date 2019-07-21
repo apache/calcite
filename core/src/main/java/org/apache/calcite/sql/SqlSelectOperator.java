@@ -23,6 +23,7 @@ import org.apache.calcite.sql.util.SqlVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * An operator describing a query. (Not a query itself.)
@@ -214,7 +215,25 @@ public class SqlSelectOperator extends SqlOperator {
             writer.startList(SqlWriter.FrameTypeEnum.SIMPLE, "(", ")");
         writer.endList(frame);
       } else {
-        unparseListClause(writer, select.groupBy);
+        for (SqlNode groupKey : select.groupBy.getList()) {
+          writer.sep(",");
+          if (groupKey.getKind() == SqlKind.LITERAL) {
+            select.selectList.getList().
+                forEach(new Consumer<SqlNode>() {
+                @Override
+                public void accept(SqlNode selectSqlNode) {
+                  if (selectSqlNode == groupKey) {
+                    String ordinal = String.valueOf(
+                        select.selectList.getList().indexOf(selectSqlNode) + 1);
+                    SqlLiteral.createExactNumeric(ordinal,
+                      SqlParserPos.ZERO).unparse(writer, 2, 3);
+                  }
+                }
+              });
+          } else {
+            groupKey.unparse(writer, 2, 3);
+          }
+        }
       }
       writer.endList(groupFrame);
     }
