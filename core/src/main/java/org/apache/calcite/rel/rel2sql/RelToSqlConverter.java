@@ -259,7 +259,7 @@ public class RelToSqlConverter extends SqlImplementor
           && dialect.getSqlConformance().isGroupByOrdinal()) {
         isGroupByAlias = false;
       }
-      final SqlNode field = builder.context.field(key, isGroupByAlias);
+      SqlNode field = builder.context.field(key, isGroupByAlias);
       groupKeys.add(field);
     }
     for (int key : sortedGroupList) {

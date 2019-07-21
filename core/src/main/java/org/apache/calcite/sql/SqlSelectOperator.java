@@ -23,6 +23,7 @@ import org.apache.calcite.sql.util.SqlVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * An operator describing a query. (Not a query itself.)
@@ -214,7 +215,32 @@ public class SqlSelectOperator extends SqlOperator {
             writer.startList(SqlWriter.FrameTypeEnum.SIMPLE, "(", ")");
         writer.endList(frame);
       } else {
-        unparseListClause(writer, select.groupBy);
+        if (writer.getDialect().getDatabaseProduct() == SqlDialect.DatabaseProduct.BIG_QUERY) {
+          for (SqlNode groupKey : select.groupBy.getList()) {
+            writer.sep(",");
+            if (groupKey.getKind() == SqlKind.LITERAL) {
+              select.selectList.getList().
+                  forEach(new Consumer<SqlNode>() {
+                    @Override public void accept(SqlNode selectSqlNode) {
+                      SqlNode literalNode = selectSqlNode;
+                      if (literalNode.getKind() == SqlKind.AS) {
+                        literalNode = ((SqlBasicCall) selectSqlNode).getOperandList().get(0);
+                      }
+                      if (literalNode == groupKey) {
+                        String ordinal = String.valueOf(
+                            select.selectList.getList().indexOf(selectSqlNode) + 1);
+                        SqlLiteral.createExactNumeric(ordinal,
+                            SqlParserPos.ZERO).unparse(writer, 2, 3);
+                      }
+                    }
+                  });
+            } else {
+              groupKey.unparse(writer, 2, 3);
+            }
+          }
+        } else {
+          unparseListClause(writer, select.groupBy);
+        }
       }
       writer.endList(groupFrame);
     }
