@@ -257,7 +257,7 @@ public class RelToSqlConverter extends SqlImplementor
       boolean isGroupByAlias = dialect.getSqlConformance().isGroupByAlias();
       SqlNode field;
       if (builder.context.field(key).getKind() == SqlKind.LITERAL
-        && dialect.getSqlConformance().isGroupByOrdinal()) {
+          && dialect.getSqlConformance().isGroupByOrdinal()) {
         field = SqlLiteral.createExactNumeric(String.valueOf(key + 1), SqlParserPos.ZERO);
       } else {
         field = builder.context.field(key, isGroupByAlias);
