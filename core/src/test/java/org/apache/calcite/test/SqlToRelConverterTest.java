@@ -3450,6 +3450,20 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testMessageWhenTypeCheckFailure() {
+    String sql = "select timestamp '2017-03-12 13:03:05' = '2017-03-12 13:03:05'";
+    try {
+      sql(sql).ok();
+    } catch (Exception e) {
+      StringWriter sw = new StringWriter();
+      e.printStackTrace(new PrintWriter(sw));
+      String expectedExceptMsg =
+          "Fail to deduce a common type, please make types compatible:"
+              + " <TIMESTAMP '2017-03-12 13:03:05'>, <'2017-03-12 13:03:05'>";
+      assertTrue(sw.toString().contains(expectedExceptMsg));
+    }
+  }
+
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *

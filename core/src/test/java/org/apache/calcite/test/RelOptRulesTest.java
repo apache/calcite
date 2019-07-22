@@ -713,7 +713,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select *\n"
         + "from dept a\n"
         + "left join (select x name, y is not null from\n"
-        + "(values (2, cast(null as integer)), (2, 1)) as t(x, y)) b\n"
+        + "(values ('2', cast(null as integer)), ('2', 1)) as t(x, y)) b\n"
         + "on a.name = b.name";
     sql(sql)
         .withRule(JoinProjectTransposeRule.RIGHT_PROJECT_INCLUDE_OUTER)

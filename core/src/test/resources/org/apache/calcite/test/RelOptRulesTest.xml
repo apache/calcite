@@ -6743,26 +6743,26 @@ on a.name = b.name
         <Resource name="planBefore">
             <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1], NAME0=[$2], EXPR$1=[$3])
-  LogicalJoin(condition=[=($1, $2)], joinType=[left])
+  LogicalJoin(condition=[=($1, $4)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(NAME=[$0], EXPR$1=[IS NOT NULL($1)])
+    LogicalProject(NAME=[$0], EXPR$1=[IS NOT NULL($1)], EXPR$0=[CAST($0):VARCHAR(10) NOT NULL])
       LogicalUnion(all=[true])
-        LogicalProject(EXPR$0=[2], EXPR$1=[null:INTEGER])
+        LogicalProject(EXPR$0=['2'], EXPR$1=[null:INTEGER])
           LogicalValues(tuples=[[{ 0 }]])
-        LogicalProject(EXPR$0=[2], EXPR$1=[1])
+        LogicalProject(EXPR$0=['2'], EXPR$1=[1])
           LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1], NAME0=[$2], EXPR$1=[$3])
-  LogicalJoin(condition=[=($1, $2)], joinType=[left])
+  LogicalJoin(condition=[=($1, $4)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(NAME=[$0], EXPR$1=[IS NOT NULL($1)])
+    LogicalProject(NAME=[$0], EXPR$1=[IS NOT NULL($1)], EXPR$0=[CAST($0):VARCHAR(10) NOT NULL])
       LogicalUnion(all=[true])
-        LogicalProject(EXPR$0=[2], EXPR$1=[null:INTEGER])
+        LogicalProject(EXPR$0=['2'], EXPR$1=[null:INTEGER])
           LogicalValues(tuples=[[{ 0 }]])
-        LogicalProject(EXPR$0=[2], EXPR$1=[1])
+        LogicalProject(EXPR$0=['2'], EXPR$1=[1])
           LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>

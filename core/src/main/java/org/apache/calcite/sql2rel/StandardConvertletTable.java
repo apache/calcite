@@ -79,6 +79,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Standard implementation of {@link SqlRexConvertletTable}.
@@ -795,6 +796,13 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         for (RexNode expr : oldExprs) {
           exprs.add(cx.getRexBuilder().ensureType(type, expr, true));
         }
+      } else if (!SqlTypeUtil.areSameFamily(RexUtil.types(exprs))
+          && consistency != SqlOperandTypeChecker.Consistency.NONE) {
+        String nodesStr = String.join(", ",
+            nodes.stream().map(n -> "<" + n.toString() + ">")
+                .collect(Collectors.toList()));
+        throw new AssertionError("Fail to deduce a common type,"
+            + " please make types compatible: " + nodesStr);
       }
     }
     return exprs;
