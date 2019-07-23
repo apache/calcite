@@ -23,6 +23,7 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -612,6 +613,35 @@ public class RelToSqlConverterTest {
         + "FROM `scott`.`EMP`\n"
         + "WHERE `DEPTNO` = 10";
     assertThat(toSql(root, dialect), isLinux(expectedSql));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3207">[CALCITE-3207]
+   * Fail to convert Join RelNode with like condition to sql statement </a>.
+   */
+  @Test public void testJoinWithLikeConditionRel2Sql() {
+    final RelBuilder builder = relBuilder();
+    final RelNode rel = builder
+        .scan("EMP")
+        .scan("DEPT")
+        .join(JoinRelType.LEFT,
+            builder.and(
+                builder.call(SqlStdOperatorTable.EQUALS,
+                    builder.field(2, 0, "DEPTNO"),
+                    builder.field(2, 1, "DEPTNO")
+                ),
+            builder.call(SqlStdOperatorTable.LIKE,
+                builder.field(2, 1, "DNAME"),
+                builder.literal("ACCOUNTING")
+            )
+        )).build();
+    final String sql = toSql(rel);
+    final String expectedSql = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "LEFT JOIN \"scott\".\"DEPT\" "
+        + "ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\" "
+        + "AND \"DEPT\".\"DNAME\" LIKE 'ACCOUNTING'";
+    assertThat(sql, isLinux(expectedSql));
   }
 
   @Test public void testSelectQueryWithGroupByAndProjectList1() {
