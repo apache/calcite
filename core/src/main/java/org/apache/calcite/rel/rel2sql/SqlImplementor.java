@@ -223,6 +223,7 @@ public abstract class SqlImplementor {
     case GREATER_THAN_OR_EQUAL:
     case LESS_THAN:
     case LESS_THAN_OR_EQUAL:
+    case LIKE:
       node = stripCastFromString(node);
       operands = ((RexCall) node).getOperands();
       op = ((RexCall) node).getOperator();
