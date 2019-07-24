@@ -2430,6 +2430,12 @@ public class MaterializationTest {
     checkMaterialize(sql, sql);
   }
 
+  @Test public void testDEV() {
+    String sql0 = "select * from \"emps\" where \"empid\" < 300";
+    String sql1 = "select * from \"emps\" where \"empid\" > 200";
+    checkMaterialize(sql0 + " union all " + sql1, sql1 + " union all " + sql0);
+  }
+
   private static <E> List<List<List<E>>> list3(E[][][] as) {
     final ImmutableList.Builder<List<List<E>>> builder =
         ImmutableList.builder();
