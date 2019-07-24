@@ -38,6 +38,7 @@ import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
 
+import org.hamcrest.MatcherAssert;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -175,6 +176,25 @@ public class MutableRelTest {
         + "intersect select * from emp where ename like 'John%'");
   }
 
+  @Test public void testUpdateInputOfUnion() {
+    MutableRel mutableRel = createMutableRel(
+        "select sal from emp where deptno = 10"
+            + "union select sal from emp where ename like 'John%'");
+    MutableRel childMutableRel = createMutableRel(
+        "select sal from emp where deptno = 12");
+    mutableRel.setInput(0, childMutableRel);
+    String actual = RelOptUtil.toString(MutableRels.fromMutable(mutableRel));
+    String expected = ""
+        + "LogicalUnion(all=[false])\n"
+        + "  LogicalProject(SAL=[$5])\n"
+        + "    LogicalFilter(condition=[=($7, 12)])\n"
+        + "      LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"
+        + "  LogicalProject(SAL=[$5])\n"
+        + "    LogicalFilter(condition=[LIKE($1, 'John%')])\n"
+        + "      LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n";
+    MatcherAssert.assertThat(actual, Matchers.isLinux(expected));
+  }
+
   /** Verifies that after conversion to and from a MutableRel, the new
    * RelNode remains identical to the original RelNode. */
   private static void checkConvertMutableRel(String rel, String sql) {
@@ -233,6 +253,13 @@ public class MutableRelTest {
         "The converted new rel is different from the original rel.\n"
         + "Original rel: " + origRelStr + ";\nNew rel: " + newRelStr;
     Assert.assertEquals(msg3, origRelStr, newRelStr);
+  }
+
+  private static MutableRel createMutableRel(String sql) {
+    final SqlToRelTestBase test = new SqlToRelTestBase() {
+    };
+    RelNode rel = test.createTester().convertSqlToRel(sql).rel;
+    return MutableRels.toMutable(rel);
   }
 }
 
