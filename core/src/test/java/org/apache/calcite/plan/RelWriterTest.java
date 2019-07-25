@@ -82,7 +82,11 @@ public class RelWriterTest {
       + "      \"id\": \"1\",\n"
       + "      \"relOp\": \"LogicalFilter\",\n"
       + "      \"condition\": {\n"
-      + "        \"op\": \"=\",\n"
+      + "        \"op\": {\n"
+      + "          \"name\": \"=\",\n"
+      + "          \"kind\": \"EQUALS\",\n"
+      + "          \"syntax\": \"BINARY\"\n"
+      + "        },\n"
       + "        \"operands\": [\n"
       + "          {\n"
       + "            \"input\": 1,\n"
@@ -106,7 +110,11 @@ public class RelWriterTest {
       + "      ],\n"
       + "      \"aggs\": [\n"
       + "        {\n"
-      + "          \"agg\": \"COUNT\",\n"
+      + "          \"agg\": {\n"
+      + "            \"name\": \"COUNT\",\n"
+      + "            \"kind\": \"COUNT\",\n"
+      + "            \"syntax\": \"FUNCTION_STAR\"\n"
+      + "          },\n"
       + "          \"type\": {\n"
       + "            \"type\": \"BIGINT\",\n"
       + "            \"nullable\": false\n"
@@ -117,7 +125,11 @@ public class RelWriterTest {
       + "          ]\n"
       + "        },\n"
       + "        {\n"
-      + "          \"agg\": \"COUNT\",\n"
+      + "          \"agg\": {\n"
+      + "            \"name\": \"COUNT\",\n"
+      + "            \"kind\": \"COUNT\",\n"
+      + "            \"syntax\": \"FUNCTION_STAR\"\n"
+      + "          },\n"
       + "          \"type\": {\n"
       + "            \"type\": \"BIGINT\",\n"
       + "            \"nullable\": false\n"
@@ -145,7 +157,11 @@ public class RelWriterTest {
       + "      \"id\": \"1\",\n"
       + "      \"relOp\": \"LogicalFilter\",\n"
       + "      \"condition\": {\n"
-      + "        \"op\": \"=\",\n"
+      + "        \"op\": {"
+      + "            \"name\": \"=\",\n"
+      + "            \"kind\": \"EQUALS\",\n"
+      + "            \"syntax\": \"BINARY\"\n"
+      + "          },\n"
       + "        \"operands\": [\n"
       + "          {\n"
       + "            \"input\": 1,\n"
@@ -166,7 +182,11 @@ public class RelWriterTest {
       + "      ],\n"
       + "      \"aggs\": [\n"
       + "        {\n"
-      + "          \"agg\": \"COUNT\",\n"
+      + "        \"agg\": {\n"
+      + "            \"name\": \"COUNT\",\n"
+      + "            \"kind\": \"COUNT\",\n"
+      + "            \"syntax\": \"FUNCTION_STAR\"\n"
+      + "          },\n"
       + "          \"type\": {\n"
       + "            \"type\": \"BIGINT\",\n"
       + "            \"nullable\": false\n"
@@ -177,7 +197,11 @@ public class RelWriterTest {
       + "          ]\n"
       + "        },\n"
       + "        {\n"
-      + "          \"agg\": \"COUNT\",\n"
+      + "        \"agg\": {\n"
+      + "            \"name\": \"COUNT\",\n"
+      + "            \"kind\": \"COUNT\",\n"
+      + "            \"syntax\": \"FUNCTION_STAR\"\n"
+      + "          },\n"
       + "          \"type\": {\n"
       + "            \"type\": \"BIGINT\",\n"
       + "            \"nullable\": false\n"
@@ -215,7 +239,11 @@ public class RelWriterTest {
       + "          \"name\": \"$0\"\n"
       + "        },\n"
       + "        {\n"
-      + "          \"op\": \"COUNT\",\n"
+      + "          \"op\": {\n"
+      + "            \"name\": \"COUNT\",\n"
+      + "            \"kind\": \"COUNT\",\n"
+      + "            \"syntax\": \"FUNCTION_STAR\"\n"
+      + "          },\n"
       + "          \"operands\": [\n"
       + "            {\n"
       + "              \"input\": 0,\n"
@@ -253,7 +281,11 @@ public class RelWriterTest {
       + "          }\n"
       + "        },\n"
       + "        {\n"
-      + "          \"op\": \"SUM\",\n"
+      + "          \"op\": {\n"
+      + "            \"name\": \"SUM\",\n"
+      + "            \"kind\": \"SUM\",\n"
+      + "            \"syntax\": \"FUNCTION\"\n"
+      + "          },\n"
       + "          \"operands\": [\n"
       + "            {\n"
       + "              \"input\": 0,\n"
@@ -513,6 +545,38 @@ public class RelWriterTest {
         });
     final String expected = ""
         + "LogicalProject(trimmed_ename=[TRIM(FLAG(BOTH), ' ', $1)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(s, isLinux(expected));
+  }
+
+  @Test public void testPlusOperator() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RelNode rel = builder
+        .scan("EMP")
+        .project(
+            builder.call(SqlStdOperatorTable.PLUS,
+                builder.field("SAL"),
+                builder.literal(10)))
+        .build();
+    RelJsonWriter jsonWriter = new RelJsonWriter();
+    rel.explain(jsonWriter);
+    String relJson = jsonWriter.asString();
+    String s =
+        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+          final RelJsonReader reader = new RelJsonReader(
+              cluster, getSchema(rel), rootSchema);
+          RelNode node;
+          try {
+            node = reader.read(relJson);
+          } catch (IOException e) {
+            throw TestUtil.rethrow(e);
+          }
+          return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
+              SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+        });
+    final String expected = ""
+        + "LogicalProject($f0=[+($5, 10)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(s, isLinux(expected));
   }
