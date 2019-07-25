@@ -6759,6 +6759,11 @@ public abstract class SqlOperatorBaseTest {
           "BIGINT NOT NULL");
 
       tester.checkScalar(
+          "extract(nanosecond from interval '4-2' year to month)",
+          "0",
+          "BIGINT NOT NULL");
+
+      tester.checkScalar(
           "extract(minute from interval '4-2' year to month)",
           "0",
           "BIGINT NOT NULL");
@@ -6840,6 +6845,11 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar(
         "extract(microsecond from interval '2 3:4:5.678' day to second)",
         "5678000",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(nanosecond from interval '2 3:4:5.678' day to second)",
+        "5678000000",
         "BIGINT NOT NULL");
 
     tester.checkScalar(
@@ -6925,6 +6935,21 @@ public abstract class SqlOperatorBaseTest {
 
     tester.checkScalar(
         "extract(second from date '2008-2-23')",
+        "0",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(millisecond from date '2008-2-23')",
+        "0",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(microsecond from date '2008-2-23')",
+        "0",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(nanosecond from date '2008-2-23')",
         "0",
         "BIGINT NOT NULL");
 
@@ -7067,6 +7092,11 @@ public abstract class SqlOperatorBaseTest {
         "BIGINT NOT NULL");
 
     tester.checkScalar(
+        "extract(nanosecond from timestamp '2008-2-23 12:34:56')",
+        "56000000000",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
         "extract(minute from timestamp '2008-2-23 12:34:56')",
         "34",
         "BIGINT NOT NULL");
@@ -7191,6 +7221,11 @@ public abstract class SqlOperatorBaseTest {
         "5678000",
         "BIGINT NOT NULL");
 
+    tester.checkScalar(
+        "extract(nanosecond from interval '2 3:4:5.678' day to second)",
+        "5678000000",
+        "BIGINT NOT NULL");
+
     tester.checkNull(
         "extract(month from cast(null as interval year))");
   }
@@ -7245,9 +7280,18 @@ public abstract class SqlOperatorBaseTest {
 
     tester.checkNull(
         "extract(microsecond from cast(null as time))");
+
+    tester.checkNull(
+        "extract(nanosecond from cast(null as time))");
   }
 
   @Test public void testExtractWithDatesBeforeUnixEpoch() {
+
+    tester.checkScalar(
+            "extract(millisecond from TIMESTAMP '1969-12-31 21:13:17.357')",
+            "17357",
+            "BIGINT NOT NULL");
+
     tester.checkScalar(
         "extract(year from TIMESTAMP '1970-01-01 00:00:00')",
         "1970",
@@ -7454,6 +7498,10 @@ public abstract class SqlOperatorBaseTest {
         "(?s)Cannot apply 'FLOOR' to arguments .*", false);
     tester.checkFails("^floor('abcde' to minute)^",
         "(?s)Cannot apply 'FLOOR' to arguments .*", false);
+    tester.checkFails("^floor(timestamp '2015-02-19 12:34:56.78' to microsecond)^",
+            "(?s)Encountered \"microsecond\" at .*", false);
+    tester.checkFails("^floor(timestamp '2015-02-19 12:34:56.78' to nanosecond)^",
+            "(?s)Encountered \"nanosecond\" at .*", false);
     tester.checkScalar(
         "floor(time '12:34:56' to minute)", "12:34:00", "TIME(0) NOT NULL");
     tester.checkScalar("floor(timestamp '2015-02-19 12:34:56.78' to second)",
@@ -7481,6 +7529,10 @@ public abstract class SqlOperatorBaseTest {
         "(?s)Cannot apply 'CEIL' to arguments .*", false);
     tester.checkFails("^ceil('abcde' to minute)^",
         "(?s)Cannot apply 'CEIL' to arguments .*", false);
+    tester.checkFails("^ceil(timestamp '2015-02-19 12:34:56.78' to microsecond)^",
+            "(?s)Encountered \"microsecond\" at .*", false);
+    tester.checkFails("^ceil(timestamp '2015-02-19 12:34:56.78' to nanosecond)^",
+            "(?s)Encountered \"nanosecond\" at .*", false);
     tester.checkScalar("ceil(time '12:34:56' to minute)",
         "12:35:00", "TIME(0) NOT NULL");
     tester.checkScalar("ceil(time '12:59:56' to minute)",
