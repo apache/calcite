@@ -65,7 +65,7 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
 
   private static final Duration TEST_DURATION =
       Duration.of(Integer.getInteger("rex.fuzzing.duration", 5), ChronoUnit.SECONDS);
-  private static final long TEST_ITERATIONS = Long.getLong("rex.fuzzing.iterations", 18);
+  private static final long TEST_ITERATIONS = Long.getLong("rex.fuzzing.iterations", 2000);
   // Stop fuzzing after detecting MAX_FAILURES errors
   private static final int MAX_FAILURES =
       Integer.getInteger("rex.fuzzing.max.failures", 1);
