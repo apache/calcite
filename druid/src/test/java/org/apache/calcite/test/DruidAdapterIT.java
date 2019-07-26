@@ -69,7 +69,7 @@ import static org.junit.Assert.assertTrue;
  *
  * <p>These tests use TIMESTAMP WITH LOCAL TIME ZONE type for the
  * Druid timestamp column, instead of TIMESTAMP type as
- * {@link DruidAdapterIT2}.
+ * {@link DruidAdapter2IT}.
  */
 public class DruidAdapterIT {
   /** URL of the "druid-foodmart" model. */
@@ -1967,21 +1967,16 @@ public class DruidAdapterIT {
         + "from \"foodmart\"\n"
         + "where \"product_id\" = cast(NULL as varchar)\n"
         + "group by \"product_id\" order by \"product_id\" limit 5";
-    final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-        + "filter=[false], groups=[{1}], aggs=[[]], sort0=[0], dir0=[ASC], fetch=[5])";
-    final String query = "{\"queryType\":\"groupBy\"";
-    sql(sql)
-        .explainContains(plan)
-        .queryContains(druidChecker(query));
+    final String plan = "EnumerableValues(tuples=[[]])";
+    sql(sql).explainContains(plan);
   }
 
   @Test public void testFalseFilter() {
     String sql = "Select count(*) as c from \"foodmart\" where false";
+    final String plan = "EnumerableAggregate(group=[{}], C=[COUNT()])\n"
+        + "  EnumerableValues(tuples=[[]])";
     sql(sql)
-        .queryContains(
-            druidChecker("\"filter\":{\"type\":\"expression\",\"expression\":\"1 == 2\"}"))
+        .explainContains(plan)
         .returnsUnordered("C=0");
   }
 
@@ -2189,8 +2184,8 @@ public class DruidAdapterIT {
         + "  DruidQuery(table=[[foodmart, foodmart]], "
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
         + "filter=[AND(=($2, 'Bird Call'), OR(=(EXTRACT(FLAG(WEEK), $0), 10), "
-        + "=(EXTRACT(FLAG(WEEK), $0), 11)))], projects=[[$0, $2, $63, $90, $91]], "
-        + "groups=[{2}], aggs=[[SUM($3), SUM($4)]], post_projects=[[$0, 'Bird Call', -($1, $2)]])";
+        + "=(EXTRACT(FLAG(WEEK), $0), 11)))], projects=[[$63, $90, $91]], "
+        + "groups=[{0}], aggs=[[SUM($1), SUM($2)]], post_projects=[[$0, 'Bird Call', -($1, $2)]])";
     sql(sql, FOODMART)
         .returnsOrdered("store_state=CA; brand_name=Bird Call; A=34.364599999999996",
             "store_state=OR; brand_name=Bird Call; A=39.16359999999999",
