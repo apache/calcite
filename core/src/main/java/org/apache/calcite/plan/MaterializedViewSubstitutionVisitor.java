@@ -21,6 +21,7 @@ import org.apache.calcite.rel.mutable.MutableFilter;
 import org.apache.calcite.rel.mutable.MutableProject;
 import org.apache.calcite.rel.mutable.MutableRel;
 import org.apache.calcite.rel.mutable.MutableRels;
+import org.apache.calcite.rel.mutable.MutableUnion;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -41,6 +42,7 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
           .add(ProjectToProjectUnifyRule1.INSTANCE)
           .add(FilterToFilterUnifyRule1.INSTANCE)
           .add(FilterToProjectUnifyRule1.INSTANCE)
+          .add(UnionToUnionRule.INSTANCE)
           .build();
 
   public MaterializedViewSubstitutionVisitor(RelNode target_, RelNode query_) {
@@ -175,6 +177,38 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
                 copy(visitor.slots, slotCount));
           }
         }
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Implementation of {@link SubstitutionVisitor.UnifyRule} that matches a
+   * {@link MutableUnion} to a {@link MutableUnion} where the query and target
+   * have the same inputs but might not have the same order.
+   */
+  private static class UnionToUnionRule extends AbstractUnifyRule {
+    public static final UnionToUnionRule INSTANCE = new UnionToUnionRule();
+
+    private UnionToUnionRule() {
+      super(any(MutableUnion.class), any(MutableUnion.class), 0);
+    }
+
+    public UnifyResult apply(UnifyRuleCall call) {
+      final MutableUnion query = (MutableUnion) call.query;
+      final MutableUnion target = (MutableUnion) call.target;
+      List<MutableRel> queryInputs = query.getInputs();
+      List<MutableRel> targetInputs = target.getInputs();
+      if (queryInputs.size() == targetInputs.size()) {
+        for (MutableRel rel: queryInputs) {
+          int index = targetInputs.indexOf(rel);
+          if (index == -1) {
+            return null;
+          } else {
+            targetInputs.remove(index);
+          }
+        }
+        return call.result(target);
       }
       return null;
     }
