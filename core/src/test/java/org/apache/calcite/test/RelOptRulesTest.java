@@ -1368,9 +1368,20 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).with(program).check();
   }
 
+  @Test public void testRemoveDistinctOnAgg() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateRemoveRule.INSTANCE)
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .build();
+    final String sql = "SELECT empno, SUM(distinct sal), MIN(sal), "
+        + "MIN(distinct sal), MAX(distinct sal), "
+        + "bit_and(distinct sal), bit_or(sal), count(distinct sal) "
+        + "from sales.emp group by empno, deptno\n";
+    sql(sql).with(program).check();
+  }
 
   @Test public void testMultipleDistinctWithGrouping() {
-    final String sql = "SELECT sal, SUM(comm), MIN(DISTINCT comm), SUM(DISTINCT sal)\n"
+    final String sql = "SELECT sal, SUM(comm), AVG(DISTINCT comm), SUM(DISTINCT sal)\n"
         + "FROM emp\n"
         + "GROUP BY sal";
     HepProgram program = new HepProgramBuilder()

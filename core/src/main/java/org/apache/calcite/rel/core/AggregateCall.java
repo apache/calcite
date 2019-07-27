@@ -23,6 +23,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 
@@ -101,6 +102,9 @@ public class AggregateCall {
     this.distinct = distinct;
     this.approximate = approximate;
     this.ignoreNulls = ignoreNulls;
+    Preconditions.checkArgument(
+        aggFunction.getDistinctOptionality() != Optionality.IGNORED || !distinct,
+        "DISTINCT has no effect for this aggregate function, so must be false");
     Preconditions.checkArgument(filterArg < 0 || aggFunction.allowsFilter());
   }
 
@@ -189,7 +193,9 @@ public class AggregateCall {
       boolean distinct, boolean approximate, boolean ignoreNulls,
       List<Integer> argList, int filterArg, RelCollation collation,
       RelDataType type, String name) {
-    return new AggregateCall(aggFunction, distinct, approximate, ignoreNulls,
+    final boolean distinct2 = distinct
+        && (aggFunction.getDistinctOptionality() != Optionality.IGNORED);
+    return new AggregateCall(aggFunction, distinct2, approximate, ignoreNulls,
         argList, filterArg, collation, type, name);
   }
 
@@ -312,9 +318,7 @@ public class AggregateCall {
     return buf.toString();
   }
 
-  /**
-   * Returns true if and only if this AggregateCall has a filter argument
-   * */
+  /** Returns whether this AggregateCall has a filter argument. */
   public boolean hasFilter() {
     return filterArg >= 0;
   }
@@ -377,12 +381,12 @@ public class AggregateCall {
   }
 
   /**
-   * Creates equivalent AggregateCall that is adapted to a new input types
+   * Creates an equivalent AggregateCall that is adapted to a new input types
    * and/or number of columns in GROUP BY.
    *
-   * @param input relation that will be used as a child of aggregate
-   * @param argList argument indices of the new call in the input
-   * @param filterArg Index of the filter, or -1
+   * @param input            Relation that will be input of Aggregate
+   * @param argList          Argument indices of the new call in the input
+   * @param filterArg        Index of the filter, or -1
    * @param oldGroupKeyCount number of columns in GROUP BY of old aggregate
    * @param newGroupKeyCount number of columns in GROUP BY of new aggregate
    * @return AggregateCall that suits new inputs and GROUP BY columns

@@ -1033,6 +1033,33 @@ public class RelBuilderTest {
         .build();
   }
 
+  /** Tests eliminating duplicate aggregate calls, when some of them are only
+   * seen to be duplicates when a spurious "DISTINCT" has been eliminated.
+   *
+   * <p>Note that "M2" and "MD2" are based on the same field, because
+   * "MIN(DISTINCT $2)" is identical to "MIN($2)". The same is not true for
+   * "SUM". */
+  @Test public void testAggregateEliminatesDuplicateDistinctCalls() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root = builder.scan("EMP")
+        .aggregate(builder.groupKey(2),
+            builder.sum(builder.field(1)).as("S1"),
+            builder.sum(builder.field(1)).distinct().as("SD1"),
+            builder.count().as("C"),
+            builder.min(builder.field(2)).distinct().as("MD2"),
+            builder.min(builder.field(2)).as("M2"),
+            builder.min(builder.field(2)).distinct().as("MD2b"),
+            builder.sum(builder.field(1)).distinct().as("S1b"))
+        .build();
+    final String expected = ""
+        + "LogicalProject(JOB=[$0], S1=[$1], SD1=[$2], C=[$3], MD2=[$4], "
+        + "M2=[$4], MD2b=[$4], S1b=[$2])\n"
+        + "  LogicalAggregate(group=[{2}], S1=[SUM($1)], "
+        + "SD1=[SUM(DISTINCT $1)], C=[COUNT()], MD2=[MIN($2)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
   @Test public void testAggregateFilter() {
     // Equivalent SQL:
     //   SELECT deptno, COUNT(*) FILTER (WHERE empno > 100) AS c
