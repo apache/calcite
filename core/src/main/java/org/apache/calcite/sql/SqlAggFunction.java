@@ -167,6 +167,10 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
     return requiresOver;
   }
 
+  public Optionality getDistinctOptionality() {
+    return Optionality.OPTIONAL;
+  }
+
   @Deprecated // to be removed before 2.0
   public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
     throw new UnsupportedOperationException("remove before calcite-2.0");

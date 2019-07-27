@@ -23,6 +23,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 
@@ -98,7 +99,9 @@ public class AggregateCall {
     this.argList = ImmutableList.copyOf(argList);
     this.filterArg = filterArg;
     this.collation = Objects.requireNonNull(collation);
-    this.distinct = distinct;
+    // distinct value is honored only when the aggregate
+    // function's distinct optionality is not IGNORED.
+    this.distinct = aggFunction.getDistinctOptionality() != Optionality.IGNORED && distinct;
     this.approximate = approximate;
     this.ignoreNulls = ignoreNulls;
     Preconditions.checkArgument(filterArg < 0 || aggFunction.allowsFilter());
@@ -140,7 +143,9 @@ public class AggregateCall {
         collation, groupCount, input, type, name);
   }
 
-  /** Creates an AggregateCall, inferring its type if {@code type} is null. */
+  /**
+   * Creates an AggregateCall, inferring its type if {@code type} is null.
+   */
   public static AggregateCall create(SqlAggFunction aggFunction,
       boolean distinct, boolean approximate, boolean ignoreNulls,
       List<Integer> argList, int filterArg, RelCollation collation,
@@ -184,7 +189,9 @@ public class AggregateCall {
         collation, type, name);
   }
 
-  /** Creates an AggregateCall. */
+  /**
+   * Creates an AggregateCall.
+   */
   public static AggregateCall create(SqlAggFunction aggFunction,
       boolean distinct, boolean approximate, boolean ignoreNulls,
       List<Integer> argList, int filterArg, RelCollation collation,
@@ -314,7 +321,7 @@ public class AggregateCall {
 
   /**
    * Returns true if and only if this AggregateCall has a filter argument
-   * */
+   */
   public boolean hasFilter() {
     return filterArg >= 0;
   }
@@ -353,10 +360,9 @@ public class AggregateCall {
   /**
    * Creates an equivalent AggregateCall with new argument ordinals.
    *
-   * @see #transform(Mappings.TargetMapping)
-   *
    * @param args Arguments
    * @return AggregateCall that suits new inputs and GROUP BY columns
+   * @see #transform(Mappings.TargetMapping)
    */
   public AggregateCall copy(List<Integer> args, int filterArg,
       RelCollation collation) {
@@ -380,9 +386,9 @@ public class AggregateCall {
    * Creates equivalent AggregateCall that is adapted to a new input types
    * and/or number of columns in GROUP BY.
    *
-   * @param input relation that will be used as a child of aggregate
-   * @param argList argument indices of the new call in the input
-   * @param filterArg Index of the filter, or -1
+   * @param input            relation that will be used as a child of aggregate
+   * @param argList          argument indices of the new call in the input
+   * @param filterArg        Index of the filter, or -1
    * @param oldGroupKeyCount number of columns in GROUP BY of old aggregate
    * @param newGroupKeyCount number of columns in GROUP BY of new aggregate
    * @return AggregateCall that suits new inputs and GROUP BY columns
@@ -401,8 +407,10 @@ public class AggregateCall {
         filterArg, collation, newGroupKeyCount, input, newType, getName());
   }
 
-  /** Creates a copy of this aggregate call, applying a mapping to its
-   * arguments. */
+  /**
+   * Creates a copy of this aggregate call, applying a mapping to its
+   * arguments.
+   */
   public AggregateCall transform(Mappings.TargetMapping mapping) {
     return copy(Mappings.apply2((Mapping) mapping, argList),
         hasFilter() ? Mappings.apply(mapping, filterArg) : -1,
