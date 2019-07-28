@@ -22,6 +22,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
@@ -41,6 +42,7 @@ import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
@@ -62,6 +64,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUpdate;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -195,13 +198,55 @@ public class RelToSqlConverter extends SqlImplementor
     final Builder builder =
         x.builder(e, Clause.SELECT);
     final List<SqlNode> selectList = new ArrayList<>();
+
+    boolean checkNull = isNeedCastNull(stack);
     for (RexNode ref : e.getChildExps()) {
       SqlNode sqlExpr = builder.context.toSql(null, ref);
+      if (checkNull && SqlUtil.isNullLiteral(sqlExpr, false)) {
+        sqlExpr = castNullType(sqlExpr, e.getRowType().getFieldList().get(selectList.size()));
+      }
       addSelect(selectList, sqlExpr, e.getRowType());
     }
 
     builder.setSelect(new SqlNodeList(selectList, POS));
     return builder.result();
+  }
+
+  /**
+   * Check whether null item in select need to be casted
+   * @param stack stack of visit
+   * @return If null need to be casted then return true, otherwise return false.
+   */
+  private static boolean isNeedCastNull(Deque<Frame> stack) {
+    final int stackSize = stack.size();
+    if (stackSize > 1) {
+      int i = 1;
+      for (; i < stackSize; i++) {
+        RelNode currentNode = Iterables.get(stack, i).r;
+        if (!(currentNode instanceof SingleRel)) {
+          break;
+        } else if (currentNode instanceof Project) {
+          //direct or indirect input of Project need to cast null type
+          break;
+        } else if (currentNode instanceof TableModify) {
+          //direct or indirect input of TableModify do not need to cast null type
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * cast null with type
+   * @param sqlNodeNull null SqlNode
+   * @param field field description of sqlNodeNull
+   * @return SqlNode with cast to type.
+   */
+  private SqlNode  castNullType(SqlNode sqlNodeNull, RelDataTypeField field) {
+    return SqlStdOperatorTable.CAST.createCall(POS,
+            sqlNodeNull, dialect.getCastSpec(field.getType()));
   }
 
   /** @see #dispatch */

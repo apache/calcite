@@ -3533,6 +3533,51 @@ public class RelToSqlConverterTest {
     assertTrue(postgresqlDialect.supportsDataType(integerDataType));
   }
 
+  @Test public void testSelectNull() {
+    String query = "SELECT CAST(NULL AS INT)";
+    final String expected = "SELECT CAST(NULL AS INTEGER)\n"
+            + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+    sql(query).ok(expected);
+    //validate
+    sql(expected).exec();
+  }
+
+  @Test public void testSelectNullWithCount() {
+    String query = "SELECT COUNT(CAST(NULL AS INT))";
+    final String expected = "SELECT COUNT(CAST(NULL AS INTEGER))\n"
+            + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+    sql(query).ok(expected);
+    //validate
+    sql(expected).exec();
+  }
+
+  @Test public void testSelectNullWithGroupBy() {
+    String query = "SELECT COUNT(CAST(NULL AS INT)) FROM (VALUES  (0)) "
+            + "AS \"t\" GROUP BY CAST(NULL AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
+    final String expected = "SELECT COUNT(CAST(NULL AS INTEGER))\n"
+            + "FROM (VALUES  (0)) AS \"t\" (\"EXPR$0\")\nGROUP BY CAST(NULL "
+            + "AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
+    sql(query).ok(expected);
+    //validate
+    sql(expected).exec();
+  }
+
+  @Test public void testSelectNullWithInsert() {
+    String query = "insert into "
+            + "\"account\"(\"account_id\",\"account_parent\",\"account_type\",\"account_rollup\")"
+            + " select 1, cast(NULL AS INT), cast(123 as varchar), cast(123 as varchar)";
+    final String expected = "INSERT INTO "
+            + "\"foodmart\".\"account\" (\"account_id\", \"account_parent\", \"account_description\", "
+            + "\"account_type\", \"account_rollup\", \"Custom_Members\")\n"
+            + "(SELECT 1 AS \"account_id\", NULL AS \"account_parent\", "
+            + "NULL AS \"account_description\", '123' AS \"account_type\", "
+            + "'123' AS \"account_rollup\", NULL AS \"Custom_Members\"\n"
+            + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\"))";
+    sql(query).ok(expected);
+    //validate
+    sql(expected).exec();
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;
