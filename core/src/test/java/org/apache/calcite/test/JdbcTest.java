@@ -3463,7 +3463,6 @@ public class JdbcTest {
 
   /** Tests windowed aggregation. */
   @Test public void testWinAgg() {
-    Hook.JAVA_PLAN.add((Consumer<? extends Object>) o -> System.out.println(o));
     CalciteAssert.hr()
         .query("select"
             + " \"deptno\",\n"
