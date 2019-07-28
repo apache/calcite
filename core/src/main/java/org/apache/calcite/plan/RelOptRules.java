@@ -48,7 +48,7 @@ import org.apache.calcite.rel.rules.JoinAssociateRule;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.JoinPushExpressionsRule;
 import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
-import org.apache.calcite.rel.rules.MatchRecognizeRule;
+import org.apache.calcite.rel.rules.MatchRule;
 import org.apache.calcite.rel.rules.MaterializedViewFilterScanRule;
 import org.apache.calcite.rel.rules.ProjectCalcMergeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
@@ -127,7 +127,7 @@ public class RelOptRules {
       AggregateReduceFunctionsRule.INSTANCE,
       FilterAggregateTransposeRule.INSTANCE,
       ProjectWindowTransposeRule.INSTANCE,
-      MatchRecognizeRule.INSTANCE,  // Is this the right place here?
+      MatchRule.INSTANCE,  // Is this the right place here?
       JoinCommuteRule.INSTANCE,
       JoinPushThroughJoinRule.RIGHT,
       JoinPushThroughJoinRule.LEFT,

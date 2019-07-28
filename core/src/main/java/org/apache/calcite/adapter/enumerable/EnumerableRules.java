@@ -107,8 +107,8 @@ public class EnumerableRules {
   public static final EnumerableTableFunctionScanRule ENUMERABLE_TABLE_FUNCTION_SCAN_RULE =
       new EnumerableTableFunctionScanRule(RelFactories.LOGICAL_BUILDER);
 
-  public static final EnumerableMatchRecognizeRule ENUMERABLE_MATCH_RECOGNIZE_RULE =
-      new EnumerableMatchRecognizeRule();
+  public static final EnumerableMatchRule ENUMERABLE_MATCH_RECOGNIZE_RULE =
+      new EnumerableMatchRule();
 
   public static final List<RelOptRule> ENUMERABLE_RULES = ImmutableList.of(
       EnumerableRules.ENUMERABLE_JOIN_RULE,
