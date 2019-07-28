@@ -28,7 +28,7 @@ public class MemoryEnumerable<E> extends AbstractEnumerable<MemoryFactory.Memory
   private final int future;
 
   /**
-   * Use factory method in {@link Linq4j#withMemory(Enumerable, int, int)}.
+   * Use factory method {@link #enumerator()}.
    * @param input The Enumerable which the memory shoudl be "wrapped" around
    * @param history number of present steps to remember
    * @param future number of future steps to "remember"
