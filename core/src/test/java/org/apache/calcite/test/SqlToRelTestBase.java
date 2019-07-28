@@ -878,7 +878,8 @@ public abstract class SqlToRelTestBase {
         SqlNode validatedNode = validator.validate(parsedNode);
         SqlToRelConverter converter = new SqlToRelConverter(
             this, validator, catalogReader, cluster,
-            StandardConvertletTable.INSTANCE, config);
+            StandardConvertletTable.INSTANCE, StandardAuxiliaryConvertletTable.INSTANCE,
+            config);
         return converter.convertQuery(validatedNode, false, true);
       } catch (SqlParseException e) {
         throw new RuntimeException("Error happened while expanding view.", e);
