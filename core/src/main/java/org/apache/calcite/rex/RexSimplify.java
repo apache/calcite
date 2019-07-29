@@ -502,7 +502,7 @@ public class RexSimplify {
     RexSimplify simplify = this;
     for (int i = 0; i < terms.size(); i++) {
       final RexNode t = terms.get(i);
-      if (Predicate.of(t) == null) {
+      if (!allowedAsPredicateDuringOrSimplification(t)) {
         continue;
       }
       final RexNode t2 = simplify.simplify(t, unknownAs);
@@ -516,10 +516,35 @@ public class RexSimplify {
     }
     for (int i = 0; i < terms.size(); i++) {
       final RexNode t = terms.get(i);
-      if (Predicate.of(t) != null) {
+      if (allowedAsPredicateDuringOrSimplification(t)) {
         continue;
       }
       terms.set(i, simplify.simplify(t, unknownAs));
+    }
+  }
+
+  /**
+   * Decides whether the given node could be used as a predicate during the simplification
+   * of other OR operands.
+   */
+  private boolean allowedAsPredicateDuringOrSimplification(final RexNode t) {
+    Predicate predicate = Predicate.of(t);
+    if (predicate == null) {
+      return false;
+    }
+    /** Inequalities are not supported. */
+    SqlKind kind = t.getKind();
+    if (!SqlKind.COMPARISON.contains(kind)) {
+      return true;
+    }
+    switch (kind) {
+    case LESS_THAN:
+    case GREATER_THAN:
+    case GREATER_THAN_OR_EQUAL:
+    case LESS_THAN_OR_EQUAL:
+      return false;
+    default:
+      return true;
     }
   }
 
