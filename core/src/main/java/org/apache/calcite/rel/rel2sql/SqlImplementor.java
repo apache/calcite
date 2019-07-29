@@ -542,6 +542,8 @@ public abstract class SqlImplementor {
     case JOIN:
     case EXPLICIT_TABLE:
       return false;
+    case SELECT:
+      return node instanceof SqlSelect; // TODO workaround asIs hack
     default:
       return true;
     }
