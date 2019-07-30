@@ -26,21 +26,19 @@ limitations under the License.
 
 # Upcoming talks
 
-* 2018/06/12 [SIGMOD/PODS 2018](https://sigmod2018.org/index.shtml) (Houston, TX)
-  * [Apache Calcite: A Foundational Framework for Optimized Query
-    Processing Over Heterogeneous Data
-    Sources](https://sigmod2018.org/sigmod_industrial_list.shtml) (Edmon
-    Begoli, Jesús Camacho-Rodríguez, Julian Hyde, Michael Mior, Daniel
-    Lemire)
-* 2018/06/27 [SF Big Analytics streaming meetup, hosted by Lyft](https://www.meetup.com/SF-Big-Analytics/)
-  (San Francisco, CA)
-  * Foundations of streaming SQL or: How I learned to love stream and
-    table theory (Tyler Akidau)
-  * Data all over the place! How Apache Calcite brings SQL and sanity to
-    streaming and spatial data (Julian Hyde)
-* 2018/09/25 [ApacheCon 2018](https://www.apachecon.com/acna18/) (Montréal, Canada)
-  * Spatial query on vanilla databases (Julian Hyde)
-  * Don't optimize my queries, optimize my data! (Julian Hyde)
+* September 8th-12th, 2019
+  [ApacheCon North America 2019](https://www.apachecon.com/acna19/)
+  (Las Vegas, Nevada)
+  * Building BigData Query Optimization with Apache Calcite – Best
+    Practices from Alibaba MaxCompute (Haisheng Yuan)
+  * Combining schema-on-read and schema-provisioning in Apache Drill
+    (Aman Sinha)
+  * Simple, Portable data pipelines with Apache Beam SQL
+    (Andrew Pilloud)
+  * One SQL to Rule Them All – a Syntactically Idiomatic Approach to
+    Management of Streams and Tables (Kenneth Knowles, Julian Hyde)
+  * Unifying Batch and Stream Data Processing with Apache Calcite and
+    Apache Beam (Khai Tran)
 
 # Project Members
 
@@ -100,6 +98,28 @@ Want to learn more about Calcite?
 
 Watch some presentations and read through some slide decks about
 Calcite, or attend one of the [upcoming talks](#upcoming-talks).
+
+## One SQL to Rule Them All - an Efficient and Syntactically Idiomatic Approach to Management of Streams and Tables
+
+At [SIGMOD/PODS 2019](https://sigmod2019.org/sigmod_industry_list), Amsterdam, Netherlands, 2019
+and [Beam Summit Europe 2019](https://beam-summit.firebaseapp.com/schedule/);
+[[paper](https://arxiv.org/abs/1905.12133)],
+[[review](https://blog.acolyer.org/2019/07/03/one-sql-to-rule-them-all/)],
+[[pdf](https://github.com/julianhyde/share/blob/master/slides/one-sql-to-rule-them-all-beam-summit-2019.pdf?raw=true)],
+[[video](https://www.youtube.com/watch?v=9f4igtyNseo)].
+
+## Apache Calcite: A Foundational Framework for Optimized Query Processing Over Heterogeneous Data Sources
+
+At [SIGMOD/PODS 2018](https://sigmod2018.org/index.shtml), Houston, TX, 2018;
+[[paper](https://arxiv.org/pdf/1802.10233)],
+[[slides](https://www.slideshare.net/julianhyde/apache-calcite-a-foundational-framework-for-optimized-query-processing-over-heterogeneous-data-sources)],
+[[pdf](https://github.com/julianhyde/share/blob/master/slides/calcite-sigmod-2018.pdf?raw=true)].
+
+## Spatial query on vanilla databases
+
+At ApacheCon North America, 2018;
+[[slides](https://www.slideshare.net/julianhyde/spatial-query-on-vanilla-databases)],
+[[pdf](https://github.com/julianhyde/share/blob/master/slides/calcite-spatial-apache-con-2018.pdf?raw=true).
 
 ## Apache Calcite: One planner fits all
 
