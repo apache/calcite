@@ -82,9 +82,18 @@ public class HiveSqlDialect extends SqlDialect {
       SqlOperator op = SqlStdOperatorTable.PERCENT_REMAINDER;
       SqlSyntax.BINARY.unparse(writer, op, call, leftPrec, rightPrec);
       break;
+    case TRIM:
+      unparseTrim(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().getName());
+    call.operand(2).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(frame);
   }
 
   @Override public boolean supportsCharSet() {
