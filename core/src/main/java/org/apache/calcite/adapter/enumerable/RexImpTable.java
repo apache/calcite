@@ -1089,15 +1089,9 @@ public class RexImpTable {
       // v0 != null && v1 != null && f(v0, v1)
       for (Ord<RexNode> operand : Ord.zip(conditionalOps)) {
         if (translator.isNullable(operand.e)) {
-//          list.add(
-//              Expressions.notEqual(
-//              translator.translate(operand.e, NullAs.IS_NOT_NULL),
-//              Expressions.constant(null)
-//            )
-//          );
           list.add(
-              translator.translate(operand.e, NullAs.IS_NOT_NULL)
-          );
+              translator.translate(
+                  operand.e, NullAs.IS_NOT_NULL));
           translator = translator.setNullable(operand.e, false);
         }
       }
@@ -2416,11 +2410,14 @@ public class RexImpTable {
         }
         break;
       case MILLISECOND:
-        return mod(operand, TimeUnit.MINUTE.multiplier.longValue());
       case MICROSECOND:
+      case NANOSECOND:
+        if (sqlTypeName == SqlTypeName.DATE) {
+          return Expressions.constant(0L);
+        }
         operand = mod(operand, TimeUnit.MINUTE.multiplier.longValue());
         return Expressions.multiply(
-            operand, Expressions.constant(TimeUnit.SECOND.multiplier.longValue()));
+            operand, Expressions.constant((long) (1 / unit.multiplier.doubleValue())));
       case EPOCH:
         switch (sqlTypeName) {
         case DATE:

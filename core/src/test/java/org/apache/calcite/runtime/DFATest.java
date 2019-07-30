@@ -97,11 +97,9 @@ public class DFATest {
     final DFA da =
         new DFA(automaton);
 
-    // Result should have two transitions
-    // 0 -A-> 1 -B-> 2 (which again goes to 2 on a "B")
-    // 1 should be final
-    assertThat(da.getTransitions().size(), equalTo(3));
-    assertThat(da.getEndStates().size(), equalTo(2));
+    // Result should have four transitions and one end state
+    assertThat(da.getTransitions().size(), equalTo(4));
+    assertThat(da.getEndStates().size(), equalTo(1));
   }
 
 

@@ -6886,7 +6886,7 @@ public class JdbcTest {
             + "  define up as up.\"empid\" = 100)";
     final String convert = ""
             + "LogicalProject(C=[$0], EMPID=[$1], TWO=[$2])\n"
-            + "  LogicalMatch(partition=[{}], order=[[0 DESC]], "
+            + "  LogicalMatch(partition=[[]], order=[[0 DESC]], "
             + "outputFields=[[C, EMPID, TWO]], allRows=[false], "
             + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('UP', 'S')], "
             + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
@@ -6894,7 +6894,7 @@ public class JdbcTest {
             + "inputFields=[[empid, deptno, name, salary, commission]])\n"
             + "    EnumerableTableScan(table=[[hr, emps]])\n";
     final String plan = "PLAN="
-            + "EnumerableMatch(partition=[{}], order=[[0 DESC]], "
+            + "EnumerableMatch(partition=[[]], order=[[0 DESC]], "
             + "outputFields=[[C, EMPID, TWO]], allRows=[false], "
             + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('UP', 'S')], "
             + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
@@ -6919,7 +6919,7 @@ public class JdbcTest {
         + "  define up as up.\"commission\" < prev(up.\"commission\"))";
     final String convert = ""
         + "LogicalProject(C=[$0], EMPID=[$1])\n"
-        + "  LogicalMatch(partition=[{}], order=[[0 DESC]], "
+        + "  LogicalMatch(partition=[[]], order=[[0 DESC]], "
         + "outputFields=[[C, EMPID]], allRows=[false], "
         + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('S', 'UP')], "
         + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
@@ -6927,7 +6927,7 @@ public class JdbcTest {
         + "inputFields=[[empid, deptno, name, salary, commission]])\n"
         + "    EnumerableTableScan(table=[[hr, emps]])\n";
     final String plan = "PLAN="
-        + "EnumerableMatch(partition=[{}], order=[[0 DESC]], "
+        + "EnumerableMatch(partition=[[]], order=[[0 DESC]], "
         + "outputFields=[[C, EMPID]], allRows=[false], "
         + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('S', 'UP')], "
         + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "

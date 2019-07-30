@@ -48,7 +48,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 /**
@@ -194,7 +193,9 @@ public abstract class Match extends SingleRel {
 
   @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
-        .item("partition", getPartitionKeys().asList().stream().map(i -> "$" + i).collect(Collectors.toList())) // TODO jf: is this a hack?
+        // .item("partition", getPartitionKeys()) // Was like that before
+        .item("partition", getPartitionKeys().asList().stream().map(i -> "$" + i)
+            .collect(Collectors.toList())) // TODO jf: is this a hack?
         .item("order", getOrderKeys())
         .item("outputFields", getRowType().getFieldNames())
         .item("allRows", isAllRows())
