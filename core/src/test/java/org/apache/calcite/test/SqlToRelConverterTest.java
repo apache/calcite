@@ -2187,6 +2187,19 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testUpdateSubQueryWithWhereWithIn() {
+    final String sql = "update emp\n"
+        + "set empno = (\n"
+        + "  select min(empno) from emp as e where e.deptno = emp.deptno)\n"
+        + "where deptno in (10, 11, 12)";
+    sql(sql).ok();
+  }
+
+  @Test public void testUpdateWhereWithIn() {
+    final String sql = "update emp set empno = empno + 1 where deptno in (10, 11, 12)";
+    sql(sql).ok();
+  }
+
   @Test public void testUpdateWhere() {
     final String sql = "update emp set empno = empno + 1 where deptno = 10";
     sql(sql).ok();

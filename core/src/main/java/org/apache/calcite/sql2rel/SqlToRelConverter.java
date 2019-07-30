@@ -3568,10 +3568,9 @@ public class SqlToRelConverter {
     final SqlValidatorScope scope = validator.getWhereScope(call.getSourceSelect());
     Blackboard bb = createBlackboard(scope, null, false);
 
-    replaceSubQueries(bb, call, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
-
     Builder<RexNode> rexNodeSourceExpressionListBuilder = ImmutableList.builder();
     for (SqlNode n : call.getSourceExpressionList()) {
+      replaceSubQueries(bb, n, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
       RexNode rn = bb.convertExpression(n);
       rexNodeSourceExpressionListBuilder.add(rn);
     }
@@ -3590,7 +3589,8 @@ public class SqlToRelConverter {
       targetColumnNameList.add(field.getName());
     }
 
-    RelNode sourceRel = convertSelect(call.getSourceSelect(), false);
+    convertSelectImpl(bb, call.getSourceSelect());
+    RelNode sourceRel = bb.root;
 
     return LogicalTableModify.create(targetTable, catalogReader, sourceRel,
         LogicalTableModify.Operation.UPDATE, targetColumnNameList,

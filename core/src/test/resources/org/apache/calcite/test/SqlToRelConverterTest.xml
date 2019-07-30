@@ -4357,6 +4357,19 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColu
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testUpdateWhereWithIn">
+        <Resource name="sql">
+            <![CDATA[update emp set empno = empno + 1 where deptno in (10, 11, 12)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[EMPNO]], sourceExpressionList=[[+($cor0.EMPNO, 1)]], flattened=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[+($0, 1)])
+    LogicalFilter(condition=[OR(=($7, 10), =($7, 11), =($7, 12))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testUpdateBind">
         <Resource name="sql">
             <![CDATA[update emp set sal = sal + ? where slacker = false]]>
@@ -4599,6 +4612,26 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColu
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[$10])
     LogicalJoin(condition=[=($7, $9)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}], EXPR$0=[MIN($1)])
+        LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testUpdateSubQueryWithWhereWithIn">
+        <Resource name="sql">
+            <![CDATA[update emp
+set empno = (
+  select min(empno) from emp as e where e.deptno = emp.deptno)
+where deptno in (10, 11, 12)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[EMPNO]], sourceExpressionList=[[$0]], flattened=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[$10])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalFilter(condition=[OR(=($7, 10), =($7, 11), =($7, 12))])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{0}], EXPR$0=[MIN($1)])
         LogicalProject(DEPTNO=[$7], EMPNO=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
