@@ -39,7 +39,6 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -198,7 +197,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
                   builder.field("q", "m"))), builder.literal(true), builder
               .call(SqlStdOperatorTable.GREATER_THAN, builder.field("q", "c"),
                   builder.field("q", "d")),
-          e.rel.getCluster().getRexBuilder().makeNullLiteral(SqlTypeName.BOOLEAN), builder
+          builder.getRexBuilder().constantNull(), builder
               .call(RelOptUtil.op(op.comparisonKind, null), e.operands.get(0),
                   builder.field("q", "m")));
     } else {
@@ -241,7 +240,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
                   builder.field("q", "m"))), builder.literal(true), builder
               .call(SqlStdOperatorTable.GREATER_THAN, builder.field("q", "c"),
                   builder.field("q", "d")),
-          e.rel.getCluster().getRexBuilder().makeNullLiteral(SqlTypeName.BOOLEAN), builder
+          builder.getRexBuilder().constantNull(), builder
               .call(RelOptUtil.op(op.comparisonKind, null), e.operands.get(0),
                   builder.field("q", "m")));
     }
