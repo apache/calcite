@@ -29,9 +29,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelNodes;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.EquiJoin;
-import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMdCollation;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
@@ -40,22 +40,21 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import java.lang.reflect.Method;
 import java.util.Set;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Join} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
-public class EnumerableJoin extends EquiJoin implements EnumerableRel {
-  /** Creates an EnumerableJoin.
+public class EnumerableHashJoin extends EquiJoin implements EnumerableRel {
+  /** Creates an EnumerableHashJoin.
    *
    * <p>Use {@link #create} unless you know what you're doing. */
-  protected EnumerableJoin(
+  protected EnumerableHashJoin(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode left,
       RelNode right,
       RexNode condition,
-      ImmutableIntList leftKeys,
-      ImmutableIntList rightKeys,
       Set<CorrelationId> variablesSet,
       JoinRelType joinType)
       throws InvalidRelException {
@@ -65,28 +64,23 @@ public class EnumerableJoin extends EquiJoin implements EnumerableRel {
         left,
         right,
         condition,
-        leftKeys,
-        rightKeys,
         variablesSet,
         joinType);
   }
 
   @Deprecated // to be removed before 2.0
-  protected EnumerableJoin(RelOptCluster cluster, RelTraitSet traits,
+  protected EnumerableHashJoin(RelOptCluster cluster, RelTraitSet traits,
       RelNode left, RelNode right, RexNode condition, ImmutableIntList leftKeys,
       ImmutableIntList rightKeys, JoinRelType joinType,
       Set<String> variablesStopped) throws InvalidRelException {
-    this(cluster, traits, left, right, condition, leftKeys, rightKeys,
-        CorrelationId.setOf(variablesStopped), joinType);
+    this(cluster, traits, left, right, condition, CorrelationId.setOf(variablesStopped), joinType);
   }
 
-  /** Creates an EnumerableJoin. */
-  public static EnumerableJoin create(
+  /** Creates an EnumerableHashJoin. */
+  public static EnumerableHashJoin create(
       RelNode left,
       RelNode right,
       RexNode condition,
-      ImmutableIntList leftKeys,
-      ImmutableIntList rightKeys,
       Set<CorrelationId> variablesSet,
       JoinRelType joinType)
       throws InvalidRelException {
@@ -95,34 +89,17 @@ public class EnumerableJoin extends EquiJoin implements EnumerableRel {
     final RelTraitSet traitSet =
         cluster.traitSetOf(EnumerableConvention.INSTANCE)
             .replaceIfs(RelCollationTraitDef.INSTANCE,
-                () -> RelMdCollation.enumerableJoin(mq, left, right, joinType));
-    return new EnumerableJoin(cluster, traitSet, left, right, condition,
-        leftKeys, rightKeys, variablesSet, joinType);
+                () -> RelMdCollation.enumerableHashJoin(mq, left, right, joinType));
+    return new EnumerableHashJoin(cluster, traitSet, left, right, condition,
+        variablesSet, joinType);
   }
 
-  @Deprecated // to be removed before 2.0
-  public static EnumerableJoin create(
-      RelNode left,
-      RelNode right,
-      RexNode condition,
-      ImmutableIntList leftKeys,
-      ImmutableIntList rightKeys,
-      JoinRelType joinType,
-      Set<String> variablesStopped)
-      throws InvalidRelException {
-    return create(left, right, condition, leftKeys, rightKeys,
-        CorrelationId.setOf(variablesStopped), joinType);
-  }
-
-  @Override public EnumerableJoin copy(RelTraitSet traitSet, RexNode condition,
+  @Override public EnumerableHashJoin copy(RelTraitSet traitSet, RexNode condition,
       RelNode left, RelNode right, JoinRelType joinType,
       boolean semiJoinDone) {
-    final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
-    assert joinInfo.isEqui();
     try {
-      return new EnumerableJoin(getCluster(), traitSet, left, right,
-          condition, joinInfo.leftKeys, joinInfo.rightKeys, variablesSet,
-          joinType);
+      return new EnumerableHashJoin(getCluster(), traitSet, left, right,
+          condition, variablesSet, joinType);
     } catch (InvalidRelException e) {
       // Semantic error not possible. Must be a bug. Convert to
       // internal error.
@@ -138,12 +115,16 @@ public class EnumerableJoin extends EquiJoin implements EnumerableRel {
     // and have the same cost. To make the results stable between versions of
     // the planner, make one of the versions slightly more expensive.
     switch (joinType) {
+    case SEMI:
+    case ANTI:
+      // SEMI and ANTI join cannot be flipped
+      break;
     case RIGHT:
-      rowCount = addEpsilon(rowCount);
+      rowCount = RelMdUtil.addEpsilon(rowCount);
       break;
     default:
       if (RelNodes.COMPARATOR.compare(left, right) > 0) {
-        rowCount = addEpsilon(rowCount);
+        rowCount = RelMdUtil.addEpsilon(rowCount);
       }
     }
 
@@ -161,31 +142,55 @@ public class EnumerableJoin extends EquiJoin implements EnumerableRel {
     } else {
       rowCount += rightRowCount;
     }
-    return planner.getCostFactory().makeCost(rowCount, 0, 0);
+    if (isSemiJoin()) {
+      return planner.getCostFactory().makeCost(rowCount, 0, 0).multiplyBy(.01d);
+    } else {
+      return planner.getCostFactory().makeCost(rowCount, 0, 0);
+    }
   }
 
-  private double addEpsilon(double d) {
-    assert d >= 0d;
-    final double d0 = d;
-    if (d < 10) {
-      // For small d, adding 1 would change the value significantly.
-      d *= 1.001d;
-      if (d != d0) {
-        return d;
-      }
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+    switch (joinType) {
+    case SEMI:
+    case ANTI:
+      assert joinInfo.isEqui();
+      return implementHashSemiJoin(implementor, pref);
+    default:
+      return implementHashJoin(implementor, pref);
     }
-    // For medium d, add 1. Keeps integral values integral.
-    ++d;
-    if (d != d0) {
-      return d;
-    }
-    // For large d, adding 1 might not change the value. Add .1%.
-    // If d is NaN, this still will probably not change the value. That's OK.
-    d *= 1.001d;
-    return d;
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  private Result implementHashSemiJoin(EnumerableRelImplementor implementor, Prefer pref) {
+    assert joinType == JoinRelType.SEMI || joinType == JoinRelType.ANTI;
+    final Method method = joinType == JoinRelType.SEMI
+        ? BuiltInMethod.SEMI_JOIN.method
+        : BuiltInMethod.ANTI_JOIN.method;
+    BlockBuilder builder = new BlockBuilder();
+    final Result leftResult =
+        implementor.visitChild(this, 0, (EnumerableRel) left, pref);
+    Expression leftExpression =
+        builder.append(
+            "left", leftResult.block);
+    final Result rightResult =
+        implementor.visitChild(this, 1, (EnumerableRel) right, pref);
+    Expression rightExpression =
+        builder.append(
+            "right", rightResult.block);
+    final PhysType physType = leftResult.physType;
+    return implementor.result(
+        physType,
+        builder.append(
+            Expressions.call(
+                method,
+                Expressions.list(
+                    leftExpression,
+                    rightExpression,
+                    leftResult.physType.generateAccessor(joinInfo.leftKeys),
+                    rightResult.physType.generateAccessor(joinInfo.rightKeys))))
+            .toBlock());
+  }
+
+  private Result implementHashJoin(EnumerableRelImplementor implementor, Prefer pref) {
     BlockBuilder builder = new BlockBuilder();
     final Result leftResult =
         implementor.visitChild(this, 0, (EnumerableRel) left, pref);
@@ -202,17 +207,17 @@ public class EnumerableJoin extends EquiJoin implements EnumerableRel {
             implementor.getTypeFactory(), getRowType(), pref.preferArray());
     final PhysType keyPhysType =
         leftResult.physType.project(
-            leftKeys, JavaRowFormat.LIST);
+            joinInfo.leftKeys, JavaRowFormat.LIST);
     return implementor.result(
         physType,
         builder.append(
             Expressions.call(
                 leftExpression,
-                BuiltInMethod.JOIN.method,
+                BuiltInMethod.HASH_JOIN.method,
                 Expressions.list(
                     rightExpression,
-                    leftResult.physType.generateAccessor(leftKeys),
-                    rightResult.physType.generateAccessor(rightKeys),
+                    leftResult.physType.generateAccessor(joinInfo.leftKeys),
+                    rightResult.physType.generateAccessor(joinInfo.rightKeys),
                     EnumUtils.joinSelector(joinType,
                         physType,
                         ImmutableList.of(
@@ -226,7 +231,6 @@ public class EnumerableJoin extends EquiJoin implements EnumerableRel {
                         Expressions.constant(
                             joinType.generatesNullsOnRight())))).toBlock());
   }
-
 }
 
-// End EnumerableJoin.java
+// End EnumerableHashJoin.java

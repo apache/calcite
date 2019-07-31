@@ -83,7 +83,6 @@ public class RelJsonReader {
     @SuppressWarnings("unchecked")
     final List<Map<String, Object>> rels = (List) o.get("rels");
     readRels(rels);
-    System.out.println(lastRel);
     return lastRel;
   }
 

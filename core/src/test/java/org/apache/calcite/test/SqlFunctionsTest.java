@@ -34,13 +34,16 @@ import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.addMonths;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
+import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
 import static org.apache.calcite.runtime.SqlFunctions.initcap;
 import static org.apache.calcite.runtime.SqlFunctions.lesser;
 import static org.apache.calcite.runtime.SqlFunctions.lower;
 import static org.apache.calcite.runtime.SqlFunctions.ltrim;
+import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.subtractMonths;
+import static org.apache.calcite.runtime.SqlFunctions.toBase64;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
 import static org.apache.calcite.runtime.SqlFunctions.upper;
 
@@ -52,6 +55,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Unit test for the methods in {@link SqlFunctions} that implement SQL
@@ -72,8 +77,61 @@ public class SqlFunctionsTest {
     assertEquals("nullb", concat(null, "b"));
   }
 
+  @Test public void testPosixRegex() {
+    assertEquals(true, posixRegex("abc", "abc", true));
+    assertEquals(true, posixRegex("abc", "^a", true));
+    assertEquals(true, posixRegex("abc", "(b|d)", true));
+    assertEquals(false, posixRegex("abc", "^(b|c)", true));
+
+    assertEquals(true, posixRegex("abc", "ABC", false));
+    assertEquals(true, posixRegex("abc", "^A", false));
+    assertEquals(true, posixRegex("abc", "(B|D)", false));
+    assertEquals(false, posixRegex("abc", "^(B|C)", false));
+
+    assertEquals(false, posixRegex("abc", "^[[:xdigit:]]$", false));
+    assertEquals(true, posixRegex("abc", "^[[:xdigit:]]+$", false));
+    assertEquals(false, posixRegex("abcq", "^[[:xdigit:]]+$", false));
+
+    assertEquals(true, posixRegex("abc", "[[:xdigit:]]", false));
+    assertEquals(true, posixRegex("abc", "[[:xdigit:]]+", false));
+    assertEquals(true, posixRegex("abcq", "[[:xdigit:]]", false));
+  }
+
   @Test public void testLower() {
     assertEquals("a bcd iijk", lower("A bCd Iijk"));
+  }
+
+  @Test public void testFromBase64() {
+    final List<String> expectedList =
+            Arrays.asList("", "\0", "0", "a", " ", "\n", "\r\n", "\u03C0", "hello\tword");
+    for (String expected: expectedList) {
+      assertEquals(new ByteString(expected.getBytes(UTF_8)), fromBase64(toBase64(expected)));
+    }
+    assertThat("546869732069732061207465737420537472696e672e",
+            is(fromBase64("VGhpcyB  pcyBh\rIHRlc3Qg\tU3Ry\naW5nLg==").toString()));
+    assertNull(null, fromBase64("-1"));
+  }
+
+  @Test public void testToBase64() {
+    assertThat(
+            "VGhpcyBpcyBhIHRlc3QgU3RyaW5nLiBjaGVjayByZXN1bHRlIG91dCBvZiA3NlRoaXMgaXMgYSB0\n"
+                    + "ZXN0IFN0cmluZy5UaGlzIGlzIGEgdGVzdCBTdHJpbmcuVGhpcyBpcyBhIHRlc3QgU3RyaW5nLlRo\n"
+                    + "aXMgaXMgYSB0ZXN0IFN0cmluZy5UaGlzIGlzIGEgdGVzdCBTdHJpbmcuIFRoaXMgaXMgYSB0ZXN0\n"
+                    + "IFN0cmluZy4gY2hlY2sgcmVzdWx0ZSBvdXQgb2YgNzZUaGlzIGlzIGEgdGVzdCBTdHJpbmcuVGhp\n"
+                    + "cyBpcyBhIHRlc3QgU3RyaW5nLlRoaXMgaXMgYSB0ZXN0IFN0cmluZy5UaGlzIGlzIGEgdGVzdCBT\n"
+                    + "dHJpbmcuVGhpcyBpcyBhIHRlc3QgU3RyaW5nLiBUaGlzIGlzIGEgdGVzdCBTdHJpbmcuIGNoZWNr\n"
+                    + "IHJlc3VsdGUgb3V0IG9mIDc2VGhpcyBpcyBhIHRlc3QgU3RyaW5nLlRoaXMgaXMgYSB0ZXN0IFN0\n"
+                    + "cmluZy5UaGlzIGlzIGEgdGVzdCBTdHJpbmcuVGhpcyBpcyBhIHRlc3QgU3RyaW5nLlRoaXMgaXMg\n"
+                    + "YSB0ZXN0IFN0cmluZy4=",
+            is(
+            toBase64("This is a test String. check resulte out of 76This is a test String."
+                    + "This is a test String.This is a test String.This is a test String."
+                    + "This is a test String. This is a test String. check resulte out of 76"
+                    + "This is a test String.This is a test String.This is a test String."
+                    + "This is a test String.This is a test String. This is a test String. "
+                    + "check resulte out of 76This is a test String.This is a test String."
+                    + "This is a test String.This is a test String.This is a test String.")));
+    assertThat("", is(toBase64("")));
   }
 
   @Test public void testUpper() {

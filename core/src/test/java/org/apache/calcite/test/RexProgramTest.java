@@ -1954,6 +1954,22 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplify(isNotNull(lt(i2, i3)), "true");
     checkSimplify(isNotNull(lt(i0, one)), "IS NOT NULL($0)");
     checkSimplify(isNotNull(lt(i0, null_)), "false");
+    // test simplify operand of case when expression
+    checkSimplify(
+        isNull(case_(falseLiteral, unaryPlus(i0), literal(-1))),
+        "false");
+    checkSimplify(
+        isNull(case_(trueLiteral, unaryPlus(i0), literal(-1))),
+        "IS NULL($0)");
+    checkSimplify(
+        isNotNull(case_(falseLiteral, unaryPlus(i0), literal(-1))),
+        "true");
+    checkSimplify(
+        isNotNull(case_(trueLiteral, unaryPlus(i0), literal(-1))),
+        "IS NOT NULL($0)");
+    // test simplify operand of redundant cast
+    checkSimplify(isNull(cast(i2, intType)), "false");
+    checkSimplify(isNotNull(cast(i2, intType)), "true");
   }
 
   /** Unit test for

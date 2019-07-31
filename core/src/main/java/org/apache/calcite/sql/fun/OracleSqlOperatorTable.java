@@ -16,23 +16,17 @@
  */
 package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlFunction;
-import org.apache.calcite.sql.SqlFunctionCategory;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Operator table that contains only Oracle-specific functions and operators.
+ *
+ * @deprecated Use
+ * {@link SqlLibraryOperatorTableFactory#getOperatorTable(SqlLibrary...)}
+ * instead, passing {@link SqlLibrary#ORACLE} as argument.
  */
+@Deprecated // to be removed before 2.0
 public class OracleSqlOperatorTable extends ReflectiveSqlOperatorTable {
   //~ Static fields/initializers ---------------------------------------------
 
@@ -41,81 +35,29 @@ public class OracleSqlOperatorTable extends ReflectiveSqlOperatorTable {
    */
   private static OracleSqlOperatorTable instance;
 
-  /** Return type inference for {@code DECODE}. */
-  protected static final SqlReturnTypeInference DECODE_RETURN_TYPE =
-      opBinding -> {
-        final List<RelDataType> list = new ArrayList<>();
-        for (int i = 1, n = opBinding.getOperandCount(); i < n; i++) {
-          if (i < n - 1) {
-            ++i;
-          }
-          list.add(opBinding.getOperandType(i));
-        }
-        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-        RelDataType type = typeFactory.leastRestrictive(list);
-        if (opBinding.getOperandCount() % 2 == 1) {
-          type = typeFactory.createTypeWithNullability(type, true);
-        }
-        return type;
-      };
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction DECODE = SqlLibraryOperators.DECODE;
 
-  /** The "DECODE(v, v1, result1, [v2, result2, ...], resultN)" function. */
-  public static final SqlFunction DECODE =
-      new SqlFunction("DECODE", SqlKind.DECODE, DECODE_RETURN_TYPE, null,
-          OperandTypes.VARIADIC, SqlFunctionCategory.SYSTEM);
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction NVL = SqlLibraryOperators.NVL;
 
-  /** The "NVL(value, value)" function. */
-  public static final SqlFunction NVL =
-      new SqlFunction("NVL", SqlKind.NVL,
-          ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
-              SqlTypeTransforms.TO_NULLABLE_ALL),
-          null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction LTRIM = SqlLibraryOperators.LTRIM;
 
-  /** The "LTRIM(string)" function. */
-  public static final SqlFunction LTRIM =
-      new SqlFunction("LTRIM", SqlKind.LTRIM,
-          ReturnTypes.cascade(ReturnTypes.ARG0, SqlTypeTransforms.TO_NULLABLE,
-              SqlTypeTransforms.TO_VARYING), null,
-          OperandTypes.STRING, SqlFunctionCategory.STRING);
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction RTRIM = SqlLibraryOperators.RTRIM;
 
-  /** The "RTRIM(string)" function. */
-  public static final SqlFunction RTRIM =
-      new SqlFunction("RTRIM", SqlKind.RTRIM,
-          ReturnTypes.cascade(ReturnTypes.ARG0, SqlTypeTransforms.TO_NULLABLE,
-              SqlTypeTransforms.TO_VARYING), null,
-          OperandTypes.STRING, SqlFunctionCategory.STRING);
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction SUBSTR = SqlLibraryOperators.SUBSTR;
 
-  /** Oracle's "SUBSTR(string, position [, substringLength ])" function.
-   *
-   * <p>It has similar semantics to standard SQL's
-   * {@link SqlStdOperatorTable#SUBSTRING} function but different syntax. */
-  public static final SqlFunction SUBSTR =
-      new SqlFunction("SUBSTR", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
-          SqlFunctionCategory.STRING);
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction GREATEST = SqlLibraryOperators.GREATEST;
 
-  /** The "GREATEST(value, value)" function. */
-  public static final SqlFunction GREATEST =
-      new SqlFunction("GREATEST", SqlKind.GREATEST,
-          ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
-              SqlTypeTransforms.TO_NULLABLE), null,
-          OperandTypes.SAME_VARIADIC, SqlFunctionCategory.SYSTEM);
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction LEAST = SqlLibraryOperators.LEAST;
 
-  /** The "LEAST(value, value)" function. */
-  public static final SqlFunction LEAST =
-      new SqlFunction("LEAST", SqlKind.LEAST,
-          ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
-              SqlTypeTransforms.TO_NULLABLE), null,
-          OperandTypes.SAME_VARIADIC, SqlFunctionCategory.SYSTEM);
-
-  /**
-   * The <code>TRANSLATE(<i>string_expr</i>, <i>search_chars</i>, <i>replacement_chars</i>)</code>
-   * function returns <i>string_expr</i> with all occurrences of each character in
-   * <i>search_chars</i> replaced by its corresponding character in <i>replacement_chars</i>.
-   *
-   * <p>It is not defined in the SQL standard, but occurs in Oracle and PostgreSQL.
-   */
-  public static final SqlFunction TRANSLATE3 = new SqlTranslate3Function();
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction TRANSLATE3 = SqlLibraryOperators.TRANSLATE3;
 
   /**
    * Returns the Oracle operator table, creating it if necessary.

@@ -21,7 +21,6 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.EquiJoin;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -79,7 +78,7 @@ public abstract class FilterJoinRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a FilterProjectTransposeRule with an explicit root operand and
+   * Creates a FilterJoinRule with an explicit root operand and
    * factories.
    */
   protected FilterJoinRule(RelOptRuleOperand operand, String id,
@@ -102,7 +101,7 @@ public abstract class FilterJoinRule extends RelOptRule {
   }
 
   /**
-   * Creates a FilterProjectTransposeRule with an explicit root operand and
+   * Creates a FilterJoinRule with an explicit root operand and
    * factories.
    */
   @Deprecated // to be removed before 2.0
@@ -115,6 +114,15 @@ public abstract class FilterJoinRule extends RelOptRule {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  /** Returns if it is needed to push the filter condition above join
+   * into the join condition.
+   */
+  private boolean needsPushInto(Join join) {
+    // If the join force the join info to be based on column equality,
+    // or it is a non-correlated semijoin, returns false.
+    return !RelOptUtil.forceEquiJoin(join);
+  }
 
   protected void perform(RelOptRuleCall call, Filter filter,
       Join join) {
@@ -162,7 +170,7 @@ public abstract class FilterJoinRule extends RelOptRule {
         join,
         aboveFilters,
         joinType,
-        !(join instanceof EquiJoin),
+        needsPushInto(join),
         !joinType.generatesNullsOnLeft(),
         !joinType.generatesNullsOnRight(),
         joinFilters,
@@ -187,7 +195,18 @@ public abstract class FilterJoinRule extends RelOptRule {
     // Try to push down filters in ON clause. A ON clause filter can only be
     // pushed down if it does not affect the non-matching set, i.e. it is
     // not on the side which is preserved.
-    if (RelOptUtil.classifyFilters(
+
+    // Anti-join on conditions can not be pushed into left or right, e.g. for plan:
+    //
+    //     Join(condition=[AND(cond1, $2)], joinType=[anti])
+    //     :  - prj(f0=[$0], f1=[$1], f2=[$2])
+    //     :  - prj(f0=[$0])
+    //
+    // The semantic would change if join condition $2 is pushed into left,
+    // that is, the result set may be smaller. The right can not be pushed
+    // into for the same reason.
+    if (joinType != JoinRelType.ANTI
+        && RelOptUtil.classifyFilters(
         join,
         joinFilters,
         joinType,
@@ -264,7 +283,6 @@ public abstract class FilterJoinRule extends RelOptRule {
     relBuilder.filter(
         RexUtil.fixUp(rexBuilder, aboveFilters,
             RelOptUtil.getFieldTypeList(relBuilder.peek().getRowType())));
-
     call.transformTo(relBuilder.build());
   }
 

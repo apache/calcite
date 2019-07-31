@@ -70,6 +70,39 @@ proposed feature or start a discussion on the dev list.
 Before opening up a new JIRA case, have a look in the existing issues.
 The feature or bug that you plan to work on may already be there.
 
+If a new issue needs to be created, it is important to provide a
+concise and meaningful summary line. It should imply what the end user
+was trying to do, in which component, and what symptoms were seen.
+If it's not clear what the desired behavior is, rephrase: e.g.,
+"Validator closes model file" to "Validator should not close model file".
+
+Contributors to the case should feel free to rephrase and clarify the
+summary line. If you remove information while clarifying, put it in
+the description of the case.
+
+Design discussions may happen in various places (email threads,
+github reviews) but the JIRA case is the canonical place for those
+discussions. Link to them or summarize them in the case.
+
+When implementing a case, especially a new feature, make sure
+the case includes a functional specification of the change. For instance,
+"Add a IF NOT EXISTS clause to the CREATE TABLE command; the command is
+a no-op if the table already exists." Update the description if
+the specification changes during design discussions or implementation.
+
+When implementing a feature or fixing a bug, endeavor to create
+the jira case before you start work on the code. This gives others
+the opportunity to shape the feature before you have gone too far down
+(what the reviewer considers to be) the wrong path.
+
+The best place to ask for feedback related to an issue is the developers list.
+Please avoid tagging specific people in the JIRA case asking for feedback.
+This discourages other contributors to participate in the discussion and
+provide valuable feedback.
+
+If there is a regression that seems to be related with a particular commit,
+feel free to tag the respective contributor(s) in the discussion.
+
 If you are going to take on the issue right away assign it to yourself.
 To assign issues to yourself you have to be registered in JIRA as a contributor.
 In order to do that, send an email to the developers list
@@ -85,7 +118,14 @@ If for any reason you decide that an issue cannot go into the ongoing
 release, reset the fix version to blank.
 
 During a release, the release manager will update the issues that were
-not completed for the current release to the next release
+not completed for the current release to the next release.
+
+There are cases where the JIRA issue may be solved in the discussion
+(or some other reason) without necessitating a change. In such cases,
+the contributor(s) involved in the discussion should:
+ * resolve the issue (do not close it);
+ * select the appropriate resolution cause ("Duplicate", "Invalid", "Won't fix", etc.);
+ * add a comment with the reasoning if that's not obvious.
 
 Fork the GitHub repository, and create a branch for your feature.
 

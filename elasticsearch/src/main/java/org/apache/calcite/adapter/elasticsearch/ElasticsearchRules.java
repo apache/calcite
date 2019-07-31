@@ -66,7 +66,7 @@ class ElasticsearchRules {
    * @param call current relational expression
    * @return literal value
    */
-  static String isItem(RexCall call) {
+  private static String isItemCall(RexCall call) {
     if (call.getOperator() != SqlStdOperatorTable.ITEM) {
       return null;
     }
@@ -82,13 +82,31 @@ class ElasticsearchRules {
     return null;
   }
 
+  /**
+   * Checks if current node represents item access as in {@code _MAP['foo']} or
+   * {@code cast(_MAP['foo'] as integer)}
+   *
+   * @return true if expression is item, false otherwise
+   */
   static boolean isItem(RexNode node) {
     final Boolean result = node.accept(new RexVisitorImpl<Boolean>(false) {
       @Override public Boolean visitCall(final RexCall call) {
-        return isItem(call) != null;
+        return isItemCall(uncast(call)) != null;
       }
     });
     return Boolean.TRUE.equals(result);
+  }
+
+  /**
+   * Unwraps cast expressions from current call. {@code cast(cast(expr))} becomes {@code expr}.
+   */
+  private static RexCall uncast(RexCall maybeCast) {
+    if (maybeCast.getKind() == SqlKind.CAST && maybeCast.getOperands().get(0) instanceof RexCall) {
+      return uncast((RexCall) maybeCast.getOperands().get(0));
+    }
+
+    // not a cast
+    return maybeCast;
   }
 
   static List<String> elasticsearchFieldNames(final RelDataType rowType) {
@@ -144,15 +162,17 @@ class ElasticsearchRules {
     }
 
     @Override public String visitCall(RexCall call) {
-      final String name = isItem(call);
+      final String name = isItemCall(call);
       if (name != null) {
         return name;
       }
 
       final List<String> strings = visitList(call.operands);
+
       if (call.getKind() == SqlKind.CAST) {
-        return strings.get(0).startsWith("$") ? strings.get(0).substring(1) : strings.get(0);
+        return call.getOperands().get(0).accept(this);
       }
+
       if (call.getOperator() == SqlStdOperatorTable.ITEM) {
         final RexNode op1 = call.getOperands().get(1);
         if (op1 instanceof RexLiteral && op1.getType().getSqlTypeName() == SqlTypeName.INTEGER) {
@@ -249,7 +269,6 @@ class ElasticsearchRules {
             rel.getCluster(),
             traitSet,
             convert(agg.getInput(), traitSet.simplify()),
-            agg.indicator,
             agg.getGroupSet(),
             agg.getGroupSets(),
             agg.getAggCallList());

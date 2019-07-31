@@ -973,7 +973,7 @@ public class SubstitutionVisitor {
 
     public UnifyResult apply(UnifyRuleCall call) {
       if (call.query.equals(call.target)) {
-        return call.result(call.query);
+        return call.result(call.target);
       }
       return null;
     }
@@ -1340,10 +1340,29 @@ public class SubstitutionVisitor {
       if (mapping == null) {
         return null;
       }
+      Mapping inverseMapping = mapping.inverse();
       final MutableAggregate aggregate2 =
-          permute(query, project.getInput(), mapping.inverse());
-      final MutableRel result = unifyAggregates(aggregate2, target);
-      return result == null ? null : call.result(result);
+          permute(query, project.getInput(), inverseMapping);
+      final MutableRel unifiedAggregate = unifyAggregates(aggregate2, target);
+      if (unifiedAggregate == null) {
+        return null;
+      }
+      MutableRel result = unifiedAggregate;
+      // Add Project if the mapping breaks order of fields in GroupSet
+      if (!Mappings.keepsOrdering(mapping)) {
+        final List<Integer> posList = new ArrayList<>();
+        final int fieldCount = aggregate2.rowType.getFieldCount();
+        for (int group: aggregate2.groupSet) {
+          if (inverseMapping.getTargetOpt(group) != -1) {
+            posList.add(inverseMapping.getTarget(group));
+          }
+        }
+        for (int i = posList.size(); i < fieldCount; i++) {
+          posList.add(i);
+        }
+        result = MutableRels.createProject(unifiedAggregate, posList);
+      }
+      return call.result(result);
     }
   }
 

@@ -494,7 +494,7 @@ public interface ExtendedEnumerable<TSource> {
    * matching keys. The default equality comparer is used to compare
    * keys.
    */
-  <TInner, TKey, TResult> Enumerable<TResult> join(Enumerable<TInner> inner,
+  <TInner, TKey, TResult> Enumerable<TResult> hashJoin(Enumerable<TInner> inner,
       Function1<TSource, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
       Function2<TSource, TInner, TResult> resultSelector);
@@ -504,7 +504,7 @@ public interface ExtendedEnumerable<TSource> {
    * matching keys. A specified {@code EqualityComparer<TSource>} is used to
    * compare keys.
    */
-  <TInner, TKey, TResult> Enumerable<TResult> join(Enumerable<TInner> inner,
+  <TInner, TKey, TResult> Enumerable<TResult> hashJoin(Enumerable<TInner> inner,
       Function1<TSource, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
       Function2<TSource, TInner, TResult> resultSelector,
@@ -530,7 +530,7 @@ public interface ExtendedEnumerable<TSource> {
    *   <tr><td>FULL</td><td>true</td><td>true</td></tr>
    * </table>
    */
-  <TInner, TKey, TResult> Enumerable<TResult> join(Enumerable<TInner> inner,
+  <TInner, TKey, TResult> Enumerable<TResult> hashJoin(Enumerable<TInner> inner,
       Function1<TSource, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
       Function2<TSource, TInner, TResult> resultSelector,
@@ -547,7 +547,7 @@ public interface ExtendedEnumerable<TSource> {
    *                       inner argument is always null.
    */
   <TInner, TResult> Enumerable<TResult> correlateJoin(
-      CorrelateJoinType joinType, Function1<TSource, Enumerable<TInner>> inner,
+      JoinType joinType, Function1<TSource, Enumerable<TInner>> inner,
       Function2<TSource, TInner, TResult> resultSelector);
 
   /**

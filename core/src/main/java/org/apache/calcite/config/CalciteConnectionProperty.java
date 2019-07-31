@@ -79,8 +79,8 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   LEX("lex", Type.ENUM, Lex.ORACLE, false),
 
   /** Collection of built-in functions and operators. Valid values include
-   * "standard", "oracle" and "spatial", and also comma-separated lists, for
-   * example "oracle,spatial". */
+   * "standard", "mysql", "oracle", "postgresql" and "spatial", and also
+   * comma-separated lists, for example "oracle,spatial". */
   FUN("fun", Type.STRING, "standard", true),
 
   /** How identifiers are quoted.
@@ -133,6 +133,13 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    * If the time zone is not set then the JVM time zone is returned.
    * Never null. */
   TIME_ZONE("timeZone", Type.STRING, TimeZone.getDefault().getID(), false),
+
+  /** Returns the locale from the connect string.
+   * If the locale is not set, returns the root locale.
+   * Never null.
+   * Examples of valid locales: 'en', 'en_US',
+   * 'de_DE', '_GB', 'en_US_WIN', 'de__POSIX', 'fr__MAC', ''. */
+  LOCALE("locale", Type.STRING, Locale.ROOT.toString(), false),
 
   /** If the planner should try de-correlating as much as it is possible.
    * If true (the default), Calcite de-correlates the plan. */

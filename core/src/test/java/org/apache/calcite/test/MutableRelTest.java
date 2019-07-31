@@ -136,7 +136,7 @@ public class MutableRelTest {
         + "  where emp.deptno = dept.deptno\n"
         + "  and emp.sal > 100)";
     checkConvertMutableRel(
-        "SemiJoin",
+        "Join", // with join type as semi
         sql,
         true,
         ImmutableList.of(

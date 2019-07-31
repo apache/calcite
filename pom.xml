@@ -27,7 +27,7 @@ limitations under the License.
   <groupId>org.apache.calcite</groupId>
   <artifactId>calcite</artifactId>
   <packaging>pom</packaging>
-  <version>1.20.0-SNAPSHOT</version>
+  <version>1.21.0-SNAPSHOT</version>
 
   <!-- More project information. -->
   <name>Calcite</name>
@@ -58,40 +58,42 @@ limitations under the License.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <top.dir>${project.basedir}</top.dir>
     <version.major>1</version.major>
-    <version.minor>19</version.minor>
+    <version.minor>20</version.minor>
 
     <!-- Don't fail the build for vulnerabilities below this threshold. -->
     <failBuildOnCVSS>8</failBuildOnCVSS>
 
     <!-- This list is in alphabetical order. -->
+    <aggdesigner.version>6.0</aggdesigner.version>
     <airlift-tpch.version>0.1</airlift-tpch.version>
-    <avatica.version>1.13.0</avatica.version>
+    <avatica.version>1.15.0</avatica.version>
     <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
     <cassandra-driver-core.version>3.6.0</cassandra-driver-core.version>
     <cassandra-unit.version>3.5.0.1</cassandra-unit.version>
     <cassandra.version>3.11.2</cassandra.version>
+    <checkstyle.version>7.8.2</checkstyle.version>
     <checksum-maven-plugin.version>1.2</checksum-maven-plugin.version>
     <chinook-data-hsqldb.version>0.1</chinook-data-hsqldb.version>
-    <commons-dbcp2.version>2.5.0</commons-dbcp2.version>
+    <commons-codec.version>1.12</commons-codec.version>
+    <commons-dbcp2.version>2.6.0</commons-dbcp2.version>
     <commons-lang3.version>3.8</commons-lang3.version>
-    <commons-pool2.version>2.6.0</commons-pool2.version>
-    <elasticsearch.version>6.2.4</elasticsearch.version>
+    <commons-pool2.version>2.6.2</commons-pool2.version>
+    <drill-fmpp-maven-plugin.version>1.14.0</drill-fmpp-maven-plugin.version>
+    <elasticsearch.version>7.0.1</elasticsearch.version>
     <esri-geometry-api.version>2.2.0</esri-geometry-api.version>
     <findbugs.version>3.0.1</findbugs.version>
-    <drill-fmpp-maven-plugin.version>1.14.0</drill-fmpp-maven-plugin.version>
+    <fmpp.version>0.9.16</fmpp.version>
+    <mongo-java-server.version>1.16.0</mongo-java-server.version>
     <foodmart-data-hsqldb.version>0.3</foodmart-data-hsqldb.version>
+    <foodmart-data-json.version>0.4</foodmart-data-json.version>
     <foodmart-queries.version>0.4.1</foodmart-queries.version>
     <forbiddenapis.version>2.6</forbiddenapis.version>
     <freemarker.version>2.3.28</freemarker.version>
-    <git-commit-id-plugin.version>2.1.9</git-commit-id-plugin.version>
     <geode.version>1.6.0</geode.version>
-    <fongo.version>2.1.1</fongo.version>
-    <foodmart-data-json.version>0.4</foodmart-data-json.version>
-
+    <git-commit-id-plugin.version>2.1.9</git-commit-id-plugin.version>
     <!-- We support (and test against) Guava versions between
-         19.0 and 23.0. Default is 19.0 due to Cassandra adapter. -->
+         19.0 and 27.1. Default is 19.0 due to Cassandra adapter. -->
     <guava.version>19.0</guava.version>
-    <joda.version>2.8.1</joda.version>
     <h2.version>1.4.197</h2.version>
     <!-- Require Hadoop 2.7.4+ due to HADOOP-14586 -->
     <hadoop.version>2.7.5</hadoop.version>
@@ -102,46 +104,45 @@ limitations under the License.
     <hydromatic-resource.version>0.6</hydromatic-resource.version>
     <hydromatic-toolbox.version>0.3</hydromatic-toolbox.version>
     <hydromatic-tpcds.version>0.4</hydromatic-tpcds.version>
-    <jackson.version>2.9.8</jackson.version>
+    <jackson.version>2.9.9</jackson.version>
     <janino.version>3.0.11</janino.version>
-    <java-diff.version>1.1.2</java-diff.version>
     <javacc-maven-plugin.version>2.4</javacc-maven-plugin.version>
+    <java-diff.version>1.1.2</java-diff.version>
     <jcip-annotations.version>1.0-1</jcip-annotations.version>
     <jetty.version>9.4.11.v20180605</jetty.version>
     <jmh.version>1.12</jmh.version>
+    <joda.version>2.8.1</joda.version>
+    <jsonpath.version>2.4.0</jsonpath.version>
     <jsoup.version>1.11.3</jsoup.version>
     <junit.version>4.12</junit.version>
+    <kafka.client.version>2.0.0</kafka.client.version>
     <kotlin.version>1.2.71</kotlin.version>
-    <checkstyle.version>7.8.2</checkstyle.version>
+    <log4j2.version>2.11.0</log4j2.version>
     <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
     <maven-dependency-plugin.version>3.1.1</maven-dependency-plugin.version>
     <maven-enforcer-plugin.version>3.0.0-M2</maven-enforcer-plugin.version>
     <maven-remote-resources-plugin.version>1.6.0</maven-remote-resources-plugin.version>
     <maven-scm-provider.version>1.10.0</maven-scm-provider.version>
     <mockito.version>2.22.0</mockito.version>
-    <mongo-java-driver.version>3.5.0</mongo-java-driver.version>
+    <mongo-java-driver.version>3.10.2</mongo-java-driver.version>
     <mysql-driver.version>5.1.20</mysql-driver.version>
     <natty.version>0.13</natty.version>
     <opencsv.version>2.3</opencsv.version>
     <oracle-jdbc6-driver.version>11.2.0.2.0</oracle-jdbc6-driver.version>
     <owasp-dependency-check.version>3.3.2</owasp-dependency-check.version>
     <pig.version>0.16.0</pig.version>
-    <aggdesigner.version>6.0</aggdesigner.version>
     <postgresql.version>9.3-1102-jdbc41</postgresql.version>
     <quidem.version>0.9</quidem.version>
     <scala.version>2.10.3</scala.version>
     <scott-data-hsqldb.version>0.1</scott-data-hsqldb.version>
     <servlet.version>4.0.1</servlet.version>
+    <sketches.version>0.9.0</sketches.version>
     <slf4j.version>1.7.25</slf4j.version>
-    <log4j2.version>2.11.0</log4j2.version>
     <spark.version>2.2.0</spark.version>
-    <sqlline.version>1.7.0</sqlline.version>
+    <sqlline.version>1.8.0</sqlline.version>
     <tpcds.version>1.2</tpcds.version>
     <xalan.version>2.7.1</xalan.version>
     <xerces.version>2.9.1</xerces.version>
-    <sketches.version>0.9.0</sketches.version>
-    <fmpp.version>0.9.16</fmpp.version>
-    <jsonpath.version>2.4.0</jsonpath.version>
 
     <!-- Other properties (not version numbers) -->
     <!-- Java 1.8 does not support -html5, so override via profile for Java 1.8 -->
@@ -179,6 +180,7 @@ limitations under the License.
     <module>example</module>
     <module>file</module>
     <module>geode</module>
+    <module>kafka</module>
     <module>linq4j</module>
     <module>mongodb</module>
     <module>pig</module>
@@ -236,6 +238,11 @@ limitations under the License.
       </dependency>
 
       <!-- Now third-party dependencies, sorted by groupId and artifactId. -->
+      <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>${commons-codec.version}</version>
+      </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-dbcp2</artifactId>
@@ -531,9 +538,19 @@ limitations under the License.
         <version>${mongo-java-driver.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.github.fakemongo</groupId>
-        <artifactId>fongo</artifactId>
-        <version>${fongo.version}</version>
+        <groupId>de.bwaldvogel</groupId>
+        <artifactId>mongo-java-server</artifactId>
+        <version>${mongo-java-server.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>de.bwaldvogel</groupId>
+        <artifactId>mongo-java-server-core</artifactId>
+        <version>${mongo-java-server.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>de.bwaldvogel</groupId>
+        <artifactId>mongo-java-server-memory-backend</artifactId>
+        <version>${mongo-java-server.version}</version>
       </dependency>
       <dependency>
         <groupId>net.hydromatic</groupId>
@@ -601,6 +618,11 @@ limitations under the License.
         <artifactId>jcip-annotations</artifactId>
         <version>${jcip-annotations.version}</version>
         <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.kafka</groupId>
+        <artifactId>kafka-clients</artifactId>
+        <version>${kafka.client.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -1092,18 +1114,6 @@ limitations under the License.
       </plugin>
     </plugins>
   </reporting>
-
-  <repositories>
-    <repository>
-      <id>central</id>
-      <name>Central Repository</name>
-      <url>http://repo.maven.apache.org/maven2</url>
-      <layout>default</layout>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
 
   <profiles>
     <profile>

@@ -205,11 +205,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>Occurs in similar places to an aggregate
    * function ({@code SELECT}, {@code HAVING} clause, etc. of an aggregate
    * query), but not technically an aggregate function. */
-  public static final SqlGroupingFunction GROUPING =
+  public static final SqlAggFunction GROUPING =
       new SqlGroupingFunction("GROUPING");
 
   /** {@code GROUP_ID()} function. (Oracle-specific.) */
-  public static final SqlGroupIdFunction GROUP_ID =
+  public static final SqlAggFunction GROUP_ID =
       new SqlGroupIdFunction();
 
   /** {@code GROUPING_ID} function is a synonym for {@code GROUPING}.
@@ -222,7 +222,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>The SQL standard has changed to allow {@code GROUPING} to have multiple
    * arguments. It is now equivalent to {@code GROUPING_ID}, so we made
    * {@code GROUPING_ID} a synonym for {@code GROUPING}. */
-  public static final SqlGroupingFunction GROUPING_ID =
+  public static final SqlAggFunction GROUPING_ID =
       new SqlGroupingFunction("GROUPING_ID");
 
   /** {@code EXTEND} operator. */
@@ -1294,18 +1294,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlThrowOperator THROW = new SqlThrowOperator();
 
-  public static final SqlJsonApiCommonSyntaxOperator JSON_API_COMMON_SYNTAX =
-      new SqlJsonApiCommonSyntaxOperator("JSON_API_COMMON_SYNTAX");
-
   public static final SqlFunction JSON_EXISTS = new SqlJsonExistsFunction();
 
   public static final SqlFunction JSON_VALUE =
       new SqlJsonValueFunction("JSON_VALUE", false);
-
-  public static final SqlFunction JSON_KEYS = new SqlJsonKeysFunction();
-
-  public static final SqlFunction JSON_PRETTY =
-          new SqlJsonPrettyFunction();
 
   public static final SqlFunction JSON_VALUE_ANY =
       new SqlJsonValueFunction("JSON_VALUE_ANY", true);
@@ -1314,17 +1306,32 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlFunction JSON_OBJECT = new SqlJsonObjectFunction();
 
-  public static final SqlFunction JSON_TYPE = new SqlJsonTypeFunction();
-
-  public static final SqlFunction JSON_DEPTH = new SqlJsonDepthFunction();
-
-  public static final SqlFunction JSON_LENGTH = new SqlJsonLengthFunction();
-
   public static final SqlJsonObjectAggAggFunction JSON_OBJECTAGG =
       new SqlJsonObjectAggAggFunction(SqlKind.JSON_OBJECTAGG,
           SqlJsonConstructorNullClause.NULL_ON_NULL);
 
   public static final SqlFunction JSON_ARRAY = new SqlJsonArrayFunction();
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_TYPE = SqlLibraryOperators.JSON_TYPE;
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_DEPTH = SqlLibraryOperators.JSON_DEPTH;
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_LENGTH = SqlLibraryOperators.JSON_LENGTH;
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_KEYS = SqlLibraryOperators.JSON_KEYS;
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_PRETTY = SqlLibraryOperators.JSON_PRETTY;
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_REMOVE = SqlLibraryOperators.JSON_REMOVE;
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_STORAGE_SIZE = SqlLibraryOperators.JSON_STORAGE_SIZE;
 
   public static final SqlJsonArrayAggAggFunction JSON_ARRAYAGG =
       new SqlJsonArrayAggAggFunction(SqlKind.JSON_ARRAYAGG,
@@ -1361,6 +1368,20 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlSpecialOperator SIMILAR_TO =
       new SqlLikeOperator("SIMILAR TO", SqlKind.SIMILAR, false);
+
+  public static final SqlBinaryOperator POSIX_REGEX_CASE_SENSITIVE = new SqlPosixRegexOperator(
+      "POSIX REGEX CASE SENSITIVE", SqlKind.POSIX_REGEX_CASE_SENSITIVE, true, false);
+
+  public static final SqlBinaryOperator POSIX_REGEX_CASE_INSENSITIVE = new SqlPosixRegexOperator(
+      "POSIX REGEX CASE INSENSITIVE", SqlKind.POSIX_REGEX_CASE_INSENSITIVE, false, false);
+
+  public static final SqlBinaryOperator NEGATED_POSIX_REGEX_CASE_SENSITIVE =
+      new SqlPosixRegexOperator("NEGATED POSIX REGEX CASE SENSITIVE",
+          SqlKind.POSIX_REGEX_CASE_SENSITIVE, true, true);
+
+  public static final SqlBinaryOperator NEGATED_POSIX_REGEX_CASE_INSENSITIVE =
+      new SqlPosixRegexOperator("NEGATED POSIX REGEX CASE INSENSITIVE",
+          SqlKind.POSIX_REGEX_CASE_INSENSITIVE, false, true);
 
   /**
    * Internal operator used to represent the ESCAPE clause of a LIKE or
@@ -1434,8 +1455,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * The <code>TRANSLATE(<i>char_value</i> USING <i>translation_name</i>)</code> function
    * alters the character set of a string value from one base character set to another.
    *
-   * <p>It is defined in the SQL standard. See also non-standard
-   * {@link OracleSqlOperatorTable#TRANSLATE3}.
+   * <p>It is defined in the SQL standard. See also the non-standard
+   * {@link SqlLibraryOperators#TRANSLATE3}, which has a different purpose.
    */
   public static final SqlFunction TRANSLATE =
       new SqlConvertFunction("TRANSLATE");
@@ -1536,7 +1557,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction(
           "MOD",
           SqlKind.MOD,
-          ReturnTypes.ARG1_NULLABLE,
+          ReturnTypes.NULLABLE_MOD,
           null,
           OperandTypes.EXACT_NUMERIC_EXACT_NUMERIC,
           SqlFunctionCategory.NUMERIC);
@@ -1845,7 +1866,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlFunction IN_FENNEL =
       new SqlMonotonicUnaryFunction(
-          "IN_FENNEL",
+          "$IN_FENNEL",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0,
           null,

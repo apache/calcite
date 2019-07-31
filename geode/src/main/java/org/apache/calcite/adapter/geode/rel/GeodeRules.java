@@ -181,7 +181,6 @@ public class GeodeRules {
           aggregate.getCluster(),
           traitSet,
           convert(aggregate.getInput(), traitSet.simplify()),
-          aggregate.indicator,
           aggregate.getGroupSet(),
           aggregate.getGroupSets(),
           aggregate.getAggCallList());

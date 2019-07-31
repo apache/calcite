@@ -28,9 +28,9 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
@@ -133,13 +133,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       RelFactories.ProjectFactory projectFactory,
       RelFactories.FilterFactory filterFactory,
       RelFactories.JoinFactory joinFactory,
-      RelFactories.SemiJoinFactory semiJoinFactory,
       RelFactories.SortFactory sortFactory,
       RelFactories.AggregateFactory aggregateFactory,
       RelFactories.SetOpFactory setOpFactory) {
     this(validator,
         RelBuilder.proto(projectFactory, filterFactory, joinFactory,
-            semiJoinFactory, sortFactory, aggregateFactory, setOpFactory)
+            sortFactory, aggregateFactory, setOpFactory)
         .create(cluster, null));
   }
 
@@ -483,9 +482,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     RexNode newConditionExpr =
         conditionExpr.accept(shuttle);
 
-    // Use copy rather than relBuilder so that correlating variables get set.
-    relBuilder.push(
-        filter.copy(filter.getTraitSet(), newInput, newConditionExpr));
+    // Build new filter with trimmed input and condition.
+    relBuilder.push(newInput)
+        .filter(filter.getVariablesSet(), newConditionExpr);
 
     // The result has the same mapping as the input gave us. Sometimes we
     // return fields that the consumer didn't ask for, because the filter
@@ -667,9 +666,15 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     relBuilder.push(newInputs.get(0));
     relBuilder.push(newInputs.get(1));
 
-    if (join instanceof SemiJoin) {
-      relBuilder.semiJoin(newConditionExpr);
-      // For SemiJoins only map fields from the left-side
+    switch (join.getJoinType()) {
+    case SEMI:
+    case ANTI:
+      // For SemiJoins and AntiJoins only map fields from the left-side
+      if (join.getJoinType() == JoinRelType.SEMI) {
+        relBuilder.semiJoin(newConditionExpr);
+      } else {
+        relBuilder.antiJoin(newConditionExpr);
+      }
       Mapping inputMapping = inputMappings.get(0);
       mapping = Mappings.create(MappingType.INVERSE_SURJECTION,
           join.getRowType().getFieldCount(),
@@ -682,7 +687,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       for (IntPair pair : inputMapping) {
         mapping.set(pair.source + offset, pair.target + newOffset);
       }
-    } else {
+      break;
+    default:
       relBuilder.join(join.getJoinType(), newConditionExpr);
     }
 
@@ -813,9 +819,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // We have to return group keys and (if present) indicators.
     // So, pretend that the consumer asked for them.
     final int groupCount = aggregate.getGroupSet().cardinality();
-    final int indicatorCount = aggregate.getIndicatorCount();
     fieldsUsed =
-        fieldsUsed.union(ImmutableBitSet.range(groupCount + indicatorCount));
+        fieldsUsed.union(ImmutableBitSet.range(groupCount));
 
     // If the input is unchanged, and we need to project all columns,
     // there's nothing to do.
@@ -826,7 +831,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     }
 
     // Which agg calls are used by our consumer?
-    int j = groupCount + indicatorCount;
+    int j = groupCount;
     int usedAggCallCount = 0;
     for (int i = 0; i < aggregate.getAggCallList().size(); i++) {
       if (fieldsUsed.get(j++)) {
@@ -839,7 +844,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         Mappings.create(
             MappingType.INVERSE_SURJECTION,
             rowType.getFieldCount(),
-            groupCount + indicatorCount + usedAggCallCount);
+            groupCount + usedAggCallCount);
 
     final ImmutableBitSet newGroupSet =
         Mappings.apply(inputMapping, aggregate.getGroupSet());
@@ -851,14 +856,14 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     // Populate mapping of where to find the fields. System, group key and
     // indicator fields first.
-    for (j = 0; j < groupCount + indicatorCount; j++) {
+    for (j = 0; j < groupCount; j++) {
       mapping.set(j, j);
     }
 
     // Now create new agg calls, and populate mapping for them.
     relBuilder.push(newInput);
     final List<RelBuilder.AggCall> newAggCallList = new ArrayList<>();
-    j = groupCount + indicatorCount;
+    j = groupCount;
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
       if (fieldsUsed.get(j)) {
         final ImmutableList<RexNode> args =
@@ -873,7 +878,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
                 .approximate(aggCall.isApproximate())
                 .sort(relBuilder.fields(aggCall.collation))
                 .as(aggCall.name);
-        mapping.set(j, groupCount + indicatorCount + newAggCallList.size());
+        mapping.set(j, groupCount + newAggCallList.size());
         newAggCallList.add(newAggCall);
       }
       ++j;

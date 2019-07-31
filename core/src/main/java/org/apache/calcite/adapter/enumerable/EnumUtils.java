@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.JoinType;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.tree.BlockStatement;
@@ -30,7 +31,6 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
 
@@ -109,19 +109,6 @@ public class EnumUtils {
         return argList.size();
       }
     };
-  }
-
-  static Expression joinSelector(SemiJoinType semiJoinType, PhysType physType,
-      List<PhysType> inputPhysTypes) {
-    JoinRelType joinRelType;
-    if (semiJoinType.returnsJustFirstInput()) {
-      // Actual join type does not matter much, joinSelector would skip selection
-      // of the columns that are not required (see if (expressions.size() == outputFieldCount) {)
-      joinRelType = JoinRelType.INNER;
-    } else {
-      joinRelType = semiJoinType.toJoinType();
-    }
-    return joinSelector(joinRelType, physType, inputPhysTypes);
   }
 
   static Expression joinSelector(JoinRelType joinType, PhysType physType,
@@ -260,6 +247,26 @@ public class EnumUtils {
       }
     }
     return e;
+  }
+
+  /** Transforms a JoinRelType to Linq4j JoinType. **/
+  static JoinType toLinq4jJoinType(JoinRelType joinRelType) {
+    switch (joinRelType) {
+    case INNER:
+      return JoinType.INNER;
+    case LEFT:
+      return JoinType.LEFT;
+    case RIGHT:
+      return JoinType.RIGHT;
+    case FULL:
+      return JoinType.FULL;
+    case SEMI:
+      return JoinType.SEMI;
+    case ANTI:
+      return JoinType.ANTI;
+    }
+    throw new IllegalStateException(
+        "Unable to convert " + joinRelType + " to Linq4j JoinType");
   }
 }
 

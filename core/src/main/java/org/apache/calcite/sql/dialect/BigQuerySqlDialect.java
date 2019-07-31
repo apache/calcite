@@ -37,7 +37,7 @@ public class BigQuerySqlDialect extends SqlDialect {
           EMPTY_CONTEXT
               .withDatabaseProduct(SqlDialect.DatabaseProduct.BIG_QUERY)
               .withNullCollation(NullCollation.LOW)
-              .withSqlConformance(SqlConformanceEnum.BIG_QUERY));
+              .withConformance(SqlConformanceEnum.BIG_QUERY));
 
   /** Creates a BigQuerySqlDialect. */
   public BigQuerySqlDialect(SqlDialect.Context context) {

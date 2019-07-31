@@ -444,6 +444,16 @@ public enum SqlKind {
   SIMILAR,
 
   /**
+   * The "~" operator.
+   */
+  POSIX_REGEX_CASE_SENSITIVE,
+
+  /**
+   * The "~*" operator.
+   */
+  POSIX_REGEX_CASE_INSENSITIVE,
+
+  /**
    * The "BETWEEN" operator.
    */
   BETWEEN,
@@ -758,6 +768,11 @@ public enum SqlKind {
    * The "EXTRACT" function.
    */
   EXTRACT,
+
+  /**
+   * The "REVERSE" function (SQL Server, MySQL).
+   */
+  REVERSE,
 
   /**
    * Call to a function using JDBC function syntax.
@@ -1241,7 +1256,7 @@ public enum SqlKind {
                   RUNNING, FINAL, LAST, FIRST, PREV, NEXT,
                   FILTER, WITHIN_GROUP, IGNORE_NULLS, RESPECT_NULLS,
                   DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
-                  SELECT, JOIN, OTHER_FUNCTION, POSITION, CHAR_LENGTH,
+                  SELECT, JOIN, OTHER_FUNCTION, POSITION,  CHAR_LENGTH,
                   CHARACTER_LENGTH, SUBSTRING, TRUNCATE, CAST, TRIM, FLOOR, CEIL,
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, EXTRACT,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
@@ -1261,11 +1276,11 @@ public enum SqlKind {
    * Category consisting of regular and special functions.
    *
    * <p>Consists of regular functions {@link #OTHER_FUNCTION} and special
-   * functions {@link #ROW}, {@link #TRIM}, {@link #CAST}, {@link #JDBC_FN}.
+   * functions {@link #ROW}, {@link #TRIM}, {@link #CAST}, {@link #REVERSE}, {@link #JDBC_FN}.
    */
   public static final Set<SqlKind> FUNCTION =
       EnumSet.of(OTHER_FUNCTION, ROW, TRIM, LTRIM, RTRIM, CAST,
-                 JDBC_FN, POSITION, CHAR_LENGTH, CHARACTER_LENGTH, SUBSTRING, TRUNCATE);
+          REVERSE, JDBC_FN, POSITION, CHAR_LENGTH, CHARACTER_LENGTH, SUBSTRING, TRUNCATE);
 
   /**
    * Category of SqlAvgAggFunction.

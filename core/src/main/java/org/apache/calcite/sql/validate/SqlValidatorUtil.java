@@ -33,12 +33,15 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDynamicParam;
+import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -485,6 +488,10 @@ public class SqlValidatorUtil {
       leftType = typeFactory.createTypeWithNullability(leftType, true);
       rightType = typeFactory.createTypeWithNullability(rightType, true);
       break;
+    case SEMI:
+    case ANTI:
+      rightType = null;
+      break;
     default:
       break;
     }
@@ -836,7 +843,7 @@ public class SqlValidatorUtil {
       SqlIdentifier expr = (SqlIdentifier) expandedGroupExpr;
 
       // column references should be fully qualified.
-      assert expr.names.size() == 2;
+      assert expr.names.size() >= 2;
       String originalRelName = expr.names.get(0);
       String originalFieldName = expr.names.get(1);
 
@@ -1088,6 +1095,28 @@ public class SqlValidatorUtil {
       }
     }
     return false;
+  }
+
+  /**
+   * Lookup sql function by sql identifier and function category.
+   *
+   * @param opTab    operator table to look up
+   * @param funName  function name
+   * @param funcType function category
+   * @return A sql function if and only if there is one operator matches, else null.
+   */
+  public static SqlOperator lookupSqlFunctionByID(SqlOperatorTable opTab,
+      SqlIdentifier funName,
+      SqlFunctionCategory funcType) {
+    if (funName.isSimple()) {
+      final List<SqlOperator> list = new ArrayList<>();
+      opTab.lookupOperatorOverloads(funName, funcType, SqlSyntax.FUNCTION, list,
+          SqlNameMatchers.withCaseSensitive(funName.isComponentQuoted(0)));
+      if (list.size() == 1) {
+        return list.get(0);
+      }
+    }
+    return null;
   }
 
   //~ Inner Classes ----------------------------------------------------------

@@ -37,7 +37,7 @@ import java.util.List;
  * {@link org.apache.calcite.rel.logical.LogicalJoin} relational expression
  * {@link EnumerableConvention enumerable calling convention}.
  *
- * @see org.apache.calcite.adapter.enumerable.EnumerableJoinRule
+ * @see EnumerableJoinRule
  */
 class EnumerableMergeJoinRule extends ConverterRule {
   EnumerableMergeJoinRule() {
@@ -85,18 +85,16 @@ class EnumerableMergeJoinRule extends ConverterRule {
     final RelOptCluster cluster = join.getCluster();
     RelNode newRel;
     try {
-      RelTraitSet traits = join.getTraitSet()
+      RelTraitSet traitSet = join.getTraitSet()
           .replace(EnumerableConvention.INSTANCE);
       if (!collations.isEmpty()) {
-        traits = traits.replace(collations);
+        traitSet = traitSet.replace(collations);
       }
       newRel = new EnumerableMergeJoin(cluster,
-          traits,
+          traitSet,
           left,
           right,
           info.getEquiCondition(left, right, cluster.getRexBuilder()),
-          info.leftKeys,
-          info.rightKeys,
           join.getVariablesSet(),
           join.getJoinType());
     } catch (InvalidRelException e) {

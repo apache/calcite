@@ -612,12 +612,11 @@ public class Bindables {
         RelOptCluster cluster,
         RelTraitSet traitSet,
         RelNode input,
-        boolean indicator,
         ImmutableBitSet groupSet,
         List<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls)
         throws InvalidRelException {
-      super(cluster, traitSet, input, indicator, groupSet, groupSets, aggCalls);
+      super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
       assert getConvention() instanceof BindableConvention;
 
       for (AggregateCall aggCall : aggCalls) {
@@ -634,11 +633,20 @@ public class Bindables {
       }
     }
 
+    @Deprecated // to be removed before 2.0
+    public BindableAggregate(RelOptCluster cluster, RelTraitSet traitSet,
+        RelNode input, boolean indicator, ImmutableBitSet groupSet,
+        List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls)
+        throws InvalidRelException {
+      this(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+      checkIndicator(indicator);
+    }
+
     @Override public BindableAggregate copy(RelTraitSet traitSet, RelNode input,
-        boolean indicator, ImmutableBitSet groupSet,
+        ImmutableBitSet groupSet,
         List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
       try {
-        return new BindableAggregate(getCluster(), traitSet, input, indicator,
+        return new BindableAggregate(getCluster(), traitSet, input,
             groupSet, groupSets, aggCalls);
       } catch (InvalidRelException e) {
         // Semantic error not possible. Must be a bug. Convert to
@@ -680,7 +688,7 @@ public class Bindables {
           agg.getTraitSet().replace(BindableConvention.INSTANCE);
       try {
         return new BindableAggregate(rel.getCluster(), traitSet,
-            convert(agg.getInput(), traitSet), agg.indicator, agg.getGroupSet(),
+            convert(agg.getInput(), traitSet), false, agg.getGroupSet(),
             agg.getGroupSets(), agg.getAggCallList());
       } catch (InvalidRelException e) {
         RelOptPlanner.LOGGER.debug(e.toString());

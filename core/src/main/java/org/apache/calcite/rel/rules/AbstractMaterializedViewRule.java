@@ -37,7 +37,6 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -1036,7 +1035,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               aggregateViewNode.getInput().getRowType().getFieldCount(),
               aggregateViewNode.getInput().getRowType().getFieldCount() + offset));
       final Aggregate newViewNode = aggregateViewNode.copy(
-          aggregateViewNode.getTraitSet(), relBuilder.build(), aggregateViewNode.indicator,
+          aggregateViewNode.getTraitSet(), relBuilder.build(),
           groupSet.build(), null, aggregateViewNode.getAggCallList());
 
       relBuilder.push(newViewNode);
@@ -1462,6 +1461,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                 // Cannot rollup this aggregate, bail out
                 return null;
               }
+              rewritingMapping.set(k, queryAggregate.getGroupCount() + aggregateCalls.size());
               final RexInputRef operand = rexBuilder.makeInputRef(input, k);
               aggregateCalls.add(
                   // TODO: handle aggregate ordering
@@ -1469,7 +1469,6 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                       .approximate(queryAggCall.isApproximate())
                       .distinct(queryAggCall.isDistinct())
                       .as(queryAggCall.name));
-              rewritingMapping.set(k, sourceIdx);
               added = true;
             }
           }
@@ -1502,9 +1501,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               rexBuilder.makeInputRef(result,
                   groupSet.indexOf(inverseMapping.getTarget(i))));
         }
-        for (int i = 0; i < queryAggregate.getAggCallList().size(); i++) {
+        // We add aggregate functions that are present in result to projection list
+        for (int i = queryAggregate.getGroupCount(); i < result.getRowType().getFieldCount(); i++) {
           projects.add(
-              rexBuilder.makeInputRef(result, queryAggregate.getGroupCount() + i));
+              rexBuilder.makeInputRef(result, i));
         }
         result = relBuilder
             .push(result)
@@ -1866,14 +1866,14 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       if (!TableScan.class.isAssignableFrom(c)
               && !Project.class.isAssignableFrom(c)
               && !Filter.class.isAssignableFrom(c)
-              && (!Join.class.isAssignableFrom(c)
-              || SemiJoin.class.isAssignableFrom(c))) {
+              && (!Join.class.isAssignableFrom(c))) {
         // Skip it
         return false;
       }
       if (Join.class.isAssignableFrom(c)) {
         for (RelNode n : e.getValue()) {
-          if (((Join) n).getJoinType() != JoinRelType.INNER) {
+          final Join join = (Join) n;
+          if (join.getJoinType() != JoinRelType.INNER && !join.isSemiJoin()) {
             // Skip it
             return false;
           }

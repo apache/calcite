@@ -26,7 +26,6 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
-import org.apache.calcite.rel.core.EquiJoin;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
@@ -347,7 +346,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           matchNullability)) {
         return;
       }
-      if (join instanceof EquiJoin) {
+      if (RelOptUtil.forceEquiJoin(join)) {
         final JoinInfo joinInfo =
             JoinInfo.of(join.getLeft(), join.getRight(), expList.get(0));
         if (!joinInfo.isEqui()) {

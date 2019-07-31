@@ -150,7 +150,7 @@ public class Ord<E> implements Map.Entry<Integer, E> {
     }
 
     public Ord<E> get(int index) {
-      return of(index, elements.get(index));
+      return Ord.of(index, elements.get(index));
     }
 
     public int size() {

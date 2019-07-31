@@ -14,37 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.linq4j;
+package org.apache.calcite.adapter.kafka;
 
 /**
- * Specifies the type of correlation operation: inner, left, semi, or anti.
+ * Parameter constants used to define a Kafka table.
  */
-public enum CorrelateJoinType {
-  /**
-   * Inner join
-   */
-  INNER,
-
-  /**
-   * Left-outer join
-   */
-  LEFT,
-
-  /**
-   * Semi-join.
-   *
-   * <p>Similar to {@code from A ... where a in (select b from B ...)}</p>
-   */
-  SEMI,
-
-  /**
-   * Anti-join.
-   *
-   * <p>Similar to {@code from A ... where a NOT in (select b from B ...)}
-   *
-   * <p>Note: if B.b is nullable and B has nulls, no rows must be returned.
-   */
-  ANTI;
+interface KafkaTableConstants {
+  String SCHEMA_TOPIC_NAME = "topic.name";
+  String SCHEMA_BOOTSTRAP_SERVERS = "bootstrap.servers";
+  String SCHEMA_ROW_CONVERTER = "row.converter";
+  String SCHEMA_CUST_CONSUMER = "consumer.cust";
+  String SCHEMA_CONSUMER_PARAMS = "consumer.params";
 }
 
-// End CorrelateJoinType.java
+// End KafkaTableConstants.java

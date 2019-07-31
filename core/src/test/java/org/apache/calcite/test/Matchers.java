@@ -134,6 +134,23 @@ public class Matchers {
     return new IsWithin<T>(value, epsilon);
   }
 
+  /**
+   * Creates a matcher that matches if the examined value is between bounds:
+   * <code>min &le; value &le; max</code>.
+   *
+   * @param <T> value type
+   * @param min Lower bound
+   * @param max Upper bound
+   */
+  public static <T extends Comparable<T>> Matcher<T> between(T min, T max) {
+    return new CustomTypeSafeMatcher<T>("between " + min + " and " + max) {
+      protected boolean matchesSafely(T item) {
+        return min.compareTo(item) <= 0
+            && item.compareTo(max) <= 0;
+      }
+    };
+  }
+
   /** Creates a matcher by applying a function to a value before calling
    * another matcher. */
   public static <F, T> Matcher<F> compose(Matcher<T> matcher,

@@ -38,7 +38,7 @@ public class HiveSqlDialect extends SqlDialect {
       new HiveSqlDialect(EMPTY_CONTEXT
           .withDatabaseProduct(DatabaseProduct.HIVE)
           .withNullCollation(NullCollation.LOW)
-          .withSqlConformance(SqlConformanceEnum.HIVE));
+          .withConformance(SqlConformanceEnum.HIVE));
 
   private final boolean emulateNullDirection;
 

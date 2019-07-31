@@ -27,7 +27,6 @@ import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoDatabase;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -42,16 +41,17 @@ public class MongoSchema extends AbstractSchema {
    * Creates a MongoDB schema.
    *
    * @param host Mongo host, e.g. "localhost"
-   * @param credentialsList Optional credentials (empty list for none)
+   * @param credential Optional credentials (null for none)
    * @param options Mongo connection options
    * @param database Mongo database name, e.g. "foodmart"
    */
   MongoSchema(String host, String database,
-      List<MongoCredential> credentialsList, MongoClientOptions options) {
+      MongoCredential credential, MongoClientOptions options) {
     super();
     try {
-      final MongoClient mongo =
-          new MongoClient(new ServerAddress(host), credentialsList, options);
+      final MongoClient mongo = credential == null
+          ? new MongoClient(new ServerAddress(host), options)
+          : new MongoClient(new ServerAddress(host), credential, options);
       this.mongoDb = mongo.getDatabase(database);
     } catch (Exception e) {
       throw new RuntimeException(e);

@@ -335,7 +335,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
       FunctionExpression<Function1<T, TKey>> outerKeySelector,
       FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
       FunctionExpression<Function2<T, TInner, TResult>> resultSelector) {
-    return EnumerableDefaults.join(getThis(), inner,
+    return EnumerableDefaults.hashJoin(getThis(), inner,
         outerKeySelector.getFunction(), innerKeySelector.getFunction(),
         resultSelector.getFunction()).asQueryable();
   }
@@ -346,7 +346,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
       FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
       FunctionExpression<Function2<T, TInner, TResult>> resultSelector,
       EqualityComparer<TKey> comparer) {
-    return EnumerableDefaults.join(getThis(), inner,
+    return EnumerableDefaults.hashJoin(getThis(), inner,
         outerKeySelector.getFunction(), innerKeySelector.getFunction(),
         resultSelector.getFunction(), comparer).asQueryable();
   }

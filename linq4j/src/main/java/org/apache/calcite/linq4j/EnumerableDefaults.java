@@ -996,12 +996,12 @@ public abstract class EnumerableDefaults {
    * matching keys. The default equality comparer is used to compare
    * keys.
    */
-  public static <TSource, TInner, TKey, TResult> Enumerable<TResult> join(
+  public static <TSource, TInner, TKey, TResult> Enumerable<TResult> hashJoin(
       final Enumerable<TSource> outer, final Enumerable<TInner> inner,
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
       final Function2<TSource, TInner, TResult> resultSelector) {
-    return join(
+    return hashJoin(
         outer,
         inner,
         outerKeySelector,
@@ -1017,13 +1017,13 @@ public abstract class EnumerableDefaults {
    * matching keys. A specified {@code EqualityComparer<TSource>} is used to
    * compare keys.
    */
-  public static <TSource, TInner, TKey, TResult> Enumerable<TResult> join(
+  public static <TSource, TInner, TKey, TResult> Enumerable<TResult> hashJoin(
       Enumerable<TSource> outer, Enumerable<TInner> inner,
       Function1<TSource, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
       Function2<TSource, TInner, TResult> resultSelector,
       EqualityComparer<TKey> comparer) {
-    return join(
+    return hashJoin(
         outer,
         inner,
         outerKeySelector,
@@ -1039,14 +1039,14 @@ public abstract class EnumerableDefaults {
    * matching keys. A specified {@code EqualityComparer<TSource>} is used to
    * compare keys.
    */
-  public static <TSource, TInner, TKey, TResult> Enumerable<TResult> join(
+  public static <TSource, TInner, TKey, TResult> Enumerable<TResult> hashJoin(
       Enumerable<TSource> outer, Enumerable<TInner> inner,
       Function1<TSource, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
       Function2<TSource, TInner, TResult> resultSelector,
       EqualityComparer<TKey> comparer, boolean generateNullsOnLeft,
       boolean generateNullsOnRight) {
-    return join_(
+    return hashJoin_(
         outer,
         inner,
         outerKeySelector,
@@ -1059,7 +1059,7 @@ public abstract class EnumerableDefaults {
 
   /** Implementation of join that builds the right input and probes with the
    * left. */
-  private static <TSource, TInner, TKey, TResult> Enumerable<TResult> join_(
+  private static <TSource, TInner, TKey, TResult> Enumerable<TResult> hashJoin_(
       final Enumerable<TSource> outer, final Enumerable<TInner> inner,
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
@@ -1151,14 +1151,17 @@ public abstract class EnumerableDefaults {
   }
 
   /**
-   * Returns elements of {@code outer} for which there is a member of
-   * {@code inner} with a matching key. A specified
-   * {@code EqualityComparer<TSource>} is used to compare keys.
+   * For each row of the {@code outer} enumerable returns the correlated rows
+   * from the {@code inner} enumerable.
    */
   public static <TSource, TInner, TResult> Enumerable<TResult> correlateJoin(
-      final CorrelateJoinType joinType, final Enumerable<TSource> outer,
+      final JoinType joinType, final Enumerable<TSource> outer,
       final Function1<TSource, Enumerable<TInner>> inner,
       final Function2<TSource, TInner, TResult> resultSelector) {
+    if (joinType == JoinType.RIGHT || joinType == JoinType.FULL) {
+      throw new IllegalArgumentException("JoinType " + joinType + " is not valid for correlation");
+    }
+
     return new AbstractEnumerable<TResult>() {
       public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
@@ -1285,19 +1288,47 @@ public abstract class EnumerableDefaults {
       final Enumerable<TSource> outer, final Enumerable<TInner> inner,
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector) {
-    return semiJoin(outer, inner, outerKeySelector, innerKeySelector, null);
+    return semiJoin(outer, inner, outerKeySelector, innerKeySelector, null, false);
   }
 
-  /**
-   * Returns elements of {@code outer} for which there is a member of
-   * {@code inner} with a matching key. A specified
-   * {@code EqualityComparer<TSource>} is used to compare keys.
-   */
   public static <TSource, TInner, TKey> Enumerable<TSource> semiJoin(
       final Enumerable<TSource> outer, final Enumerable<TInner> inner,
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
       final EqualityComparer<TKey> comparer) {
+    return semiJoin(outer, inner, outerKeySelector, innerKeySelector, comparer, false);
+  }
+
+  /**
+   * Returns elements of {@code outer} for which there is NOT a member of
+   * {@code inner} with a matching key.
+   */
+  public static <TSource, TInner, TKey> Enumerable<TSource> antiJoin(
+      final Enumerable<TSource> outer, final Enumerable<TInner> inner,
+      final Function1<TSource, TKey> outerKeySelector,
+      final Function1<TInner, TKey> innerKeySelector) {
+    return semiJoin(outer, inner, outerKeySelector, innerKeySelector, null, true);
+  }
+
+  public static <TSource, TInner, TKey> Enumerable<TSource> antiJoin(
+      final Enumerable<TSource> outer, final Enumerable<TInner> inner,
+      final Function1<TSource, TKey> outerKeySelector,
+      final Function1<TInner, TKey> innerKeySelector,
+      final EqualityComparer<TKey> comparer) {
+    return semiJoin(outer, inner, outerKeySelector, innerKeySelector, comparer, true);
+  }
+
+  /**
+   * Returns elements of {@code outer} for which there is (semi-join) / is not (anti-semi-join)
+   * a member of {@code inner} with a matching key. A specified
+   * {@code EqualityComparer<TSource>} is used to compare keys.
+   */
+  private static <TSource, TInner, TKey> Enumerable<TSource> semiJoin(
+      final Enumerable<TSource> outer, final Enumerable<TInner> inner,
+      final Function1<TSource, TKey> outerKeySelector,
+      final Function1<TInner, TKey> innerKeySelector,
+      final EqualityComparer<TKey> comparer,
+      final boolean anti) {
     return new AbstractEnumerable<TSource>() {
       public Enumerator<TSource> enumerator() {
         // CALCITE-2909 Delay the computation of the innerLookup until the moment when we are sure
@@ -1307,10 +1338,11 @@ public abstract class EnumerableDefaults {
                 ? inner.select(innerKeySelector).distinct()
                 : inner.select(innerKeySelector).distinct(comparer));
 
-        return EnumerableDefaults.where(outer.enumerator(), v0 -> {
-          final TKey key = outerKeySelector.apply(v0);
-          return innerLookup.get().contains(key);
-        });
+        final Predicate1<TSource> predicate = anti
+            ? v0 -> !innerLookup.get().contains(outerKeySelector.apply(v0))
+            : v0 -> innerLookup.get().contains(outerKeySelector.apply(v0));
+
+        return EnumerableDefaults.where(outer.enumerator(), predicate);
       }
     };
   }
@@ -1318,13 +1350,14 @@ public abstract class EnumerableDefaults {
   /**
    * Correlates the elements of two sequences based on a predicate.
    */
-  public static <TSource, TInner, TResult> Enumerable<TResult> thetaJoin(
+  public static <TSource, TInner, TResult> Enumerable<TResult> nestedLoopJoin(
       final Enumerable<TSource> outer, final Enumerable<TInner> inner,
       final Predicate2<TSource, TInner> predicate,
       Function2<TSource, TInner, TResult> resultSelector,
-      final boolean generateNullsOnLeft,
-      final boolean generateNullsOnRight) {
+      final JoinType joinType) {
     // Building the result as a list is easy but hogs memory. We should iterate.
+    final boolean generateNullsOnLeft = joinType.generatesNullsOnLeft();
+    final boolean generateNullsOnRight = joinType.generatesNullsOnRight();
     final List<TResult> result = new ArrayList<>();
     final Enumerator<TSource> lefts = outer.enumerator();
     final List<TInner> rightList = inner.toList();
@@ -1343,13 +1376,17 @@ public abstract class EnumerableDefaults {
         TInner right = rights.current();
         if (predicate.apply(left, right)) {
           ++leftMatchCount;
-          if (rightUnmatched != null) {
-            rightUnmatched.remove(right);
+          if (joinType == JoinType.ANTI) {
+            break;
+          } else {
+            if (rightUnmatched != null) {
+              rightUnmatched.remove(right);
+            }
+            result.add(resultSelector.apply(left, right));
           }
-          result.add(resultSelector.apply(left, right));
         }
       }
-      if (generateNullsOnRight && leftMatchCount == 0) {
+      if (leftMatchCount == 0 && (generateNullsOnRight || joinType == JoinType.ANTI)) {
         result.add(resultSelector.apply(left, null));
       }
     }
@@ -3332,6 +3369,154 @@ public abstract class EnumerableDefaults {
 
     public void close() {
     }
+  }
+
+  private static final Object DUMMY = new Object();
+
+  /**
+   * Repeat Union All enumerable: it will evaluate the seed enumerable once, and then
+   * it will start to evaluate the iteration enumerable over and over until either it returns
+   * no results, or an optional maximum numbers of iterations is reached
+   * @param seed seed enumerable
+   * @param iteration iteration enumerable
+   * @param maxRep maximum numbers of repetitions for the iteration enumerable (-1 means no limit)
+   * @param <TSource> record type
+   */
+  @SuppressWarnings("unchecked")
+  public static <TSource> Enumerable<TSource> repeatUnionAll(
+          Enumerable<TSource> seed,
+          Enumerable<TSource> iteration,
+          int maxRep) {
+    assert maxRep >= -1;
+    return new AbstractEnumerable<TSource>() {
+      @Override public Enumerator<TSource> enumerator() {
+        return new Enumerator<TSource>() {
+          private TSource current = (TSource) DUMMY;
+          private boolean seedProcessed = false;
+          private int currentRep = 0;
+          private final Enumerator<TSource> seedEnumerator = seed.enumerator();
+          private Enumerator<TSource> iterativeEnumerator = null;
+
+          @Override public TSource current() {
+            if (this.current == DUMMY) {
+              throw new NoSuchElementException();
+            }
+            return this.current;
+          }
+
+          @Override public boolean moveNext() {
+            // if we are not done with the seed moveNext on it
+            if (!this.seedProcessed) {
+              if (this.seedEnumerator.moveNext()) {
+                this.current = this.seedEnumerator.current();
+                return true;
+              } else {
+                this.seedProcessed = true;
+              }
+            }
+
+            // if we are done with the seed, moveNext on the iterative part
+            while (true) {
+              if (maxRep != -1 && this.currentRep == maxRep) {
+                // max number of iterations reached, we are done
+                this.current = (TSource) DUMMY;
+                return false;
+              }
+
+              if (this.iterativeEnumerator == null) {
+                this.iterativeEnumerator = iteration.enumerator();
+              }
+
+              if (this.iterativeEnumerator.moveNext()) {
+                this.current = this.iterativeEnumerator.current();
+                return true;
+              }
+
+              if (this.current == DUMMY) {
+                // current iteration did not return any value, we are done
+                return false;
+              }
+
+              // current iteration level (which returned some values) is finished, go to next one
+              this.current = (TSource) DUMMY;
+              this.iterativeEnumerator.close();
+              this.iterativeEnumerator = null;
+              this.currentRep++;
+            }
+          }
+
+          @Override public void reset() {
+            this.seedEnumerator.reset();
+            if (this.iterativeEnumerator != null) {
+              this.iterativeEnumerator.close();
+              this.iterativeEnumerator = null;
+            }
+            this.currentRep = 0;
+          }
+
+          @Override public void close() {
+            this.seedEnumerator.close();
+            if (this.iterativeEnumerator != null) {
+              this.iterativeEnumerator.close();
+              this.iterativeEnumerator = null;
+            }
+          }
+        };
+      }
+    };
+  }
+
+  /**
+   * Lazy read and lazy write spool that stores data into a collection
+   */
+  @SuppressWarnings("unchecked")
+  public static <TSource> Enumerable<TSource> lazyCollectionSpool(
+      Collection<TSource> outputCollection,
+      Enumerable<TSource> input) {
+
+    return new AbstractEnumerable<TSource>() {
+      @Override public Enumerator<TSource> enumerator() {
+        return new Enumerator<TSource>() {
+          private TSource current = (TSource) DUMMY;
+          private final Enumerator<TSource> inputEnumerator = input.enumerator();
+          private final Collection<TSource> collection = outputCollection;
+          private final Collection<TSource> tempCollection = new ArrayList<>();
+
+          @Override public TSource current() {
+            if (this.current == DUMMY) {
+              throw new NoSuchElementException();
+            }
+            return this.current;
+          }
+
+          @Override public boolean moveNext() {
+            if (this.inputEnumerator.moveNext()) {
+              this.current = this.inputEnumerator.current();
+              this.tempCollection.add(this.current);
+              return true;
+            }
+            this.flush();
+            return false;
+          }
+
+          private void flush() {
+            this.collection.clear();
+            this.collection.addAll(this.tempCollection);
+            this.tempCollection.clear();
+          }
+
+          @Override public void reset() {
+            this.inputEnumerator.reset();
+            this.collection.clear();
+            this.tempCollection.clear();
+          }
+
+          @Override public void close() {
+            this.inputEnumerator.close();
+          }
+        };
+      }
+    };
   }
 }
 

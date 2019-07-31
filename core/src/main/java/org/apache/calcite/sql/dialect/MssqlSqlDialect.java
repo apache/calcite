@@ -41,7 +41,8 @@ public class MssqlSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT =
       new MssqlSqlDialect(EMPTY_CONTEXT
           .withDatabaseProduct(DatabaseProduct.MSSQL)
-          .withIdentifierQuoteString("["));
+          .withIdentifierQuoteString("[")
+          .withCaseSensitive(false));
 
   private static final SqlFunction MSSQL_SUBSTRING =
       new SqlFunction("SUBSTRING", SqlKind.OTHER_FUNCTION,

@@ -1468,7 +1468,7 @@ from "scott".emp join "scott".dept using (deptno);
 
 !ok
 EnumerableAggregate(group=[{}], EXPR$0=[COUNT()])
-  EnumerableJoin(condition=[=($0, $2)], joinType=[inner])
+  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
       EnumerableTableScan(table=[[scott, DEPT]])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
@@ -1487,7 +1487,7 @@ from "scott".emp join "scott".dept using (deptno);
 
 !ok
 EnumerableAggregate(group=[{}], EXPR$0=[SUM($2)])
-  EnumerableJoin(condition=[=($0, $3)], joinType=[inner])
+  EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
       EnumerableTableScan(table=[[scott, DEPT]])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
@@ -1510,7 +1510,7 @@ group by emp.deptno, dept.deptno;
 !ok
 EnumerableCalc(expr#0..2=[{inputs}], EXPR$0=[$t2])
   EnumerableAggregate(group=[{0, 3}], EXPR$0=[SUM($2)])
-    EnumerableJoin(condition=[=($0, $3)], joinType=[inner])
+    EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
       EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
         EnumerableTableScan(table=[[scott, DEPT]])
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
@@ -1533,7 +1533,7 @@ group by emp.deptno;
 !ok
 EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t1])
   EnumerableAggregate(group=[{3}], EXPR$0=[SUM($2)])
-    EnumerableJoin(condition=[=($0, $3)], joinType=[inner])
+    EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
       EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
         EnumerableTableScan(table=[[scott, DEPT]])
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
@@ -1556,7 +1556,7 @@ group by emp.deptno;
 !ok
 EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t1])
   EnumerableAggregate(group=[{3}], EXPR$0=[MIN($2)])
-    EnumerableJoin(condition=[=($0, $3)], joinType=[inner])
+    EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
       EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
         EnumerableTableScan(table=[[scott, DEPT]])
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
@@ -1575,7 +1575,7 @@ from "scott".emp join "scott".dept using (deptno);
 
 !ok
 EnumerableAggregate(group=[{}], C=[COUNT()], S=[SUM($2)])
-  EnumerableJoin(condition=[=($0, $3)], joinType=[inner])
+  EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
       EnumerableTableScan(table=[[scott, DEPT]])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
@@ -1598,7 +1598,7 @@ from "scott".emp join "scott".dept using (deptno) group by emp.deptno;
 # No aggregate on top, because output of join is unique
 EnumerableCalc(expr#0..2=[{inputs}], C=[$t1], S=[$t2])
   EnumerableAggregate(group=[{3}], C=[COUNT()], S=[SUM($2)])
-    EnumerableJoin(condition=[=($0, $3)], joinType=[inner])
+    EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
       EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
         EnumerableTableScan(table=[[scott, DEPT]])
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
@@ -1626,7 +1626,7 @@ from "scott".emp join "scott".dept using (deptno) group by emp.job, dept.deptno;
 !ok
 EnumerableCalc(expr#0..3=[{inputs}], C=[$t2], S=[$t3])
   EnumerableAggregate(group=[{0, 2}], C=[COUNT()], S=[SUM($3)])
-    EnumerableJoin(condition=[=($0, $4)], joinType=[inner])
+    EnumerableHashJoin(condition=[=($0, $4)], joinType=[inner])
       EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
         EnumerableTableScan(table=[[scott, DEPT]])
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], JOB=[$t2], SAL=[$t5], DEPTNO=[$t7])
@@ -1650,7 +1650,7 @@ from "scott".emp join "scott".dept using (deptno) group by emp.job;
 !ok
 EnumerableCalc(expr#0..2=[{inputs}], C=[$t1], S=[$t2])
   EnumerableAggregate(group=[{2}], C=[COUNT()], S=[SUM($3)])
-    EnumerableJoin(condition=[=($0, $4)], joinType=[inner])
+    EnumerableHashJoin(condition=[=($0, $4)], joinType=[inner])
       EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
         EnumerableTableScan(table=[[scott, DEPT]])
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], JOB=[$t2], SAL=[$t5], DEPTNO=[$t7])
@@ -1678,7 +1678,7 @@ from "scott".emp join "scott".dept using (deptno) group by emp.job, dept.deptno;
 !ok
 EnumerableCalc(expr#0..3=[{inputs}], C=[$t2], S=[$t3])
   EnumerableAggregate(group=[{0, 2}], C=[COUNT()], S=[SUM($3)])
-    EnumerableJoin(condition=[=($0, $4)], joinType=[inner])
+    EnumerableHashJoin(condition=[=($0, $4)], joinType=[inner])
       EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
         EnumerableTableScan(table=[[scott, DEPT]])
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], JOB=[$t2], SAL=[$t5], DEPTNO=[$t7])
@@ -1709,7 +1709,7 @@ from "scott".emp join "scott".dept using (deptno) group by emp.sal;
 !ok
 EnumerableCalc(expr#0..2=[{inputs}], C=[$t1], S=[$t2])
   EnumerableAggregate(group=[{2}], C=[COUNT()], S=[SUM($2)])
-    EnumerableJoin(condition=[=($0, $3)], joinType=[inner])
+    EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
       EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
         EnumerableTableScan(table=[[scott, DEPT]])
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
@@ -1848,7 +1848,7 @@ using (deptno);
 
 !ok
 EnumerableCalc(expr#0..2=[{inputs}], EMPNO=[$t1], DEPTNO=[$t0])
-  EnumerableJoin(condition=[=($0, $2)], joinType=[inner])
+  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
       EnumerableTableScan(table=[[scott, DEPT]])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
@@ -2499,7 +2499,7 @@ group by dept.deptno;
 !ok
 EnumerableAggregate(group=[{0}], S=[COLLECT($1) WITHIN GROUP ([1 DESC])], S1=[COLLECT($1) WITHIN GROUP ([2])], S2=[COLLECT($1) WITHIN GROUP ([1]) FILTER $3])
   EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[2000], expr#6=[>($t2, $t5)], expr#7=[IS TRUE($t6)], DEPTNO=[$t0], SAL=[$t2], $f2=[$t4], $f3=[$t7])
-    EnumerableJoin(condition=[=($0, $3)], joinType=[inner])
+    EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
       EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
         EnumerableTableScan(table=[[scott, DEPT]])
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
@@ -2545,6 +2545,38 @@ select deptno, bit_and(empno), bit_or(empno) from "scott".emp group by deptno;
 |     30 |   7168 |   8191 |
 +--------+--------+--------+
 (3 rows)
+
+!ok
+
+# Based on [DRUID-7593] Exact distinct-COUNT with complex expression (CASE, IN) throws
+# NullPointerException
+WITH wikipedia AS (
+  SELECT empno AS delta,
+    CASE WHEN deptno = 10 THEN 'true' ELSE 'false' END AS isRobot,
+    ename AS "user"
+  FROM "scott".emp)
+SELECT COUNT(DISTINCT
+    CASE WHEN (((CASE WHEN wikipedia.delta IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+                      THEN REPLACE('Yes', 'Yes', 'Yes')
+                      ELSE REPLACE('No', 'No', 'No') END) = 'No'))
+         AND (wikipedia.isRobot = 'true')
+         THEN (wikipedia."user")
+         ELSE NULL END)
+  - (MAX(CASE WHEN (((CASE WHEN wikipedia.delta IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+                           THEN REPLACE('Yes', 'Yes', 'Yes')
+                           ELSE REPLACE('No', 'No', 'No') END) = 'No'))
+              AND (wikipedia.isRobot = 'true')
+              THEN NULL
+              ELSE -9223372036854775807 END)
+       + 9223372036854775807 + 1) AS "wikipedia.count_distinct_filters_that_dont_work"
+FROM wikipedia
+LIMIT 500;
++-------------------------------------------------+
+| wikipedia.count_distinct_filters_that_dont_work |
++-------------------------------------------------+
+|                                               2 |
++-------------------------------------------------+
+(1 row)
 
 !ok
 

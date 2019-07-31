@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.core;
 
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
@@ -33,11 +34,13 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalRepeatUnion;
 import org.apache.calcite.rel.logical.LogicalSnapshot;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalSortExchange;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.logical.LogicalTableSpool;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
@@ -45,13 +48,13 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.TranslatableTable;
-import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -75,9 +78,6 @@ public class RelFactories {
 
   public static final CorrelateFactory DEFAULT_CORRELATE_FACTORY =
       new CorrelateFactoryImpl();
-
-  public static final SemiJoinFactory DEFAULT_SEMI_JOIN_FACTORY =
-      new SemiJoinFactoryImpl();
 
   public static final SortFactory DEFAULT_SORT_FACTORY =
       new SortFactoryImpl();
@@ -109,6 +109,12 @@ public class RelFactories {
   public static final SnapshotFactory DEFAULT_SNAPSHOT_FACTORY =
       new SnapshotFactoryImpl();
 
+  public static final SpoolFactory DEFAULT_SPOOL_FACTORY =
+      new SpoolFactoryImpl();
+
+  public static final RepeatUnionFactory DEFAULT_REPEAT_UNION_FACTORY =
+      new RepeatUnionFactoryImpl();
+
   /** A {@link RelBuilderFactory} that creates a {@link RelBuilder} that will
    * create logical relational expressions for everything. */
   public static final RelBuilderFactory LOGICAL_BUILDER =
@@ -116,7 +122,6 @@ public class RelFactories {
           Contexts.of(DEFAULT_PROJECT_FACTORY,
               DEFAULT_FILTER_FACTORY,
               DEFAULT_JOIN_FACTORY,
-              DEFAULT_SEMI_JOIN_FACTORY,
               DEFAULT_SORT_FACTORY,
               DEFAULT_EXCHANGE_FACTORY,
               DEFAULT_SORT_EXCHANGE_FACTORY,
@@ -125,7 +130,9 @@ public class RelFactories {
               DEFAULT_SET_OP_FACTORY,
               DEFAULT_VALUES_FACTORY,
               DEFAULT_TABLE_SCAN_FACTORY,
-              DEFAULT_SNAPSHOT_FACTORY));
+              DEFAULT_SNAPSHOT_FACTORY,
+              DEFAULT_SPOOL_FACTORY,
+              DEFAULT_REPEAT_UNION_FACTORY));
 
   private RelFactories() {
   }
@@ -265,9 +272,16 @@ public class RelFactories {
    */
   public interface AggregateFactory {
     /** Creates an aggregate. */
-    RelNode createAggregate(RelNode input, boolean indicator,
+    RelNode createAggregate(RelNode input, ImmutableBitSet groupSet,
+        ImmutableList<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls);
+
+    @Deprecated // to be removed before 2.0
+    default RelNode createAggregate(RelNode input, boolean indicator,
         ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
-        List<AggregateCall> aggCalls);
+        List<AggregateCall> aggCalls) {
+      Aggregate.checkIndicator(indicator);
+      return createAggregate(input, groupSet, groupSets, aggCalls);
+    }
   }
 
   /**
@@ -275,22 +289,38 @@ public class RelFactories {
    * that returns a vanilla {@link LogicalAggregate}.
    */
   private static class AggregateFactoryImpl implements AggregateFactory {
-    @SuppressWarnings("deprecation")
-    public RelNode createAggregate(RelNode input, boolean indicator,
+    public RelNode createAggregate(RelNode input,
         ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls) {
-      return LogicalAggregate.create(input, indicator,
-          groupSet, groupSets, aggCalls);
+      return LogicalAggregate.create(input, groupSet, groupSets, aggCalls);
     }
   }
 
   /**
-   * Can create a {@link LogicalFilter} of the appropriate type
+   * Can create a {@link Filter} of the appropriate type
    * for this rule's calling convention.
    */
   public interface FilterFactory {
-    /** Creates a filter. */
-    RelNode createFilter(RelNode input, RexNode condition);
+    /** Creates a filter.
+     *
+     * <p>Some implementations of {@code Filter} do not support correlation
+     * variables, and for these, this method will throw if {@code variablesSet}
+     * is not empty.
+     *
+     * @param input Input relational expression
+     * @param condition Filter condition; only rows for which this condition
+     *   evaluates to TRUE will be emitted
+     * @param variablesSet Correlating variables that are set when reading
+     *   a row from the input, and which may be referenced from inside the
+     *   condition
+     */
+    RelNode createFilter(RelNode input, RexNode condition,
+        Set<CorrelationId> variablesSet);
+
+    @Deprecated // to be removed before 2.0
+    default RelNode createFilter(RelNode input, RexNode condition) {
+      return createFilter(input, condition, ImmutableSet.of());
+    }
   }
 
   /**
@@ -298,8 +328,10 @@ public class RelFactories {
    * returns a vanilla {@link LogicalFilter}.
    */
   private static class FilterFactoryImpl implements FilterFactory {
-    public RelNode createFilter(RelNode input, RexNode condition) {
-      return LogicalFilter.create(input, condition);
+    public RelNode createFilter(RelNode input, RexNode condition,
+        Set<CorrelationId> variablesSet) {
+      return LogicalFilter.create(input, condition,
+          ImmutableSet.copyOf(variablesSet));
     }
   }
 
@@ -366,7 +398,7 @@ public class RelFactories {
      */
     RelNode createCorrelate(RelNode left, RelNode right,
         CorrelationId correlationId, ImmutableBitSet requiredColumns,
-        SemiJoinType joinType);
+        JoinRelType joinType);
   }
 
   /**
@@ -376,7 +408,7 @@ public class RelFactories {
   private static class CorrelateFactoryImpl implements CorrelateFactory {
     public RelNode createCorrelate(RelNode left, RelNode right,
         CorrelationId correlationId, ImmutableBitSet requiredColumns,
-        SemiJoinType joinType) {
+        JoinRelType joinType) {
       return LogicalCorrelate.create(left, right, correlationId,
           requiredColumns, joinType);
     }
@@ -385,7 +417,10 @@ public class RelFactories {
   /**
    * Can create a semi-join of the appropriate type for a rule's calling
    * convention.
+   *
+   * @deprecated Use {@link JoinFactory} instead.
    */
+  @Deprecated // to be removed before 2.0
   public interface SemiJoinFactory {
     /**
      * Creates a semi-join.
@@ -399,14 +434,16 @@ public class RelFactories {
 
   /**
    * Implementation of {@link SemiJoinFactory} that returns a vanilla
-   * {@link SemiJoin}.
+   * {@link Join} with join type as {@link JoinRelType#SEMI}.
+   *
+   * @deprecated Use {@link JoinFactoryImpl} instead.
    */
+  @Deprecated  // to be removed before 2.0
   private static class SemiJoinFactoryImpl implements SemiJoinFactory {
     public RelNode createSemiJoin(RelNode left, RelNode right,
         RexNode condition) {
-      final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
-      return SemiJoin.create(left, right,
-        condition, joinInfo.leftKeys, joinInfo.rightKeys);
+      return LogicalJoin.create(left, right, condition, ImmutableSet.of(), JoinRelType.SEMI,
+          false, ImmutableList.of());
     }
   }
 
@@ -571,6 +608,50 @@ public class RelFactories {
       return LogicalMatch.create(input, rowType, pattern, strictStart,
           strictEnd, patternDefinitions, measures, after, subsets, allRows,
           partitionKeys, orderKeys, interval);
+    }
+  }
+
+  /**
+   * Can create a {@link Spool} of
+   * the appropriate type for a rule's calling convention.
+   */
+  @Experimental
+  public interface SpoolFactory {
+    /** Creates a {@link TableSpool}. */
+    RelNode createTableSpool(RelNode input, Spool.Type readType,
+        Spool.Type writeType, String tableName);
+  }
+
+  /**
+   * Implementation of {@link SpoolFactory}
+   * that returns Logical Spools.
+   */
+  private static class SpoolFactoryImpl implements SpoolFactory {
+    public RelNode createTableSpool(RelNode input, Spool.Type readType,
+        Spool.Type writeType, String tableName) {
+      return LogicalTableSpool.create(input, readType, writeType, tableName);
+    }
+  }
+
+  /**
+   * Can create a {@link RepeatUnion} of
+   * the appropriate type for a rule's calling convention.
+   */
+  @Experimental
+  public interface RepeatUnionFactory {
+    /** Creates a {@link RepeatUnion}. */
+    RelNode createRepeatUnion(RelNode seed, RelNode iterative, boolean all,
+        int maxRep);
+  }
+
+  /**
+   * Implementation of {@link RepeatUnion}
+   * that returns a {@link LogicalRepeatUnion}.
+   */
+  private static class RepeatUnionFactoryImpl implements RepeatUnionFactory {
+    public RelNode createRepeatUnion(RelNode seed, RelNode iterative,
+        boolean all, int maxRep) {
+      return LogicalRepeatUnion.create(seed, iterative, all, maxRep);
     }
   }
 }

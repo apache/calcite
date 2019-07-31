@@ -32,6 +32,7 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMdCollation;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgramBuilder;
@@ -45,9 +46,9 @@ import java.util.Set;
 /** Implementation of {@link org.apache.calcite.rel.core.Join} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}
  * that allows conditions that are not just {@code =} (equals). */
-public class EnumerableThetaJoin extends Join implements EnumerableRel {
-  /** Creates an EnumerableThetaJoin. */
-  protected EnumerableThetaJoin(RelOptCluster cluster, RelTraitSet traits,
+public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
+  /** Creates an EnumerableNestedLoopJoin. */
+  protected EnumerableNestedLoopJoin(RelOptCluster cluster, RelTraitSet traits,
       RelNode left, RelNode right, RexNode condition,
       Set<CorrelationId> variablesSet, JoinRelType joinType)
       throws InvalidRelException {
@@ -55,18 +56,18 @@ public class EnumerableThetaJoin extends Join implements EnumerableRel {
   }
 
   @Deprecated // to be removed before 2.0
-  protected EnumerableThetaJoin(RelOptCluster cluster, RelTraitSet traits,
+  protected EnumerableNestedLoopJoin(RelOptCluster cluster, RelTraitSet traits,
       RelNode left, RelNode right, RexNode condition, JoinRelType joinType,
       Set<String> variablesStopped) throws InvalidRelException {
     this(cluster, traits, left, right, condition,
         CorrelationId.setOf(variablesStopped), joinType);
   }
 
-  @Override public EnumerableThetaJoin copy(RelTraitSet traitSet,
+  @Override public EnumerableNestedLoopJoin copy(RelTraitSet traitSet,
       RexNode condition, RelNode left, RelNode right, JoinRelType joinType,
       boolean semiJoinDone) {
     try {
-      return new EnumerableThetaJoin(getCluster(), traitSet, left, right,
+      return new EnumerableNestedLoopJoin(getCluster(), traitSet, left, right,
           condition, variablesSet, joinType);
     } catch (InvalidRelException e) {
       // Semantic error not possible. Must be a bug. Convert to
@@ -75,8 +76,8 @@ public class EnumerableThetaJoin extends Join implements EnumerableRel {
     }
   }
 
-  /** Creates an EnumerableThetaJoin. */
-  public static EnumerableThetaJoin create(
+  /** Creates an EnumerableNestedLoopJoin. */
+  public static EnumerableNestedLoopJoin create(
       RelNode left,
       RelNode right,
       RexNode condition,
@@ -87,8 +88,8 @@ public class EnumerableThetaJoin extends Join implements EnumerableRel {
     final RelTraitSet traitSet =
         cluster.traitSetOf(EnumerableConvention.INSTANCE)
             .replaceIfs(RelCollationTraitDef.INSTANCE,
-                () -> RelMdCollation.enumerableThetaJoin(mq, left, right, joinType));
-    return new EnumerableThetaJoin(cluster, traitSet, left, right, condition,
+                () -> RelMdCollation.enumerableNestedLoopJoin(mq, left, right, joinType));
+    return new EnumerableNestedLoopJoin(cluster, traitSet, left, right, condition,
         variablesSet, joinType);
   }
 
@@ -101,11 +102,11 @@ public class EnumerableThetaJoin extends Join implements EnumerableRel {
     // the planner, make one of the versions slightly more expensive.
     switch (joinType) {
     case RIGHT:
-      rowCount = addEpsilon(rowCount);
+      rowCount = RelMdUtil.addEpsilon(rowCount);
       break;
     default:
       if (left.getId() > right.getId()) {
-        rowCount = addEpsilon(rowCount);
+        rowCount = RelMdUtil.addEpsilon(rowCount);
       }
     }
 
@@ -118,27 +119,6 @@ public class EnumerableThetaJoin extends Join implements EnumerableRel {
       rowCount = rightRowCount;
     }
     return planner.getCostFactory().makeCost(rowCount, 0, 0);
-  }
-
-  private double addEpsilon(double d) {
-    assert d >= 0d;
-    final double d0 = d;
-    if (d < 10) {
-      // For small d, adding 1 would change the value significantly.
-      d *= 1.001d;
-      if (d != d0) {
-        return d;
-      }
-    }
-    // For medium d, add 1. Keeps integral values integral.
-    ++d;
-    if (d != d0) {
-      return d;
-    }
-    // For large d, adding 1 might not change the value. Add .1%.
-    // If d is NaN, this still will probably not change the value. That's OK.
-    d *= 1.001d;
-    return d;
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
@@ -159,7 +139,7 @@ public class EnumerableThetaJoin extends Join implements EnumerableRel {
     return implementor.result(
         physType,
         builder.append(
-            Expressions.call(BuiltInMethod.THETA_JOIN.method,
+            Expressions.call(BuiltInMethod.NESTED_LOOP_JOIN.method,
                 leftExpression,
                 rightExpression,
                 predicate(implementor,
@@ -171,8 +151,7 @@ public class EnumerableThetaJoin extends Join implements EnumerableRel {
                     physType,
                     ImmutableList.of(leftResult.physType,
                         rightResult.physType)),
-                Expressions.constant(joinType.generatesNullsOnLeft()),
-                Expressions.constant(joinType.generatesNullsOnRight())))
+                Expressions.constant(EnumUtils.toLinq4jJoinType(joinType))))
             .toBlock());
   }
 
@@ -206,4 +185,4 @@ public class EnumerableThetaJoin extends Join implements EnumerableRel {
   }
 }
 
-// End EnumerableThetaJoin.java
+// End EnumerableNestedLoopJoin.java

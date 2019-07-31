@@ -67,6 +67,7 @@ import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Permutation;
 import org.apache.calcite.util.ReflectUtil;
@@ -88,6 +89,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Utility to convert relational expressions to SQL abstract syntax tree.
@@ -254,9 +256,9 @@ public class RelToSqlConverter extends SqlImplementor
 
     final List<SqlNode> groupKeys = new ArrayList<>();
     for (int key : groupList) {
-      boolean isGroupByAlias = dialect.getSqlConformance().isGroupByAlias();
+      boolean isGroupByAlias = dialect.getConformance().isGroupByAlias();
       if (builder.context.field(key).getKind() == SqlKind.LITERAL
-          && dialect.getSqlConformance().isGroupByOrdinal()) {
+          && dialect.getConformance().isGroupByOrdinal()) {
         isGroupByAlias = false;
       }
       SqlNode field = builder.context.field(key, isGroupByAlias);
@@ -285,14 +287,21 @@ public class RelToSqlConverter extends SqlImplementor
           SqlStdOperatorTable.GROUPING_SETS.createCall(SqlParserPos.ZERO,
               aggregate.getGroupSets().stream()
                   .map(groupSet ->
-                      new SqlNodeList(
-                          groupSet.asList().stream()
-                              .map(key ->
-                                  groupKeys.get(aggregate.getGroupSet()
-                                      .indexOf(key)))
-                          .collect(Collectors.toList()),
-                          SqlParserPos.ZERO))
+                      groupItem(groupKeys, groupSet, aggregate.getGroupSet()))
                   .collect(Collectors.toList())));
+    }
+  }
+
+  private SqlNode groupItem(List<SqlNode> groupKeys,
+      ImmutableBitSet groupSet, ImmutableBitSet wholeGroupSet) {
+    final List<SqlNode> nodes = groupSet.asList().stream()
+        .map(key -> groupKeys.get(wholeGroupSet.indexOf(key)))
+        .collect(Collectors.toList());
+    switch (nodes.size()) {
+    case 1:
+      return nodes.get(0);
+    default:
+      return SqlStdOperatorTable.ROW.createCall(SqlParserPos.ZERO, nodes);
     }
   }
 
@@ -398,7 +407,22 @@ public class RelToSqlConverter extends SqlImplementor
                 fromSqlIdentifier, null, null,
                 null, null, null, null, null));
       }
-      if (list.size() == 1) {
+      if (list.isEmpty()) {
+        // In this case we need to construct the following query:
+        // SELECT NULL as C0, NULL as C1, NULL as C2 ... FROM DUAL WHERE FALSE
+        // This would return an empty result set with the same number of columns as the field names.
+        final List<SqlNode> nullColumnNames = new ArrayList<>();
+        for (String fieldName : fieldNames) {
+          SqlCall nullColumnName = SqlStdOperatorTable.AS.createCall(
+              POS, SqlLiteral.createNull(POS),
+              new SqlIdentifier(fieldName, POS));
+          nullColumnNames.add(nullColumnName);
+        }
+        query = new SqlSelect(POS, null,
+            new SqlNodeList(nullColumnNames, POS),
+            new SqlIdentifier("DUAL", POS), createAlwaysFalseCondition(), null,
+            null, null, null, null, null);
+      } else if (list.size() == 1) {
         query = list.get(0);
       } else {
         query = SqlStdOperatorTable.UNION_ALL.createCall(
@@ -410,8 +434,19 @@ public class RelToSqlConverter extends SqlImplementor
       // or, if rename is required
       //   (VALUES (v0, v1), (v2, v3)) AS t (c0, c1)
       final SqlNodeList selects = new SqlNodeList(POS);
-      for (List<RexLiteral> tuple : e.getTuples()) {
-        selects.add(ANONYMOUS_ROW.createCall(exprList(context, tuple)));
+      final boolean isEmpty = Values.isEmpty(e);
+      if (isEmpty) {
+        // In case of empty values, we need to build:
+        // select * from VALUES(NULL, NULL ...) as T (C1, C2 ...)
+        // where 1=0.
+        List<SqlNode> nulls = IntStream.range(0, fieldNames.size())
+            .mapToObj(i ->
+                SqlLiteral.createNull(POS)).collect(Collectors.toList());
+        selects.add(ANONYMOUS_ROW.createCall(new SqlNodeList(nulls, POS)));
+      } else {
+        for (List<RexLiteral> tuple : e.getTuples()) {
+          selects.add(ANONYMOUS_ROW.createCall(exprList(context, tuple)));
+        }
       }
       query = SqlStdOperatorTable.VALUES.createCall(selects);
       if (rename) {
@@ -423,8 +458,25 @@ public class RelToSqlConverter extends SqlImplementor
         }
         query = SqlStdOperatorTable.AS.createCall(POS, list);
       }
+      if (isEmpty) {
+        query = new SqlSelect(POS, null,
+                null, query,
+                createAlwaysFalseCondition(),
+                null, null, null,
+                null, null, null);
+      }
     }
     return result(query, clauses, e, null);
+  }
+
+  private SqlNode createAlwaysFalseCondition() {
+    // Building the select query in the form:
+    // select * from VALUES(NULL,NULL ...) where 1=0
+    // Use condition 1=0 since "where false" does not seem to be supported
+    // on some DB vendors.
+    return SqlStdOperatorTable.EQUALS.createCall(POS,
+            ImmutableList.of(SqlLiteral.createExactNumeric("1", POS),
+                    SqlLiteral.createExactNumeric("0", POS)));
   }
 
   /** @see #dispatch */

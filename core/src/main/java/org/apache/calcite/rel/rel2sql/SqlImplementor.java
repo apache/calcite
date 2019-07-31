@@ -20,10 +20,10 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -101,7 +101,11 @@ import javax.annotation.Nonnull;
  */
 public abstract class SqlImplementor {
 
-  public static final SqlParserPos POS = SqlParserPos.ZERO;
+  // Always use quoted position, the "isQuoted" info is only used when
+  // unparsing a SqlIdentifier. For some rex nodes, saying RexInputRef, we have
+  // no idea about whether it is quoted or not for the original sql statement.
+  // So we just quote it.
+  public static final SqlParserPos POS = SqlParserPos.QUOTED_ZERO;
 
   public final SqlDialect dialect;
   protected final Set<String> aliasSet = new LinkedHashSet<>();
@@ -509,10 +513,10 @@ public abstract class SqlImplementor {
         case NUMERIC:
         case EXACT_NUMERIC:
           return SqlLiteral.createExactNumeric(
-              literal.getValueAs(BigDecimal.class).toString(), POS);
+              literal.getValueAs(BigDecimal.class).toPlainString(), POS);
         case APPROXIMATE_NUMERIC:
           return SqlLiteral.createApproxNumeric(
-              literal.getValueAs(BigDecimal.class).toString(), POS);
+              literal.getValueAs(BigDecimal.class).toPlainString(), POS);
         case BOOLEAN:
           return SqlLiteral.createBoolean(literal.getValueAs(Boolean.class),
               POS);
@@ -1060,13 +1064,13 @@ public abstract class SqlImplementor {
           needNew = true;
         }
       }
-      if (rel instanceof LogicalAggregate
+      if (rel instanceof Aggregate
           && !dialect.supportsNestedAggregations()
-          && hasNestedAggregations((LogicalAggregate) rel)) {
+          && hasNestedAggregations((Aggregate) rel)) {
         needNew = true;
       }
       if (rel instanceof LogicalSort
-          && dialect.getSqlConformance().isSortByAlias()) {
+          && dialect.getConformance().isSortByAlias()) {
         keepColumnAlias = true;
       }
 
@@ -1128,7 +1132,7 @@ public abstract class SqlImplementor {
           needNew ? null : aliases);
     }
 
-    private boolean hasNestedAggregations(LogicalAggregate rel) {
+    private boolean hasNestedAggregations(Aggregate rel) {
       if (node instanceof SqlSelect) {
         final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
         if (selectList != null) {

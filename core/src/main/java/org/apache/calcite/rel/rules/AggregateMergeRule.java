@@ -142,8 +142,7 @@ public class AggregateMergeRule extends RelOptRule {
     }
 
     final Aggregate finalAgg =
-        topAgg.copy(topAgg.getTraitSet(), bottomAgg.getInput(),
-            topAgg.indicator, topGroupSet,
+        topAgg.copy(topAgg.getTraitSet(), bottomAgg.getInput(), topGroupSet,
             newGroupingSets, finalCalls);
     call.transformTo(finalAgg);
   }

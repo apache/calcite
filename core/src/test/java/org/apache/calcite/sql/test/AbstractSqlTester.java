@@ -31,6 +31,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlUnresolvedFunction;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
@@ -45,6 +46,7 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.SqlValidatorTestCase;
 import org.apache.calcite.util.Pair;
@@ -589,7 +591,22 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
           }
 
           @Override public SqlNode visit(SqlCall call) {
-            final SqlOperator operator = call.getOperator();
+            SqlOperator operator = call.getOperator();
+            if (operator instanceof SqlUnresolvedFunction) {
+              final SqlUnresolvedFunction unresolvedFunction = (SqlUnresolvedFunction) operator;
+              final SqlOperator lookup = SqlValidatorUtil.lookupSqlFunctionByID(
+                  SqlStdOperatorTable.instance(),
+                  unresolvedFunction.getSqlIdentifier(),
+                  unresolvedFunction.getFunctionType());
+              if (lookup != null) {
+                operator = lookup;
+                final SqlNode[] operands = call.getOperandList().toArray(SqlNode.EMPTY_ARRAY);
+                call = operator.createCall(
+                    call.getFunctionQuantifier(),
+                    call.getParserPosition(),
+                    operands);
+              }
+            }
             if (operator == SqlStdOperatorTable.CAST
                 && isNull(call.operand(0))) {
               literalSet.add(call);
