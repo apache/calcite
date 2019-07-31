@@ -30,9 +30,27 @@ public class HiveSqlDialectTest {
 
   @Test public void unparseTrimTest() throws SqlParseException {
     String sql = "SELECT TRIM(' str ')";
+    Assert.assertEquals(sql, transform(sql));
+  }
+
+  @Test public void unparseBothTrimTest() throws SqlParseException {
+    String sql = "SELECT TRIM(both ' ' from ' str ')";
+    Assert.assertEquals("SELECT TRIM(' str ')", transform(sql));
+  }
+
+  @Test public void unparseLeadingTrimTest() throws SqlParseException {
+    String sql = "SELECT TRIM(LEADING ' ' from ' str ')";
+    Assert.assertEquals("SELECT LTRIM(' str ')", transform(sql));
+  }
+
+  @Test public void unparseTailingTrimTest() throws SqlParseException {
+    String sql = "SELECT TRIM(TRAILING ' ' from ' str ')";
+    Assert.assertEquals("SELECT RTRIM(' str ')", transform(sql));
+  }
+
+  private String transform(String sql) throws SqlParseException {
     SqlParser sqlParser = SqlParser.create(sql);
-    String transformedSql = sqlParser.parseQuery().toSqlString(HiveSqlDialect.DEFAULT).getSql();
-    Assert.assertEquals(sql, transformedSql);
+    return sqlParser.parseQuery().toSqlString(HiveSqlDialect.DEFAULT).getSql();
   }
 
 }

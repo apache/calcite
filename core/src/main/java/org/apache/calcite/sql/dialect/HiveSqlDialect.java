@@ -19,11 +19,13 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlTrimFunction;
 
 /**
  * A <code>SqlDialect</code> implementation for the Apache Hive database.
@@ -91,7 +93,21 @@ public class HiveSqlDialect extends SqlDialect {
   }
 
   private void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().getName());
+    assert call.operand(0) instanceof SqlLiteral : call.operand(0);
+    SqlLiteral flag = call.operand(0);
+    final String operatorName;
+    switch (SqlTrimFunction.Flag.valueOf(flag.toValue())) {
+    case LEADING:
+      operatorName = "LTRIM";
+      break;
+    case TRAILING:
+      operatorName = "RTRIM";
+      break;
+    default:
+      operatorName = call.getOperator().getName();
+      break;
+    }
+    final SqlWriter.Frame frame = writer.startFunCall(operatorName);
     call.operand(2).unparse(writer, leftPrec, rightPrec);
     writer.endFunCall(frame);
   }
