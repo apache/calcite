@@ -745,7 +745,10 @@ limitations under the License.
         <!-- If you are looking to change source/target,
              change the maven.compiler.{source,target} property -->
         <configuration>
-          <compilerArgument>-Xlint:deprecation</compilerArgument>
+          <compilerArgs>
+            <arg>-Xlint:deprecation</arg>
+            <arg>-Werror</arg>
+          </compilerArgs>
         </configuration>
       </plugin>
       <plugin>

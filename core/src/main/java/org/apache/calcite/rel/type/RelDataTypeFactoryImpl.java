@@ -460,6 +460,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
    * {@link RelDataTypeSystem#deriveDecimalMultiplyType(RelDataTypeFactory, RelDataType, RelDataType)}
    * to get the return type for the operation.
    */
+  @Deprecated
   public RelDataType createDecimalProduct(
       RelDataType type1,
       RelDataType type2) {
@@ -471,6 +472,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
    * {@link RelDataTypeSystem#shouldUseDoubleMultiplication(RelDataTypeFactory, RelDataType, RelDataType)}
    * to get if double should be used for multiplication.
    */
+  @Deprecated
   public boolean useDoubleMultiplication(
       RelDataType type1,
       RelDataType type2) {
@@ -482,6 +484,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
    * {@link RelDataTypeSystem#deriveDecimalDivideType(RelDataTypeFactory, RelDataType, RelDataType)}
    * to get the return type for the operation.
    */
+  @Deprecated
   public RelDataType createDecimalQuotient(
       RelDataType type1,
       RelDataType type2) {
