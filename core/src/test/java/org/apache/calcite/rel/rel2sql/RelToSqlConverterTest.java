@@ -628,13 +628,11 @@ public class RelToSqlConverterTest {
             builder.and(
                 builder.call(SqlStdOperatorTable.EQUALS,
                     builder.field(2, 0, "DEPTNO"),
-                    builder.field(2, 1, "DEPTNO")
-                ),
+                    builder.field(2, 1, "DEPTNO")),
             builder.call(SqlStdOperatorTable.LIKE,
                 builder.field(2, 1, "DNAME"),
-                builder.literal("ACCOUNTING")
-            )
-        )).build();
+                builder.literal("ACCOUNTING"))))
+        .build();
     final String sql = toSql(rel);
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"

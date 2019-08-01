@@ -108,12 +108,7 @@ public interface RelDataTypeSystem {
    * at least one decimal operand and requires both operands to have exact
    * numeric types.
    *
-   * Default implementation is SQL 2003 compliant. Let p1, s1 be the precision
-   * and scale of the first operand Let p2, s2 be the precision and scale of the
-   * second operand Let p, s be the precision and scale of the result, Then the
-   * result type is a decimal with:
-   *
-   * Rules:
+   * <p>Rules:
    *
    * <ul>
    * <li>Let p1, s1 be the precision and scale of the first operand</li>
@@ -183,9 +178,9 @@ public interface RelDataTypeSystem {
    * multiplication involves at least one decimal operand and requires both
    * operands to have exact numeric types.
    *
-   * Default implementation is SQL 2003 compliant.
+   * <p>The default implementation is SQL:2003 compliant.
    *
-   * Rules:
+   * <p>Rules:
    *
    * <ul>
    * <li>Let p1, s1 be the precision and scale of the first operand</li>
@@ -248,9 +243,9 @@ public interface RelDataTypeSystem {
    * at least one decimal operand and requires both operands to have exact
    * numeric types.
    *
-   * Default implementation is SQL 2003 compliant.
+   * <p>The default implementation is SQL:2003 compliant.
    *
-   * Rules:
+   * <p>Rules:
    *
    * <ul>
    * <li>Let p1, s1 be the precision and scale of the first operand</li>
@@ -323,8 +318,8 @@ public interface RelDataTypeSystem {
    * involves at least one decimal operand and requires both operands to have
    * exact numeric types.
    *
-   * Default implementation is SQL 2003 compliant: the declared type of the
-   * result is the declared type of the second operand (expression divisor).
+   * <p>The default implementation is SQL:2003 compliant: the declared type of
+   * the result is the declared type of the second operand (expression divisor).
    *
    * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.27
    *
