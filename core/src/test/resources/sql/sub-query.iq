@@ -2063,8 +2063,8 @@ EnumerableAggregate(group=[{}], C=[COUNT()])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
-# Correlated ANY sub-query 
-select empno from "scott".emp as e 
+# Correlated ANY sub-query
+select empno from "scott".emp as e
 where e.empno > ANY(
   select 2 from "scott".dept e2 where e2.deptno = e.deptno) ;
 EnumerableCalc(expr#0..6=[{inputs}], expr#7=[>($t0, $t2)], expr#8=[IS NULL($t5)], expr#9=[0], expr#10=[=($t3, $t9)], expr#11=[OR($t8, $t10)], expr#12=[IS NOT TRUE($t11)], expr#13=[AND($t7, $t12)], expr#14=[IS NOT TRUE($t7)], expr#15=[>($t3, $t4)], expr#16=[IS NOT TRUE($t15)], expr#17=[AND($t7, $t12, $t14, $t16)], expr#18=[OR($t13, $t17)], EMPNO=[$t0], $condition=[$t18])

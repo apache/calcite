@@ -9602,7 +9602,7 @@ LogicalProject(EMPNO=[$0])
     <TestCase name="testSelectAnyCorrelated">
         <Resource name="sql">
             <![CDATA[select empno > ANY (
- select deptno from dept where emp.job = dept.name) 
+  select deptno from dept where emp.job = dept.name)
 from emp
 ]]>
         </Resource>
@@ -11210,7 +11210,7 @@ MultiJoin(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[INNER, LEFT]],
     <TestCase name="testWhereAnyCorrelatedInSelect">
         <Resource name="sql">
             <![CDATA[select * from emp where empno > ANY (
- select deptno from dept where emp.job = dept.name) 
+  select deptno from dept where emp.job = dept.name)
 ]]>
         </Resource>
         <Resource name="planBefore">
