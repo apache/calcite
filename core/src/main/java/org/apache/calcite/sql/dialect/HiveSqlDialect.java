@@ -92,6 +92,10 @@ public class HiveSqlDialect extends SqlDialect {
     }
   }
 
+  /**
+   * Hive function trim, ltrim, rtrim usage see
+   * <a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF">hive UDF usage</a>
+   */
   private void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     assert call.operand(0) instanceof SqlLiteral : call.operand(0);
     SqlLiteral flag = call.operand(0);
