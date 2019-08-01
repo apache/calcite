@@ -92,6 +92,13 @@ public class JdbcTable extends AbstractQueryableTable
     this.jdbcTableType = Objects.requireNonNull(jdbcTableType);
   }
 
+  public static JdbcTable create(JdbcSchema jdbcSchema, String jdbcCatalogName,
+      String jdbcSchemaName, String jdbcTableName,
+      String tableType) {
+    final Schema.TableType jdbcTableType = Schema.TableType.valueOf(tableType);
+    return new JdbcTable(jdbcSchema, jdbcCatalogName, jdbcSchemaName, jdbcTableName, jdbcTableType);
+  }
+
   public String toString() {
     return "JdbcTable {" + jdbcTableName + "}";
   }
