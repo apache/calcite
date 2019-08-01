@@ -292,10 +292,7 @@ public abstract class SqlImplementor {
         switch (o0b.getType().getSqlTypeName()) {
         case CHAR:
         case VARCHAR:
-          SqlTypeName castType = o0.getType().getSqlTypeName();
-          if (!SqlTypeName.NUMERIC_TYPES.contains(castType)) {
-            return call.clone(call.getType(), ImmutableList.of(o0b, o1));
-          }
+          return call.clone(call.getType(), ImmutableList.of(o0b, o1));
         }
       }
       if (o1.getKind() == SqlKind.CAST
@@ -304,10 +301,7 @@ public abstract class SqlImplementor {
         switch (o1b.getType().getSqlTypeName()) {
         case CHAR:
         case VARCHAR:
-          SqlTypeName castType = o1.getType().getSqlTypeName();
-          if (!SqlTypeName.NUMERIC_TYPES.contains(castType)) {
-            return call.clone(call.getType(), ImmutableList.of(o0, o1b));
-          }
+          return call.clone(call.getType(), ImmutableList.of(o0, o1b));
         }
       }
     }
