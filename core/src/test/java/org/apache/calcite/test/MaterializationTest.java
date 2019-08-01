@@ -166,6 +166,24 @@ public class MaterializationTest {
         .sameResultWithMaterializationsDisabled();
   }
 
+  @Test public void testFilterToProject0() {
+    String union =
+        "select * from \"emps\" where \"empid\" > 300\n"
+            + "union all select * from \"emps\" where \"empid\" < 200";
+    String mv = "select *, \"empid\" * 2 from (" + union + ")";
+    String query = "select * from (" + union + ") where (\"empid\" * 2) > 3";
+    checkMaterialize(mv, query);
+  }
+
+  @Test public void testFilterToProject1() {
+    String agg =
+        "select \"deptno\", count(*) as \"c\", sum(\"salary\") as \"s\"\n"
+            + "from \"emps\" group by \"deptno\"";
+    String mv = "select \"c\", \"s\", \"s\" from (" + agg + ")";
+    String query = "select * from (" + agg + ") where (\"s\" * 0.8) > 10000";
+    checkNoMaterialize(mv, query, HR_FKUK_MODEL);
+  }
+
   @Test public void testFilterQueryOnProjectView() {
     try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();

@@ -1131,19 +1131,22 @@ public class SubstitutionVisitor {
       }
       final List<RexNode> exprList = new ArrayList<>();
       final RexBuilder rexBuilder = model.cluster.getRexBuilder();
-      for (RelDataTypeField field : model.rowType.getFieldList()) {
-        exprList.add(rexBuilder.makeZeroLiteral(field.getType()));
+      for (int i = 0; i < model.rowType.getFieldCount(); i++) {
+        exprList.add(null);
       }
       for (Ord<RexNode> expr : Ord.zip(project.projects)) {
         if (expr.e instanceof RexInputRef) {
           final int target = ((RexInputRef) expr.e).getIndex();
-          exprList.set(target,
-              rexBuilder.ensureType(expr.e.getType(),
-                  RexInputRef.of(expr.i, input.rowType),
-                  false));
-        } else {
-          throw MatchFailed.INSTANCE;
+          if (exprList.get(target) == null) {
+            exprList.set(target,
+                rexBuilder.ensureType(expr.e.getType(),
+                    RexInputRef.of(expr.i, input.rowType),
+                    false));
+          }
         }
+      }
+      if (exprList.indexOf(null) != -1) {
+        throw MatchFailed.INSTANCE;
       }
       return MutableProject.of(model.rowType, input, exprList);
     }
