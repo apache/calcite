@@ -21,6 +21,7 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.statistic.MapSqlStatisticProvider;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.FoodMartQuerySet;
@@ -45,6 +46,7 @@ import org.junit.experimental.categories.Category;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.allOf;
@@ -681,6 +683,15 @@ public class LatticeSuggesterTest {
 
     Tester withEvolve(boolean evolve) {
       return withConfig(builder().evolveLattice(evolve).build());
+    }
+
+    private Tester withParser(
+        Function<SqlParser.ConfigBuilder, SqlParser.ConfigBuilder> transform) {
+      return withConfig(builder()
+          .parserConfig(
+              transform.apply(SqlParser.configBuilder(config.getParserConfig()))
+                  .build())
+          .build());
     }
   }
 }

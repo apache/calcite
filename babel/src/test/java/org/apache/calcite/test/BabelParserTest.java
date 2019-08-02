@@ -164,6 +164,20 @@ public class BabelParserTest extends SqlParserTest {
     sql("select date(x) from t").ok(expected);
   }
 
+  /** In Redshift, PostgreSQL the DATEADD, DATEDIFF and DATE_PART functions have
+   * ordinary function syntax except that its first argument is a time unit
+   * (e.g. DAY). We must not parse that first argument as an identifier. */
+  @Test public void testRedshiftFunctionsWithDateParts() {
+    final String sql = "SELECT DATEADD(day, 1, t),\n"
+        + " DATEDIFF(week, 2, t),\n"
+        + " DATE_PART(year, t) FROM mytable";
+    final String expected = "SELECT `DATEADD`(DAY, 1, `T`),"
+        + " `DATEDIFF`(WEEK, 2, `T`), `DATE_PART`(YEAR, `T`)\n"
+        + "FROM `MYTABLE`";
+
+    sql(sql).ok(expected);
+  }
+
   /** PostgreSQL and Redshift allow TIMESTAMP literals that contain only a
    * date part. */
   @Test public void testShortTimestampLiteral() {
