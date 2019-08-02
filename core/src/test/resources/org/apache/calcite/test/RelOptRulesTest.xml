@@ -11273,4 +11273,36 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testJoinToMultiJoinDoesNotMatchSemiJoin">
+        <Resource name="sql">
+            <![CDATA[select * from
+(select * from emp join dept ON emp.deptno = emp.deptno) t
+where emp.job in (select job from bonus))]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalJoin(condition=[=($2, $12)], joinType=[semi])
+  MultiJoin(joinFilter=[=($7, $8)], isFullOuterJoin=[false], joinTypes=[[INNER, INNER]], outerJoinConditions=[[NULL, NULL]], projFields=[[ALL, ALL]])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+  LogicalTableScan(table=[[scott, BONUS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinToMultiJoinDoesNotMatchAntiJoin">
+        <Resource name="sql">
+            <![CDATA[select * from
+(select * from emp join dept ON emp.deptno = emp.deptno) t
+where not exists (select job from bonus where emp.job = bonus.job)]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalJoin(condition=[=($2, $12)], joinType=[anti])
+  MultiJoin(joinFilter=[=($7, $8)], isFullOuterJoin=[false], joinTypes=[[INNER, INNER]], outerJoinConditions=[[NULL, NULL]], projFields=[[ALL, ALL]])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+  LogicalTableScan(table=[[scott, BONUS]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
