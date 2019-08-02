@@ -8829,6 +8829,16 @@ public class SqlParserTest {
     sql(sql2).ok(expected);
   }
 
+  @Test public void testRedshiftFunctionsWithDateParts() {
+    final String expected = "SELECT `DATEADD`(DAY, 1, `T`), "
+            + "`DATEDIFF`(DAY, 1, `T`), `DATE_PART`(DAY, `T`)\n"
+            + "FROM `MYTABLE`";
+
+    final String sql = "SELECT DATEADD(day, 1, t), "
+            + "DATEDIFF(day, 1, t), DATE_PART(day, t) FROM mytable";
+    sql(sql).ok(expected);
+  }
+
   protected void checkDialect(SqlDialect dialect, String sql,
       Matcher<String> matcher) throws SqlParseException {
     final SqlParser parser = getDialectSqlParser(sql, dialect);

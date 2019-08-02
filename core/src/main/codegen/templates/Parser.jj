@@ -4765,7 +4765,9 @@ SqlNode BuiltinFunctionCall() :
     final Span s;
     SqlDataTypeSpec dt;
     TimeUnit interval;
+    TimeUnit unit;
     final SqlNode node;
+    final SqlIdentifier qualifiedName;
 }
 {
     //~ FUNCTIONS WITH SPECIAL SYNTAX ---------------------------------------
@@ -4784,7 +4786,6 @@ SqlNode BuiltinFunctionCall() :
     |
         <EXTRACT> {
             s = span();
-            TimeUnit unit;
         }
         <LPAREN>
         (
@@ -4797,6 +4798,24 @@ SqlNode BuiltinFunctionCall() :
         e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args.add(e); }
         <RPAREN> {
             return SqlStdOperatorTable.EXTRACT.createCall(s.end(this), args);
+        }
+    |
+        (<DATEADD> | <DATEDIFF> | <DATE_PART>){
+            s = span();
+            qualifiedName = new SqlIdentifier(unquotedIdentifier(), getPos());
+        }
+        <LPAREN>
+        unit = TimeUnit()
+        { args = startList(new SqlIntervalQualifier(unit, null, getPos())); }
+        (
+             <COMMA> e = Expression(ExprContext.ACCEPT_SUB_QUERY)
+             {
+                args.add(e);
+             }
+        )*
+        <RPAREN> {
+            final SqlFunctionCategory funcType = SqlFunctionCategory.USER_DEFINED_FUNCTION;
+            return createCall(qualifiedName, s.end(this), funcType, null, args);
         }
     |
         <POSITION> { s = span(); }
@@ -6344,6 +6363,9 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < DATA: "DATA" >
 |   < DATABASE: "DATABASE" >
 |   < DATE: "DATE" >
+|   < DATE_PART: "DATE_PART" >
+|   < DATEADD: "DATEADD" >
+|   < DATEDIFF: "DATEDIFF" >
 |   < DATETIME_INTERVAL_CODE: "DATETIME_INTERVAL_CODE" >
 |   < DATETIME_INTERVAL_PRECISION: "DATETIME_INTERVAL_PRECISION" >
 |   < DAY: "DAY" >
