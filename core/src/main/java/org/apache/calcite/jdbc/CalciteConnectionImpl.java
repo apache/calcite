@@ -419,6 +419,7 @@ abstract class CalciteConnectionImpl
       final String localeName = connection.config().locale();
       final Locale locale = localeName != null
           ? Util.parseLocale(localeName) : Locale.ROOT;
+      final String sqlMode = connection.config().sqlMode();
 
       // Give a hook chance to alter standard input, output, error streams.
       final Holder<Object[]> streamHolder =
@@ -435,7 +436,8 @@ abstract class CalciteConnectionImpl
           .put(Variable.LOCALE.camelName, locale)
           .put(Variable.STDIN.camelName, streamHolder.get()[0])
           .put(Variable.STDOUT.camelName, streamHolder.get()[1])
-          .put(Variable.STDERR.camelName, streamHolder.get()[2]);
+          .put(Variable.STDERR.camelName, streamHolder.get()[2])
+          .put(Variable.SQL_MODE.camelName, sqlMode);
       for (Map.Entry<String, Object> entry : parameters.entrySet()) {
         Object e = entry.getValue();
         if (e == null) {

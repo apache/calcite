@@ -5874,6 +5874,32 @@ public class JdbcTest {
     });
   }
 
+  /**
+   * Test for JsonUnQuote.
+   */
+  @Test public void testJsonUnQuote() throws Exception {
+    final String sql = "SELECT * FROM (VALUES(\n"
+        + " json_unquote('\"abc\"'),\n"
+        + " json_unquote('[1, 2, 3]'),\n"
+        + " json_unquote('\"\\t\\r\\b\\n\\u0032\"\\f') \n"
+        + ")) AS t(ts0, ts1, ts2)";
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.SQL_MODE, "NO_BACKSLASH_ESCAPES")
+        .with(CalciteConnectionProperty.FUN, "mysql")
+        .doWithConnection(connection -> {
+          try (Statement statement = connection.createStatement()) {
+            try (ResultSet rs = statement.executeQuery(sql)) {
+              assertThat(rs.next(), is(true));
+              assertEquals("abc", rs.getString(1));
+              assertEquals("[1,2,3]", rs.getString(2));
+              assertEquals("2", rs.getString(3));
+            }
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
+  }
+
   /** Tests accessing a column in a JDBC source whose type is DATE. */
   @Test
   public void testGetDate() throws Exception {

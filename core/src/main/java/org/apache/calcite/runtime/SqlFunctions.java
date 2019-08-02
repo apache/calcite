@@ -2300,6 +2300,11 @@ public class SqlFunctions {
     return (b == null) ? null : !b;
   }
 
+  @NonDeterministic
+  public static String sqlMode(DataContext root) {
+    return DataContext.Variable.SQL_MODE.get(root);
+  }
+
   /** Converts a JDBC array to a list. */
   public static List arrayToList(final java.sql.Array a) {
     if (a == null) {

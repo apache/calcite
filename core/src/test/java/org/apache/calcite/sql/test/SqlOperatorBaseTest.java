@@ -4932,6 +4932,38 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("json_remove(cast(null as varchar), '$')");
   }
 
+  @Test public void testJsonQuote() {
+    final SqlTester tester = tester(SqlLibrary.MYSQL);
+    tester.setFor(SqlLibraryOperators.JSON_QUOTE);
+    tester.checkString("json_quote('null')",
+        null, "VARCHAR(2000)");
+    tester.checkString("json_quote('\"null\"')",
+        "\"\"null\"\"", "VARCHAR(2000)");
+    tester.checkString("json_quote('[1, 2, 3]')",
+        "\"[1,2,3]\"", "VARCHAR(2000)");
+
+    // nulls
+    tester.checkFails("json_quote(^null^)",
+        "(?s).*Illegal use of 'NULL'.*", false);
+    tester.checkNull("json_quote(cast(null as varchar))");
+  }
+
+  @Test public void testJsonUnQuote() {
+    final SqlTester tester = tester(SqlLibrary.MYSQL);
+    tester.setFor(SqlLibraryOperators.JSON_UNQUOTE);
+    tester.checkString("json_unquote('\"abc\"')",
+        "abc", "VARCHAR(2000)");
+    tester.checkString("json_unquote('[1, 2, 3]')",
+        "[1,2,3]", "VARCHAR(2000)");
+    tester.checkString("json_unquote('\"\\t\\u0032\"')",
+        "\\t2", "VARCHAR(2000)");
+
+    // nulls
+    tester.checkFails("json_unquote(^null^)",
+        "(?s).*Illegal use of 'NULL'.*", false);
+    tester.checkNull("json_unquote(cast(null as varchar))");
+  }
+
   @Test public void testJsonObject() {
     tester.checkString("json_object()", "{}", "VARCHAR(2000) NOT NULL");
     tester.checkString("json_object('foo': 'bar')",

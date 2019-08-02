@@ -100,9 +100,11 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_DEPTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_KEYS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_LENGTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_PRETTY;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_QUOTE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_REMOVE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_STORAGE_SIZE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_TYPE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_UNQUOTE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LEFT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
@@ -511,6 +513,10 @@ public class RexImpTable {
     defineMethod(JSON_STORAGE_SIZE, BuiltInMethod.JSON_STORAGE_SIZE.method, NullPolicy.ARG0);
     defineMethod(JSON_OBJECT, BuiltInMethod.JSON_OBJECT.method, NullPolicy.NONE);
     defineMethod(JSON_ARRAY, BuiltInMethod.JSON_ARRAY.method, NullPolicy.NONE);
+    defineMethod(JSON_QUOTE, BuiltInMethod.JSON_QUOTE.method, NullPolicy.ARG0);
+    defineImplementor(JSON_UNQUOTE, NullPolicy.STRICT,
+        new SqlModeImplementor("jsonUnQuote",
+        BuiltInMethod.JSON_UNQUOTE), false);
     aggMap.put(JSON_OBJECTAGG.with(SqlJsonConstructorNullClause.ABSENT_ON_NULL),
         JsonObjectAggImplementor
             .supplierFor(BuiltInMethod.JSON_OBJECTAGG_ADD.method));
@@ -2083,6 +2089,34 @@ public class RexImpTable {
         Expression operand, BuiltInMethod builtInMethod) {
       final MethodCallExpression locale =
           Expressions.call(BuiltInMethod.LOCALE.method, translator.getRoot());
+      return Expressions.call(builtInMethod.method.getDeclaringClass(),
+          builtInMethod.method.getName(), operand, locale);
+    }
+  }
+
+  /**
+   * Implementor for the {@code JSON_UNQUOTE} functions.
+   * private static class SqlModeImplementor extends MethodNameImplementor {
+   * Each takes a "sqlMode" argument.
+   */
+  private static class SqlModeImplementor extends MethodNameImplementor {
+    private final BuiltInMethod sqlModeMethod;
+
+    SqlModeImplementor(String methodName, BuiltInMethod sqlModeMethod) {
+      super(methodName);
+      this.sqlModeMethod = sqlModeMethod;
+    }
+
+    @Override public Expression implement(RexToLixTranslator translator,
+        RexCall call, List<Expression> translatedOperands) {
+      Expression operand = translatedOperands.get(0);
+      return getExpression(translator, operand, sqlModeMethod);
+    }
+
+    protected Expression getExpression(RexToLixTranslator translator,
+        Expression operand, BuiltInMethod builtInMethod) {
+      final MethodCallExpression locale =
+          Expressions.call(BuiltInMethod.SQL_MODE.method, translator.getRoot());
       return Expressions.call(builtInMethod.method.getDeclaringClass(),
           builtInMethod.method.getName(), operand, locale);
     }

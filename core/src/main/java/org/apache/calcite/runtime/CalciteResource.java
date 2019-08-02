@@ -891,6 +891,12 @@ public interface CalciteResource {
 
   @BaseMessage("Not a valid input for JSON_STORAGE_SIZE: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonStorageSize(String value);
+
+  @BaseMessage("Invalid input for JSON_QUOTE: jsonDoc: ''{0}''")
+  ExInst<CalciteException> invalidInputForJsonQuote(String value);
+
+  @BaseMessage("Invalid input for JSON_UNQUOTE: jsonDoc: ''{0}''")
+  ExInst<CalciteException> invalidInputForJsonUnQuote(String value);
 }
 
 // End CalciteResource.java
