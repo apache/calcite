@@ -1058,6 +1058,12 @@ public class RelBuilder {
     final RelNode scan = scanFactory.createScan(cluster, relOptTable);
     push(scan);
     rename(relOptTable.getRowType().getFieldNames());
+
+    // When the node is not a TableScan but from expansion,
+    // we need to explicitly add the alias.
+    if (!(scan instanceof TableScan)) {
+      as(Util.last(ImmutableList.copyOf(tableNames)));
+    }
     return this;
   }
 

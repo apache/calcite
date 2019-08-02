@@ -699,6 +699,18 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  @Test public void testProjectWithAliasFromScan() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .project(builder.field(1, "EMP", "ENAME"))
+            .build();
+    final String expected =
+        "LogicalProject(ENAME=[$1])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
   private void project1(int value, SqlTypeName sqlTypeName, String message, String expected) {
     final RelBuilder builder = RelBuilder.create(config().build());
     RexBuilder rex = builder.getRexBuilder();
@@ -2760,6 +2772,31 @@ public class RelBuilderTest {
       }
 
       assertTrue(count > 1);
+    }
+  }
+
+  @Test public void testExpandViewShouldKeepAlias() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      final Frameworks.ConfigBuilder configBuilder =
+          expandingConfig(connection);
+      final RelOptTable.ViewExpander viewExpander =
+          (RelOptTable.ViewExpander) Frameworks.getPlanner(configBuilder.build());
+      final RelFactories.TableScanFactory tableScanFactory =
+          RelFactories.expandingScanFactory(viewExpander,
+              RelFactories.DEFAULT_TABLE_SCAN_FACTORY);
+      configBuilder.context(Contexts.of(tableScanFactory));
+      final RelBuilder builder = RelBuilder.create(configBuilder.build());
+      RelNode node =
+          builder.scan("MYVIEW")
+              .project(
+                  builder.field(1, "MYVIEW", "EMPNO"),
+                  builder.field(1, "MYVIEW", "ENAME"))
+              .build();
+      String expected =
+          "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+              + "  LogicalFilter(condition=[=(1, 1)])\n"
+                  + "    LogicalTableScan(table=[[scott, EMP]])\n";
+      assertThat(node, hasTree(expected));
     }
   }
 
