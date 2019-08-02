@@ -550,12 +550,91 @@ public class RelOptRulesTest extends RelOptTestBase {
             + " where e.sal > 100");
   }
 
-
   @Test public void testRightOuterJoinSimplificationToInner() {
     checkPlanning(FilterJoinRule.FILTER_ON_JOIN,
         "select 1 from sales.dept d right outer join sales.emp e"
             + " on d.deptno = e.deptno"
             + " where d.name = 'Charlie'");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3225">[CALCITE-3225]
+   * JoinToMultiJoinRule should not match SEMI/ANTI LogicalJoin</a>. */
+  @Test public void testJoinToMultiJoinDoesNotMatchSemiJoin() {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    // build a rel equivalent to sql:
+    // select * from
+    // (select * from emp join dept ON emp.deptno = emp.deptno) t
+    // where emp.job in (select job from bonus)
+    RelNode left = relBuilder.scan("EMP").build();
+    RelNode right = relBuilder.scan("DEPT").build();
+    RelNode semiRight = relBuilder.scan("BONUS").build();
+    RelNode relNode = relBuilder.push(left)
+                                .push(right)
+                                .join(
+                                    JoinRelType.INNER,
+                                    relBuilder.call(SqlStdOperatorTable.EQUALS,
+                                                    relBuilder.field(2, 0, "DEPTNO"),
+                                                    relBuilder.field(2, 1, "DEPTNO")))
+                                .push(semiRight)
+                                .semiJoin(
+                                    relBuilder.call(SqlStdOperatorTable.EQUALS,
+                                                    relBuilder.field(2, 0, "JOB"),
+                                                    relBuilder.field(2, 1, "JOB")))
+                                .build();
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(JoinToMultiJoinRule.INSTANCE)
+        .build();
+
+    HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    RelNode output = hepPlanner.findBestExp();
+
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    SqlToRelTestBase.assertValid(output);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3225">[CALCITE-3225]
+   * JoinToMultiJoinRule should not match SEMI/ANTI LogicalJoin</a>. */
+  @Test public void testJoinToMultiJoinDoesNotMatchAntiJoin() {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    // build a rel equivalent to sql:
+    // select * from
+    // (select * from emp join dept ON emp.deptno = emp.deptno) t
+    // where not exists (select job from bonus where emp.job = bonus.job)
+    RelNode left = relBuilder.scan("EMP").build();
+    RelNode right = relBuilder.scan("DEPT").build();
+    RelNode antiRight = relBuilder.scan("BONUS").build();
+    RelNode relNode = relBuilder.push(left)
+                                .push(right)
+                                .join(
+                                    JoinRelType.INNER,
+                                    relBuilder.call(SqlStdOperatorTable.EQUALS,
+                                                    relBuilder.field(2, 0, "DEPTNO"),
+                                                    relBuilder.field(2, 1, "DEPTNO")))
+                                .push(antiRight)
+                                .antiJoin(
+                                    relBuilder.call(SqlStdOperatorTable.EQUALS,
+                                                    relBuilder.field(2, 0, "JOB"),
+                                                    relBuilder.field(2, 1, "JOB")))
+                                .build();
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(JoinToMultiJoinRule.INSTANCE)
+        .build();
+
+    HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    RelNode output = hepPlanner.findBestExp();
+
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    SqlToRelTestBase.assertValid(output);
   }
 
   @Test public void testPushFilterPastAgg() {
