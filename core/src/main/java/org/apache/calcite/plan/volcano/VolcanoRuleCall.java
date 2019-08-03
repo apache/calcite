@@ -333,6 +333,9 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         if (ascending && operand.childPolicy != RelOptRuleOperandChildPolicy.UNORDERED) {
           // We know that the previous operand was *a* child of its parent,
           // but now check that it is the *correct* child.
+          if (previousOperand.ordinalInParent >= rel.getInputs().size()) {
+            continue;
+          }
           final RelSubset input =
               (RelSubset) rel.getInput(previousOperand.ordinalInParent);
           List<RelNode> inputRels = input.getRelList();
