@@ -2729,11 +2729,9 @@ public class RexProgramTest extends RexProgramBuilderBase {
   @Test public void testIsNullSimplificationWithIsDistinctFrom() {
     RexNode expr =
         isNotNull(
-            case_(
-                vBool(),
+            case_(vBool(),
                 isDistinctFrom(falseLiteral, vBoolNotNull(0)),
-                vBoolNotNull(2))
-            );
+                vBoolNotNull(2)));
     RexNode s = simplify.simplifyUnknownAs(expr, RexUnknownAs.UNKNOWN);
 
     assertThat(expr.isAlwaysTrue(), is(true));

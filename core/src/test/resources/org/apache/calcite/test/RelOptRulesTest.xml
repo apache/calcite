@@ -6683,8 +6683,7 @@ LogicalProject(NAME=[$1])
             <![CDATA[select *
 from dept a
 left join (select name, 1 from dept) as b
-on a.name = b.name
-]]>
+on a.name = b.name]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -6710,8 +6709,7 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], NAME0=[$2], EXPR$1=[$3])
             <![CDATA[select *
 from (select name, 1 from dept) as a
 right join dept b
-on a.name = b.name
-]]>
+on a.name = b.name]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -6735,10 +6733,10 @@ LogicalProject(NAME=[$0], EXPR$1=[$1], DEPTNO=[$2], NAME0=[$3])
     <TestCase name="testJoinProjectTranspose4">
         <Resource name="sql">
             <![CDATA[select *
+from dept a
 left join (select x name, y is not null from
 (values (2, cast(null as integer)), (2, 1)) as t(x, y)) b
-on a.name = b.name
-]]>
+on a.name = b.name]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -6770,10 +6768,9 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], NAME0=[$2], EXPR$1=[$3])
     <TestCase name="testJoinProjectTranspose5">
         <Resource name="sql">
             <![CDATA[select *
-left join (select x name, y is not null from
-(values (2, cast(null as integer)), (2, 1)) as t(x, y)) b
-on a.name = b.name
-]]>
+from dept a
+left join (select name, 1 + 1 from dept) as b
+on a.name = b.name]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -6799,8 +6796,7 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], NAME0=[$2], EXPR$1=[$3])
             <![CDATA[select *
 from (select name, 1 from dept) a
 full join (select name, 1 from dept) as b
-on a.name = b.name
-]]>
+on a.name = b.name]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -6828,8 +6824,7 @@ LogicalProject(NAME=[$0], EXPR$1=[$1], NAME0=[$2], EXPR$10=[$3])
             <![CDATA[select *
 from dept a
 left join (select name from dept) as b
-on a.name = b.name
-]]>
+ on a.name = b.name]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -6854,9 +6849,10 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], NAME0=[$2])
         <Resource name="sql">
             <![CDATA[select *
 from dept a
-left join (select name, deptno > 10 and cast(null as boolean) from dept b) as b
-on a.name = b.name
-]]>
+left join (
+  select name, deptno > 10 and cast(null as boolean)
+  from dept) as b
+on a.name = b.name]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -10146,7 +10142,7 @@ LogicalProject(DEPTNO=[$1])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(EMPNO=[$0], D=[CASE(=($9, 0), false, IS NULL(CASE(true, CAST($7):INTEGER, null:INTEGER)), null:NULL, IS NOT NULL($12), true, <($10, $9), null:NULL, false)])
+LogicalProject(EMPNO=[$0], D=[CASE(=($9, 0), false, IS NULL(CASE(true, CAST($7):INTEGER, null:INTEGER)), null:BOOLEAN, IS NOT NULL($12), true, <($10, $9), null:BOOLEAN, false)])
   LogicalJoin(condition=[=(CASE(true, CAST($7):INTEGER, null:INTEGER), $11)], joinType=[left])
     LogicalJoin(condition=[true], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
