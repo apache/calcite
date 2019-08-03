@@ -54,13 +54,17 @@ public class NullInitializerExpressionFactory implements InitializerExpressionFa
 
   public RexNode newColumnDefaultValue(RelOptTable table, int iColumn,
       InitializerContext context) {
-    return context.getRexBuilder().constantNull();
+    final RelDataType fieldType =
+        table.getRowType().getFieldList().get(iColumn).getType();
+    return context.getRexBuilder().makeNullLiteral(fieldType);
   }
 
   public RexNode newAttributeInitializer(RelDataType type,
       SqlFunction constructor, int iAttribute, List<RexNode> constructorArgs,
       InitializerContext context) {
-    return context.getRexBuilder().constantNull();
+    final RelDataType fieldType =
+        type.getFieldList().get(iAttribute).getType();
+    return context.getRexBuilder().makeNullLiteral(fieldType);
   }
 }
 

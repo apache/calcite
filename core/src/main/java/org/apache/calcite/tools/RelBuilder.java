@@ -360,7 +360,8 @@ public class RelBuilder {
   public RexNode literal(Object value) {
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     if (value == null) {
-      return rexBuilder.constantNull();
+      final RelDataType type = getTypeFactory().createSqlType(SqlTypeName.NULL);
+      return rexBuilder.makeNullLiteral(type);
     } else if (value instanceof Boolean) {
       return rexBuilder.makeLiteral((Boolean) value);
     } else if (value instanceof BigDecimal) {

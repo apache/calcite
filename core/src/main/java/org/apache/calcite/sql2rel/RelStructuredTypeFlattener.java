@@ -266,10 +266,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
             nullIndicator);
 
     // THEN CAST(NULL AS StructuredType)
-    caseOperands[1] =
-        rexBuilder.makeCast(
-            structuredType,
-            rexBuilder.constantNull());
+    caseOperands[1] = rexBuilder.makeNullLiteral(structuredType);
 
     // ELSE NEW StructuredType(inputs...) END
     caseOperands[2] = newInvocation;
@@ -688,7 +685,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     for (RelDataTypeField field : flattenedType.getFieldList()) {
       flattenedExps.add(
           Pair.of(
-              rexBuilder.makeCast(field.getType(), rexBuilder.constantNull()),
+              rexBuilder.makeNullLiteral(field.getType()),
               field.getName()));
     }
   }
