@@ -199,7 +199,7 @@ orderItem:
       expression [ ASC | DESC ] [ NULLS FIRST | NULLS LAST ]
 
 select:
-      SELECT [ STREAM ] [ ALL | DISTINCT ]
+      SELECT [ '/*+' hint [, hint]* '*/' ] [ STREAM ] [ ALL | DISTINCT ]
           { * | projectItem [, projectItem ]* }
       FROM tableExpression
       [ WHERE booleanExpression ]
@@ -234,13 +234,24 @@ tableReference:
 tablePrimary:
       [ [ catalogName . ] schemaName . ] tableName
       '(' TABLE [ [ catalogName . ] schemaName . ] tableName ')'
-  |   tablePrimary [ EXTEND ] '(' columnDecl [, columnDecl ]* ')'
+  |   tablePrimary [ '/*+' hint [, hint]* '*/' ] [ EXTEND ] '(' columnDecl [, columnDecl ]* ')'
   |   [ LATERAL ] '(' query ')'
   |   UNNEST '(' expression ')' [ WITH ORDINALITY ]
   |   [ LATERAL ] TABLE '(' [ SPECIFIC ] functionName '(' expression [, expression ]* ')' ')'
 
 columnDecl:
       column type [ NOT NULL ]
+
+hint:
+      hintName
+  |   hintName '(' hintOptions ')'
+
+hintOptions:
+      hintKVOption [, hintKVOption]*
+  |   optionName, [, optionName]*
+
+hintKVOption:
+      optionName '=' stringLiteral
 
 values:
       VALUES expression [, expression ]*

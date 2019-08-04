@@ -23,6 +23,8 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -39,6 +41,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -52,11 +55,12 @@ import java.util.Set;
  * The set of output rows is a subset of the cartesian product of the two
  * inputs; precisely which subset depends on the join condition.
  */
-public abstract class Join extends BiRel {
+public abstract class Join extends BiRel implements Hintable {
   //~ Instance fields --------------------------------------------------------
 
   protected final RexNode condition;
   protected final ImmutableSet<CorrelationId> variablesSet;
+  protected final ImmutableList<RelHint> hints;
 
   /**
    * Values must be of enumeration {@link JoinRelType}, except that
@@ -86,6 +90,7 @@ public abstract class Join extends BiRel {
    *
    * @param cluster          Cluster
    * @param traitSet         Trait set
+   * @param hints            Hints
    * @param left             Left input
    * @param right            Right input
    * @param condition        Join condition
@@ -97,6 +102,7 @@ public abstract class Join extends BiRel {
   protected Join(
       RelOptCluster cluster,
       RelTraitSet traitSet,
+      List<RelHint> hints,
       RelNode left,
       RelNode right,
       RexNode condition,
@@ -107,6 +113,36 @@ public abstract class Join extends BiRel {
     this.variablesSet = ImmutableSet.copyOf(variablesSet);
     this.joinType = Objects.requireNonNull(joinType);
     this.joinInfo = JoinInfo.of(left, right, condition);
+    this.hints = ImmutableList.copyOf(hints);
+  }
+
+  /**
+   * Creates a Join.
+   *
+   * <p>Note: We plan to change the {@code variablesStopped} parameter to
+   * {@code Set&lt;CorrelationId&gt; variablesSet}
+   * {@link org.apache.calcite.util.Bug#upgrade(String) before version 2.0},
+   * because {@link #getVariablesSet()}
+   * is preferred over {@link #getVariablesStopped()}.
+   * This constructor is not deprecated, for now, because maintaining overloaded
+   * constructors in multiple sub-classes would be onerous.
+   *
+   * @param cluster          Cluster
+   * @param traitSet         Trait set
+   * @param left             Left input
+   * @param right            Right input
+   * @param condition        Join condition
+   * @param joinType         Join type
+   * @param variablesSet     Set variables that are set by the
+   *                         LHS and used by the RHS and are not available to
+   *                         nodes above this Join in the tree
+   */
+  protected Join(
+      RelOptCluster cluster, RelTraitSet traitSet, RelNode left,
+      RelNode right, RexNode condition, Set<CorrelationId> variablesSet,
+      JoinRelType joinType) {
+    this(cluster, traitSet, new ArrayList<>(), left, right,
+        condition, variablesSet, joinType);
   }
 
   @Deprecated // to be removed before 2.0
@@ -310,6 +346,10 @@ public abstract class Join extends BiRel {
    */
   public JoinInfo analyzeCondition() {
     return joinInfo;
+  }
+
+  @Override public ImmutableList<RelHint> getHints() {
+    return hints;
   }
 }
 
