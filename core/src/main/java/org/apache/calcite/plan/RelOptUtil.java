@@ -44,6 +44,9 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
+import org.apache.calcite.rel.hint.HintStrategyTable;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -381,6 +384,29 @@ public abstract class RelOptUtil {
         + "\nset is " + equivalenceClass.toString()
         + "\nexpression is " + RelOptUtil.toString(newRel);
     throw new AssertionError(s);
+  }
+
+  /**
+   * Copy the {@link org.apache.calcite.rel.hint.RelHint}s from {@code originalRel}
+   * to {@code newRel} if both of them are {@link Hintable}.
+   *
+   * <p>The hints are also filtered by the specified hint strategies.
+   *
+   * @param originalRel Original relational expression
+   * @param newRel      New relational expression
+   * @return A copy of {@code newRel} with hints of {@code originalRel}, or {@code newRel}
+   * directly if one of them are not {@link Hintable}
+   */
+  public static RelNode copyRelHints(RelNode originalRel, RelNode newRel) {
+    if (originalRel instanceof Hintable
+        && newRel instanceof Hintable
+        && ((Hintable) originalRel).getHints().size() > 0) {
+      HintStrategyTable hintStrategies = originalRel.getCluster().getHintStrategies();
+      final List<RelHint> hints = ((Hintable) originalRel).getHints();
+      return ((Hintable) newRel)
+          .attachHints(hintStrategies.apply(hints, newRel));
+    }
+    return newRel;
   }
 
   /**

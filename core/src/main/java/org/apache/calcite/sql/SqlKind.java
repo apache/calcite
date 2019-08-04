@@ -92,6 +92,16 @@ public enum SqlKind {
   SELECT,
 
   /**
+   * Sql Hint statement.
+   */
+  HINT,
+
+  /**
+   * Table reference.
+   */
+  TABLE_REF,
+
+  /**
    * JOIN operator or compound FROM clause.
    *
    * <p>A FROM clause with more than one table is represented as if it were a

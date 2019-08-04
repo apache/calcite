@@ -20,6 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -89,8 +90,14 @@ public class IdentifierNamespace extends AbstractNamespace {
     switch (node.getKind()) {
     case EXTEND:
       final SqlCall call = (SqlCall) node;
-      return Pair.of((SqlIdentifier) call.getOperandList().get(0),
-          (SqlNodeList) call.getOperandList().get(1));
+      final SqlNode operand0 = call.operand(0);
+      final SqlIdentifier identifier = operand0.getKind() == SqlKind.TABLE_REF
+          ? ((SqlCall) operand0).operand(0)
+          : (SqlIdentifier) operand0;
+      return Pair.of(identifier, call.operand(1));
+    case TABLE_REF:
+      final SqlCall tableRef = (SqlCall) node;
+      return Pair.of(tableRef.operand(0), null);
     default:
       return Pair.of((SqlIdentifier) node, null);
     }

@@ -8577,6 +8577,122 @@ public class SqlParserTest {
     sql(sql2).ok(expected);
   }
 
+  @Test public void testQueryHint() {
+    final String sql = "select "
+        + "/*+ properties(k1='v1', k2='v2'), no_hash_join, Index(idx1, idx2) */ "
+        + "empno, ename, deptno from emps";
+    final String expected = "SELECT\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), `NO_HASH_JOIN`, `INDEX`(`IDX1`, `IDX2`) */\n"
+        + "`EMPNO`, `ENAME`, `DEPTNO`\n"
+        + "FROM `EMPS`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testTableHintsInQuery() {
+    final String hint = "/*+ PROPERTIES(K1 ='v1', K2 ='v2'), INDEX(IDX0, IDX1) */";
+    final String sql1 = String.format(Locale.ROOT, "select * from t %s", hint);
+    final String expected1 = "SELECT *\n"
+        + "FROM `T`\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), `INDEX`(`IDX0`, `IDX1`) */";
+    sql(sql1).ok(expected1);
+    final String sql2 = String.format(Locale.ROOT, "select * from\n"
+        + "(select * from t %s union all select * from t %s )", hint, hint);
+    final String expected2 = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM `T`\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), `INDEX`(`IDX0`, `IDX1`) */\n"
+        + "UNION ALL\n"
+        + "SELECT *\n"
+        + "FROM `T`\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), `INDEX`(`IDX0`, `IDX1`) */)";
+    sql(sql2).ok(expected2);
+    final String sql3 = String.format(Locale.ROOT, "select * from t %s join t %s", hint, hint);
+    final String expected3 = "SELECT *\n"
+        + "FROM `T`\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), `INDEX`(`IDX0`, `IDX1`) */\n"
+        + "INNER JOIN `T`\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), `INDEX`(`IDX0`, `IDX1`) */";
+    sql(sql3).ok(expected3);
+  }
+
+  @Test public void testTableHintsInInsert() {
+    final String sql = "insert into emps\n"
+        + "/*+ PROPERTIES(k1='v1', k2='v2'), INDEX(idx0, idx1) */\n"
+        + "select * from emps";
+    final String expected = "INSERT INTO `EMPS`\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), `INDEX`(`IDX0`, `IDX1`) */\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`)";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testTableHintsInDelete() {
+    final String sql = "delete from emps\n"
+        + "/*+ properties(k1='v1', k2='v2'), index(idx1, idx2), no_hash_join */\n"
+        + "where empno=12";
+    final String expected = "DELETE FROM `EMPS`\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), `INDEX`(`IDX1`, `IDX2`), `NO_HASH_JOIN` */\n"
+        + "WHERE (`EMPNO` = 12)";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testTableHintsInUpdate() {
+    final String sql = "update emps\n"
+        + "/*+ properties(k1='v1', k2='v2'), index(idx1, idx2), no_hash_join */\n"
+        + "set empno = empno + 1, sal = sal - 1 \n"
+        + "where empno=12";
+    final String expected = "UPDATE `EMPS`\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), "
+        + "`INDEX`(`IDX1`, `IDX2`), `NO_HASH_JOIN` */ "
+        + "SET `EMPNO` = (`EMPNO` + 1)\n"
+        + ", `SAL` = (`SAL` - 1)\n"
+        + "WHERE (`EMPNO` = 12)";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testTableHintsInMerge() {
+    final String sql = "merge into emps\n"
+        + "/*+ properties(k1='v1', k2='v2'), index(idx1, idx2), no_hash_join */ e\n"
+        + "using tempemps as t\n"
+        + "on e.empno = t.empno\n"
+        + "when matched then update\n"
+        + "set name = t.name, deptno = t.deptno, salary = t.salary * .1\n"
+        + "when not matched then insert (name, dept, salary)\n"
+        + "values(t.name, 10, t.salary * .15)";
+    final String expected = "MERGE INTO `EMPS`\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), "
+        + "`INDEX`(`IDX1`, `IDX2`), `NO_HASH_JOIN` */ "
+        + "AS `E`\n"
+        + "USING `TEMPEMPS` AS `T`\n"
+        + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
+        + "WHEN MATCHED THEN UPDATE SET `NAME` = `T`.`NAME`\n"
+        + ", `DEPTNO` = `T`.`DEPTNO`\n"
+        + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
+        + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
+        + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testInvalidHintFormat() {
+    final String sql1 = "select "
+        + "/*+ properties(k1^=^123, k2='v2'), no_hash_join() */ "
+        + "empno, ename, deptno from emps";
+    sql(sql1).fails("(?s).*Encountered \"= 123\" at line 1, column 25.\n.*");
+    final String sql2 = "select "
+        + "/*+ properties(k1, k2^=^'v2'), no_hash_join */ "
+        + "empno, ename, deptno from emps";
+    sql(sql2).fails("(?s).*Encountered \"=\" at line 1, column 29.\n.*");
+    final String sql3 = "select "
+        + "/*+ no_hash_join() */ "
+        + "empno, ename, deptno from emps";
+    // allow empty options.
+    final String expected3 = "SELECT\n"
+        + "/*+ `NO_HASH_JOIN` */\n"
+        + "`EMPNO`, `ENAME`, `DEPTNO`\n"
+        + "FROM `EMPS`";
+    sql(sql3).ok(expected3);
+  }
+
   //~ Inner Interfaces -------------------------------------------------------
 
   /**
