@@ -103,12 +103,12 @@ public abstract class ProjectTableScanRule extends RelOptRule {
   protected void apply(RelOptRuleCall call, Project project, TableScan scan) {
     final RelOptTable table = scan.getTable();
     assert table.unwrap(ProjectableFilterableTable.class) != null;
-
-    final Mappings.TargetMapping mapping = project.getMapping();
-    if (mapping == null
-        || Mappings.isIdentity(mapping)) {
+    if (!project.isMapping()) {
       return;
     }
+    final Mappings.TargetMapping mapping = Project.getPartialMapping(
+            project.getInput().getRowType().getFieldCount(),
+            project.getProjects());
 
     final ImmutableIntList projects;
     final ImmutableList<RexNode> filters;
