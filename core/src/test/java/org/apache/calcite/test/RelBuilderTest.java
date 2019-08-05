@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
@@ -709,6 +710,21 @@ public class RelBuilderTest {
         "LogicalProject(ENAME=[$1])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3228">[CALCITE-3228]
+   * IllegalArgumentException in getMapping() for project containing same reference</a>. */
+  @Test public void testProjectMapping() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+            builder.scan("EMP")
+                    .project(builder.field(0), builder.field(0))
+                    .build();
+    assertTrue(root instanceof Project);
+    Project project = (Project) root;
+    Mappings.TargetMapping mapping = project.getMapping();
+    assertTrue(mapping == null);
   }
 
   private void project1(int value, SqlTypeName sqlTypeName, String message, String expected) {
