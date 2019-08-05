@@ -585,10 +585,9 @@ public class ReflectiveSchemaTest {
     with.query("select \"wrapperLong\" / \"primitiveLong\" as c\n"
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
         .planContains(
-            "final Long inp13_ = current.wrapperLong;")
+            "final Long input_value = current.wrapperLong;")
         .planContains(
-            "return inp13_ == null ? (Long) null "
-                + ": Long.valueOf(inp13_.longValue() / current.primitiveLong);")
+            "return input_value == null ? (Long) null : Long.valueOf(input_value / Long.valueOf(current.primitiveLong));")
         .returns("C=null\n");
   }
 
@@ -606,10 +605,9 @@ public class ReflectiveSchemaTest {
     with.query("select \"wrapperLong\" / \"wrapperLong\" as c\n"
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
         .planContains(
-            "final Long inp13_ = ((org.apache.calcite.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
+            "final Long input_value = ((org.apache.calcite.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
         .planContains(
-            "return inp13_ == null ? (Long) null "
-                + ": Long.valueOf(inp13_.longValue() / inp13_.longValue());")
+            "return input_value == null ? (Long) null : Long.valueOf(input_value / input_value);")
         .returns("C=null\n");
   }
 
@@ -620,11 +618,11 @@ public class ReflectiveSchemaTest {
         + "+ \"wrapperLong\" / \"wrapperLong\" as c\n"
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
         .planContains(
-            "final Long inp13_ = ((org.apache.calcite.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
+            "final Long input_value = ((org.apache.calcite.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
         .planContains(
-            "return inp13_ == null ? (Long) null "
-                + ": Long.valueOf(Long.valueOf(inp13_.longValue() / inp13_.longValue()).longValue() "
-                + "+ Long.valueOf(inp13_.longValue() / inp13_.longValue()).longValue());")
+            "final Long binary_call_value = input_value == null ? (Long) null : Long.valueOf(input_value / input_value);")
+        .planContains(
+            "return binary_call_value == null ? (Long) null : Long.valueOf(binary_call_value + binary_call_value);")
         .returns("C=null\n");
   }
 

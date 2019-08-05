@@ -22,6 +22,7 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.CatchBlock;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -40,7 +41,13 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexRangeRef;
+import org.apache.calcite.rex.RexSubQuery;
+import org.apache.calcite.rex.RexTableInputRef;
+import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
@@ -63,14 +70,17 @@ import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PREV;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBSTRING;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
 
@@ -78,7 +88,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
  * Translates {@link org.apache.calcite.rex.RexNode REX expressions} to
  * {@link Expression linq4j expressions}.
  */
-public class RexToLixTranslator {
+public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result> {
   public static final Map<Method, SqlOperator> JAVA_TO_SQL_METHOD_MAP =
       Util.mapOf(
           findMethod(String.class, "toUpperCase"), UPPER,
@@ -205,10 +215,17 @@ public class RexToLixTranslator {
 
   Expression translate(RexNode expr, RexImpTable.NullAs nullAs,
       Type storageType) {
-    Expression expression = translate0(expr, nullAs, storageType);
-    expression = EnumUtils.toInternal(expression, storageType);
-    assert expression != null;
-    return list.append("v", expression);
+    currentStorageType = storageType;
+    final Result result = expr.accept(this);
+    final Expression translated =
+        EnumUtils.toInternal(result.valueVariable, storageType);
+    assert translated != null;
+    // When we asked for not null input that would be stored as box, avoid unboxing
+    if (RexImpTable.NullAs.NOT_POSSIBLE == nullAs
+        && translated.type.equals(storageType)) {
+      return translated;
+    }
+    return nullAs.handle(translated);
   }
 
   Expression translateCast(
@@ -757,8 +774,8 @@ public class RexToLixTranslator {
   /** Translates a call to an operator or function. */
   private Expression translateCall(RexCall call, RexImpTable.NullAs nullAs) {
     final SqlOperator operator = call.getOperator();
-    CallImplementor implementor =
-        RexImpTable.INSTANCE.get(operator);
+    CallImplementor implementor = null;
+//        RexImpTable.INSTANCE.get(operator);
     if (implementor == null) {
       throw new RuntimeException("cannot translate call " + call);
     }
@@ -1184,5 +1201,489 @@ public class RexToLixTranslator {
     public static final AlwaysNull INSTANCE = new AlwaysNull();
 
     private AlwaysNull() {}
+  }
+
+  /**
+   * Result of translating a {@code RexNode}
+   */
+  public static class Result {
+    final ParameterExpression isNullVariable;
+    final ParameterExpression valueVariable;
+
+    public Result(ParameterExpression isNullVariable,
+        ParameterExpression valueVariable) {
+      this.isNullVariable = isNullVariable;
+      this.valueVariable = valueVariable;
+    }
+  }
+
+  /**
+   * Map from RexLiteral's variable name to its literal, which is often a
+   * ({@link org.apache.calcite.linq4j.tree.ConstantExpression}))
+   * It is used in the some {@code RexCall}'s implementors, such as
+   * {@code ExtractImplementor}
+   */
+  private final Map<Expression, Expression> literalMap = new HashMap<>();
+
+  /**
+   * For {@code RexCall}, keep the list of its operand's {@code Result}.
+   * It is useful when creating a {@code CallImplementor}
+   */
+  private final Map<RexCall, List<Result>> callOperandResultMap = new HashMap<>();
+
+  /**
+   * Map from RexNode under specific storage type to its Result,
+   * to avoid generating duplicate code.
+   * For {@code RexInputRef}, {@code RexDynamicParam} and {@code RexFieldAccess}
+   */
+  private final Map<Pair<RexNode, Type>, Result> rexWithStorageTypeResultMap = new HashMap<>();
+
+  /**
+   * Map from RexNode to its Result, to avoid generating duplicate code
+   * For {@code RexLiteral} and {@code RexCall}
+   */
+  private final Map<RexNode, Result> rexResultMap = new HashMap<>();
+
+  private Type currentStorageType = null;
+
+  /**
+   * Visit {@code RexInputRef}. If it has never been visited
+   * under current storage type before, {@code RexToLixTranslator}
+   * generally produces three lines of code.
+   * For example, when visiting a column (named commission) in
+   * table Employee, the generated code snippet is:
+   * {@code
+   *   final Employee current =(Employee) inputEnumerator.current();
+       final Integer input_value = current.commission;
+       final boolean input_isNull = input_value == null;
+   * }
+   */
+  @Override public Result visitInputRef(RexInputRef inputRef) {
+    final Pair<RexNode, Type> key = Pair.of(inputRef, currentStorageType);
+    // If the RexInputRef has been visited under current storage type already,
+    // it is not necessary to visit it again, just return the result.
+    if (rexWithStorageTypeResultMap.containsKey(key)) {
+      return rexWithStorageTypeResultMap.get(key);
+    }
+    // Generate one line of code to get the input, e.g.,
+    // "final Employee current =(Employee) inputEnumerator.current();"
+    final Expression valueExpression = inputGetter.field(
+        list, inputRef.getIndex(), currentStorageType);
+
+    // Generate one line of code for the value of RexInputRef, e.g.,
+    // "final Integer input_value = current.commission;"
+    final ParameterExpression valueVariable =
+        Expressions.parameter(
+            valueExpression.getType(), list.newName("input_value"));
+    list.add(Expressions.declare(Modifier.FINAL, valueVariable, valueExpression));
+
+    // Generate one line of code to check whether RexInputRef is null, e.g.,
+    // "final boolean input_isNull = input_value == null;"
+    final Expression isNullExpression = checkNull(valueVariable);
+    final ParameterExpression isNullVariable =
+        Expressions.parameter(
+            Boolean.TYPE, list.newName("input_isNull"));
+    list.add(Expressions.declare(Modifier.FINAL, isNullVariable, isNullExpression));
+
+    final Result result = new Result(isNullVariable, valueVariable);
+
+    // Cache <RexInputRef, currentStorageType>'s result
+    // Note: EnumerableMatch's PrevInputGetter changes index each time,
+    // it is not right to reuse the result under such case.
+    if (!(inputGetter instanceof EnumerableMatch.PrevInputGetter)) {
+      rexWithStorageTypeResultMap.put(key, result);
+    }
+    return new Result(isNullVariable, valueVariable);
+  }
+
+  @Override public Result visitLocalRef(RexLocalRef localRef) {
+    return deref(localRef).accept(this);
+  }
+
+  /**
+   * Visit {@code RexLiteral}. If it has never been visited before,
+   * {@code RexToLixTranslator} will generate two lines of code. For example,
+   * when visiting a primitive int (10), the generated code snippet is:
+   * {@code
+   *   final int literal_value = 10;
+   *   final boolean literal_isNull = false;
+   * }
+   */
+  @Override public Result visitLiteral(RexLiteral literal) {
+    // If the RexLiteral has been visited already, just return the result
+    if (rexResultMap.containsKey(literal)) {
+      return rexResultMap.get(literal);
+    }
+    // Generate one line of code for the value of RexLiteral, e.g.,
+    // "final int literal_value = 10;"
+    final Expression valueExpression = literal.isNull()
+        // Note: even for null literal, we can't loss its type information
+        ? getTypedNullLiteral(literal)
+        : translateLiteral(literal, literal.getType(),
+            typeFactory, RexImpTable.NullAs.NOT_POSSIBLE);
+    final ParameterExpression valueVariable =
+        Expressions.parameter(valueExpression.getType(),
+            list.newName("literal_value"));
+    list.add(Expressions.declare(Modifier.FINAL, valueVariable, valueExpression));
+
+    // Generate one line of code to check whether RexLiteral is null, e.g.,
+    // "final boolean literal_isNull = false;"
+    final Expression isNullExpression =
+        literal.isNull() ? RexImpTable.TRUE_EXPR : RexImpTable.FALSE_EXPR;
+    final ParameterExpression isNullVariable = Expressions.parameter(
+        Boolean.TYPE, list.newName("literal_isNull"));
+    list.add(Expressions.declare(Modifier.FINAL, isNullVariable, isNullExpression));
+
+    // Maintain the map from valueVariable (ParameterExpression) to real Expression
+    literalMap.put(valueVariable, valueExpression);
+    final Result result = new Result(isNullVariable, valueVariable);
+    // Cache RexLiteral's result
+    rexResultMap.put(literal, result);
+    return result;
+  }
+
+  /**
+   * Get the {@code Expression} for null literal without loss its type information
+   */
+  private Expression getTypedNullLiteral(RexLiteral literal) {
+    assert literal.isNull();
+    Type javaClass = typeFactory.getJavaClass(literal.getType());
+    switch (literal.getType().getSqlTypeName()) {
+    case DATE:
+    case TIME:
+    case TIME_WITH_LOCAL_TIME_ZONE:
+    case INTERVAL_YEAR:
+    case INTERVAL_YEAR_MONTH:
+    case INTERVAL_MONTH:
+      javaClass = Integer.class;
+      break;
+    case TIMESTAMP:
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+    case INTERVAL_DAY:
+    case INTERVAL_DAY_HOUR:
+    case INTERVAL_DAY_MINUTE:
+    case INTERVAL_DAY_SECOND:
+    case INTERVAL_HOUR:
+    case INTERVAL_HOUR_MINUTE:
+    case INTERVAL_HOUR_SECOND:
+    case INTERVAL_MINUTE:
+    case INTERVAL_MINUTE_SECOND:
+    case INTERVAL_SECOND:
+      javaClass = Long.class;
+      break;
+    }
+    return javaClass == null
+        ? RexImpTable.NULL_EXPR
+        : Expressions.constant(null, javaClass);
+  }
+
+  /**
+   * Visit {@code RexCall}. For most {@code SqlOperator}s, we can get the implementor
+   * from {@code RexImpTable}. Several operators (e.g., CaseWhen) with special semantics
+   * need to be implemented separately.
+   */
+  @Override public Result visitCall(RexCall call) {
+    if (rexResultMap.containsKey(call)) {
+      return rexResultMap.get(call);
+    }
+    final SqlOperator operator = call.getOperator();
+    if (operator == PREV) {
+      return implementPrev(call);
+    }
+    if (operator == CASE) {
+      return implementCaseWhen(call);
+    }
+    final RexImpTable.RexCallImplementor implementor =
+        RexImpTable.INSTANCE.get(operator);
+    if (implementor == null) {
+      throw new RuntimeException("cannot translate call " + call);
+    }
+    final List<RexNode> operandList = call.getOperands();
+    final List<Type> storageTypes = EnumUtils.internalTypes(operandList);
+    final List<Result> operandResults = new ArrayList<>();
+    for (int i = 0; i < operandList.size(); i++) {
+      final Result operandResult =
+          implementCallOperand(operandList.get(i), storageTypes.get(i), this);
+      operandResults.add(operandResult);
+    }
+    callOperandResultMap.put(call, operandResults);
+    final Result result = implementor.implement(this, call, operandResults);
+    rexResultMap.put(call, result);
+    return result;
+  }
+
+  private static Result implementCallOperand(final RexNode operand,
+      final Type storageType, final RexToLixTranslator translator) {
+    final Type originalStorageType = translator.currentStorageType;
+    translator.currentStorageType = storageType;
+    Result operandResult = operand.accept(translator);
+    if (storageType != null) {
+      operandResult = translator.toInnerStorageType(operandResult, storageType);
+    }
+    translator.currentStorageType = originalStorageType;
+    return operandResult;
+  }
+
+  private static Expression implementCallOperand2(final RexNode operand,
+      final Type storageType, final RexToLixTranslator translator) {
+    final Type originalStorageType = translator.currentStorageType;
+    translator.currentStorageType = storageType;
+    final Expression result =  translator.translate(operand);
+    translator.currentStorageType = originalStorageType;
+    return result;
+  }
+
+  /**
+   * For {@code PREV} operator, the offset of {@code inputGetter}
+   * should be set first
+   */
+  private Result implementPrev(RexCall call) {
+    final RexNode node = call.getOperands().get(0);
+    final RexNode offset = call.getOperands().get(1);
+    final Expression offs = Expressions.multiply(translate(offset),
+            Expressions.constant(-1));
+    ((EnumerableMatch.PrevInputGetter) inputGetter).setOffset(offs);
+    return node.accept(this);
+  }
+
+  /**
+   * The CASE operator is SQL’s way of handling if/then logic.
+   * Different with other {@code RexCall}s, it is not safe to
+   * implement its operands first.
+   * For example: {@code
+   *   select case when s=0 then false
+   *          else 100/s > 0 end
+   *   from (values (1),(0)) ax(s);
+   * }
+   */
+  private Result implementCaseWhen(RexCall call) {
+    final Type returnType = typeFactory.getJavaClass(call.getType());
+    final ParameterExpression valueVariable =
+        Expressions.parameter(returnType,
+            list.newName("case_when_value"));
+    list.add(Expressions.declare(0, valueVariable, null));
+    final List<RexNode> operandList = call.getOperands();
+    implementRecursively(this, operandList, valueVariable, 0);
+    final Expression isNullExpression = checkNull(valueVariable);
+    final ParameterExpression isNullVariable =
+        Expressions.parameter(
+            Boolean.TYPE, list.newName("case_when_isNull"));
+    list.add(Expressions.declare(Modifier.FINAL, isNullVariable, isNullExpression));
+    final Result result = new Result(isNullVariable, valueVariable);
+    rexResultMap.put(call, result);
+    return result;
+  }
+
+  /**
+   * Case statements of the form:
+   * {@code CASE WHEN a THEN b [WHEN c THEN d]* [ELSE e] END}.
+   * When {@code a = true}, returns {@code b};
+   * when {@code c = true}, returns {@code d};
+   * else returns {@code e}.
+   *
+   * We generate code that looks like: {@code
+   *      int case_when_value;
+   *      ......code for a......
+   *      if (!a_isNull && a_value) {
+   *          ......code for b......
+   *          case_when_value = res(b_isNull, b_value);
+   *      } else {
+   *          ......code for c......
+   *          if (!c_isNull && c_value) {
+   *              ......code for d......
+   *              case_when_value = res(d_isNull, d_value);
+   *          } else {
+   *              ......code for e......
+   *              case_when_value = res(e_isNull, e_value);
+   *          }
+   *      }
+   * }
+   */
+  private void implementRecursively(final RexToLixTranslator currentTranslator,
+      final List<RexNode> operandList, final ParameterExpression valueVariable, int pos) {
+    final BlockBuilder currentBlockBuilder = currentTranslator.getBlockBuilder();
+    final List<Type> storageTypes = EnumUtils.internalTypes(operandList);
+    // [ELSE] clause
+    if (pos == operandList.size() - 1) {
+      Expression res = implementCallOperand2(operandList.get(pos),
+          storageTypes.get(pos), currentTranslator);
+      currentBlockBuilder.add(
+          Expressions.statement(
+              Expressions.assign(valueVariable,
+                  EnumUtils.convert(res, valueVariable.getType()))));
+      return;
+    }
+    // Condition code: !a_isNull && a_value
+    final RexNode testerNode = operandList.get(pos);
+    final Result testerResult = implementCallOperand(testerNode,
+        storageTypes.get(pos), currentTranslator);
+    final Expression tester = Expressions.andAlso(
+        Expressions.not(testerResult.isNullVariable),
+        testerResult.valueVariable);
+    // Code for {if} branch
+    final RexNode ifTrueNode = operandList.get(pos + 1);
+    final BlockBuilder ifTrueBlockBuilder =
+        new BlockBuilder(true, currentBlockBuilder);
+    final RexToLixTranslator ifTrueTranslator =
+        currentTranslator.setBlock(ifTrueBlockBuilder);
+    final Expression ifTrueRes = implementCallOperand2(ifTrueNode,
+        storageTypes.get(pos + 1), ifTrueTranslator);
+    // Assign the value: case_when_value = ifTrueRes
+    ifTrueBlockBuilder.add(
+        Expressions.statement(
+            Expressions.assign(valueVariable,
+                EnumUtils.convert(ifTrueRes, valueVariable.getType()))));
+    final BlockStatement ifTrue = ifTrueBlockBuilder.toBlock();
+    // There is no [ELSE] clause
+    if (pos + 1 == operandList.size() - 1) {
+      currentBlockBuilder.add(
+          Expressions.ifThen(tester, ifTrue));
+      return;
+    }
+    // Generate code for {else} branch recursively
+    final BlockBuilder ifFalseBlockBuilder =
+        new BlockBuilder(true, currentBlockBuilder);
+    final RexToLixTranslator ifFalseTranslator =
+        currentTranslator.setBlock(ifFalseBlockBuilder);
+    implementRecursively(ifFalseTranslator, operandList, valueVariable, pos + 2);
+    final BlockStatement ifFalse = ifFalseBlockBuilder.toBlock();
+    currentBlockBuilder.add(
+        Expressions.ifThenElse(tester, ifTrue, ifFalse));
+  }
+
+  private Result toInnerStorageType(final Result result, final Type storageType) {
+    final Expression valueExpression =
+        EnumUtils.toInternal(result.valueVariable, storageType);
+    if (valueExpression.equals(result.valueVariable)) {
+      return result;
+    }
+    final ParameterExpression valueVariable =
+        Expressions.parameter(
+            valueExpression.getType(),
+            list.newName(result.valueVariable.name + "_inner_type"));
+    list.add(Expressions.declare(Modifier.FINAL, valueVariable, valueExpression));
+    final ParameterExpression isNullVariable = result.isNullVariable;
+    return new Result(isNullVariable, valueVariable);
+  }
+
+  @Override public Result visitDynamicParam(RexDynamicParam dynamicParam) {
+    final Pair<RexNode, Type> key = Pair.of(dynamicParam, currentStorageType);
+    if (rexWithStorageTypeResultMap.containsKey(key)) {
+      return rexWithStorageTypeResultMap.get(key);
+    }
+    final Type storageType = currentStorageType != null
+        ? currentStorageType : typeFactory.getJavaClass(dynamicParam.getType());
+    final Expression valueExpression = EnumUtils.convert(
+        Expressions.call(root, BuiltInMethod.DATA_CONTEXT_GET.method,
+            Expressions.constant("?" + dynamicParam.getIndex())),
+        storageType);
+    final ParameterExpression valueVariable =
+        Expressions.parameter(valueExpression.getType(), list.newName("value_dynamic_param"));
+    list.add(Expressions.declare(Modifier.FINAL, valueVariable, valueExpression));
+    final ParameterExpression isNullVariable =
+        Expressions.parameter(Boolean.TYPE, list.newName("isNull_dynamic_param"));
+    list.add(Expressions.declare(Modifier.FINAL, isNullVariable, checkNull(valueVariable)));
+    final Result result = new Result(isNullVariable, valueVariable);
+    rexWithStorageTypeResultMap.put(key, result);
+    return result;
+  }
+
+  @Override public Result visitFieldAccess(RexFieldAccess fieldAccess) {
+    final Pair<RexNode, Type> key = Pair.of(fieldAccess, currentStorageType);
+    if (rexWithStorageTypeResultMap.containsKey(key)) {
+      return rexWithStorageTypeResultMap.get(key);
+    }
+    final RexNode target = deref(fieldAccess.getReferenceExpr());
+    int fieldIndex = fieldAccess.getField().getIndex();
+    String fieldName = fieldAccess.getField().getName();
+    switch (target.getKind()) {
+    case CORREL_VARIABLE:
+      if (correlates == null) {
+        throw new RuntimeException("Cannot translate " + fieldAccess
+            + " since correlate variables resolver is not defined");
+      }
+      final RexToLixTranslator.InputGetter getter =
+          correlates.apply(((RexCorrelVariable) target).getName());
+      final Expression input = getter.field(
+          list, fieldIndex, currentStorageType);
+      final Expression condition = checkNull(input);
+      final ParameterExpression valueVariable =
+          Expressions.parameter(input.getType(), list.newName("corInp_value"));
+      list.add(Expressions.declare(Modifier.FINAL, valueVariable, input));
+      final ParameterExpression isNullVariable =
+          Expressions.parameter(Boolean.TYPE, list.newName("corInp_isNull"));
+      final Expression isNullExpression = Expressions.condition(
+          condition,
+          RexImpTable.TRUE_EXPR,
+          checkNull(valueVariable));
+      list.add(Expressions.declare(Modifier.FINAL, isNullVariable, isNullExpression));
+      final Result result1 = new Result(isNullVariable, valueVariable);
+      rexWithStorageTypeResultMap.put(key, result1);
+      return result1;
+    default:
+      RexNode rxIndex =
+          builder.makeLiteral(fieldIndex, typeFactory.createType(int.class), true);
+      RexNode rxName =
+          builder.makeLiteral(fieldName, typeFactory.createType(String.class), true);
+      RexCall accessCall = (RexCall) builder.makeCall(
+          fieldAccess.getType(), SqlStdOperatorTable.STRUCT_ACCESS,
+          ImmutableList.of(target, rxIndex, rxName));
+      final Result result2 = accessCall.accept(this);
+      rexWithStorageTypeResultMap.put(key, result2);
+      return result2;
+    }
+  }
+
+  @Override public Result visitOver(RexOver over) {
+    throw new RuntimeException("cannot translate expression " + over);
+  }
+
+  @Override public Result visitCorrelVariable(RexCorrelVariable correlVariable) {
+    throw new RuntimeException("Cannot translate " + correlVariable
+        + ". Correlated variables should always be referenced by field access");
+  }
+
+  @Override public Result visitRangeRef(RexRangeRef rangeRef) {
+    throw new RuntimeException("cannot translate expression " + rangeRef);
+  }
+
+  @Override public Result visitSubQuery(RexSubQuery subQuery) {
+    throw new RuntimeException("cannot translate expression " + subQuery);
+  }
+
+  @Override public Result visitTableInputRef(RexTableInputRef fieldRef) {
+    throw new RuntimeException("cannot translate expression " + fieldRef);
+  }
+
+  @Override public Result visitPatternFieldRef(RexPatternFieldRef fieldRef) {
+    return visitInputRef(fieldRef);
+  }
+
+  Expression checkNull(Expression expr) {
+    if (Primitive.flavor(expr.getType())
+        == Primitive.Flavor.PRIMITIVE) {
+      return RexImpTable.FALSE_EXPR;
+    }
+    return Expressions.equal(expr, RexImpTable.NULL_EXPR);
+  }
+
+  Expression checkNotNull(Expression expr) {
+    if (Primitive.flavor(expr.getType())
+        == Primitive.Flavor.PRIMITIVE) {
+      return RexImpTable.TRUE_EXPR;
+    }
+    return Expressions.notEqual(expr, RexImpTable.NULL_EXPR);
+  }
+
+  BlockBuilder getBlockBuilder() {
+    return list;
+  }
+
+  Expression getLiteral(Expression literalVariable) {
+    return literalMap.get(literalVariable);
+  }
+
+  List<Result> getCallOperandResult(RexCall call) {
+    return callOperandResultMap.get(call);
   }
 }
