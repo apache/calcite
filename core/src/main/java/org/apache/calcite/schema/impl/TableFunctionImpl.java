@@ -137,7 +137,7 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
             }
             return expr;
           }
-        }, NullPolicy.ANY, false);
+        }, NullPolicy.NONE, false);
   }
 
   private Table apply(List<Object> arguments) {

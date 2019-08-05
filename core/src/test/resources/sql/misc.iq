@@ -2247,4 +2247,56 @@ EXPR$0, EXPR$1
 2019-12-31, 2019-12-31
 !ok
 
+# [CALCITE-3142] An NPE when rounding a nullable numeric
+SELECT ROUND(CAST((X/Y) AS NUMERIC), 2)
+FROM (VALUES (1, 2), (NULLIF(5, 5), NULLIF(5, 5))) A(X, Y);
+EXPR$0
+0.00
+null
+!ok
+
+# [CALCITE-3143]Dividing NULLIF clause may cause Division by zero error
+SELECT CASE WHEN "Z" < 77 AND "Z" > 0 THEN 99 ELSE 88 END
+FROM (
+  SELECT SUM("X") / NULLIF(SUM(0),0) AS Z
+  FROM (VALUES (1.1, 2.5), (4.51, 32.5)) A(X, Y)
+  GROUP BY "Y");
+EXPR$0
+88
+88
+!ok
+
+# [CALCITE-3150] NPE in UPPER when repeated and combine with LIKE
+SELECT "NAME"
+FROM (VALUES ('Bill'), NULLIF('x', 'x'), ('Eric')) A(NAME)
+WHERE UPPER("NAME") LIKE 'B%' AND UPPER("NAME") LIKE '%L';
+NAME
+Bill
+!ok
+
+# [CALCITE-3717] Query fails with "division by zero" exception
+SELECT
+  CASE WHEN A=0 THEN (B+C+D)*1.0
+  WHEN B=0 THEN 1.0/A+(C+D)*1.0
+  WHEN C=0 THEN 1.0/A+1.0/B+D*1.0
+  WHEN D=0 THEN 1.0/A+1.0/B+1.0/C
+  ELSE 1.0/A+1.0/B+1.0/C+1.0/D
+  END AS V
+FROM (VALUES (0, 2, 4, 8),
+   (1, 0, 4, 8),
+   (1, 2, 0, 8),
+   (1, 2, 4, 0),
+   (0, 0, 0, 0),
+   (1, 2, 4, 8),
+   (CAST(null as int), CAST(null as int), CAST(null as int), CAST(null as int))) AS T(A,B,C,D);
+V
+14.0
+13.0
+9.5
+1.75
+0.0
+1.875
+null
+!ok
+
 # End misc.iq

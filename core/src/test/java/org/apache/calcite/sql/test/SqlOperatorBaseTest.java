@@ -4693,6 +4693,12 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test void testJsonValue() {
+    if (false) {
+      tester.checkFails("json_value('{\"foo\":100}', 'lax $.foo1' error on empty)",
+          "(?s).*Empty result of JSON_VALUE function is not allowed.*",
+          true);
+    }
+
     // type casting test
     tester.checkString("json_value('{\"foo\":100}', 'strict $.foo')",
         "100", "VARCHAR(2000)");

@@ -33,14 +33,5 @@ public enum NullPolicy {
   ANY,
   /** If the first argument is null, return null. */
   ARG0,
-  /** If any of the arguments are false, result is false; else if any
-   * arguments are null, result is null; else true. */
-  AND,
-  /** If any of the arguments are true, result is true; else if any
-   * arguments are null, result is null; else false. */
-  OR,
-  /** If any argument is true, result is false; else if any argument is null,
-   * result is null; else true. */
-  NOT,
   NONE
 }

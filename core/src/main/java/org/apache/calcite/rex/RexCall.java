@@ -327,7 +327,8 @@ public class RexCall extends RexNode {
     }
     RexCall rexCall = (RexCall) o;
     return op.equals(rexCall.op)
-        && operands.equals(rexCall.operands);
+        && operands.equals(rexCall.operands)
+        && type.equals(rexCall.type);
   }
 
   @Override public int hashCode() {
