@@ -4701,6 +4701,15 @@ public class SqlParserTest {
         "(ARRAY[(ROW(1, 'a')), (ROW(2, 'b'))])");
   }
 
+  @Test public void testCastAsArrayType() {
+    checkExp("cast(a as int array)", "CAST(`A` AS INTEGER ARRAY)");
+    checkExp("cast(a as varchar(5) array)", "CAST(`A` AS VARCHAR(5) ARRAY)");
+    checkExpFails("cast(a as int array ^array^)",
+        "(?s).*Encountered \"array\" at line 1, column 21.\n.*");
+    checkExpFails("cast(a as int array^<^10>)",
+        "(?s).*Encountered \"<\" at line 1, column 20.\n.*");
+  }
+
   @Test public void testMapValueConstructor() {
     checkExp("map[1, 'x', 2, 'y']", "(MAP[1, 'x', 2, 'y'])");
     checkExp("map [1, 'x', 2, 'y']", "(MAP[1, 'x', 2, 'y'])");
