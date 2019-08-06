@@ -7703,6 +7703,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("CHAR(3) ARRAY NOT NULL");
   }
 
+  @Test public void testCastAsArrayType() {
+    sql("select cast(array[1,null,2] as int array) from (values (1))")
+        .columnType("INTEGER NOT NULL ARRAY NOT NULL");
+    sql("select cast(array['1',null,'2'] as varchar(5) array) from (values (1))")
+        .columnType("VARCHAR(5) NOT NULL ARRAY NOT NULL");
+  }
+
   @Test public void testMultisetConstructor() {
     sql("select multiset[1,null,2] as a from (values (1))")
         .columnType("INTEGER MULTISET NOT NULL");

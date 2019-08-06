@@ -4596,16 +4596,19 @@ SqlIdentifier TypeName() :
 }
 {
     (
+<#-- additional types are included here -->
+<#-- make custom data types in front of Calcite core data types -->
+<#list parser.dataTypeParserMethods as method>
+        LOOKAHEAD(2)
+        typeName = ${method}
+    |
+</#list>
         LOOKAHEAD(2)
         sqlTypeName = SqlTypeName(s) {
             typeName = new SqlIdentifier(sqlTypeName.name(), s.end(this));
         }
-<#-- additional types are included here -->
-<#list parser.dataTypeParserMethods as method>
     |
-        typeName = ${method}
-</#list>
-    |
+        LOOKAHEAD(2)
         typeName = CollectionsTypeName()
     |
         typeName = CompoundIdentifier()
@@ -4724,10 +4727,15 @@ SqlIdentifier CollectionsTypeName() :
 {
 }
 {
-    <MULTISET> {
-        return new SqlIdentifier(
-            SqlTypeName.MULTISET.name(), getPos());
-    }
+    (
+        <MULTISET> {
+            return new SqlIdentifier(SqlTypeName.MULTISET.name(), getPos());
+        }
+    |
+        <ARRAY> {
+            return new SqlIdentifier(SqlTypeName.ARRAY.name(), getPos());
+        }
+    )
 }
 
 /**

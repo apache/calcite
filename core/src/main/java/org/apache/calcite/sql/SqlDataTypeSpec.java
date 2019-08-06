@@ -383,6 +383,9 @@ public class SqlDataTypeSpec extends SqlNode {
       case MULTISET:
         type = typeFactory.createMultisetType(type, -1);
         break;
+      case ARRAY:
+        type = typeFactory.createArrayType(type, -1);
+        break;
 
       default:
         throw Util.unexpected(collectionsSqlTypeName);
