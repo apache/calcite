@@ -115,7 +115,6 @@ public class PostgresqlSqlDialect extends SqlDialect {
           timeUnitNode.getParserPosition());
       SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
       break;
-
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }

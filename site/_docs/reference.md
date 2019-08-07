@@ -2115,6 +2115,7 @@ semantics.
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
 | o | SUBSTR(string, position [, substring_length ]) | Returns a portion of *string*, beginning at character *position*, *substring_length* characters long. SUBSTR calculates lengths using characters as defined by the input character set
 | o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
+| p | value :: type                                  | Casts a *value* to the specified *type*
 
 Note:
 

@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
@@ -32,6 +33,7 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -51,6 +53,9 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * operand[1] through the validation phase.
  */
 public class SqlCastFunction extends SqlFunction {
+  //~ Static fields --------------------------------------------------------
+  public static final SqlCastFunction POSTGRESQL_CAST = new PostgreSQLCastOperator();
+
   //~ Instance fields --------------------------------------------------------
 
   /** Map of all casts that do not preserve monotonicity. */
@@ -189,6 +194,27 @@ public class SqlCastFunction extends SqlFunction {
       return SqlMonotonicity.NOT_MONOTONIC;
     } else {
       return call.getOperandMonotonicity(0);
+    }
+  }
+
+  /** PostgreSQL's casting operator <code>::</code> */
+  private static class PostgreSQLCastOperator extends SqlCastFunction {
+    @Override public SqlSyntax getSyntax() {
+      return SqlSyntax.BINARY;
+    }
+
+    @Override public String getSignatureTemplate(int operandsCount) {
+      return "{1}::{2}";
+    }
+
+    @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.print(":: ");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+    }
+
+    @Override public SqlIdentifier getSqlIdentifier() {
+      return new SqlIdentifier("::", SqlParserPos.ZERO);
     }
   }
 }

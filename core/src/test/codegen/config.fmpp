@@ -380,6 +380,14 @@ data: {
       # Each must accept arguments "(SqlParserPos pos)".
       dropStatementParserMethods: [
       ]
+      
+      # Binary operators tokens
+      binaryOperatorsTokens: [
+      ]
+      
+      # Binary operators initialization
+      extraBinaryExpressions: [
+      ]
 
       # List of files in @includes directory that have parser method
       # implementations for parsing custom SQL statements, literals or types

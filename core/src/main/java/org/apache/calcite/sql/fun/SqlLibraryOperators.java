@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -263,6 +264,12 @@ public abstract class SqlLibraryOperators {
                   null,
                   OperandTypes.INTEGER,
                   SqlFunctionCategory.STRING);
+
+  /**
+   * Casting operator used by PostgreSQL '<code>::</code>'.
+   */
+  @LibraryOperator(libraries = { POSTGRESQL })
+  public static final SqlOperator PG_CAST = SqlCastFunction.POSTGRESQL_CAST;
 }
 
 // End SqlLibraryOperators.java
