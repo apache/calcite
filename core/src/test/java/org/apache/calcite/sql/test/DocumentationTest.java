@@ -17,7 +17,6 @@
 package org.apache.calcite.sql.test;
 
 import org.apache.calcite.sql.SqlFunction;
-import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlLibrary;
@@ -141,13 +140,8 @@ public class DocumentationTest {
   private void addOperators(Map<String, PatternOp> map, String prefix,
       List<SqlOperator> operatorList) {
     for (SqlOperator op : operatorList) {
-      String nameInDocs = op.getName();
-      if (op instanceof SqlFunction) {
-        SqlIdentifier sqlIdentifier = ((SqlFunction) op).getSqlIdentifier();
-        nameInDocs = sqlIdentifier == null ? op.getName() : sqlIdentifier.getSimple();
-      }
-
-      final String name = nameInDocs.equals("TRANSLATE3") ? "TRANSLATE" : nameInDocs;
+      final String name = op.getName().equals("TRANSLATE3") ? "TRANSLATE"
+          : op.getName();
       if (op instanceof SqlSpecialOperator
           || !name.matches("^[a-zA-Z][a-zA-Z0-9_]*$")) {
         continue;

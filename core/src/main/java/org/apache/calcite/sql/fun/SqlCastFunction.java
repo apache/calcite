@@ -23,7 +23,6 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
-import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
@@ -33,7 +32,6 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -78,8 +76,12 @@ public class SqlCastFunction extends SqlFunction {
   //~ Constructors -----------------------------------------------------------
 
   public SqlCastFunction() {
+    this("CAST");
+  }
+
+  private SqlCastFunction(String name) {
     super(
-        "CAST",
+        name,
         SqlKind.CAST,
         null,
         InferTypes.FIRST_KNOWN,
@@ -199,6 +201,10 @@ public class SqlCastFunction extends SqlFunction {
 
   /** PostgreSQL's casting operator <code>::</code> */
   private static class PostgreSQLCastOperator extends SqlCastFunction {
+    PostgreSQLCastOperator() {
+      super("::");
+    }
+
     @Override public SqlSyntax getSyntax() {
       return SqlSyntax.BINARY;
     }
@@ -211,10 +217,6 @@ public class SqlCastFunction extends SqlFunction {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.print(":: ");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
-    }
-
-    @Override public SqlIdentifier getSqlIdentifier() {
-      return new SqlIdentifier("::", SqlParserPos.ZERO);
     }
   }
 }
