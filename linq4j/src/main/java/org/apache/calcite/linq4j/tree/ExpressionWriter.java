@@ -75,14 +75,14 @@ class ExpressionWriter {
    * Increases the indentation level.
    */
   public void begin() {
-    indent = INDENT.get(++level);
+    indent = INDENT.of(++level);
   }
 
   /**
    * Decreases the indentation level.
    */
   public void end() {
-    indent = INDENT.get(--level);
+    indent = INDENT.of(--level);
   }
 
   public ExpressionWriter newlineAndIndent() {
