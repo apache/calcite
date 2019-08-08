@@ -757,7 +757,8 @@ public class SubstitutionVisitor {
 
   private UnifyResult apply(UnifyRule rule, MutableRel query,
       MutableRel target) {
-    final UnifyRuleCall call = new UnifyRuleCall(rule, query, target, null);
+    final UnifyRuleCall call =
+        new UnifyRuleCall(rule, query, target, ImmutableList.of());
     return rule.apply(call);
   }
 
