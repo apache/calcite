@@ -313,8 +313,12 @@ public final class CalciteSystemProperty<T> {
           v -> v >= 1 && v <= Integer.MAX_VALUE);
 
   private static CalciteSystemProperty<Boolean> booleanProperty(String key, boolean defaultValue) {
-    return new CalciteSystemProperty<>(key,
-        v -> v == null ? defaultValue : Boolean.parseBoolean(v));
+    return new CalciteSystemProperty<>(key, v -> {
+      if (v == null) {
+        return defaultValue;
+      }
+      return v.equals("") || v.equalsIgnoreCase("true") ? Boolean.TRUE : defaultValue;
+    });
   }
 
   private static CalciteSystemProperty<Integer> intProperty(String key, int defaultValue) {
