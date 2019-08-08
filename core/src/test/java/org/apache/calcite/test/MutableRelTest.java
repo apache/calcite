@@ -204,6 +204,18 @@ public class MutableRelTest {
     }
   }
 
+  @Test public void testMutableTableFunctionScanEquals() {
+    final String sql = "SELECT * FROM TABLE(RAMP(3))";
+    final MutableRel mutableRel1 = createMutableRel(sql);
+    final MutableRel mutableRel2 = createMutableRel(sql);
+    final String actual = RelOptUtil.toString(MutableRels.fromMutable(mutableRel1));
+    final String expected = ""
+        + "LogicalProject(I=[$0])\n"
+        + "  LogicalTableFunctionScan(invocation=[RAMP(3)], rowType=[RecordType(INTEGER I)])\n";
+    MatcherAssert.assertThat(actual, Matchers.isLinux(expected));
+    Assert.assertEquals(mutableRel1, mutableRel2);
+  }
+
   /** Verifies that after conversion to and from a MutableRel, the new
    * RelNode remains identical to the original RelNode. */
   private static void checkConvertMutableRel(String rel, String sql) {
