@@ -82,6 +82,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlPostfixOperator;
 import org.apache.calcite.sql.SqlPrefixOperator;
+import org.apache.calcite.sql.SqlRowTypeSpec;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
@@ -89,6 +90,7 @@ import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
+import org.apache.calcite.sql.SqlTypeNameSpec;
 import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
@@ -4591,13 +4593,13 @@ SqlDataTypeSpec DataType() :
 SqlIdentifier TypeName() :
 {
     final SqlTypeName sqlTypeName;
-    final SqlIdentifier typeName;
+    final SqlIdentifier typeName; // typeName can be a SqlIdentifier or SqlTypeNameSpec
     final Span s = Span.of();
 }
 {
     (
 <#-- additional types are included here -->
-<#-- make custom data types in front of Calcite core data types -->
+<#-- put custom data types in front of Calcite core data types -->
 <#list parser.dataTypeParserMethods as method>
         LOOKAHEAD(2)
         typeName = ${method}
@@ -4610,6 +4612,8 @@ SqlIdentifier TypeName() :
     |
         LOOKAHEAD(2)
         typeName = CollectionsTypeName()
+    |
+        typeName = RowTypeName()
     |
         typeName = CompoundIdentifier()
     )
@@ -4736,6 +4740,84 @@ SqlIdentifier CollectionsTypeName() :
             return new SqlIdentifier(SqlTypeName.ARRAY.name(), getPos());
         }
     )
+}
+
+/**
+* Parse a nullable option, default is true.
+*/
+boolean NullableOptDefaultTrue() :
+{
+}
+{
+    <NULL> { return true; }
+|
+    <NOT> <NULL> { return false; }
+|
+    { return true; }
+}
+
+/**
+* Parse a nullable option, default is false.
+*/
+boolean NullableOptDefaultFalse() :
+{
+}
+{
+    <NULL> { return true; }
+|
+    <NOT> <NULL> { return false; }
+|
+    { return false; }
+}
+
+/**
+* Parse a "name1 type1 [NULL | NOT NULL], name2 type2 [NULL | NOT NULL] ..." list,
+* the field type default is not nullable.
+*/
+void FieldNameTypeCommaList(
+        List<SqlIdentifier> fieldNames,
+        List<SqlDataTypeSpec> fieldTypes) :
+{
+    SqlIdentifier fName;
+    SqlDataTypeSpec fType;
+    boolean nullable;
+}
+{
+    fName = SimpleIdentifier()
+    fType = DataType()
+    nullable = NullableOptDefaultFalse()
+    {
+        fieldNames.add(fName);
+        fieldTypes.add(fType.withNullable(nullable));
+    }
+    (
+        <COMMA>
+        fName = SimpleIdentifier()
+        fType = DataType()
+        nullable = NullableOptDefaultFalse()
+        {
+            fieldNames.add(fName);
+            fieldTypes.add(fType.withNullable(nullable));
+        }
+    )*
+}
+
+/**
+* Parse Row type with format: Row(name1 type1, name2 type2).
+* Every item type can have suffix of `NULL` or `NOT NULL` to indicate if this type is nullable.
+* i.e. Row(f0 int not null, f1 varchar null).
+*/
+SqlIdentifier RowTypeName() :
+{
+    List<SqlIdentifier> fieldNames = new ArrayList<SqlIdentifier>();
+    List<SqlDataTypeSpec> fieldTypes = new ArrayList<SqlDataTypeSpec>();
+}
+{
+    <ROW>
+    <LPAREN> FieldNameTypeCommaList(fieldNames, fieldTypes) <RPAREN>
+    {
+        return new SqlRowTypeSpec(getPos(), fieldNames, fieldTypes);
+    }
 }
 
 /**

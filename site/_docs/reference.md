@@ -1064,14 +1064,19 @@ Note:
 
 ### Non-scalar types
 
-| Type     | Description
-|:-------- |:-----------------------------------------------------------
-| ANY      | A value of an unknown type
-| ROW      | Row with 1 or more columns
-| MAP      | Collection of keys mapped to values
-| MULTISET | Unordered collection that may contain duplicates
-| ARRAY    | Ordered, contiguous collection that may contain duplicates
-| CURSOR   | Cursor over the result of executing a query
+| Type     | Description                | Example literals
+|:-------- |:---------------------------|:---------------
+| ANY      | A value of an unknown type |
+| ROW      | Row with 1 or more columns | Example: Row(f0 int null, f1 varchar)
+| MAP      | Collection of keys mapped to values |
+| MULTISET | Unordered collection that may contain duplicates | Example: int multiset
+| ARRAY    | Ordered, contiguous collection that may contain duplicates | Example: varchar(10) array
+| CURSOR   | Cursor over the result of executing a query |
+
+Note:
+
+* Every `ROW` column type can have an optional [ NULL | NOT NULL ] suffix
+  to indicate if this column type is nullable, default is not nullable.
 
 ### Spatial types
 
@@ -1310,6 +1315,63 @@ Not implemented:
 | Operator syntax | Description
 |:--------------- | :----------
 | CAST(value AS type) | Converts a value to a given type.
+
+Supported data types:
+
+{% highlight sql %}
+type:
+      typeName [ '(' precision [, scale] ')' ]
+      [ CHARACTER SET charSetName ]
+      [ collectionsTypeName ]
+
+typeName:
+      sqlTypeName
+  |   collectionsTypeName
+  |   rowTypeName
+  |   compoundIdentifier
+
+sqlTypeName:
+      char
+  |   varchar
+  |   DATE
+  |   TIME
+  |   TIMESTAMP
+  |   GEOMETRY
+  |   decimal
+  |   BOOLEAN
+  |   integer
+  |   BINARY
+  |   varbinary
+  |   TINYINT
+  |   SMALLINT
+  |   BIGINT
+  |   REAL
+  |   double
+  |   FLOAT
+  |   ANY
+
+collectionsTypeName:
+      ARRAY | MULTISET
+
+rowTypeName:
+      ROW '('
+        fieldName1 fieldType1 [ [ NULL | NOT NULL ] ]
+        [ , fieldName2 fieldType2 [ [ NULL | NOT NULL ] ] ]*
+        ')'
+
+char:
+      CHARACTER | CHAR
+varchar:
+      char VARYING | VARCHAR
+decimal:
+      DECIMAL | DEC | NUMERIC
+integer:
+      INTEGER | INT
+varbinary:
+      BINARY VARYING | VARBINARY
+double:
+      DOUBLE [PRECISION]
+{% endhighlight %}
 
 ### Value constructors
 

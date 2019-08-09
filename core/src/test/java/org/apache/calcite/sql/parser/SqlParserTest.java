@@ -4710,6 +4710,25 @@ public class SqlParserTest {
         "(?s).*Encountered \"<\" at line 1, column 20.\n.*");
   }
 
+  @Test public void testCastAsRowType() {
+    checkExp("cast(a as row(f0 int, f1 varchar))",
+        "CAST(`A` AS ROW(`F0` INTEGER, `F1` VARCHAR))");
+    checkExp("cast(a as row(f0 int not null, f1 varchar null))",
+        "CAST(`A` AS ROW(`F0` INTEGER, `F1` VARCHAR NULL))");
+//    // test nested row type.
+    checkExp("cast(a as row("
+        + "f0 row(ff0 int not null, ff1 varchar null) null, "
+        + "f1 timestamp not null))",
+        "CAST(`A` AS ROW("
+            + "`F0` ROW(`FF0` INTEGER, `FF1` VARCHAR NULL) NULL, "
+            + "`F1` TIMESTAMP))");
+    // test row type in collection data types.
+    checkExp("cast(a as row(f0 bigint not null, f1 decimal null) array)",
+        "CAST(`A` AS ROW(`F0` BIGINT, `F1` DECIMAL NULL) ARRAY)");
+    checkExp("cast(a as row(f0 varchar not null, f1 timestamp null) multiset)",
+        "CAST(`A` AS ROW(`F0` VARCHAR, `F1` TIMESTAMP NULL) MULTISET)");
+  }
+
   @Test public void testMapValueConstructor() {
     checkExp("map[1, 'x', 2, 'y']", "(MAP[1, 'x', 2, 'y'])");
     checkExp("map [1, 'x', 2, 'y']", "(MAP[1, 'x', 2, 'y'])");
