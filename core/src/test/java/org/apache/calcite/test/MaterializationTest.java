@@ -676,6 +676,32 @@ public class MaterializationTest {
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
 
+  @Test public void testProjectOnProject0() {
+    String deduplicated =
+        "(select \"empid\", \"deptno\", \"name\", \"salary\", \"commission\"\n"
+            + "from \"emps\"\n"
+            + "group by \"empid\", \"deptno\", \"name\", \"salary\", \"commission\")";
+    String mv =
+        "select \"deptno\", sum(\"salary\") + 2, sum(\"commission\")\n"
+            + "from " + deduplicated + "\n"
+            + "group by \"deptno\"";
+    String query =
+        "select \"deptno\", sum(\"salary\") + 2\n"
+            + "from " + deduplicated + "\n"
+            + "group by \"deptno\"";
+    checkMaterialize(mv, query);
+  }
+
+  @Test public void testProjectOnProject1() {
+    checkMaterialize(
+        "select \"deptno\", count(1), 2 * sum(\"empid\") from "
+            + "(select * from \"emps\" union all select * from \"emps\")"
+            + "group by \"deptno\"",
+        "select \"deptno\", 2 * sum(\"empid\") from "
+            + "(select * from \"emps\" union all select * from \"emps\")"
+            + "group by \"deptno\"");
+  }
+
   @Test public void testPermutationError() {
     checkMaterialize(
         "select min(\"salary\"), count(*), max(\"salary\"), sum(\"salary\"), \"empid\" "

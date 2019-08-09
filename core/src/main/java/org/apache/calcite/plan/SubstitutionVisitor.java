@@ -596,7 +596,7 @@ public class SubstitutionVisitor {
   /**
    * Equivalence checking for row types, but except for the field names.
    */
-  private boolean rowTypesAreEquivalent(
+  private static boolean rowTypesAreEquivalent(
       MutableRel rel0, MutableRel rel1, Litmus litmus) {
     if (rel0.rowType.getFieldCount() != rel1.rowType.getFieldCount()) {
       return litmus.fail("Mismatch for column count: [{}]", Pair.of(rel0, rel1));
@@ -1321,7 +1321,8 @@ public class SubstitutionVisitor {
     } else {
       return null;
     }
-    return MutableRels.createCastRel(result, query.rowType, true);
+
+    return MutableRels.createCastRel(result, query.rowType, false);
   }
 
   /** Implementation of {@link UnifyRule} that matches a

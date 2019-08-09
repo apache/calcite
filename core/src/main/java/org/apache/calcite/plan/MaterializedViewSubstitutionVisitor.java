@@ -26,9 +26,11 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -39,6 +41,7 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
       ImmutableList.<UnifyRule>builder()
           .addAll(DEFAULT_RULES)
           .add(ProjectToProjectUnifyRule1.INSTANCE)
+          .add(ProjectOnProjectToProjectUnifyRule.INSTANCE)
           .add(FilterToFilterUnifyRule1.INSTANCE)
           .add(FilterToProjectUnifyRule1.INSTANCE)
           .build();
@@ -256,6 +259,70 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
         }
       }
       return null;
+    }
+  }
+
+  /**
+   * Implementation of {@link SubstitutionVisitor.UnifyRule} that matches a
+   * {@link MutableProject} on a {@link MutableProject} to a
+   * {@link MutableProject}. We merge the Projects in query and afterwards
+   * do the matching like ProjectToProjectUnifyRule.
+   *
+   * <p>Example: (Note that query and target share the same input -- "Rel-A")</p>
+   * <ul>
+   * <li>query:   Project(projects: [$0, +($1, 2)])
+   *                Project(projects: [$1, $3, $4])
+   *                  Rel-A
+   * <li>target:  Project(projects: [$1, +($3, 2)])
+   *                Rel-A
+   * </ul>
+   */
+  private static class ProjectOnProjectToProjectUnifyRule extends AbstractUnifyRule {
+
+    public static final ProjectOnProjectToProjectUnifyRule INSTANCE =
+        new ProjectOnProjectToProjectUnifyRule();
+
+    private ProjectOnProjectToProjectUnifyRule() {
+      super(operand(MutableProject.class, operand(MutableProject.class, query(0))),
+          operand(MutableProject.class, target(0)), 1);
+    }
+
+    public UnifyResult apply(UnifyRuleCall call) {
+      final MutableProject query = (MutableProject) call.query;
+      final MutableProject target = (MutableProject) call.target;
+      final MutableProject transformedQuery = transformQuery(query);
+      if (transformedQuery == null) {
+        return null;
+      }
+      final RexShuttle shuttle = getRexShuttle(target);
+      final List<RexNode> newProjects;
+      try {
+        newProjects = shuttle.apply(transformedQuery.projects);
+      } catch (MatchFailed e) {
+        return null;
+      }
+      final MutableProject newProject =
+          MutableProject.of(transformedQuery.rowType, target, newProjects);
+      final MutableRel newProject2 = MutableRels.strip(newProject);
+      return call.result(newProject2);
+    }
+
+    private MutableProject transformQuery(MutableProject query) {
+      final MutableProject queryInput = (MutableProject) query.getInput();
+      Mappings.TargetMapping queryInputAsMapping = queryInput.getMapping();
+      if (queryInputAsMapping == null) {
+        return null;
+      }
+      final List<RexNode> newQueryProjects = new ArrayList<>();
+      new RexShuttle() {
+        @Override public RexNode visitInputRef(RexInputRef ref) {
+          int integer = queryInputAsMapping.inverse().getTarget(ref.getIndex());
+          return new RexInputRef(
+              integer, queryInput.projects.get(ref.getIndex()).getType());
+        }
+      }.visitList(query.projects, newQueryProjects);
+      return MutableProject.of(
+          query.rowType, queryInput.getInput(), newQueryProjects);
     }
   }
 
