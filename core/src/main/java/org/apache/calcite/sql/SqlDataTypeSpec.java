@@ -42,15 +42,19 @@ import static org.apache.calcite.util.Static.RESOURCE;
  *
  * <p>todo: This should really be a subtype of {@link SqlCall}.</p>
  *
- * <p>In its full glory, we will have to support complex type expressions
+ * <p>we support complex type expressions
  * like:</p>
  *
  * <blockquote><code>ROW(<br>
- *   NUMBER(5, 2) NOT NULL AS foo,<br>
- *   ROW(BOOLEAN AS b, MyUDT NOT NULL AS i) AS rec)</code></blockquote>
+ *   foo NUMBER(5, 2) NOT NULL,<br>
+ *   rec ROW(b BOOLEAN, i MyUDT NOT NULL))</code></blockquote>
  *
- * <p>Currently it only supports simple datatypes like CHAR, VARCHAR and DOUBLE,
+ * <p>Internally we use {@link SqlTypeNameSpec} to specify such complex data types.
+ *
+ * <p>We support simple data types like CHAR, VARCHAR and DOUBLE,
  * with optional precision and scale.</p>
+ *
+ * <p>Internally we use {@link SqlIdentifier} to specify simple data types.
  */
 public class SqlDataTypeSpec extends SqlNode {
   //~ Instance fields --------------------------------------------------------
@@ -212,7 +216,12 @@ public class SqlDataTypeSpec extends SqlNode {
       int leftPrec,
       int rightPrec) {
     String name = typeName.getSimple();
-    if (SqlTypeName.get(name) != null) {
+    if (typeName instanceof SqlTypeNameSpec) {
+      typeName.unparse(writer, leftPrec, rightPrec);
+      if (collectionsTypeName != null) {
+        writer.keyword(collectionsTypeName.getSimple());
+      }
+    } else if (SqlTypeName.get(name) != null) {
       SqlTypeName sqlTypeName = SqlTypeName.get(name);
 
       // we have a built-in data type
@@ -327,25 +336,33 @@ public class SqlDataTypeSpec extends SqlNode {
     if (!typeName.isSimple()) {
       return null;
     }
-    final String name = typeName.getSimple();
-    final SqlTypeName sqlTypeName = SqlTypeName.get(name);
-    if (sqlTypeName == null) {
-      return null;
-    }
-
-    // NOTE jvs 15-Jan-2009:  earlier validation is supposed to
-    // have caught these, which is why it's OK for them
-    // to be assertions rather than user-level exceptions.
     RelDataType type;
-    if ((precision >= 0) && (scale >= 0)) {
-      assert sqlTypeName.allowsPrecScale(true, true);
-      type = typeFactory.createSqlType(sqlTypeName, precision, scale);
-    } else if (precision >= 0) {
-      assert sqlTypeName.allowsPrecNoScale();
-      type = typeFactory.createSqlType(sqlTypeName, precision);
+    if (typeName instanceof SqlTypeNameSpec) {
+      // Create type directly if this typeName is a SqlTypeNameSpec.
+      type = createTypeFromTypeNameSpec(typeFactory, (SqlTypeNameSpec) typeName);
+      if (type == null) {
+        return null;
+      }
     } else {
-      assert sqlTypeName.allowsNoPrecNoScale();
-      type = typeFactory.createSqlType(sqlTypeName);
+      final String name = typeName.getSimple();
+      final SqlTypeName sqlTypeName = SqlTypeName.get(name);
+      if (sqlTypeName == null) {
+        return null;
+      }
+
+      // NOTE jvs 15-Jan-2009:  earlier validation is supposed to
+      // have caught these, which is why it's OK for them
+      // to be assertions rather than user-level exceptions.
+      if ((precision >= 0) && (scale >= 0)) {
+        assert sqlTypeName.allowsPrecScale(true, true);
+        type = typeFactory.createSqlType(sqlTypeName, precision, scale);
+      } else if (precision >= 0) {
+        assert sqlTypeName.allowsPrecNoScale();
+        type = typeFactory.createSqlType(sqlTypeName, precision);
+      } else {
+        assert sqlTypeName.allowsNoPrecNoScale();
+        type = typeFactory.createSqlType(sqlTypeName);
+      }
     }
 
     if (SqlTypeUtil.inCharFamily(type)) {
@@ -398,6 +415,17 @@ public class SqlDataTypeSpec extends SqlNode {
     type = typeFactory.createTypeWithNullability(type, nullable);
 
     return type;
+  }
+
+  /**
+   * Create type from the type name specification directly.
+   * @param typeFactory type factory.
+   * @return the type.
+   */
+  private RelDataType createTypeFromTypeNameSpec(
+      RelDataTypeFactory typeFactory,
+      SqlTypeNameSpec typeNameSpec) {
+    return typeNameSpec.deriveType(typeFactory);
   }
 }
 
