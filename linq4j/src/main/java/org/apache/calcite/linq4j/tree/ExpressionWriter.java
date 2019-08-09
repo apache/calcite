@@ -75,7 +75,6 @@ class ExpressionWriter {
   public void begin() {
     System.out.println("BEGIN");
     indent = SPACER.add(2).toString();
-//    indent = INDENT.of(++level);
   }
 
   /**
@@ -84,7 +83,6 @@ class ExpressionWriter {
   public void end() {
     System.out.println("END");
     indent = SPACER.subtract(2).toString();
-//    indent = INDENT.of(--level);
   }
 
   public ExpressionWriter newlineAndIndent() {
