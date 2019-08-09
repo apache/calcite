@@ -73,7 +73,6 @@ class ExpressionWriter {
    * Increases the indentation level.
    */
   public void begin() {
-    System.out.println("BEGIN");
     indent = SPACER.add(2).toString();
   }
 
@@ -81,7 +80,6 @@ class ExpressionWriter {
    * Decreases the indentation level.
    */
   public void end() {
-    System.out.println("END");
     indent = SPACER.subtract(2).toString();
   }
 
