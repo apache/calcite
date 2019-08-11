@@ -1121,6 +1121,10 @@ public class SubstitutionVisitor {
       return MutableProject.of(input, exprList, Pair.right(namedProjects));
     }
 
+    /**
+     * Project the "input" to achieve the same schema as "model" by analying
+     * the mapping information from "project".
+     */
     protected MutableRel invert(MutableRel model, MutableRel input,
         MutableProject project) {
       LOGGER.trace("SubstitutionVisitor: invert:\nmodel: {}\ninput: {}\nproject: {}\n",
@@ -1130,9 +1134,13 @@ public class SubstitutionVisitor {
       }
       final List<RexNode> exprList = new ArrayList<>();
       final RexBuilder rexBuilder = model.cluster.getRexBuilder();
+
+      // Initialize "exprList" with nulls.
       for (int i = 0; i < model.rowType.getFieldCount(); i++) {
         exprList.add(null);
       }
+      // Fill in "exprList" with list of "RexInputRef" by
+      // analyzing mapping information from "project".
       for (Ord<RexNode> expr : Ord.zip(project.projects)) {
         if (expr.e instanceof RexInputRef) {
           final int target = ((RexInputRef) expr.e).getIndex();
@@ -1144,6 +1152,7 @@ public class SubstitutionVisitor {
           }
         }
       }
+      // If a column failed to be projected from "input", matching fails.
       if (exprList.indexOf(null) != -1) {
         throw MatchFailed.INSTANCE;
       }
