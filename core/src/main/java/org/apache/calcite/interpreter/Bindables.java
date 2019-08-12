@@ -777,7 +777,7 @@ public class Bindables {
         boolean strictEnd, Map<String, RexNode> patternDefinitions,
         Map<String, RexNode> measures, RexNode after,
         Map<String, ? extends SortedSet<String>> subsets, boolean allRows,
-        List<RexNode> partitionKeys, RelCollation orderKeys,
+        ImmutableBitSet partitionKeys, RelCollation orderKeys,
         RexNode interval) {
       super(cluster, traitSet, input, rowType, pattern, strictStart, strictEnd,
           patternDefinitions, measures, after, subsets, allRows, partitionKeys,

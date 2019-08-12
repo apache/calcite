@@ -351,6 +351,39 @@ public class ImmutableBitSetTest {
     assertThat(ImmutableBitSet.of().indexOf(1000), equalTo(-1));
   }
 
+  /** Tests {@link ImmutableBitSet.Builder#buildAndReset()}. */
+  @Test public void testReset() {
+    final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
+    builder.set(2);
+    assertThat(builder.build().toString(), is("{2}"));
+    try {
+      builder.set(4);
+      fail("expected exception");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("can only use builder once"));
+    }
+    try {
+      final ImmutableBitSet bitSet = builder.build();
+      fail("expected exception, got " + bitSet);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("can only use builder once"));
+    }
+    try {
+      final ImmutableBitSet bitSet = builder.buildAndReset();
+      fail("expected exception, got " + bitSet);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("can only use builder once"));
+    }
+
+    final ImmutableBitSet.Builder builder2 = ImmutableBitSet.builder();
+    builder2.set(2);
+    assertThat(builder2.buildAndReset().toString(), is("{2}"));
+    assertThat(builder2.buildAndReset().toString(), is("{}"));
+    builder2.set(151);
+    builder2.set(3);
+    assertThat(builder2.buildAndReset().toString(), is("{3, 151}"));
+  }
+
   @Test public void testNth() {
     assertThat(ImmutableBitSet.of(0, 2, 4).nth(0), equalTo(0));
     assertThat(ImmutableBitSet.of(0, 2, 4).nth(1), equalTo(2));

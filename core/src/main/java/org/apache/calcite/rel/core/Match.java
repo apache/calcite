@@ -33,9 +33,9 @@ import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumAggFunction;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
@@ -67,7 +67,7 @@ public abstract class Match extends SingleRel {
   protected final Set<RexMRAggCall> aggregateCalls;
   protected final Map<String, SortedSet<RexMRAggCall>> aggregateCallsPreVar;
   protected final ImmutableMap<String, SortedSet<String>> subsets;
-  protected final List<RexNode> partitionKeys;
+  protected final ImmutableBitSet partitionKeys;
   protected final RelCollation orderKeys;
   protected final RexNode interval;
 
@@ -97,7 +97,7 @@ public abstract class Match extends SingleRel {
       boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-      boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+      boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
       RexNode interval) {
     super(cluster, traitSet, input);
     this.rowType = Objects.requireNonNull(rowType);
@@ -110,7 +110,7 @@ public abstract class Match extends SingleRel {
     this.after = Objects.requireNonNull(after);
     this.subsets = copyMap(subsets);
     this.allRows = allRows;
-    this.partitionKeys = ImmutableList.copyOf(partitionKeys);
+    this.partitionKeys = Objects.requireNonNull(partitionKeys);
     this.orderKeys = Objects.requireNonNull(orderKeys);
     this.interval = interval;
 
@@ -178,7 +178,7 @@ public abstract class Match extends SingleRel {
     return subsets;
   }
 
-  public List<RexNode> getPartitionKeys() {
+  public ImmutableBitSet getPartitionKeys() {
     return partitionKeys;
   }
 

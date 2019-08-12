@@ -19,8 +19,8 @@ package org.apache.calcite.rel.mutable;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.ImmutableBitSet;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.SortedSet;
@@ -28,14 +28,14 @@ import java.util.SortedSet;
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Match}. */
 public class MutableMatch extends MutableSingleRel {
   public final RexNode pattern;
-  public final  boolean strictStart;
+  public final boolean strictStart;
   public final boolean strictEnd;
   public final Map<String, RexNode> patternDefinitions;
   public final Map<String, RexNode> measures;
   public final RexNode after;
   public final Map<String, ? extends SortedSet<String>> subsets;
   public final boolean allRows;
-  public final List<RexNode> partitionKeys;
+  public final ImmutableBitSet partitionKeys;
   public final RelCollation orderKeys;
   public final RexNode interval;
 
@@ -43,7 +43,7 @@ public class MutableMatch extends MutableSingleRel {
        RexNode pattern, boolean strictStart, boolean strictEnd,
        Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
        RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-       boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+       boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
        RexNode interval) {
     super(MutableRelType.MATCH, rowType, input);
     this.pattern = pattern;
@@ -67,10 +67,11 @@ public class MutableMatch extends MutableSingleRel {
       MutableRel input, RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-      boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+      boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
       RexNode interval) {
     return new MutableMatch(rowType, input, pattern, strictStart, strictEnd,
-      patternDefinitions, measures, after, subsets, allRows, partitionKeys, orderKeys, interval);
+        patternDefinitions, measures, after, subsets, allRows, partitionKeys,
+        orderKeys, interval);
   }
 
   @Override public boolean equals(Object obj) {
@@ -92,8 +93,8 @@ public class MutableMatch extends MutableSingleRel {
 
   @Override public int hashCode() {
     return Objects.hash(input, pattern, strictStart, strictEnd,
-      patternDefinitions, measures, after, subsets, allRows,
-      partitionKeys, orderKeys, interval);
+        patternDefinitions, measures, after, subsets, allRows,
+        partitionKeys, orderKeys, interval);
   }
 
   @Override public StringBuilder digest(StringBuilder buf) {
@@ -112,9 +113,9 @@ public class MutableMatch extends MutableSingleRel {
   }
 
   @Override public MutableRel clone() {
-    return MutableMatch.of(rowType, input.clone(), pattern, strictStart, strictEnd,
-      patternDefinitions, measures, after, subsets, allRows,
-      partitionKeys, orderKeys, interval);
+    return MutableMatch.of(rowType, input.clone(), pattern, strictStart,
+        strictEnd, patternDefinitions, measures, after, subsets, allRows,
+        partitionKeys, orderKeys, interval);
   }
 }
 

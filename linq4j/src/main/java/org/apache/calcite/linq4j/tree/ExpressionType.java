@@ -585,6 +585,8 @@ public enum ExpressionType {
 
   For,
 
+  ForEach,
+
   While;
 
   final String op;

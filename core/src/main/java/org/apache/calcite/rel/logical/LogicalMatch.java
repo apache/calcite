@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.List;
 import java.util.Map;
@@ -62,7 +63,7 @@ public class LogicalMatch extends Match {
       boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-      boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+      boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
       RexNode interval) {
     super(cluster, traitSet, input, rowType, pattern, strictStart, strictEnd,
         patternDefinitions, measures, after, subsets, allRows, partitionKeys,
@@ -76,7 +77,7 @@ public class LogicalMatch extends Match {
       RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets, boolean allRows,
-      List<RexNode> partitionKeys, RelCollation orderKeys, RexNode interval) {
+      ImmutableBitSet partitionKeys, RelCollation orderKeys, RexNode interval) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return create(cluster, traitSet, input, rowType, pattern,
@@ -92,7 +93,7 @@ public class LogicalMatch extends Match {
       RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-      boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+      boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
       RexNode interval) {
     return new LogicalMatch(cluster, traitSet, input, rowType, pattern,
         strictStart, strictEnd, patternDefinitions, measures, after, subsets,
