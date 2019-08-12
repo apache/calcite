@@ -963,6 +963,26 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpType(
         "cast(multiset['abc'] as integer multiset)",
         "INTEGER NOT NULL MULTISET NOT NULL");
+    // test cast to time type.
+    checkExpType("cast('abc' as time)", "TIME(0) NOT NULL");
+    checkExpType("cast('abc' as time without time zone)", "TIME(0) NOT NULL");
+    checkExpType("cast('abc' as time with local time zone)",
+        "TIME_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    checkExpType("cast('abc' as time(3))", "TIME(3) NOT NULL");
+    checkExpType("cast('abc' as time(3) without time zone)", "TIME(3) NOT NULL");
+    checkExpType("cast('abc' as time(3) with local time zone)",
+        "TIME_WITH_LOCAL_TIME_ZONE(3) NOT NULL");
+    // test cast to timestamp type.
+    checkExpType("cast('abc' as timestamp)", "TIMESTAMP(0) NOT NULL");
+    checkExpType("cast('abc' as timestamp without time zone)",
+        "TIMESTAMP(0) NOT NULL");
+    checkExpType("cast('abc' as timestamp with local time zone)",
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    checkExpType("cast('abc' as timestamp(3))", "TIMESTAMP(3) NOT NULL");
+    checkExpType("cast('abc' as timestamp(3) without time zone)",
+        "TIMESTAMP(3) NOT NULL");
+    checkExpType("cast('abc' as timestamp(3) with local time zone)",
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(3) NOT NULL");
   }
 
   @Test public void testCastRegisteredType() {

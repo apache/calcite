@@ -18,12 +18,12 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
-import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
@@ -108,8 +108,9 @@ public class SqlJsonValueFunction extends SqlFunction {
       operandList.add(operands[6]);
     } else if (!returnAny) {
       SqlDataTypeSpec defaultTypeSpec =
-          new SqlDataTypeSpec(new SqlIdentifier("VARCHAR", pos), 2000, -1,
-              null, null, pos);
+          new SqlDataTypeSpec(
+              new SqlBasicTypeNameSpec(SqlTypeName.VARCHAR, 2000, pos),
+              pos);
       operandList.add(defaultTypeSpec);
     }
     return super.createCall(functionQualifier, pos,

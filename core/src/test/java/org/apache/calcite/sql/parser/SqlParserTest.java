@@ -1442,9 +1442,22 @@ public class SqlParserTest {
     checkExp("cast(x as varchar(1))", "CAST(`X` AS VARCHAR(1))");
     checkExp("cast(x as date)", "CAST(`X` AS DATE)");
     checkExp("cast(x as time)", "CAST(`X` AS TIME)");
-    checkExp("cast(x as timestamp)", "CAST(`X` AS TIMESTAMP)");
+    checkExp("cast(x as time without time zone)", "CAST(`X` AS TIME)");
+    checkExp("cast(x as time with local time zone)",
+        "CAST(`X` AS TIME WITH LOCAL TIME ZONE)");
+    checkExp("cast(x as timestamp without time zone)", "CAST(`X` AS TIMESTAMP)");
+    checkExp("cast(x as timestamp with local time zone)",
+        "CAST(`X` AS TIMESTAMP WITH LOCAL TIME ZONE)");
     checkExp("cast(x as time(0))", "CAST(`X` AS TIME(0))");
+    checkExp("cast(x as time(0) without time zone)", "CAST(`X` AS TIME(0))");
+    checkExp("cast(x as time(0) with local time zone)",
+        "CAST(`X` AS TIME(0) WITH LOCAL TIME ZONE)");
     checkExp("cast(x as timestamp(0))", "CAST(`X` AS TIMESTAMP(0))");
+    checkExp("cast(x as timestamp(0) without time zone)",
+        "CAST(`X` AS TIMESTAMP(0))");
+    checkExp("cast(x as timestamp(0) with local time zone)",
+        "CAST(`X` AS TIMESTAMP(0) WITH LOCAL TIME ZONE)");
+    checkExp("cast(x as timestamp)", "CAST(`X` AS TIMESTAMP)");
     checkExp("cast(x as decimal(1,1))", "CAST(`X` AS DECIMAL(1, 1))");
     checkExp("cast(x as char(1))", "CAST(`X` AS CHAR(1))");
     checkExp("cast(x as binary(1))", "CAST(`X` AS BINARY(1))");
@@ -1462,6 +1475,18 @@ public class SqlParserTest {
   }
 
   @Test public void testCastFails() {
+    checkExpFails("cast(x as time with ^time^ zone)",
+        "(?s).*Encountered \"time\" at .*");
+    checkExpFails("cast(x as time(0) with ^time^ zone)",
+        "(?s).*Encountered \"time\" at .*");
+    checkExpFails("cast(x as timestamp with ^time^ zone)",
+        "(?s).*Encountered \"time\" at .*");
+    checkExpFails("cast(x as timestamp(0) with ^time^ zone)",
+        "(?s).*Encountered \"time\" at .*");
+    checkExpFails("cast(x as varchar(10) ^with^ local time zone)",
+        "(?s).*Encountered \"with\" at line 1, column 23.\n.*");
+    checkExpFails("cast(x as varchar(10) ^without^ time zone)",
+        "(?s).*Encountered \"without\" at line 1, column 23.\n.*");
   }
 
   @Test public void testLikeAndSimilar() {
@@ -4715,7 +4740,7 @@ public class SqlParserTest {
         "CAST(`A` AS ROW(`F0` INTEGER, `F1` VARCHAR))");
     checkExp("cast(a as row(f0 int not null, f1 varchar null))",
         "CAST(`A` AS ROW(`F0` INTEGER, `F1` VARCHAR NULL))");
-//    // test nested row type.
+    // test nested row type.
     checkExp("cast(a as row("
         + "f0 row(ff0 int not null, ff1 varchar null) null, "
         + "f1 timestamp not null))",

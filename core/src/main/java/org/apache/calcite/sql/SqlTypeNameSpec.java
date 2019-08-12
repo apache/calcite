@@ -19,14 +19,20 @@ package org.apache.calcite.sql;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.util.Litmus;
 
 /**
- * A <code>SqlTypeNameSpec</code> is a type name that allows user to
+ * A <code>SqlTypeNameSpec</code> is a type name specification that allows user to
  * customize sql node unparsing and data type deriving.
  *
- * <p>To customize sql node unparsing, override the method {@link #unparse(SqlWriter, int, int)}.
+ * <p>To customize sql node unparsing, override the method
+ * {@link #unparse(SqlWriter, int, int)}.
+ * <p>To customize data type deriving, override the method
+ * {@link #deriveType(RelDataTypeFactory)}.
  */
-public abstract class SqlTypeNameSpec extends SqlIdentifier {
+public abstract class SqlTypeNameSpec {
+  private final SqlIdentifier typeName;
+  private final SqlParserPos pos;
 
   /**
    * Creates a {@code SqlTypeNameSpec}.
@@ -34,11 +40,33 @@ public abstract class SqlTypeNameSpec extends SqlIdentifier {
    * @param name Name of the type.
    * @param pos  Parser position, must not be null.
    */
-  SqlTypeNameSpec(String name, SqlParserPos pos) {
-    super(name, pos);
+  SqlTypeNameSpec(SqlIdentifier name, SqlParserPos pos) {
+    this.typeName = name;
+    this.pos = pos;
   }
 
+  /**
+   * Derive type from this SqlTypeNameSpec.
+   *
+   * @param typeFactory Type factory.
+   * @return the {@code RelDataType} instance, or null if the SqlTypeNameSpec is not a
+   *         builtin sql type name.
+   */
   public abstract RelDataType deriveType(RelDataTypeFactory typeFactory);
+
+  /** Writes a SQL representation of this spec to a writer. */
+  public abstract void unparse(SqlWriter writer, int leftPrec, int rightPrec);
+
+  /** Returns whether this spec is structurally equivalent to another spec. */
+  public abstract boolean equalsDeep(SqlTypeNameSpec spec, Litmus litmus);
+
+  public SqlParserPos getParserPos() {
+    return pos;
+  }
+
+  public SqlIdentifier getTypeName() {
+    return typeName;
+  }
 }
 
 // End SqlTypeNameSpec.java

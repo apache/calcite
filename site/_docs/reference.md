@@ -1324,35 +1324,33 @@ Supported data types:
 
 {% highlight sql %}
 type:
-      typeName [ '(' precision [, scale] ')' ]
-      [ CHARACTER SET charSetName ]
+      typeName
       [ collectionsTypeName ]
 
 typeName:
       sqlTypeName
-  |   collectionsTypeName
   |   rowTypeName
   |   compoundIdentifier
 
 sqlTypeName:
-      char
-  |   varchar
+      char [ precision ] [ charSet ]
+  |   varchar [ precision ] [ charSet ]
   |   DATE
-  |   TIME
-  |   TIMESTAMP
+  |   time
+  |   timestamp
   |   GEOMETRY
-  |   decimal
+  |   decimal [ precision [, scale] ]
   |   BOOLEAN
   |   integer
-  |   BINARY
-  |   varbinary
+  |   BINARY [ precision ]
+  |   varbinary [ precision ]
   |   TINYINT
   |   SMALLINT
   |   BIGINT
   |   REAL
   |   double
   |   FLOAT
-  |   ANY
+  |   ANY [ precision [, scale] ]
 
 collectionsTypeName:
       ARRAY | MULTISET
@@ -1365,16 +1363,34 @@ rowTypeName:
 
 char:
       CHARACTER | CHAR
+
 varchar:
       char VARYING | VARCHAR
+
 decimal:
       DECIMAL | DEC | NUMERIC
+
 integer:
       INTEGER | INT
+
 varbinary:
       BINARY VARYING | VARBINARY
+
 double:
-      DOUBLE [PRECISION]
+      DOUBLE [ PRECISION ]
+
+time:
+      TIME [ precision ] [ timeZone ]
+
+timestamp:
+      TIMESTAMP [ precision ] [ timeZone ]
+
+charSet:
+      CHARACTER SET charSetName
+
+timeZone:
+      WITHOUT TIME ZONE
+  |   WITH LOCAL TIME ZONE
 {% endhighlight %}
 
 ### Value constructors

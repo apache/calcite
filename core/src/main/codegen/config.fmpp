@@ -373,9 +373,7 @@ data: {
     ]
 
     # List of methods for parsing custom data types.
-    # Return type of method implementation should be "SqlIdentifier".
-    # Return "SqlTypeNameSpec" if you want to customize sql unparsing
-    # and data type deriving.
+    # Return type of method implementation should be "SqlTypeNameSpec".
     # Example: SqlParseTimeStampZ().
     dataTypeParserMethods: [
     ]
