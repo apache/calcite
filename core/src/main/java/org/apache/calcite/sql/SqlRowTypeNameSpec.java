@@ -20,6 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
 import java.util.List;
@@ -27,7 +28,9 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * A sql type specification of row type, the grammar definition in SQL-2011 IWD 9075-2:201?(E)
+ * A sql type name specification of row type.
+ *
+ * <p>The grammar definition in SQL-2011 IWD 9075-2:201?(E)
  * 6.1 &lt;data type&gt; is as following:
  * <blockquote><pre>
  * &lt;row type&gt; ::=
@@ -44,7 +47,7 @@ import java.util.stream.Collectors;
  * <p>We also support to add a [ NULL | NOT NULL ] suffix for every field type, i.e.
  * Row(f0 int null, f1 varchar not null), the default is not nullable.
  */
-public class SqlRowTypeSpec extends SqlTypeNameSpec {
+public class SqlRowTypeNameSpec extends SqlTypeNameSpec {
 
   private final List<SqlIdentifier> fieldNames;
   private final List<SqlDataTypeSpec> fieldTypes;
@@ -56,11 +59,11 @@ public class SqlRowTypeSpec extends SqlTypeNameSpec {
    * @param fieldNames The field names.
    * @param fieldTypes The field data types.
    */
-  public SqlRowTypeSpec(
+  public SqlRowTypeNameSpec(
       SqlParserPos pos,
       List<SqlIdentifier> fieldNames,
       List<SqlDataTypeSpec> fieldTypes) {
-    super(SqlTypeName.ROW.getName(), pos);
+    super(new SqlIdentifier(SqlTypeName.ROW.getName(), pos), pos);
     Objects.requireNonNull(fieldNames);
     Objects.requireNonNull(fieldTypes);
     assert fieldNames.size() > 0; // there must be at least one field.
@@ -81,7 +84,7 @@ public class SqlRowTypeSpec extends SqlTypeNameSpec {
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-    writer.print(SqlTypeName.ROW.getName());
+    writer.print(getTypeName().getSimple());
     SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
     for (Pair<SqlIdentifier, SqlDataTypeSpec> p : Pair.zip(this.fieldNames, this.fieldTypes)) {
       writer.sep(",", false);
@@ -95,6 +98,30 @@ public class SqlRowTypeSpec extends SqlTypeNameSpec {
     writer.endList(frame);
   }
 
+  @Override public boolean equalsDeep(SqlTypeNameSpec node, Litmus litmus) {
+    if (!(node instanceof SqlRowTypeNameSpec)) {
+      return litmus.fail("{} != {}", this, node);
+    }
+    SqlRowTypeNameSpec that = (SqlRowTypeNameSpec) node;
+    if (this.fieldNames.size() != that.fieldNames.size()) {
+      return litmus.fail("{} != {}", this, node);
+    }
+    for (int i = 0; i < fieldNames.size(); i++) {
+      if (!this.fieldNames.get(i).equalsDeep(that.fieldNames.get(i), litmus)) {
+        return litmus.fail("{} != {}", this, node);
+      }
+    }
+    if (this.fieldTypes.size() != that.fieldTypes.size()) {
+      return litmus.fail("{} != {}", this, node);
+    }
+    for (int i = 0; i < fieldTypes.size(); i++) {
+      if (!this.fieldTypes.get(i).equals(that.fieldTypes.get(i))) {
+        return litmus.fail("{} != {}", this, node);
+      }
+    }
+    return litmus.succeed();
+  }
+
   @Override public RelDataType deriveType(RelDataTypeFactory typeFactory) {
     return typeFactory.createStructType(
         fieldTypes.stream()
@@ -106,4 +133,4 @@ public class SqlRowTypeSpec extends SqlTypeNameSpec {
   }
 }
 
-// End SqlRowTypeSpec.java
+// End SqlRowTypeNameSpec.java

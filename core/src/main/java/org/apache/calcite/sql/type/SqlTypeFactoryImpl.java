@@ -215,6 +215,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     assert typeName != null;
     assert typeName != SqlTypeName.MULTISET
         : "use createMultisetType() instead";
+    assert typeName != SqlTypeName.ARRAY
+        : "use createArrayType() instead";
+    assert typeName != SqlTypeName.ROW
+        : "use createStructType() instead";
     assert !SqlTypeName.INTERVAL_TYPES.contains(typeName)
         : "use createSqlIntervalType() instead";
   }

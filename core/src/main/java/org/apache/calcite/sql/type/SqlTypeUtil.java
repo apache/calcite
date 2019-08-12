@@ -22,11 +22,11 @@ import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlDataTypeSpec;
-import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -988,26 +988,32 @@ public abstract class SqlTypeUtil {
   /**
    * Converts an instance of RelDataType to an instance of SqlDataTypeSpec.
    *
-   * @param type type descriptor
+   * @param type         type descriptor
+   * @param charSetName  charSet name
+   * @param maxPrecision The max allowed precision.
    * @return corresponding parse representation
    */
-  public static SqlDataTypeSpec convertTypeToSpec(RelDataType type) {
+  public static SqlDataTypeSpec convertTypeToSpec(RelDataType type,
+      String charSetName, int maxPrecision) {
     SqlTypeName typeName = type.getSqlTypeName();
 
     // TODO jvs 28-Dec-2004:  support row types, user-defined types,
     // interval types, multiset types, etc
     assert typeName != null;
-    SqlIdentifier typeIdentifier =
-        new SqlIdentifier(
-            typeName.name(),
-            SqlParserPos.ZERO);
 
-    String charSetName = null;
-
-    if (inCharFamily(type)) {
-      charSetName = type.getCharset().name();
-      // TODO jvs 28-Dec-2004:  collation
+    int precision = typeName.allowsPrec() ? type.getPrecision() : -1;
+    // fix up the precision.
+    if (maxPrecision > 0 && precision > maxPrecision) {
+      precision = maxPrecision;
     }
+    int scale = typeName.allowsScale() ? type.getScale() : -1;
+
+    final SqlBasicTypeNameSpec typeNameSpec = new SqlBasicTypeNameSpec(
+        typeName,
+        precision,
+        scale,
+        charSetName,
+        SqlParserPos.ZERO);
 
     // REVIEW jvs 28-Dec-2004:  discriminate between precision/scale
     // zero and unspecified?
@@ -1015,31 +1021,19 @@ public abstract class SqlTypeUtil {
     // REVIEW angel 11-Jan-2006:
     // Use neg numbers to indicate unspecified precision/scale
 
-    if (typeName.allowsScale()) {
-      return new SqlDataTypeSpec(
-          typeIdentifier,
-          type.getPrecision(),
-          type.getScale(),
-          charSetName,
-          null,
-          SqlParserPos.ZERO);
-    } else if (typeName.allowsPrec()) {
-      return new SqlDataTypeSpec(
-          typeIdentifier,
-          type.getPrecision(),
-          -1,
-          charSetName,
-          null,
-          SqlParserPos.ZERO);
-    } else {
-      return new SqlDataTypeSpec(
-          typeIdentifier,
-          -1,
-          -1,
-          charSetName,
-          null,
-          SqlParserPos.ZERO);
-    }
+    return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+  }
+
+  /**
+   * Converts an instance of RelDataType to an instance of SqlDataTypeSpec.
+   *
+   * @param type type descriptor
+   * @return corresponding parse representation
+   */
+  public static SqlDataTypeSpec convertTypeToSpec(RelDataType type) {
+    // TODO jvs 28-Dec-2004:  collation
+    String charSetName = inCharFamily(type) ? type.getCharset().name() : null;
+    return convertTypeToSpec(type, charSetName, -1);
   }
 
   public static RelDataType createMultisetType(
