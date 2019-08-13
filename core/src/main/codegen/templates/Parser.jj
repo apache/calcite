@@ -1579,6 +1579,11 @@ SqlNode SelectItem() :
     final SqlIdentifier id;
 }
 {
+    LOOKAHEAD(7)
+    e = StarIdentifier() {
+        return e;
+    }
+    |
     e = SelectExpression()
     [
         [ <AS> ]
@@ -1599,10 +1604,6 @@ SqlNode SelectExpression() :
     SqlNode e;
 }
 {
-    <STAR> {
-        return SqlIdentifier.star(getPos());
-    }
-|
     e = Expression(ExprContext.ACCEPT_SUB_QUERY) {
         return e;
     }
@@ -4409,6 +4410,46 @@ SqlNodeList ParenthesizedSimpleIdentifierList() :
     SimpleIdentifierCommaList(list)
     <RPAREN> {
         return new SqlNodeList(list, s.end(this));
+    }
+}
+
+/**
+ * Parses a star identifier.
+ */
+SqlIdentifier StarIdentifier() :
+{
+    List<String> list = new ArrayList<String>();
+    List<SqlParserPos> posList = new ArrayList<SqlParserPos>();
+    String p;
+}
+{
+    [
+        p = Identifier()
+        {
+            list.add(p);
+            posList.add(getPos());
+        }
+        <DOT>
+        [
+            p = Identifier() {
+                list.add(p);
+                posList.add(getPos());
+            }
+            <DOT>
+            [
+                p = Identifier() {
+                    list.add(p);
+                    posList.add(getPos());
+                }
+                <DOT>
+            ]
+        ]
+    ]
+    <STAR> {
+        list.add("");
+        posList.add(getPos());
+        SqlParserPos pos = SqlParserPos.sum(posList);
+        return SqlIdentifier.star(list, pos, posList);
     }
 }
 

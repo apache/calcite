@@ -743,11 +743,14 @@ public class SqlParserTest {
         "Lexical error at line 1, column 10\\.  Encountered: \"#\" \\(35\\), after : \"\"");
   }
 
-  // TODO: should fail in parser
   @Test public void testStarAsFails() {
-    sql("select * as x from emp")
-        .ok("SELECT * AS `X`\n"
-            + "FROM `EMP`");
+    checkFails("select * ^as^ x from emp",
+        "(?s).*Encountered \"as\" at line 1, column 10.*");
+  }
+
+  @Test public void testCatalogSchemaTableAsFails() {
+    checkFails("select cat.schem.emp.* ^as^ x from cat.schem.emp",
+        "(?s).*Encountered \"as\" at line 1, column 24.*");
   }
 
   @Test public void testDerivedColumnList() {
@@ -2656,10 +2659,7 @@ public class SqlParserTest {
   }
 
   @Test public void testAliasedStar() {
-    // OK in parser; validator will give error
-    sql("select emp.* as foo from emp")
-        .ok("SELECT `EMP`.* AS `FOO`\n"
-                + "FROM `EMP`");
+    checkFails("select emp.* ^as^ foo from emp", "(?s).*Encountered \"as\" at line 1, column 14.*");
   }
 
   @Test public void testNotExists() {
