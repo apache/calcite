@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
@@ -220,6 +221,23 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE,
           null,
           OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL, ORACLE})
+  public static final SqlFunction CONCAT =
+      new SqlFunction(
+          "CONCAT",
+          SqlKind.OTHER_FUNCTION,
+          opBinding -> {
+            int precision = 0;
+            for (RelDataType operandType : opBinding.collectOperandTypes()) {
+              precision += operandType.getPrecision();
+            }
+            return opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR, precision);
+          },
+          null,
+          OperandTypes.repeat(SqlOperandCountRanges.from(2),
+                  OperandTypes.STRING),
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL})

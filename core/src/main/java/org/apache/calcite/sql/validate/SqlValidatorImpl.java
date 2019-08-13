@@ -79,6 +79,7 @@ import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.AssignableOperandTypeChecker;
@@ -300,6 +301,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       RelDataTypeFactory typeFactory,
       SqlConformance conformance) {
     this.opTab = Objects.requireNonNull(opTab);
+//    assert this.opTab.getOperatorList().contains(SqlLibraryOperators.LEFT);
     this.catalogReader = Objects.requireNonNull(catalogReader);
     this.typeFactory = Objects.requireNonNull(typeFactory);
     this.conformance = Objects.requireNonNull(conformance);

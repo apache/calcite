@@ -41,7 +41,7 @@ import java.util.concurrent.ExecutionException;
  *
  * <blockquote>
  *   <pre>SqlOperatorTable opTab =
- *     SqlDialectOperatorTableFactory.INSTANCE.getOperatorTable(
+ *     SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
  *         EnumSet.of(SqlLibrary.ORACLE, SqlLibrary.MYSQL))</pre>
  * </blockquote>
  *
