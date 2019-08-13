@@ -51,27 +51,33 @@ import static org.apache.calcite.plan.RelOptUtil.conjunctions;
 public abstract class FilterJoinRule extends RelOptRule {
   /** Predicate that always returns true. With this predicate, every filter
    * will be pushed into the ON clause. */
-  public static final Predicate TRUE = (join, joinType, exp) ->
-      join.getConvention() != EnumerableConvention.INSTANCE;
+  public static final Predicate TRUE = (join, joinType, exp) -> true;
 
   @Deprecated // to be removed before 1.22.0
   public static final Predicate TRUE_PREDICATE = TRUE;
 
+  /** Predicate that returns true if the join is not Enumerable convention,
+   * will be replaced by {@link #TRUE} once enumerable join supports
+   * non-equi join. */
+  // to be removed before 1.22.0
+  private static final Predicate NOT_ENUMERABLE = (join, joinType, exp) ->
+      join.getConvention() != EnumerableConvention.INSTANCE;
+
   /** Rule that pushes predicates from a Filter into the Join below them. */
   public static final FilterJoinRule FILTER_ON_JOIN =
       new FilterIntoJoinRule(true, RelFactories.LOGICAL_BUILDER,
-          TRUE);
+          NOT_ENUMERABLE);
 
   /** Dumber version of {@link #FILTER_ON_JOIN}. Not intended for production
    * use, but keeps some tests working for which {@code FILTER_ON_JOIN} is too
    * smart. */
   public static final FilterJoinRule DUMB_FILTER_ON_JOIN =
       new FilterIntoJoinRule(false, RelFactories.LOGICAL_BUILDER,
-          TRUE);
+          NOT_ENUMERABLE);
 
   /** Rule that pushes predicates in a Join into the inputs to the join. */
   public static final FilterJoinRule JOIN =
-      new JoinConditionPushRule(RelFactories.LOGICAL_BUILDER, TRUE);
+      new JoinConditionPushRule(RelFactories.LOGICAL_BUILDER, NOT_ENUMERABLE);
 
   /** Whether to try to strengthen join-type. */
   private final boolean smart;
@@ -103,7 +109,7 @@ public abstract class FilterJoinRule extends RelOptRule {
       boolean smart, RelFactories.FilterFactory filterFactory,
       RelFactories.ProjectFactory projectFactory) {
     this(operand, id, smart, RelBuilder.proto(filterFactory, projectFactory),
-        TRUE);
+        NOT_ENUMERABLE);
   }
 
   /**
