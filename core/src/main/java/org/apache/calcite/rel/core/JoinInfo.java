@@ -20,10 +20,13 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.mapping.IntPair;
+
+import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,14 +45,14 @@ import java.util.Objects;
 public class JoinInfo {
   public final ImmutableIntList leftKeys;
   public final ImmutableIntList rightKeys;
-  protected final RexNode nonEquiCondition;
+  protected final ImmutableList<RexNode> nonEquiConditions;
 
   /** Creates a JoinInfo. */
   protected JoinInfo(ImmutableIntList leftKeys, ImmutableIntList rightKeys,
-      RexNode nonEquiCondition) {
+      ImmutableList<RexNode> nonEquiConditions) {
     this.leftKeys = Objects.requireNonNull(leftKeys);
     this.rightKeys = Objects.requireNonNull(rightKeys);
-    this.nonEquiCondition = nonEquiCondition;
+    this.nonEquiConditions = Objects.requireNonNull(nonEquiConditions);
     assert leftKeys.size() == rightKeys.size();
   }
 
@@ -58,22 +61,28 @@ public class JoinInfo {
     final List<Integer> leftKeys = new ArrayList<>();
     final List<Integer> rightKeys = new ArrayList<>();
     final List<Boolean> filterNulls = new ArrayList<>();
+    final ImmutableList<RexNode> remainingConds;
     RexNode remaining =
         RelOptUtil.splitJoinCondition(left, right, condition, leftKeys,
             rightKeys, filterNulls);
+    if (remaining.isAlwaysTrue()) {
+      remainingConds = ImmutableList.of();
+    } else {
+      remainingConds = RexUtil.flattenAnd(ImmutableList.of(remaining));
+    }
     return new JoinInfo(ImmutableIntList.copyOf(leftKeys),
-        ImmutableIntList.copyOf(rightKeys), remaining);
+        ImmutableIntList.copyOf(rightKeys), remainingConds);
   }
 
   /** Creates an equi-join. */
   public static JoinInfo of(ImmutableIntList leftKeys,
       ImmutableIntList rightKeys) {
-    return new JoinInfo(leftKeys, rightKeys, null);
+    return new JoinInfo(leftKeys, rightKeys, ImmutableList.of());
   }
 
   /** Returns whether this is an equi-join. */
   public boolean isEqui() {
-    return nonEquiCondition == null || nonEquiCondition.isAlwaysTrue();
+    return nonEquiConditions.isEmpty();
   }
 
   /** Returns a list of (left, right) key ordinals. */
@@ -90,10 +99,7 @@ public class JoinInfo {
   }
 
   public RexNode getRemaining(RexBuilder rexBuilder) {
-    if (nonEquiCondition == null) {
-      return rexBuilder.makeLiteral(true);
-    }
-    return nonEquiCondition;
+    return RexUtil.composeConjunction(rexBuilder, nonEquiConditions);
   }
 
   public RexNode getEquiCondition(RelNode left, RelNode right,

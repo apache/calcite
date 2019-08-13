@@ -51,7 +51,7 @@ import org.junit.Test;
 
 import java.io.File;
 
-import static org.apache.calcite.rel.rules.FilterJoinRule.TRUE_PREDICATE;
+import static org.apache.calcite.rel.rules.FilterJoinRule.TRUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
 
@@ -254,7 +254,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
     planner.removeRule(FilterJoinRule.FILTER_ON_JOIN);
     planner.addRule(
         new FilterAggregateTransposeRule(PigFilter.class, builderFactory, PigAggregate.class));
-    planner.addRule(new FilterIntoJoinRule(true, builderFactory, TRUE_PREDICATE));
+    planner.addRule(new FilterIntoJoinRule(true, builderFactory, TRUE));
     planner.setRoot(root);
     return planner;
   }
