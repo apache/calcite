@@ -655,6 +655,28 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + ".*Supported form.s.: '<STRING> \\|\\| <STRING>.*'");
   }
 
+  /** Tests the CONCAT function, which unlike the concat operator ('||') is not
+   * standard but only in the ORACLE and POSTGRESQL libraries. */
+  @Test public void testConcatFunction() {
+    // CONCAT is not in the library operator table
+    tester = tester.withOperatorTable(
+        SqlLibraryOperatorTableFactory.INSTANCE
+            .getOperatorTable(SqlLibrary.STANDARD, SqlLibrary.POSTGRESQL));
+    checkExp("concat('a', 'b')");
+    checkExp("concat(x'12', x'34')");
+    checkExp("concat(_UTF16'a', _UTF16'b', _UTF16'c')");
+    checkExpType("concat('aabbcc', 'ab', '+-')",
+        "VARCHAR(10) NOT NULL");
+    checkExpType("concat('aabbcc', CAST(NULL AS VARCHAR(20)), '+-')",
+        "VARCHAR(28)");
+    checkWholeExpFails("concat('aabbcc', 2)",
+        "(?s)Cannot apply 'CONCAT' to arguments of type 'CONCAT\\(<CHAR\\(6\\)>, <INTEGER>\\)'\\. .*");
+    checkWholeExpFails("concat('abc', 'ab', 123)",
+        "(?s)Cannot apply 'CONCAT' to arguments of type 'CONCAT\\(<CHAR\\(3\\)>, <CHAR\\(2\\)>, <INTEGER>\\)'\\. .*");
+    checkWholeExpFails("concat(true, false)",
+        "(?s)Cannot apply 'CONCAT' to arguments of type 'CONCAT\\(<BOOLEAN>, <BOOLEAN>\\)'\\. .*");
+  }
+
   @Test public void testBetween() {
     checkExp("1 between 2 and 3");
     checkExp("'a' between 'b' and 'c'");
