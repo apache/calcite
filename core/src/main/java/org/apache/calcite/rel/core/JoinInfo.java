@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.Nonnull;
 
 /** An analyzed join condition.
  *
@@ -98,8 +99,13 @@ public class JoinInfo {
     return ImmutableBitSet.of(rightKeys);
   }
 
+  @Deprecated // to be removed before 2.0
   public RexNode getRemaining(RexBuilder rexBuilder) {
     return RexUtil.composeConjunction(rexBuilder, nonEquiConditions);
+  }
+
+  public @Nonnull ImmutableList<RexNode> getNonEquiConditions() {
+    return nonEquiConditions;
   }
 
   public RexNode getEquiCondition(RelNode left, RelNode right,

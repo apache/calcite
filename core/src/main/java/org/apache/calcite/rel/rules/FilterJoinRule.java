@@ -54,6 +54,9 @@ public abstract class FilterJoinRule extends RelOptRule {
   public static final Predicate TRUE = (join, joinType, exp) ->
       join.getConvention() != EnumerableConvention.INSTANCE;
 
+  @Deprecated // to be removed before 1.22.0
+  public static final Predicate TRUE_PREDICATE = TRUE;
+
   /** Rule that pushes predicates from a Filter into the Join below them. */
   public static final FilterJoinRule FILTER_ON_JOIN =
       new FilterIntoJoinRule(true, RelFactories.LOGICAL_BUILDER,

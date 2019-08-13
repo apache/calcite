@@ -24,6 +24,7 @@ import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -74,8 +75,9 @@ class EnumerableJoinRule extends ConverterRule {
           info.getEquiCondition(left, right, cluster.getRexBuilder()),
           join.getVariablesSet(),
           join.getJoinType());
-      RexNode nonEqui = info.getRemaining(cluster.getRexBuilder());
-      if (!nonEqui.isAlwaysTrue()) {
+      if (!info.isEqui()) {
+        RexNode nonEqui = RexUtil.composeConjunction(cluster.getRexBuilder(),
+            info.getNonEquiConditions());
         newRel = new EnumerableFilter(cluster, newRel.getTraitSet(),
             newRel, nonEqui);
       }
