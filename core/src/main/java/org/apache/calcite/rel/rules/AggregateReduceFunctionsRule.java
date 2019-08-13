@@ -101,7 +101,7 @@ import java.util.function.Predicate;
  *
  * <li>REGR_R2(x, y) &rarr; CASE WHEN VAR_POP(y) = 0 THEN NULL
  *     WHEN VAR_POP(x) = 0 AND VAR_POP(y) != 0 THEN 1
- *     WHEN VAR_POP(x) > 0 AND VAR_POP(y) != 0 THEN POWER(CORR(x, y), 2)
+ *     WHEN VAR_POP(x) &gt; 0 AND VAR_POP(y) != 0 THEN POWER(CORR(x, y), 2)
  *     ELSE NULL
  *
  * <li>REGR_SLOPE(x, y) &rarr; COVAR_POP(x * y)
