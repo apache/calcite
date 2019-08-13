@@ -41,6 +41,7 @@ import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.JdbcTest;
+import org.apache.calcite.test.MockSqlOperatorTable;
 import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
@@ -577,6 +578,37 @@ public class RelWriterTest {
         });
     final String expected = ""
         + "LogicalProject($f0=[+($5, 10)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(s, isLinux(expected));
+  }
+
+  @Test public void testUdf() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RelNode rel = builder
+        .scan("EMP")
+        .project(
+            builder.call(new MockSqlOperatorTable.MyFunction(),
+                builder.field("EMPNO")))
+        .build();
+    RelJsonWriter jsonWriter = new RelJsonWriter();
+    rel.explain(jsonWriter);
+    String relJson = jsonWriter.asString();
+    String s =
+        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+          final RelJsonReader reader = new RelJsonReader(
+              cluster, getSchema(rel), rootSchema);
+          RelNode node;
+          try {
+            node = reader.read(relJson);
+          } catch (IOException e) {
+            throw TestUtil.rethrow(e);
+          }
+          return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
+              SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+        });
+    final String expected = ""
+        + "LogicalProject($f0=[MYFUN($0)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(s, isLinux(expected));
   }
