@@ -18,12 +18,13 @@ package org.apache.calcite.rel.rel2sql;
 
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
-import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -61,12 +62,15 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -134,6 +138,33 @@ public class RelToSqlConverterTest {
         .withDatabaseProduct(SqlDialect.DatabaseProduct.MYSQL)
         .withIdentifierQuoteString("`")
         .withNullCollation(nullCollation));
+  }
+
+  /** Returns a collection of common dialects, and the database products they
+   * represent. */
+  private static Map<SqlDialect, DatabaseProduct> dialects() {
+    return ImmutableMap.<SqlDialect, DatabaseProduct>builder()
+        .put(SqlDialect.DatabaseProduct.BIG_QUERY.getDialect(),
+            SqlDialect.DatabaseProduct.BIG_QUERY)
+        .put(SqlDialect.DatabaseProduct.CALCITE.getDialect(),
+            SqlDialect.DatabaseProduct.CALCITE)
+        .put(SqlDialect.DatabaseProduct.DB2.getDialect(),
+            SqlDialect.DatabaseProduct.DB2)
+        .put(SqlDialect.DatabaseProduct.HIVE.getDialect(),
+            SqlDialect.DatabaseProduct.HIVE)
+        .put(jethroDataSqlDialect(),
+            SqlDialect.DatabaseProduct.JETHRO)
+        .put(SqlDialect.DatabaseProduct.MSSQL.getDialect(),
+            SqlDialect.DatabaseProduct.MSSQL)
+        .put(SqlDialect.DatabaseProduct.MYSQL.getDialect(),
+            SqlDialect.DatabaseProduct.MYSQL)
+        .put(mySqlDialect(NullCollation.HIGH),
+            SqlDialect.DatabaseProduct.MYSQL)
+        .put(SqlDialect.DatabaseProduct.ORACLE.getDialect(),
+            SqlDialect.DatabaseProduct.ORACLE)
+        .put(SqlDialect.DatabaseProduct.POSTGRESQL.getDialect(),
+            SqlDialect.DatabaseProduct.POSTGRESQL)
+        .build();
   }
 
   /** Creates a RelBuilder. */
@@ -706,6 +737,27 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testHaving4() {
+    final String query = "select \"product_id\"\n"
+        + "from (\n"
+        + "  select \"product_id\", avg(\"gross_weight\") as agw\n"
+        + "  from \"product\"\n"
+        + "  where \"net_weight\" < 100\n"
+        + "  group by \"product_id\")\n"
+        + "where agw > 50\n"
+        + "group by \"product_id\"\n"
+        + "having avg(agw) > 60\n";
+    final String expected = "SELECT \"product_id\"\n"
+        + "FROM (SELECT \"product_id\", AVG(\"gross_weight\") AS \"AGW\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"net_weight\" < 100\n"
+        + "GROUP BY \"product_id\"\n"
+        + "HAVING AVG(\"gross_weight\") > 50) AS \"t2\"\n"
+        + "GROUP BY \"product_id\"\n"
+        + "HAVING AVG(\"AGW\") > 60";
+    sql(query).ok(expected);
+  }
+
   @Test public void testSelectQueryWithOrderByClause() {
     String query = "select \"product_id\"  from \"product\" order by \"net_weight\"";
     final String expected = "SELECT \"product_id\", \"net_weight\"\n"
@@ -850,6 +902,50 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT STRPOS('ABC', 'A')\n"
         + "FROM foodmart.product";
     sql(query).withBigQuery().ok(expected);
+  }
+
+  /** Tests that we escape single-quotes in character literals using back-slash
+   * in BigQuery. The norm is to escape single-quotes with single-quotes. */
+  @Test public void testCharLiteralForBigQuery() {
+    final String query = "select 'that''s all folks!' from \"product\"";
+    final String expectedPostgresql = "SELECT 'that''s all folks!'\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedBigQuery = "SELECT 'that\\'s all folks!'\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withPostgresql().ok(expectedPostgresql)
+        .withBigQuery().ok(expectedBigQuery);
+  }
+
+  @Test public void testIdentifier() {
+    // Note that IGNORE is reserved in BigQuery but not in standard SQL
+    final String query = "select *\n"
+        + "from (\n"
+        + "  select 1 as \"one\", 2 as \"tWo\", 3 as \"THREE\",\n"
+        + "    4 as \"fo$ur\", 5 as \"ignore\"\n"
+        + "  from \"foodmart\".\"days\") as \"my$table\"\n"
+        + "where \"one\" < \"tWo\" and \"THREE\" < \"fo$ur\"";
+    final String expectedBigQuery = "SELECT *\n"
+        + "FROM (SELECT 1 AS one, 2 AS tWo, 3 AS THREE,"
+        + " 4 AS `fo$ur`, 5 AS `ignore`\n"
+        + "FROM foodmart.days) AS t\n"
+        + "WHERE one < tWo AND THREE < `fo$ur`";
+    final String expectedMysql =  "SELECT *\n"
+        + "FROM (SELECT 1 AS `one`, 2 AS `tWo`, 3 AS `THREE`,"
+        + " 4 AS `fo$ur`, 5 AS `ignore`\n"
+        + "FROM `foodmart`.`days`) AS `t`\n"
+        + "WHERE `one` < `tWo` AND `THREE` < `fo$ur`";
+    final String expectedPostgresql = "SELECT *\n"
+        + "FROM (SELECT 1 AS \"one\", 2 AS \"tWo\", 3 AS \"THREE\","
+        + " 4 AS \"fo$ur\", 5 AS \"ignore\"\n"
+        + "FROM \"foodmart\".\"days\") AS \"t\"\n"
+        + "WHERE \"one\" < \"tWo\" AND \"THREE\" < \"fo$ur\"";
+    final String expectedOracle = expectedPostgresql.replaceAll(" AS ", " ");
+    sql(query)
+        .withBigQuery().ok(expectedBigQuery)
+        .withMysql().ok(expectedMysql)
+        .withOracle().ok(expectedOracle)
+        .withPostgresql().ok(expectedPostgresql);
   }
 
   @Test public void testModFunctionForHive() {
@@ -1149,7 +1245,14 @@ public class RelToSqlConverterTest {
         + "ORDER BY \"net_weight\"\n"
         + "OFFSET 10 ROWS\n"
         + "FETCH NEXT 100 ROWS ONLY";
-    sql(query).ok(expected);
+    // BigQuery uses LIMIT/OFFSET, and nulls sort low by default
+    final String expectedBigQuery = "SELECT product_id, net_weight\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY net_weight IS NULL, net_weight\n"
+        + "LIMIT 100\n"
+        + "OFFSET 10";
+    sql(query).ok(expected)
+        .withBigQuery().ok(expectedBigQuery);
   }
 
   @Test public void testSelectQueryWithParameters() {
@@ -1582,11 +1685,9 @@ public class RelToSqlConverterTest {
         + "SELECT \"product_class_id\" AS \"PRODUCT_ID\"\n"
         + "FROM \"foodmart\".\"product_class\"";
 
-    final HepProgram program =
-        new HepProgramBuilder().addRuleClass(UnionMergeRule.class).build();
     final RuleSet rules = RuleSets.ofList(UnionMergeRule.INSTANCE);
     sql(query)
-        .optimize(rules, new HepPlanner(program))
+        .optimize(rules, null)
         .ok(expected);
   }
 
@@ -3100,6 +3201,10 @@ public class RelToSqlConverterTest {
     final String expectedHsqldb = "SELECT a\n"
         + "FROM (VALUES  (1, 'x '),\n"
         + " (2, 'yy')) AS t (a, b)";
+    final String expectedMysql = "SELECT `a`\n"
+        + "FROM (SELECT 1 AS `a`, 'x ' AS `b`\n"
+        + "UNION ALL\n"
+        + "SELECT 2 AS `a`, 'yy' AS `b`) AS `t`";
     final String expectedPostgresql = "SELECT \"a\"\n"
         + "FROM (VALUES  (1, 'x '),\n"
         + " (2, 'yy')) AS \"t\" (\"a\", \"b\")";
@@ -3114,6 +3219,8 @@ public class RelToSqlConverterTest {
     sql(sql)
         .withHsqldb()
         .ok(expectedHsqldb)
+        .withMysql()
+        .ok(expectedMysql)
         .withPostgresql()
         .ok(expectedPostgresql)
         .withOracle()
@@ -3122,6 +3229,31 @@ public class RelToSqlConverterTest {
         .ok(expectedSnowflake)
         .withRedshift()
         .ok(expectedRedshift);
+  }
+
+  @Test public void testValuesEmpty() {
+    final String sql = "select *\n"
+        + "from (values (1, 'a'), (2, 'bb')) as t(x, y)\n"
+        + "limit 0";
+    final RuleSet rules =
+        RuleSets.ofList(PruneEmptyRules.SORT_FETCH_ZERO_INSTANCE);
+    final String expectedMysql = "SELECT *\n"
+        + "FROM (SELECT NULL AS `X`, NULL AS `Y`) AS `t`\n"
+        + "WHERE 1 = 0";
+    final String expectedOracle = "SELECT NULL \"X\", NULL \"Y\"\n"
+        + "FROM \"DUAL\"\n"
+        + "WHERE 1 = 0";
+    final String expectedPostgresql = "SELECT *\n"
+        + "FROM (VALUES  (NULL, NULL)) AS \"t\" (\"X\", \"Y\")\n"
+        + "WHERE 1 = 0";
+    sql(sql)
+        .optimize(rules, null)
+        .withMysql()
+        .ok(expectedMysql)
+        .withOracle()
+        .ok(expectedOracle)
+        .withPostgresql()
+        .ok(expectedPostgresql);
   }
 
   /** Test case for
@@ -3523,7 +3655,7 @@ public class RelToSqlConverterTest {
 
   @Test public void testDateLiteralOracle() {
     String query = "SELECT DATE '1978-05-02' FROM \"employee\"";
-    String expected = "SELECT TO_DATE ('1978-05-02', 'YYYY-MM-DD')\n"
+    String expected = "SELECT TO_DATE('1978-05-02', 'YYYY-MM-DD')\n"
         + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withOracle()
@@ -3532,7 +3664,8 @@ public class RelToSqlConverterTest {
 
   @Test public void testTimestampLiteralOracle() {
     String query = "SELECT TIMESTAMP '1978-05-02 12:34:56.78' FROM \"employee\"";
-    String expected = "SELECT TO_TIMESTAMP ('1978-05-02 12:34:56.78', 'YYYY-MM-DD HH24:MI:SS.FF')\n"
+    String expected = "SELECT TO_TIMESTAMP('1978-05-02 12:34:56.78',"
+        + " 'YYYY-MM-DD HH24:MI:SS.FF')\n"
         + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withOracle()
@@ -3541,7 +3674,7 @@ public class RelToSqlConverterTest {
 
   @Test public void testTimeLiteralOracle() {
     String query = "SELECT TIME '12:34:56.78' FROM \"employee\"";
-    String expected = "SELECT TO_TIME ('12:34:56.78', 'HH24:MI:SS.FF')\n"
+    String expected = "SELECT TO_TIME('12:34:56.78', 'HH24:MI:SS.FF')\n"
         + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withOracle()
@@ -3559,6 +3692,25 @@ public class RelToSqlConverterTest {
     final SqlDialect postgresqlDialect = SqlDialect.DatabaseProduct.POSTGRESQL.getDialect();
     assertTrue(postgresqlDialect.supportsDataType(booleanDataType));
     assertTrue(postgresqlDialect.supportsDataType(integerDataType));
+  }
+
+  @Test public void testDialectQuoteStringLiteral() {
+    dialects().forEach((dialect, databaseProduct) -> {
+      assertThat(dialect.quoteStringLiteral(""), is("''"));
+      assertThat(dialect.quoteStringLiteral("can't run"),
+          databaseProduct == DatabaseProduct.BIG_QUERY
+              ? is("'can\\'t run'")
+              : is("'can''t run'"));
+
+      assertThat(dialect.unquoteStringLiteral("''"), is(""));
+      if (databaseProduct == DatabaseProduct.BIG_QUERY) {
+        assertThat(dialect.unquoteStringLiteral("'can\\'t run'"),
+            is("can't run"));
+      } else {
+        assertThat(dialect.unquoteStringLiteral("'can't run'"),
+            is("can't run"));
+      }
+    });
   }
 
   /** Fluid interface to run tests. */
@@ -3699,7 +3851,12 @@ public class RelToSqlConverterTest {
       return new Sql(schema, sql, dialect, config,
           FlatLists.append(transforms, r -> {
             Program program = Programs.of(ruleSet);
-            return program.run(relOptPlanner, r, r.getTraitSet(),
+            final RelOptPlanner p =
+                Util.first(relOptPlanner,
+                    new HepPlanner(
+                        new HepProgramBuilder().addRuleClass(RelOptRule.class)
+                            .build()));
+            return program.run(p, r, r.getTraitSet(),
                 ImmutableList.of(), ImmutableList.of());
           }));
     }

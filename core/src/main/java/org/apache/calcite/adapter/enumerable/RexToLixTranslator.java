@@ -98,7 +98,7 @@ public class RexToLixTranslator {
   private final RexProgram program;
   final SqlConformance conformance;
   private final Expression root;
-  private final RexToLixTranslator.InputGetter inputGetter;
+  final RexToLixTranslator.InputGetter inputGetter;
   private final BlockBuilder list;
   private final Map<? extends RexNode, Boolean> exprNullableMap;
   private final RexToLixTranslator parent;
@@ -664,7 +664,16 @@ public class RexToLixTranslator {
       nullAs = RexImpTable.NullAs.NOT_POSSIBLE;
     }
     switch (expr.getKind()) {
-    case INPUT_REF: {
+    case INPUT_REF:
+    {
+      final int index = ((RexInputRef) expr).getIndex();
+      Expression x = inputGetter.field(list, index, storageType);
+
+      Expression input = list.append("inp" + index + "_", x); // safe to share
+      return handleNullUnboxingIfNecessary(input, nullAs, storageType);
+    }
+    case PATTERN_INPUT_REF:
+    {
       final int index = ((RexInputRef) expr).getIndex();
       Expression x = inputGetter.field(list, index, storageType);
 

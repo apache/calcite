@@ -699,6 +699,18 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  @Test public void testProjectWithAliasFromScan() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .project(builder.field(1, "EMP", "ENAME"))
+            .build();
+    final String expected =
+        "LogicalProject(ENAME=[$1])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
   private void project1(int value, SqlTypeName sqlTypeName, String message, String expected) {
     final RelBuilder builder = RelBuilder.create(config().build());
     RexBuilder rex = builder.getRexBuilder();
@@ -1019,6 +1031,33 @@ public class RelBuilderTest {
             builder.sum(builder.field(2)).as("S2"),
             builder.sum(builder.field(1)).as("S1b"))
         .build();
+  }
+
+  /** Tests eliminating duplicate aggregate calls, when some of them are only
+   * seen to be duplicates when a spurious "DISTINCT" has been eliminated.
+   *
+   * <p>Note that "M2" and "MD2" are based on the same field, because
+   * "MIN(DISTINCT $2)" is identical to "MIN($2)". The same is not true for
+   * "SUM". */
+  @Test public void testAggregateEliminatesDuplicateDistinctCalls() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root = builder.scan("EMP")
+        .aggregate(builder.groupKey(2),
+            builder.sum(builder.field(1)).as("S1"),
+            builder.sum(builder.field(1)).distinct().as("SD1"),
+            builder.count().as("C"),
+            builder.min(builder.field(2)).distinct().as("MD2"),
+            builder.min(builder.field(2)).as("M2"),
+            builder.min(builder.field(2)).distinct().as("MD2b"),
+            builder.sum(builder.field(1)).distinct().as("S1b"))
+        .build();
+    final String expected = ""
+        + "LogicalProject(JOB=[$0], S1=[$1], SD1=[$2], C=[$3], MD2=[$4], "
+        + "M2=[$4], MD2b=[$4], S1b=[$2])\n"
+        + "  LogicalAggregate(group=[{2}], S1=[SUM($1)], "
+        + "SD1=[SUM(DISTINCT $1)], C=[COUNT()], MD2=[MIN($2)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testAggregateFilter() {
@@ -2613,7 +2652,7 @@ public class RelBuilderTest {
             measuresBuilder.build(), after, subsets, false,
             partitionKeysBuilder.build(), orderKeysBuilder.build(), interval)
         .build();
-    final String expected = "LogicalMatch(partition=[[$7]], order=[[0]], "
+    final String expected = "LogicalMatch(partition=[[7]], order=[[0]], "
         + "outputFields=[[$7, 'start_nw', 'bottom_nw']], allRows=[false], "
         + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[(('STRT', "
         + "PATTERN_QUANTIFIER('DOWN', 1, -1, false)), "
@@ -2760,6 +2799,31 @@ public class RelBuilderTest {
       }
 
       assertTrue(count > 1);
+    }
+  }
+
+  @Test public void testExpandViewShouldKeepAlias() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      final Frameworks.ConfigBuilder configBuilder =
+          expandingConfig(connection);
+      final RelOptTable.ViewExpander viewExpander =
+          (RelOptTable.ViewExpander) Frameworks.getPlanner(configBuilder.build());
+      final RelFactories.TableScanFactory tableScanFactory =
+          RelFactories.expandingScanFactory(viewExpander,
+              RelFactories.DEFAULT_TABLE_SCAN_FACTORY);
+      configBuilder.context(Contexts.of(tableScanFactory));
+      final RelBuilder builder = RelBuilder.create(configBuilder.build());
+      RelNode node =
+          builder.scan("MYVIEW")
+              .project(
+                  builder.field(1, "MYVIEW", "EMPNO"),
+                  builder.field(1, "MYVIEW", "ENAME"))
+              .build();
+      String expected =
+          "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+              + "  LogicalFilter(condition=[=(1, 1)])\n"
+                  + "    LogicalTableScan(table=[[scott, EMP]])\n";
+      assertThat(node, hasTree(expected));
     }
   }
 

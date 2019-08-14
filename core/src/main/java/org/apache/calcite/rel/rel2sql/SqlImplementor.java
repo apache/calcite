@@ -123,10 +123,23 @@ public abstract class SqlImplementor {
     String name = rowType.getFieldNames().get(selectList.size());
     String alias = SqlValidatorUtil.getAlias(node, -1);
     if (alias == null || !alias.equals(name)) {
-      node = SqlStdOperatorTable.AS.createCall(
-          POS, node, new SqlIdentifier(name, POS));
+      node = as(node, name);
     }
     selectList.add(node);
+  }
+
+  /** Convenience method for creating column and table aliases.
+   *
+   * <p>{@code AS(e, "c")} creates "e AS c";
+   * {@code AS(e, "t", "c1", "c2"} creates "e AS t (c1, c2)". */
+  protected SqlCall as(SqlNode e, String alias, String... fieldNames) {
+    final List<SqlNode> operandList = new ArrayList<>();
+    operandList.add(e);
+    operandList.add(new SqlIdentifier(alias, POS));
+    for (String fieldName : fieldNames) {
+      operandList.add(new SqlIdentifier(fieldName, POS));
+    }
+    return SqlStdOperatorTable.AS.createCall(POS, operandList);
   }
 
   /** Returns whether a list of expressions projects all fields, in order,
@@ -413,8 +426,29 @@ public abstract class SqlImplementor {
                 || ((SqlCall) node).getOperator() == SqlStdOperatorTable.AS
                 || ((SqlCall) node).getOperator() == SqlStdOperatorTable.VALUES)
         : node;
+    if (requiresAlias(node)) {
+      node = as(node, "t");
+    }
     return new SqlSelect(POS, SqlNodeList.EMPTY, null, node, null, null, null,
         SqlNodeList.EMPTY, null, null, null);
+  }
+
+  /** Returns whether we need to add an alias if this node is to be the FROM
+   * clause of a SELECT. */
+  private boolean requiresAlias(SqlNode node) {
+    if (!dialect.requiresAliasForFromItems()) {
+      return false;
+    }
+    switch (node.getKind()) {
+    case IDENTIFIER:
+      return !dialect.hasImplicitTableAlias();
+    case AS:
+    case JOIN:
+    case EXPLICIT_TABLE:
+      return false;
+    default:
+      return true;
+    }
   }
 
   /** Context for translating a {@link RexNode} expression (within a

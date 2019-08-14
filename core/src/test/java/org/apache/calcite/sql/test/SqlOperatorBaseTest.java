@@ -27,7 +27,6 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
-import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJdbcFunctionCall;
 import org.apache.calcite.sql.SqlLiteral;
@@ -46,6 +45,7 @@ import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -8886,21 +8886,10 @@ public abstract class SqlOperatorBaseTest {
 
     private SqlNode literal(RelDataType type, Object value) {
       if (value == null) {
-        int precision = type.getPrecision();
-        int scale = type.getScale();
-        if (!type.getSqlTypeName().allowsPrec()) {
-          precision = -1;
-        }
-        if (!type.getSqlTypeName().allowsScale()) {
-          scale = -1;
-        }
         return SqlStdOperatorTable.CAST.createCall(
             SqlParserPos.ZERO,
             SqlLiteral.createNull(SqlParserPos.ZERO),
-            new SqlDataTypeSpec(
-                new SqlIdentifier(type.getSqlTypeName().getName(),
-                    SqlParserPos.ZERO), precision, scale, null, null,
-                SqlParserPos.ZERO));
+            SqlTypeUtil.convertTypeToSpec(type));
       }
       switch (type.getSqlTypeName()) {
       case BOOLEAN:

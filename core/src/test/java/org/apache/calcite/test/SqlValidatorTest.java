@@ -963,6 +963,26 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpType(
         "cast(multiset['abc'] as integer multiset)",
         "INTEGER NOT NULL MULTISET NOT NULL");
+    // test cast to time type.
+    checkExpType("cast('abc' as time)", "TIME(0) NOT NULL");
+    checkExpType("cast('abc' as time without time zone)", "TIME(0) NOT NULL");
+    checkExpType("cast('abc' as time with local time zone)",
+        "TIME_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    checkExpType("cast('abc' as time(3))", "TIME(3) NOT NULL");
+    checkExpType("cast('abc' as time(3) without time zone)", "TIME(3) NOT NULL");
+    checkExpType("cast('abc' as time(3) with local time zone)",
+        "TIME_WITH_LOCAL_TIME_ZONE(3) NOT NULL");
+    // test cast to timestamp type.
+    checkExpType("cast('abc' as timestamp)", "TIMESTAMP(0) NOT NULL");
+    checkExpType("cast('abc' as timestamp without time zone)",
+        "TIMESTAMP(0) NOT NULL");
+    checkExpType("cast('abc' as timestamp with local time zone)",
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    checkExpType("cast('abc' as timestamp(3))", "TIMESTAMP(3) NOT NULL");
+    checkExpType("cast('abc' as timestamp(3) without time zone)",
+        "TIMESTAMP(3) NOT NULL");
+    checkExpType("cast('abc' as timestamp(3) with local time zone)",
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(3) NOT NULL");
   }
 
   @Test public void testCastRegisteredType() {
@@ -7757,6 +7777,44 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("INTEGER ARRAY NOT NULL");
     sql("select array['1',null,'234',''] as a from (values (1))")
         .columnType("CHAR(3) ARRAY NOT NULL");
+  }
+
+  @Test public void testCastAsArrayType() {
+    sql("select cast(array[1,null,2] as int array) from (values (1))")
+        .columnType("INTEGER NOT NULL ARRAY NOT NULL");
+    sql("select cast(array['1',null,'2'] as varchar(5) array) from (values (1))")
+        .columnType("VARCHAR(5) NOT NULL ARRAY NOT NULL");
+  }
+
+  @Test public void testCastAsRowType() {
+    sql("select cast(a as row(f0 int, f1 varchar)) from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("RecordType(INTEGER NOT NULL F0, VARCHAR NOT NULL F1) NOT NULL");
+    sql("select cast(b as row(f0 int not null, f1 varchar null))\n"
+            + "from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("RecordType(INTEGER NOT NULL F0, VARCHAR F1) NOT NULL");
+    // test nested row type.
+    sql("select "
+            + "cast(c as row("
+            + "f0 row(ff0 int not null, ff1 varchar null) null, "
+            + "f1 timestamp not null))"
+            + " from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("RecordType("
+            + "RecordType(INTEGER FF0, VARCHAR FF1) F0, "
+            + "TIMESTAMP(0) NOT NULL F1) NOT NULL");
+    // test row type in collection data types.
+    sql("select cast(d as row(f0 bigint not null, f1 decimal null) array)\n"
+        + "from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("RecordType(BIGINT NOT NULL F0, DECIMAL(19, 0) F1) NOT NULL "
+            + "ARRAY NOT NULL");
+    sql("select cast(e as row(f0 varchar not null, f1 timestamp null) multiset)\n"
+        + "from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("RecordType(VARCHAR NOT NULL F0, TIMESTAMP(0) F1) NOT NULL "
+            + "MULTISET NOT NULL");
   }
 
   @Test public void testMultisetConstructor() {

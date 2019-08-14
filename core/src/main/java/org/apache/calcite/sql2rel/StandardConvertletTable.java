@@ -106,6 +106,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     // Register convertlets for specific objects.
     registerOp(SqlStdOperatorTable.CAST, this::convertCast);
+    registerOp(SqlLibraryOperators.INFIX_CAST, this::convertCast);
     registerOp(SqlStdOperatorTable.IS_DISTINCT_FROM,
         (cx, call) -> convertIsDistinctFrom(cx, call, false));
     registerOp(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
@@ -368,20 +369,25 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     RexBuilder rexBuilder = cx.getRexBuilder();
     final List<RexNode> exprList = new ArrayList<>();
+    final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+    final RexLiteral unknownLiteral = rexBuilder.makeNullLiteral(
+        typeFactory.createSqlType(SqlTypeName.BOOLEAN));
+    final RexLiteral nullLiteral = rexBuilder.makeNullLiteral(
+        typeFactory.createSqlType(SqlTypeName.NULL));
     for (int i = 0; i < whenList.size(); i++) {
       if (SqlUtil.isNullLiteral(whenList.get(i), false)) {
-        exprList.add(rexBuilder.constantNull());
+        exprList.add(unknownLiteral);
       } else {
         exprList.add(cx.convertExpression(whenList.get(i)));
       }
       if (SqlUtil.isNullLiteral(thenList.get(i), false)) {
-        exprList.add(rexBuilder.constantNull());
+        exprList.add(nullLiteral);
       } else {
         exprList.add(cx.convertExpression(thenList.get(i)));
       }
     }
     if (SqlUtil.isNullLiteral(call.getElseOperand(), false)) {
-      exprList.add(rexBuilder.constantNull());
+      exprList.add(nullLiteral);
     } else {
       exprList.add(cx.convertExpression(call.getElseOperand()));
     }

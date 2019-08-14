@@ -1064,14 +1064,19 @@ Note:
 
 ### Non-scalar types
 
-| Type     | Description
-|:-------- |:-----------------------------------------------------------
-| ANY      | A value of an unknown type
-| ROW      | Row with 1 or more columns
-| MAP      | Collection of keys mapped to values
-| MULTISET | Unordered collection that may contain duplicates
-| ARRAY    | Ordered, contiguous collection that may contain duplicates
-| CURSOR   | Cursor over the result of executing a query
+| Type     | Description                | Example literals
+|:-------- |:---------------------------|:---------------
+| ANY      | A value of an unknown type |
+| ROW      | Row with 1 or more columns | Example: Row(f0 int null, f1 varchar)
+| MAP      | Collection of keys mapped to values |
+| MULTISET | Unordered collection that may contain duplicates | Example: int multiset
+| ARRAY    | Ordered, contiguous collection that may contain duplicates | Example: varchar(10) array
+| CURSOR   | Cursor over the result of executing a query |
+
+Note:
+
+* Every `ROW` column type can have an optional [ NULL | NOT NULL ] suffix
+  to indicate if this column type is nullable, default is not nullable.
 
 ### Spatial types
 
@@ -1108,6 +1113,7 @@ The operator precedence and associativity, highest to lowest.
 | Operator                                          | Associativity
 |:------------------------------------------------- |:-------------
 | .                                                 | left
+| ::                                                | left
 | [ ] (array element)                               | left
 | + - (unary plus, minus)                           | right
 | * / %                                             | left
@@ -1118,6 +1124,9 @@ The operator precedence and associativity, highest to lowest.
 | NOT                                               | right
 | AND                                               | left
 | OR                                                | left
+
+Note that `::` is dialect-specific, but is shown in this table for
+completeness.
 
 ### Comparison operators
 
@@ -1310,6 +1319,79 @@ Not implemented:
 | Operator syntax | Description
 |:--------------- | :----------
 | CAST(value AS type) | Converts a value to a given type.
+
+Supported data types:
+
+{% highlight sql %}
+type:
+      typeName
+      [ collectionsTypeName ]
+
+typeName:
+      sqlTypeName
+  |   rowTypeName
+  |   compoundIdentifier
+
+sqlTypeName:
+      char [ precision ] [ charSet ]
+  |   varchar [ precision ] [ charSet ]
+  |   DATE
+  |   time
+  |   timestamp
+  |   GEOMETRY
+  |   decimal [ precision [, scale] ]
+  |   BOOLEAN
+  |   integer
+  |   BINARY [ precision ]
+  |   varbinary [ precision ]
+  |   TINYINT
+  |   SMALLINT
+  |   BIGINT
+  |   REAL
+  |   double
+  |   FLOAT
+  |   ANY [ precision [, scale] ]
+
+collectionsTypeName:
+      ARRAY | MULTISET
+
+rowTypeName:
+      ROW '('
+        fieldName1 fieldType1 [ [ NULL | NOT NULL ] ]
+        [ , fieldName2 fieldType2 [ [ NULL | NOT NULL ] ] ]*
+        ')'
+
+char:
+      CHARACTER | CHAR
+
+varchar:
+      char VARYING | VARCHAR
+
+decimal:
+      DECIMAL | DEC | NUMERIC
+
+integer:
+      INTEGER | INT
+
+varbinary:
+      BINARY VARYING | VARBINARY
+
+double:
+      DOUBLE [ PRECISION ]
+
+time:
+      TIME [ precision ] [ timeZone ]
+
+timestamp:
+      TIMESTAMP [ precision ] [ timeZone ]
+
+charSet:
+      CHARACTER SET charSetName
+
+timeZone:
+      WITHOUT TIME ZONE
+  |   WITH LOCAL TIME ZONE
+{% endhighlight %}
 
 ### Value constructors
 
@@ -2088,6 +2170,7 @@ semantics.
 
 | C | Operator syntax                                | Description
 |:- |:-----------------------------------------------|:-----------
+| p | expr :: type                                   | Casts *expr* to *type*
 | o | CHR(integer) | Returns the character having the binary equivalent to *integer* as a CHAR value
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | p | DIFFERENCE(string, string)                     | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different

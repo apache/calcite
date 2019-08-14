@@ -1626,7 +1626,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       // nulls on the LHS, the projection now need to make a nullable LHS
       // reference using a nullability indicator. If this this indicator
       // is null, it means the sub-query does not produce any value. As a
-      // result, any RHS ref by this usbquery needs to produce null value.
+      // result, any RHS ref by this sub-query needs to produce null value.
 
       // WHEN indicator IS NULL
       caseOperands[0] =
@@ -1640,11 +1640,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       // THEN CAST(NULL AS newInputTypeNullable)
       caseOperands[1] =
-          rexBuilder.makeCast(
-              typeFactory.createTypeWithNullability(
-                  rexNode.getType(),
-                  true),
-              lit);
+          lit == null
+              ? rexBuilder.makeNullLiteral(rexNode.getType())
+              : rexBuilder.makeCast(rexNode.getType(), lit);
 
       // ELSE cast (newInput AS newInputTypeNullable) END
       caseOperands[2] =
@@ -1674,10 +1672,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
           // need to enforce nullability by applying an additional
           // cast operator over the transformed expression.
           newRexNode =
-              createCaseExpression(
-                  nullIndicator,
-                  rexBuilder.constantNull(),
-                  newRexNode);
+              createCaseExpression(nullIndicator, null, newRexNode);
         }
         return newRexNode;
       }
@@ -1723,10 +1718,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       if (!RexUtil.isNull(literal)
           && projectPulledAboveLeftCorrelator
           && (nullIndicator != null)) {
-        return createCaseExpression(
-            nullIndicator,
-            rexBuilder.constantNull(),
-            literal);
+        return createCaseExpression(nullIndicator, null, literal);
       }
       return literal;
     }
@@ -1779,10 +1771,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       }
 
       if (projectPulledAboveLeftCorrelator && (nullIndicator != null)) {
-        return createCaseExpression(
-            nullIndicator,
-            rexBuilder.constantNull(),
-            newCall);
+        return createCaseExpression(nullIndicator, null, newCall);
       }
       return newCall;
     }

@@ -26,6 +26,7 @@ enum MutableRelType {
   FILTER,
   INTERSECT,
   JOIN,
+  MATCH,
   MINUS,
   PROJECT,
   SAMPLE,

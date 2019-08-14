@@ -373,7 +373,7 @@ data: {
     ]
 
     # List of methods for parsing custom data types.
-    # Return type of method implementation should be "SqlIdentifier".
+    # Return type of method implementation should be "SqlTypeNameSpec".
     # Example: SqlParseTimeStampZ().
     dataTypeParserMethods: [
     ]
@@ -398,6 +398,14 @@ data: {
     # List of methods for parsing extensions to "DROP" calls.
     # Each must accept arguments "(SqlParserPos pos)".
     dropStatementParserMethods: [
+    ]
+
+    # Binary operators tokens
+    binaryOperatorsTokens: [
+    ]
+
+    # Binary operators initialization
+    extraBinaryExpressions: [
     ]
 
     # List of files in @includes directory that have parser method

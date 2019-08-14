@@ -592,7 +592,7 @@ public abstract class Expressions {
    * Creates a GotoExpression representing a continue statement.
    */
   public static GotoStatement continue_(LabelTarget labelTarget) {
-    throw Extensions.todo();
+    return new GotoStatement(GotoExpressionKind.Continue, null, null);
   }
 
   /**
@@ -1395,6 +1395,14 @@ public abstract class Expressions {
       Expression condition, Expression post, Statement body) {
     return new ForStatement(Collections.singletonList(declaration), condition,
         post, body);
+  }
+
+  /**
+   * Creates a ForEachExpression with the given body.
+   */
+  public static ForEachStatement forEach(
+      ParameterExpression parameter, Expression iterable, Statement body) {
+    return new ForEachStatement(parameter, iterable, body);
   }
 
   /**

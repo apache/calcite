@@ -107,6 +107,9 @@ public class EnumerableRules {
   public static final EnumerableTableFunctionScanRule ENUMERABLE_TABLE_FUNCTION_SCAN_RULE =
       new EnumerableTableFunctionScanRule(RelFactories.LOGICAL_BUILDER);
 
+  public static final EnumerableMatchRule ENUMERABLE_MATCH_RULE =
+      new EnumerableMatchRule();
+
   public static final List<RelOptRule> ENUMERABLE_RULES = ImmutableList.of(
       EnumerableRules.ENUMERABLE_JOIN_RULE,
       EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
@@ -127,7 +130,8 @@ public class EnumerableRules {
       EnumerableRules.ENUMERABLE_VALUES_RULE,
       EnumerableRules.ENUMERABLE_WINDOW_RULE,
       EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
-      EnumerableRules.ENUMERABLE_TABLE_FUNCTION_SCAN_RULE);
+      EnumerableRules.ENUMERABLE_TABLE_FUNCTION_SCAN_RULE,
+      EnumerableRules.ENUMERABLE_MATCH_RULE);
 
   public static List<RelOptRule> rules() {
     return ENUMERABLE_RULES;

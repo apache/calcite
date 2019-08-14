@@ -18,6 +18,7 @@ package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
+import org.apache.calcite.adapter.enumerable.EnumerableUnion;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
@@ -154,6 +155,51 @@ public class VolcanoPlannerTest {
 
     // Make sure both RelNodes are in the same set, but different subset
     planner.ensureRegistered(leftPhy, rightPhy);
+
+    planner.chooseDelegate().findBestExp();
+  }
+
+  /**
+   * A pattern that matches a three input union with third child matching for
+   * a PhysLeafRel node.
+   */
+  static class ThreeInputsUnionRule extends RelOptRule {
+    ThreeInputsUnionRule() {
+      super(
+          operand(EnumerableUnion.class,
+              some(
+                  operand(PhysBiRel.class, any()),
+                  operand(PhysBiRel.class, any()),
+                  operand(PhysLeafRel.class, any()))));
+    }
+
+    public void onMatch(RelOptRuleCall call) {
+    }
+  }
+
+  @Test public void testMultiInputsParentOpMatching() {
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    RelOptCluster cluster = newCluster(planner);
+
+    // The trigger rule that generates PhysLeafRel from NoneLeafRel
+    planner.addRule(new PhysLeafRule());
+
+    // The rule with third child op matching PhysLeafRel, which should not be
+    // matched at all
+    planner.addRule(new ThreeInputsUnionRule());
+
+    // Construct a union with only two children
+    NoneLeafRel leftRel = new NoneLeafRel(cluster, "b");
+    RelNode leftPhy = planner
+        .changeTraits(leftRel, cluster.traitSetOf(PHYS_CALLING_CONVENTION));
+    PhysLeafRel rightPhy =
+        new PhysLeafRel(cluster, PHYS_CALLING_CONVENTION, "b");
+
+    planner.setRoot(
+        new EnumerableUnion(cluster,
+            cluster.traitSetOf(PHYS_CALLING_CONVENTION),
+            Arrays.asList(leftPhy, rightPhy), false));
 
     planner.chooseDelegate().findBestExp();
   }

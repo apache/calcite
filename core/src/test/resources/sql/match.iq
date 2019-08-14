@@ -1,0 +1,143 @@
+# match.iq - MATCH_RECOGNIZE clause
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!set outputformat oracle
+!use scott
+
+# Simple query to check that oracle output format works
+select empno, deptno, ename, comm from "scott".emp;
+EMPNO DEPTNO ENAME  COMM
+----- ------ ------ -------
+ 7369     20 SMITH
+ 7499     30 ALLEN   300.00
+ 7521     30 WARD    500.00
+ 7566     20 JONES
+ 7654     30 MARTIN 1400.00
+ 7698     30 BLAKE
+ 7782     10 CLARK
+ 7788     20 SCOTT
+ 7839     10 KING
+ 7844     30 TURNER    0.00
+ 7876     20 ADAMS
+ 7900     30 JAMES
+ 7902     20 FORD
+ 7934     10 MILLER
+
+14 rows selected.
+
+!ok
+
+!if (false) {
+# Simple
+SELECT *
+FROM "scott".emp MATCH_RECOGNIZE(
+  ORDER BY hiredate
+  MEASURES 1 AS m1
+  PATTERN (s up)
+  DEFINE up AS up.deptno < prev(up.deptno));
+!ok
+!}
+
+!if (false) {
+# Pattern
+SELECT * FROM "scott".emp MATCH_RECOGNIZE(
+  PARTITION BY deptno ORDER BY empno
+  MEASURES
+    match_number() AS mno,
+    classifier() as pattern_vrb
+  ALL ROWS PER MATCH
+  AFTER MATCH SKIP PAST LAST ROW
+  PATTERN (S B+)
+  DEFINE B AS CHAR_LENGTH(S.ename) + SUM(CHAR_LENGTH(b.ename || ';')) + CHAR_LENGTH(';') <= 15);
+
+    DEPTNO      EMPNO        MNO PATTERN_VR ENAME      JOB              MGR HIREDATE         SAL       COMM
+---------- ---------- ---------- ---------- ---------- --------- ---------- --------- ---------- ----------
+        10       7782          1 S          CLARK      MANAGER         7839 09-JUN-81       2450
+        10       7839          1 B          KING       PRESIDENT            17-NOV-81       5000
+        20       7369          1 S          SMITH      CLERK           7902 17-DEC-80        800
+        20       7566          1 B          JONES      MANAGER         7839 02-APR-81       2975
+        20       7788          2 S          SCOTT      ANALYST         7566 19-APR-87       3000
+        20       7876          2 B          ADAMS      CLERK           7788 23-MAY-87       1100
+        30       7499          1 S          ALLEN      SALESMAN        7698 20-FEB-81       1600        300
+        30       7521          1 B          WARD       SALESMAN        7698 22-FEB-81       1250        500
+        30       7654          2 S          MARTIN     SALESMAN        7698 28-SEP-81       1250       1400
+        30       7698          2 B          BLAKE      MANAGER         7839 01-MAY-81       2850
+        30       7844          3 S          TURNER     SALESMAN        7698 08-SEP-81       1500          0
+        30       7900          3 B          JAMES      CLERK           7698 03-DEC-81        950
+
+12 rows selected.
+!ok
+!}
+
+!use post
+
+!if (false) {
+SELECT *
+FROM "scott".emp MATCH_RECOGNIZE(
+  ORDER BY hiredate
+  MEASURES 1 AS m1
+  PATTERN (s up)
+  DEFINE up AS up.deptno < prev(up.deptno));
+!ok
+!}
+
+select *
+from "hr"."emps" match_recognize (
+    order by "empid" desc
+    measures "commission" as c,
+    "empid" as empid
+    pattern (s up)
+    define up as up."commission" < prev(up."commission"));
+
+C    EMPID
+---- -----
+1000   100
+ 500   200
+
+!ok
+
+!if (false) {
+# Match recognize
+SELECT *
+FROM ticker
+   MATCH_RECOGNIZE (
+     PARTITION BY symbol
+     ORDER BY tstamp
+     MEASURES  STRT.tstamp AS start_tstamp,
+               LAST(DOWN.tstamp) AS bottom_tstamp,
+               LAST(UP.tstamp) AS end_tstamp
+     ONE ROW PER MATCH
+     AFTER MATCH SKIP TO LAST UP
+     PATTERN (STRT DOWN+ UP+)
+     DEFINE
+        DOWN AS DOWN.price < PREV(DOWN.price),
+        UP AS UP.price > PREV(UP.price)
+     ) MR
+     ORDER BY MR.symbol, MR.start_tstamp;
++--------+--------+---+
+| GENDER | EXPR$1 | C |
++--------+--------+---+
+| M      |     21 | 1 |
+| F      |     11 | 1 |
++--------+--------+---+
+(3 rows)
+
+!ok
+
+!}
+
+# End match.iq

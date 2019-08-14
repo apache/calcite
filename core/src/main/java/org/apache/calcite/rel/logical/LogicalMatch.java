@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.List;
 import java.util.Map;
@@ -39,7 +40,9 @@ public class LogicalMatch extends Match {
   /**
    * Creates a LogicalMatch.
    *
-   * @param cluster cluster
+   * <p>Use {@link #create} unless you know what you're doing.
+   *
+   * @param cluster Cluster
    * @param traitSet Trait set
    * @param input Input relational expression
    * @param rowType Row type
@@ -55,12 +58,12 @@ public class LogicalMatch extends Match {
    * @param orderKeys Order by columns
    * @param interval Interval definition, null if WITHIN clause is not defined
    */
-  private LogicalMatch(RelOptCluster cluster, RelTraitSet traitSet,
+  public LogicalMatch(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RelDataType rowType, RexNode pattern,
       boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-      boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+      boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
       RexNode interval) {
     super(cluster, traitSet, input, rowType, pattern, strictStart, strictEnd,
         patternDefinitions, measures, after, subsets, allRows, partitionKeys,
@@ -74,9 +77,24 @@ public class LogicalMatch extends Match {
       RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets, boolean allRows,
-      List<RexNode> partitionKeys, RelCollation orderKeys, RexNode interval) {
+      ImmutableBitSet partitionKeys, RelCollation orderKeys, RexNode interval) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
+    return create(cluster, traitSet, input, rowType, pattern,
+        strictStart, strictEnd, patternDefinitions, measures, after, subsets,
+        allRows, partitionKeys, orderKeys, interval);
+  }
+
+  /**
+   * Creates a LogicalMatch.
+   */
+  public static LogicalMatch create(RelOptCluster cluster,
+      RelTraitSet traitSet, RelNode input, RelDataType rowType,
+      RexNode pattern, boolean strictStart, boolean strictEnd,
+      Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
+      RexNode after, Map<String, ? extends SortedSet<String>> subsets,
+      boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
+      RexNode interval) {
     return new LogicalMatch(cluster, traitSet, input, rowType, pattern,
         strictStart, strictEnd, patternDefinitions, measures, after, subsets,
         allRows, partitionKeys, orderKeys, interval);
@@ -84,19 +102,10 @@ public class LogicalMatch extends Match {
 
   //~ Methods ------------------------------------------------------
 
-  @Override public Match copy(RelNode input, RelDataType rowType,
-      RexNode pattern, boolean strictStart, boolean strictEnd,
-      Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-      RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-      boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
-      RexNode interval) {
-    final RelTraitSet traitSet = getCluster().traitSetOf(Convention.NONE);
-    return new LogicalMatch(getCluster(), traitSet,
-        input,
-        rowType,
-        pattern, strictStart, strictEnd, patternDefinitions, measures,
-        after, subsets, allRows, partitionKeys, orderKeys,
-        interval);
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    return new LogicalMatch(getCluster(), traitSet, inputs.get(0), rowType,
+        pattern, strictStart, strictEnd, patternDefinitions, measures, after,
+        subsets, allRows, partitionKeys, orderKeys, interval);
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {

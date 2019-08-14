@@ -152,11 +152,7 @@ public abstract class TableScan extends AbstractRelNode {
     // Project nulls for the extra fields. (Maybe a sub-class table has
     // extra fields, but we don't.)
     for (RelDataTypeField extraField : extraFields) {
-      exprList.add(
-          rexBuilder.ensureType(
-              extraField.getType(),
-              rexBuilder.constantNull(),
-              true));
+      exprList.add(rexBuilder.makeNullLiteral(extraField.getType()));
       nameList.add(extraField.getName());
     }
 

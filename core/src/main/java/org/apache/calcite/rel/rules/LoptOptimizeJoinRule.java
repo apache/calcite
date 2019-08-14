@@ -1651,8 +1651,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
           newType =
               typeFactory.createTypeWithNullability(newType, true);
         }
-        projExpr =
-            rexBuilder.makeCast(newType, rexBuilder.constantNull());
+        projExpr = rexBuilder.makeNullLiteral(newType);
       } else {
         RelDataTypeField mappedField = currFields.get(replacementKeys[i]);
         RexNode mappedInput =
