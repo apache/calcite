@@ -170,6 +170,30 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.VARCHAR_2000, null, OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
+  /** The "TO_DATE(string1, string2)" function; casts string1
+   * to a date using the format specified in string2 */
+  @LibraryOperator(libraries = {POSTGRESQL, ORACLE})
+  public static final SqlFunction TO_DATE =
+      new SqlFunction(
+          "TO_DATE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE,
+          null,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "TO_TIMESTAMP(string1, string2)" function; casts string1
+   * to a timestamp using the format specified in string2 */
+  @LibraryOperator(libraries = {POSTGRESQL, ORACLE})
+  public static final SqlFunction TO_TIMESTAMP =
+      new SqlFunction(
+          "TO_TIMESTAMP",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE,
+          null,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.TIMEDATE);
+
   /** The "CONVERT_TIMEZONE(string1, string2, datetime)" function;
    * converts the timezone of the datetime from string1 to string2.
    * This function is only on Redshift, but we list it in Postgresql

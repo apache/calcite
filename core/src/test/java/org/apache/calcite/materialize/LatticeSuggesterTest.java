@@ -491,6 +491,8 @@ public class LatticeSuggesterTest {
 
     final String q0 = "select\n"
         + "  convert_timezone('UTC', 'America/Los_Angeles', cast('2019-01-01 01:00:00' as timestamp)),\n"
+        + "  to_date('2019-01-01', 'YYYY-MM-DD'),\n"
+        + "  to_timestamp('2019-01-01 01:00:00', 'YYYY-MM-DD HH:MM:SS'),\n"
         + "  count(*) as c,\n"
         + "  avg(\"total_children\" - \"num_children_at_home\")\n"
         + "from \"customer\" join \"sales_fact_1997\" using (\"customer_id\")\n"
