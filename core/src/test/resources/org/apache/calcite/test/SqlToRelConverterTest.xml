@@ -6066,4 +6066,78 @@ LogicalProject(C=[$0], N=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testDynamicExpansionForNone">
+        <Resource name="sql">
+            <![CDATA[SELECT empno, (SELECT dept.name FROM dept WHERE dept.deptno = emp.deptno) AS deptname FROM emp WHERE deptno IN (SELECT deptno from dept)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], DEPTNAME=[$SCALAR_QUERY({
+LogicalProject(NAME=[$1])
+  LogicalFilter(condition=[=($0, $cor0.DEPTNO)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+  LogicalFilter(condition=[IN($7, {
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testDynamicExpansionForAll">
+        <Resource name="sql">
+            <![CDATA[SELECT empno, (SELECT dept.name FROM dept WHERE dept.deptno = emp.deptno) AS deptname FROM emp WHERE deptno IN (SELECT deptno from dept)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], DEPTNAME=[$10])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$11])
+    LogicalJoin(condition=[=($10, $7)], joinType=[left])
+      LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0}])
+          LogicalProject(DEPTNO=[$0])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testDynamicExpansionOnlyForIn">
+        <Resource name="sql">
+            <![CDATA[SELECT empno, (SELECT dept.name FROM dept WHERE dept.deptno = emp.deptno) AS deptname FROM emp WHERE deptno IN (SELECT deptno from dept)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], DEPTNAME=[$SCALAR_QUERY({
+LogicalProject(NAME=[$1])
+  LogicalFilter(condition=[=($0, $cor0.DEPTNO)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testDynamicExpansionOnlyForScalarSubquery">
+        <Resource name="sql">
+            <![CDATA[SELECT empno, (SELECT dept.name FROM dept WHERE dept.deptno = emp.deptno) AS deptname FROM emp WHERE deptno IN (SELECT deptno from dept)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], DEPTNAME=[$9])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], NAME=[$10])
+    LogicalJoin(condition=[=($9, $7)], joinType=[left])
+      LogicalFilter(condition=[IN($7, {
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

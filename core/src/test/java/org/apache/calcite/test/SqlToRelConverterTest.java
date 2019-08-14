@@ -35,6 +35,8 @@ import org.apache.calcite.rel.externalize.RelXmlWriter;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
@@ -59,6 +61,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.BiPredicate;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.core.Is.is;
@@ -3449,6 +3452,95 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         + ") as r(n) where c=n)";
     sql(sql).ok();
   }
+
+  @Test public void testDynamicExpansionForNone() {
+    final String sql = "SELECT "
+          + "empno, "
+          + "(SELECT dept.name FROM dept WHERE dept.deptno = emp.deptno) AS deptname "
+          + "FROM emp "
+          + "WHERE deptno IN (SELECT deptno from dept)";
+
+    SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
+          .withDecorrelationEnabled(true)
+          .withExpand(true)
+          .withExpandPredicate(
+              new BiPredicate<SqlNode, SqlNode>() {
+                public boolean test(SqlNode root, SqlNode node) {
+                  return false;
+                }
+              })
+          .build();
+
+    new Sql(sql, true, true, tester, false,
+      config, tester.getConformance()).ok();
+  }
+
+  @Test public void testDynamicExpansionForAll() {
+    final String sql = "SELECT "
+          + "empno, "
+          + "(SELECT dept.name FROM dept WHERE dept.deptno = emp.deptno) AS deptname "
+          + "FROM emp "
+          + "WHERE deptno IN (SELECT deptno from dept)";
+
+    SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
+          .withDecorrelationEnabled(true)
+          .withExpand(true)
+          .withExpandPredicate(
+              new BiPredicate<SqlNode, SqlNode>() {
+                public boolean test(SqlNode root, SqlNode node) {
+                  return true;
+                }
+              })
+          .build();
+
+    new Sql(sql, true, true, tester, false,
+      config, tester.getConformance()).ok();
+  }
+
+  @Test public void testDynamicExpansionOnlyForIn() {
+    final String sql = "SELECT "
+          + "empno, "
+          + "(SELECT dept.name FROM dept WHERE dept.deptno = emp.deptno) AS deptname "
+          + "FROM emp "
+          + "WHERE deptno IN (SELECT deptno from dept)";
+
+    SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
+          .withDecorrelationEnabled(true)
+          .withExpand(true)
+          .withExpandPredicate(
+              new BiPredicate<SqlNode, SqlNode>() {
+                public boolean test(SqlNode root, SqlNode node) {
+                  return SqlKind.IN == node.getKind();
+                }
+              })
+          .build();
+
+    new Sql(sql, true, true, tester, false,
+      config, tester.getConformance()).ok();
+  }
+
+  @Test public void testDynamicExpansionOnlyForScalarSubquery() {
+    final String sql = "SELECT "
+          + "empno, "
+          + "(SELECT dept.name FROM dept WHERE dept.deptno = emp.deptno) AS deptname "
+          + "FROM emp "
+          + "WHERE deptno IN (SELECT deptno from dept)";
+
+    SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
+          .withDecorrelationEnabled(true)
+          .withExpand(true)
+          .withExpandPredicate(
+              new BiPredicate<SqlNode, SqlNode>() {
+                public boolean test(SqlNode root, SqlNode node) {
+                  return SqlKind.SCALAR_QUERY == node.getKind();
+                }
+              })
+          .build();
+
+    new Sql(sql, true, true, tester, false,
+      config, tester.getConformance()).ok();
+  }
+
 
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
