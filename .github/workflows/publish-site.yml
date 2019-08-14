@@ -1,0 +1,30 @@
+name: Publish the website
+
+on:
+  push:
+    branches:
+      - test-site
+
+jobs:
+  publish:
+    name: Publish site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checking out Calcite repository
+        uses: actions/checkout@v1
+      - name: Build site assets
+        working-directory: site
+        run: docker-compose run -e JEKYLL_UID=$(id -u) -e JEKYLL_GID=$(id -g) build-site
+      - name: Deploy site to calcite-site repository
+        working-directory: site
+        run: |
+          shopt -s extglob
+          git config --global user.email "builds@apache.org"
+          git config --global user.name "Calcite Automated Website Build"
+          git clone --depth 1 --branch asf-site https://gitbox.apache.org/repos/asf/calcite-site.git deploy
+          cd deploy/
+          rm -rf !(apidocs|avatica|testapidocs)
+          cp -r ../target/* .
+          git add .
+          git commit -m "Automatic site deployment from Calcite at $GITHUB_SHA"
+          git push origin HEAD:asf-site

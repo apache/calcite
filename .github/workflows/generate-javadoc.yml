@@ -1,0 +1,36 @@
+name: Publish the javadoc
+
+on:
+  create:
+    tags:
+      - "*"
+
+jobs:
+  publish:
+    name: Publish javadoc
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Javadoc only if the tag is a release
+        env:
+          TAG: ${{ github.event.ref }}
+        run: if [[ ! $TAG =~ ^calcite-[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$ ]]; then touch /tmp/exit; fi
+      - name: Checking out Calcite repository
+        uses: actions/checkout@v1
+      - name: Generate javadoc
+        working-directory: site
+        run: |
+          if [[ -f /tmp/exit ]]; then exit 0; fi
+          docker-compose run -u $(id -u):$(id -g) generate-javadoc
+      - name: Deploy javadoc to calcite-site repository
+        working-directory: site
+        run: |
+          if [[ -f /tmp/exit ]]; then exit 0; fi
+          git config --global user.email "builds@apache.org"
+          git config --global user.name "Calcite Automated Website Build"
+          git clone --depth 1 --branch asf-site https://gitbox.apache.org/repos/asf/calcite-site.git deploy
+          cd deploy/
+          rm -rf apidocs/ testapidocs/
+          cp -r ../target/* .
+          git add .
+          git commit -m "Automatic javadoc deployment from Calcite at $GITHUB_SHA"
+          git push origin HEAD:asf-site
