@@ -224,7 +224,7 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL, ORACLE})
-  public static final SqlFunction CONCAT =
+  public static final SqlFunction CONCAT_FUNCTION =
       new SqlFunction(
           "CONCAT",
           SqlKind.OTHER_FUNCTION,

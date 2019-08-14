@@ -655,6 +655,24 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + ".*Supported form.s.: '<STRING> \\|\\| <STRING>.*'");
   }
 
+  @Test public void testConcatFunction() {
+    // CONCAT is not in the library operator table
+    tester = tester.withOperatorTable(
+            SqlLibraryOperatorTableFactory.INSTANCE
+                    .getOperatorTable(SqlLibrary.STANDARD, SqlLibrary.POSTGRESQL));
+    checkExp("concat('a', 'b')");
+    checkExp("concat(x'12', x'34')");
+    checkExp("concat(_UTF16'a', _UTF16'b', _UTF16'c')");
+    checkExpType("concat('aabbcc', 'ab', '+-')",
+            "VARCHAR(10) NOT NULL");
+    checkWholeExpFails("concat('aabbcc', 2)",
+            "(?s)Cannot apply 'CONCAT' to arguments of type 'CONCAT\\(<CHAR\\(6\\)>, <INTEGER>\\)'\\. .*");
+    checkWholeExpFails("concat('abc', 'ab', 123)",
+            "(?s)Cannot apply 'CONCAT' to arguments of type 'CONCAT\\(<CHAR\\(3\\)>, <CHAR\\(2\\)>, <INTEGER>\\)'\\. .*");
+    checkWholeExpFails("concat(true, false)",
+            "(?s)Cannot apply 'CONCAT' to arguments of type 'CONCAT\\(<BOOLEAN>, <BOOLEAN>\\)'\\. .*");
+  }
+
   @Test public void testBetween() {
     checkExp("1 between 2 and 3");
     checkExp("'a' between 'b' and 'c'");
@@ -813,23 +831,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "(?s)Cannot apply 'TRANSLATE3' to arguments of type 'TRANSLATE3\\(<CHAR\\(3\\)>, <CHAR\\(2\\)>, <INTEGER>\\)'\\. .*");
     checkWholeExpFails("translate('abc', 'ab', '+-', 'four')",
         "Invalid number of arguments to function 'TRANSLATE3'. Was expecting 3 arguments");
-  }
-
-  @Test public void testConcatFunction() {
-    // CONCAT is not in the library operator table
-    checkWholeExpFails("concat('aabbcc')",
-            "No match found for function signature CONCAT\\(<CHARACTER>\\)");
-    tester = tester.withOperatorTable(
-            SqlLibraryOperatorTableFactory.INSTANCE
-                    .getOperatorTable(SqlLibrary.STANDARD, SqlLibrary.ORACLE));
-    checkExpType("concat('aabbcc', 'ab', '+-')",
-            "VARCHAR(10) NOT NULL");
-    checkWholeExpFails("translate('abc', 'ab')",
-            "Invalid number of arguments to function 'TRANSLATE3'. Was expecting 3 arguments");
-    checkWholeExpFails("translate('abc', 'ab', 123)",
-            "(?s)Cannot apply 'TRANSLATE3' to arguments of type 'TRANSLATE3\\(<CHAR\\(3\\)>, <CHAR\\(2\\)>, <INTEGER>\\)'\\. .*");
-    checkWholeExpFails("translate('abc', 'ab', '+-', 'four')",
-            "Invalid number of arguments to function 'TRANSLATE3'. Was expecting 3 arguments");
   }
 
   @Test public void testOverlay() {
