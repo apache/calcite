@@ -1,7 +1,7 @@
 ---
 layout: news_item
 title: "Algebra builder"
-date: "2015-06-05 19:29:07 -0800"
+date: "2015-06-05 19:29:07 +0000"
 author: jhyde
 categories: ["new features"]
 ---

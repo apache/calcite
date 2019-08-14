@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-version: '3'
+version: '3.7'
 services:
   dev:
     image: jekyll/jekyll:3
@@ -22,11 +22,15 @@ services:
       - 4000:4000
     volumes:
       - .:/srv/jekyll
+    environment:
+      TZ: "UTC"
   build-site:
     image: jekyll/jekyll:3
     command: jekyll build
     volumes:
       - .:/srv/jekyll
+    environment:
+      TZ: "UTC"
   generate-javadoc:
     image: maven
     working_dir: /usr/src/calcite

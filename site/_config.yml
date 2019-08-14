@@ -53,4 +53,8 @@ avaticaBaseurl: /avatica
 plugins:
     - jekyll-redirect-from
 
+future: true
+
+timezone: UTC
+
 # End _config.yml
