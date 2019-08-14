@@ -49,6 +49,19 @@ public abstract class SqlLibraryOperators {
   private SqlLibraryOperators() {
   }
 
+  /** The "CONVERT_TIMEZONE(tz1, tz2, datetime)" function;
+   * converts the timezone of {@code datetime} from {@code tz1} to {@code tz2}.
+   * This function is only on Redshift, but we list it in PostgreSQL
+   * because Redshift does not have its own library. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction CONVERT_TIMEZONE =
+      new SqlFunction("CONVERT_TIMEZONE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE,
+          null,
+          OperandTypes.CHARACTER_CHARACTER_DATETIME,
+          SqlFunctionCategory.TIMEDATE);
+
   /** Return type inference for {@code DECODE}. */
   private static final SqlReturnTypeInference DECODE_RETURN_TYPE =
       opBinding -> {
@@ -268,6 +281,28 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
+
+  /** The "TO_DATE(string1, string2)" function; casts string1
+   * to a DATE using the format specified in string2. */
+  @LibraryOperator(libraries = {POSTGRESQL, ORACLE})
+  public static final SqlFunction TO_DATE =
+      new SqlFunction("TO_DATE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE,
+          null,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "TO_TIMESTAMP(string1, string2)" function; casts string1
+   * to a TIMESTAMP using the format specified in string2. */
+  @LibraryOperator(libraries = {POSTGRESQL, ORACLE})
+  public static final SqlFunction TO_TIMESTAMP =
+      new SqlFunction("TO_TIMESTAMP",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE,
+          null,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction CHR =

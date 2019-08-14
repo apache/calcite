@@ -1217,6 +1217,62 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExp("CAST( '2004-12-21 10:12:21' AS TIMESTAMP)");
   }
 
+  @Test public void testConvertTimezoneFunction() {
+    checkWholeExpFails(
+        "CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', CAST('2000-01-01' AS TIMESTAMP))",
+        "No match found for function signature CONVERT_TIMEZONE\\(<CHARACTER>, <CHARACTER>, <TIMESTAMP>\\)");
+    tester = tester.withOperatorTable(
+        SqlLibraryOperatorTableFactory.INSTANCE
+            .getOperatorTable(SqlLibrary.STANDARD, SqlLibrary.POSTGRESQL));
+    checkExpType(
+        "CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', CAST('2000-01-01' AS TIMESTAMP))",
+        "DATE NOT NULL");
+    checkWholeExpFails("CONVERT_TIMEZONE('UTC', 'America/Los_Angeles')",
+        "Invalid number of arguments to function 'CONVERT_TIMEZONE'. Was expecting 3 arguments");
+    checkWholeExpFails("CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', '2000-01-01')",
+        "Cannot apply 'CONVERT_TIMEZONE' to arguments of type 'CONVERT_TIMEZONE\\(<CHAR\\(3\\)>, <CHAR\\(19\\)>, "
+            + "<CHAR\\(10\\)>\\)'\\. Supported form\\(s\\): 'CONVERT_TIMEZONE\\(<CHARACTER>, <CHARACTER>, <DATETIME>\\)'");
+    checkWholeExpFails("CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', "
+            + "'UTC', CAST('2000-01-01' AS TIMESTAMP))",
+        "Invalid number of arguments to function 'CONVERT_TIMEZONE'. Was expecting 3 arguments");
+  }
+
+  @Test public void testToDateFunction() {
+    checkWholeExpFails(
+        "TO_DATE('2000-01-01', 'YYYY-MM-DD')",
+        "No match found for function signature TO_DATE\\(<CHARACTER>, <CHARACTER>\\)");
+    tester = tester.withOperatorTable(
+        SqlLibraryOperatorTableFactory.INSTANCE
+            .getOperatorTable(SqlLibrary.STANDARD, SqlLibrary.POSTGRESQL));
+    checkExpType("TO_DATE('2000-01-01', 'YYYY-MM-DD')",
+        "DATE NOT NULL");
+    checkWholeExpFails("TO_DATE('2000-01-01')",
+        "Invalid number of arguments to function 'TO_DATE'. Was expecting 2 arguments");
+    checkWholeExpFails("TO_DATE(2000, 'YYYY')",
+        "Cannot apply 'TO_DATE' to arguments of type 'TO_DATE\\(<INTEGER>, <CHAR\\(4\\)>\\)'\\. "
+            + "Supported form\\(s\\): 'TO_DATE\\(<STRING>, <STRING>\\)'");
+    checkWholeExpFails("TO_DATE('2000-01-01', 'YYYY-MM-DD', 'YYYY-MM-DD')",
+        "Invalid number of arguments to function 'TO_DATE'. Was expecting 2 arguments");
+  }
+
+  @Test public void testToTimestampFunction() {
+    checkWholeExpFails(
+        "TO_TIMESTAMP('2000-01-01 01:00:00', 'YYYY-MM-DD HH:MM:SS')",
+        "No match found for function signature TO_TIMESTAMP\\(<CHARACTER>, <CHARACTER>\\)");
+    tester = tester.withOperatorTable(
+        SqlLibraryOperatorTableFactory.INSTANCE
+            .getOperatorTable(SqlLibrary.STANDARD, SqlLibrary.POSTGRESQL));
+    checkExpType("TO_TIMESTAMP('2000-01-01 01:00:00', 'YYYY-MM-DD HH:MM:SS')",
+        "DATE NOT NULL");
+    checkWholeExpFails("TO_TIMESTAMP('2000-01-01 01:00:00')",
+        "Invalid number of arguments to function 'TO_TIMESTAMP'. Was expecting 2 arguments");
+    checkWholeExpFails("TO_TIMESTAMP(2000, 'YYYY')",
+        "Cannot apply 'TO_TIMESTAMP' to arguments of type 'TO_TIMESTAMP\\(<INTEGER>, <CHAR\\(4\\)>\\)'\\. "
+            + "Supported form\\(s\\): 'TO_TIMESTAMP\\(<STRING>, <STRING>\\)'");
+    checkWholeExpFails("TO_TIMESTAMP('2000-01-01 01:00:00', 'YYYY-MM-DD HH:MM:SS', 'YYYY-MM-DD')",
+        "Invalid number of arguments to function 'TO_TIMESTAMP'. Was expecting 2 arguments");
+  }
+
   @Test public void testInvalidFunction() {
     checkWholeExpFails("foo()", "No match found for function signature FOO..");
     checkWholeExpFails("mod(123)",

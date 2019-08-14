@@ -240,6 +240,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker INTERVAL =
       family(SqlTypeFamily.DATETIME_INTERVAL);
 
+  public static final SqlSingleOperandTypeChecker CHARACTER_CHARACTER_DATETIME =
+      family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME);
+
   public static final SqlSingleOperandTypeChecker PERIOD =
       new PeriodOperandTypeChecker();
 
