@@ -550,6 +550,26 @@ public class MaterializationTest {
         "select count(*) + 1 as c, \"deptno\" from \"emps\" group by \"deptno\"");
   }
 
+  @Test public void testAggregate3() {
+    String deduplicated =
+        "(select \"empid\", \"deptno\", \"name\", \"salary\", \"commission\"\n"
+            + "from \"emps\"\n"
+            + "group by \"empid\", \"deptno\", \"name\", \"salary\", \"commission\")";
+    String mv =
+        "select \"deptno\", sum(\"salary\"), sum(\"commission\"), sum(\"k\")\n"
+            + "from\n"
+            + "  (select \"deptno\", \"salary\", \"commission\", 100 as \"k\"\n"
+            + "  from " + deduplicated + ")\n"
+            + "group by \"deptno\"";
+    String query =
+        "select \"deptno\", sum(\"salary\"), sum(\"k\")\n"
+            + "from\n"
+            + "  (select \"deptno\", \"salary\", 100 as \"k\"\n"
+            + "  from " + deduplicated + ")\n"
+            + "group by \"deptno\"";
+    checkMaterialize(mv, query);
+  }
+
   /** Aggregation query at same level of aggregation as aggregation
    * materialization with grouping sets. */
   @Test public void testAggregateGroupSets1() {

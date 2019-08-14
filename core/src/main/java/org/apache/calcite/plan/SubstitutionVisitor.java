@@ -1421,6 +1421,14 @@ public class SubstitutionVisitor {
         }
         return super.visitCall(call);
       }
+
+      @Override public RexNode visitLiteral(RexLiteral literal) {
+        final Integer integer = map.get(literal);
+        if (integer != null) {
+          return new RexInputRef(integer, literal.getType());
+        }
+        return super.visitLiteral(literal);
+      }
     };
   }
 
