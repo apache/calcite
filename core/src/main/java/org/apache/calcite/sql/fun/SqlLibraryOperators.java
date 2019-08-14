@@ -170,6 +170,20 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.VARCHAR_2000, null, OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
+  /** The "CONVERT_TIMEZONE(string1, string2, datetime)" function;
+   * converts the timezone of the datetime from string1 to string2.
+   * This function is only on Redshift, but we list it in Postgresql
+   * because Redshift does not have its own library. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction CONVERT_TIMEZONE =
+      new SqlFunction(
+          "CONVERT_TIMEZONE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE,
+          null,
+          OperandTypes.STRING_STRING_DATETIME,
+          SqlFunctionCategory.TIMEDATE);
+
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
   public static final SqlFunction LEFT =
       new SqlFunction("LEFT", SqlKind.OTHER_FUNCTION,

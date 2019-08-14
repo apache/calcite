@@ -382,7 +382,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
 
   /** List of all time/date function names defined by JDBC. */
   private static final String TIME_DATE_FUNCTIONS = constructFuncList(
-      "CURDATE", "CURTIME", "DAYNAME", "DAYOFMONTH", "DAYOFWEEK",
+      "CONVERT_TIMEZONE", "CURDATE", "CURTIME", "DAYNAME", "DAYOFMONTH", "DAYOFWEEK",
       "DAYOFYEAR", "HOUR", "MINUTE", "MONTH", "MONTHNAME", "NOW",
       "QUARTER", "SECOND", "TIMESTAMPADD", "TIMESTAMPDIFF",
       "WEEK", "YEAR");
@@ -729,6 +729,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put("MONTHNAME", simple(SqlLibraryOperators.MONTHNAME));
       map.put("SECOND", simple(SqlStdOperatorTable.SECOND));
 
+      map.put("CONVERT_TIMEZONE", simple(SqlLibraryOperators.CONVERT_TIMEZONE));
       map.put("CURDATE", simple(SqlStdOperatorTable.CURRENT_DATE));
       map.put("CURTIME", simple(SqlStdOperatorTable.LOCALTIME));
       map.put("NOW", simple(SqlStdOperatorTable.CURRENT_TIMESTAMP));

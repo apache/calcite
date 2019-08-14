@@ -1175,6 +1175,26 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExp("CAST( '2004-12-21 10:12:21' AS TIMESTAMP)");
   }
 
+  @Test public void testConvertTimezoneFunction() {
+    checkWholeExpFails(
+        "CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', CAST('2000-01-01' AS TIMESTAMP))",
+        "No match found for function signature CONVERT_TIMEZONE\\(<CHARACTER>, <CHARACTER>, <TIMESTAMP>\\)");
+    tester = tester.withOperatorTable(
+        SqlLibraryOperatorTableFactory.INSTANCE
+            .getOperatorTable(SqlLibrary.STANDARD, SqlLibrary.POSTGRESQL));
+    checkExpType(
+        "CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', CAST('2000-01-01' AS TIMESTAMP))",
+        "DATE NOT NULL");
+    checkWholeExpFails("CONVERT_TIMEZONE('UTC', 'America/Los_Angeles')",
+        "Invalid number of arguments to function 'CONVERT_TIMEZONE'. Was expecting 3 arguments");
+    checkWholeExpFails("CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', '2000-01-01')",
+        "Cannot apply 'CONVERT_TIMEZONE' to arguments of type 'CONVERT_TIMEZONE\\(<CHAR\\(3\\)>, <CHAR\\(19\\)>, "
+            + "<CHAR\\(10\\)>\\)'\\. Supported form\\(s\\): 'CONVERT_TIMEZONE\\(<STRING>, <STRING>, <DATETIME>\\)'");
+    checkWholeExpFails("CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', "
+            + "'UTC', CAST('2000-01-01' AS TIMESTAMP))",
+        "Invalid number of arguments to function 'CONVERT_TIMEZONE'. Was expecting 3 arguments");
+  }
+
   @Test public void testInvalidFunction() {
     checkWholeExpFails("foo()", "No match found for function signature FOO..");
     checkWholeExpFails("mod(123)",
