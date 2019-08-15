@@ -19,6 +19,7 @@ package org.apache.calcite.sql;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
 
 /**
@@ -53,6 +54,15 @@ public abstract class SqlTypeNameSpec {
    *         builtin sql type name.
    */
   public abstract RelDataType deriveType(RelDataTypeFactory typeFactory);
+
+  /**
+   * Derive type from this SqlTypeNameSpec.
+   *
+   * @param validator The sql validator.
+   * @return the {@code RelDataType} instance, throws exception if we could not
+   *         deduce the type.
+   */
+  public abstract RelDataType deriveType(SqlValidator validator);
 
   /** Writes a SQL representation of this spec to a writer. */
   public abstract void unparse(SqlWriter writer, int leftPrec, int rightPrec);

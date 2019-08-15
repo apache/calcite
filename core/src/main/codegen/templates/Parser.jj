@@ -46,6 +46,7 @@ import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlCollectionTypeNameSpec;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDateLiteral;
 import org.apache.calcite.sql.SqlDelete;
@@ -4547,24 +4548,17 @@ int IntLiteral() :
 // Type name with optional scale and precision.
 SqlDataTypeSpec DataType() :
 {
-    final SqlTypeNameSpec typeName;
-    SqlIdentifier collectionTypeName = null;
+    SqlTypeNameSpec typeName;
     final Span s;
 }
 {
     typeName = TypeName() {
         s = span();
     }
-    [
-        collectionTypeName = CollectionsTypeName()
-    ]
+    (
+        typeName = CollectionsTypeName(typeName)
+    )*
     {
-        if (null != collectionTypeName) {
-            return new SqlDataTypeSpec(
-                collectionTypeName,
-                typeName,
-                s.end(collectionTypeName));
-        }
         return new SqlDataTypeSpec(
             typeName,
             s.end(this));
@@ -4758,19 +4752,24 @@ SqlLiteral JdbcOdbcDataType() :
     }
 }
 
-SqlIdentifier CollectionsTypeName() :
+/**
+* Parse a collection type name, the input element type name may
+* also be a collection type.
+*/
+SqlTypeNameSpec CollectionsTypeName(SqlTypeNameSpec elementTypeName) :
 {
+    final SqlTypeName collectionTypeName;
 }
 {
     (
-        <MULTISET> {
-            return new SqlIdentifier(SqlTypeName.MULTISET.name(), getPos());
-        }
+        <MULTISET> { collectionTypeName = SqlTypeName.MULTISET; }
     |
-        <ARRAY> {
-            return new SqlIdentifier(SqlTypeName.ARRAY.name(), getPos());
-        }
+        <ARRAY> { collectionTypeName = SqlTypeName.ARRAY; }
     )
+    {
+        return new SqlCollectionTypeNameSpec(elementTypeName,
+                collectionTypeName, getPos());
+    }
 }
 
 /**

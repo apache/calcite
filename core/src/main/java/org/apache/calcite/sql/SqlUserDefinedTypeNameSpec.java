@@ -19,6 +19,7 @@ package org.apache.calcite.sql;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
 
 /**
@@ -41,15 +42,19 @@ public class SqlUserDefinedTypeNameSpec extends SqlTypeNameSpec {
     super(typeName, pos);
   }
 
+  @Override public RelDataType deriveType(RelDataTypeFactory typeFactory) {
+    // Returns null to let the SqlValidator deduce the type.
+    return null;
+  }
+
   public SqlUserDefinedTypeNameSpec(String name, SqlParserPos pos) {
     this(new SqlIdentifier(name, pos), pos);
   }
 
-  @Override public RelDataType deriveType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType deriveType(SqlValidator validator) {
     // The type name is a compound identifier, that means it is a UDT,
-    // returns null to let the SqlValidator deduce its type from
-    // the Schema.
-    return null;
+    // use SqlValidator to deduce its type from the Schema.
+    return validator.getValidatedNodeType(getTypeName());
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
