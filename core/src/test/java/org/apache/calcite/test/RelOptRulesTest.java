@@ -147,6 +147,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.catalog.MockCatalogReader;
 import org.apache.calcite.tools.Program;
@@ -3736,6 +3737,48 @@ public class RelOptRulesTest extends RelOptTestBase {
         .withPre(program)
         .with(program)
         .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3111">[CALCITE-3111]
+   * Allow custom implementations of Correlate in RelDecorrelator </a>
+   */
+  @Test public void testCustomDecorrelate() {
+    final String sql = "SELECT e1.empno\n"
+        + "FROM emp e1, dept d1 where e1.deptno = d1.deptno\n"
+        + "and e1.deptno < 10 and d1.deptno < 15\n"
+        + "and e1.sal > (select avg(sal) from emp e2 where e1.empno = e2.empno)";
+
+    // Convert sql to rel
+    RelRoot root = tester.convertSqlToRel(sql);
+
+    // Create a duplicate rel tree with a custom correlate instead of logical correlate
+    LogicalCorrelate logicalCorrelate = (LogicalCorrelate) root.rel.getInput(0).getInput(0);
+    CustomCorrelate customCorrelate = new CustomCorrelate(
+        logicalCorrelate.getCluster(),
+        logicalCorrelate.getTraitSet(),
+        logicalCorrelate.getLeft(),
+        logicalCorrelate.getRight(),
+        logicalCorrelate.getCorrelationId(),
+        logicalCorrelate.getRequiredColumns(),
+        logicalCorrelate.getJoinType());
+    RelNode newRoot = root.rel.copy(
+        root.rel.getTraitSet(),
+        ImmutableList.of(
+            root.rel.getInput(0).copy(
+                root.rel.getInput(0).getTraitSet(),
+                ImmutableList.<RelNode>of(customCorrelate))));
+
+    // Decorrelate both trees using the same relBuilder
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    RelNode logicalDecorrelated = RelDecorrelator.decorrelateQuery(root.rel, relBuilder);
+    RelNode customDecorrelated = RelDecorrelator.decorrelateQuery(newRoot, relBuilder);
+    String logicalDecorrelatedPlan = NL + RelOptUtil.toString(logicalDecorrelated);
+    String customDecorrelatedPlan = NL + RelOptUtil.toString(customDecorrelated);
+
+    // Ensure that the plans are equal
+    getDiffRepos().assertEquals("Comparing Plans from LogicalCorrelate and CustomCorrelate",
+        logicalDecorrelatedPlan, customDecorrelatedPlan);
   }
 
   @Test public void testProjectWindowTransposeRule() {
