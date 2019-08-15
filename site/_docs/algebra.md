@@ -335,7 +335,7 @@ return the `RelBuilder`.
 Argument types:
 
 * `expr`, `interval` [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
-* `expr...`,`requiredField..` Array of [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
+* `expr...`,`requiredField...` Array of [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
 * `exprList`, `measureList`, `partitionKeys`, `orderKeys`,`requiredFieldList` Iterable of
   [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
 * `fieldOrdinal` Ordinal of a field within its row (starting from 0)
