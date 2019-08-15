@@ -1209,7 +1209,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Invalid number of arguments to function 'CONVERT_TIMEZONE'. Was expecting 3 arguments");
     checkWholeExpFails("CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', '2000-01-01')",
         "Cannot apply 'CONVERT_TIMEZONE' to arguments of type 'CONVERT_TIMEZONE\\(<CHAR\\(3\\)>, <CHAR\\(19\\)>, "
-            + "<CHAR\\(10\\)>\\)'\\. Supported form\\(s\\): 'CONVERT_TIMEZONE\\(<STRING>, <STRING>, <DATETIME>\\)'");
+            + "<CHAR\\(10\\)>\\)'\\. Supported form\\(s\\): 'CONVERT_TIMEZONE\\(<CHARACTER>, <CHARACTER>, <DATETIME>\\)'");
     checkWholeExpFails("CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', "
             + "'UTC', CAST('2000-01-01' AS TIMESTAMP))",
         "Invalid number of arguments to function 'CONVERT_TIMEZONE'. Was expecting 3 arguments");

@@ -206,7 +206,7 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.DATE_NULLABLE,
           null,
-          OperandTypes.STRING_STRING_DATETIME,
+          OperandTypes.CHARACTER_CHARACTER_DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
