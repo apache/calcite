@@ -34,6 +34,7 @@ import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
@@ -1988,15 +1989,15 @@ public class RelBuilder {
     return this;
   }
 
-  /** Creates a {@link org.apache.calcite.rel.core.Correlate}
-   * with correlateId and given fields. */
+  /** Creates a {@link Correlate}
+   * with a {@link CorrelationId} and an array of fields that are used by correlation. */
   public RelBuilder correlate(JoinRelType joinType,
       CorrelationId correlationId, RexNode... requiredFields) {
     return correlate(joinType, correlationId, ImmutableList.copyOf(requiredFields));
   }
 
-  /** Creates a {@link org.apache.calcite.rel.core.Correlate}
-   * with correlateId and list of fields. */
+  /** Creates a {@link Correlate}
+   * with a {@link CorrelationId} and a list of fields that are used by correlation. */
   public RelBuilder correlate(JoinRelType joinType,
       CorrelationId correlationId, Iterable<? extends RexNode> requiredFields) {
     Frame right = stack.pop();

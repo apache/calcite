@@ -388,11 +388,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
         ImmutableSortedMap.of());
   }
 
-  /**
-   * Rewrite {@link Sort}.
-   *
-   * @param rel Sort to be rewritten
-   */
   public Frame decorrelateRel(Sort rel) {
     //
     // Rewrite logic:
@@ -437,30 +432,15 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return register(rel, newSort, frame.oldToNewOutputs, frame.corDefOutputs);
   }
 
-  /**
-   * Rewrites a {@link Values}.
-   *
-   * @param rel Values to be rewritten
-   */
   public Frame decorrelateRel(Values rel) {
     // There are no inputs, so rel does not need to be changed.
     return null;
   }
 
-  /**
-   * Rewrites a {@link LogicalAggregate}.
-   *
-   * @param rel LogicalAggregate to rewrite
-   */
   public Frame decorrelateRel(LogicalAggregate rel) {
     return decorrelateRel((Aggregate) rel);
   }
 
-  /**
-   * Rewrites a {@link Aggregate}.
-   *
-   * @param rel Aggregate to rewrite
-   */
   public Frame decorrelateRel(Aggregate rel) {
     //
     // Rewrite logic:
@@ -680,20 +660,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return null;
   }
 
-  /**
-   * Rewrite {@link LogicalProject}.
-   *
-   * @param rel the project rel to rewrite
-   */
   public Frame decorrelateRel(LogicalProject rel) {
     return decorrelateRel((Project) rel);
   }
 
-  /**
-   * Rewrite {@link Project}.
-   *
-   * @param rel the project rel to rewrite
-   */
   public Frame decorrelateRel(Project rel) {
     //
     // Rewrite logic:
@@ -814,11 +784,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
         final List<Integer> positions = mapNewInputToOutputs.get(newInput);
         final List<String> fieldNames = newInput.getRowType().getFieldNames();
 
-        RelNode distinct = relBuilder.push(newInput).projectNamed(
-            positions.stream().map(i -> relBuilder.getRexBuilder()
-                .makeInputRef(newInput, i)).collect(Collectors.toList()),
-            positions.stream().map(fieldNames::get).collect(Collectors.toList()),
-            false)
+        RelNode distinct = relBuilder.push(newInput)
+            .project(relBuilder.fields(positions))
             .distinct()
             .build();
         RelOptCluster cluster = distinct.getCluster();
@@ -1043,11 +1010,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
         && type.getPrecision() >= type1.getPrecision();
   }
 
-  /**
-   * Rewrite LogicalSnapshot.
-   *
-   * @param rel the snapshot rel to rewrite
-   */
   public Frame decorrelateRel(LogicalSnapshot rel) {
     if (RexUtil.containsCorrelation(rel.getPeriod())) {
       return null;
@@ -1055,20 +1017,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return decorrelateRel((RelNode) rel);
   }
 
-  /**
-   * Rewrite {@link LogicalFilter}.
-   *
-   * @param rel the filter rel to rewrite
-   */
   public Frame decorrelateRel(LogicalFilter rel) {
     return decorrelateRel((Filter) rel);
   }
 
-  /**
-   * Rewrite {@link Filter}.
-   *
-   * @param rel the filter rel to rewrite
-   */
   public Frame decorrelateRel(Filter rel) {
     //
     // Rewrite logic:
@@ -1118,20 +1070,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
         frame.corDefOutputs);
   }
 
-  /**
-   * Rewrite {@link LogicalCorrelate} into a left outer join.
-   *
-   * @param rel LogicalCorrelator
-   */
   public Frame decorrelateRel(LogicalCorrelate rel) {
     return decorrelateRel((Correlate) rel);
   }
 
-  /**
-   * Rewrite {@link Correlate} into a left outer join.
-   *
-   * @param rel Correlator
-   */
   public Frame decorrelateRel(Correlate rel) {
     //
     // Rewrite logic:
@@ -1231,20 +1173,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return register(rel, newJoin, mapOldToNewOutputs, corDefOutputs);
   }
 
-  /**
-   * Rewrite {@link LogicalJoin}.
-   *
-   * @param rel Join
-   */
   public Frame decorrelateRel(LogicalJoin rel) {
     return decorrelateRel((Join) rel);
   }
 
-  /**
-   * Rewrite {@link Join}.
-   *
-   * @param rel Join
-   */
   public Frame decorrelateRel(Join rel) {
     // For SEMI/ANTI join decorrelate it's input directly,
     // because the correlate variables can only be propagated from

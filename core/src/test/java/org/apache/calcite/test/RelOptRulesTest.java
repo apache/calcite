@@ -3767,8 +3767,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         ImmutableList.of(
             root.rel.getInput(0).copy(
                 root.rel.getInput(0).getTraitSet(),
-                ImmutableList.<RelNode>of(customCorrelate)))
-        );
+                ImmutableList.<RelNode>of(customCorrelate))));
 
     // Decorrelate both trees using the same relBuilder
     final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
