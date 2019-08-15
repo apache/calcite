@@ -1325,7 +1325,7 @@ Supported data types:
 {% highlight sql %}
 type:
       typeName
-      [ collectionsTypeName ]
+      [ collectionsTypeName ]*
 
 typeName:
       sqlTypeName

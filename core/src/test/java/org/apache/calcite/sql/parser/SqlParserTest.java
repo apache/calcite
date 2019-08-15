@@ -4726,13 +4726,30 @@ public class SqlParserTest {
         "(ARRAY[(ROW(1, 'a')), (ROW(2, 'b'))])");
   }
 
-  @Test public void testCastAsArrayType() {
+  @Test public void testCastAsCollectionType() {
+    // test array type.
     checkExp("cast(a as int array)", "CAST(`A` AS INTEGER ARRAY)");
     checkExp("cast(a as varchar(5) array)", "CAST(`A` AS VARCHAR(5) ARRAY)");
-    checkExpFails("cast(a as int array ^array^)",
-        "(?s).*Encountered \"array\" at line 1, column 21.\n.*");
+    checkExp("cast(a as int array array)", "CAST(`A` AS INTEGER ARRAY ARRAY)");
+    checkExp("cast(a as varchar(5) array array)",
+        "CAST(`A` AS VARCHAR(5) ARRAY ARRAY)");
     checkExpFails("cast(a as int array^<^10>)",
         "(?s).*Encountered \"<\" at line 1, column 20.\n.*");
+    // test multiset type.
+    checkExp("cast(a as int multiset)", "CAST(`A` AS INTEGER MULTISET)");
+    checkExp("cast(a as varchar(5) multiset)", "CAST(`A` AS VARCHAR(5) MULTISET)");
+    checkExp("cast(a as int multiset array)", "CAST(`A` AS INTEGER MULTISET ARRAY)");
+    checkExp("cast(a as varchar(5) multiset array)",
+        "CAST(`A` AS VARCHAR(5) MULTISET ARRAY)");
+    // test row type nested in collection type.
+    checkExp("cast(a as row(f0 int array multiset, f1 varchar(5) array) array multiset)",
+        "CAST(`A` AS "
+            + "ROW(`F0` INTEGER ARRAY MULTISET, "
+            + "`F1` VARCHAR(5) ARRAY) "
+            + "ARRAY MULTISET)");
+    // test UDT collection type.
+    checkExp("cast(a as MyUDT array multiset)",
+        "CAST(`A` AS `MYUDT` ARRAY MULTISET)");
   }
 
   @Test public void testCastAsRowType() {
