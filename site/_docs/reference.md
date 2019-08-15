@@ -2172,6 +2172,7 @@ semantics.
 |:- |:-----------------------------------------------|:-----------
 | p | expr :: type                                   | Casts *expr* to *type*
 | o | CHR(integer) | Returns the character having the binary equivalent to *integer* as a CHAR value
+| p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | p | DIFFERENCE(string, string)                     | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
 | o | GREATEST(expr [, expr ]*)                      | Returns the greatest of the expressions
@@ -2198,6 +2199,8 @@ semantics.
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
 | o | SUBSTR(string, position [, substring_length ]) | Returns a portion of *string*, beginning at character *position*, *substring_length* characters long. SUBSTR calculates lengths using characters as defined by the input character set
 | o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
+| o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
+| o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
 
 Note:
 
