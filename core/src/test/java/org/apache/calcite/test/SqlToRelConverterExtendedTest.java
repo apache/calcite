@@ -17,8 +17,8 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.rel.RelBasicShuttle;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.externalize.RelJsonReader;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
@@ -57,7 +57,7 @@ public class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
 
     // Find the schema. If there are no tables in the plan, we won't need one.
     final RelOptSchema[] schemas = {null};
-    rel.accept(new RelShuttleImpl() {
+    rel.accept(new RelBasicShuttle() {
       @Override public RelNode visit(TableScan scan) {
         schemas[0] = scan.getTable().getRelOptSchema();
         return super.visit(scan);

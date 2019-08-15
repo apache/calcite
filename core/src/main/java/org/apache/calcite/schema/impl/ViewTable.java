@@ -22,9 +22,9 @@ import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelBasicShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
-import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -128,7 +128,7 @@ public class ViewTable
       final RelNode rel = RelOptUtil.createCastRel(root.rel, rowType, true);
       // Expand any views
       final RelNode rel2 = rel.accept(
-          new RelShuttleImpl() {
+          new RelBasicShuttle() {
             @Override public RelNode visit(TableScan scan) {
               final RelOptTable table = scan.getTable();
               final TranslatableTable translatableTable =

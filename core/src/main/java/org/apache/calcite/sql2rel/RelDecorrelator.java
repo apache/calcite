@@ -28,9 +28,9 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.BiRel;
+import org.apache.calcite.rel.RelBasicShuttle;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Correlate;
@@ -2700,7 +2700,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
   }
 
   /** Builds a {@link org.apache.calcite.sql2rel.RelDecorrelator.CorelMap}. */
-  private static class CorelMapBuilder extends RelShuttleImpl {
+  private static class CorelMapBuilder extends RelBasicShuttle {
     final SortedMap<CorrelationId, RelNode> mapCorToCorRel =
         new TreeMap<>();
 
@@ -2724,12 +2724,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     @Override public RelNode visit(LogicalJoin join) {
-      try {
-        stack.push(join);
-        join.getCondition().accept(rexVisitor(join));
-      } finally {
-        stack.pop();
-      }
+      join.getCondition().accept(rexVisitor(join));
       return visitJoin(join);
     }
 
@@ -2753,23 +2748,13 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     @Override public RelNode visit(final LogicalFilter filter) {
-      try {
-        stack.push(filter);
-        filter.getCondition().accept(rexVisitor(filter));
-      } finally {
-        stack.pop();
-      }
+      filter.getCondition().accept(rexVisitor(filter));
       return super.visit(filter);
     }
 
     @Override public RelNode visit(LogicalProject project) {
-      try {
-        stack.push(project);
-        for (RexNode node : project.getProjects()) {
-          node.accept(rexVisitor(project));
-        }
-      } finally {
-        stack.pop();
+      for (RexNode node : project.getProjects()) {
+        node.accept(rexVisitor(project));
       }
       return super.visit(project);
     }

@@ -20,8 +20,8 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
+import org.apache.calcite.rel.RelBasicShuttle;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Project;
@@ -190,7 +190,7 @@ public class ProjectCorrelateTransposeRule extends RelOptRule {
    * Visitor for RelNodes which applies specified {@link RexShuttle} visitor
    * for every node in the tree.
    */
-  public static class RelNodesExprsHandler extends RelShuttleImpl {
+  public static class RelNodesExprsHandler extends RelBasicShuttle {
     private final RexShuttle rexVisitor;
 
     public RelNodesExprsHandler(RexShuttle rexVisitor) {
