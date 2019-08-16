@@ -1134,7 +1134,12 @@ public enum SqlKind {
   /**
    * CONCAT Function
    */
-  CONCAT;
+  CONCAT,
+
+  /**
+   * format standard function.
+   */
+  FORMAT;
 
   //~ Static fields/initializers ---------------------------------------------
 
