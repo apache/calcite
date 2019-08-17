@@ -376,7 +376,7 @@ public class XmlOutput {
     } else {
       stringEncodeXML(data, out);
     }
-
+    out.println();
     out.flush();
     tagsWritten++;
   }
