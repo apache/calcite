@@ -52,6 +52,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
+
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -1297,6 +1300,12 @@ public class ExpressionTest {
             + ".put(\"key_8\", \"value_8\")\n"
             + ".put(\"key_9\", \"value_9\").build()",
         Expressions.toString(Expressions.constant(map)));
+  }
+
+  @Test public void testEvaluate() {
+    Expression x = Expressions.add(ONE, TWO);
+    Object value = Expressions.evaluate(x);
+    assertEquals((int) value, 3);
   }
 
   /** An enum. */

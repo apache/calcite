@@ -3051,6 +3051,15 @@ public abstract class Expressions {
     return new FluentArrayList<>(toList(ts));
   }
 
+  /**
+   * The {@link Evaluator} class is not public access, add this method for evaluate node directly.
+   */
+  public static Object evaluate(AbstractNode node) {
+    assert node != null;
+    final Evaluator evaluator = new Evaluator();
+    return node.evaluate(evaluator);
+  }
+
   // ~ Private helper methods ------------------------------------------------
 
   private static boolean shouldLift(Expression left, Expression right,
