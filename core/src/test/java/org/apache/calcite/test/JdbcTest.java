@@ -5547,7 +5547,8 @@ public class JdbcTest {
         .returns("PLAN=EnumerableValues(tuples=[[{ 1, 'ab' }]])\n\n");
     final String expectedXml = "PLAN=<RelNode type=\"EnumerableValues\">\n"
         + "\t<Property name=\"tuples\">\n"
-        + "\t\t[{ 1, &#39;ab&#39; }]\t</Property>\n"
+        + "\t\t[{ 1, &#39;ab&#39; }]\n"
+        + "\t</Property>\n"
         + "\t<Inputs/>\n"
         + "</RelNode>\n"
         + "\n";
