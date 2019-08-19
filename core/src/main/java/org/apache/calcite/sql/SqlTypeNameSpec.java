@@ -17,7 +17,6 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
@@ -29,7 +28,7 @@ import org.apache.calcite.util.Litmus;
  * <p>To customize sql node unparsing, override the method
  * {@link #unparse(SqlWriter, int, int)}.
  * <p>To customize data type deriving, override the method
- * {@link #deriveType(RelDataTypeFactory)}.
+ * {@link #deriveType(SqlValidator)}.
  */
 public abstract class SqlTypeNameSpec {
   private final SqlIdentifier typeName;
@@ -45,15 +44,6 @@ public abstract class SqlTypeNameSpec {
     this.typeName = name;
     this.pos = pos;
   }
-
-  /**
-   * Derive type from this SqlTypeNameSpec.
-   *
-   * @param typeFactory Type factory.
-   * @return the {@code RelDataType} instance, or null if the SqlTypeNameSpec is not a
-   *         builtin sql type name.
-   */
-  public abstract RelDataType deriveType(RelDataTypeFactory typeFactory);
 
   /**
    * Derive type from this SqlTypeNameSpec.

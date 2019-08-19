@@ -123,16 +123,6 @@ public class SqlRowTypeNameSpec extends SqlTypeNameSpec {
     return litmus.succeed();
   }
 
-  @Override public RelDataType deriveType(RelDataTypeFactory typeFactory) {
-    return typeFactory.createStructType(
-        fieldTypes.stream()
-            .map(dt -> dt.deriveType(typeFactory))
-            .collect(Collectors.toList()),
-        fieldNames.stream()
-            .map(SqlIdentifier::toString)
-            .collect(Collectors.toList()));
-  }
-
   @Override public RelDataType deriveType(SqlValidator sqlValidator) {
     final RelDataTypeFactory typeFactory = sqlValidator.getTypeFactory();
     return typeFactory.createStructType(

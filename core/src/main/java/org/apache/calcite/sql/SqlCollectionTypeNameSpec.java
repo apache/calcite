@@ -76,14 +76,6 @@ public class SqlCollectionTypeNameSpec extends SqlTypeNameSpec {
     return elementTypeName;
   }
 
-  @Override public RelDataType deriveType(RelDataTypeFactory typeFactory) {
-    RelDataType type = elementTypeName.deriveType(typeFactory);
-    if (type == null) {
-      return null;
-    }
-    return createCollectionType(type, typeFactory);
-  }
-
   @Override public RelDataType deriveType(SqlValidator validator) {
     final RelDataType type = elementTypeName.deriveType(validator);
     return createCollectionType(type, validator.getTypeFactory());

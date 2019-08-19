@@ -186,10 +186,6 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
 
   @Override public RelDataType deriveType(SqlValidator validator) {
     final RelDataTypeFactory typeFactory = validator.getTypeFactory();
-    return deriveType(typeFactory);
-  }
-
-  @Override public RelDataType deriveType(RelDataTypeFactory typeFactory) {
     if (sqlTypeName == null) {
       return null;
     }
