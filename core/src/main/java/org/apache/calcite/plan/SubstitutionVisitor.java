@@ -103,12 +103,12 @@ import static org.apache.calcite.rex.RexUtil.removeAll;
  * At each level, returns the residue.</p>
  *
  * <p>The inputs must only include the core relational operators:
- * {@link org.apache.calcite.rel.logical.LogicalTableScan},
- * {@link org.apache.calcite.rel.logical.LogicalFilter},
- * {@link org.apache.calcite.rel.logical.LogicalProject},
- * {@link org.apache.calcite.rel.logical.LogicalJoin},
- * {@link org.apache.calcite.rel.logical.LogicalUnion},
- * {@link org.apache.calcite.rel.logical.LogicalAggregate}.</p>
+ * {@link org.apache.calcite.rel.core.TableScan},
+ * {@link org.apache.calcite.rel.core.Filter},
+ * {@link org.apache.calcite.rel.core.Project},
+ * {@link org.apache.calcite.rel.core.Join},
+ * {@link org.apache.calcite.rel.core.Union},
+ * {@link org.apache.calcite.rel.core.Aggregate}.</p>
  */
 public class SubstitutionVisitor {
   private static final boolean DEBUG = CalciteSystemProperty.DEBUG.value();
@@ -980,7 +980,7 @@ public class SubstitutionVisitor {
    *
    * <p>Matches scans to the same table, because these will be
    * {@link MutableScan}s with the same
-   * {@link org.apache.calcite.rel.logical.LogicalTableScan} instance.</p>
+   * {@link org.apache.calcite.rel.core.TableScan} instance.</p>
    */
   private static class TrivialRule extends AbstractUnifyRule {
     private static final TrivialRule INSTANCE = new TrivialRule();
@@ -998,7 +998,7 @@ public class SubstitutionVisitor {
   }
 
   /** Implementation of {@link UnifyRule} that matches
-   * {@link org.apache.calcite.rel.logical.LogicalTableScan}. */
+   * {@link org.apache.calcite.rel.core.TableScan}. */
   private static class ScanToProjectUnifyRule extends AbstractUnifyRule {
     public static final ScanToProjectUnifyRule INSTANCE =
         new ScanToProjectUnifyRule();
@@ -1034,7 +1034,7 @@ public class SubstitutionVisitor {
   }
 
   /** Implementation of {@link UnifyRule} that matches
-   * {@link org.apache.calcite.rel.logical.LogicalProject}. */
+   * {@link org.apache.calcite.rel.core.Project}. */
   private static class ProjectToProjectUnifyRule extends AbstractUnifyRule {
     public static final ProjectToProjectUnifyRule INSTANCE =
         new ProjectToProjectUnifyRule();
@@ -1221,8 +1221,8 @@ public class SubstitutionVisitor {
   }
 
   /** Implementation of {@link UnifyRule} that matches a
-   * {@link org.apache.calcite.rel.logical.LogicalAggregate} to a
-   * {@link org.apache.calcite.rel.logical.LogicalAggregate}, provided
+   * {@link org.apache.calcite.rel.core.Aggregate} to a
+   * {@link org.apache.calcite.rel.core.Aggregate}, provided
    * that they have the same child. */
   private static class AggregateToAggregateUnifyRule extends AbstractUnifyRule {
     public static final AggregateToAggregateUnifyRule INSTANCE =
