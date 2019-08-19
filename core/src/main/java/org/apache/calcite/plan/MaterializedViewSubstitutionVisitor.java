@@ -42,7 +42,7 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
           .add(ProjectToProjectUnifyRule1.INSTANCE)
           .add(FilterToFilterUnifyRule1.INSTANCE)
           .add(FilterToProjectUnifyRule1.INSTANCE)
-          .add(UnionToUnionRule.INSTANCE)
+          .add(UnionToUnionUnifyRule.INSTANCE)
           .build();
 
   public MaterializedViewSubstitutionVisitor(RelNode target_, RelNode query_) {
@@ -187,10 +187,10 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
    * {@link MutableUnion} to a {@link MutableUnion} where the query and target
    * have the same inputs but might not have the same order.
    */
-  private static class UnionToUnionRule extends AbstractUnifyRule {
-    public static final UnionToUnionRule INSTANCE = new UnionToUnionRule();
+  private static class UnionToUnionUnifyRule extends AbstractUnifyRule {
+    public static final UnionToUnionUnifyRule INSTANCE = new UnionToUnionUnifyRule();
 
-    private UnionToUnionRule() {
+    private UnionToUnionUnifyRule() {
       super(any(MutableUnion.class), any(MutableUnion.class), 0);
     }
 
