@@ -752,10 +752,6 @@ public class ExpressionTest {
   }
 
   @Test public void testWriteTryFinally() {
-    final ParameterExpression cce_ =
-        Expressions.parameter(Modifier.FINAL, ClassCastException.class, "cce");
-    final ParameterExpression re_ =
-        Expressions.parameter(0, RuntimeException.class, "re");
     Node node =
         Expressions.ifThen(
             Expressions.constant(true),
