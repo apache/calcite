@@ -25,17 +25,19 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.apache.calcite.sql.fun.SqlLibrary.BIGQUERY;
+import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
-import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
+import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
+
 
 /**
  * Defines functions and operators that are not part of standard SQL but
@@ -164,6 +166,18 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.VARCHAR_2000, null, OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
+  public static final SqlFunction DATE_ADD =
+      new SqlFunction("DATE_ADD", SqlKind.PLUS,
+          ReturnTypes.DATE, null, OperandTypes.DATETIME,
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {HIVE, SPARK})
+  public static final SqlFunction ADD_MONTHS =
+      new SqlFunction("ADD_MONTHS", SqlKind.PLUS,
+          ReturnTypes.DATE, null, OperandTypes.DATETIME,
+          SqlFunctionCategory.TIMEDATE);
+
   /** The "DAYNAME(datetime)" function; returns the name of the day of the week,
    * in the current locale, of a TIMESTAMP or DATE argument. */
   @LibraryOperator(libraries = {MYSQL})
@@ -255,16 +269,6 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
-
-  @LibraryOperator(libraries = {STANDARD})
-  public static final SqlFunction FORMAT =
-      new SqlFunction(
-          "FORMAT",
-          SqlKind.FORMAT,
-          ReturnTypes.VARCHAR_2000, null,
-          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC),
-          SqlFunctionCategory.STRING);
-
 }
 
 // End SqlLibraryOperators.java
