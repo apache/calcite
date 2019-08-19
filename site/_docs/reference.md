@@ -2104,6 +2104,8 @@ semantics.
 | m | FROM_BASE64(string)                            | Returns the decoded result of a base-64 *string* as a string
 | m | {fn DAYNAME(date)}                             | Returns the date of the name of the weekday in a value of datatype DATE; For example, it returns '星期日' for both DATE'2020-02-10' and TIMESTAMP'2020-02-10 10:10:10'
 | m | {fn MONTHNAME(date)}                           | Returns the date of the name of the month in a value of datatype DATE; For example, it returns '二月' for both DATE'2020-02-10' and TIMESTAMP'2020-02-10 10:10:10'
+| b h s | {fn DATE_ADD(datetime, DAY interval)}      | Returns the date based on the date and DAY interval passed ; For example, it returns '2020-02-11' for DATE'2020-02-10' and Interval '1 DAY'
+| h s | {fn ADD_MONTHS(datetime, MONTH interval)}    | Returns the date based on the date and MONTH interval passed ; For example, it returns '2020-03-10' for DATE'2020-02-10' and Interval '1 MONTH'
 | o | LTRIM(string)                                  | Returns *string* with all blanks removed from the start
 | o | NVL(value1, value2)                            | Returns *value1* if *value1* is not null, otherwise *value2*
 | m p | REPEAT(string, integer)                      | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1

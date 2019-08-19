@@ -50,7 +50,13 @@ public enum SqlLibrary {
   ORACLE("o"),
   /** A collection of operators that are in PostgreSQL but not in standard
    * SQL. */
-  POSTGRESQL("p");
+  POSTGRESQL("p"),
+  /** A collection of operators that are in BigQuery but not in standard SQL. */
+  BIGQUERY("b"),
+  /** A collection of operators that are in Hive but not in standard SQL. */
+  HIVE("h"),
+  /** A collection of operators that are in Spark but not in standard SQL. */
+  SPARK("s");
 
   /** Abbreviation for the library used in SQL reference. */
   public final String abbrev;

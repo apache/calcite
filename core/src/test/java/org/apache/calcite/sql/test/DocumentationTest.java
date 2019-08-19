@@ -108,6 +108,12 @@ public class DocumentationTest {
       switch (library) {
       case STANDARD:
       case SPATIAL:
+      case MYSQL:
+      case ORACLE:
+      case POSTGRESQL:
+      case BIGQUERY:
+      case HIVE:
+      case SPARK:
         continue;
       }
       addOperators(map, "\\| [^|]*" + library.abbrev + "[^|]* ",

@@ -26,6 +26,7 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
@@ -1064,6 +1065,10 @@ public class SqlDialect {
   /** Returns whether matching of identifiers is case-sensitive. */
   public boolean isCaseSensitive() {
     return caseSensitive;
+  }
+
+  public SqlOperator getTargetFunc(RexCall call) {
+    return call.getOperator();
   }
 
   /**

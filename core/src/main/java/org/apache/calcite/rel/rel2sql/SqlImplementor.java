@@ -638,6 +638,10 @@ public abstract class SqlImplementor {
           } else {
             nodeList.add(dialect.getCastSpec(call.getType()));
           }
+          break;
+        case PLUS:
+          op = dialect.getTargetFunc(call);
+          break;
         }
         if (op instanceof SqlBinaryOperator && nodeList.size() > 2) {
           // In RexNode trees, OR and AND have any number of children;

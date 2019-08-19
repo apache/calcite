@@ -31,9 +31,13 @@ import org.apache.calcite.sql.type.SqlTypeTransforms;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.apache.calcite.sql.fun.SqlLibrary.BIGQUERY;
+import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
+import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
+
 
 /**
  * Defines functions and operators that are not part of standard SQL but
@@ -160,6 +164,18 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction MONTHNAME =
       new SqlFunction("MONTHNAME", SqlKind.OTHER_FUNCTION,
           ReturnTypes.VARCHAR_2000, null, OperandTypes.DATETIME,
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
+  public static final SqlFunction DATE_ADD =
+      new SqlFunction("DATE_ADD", SqlKind.PLUS,
+          ReturnTypes.DATE, null, OperandTypes.DATETIME,
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {HIVE, SPARK})
+  public static final SqlFunction ADD_MONTHS =
+      new SqlFunction("ADD_MONTHS", SqlKind.PLUS,
+          ReturnTypes.DATE, null, OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
   /** The "DAYNAME(datetime)" function; returns the name of the day of the week,
