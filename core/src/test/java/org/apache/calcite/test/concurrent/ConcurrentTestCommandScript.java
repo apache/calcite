@@ -322,6 +322,7 @@ public class ConcurrentTestCommandScript
         out.write(c);
       }
       out.flush();
+      out.close();
     }
     if (appOutput != null) {
       InputStream in =
