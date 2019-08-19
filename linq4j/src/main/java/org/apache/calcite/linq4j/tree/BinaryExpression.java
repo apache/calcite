@@ -58,6 +58,9 @@ public class BinaryExpression extends Expression {
       case INT:
         return (Integer) expression0.evaluate(evaluator) + (Integer) expression1
             .evaluate(evaluator);
+      case SHORT:
+        return (Short) expression0.evaluate(evaluator) + (Short) expression1
+            .evaluate(evaluator);
       case BYTE:
         return (Byte) expression0.evaluate(evaluator) + (Byte) expression1
             .evaluate(evaluator);
@@ -77,6 +80,9 @@ public class BinaryExpression extends Expression {
       switch (primitive) {
       case INT:
         return (Integer) expression0.evaluate(evaluator) / (Integer) expression1
+            .evaluate(evaluator);
+      case SHORT:
+        return (Short) expression0.evaluate(evaluator) / (Short) expression1
             .evaluate(evaluator);
       case BYTE:
         return (Byte) expression0.evaluate(evaluator) / (Byte) expression1
@@ -101,6 +107,9 @@ public class BinaryExpression extends Expression {
       case INT:
         return (Integer) expression0.evaluate(evaluator) > (Integer) expression1
             .evaluate(evaluator);
+      case SHORT:
+        return (Short) expression0.evaluate(evaluator) > (Short) expression1
+            .evaluate(evaluator);
       case BYTE:
         return (Byte) expression0.evaluate(evaluator) > (Byte) expression1
             .evaluate(evaluator);
@@ -121,6 +130,9 @@ public class BinaryExpression extends Expression {
       case INT:
         return (Integer) expression0.evaluate(evaluator)
                >= (Integer) expression1.evaluate(evaluator);
+      case SHORT:
+        return (Short) expression0.evaluate(evaluator)
+               >= (Short) expression1.evaluate(evaluator);
       case BYTE:
         return (Byte) expression0.evaluate(evaluator)
                >= (Byte) expression1.evaluate(evaluator);
@@ -141,6 +153,9 @@ public class BinaryExpression extends Expression {
       case INT:
         return (Integer) expression0.evaluate(evaluator) < (Integer) expression1
             .evaluate(evaluator);
+      case SHORT:
+        return (Short) expression0.evaluate(evaluator) < (Short) expression1
+              .evaluate(evaluator);
       case BYTE:
         return (Byte) expression0.evaluate(evaluator) < (Byte) expression1
             .evaluate(evaluator);
@@ -161,6 +176,9 @@ public class BinaryExpression extends Expression {
       case INT:
         return (Integer) expression0.evaluate(evaluator)
                <= (Integer) expression1.evaluate(evaluator);
+      case SHORT:
+        return (Short) expression0.evaluate(evaluator)
+               <= (Short) expression1.evaluate(evaluator);
       case BYTE:
         return (Byte) expression0.evaluate(evaluator)
                <= (Byte) expression1.evaluate(evaluator);
@@ -180,6 +198,9 @@ public class BinaryExpression extends Expression {
       switch (primitive) {
       case INT:
         return (Integer) expression0.evaluate(evaluator) * (Integer) expression1
+            .evaluate(evaluator);
+      case SHORT:
+        return (Short) expression0.evaluate(evaluator) * (Short) expression1
             .evaluate(evaluator);
       case BYTE:
         return (Byte) expression0.evaluate(evaluator) * (Byte) expression1
@@ -206,6 +227,9 @@ public class BinaryExpression extends Expression {
       switch (primitive) {
       case INT:
         return (Integer) expression0.evaluate(evaluator) - (Integer) expression1
+            .evaluate(evaluator);
+      case SHORT:
+        return (Short) expression0.evaluate(evaluator) - (Short) expression1
             .evaluate(evaluator);
       case BYTE:
         return (Byte) expression0.evaluate(evaluator) - (Byte) expression1

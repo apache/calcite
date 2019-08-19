@@ -94,8 +94,52 @@ public class ExpressionTest {
         s);
 
     // Compile and run the lambda expression.
-    // The value of the parameter is 1.5.
+    // The value of the parameter is 1
     Integer n = (Integer) lambdaExpr.compile().dynamicInvoke(1);
+
+    // This code example produces the following output:
+    //
+    // arg => (arg +2)
+    // 3
+    assertEquals(3, n, 0);
+  }
+
+  @Test public void testLambdaCallsBinaryOpShort() {
+    // A parameter for the lambda expression.
+    ParameterExpression paramExpr =
+        Expressions.parameter(Short.TYPE, "arg");
+
+    // This expression represents a lambda expression
+    // that adds 1 to the parameter value.
+    Short a = 2;
+    FunctionExpression lambdaExpr = Expressions.lambda(
+        Expressions.add(
+            paramExpr,
+            Expressions.constant(a)),
+        Arrays.asList(paramExpr));
+
+    // Print out the expression.
+    String s = Expressions.toString(lambdaExpr);
+    assertEquals(
+        "new org.apache.calcite.linq4j.function.Function1() {\n"
+            + "  public int apply(short arg) {\n"
+            + "    return arg + (short)2;\n"
+            + "  }\n"
+            + "  public Object apply(Short arg) {\n"
+            + "    return apply(\n"
+            + "      arg.shortValue());\n"
+            + "  }\n"
+            + "  public Object apply(Object arg) {\n"
+            + "    return apply(\n"
+            + "      (Short) arg);\n"
+            + "  }\n"
+            + "}\n",
+        s);
+
+    // Compile and run the lambda expression.
+    // The value of the parameter is 1.
+    Short b = 1;
+    Integer n = (Integer) lambdaExpr.compile().dynamicInvoke(b);
 
     // This code example produces the following output:
     //
@@ -136,7 +180,7 @@ public class ExpressionTest {
         s);
 
     // Compile and run the lambda expression.
-    // The value of the parameter is 1.5.
+    // The value of the parameter is 1.
     Integer n = (Integer) lambdaExpr.compile().dynamicInvoke(Byte.valueOf("1"));
 
     // This code example produces the following output:
@@ -219,7 +263,7 @@ public class ExpressionTest {
         s);
 
     // Compile and run the lambda expression.
-    // The value of the parameter is 1L
+    // The value of the parameter is 1L.
     long n = (Long) lambdaExpr.compile().dynamicInvoke(1L);
 
     // This code example produces the following output:
