@@ -61,7 +61,92 @@ import static org.junit.Assert.assertThat;
  * and subclasses.
  */
 public class ExpressionTest {
-  @Test public void testLambdaCallsBinaryOp() {
+
+  @Test public void testLambdaCallsBinaryOpInt() {
+    // A parameter for the lambda expression.
+    ParameterExpression paramExpr =
+        Expressions.parameter(Integer.TYPE, "arg");
+
+    // This expression represents a lambda expression
+    // that adds 1 to the parameter value.
+    FunctionExpression lambdaExpr = Expressions.lambda(
+        Expressions.add(
+            paramExpr,
+            Expressions.constant(2)),
+        Arrays.asList(paramExpr));
+
+    // Print out the expression.
+    String s = Expressions.toString(lambdaExpr);
+    assertEquals(
+        "new org.apache.calcite.linq4j.function.Function1() {\n"
+            + "  public int apply(int arg) {\n"
+            + "    return arg + 2;\n"
+            + "  }\n"
+            + "  public Object apply(Integer arg) {\n"
+            + "    return apply(\n"
+            + "      arg.intValue());\n"
+            + "  }\n"
+            + "  public Object apply(Object arg) {\n"
+            + "    return apply(\n"
+            + "      (Integer) arg);\n"
+            + "  }\n"
+            + "}\n",
+        s);
+
+    // Compile and run the lambda expression.
+    // The value of the parameter is 1.5.
+    Integer n = (Integer) lambdaExpr.compile().dynamicInvoke(1);
+
+    // This code example produces the following output:
+    //
+    // arg => (arg +2)
+    // 3
+    assertEquals(3, n, 0);
+  }
+
+  @Test public void testLambdaCallsBinaryOpByte() {
+    // A parameter for the lambda expression.
+    ParameterExpression paramExpr =
+        Expressions.parameter(Byte.TYPE, "arg");
+
+    // This expression represents a lambda expression
+    // that adds 1 to the parameter value.
+    FunctionExpression lambdaExpr = Expressions.lambda(
+        Expressions.add(
+            paramExpr,
+            Expressions.constant(Byte.valueOf("2"))),
+        Arrays.asList(paramExpr));
+
+    // Print out the expression.
+    String s = Expressions.toString(lambdaExpr);
+    assertEquals(
+        "new org.apache.calcite.linq4j.function.Function1() {\n"
+            + "  public int apply(byte arg) {\n"
+            + "    return arg + (byte)2;\n"
+            + "  }\n"
+            + "  public Object apply(Byte arg) {\n"
+            + "    return apply(\n"
+            + "      arg.byteValue());\n"
+            + "  }\n"
+            + "  public Object apply(Object arg) {\n"
+            + "    return apply(\n"
+            + "      (Byte) arg);\n"
+            + "  }\n"
+            + "}\n",
+        s);
+
+    // Compile and run the lambda expression.
+    // The value of the parameter is 1.5.
+    Integer n = (Integer) lambdaExpr.compile().dynamicInvoke(Byte.valueOf("1"));
+
+    // This code example produces the following output:
+    //
+    // arg => (arg +2)
+    // 3
+    assertEquals(3, n, 0);
+  }
+
+  @Test public void testLambdaCallsBinaryOpDouble() {
     // A parameter for the lambda expression.
     ParameterExpression paramExpr =
         Expressions.parameter(Double.TYPE, "arg");
@@ -99,8 +184,90 @@ public class ExpressionTest {
     // This code example produces the following output:
     //
     // arg => (arg +2)
-    // 3
+    // 3.5
     assertEquals(3.5D, n, 0d);
+  }
+
+  @Test public void testLambdaCallsBinaryOpLong() {
+    // A parameter for the lambda expression.
+    ParameterExpression paramExpr =
+        Expressions.parameter(Long.TYPE, "arg");
+
+    // This expression represents a lambda expression
+    // that adds 1L to the parameter value.
+    FunctionExpression lambdaExpr = Expressions.lambda(
+        Expressions.add(
+            paramExpr,
+            Expressions.constant(2L)),
+        Arrays.asList(paramExpr));
+    // Print out the expression.
+    String s = Expressions.toString(lambdaExpr);
+    assertEquals(
+        "new org.apache.calcite.linq4j.function.Function1() {\n"
+            + "  public long apply(long arg) {\n"
+            + "    return arg + 2L;\n"
+            + "  }\n"
+            + "  public Object apply(Long arg) {\n"
+            + "    return apply(\n"
+            + "      arg.longValue());\n"
+            + "  }\n"
+            + "  public Object apply(Object arg) {\n"
+            + "    return apply(\n"
+            + "      (Long) arg);\n"
+            + "  }\n"
+            + "}\n",
+        s);
+
+    // Compile and run the lambda expression.
+    // The value of the parameter is 1L
+    long n = (Long) lambdaExpr.compile().dynamicInvoke(1L);
+
+    // This code example produces the following output:
+    //
+    // arg => (arg +2)
+    // 3
+    assertEquals(3L, n, 0d);
+  }
+
+  @Test public void testLambdaCallsBinaryOpFloat() {
+    // A parameter for the lambda expression.
+    ParameterExpression paramExpr =
+        Expressions.parameter(Float.TYPE, "arg");
+
+    // This expression represents a lambda expression
+    // that adds 1f to the parameter value.
+    FunctionExpression lambdaExpr = Expressions.lambda(
+        Expressions.add(
+            paramExpr,
+            Expressions.constant(2.0f)),
+        Arrays.asList(paramExpr));
+    // Print out the expression.
+    String s = Expressions.toString(lambdaExpr);
+    assertEquals(
+        "new org.apache.calcite.linq4j.function.Function1() {\n"
+            + "  public float apply(float arg) {\n"
+            + "    return arg + 2.0F;\n"
+            + "  }\n"
+            + "  public Object apply(Float arg) {\n"
+            + "    return apply(\n"
+            + "      arg.floatValue());\n"
+            + "  }\n"
+            + "  public Object apply(Object arg) {\n"
+            + "    return apply(\n"
+            + "      (Float) arg);\n"
+            + "  }\n"
+            + "}\n",
+        s);
+
+    // Compile and run the lambda expression.
+    // The value of the parameter is 1f
+    float n = (Float) lambdaExpr.compile().dynamicInvoke(1f);
+
+    // This code example produces the following output:
+    //
+    // arg => (arg +2)
+    // 3.0
+    assertEquals(3.0f, n, 0f);
   }
 
   @Test public void testLambdaPrimitiveTwoArgs() {
