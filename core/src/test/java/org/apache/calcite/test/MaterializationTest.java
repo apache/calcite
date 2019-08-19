@@ -527,6 +527,27 @@ public class MaterializationTest {
             + "(e.\"empid\" > 500 and e.\"salary\" > 6000)");
   }
 
+  @Test public void testFilterOnProject() {
+    String deduplicated =
+        "(select \"empid\", \"deptno\", \"name\", \"salary\", \"commission\"\n"
+            + "from \"emps\"\n"
+            + "group by \"empid\", \"deptno\", \"name\", \"salary\", \"commission\")";
+    String mv =
+        "select * from\n"
+            + "(select \"deptno\", sum(\"salary\") as \"sum_salary\", sum(\"commission\")\n"
+            + "from " + deduplicated + "\n"
+            + "group by \"deptno\")\n"
+            + "where \"sum_salary\" > 10";
+    String query =
+        "select * from\n"
+            + "(select \"deptno\", sum(\"salary\") as \"sum_salary\"\n"
+            + "from " + deduplicated + "\n"
+            + "group by \"deptno\")\n"
+            + "where \"sum_salary\" > 10";
+    checkMaterialize(mv, query);
+  }
+
+
   /** Aggregation query at same level of aggregation as aggregation
    * materialization. */
   @Test public void testAggregate0() {

@@ -42,6 +42,7 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
           .add(ProjectToProjectUnifyRule1.INSTANCE)
           .add(FilterToFilterUnifyRule1.INSTANCE)
           .add(FilterToProjectUnifyRule1.INSTANCE)
+          .add(FilterOnProjectToFilterUnifyRule.INSTANCE)
           .add(UnionToUnionUnifyRule.INSTANCE)
           .build();
 
@@ -319,6 +320,70 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
       }
     };
     return shuttle.apply(nodes);
+  }
+
+  /**
+   * Implementation of {@link SubstitutionVisitor.UnifyRule} that matches a
+   * {@link MutableFilter} on top of a {@link MutableProject} to a
+   * {@link MutableFilter}. We pull up the {@link MutableProject} in query
+   * and then match the {@link MutableFilter}s.
+   *
+   * <p>Example
+   * <ul>
+   * <li>query:   Filter(condition: &gt;($1, 20))
+   *                Project(projects: [$1, $0, $2, $3, $4])
+   *                  Scan(table: [hr, emps])</li>
+   * <li>target:  Filter(condition: &gt;($0, 20))
+   *                  Scan(table: [hr, emps])</li>
+   * </ul>
+   */
+  private static class FilterOnProjectToFilterUnifyRule extends AbstractUnifyRule {
+
+    public static final FilterOnProjectToFilterUnifyRule INSTANCE =
+        new FilterOnProjectToFilterUnifyRule();
+
+    private FilterOnProjectToFilterUnifyRule() {
+      super(operand(MutableFilter.class, operand(MutableProject.class, query(0))),
+          operand(MutableFilter.class, target(0)), 1);
+    }
+
+    public UnifyResult apply(UnifyRuleCall call) {
+      final MutableFilter query = (MutableFilter) call.query;
+      final MutableProject queryInput = (MutableProject) query.getInput();
+      final MutableFilter target = (MutableFilter) call.target;
+
+      final RexNode newCondition = new RexShuttle() {
+        @Override public RexNode visitInputRef(RexInputRef ref) {
+          return queryInput.projects.get(ref.getIndex());
+        }
+      }.apply(query.condition);
+
+
+      final MutableFilter filter1 =
+          MutableFilter.of(queryInput.getInput(), newCondition);
+      final MutableFilter filter2 = createFilter(call, filter1, target);
+      if (filter2 == null) {
+        return null;
+      }
+      final MutableProject newQuery =
+          MutableProject.of(query.rowType, filter2, queryInput.projects);
+      return call.result(newQuery);
+    }
+
+    private MutableFilter createFilter(
+        UnifyRuleCall call, MutableFilter query, MutableFilter target) {
+      final RexNode newCondition =
+          splitFilter(call.getSimplify(), query.condition,
+              target.condition);
+      if (newCondition == null) {
+        // Could not map query onto target.
+        return null;
+      }
+      if (newCondition.isAlwaysTrue()) {
+        return target;
+      }
+      return MutableFilter.of(target, newCondition);
+    }
   }
 }
 

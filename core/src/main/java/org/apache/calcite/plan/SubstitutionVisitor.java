@@ -121,8 +121,6 @@ public class SubstitutionVisitor {
           ScanToProjectUnifyRule.INSTANCE,
           ProjectToProjectUnifyRule.INSTANCE,
           FilterToProjectUnifyRule.INSTANCE,
-//          ProjectToFilterUnifyRule.INSTANCE,
-//          FilterToFilterUnifyRule.INSTANCE,
           AggregateToAggregateUnifyRule.INSTANCE,
           AggregateOnProjectToAggregateUnifyRule.INSTANCE);
 
@@ -1146,77 +1144,6 @@ public class SubstitutionVisitor {
         }
       }
       return MutableProject.of(model.rowType, input, exprList);
-    }
-  }
-
-  /** Implementation of {@link UnifyRule} that matches a
-   * {@link MutableFilter}. */
-  private static class FilterToFilterUnifyRule extends AbstractUnifyRule {
-    public static final FilterToFilterUnifyRule INSTANCE =
-        new FilterToFilterUnifyRule();
-
-    private FilterToFilterUnifyRule() {
-      super(operand(MutableFilter.class, query(0)),
-          operand(MutableFilter.class, target(0)), 1);
-    }
-
-    public UnifyResult apply(UnifyRuleCall call) {
-      // in.query can be rewritten in terms of in.target if its condition
-      // is weaker. For example:
-      //   query: SELECT * FROM t WHERE x = 1 AND y = 2
-      //   target: SELECT * FROM t WHERE x = 1
-      // transforms to
-      //   result: SELECT * FROM (target) WHERE y = 2
-      final MutableFilter query = (MutableFilter) call.query;
-      final MutableFilter target = (MutableFilter) call.target;
-      final MutableFilter newFilter =
-          createFilter(call, query, target);
-      if (newFilter == null) {
-        return null;
-      }
-      return call.result(newFilter);
-    }
-
-    MutableFilter createFilter(UnifyRuleCall call, MutableFilter query,
-        MutableFilter target) {
-      final RexNode newCondition =
-          splitFilter(call.getSimplify(), query.condition,
-              target.condition);
-      if (newCondition == null) {
-        // Could not map query onto target.
-        return null;
-      }
-      if (newCondition.isAlwaysTrue()) {
-        return target;
-      }
-      return MutableFilter.of(target, newCondition);
-    }
-  }
-
-  /** Implementation of {@link UnifyRule} that matches a {@link MutableProject}
-   * to a {@link MutableFilter}. */
-  private static class ProjectToFilterUnifyRule extends AbstractUnifyRule {
-    public static final ProjectToFilterUnifyRule INSTANCE =
-        new ProjectToFilterUnifyRule();
-
-    private ProjectToFilterUnifyRule() {
-      super(operand(MutableProject.class, query(0)),
-          operand(MutableFilter.class, target(0)), 1);
-    }
-
-    public UnifyResult apply(UnifyRuleCall call) {
-      if (call.query.getParent() instanceof MutableFilter) {
-        final UnifyRuleCall in2 = call.create(call.query.getParent());
-        final MutableFilter query = (MutableFilter) in2.query;
-        final MutableFilter target = (MutableFilter) in2.target;
-        final MutableFilter newFilter =
-            FilterToFilterUnifyRule.INSTANCE.createFilter(call, query, target);
-        if (newFilter == null) {
-          return null;
-        }
-        return in2.result(query.replaceInParent(newFilter));
-      }
-      return null;
     }
   }
 
