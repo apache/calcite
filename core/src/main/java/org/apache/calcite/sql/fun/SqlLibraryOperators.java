@@ -313,6 +313,26 @@ public abstract class SqlLibraryOperators {
           OperandTypes.INTEGER,
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  public static final SqlFunction MD5 =
+      new SqlFunction("MD5",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
+              SqlTypeTransforms.TO_NULLABLE),
+          null,
+          OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  public static final SqlFunction SHA1 =
+      new SqlFunction("SHA1",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
+              SqlTypeTransforms.TO_NULLABLE),
+          null,
+          OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
+          SqlFunctionCategory.STRING);
+
   /** Infix "::" cast operator used by PostgreSQL, for example
    * {@code '100'::INTEGER}. */
   @LibraryOperator(libraries = { POSTGRESQL })
