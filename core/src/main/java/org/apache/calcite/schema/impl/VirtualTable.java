@@ -46,7 +46,7 @@ public class VirtualTable extends AbstractTable implements ScannableTable {
   }
 
   /**
-   * Creates a @{@link RelOptTable} for a schema only table.
+   * Creates a {@link RelOptTable} for a schema only table.
    *
    * @param optSchema Catalog object
    * @param rowType Relational schema for the table

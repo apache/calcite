@@ -112,7 +112,7 @@ public class PigToSqlAggregateRule extends RelOptRule {
   }
 
   /**
-   * Helper class to replace each @{@link RexCall} by a corresponding @{@link RexNode},
+   * Helper class to replace each {@link RexCall} by a corresponding {@link RexNode},
    * defined in a given map, for an expression.
    *
    * It also replaces a projection by a new projection.

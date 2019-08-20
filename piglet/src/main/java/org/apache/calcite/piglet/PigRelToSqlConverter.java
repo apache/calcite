@@ -37,10 +37,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * An extension of @{@link RelToSqlConverter} to convert a relation algebra tree,
+ * An extension of {@link RelToSqlConverter} to convert a relation algebra tree,
  * translated from a Pig script, into a SQL statement.
  *
- * The input relational algebra tree can be optimized by the planner for Pig to @{@link RelNode}.
+ * The input relational algebra tree can be optimized by the planner for Pig to {@link RelNode}.
  */
 public class PigRelToSqlConverter extends RelToSqlConverter {
 

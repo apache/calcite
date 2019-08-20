@@ -252,7 +252,7 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   /**
-   * Gets the @{@link org.apache.calcite.rel.rel2sql.SqlImplementor.Builder} for the given
+   * Gets the {@link org.apache.calcite.rel.rel2sql.SqlImplementor.Builder} for the given
    * Aggregate node.
    *
    * @param e Aggregate node

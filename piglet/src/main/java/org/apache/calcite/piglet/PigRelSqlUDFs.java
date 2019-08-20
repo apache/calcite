@@ -56,7 +56,7 @@ import static org.apache.calcite.piglet.PigRelSchemaConverter.TYPE_FACTORY;
 
 
 /**
- * This class defines all @{@link SqlUserDefinedFunction} needed for Pig to @{@link RelNode}
+ * This class defines all {@link SqlUserDefinedFunction} needed for Pig to {@link RelNode}
  * translation.
  */
 public class PigRelSqlUDFs {
@@ -138,7 +138,7 @@ public class PigRelSqlUDFs {
   }
 
   /**
-   * @return  Returns a @{@link SqlReturnTypeInference} for multiset projection operator.
+   * @return  Returns a {@link SqlReturnTypeInference} for multiset projection operator.
    */
   private static SqlReturnTypeInference multisetProjectionInfer() {
     return opBinding -> {
@@ -171,7 +171,7 @@ public class PigRelSqlUDFs {
   }
 
   /**
-   * @return  Returns a @{@link SqlOperandTypeChecker} for multiset projection operator.
+   * @return  Returns a {@link SqlOperandTypeChecker} for multiset projection operator.
    */
   private static SqlOperandTypeChecker multisetProjectionCheck() {
     return new SqlOperandTypeChecker() {

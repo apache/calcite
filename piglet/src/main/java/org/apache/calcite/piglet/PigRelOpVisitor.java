@@ -660,7 +660,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
   }
 
   /**
-   * Builds window function for @{@link LORank}.
+   * Builds window function for {@link LORank}.
    *
    * @param loRank Pig logical rank operator
    * @return The window function

@@ -68,7 +68,7 @@ import java.util.Map;
  */
 public class PigRelBuilder extends RelBuilder {
   /**
-   * Context constructed during Pig to @{@link RelNode} translation process.
+   * Context constructed during Pig to {@link RelNode} translation process.
    */
   public class PigRelTranslationContext {
     public Map<String, FuncSpec> pigUDFs;

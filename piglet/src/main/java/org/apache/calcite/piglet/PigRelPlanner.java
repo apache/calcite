@@ -47,7 +47,7 @@ import java.util.List;
 
 
 /**
- * Extension of @{@link VolcanoPlanner} to optimize Pig-translated logical plans
+ * Extension of {@link VolcanoPlanner} to optimize Pig-translated logical plans
  */
 public class PigRelPlanner extends VolcanoPlanner {
   // Basic transformation and implementation rules to optimize for Pig-translated logical plans
@@ -96,7 +96,7 @@ public class PigRelPlanner extends VolcanoPlanner {
   }
 
   /**
-   * Creates a @{@link PigRelPlanner} from a @{@link RelOptPlanner} template.
+   * Creates a {@link PigRelPlanner} from a {@link RelOptPlanner} template.
    *
    * @param template RelOptPlanner template
    * @param rules RelOptRule rules to use
@@ -112,7 +112,7 @@ public class PigRelPlanner extends VolcanoPlanner {
   }
 
   /**
-   * Creates a @{@link PigRelPlanner} from a @{@link RelOptPlanner} template.
+   * Creates a {@link PigRelPlanner} from a {@link RelOptPlanner} template.
    *
    * @param template RelOptPlanner template
    */

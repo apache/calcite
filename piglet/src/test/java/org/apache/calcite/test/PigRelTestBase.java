@@ -27,7 +27,7 @@ import org.apache.calcite.rel.RelNode;
 import org.junit.Before;
 
 /**
- * Abstract class for Pig to @{@link RelNode} tests.
+ * Abstract class for Pig to {@link RelNode} tests.
  */
 public abstract class PigRelTestBase {
   PigConverter converter;

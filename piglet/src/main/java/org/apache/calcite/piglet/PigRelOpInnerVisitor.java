@@ -47,7 +47,7 @@ import java.util.Stack;
 
 /**
  * Visits pig logical operators of Pig inner logical plans
- * (in @{@link org.apache.pig.newplan.logical.relational.LOForEach}
+ * (in {@link org.apache.pig.newplan.logical.relational.LOForEach}
  * and converts them into to corresponding relational algebra plans.
  *
  */

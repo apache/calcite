@@ -112,7 +112,7 @@ class PigRelUDFConverter {
   }
 
   /**
-   * Converts a Pig UDF, given its @{@link FuncSpec} and a list of relational
+   * Converts a Pig UDF, given its {@link FuncSpec} and a list of relational
    * operands (function arguments). To call this function, the arguments of
    * Pig functions need to be converted into the relational types before.
    *
@@ -213,7 +213,7 @@ class PigRelUDFConverter {
   }
 
   /**
-   * Gets the @{@link SqlAggFunction} for the corresponding Pig aggregate UDF call.
+   * Gets the {@link SqlAggFunction} for the corresponding Pig aggregate UDF call.
    * Returns null for invalid rex call.
    * @param call Pig aggregate UDF call
    */
