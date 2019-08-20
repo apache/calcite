@@ -4365,6 +4365,40 @@ public abstract class SqlOperatorBaseTest {
     tester1.checkNull("from_base64('-100')");
   }
 
+  @Test public void testMd5() {
+    final SqlTester tester1 = tester(SqlLibrary.MYSQL);
+    tester1.setFor(SqlLibraryOperators.MD5);
+    tester1.checkString("md5(x'')",
+        "d41d8cd98f00b204e9800998ecf8427e",
+        "VARCHAR NOT NULL");
+    tester1.checkString("md5('')",
+        "d41d8cd98f00b204e9800998ecf8427e",
+        "VARCHAR NOT NULL");
+    tester1.checkString("md5('ABC')",
+        "902fbdd2b1df0c4f70b4a5d23525e932",
+        "VARCHAR NOT NULL");
+    tester1.checkString("md5(x'414243')",
+        "902fbdd2b1df0c4f70b4a5d23525e932",
+        "VARCHAR NOT NULL");
+  }
+
+  @Test public void testSha1() {
+    final SqlTester tester1 = tester(SqlLibrary.MYSQL);
+    tester1.setFor(SqlLibraryOperators.SHA1);
+    tester1.checkString("sha1(x'')",
+        "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+        "VARCHAR NOT NULL");
+    tester1.checkString("sha1('')",
+        "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+        "VARCHAR NOT NULL");
+    tester1.checkString("sha1('ABC')",
+        "3c01bdbb26f358bab27f267924aa2c9a03fcfdb8",
+        "VARCHAR NOT NULL");
+    tester1.checkString("sha1(x'414243')",
+        "3c01bdbb26f358bab27f267924aa2c9a03fcfdb8",
+        "VARCHAR NOT NULL");
+  }
+
   @Test public void testRepeatFunc() {
     final SqlTester tester1 = tester(SqlLibrary.MYSQL);
     tester1.setFor(SqlLibraryOperators.REPEAT);

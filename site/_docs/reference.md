@@ -2186,6 +2186,8 @@ semantics.
 | m p | LEFT(string, length)                         | Returns the leftmost *length* characters from the *string*
 | m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string
 | m | FROM_BASE64(string)                            | Returns the decoded result of a base-64 *string* as a string
+| m p | MD5(string)                                    | Calculates an MD5 128-bit checksum and returns it as a hex string of *string*
+| m p | SHA1(string)                                   | Calculates a sha1 hash value and returns it as a hex string of *string*
 | m | {fn DAYNAME(date)}                             | Returns the date of the name of the weekday in a value of datatype DATE; For example, it returns '星期日' for both DATE'2020-02-10' and TIMESTAMP'2020-02-10 10:10:10'
 | m | {fn MONTHNAME(date)}                           | Returns the date of the name of the month in a value of datatype DATE; For example, it returns '二月' for both DATE'2020-02-10' and TIMESTAMP'2020-02-10 10:10:10'
 | o | LTRIM(string)                                  | Returns *string* with all blanks removed from the start

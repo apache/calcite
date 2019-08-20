@@ -309,6 +309,8 @@ public enum BuiltInMethod {
   RIGHT(SqlFunctions.class, "right", String.class, int.class),
   TO_BASE64(SqlFunctions.class, "toBase64", String.class),
   FROM_BASE64(SqlFunctions.class, "fromBase64", String.class),
+  MD5(SqlFunctions.class, "md5", String.class),
+  SHA1(SqlFunctions.class, "sha1", String.class),
   JSONIZE(JsonFunctions.class, "jsonize", Object.class),
   DEJSONIZE(JsonFunctions.class, "dejsonize", String.class),
   JSON_VALUE_EXPRESSION(JsonFunctions.class, "jsonValueExpression",
