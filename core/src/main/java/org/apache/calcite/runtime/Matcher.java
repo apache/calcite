@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -49,10 +48,6 @@ public class Matcher<E> {
   // but only one thread can use them at a time. Putting them here saves the
   // expense of creating a fresh object each call to "match".
 
-  private final ImmutableList<Tuple<Integer>> emptyStateSet = ImmutableList.of();
-  private final ImmutableBitSet startSet;
-  private final List<Integer> rowSymbols = new ArrayList<>();
-
   /**
    * Creates a Matcher; use {@link #builder}.
    */
@@ -63,7 +58,6 @@ public class Matcher<E> {
         ImmutableBitSet.builder();
     startSetBuilder.set(automaton.startState.id);
     automaton.epsilonSuccessors(automaton.startState.id, startSetBuilder);
-    startSet = startSetBuilder.build();
     // Build the DFA
     dfa = new DeterministicAutomaton(automaton);
   }
