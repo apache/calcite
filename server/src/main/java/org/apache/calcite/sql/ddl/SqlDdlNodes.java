@@ -18,6 +18,7 @@ package org.apache.calcite.sql.ddl;
 
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.jdbc.ContextSqlValidator;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.sql.SqlCall;
@@ -34,6 +35,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
@@ -195,6 +197,14 @@ public class SqlDdlNodes {
       schema = schema.getSubSchema(p, true);
     }
     return Pair.of(schema, name);
+  }
+
+  /**
+   * Returns the SqlValidator with the given {@code context} schema
+   * and type factory.
+   * */
+  static SqlValidator validator(CalcitePrepare.Context context, boolean mutable) {
+    return new ContextSqlValidator(context, mutable);
   }
 
   /** Wraps a query to rename its columns. Used by CREATE VIEW and CREATE

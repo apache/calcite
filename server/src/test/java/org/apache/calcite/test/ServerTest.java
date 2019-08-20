@@ -151,6 +151,18 @@ public class ServerTest {
       assertThat(b, is(false));
       x = s.executeUpdate("insert into w values (1, NULL)");
       assertThat(x, is(1));
+
+      // Test user defined type name as component identifier.
+      b = s.execute("create schema a");
+      assertThat(b, is(false));
+      b = s.execute("create schema a.b");
+      assertThat(b, is(false));
+      b = s.execute("create type a.b.mytype as (i varchar(5))");
+      assertThat(b, is(false));
+      b = s.execute("create table t2 (i int not null, j a.b.mytype)");
+      assertThat(b, is(false));
+      x = s.executeUpdate("insert into t2 values (1, NULL)");
+      assertThat(x, is(1));
     }
   }
 

@@ -19,7 +19,7 @@ package org.apache.calcite.sql.parser.parserextensiontesting;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
-import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.jdbc.ContextSqlValidator;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
@@ -43,6 +43,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.test.JdbcTest;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -108,11 +109,12 @@ public class SqlCreateTable extends SqlCreate
     for (String p : path) {
       schema = schema.getSubSchema(p, true);
     }
-    final JavaTypeFactory typeFactory = new JavaTypeFactoryImpl();
+    final JavaTypeFactory typeFactory = context.getTypeFactory();
     final RelDataTypeFactory.Builder builder = typeFactory.builder();
+    final SqlValidator validator = new ContextSqlValidator(context, false);
     for (Pair<SqlIdentifier, SqlDataTypeSpec> pair : nameTypes()) {
       builder.add(pair.left.getSimple(),
-          pair.right.deriveType(typeFactory, true));
+          pair.right.deriveType(validator, true));
     }
     final RelDataType rowType = builder.build();
     schema.add(name.getSimple(),

@@ -161,6 +161,18 @@ public class ServerParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testCreateTableWithUDT() {
+    final String sql = "create table if not exists t (\n"
+        + "  f0 MyType0 not null,\n"
+        + "  f1 db_name.MyType1,\n"
+        + "  f2 catalog_name.db_name.MyType2)";
+    final String expected = "CREATE TABLE IF NOT EXISTS `T` ("
+        + "`F0` `MYTYPE0` NOT NULL,"
+        + " `F1` `DB_NAME`.`MYTYPE1`,"
+        + " `F2` `CATALOG_NAME`.`DB_NAME`.`MYTYPE2`)";
+    sql(sql).ok(expected);
+  }
+
   @Test public void testCreateView() {
     final String sql = "create or replace view v as\n"
         + "select * from (values (1, '2'), (3, '45')) as t (x, y)";

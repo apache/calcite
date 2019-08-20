@@ -2337,7 +2337,7 @@ public class SqlToRelConverter {
       final SqlValidatorTable validatorTable =
           table.unwrap(SqlValidatorTable.class);
       final List<RelDataTypeField> extendedFields =
-          SqlValidatorUtil.getExtendedColumns(validator.getTypeFactory(), validatorTable,
+          SqlValidatorUtil.getExtendedColumns(validator, validatorTable,
               extendedColumns);
       table = table.extend(extendedFields);
     }
