@@ -3694,6 +3694,61 @@ public class RelToSqlConverterTest {
     assertTrue(postgresqlDialect.supportsDataType(integerDataType));
   }
 
+  @Test public void testSelectNull() {
+    String query = "SELECT CAST(NULL AS INT)";
+    final String expected = "SELECT CAST(NULL AS INTEGER)\n"
+            + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+    sql(query).ok(expected);
+    // validate
+    sql(expected).exec();
+  }
+
+  @Test public void testSelectNullWithCount() {
+    String query = "SELECT COUNT(CAST(NULL AS INT))";
+    final String expected = "SELECT COUNT(CAST(NULL AS INTEGER))\n"
+            + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+    sql(query).ok(expected);
+    // validate
+    sql(expected).exec();
+  }
+
+  @Test public void testSelectNullWithGroupByNull() {
+    String query = "SELECT COUNT(CAST(NULL AS INT)) FROM (VALUES  (0)) "
+            + "AS \"t\" GROUP BY CAST(NULL AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
+    final String expected = "SELECT COUNT(CAST(NULL AS INTEGER))\n"
+            + "FROM (VALUES  (0)) AS \"t\" (\"EXPR$0\")\nGROUP BY CAST(NULL "
+            + "AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
+    sql(query).ok(expected);
+    // validate
+    sql(expected).exec();
+  }
+
+  @Test public void testSelectNullWithGroupByVar() {
+    String query = "SELECT COUNT(CAST(NULL AS INT)) FROM \"account\" "
+            + "AS \"t\" GROUP BY \"account_type\"";
+    final String expected = "SELECT COUNT(CAST(NULL AS INTEGER))\n"
+            + "FROM \"foodmart\".\"account\"\n"
+            + "GROUP BY \"account_type\"";
+    sql(query).ok(expected);
+    // validate
+    sql(expected).exec();
+  }
+
+  @Test public void testSelectNullWithInsert() {
+    String query = "insert into "
+            + "\"account\"(\"account_id\",\"account_parent\",\"account_type\",\"account_rollup\")"
+            + " select 1, cast(NULL AS INT), cast(123 as varchar), cast(123 as varchar)";
+    final String expected = "INSERT INTO \"foodmart\".\"account\" (\"account_id\", \"account_parent\", \"account_description\", "
+            + "\"account_type\", \"account_rollup\", \"Custom_Members\")\n"
+            + "(SELECT 1 AS \"account_id\", CAST(NULL AS INTEGER) AS \"account_parent\", CAST(NULL AS VARCHAR(30) CHARACTER SET "
+            + "\"ISO-8859-1\") AS \"account_description\", '123' AS \"account_type\", '123' AS \"account_rollup\", CAST(NULL AS VARCHAR"
+            + "(255) CHARACTER SET \"ISO-8859-1\") AS \"Custom_Members\"\n"
+            + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\"))";
+    sql(query).ok(expected);
+    // validate
+    sql(expected).exec();
+  }
+
   @Test public void testDialectQuoteStringLiteral() {
     dialects().forEach((dialect, databaseProduct) -> {
       assertThat(dialect.quoteStringLiteral(""), is("''"));
