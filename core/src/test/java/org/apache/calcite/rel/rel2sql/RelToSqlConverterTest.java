@@ -3738,16 +3738,50 @@ public class RelToSqlConverterTest {
     String query = "insert into "
             + "\"account\"(\"account_id\",\"account_parent\",\"account_type\",\"account_rollup\")"
             + " select 1, cast(NULL AS INT), cast(123 as varchar), cast(123 as varchar)";
-    final String expected = "INSERT INTO \"foodmart\".\"account\" (\"account_id\", \"account_parent\", \"account_description\", "
+    final String expected = "INSERT INTO \"foodmart\".\"account\" ("
+            + "\"account_id\", \"account_parent\", \"account_description\", "
             + "\"account_type\", \"account_rollup\", \"Custom_Members\")\n"
-            + "(SELECT 1 AS \"account_id\", CAST(NULL AS INTEGER) AS \"account_parent\", CAST(NULL AS VARCHAR(30) CHARACTER SET "
-            + "\"ISO-8859-1\") AS \"account_description\", '123' AS \"account_type\", '123' AS \"account_rollup\", CAST(NULL AS VARCHAR"
+            + "(SELECT 1 AS \"account_id\", CAST(NULL AS INTEGER) AS \"account_parent\","
+            + " CAST(NULL AS VARCHAR(30) CHARACTER SET "
+            + "\"ISO-8859-1\") AS \"account_description\", '123' AS \"account_type\", "
+            + ""
+            + "'123' AS \"account_rollup\", CAST(NULL AS VARCHAR"
             + "(255) CHARACTER SET \"ISO-8859-1\") AS \"Custom_Members\"\n"
             + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\"))";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
   }
+
+  @Test public void testSelectNullWithInsertFromJoin() {
+    String query = "insert into "
+            + "\"account\"(\"account_id\",\"account_parent\",\"account_type\",\"account_rollup\")"
+            + "\tselect \"product\".\"product_id\", \n"
+            + "\tcast(NULL AS INT), \n"
+            + "\tcast(\"product\".\"product_id\" as varchar), \n"
+            + "\tcast(\"sales_fact_1997\".\"store_id\" as varchar)\n"
+            + "    from \"product\"\n"
+            + "    inner join \"sales_fact_1997\"\n"
+            + "    on \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"";
+    final String expected = "INSERT INTO \"foodmart\".\"account\" "
+            + "(\"account_id\", \"account_parent\", \"account_description\", "
+            + "\"account_type\", \"account_rollup\", \"Custom_Members\")\n"
+            + "(SELECT \"product\".\"product_id\" AS \"account_id\", "
+            + "CAST(NULL AS INTEGER) AS \"account_parent\", CAST(NULL AS VARCHAR"
+            + "(30) CHARACTER SET \"ISO-8859-1\") AS \"account_description\", "
+            + "CAST(\"product\".\"product_id\" AS VARCHAR CHARACTER SET "
+            + "\"ISO-8859-1\") AS \"account_type\", "
+            + "CAST(\"sales_fact_1997\".\"store_id\" AS VARCHAR CHARACTER SET \"ISO-8859-1\") AS "
+            + "\"account_rollup\", "
+            + "CAST(NULL AS VARCHAR(255) CHARACTER SET \"ISO-8859-1\") AS \"Custom_Members\"\n"
+            + "FROM \"foodmart\".\"product\"\n"
+            + "INNER JOIN \"foodmart\".\"sales_fact_1997\" "
+            + "ON \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\")";
+    sql(query).ok(expected);
+    // validate
+    sql(expected).exec();
+  }
+
 
   @Test public void testDialectQuoteStringLiteral() {
     dialects().forEach((dialect, databaseProduct) -> {
