@@ -173,14 +173,6 @@ public class BigQuerySqlDialect extends SqlDialect {
   @Override public void unparseSqlDatetimeArithmetic(SqlWriter writer,
       SqlCall call, SqlKind sqlKind, int leftPrec, int rightPrec) {
     switch (sqlKind) {
-    /*case PLUS:
-      final SqlWriter.Frame dateAddFrame = writer.startFunCall("DATE_ADD");
-      writer.sep(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(dateAddFrame);
-      break;*/
     case MINUS:
       final SqlWriter.Frame dateDiffFrame = writer.startFunCall("DATE_DIFF");
       writer.sep(",");
@@ -192,6 +184,10 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.endFunCall(dateDiffFrame);
       break;
     }
+  }
+
+  @Override public void unparseIntervalOperandsBasedFunctions(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    super.unparseIntervalOperandsBasedFunctions(writer, call, leftPrec, rightPrec);
   }
 }
 

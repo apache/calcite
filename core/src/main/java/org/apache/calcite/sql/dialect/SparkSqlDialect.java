@@ -175,18 +175,6 @@ public class SparkSqlDialect extends SqlDialect {
           timeUnitNode.getParserPosition());
       SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
       break;
-    case PLUS:
-      if (call.getOperator().getName().equalsIgnoreCase(SqlStdOperatorTable.PLUS.getName())) {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
-        break;
-      }
-      final SqlWriter.Frame plusFrame = writer.startFunCall(call.getOperator().toString());
-      writer.sep(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      unparseSqlIntervalLiteralSpark(writer, call.operand(1));
-      writer.endFunCall(plusFrame);
-      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -214,6 +202,15 @@ public class SparkSqlDialect extends SqlDialect {
       writer.endFunCall(dateDiffFrame);
       break;
     }
+  }
+
+  @Override public void unparseIntervalOperandsBasedFunctions(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().toString());
+    writer.sep(",");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.sep(",");
+    unparseSqlIntervalLiteralSpark(writer, call.operand(1));
+    writer.endFunCall(frame);
   }
 }
 

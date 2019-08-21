@@ -157,18 +157,6 @@ public class HiveSqlDialect extends SqlDialect {
     case DIVIDE_INTEGER:
       unparseDivideInteger(writer, call, leftPrec, rightPrec);
       break;
-    case PLUS:
-      if (call.getOperator().getName().equalsIgnoreCase(SqlStdOperatorTable.PLUS.getName())) {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
-        break;
-      }
-      final SqlWriter.Frame plusFrame = writer.startFunCall(call.getOperator().toString());
-      writer.sep(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      unparseSqlIntervalLiteralHive(writer, call.operand(1));
-      writer.endFunCall(plusFrame);
-      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -200,6 +188,15 @@ public class HiveSqlDialect extends SqlDialect {
       writer.endFunCall(dateDiffFrame);
       break;
     }
+  }
+
+  @Override public void unparseIntervalOperandsBasedFunctions(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().toString());
+    writer.sep(",");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.sep(",");
+    unparseSqlIntervalLiteralHive(writer, call.operand(1));
+    writer.endFunCall(frame);
   }
 }
 // End HiveSqlDialect.java

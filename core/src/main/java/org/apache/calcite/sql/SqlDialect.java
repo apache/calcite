@@ -433,6 +433,10 @@ public class SqlDialect {
     }
   }
 
+  public void unparseIntervalOperandsBasedFunctions(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlUtil.unparseFunctionSyntax(call.getOperator(), writer, call);
+  }
+
   /** Converts an interval qualifier to a SQL string. The default implementation
    * returns strings such as
    * <code>INTERVAL '1 2:3:4' DAY(4) TO SECOND(4)</code>. */
