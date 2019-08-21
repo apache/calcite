@@ -204,7 +204,8 @@ public class SparkSqlDialect extends SqlDialect {
     }
   }
 
-  @Override public void unparseIntervalOperandsBasedFunctions(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  @Override public void unparseIntervalOperandsBasedFunctions(SqlWriter writer,
+      SqlCall call, int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().toString());
     writer.sep(",");
     call.operand(0).unparse(writer, leftPrec, rightPrec);

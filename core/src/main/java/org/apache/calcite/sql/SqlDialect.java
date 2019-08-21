@@ -433,7 +433,8 @@ public class SqlDialect {
     }
   }
 
-  public void unparseIntervalOperandsBasedFunctions(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  public void unparseIntervalOperandsBasedFunctions(SqlWriter writer,
+      SqlCall call, int leftPrec, int rightPrec) {
     SqlUtil.unparseFunctionSyntax(call.getOperator(), writer, call);
   }
 
