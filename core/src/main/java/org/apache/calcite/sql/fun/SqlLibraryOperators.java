@@ -18,10 +18,12 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -170,13 +172,27 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction DATE_ADD =
       new SqlFunction("DATE_ADD", SqlKind.PLUS,
           ReturnTypes.DATE, null, OperandTypes.DATETIME,
-          SqlFunctionCategory.TIMEDATE);
+          SqlFunctionCategory.TIMEDATE) {
+
+        @Override
+        public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          writer.getDialect().unparseIntervalOperandsBasedFunctions(
+            writer, call, leftPrec, rightPrec);
+        }
+      };
 
   @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction ADD_MONTHS =
       new SqlFunction("ADD_MONTHS", SqlKind.PLUS,
           ReturnTypes.DATE, null, OperandTypes.DATETIME,
-          SqlFunctionCategory.TIMEDATE);
+          SqlFunctionCategory.TIMEDATE) {
+
+        @Override
+        public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          writer.getDialect().unparseIntervalOperandsBasedFunctions(
+            writer, call, leftPrec, rightPrec);
+        }
+      };
 
   /** The "DAYNAME(datetime)" function; returns the name of the day of the week,
    * in the current locale, of a TIMESTAMP or DATE argument. */
