@@ -18,6 +18,8 @@
 package org.apache.calcite.piglet;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.plan.RelOptLattice;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -28,6 +30,11 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.ToLogicalConverter;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
+import org.apache.calcite.rel.rules.FilterMergeRule;
+import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
+import org.apache.calcite.rel.rules.ProjectMergeRule;
+import org.apache.calcite.rel.rules.ProjectToWindowRule;
+import org.apache.calcite.rel.rules.ProjectWindowTransposeRule;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
@@ -54,6 +61,47 @@ import java.util.Map;
  * algebra plans and SQL statements.
  */
 public class PigConverter extends PigServer {
+  // Basic transformation and implementation rules to optimize for Pig-translated logical plans
+  private static final List<RelOptRule> PIG_RULES =
+      ImmutableList.of(
+          ProjectToWindowRule.PROJECT,
+          PigToSqlAggregateRule.INSTANCE,
+          EnumerableRules.ENUMERABLE_VALUES_RULE,
+          EnumerableRules.ENUMERABLE_JOIN_RULE,
+          EnumerableRules.ENUMERABLE_CORRELATE_RULE,
+          EnumerableRules.ENUMERABLE_PROJECT_RULE,
+          EnumerableRules.ENUMERABLE_FILTER_RULE,
+          EnumerableRules.ENUMERABLE_AGGREGATE_RULE,
+          EnumerableRules.ENUMERABLE_SORT_RULE,
+          EnumerableRules.ENUMERABLE_LIMIT_RULE,
+          EnumerableRules.ENUMERABLE_COLLECT_RULE,
+          EnumerableRules.ENUMERABLE_UNCOLLECT_RULE,
+          EnumerableRules.ENUMERABLE_UNION_RULE,
+          EnumerableRules.ENUMERABLE_WINDOW_RULE,
+          EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
+          EnumerableInterpreterRule.INSTANCE);
+
+  private static final List<RelOptRule> TRANSFORM_RULES =
+      ImmutableList.of(
+          ProjectWindowTransposeRule.INSTANCE,
+          FilterMergeRule.INSTANCE,
+          ProjectMergeRule.INSTANCE,
+          FilterProjectTransposeRule.INSTANCE,
+          EnumerableRules.ENUMERABLE_VALUES_RULE,
+          EnumerableRules.ENUMERABLE_JOIN_RULE,
+          EnumerableRules.ENUMERABLE_CORRELATE_RULE,
+          EnumerableRules.ENUMERABLE_PROJECT_RULE,
+          EnumerableRules.ENUMERABLE_FILTER_RULE,
+          EnumerableRules.ENUMERABLE_AGGREGATE_RULE,
+          EnumerableRules.ENUMERABLE_SORT_RULE,
+          EnumerableRules.ENUMERABLE_LIMIT_RULE,
+          EnumerableRules.ENUMERABLE_COLLECT_RULE,
+          EnumerableRules.ENUMERABLE_UNCOLLECT_RULE,
+          EnumerableRules.ENUMERABLE_UNION_RULE,
+          EnumerableRules.ENUMERABLE_WINDOW_RULE,
+          EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
+          EnumerableInterpreterRule.INSTANCE);
+
   private final PigRelBuilder builder;
 
   public PigConverter(PigRelBuilder builder) throws Exception {
@@ -76,10 +124,6 @@ public class PigConverter extends PigServer {
 
   public PigRelBuilder getBuilder() {
     return builder;
-  }
-
-  public void setPlanner(RelOptPlanner planner) {
-    builder.getCluster().setPlanner(planner);
   }
 
   /**
@@ -170,10 +214,10 @@ public class PigConverter extends PigServer {
     relNodes = storeRels != null ? storeRels : relNodes;
 
     if (usePigRules) {
-      relNodes = optimizePlans(relNodes, PigRelPlanner.PIG_RULES);
+      relNodes = optimizePlans(relNodes, PIG_RULES);
     }
     if (planRewrite) {
-      relNodes = optimizePlans(relNodes, PigRelPlanner.TRANSFORM_RULES);
+      relNodes = optimizePlans(relNodes, TRANSFORM_RULES);
     }
     return relNodes;
   }
@@ -213,12 +257,14 @@ public class PigConverter extends PigServer {
     return  sqlStatements;
   }
 
-  private List<RelNode> optimizePlans(List<RelNode> orgionalRels, List<RelOptRule> rules) {
-    PigRelPlanner planner = PigRelPlanner.createPlanner(builder.getCluster().getPlanner(), rules);
-    setPlanner(planner);
+  private List<RelNode> optimizePlans(List<RelNode> originalRels, List<RelOptRule> rules) {
+    final RelOptPlanner planner = originalRels.get(0).getCluster().getPlanner();
+    // Remember old rule set of the planner before resetting it with new rules
+    final List<RelOptRule> oldRules = planner.getRules();
+    resetPlannerRules(planner, rules);
     final Program program = Programs.of(RuleSets.ofList(planner.getRules()));
     final List<RelNode> optimizedPlans = new ArrayList<>();
-    for (RelNode rel : orgionalRels) {
+    for (RelNode rel : originalRels) {
       final RelCollation collation = rel instanceof Sort
                                          ? ((Sort) rel).collation
                                          : RelCollations.EMPTY;
@@ -231,96 +277,16 @@ public class PigConverter extends PigServer {
       final RelNode logicalPlan = new ToLogicalConverter(builder).visit(physicalPlan);
       optimizedPlans.add(logicalPlan);
     }
+    resetPlannerRules(planner, oldRules);
     return optimizedPlans;
   }
 
-  /**
-   * RelNode visitor to convert any rel plan to a logical plan.
-   */
-//  private static class ToLogicalConverter extends RelHomogeneousShuttle {
-//    @Override public RelNode visit(RelNode relNode) {
-//      if (relNode instanceof Aggregate) {
-//        final Aggregate agg = (Aggregate) relNode;
-//        return LogicalAggregate.create(visit(agg.getInput()), agg.getGroupSet(),
-//            agg.groupSets, agg.getAggCallList());
-//      }
-//      if (relNode instanceof TableScan) {
-//        final TableScan tableScan = (TableScan) relNode;
-//        return LogicalTableScan.create(tableScan.getCluster(), tableScan.getTable());
-//      }
-//      if (relNode instanceof Filter) {
-//        final Filter filter = (Filter) relNode;
-//        return LogicalFilter.create(visit(filter.getInput()), filter.getCondition());
-//      }
-//      if (relNode instanceof Project) {
-//        final Project project = (Project) relNode;
-//        return LogicalProject.create(visit(project.getInput()), project.getProjects(),
-//            project.getRowType());
-//      }
-//      if (relNode instanceof Join) {
-//        final Join join = (Join) relNode;
-//        final RelNode left = visit(join.getLeft());
-//        final RelNode right = visit(join.getRight());
-//        return LogicalJoin.create(left, right, join.getCondition(), join.getVariablesSet(),
-//            join.getJoinType());
-//      }
-//      if (relNode instanceof Correlate) {
-//        final Correlate corr = (Correlate) relNode;
-//        final RelNode left = visit(corr.getLeft());
-//        final RelNode right = visit(corr.getRight());
-//        return LogicalCorrelate.create(left, right, corr.getCorrelationId(),
-//            corr.getRequiredColumns(), corr.getJoinType());
-//      }
-//      if (relNode instanceof Sort) {
-//        final Sort sort = (Sort) relNode;
-//        return LogicalSort.create(visit(sort.getInput()), sort.getCollation(), sort.offset,
-//            sort.fetch);
-//      }
-//      if (relNode instanceof Union) {
-//        final Union union = (Union) relNode;
-//        final List<RelNode> newInputs = new ArrayList<>();
-//        for (RelNode rel : union.getInputs()) {
-//          newInputs.add(visit(rel));
-//        }
-//        return LogicalUnion.create(newInputs, union.all);
-//      }
-//      if (relNode instanceof Window) {
-//        final Window window = (Window) relNode;
-//        final RelNode input = visit(window.getInput());
-//        return LogicalWindow.create(input.getTraitSet(), input, window.constants,
-//            window.getRowType(), window.groups);
-//      }
-//      if (relNode instanceof Calc) {
-//        final Calc calc = (Calc) relNode;
-//        return LogicalCalc.create(visit(calc.getInput()), calc.getProgram());
-//      }
-//      if (relNode instanceof EnumerableInterpreter) {
-//        return visit(((EnumerableInterpreter) relNode).getInput());
-//      }
-//      if (relNode instanceof EnumerableLimit) {
-//        final EnumerableLimit limit = (EnumerableLimit) relNode;
-//        if (limit.getInput() instanceof Sort) {
-//          final Sort sort = (Sort) limit.getInput();
-//          return LogicalSort.create(visit(sort.getInput()), sort.getCollation(), limit.offset,
-//              limit.fetch);
-//        } else {
-//          return LogicalSort.create(visit(limit.getInput()), RelCollations.of(), limit.offset,
-//              limit.fetch);
-//        }
-//      }
-//      if (relNode instanceof Uncollect) {
-//        final Uncollect uncollect = (Uncollect) relNode;
-//        final RelNode input = visit(uncollect.getInput());
-//        return new Uncollect(input.getCluster(), input.getTraitSet(), input,
-//            uncollect.withOrdinality);
-//      }
-//      if (relNode instanceof Values) {
-//        final Values values = (Values) relNode;
-//        return LogicalValues.create(values.getCluster(), values.getRowType(), values.tuples);
-//      }
-//      throw new AssertionError("Need to implement " + relNode.getClass().getName());
-//    }
-//  }
+  private void resetPlannerRules(RelOptPlanner planner, List<RelOptRule> rulesToSet) {
+    planner.clear();
+    for (RelOptRule rule : rulesToSet) {
+      planner.addRule(rule);
+    }
+  }
 }
 
 // End PigConverter.java

@@ -69,7 +69,6 @@ public class PigRelOpTest extends PigRelTestBase {
 
   private void testPigRelOpTranslation(String pigAlias, String pigScript,
       String expectedRelPlan, boolean optimized) throws IOException {
-    converter.setPlanner(pigRelPlanner);
     RelNode rel;
     if (pigAlias == null) {
       rel = converter.pigQuery2Rel(pigScript, optimized).get(0);
@@ -81,7 +80,6 @@ public class PigRelOpTest extends PigRelTestBase {
   }
 
   private void testSQLTranslation(String pigScript, String expectedSQL) {
-    converter.setPlanner(pigRelPlanner);
     try {
       String sql = converter.pigToSql(pigScript, PigRelSqlDialect.DEFAULT).get(0);
       assertThat(sql, is(expectedSQL));
@@ -92,7 +90,6 @@ public class PigRelOpTest extends PigRelTestBase {
   }
 
   private void testRunPigScript(String pigScript, String expectedResult) throws IOException {
-    converter.setPlanner(calcitePlanner);
     RelNode rel = converter.pigQuery2Rel(pigScript, false).get(0);
     final StringWriter sw = new StringWriter();
     CalciteHandler.dump(rel, new PrintWriter(sw));

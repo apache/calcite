@@ -19,8 +19,6 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.piglet.PigConverter;
 import org.apache.calcite.piglet.PigRelBuilder;
-import org.apache.calcite.piglet.PigRelPlanner;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.RelNode;
 
 import org.junit.Before;
@@ -30,17 +28,12 @@ import org.junit.Before;
  */
 public abstract class PigRelTestBase {
   PigConverter converter;
-  PigRelPlanner pigRelPlanner;
-  RelOptPlanner calcitePlanner;
 
   @Before
   public void testSetup() throws Exception {
     final PigRelBuilder builder = PigRelBuilder.create(
         PigRelBuilderTest.config().build());
     converter = new PigConverter(builder);
-    calcitePlanner = builder.getCluster().getPlanner();
-    pigRelPlanner = PigRelPlanner.createPlanner(calcitePlanner);
-//    PigUDFFinder.useUDFWrapper = true;
   }
 }
 

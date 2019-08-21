@@ -116,10 +116,6 @@ public class RelOptCluster {
     return planner;
   }
 
-  public void setPlanner(RelOptPlanner planner) {
-    this.planner = planner;
-  }
-
   public RelDataTypeFactory getTypeFactory() {
     return typeFactory;
   }
