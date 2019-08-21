@@ -20,7 +20,6 @@ package org.apache.calcite.test;
 import org.apache.calcite.piglet.PigConverter;
 import org.apache.calcite.piglet.PigRelBuilder;
 import org.apache.calcite.piglet.PigRelPlanner;
-import org.apache.calcite.piglet.PigUDFWrapper;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.RelNode;
 
@@ -41,7 +40,7 @@ public abstract class PigRelTestBase {
     converter = new PigConverter(builder);
     calcitePlanner = builder.getCluster().getPlanner();
     pigRelPlanner = PigRelPlanner.createPlanner(calcitePlanner);
-    PigUDFWrapper.useUDFWrapper = true;
+//    PigUDFFinder.useUDFWrapper = true;
   }
 }
 

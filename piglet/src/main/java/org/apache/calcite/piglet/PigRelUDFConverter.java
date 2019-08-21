@@ -136,7 +136,7 @@ class PigRelUDFConverter {
       // Find the implementation method for the Pig function from
       // the class defining the UDF.
       final Class clazz = Class.forName(pigFunc.getClassName());
-      final Method method = findMethod(clazz);
+      final Method method = PigUDFFinder.findPigUDFImplementationMethod(clazz);
       if (method == null) {
         throw new FrontendException("Cannot find 'exec' method for Pig UDF: "
             + pigFunc.getClassName());
@@ -163,54 +163,6 @@ class PigRelUDFConverter {
     }
   }
 
-  /**
-   * Finds the implementation method for a Pig UDF.
-   *
-   * @param clazz Class defining the UDF
-   * @return Java method implementing the Pig UDF
-   */
-  private static Method findMethod(Class<?> clazz) {
-    // @PigUDFWrapper is a temporary solution for handling checked exceptions
-    // thrown from the function. See @PigUDFWrapper for details.
-    Method returnedMethod = PigUDFWrapper.getWrappedMethod(clazz.getSimpleName());
-    if (returnedMethod != null) {
-      return returnedMethod;
-    }
-
-    // If calcite enumerable engine can correctly generate code to handle checked
-    // exceptions, we just look for the function implementation from the UDF
-    // class directly
-    // First find method declared directly in the class
-    returnedMethod = findExecMethod(clazz.getDeclaredMethods());
-    if (returnedMethod == null) {
-      // Then find all methods, including inherited ones.
-      return findExecMethod(clazz.getMethods());
-    }
-    return returnedMethod;
-  }
-
-  /**
-   * Finds "exec" method from a given array of methods.
-   */
-  private static Method findExecMethod(Method[] methods) {
-    if (methods == null) {
-      return null;
-    }
-
-    Method returnedMethod = null;
-    for (Method method : methods) {
-      if (method.getName().equals("exec")) {
-        // There may be two methods named "exec", one of them just returns a
-        // Java object. We will need to look for the other one if existing.
-        if (method.getReturnType() != Object.class) {
-          return method;
-        } else {
-          returnedMethod = method;
-        }
-      }
-    }
-    return returnedMethod;
-  }
 
   /**
    * Gets the {@link SqlAggFunction} for the corresponding Pig aggregate UDF call.
