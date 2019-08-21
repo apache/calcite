@@ -51,6 +51,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Pair;
@@ -177,6 +178,17 @@ public class RexToLixTranslator {
     return new RexToLixTranslator(null, typeFactory, root, inputGetter, list,
         Collections.emptyMap(), new RexBuilder(typeFactory), conformance, null,
         null);
+  }
+
+  /**
+   * Translate a {@link RexNode} to en {@link Expression},
+   * return the original expression for the node.
+   */
+  public Expression rawTranslate(RexNode expr) {
+    Expression expression = translate0(expr, RexImpTable.NullAs.of(isNullable(expr)), null);
+    expression = EnumUtils.enforce(null, expression);
+    assert expression != null;
+    return expression;
   }
 
   Expression translate(RexNode expr) {
@@ -1346,6 +1358,31 @@ public class RexToLixTranslator {
       }
     }
     return operand;
+  }
+
+  /** Creates a translator */
+  public static RexToLixTranslator createRexToLixTranslator(JavaTypeFactory typeFactory) {
+    final ParameterExpression root = DataContext.ROOT;
+    final BlockBuilder list = new BlockBuilder();
+    return new RexToLixTranslator(null, typeFactory, root, null, list,
+        Collections.emptyMap(), new RexBuilder(typeFactory), SqlConformanceEnum.DEFAULT,
+        null, null);
+  }
+
+  public RexToLixTranslator setInputGetter(InputGetter newInputGetter) {
+    if (newInputGetter == this.inputGetter) {
+      return this;
+    }
+    return new RexToLixTranslator(program, typeFactory, root, newInputGetter,
+        list, ImmutableMap.of(), builder, conformance, this, correlates);
+  }
+
+  public RexToLixTranslator setConformance(SqlConformance sqlConformance) {
+    if (sqlConformance == conformance) {
+      return this;
+    }
+    return new RexToLixTranslator(program, typeFactory, root, inputGetter,
+        list, ImmutableMap.of(), builder, sqlConformance, this, correlates);
   }
 
   /** Translates a field of an input to an expression. */
