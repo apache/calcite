@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.calcite.schema.impl;
+package org.apache.calcite.piglet;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
@@ -28,20 +28,22 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.Statistics;
+import org.apache.calcite.schema.impl.AbstractTable;
 
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
 /**
- * A virtual, non-query table to represent a schema only.
+ * A non-queriable table that contains only row type to represent a Pig Table. This table is used
+ * for constructing Calcite logical plan from Pig DAG.
  */
-public class VirtualTable extends AbstractTable implements ScannableTable {
+public class PigTable extends AbstractTable implements ScannableTable {
   // Dummy statistics with 10 rows for any table
   private static final Statistic DUMMY_STATISTICS = Statistics.of(10.0, ImmutableList.of());
   private final RelDataType rowType;
 
-  private VirtualTable(RelDataType rowType) {
+  private PigTable(RelDataType rowType) {
     this.rowType = rowType;
   }
 
@@ -58,7 +60,7 @@ public class VirtualTable extends AbstractTable implements ScannableTable {
         optSchema,
         rowType,
         names,
-        new VirtualTable(rowType),
+        new PigTable(rowType),
         Expressions.constant(Boolean.TRUE));
   }
 
@@ -75,4 +77,4 @@ public class VirtualTable extends AbstractTable implements ScannableTable {
   }
 }
 
-// End VirtualTable.java
+// End PigTable.java

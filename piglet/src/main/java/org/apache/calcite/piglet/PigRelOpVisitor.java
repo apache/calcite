@@ -29,7 +29,6 @@ import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBound;
-import org.apache.calcite.schema.impl.VirtualTable;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlWindow;
@@ -165,7 +164,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     if (pigSchema != null) {
       // If Pig schema is provided in the load command, converted it into relational row type
       final RelDataType rowType = PigRelSchemaConverter.convertSchema(pigSchema);
-      pigRelOptTable = VirtualTable.createRelOptTable(builder.getRelOptSchema(), rowType,
+      pigRelOptTable = PigTable.createRelOptTable(builder.getRelOptSchema(), rowType,
           Arrays.asList(tableNames));
     }
     builder.scan(pigRelOptTable, tableNames);
