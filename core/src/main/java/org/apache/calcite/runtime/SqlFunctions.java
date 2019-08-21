@@ -175,30 +175,22 @@ public class SqlFunctions {
 
   /** SQL MD5(string) function. */
   public static @Nonnull String md5(@Nonnull String string)  {
-    return md5_(string.getBytes(UTF_8));
+    return DigestUtils.md5Hex(string.getBytes(UTF_8));
   }
 
   /** SQL MD5(string) function for binary string. */
   public static @Nonnull String md5(@Nonnull ByteString string)  {
-    return md5_(string.getBytes());
-  }
-
-  private static @Nonnull String md5_(byte[] bytes)  {
-    return DigestUtils.md5Hex(bytes);
+    return DigestUtils.md5Hex(string.getBytes());
   }
 
   /** SQL SHA1(string) function. */
   public static @Nonnull String sha1(@Nonnull String string)  {
-    return sha1_(string.getBytes(UTF_8));
+    return DigestUtils.sha1Hex(string.getBytes(UTF_8));
   }
 
   /** SQL SHA1(string) function for binary string. */
   public static @Nonnull String sha1(@Nonnull ByteString string)  {
-    return sha1_(string.getBytes());
-  }
-
-  private static @Nonnull String sha1_(byte[] bytes)  {
-    return DigestUtils.sha1Hex(bytes);
+    return DigestUtils.sha1Hex(string.getBytes());
   }
 
   /** SQL SUBSTRING(string FROM ... FOR ...) function. */
