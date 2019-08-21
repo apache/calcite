@@ -18,6 +18,7 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.mutable.MutableFilter;
+import org.apache.calcite.rel.mutable.MutableJoin;
 import org.apache.calcite.rel.mutable.MutableProject;
 import org.apache.calcite.rel.mutable.MutableRel;
 import org.apache.calcite.rel.mutable.MutableRels;
@@ -30,6 +31,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -43,6 +45,9 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
           .add(FilterToFilterUnifyRule1.INSTANCE)
           .add(FilterToProjectUnifyRule1.INSTANCE)
           .add(UnionToUnionUnifyRule.INSTANCE)
+          .add(JoinOnLeftProjectToJoinUnifyRule.INSTANCE)
+          .add(JoinOnRightProjectToJoinUnifyRule.INSTANCE)
+          .add(JoinOnProjectsToJoinUnifyRule.INSTANCE)
           .build();
 
   public MaterializedViewSubstitutionVisitor(RelNode target_, RelNode query_) {
@@ -319,6 +324,200 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
       }
     };
     return shuttle.apply(nodes);
+  }
+
+  /**
+   * Implementation of {@link SubstitutionVisitor.UnifyRule} that matches a
+   * {@link MutableJoin} with {@link MutableProject} as left child to a
+   * {@link MutableJoin}. Join type and condition should match exactly.
+   */
+  private static class JoinOnLeftProjectToJoinUnifyRule extends AbstractUnifyRule {
+
+    public static final JoinOnLeftProjectToJoinUnifyRule INSTANCE =
+        new JoinOnLeftProjectToJoinUnifyRule();
+
+    private JoinOnLeftProjectToJoinUnifyRule() {
+      super(
+          operand(MutableJoin.class,
+              operand(MutableProject.class, query(0)),
+              query(1)),
+          operand(MutableJoin.class,
+              target(0),
+              target(1)), 2);
+    }
+
+    public UnifyResult apply(UnifyRuleCall call) {
+      final MutableJoin query = (MutableJoin) call.query;
+      final MutableProject queryLeft = (MutableProject) query.getInputs().get(0);
+      final MutableRel queryRight = query.getInputs().get(1);
+      final int qLeftFieldCount = queryLeft.rowType.getFieldCount();
+      final int qLeftInputFieldCount = queryLeft.getInput().rowType.getFieldCount();
+      final MutableJoin target = (MutableJoin) call.target;
+
+      if (query.joinType == target.joinType) {
+        RexNode newJoinCondition = new RexShuttle() {
+          @Override public RexNode visitInputRef(RexInputRef inputRef) {
+            if (inputRef.getIndex() < qLeftFieldCount) {
+              return queryLeft.projects.get(inputRef.getIndex());
+            } else {
+              return new RexInputRef(inputRef.getIndex() - qLeftFieldCount
+                  + qLeftInputFieldCount, inputRef.getType());
+            }
+          }
+        }.apply(query.condition);
+
+        if (newJoinCondition.equals(target.condition)) {
+          final List<RexNode> newProjects = new ArrayList<>();
+          for (int i = 0; i < query.rowType.getFieldCount(); i++) {
+            if (i < qLeftFieldCount) {
+              newProjects.add(queryLeft.projects.get(i));
+            } else {
+              newProjects.add(
+                  new RexInputRef(i - qLeftFieldCount + qLeftInputFieldCount,
+                      queryRight.rowType.getFieldList().get(i - qLeftFieldCount).getType()));
+            }
+          }
+          return call.result(MutableProject.of(query.rowType, target, newProjects));
+        }
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Implementation of {@link SubstitutionVisitor.UnifyRule} that matches a
+   * {@link MutableJoin} with {@link MutableProject} as right child to a
+   * {@link MutableJoin}. Join type and condition should match exactly.
+   */
+  private static class JoinOnRightProjectToJoinUnifyRule extends AbstractUnifyRule {
+
+    public static final JoinOnRightProjectToJoinUnifyRule INSTANCE =
+        new JoinOnRightProjectToJoinUnifyRule();
+
+    private JoinOnRightProjectToJoinUnifyRule() {
+      super(
+          operand(MutableJoin.class,
+              query(0),
+              operand(MutableProject.class, query(1))),
+          operand(MutableJoin.class,
+              target(0),
+              target(1)), 2);
+    }
+
+    public UnifyResult apply(UnifyRuleCall call) {
+      final MutableJoin query = (MutableJoin) call.query;
+      final MutableRel queryLeft = query.getInputs().get(0);
+      final MutableProject queryRightInput = (MutableProject) query.getInputs().get(1);
+      final int qLeftFieldCount = queryLeft.rowType.getFieldCount();
+      final MutableJoin target = (MutableJoin) call.target;
+
+      if (query.joinType == target.joinType) {
+        RexNode newJoinCondition = new RexShuttle() {
+          @Override public RexNode visitInputRef(RexInputRef inputRef) {
+            if (inputRef.getIndex() < qLeftFieldCount) {
+              return inputRef;
+            } else {
+              RexShuttle shuttle0 = new RexShuttle() {
+                @Override public RexNode visitInputRef(RexInputRef inputRef) {
+                  return new RexInputRef(
+                      inputRef.getIndex() + qLeftFieldCount, inputRef.getType());
+                }
+              };
+              return shuttle0.apply(
+                  queryRightInput.projects.get(inputRef.getIndex() - qLeftFieldCount));
+            }
+          }
+        }.apply(query.condition);
+
+        if (newJoinCondition.equals(target.condition)) {
+          final List<RexNode> newProjects = new ArrayList<>();
+          for (int i = 0; i < query.rowType.getFieldCount(); i++) {
+            if (i < queryLeft.rowType.getFieldCount()) {
+              newProjects.add(
+                  new RexInputRef(i, queryLeft.rowType.getFieldList().get(i).getType()));
+            } else {
+              RexShuttle shuttle0 = new RexShuttle() {
+                @Override public RexNode visitInputRef(RexInputRef inputRef) {
+                  return new RexInputRef(
+                      inputRef.getIndex() + qLeftFieldCount, inputRef.getType());
+                }
+              };
+              newProjects.add(
+                  shuttle0.apply(queryRightInput.projects.get(i - qLeftFieldCount)));
+            }
+          }
+          return call.result(MutableProject.of(query.rowType, target, newProjects));
+        }
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Implementation of {@link SubstitutionVisitor.UnifyRule} that matches a
+   * {@link MutableJoin} with {@link MutableProject}s as inputs to a
+   * {@link MutableJoin}. Join type and condition should match exactly.
+   */
+  private static class JoinOnProjectsToJoinUnifyRule extends AbstractUnifyRule {
+
+    public static final JoinOnProjectsToJoinUnifyRule INSTANCE =
+        new JoinOnProjectsToJoinUnifyRule();
+
+    private JoinOnProjectsToJoinUnifyRule() {
+      super(
+          operand(MutableJoin.class,
+              operand(MutableProject.class, query(0)),
+              operand(MutableProject.class, query(1))),
+          operand(MutableJoin.class,
+              target(0),
+              target(1)), 2);
+    }
+
+    public UnifyResult apply(UnifyRuleCall call) {
+      final MutableJoin query = (MutableJoin) call.query;
+      final MutableProject queryLeft = (MutableProject) query.getInputs().get(0);
+      final MutableProject queryRight = (MutableProject) query.getInputs().get(1);
+      final int qLeftFieldCount = queryLeft.rowType.getFieldCount();
+      final int qLeftInputFieldCount = queryLeft.getInput().rowType.getFieldCount();
+      final MutableJoin target = (MutableJoin) call.target;
+      if (query.joinType == target.joinType) {
+        RexNode newJoinCondition = new RexShuttle() {
+          @Override public RexNode visitInputRef(RexInputRef inputRef) {
+            if (inputRef.getIndex() < qLeftFieldCount) {
+              return queryLeft.projects.get(inputRef.getIndex());
+            } else {
+              RexShuttle shuttle0 = new RexShuttle() {
+                @Override public RexNode visitInputRef(RexInputRef inputRef) {
+                  return new RexInputRef(
+                      inputRef.getIndex() + qLeftInputFieldCount, inputRef.getType());
+                }
+              };
+              return shuttle0.apply(
+                  queryRight.projects.get(inputRef.getIndex() - qLeftFieldCount));
+            }
+          }
+        }.apply(query.condition);
+        if (newJoinCondition.equals(target.condition)) {
+          final List<RexNode> newProjects = new ArrayList<>();
+          for (int i = 0; i < query.rowType.getFieldCount(); i++) {
+            if (i < queryLeft.rowType.getFieldCount()) {
+              newProjects.add(queryLeft.projects.get(i));
+            } else {
+              RexShuttle shuttle0 = new RexShuttle() {
+                @Override public RexNode visitInputRef(RexInputRef inputRef) {
+                  return new RexInputRef(
+                    inputRef.getIndex() + qLeftInputFieldCount, inputRef.getType());
+                }
+              };
+              newProjects.add(
+                  shuttle0.apply(queryRight.projects.get(i - qLeftFieldCount)));
+            }
+          }
+          return call.result(MutableProject.of(query.rowType, target, newProjects));
+        }
+      }
+      return null;
+    }
   }
 }
 

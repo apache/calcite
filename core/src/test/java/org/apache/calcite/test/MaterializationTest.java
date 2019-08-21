@@ -2456,6 +2456,102 @@ public class MaterializationTest {
     checkMaterialize(sql0 + " union all " + sql1, sql1 + " union all " + sql0);
   }
 
+  @Test public void testJoinOnLeftProjectToJoin() {
+    String deduplicatedEmps =
+        "(select \"empid\", \"deptno\", \"name\", \"salary\", \"commission\"\n"
+            + "from \"emps\"\n"
+            + "group by \"empid\", \"deptno\", \"name\", \"salary\", \"commission\")";
+    String deduplicatedDepts =
+        "(select \"deptno\", \"name\"\n"
+            + "from \"depts\"\n"
+            + "group by \"deptno\", \"name\")";
+    String mv =
+        "select * from\n"
+            + "(select \"deptno\", sum(\"salary\"), sum(\"commission\")\n"
+            + "from " + deduplicatedEmps + "\n"
+            + "group by \"deptno\") \"A\"\n"
+            + "join\n"
+            + "(select \"deptno\", count(\"name\")\n"
+            + "from " + deduplicatedDepts + "\n"
+            + "group by \"deptno\") \"B\"\n"
+            + "on \"A\".\"deptno\" = \"B\".\"deptno\"";
+    String query =
+        "select * from\n"
+            + "(select \"deptno\", sum(\"salary\")\n"
+            + "from " + deduplicatedEmps + "\n"
+            + "group by \"deptno\") \"A\"\n"
+            + "join\n"
+            + "(select \"deptno\", count(\"name\")\n"
+            + "from " + deduplicatedDepts + "\n"
+            + "group by \"deptno\") \"B\"\n"
+            + "on \"A\".\"deptno\" = \"B\".\"deptno\"";
+    checkMaterialize(mv, query);
+  }
+
+  @Test public void testJoinOnRightProjectToJoin() {
+    String deduplicatedEmps =
+        "(select \"empid\", \"deptno\", \"name\", \"salary\", \"commission\"\n"
+            + "from \"emps\"\n"
+            + "group by \"empid\", \"deptno\", \"name\", \"salary\", \"commission\")";
+    String deduplicatedDepts =
+        "(select \"deptno\", \"name\"\n"
+            + "from \"depts\"\n"
+            + "group by \"deptno\", \"name\")";
+    String mv =
+        "select * from\n"
+            + "(select \"deptno\", sum(\"salary\"), sum(\"commission\")\n"
+            + "from " + deduplicatedEmps + "\n"
+            + "group by \"deptno\") \"A\"\n"
+            + "join\n"
+            + "(select \"deptno\", count(\"name\")\n"
+            + "from " + deduplicatedDepts + "\n"
+            + "group by \"deptno\") \"B\"\n"
+            + "on \"A\".\"deptno\" = \"B\".\"deptno\"";
+    String query =
+        "select * from\n"
+            + "(select \"deptno\", sum(\"salary\"), sum(\"commission\")\n"
+            + "from " + deduplicatedEmps + "\n"
+            + "group by \"deptno\") \"A\"\n"
+            + "join\n"
+            + "(select \"deptno\"\n"
+            + "from " + deduplicatedDepts + "\n"
+            + "group by \"deptno\") \"B\"\n"
+            + "on \"A\".\"deptno\" = \"B\".\"deptno\"";
+    checkMaterialize(mv, query);
+  }
+
+  @Test public void testJoinOnProjectsToJoin() {
+    String deduplicatedEmps =
+        "(select \"empid\", \"deptno\", \"name\", \"salary\", \"commission\"\n"
+            + "from \"emps\"\n"
+            + "group by \"empid\", \"deptno\", \"name\", \"salary\", \"commission\")";
+    String deduplicatedDepts =
+        "(select \"deptno\", \"name\"\n"
+            + "from \"depts\"\n"
+            + "group by \"deptno\", \"name\")";
+    String mv =
+        "select * from\n"
+            + "(select \"deptno\", sum(\"salary\"), sum(\"commission\")\n"
+            + "from " + deduplicatedEmps + "\n"
+            + "group by \"deptno\") \"A\"\n"
+            + "join\n"
+            + "(select \"deptno\", count(\"name\")\n"
+            + "from " + deduplicatedDepts + "\n"
+            + "group by \"deptno\") \"B\"\n"
+            + "on \"A\".\"deptno\" = \"B\".\"deptno\"";
+    String query =
+        "select * from\n"
+            + "(select \"deptno\", sum(\"salary\")\n"
+            + "from " + deduplicatedEmps + "\n"
+            + "group by \"deptno\") \"A\"\n"
+            + "join\n"
+            + "(select \"deptno\"\n"
+            + "from " + deduplicatedDepts + "\n"
+            + "group by \"deptno\") \"B\"\n"
+            + "on \"A\".\"deptno\" = \"B\".\"deptno\"";
+    checkMaterialize(mv, query);
+  }
+
   private static <E> List<List<List<E>>> list3(E[][][] as) {
     final ImmutableList.Builder<List<List<E>>> builder =
         ImmutableList.builder();
