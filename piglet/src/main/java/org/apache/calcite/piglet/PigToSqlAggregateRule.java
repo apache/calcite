@@ -257,11 +257,8 @@ public class PigToSqlAggregateRule extends RelOptRule {
     // The construct the agg call list
     final List<RelBuilder.AggCall> aggCalls = new ArrayList<>();
     if (needGoupingCol) {
-      final String fieldName =
-          relBuilder.peek().getRowType().getFieldNames().get(groupCount - 1);
       aggCalls.add(
-          relBuilder.aggregateCall(SqlStdOperatorTable.COLLECT, false, null,
-              fieldName, relBuilder.field(groupCount - 1)));
+          relBuilder.aggregateCall(SqlStdOperatorTable.COLLECT, relBuilder.field(groupCount - 1)));
     }
     for (RexCall rexCall : pigAggUDFs) {
       final List<RexNode> aggOperands = new ArrayList<>();
@@ -272,20 +269,18 @@ public class PigToSqlAggregateRule extends RelOptRule {
         if (aggOperands.size() == 1) {
           // Project singe column
           aggCalls.add(
-              relBuilder.aggregateCall(SqlStdOperatorTable.COLLECT, false, null, null,
-                  aggOperands));
+              relBuilder.aggregateCall(SqlStdOperatorTable.COLLECT, aggOperands));
         } else {
           // Project more than one column, need to construct a record (ROW) from them
           final RelDataType rowType = createRecordType(relBuilder, aggCallColumns.get(rexCall));
           final RexNode row = relBuilder.getRexBuilder()
                                   .makeCall(rowType, SqlStdOperatorTable.ROW, aggOperands);
-          aggCalls.add(
-              relBuilder.aggregateCall(SqlStdOperatorTable.COLLECT, false, null, null, row));
+          aggCalls.add(relBuilder.aggregateCall(SqlStdOperatorTable.COLLECT, row));
         }
       } else {
         aggCalls.add(
-            relBuilder.aggregateCall(PigRelUDFConverter.getSqlAggFuncForPigUDF(rexCall), false,
-                null, null, aggOperands));
+            relBuilder.aggregateCall(
+                PigRelUDFConverter.getSqlAggFuncForPigUDF(rexCall), aggOperands));
       }
     }
     relBuilder.aggregate(groupKey, aggCalls);
@@ -299,13 +294,13 @@ public class PigToSqlAggregateRule extends RelOptRule {
       final RexCall pigAgg = pigAggUDFs.get(i);
       final int colIndex = i + groupCount;
       final RelDataType fieldType = aggType.getFieldList().get(colIndex).getType();
-      final RelDataType oldFiedlType = pigAgg.getType();
+      final RelDataType oldFieldType = pigAgg.getType();
       // If the data type is different, we need to do a type CAST
-      if (fieldType.equals(oldFiedlType)) {
+      if (fieldType.equals(oldFieldType)) {
         pigCallToNewProjections.put(pigAgg, relBuilder.field(colIndex));
       } else {
         pigCallToNewProjections.put(pigAgg,
-            relBuilder.getRexBuilder().makeCast(oldFiedlType,
+            relBuilder.getRexBuilder().makeCast(oldFieldType,
                 relBuilder.field(colIndex)));
       }
     }

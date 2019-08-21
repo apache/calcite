@@ -36,6 +36,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.impl.VirtualTable;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.MultisetSqlType;
@@ -387,11 +388,16 @@ public class PigRelBuilder extends RelBuilder {
           projectionExprs.add(getRexBuilder().makeNullLiteral(outputField.getType()));
         } else {
           // If Record or Multiset just project a constant null
-          projectionExprs.add(getRexBuilder().constantNull());
+          projectionExprs.add(literal(null));
         }
       }
     }
     return projectionExprs;
+  }
+
+  public AggCall aggregateCall(SqlAggFunction aggFunction, String alias, RexNode... operands) {
+    return aggregateCall(aggFunction, false, false, false, null,
+        ImmutableList.of(), alias, ImmutableList.copyOf(operands));
   }
 
   /**
@@ -404,7 +410,6 @@ public class PigRelBuilder extends RelBuilder {
   public RelBuilder cogroup(Iterable<? extends GroupKey> groupKeys) {
     @SuppressWarnings("unchecked") final List<GroupKeyImpl> groupKeyList =
         ImmutableList.copyOf((Iterable) groupKeys);
-//    validateGroupList(groupKeyList);
     final int groupCount = groupKeyList.get(0).nodes.size();
 
     // Pull out all relations needed for the group
@@ -420,8 +425,7 @@ public class PigRelBuilder extends RelBuilder {
       push(cogroupRels.get(i));
       // Create a ROW to pass to COLLECT.
       final RexNode row = field(groupCount);
-      aggregate(groupKeyList.get(i),
-          aggregateCall(SqlStdOperatorTable.COLLECT, false, null, getAlias(), row));
+      aggregate(groupKeyList.get(i), aggregateCall(SqlStdOperatorTable.COLLECT, getAlias(), row));
       if (i == 0) {
         continue;
       }
@@ -474,7 +478,7 @@ public class PigRelBuilder extends RelBuilder {
    * @return This builder
    */
   public RelBuilder multiSetFlatten(List<Integer> flattenCols, List<String> flattenOutputAliases) {
-    // CALCITE-3193 Move this method to RelBuilder
+    // CALCITE-3193
     final int colCount = peek().getRowType().getFieldCount();
     final List<RelDataTypeField> inputFields = peek().getRowType().getFieldList();
     final CorrelationId correlId = nextCorrelId();
@@ -529,7 +533,7 @@ public class PigRelBuilder extends RelBuilder {
    * @return This builder.
    */
   public RelBuilder multiSetFlatten() {
-    // CALCITE-3193 Move this method to RelBuilder
+    // CALCITE-3193
     Uncollect uncollect = new Uncollect(cluster,
         cluster.traitSetOf(Convention.NONE), build(), false);
     push(uncollect);
@@ -544,12 +548,13 @@ public class PigRelBuilder extends RelBuilder {
    * @return This builder
    */
   public RexNode correl(List<RelDataTypeField> inputFields, CorrelationId correlId) {
-    final RelDataTypeFactory.FieldInfoBuilder fieldInfoBuilder =
-        PigRelSchemaConverter.TYPE_FACTORY.builder();
+    final RelDataTypeFactory.Builder fieldBuilder =
+        new RelDataTypeFactory.Builder(PigRelSchemaConverter.TYPE_FACTORY);
+
     for (RelDataTypeField field : inputFields) {
-      fieldInfoBuilder.add(field.getName(), field.getType());
+      fieldBuilder.add(field.getName(), field.getType());
     }
-    return getRexBuilder().makeCorrel(fieldInfoBuilder.uniquify().build(), correlId);
+    return getRexBuilder().makeCorrel(fieldBuilder.uniquify().build(), correlId);
   }
 
   /**

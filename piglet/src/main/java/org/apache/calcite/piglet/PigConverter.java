@@ -204,13 +204,13 @@ public class PigConverter extends PigServer {
   private List<String> pigToSql(String pigScript, SqlWriter writer) throws IOException {
     final RelToSqlConverter sqlConverter = new PigRelToSqlConverter(writer.getDialect());
     final List<RelNode> finalRels = pigQuery2Rel(pigScript);
-    final List<String> sqlStatments = new ArrayList<>();
+    final List<String> sqlStatements = new ArrayList<>();
     for (RelNode rel : finalRels) {
       final SqlNode sqlNode = sqlConverter.visitChild(0, rel).asStatement();
       sqlNode.unparse(writer, 0, 0);
-      sqlStatments.add(writer.toString());
+      sqlStatements.add(writer.toString());
     }
-    return  sqlStatments;
+    return  sqlStatements;
   }
 
   private List<RelNode> optimizePlans(List<RelNode> orgionalRels, List<RelOptRule> rules) {

@@ -146,8 +146,7 @@ public class PigRelSqlUDFs {
       final List<RelDataTypeField> fields = source.getComponentType().getFieldList();
       // Project a multiset of single column
       if (opBinding.getOperandCount() == 2) {
-        final int fieldNo = ((BigDecimal) opBinding.getOperandLiteralValue(1)).toBigInteger()
-                                .intValue();
+        final int fieldNo = opBinding.getOperandLiteralValue(1, BigDecimal.class).intValue();
         if (fields.size() == 1) {
           // Corner case: source with only single column, nothing to do.
           assert fieldNo == 0;
@@ -160,8 +159,7 @@ public class PigRelSqlUDFs {
       final List<String> destNames = new ArrayList<>();
       final List<RelDataType> destTypes = new ArrayList<>();
       for (int i = 1; i < opBinding.getOperandCount(); i++) {
-        final int fieldNo = ((BigDecimal) opBinding.getOperandLiteralValue(i)).toBigInteger()
-                                .intValue();
+        final int fieldNo = opBinding.getOperandLiteralValue(i, BigDecimal.class).intValue();
         destNames.add(fields.get(fieldNo).getName());
         destTypes.add(fields.get(fieldNo).getType());
       }
@@ -192,13 +190,14 @@ public class PigRelSqlUDFs {
         final int maxFieldNo = source.getComponentType().getFieldCount() - 1;
 
         for (int i = 1; i < callBinding.getOperandCount(); i++) {
-          if (!(callBinding.getOperandLiteralValue(i) instanceof BigDecimal)) {
-            return false;
-          }
-          final int fieldNo =
-              ((BigDecimal) callBinding.getOperandLiteralValue(i)).toBigInteger().intValue();
-          // Field number should between 0 and maxFieldNo
-          if (fieldNo < 0 || fieldNo > maxFieldNo) {
+          try {
+            final int fieldNo = callBinding.getOperandLiteralValue(i, BigDecimal.class).intValue();
+
+            // Field number should between 0 and maxFieldNo
+            if (fieldNo < 0 || fieldNo > maxFieldNo) {
+              return false;
+            }
+          } catch (Exception e) {
             return false;
           }
         }

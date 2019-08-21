@@ -399,7 +399,7 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
     final RexNode castOperand = stack.pop();
     if (castOperand instanceof RexLiteral && ((RexLiteral) castOperand).getValue() == null) {
       if (!relType.isStruct() && relType.getComponentType() == null) {
-        stack.push(builder.getRexBuilder().makeNullLiteral(relType.getSqlTypeName()));
+        stack.push(builder.getRexBuilder().makeNullLiteral(relType));
       } else {
         stack.push(castOperand);
       }
