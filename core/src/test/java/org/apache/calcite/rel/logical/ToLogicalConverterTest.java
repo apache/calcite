@@ -22,9 +22,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -51,7 +49,6 @@ import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 
 import static org.apache.calcite.test.Matchers.hasTree;
-import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.junit.Assert.assertThat;
 
@@ -94,16 +91,12 @@ public class ToLogicalConverterTest {
                .build();
   }
 
-  private static Planner getPlanner() {
-    return Frameworks.getPlanner(frameworkConfig());
-  }
-
   private static RelBuilder builder() {
     return RelBuilder.create(RelBuilderTest.config().build());
   }
 
   private static RelNode rel(String sql) {
-    final Planner planner = getPlanner();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig());
     try {
       SqlNode parse = planner.parse(sql);
       SqlNode validate = planner.validate(parse);
@@ -126,15 +119,7 @@ public class ToLogicalConverterTest {
   }
 
   private static RelNode toLogical(RelNode rel) {
-    RelShuttle converter = new ToLogicalConverter(builder());
-    return rel.accept(converter);
-  }
-
-  private static void verify(String sql, String expectedPhysical, String expectedLogical) {
-    RelNode physical = toPhysical(rel(sql));
-    RelNode logical = toLogical(physical);
-    assertThat(RelOptUtil.toString(physical), isLinux(expectedPhysical));
-    assertThat(RelOptUtil.toString(logical), isLinux(expectedLogical));
+    return rel.accept(new ToLogicalConverter(builder()));
   }
 
   private void verify(RelNode rel, String expectedPhysical, String expectedLogical) {
@@ -402,7 +387,7 @@ public class ToLogicalConverterTest {
             + "  LogicalAggregate(group=[{}], DEPTID=[COLLECT($0)])\n"
             + "    LogicalProject(department_id=[$0])\n"
             + "      LogicalTableScan(table=[[foodmart, department]])\n";
-    verify(sql, expectedPhysial, expectedLogical);
+    verify(rel(sql), expectedPhysial, expectedLogical);
   }
 
   @Test public void testWindow() {
@@ -420,7 +405,7 @@ public class ToLogicalConverterTest {
             + "  LogicalWindow(window#0=[window(partition {} order by [9] range between UNBOUNDED"
             + " PRECEDING and CURRENT ROW aggs [RANK()])])\n"
             + "    LogicalTableScan(table=[[foodmart, employee]])\n";
-    verify(sql, expectedPhysial, expectedLogical);
+    verify(rel(sql), expectedPhysial, expectedLogical);
   }
 }
 
