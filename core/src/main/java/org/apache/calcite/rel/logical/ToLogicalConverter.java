@@ -19,10 +19,12 @@ package org.apache.calcite.rel.logical;
 
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreter;
 import org.apache.calcite.adapter.enumerable.EnumerableLimit;
+import org.apache.calcite.adapter.jdbc.JdbcToEnumerableConverter;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
+import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
@@ -47,6 +49,14 @@ public class ToLogicalConverter extends RelShuttleImpl {
     this.relBuilder = relBuilder;
   }
 
+  @Override public RelNode visit(TableScan tableScan) {
+    return createLogicalTableScan(tableScan);
+  }
+
+  private RelNode createLogicalTableScan(final TableScan tableScan) {
+    return LogicalTableScan.create(tableScan.getCluster(), tableScan.getTable());
+  }
+
   @Override public RelNode visit(RelNode relNode) {
     if (relNode instanceof Aggregate) {
       final Aggregate agg = (Aggregate) relNode;
@@ -57,8 +67,7 @@ public class ToLogicalConverter extends RelShuttleImpl {
     }
 
     if (relNode instanceof TableScan) {
-      final TableScan tableScan = (TableScan) relNode;
-      return LogicalTableScan.create(tableScan.getCluster(), tableScan.getTable());
+      return createLogicalTableScan((TableScan) relNode);
     }
 
     if (relNode instanceof Filter) {
@@ -124,8 +133,8 @@ public class ToLogicalConverter extends RelShuttleImpl {
       return LogicalCalc.create(visit(calc.getInput()), calc.getProgram());
     }
 
-    if (relNode instanceof EnumerableInterpreter) {
-      return visit(((EnumerableInterpreter) relNode).getInput());
+    if (relNode instanceof EnumerableInterpreter || relNode instanceof JdbcToEnumerableConverter) {
+      return visit(((SingleRel) relNode).getInput());
     }
 
     if (relNode instanceof EnumerableLimit) {
@@ -145,6 +154,7 @@ public class ToLogicalConverter extends RelShuttleImpl {
       return new Uncollect(input.getCluster(), input.getTraitSet(), input,
           uncollect.withOrdinality);
     }
+
 
     throw new AssertionError("Need to implement logical converter for"
                                  + relNode.getClass().getName());
