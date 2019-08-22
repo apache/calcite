@@ -846,8 +846,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     final RelSubset subset = registerImpl(rel, set);
 
     // Checking if tree is valid considerably slows down planning
-    // Only doing it if logger level is debug or finer
-    if (LOGGER.isDebugEnabled()) {
+    // Recommend doing it only at unit test
+    if (CalciteSystemProperty.TEST_VALIDATE_VOLCANO_PLANNER.value()) {
       assert isValid(Litmus.THROW);
     }
 
@@ -882,6 +882,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           return litmus.fail("subset [{}] is in wrong set [{}]",
               subset.getDescription(), set);
         }
+
+        // Make sure best RelNode is valid
+        if (subset.best != null && !subset.set.rels.contains(subset.best)) {
+          return litmus.fail("RelSubSet [{}] has best RelNode [{}] which is not existed in its set.",
+                  subset.getDescription(), subset.best.getDescription());
+        }
+
         for (RelNode rel : subset.getRels()) {
           RelOptCost relCost = getCost(rel, rel.getCluster().getMetadataQuery());
           if (relCost.isLt(subset.bestCost)) {
@@ -1440,6 +1447,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         boolean existed = subset.set.rels.remove(rel);
         assert existed : "rel was not known to its set";
         final RelSubset equivSubset = getSubset(equivRel);
+        if (subset.best == rel) {
+          subset.best = equivRel;
+          subset.bestCost = getCost(equivRel);
+        }
+
         if (equivSubset != subset) {
           // The equivalent relational expression is in a different
           // subset, therefore the sets are equivalent.

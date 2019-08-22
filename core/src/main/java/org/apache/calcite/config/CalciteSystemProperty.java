@@ -177,6 +177,14 @@ public final class CalciteSystemProperty<T> {
       booleanProperty("calcite.test.slow", false);
 
   /**
+   * Whether to do validation within VolcanoPlanner after each rule firing.
+   * Note that doing so would significantly slow down the planning. Should only
+   * enable for unit test.
+   */
+  public static final CalciteSystemProperty<Boolean> TEST_VALIDATE_VOLCANO_PLANNER =
+      booleanProperty("calcite.test.validate.volcano.planner", false);
+
+  /**
    * Whether to run MongoDB tests.
    */
   public static final CalciteSystemProperty<Boolean> TEST_MONGODB =
