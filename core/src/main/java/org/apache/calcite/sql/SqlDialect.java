@@ -33,6 +33,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -40,6 +41,7 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
+
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +57,6 @@ import java.util.Set;
 import java.util.function.Supplier;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
 /**
  * <code>SqlDialect</code> encapsulates the differences between dialects of SQL.
  *
@@ -905,6 +906,47 @@ public class SqlDialect {
     }
   }
 
+
+  public void unparseDataType(final SqlWriter writer, final SqlDataTypeSpec sqlDataTypeSpec,
+      final int leftPrec, final int rightPrec) {
+
+    String name = sqlDataTypeSpec.getTypeName().getSimple();
+    if (SqlTypeName.get(name) != null) {
+      SqlTypeName sqlTypeName = SqlTypeName.get(name);
+
+      // we have a built-in data type
+      writer.keyword(name);
+
+      if (sqlTypeName.allowsPrec() && (sqlDataTypeSpec.getPrecision() >= 0)) {
+        final SqlWriter.Frame frame =
+            writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
+        writer.print(sqlDataTypeSpec.getPrecision());
+        if (sqlTypeName.allowsScale() && (sqlDataTypeSpec.getScale() >= 0)) {
+          writer.sep(",", true);
+          writer.print(sqlDataTypeSpec.getScale());
+        }
+        writer.endList(frame);
+      }
+
+      if (sqlDataTypeSpec.getCharSetName() != null) {
+        writer.keyword("CHARACTER SET");
+        writer.identifier(sqlDataTypeSpec.getCharSetName(), false);
+      }
+
+      if (sqlDataTypeSpec.getCollectionsTypeName() != null) {
+        writer.keyword(sqlDataTypeSpec.getCollectionsTypeName().getSimple());
+      }
+    } else if (name.startsWith("_")) {
+      // We're generating a type for an alien system. For example,
+      // UNSIGNED is a built-in type in MySQL.
+      // (Need a more elegant way than '_' of flagging this.)
+      writer.keyword(name.substring(1));
+    } else {
+      // else we have a user defined type
+      sqlDataTypeSpec.getTypeName().unparse(writer, leftPrec, rightPrec);
+    }
+  }
+
   /**
    * Returns whether the dialect supports nested aggregations, for instance
    * {@code SELECT SUM(SUM(1)) }.
@@ -1096,6 +1138,8 @@ public class SqlDialect {
   public boolean isCaseSensitive() {
     return caseSensitive;
   }
+
+
 
   /**
    * A few utility functions copied from org.apache.calcite.util.Util. We have

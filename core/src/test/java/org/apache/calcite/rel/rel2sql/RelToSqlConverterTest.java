@@ -803,6 +803,14 @@ public class RelToSqlConverterTest {
     sql(query).withHive().ok(expected);
   }
 
+  @Test public void testHiveDataType() {
+    String query = "select cast( cast(\"employee_id\" as varchar) as int) "
+        + "from \"foodmart\".\"reserve_employee\" ";
+    final String expected = "SELECT CAST(CAST(employee_id AS VARCHAR) AS INT)\n"
+        + "FROM foodmart.reserve_employee";
+    sql(query).withHive().ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2715">[CALCITE-2715]
    * MS SQL Server does not support character set as part of data type</a>. */

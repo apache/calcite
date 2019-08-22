@@ -18,6 +18,7 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
@@ -53,6 +54,16 @@ public class HiveSqlDialect extends SqlDialect {
   @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
       SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
+  }
+
+  @Override public void unparseDataType(final SqlWriter writer,
+      final SqlDataTypeSpec sqlDataTypeSpec, final int leftPrec, final int rightPrec) {
+    String name = sqlDataTypeSpec.getTypeName().getSimple();
+    if (name.equals("INTEGER")) {
+      writer.keyword("INT");
+    } else {
+      super.unparseDataType(writer, sqlDataTypeSpec, leftPrec, rightPrec);
+    }
   }
 
   @Override public SqlNode emulateNullDirection(SqlNode node,

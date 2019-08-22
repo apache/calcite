@@ -211,41 +211,7 @@ public class SqlDataTypeSpec extends SqlNode {
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
-    String name = typeName.getSimple();
-    if (SqlTypeName.get(name) != null) {
-      SqlTypeName sqlTypeName = SqlTypeName.get(name);
-
-      // we have a built-in data type
-      writer.keyword(name);
-
-      if (sqlTypeName.allowsPrec() && (precision >= 0)) {
-        final SqlWriter.Frame frame =
-            writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
-        writer.print(precision);
-        if (sqlTypeName.allowsScale() && (scale >= 0)) {
-          writer.sep(",", true);
-          writer.print(scale);
-        }
-        writer.endList(frame);
-      }
-
-      if (charSetName != null) {
-        writer.keyword("CHARACTER SET");
-        writer.identifier(charSetName, false);
-      }
-
-      if (collectionsTypeName != null) {
-        writer.keyword(collectionsTypeName.getSimple());
-      }
-    } else if (name.startsWith("_")) {
-      // We're generating a type for an alien system. For example,
-      // UNSIGNED is a built-in type in MySQL.
-      // (Need a more elegant way than '_' of flagging this.)
-      writer.keyword(name.substring(1));
-    } else {
-      // else we have a user defined type
-      typeName.unparse(writer, leftPrec, rightPrec);
-    }
+    writer.getDialect().unparseDataType(writer, this, leftPrec, rightPrec);
   }
 
   public void validate(SqlValidator validator, SqlValidatorScope scope) {
