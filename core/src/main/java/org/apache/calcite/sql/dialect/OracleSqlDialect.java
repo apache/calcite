@@ -19,6 +19,7 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
@@ -74,6 +75,13 @@ public class OracleSqlDialect extends SqlDialect {
         SqlCall call2 = SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
             timeUnitNode.getParserPosition());
         SqlFloorFunction.unparseDatetimeFunction(writer, call2, "TRUNC", true);
+        break;
+
+      case JOIN:
+        // Oracle does not support boolean literals. "ON TRUE" is converted to "ON 1 = 1".
+        SqlJoin join = (SqlJoin) call;
+        SqlUtil.convertJoinOnToExpression(join, call.getParserPosition());
+        super.unparseCall(writer, call, leftPrec, rightPrec);
         break;
 
       default:

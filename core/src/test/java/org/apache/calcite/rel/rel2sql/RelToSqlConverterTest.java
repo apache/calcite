@@ -1302,7 +1302,38 @@ public class RelToSqlConverterTest {
     String expected = "SELECT *\n"
         + "FROM \"foodmart\".\"department\"\n"
         + "FULL JOIN \"foodmart\".\"employee\" ON TRUE";
-    sql(query).ok(expected);
+    String mssql = "SELECT *\n"
+        + "FROM [foodmart].[department]\n"
+        + "FULL JOIN [foodmart].[employee] ON 1 = 1";
+    String oracle = "SELECT *\n"
+        + "FROM \"foodmart\".\"department\"\n"
+        + "FULL JOIN \"foodmart\".\"employee\" ON 1 = 1";
+    sql(query)
+        .ok(expected)
+        .withMssql()
+        .ok(mssql)
+        .withOracle()
+        .ok(oracle);
+  }
+
+  @Test public void testFullJoinOnFalseCondition() {
+    String query = "select * from \"department\"\n"
+        + "FULL JOIN \"employee\" ON false";
+    String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"department\"\n"
+        + "FULL JOIN \"foodmart\".\"employee\" ON FALSE";
+    String mssql = "SELECT *\n"
+        + "FROM [foodmart].[department]\n"
+        + "FULL JOIN [foodmart].[employee] ON 1 = 0";
+    String oracle = "SELECT *\n"
+        + "FROM \"foodmart\".\"department\"\n"
+        + "FULL JOIN \"foodmart\".\"employee\" ON 1 = 0";
+    sql(query)
+        .ok(expected)
+        .withMssql()
+        .ok(mssql)
+        .withOracle()
+        .ok(oracle);
   }
 
   @Test public void testSimpleIn() {

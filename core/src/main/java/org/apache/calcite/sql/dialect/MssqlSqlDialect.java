@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
@@ -74,6 +75,13 @@ public class MssqlSqlDialect extends SqlDialect {
           return;
         }
         unparseFloor(writer, call);
+        break;
+
+      case JOIN:
+        // MS SQL does not support boolean literals. "ON TRUE" is converted to "ON 1 = 1".
+        SqlJoin join = (SqlJoin) call;
+        SqlUtil.convertJoinOnToExpression(join, call.getParserPosition());
+        super.unparseCall(writer, call, leftPrec, rightPrec);
         break;
 
       default:

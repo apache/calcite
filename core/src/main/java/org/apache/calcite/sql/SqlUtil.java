@@ -389,6 +389,28 @@ public abstract class SqlUtil {
   }
 
   /**
+   * If a join uses ON with a boolean literal convert it to an expression.
+   *
+   * <p>Convert "a JOIN b ON TRUE" to "a JOIN b ON 1 = 1". This should be replaced
+   * with something that checks the new dialect method supportsDataType(bool).
+   *
+   * @param join the join to convert
+   * @param pos parser position
+   */
+  public static void convertJoinOnToExpression(SqlJoin join, SqlParserPos pos) {
+    if (join.getConditionType() == JoinConditionType.ON
+        && join.getCondition().getKind() == SqlKind.LITERAL) {
+      String compareTo = (((SqlLiteral) join.getCondition()).getValue().equals(true))
+          ? "1" : "0";
+      SqlNode op = new SqlBasicCall(SqlStdOperatorTable.EQUALS, new SqlNode[]{
+          SqlLiteral.createExactNumeric("1", pos),
+          SqlLiteral.createExactNumeric(compareTo, pos)
+      }, pos);
+      join.setOperand(5, op);
+    }
+  }
+
+  /**
    * Concatenates string literals.
    *
    * <p>This method takes an array of arguments, since pairwise concatenation
