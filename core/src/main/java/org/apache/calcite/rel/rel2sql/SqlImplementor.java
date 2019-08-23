@@ -43,7 +43,6 @@ import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
@@ -1137,16 +1136,21 @@ public abstract class SqlImplementor {
     private boolean containsAggregations(SqlNode node) {
       if (node instanceof SqlWindow) {
         return true;
-      } else if (node instanceof SqlBasicCall) {
-        final SqlBasicCall call = (SqlBasicCall) node;
+      } else if (node instanceof SqlCall) {
+        final SqlCall call = (SqlCall) node;
         if (call.getOperator() instanceof SqlAggFunction) {
           return true;
         } else {
-          for (SqlNode operand : call.getOperands()) {
-            if (containsAggregations(operand)) {
-              return true;
-            }
-          }
+          return containsAggregations(call.getOperandList());
+        }
+      }
+      return false;
+    }
+
+    private boolean containsAggregations(Iterable<SqlNode> nodes) {
+      for (SqlNode node : nodes) {
+        if (containsAggregations(node)) {
+          return true;
         }
       }
       return false;
