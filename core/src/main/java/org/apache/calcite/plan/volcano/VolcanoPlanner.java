@@ -885,7 +885,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
         // Make sure best RelNode is valid
         if (subset.best != null && !subset.set.rels.contains(subset.best)) {
-          return litmus.fail("RelSubSet [{}] does not contain its best RelNode [{}]",
+          return litmus.fail("RelSubset [{}] does not contain its best RelNode [{}]",
                   subset.getDescription(), subset.best.getDescription());
         }
 
