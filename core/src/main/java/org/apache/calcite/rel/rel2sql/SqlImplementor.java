@@ -1192,7 +1192,7 @@ public abstract class SqlImplementor {
         if (selectList != null) { // select * doesn't have select list
           for (int i = 0; i < selectList.size(); i++) {
             String name = neededType.getFieldNames().get(i);
-            if (name.startsWith("EXPR$")) {
+            if (name.startsWith("EXPR$") && ordinalMap.containsKey(name.toLowerCase(Locale.ROOT))) {
               SqlNode e = selectList.get(i);
               SqlNode aliased = SqlStdOperatorTable.AS.createCall(
                   POS, e, new SqlIdentifier(name, POS));
