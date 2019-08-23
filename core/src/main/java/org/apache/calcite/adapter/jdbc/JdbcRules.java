@@ -766,7 +766,7 @@ public class JdbcRules {
 
       final RelNode input;
       if (convertInputTraits) {
-        input = convert(sort.getInput(), traitSet);
+        input = convert(sort.getInput(), out);
       } else {
         input = sort.getInput();
       }
