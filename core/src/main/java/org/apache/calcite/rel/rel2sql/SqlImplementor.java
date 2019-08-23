@@ -1185,11 +1185,25 @@ public abstract class SqlImplementor {
       return node;
     }
 
-    /** Adds aliases to columns named implicitly as EXPR$0, EXPR$1, ... */
+    /** Adds aliases to columns named if necessary */
     private void addColumnAliases(SqlNode node) {
       if (node instanceof SqlSelect && neededType != null) {
-        SqlNodeList selectList = ((SqlSelect) node).getSelectList();
-        if (selectList != null) { // select * doesn't have select list
+        final SqlSelect select = (SqlSelect) node;
+        SqlNodeList selectList = select.getSelectList();
+        if (selectList == null && aliases != null && aliases.size() > 1) {
+          // we have * and need to alias all columns explicitly to disambiguate
+          final SqlNodeList nodes = new SqlNodeList(POS);
+          final Context ctx = aliasContext(aliases, true);
+          final Iterator<String> fieldNames = neededType.getFieldNames().iterator();
+          for (int i = 0; i < neededType.getFieldCount(); i++) {
+            nodes.add(
+                SqlStdOperatorTable.AS.createCall(POS, ctx.field(i),
+                    new SqlIdentifier(fieldNames.next(), POS))
+            );
+          }
+          select.setSelectList(nodes);
+        } else if (selectList != null) {
+          // we have select list and need to alias just EXPR$XX explicitly
           for (int i = 0; i < selectList.size(); i++) {
             String name = neededType.getFieldNames().get(i);
             if (name.startsWith("EXPR$") && ordinalMap.containsKey(name.toLowerCase(Locale.ROOT))) {
@@ -1205,22 +1219,6 @@ public abstract class SqlImplementor {
     }
 
     public SqlSelect subSelect() {
-      if (node instanceof SqlSelect && aliases != null
-          && aliases.size() > 1 && neededType != null) {
-        final SqlSelect select = (SqlSelect) node;
-        if (select.getSelectList() == null) {
-          final SqlNodeList nodes = new SqlNodeList(POS);
-          final Context ctx = aliasContext(aliases, true);
-          final Iterator<String> fieldNames = neededType.getFieldNames().iterator();
-          for (int i = 0; i < neededType.getFieldCount(); i++) {
-            nodes.add(
-                SqlStdOperatorTable.AS.createCall(POS, ctx.field(i),
-                    new SqlIdentifier(fieldNames.next(), POS))
-            );
-          }
-          select.setSelectList(nodes);
-        }
-      }
       return wrapSelect(asFrom());
     }
 

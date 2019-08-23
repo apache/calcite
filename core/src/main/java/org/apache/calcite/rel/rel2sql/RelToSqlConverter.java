@@ -131,10 +131,13 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** @see #dispatch */
   public Result visit(Join e) {
-    final Result leftResult = visitChild(0, e.getLeft()).resetAlias();
-    final Result rightResult = visitChild(1, e.getRight()).resetAlias();
+    Result leftResult = visitChild(0, e.getLeft());
+    Result rightResult = visitChild(1, e.getRight());
     final SqlNode leftNode = leftResult.asFrom();
     final SqlNode rightNode = rightResult.asFrom();
+
+    leftResult = leftResult.resetAlias();
+    rightResult = rightResult.resetAlias();
     final Context leftContext = leftResult.qualifiedContext();
     final Context rightContext = rightResult.qualifiedContext();
     SqlNode sqlCondition = null;
