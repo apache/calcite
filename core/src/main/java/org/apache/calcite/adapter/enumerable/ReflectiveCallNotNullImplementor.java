@@ -46,7 +46,7 @@ public class ReflectiveCallNotNullImplementor implements NotNullImplementor {
   public Expression implement(RexToLixTranslator translator,
       RexCall call, List<Expression> translatedOperands) {
     translatedOperands =
-        EnumUtils.fromInternal(method.getParameterTypes(), translatedOperands);
+        EnumUtils.fromInternal(method.getParameterTypes(), translatedOperands, method.isVarArgs());
     if ((method.getModifiers() & Modifier.STATIC) != 0) {
       return Expressions.call(method, translatedOperands);
     } else {

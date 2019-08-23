@@ -108,7 +108,8 @@ public class AggregateFunctionImpl implements AggregateFunction,
         final Class type = addParamTypes.get(i);
         final String name = ReflectUtil.getParameterName(addMethod, i);
         final boolean optional = ReflectUtil.isParameterOptional(addMethod, i);
-        params.add(type, name, optional);
+        final boolean varargs = ReflectUtil.isParameterVarArgs(addMethod, i);
+        params.add(type, name, optional, varargs);
         valueTypes.add(type);
       }
 

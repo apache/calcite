@@ -121,6 +121,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
           null,
           OperandTypes.NUMERIC,
           null,
+          false,
           SqlFunctionCategory.USER_DEFINED_FUNCTION);
     }
 

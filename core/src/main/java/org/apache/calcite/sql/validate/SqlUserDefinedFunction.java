@@ -33,11 +33,11 @@ import com.google.common.collect.Lists;
 import java.util.List;
 
 /**
-* User-defined scalar function.
+ * User-defined scalar function.
  *
  * <p>Created by the validator, after resolving a function call to a function
  * defined in a Calcite schema.</p>
-*/
+ */
 public class SqlUserDefinedFunction extends SqlFunction {
   public final Function function;
 
@@ -47,9 +47,10 @@ public class SqlUserDefinedFunction extends SqlFunction {
       SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker,
       List<RelDataType> paramTypes,
+      boolean varArgs,
       Function function) {
     this(opName, returnTypeInference, operandTypeInference, operandTypeChecker,
-        paramTypes, function, SqlFunctionCategory.USER_DEFINED_FUNCTION);
+        paramTypes, varArgs, function, SqlFunctionCategory.USER_DEFINED_FUNCTION);
   }
 
   /** Constructor used internally and by derived classes. */
@@ -58,11 +59,12 @@ public class SqlUserDefinedFunction extends SqlFunction {
       SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker,
       List<RelDataType> paramTypes,
+      boolean varArgs,
       Function function,
       SqlFunctionCategory category) {
     super(Util.last(opName.names), opName, SqlKind.OTHER_FUNCTION,
         returnTypeInference, operandTypeInference, operandTypeChecker,
-        paramTypes, category);
+        paramTypes, varArgs, category);
     this.function = function;
   }
 

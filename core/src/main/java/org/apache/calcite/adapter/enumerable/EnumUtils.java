@@ -87,6 +87,7 @@ public class EnumUtils {
       public Type get(int index) {
         return EnumUtils.javaClass(typeFactory, inputTypes.get(index));
       }
+
       public int size() {
         return inputTypes.size();
       }
@@ -105,6 +106,7 @@ public class EnumUtils {
             ? inputFields.get(arg).getType()
             : extraInputs.get(arg - inputFields.size()).getType();
       }
+
       public int size() {
         return argList.size();
       }
@@ -185,12 +187,29 @@ public class EnumUtils {
     return e;
   }
 
+  /**
+   * build expression list.
+   * if varArgs is true, the last targetType will replace by its Component Type.
+   */
   static List<Expression> fromInternal(Class<?>[] targetTypes,
-      List<Expression> expressions) {
+      List<Expression> expressions, boolean varArgs) {
+
     final List<Expression> list = new ArrayList<>();
-    for (int i = 0; i < expressions.size(); i++) {
-      list.add(fromInternal(expressions.get(i), targetTypes[i]));
+
+    if (varArgs) {
+      Class<?> varArgsType = targetTypes[targetTypes.length - 1].getComponentType();
+      for (int i = 0; i < expressions.size(); i++) {
+        list.add(
+            fromInternal(expressions.get(i),
+                i < targetTypes.length - 1 ? targetTypes[i] : varArgsType));
+      }
+    } else {
+      for (int i = 0; i < expressions.size(); i++) {
+        list.add(fromInternal(expressions.get(i), targetTypes[i]));
+      }
     }
+
+
     return list;
   }
 

@@ -47,6 +47,8 @@ public class SqlFunction extends SqlOperator {
 
   private final List<RelDataType> paramTypes;
 
+  private final boolean varArgs;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -69,7 +71,7 @@ public class SqlFunction extends SqlOperator {
     // We leave sqlIdentifier as null to indicate
     // that this is a builtin.  Same for paramTypes.
     this(name, null, kind, returnTypeInference, operandTypeInference,
-        operandTypeChecker, null, category);
+        operandTypeChecker, null, false, category);
 
     assert !((category == SqlFunctionCategory.USER_DEFINED_CONSTRUCTOR)
         && (returnTypeInference == null));
@@ -96,7 +98,7 @@ public class SqlFunction extends SqlOperator {
       SqlFunctionCategory funcType) {
     this(Util.last(sqlIdentifier.names), sqlIdentifier, SqlKind.OTHER_FUNCTION,
         returnTypeInference, operandTypeInference, operandTypeChecker,
-        paramTypes, funcType);
+        paramTypes, false, funcType);
   }
 
   /**
@@ -110,6 +112,7 @@ public class SqlFunction extends SqlOperator {
       SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker,
       List<RelDataType> paramTypes,
+      boolean varArgs,
       SqlFunctionCategory category) {
     super(name, kind, 100, 100, returnTypeInference, operandTypeInference,
         operandTypeChecker);
@@ -118,6 +121,7 @@ public class SqlFunction extends SqlOperator {
     this.category = Objects.requireNonNull(category);
     this.paramTypes =
         paramTypes == null ? null : ImmutableList.copyOf(paramTypes);
+    this.varArgs = varArgs;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -145,6 +149,15 @@ public class SqlFunction extends SqlOperator {
    */
   public List<RelDataType> getParamTypes() {
     return paramTypes;
+  }
+
+
+  /**
+   *
+   * @return is varArgs parameters.
+   */
+  public boolean isVarArgs() {
+    return varArgs;
   }
 
   /**
@@ -249,9 +262,9 @@ public class SqlFunction extends SqlOperator {
       if (convertRowArgToColumnList && containsRowArg(args)) {
         if (function == null
             && SqlUtil.matchRoutinesByParameterCount(
-                validator.getOperatorTable(), getNameAsId(), argTypes,
-                getFunctionType(),
-                validator.getCatalogReader().nameMatcher())) {
+            validator.getOperatorTable(), getNameAsId(), argTypes,
+            getFunctionType(),
+            validator.getCatalogReader().nameMatcher())) {
           // remove the already validated node types corresponding to
           // row arguments before re-validating
           for (SqlNode operand : args) {
@@ -296,6 +309,8 @@ public class SqlFunction extends SqlOperator {
     }
     return false;
   }
+
+
 }
 
 // End SqlFunction.java

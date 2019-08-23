@@ -190,7 +190,7 @@ public abstract class SqlUtil {
   public static boolean isNull(SqlNode node) {
     return isNullLiteral(node, false)
         || node.getKind() == SqlKind.CAST
-            && isNull(((SqlCall) node).operand(0));
+        && isNull(((SqlCall) node).operand(0));
   }
 
   /**
@@ -581,39 +581,56 @@ public abstract class SqlUtil {
     return (Iterator) Iterators.filter(
         Iterators.filter(routines, SqlFunction.class),
         function -> {
-          List<RelDataType> paramTypes =
+          final List<RelDataType> paramTypes =
               Objects.requireNonNull(function).getParamTypes();
+
           if (paramTypes == null) {
             // no parameter information for builtins; keep for now
             return true;
           }
+
+          // convert to mutable list.
+          List<RelDataType> permutedParamTypes = Lists.newArrayList(paramTypes);
+
           final List<RelDataType> permutedArgTypes;
-          if (argNames != null) {
-            // Arguments passed by name. Make sure that the function has
-            // parameters of all of these names.
-            final Map<Integer, Integer> map = new HashMap<>();
-            for (Ord<String> argName : Ord.zip(argNames)) {
-              final int i = function.getParamNames().indexOf(argName.e);
-              if (i < 0) {
-                return false;
+          boolean varArgs = function.isVarArgs();
+
+          if (!varArgs) {
+            if (argNames != null) {
+              // Arguments passed by name. Make sure that the function has
+              // parameters of all of these names.
+              final Map<Integer, Integer> map = new HashMap<>();
+              for (Ord<String> argName : Ord.zip(argNames)) {
+                final int i = function.getParamNames().indexOf(argName.e);
+                if (i < 0) {
+                  return false;
+                }
+                map.put(i, argName.i);
               }
-              map.put(i, argName.i);
+              permutedArgTypes = Functions.generate(paramTypes.size(), a0 -> {
+                if (map.containsKey(a0)) {
+                  return argTypes.get(map.get(a0));
+                } else {
+                  return null;
+                }
+              });
+            } else {
+              permutedArgTypes = Lists.newArrayList(argTypes);
             }
-            permutedArgTypes = Functions.generate(paramTypes.size(), a0 -> {
-              if (map.containsKey(a0)) {
-                return argTypes.get(map.get(a0));
-              } else {
-                return null;
-              }
-            });
+
           } else {
+
+            RelDataType varArgsType = permutedParamTypes.get(paramTypes.size() - 1);
             permutedArgTypes = Lists.newArrayList(argTypes);
-            while (permutedArgTypes.size() < argTypes.size()) {
-              paramTypes.add(null);
+
+            while (permutedParamTypes.size() < argTypes.size()) {
+              permutedParamTypes.add(varArgsType);
             }
+
           }
+
           for (Pair<RelDataType, RelDataType> p
-              : Pair.zip(paramTypes, permutedArgTypes)) {
+              : Pair.zip(permutedParamTypes, permutedArgTypes)) {
             final RelDataType argType = p.right;
             final RelDataType paramType = p.left;
             if (argType != null
@@ -621,7 +638,9 @@ public abstract class SqlUtil {
               return false;
             }
           }
+
           return true;
+
         });
   }
 

@@ -319,11 +319,12 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     }
     final FamilyOperandTypeChecker typeChecker =
         OperandTypes.family(typeFamilies, i ->
-            function.getParameters().get(i).isOptional());
+                function.getParameters().get(i).isOptional(),
+            function.isVarArgs());
     final List<RelDataType> paramTypes = toSql(typeFactory, argTypes);
     if (function instanceof ScalarFunction) {
       return new SqlUserDefinedFunction(name, infer((ScalarFunction) function),
-          InferTypes.explicit(argTypes), typeChecker, paramTypes, function);
+          InferTypes.explicit(argTypes), typeChecker, paramTypes, function.isVarArgs(), function);
     } else if (function instanceof AggregateFunction) {
       return new SqlUserDefinedAggFunction(name,
           infer((AggregateFunction) function), InferTypes.explicit(argTypes),

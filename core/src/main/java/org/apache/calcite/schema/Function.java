@@ -39,6 +39,11 @@ public interface Function {
    * @return Parameters; never null
    */
   List<FunctionParameter> getParameters();
+
+
+  default boolean isVarArgs() {
+    return getParameters().stream().anyMatch(fp -> fp.isVarArgs());
+  }
 }
 
 // End Function.java

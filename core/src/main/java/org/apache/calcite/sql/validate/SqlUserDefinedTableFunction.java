@@ -43,7 +43,7 @@ public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction {
       List<RelDataType> paramTypes,
       TableFunction function) {
     super(opName, returnTypeInference, operandTypeInference, operandTypeChecker,
-        paramTypes, function, SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
+        paramTypes, false, function, SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
   }
 
   /**
