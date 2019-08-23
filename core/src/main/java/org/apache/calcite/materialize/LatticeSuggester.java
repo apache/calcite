@@ -31,6 +31,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.rules.FilterJoinRule;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -103,6 +104,17 @@ public class LatticeSuggester {
     return ImmutableSet.copyOf(set);
   }
 
+  /** Converts a column reference to an expression. */
+  public RexNode toRex(LatticeTable table, int column) {
+    final List<RelDataTypeField> fieldList =
+        table.t.getRowType().getFieldList();
+    if (column < fieldList.size()) {
+      return new RexInputRef(column, fieldList.get(column).getType());
+    } else {
+      return space.tableExpressions.get(table).get(column - fieldList.size());
+    }
+  }
+
   /** Adds a query.
    *
    * <p>It may fit within an existing lattice (or lattices). Or it may need a
@@ -133,8 +145,8 @@ public class LatticeSuggester {
       g.addVertex(tableRef);
     }
     for (Hop hop : frame.hops) {
-      map.put(Pair.of(hop.source.t, hop.target.t),
-          IntPair.of(hop.source.c, hop.target.c));
+      map.put(Pair.of(hop.source.tableRef(), hop.target.tableRef()),
+          IntPair.of(hop.source.col(space), hop.target.col(space)));
     }
     for (Map.Entry<Pair<TableRef, TableRef>, Collection<IntPair>> e
         : map.asMap().entrySet()) {
@@ -457,7 +469,13 @@ public class LatticeSuggester {
               tableRefs.add(tableRef);
             }
           }
-          return new DerivedColRef(tableRefs.build(), e, alias);
+          final List<TableRef> tableRefList = tableRefs.build();
+          switch (tableRefList.size()) {
+          case 1:
+            return new SingleTableDerivedColRef(tableRefList.get(0), e, alias);
+          default:
+            return new DerivedColRef(tableRefList, e, alias);
+          }
         }
       };
     } else if (r instanceof Join) {
@@ -473,9 +491,11 @@ public class LatticeSuggester {
       for (IntPair p : join.analyzeCondition().pairs()) {
         final ColRef source = left.column(p.source);
         final ColRef target = right.column(p.target);
-        assert source instanceof BaseColRef;
-        assert target instanceof BaseColRef;
-        builder.add(new Hop((BaseColRef) source, (BaseColRef) target));
+        assert source instanceof SingleTableColRef;
+        assert target instanceof SingleTableColRef;
+        builder.add(
+            new Hop((SingleTableColRef) source,
+                (SingleTableColRef) target));
       }
       builder.addAll(right.hops);
       final int fieldCount = r.getRowType().getFieldCount();
@@ -533,7 +553,7 @@ public class LatticeSuggester {
 
     StepRef stepRef(TableRef source, TableRef target, List<IntPair> keys) {
       keys = LatticeSpace.sortUnique(keys);
-      final Step h = new Step(source.table, target.table, keys);
+      final Step h = Step.create(source.table, target.table, keys, space);
       if (h.isBackwards(space.statisticProvider)) {
         final List<IntPair> keys1 = LatticeSpace.swap(h.keys);
         final Step h2 = space.addEdge(h.target(), h.source(), keys1);
@@ -574,8 +594,8 @@ public class LatticeSuggester {
     static Set<TableRef> collectTableRefs(List<Frame> inputs, List<Hop> hops) {
       final LinkedHashSet<TableRef> set = new LinkedHashSet<>();
       for (Hop hop : hops) {
-        set.add(hop.source.t);
-        set.add(hop.target.t);
+        set.add(hop.source.tableRef());
+        set.add(hop.target.tableRef());
       }
       for (Frame frame : inputs) {
         set.addAll(frame.tableRefs);
@@ -631,21 +651,8 @@ public class LatticeSuggester {
     }
 
     @Override public String toString() {
-      final StringBuilder b = new StringBuilder()
-          .append("StepRef(")
-          .append(source)
-          .append(", ")
-          .append(target)
-          .append(",");
-      for (IntPair key : step.keys) {
-        b.append(' ')
-            .append(step.source().field(key.source).getName())
-            .append(':')
-            .append(step.target().field(key.target).getName());
-      }
-      return b.append("):")
-          .append(ordinalInQuery)
-          .toString();
+      return "StepRef(" + source + ", " + target + "," + step.keyString + "):"
+          + ordinalInQuery;
     }
 
     TableRef source() {
@@ -703,10 +710,10 @@ public class LatticeSuggester {
    * </ul>
    */
   private static class Hop {
-    final BaseColRef source;
-    final BaseColRef target;
+    final SingleTableColRef source;
+    final SingleTableColRef target;
 
-    private Hop(BaseColRef source, BaseColRef target) {
+    private Hop(SingleTableColRef source, SingleTableColRef target) {
       this.source = source;
       this.target = target;
     }
@@ -716,14 +723,29 @@ public class LatticeSuggester {
   private abstract static class ColRef {
   }
 
+  /** Column reference that is within a single table. */
+  private interface SingleTableColRef {
+    TableRef tableRef();
+
+    int col(LatticeSpace space);
+  }
+
   /** Reference to a base column. */
-  private static class BaseColRef extends ColRef {
+  private static class BaseColRef extends ColRef implements SingleTableColRef {
     final TableRef t;
     final int c;
 
     private BaseColRef(TableRef t, int c) {
       this.t = t;
       this.c = c;
+    }
+
+    public TableRef tableRef() {
+      return t;
+    }
+
+    public int col(LatticeSpace space) {
+      return c;
     }
   }
 
@@ -733,8 +755,7 @@ public class LatticeSuggester {
     @Nonnull final RexNode e;
     final String alias;
 
-    private DerivedColRef(Iterable<TableRef> tableRefs, RexNode e,
-        String alias) {
+    DerivedColRef(Iterable<TableRef> tableRefs, RexNode e, String alias) {
       this.tableRefs = ImmutableList.copyOf(tableRefs);
       this.e = e;
       this.alias = alias;
@@ -742,6 +763,23 @@ public class LatticeSuggester {
 
     List<String> tableAliases() {
       return Util.transform(tableRefs, tableRef -> tableRef.table.alias);
+    }
+  }
+
+  /** Variant of {@link DerivedColRef} where all referenced expressions are in
+   * the same table. */
+  private static class SingleTableDerivedColRef extends DerivedColRef
+      implements SingleTableColRef {
+    SingleTableDerivedColRef(TableRef tableRef, RexNode e, String alias) {
+      super(ImmutableList.of(tableRef), e, alias);
+    }
+
+    public TableRef tableRef() {
+      return tableRefs.get(0);
+    }
+
+    public int col(LatticeSpace space) {
+      return space.registerExpression(tableRef().table, e);
     }
   }
 
