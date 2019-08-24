@@ -41,6 +41,7 @@ public abstract class ReflectiveFunctionBase implements Function {
   /** Types of parameter for the function call. */
   public final List<FunctionParameter> parameters;
 
+
   /**
    * {@code ReflectiveFunctionBase} constructor
    * @param method method that is used to get type information from
@@ -104,11 +105,11 @@ public abstract class ReflectiveFunctionBase implements Function {
     }
 
     public ParameterListBuilder add(final Class<?> type, final String name) {
-      return add(type, name, false);
+      return add(type, name, false, false);
     }
 
     public ParameterListBuilder add(final Class<?> type, final String name,
-        final boolean optional) {
+        final boolean optional, final boolean varArgs) {
       final int ordinal = builder.size();
       builder.add(
           new FunctionParameter() {
@@ -121,11 +122,15 @@ public abstract class ReflectiveFunctionBase implements Function {
             }
 
             public RelDataType getType(RelDataTypeFactory typeFactory) {
-              return typeFactory.createJavaType(type);
+              return typeFactory.createJavaType(varArgs ? type.getComponentType() : type);
             }
 
             public boolean isOptional() {
               return optional;
+            }
+
+            public boolean isVarArgs() {
+              return varArgs;
             }
           });
       return this;
@@ -135,7 +140,7 @@ public abstract class ReflectiveFunctionBase implements Function {
       final Class<?>[] types = method.getParameterTypes();
       for (int i = 0; i < types.length; i++) {
         add(types[i], ReflectUtil.getParameterName(method, i),
-            ReflectUtil.isParameterOptional(method, i));
+            ReflectUtil.isParameterOptional(method, i), ReflectUtil.isParameterVarArgs(method, i));
       }
       return this;
     }

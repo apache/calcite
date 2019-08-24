@@ -568,7 +568,11 @@ public abstract class ReflectUtil {
         return ((Parameter) annotation).optional();
       }
     }
-    return false;
+    return isParameterVarArgs(method, i);
+  }
+
+  public static boolean isParameterVarArgs(Method method, int i) {
+    return method.getParameters()[i].isVarArgs();
   }
 
   //~ Inner Classes ----------------------------------------------------------
