@@ -4566,6 +4566,12 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("json_exists(cast(null as varchar), "
         + "'lax $.foo1' unknown on error)");
 
+    // type check
+    tester.checkFails("json_exists(1, 'strict $')",
+        "(?s).*Cannot apply 'JSON_EXISTS' to arguments of type.*", false);
+    tester.checkFails("json_exists(true, 'strict $')",
+        "(?s).*Cannot apply 'JSON_EXISTS' to arguments of type.*", false);
+
   }
 
   @Test public void testJsonValue() {
@@ -4644,6 +4650,13 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails("json_value(^null^, 'strict $')",
         "(?s).*Illegal use of 'NULL'.*", false);
     tester.checkNull("json_value(cast(null as varchar), 'strict $')");
+
+    // type check
+    tester.checkFails("json_value(1, 'strict $')",
+        "(?s).*Cannot apply 'JSON_VALUE' to arguments of type.*", false);
+    tester.checkFails("json_value(true, 'strict $')",
+        "(?s).*Cannot apply 'JSON_VALUE' to arguments of type.*", false);
+
   }
 
   @Test public void testJsonQuery() {
@@ -4737,6 +4750,12 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails("json_query(^null^, 'lax $')",
         "(?s).*Illegal use of 'NULL'.*", false);
     tester.checkNull("json_query(cast(null as varchar), 'lax $')");
+
+    // type check
+    tester.checkFails("json_query(1, 'strict $')",
+        "(?s).*Cannot apply 'JSON_QUERY' to arguments of type.*", false);
+    tester.checkFails("json_query(true, 'strict $')",
+        "(?s).*Cannot apply 'JSON_QUERY' to arguments of type.*", false);
   }
 
   @Test public void testJsonPretty() {
@@ -4751,6 +4770,12 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails("json_pretty(^null^)",
         "(?s).*Illegal use of 'NULL'.*", false);
     tester.checkNull("json_pretty(cast(null as varchar))");
+
+    // type check
+    tester.checkFails("json_pretty(1)",
+        "(?s).*Cannot apply 'JSON_PRETTY' to arguments of type.*", false);
+    tester.checkFails("json_pretty(true)",
+        "(?s).*Cannot apply 'JSON_PRETTY' to arguments of type.*", false);
   }
 
   @Test public void testJsonStorageSize() {
@@ -4773,6 +4798,13 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails("json_storage_size(^null^)",
         "(?s).*Illegal use of 'NULL'.*", false);
     tester.checkNull("json_storage_size(cast(null as varchar))");
+
+    //type check
+    tester.checkFails("json_storage_size(1)",
+        "(?s).*Cannot apply 'JSON_STORAGE_SIZE' to arguments of type.*", false);
+
+    tester.checkFails("json_storage_size(true)",
+        "(?s).*Cannot apply 'JSON_STORAGE_SIZE' to arguments of type.*", false);
   }
 
   @Test public void testJsonType() {
@@ -4801,6 +4833,12 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails("json_type(^null^)",
         "(?s).*Illegal use of 'NULL'.*", false);
     tester.checkNull("json_type(cast(null as varchar))");
+
+    // type check
+    tester.checkFails("json_type(1)",
+        "(?s).*Cannot apply 'JSON_TYPE' to arguments of type.*", false);
+    tester.checkFails("json_type(true)",
+        "(?s).*Cannot apply 'JSON_TYPE' to arguments of type.*", false);
   }
 
   @Test public void testJsonDepth() {
@@ -4834,6 +4872,12 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails("json_depth(^null^)",
         "(?s).*Illegal use of 'NULL'.*", false);
     tester.checkNull("json_depth(cast(null as varchar))");
+
+    // type check
+    tester.checkFails("json_depth(1)",
+        "(?s).*Cannot apply 'JSON_DEPTH' to arguments of type.*", false);
+    tester.checkFails("json_depth(true)",
+        "(?s).*Cannot apply 'JSON_DEPTH' to arguments of type.*", false);
   }
 
   @Test public void testJsonLength() {
@@ -4944,6 +4988,12 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails("json_keys(^null^)",
         "(?s).*Illegal use of 'NULL'.*", false);
     tester.checkNull("json_keys(cast(null as varchar))");
+
+    // type check
+    tester.checkFails("json_keys(1, 'strict $')",
+        "(?s).*Cannot apply 'JSON_KEYS' to arguments of type.*", false);
+    tester.checkFails("json_keys(true, 'strict $')",
+        "(?s).*Cannot apply 'JSON_KEYS' to arguments of type.*", false);
   }
 
   @Test public void testJsonRemove() {

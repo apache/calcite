@@ -41,7 +41,7 @@ public class SqlJsonDepthFunction extends SqlFunction {
         ReturnTypes.cascade(ReturnTypes.INTEGER,
             SqlTypeTransforms.FORCE_NULLABLE),
         null,
-        OperandTypes.ANY,
+        OperandTypes.CHARACTER,
         SqlFunctionCategory.SYSTEM);
   }
 

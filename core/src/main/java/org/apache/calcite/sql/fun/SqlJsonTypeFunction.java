@@ -43,7 +43,7 @@ public class SqlJsonTypeFunction extends SqlFunction {
             ReturnTypes.explicit(SqlTypeName.VARCHAR, 20),
             SqlTypeTransforms.FORCE_NULLABLE),
         null,
-        OperandTypes.ANY,
+        OperandTypes.CHARACTER,
         SqlFunctionCategory.SYSTEM);
   }
 

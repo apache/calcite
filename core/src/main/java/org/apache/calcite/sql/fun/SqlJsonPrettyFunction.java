@@ -41,7 +41,7 @@ public class SqlJsonPrettyFunction extends SqlFunction {
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.cascade(ReturnTypes.VARCHAR_2000, SqlTypeTransforms.FORCE_NULLABLE),
         null,
-        OperandTypes.ANY,
+        OperandTypes.CHARACTER,
         SqlFunctionCategory.SYSTEM);
   }
 
