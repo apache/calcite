@@ -35,6 +35,7 @@ import org.apache.calcite.linq4j.tree.Types;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 
 import org.junit.Test;
 
@@ -50,6 +51,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 
 import static org.hamcrest.core.Is.is;
@@ -1509,6 +1511,44 @@ public class ExpressionTest {
             + ".put(\"key_9\", \"value_9\").build()",
         Expressions.toString(Expressions.constant(map)));
   }
+
+	@Test
+	public void testEmptySetLiteral() throws Exception {
+		assertEquals("com.google.common.collect.ImmutableSet.of()",
+				Expressions.toString(Expressions.constant(Sets.newHashSet())));
+	}
+
+	@Test
+	public void testOneElementLiteral() throws Exception {
+		assertEquals("com.google.common.collect.ImmutableSet.of(1)",
+				Expressions.toString(Expressions.constant(Sets.newHashSet(1))));
+	}
+
+	@Test
+	public void testTwoElementLiteral() throws Exception {
+		assertEquals("com.google.common.collect.ImmutableSet.of(1,2)",
+				Expressions.toString(Expressions.constant(Sets.newHashSet(1, 2))));
+	}
+
+	@Test
+	public void testTenElementSetLiteral() throws Exception {
+		Set set = Sets.newHashSet(); // for consistent output
+		for (int i = 0; i < 10; i++) {
+			set.add(i);
+		}
+
+		assertEquals("com.google.common.collect.ImmutableSet.builder().add(0)\n" +
+						".add(1)\n" +
+						".add(2)\n" +
+						".add(3)\n" +
+						".add(4)\n" +
+						".add(5)\n" +
+						".add(6)\n" +
+						".add(7)\n" +
+						".add(8)\n" +
+						".add(9).build()",
+				Expressions.toString(Expressions.constant(set)));
+	}
 
   /** An enum. */
   enum MyEnum {
