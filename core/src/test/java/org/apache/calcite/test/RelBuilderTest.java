@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
@@ -709,6 +710,21 @@ public class RelBuilderTest {
         "LogicalProject(ENAME=[$1])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3228">[CALCITE-3228]
+   * IllegalArgumentException in getMapping() for project containing same reference</a>. */
+  @Test public void testProjectMapping() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+            builder.scan("EMP")
+                    .project(builder.field(0), builder.field(0))
+                    .build();
+    assertTrue(root instanceof Project);
+    Project project = (Project) root;
+    Mappings.TargetMapping mapping = project.getMapping();
+    assertTrue(mapping == null);
   }
 
   private void project1(int value, SqlTypeName sqlTypeName, String message, String expected) {
@@ -2884,6 +2900,51 @@ public class RelBuilderTest {
     final String expected =
         "LogicalSortExchange(distribution=[hash[0]], collation=[[0]])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test public void testCorrelate() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<RexCorrelVariable> v = Holder.of(null);
+    RelNode root = builder.scan("EMP")
+        .variable(v)
+        .scan("DEPT")
+        .filter(
+            builder.equals(builder.field(0),
+                builder.field(v.get(), "DEPTNO")))
+        .correlate(JoinRelType.LEFT, v.get().id, builder.field(2, 0, "DEPTNO"))
+        .build();
+
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test public void testCorrelateWithComplexFields() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<RexCorrelVariable> v = Holder.of(null);
+    RelNode root = builder.scan("EMP")
+        .variable(v)
+        .scan("DEPT")
+        .filter(
+            builder.equals(builder.field(0),
+                builder.field(v.get(), "DEPTNO")))
+        .correlate(JoinRelType.LEFT, v.get().id,
+            builder.field(2, 0, "DEPTNO"),
+            builder.getRexBuilder().makeCall(SqlStdOperatorTable.AS,
+                builder.field(2, 0, "EMPNO"),
+                builder.literal("RENAMED_EMPNO")))
+        .build();
+
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0, 7}])\n"
+        + "  LogicalProject(RENAMED_EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(root, hasTree(expected));
   }
 }

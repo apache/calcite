@@ -1116,7 +1116,7 @@ The operator precedence and associativity, highest to lowest.
 | ::                                                | left
 | [ ] (array element)                               | left
 | + - (unary plus, minus)                           | right
-| * / %                                             | left
+| * / % &#124;&#124;                                | left
 | + -                                               | left
 | BETWEEN, IN, LIKE, SIMILAR, OVERLAPS, CONTAINS etc. | -
 | < > = <= >= <> !=                                 | left
@@ -1325,7 +1325,7 @@ Supported data types:
 {% highlight sql %}
 type:
       typeName
-      [ collectionsTypeName ]
+      [ collectionsTypeName ]*
 
 typeName:
       sqlTypeName
@@ -1431,7 +1431,7 @@ See also: the UNNEST relational operator converts a collection to a relation.
     <th>Description</th>
   </tr>
   <tr>
-    <td>period1 CONTAINS dateTime</td>
+    <td>period1 CONTAINS datetime</td>
     <td>
       <div class="container">
         <div class="gray"><div class="r15"></div><div class="r2"></div></div>
@@ -1513,10 +1513,10 @@ Where *period1* and *period2* are period expressions:
 
 {% highlight sql %}
 period:
-      (dateTime, dateTime)
-  |   (dateTime, interval)
-  |   PERIOD (dateTime, dateTime)
-  |   PERIOD (dateTime, interval)
+      (datetime, datetime)
+  |   (datetime, interval)
+  |   PERIOD (datetime, datetime)
+  |   PERIOD (datetime, interval)
 {% endhighlight %}
 
 ### JDBC function escape
@@ -1745,9 +1745,9 @@ For example, if a query is grouped using
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
-| HOP(dateTime, slide, size [, time ]) | Indicates a hopping window for *dateTime*, covering rows within the interval of *size*, shifting every *slide*, and optionally aligned at *time*
-| SESSION(dateTime, interval [, time ]) | Indicates a session window of *interval* for *dateTime*, optionally aligned at *time*
-| TUMBLE(dateTime, interval [, time ]) | Indicates a tumbling window of *interval* for *dateTime*, optionally aligned at *time*
+| HOP(datetime, slide, size [, time ]) | Indicates a hopping window for *datetime*, covering rows within the interval of *size*, shifting every *slide*, and optionally aligned at *time*
+| SESSION(datetime, interval [, time ]) | Indicates a session window of *interval* for *datetime*, optionally aligned at *time*
+| TUMBLE(datetime, interval [, time ]) | Indicates a tumbling window of *interval* for *datetime*, optionally aligned at *time*
 
 ### Grouped auxiliary functions
 
@@ -2172,6 +2172,9 @@ semantics.
 |:- |:-----------------------------------------------|:-----------
 | p | expr :: type                                   | Casts *expr* to *type*
 | o | CHR(integer) | Returns the character having the binary equivalent to *integer* as a CHAR value
+| m o p | CONCAT(string [, string ]*)                | Concatenates two or more strings
+| p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
+| m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | p | DIFFERENCE(string, string)                     | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
 | o | GREATEST(expr [, expr ]*)                      | Returns the greatest of the expressions
@@ -2186,17 +2189,20 @@ semantics.
 | m p | LEFT(string, length)                         | Returns the leftmost *length* characters from the *string*
 | m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string
 | m | FROM_BASE64(string)                            | Returns the decoded result of a base-64 *string* as a string
-| m | {fn DAYNAME(date)}                             | Returns the date of the name of the weekday in a value of datatype DATE; For example, it returns '星期日' for both DATE'2020-02-10' and TIMESTAMP'2020-02-10 10:10:10'
-| m | {fn MONTHNAME(date)}                           | Returns the date of the name of the month in a value of datatype DATE; For example, it returns '二月' for both DATE'2020-02-10' and TIMESTAMP'2020-02-10 10:10:10'
 | o | LTRIM(string)                                  | Returns *string* with all blanks removed from the start
+| m p | MD5(string)                                  | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
+| m | MONTHNAME(date)                                | Returns the name, in the connection's locale, of the month in *datetime*; for example, it returns '二月' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | o | NVL(value1, value2)                            | Returns *value1* if *value1* is not null, otherwise *value2*
 | m p | REPEAT(string, integer)                      | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
 | m | REVERSE(string)                                | Returns *string* with the order of the characters reversed
 | m p | RIGHT(string, length)                        | Returns the rightmost *length* characters from the *string*
 | o | RTRIM(string)                                  | Returns *string* with all blanks removed from the end
+| m p | SHA1(string)                                 | Calculates a SHA-1 hash value of *string* and returns it as a hex string
 | m o p | SOUNDEX(string)                            | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
 | o | SUBSTR(string, position [, substring_length ]) | Returns a portion of *string*, beginning at character *position*, *substring_length* characters long. SUBSTR calculates lengths using characters as defined by the input character set
+| o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
+| o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
 | o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
 
 Note:

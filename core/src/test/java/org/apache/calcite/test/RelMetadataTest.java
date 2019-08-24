@@ -24,7 +24,6 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
@@ -90,7 +89,6 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
-import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -1130,12 +1128,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final ImmutableIntList leftKeys = ImmutableIntList.of(2);
     final ImmutableIntList rightKeys = ImmutableIntList.of(0);
     final EnumerableMergeJoin join;
-    try {
-      join = EnumerableMergeJoin.create(project, deptSort,
-          rexBuilder.makeLiteral(true), leftKeys, rightKeys, JoinRelType.INNER);
-    } catch (InvalidRelException e) {
-      throw TestUtil.rethrow(e);
-    }
+    join = EnumerableMergeJoin.create(project, deptSort,
+        rexBuilder.makeLiteral(true), leftKeys, rightKeys, JoinRelType.INNER);
     collations =
         RelMdCollation.mergeJoin(mq, project, deptSort, leftKeys,
             rightKeys);

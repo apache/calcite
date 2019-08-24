@@ -39,6 +39,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rel.rules.ProjectTableScanRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -290,6 +291,43 @@ public class FrameworksTest {
             throw TestUtil.rethrow(e);
           }
         });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3228">[CALCITE-3228]
+   * Error while applying rule ProjectScanRule:interpreter</a>
+   *
+   * <p>This bug appears under the following conditions:
+   * 1) have an aggregate with group by and multi aggregate calls.
+   * 2) the aggregate can be removed during optimization.
+   * 3) all aggregate calls are simplified to the same reference.
+   * */
+  @Test public void testPushProjectToScan() throws Exception {
+    Table table = new TableImpl();
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    SchemaPlus schema = rootSchema.add("x", new AbstractSchema());
+    schema.add("MYTABLE", table);
+    List<RelTraitDef> traitDefs = new ArrayList<>();
+    traitDefs.add(ConventionTraitDef.INSTANCE);
+    traitDefs.add(RelDistributionTraitDef.INSTANCE);
+    SqlParser.Config parserConfig =
+            SqlParser.configBuilder(SqlParser.Config.DEFAULT)
+                    .setCaseSensitive(false)
+                    .build();
+
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+            .parserConfig(parserConfig)
+            .defaultSchema(schema)
+            .traitDefs(traitDefs)
+            // define the rules you want to apply
+            .ruleSets(
+                    RuleSets.ofList(AbstractConverter.ExpandConversionRule.INSTANCE,
+                            ProjectTableScanRule.INSTANCE))
+            .programs(Programs.ofRules(Programs.RULE_SET))
+            .build();
+
+    executeQuery(config, "select min(id) as mi, max(id) as ma from mytable where id=1 group by id",
+            CalciteSystemProperty.DEBUG.value());
   }
 
   /** Test case for

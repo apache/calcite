@@ -1800,9 +1800,12 @@ public class SqlToRelConverter {
     case ALL:
       switch (logic) {
       case TRUE_FALSE_UNKNOWN:
-        if (validator.getValidatedNodeType(node).isNullable()) {
-          break;
-        } else if (true) {
+        RelDataType type = validator.getValidatedNodeTypeIfKnown(node);
+        if (type == null) {
+          // The node might not be validated if we still don't know type of the node.
+          // Therefore return directly.
+          return;
+        } else {
           break;
         }
         // fall through
@@ -2334,7 +2337,7 @@ public class SqlToRelConverter {
       final SqlValidatorTable validatorTable =
           table.unwrap(SqlValidatorTable.class);
       final List<RelDataTypeField> extendedFields =
-          SqlValidatorUtil.getExtendedColumns(validator.getTypeFactory(), validatorTable,
+          SqlValidatorUtil.getExtendedColumns(validator, validatorTable,
               extendedColumns);
       table = table.extend(extendedFields);
     }

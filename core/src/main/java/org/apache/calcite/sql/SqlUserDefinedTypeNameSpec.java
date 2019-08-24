@@ -17,8 +17,8 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
 
 /**
@@ -45,15 +45,14 @@ public class SqlUserDefinedTypeNameSpec extends SqlTypeNameSpec {
     this(new SqlIdentifier(name, pos), pos);
   }
 
-  @Override public RelDataType deriveType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType deriveType(SqlValidator validator) {
     // The type name is a compound identifier, that means it is a UDT,
-    // returns null to let the SqlValidator deduce its type from
-    // the Schema.
-    return null;
+    // use SqlValidator to deduce its type from the Schema.
+    return validator.getValidatedNodeType(getTypeName());
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-    final String name = getTypeName().getSimple();
+    final String name = getTypeName().names.get(0);
     if (name.startsWith("_")) {
       // We're generating a type for an alien system. For example,
       // UNSIGNED is a built-in type in MySQL.

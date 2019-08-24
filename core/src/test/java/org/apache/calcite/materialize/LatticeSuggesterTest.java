@@ -19,7 +19,11 @@ package org.apache.calcite.materialize;
 import org.apache.calcite.prepare.PlannerImpl;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.statistic.MapSqlStatisticProvider;
@@ -45,6 +49,7 @@ import org.junit.experimental.categories.Category;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -589,6 +594,26 @@ public class LatticeSuggesterTest {
     assertThat(derivedColumns.get(1).tables, is(tables));
   }
 
+  @Test public void testRedshiftDialect() throws Exception {
+    final Tester t = new Tester().foodmart().withEvolve(true)
+        .withDialect(SqlDialect.DatabaseProduct.REDSHIFT.getDialect())
+        .withLibrary(SqlLibrary.POSTGRESQL);
+
+    final String q0 = "select\n"
+        + "  CONCAT(\"fname\", ' ', \"lname\") as \"full_name\",\n"
+        + "  convert_timezone('UTC', 'America/Los_Angeles',\n"
+        + "    cast('2019-01-01 01:00:00' as timestamp)),\n"
+        + "  left(\"fname\", 1) as \"initial\",\n"
+        + "  to_date('2019-01-01', 'YYYY-MM-DD'),\n"
+        + "  to_timestamp('2019-01-01 01:00:00', 'YYYY-MM-DD HH:MM:SS'),\n"
+        + "  count(*) as c,\n"
+        + "  avg(\"total_children\" - \"num_children_at_home\")\n"
+        + "from \"customer\" join \"sales_fact_1997\" using (\"customer_id\")\n"
+        + "group by \"fname\", \"lname\"";
+    t.addQuery(q0);
+    assertThat(t.s.latticeMap.size(), is(1));
+  }
+
   /** Creates a matcher that matches query graphs to strings. */
   private BaseMatcher<List<Lattice>> isGraphs(
       String... strings) {
@@ -692,6 +717,16 @@ public class LatticeSuggesterTest {
               transform.apply(SqlParser.configBuilder(config.getParserConfig()))
                   .build())
           .build());
+    }
+
+    Tester withDialect(SqlDialect dialect) {
+      return withParser(dialect::configureParser);
+    }
+
+    Tester withLibrary(SqlLibrary library) {
+      SqlOperatorTable opTab = SqlLibraryOperatorTableFactory.INSTANCE
+          .getOperatorTable(EnumSet.of(SqlLibrary.STANDARD, library));
+      return withConfig(builder().operatorTable(opTab).build());
     }
   }
 }

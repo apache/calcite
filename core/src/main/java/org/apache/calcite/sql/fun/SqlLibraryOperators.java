@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
@@ -47,6 +48,19 @@ import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 public abstract class SqlLibraryOperators {
   private SqlLibraryOperators() {
   }
+
+  /** The "CONVERT_TIMEZONE(tz1, tz2, datetime)" function;
+   * converts the timezone of {@code datetime} from {@code tz1} to {@code tz2}.
+   * This function is only on Redshift, but we list it in PostgreSQL
+   * because Redshift does not have its own library. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction CONVERT_TIMEZONE =
+      new SqlFunction("CONVERT_TIMEZONE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE,
+          null,
+          OperandTypes.CHARACTER_CHARACTER_DATETIME,
+          SqlFunctionCategory.TIMEDATE);
 
   /** Return type inference for {@code DECODE}. */
   private static final SqlReturnTypeInference DECODE_RETURN_TYPE =
@@ -220,6 +234,25 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
 
+  /** The "CONCAT(arg, ...)" function that concatenates strings.
+   * For example, "CONCACT('a', 'bc', 'd')" returns "abcd". */
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL, ORACLE})
+  public static final SqlFunction CONCAT_FUNCTION =
+      new SqlFunction("CONCAT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.cascade(
+              opBinding -> {
+                int precision = opBinding.collectOperandTypes().stream()
+                    .mapToInt(RelDataType::getPrecision).sum();
+                return opBinding.getTypeFactory()
+                    .createSqlType(SqlTypeName.VARCHAR, precision);
+              },
+              SqlTypeTransforms.TO_NULLABLE),
+          null,
+          OperandTypes.repeat(SqlOperandCountRanges.from(2),
+              OperandTypes.STRING),
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction REVERSE =
       new SqlFunction("REVERSE",
@@ -249,6 +282,28 @@ public abstract class SqlLibraryOperators {
           OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
+  /** The "TO_DATE(string1, string2)" function; casts string1
+   * to a DATE using the format specified in string2. */
+  @LibraryOperator(libraries = {POSTGRESQL, ORACLE})
+  public static final SqlFunction TO_DATE =
+      new SqlFunction("TO_DATE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE,
+          null,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "TO_TIMESTAMP(string1, string2)" function; casts string1
+   * to a TIMESTAMP using the format specified in string2. */
+  @LibraryOperator(libraries = {POSTGRESQL, ORACLE})
+  public static final SqlFunction TO_TIMESTAMP =
+      new SqlFunction("TO_TIMESTAMP",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE,
+          null,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.TIMEDATE);
+
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction CHR =
       new SqlFunction("CHR",
@@ -256,6 +311,26 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.CHAR,
           null,
           OperandTypes.INTEGER,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  public static final SqlFunction MD5 =
+      new SqlFunction("MD5",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
+              SqlTypeTransforms.TO_NULLABLE),
+          null,
+          OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  public static final SqlFunction SHA1 =
+      new SqlFunction("SHA1",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
+              SqlTypeTransforms.TO_NULLABLE),
+          null,
+          OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   /** Infix "::" cast operator used by PostgreSQL, for example

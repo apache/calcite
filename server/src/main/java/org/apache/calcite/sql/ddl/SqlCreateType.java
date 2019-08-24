@@ -31,6 +31,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 
@@ -61,22 +62,17 @@ public class SqlCreateType extends SqlCreate
   @Override public void execute(CalcitePrepare.Context context) {
     final Pair<CalciteSchema, String> pair =
         SqlDdlNodes.schema(context, true, name);
+    final SqlValidator validator = SqlDdlNodes.validator(context, false);
     pair.left.add(pair.right, typeFactory -> {
       if (dataType != null) {
-        return dataType.deriveType(typeFactory);
+        return dataType.deriveType(validator);
       } else {
         final RelDataTypeFactory.Builder builder = typeFactory.builder();
         for (SqlNode def : attributeDefs) {
           final SqlAttributeDefinition attributeDef =
               (SqlAttributeDefinition) def;
           final SqlDataTypeSpec typeSpec = attributeDef.dataType;
-          RelDataType type = typeSpec.deriveType(typeFactory);
-          if (type == null) {
-            Pair<CalciteSchema, String> pair1 =
-                SqlDdlNodes.schema(context, false, typeSpec.getTypeName());
-            type = pair1.left.getType(pair1.right, false).getType()
-                .apply(typeFactory);
-          }
+          final RelDataType type = typeSpec.deriveType(validator);
           builder.add(attributeDef.name.getSimple(), type);
         }
         return builder.build();

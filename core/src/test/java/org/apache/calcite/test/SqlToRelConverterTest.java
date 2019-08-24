@@ -1916,13 +1916,16 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     TestUtil.assertEqualsVerbose(
         "<RelNode type=\"LogicalProject\">\n"
             + "\t<Property name=\"EXPR$0\">\n"
-            + "\t\t+(1, 2)\t</Property>\n"
+            + "\t\t+(1, 2)\n"
+            + "\t</Property>\n"
             + "\t<Property name=\"EXPR$1\">\n"
-            + "\t\t3\t</Property>\n"
+            + "\t\t3\n"
+            + "\t</Property>\n"
             + "\t<Inputs>\n"
             + "\t\t<RelNode type=\"LogicalValues\">\n"
             + "\t\t\t<Property name=\"tuples\">\n"
-            + "\t\t\t\t[{ true }]\t\t\t</Property>\n"
+            + "\t\t\t\t[{ true }]\n"
+            + "\t\t\t</Property>\n"
             + "\t\t\t<Inputs/>\n"
             + "\t\t</RelNode>\n"
             + "\t</Inputs>\n"
@@ -2184,6 +2187,26 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "update emp\n"
         + "set empno = (\n"
         + "  select min(empno) from emp as e where e.deptno = emp.deptno)";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3229">[CALCITE-3229]
+   * UnsupportedOperationException for UPDATE with IN query</a>.
+   */
+  @Test public void testUpdateSubQueryWithIn() {
+    final String sql = "update emp\n"
+            + "set empno = 1 where empno in (\n"
+            + "  select empno from emp where empno=2)";
+    sql(sql).ok();
+  }
+
+  /** Similar to {@link #testUpdateSubQueryWithIn()} but with not in instead of in. */
+  @Test public void testUpdateSubQueryWithNotIn() {
+    final String sql = "update emp\n"
+            + "set empno = 1 where empno not in (\n"
+            + "  select empno from emp where empno=2)";
     sql(sql).ok();
   }
 
@@ -2782,6 +2805,56 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
             + "  fname = 'john'";
     sql(sql).ok();
   }
+
+  @Test
+  public void testNestedStructFieldAccess() {
+    final String sql =
+        "select dn.skill['others'] from sales.dept_nested dn";
+    sql(sql).ok();
+  }
+
+  @Test
+  public void testNestedStructPrimitiveFieldAccess() {
+    final String sql =
+        "select dn.skill['others']['a'] from sales.dept_nested dn";
+    sql(sql).ok();
+  }
+
+  @Test
+  public void testNestedPrimitiveFieldAccess() {
+    final String sql =
+        "select dn.skill['desc'] from sales.dept_nested dn";
+    sql(sql).ok();
+  }
+
+  @Test
+  public void testArrayElementNestedPrimitive() {
+    final String sql =
+        "select dn.employees[0]['empno'] from sales.dept_nested dn";
+    sql(sql).ok();
+  }
+
+  @Test
+  public void testArrayElementDoublyNestedPrimitive() {
+    final String sql =
+        "select dn.employees[0]['detail']['skills'][0]['type'] from sales.dept_nested dn";
+    sql(sql).ok();
+  }
+
+  @Test
+  public void testArrayElementDoublyNestedStruct() {
+    final String sql =
+        "select dn.employees[0]['detail']['skills'][0] from sales.dept_nested dn";
+    sql(sql).ok();
+  }
+
+  @Test
+  public void testArrayElementThreeTimesNestedStruct() {
+    final String sql =
+        "select dn.employees[0]['detail']['skills'][0]['others'] from sales.dept_nested dn";
+    sql(sql).ok();
+  }
+
 
   /**
    * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-3003">[CALCITE-3003]

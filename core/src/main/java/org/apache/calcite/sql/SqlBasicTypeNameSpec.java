@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
 
 import java.nio.charset.Charset;
@@ -183,7 +184,8 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
     }
   }
 
-  @Override public RelDataType deriveType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType deriveType(SqlValidator validator) {
+    final RelDataTypeFactory typeFactory = validator.getTypeFactory();
     if (sqlTypeName == null) {
       return null;
     }

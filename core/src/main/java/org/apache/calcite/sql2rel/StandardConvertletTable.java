@@ -515,7 +515,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       return castToValidatedType(cx, call, cx.convertExpression(left));
     }
     SqlDataTypeSpec dataType = (SqlDataTypeSpec) right;
-    RelDataType type = dataType.deriveType(typeFactory);
+    RelDataType type = dataType.deriveType(cx.getValidator());
     if (type == null) {
       type = cx.getValidator().getValidatedNodeType(dataType.getTypeName());
     }

@@ -655,6 +655,28 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + ".*Supported form.s.: '<STRING> \\|\\| <STRING>.*'");
   }
 
+  /** Tests the CONCAT function, which unlike the concat operator ('||') is not
+   * standard but only in the ORACLE and POSTGRESQL libraries. */
+  @Test public void testConcatFunction() {
+    // CONCAT is not in the library operator table
+    tester = tester.withOperatorTable(
+        SqlLibraryOperatorTableFactory.INSTANCE
+            .getOperatorTable(SqlLibrary.STANDARD, SqlLibrary.POSTGRESQL));
+    checkExp("concat('a', 'b')");
+    checkExp("concat(x'12', x'34')");
+    checkExp("concat(_UTF16'a', _UTF16'b', _UTF16'c')");
+    checkExpType("concat('aabbcc', 'ab', '+-')",
+        "VARCHAR(10) NOT NULL");
+    checkExpType("concat('aabbcc', CAST(NULL AS VARCHAR(20)), '+-')",
+        "VARCHAR(28)");
+    checkWholeExpFails("concat('aabbcc', 2)",
+        "(?s)Cannot apply 'CONCAT' to arguments of type 'CONCAT\\(<CHAR\\(6\\)>, <INTEGER>\\)'\\. .*");
+    checkWholeExpFails("concat('abc', 'ab', 123)",
+        "(?s)Cannot apply 'CONCAT' to arguments of type 'CONCAT\\(<CHAR\\(3\\)>, <CHAR\\(2\\)>, <INTEGER>\\)'\\. .*");
+    checkWholeExpFails("concat(true, false)",
+        "(?s)Cannot apply 'CONCAT' to arguments of type 'CONCAT\\(<BOOLEAN>, <BOOLEAN>\\)'\\. .*");
+  }
+
   @Test public void testBetween() {
     checkExp("1 between 2 and 3");
     checkExp("'a' between 'b' and 'c'");
@@ -1193,6 +1215,62 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExp("CAST( TIME '10:12:21' AS VARCHAR(20))");
     checkExp("CAST( '10:12:21' AS TIME)");
     checkExp("CAST( '2004-12-21 10:12:21' AS TIMESTAMP)");
+  }
+
+  @Test public void testConvertTimezoneFunction() {
+    checkWholeExpFails(
+        "CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', CAST('2000-01-01' AS TIMESTAMP))",
+        "No match found for function signature CONVERT_TIMEZONE\\(<CHARACTER>, <CHARACTER>, <TIMESTAMP>\\)");
+    tester = tester.withOperatorTable(
+        SqlLibraryOperatorTableFactory.INSTANCE
+            .getOperatorTable(SqlLibrary.STANDARD, SqlLibrary.POSTGRESQL));
+    checkExpType(
+        "CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', CAST('2000-01-01' AS TIMESTAMP))",
+        "DATE NOT NULL");
+    checkWholeExpFails("CONVERT_TIMEZONE('UTC', 'America/Los_Angeles')",
+        "Invalid number of arguments to function 'CONVERT_TIMEZONE'. Was expecting 3 arguments");
+    checkWholeExpFails("CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', '2000-01-01')",
+        "Cannot apply 'CONVERT_TIMEZONE' to arguments of type 'CONVERT_TIMEZONE\\(<CHAR\\(3\\)>, <CHAR\\(19\\)>, "
+            + "<CHAR\\(10\\)>\\)'\\. Supported form\\(s\\): 'CONVERT_TIMEZONE\\(<CHARACTER>, <CHARACTER>, <DATETIME>\\)'");
+    checkWholeExpFails("CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', "
+            + "'UTC', CAST('2000-01-01' AS TIMESTAMP))",
+        "Invalid number of arguments to function 'CONVERT_TIMEZONE'. Was expecting 3 arguments");
+  }
+
+  @Test public void testToDateFunction() {
+    checkWholeExpFails(
+        "TO_DATE('2000-01-01', 'YYYY-MM-DD')",
+        "No match found for function signature TO_DATE\\(<CHARACTER>, <CHARACTER>\\)");
+    tester = tester.withOperatorTable(
+        SqlLibraryOperatorTableFactory.INSTANCE
+            .getOperatorTable(SqlLibrary.STANDARD, SqlLibrary.POSTGRESQL));
+    checkExpType("TO_DATE('2000-01-01', 'YYYY-MM-DD')",
+        "DATE NOT NULL");
+    checkWholeExpFails("TO_DATE('2000-01-01')",
+        "Invalid number of arguments to function 'TO_DATE'. Was expecting 2 arguments");
+    checkWholeExpFails("TO_DATE(2000, 'YYYY')",
+        "Cannot apply 'TO_DATE' to arguments of type 'TO_DATE\\(<INTEGER>, <CHAR\\(4\\)>\\)'\\. "
+            + "Supported form\\(s\\): 'TO_DATE\\(<STRING>, <STRING>\\)'");
+    checkWholeExpFails("TO_DATE('2000-01-01', 'YYYY-MM-DD', 'YYYY-MM-DD')",
+        "Invalid number of arguments to function 'TO_DATE'. Was expecting 2 arguments");
+  }
+
+  @Test public void testToTimestampFunction() {
+    checkWholeExpFails(
+        "TO_TIMESTAMP('2000-01-01 01:00:00', 'YYYY-MM-DD HH:MM:SS')",
+        "No match found for function signature TO_TIMESTAMP\\(<CHARACTER>, <CHARACTER>\\)");
+    tester = tester.withOperatorTable(
+        SqlLibraryOperatorTableFactory.INSTANCE
+            .getOperatorTable(SqlLibrary.STANDARD, SqlLibrary.POSTGRESQL));
+    checkExpType("TO_TIMESTAMP('2000-01-01 01:00:00', 'YYYY-MM-DD HH:MM:SS')",
+        "DATE NOT NULL");
+    checkWholeExpFails("TO_TIMESTAMP('2000-01-01 01:00:00')",
+        "Invalid number of arguments to function 'TO_TIMESTAMP'. Was expecting 2 arguments");
+    checkWholeExpFails("TO_TIMESTAMP(2000, 'YYYY')",
+        "Cannot apply 'TO_TIMESTAMP' to arguments of type 'TO_TIMESTAMP\\(<INTEGER>, <CHAR\\(4\\)>\\)'\\. "
+            + "Supported form\\(s\\): 'TO_TIMESTAMP\\(<STRING>, <STRING>\\)'");
+    checkWholeExpFails("TO_TIMESTAMP('2000-01-01 01:00:00', 'YYYY-MM-DD HH:MM:SS', 'YYYY-MM-DD')",
+        "Invalid number of arguments to function 'TO_TIMESTAMP'. Was expecting 2 arguments");
   }
 
   @Test public void testInvalidFunction() {
@@ -7723,11 +7801,51 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("CHAR(3) ARRAY NOT NULL");
   }
 
-  @Test public void testCastAsArrayType() {
+  @Test public void testCastAsCollectionType() {
     sql("select cast(array[1,null,2] as int array) from (values (1))")
         .columnType("INTEGER NOT NULL ARRAY NOT NULL");
     sql("select cast(array['1',null,'2'] as varchar(5) array) from (values (1))")
         .columnType("VARCHAR(5) NOT NULL ARRAY NOT NULL");
+    // test array type.
+    sql("select cast(\"intArrayType\" as int array) from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("INTEGER NOT NULL ARRAY NOT NULL");
+    sql("select cast(\"varchar5ArrayType\" as varchar(5) array) from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("VARCHAR(5) NOT NULL ARRAY NOT NULL");
+    sql("select cast(\"intArrayArrayType\" as int array array) from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+    sql("select cast(\"varchar5ArrayArrayType\" as varchar(5) array array) "
+        + "from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("VARCHAR(5) NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+    // test multiset type.
+    sql("select cast(\"intMultisetType\" as int multiset) from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("INTEGER NOT NULL MULTISET NOT NULL");
+    sql("select cast(\"varchar5MultisetType\" as varchar(5) multiset) from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("VARCHAR(5) NOT NULL MULTISET NOT NULL");
+    sql("select cast(\"intMultisetArrayType\" as int multiset array) from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("INTEGER NOT NULL MULTISET NOT NULL ARRAY NOT NULL");
+    sql("select cast(\"varchar5MultisetArrayType\" as varchar(5) multiset array) "
+        + "from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("VARCHAR(5) NOT NULL MULTISET NOT NULL ARRAY NOT NULL");
+    // test row type nested in collection type.
+    sql("select cast(\"rowArrayMultisetType\" as row(f0 int array multiset, "
+        + "f1 varchar(5) array) array multiset) "
+        + "from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("RecordType(INTEGER NOT NULL ARRAY NOT NULL MULTISET NOT NULL F0, "
+            + "VARCHAR(5) NOT NULL ARRAY NOT NULL F1) NOT NULL "
+            + "ARRAY NOT NULL MULTISET NOT NULL");
+    // test UDT collection type.
+    sql("select cast(a as MyUDT array multiset) from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .fails("(?s).*class org\\.apache\\.calcite\\.sql\\.SqlIdentifier: MYUDT.*");
   }
 
   @Test public void testCastAsRowType() {

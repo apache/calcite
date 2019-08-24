@@ -255,8 +255,14 @@ public class Bindables {
     }
 
     public Enumerable<Object[]> bind(DataContext dataContext) {
-      // TODO: filterable and projectable
-      return table.unwrap(ScannableTable.class).scan(dataContext);
+      if (table.unwrap(ProjectableFilterableTable.class) != null) {
+        return table.unwrap(ProjectableFilterableTable.class).scan(dataContext,
+                filters, projects.toIntArray());
+      } else if (table.unwrap(FilterableTable.class) != null) {
+        return table.unwrap(FilterableTable.class).scan(dataContext, filters);
+      } else {
+        return table.unwrap(ScannableTable.class).scan(dataContext);
+      }
     }
 
     public Node implement(InterpreterImplementor implementor) {

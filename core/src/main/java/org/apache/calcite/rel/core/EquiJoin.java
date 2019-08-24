@@ -37,7 +37,13 @@ import java.util.Set;
  * eliminate some optimize logic for {@code EquiJoin} in some planning rules.
  * e.g. {@link org.apache.calcite.rel.rules.FilterJoinRule} would not push non-equi
  * join conditions of the above filter into the join underneath if it is an {@code EquiJoin}.
+ *
+ * @deprecated This class is no longer needed; if you are writing a sub-class of
+ * Join that only accepts equi conditions, it is sufficient that it extends
+ * {@link Join}. It will be evident that it is an equi-join when its
+ * {@link JoinInfo#nonEquiConditions} is an empty list.
  */
+@Deprecated // to be removed before 2.0
 public abstract class EquiJoin extends Join {
   public final ImmutableIntList leftKeys;
   public final ImmutableIntList rightKeys;

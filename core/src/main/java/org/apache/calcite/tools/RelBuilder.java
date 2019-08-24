@@ -34,6 +34,7 @@ import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
@@ -79,6 +80,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.type.TableFunctionReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Holder;
@@ -1296,7 +1298,8 @@ public class RelBuilder {
     }
 
     if (frame.rel instanceof Project
-        && shouldMergeProject()) {
+        && shouldMergeProject()
+        && isNotRestructuringProjection(frame.rel.getRowType(), nodeList)) {
       final Project project = (Project) frame.rel;
       // Populate field names. If the upper expression is an input ref and does
       // not have a recommended name, use the name of the underlying field.
@@ -1403,6 +1406,21 @@ public class RelBuilder {
     stack.pop();
     stack.push(new Frame(project, fields.build()));
     return this;
+  }
+
+  /**
+   * Restructuring projection is when inputProjection returns flat type
+   * but new projection collects flatten types back into struct columns.
+   * Given method negates the condition to know whether projects can be merged.
+   *
+   * @param inputProjectionType input projection result type
+   * @param newProjects         new projections
+   * @return whether new projections don't do restructuring
+   * (collection of flattened fields back into struct fields)
+   */
+  private boolean isNotRestructuringProjection(RelDataType inputProjectionType,
+      List<RexNode> newProjects) {
+    return SqlTypeUtil.isFlat(newProjects) || !SqlTypeUtil.isFlat(inputProjectionType);
   }
 
   /** Whether to attempt to merge consecutive {@link Project} operators.
@@ -1985,6 +2003,41 @@ public class RelBuilder {
     fields.addAll(right.fields);
     stack.push(new Frame(join, fields.build()));
     filter(postCondition);
+    return this;
+  }
+
+  /** Creates a {@link Correlate}
+   * with a {@link CorrelationId} and an array of fields that are used by correlation. */
+  public RelBuilder correlate(JoinRelType joinType,
+      CorrelationId correlationId, RexNode... requiredFields) {
+    return correlate(joinType, correlationId, ImmutableList.copyOf(requiredFields));
+  }
+
+  /** Creates a {@link Correlate}
+   * with a {@link CorrelationId} and a list of fields that are used by correlation. */
+  public RelBuilder correlate(JoinRelType joinType,
+      CorrelationId correlationId, Iterable<? extends RexNode> requiredFields) {
+    Frame right = stack.pop();
+
+    final Registrar registrar =
+        new Registrar(fields(), peek().getRowType().getFieldNames());
+
+    List<Integer> requiredOrdinals =
+        registrar.registerExpressions(ImmutableList.copyOf(requiredFields));
+
+    project(registrar.extraNodes);
+    rename(registrar.names);
+    Frame left = stack.pop();
+
+    final RelNode correlate = correlateFactory
+        .createCorrelate(left.rel, right.rel, correlationId,
+            ImmutableBitSet.of(requiredOrdinals), joinType);
+
+    final ImmutableList.Builder<Field> fields = ImmutableList.builder();
+    fields.addAll(left.fields);
+    fields.addAll(right.fields);
+    stack.push(new Frame(correlate, fields.build()));
+
     return this;
   }
 

@@ -20,6 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
@@ -122,10 +123,11 @@ public class SqlRowTypeNameSpec extends SqlTypeNameSpec {
     return litmus.succeed();
   }
 
-  @Override public RelDataType deriveType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType deriveType(SqlValidator sqlValidator) {
+    final RelDataTypeFactory typeFactory = sqlValidator.getTypeFactory();
     return typeFactory.createStructType(
         fieldTypes.stream()
-            .map(dt -> dt.deriveType(typeFactory))
+            .map(dt -> dt.deriveType(sqlValidator))
             .collect(Collectors.toList()),
         fieldNames.stream()
             .map(SqlIdentifier::toString)
