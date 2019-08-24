@@ -847,9 +847,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // Checking if tree is valid considerably slows down planning
     // Recommend doing it only at unit test
-    if (CalciteSystemProperty.TEST_VALIDATE_VOLCANO_PLANNER.value()) {
-      assert isValid(Litmus.THROW);
-    }
+    assert isValid(Litmus.THROW);
 
     return subset;
   }
