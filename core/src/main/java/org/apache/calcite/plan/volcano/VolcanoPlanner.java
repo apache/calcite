@@ -846,8 +846,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     final RelSubset subset = registerImpl(rel, set);
 
     // Checking if tree is valid considerably slows down planning
-    // Recommend doing it only at unit test
-    assert isValid(Litmus.THROW);
+    // Only doing it if logger level is debug or finer
+    if (LOGGER.isDebugEnabled()) {
+      assert isValid(Litmus.THROW);
+    }
 
     return subset;
   }
