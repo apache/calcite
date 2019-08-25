@@ -3761,9 +3761,9 @@ public class RelToSqlConverterTest {
             + "cast(NULL AS INT), \n"
             + "cast(\"product\".\"product_id\" as varchar), \n"
             + "cast(\"sales_fact_1997\".\"store_id\" as varchar)\n"
-            + "    from \"product\"\n"
-            + "    inner join \"sales_fact_1997\"\n"
-            + "    on \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"";
+            + "from \"product\"\n"
+            + "inner join \"sales_fact_1997\"\n"
+            + "on \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"";
     final String expected = "INSERT INTO \"foodmart\".\"account\" "
             + "(\"account_id\", \"account_parent\", \"account_description\", "
             + "\"account_type\", \"account_rollup\", \"Custom_Members\")\n"
