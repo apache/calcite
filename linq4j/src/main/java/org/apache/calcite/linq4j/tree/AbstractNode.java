@@ -71,8 +71,12 @@ public abstract class AbstractNode implements Node {
   }
 
   public Object evaluate(Evaluator evaluator) {
-    throw new RuntimeException(
-        "evaluation not supported: " + getClass() + ":" + nodeType);
+    return evaluator.evaluate(this);
+  }
+
+  public Object evaluate() {
+    Evaluator evaluator = new Evaluator();
+    return this.evaluate(evaluator);
   }
 
   @Override public boolean equals(Object o) {

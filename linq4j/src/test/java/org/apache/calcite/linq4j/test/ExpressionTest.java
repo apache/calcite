@@ -22,6 +22,7 @@ import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.Blocks;
 import org.apache.calcite.linq4j.tree.ClassDeclaration;
 import org.apache.calcite.linq4j.tree.DeclarationStatement;
+import org.apache.calcite.linq4j.tree.Evaluator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.FieldDeclaration;
@@ -51,6 +52,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
+
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
@@ -1299,6 +1303,17 @@ public class ExpressionTest {
                 Expressions.constant(true),
                 Expressions.return_(null),
                 Expressions.return_(null, Expressions.constant(1)))));
+  }
+
+  @Test public void testEvaluate() {
+    Expression expression = Expressions.add(ONE, TWO);
+    Object value1 = expression.evaluate();
+    assertEquals((int) value1, 3);
+
+    Evaluator evaluator = new Evaluator();
+    Object value2 = expression.evaluate(evaluator);
+    assertEquals((int) value2, 3);
+
   }
 
   @Test public void testIfElseIfElse() {
