@@ -1051,13 +1051,15 @@ public class PigRelOpTest extends PigRelTestBase {
                               + "    LogicalAggregate(group=[{0}], A=[COLLECT($1)])\n"
                               + "      LogicalProject(DEPTNO=[$0], $f1=[ROW($0, $1, $2)])\n"
                               + "        LogicalTableScan(table=[[scott, DEPT]])\n";
-    String expectedOptimizedPlan = ""
-                                       + "LogicalProject($f0=[$1])\n"
-                                       + "  LogicalAggregate(group=[{0}], agg#0=[COLLECT($2)])\n"
-                                       + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], $f2=[ROW"
-                                       + "($0, $1)])\n"
-                                       + "      LogicalTableScan(table=[[scott, DEPT]])\n";
-    testPigRelOpTranslation(script, expectedPlan, expectedOptimizedPlan);
+    // TODO: CALCITE-3138 prevents the PigToSqlAggregateRule being applied to produce this
+    //  following optimized plan.
+//    String expectedOptimizedPlan =
+//        ""
+//            + "LogicalProject($f0=[$1])\n"
+//            + "  LogicalAggregate(group=[{0}], agg#0=[COLLECT($2)])\n"
+//            + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], $f2=[ROW($0, $1)])\n"
+//            + "      LogicalTableScan(table=[[scott, DEPT]])\n";
+    testPigRelOpTranslation(script, expectedPlan, expectedPlan);
 
     String expectedResult = ""
                                 + "({(20,RESEARCH)})\n"
@@ -1065,10 +1067,11 @@ public class PigRelOpTest extends PigRelTestBase {
                                 + "({(10,ACCOUNTING)})\n"
                                 + "({(30,SALES)})\n";
     testRunPigScript(script, expectedResult);
-    String expectedSql = ""
-                             + "SELECT COLLECT(ROW(DEPTNO, DNAME)) AS $f0\n"
-                             + "FROM scott.DEPT\n"
-                             + "GROUP BY DEPTNO";
+    String expectedSql =
+        ""
+            + "SELECT MULTISET_PROJECTION(COLLECT(ROW(DEPTNO, DNAME, LOC)), 0, 1) AS $f0\n"
+            + "FROM scott.DEPT\n"
+            + "GROUP BY DEPTNO";
     testSQLTranslation(script, expectedSql);
   }
 
