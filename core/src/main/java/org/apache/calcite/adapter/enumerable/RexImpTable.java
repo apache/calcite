@@ -106,6 +106,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_TYPE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LEFT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MD5;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RIGHT;
@@ -450,6 +451,24 @@ public class RexImpTable {
         NotImplementor.of(posixRegexImplementor), false);
     defineImplementor(SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_SENSITIVE, NullPolicy.STRICT,
         NotImplementor.of(posixRegexImplementor), false);
+    defineImplementor(REGEXP_REPLACE, NullPolicy.STRICT,
+        new NotNullImplementor() {
+          final NotNullImplementor[] implementors = {
+              new ReflectiveCallNotNullImplementor(
+                  BuiltInMethod.REGEXP_REPLACE3.method),
+              new ReflectiveCallNotNullImplementor(
+                  BuiltInMethod.REGEXP_REPLACE4.method),
+              new ReflectiveCallNotNullImplementor(
+                  BuiltInMethod.REGEXP_REPLACE5.method),
+              new ReflectiveCallNotNullImplementor(
+                  BuiltInMethod.REGEXP_REPLACE6.method)
+          };
+          public Expression implement(RexToLixTranslator translator,
+                                      RexCall call, List<Expression> translatedOperands) {
+            return implementors[call.getOperands().size() - 3]
+                .implement(translator, call, translatedOperands);
+          }
+        }, false);
 
     // Multisets & arrays
     defineMethod(CARDINALITY, BuiltInMethod.COLLECTION_SIZE.method,
