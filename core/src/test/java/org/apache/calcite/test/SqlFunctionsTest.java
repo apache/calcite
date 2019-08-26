@@ -881,7 +881,7 @@ public class SqlFunctionsTest {
     try {
       String o = md5((String) null);
       fail("Expected NPE, got " + o);
-    } catch (NullPointerException e) {
+    } catch (IllegalArgumentException e) {
       // ok
     }
   }
@@ -895,7 +895,7 @@ public class SqlFunctionsTest {
     try {
       String o = sha1((String) null);
       fail("Expected NPE, got " + o);
-    } catch (NullPointerException e) {
+    } catch (IllegalArgumentException e) {
       // ok
     }
   }
