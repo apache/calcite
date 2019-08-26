@@ -1067,6 +1067,38 @@ public class RelToSqlConverterTest {
     sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
   }
 
+  @Test public void testHiveSubstring() {
+    String query = "SELECT SUBSTRING('ABC', 2)"
+            + "from \"foodmart\".\"reserve_employee\"";
+    final String expected = "SELECT SUBSTRING('ABC', 2)\n"
+            + "FROM foodmart.reserve_employee";
+    sql(query).withHive().ok(expected);
+  }
+
+  @Test public void testHiveSubstringWithLength() {
+    String query = "SELECT SUBSTRING('ABC', 2, 3)"
+            + "from \"foodmart\".\"reserve_employee\"";
+    final String expected = "SELECT SUBSTRING('ABC', 2, 3)\n"
+            + "FROM foodmart.reserve_employee";
+    sql(query).withHive().ok(expected);
+  }
+
+  @Test public void testHiveSubstringWithANSI() {
+    String query = "SELECT SUBSTRING('ABC' FROM 2)"
+            + "from \"foodmart\".\"reserve_employee\"";
+    final String expected = "SELECT SUBSTRING('ABC', 2)\n"
+            + "FROM foodmart.reserve_employee";
+    sql(query).withHive().ok(expected);
+  }
+
+  @Test public void testHiveSubstringWithANSIAndLength() {
+    String query = "SELECT SUBSTRING('ABC' FROM 2 FOR 3)"
+            + "from \"foodmart\".\"reserve_employee\"";
+    final String expected = "SELECT SUBSTRING('ABC', 2, 3)\n"
+            + "FROM foodmart.reserve_employee";
+    sql(query).withHive().ok(expected);
+  }
+
   @Test public void testMysqlCastToBigint() {
     // MySQL does not allow cast to BIGINT; instead cast to SIGNED.
     final String query = "select cast(\"product_id\" as bigint) from \"product\"";
