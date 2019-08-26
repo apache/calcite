@@ -83,7 +83,18 @@ public class RelMdRowCount
   }
 
   public Double getRowCount(Union rel, RelMetadataQuery mq) {
-    return rel.estimateRowCount(mq);
+    double rowCount = 0.0;
+    for (RelNode input : rel.getInputs()) {
+      Double partialRowCount = mq.getRowCount(input);
+      if (partialRowCount == null) {
+        return null;
+      }
+      rowCount += partialRowCount;
+    }
+    if (!rel.all) {
+      rowCount *= 0.5;
+    }
+    return rowCount;
   }
 
   public Double getRowCount(Intersect rel, RelMetadataQuery mq) {
