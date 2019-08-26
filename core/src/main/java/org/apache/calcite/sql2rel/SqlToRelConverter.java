@@ -1102,6 +1102,16 @@ public class SqlToRelConverter {
       //   where emp.deptno <> null
       //         and q.indicator <> TRUE"
       //
+      // Note:
+      // Subquery can be used as SqlUpdate#condition like below:
+      // "update emp
+      //  set empno = 1 where emp.empno in (
+      //   select emp.empno from emp where emp.empno=2)"
+      // In such case, when converting SqlUpdate#condition, bb.root is null
+      // and it makes no sense to do the subquery substituion.
+      if (bb.root == null) {
+        return;
+      }
       final RelDataType targetRowType =
           SqlTypeUtil.promoteToRowType(typeFactory,
               validator.getValidatedNodeType(leftKeyNode), null);
