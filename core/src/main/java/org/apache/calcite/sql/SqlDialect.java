@@ -1124,7 +1124,8 @@ public class SqlDialect {
     NEOVIEW("Neoview", null, NullCollation.HIGH),
     SYBASE("Sybase", null, NullCollation.HIGH),
     TERADATA("Teradata", "\"", NullCollation.HIGH),
-    HSQLDB("Hsqldb", null, NullCollation.HIGH),
+    //Source: Table 13.27 at http://hsqldb.org/doc/2.0/guide/dbproperties-chapt.html
+    HSQLDB("Hsqldb", null, NullCollation.FIRST),
     VERTICA("Vertica", "\"", NullCollation.HIGH),
     SQLSTREAM("SQLstream", "\"", NullCollation.HIGH),
     SPARK("Spark", null, NullCollation.LOW),

@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
@@ -35,7 +36,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 public class HsqldbSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT =
       new HsqldbSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.HSQLDB));
+          .withDatabaseProduct(DatabaseProduct.HSQLDB)
+          .withNullCollation(NullCollation.FIRST));
 
   /** Creates an HsqldbSqlDialect. */
   public HsqldbSqlDialect(Context context) {
