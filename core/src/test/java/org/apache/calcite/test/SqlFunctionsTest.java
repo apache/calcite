@@ -42,6 +42,7 @@ import static org.apache.calcite.runtime.SqlFunctions.lower;
 import static org.apache.calcite.runtime.SqlFunctions.ltrim;
 import static org.apache.calcite.runtime.SqlFunctions.md5;
 import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
+import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
 import static org.apache.calcite.runtime.SqlFunctions.subtractMonths;
@@ -100,6 +101,43 @@ public class SqlFunctionsTest {
     assertThat(posixRegex("abc", "[[:xdigit:]]", false), is(true));
     assertThat(posixRegex("abc", "[[:xdigit:]]+", false), is(true));
     assertThat(posixRegex("abcq", "[[:xdigit:]]", false), is(true));
+  }
+
+  @Test public void testRegexpReplace() {
+    assertThat(regexpReplace("a b c", "b", "X"), is("a X c"));
+    assertThat(regexpReplace("abc def ghi", "[g-z]+", "X"), is("abc def X"));
+    assertThat(regexpReplace("abc def ghi", "[a-z]+", "X"), is("X X X"));
+    assertThat(regexpReplace("a b c", "a|b", "X"), is("X X c"));
+    assertThat(regexpReplace("a b c", "y", "X"), is("a b c"));
+
+    assertThat(regexpReplace("100-200", "(\\d+)", "num"), is("num-num"));
+    assertThat(regexpReplace("100-200", "(\\d+)", "###"), is("###-###"));
+    assertThat(regexpReplace("100-200", "(-)", "###"), is("100###200"));
+
+    assertThat(regexpReplace("abc def ghi", "[a-z]+", "X", 1), is("X X X"));
+    assertThat(regexpReplace("abc def ghi", "[a-z]+", "X", 2), is("aX X X"));
+    assertThat(regexpReplace("abc def ghi", "[a-z]+", "X", 1, 3),
+        is("abc def X"));
+    assertThat(regexpReplace("abc def GHI", "[a-z]+", "X", 1, 3, "c"),
+        is("abc def GHI"));
+    assertThat(regexpReplace("abc def GHI", "[a-z]+", "X", 1, 3, "i"),
+        is("abc def X"));
+
+    try {
+      regexpReplace("abc def ghi", "[a-z]+", "X", 0);
+      fail("'regexp_replace' on an invalid pos is not possible");
+    } catch (CalciteException e) {
+      assertThat(e.getMessage(),
+          is("Not a valid input for REGEXP_REPLACE: '0'"));
+    }
+
+    try {
+      regexpReplace("abc def ghi", "[a-z]+", "X", 1, 3, "WWW");
+      fail("'regexp_replace' on an invalid matchType is not possible");
+    } catch (CalciteException e) {
+      assertThat(e.getMessage(),
+          is("Not a valid input for REGEXP_REPLACE: 'WWW'"));
+    }
   }
 
   @Test public void testLower() {
