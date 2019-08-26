@@ -1051,8 +1051,7 @@ public class PigRelOpTest extends PigRelTestBase {
                               + "    LogicalAggregate(group=[{0}], A=[COLLECT($1)])\n"
                               + "      LogicalProject(DEPTNO=[$0], $f1=[ROW($0, $1, $2)])\n"
                               + "        LogicalTableScan(table=[[scott, DEPT]])\n";
-    // TODO: CALCITE-3138 prevents the PigToSqlAggregateRule being applied to produce this
-    //  following optimized plan.
+    // CALCITE-3297: PigToSqlAggregateRule should be applied to produce the following optimized plan
 //    String expectedOptimizedPlan =
 //        ""
 //            + "LogicalProject($f0=[$1])\n"
