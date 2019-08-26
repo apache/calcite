@@ -237,6 +237,7 @@ public class RelJson {
     map.put("type", toJson(node.getType()));
     map.put("distinct", node.isDistinct());
     map.put("operands", node.getArgList());
+    map.put("name", node.getName());
     return map;
   }
 
