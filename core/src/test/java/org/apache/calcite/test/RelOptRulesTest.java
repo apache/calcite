@@ -6285,6 +6285,21 @@ public class RelOptRulesTest extends RelOptTestBase {
     // Do not copy the offset
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3296">[CALCITE-3296]
+   * Decorrelator gives empty result
+   * after decorrelating sort rel with null offset and fetch </a>
+   */
+  @Test public void testDecorrelationWithSort() {
+    final String sql = "SELECT e1.empno\n"
+        + "FROM emp e1, dept d1 where e1.deptno = d1.deptno\n"
+        + "and e1.deptno < 10 and d1.deptno < 15\n"
+        + "and e1.sal > (select avg(sal) from emp e2 where e1.empno = e2.empno)\n"
+        + "order by e1.empno";
+
+    sql(sql).with(HepProgram.builder().build()).withDecorrelation(true).checkUnchanged();
+  }
 }
 
 // End RelOptRulesTest.java
