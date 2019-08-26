@@ -660,6 +660,7 @@ limitations under the License.
             <exclude>**/org/apache/calcite/test/concurrent/ConcurrentTestCommandScript.class</exclude>
             <exclude>**/org/apache/calcite/test/concurrent/ConcurrentTestCommandScript$ShellCommand.class</exclude>
             <exclude>**/org/apache/calcite/util/Unsafe.class</exclude>
+            <exclude>**/org/apache/calcite/runtime/RegexpFunctions.class</exclude>
           </excludes>
         </configuration>
         <executions>

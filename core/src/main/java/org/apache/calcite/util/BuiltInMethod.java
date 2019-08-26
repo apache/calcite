@@ -84,6 +84,7 @@ import org.apache.calcite.runtime.JsonFunctions;
 import org.apache.calcite.runtime.Matcher;
 import org.apache.calcite.runtime.Pattern;
 import org.apache.calcite.runtime.RandomFunction;
+import org.apache.calcite.runtime.RegexpFunctions;
 import org.apache.calcite.runtime.ResultSetEnumerable;
 import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.runtime.SqlFunctions;
@@ -383,12 +384,12 @@ public enum BuiltInMethod {
   LIKE(SqlFunctions.class, "like", String.class, String.class),
   SIMILAR(SqlFunctions.class, "similar", String.class, String.class),
   POSIX_REGEX(SqlFunctions.class, "posixRegex", String.class, String.class, Boolean.class),
-  REGEXP_REPLACE3(SqlFunctions.class, "regexpReplace", String.class, String.class, String.class),
-  REGEXP_REPLACE4(SqlFunctions.class, "regexpReplace", String.class, String.class, String.class,
+  REGEXP_REPLACE3(RegexpFunctions.class, "regexpReplace", String.class, String.class, String.class),
+  REGEXP_REPLACE4(RegexpFunctions.class, "regexpReplace", String.class, String.class, String.class,
       Integer.class),
-  REGEXP_REPLACE5(SqlFunctions.class, "regexpReplace", String.class, String.class, String.class,
+  REGEXP_REPLACE5(RegexpFunctions.class, "regexpReplace", String.class, String.class, String.class,
       Integer.class, Integer.class),
-  REGEXP_REPLACE6(SqlFunctions.class, "regexpReplace", String.class, String.class, String.class,
+  REGEXP_REPLACE6(RegexpFunctions.class, "regexpReplace", String.class, String.class, String.class,
       Integer.class, Integer.class, String.class),
   IS_TRUE(SqlFunctions.class, "isTrue", Boolean.class),
   IS_NOT_FALSE(SqlFunctions.class, "isNotFalse", Boolean.class),
