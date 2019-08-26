@@ -122,7 +122,8 @@ public class RelWriterTest {
       + "          \"distinct\": true,\n"
       + "          \"operands\": [\n"
       + "            1\n"
-      + "          ]\n"
+      + "          ],\n"
+      + "          \"name\": \"c\"\n"
       + "        },\n"
       + "        {\n"
       + "          \"agg\": {\n"
@@ -135,7 +136,8 @@ public class RelWriterTest {
       + "            \"nullable\": false\n"
       + "          },\n"
       + "          \"distinct\": false,\n"
-      + "          \"operands\": []\n"
+      + "          \"operands\": [],\n"
+      + "          \"name\": \"d\"\n"
       + "        }\n"
       + "      ]\n"
       + "    }\n"
@@ -452,7 +454,7 @@ public class RelWriterTest {
         });
 
     assertThat(s,
-        isLinux("LogicalAggregate(group=[{0}], agg#0=[COUNT(DISTINCT $1)], agg#1=[COUNT()])\n"
+        isLinux("LogicalAggregate(group=[{0}], c=[COUNT(DISTINCT $1)], d=[COUNT()])\n"
             + "  LogicalFilter(condition=[=($1, 10)])\n"
             + "    LogicalTableScan(table=[[hr, emps]])\n"));
   }
@@ -579,6 +581,88 @@ public class RelWriterTest {
         + "LogicalProject($f0=[+($5, 10)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(s, isLinux(expected));
+  }
+
+  @Test public void testAggregateWithAlias() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    // The rel node stands for sql: SELECT max(SAL) as max_sal from EMP group by JOB;
+    final RelNode rel = builder
+        .scan("EMP")
+        .project(
+            builder.field("JOB"),
+            builder.field("SAL"))
+        .aggregate(
+            builder.groupKey("JOB"),
+            builder.max("max_sal", builder.field("SAL")))
+        .project(
+            builder.field("max_sal"))
+        .build();
+    final RelJsonWriter jsonWriter = new RelJsonWriter();
+    rel.explain(jsonWriter);
+    final String relJson = jsonWriter.asString();
+    String s =
+        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+          final RelJsonReader reader = new RelJsonReader(
+              cluster, getSchema(rel), rootSchema);
+          RelNode node;
+          try {
+            node = reader.read(relJson);
+          } catch (IOException e) {
+            throw TestUtil.rethrow(e);
+          }
+          return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
+              SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+        });
+    final String expected = ""
+        + "LogicalProject(max_sal=[$1])\n"
+        + "  LogicalAggregate(group=[{0}], max_sal=[MAX($1)])\n"
+        + "    LogicalProject(JOB=[$2], SAL=[$5])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+
+    assertThat(s, isLinux(expected)
+    );
+  }
+
+  @Test public void testAggregateWithoutAlias() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    // The rel node stands for sql: SELECT max(SAL) from EMP group by JOB;
+    final RelNode rel = builder
+        .scan("EMP")
+        .project(
+            builder.field("JOB"),
+            builder.field("SAL"))
+        .aggregate(
+            builder.groupKey("JOB"),
+            builder.max(builder.field("SAL")))
+        .project(
+            builder.field(1))
+        .build();
+    final RelJsonWriter jsonWriter = new RelJsonWriter();
+    rel.explain(jsonWriter);
+    final String relJson = jsonWriter.asString();
+    String s =
+        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+          final RelJsonReader reader = new RelJsonReader(
+              cluster, getSchema(rel), rootSchema);
+          RelNode node;
+          try {
+            node = reader.read(relJson);
+          } catch (IOException e) {
+            throw TestUtil.rethrow(e);
+          }
+          return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
+              SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+        });
+    final String expected = ""
+        + "LogicalProject($f1=[$1])\n"
+        + "  LogicalAggregate(group=[{0}], agg#0=[MAX($1)])\n"
+        + "    LogicalProject(JOB=[$2], SAL=[$5])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+
+    assertThat(s, isLinux(expected)
+    );
   }
 
   /** Returns the schema of a {@link org.apache.calcite.rel.core.TableScan}
