@@ -68,6 +68,7 @@ public class FileReaderTest {
   }
 
   /** Tests {@link FileReader} URL instantiation - no path. */
+  @Ignore("[CALCITE-3289] Wikipedia format change breaks file adapter test")
   @Test public void testFileReaderUrlNoPath() throws FileReaderException {
     Assume.assumeTrue(FileSuite.hazNetwork());
 
