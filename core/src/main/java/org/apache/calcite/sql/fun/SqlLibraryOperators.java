@@ -253,6 +253,19 @@ public abstract class SqlLibraryOperators {
               OperandTypes.STRING),
           SqlFunctionCategory.STRING);
 
+  /** The "STRCMP(str, str)" function that compare strings.
+   * For example, "STRCMP('a', 'b')" returns -1. */
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL, ORACLE})
+  public static final SqlFunction STRCMP =
+      new SqlFunction("STRCMP",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.INTEGER),
+              SqlTypeTransforms.TO_NULLABLE),
+          null,
+          OperandTypes.repeat(SqlOperandCountRanges.of(2),
+              OperandTypes.STRING_STRING),
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction REVERSE =
       new SqlFunction("REVERSE",

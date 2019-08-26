@@ -44,6 +44,7 @@ import static org.apache.calcite.runtime.SqlFunctions.md5;
 import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
+import static org.apache.calcite.runtime.SqlFunctions.strcmp;
 import static org.apache.calcite.runtime.SqlFunctions.subtractMonths;
 import static org.apache.calcite.runtime.SqlFunctions.toBase64;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
@@ -77,6 +78,12 @@ public class SqlFunctionsTest {
     assertEquals("anull", concat("a", null));
     assertEquals("nullnull", concat((String) null, null));
     assertEquals("nullb", concat(null, "b"));
+  }
+
+  @Test public void testStrcmp() {
+    assert -1 == strcmp("text", "text2");
+    assert 1 == strcmp("text2", "text");
+    assert 0 == strcmp("text", "text");
   }
 
   @Test public void testPosixRegex() {

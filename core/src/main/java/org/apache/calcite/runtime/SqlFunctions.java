@@ -396,6 +396,11 @@ public class SqlFunctions {
     return s0.concat(s1);
   }
 
+  /** SQL {@code string compare string} operator. */
+  public static Integer strcmp(String s0, String s1) {
+    return s0.compareTo(s1);
+  }
+
   /** SQL {@code RTRIM} function applied to string. */
   public static String rtrim(String s) {
     return trim(false, true, " ", s);

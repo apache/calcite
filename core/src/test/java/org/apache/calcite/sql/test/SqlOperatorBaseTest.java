@@ -2146,6 +2146,17 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull(" cast(null as ANY) || cast(null as ANY) ");
   }
 
+  @Test public void testStrcmpOperator() {
+    Stream.of(SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL, SqlLibrary.ORACLE)
+        .map(this::tester)
+        .forEach(t -> {
+          t.setFor(SqlLibraryOperators.STRCMP);
+          t.checkScalar("strcmp('test','test2')", "-1", "INTEGER NOT NULL");
+          t.checkScalar("strcmp('test2','test')", "1", "INTEGER NOT NULL");
+          t.checkScalar("strcmp('test','test')", "0", "INTEGER NOT NULL");
+        });
+  }
+
   @Test public void testModOperator() {
     // "%" is allowed under MYSQL_5 SQL conformance level
     final SqlTester tester1 = tester.withConformance(SqlConformanceEnum.MYSQL_5);
