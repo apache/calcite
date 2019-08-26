@@ -2204,7 +2204,7 @@ semantics.
 | o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
 | o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
-| m o | REGEXP_REPLACE(string, regexp, rep, [, pos, occurrence, match_type]) | Replaces all substrings of *string* that match regexp with rep
+| m o | REGEXP_REPLACE(string, regexp, rep, [, pos, occurrence, match_type]) | Replaces all substrings of *string* that match regexp with rep at the starting *pos* in expr (if omitted, the default is 1), *occurrence* means which occurrence of a match to search for(if omitted, the default is 1), *match_type* specifies how to perform matching
 
 Note:
 

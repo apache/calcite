@@ -548,6 +548,7 @@ public class SqlFunctions {
     int flags = caseSensitive ? 0 : Pattern.CASE_INSENSITIVE;
     return Pattern.compile(regex, flags).matcher(s).find();
   }
+
   // =
 
   /** SQL <code>=</code> operator applied to BigDecimal values (neither may be

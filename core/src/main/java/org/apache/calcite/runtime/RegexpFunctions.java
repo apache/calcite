@@ -35,19 +35,19 @@ public class RegexpFunctions {
 
   /** SQL {@code REGEXP_REPLACE} function. */
   public static String regexpReplace(String s, String regex, String replacement,
-                                     Integer pos) {
+      Integer pos) {
     return regexpReplace(s, regex, replacement, pos, 0, null);
   }
 
   /** SQL {@code REGEXP_REPLACE} function. */
   public static String regexpReplace(String s, String regex, String replacement,
-                                     Integer pos, Integer occurrence) {
+      Integer pos, Integer occurrence) {
     return regexpReplace(s, regex, replacement, pos, occurrence, null);
   }
 
   /** SQL {@code REGEXP_REPLACE} function. */
   public static String regexpReplace(String s, String regex, String replacement,
-                                     Integer pos, Integer occurrence, String matchType) {
+      Integer pos, Integer occurrence, String matchType) {
     if (pos < 1 || pos > s.length()) {
       throw RESOURCE.invalidInputForRegexpReplace(pos.toString()).ex();
     }

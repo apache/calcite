@@ -463,8 +463,8 @@ public class RexImpTable {
               new ReflectiveCallNotNullImplementor(
                   BuiltInMethod.REGEXP_REPLACE6.method)
           };
-          public Expression implement(RexToLixTranslator translator,
-                                      RexCall call, List<Expression> translatedOperands) {
+          public Expression implement(RexToLixTranslator translator, RexCall call,
+              List<Expression> translatedOperands) {
             return implementors[call.getOperands().size() - 3]
                 .implement(translator, call, translatedOperands);
           }

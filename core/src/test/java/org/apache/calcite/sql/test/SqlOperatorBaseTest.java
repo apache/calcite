@@ -4548,6 +4548,18 @@ public abstract class SqlOperatorBaseTest {
               "VARCHAR NOT NULL");
           t.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 1, 3, 'i')", "abc def X",
               "VARCHAR NOT NULL");
+          t.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 1, 3, 'i')", "abc def X",
+              "VARCHAR NOT NULL");
+          t.checkString("regexp_replace('abc\t\ndef\t\nghi', '\t', '+')", "abc+\ndef+\nghi",
+              "VARCHAR NOT NULL");
+          t.checkString("regexp_replace('abc\t\ndef\t\nghi', '\t\n', '+')", "abc+def+ghi",
+              "VARCHAR NOT NULL");
+          t.checkString("regexp_replace('abc\t\ndef\t\nghi', '\\w+', '+')", "+\t\n+\t\n+",
+              "VARCHAR NOT NULL");
+          t.checkQuery("select regexp_replace('a b c', 'b', 'X')");
+          t.checkQuery("select regexp_replace('a b c', 'b', 'X', 1)");
+          t.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3)");
+          t.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3, 'i')");
         });
   }
 
