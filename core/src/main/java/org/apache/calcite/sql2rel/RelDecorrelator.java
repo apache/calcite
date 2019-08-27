@@ -41,13 +41,13 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
-import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSnapshot;
+import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.FilterCorrelateRule;
@@ -432,10 +432,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return register(rel, newSort, frame.oldToNewOutputs, frame.corDefOutputs);
   }
 
-  public Frame decorrelateRel(Values rel) {
-    // There are no inputs, so rel does not need to be changed.
-    return null;
-  }
 
   public Frame decorrelateRel(LogicalAggregate rel) {
     return decorrelateRel((Aggregate) rel);
@@ -1012,6 +1008,13 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   public Frame decorrelateRel(LogicalSnapshot rel) {
     if (RexUtil.containsCorrelation(rel.getPeriod())) {
+      return null;
+    }
+    return decorrelateRel((RelNode) rel);
+  }
+
+  public Frame decorrelateRel(LogicalTableFunctionScan rel) {
+    if (RexUtil.containsCorrelation(rel.getCall())) {
       return null;
     }
     return decorrelateRel((RelNode) rel);

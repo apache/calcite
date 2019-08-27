@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.LogicVisitor;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -39,6 +40,7 @@ import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql2rel.RelDecorrelator;
@@ -309,8 +311,22 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     }
 
     builder.as("dt");
+    boolean generateNullsOnRight = true;
+    if (e.rel instanceof LogicalAggregate) {
+      // SELECT f0, count(*) FROM t GROUP BY () will always return 1 row.
+      // That means, the RHS never generates null.
+      final LogicalAggregate aggregate = (LogicalAggregate) e.rel;
+      if (aggregate.getGroupSet().isEmpty()
+            && aggregate.getAggCallList().stream()
+                .anyMatch(c -> c.getAggregation() instanceof SqlCountAggFunction)) {
+        generateNullsOnRight = false;
+      }
+    }
 
-    builder.join(JoinRelType.LEFT, builder.literal(true), variablesSet);
+    builder.join(
+        generateNullsOnRight ? JoinRelType.LEFT : JoinRelType.INNER,
+        builder.literal(true),
+        variablesSet);
 
     return builder.isNotNull(Util.last(builder.fields()));
   }

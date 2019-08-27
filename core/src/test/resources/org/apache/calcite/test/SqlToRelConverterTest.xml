@@ -5681,15 +5681,13 @@ select * from t where exists (
         <Resource name="plan">
             <![CDATA[
 LogicalProject(A=[$0], B=[$1])
-  LogicalProject(EXPR$0=[$0], EXPR$1=[$1], $f0=[$2])
-    LogicalFilter(condition=[IS NOT NULL($2)])
-      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
-        LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
-          LogicalValues(tuples=[[{ 1, 2 }]])
-        LogicalAggregate(group=[{}], agg#0=[MIN($0)])
-          LogicalProject($f0=[true])
-            LogicalFilter(condition=[=($7, $cor0.A)])
-              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EXPR$0=[$0], EXPR$1=[$1], DEPTNO=[CAST($2):INTEGER], $f1=[CAST($3):BOOLEAN])
+    LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+      LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
+        LogicalValues(tuples=[[{ 1, 2 }]])
+      LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+        LogicalProject(DEPTNO=[$7], $f0=[true])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -6102,11 +6100,13 @@ LogicalSort(sort0=[$0], dir0=[ASC])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(C=[$0], D=[$1])
-  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+  LogicalJoin(condition=[=($0, $3)], joinType=[left])
     LogicalValues(tuples=[[{ 4 }]])
-    LogicalFilter(condition=[=($cor0.C, $1)])
-      LogicalProject(C=[$cor0.C], EXPR$1=[*($0, $cor0.C)])
-        LogicalValues(tuples=[[{ 2 }]])
+    LogicalFilter(condition=[=($2, $1)])
+      LogicalProject(C=[$1], EXPR$1=[*($0, $1)], C2=[$1])
+        LogicalJoin(condition=[true], joinType=[inner])
+          LogicalValues(tuples=[[{ 2 }]])
+          LogicalValues(tuples=[[{ 4 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -6119,11 +6119,13 @@ LogicalProject(C=[$0], D=[$1])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(C=[$0], D=[$1])
-  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+  LogicalJoin(condition=[=($0, $3)], joinType=[left])
     LogicalValues(tuples=[[{ 4 }]])
-    LogicalFilter(condition=[=($cor0.C, $1)])
-      LogicalProject(C=[$cor0.C], EXPR$1=[*($0, $cor0.C)])
-        LogicalValues(tuples=[[{ 2 }]])
+    LogicalFilter(condition=[=($2, $1)])
+      LogicalProject(C=[$1], EXPR$1=[*($0, $1)], C2=[$1])
+        LogicalJoin(condition=[true], joinType=[inner])
+          LogicalValues(tuples=[[{ 2 }]])
+          LogicalValues(tuples=[[{ 4 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -6137,11 +6139,13 @@ LogicalProject(C=[$0], D=[$1])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(C=[$0], D=[$1], C0=[$2])
-  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+  LogicalJoin(condition=[=($0, $3)], joinType=[left])
     LogicalValues(tuples=[[{ 4 }]])
-    LogicalFilter(condition=[=($cor0.C, $1)])
-      LogicalProject(C=[$cor0.C], EXPR$1=[*($0, $cor0.C)])
-        LogicalValues(tuples=[[{ 2 }]])
+    LogicalFilter(condition=[=($2, $1)])
+      LogicalProject(C=[$1], EXPR$1=[*($0, $1)], C2=[$1])
+        LogicalJoin(condition=[true], joinType=[inner])
+          LogicalValues(tuples=[[{ 2 }]])
+          LogicalValues(tuples=[[{ 4 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -6155,11 +6159,15 @@ LogicalProject(C=[$0], D=[$1], C0=[$2])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(C=[$0], D=[$1], D0=[$2], C0=[$3])
-  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0, 1}])
+  LogicalJoin(condition=[AND(=($0, $5), =($1, $6))], joinType=[left])
     LogicalValues(tuples=[[{ 4, 5 }]])
-    LogicalFilter(condition=[=(+($cor0.C, $cor0.D), $1)])
-      LogicalProject(C=[$cor0.C], EXPR$1=[*($0, $cor0.C)])
-        LogicalValues(tuples=[[{ 2 }]])
+    LogicalJoin(condition=[=(+($3, $4), $1)], joinType=[inner])
+      LogicalProject(C=[$1], EXPR$1=[*($0, $1)], C2=[$1])
+        LogicalJoin(condition=[true], joinType=[inner])
+          LogicalValues(tuples=[[{ 2 }]])
+          LogicalProject(C=[$0])
+            LogicalValues(tuples=[[{ 4, 5 }]])
+      LogicalValues(tuples=[[{ 4, 5 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -6176,14 +6184,16 @@ as r(n) on c=n]]>
         <Resource name="plan">
             <![CDATA[
 LogicalProject(C=[$0], N=[$1])
-  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+  LogicalJoin(condition=[=($0, $2)], joinType=[left])
     LogicalValues(tuples=[[{ 4 }]])
-    LogicalFilter(condition=[=($cor0.C, $0)])
-      LogicalProject(EXPR$0=[+($0, $1)])
+    LogicalFilter(condition=[=($1, $0)])
+      LogicalProject(EXPR$0=[+($0, $1)], C=[$2])
         LogicalJoin(condition=[=($0, $1)], joinType=[inner])
           LogicalValues(tuples=[[{ 2 }]])
-          LogicalProject(EXPR$0=[+($cor0.C, 1)])
-            LogicalValues(tuples=[[{ 3 }]])
+          LogicalProject(EXPR$0=[+($1, 1)], C=[$1])
+            LogicalJoin(condition=[true], joinType=[inner])
+              LogicalValues(tuples=[[{ 3 }]])
+              LogicalValues(tuples=[[{ 4 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -6197,11 +6207,15 @@ LogicalProject(C=[$0], N=[$1])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(C=[$0], D=[$1], C0=[$2], F=[$3])
-  LogicalCorrelate(correlation=[$cor3], joinType=[inner], requiredColumns=[{0, 1}])
+  LogicalJoin(condition=[AND(=($0, $4), =($1, $5))], joinType=[inner])
     LogicalValues(tuples=[[{ 4, 5 }]])
-    LogicalProject(C=[$cor3.C], F=[*($0, $cor3.C)])
-      LogicalFilter(condition=[=(+($cor3.C, $cor3.D), *($0, $cor3.C))])
-        LogicalValues(tuples=[[{ 2 }]])
+    LogicalProject(C=[$3], F=[*($0, $3)], C0=[$3], D=[$2])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalJoin(condition=[=(+($1, $2), *($0, $1))], joinType=[inner])
+          LogicalValues(tuples=[[{ 2 }]])
+          LogicalValues(tuples=[[{ 4, 5 }]])
+        LogicalProject(C=[$0])
+          LogicalValues(tuples=[[{ 4, 5 }]])
 ]]>
         </Resource>
     </TestCase>
@@ -6219,15 +6233,17 @@ cross join lateral
         <Resource name="plan">
             <![CDATA[
 LogicalProject(C=[$0], N=[$1])
-  LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{0}])
+  LogicalJoin(condition=[=($0, $2)], joinType=[inner])
     LogicalValues(tuples=[[{ 4 }]])
-    LogicalProject(N=[$0])
-      LogicalFilter(condition=[=($cor1.C, $0)])
-        LogicalProject(EXPR$0=[+($0, $1)])
+    LogicalProject(N=[$0], C=[$1])
+      LogicalFilter(condition=[=($1, $0)])
+        LogicalProject(EXPR$0=[+($0, $1)], C=[$2])
           LogicalJoin(condition=[=($0, $1)], joinType=[inner])
             LogicalValues(tuples=[[{ 2 }]])
-            LogicalProject(EXPR$0=[+($cor1.C, 1)])
-              LogicalValues(tuples=[[{ 3 }]])
+            LogicalProject(EXPR$0=[+($1, 1)], C=[$1])
+              LogicalJoin(condition=[true], joinType=[inner])
+                LogicalValues(tuples=[[{ 3 }]])
+                LogicalValues(tuples=[[{ 4 }]])
 ]]>
         </Resource>
     </TestCase>
