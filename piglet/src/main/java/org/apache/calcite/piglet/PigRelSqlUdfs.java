@@ -95,7 +95,7 @@ public class PigRelSqlUdfs {
   static SqlUserDefinedFunction createPigTupleUDF(ImmutableList<RexNode> operands) {
     return new PigUserDefinedFunction("PIG_TUPLE",
         infer(PigRelSqlUdfs.PIG_TUPLE_FUNC),
-        OperandTypes.family(getFamilitTypes(operands)),
+        OperandTypes.family(getTypeFamilies(operands)),
         getRelDataTypes(operands),
         PigRelSqlUdfs.PIG_TUPLE_FUNC);
   }
@@ -110,7 +110,7 @@ public class PigRelSqlUdfs {
     return new PigUserDefinedFunction(
         "PIG_BAG",
         infer(PigRelSqlUdfs.PIG_BAG_FUNC),
-        OperandTypes.family(getFamilitTypes(operands)),
+        OperandTypes.family(getTypeFamilies(operands)),
         getRelDataTypes(operands),
         PigRelSqlUdfs.PIG_BAG_FUNC);
   }
@@ -223,7 +223,7 @@ public class PigRelSqlUdfs {
    * @param operands List of relational operands
    * @return List of SqlTypeFamilies
    */
-  private static List<SqlTypeFamily> getFamilitTypes(ImmutableList<RexNode> operands) {
+  private static List<SqlTypeFamily> getTypeFamilies(ImmutableList<RexNode> operands) {
     List<SqlTypeFamily> ret = new ArrayList<>();
     for (RexNode operand : operands) {
       SqlTypeFamily family = operand.getType().getSqlTypeName().getFamily();
