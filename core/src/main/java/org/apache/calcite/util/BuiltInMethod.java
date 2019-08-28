@@ -21,6 +21,7 @@ import org.apache.calcite.adapter.enumerable.AggregateLambdaFactory;
 import org.apache.calcite.adapter.enumerable.BasicAggregateLambdaFactory;
 import org.apache.calcite.adapter.enumerable.BasicLazyAccumulator;
 import org.apache.calcite.adapter.enumerable.LazyAggregateLambdaFactory;
+import org.apache.calcite.adapter.enumerable.MatchUtils;
 import org.apache.calcite.adapter.enumerable.SourceSorter;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
@@ -180,6 +181,8 @@ public enum BuiltInMethod {
   MATCHER_BUILDER_ADD(Matcher.Builder.class, "add", String.class,
       Predicate.class),
   MATCHER_BUILDER_BUILD(Matcher.Builder.class, "build"),
+  MATCH_UTILS_LAST_WITH_SYMBOL(MatchUtils.class, "lastWithSymbol", String.class,
+      List.class, List.class, int.class),
   EMITTER_EMIT(Enumerables.Emitter.class, "emit", List.class, List.class,
       List.class, int.class, Consumer.class),
   MERGE_JOIN(EnumerableDefaults.class, "mergeJoin", Enumerable.class,
