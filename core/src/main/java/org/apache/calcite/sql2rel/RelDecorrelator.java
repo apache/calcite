@@ -1388,6 +1388,12 @@ public class RelDecorrelator implements ReflectiveVisitor {
               pair.left,
               projectPulledAboveLeftCorrelator,
               isCount);
+      // Fix the nullability.
+      if (projectPulledAboveLeftCorrelator) {
+        newProjExpr = relBuilder.getRexBuilder().makeAbstractCast(
+            relBuilder.getTypeFactory().createTypeWithNullability(newProjExpr.getType(), true),
+            newProjExpr);
+      }
       newProjects.add(Pair.of(newProjExpr, pair.right));
     }
 

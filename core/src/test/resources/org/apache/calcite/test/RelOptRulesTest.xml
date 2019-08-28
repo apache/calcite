@@ -757,6 +757,45 @@ LogicalProject(EXPR$0=[true])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testDecorrelateExists3">
+        <Resource name="sql">
+            <![CDATA[select
+exists (select min(t2.id)
+from (values(1), (2)) t2(id) where t2.id = t1.id)
+from (values(3), (4)) t1(id)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EXPR$0=[EXISTS({
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+  LogicalFilter(condition=[=($0, $cor0.ID)])
+    LogicalValues(tuples=[[{ 1 }, { 2 }]])
+})])
+  LogicalValues(tuples=[[{ 3 }, { 4 }]])
+]]>
+        </Resource>
+        <Resource name="planMid">
+            <![CDATA[
+LogicalProject(EXPR$0=[IS NOT NULL($1)])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+    LogicalValues(tuples=[[{ 3 }, { 4 }]])
+    LogicalProject(i=[true])
+      LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+        LogicalFilter(condition=[=($0, $cor0.ID)])
+          LogicalValues(tuples=[[{ 1 }, { 2 }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EXPR$0=[true])
+  LogicalJoin(condition=[=($0, $1)], joinType=[left])
+    LogicalValues(tuples=[[{ 3 }, { 4 }]])
+    LogicalAggregate(group=[{0}], EXPR$0=[MIN($0)])
+      LogicalProject(ID=[$0])
+        LogicalValues(tuples=[[{ 1 }, { 2 }]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testDecorrelateScalarSubQuery">
         <Resource name="sql">
             <![CDATA[select

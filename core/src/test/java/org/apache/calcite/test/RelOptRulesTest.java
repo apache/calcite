@@ -5626,6 +5626,14 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).withLateDecorrelation(true).check();
   }
 
+  @Test public void testDecorrelateExists3() throws Exception {
+    final String sql = "select \n"
+        + "   exists (select min(t2.id) \n"
+        + "    from (values(1), (2)) t2(id) where t2.id = t1.id)\n"
+        + "    from (values(3), (4)) t1(id)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
   @Test public void testDecorrelateScalarSubQuery() throws Exception {
     final String sql = "select \n"
         + "    (select count(t2.id) \n"
