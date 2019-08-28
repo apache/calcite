@@ -21,7 +21,6 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
@@ -1172,19 +1171,6 @@ public abstract class SqlTypeUtil {
       }
     }
     return true;
-  }
-
-  /**
-   * Checks that there is no expression inside list which may
-   * return struct type.
-   *
-   * @param exprList list of expressions to check
-   * @return true if all expressions don't return struct type
-   */
-  public static boolean isFlat(List<RexNode> exprList) {
-    return exprList.stream()
-        .map(RexNode::getType)
-        .noneMatch(RelDataType::isStruct);
   }
 
   /**
