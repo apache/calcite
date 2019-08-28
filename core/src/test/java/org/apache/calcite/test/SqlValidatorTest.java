@@ -8309,6 +8309,216 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "select min(deptno) from dept as depts2)");
   }
 
+  @Test public void testCorrelatedSubQueryInHaving() {
+    // SCALAR_QUERY
+    check("select ename, deptno, sum(sal) from emp group by ename, deptno\n"
+            + "having max(sal) > \n"
+            + "  (select max(sal) from emp e where emp.ename = e.ename group by deptno)");
+
+    check("select ename, deptno2, max(sal)\n"
+            + "from (select ename, deptno as deptno2, sum(sal) as sal from sales.emp group by ename, deptno) t\n"
+            + "group by ename, deptno2\n"
+            + "having max(sal) <= \n"
+            + "  (select max(sal) from sales.emp_b where deptno2 = emp_b.deptno group by ename)");
+
+    // correlated fields are not being grouped
+    checkFails("select deptno, sum(sal) from emp group by deptno\n"
+                    + "having max(sal) > \n"
+                    + "  (select max(sal) from emp e where ^emp.ename^ = e.ename group by deptno)",
+            "Expression 'EMP.ENAME' is not being grouped");
+
+    // correlated fields are in aggCall
+    check("select ename, sum(sal) from emp group by ename\n"
+            + "having max(deptno) > \n"
+            + "  (select max(emp.deptno) from emp e group by e.ename)");
+
+    // nested ScalarQuery
+    check("select ename from sales.emp group by ename, deptno\n"
+            + "having max(sal) <= \n"
+            + "  (select max(sal) from sales.emp_b e1 group by e1.ename\n"
+            + "     having min(sal) < \n"
+            + "       (select min(sal) from sales.emp_b e2 where emp.deptno = e2.deptno group by ename))");
+
+    check("select ename from sales.emp group by ename, deptno\n"
+            + "having max(sal) <= \n"
+            + "  (select max(sal) from sales.emp_b e1 group by e1.ename\n"
+            + "     having min(sal) < \n"
+            + "       (select min(sal) from sales.emp_b e2 where e1.ename = e2.ename group by deptno))");
+
+    check("select ename from sales.emp group by ename, deptno\n"
+            + "having max(sal) <= \n"
+            + "  (select max(sal) from sales.emp_b e1 group by e1.ename\n"
+            + "     having min(sal) < \n"
+            + "       (select min(sal) from sales.emp_b e2 where e1.ename = emp.ename group by deptno))");
+
+    checkFails("select ename from sales.emp group by ename, deptno\n"
+                    + "having max(sal) <= \n"
+                    + "  (select max(sal) from sales.emp_b e1 group by e1.ename\n"
+                    + "     having min(sal) < \n"
+                    + "       (select min(sal) from sales.emp_b e2 where ^emp.job^ = e2.job group by ename))",
+            "Expression 'EMP.JOB' is not being grouped");
+
+    // group by expr
+    check("select deptno + 1, sum(sal) from emp group by deptno + 1\n"
+            + "having max(sal) > \n"
+            + "    (select max(sal) from emp e where emp.deptno + 1 = e.deptno group by ename)");
+
+    checkFails("select deptno + 1, sum(sal) from emp group by deptno + 1\n"
+                    + "having max(sal) > \n"
+                    + "  (select max(sal) from emp e where ^emp.deptno^ + 2 = e.deptno group by ename)",
+            "Expression 'EMP.DEPTNO' is not being grouped");
+
+    check("select ename from sales.emp group by ename, deptno\n"
+            + "having max(sal) <= \n"
+            + "  (select max(sal) from sales.emp_b e1 group by e1.deptno\n"
+            + "      having min(sal) < \n"
+            + "        (select min(sal) from sales.emp_b e2 "
+            + "          where e1.deptno + emp.deptno = e2.deptno group by ename))");
+
+    check("select ename from sales.emp group by ename, deptno + 1\n"
+            + "having max(sal) <= \n"
+            + "  (select max(sal) from sales.emp_b e1 group by e1.deptno\n"
+            + "     having min(sal) < \n"
+            + "       (select min(sal) from sales.emp_b e2 \n"
+            + "          where emp.deptno + 1 + e1.deptno = e2.deptno group by ename))");
+
+    checkFails("select ename from sales.emp group by ename, deptno + 1\n"
+                    + "having max(sal) <= \n"
+                    + "  (select max(sal) from sales.emp_b e1 group by e1.deptno\n"
+                    + "     having min(sal) < \n"
+                    + "       (select min(sal) from sales.emp_b e2 \n"
+                    + "          where e1.deptno + ^emp.deptno^ + 1 = e2.deptno group by ename))",
+            "Expression 'EMP.DEPTNO' is not being grouped");
+
+    // correlated fields are aggCall's alias
+    checkFails("select ename, deptno, sum(sal) as s from emp group by ename, deptno\n"
+                    + "having max(sal) > \n"
+                    + "  (select max(sal) from emp e where ^s^ = e.ename group by deptno)",
+            "Column 'S' not found in any table");
+
+    checkFails("select ename, deptno, sum(sal) as s from emp group by ename, deptno\n"
+                    + "having max(sal) > \n"
+                    + "  (select max(sal) from emp e where emp.^s^ = e.ename group by deptno)",
+            "Column 'S' not found in table 'EMP'");
+
+    checkFails("select ename, deptno, sum(sal) as sal from emp group by ename, deptno\n"
+                    + "having max(sal) > \n"
+                    + "  (select max(sal) from emp e where ^emp.sal^ = e.ename group by deptno)",
+            "Expression 'EMP.SAL' is not being grouped");
+
+    // IN
+    check("select ename, deptno, sum(sal) from emp group by ename, deptno\n"
+            + "having deptno in \n"
+            + "  (select deptno from emp e where emp.ename = e.ename group by deptno)");
+
+    check("select ename, deptno, sum(sal) from emp group by ename, deptno\n"
+            + "having deptno in (select emp.deptno from emp e where emp.ename = e.ename)");
+
+    checkFails("select ename, deptno, sum(sal) from emp group by ename, deptno\n"
+                    + "having deptno in (select deptno from emp e where ^emp.empno^ = e.empno)",
+            "Expression 'EMP.EMPNO' is not being grouped");
+
+    checkFails("select ename, deptno, sum(sal) from emp group by ename, deptno\n"
+                    + "having deptno in\n"
+                    + "  (select ^emp.deptno^ from emp e where emp.ename = e.ename group by deptno)",
+            "Expression 'EMP.DEPTNO' is not being grouped");
+
+    checkFails("select ename, deptno, sum(sal) from emp group by ename, deptno\n"
+                    + "having deptno in (select ^emp.empno^ from emp e where emp.ename = e.ename)",
+            "Expression 'EMP.EMPNO' is not being grouped");
+
+    // correlated fields are in aggCall
+    check("select ename, sum(sal) from emp group by ename, deptno\n"
+            + "having deptno in \n"
+            + "  (select max(emp.deptno + 1) from emp e group by e.ename)");
+
+    // nested IN
+    check("select ename from sales.emp group by ename, deptno\n"
+            + "having deptno in \n"
+            + "  (select max(sal) from sales.emp_b e1 group by e1.ename\n"
+            + "     having ename in \n"
+            + "       (select ename from sales.emp_b e2 where emp.deptno = e2.deptno))");
+
+    // group by expr
+    check("select deptno + 1, sum(sal) from emp group by ename, deptno + 1\n"
+            + "having deptno + 1 in (select emp.deptno + 1 from emp e)");
+
+    checkFails("select deptno + 1, sum(sal) from emp group by ename, deptno + 1\n"
+                    + "having deptno + 1 in (select ^emp.deptno^ + 2 from emp e)",
+            "Expression 'EMP.DEPTNO' is not being grouped");
+
+    // EXISTS
+    check("select ename, deptno, sum(sal) from emp group by ename, deptno\n"
+            + "having exists \n"
+            + "  (select count(*) from emp e where emp.ename = e.ename group by deptno)");
+
+    checkFails("select ename, deptno, sum(sal) from emp group by ename, deptno\n"
+                    + "having exists (select * from emp e where ^emp.empno^ = e.empno)",
+            "Expression 'EMP.EMPNO' is not being grouped");
+
+    // correlated fields are in aggCall
+    check("select ename, deptno, sum(sal) from emp group by ename, deptno\n"
+            + "having exists \n"
+            + "  (select max(emp.sal) from emp e where emp.ename = e.ename group by deptno)");
+
+    // nested EXISTS
+    check("select ename from sales.emp group by ename, deptno\n"
+            + "having exists \n"
+            + "  (select max(sal) from sales.emp_b e1 group by e1.ename\n"
+            + "     having exists \n"
+            + "       (select ename from sales.emp_b e2 where emp.deptno = e2.deptno))");
+
+    // group by expr
+    check("select deptno + 1, sum(sal) from emp group by ename, deptno + 1\n"
+            + "having exists (select emp.deptno + 1 from emp e)");
+
+    checkFails("select deptno + 1, sum(sal) from emp group by ename, deptno + 1\n"
+                    + "having exists (select ^emp.deptno^ + 2 from emp e)",
+            "Expression 'EMP.DEPTNO' is not being grouped");
+  }
+
+  @Test public void testCorrelatedSubQueryInAggregate() {
+    check("SELECT SUM(\n"
+            + "  (select char_length(name) from dept\n"
+            + "   where dept.deptno = emp.empno))\n"
+            + "FROM emp");
+
+    check("SELECT SUM(\n"
+            + "  10 + (select char_length(name) from dept\n"
+            + "   where dept.deptno = emp.empno))\n"
+            + "FROM emp");
+
+    check("select deptno, sum(sal) from emp group by deptno\n"
+            + "having max(sal) >\n"
+            + "  max(select max(sal) from emp e where emp.ename = e.ename group by deptno)");
+
+    // nested ScalarQuery
+    check("select ename from sales.emp group by ename, deptno\n"
+            + "having max(sal) <= \n"
+            + "  max(select max(sal) from sales.emp_b e1 group by e1.ename\n"
+            + "     having min(sal) < \n"
+            + "       (select min(sal) from sales.emp_b e2 where emp.job = e2.job group by ename))");
+
+    check("select ename from sales.emp group by ename, deptno\n"
+            + "having max(sal) <= \n"
+            + "  (select max(sal) from sales.emp_b e1 group by e1.ename\n"
+            + "     having min(sal) < \n"
+            + "       max(select min(sal) from sales.emp_b e2 where emp.job = e2.job group by ename))");
+
+    check("select ename from sales.emp group by ename, deptno\n"
+            + "having max(sal) <= \n"
+            + "  max(select max(sal) from sales.emp_b e1 where emp.job = e1.job group by e1.ename\n"
+            + "     having min(sal) < \n"
+            + "       (select min(sal) from sales.emp_b e2 where e1.ename = e2.ename group by deptno))");
+
+    checkFails("select ename from sales.emp group by ename, deptno\n"
+                    + "having max(sal) <= \n"
+                    + "  max(select max(sal) from sales.emp_b e1 group by e1.ename\n"
+                    + "     having min(sal) < \n"
+                    + "       (select min(sal) from sales.emp_b e2 where ^e1.job^ = e2.job group by ename))",
+            "Expression 'E1.JOB' is not being grouped");
+  }
+
   @Test public void testRecordType() {
     // Have to qualify columns with table name.
     checkFails(

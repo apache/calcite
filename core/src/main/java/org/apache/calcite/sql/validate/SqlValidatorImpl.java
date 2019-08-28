@@ -284,6 +284,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private final SqlValidatorImpl.ValidationErrorFunction validationErrorFunction =
       new SqlValidatorImpl.ValidationErrorFunction();
 
+  /**
+   * Maps a {@link SqlSelect} node that is in aggregator to a constant value (always is true),
+   * e.g. SUM(select max(sal) from emp where ...)
+   * TODO build the relationship of a SqlNode and its parent ???
+   */
+  private final Map<SqlSelect, Boolean> subQueriesInAgg =
+          new IdentityHashMap<>();
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -2866,6 +2874,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private void registerSubQueries(
       SqlValidatorScope parentScope,
       SqlNode node) {
+    registerSubQueries(parentScope, node, false);
+  }
+
+  private void registerSubQueries(
+      SqlValidatorScope parentScope,
+      SqlNode node,
+      boolean inAgg) {
     if (node == null) {
       return;
     }
@@ -2873,11 +2888,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         || node.getKind() == SqlKind.MULTISET_QUERY_CONSTRUCTOR
         || node.getKind() == SqlKind.MULTISET_VALUE_CONSTRUCTOR) {
       registerQuery(parentScope, null, node, node, null, false);
+      if (inAgg && node instanceof SqlSelect) {
+        subQueriesInAgg.put((SqlSelect) node, true);
+      }
     } else if (node instanceof SqlCall) {
       validateNodeFeature(node);
       SqlCall call = (SqlCall) node;
       for (int i = 0; i < call.operandCount(); i++) {
-        registerOperandSubQueries(parentScope, call, i);
+        registerOperandSubQueries(parentScope, call, i, inAgg);
       }
     } else if (node instanceof SqlNodeList) {
       SqlNodeList list = (SqlNodeList) node;
@@ -2890,11 +2908,18 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                   listNode);
           list.set(i, listNode);
         }
-        registerSubQueries(parentScope, listNode);
+        registerSubQueries(parentScope, listNode, inAgg);
       }
     } else {
       // atomic node -- can be ignored
     }
+  }
+
+  private void registerOperandSubQueries(
+      SqlValidatorScope parentScope,
+      SqlCall call,
+      int operandOrdinal) {
+    registerOperandSubQueries(parentScope, call, operandOrdinal, false);
   }
 
   /**
@@ -2904,12 +2929,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * @param parentScope    Parent scope
    * @param call           Call
    * @param operandOrdinal Ordinal of operand within call
+   * @param inAgg          whether the call is in a aggregator
    * @see SqlOperator#argumentMustBeScalar(int)
    */
   private void registerOperandSubQueries(
       SqlValidatorScope parentScope,
       SqlCall call,
-      int operandOrdinal) {
+      int operandOrdinal,
+      boolean inAgg) {
     SqlNode operand = call.operand(operandOrdinal);
     if (operand == null) {
       return;
@@ -2922,7 +2949,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               operand);
       call.setOperand(operandOrdinal, operand);
     }
-    registerSubQueries(parentScope, operand);
+    inAgg = inAgg || call.getOperator().isAggregator();
+    registerSubQueries(parentScope, operand, inAgg);
   }
 
   public void validateIdentifier(SqlIdentifier id, SqlValidatorScope scope) {
@@ -3366,6 +3394,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     validateGroupClause(select);
     validateHavingClause(select);
     validateWindowClause(select);
+    validateSubQueryInAncestorGroupClause(select);
     handleOffsetFetch(select.getOffset(), select.getFetch());
 
     // Validate the SELECT clause late, because a select item might
@@ -4040,6 +4069,202 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (!SqlTypeUtil.inBooleanFamily(type)) {
       throw newValidationError(having, RESOURCE.havingMustBeBoolean());
     }
+  }
+
+  protected void validateSubQueryInAncestorGroupClause(SqlSelect select) {
+    if (subQueriesInAgg.containsKey(select)) {
+      return;
+    }
+    SqlValidatorScope scope = scopes.get(select);
+    if (!(scope instanceof SelectScope)) {
+      return;
+    }
+
+    boolean hasAggregatingScopeInAncestors = false;
+    SelectScope selectScope = (SelectScope) scope;
+    SqlValidatorScope parentScope = selectScope.getParent();
+    do {
+      if (parentScope instanceof AggregatingSelectScope) {
+        hasAggregatingScopeInAncestors = true;
+        break;
+      }
+      if (parentScope instanceof DelegatingScope) {
+        parentScope = ((DelegatingScope) parentScope).getParent();
+      } else {
+        break;
+      }
+    } while (parentScope != null);
+    if (!hasAggregatingScopeInAncestors) {
+      return;
+    }
+
+    checkCorrelatedAggregateExpr(select.getSelectList(), selectScope);
+    checkCorrelatedAggregateExpr(select.getWhere(), selectScope);
+    checkCorrelatedAggregateExpr(select.getGroup(), selectScope);
+    checkCorrelatedAggregateExpr(select.getHaving(), selectScope);
+  }
+
+  private void checkCorrelatedAggregateExpr(final SqlNode expr, final SelectScope currentScope) {
+    if (expr == null) {
+      return;
+    }
+
+    /**
+     * Visitor which throws an exception if any component of the correlated expression is not a
+     * group expression.
+     */
+    class CorrelatedAggregateExprVisitor extends SqlBasicVisitor<Void> {
+
+      @Override public Void visit(SqlCall call) {
+        if (call.getOperator().isAggregator()) {
+          return null;
+        }
+
+        // SELECT empno + 1 FROM emp GROUP BY empno + 1 HAVING max(sal) <=
+        // (SELECT MAX(sal) FROM emp_b WHERE emp.empno + 1 = emp_b.empno GROUP BY empno)
+        Pair<Boolean, SqlValidatorScope> pair =
+                isAllOperandsFromSameAncestorScope(call, currentScope);
+        if (pair.left) {
+          AggregatingSelectScope aggregatingScope =
+                  findAncestorAggregatingScope(pair.right, currentScope);
+          if (aggregatingScope == null) {
+            return null;
+          }
+          if (aggregatingScope.resolved.get().isGroupingExpr(call)) {
+            return null;
+          }
+        }
+
+        for (SqlNode operand : call.getOperandList()) {
+          if (operand == null) {
+            continue;
+          }
+          if (operand.isA(SqlKind.QUERY)) {
+            continue;
+          }
+          operand.accept(this);
+        }
+        return null;
+      }
+
+      @Override public Void visit(SqlIdentifier id) {
+        final SqlValidatorScope ancestorScope = findIdentifierScope(id, currentScope);
+        boolean isParent = ancestorScope != null && ancestorScope != currentScope;
+        if (!isParent) {
+          return null;
+        }
+
+        AggregatingSelectScope aggregatingScope =
+                findAncestorAggregatingScope(ancestorScope, currentScope);
+        if (aggregatingScope == null) {
+          return null;
+        }
+        aggregatingScope.checkAggregateExpr(id, true);
+        return null;
+      }
+
+      private Pair<Boolean, SqlValidatorScope> isAllOperandsFromSameAncestorScope(
+              SqlCall call, SelectScope currentScope) {
+        List<SqlIdentifier> identifiers = findAllIdentifiers(call);
+        if (identifiers.isEmpty()) {
+          return new Pair<>(false, null);
+        }
+        List<SqlValidatorScope> identifierScopes = new ArrayList<>();
+        for (SqlIdentifier id : identifiers) {
+          SqlValidatorScope identifierScope = findIdentifierScope(id, currentScope);
+          if (identifierScope != null) {
+            identifierScopes.add(identifierScope);
+          }
+        }
+        if (identifiers.size() != identifierScopes.size()) {
+          return new Pair<>(false, null);
+        }
+        SqlValidatorScope ancestorScope0 = identifierScopes.get(0);
+        boolean isParent = ancestorScope0 != currentScope;
+        if (!isParent) {
+          return new Pair<>(false, null);
+        }
+        for (int i = 1; i < identifierScopes.size(); ++i) {
+          if (identifierScopes.get(i) != ancestorScope0) {
+            return new Pair<>(false, null);
+          }
+        }
+        return new Pair<>(true, ancestorScope0);
+      }
+
+      private SqlValidatorScope findIdentifierScope(SqlIdentifier id, SelectScope currentScope) {
+        final SqlQualified qualified = currentScope.fullyQualify(id);
+        final SqlNameMatcher nameMatcher =
+                currentScope.getValidator().getCatalogReader().nameMatcher();
+        final SqlValidatorScope.ResolvedImpl resolved =
+                new SqlValidatorScope.ResolvedImpl();
+        currentScope.resolve(qualified.prefix(), nameMatcher, false, resolved);
+        if (!(resolved.count() == 1)) {
+          return null;
+        }
+
+        final SqlValidatorScope.Resolve resolve = resolved.only();
+        return resolve.scope;
+      }
+
+      /**
+       * Returns null if subQueriesInAgg contains the root node of a ancestor scope,
+       * otherwise returns currentScope's top ancestor AggregatingSelectScope.
+       */
+      private AggregatingSelectScope findAncestorAggregatingScope(
+              SqlValidatorScope ancestorScope, SelectScope currentScope) {
+        AggregatingSelectScope aggregatingScope = null;
+        SqlValidatorScope parentScope = currentScope.getParent();
+        do {
+          if (parentScope instanceof AggregatingSelectScope) {
+            aggregatingScope = (AggregatingSelectScope) parentScope;
+          }
+          if (parentScope == ancestorScope) {
+            break;
+          }
+          if (parentScope instanceof SelectScope) {
+            if (subQueriesInAgg.containsKey(parentScope.getNode())) {
+              return null;
+            }
+          }
+          if (parentScope instanceof DelegatingScope) {
+            parentScope = ((DelegatingScope) parentScope).getParent();
+          } else {
+            break;
+          }
+        } while (parentScope != null);
+
+        Preconditions.checkNotNull(aggregatingScope);
+        return aggregatingScope;
+      }
+
+      private List<SqlIdentifier> findAllIdentifiers(SqlNode node) {
+        List<SqlIdentifier> identifiers = new ArrayList<>();
+        node.accept(new SqlBasicVisitor<Void>() {
+
+          @Override public Void visit(SqlCall call) {
+            for (SqlNode operand : call.getOperandList()) {
+              if (operand == null) {
+                continue;
+              }
+              if (operand.isA(SqlKind.QUERY)) {
+                continue;
+              }
+              operand.accept(this);
+            }
+            return null;
+          }
+
+          @Override public Void visit(SqlIdentifier id) {
+            identifiers.add(id);
+            return super.visit(id);
+          }
+        });
+        return identifiers;
+      }
+    }
+
+    expr.accept(new CorrelatedAggregateExprVisitor());
   }
 
   protected RelDataType validateSelectList(
