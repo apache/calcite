@@ -3369,10 +3369,15 @@ public class RelToSqlConverterTest {
         + "       lateral (select d.\"department_id\" + 1 as d_plusOne"
         + "                from (values(true)))";
 
-    final String expected = "SELECT \"$cor0\".\"department_id\", \"$cor0\".\"D_PLUSONE\"\n"
-        + "FROM \"foodmart\".\"department\" AS \"$cor0\",\n"
-        + "LATERAL (SELECT \"$cor0\".\"department_id\" + 1 AS \"D_PLUSONE\"\n"
-        + "FROM (VALUES  (TRUE)) AS \"t\" (\"EXPR$0\")) AS \"t0\"";
+    final String expected = "SELECT \"department\".\"department_id\", \"t2\".\"D_PLUSONE\"\n"
+        + "FROM \"foodmart\".\"department\"\n"
+        + "INNER JOIN (SELECT \"t1\".\"department_id\" + 1 AS \"D_PLUSONE\","
+        + " \"t1\".\"department_id\"\n"
+        + "FROM (VALUES  (TRUE)) AS \"t\" (\"EXPR$0\"),\n"
+        + "(SELECT \"department_id\"\n"
+        + "FROM \"foodmart\".\"department\"\n"
+        + "GROUP BY \"department_id\") AS \"t1\") AS \"t2\" "
+        + "ON \"department\".\"department_id\" = \"t2\".\"department_id\"";
     sql(sql).ok(expected);
   }
 
