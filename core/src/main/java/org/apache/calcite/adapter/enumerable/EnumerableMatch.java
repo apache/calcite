@@ -47,6 +47,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -163,10 +164,23 @@ public class EnumerableMatch extends Match implements EnumerableRel {
         Expressions.parameter(int.class, "match");
     final ParameterExpression consumer_ =
         Expressions.parameter(Consumer.class, "consumer");
+    final ParameterExpression i_ = Expressions.parameter(int.class, "i");
 
     final ParameterExpression row_ =
         Expressions.parameter(inputPhysType.getJavaRowType(), "row");
     final BlockBuilder builder2 = new BlockBuilder();
+
+    // Add loop variable initialization
+    try {
+      builder2.add(
+          Expressions.declare(0, row_,
+              Types.castIfNecessary(
+                  inputPhysType.getJavaRowType(),
+                  Expressions.call(rows_, List.class.getMethod("get", int.class), i_)
+              )));
+    } catch (NoSuchMethodException e) {
+      throw new IllegalStateException();
+    }
 
     RexBuilder rexBuilder = new RexBuilder(implementor.getTypeFactory());
     RexProgramBuilder rexProgramBuilder = new RexProgramBuilder(inputPhysType.getRowType(),
@@ -202,7 +216,23 @@ public class EnumerableMatch extends Match implements EnumerableRel {
                 result_)));
 
     final BlockBuilder builder = new BlockBuilder();
-    builder.add(Expressions.forEach(row_, rows_, builder2.toBlock()));
+
+    // Loop Length
+    final Method size;
+    try {
+      size = List.class.getMethod("size");
+    } catch (NoSuchMethodException e) {
+      throw new RuntimeException("");
+    }
+
+    // fori not foreach
+    builder.add(
+        Expressions.for_(
+            Expressions.declare(0, i_, Expressions.constant(0)),
+            Expressions.lessThan(i_, Expressions.call(rows_, size)),
+            Expressions.preIncrementAssign(i_),
+            builder2.toBlock()
+        ));
 
     return Expressions.new_(
         Types.of(Enumerables.Emitter.class), NO_EXPRS,

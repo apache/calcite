@@ -132,6 +132,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CLASSIFIER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COALESCE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COLLECT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CONCAT;
@@ -622,7 +623,29 @@ public class RexImpTable {
     winAggMap.put(REGR_COUNT, constructorSupplier(CountWinImplementor.class));
 
     // Functions for MATCH_RECOGNIZE
-    defineMethod(FINAL, "abs", NullPolicy.ANY);
+    // defineMethod(FINAL, "abs", NullPolicy.ANY);
+    // defineMethod(CLASSIFIER, "abs", NullPolicy.ANY);
+    // FINAL -> NOOP
+    map.put(FINAL, (translator, call, nullAs) -> {
+      return translator.translate(call.getOperands().get(0));
+    });
+
+    map.put(CLASSIFIER, (translator, call, nullAs) -> {
+      try {
+        final Method get;
+        get = List.class.getMethod("get", int.class);
+        final Method toString = Object.class.getMethod("toString");
+        return Expressions.call(
+            Expressions.call(
+                Expressions.parameter(List.class, "symbols"),
+                get,
+                Expressions.constant(Expressions.parameter(int.class, "i"))
+            ), toString);
+      } catch (NoSuchMethodException e) {
+        e.printStackTrace();
+      }
+      return null;
+    });
 
     map.put(PREV, (translator, call, nullAs) -> {
       final RexNode node = call.getOperands().get(0);

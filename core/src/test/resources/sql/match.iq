@@ -110,6 +110,23 @@ C    EMPID
 
 !ok
 
+# Test Classifier
+select *
+from "hr"."emps" match_recognize (
+    order by "empid" desc
+    measures "commission" as c,
+    "empid" as empid,
+    CLASSIFIER() as cl
+    pattern (s up)
+    define up as up."commission" < prev(up."commission"));
+
+C    EMPID CL
+---- ----- --
+1000   100 S
+ 500   200 UP
+
+!ok
+
 !if (false) {
 # Match recognize
 SELECT *
