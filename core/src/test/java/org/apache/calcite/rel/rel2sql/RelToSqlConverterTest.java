@@ -4038,6 +4038,14 @@ public class RelToSqlConverterTest {
     });
   }
 
+  @Test public void testSelectCountStar() {
+    final String query = "select count(*) from \"product\"";
+    final String expected = "SELECT COUNT(*)\n"
+            + "FROM \"foodmart\".\"product\"";
+    Sql sql = sql(query);
+    sql.ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;
