@@ -22,9 +22,13 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
@@ -94,6 +98,17 @@ public class SqlCountAggFunction extends SqlAggFunction {
       return clazz.cast(SqlSplittableAggFunction.CountSplitter.INSTANCE);
     }
     return super.unwrap(clazz);
+  }
+
+  @Override public SqlCall createCall(
+          SqlLiteral functionQualifier,
+          SqlParserPos pos,
+          SqlNode... operands) {
+    if (0 == operands.length) {
+      // If there is no parameter in "count" function, add a star identifier to it
+      return super.createCall(functionQualifier, pos, SqlIdentifier.star(pos));
+    }
+    return super.createCall(functionQualifier, pos, operands);
   }
 }
 
