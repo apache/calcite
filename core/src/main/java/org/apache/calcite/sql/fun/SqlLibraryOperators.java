@@ -41,6 +41,8 @@ import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
 import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
+import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
+import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
 
 
 /**
@@ -177,7 +179,7 @@ public abstract class SqlLibraryOperators {
         SqlKind.PLUS,
         ReturnTypes.DATE,
         null,
-        OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME_INTERVAL),
+        OperandTypes.or(DATETIME_INTERVAL,DATETIME_INTEGER),
         SqlFunctionCategory.TIMEDATE) {
 
         @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
