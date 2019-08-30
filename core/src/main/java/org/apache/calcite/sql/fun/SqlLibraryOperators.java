@@ -178,7 +178,7 @@ public abstract class SqlLibraryOperators {
         SqlKind.PLUS,
         ReturnTypes.DATE,
         null,
-        OperandTypes.or(DATETIME_INTERVAL,DATETIME_INTEGER),
+        OperandTypes.or(DATETIME_INTERVAL, DATETIME_INTEGER),
         SqlFunctionCategory.TIMEDATE) {
 
         @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
