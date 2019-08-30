@@ -4570,10 +4570,25 @@ public abstract class SqlOperatorBaseTest {
               "VARCHAR NOT NULL");
           t.checkString("regexp_replace('abc\t\ndef\t\nghi', '\\w+', '+')", "+\t\n+\t\n+",
               "VARCHAR NOT NULL");
+          t.checkString("regexp_replace(cast('abc DC' as char(6)), 'abc', 'hello world')",
+              "hello world DC", "VARCHAR NOT NULL");
+          t.checkString("regexp_replace('abc DC', cast('abc' as char(3)), 'hello world')",
+              "hello world DC", "VARCHAR NOT NULL");
           t.checkQuery("select regexp_replace('a b c', 'b', 'X')");
           t.checkQuery("select regexp_replace('a b c', 'b', 'X', 1)");
           t.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3)");
           t.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3, 'i')");
+          final String errorMsg = "Cannot apply 'REGEXP_REPLACE' to arguments of type"
+              + " 'REGEXP_REPLACE(<INTEGER ARRAY>, <CHAR(1)>, <CHAR(1)>, <INTEGER>, <INTEGER>, <CHAR(1)>)'."
+              + " Supported form(s): "
+              + "'REGEXP_REPLACE(<[CHAR, VARCHAR]>, <[CHAR, VARCHAR]>, <[CHAR, VARCHAR]>)'\n"
+              + "'REGEXP_REPLACE(<[CHAR, VARCHAR]>, <[CHAR, VARCHAR]>, <[CHAR, VARCHAR]>,"
+              + " <INTEGER>)'\n"
+              + "'REGEXP_REPLACE(<[CHAR, VARCHAR]>, <[CHAR, VARCHAR]>, <[CHAR, VARCHAR]>,"
+              + " <INTEGER>, <INTEGER>)'\n"
+              + "'REGEXP_REPLACE(<[CHAR, VARCHAR]>, <[CHAR, VARCHAR]>, <[CHAR, VARCHAR]>,"
+              + " <INTEGER>, <INTEGER>, <[CHAR, VARCHAR]>)'";
+          t.checkQueryFails("select ^regexp_replace(Array[1,2,3], 'b', 'X', 1, 3, 'i')^", errorMsg);
         });
   }
 

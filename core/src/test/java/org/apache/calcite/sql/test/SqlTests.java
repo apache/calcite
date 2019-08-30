@@ -469,8 +469,10 @@ public abstract class SqlTests {
       actualMessage = Util.toLinux(actualMessage);
     }
 
+    // Sometimes, it's easier to check equals.
     if (actualMessage == null
-        || !actualMessage.matches(expectedMsgPattern)) {
+        || (!actualMessage.matches(expectedMsgPattern)
+          && !actualMessage.equals(expectedMsgPattern))) {
       actualException.printStackTrace();
       final String actualJavaRegexp =
           (actualMessage == null)

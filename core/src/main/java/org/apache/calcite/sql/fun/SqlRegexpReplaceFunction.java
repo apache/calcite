@@ -21,18 +21,23 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
+
+import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The REGEXP_REPLACE(source_string, pattern, replacement [, pos, occurrence, match_type])
+ * The REGEXP_REPLACE(source_string, pattern, replacement [, pos[, occurrence[, match_type]]])
  * searches for a regular expression pattern and replaces every occurrence of the pattern
  * with the specified string.
  * */
@@ -44,38 +49,87 @@ public class SqlRegexpReplaceFunction extends SqlFunction {
         ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
             SqlTypeTransforms.TO_NULLABLE),
         null,
-        null,
+        new TypeCheck(),
         SqlFunctionCategory.STRING);
   }
 
-  @Override public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.between(3, 6);
-  }
+  /**
+   * Type checker for REGEXP_REPLACE
+   */
+  private static class TypeCheck implements SqlOperandTypeChecker {
 
-  @Override public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
-    final int operandCount = callBinding.getOperandCount();
-    assert operandCount >= 3;
-    if (operandCount == 3) {
-      return OperandTypes.STRING_STRING_STRING
+    @Override public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+      final int operandCount = callBinding.getOperandCount();
+      assert operandCount >= 3;
+      if (operandCount == 3) {
+        return OperandTypes.STRING_STRING_STRING
+            .checkOperandTypes(callBinding, throwOnFailure);
+      }
+      final List<SqlTypeFamily> families = new ArrayList<>();
+      families.add(SqlTypeFamily.STRING);
+      families.add(SqlTypeFamily.STRING);
+      families.add(SqlTypeFamily.STRING);
+      for (int i = 3; i < operandCount; i++) {
+        if (i == 3) {
+          families.add(SqlTypeFamily.INTEGER);
+        }
+        if (i == 4) {
+          families.add(SqlTypeFamily.INTEGER);
+        }
+        if (i == 5) {
+          families.add(SqlTypeFamily.STRING);
+        }
+      }
+      return OperandTypes.family(families.toArray(new SqlTypeFamily[0]))
           .checkOperandTypes(callBinding, throwOnFailure);
     }
-    final List<SqlTypeFamily> families = new ArrayList<>();
-    families.add(SqlTypeFamily.STRING);
-    families.add(SqlTypeFamily.STRING);
-    families.add(SqlTypeFamily.STRING);
-    for (int i = 3; i < operandCount; i++) {
-      if (i == 3) {
-        families.add(SqlTypeFamily.INTEGER);
-      }
-      if (i == 4) {
-        families.add(SqlTypeFamily.INTEGER);
-      }
-      if (i == 5) {
-        families.add(SqlTypeFamily.STRING);
-      }
+
+    @Override public SqlOperandCountRange getOperandCountRange() {
+      return SqlOperandCountRanges.between(3, 6);
     }
-    return OperandTypes.family(families.toArray(new SqlTypeFamily[0]))
-        .checkOperandTypes(callBinding, throwOnFailure);
+
+    @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+      final StringBuilder ret = new StringBuilder();
+      ret.append(NL);
+      ret.append(
+          SqlUtil.getAliasedSignature(op, opName,
+              ImmutableList.of(SqlTypeName.CHAR_TYPES,
+                  SqlTypeName.CHAR_TYPES,
+                  SqlTypeName.CHAR_TYPES)));
+      ret.append(NL);
+      ret.append(
+          SqlUtil.getAliasedSignature(op, opName,
+              ImmutableList.of(SqlTypeName.CHAR_TYPES,
+                  SqlTypeName.CHAR_TYPES,
+                  SqlTypeName.CHAR_TYPES,
+                  SqlTypeName.INTEGER)));
+      ret.append(NL);
+      ret.append(
+          SqlUtil.getAliasedSignature(op, opName,
+              ImmutableList.of(SqlTypeName.CHAR_TYPES,
+                  SqlTypeName.CHAR_TYPES,
+                  SqlTypeName.CHAR_TYPES,
+                  SqlTypeName.INTEGER,
+                  SqlTypeName.INTEGER)));
+      ret.append(NL);
+      ret.append(
+          SqlUtil.getAliasedSignature(op, opName,
+              ImmutableList.of(SqlTypeName.CHAR_TYPES,
+                  SqlTypeName.CHAR_TYPES,
+                  SqlTypeName.CHAR_TYPES,
+                  SqlTypeName.INTEGER,
+                  SqlTypeName.INTEGER,
+                  SqlTypeName.CHAR_TYPES)));
+      return ret.toString();
+    }
+
+    @Override public Consistency getConsistency() {
+      return Consistency.NONE;
+    }
+
+    @Override public boolean isOptional(int i) {
+      return i > 2;
+    }
   }
 }
 
