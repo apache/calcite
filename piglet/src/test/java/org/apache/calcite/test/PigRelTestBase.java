@@ -20,6 +20,7 @@ import org.apache.calcite.piglet.PigConverter;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.tools.FrameworkConfig;
 
+import org.junit.Assume;
 import org.junit.Before;
 
 /**
@@ -30,6 +31,9 @@ public abstract class PigRelTestBase {
 
   @Before
   public void testSetup() throws Exception {
+    Assume.assumeFalse("Skip: Pig/Hadoop tests do not work on Windows",
+        System.getProperty("os.name").startsWith("Windows"));
+
     final FrameworkConfig config = PigRelBuilderTest.config().build();
     converter = PigConverter.create(config);
   }
