@@ -26,6 +26,8 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
@@ -33,6 +35,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -982,6 +985,20 @@ public class SqlDialect {
     return true;
   }
 
+  /**
+   * Returns whether the dialect needs cast in string operands of comparison operator.
+   * for instance, where employee_id = '10' is comparable in most of the dialect,
+   * so doesn't need cast for string operand '10'.
+   * but in BiqQuery the above statement is not valid without cast.
+   * @param node operand of comparison operator which contain cast.
+   */
+  public boolean castRequiredForStringOperand(RexCall node) {
+    RexNode operand = node.getOperands().get(0);
+    if (SqlTypeFamily.CHARACTER.contains(operand.getType())) {
+      return false;
+    }
+    return true;
+  }
   /**
    * Copies settings from this dialect into a parser configuration.
    *

@@ -17,6 +17,10 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlKind;
@@ -25,6 +29,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 /**
@@ -58,6 +63,22 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   @Override public boolean supportsCharSet() {
     return false;
+  }
+
+  @Override public boolean castRequiredForStringOperand(RexCall node) {
+    if (super.castRequiredForStringOperand(node)) {
+      return true;
+    }
+    RexNode operand = node.getOperands().get(0);
+    RelDataType castType = node.type;
+    if (operand instanceof RexLiteral) {
+      if (SqlTypeFamily.NUMERIC.contains(castType)) {
+        return true;
+      }
+      return false;
+    } else {
+      return true;
+    }
   }
 
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,
