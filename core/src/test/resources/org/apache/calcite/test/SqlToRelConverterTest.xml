@@ -6226,4 +6226,31 @@ LogicalProject(C=[$0], N=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testProjectApproximateAndExactAggregates">
+        <Resource name="sql">
+            <![CDATA[SELECT empno, count(distinct ename),
+approx_count_distinct(ename) "
+FROM emp
+GROUP BY empno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)], EXPR$2=[COUNT(DISTINCT $1)])
+  LogicalProject(EMPNO=[$0], ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testProjectAggregatesIgnoreNullsAndNot">
+        <Resource name="sql">
+            <![CDATA[select lead(sal, 4) IGNORE NULLS, lead(sal, 4) over (w)
+from emp window w as (order by empno)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[IGNORE NULLS(LEAD($5, 4))], EXPR$1=[LEAD($5, 4) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
