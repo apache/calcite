@@ -188,6 +188,17 @@ limitations under the License.
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.owasp</groupId>
+        <artifactId>dependency-check-maven</artifactId>
+        <configuration>
+          <!-- Never fail the build for this module but still check for vulnerabilities. -->
+          <failBuildOnCVSS>11</failBuildOnCVSS>
+          <!-- Skip system dependencies; otherwise fails to find
+               jdk.tools:jdk.tools:jar:1.8:system dependency. -->
+          <skipSystemScope>true</skipSystemScope>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 </project>
