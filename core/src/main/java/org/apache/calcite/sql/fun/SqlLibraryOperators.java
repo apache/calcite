@@ -172,9 +172,13 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
   public static final SqlFunction DATE_ADD =
-      new SqlFunction("DATE_ADD", SqlKind.PLUS,
-          ReturnTypes.DATE, null, OperandTypes.DATETIME,
-          SqlFunctionCategory.TIMEDATE) {
+      new SqlFunction(
+        "DATE_ADD",
+        SqlKind.PLUS,
+        ReturnTypes.DATE,
+        null,
+        OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME_INTERVAL),
+        SqlFunctionCategory.TIMEDATE) {
 
         @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
           writer.getDialect().unparseIntervalOperandsBasedFunctions(
@@ -184,9 +188,13 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction ADD_MONTHS =
-      new SqlFunction("ADD_MONTHS", SqlKind.PLUS,
-          ReturnTypes.DATE, null, OperandTypes.DATETIME,
-          SqlFunctionCategory.TIMEDATE) {
+      new SqlFunction(
+        "ADD_MONTHS",
+        SqlKind.PLUS,
+        ReturnTypes.DATE,
+        null,
+        OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER),
+        SqlFunctionCategory.TIMEDATE) {
 
         @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
           writer.getDialect().unparseIntervalOperandsBasedFunctions(
