@@ -1069,13 +1069,15 @@ public abstract class SqlImplementor {
           // select in the case where an aggregate function is nested below. However,
           // those dialects need a sub-select when there is a nested group by without
           // aggregate function.
-          if (this.clauses.contains(Clause.GROUP_BY) && !hasNestedAggregations((Aggregate) rel))
-              needNew = true;
+          if (this.clauses.contains(Clause.GROUP_BY) && !hasNestedAggregations((Aggregate) rel)) {
+            needNew = true;
+          }
         } else {
           // Other dialects always need a sub-select if there is either a nested group
           // by or aggregate.
-          if (this.clauses.contains(Clause.GROUP_BY) || hasNestedAggregations((Aggregate) rel))
-              needNew = true;
+          if (this.clauses.contains(Clause.GROUP_BY) || hasNestedAggregations((Aggregate) rel)) {
+            needNew = true;
+          }
         }
       }
 
