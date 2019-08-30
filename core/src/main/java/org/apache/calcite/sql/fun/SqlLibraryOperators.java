@@ -42,7 +42,6 @@ import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
 import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
 
-
 /**
  * Defines functions and operators that are not part of standard SQL but
  * belong to one or more other dialects of SQL.

@@ -414,6 +414,17 @@ public class SqlDialect {
     writer.endFunCall(floorFrame);
   }
 
+  protected void unparseFormat(
+      final SqlWriter writer,
+      final SqlCall call, final int leftPrec, final int rightPrec) {
+    final SqlWriter.Frame formatFrame = writer.startFunCall("PRINTF");
+    for (SqlNode operand : call.getOperandList()) {
+      writer.sep(",");
+      operand.unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(formatFrame);
+  }
+
   public void unparseDateTimeLiteral(SqlWriter writer,
       SqlAbstractDateTimeLiteral literal, int leftPrec, int rightPrec) {
     writer.literal(literal.toString());
