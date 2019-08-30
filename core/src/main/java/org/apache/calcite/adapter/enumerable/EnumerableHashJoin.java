@@ -16,11 +16,9 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
-import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -35,11 +33,9 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableIntList;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -180,9 +176,8 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
       RexNode nonEquiCondition = RexUtil.composeConjunction(
           getCluster().getRexBuilder(), joinInfo.nonEquiConditions, true);
       if (nonEquiCondition != null) {
-        predicate = generatePredicate(implementor,
-            leftResult.physType,
-            rightResult.physType, nonEquiCondition);
+        predicate = EnumUtils.generatePredicate(implementor, getCluster().getRexBuilder(),
+            left, right, leftResult.physType, rightResult.physType, nonEquiCondition);
       }
     }
     return implementor.result(
@@ -224,9 +219,8 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
       RexNode nonEquiCondition = RexUtil.composeConjunction(
           getCluster().getRexBuilder(), joinInfo.nonEquiConditions, true);
       if (nonEquiCondition != null) {
-        predicate = generatePredicate(implementor,
-            leftResult.physType,
-            rightResult.physType, nonEquiCondition);
+        predicate = EnumUtils.generatePredicate(implementor, getCluster().getRexBuilder(),
+            left, right, leftResult.physType, rightResult.physType, nonEquiCondition);
       }
     }
     return implementor.result(
@@ -253,36 +247,6 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
                             joinType.generatesNullsOnRight())).append(predicate)
             ))
             .toBlock());
-  }
-
-  Expression generatePredicate(EnumerableRelImplementor implementor,
-      PhysType leftPhysType, PhysType rightPhysType,
-      RexNode condition) {
-    BlockBuilder builder = new BlockBuilder();
-    final ParameterExpression left_ =
-        Expressions.parameter(leftPhysType.getJavaRowType(), "left");
-    final ParameterExpression right_ =
-        Expressions.parameter(rightPhysType.getJavaRowType(), "right");
-    final RexProgramBuilder program =
-        new RexProgramBuilder(
-            implementor.getTypeFactory().builder()
-                .addAll(left.getRowType().getFieldList())
-                .addAll(right.getRowType().getFieldList())
-                .build(),
-            getCluster().getRexBuilder());
-    program.addCondition(condition);
-    builder.add(
-        Expressions.return_(null,
-            RexToLixTranslator.translateCondition(program.getProgram(),
-                implementor.getTypeFactory(),
-                builder,
-                new RexToLixTranslator.InputGetterImpl(
-                    ImmutableList.of(Pair.of(left_, leftPhysType),
-                        Pair.of(right_, rightPhysType))),
-                implementor.allCorrelateVariables,
-                implementor.getConformance())));
-    return Expressions.lambda(Predicate2.class, builder.toBlock(), left_,
-        right_);
   }
 }
 
