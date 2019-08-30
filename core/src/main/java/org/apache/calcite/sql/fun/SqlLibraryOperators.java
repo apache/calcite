@@ -18,10 +18,12 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -32,10 +34,15 @@ import org.apache.calcite.sql.type.SqlTypeTransforms;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.apache.calcite.sql.fun.SqlLibrary.BIGQUERY;
+import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
+import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
 import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
+import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
+import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
 
 /**
  * Defines functions and operators that are not part of standard SQL but
@@ -163,6 +170,38 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("MONTHNAME", SqlKind.OTHER_FUNCTION,
           ReturnTypes.VARCHAR_2000, null, OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
+  public static final SqlFunction DATE_ADD =
+      new SqlFunction(
+        "DATE_ADD",
+        SqlKind.PLUS,
+        ReturnTypes.DATE,
+        null,
+        OperandTypes.or(DATETIME_INTERVAL, DATETIME_INTEGER),
+        SqlFunctionCategory.TIMEDATE) {
+
+        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          writer.getDialect().unparseIntervalOperandsBasedFunctions(
+                writer, call, leftPrec, rightPrec);
+        }
+      };
+
+  @LibraryOperator(libraries = {HIVE, SPARK})
+  public static final SqlFunction ADD_MONTHS =
+      new SqlFunction(
+        "ADD_MONTHS",
+        SqlKind.PLUS,
+        ReturnTypes.DATE,
+        null,
+        OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER),
+        SqlFunctionCategory.TIMEDATE) {
+
+        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          writer.getDialect().unparseIntervalOperandsBasedFunctions(
+                writer, call, leftPrec, rightPrec);
+        }
+      };
 
   /** The "DAYNAME(datetime)" function; returns the name of the day of the week,
    * in the current locale, of a TIMESTAMP or DATE argument. */

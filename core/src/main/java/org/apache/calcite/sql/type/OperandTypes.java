@@ -446,6 +446,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker DATETIME_INTERVAL =
       family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME_INTERVAL);
 
+  public static final SqlSingleOperandTypeChecker DATETIME_INTEGER =
+      family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER);
+
   public static final SqlSingleOperandTypeChecker DATETIME_INTERVAL_INTERVAL =
       family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME_INTERVAL,
           SqlTypeFamily.DATETIME_INTERVAL);

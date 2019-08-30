@@ -182,8 +182,8 @@ public abstract class SqlImplementor {
    * @return SqlNode that represents the condition
    */
   public SqlNode convertConditionToSqlNode(RexNode node,
-      Context leftContext,
-      Context rightContext, int leftFieldCount) {
+                                           Context leftContext,
+                                           Context rightContext, int leftFieldCount) {
     if (node.isAlwaysTrue()) {
       return SqlLiteral.createBoolean(true, POS);
     }
@@ -636,6 +636,10 @@ public abstract class SqlImplementor {
           } else {
             nodeList.add(dialect.getCastSpec(call.getType()));
           }
+          break;
+        case PLUS:
+          op = dialect.getTargetFunc(call);
+          break;
         }
         if (op instanceof SqlBinaryOperator && nodeList.size() > 2) {
           // In RexNode trees, OR and AND have any number of children;

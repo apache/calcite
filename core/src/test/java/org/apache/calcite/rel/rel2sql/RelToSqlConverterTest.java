@@ -3573,9 +3573,9 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.employee\n"
         + "WHERE 10 = CAST('10' AS INTEGER) AND birth_date = '1914-02-02' OR hire_date = CAST(CONCAT('1996-01-01 ', '00:00:00') AS TIMESTAMP(0))";
     sql(query)
-        .ok(expected)
-        .withBigQuery()
-        .ok(expectedBiqquery);
+      .ok(expected)
+      .withBigQuery()
+      .ok(expectedBiqquery);
   }
 
   @Test public void testJsonType() {

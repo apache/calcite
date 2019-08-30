@@ -446,6 +446,11 @@ public class SqlDialect {
     }
   }
 
+  public void unparseIntervalOperandsBasedFunctions(SqlWriter writer,
+      SqlCall call, int leftPrec, int rightPrec) {
+    SqlUtil.unparseFunctionSyntax(call.getOperator(), writer, call);
+  }
+
   /** Converts an interval qualifier to a SQL string. The default implementation
    * returns strings such as
    * <code>INTERVAL '1 2:3:4' DAY(4) TO SECOND(4)</code>. */
@@ -1092,6 +1097,10 @@ public class SqlDialect {
   /** Returns whether matching of identifiers is case-sensitive. */
   public boolean isCaseSensitive() {
     return caseSensitive;
+  }
+
+  public SqlOperator getTargetFunc(RexCall call) {
+    return call.getOperator();
   }
 
   /**
