@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitDef;
@@ -62,6 +61,9 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.TestUtil;
+
+import com.google.common.collect.ImmutableList;
+
 import org.junit.Test;
 
 import java.util.List;
@@ -70,9 +72,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.apache.calcite.test.Matchers.isLinux;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for {@link RelToSqlConverter}.
@@ -3557,17 +3562,16 @@ public class RelToSqlConverterTest {
         .ok(expectedInSpark);
   }
 
-  @Test
-  public void testCastInStringOperandOfComparison() {
+  @Test public void testCastInStringOperandOfComparison() {
     final String query = "select \"employee_id\" "
-      + "from \"foodmart\".\"employee\" "
-      + "where 10 = cast('10' as int) and \"birth_date\" = cast('1914-02-02' as date) or \"hire_date\" = cast('1996-01-01 '||'00:00:00' as timestamp)";
+        + "from \"foodmart\".\"employee\" "
+        + "where 10 = cast('10' as int) and \"birth_date\" = cast('1914-02-02' as date) or \"hire_date\" = cast('1996-01-01 '||'00:00:00' as timestamp)";
     final String expected = "SELECT \"employee_id\"\n"
-      + "FROM \"foodmart\".\"employee\"\n"
-      + "WHERE 10 = '10' AND \"birth_date\" = '1914-02-02' OR \"hire_date\" = '1996-01-01 ' || '00:00:00'";
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE 10 = '10' AND \"birth_date\" = '1914-02-02' OR \"hire_date\" = '1996-01-01 ' || '00:00:00'";
     final String expectedBiqquery = "SELECT employee_id\n"
-      + "FROM foodmart.employee\n"
-      + "WHERE 10 = CAST('10' AS INTEGER) AND birth_date = '1914-02-02' OR hire_date = CAST(CONCAT('1996-01-01 ', '00:00:00') AS TIMESTAMP(0))";
+        + "FROM foodmart.employee\n"
+        + "WHERE 10 = CAST('10' AS INTEGER) AND birth_date = '1914-02-02' OR hire_date = CAST(CONCAT('1996-01-01 ', '00:00:00') AS TIMESTAMP(0))";
     sql(query)
       .ok(expected)
       .withBigQuery()

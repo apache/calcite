@@ -16,9 +16,6 @@
  */
 package org.apache.calcite.sql;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableSet;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.Quoting;
@@ -42,10 +39,14 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+
+import com.google.common.base.Preconditions;
+import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableSet;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
@@ -55,6 +56,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
+import javax.annotation.Nonnull;
 
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
 
@@ -993,7 +995,6 @@ public class SqlDialect {
    * for instance, where employee_id = '10' is comparable in most of the dialect,
    * so doesn't need cast for string operand '10'.
    * but in BiqQuery the above statement is not valid without cast.
-   *
    * @param node operand of comparison operator which contain cast.
    */
   public boolean castRequiredForStringOperand(RexCall node) {
@@ -1003,7 +1004,6 @@ public class SqlDialect {
     }
     return true;
   }
-
   /**
    * Copies settings from this dialect into a parser configuration.
    *
