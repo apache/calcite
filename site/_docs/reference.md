@@ -1316,11 +1316,25 @@ Not implemented:
 
 ### Type conversion
 
+Generally an expression cannot contain values of different datatypes. For example, an expression cannot multiply 5 by 10 and then add 'JULIAN'.
+However, Calcite supports both implicit and explicit conversion of values from one datatype to another.
+
+#### Implicit and Explicit Type Conversion
+Calcite recommends that you specify explicit conversions, rather than rely on implicit or automatic conversions, for these reasons:
+
+* SQL statements are easier to understand when you use explicit datatype conversion functions.
+* Implicit datatype conversion can have a negative impact on performance, especially if the datatype of a column value is converted to that of a constant rather than the other way around.
+* Implicit conversion depends on the context in which it occurs and may not work the same way in every case. For example, implicit conversion from a datetime value to a VARCHAR value may return an unexpected format.
+
+Algorithms for implicit conversion are subject to change across Calcite releases. Behavior of explicit conversions is more predictable.
+
+#### Explicit Type Conversion
+
 | Operator syntax | Description
 |:--------------- | :----------
 | CAST(value AS type) | Converts a value to a given type.
 
-Supported data types:
+Supported data types syntax:
 
 {% highlight sql %}
 type:
@@ -1392,6 +1406,49 @@ timeZone:
       WITHOUT TIME ZONE
   |   WITH LOCAL TIME ZONE
 {% endhighlight %}
+
+#### Implicit Type Conversion
+Calcite automatically converts a value from one datatype to another when such a conversion makes sense. The table below is a matrix of Calcite type conversions. The table shows all possible conversions, without regard to the context in which it is made. The rules governing these details follow the table.
+
+| FROM-TO     | NULL | BOOLEAN | TINYINT | SMALLINT | INT | BIGINT | DECIMAL | FLOAT/REAL | DOUBLE | INTERVAL | DATE | TIME | TIMESTAMP | (VAR)CHAR | (VAR)BINARY
+|:----------- |:---- |:------- |:------- |:-------- |:--- |:------ |:------- |:---------- |:------ |:-------- |:---- |:---- |:--------- |:--------- |:-----------
+| NULL        | i    | i       | i       | i        | i   | i      | i       | i          | i      | i        | i    | i    | i         | i         | i
+| BOOLEAN     | x    | i       | e       | e        | e   | e      | e       | e          | e      | x        | x    | x    | x         | i         | x
+| TINYINT     | x    | e       | i       | i        | i   | i      | i       | i          | i      | e        | x    | x    | e         | i         | x
+| SMALLINT    | x    | e       | i       | i        | i   | i      | i       | i          | i      | e        | x    | x    | e         | i         | x
+| INT         | x    | e       | i       | i        | i   | i      | i       | i          | i      | e        | x    | x    | e         | i         | x
+| BIGINT      | x    | e       | i       | i        | i   | i      | i       | i          | i      | e        | x    | x    | e         | i         | x
+| DECIMAL     | x    | e       | i       | i        | i   | i      | i       | i          | i      | e        | x    | x    | e         | i         | x
+| FLOAT/REAL  | x    | e       | i       | i        | i   | i      | i       | i          | i      | x        | x    | x    | e         | i         | x
+| DOUBLE      | x    | e       | i       | i        | i   | i      | i       | i          | i      | x        | x    | x    | e         | i         | x
+| INTERVAL    | x    | x       | e       | e        | e   | e      | e       | x          | x      | i        | x    | x    | x         | e         | x
+| DATE        | x    | x       | x       | x        | x   | x      | x       | x          | x      | x        | i    | x    | i         | i         | x
+| TIME        | x    | x       | x       | x        | x   | x      | x       | x          | x      | x        | x    | i    | e         | i         | x
+| TIMESTAMP   | x    | x       | e       | e        | e   | e      | e       | e          | e      | x        | i    | e    | i         | i         | x
+| (VAR)CHAR   | x    | e       | i       | i        | i   | i      | i       | i          | i      | i        | i    | i    | i         | i         | i
+| (VAR)BINARY | x    | x       | x       | x        | x   | x      | x       | x          | x      | x        | e    | e    | e         | i         | i
+
+i: implicit cast / e: explicit cast / x: not allowed
+
+##### Conversion Contexts and Strategies
+* Set Operation(UNION/EXCEPT/INTERSECT): Compare every branch row data type and find the common type of each fields pair;
+* Arithmetic Expression: For binary arithmetic(`+`, `-`, `&`, `^`, `/`, `%`), promote string operand to data type of the other numeric operand;
+For binary comparison(`=`, `<`, `<=`, `<>`, `>`, `>=`),  
+  - If operands are STRING and TIMESTAMP, promotes to TIMESTAMP
+  - Make `1=true` and `0=false` always evaluates true
+  - Find common type for both operands if there is NUMERIC type operand
+* IN Expression: If with subquery, compare type of LHS and RHS, find the common type, if it is struct type, find wider type for every field;
+If without subquery and RHS is a node list, compare every node to find the common type;
+* CASE WHEN Expression(or COALESCE): Find then and else operands common wider type;
+* Datetime String +/- INTERVAL: Promote string to timestamp;
+* Builtin Function: Look up the families registered in the checker, find the family default type if checker rules allow it;
+* User Defined Function: Try to coerce based on the declared argument types of the `eval()` method.
+
+##### Strategies for Finding Common Type
+- If the operator has expected data types, just take them as the desired one. (e.g. the UDF would have `eval()` method which has reflection argument types);
+- If there is no expected data type but the data type families are registered, try to coerce the arguments to the family's default data type, i.e. the String family will have a VARCHAR type;
+- If neither expected data type nor families are specified, try to find the tightest common type of the node types, i.e. INT and DOUBLE will return DOUBLE, the numeric precision does not lose for this case;
+- If no tightest common type is found, try to find a wider type, i.e. STRING and INT will return INT, we allow some precision loss when widening decimal to fractional, or promote to STRING type.
 
 ### Value constructors
 
