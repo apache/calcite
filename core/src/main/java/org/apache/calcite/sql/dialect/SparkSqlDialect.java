@@ -175,6 +175,9 @@ public class SparkSqlDialect extends SqlDialect {
           timeUnitNode.getParserPosition());
       SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
       break;
+    case FORMAT:
+      unparseFormat(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
