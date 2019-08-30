@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 
@@ -39,6 +40,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
+import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
 
 
 /**
@@ -283,6 +285,16 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {STANDARD})
+  public static final SqlFunction FORMAT =
+      new SqlFunction(
+          "FORMAT",
+          SqlKind.FORMAT,
+          ReturnTypes.VARCHAR_2000, null,
+          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.STRING);
+
 }
 
 // End SqlLibraryOperators.java
