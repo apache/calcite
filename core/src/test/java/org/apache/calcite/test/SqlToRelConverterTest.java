@@ -3535,6 +3535,25 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for:
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3310">[CALCITE-3310]
+   * Approximate and exact aggregate calls are recognized as the same
+   * during sql-to-rel conversion.</a>.
+   */
+  @Test public void testProjectApproximateAndExactAggregates() {
+    final String sql = "SELECT empno, count(distinct ename),\n"
+            + "approx_count_distinct(ename)\n"
+            + "FROM emp\n"
+            + "GROUP BY empno";
+    sql(sql).ok();
+  }
+
+  @Test public void testProjectAggregatesIgnoreNullsAndNot() {
+    final String sql = "select lead(sal, 4) IGNORE NULLS, lead(sal, 4) over (w)\n"
+            + " from emp window w as (order by empno)";
+    sql(sql).ok();
+  }
+
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
