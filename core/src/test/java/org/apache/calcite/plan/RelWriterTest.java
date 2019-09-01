@@ -21,6 +21,7 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.externalize.RelJsonReader;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
@@ -30,6 +31,7 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.schema.SchemaPlus;
@@ -532,19 +534,7 @@ public class RelWriterTest {
     rel.explain(jsonWriter);
     String relJson = jsonWriter.asString();
     final RelOptSchema schema = getSchema(rel);
-    final String s =
-        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
-          final RelJsonReader reader =
-              new RelJsonReader(cluster, schema, rootSchema);
-          RelNode node;
-          try {
-            node = reader.read(relJson);
-          } catch (IOException e) {
-            throw TestUtil.rethrow(e);
-          }
-          return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
-              SqlExplainLevel.EXPPLAN_ATTRIBUTES);
-        });
+    final String s = deserializeAndDumpToTextFormat(schema, relJson);
     final String expected = ""
         + "LogicalProject(trimmed_ename=[TRIM(FLAG(BOTH), ' ', $1)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
@@ -564,19 +554,7 @@ public class RelWriterTest {
     RelJsonWriter jsonWriter = new RelJsonWriter();
     rel.explain(jsonWriter);
     String relJson = jsonWriter.asString();
-    String s =
-        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
-          final RelJsonReader reader = new RelJsonReader(
-              cluster, getSchema(rel), rootSchema);
-          RelNode node;
-          try {
-            node = reader.read(relJson);
-          } catch (IOException e) {
-            throw TestUtil.rethrow(e);
-          }
-          return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
-              SqlExplainLevel.EXPPLAN_ATTRIBUTES);
-        });
+    String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
     final String expected = ""
         + "LogicalProject($f0=[+($5, 10)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
@@ -601,19 +579,7 @@ public class RelWriterTest {
     final RelJsonWriter jsonWriter = new RelJsonWriter();
     rel.explain(jsonWriter);
     final String relJson = jsonWriter.asString();
-    String s =
-        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
-          final RelJsonReader reader = new RelJsonReader(
-              cluster, getSchema(rel), rootSchema);
-          RelNode node;
-          try {
-            node = reader.read(relJson);
-          } catch (IOException e) {
-            throw TestUtil.rethrow(e);
-          }
-          return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
-              SqlExplainLevel.EXPPLAN_ATTRIBUTES);
-        });
+    String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
     final String expected = ""
         + "LogicalProject(max_sal=[$1])\n"
         + "  LogicalAggregate(group=[{0}], max_sal=[MAX($1)])\n"
@@ -642,24 +608,38 @@ public class RelWriterTest {
     final RelJsonWriter jsonWriter = new RelJsonWriter();
     rel.explain(jsonWriter);
     final String relJson = jsonWriter.asString();
-    String s =
-        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
-          final RelJsonReader reader = new RelJsonReader(
-              cluster, getSchema(rel), rootSchema);
-          RelNode node;
-          try {
-            node = reader.read(relJson);
-          } catch (IOException e) {
-            throw TestUtil.rethrow(e);
-          }
-          return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
-              SqlExplainLevel.EXPPLAN_ATTRIBUTES);
-        });
+    String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
     final String expected = ""
         + "LogicalProject($f1=[$1])\n"
         + "  LogicalAggregate(group=[{0}], agg#0=[MAX($1)])\n"
         + "    LogicalProject(JOB=[$2], SAL=[$5])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
+
+    assertThat(s, isLinux(expected)
+    );
+  }
+
+  @Test public void testCorrelateQuery() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final Holder<RexCorrelVariable> v = Holder.of(null);
+    RelNode relNode = builder.scan("EMP")
+        .variable(v)
+        .scan("DEPT")
+        .filter(
+            builder.equals(builder.field(0), builder.field(v.get(), "DEPTNO")))
+        .correlate(
+            JoinRelType.INNER, v.get().id, builder.field(2, 0, "DEPTNO"))
+        .build();
+    RelJsonWriter jsonWriter = new RelJsonWriter();
+    relNode.explain(jsonWriter);
+    final String relJson = jsonWriter.asString();
+    String s = deserializeAndDumpToTextFormat(getSchema(relNode), relJson);
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
 
     assertThat(s, isLinux(expected)
     );
@@ -677,6 +657,27 @@ public class RelWriterTest {
           }
         });
     return schemaHolder.get();
+  }
+
+  /**
+   * Deserialize a relnode from the json string by {@link RelJsonReader},
+   * and dump it to text format.
+   */
+  private String deserializeAndDumpToTextFormat(RelOptSchema schema, String relJson) {
+    String s =
+        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+          final RelJsonReader reader = new RelJsonReader(
+              cluster, schema, rootSchema);
+          RelNode node;
+          try {
+            node = reader.read(relJson);
+          } catch (IOException e) {
+            throw TestUtil.rethrow(e);
+          }
+          return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
+              SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+        });
+    return s;
   }
 }
 
