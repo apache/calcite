@@ -158,7 +158,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   private static final double DEFAULT_NOTNULL_SELECTIVITY = 0.9;
 
-  private static final double DEFAULT_SELECTIVITY = 0.25;
+  private static final double DEFAULT_OR_SELECTIVITY =
+      1 - (1 - DEFAULT_EQUAL_SELECTIVITY) * (1 - DEFAULT_EQUAL_SELECTIVITY);
 
   private static final double EMP_SIZE = 14d;
 
@@ -740,7 +741,13 @@ public class RelMetadataTest extends SqlToRelTestBase {
   @Test public void testSelectivityOrFilter() {
     checkFilterSelectivity(
         "select * from emp where ename = 'foo' or deptno = 10",
-        DEFAULT_SELECTIVITY);
+        DEFAULT_OR_SELECTIVITY);
+  }
+
+  @Test public void testSelectivityInFilter() {
+    checkFilterSelectivity(
+        "select * from emp where deptno in (9, 10)",
+        DEFAULT_OR_SELECTIVITY);
   }
 
   @Test public void testSelectivityJoin() {

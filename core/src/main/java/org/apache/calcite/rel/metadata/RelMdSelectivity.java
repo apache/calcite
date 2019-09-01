@@ -23,6 +23,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -182,6 +183,15 @@ public class RelMdSelectivity
           RexUtil.composeConjunction(rexBuilder, notPushable, true);
       return selectivity * RelMdUtil.guessSelectivity(pred);
     }
+  }
+
+  public Double getSelectivity(TableScan scan, RelMetadataQuery mq, RexNode predicate) {
+    if (predicate != null) {
+      FilterSelectivityEstimator filterSelEstmator = new FilterSelectivityEstimator(scan, mq);
+      return filterSelEstmator.estimateSelectivity(predicate);
+    }
+
+    return 1.0;
   }
 
   // Catch-all rule when none of the others apply.
