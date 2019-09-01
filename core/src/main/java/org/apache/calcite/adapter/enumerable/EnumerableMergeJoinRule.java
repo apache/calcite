@@ -21,6 +21,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
@@ -60,28 +61,53 @@ class EnumerableMergeJoinRule extends ConverterRule {
       // EnumerableMergeJoin CAN support cartesian join, but disable it for now.
       return null;
     }
+
+    final RelNode left = join.getInput(0);
+    final RelNode right = join.getInput(1);
+
+    final List<RelNode> enumerableInputs = new ArrayList<>();
+    enumerableInputs.add(
+        convert(left, left.getTraitSet().replace(EnumerableConvention.INSTANCE)));
+    enumerableInputs.add(
+        convert(right, right.getTraitSet().replace(EnumerableConvention.INSTANCE)));
+
     final List<RelNode> newInputs = new ArrayList<>();
     final List<RelCollation> collations = new ArrayList<>();
     int offset = 0;
-    for (Ord<RelNode> ord : Ord.zip(join.getInputs())) {
-      RelTraitSet traits = ord.e.getTraitSet()
-          .replace(EnumerableConvention.INSTANCE);
-      if (!info.pairs().isEmpty()) {
+    for (Ord<RelNode> ord : Ord.zip(enumerableInputs)) {
+      if (info.pairs().isEmpty()) {
+        newInputs.add(ord.e);
+      } else {
         final List<RelFieldCollation> fieldCollations = new ArrayList<>();
         for (int key : info.keys().get(ord.i)) {
           fieldCollations.add(
               new RelFieldCollation(key, RelFieldCollation.Direction.ASCENDING,
                   RelFieldCollation.NullDirection.LAST));
         }
-        final RelCollation collation = RelCollations.of(fieldCollations);
+        final RelCollation collation =
+            ord.e.getTraitSet().canonize(RelCollations.of(fieldCollations));
+        if (ord.e.getTraitSet().getTrait(RelCollationTraitDef.INSTANCE)
+            .satisfies(collation)) {
+          newInputs.add(ord.e);
+        } else {
+          // Another choice is to change the trait of collation of input
+          // and tag a AbstractConverter and then expand the converter as
+          // a Sort during optimization.
+          // But we choose to construct the operator of EnumerableSort
+          // here, thus to save another matching effort when optimization.
+          // Relying on expansion of AbstractConverter could be expensive.
+          // There might be matching explosion using VolcanoPlanner. Check
+          // performance issue CALCITE-2970.
+          RelNode enumerableSort =
+              EnumerableSort.create(ord.e, collation, null, null);
+          newInputs.add(enumerableSort);
+        }
         collations.add(RelCollations.shift(collation, offset));
-        traits = traits.replace(collation);
       }
-      newInputs.add(convert(ord.e, traits));
       offset += ord.e.getRowType().getFieldCount();
     }
-    final RelNode left = newInputs.get(0);
-    final RelNode right = newInputs.get(1);
+    final RelNode newLeft = newInputs.get(0);
+    final RelNode newRight = newInputs.get(1);
     final RelOptCluster cluster = join.getCluster();
     RelNode newRel;
 
@@ -92,9 +118,9 @@ class EnumerableMergeJoinRule extends ConverterRule {
     }
     newRel = new EnumerableMergeJoin(cluster,
         traitSet,
-        left,
-        right,
-        info.getEquiCondition(left, right, cluster.getRexBuilder()),
+        newLeft,
+        newRight,
+        info.getEquiCondition(newLeft, newRight, cluster.getRexBuilder()),
         join.getVariablesSet(),
         join.getJoinType());
     if (!info.isEqui()) {

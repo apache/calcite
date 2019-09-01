@@ -413,12 +413,12 @@ public class VolcanoPlannerTest {
         resultLeaf.label);
   }
 
-  @Ignore("CALCITE-2592 EnumerableMergeJoin is never taken")
   @Test public void testMergeJoin() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
-    // Below two lines are important for the planner to use collation trait and generate merge join
+    // Below two lines are important for the planner to
+    // use collation trait and generate merge join
     planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
     planner.registerAbstractRelationalRules();
 
@@ -439,7 +439,6 @@ public class VolcanoPlannerTest {
         cluster.traitSet().replace(EnumerableConvention.INSTANCE);
     final RelNode newRoot = planner.changeTraits(logicalPlan, desiredTraits);
     planner.setRoot(newRoot);
-
     RelNode bestExp = planner.findBestExp();
 
     final String plan = ""
@@ -447,8 +446,8 @@ public class VolcanoPlannerTest {
         + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
         + "    EnumerableValues(tuples=[[{ '2', 'a' }, { '1', 'b' }]])\n"
         + "  EnumerableValues(tuples=[[{ '1', 'x' }, { '2', 'y' }]])\n";
-    assertThat("Merge join + sort is expected", plan,
-        isLinux(RelOptUtil.toString(bestExp)));
+    assertThat("Merge join + sort is expected", RelOptUtil.toString(bestExp),
+        isLinux(plan));
   }
 
   /**

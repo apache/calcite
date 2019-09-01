@@ -463,11 +463,11 @@ EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
 # Uncorrelated
 with t (a, b) as (select * from (values (60, 'b')))
 select * from t where a in (select deptno from "scott".dept);
-EnumerableCalc(expr#0..2=[{inputs}], A=[$t1], B=[$t2])
-  EnumerableMergeJoin(condition=[=($0, $1)], joinType=[inner])
+EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
+  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])
+    EnumerableValues(tuples=[[{ 60, 'b' }]])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
       EnumerableTableScan(table=[[scott, DEPT]])
-    EnumerableValues(tuples=[[{ 60, 'b' }]])
 !plan
 +---+---+
 | A | B |

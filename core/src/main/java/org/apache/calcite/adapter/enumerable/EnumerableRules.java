@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -114,8 +115,9 @@ public class EnumerableRules {
       new EnumerableMatchRule();
 
   public static final List<RelOptRule> ENUMERABLE_RULES = ImmutableList.of(
-      EnumerableRules.ENUMERABLE_JOIN_RULE,
-      EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
+      CalciteSystemProperty.MERGE_JOIN.value()
+          ? EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE
+          : EnumerableRules.ENUMERABLE_JOIN_RULE,
       EnumerableRules.ENUMERABLE_CORRELATE_RULE,
       EnumerableRules.ENUMERABLE_PROJECT_RULE,
       EnumerableRules.ENUMERABLE_FILTER_RULE,

@@ -66,6 +66,12 @@ public final class CalciteSystemProperty<T> {
   public static final CalciteSystemProperty<Boolean> COMMUTE =
       booleanProperty("calcite.enable.join.commute", false);
 
+  /**
+   * Whether enable to use merge join.
+   */
+  public static final CalciteSystemProperty<Boolean> MERGE_JOIN =
+      booleanProperty("calcite.enable.merge.join", false);
+
   /** Whether to enable the collation trait in the default planner configuration.
    *
    * <p>Some extra optimizations are possible if enabled, but queries should
