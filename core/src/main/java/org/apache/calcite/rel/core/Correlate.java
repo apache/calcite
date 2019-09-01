@@ -108,7 +108,7 @@ public abstract class Correlate extends BiRel {
     this(
         input.getCluster(), input.getTraitSet(), input.getInputs().get(0),
         input.getInputs().get(1),
-        new CorrelationId((Integer) input.get("correlationId")),
+        new CorrelationId((Integer) input.get("correlation")),
         input.getBitSet("requiredColumns"),
         input.getEnum("joinType", JoinRelType.class));
   }
@@ -158,7 +158,7 @@ public abstract class Correlate extends BiRel {
     return super.explainTerms(pw)
         .item("correlation", correlationId)
         .item("joinType", joinType.lowerName)
-        .item("requiredColumns", requiredColumns.toString());
+        .item("requiredColumns", requiredColumns);
   }
 
   /**
