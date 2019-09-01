@@ -14,29 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.test;
+package org.apache.calcite.sql.validate.implicit;
 
-import org.apache.calcite.piglet.PigConverter;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.tools.FrameworkConfig;
-
-import org.junit.Assume;
-import org.junit.Before;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlValidator;
 
 /**
- * Abstract class for Pig to {@link RelNode} tests.
+ * Factory class for type coercion instantiation of different sql dialects.
  */
-public abstract class PigRelTestBase {
-  PigConverter converter;
+public class TypeCoercions {
+  private TypeCoercions() {}
 
-  @Before
-  public void testSetup() throws Exception {
-    Assume.assumeFalse("Skip: Pig/Hadoop tests do not work on Windows",
-        System.getProperty("os.name").startsWith("Windows"));
-
-    final FrameworkConfig config = PigRelBuilderTest.config().build();
-    converter = PigConverter.create(config);
+  // All the SqlConformance would have default TypeCoercion instance.
+  public static TypeCoercion getTypeCoercion(SqlValidator validator,
+      SqlConformance conformance) {
+    return new TypeCoercionImpl(validator);
   }
 }
 
-// End PigRelTestBase.java
+// End TypeCoercions.java

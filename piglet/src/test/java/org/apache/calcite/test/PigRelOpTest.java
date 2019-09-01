@@ -19,7 +19,6 @@ package org.apache.calcite.test;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -1049,36 +1048,20 @@ public class PigRelOpTest extends PigRelTestBase {
         + "    LogicalAggregate(group=[{0}], A=[COLLECT($1)])\n"
         + "      LogicalProject(DEPTNO=[$0], $f1=[ROW($0, $1, $2)])\n"
         + "        LogicalTableScan(table=[[scott, DEPT]])\n";
-    String optimizedPlan = ""
+    final String optimizedPlan = ""
         + "LogicalProject($f0=[$1])\n"
         + "  LogicalAggregate(group=[{0}], agg#0=[COLLECT($2)])\n"
-        + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], $f2=[ROW"
-        + "($0, $1)])\n"
+        + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], $f2=[ROW($0, $1)])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
     final String result = ""
         + "({(20,RESEARCH)})\n"
         + "({(40,OPERATIONS)})\n"
         + "({(10,ACCOUNTING)})\n"
         + "({(30,SALES)})\n";
-    String sql = ""
+    final String sql = ""
         + "SELECT COLLECT(ROW(DEPTNO, DNAME)) AS $f0\n"
         + "FROM scott.DEPT\n"
         + "GROUP BY DEPTNO";
-    // When
-    //   [CALCITE-3297] PigToSqlAggregateRule should be applied on multi-set
-    //   projection to produce an optimal plan
-    // is fixed we can remove the following block.
-    if (Bug.remark("[CALCITE-3297]") != null) {
-      optimizedPlan = ""
-          + "LogicalProject($f0=[MULTISET_PROJECTION($1, 0, 1)])\n"
-          + "  LogicalAggregate(group=[{0}], A=[COLLECT($1)])\n"
-          + "    LogicalProject(DEPTNO=[$0], $f1=[ROW($0, $1, $2)])\n"
-          + "      LogicalTableScan(table=[[scott, DEPT]])\n";
-      sql = "SELECT MULTISET_PROJECTION(COLLECT(ROW(DEPTNO, DNAME, LOC)), "
-          + "0, 1) AS $f0\n"
-          + "FROM scott.DEPT\n"
-          + "GROUP BY DEPTNO";
-    }
     pig(script).assertRel(hasTree(plan))
         .assertOptimizedRel(hasTree(optimizedPlan))
         .assertResult(is(result))

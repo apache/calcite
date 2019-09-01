@@ -252,6 +252,121 @@ public class EnumerablesTest {
             + "[Emp(20, Sebastian), Emp(30, Joe)] null 2]"));
   }
 
+  @Test public void testInnerHashJoin() {
+    assertThat(
+        EnumerableDefaults.hashJoin(
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Emp(10, "Fred"),
+                    new Emp(20, "Theodore"),
+                    new Emp(20, "Sebastian"),
+                    new Emp(30, "Joe"),
+                    new Emp(30, "Greg"))),
+            Linq4j.asEnumerable(
+                Arrays.asList(new Dept(15, "Marketing"), new Dept(20, "Sales"),
+                    new Dept(30, "Research"), new Dept(30, "Development"))),
+            e -> e.deptno,
+            d -> d.deptno,
+            (v0, v1) -> v0 + ", " + v1, null)
+            .toList()
+            .toString(),
+        equalTo("[Emp(20, Theodore), Dept(20, Sales),"
+            + " Emp(20, Sebastian), Dept(20, Sales),"
+            + " Emp(30, Joe), Dept(30, Research),"
+            + " Emp(30, Joe), Dept(30, Development),"
+            + " Emp(30, Greg), Dept(30, Research),"
+            + " Emp(30, Greg), Dept(30, Development)]"));
+  }
+
+  @Test public void testLeftHashJoinWithNonEquiConditions() {
+    assertThat(
+        EnumerableDefaults.hashJoin(
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Emp(10, "Fred"),
+                    new Emp(20, "Theodore"),
+                    new Emp(20, "Sebastian"),
+                    new Emp(30, "Joe"),
+                    new Emp(30, "Greg"))),
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Dept(15, "Marketing"),
+                    new Dept(20, "Sales"),
+                    new Dept(30, "Research"),
+                    new Dept(30, "Development"))),
+            e -> e.deptno,
+            d -> d.deptno,
+            (v0, v1) -> v0 + ", " + v1, null, false, true,
+            (v0, v1) -> v0.deptno < 30
+        )
+            .toList()
+            .toString(),
+        equalTo("[Emp(10, Fred), null,"
+            + " Emp(20, Theodore), Dept(20, Sales),"
+            + " Emp(20, Sebastian), Dept(20, Sales),"
+            + " Emp(30, Joe), null,"
+            + " Emp(30, Greg), null]"));
+  }
+
+  @Test public void testRightHashJoinWithNonEquiConditions() {
+    assertThat(
+        EnumerableDefaults.hashJoin(
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Emp(10, "Fred"),
+                    new Emp(20, "Theodore"),
+                    new Emp(20, "Sebastian"),
+                    new Emp(30, "Greg"))),
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Dept(15, "Marketing"),
+                    new Dept(20, "Sales"),
+                    new Dept(30, "Research"),
+                    new Dept(30, "Development"))),
+            e -> e.deptno,
+            d -> d.deptno,
+            (v0, v1) -> v0 + ", " + v1, null, true, false,
+            (v0, v1) -> v0.deptno < 30
+        )
+            .toList()
+            .toString(),
+        equalTo("[Emp(20, Theodore), Dept(20, Sales),"
+            + " Emp(20, Sebastian), Dept(20, Sales),"
+            + " null, Dept(15, Marketing),"
+            + " null, Dept(30, Research),"
+            + " null, Dept(30, Development)]"));
+  }
+
+  @Test public void testFullHashJoinWithNonEquiConditions() {
+    assertThat(
+        EnumerableDefaults.hashJoin(
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Emp(10, "Fred"),
+                    new Emp(20, "Theodore"),
+                    new Emp(20, "Sebastian"),
+                    new Emp(30, "Greg"))),
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Dept(15, "Marketing"),
+                    new Dept(20, "Sales"),
+                    new Dept(30, "Research"),
+                    new Dept(30, "Development"))),
+            e -> e.deptno,
+            d -> d.deptno,
+            (v0, v1) -> v0 + ", " + v1, null, true, true,
+            (v0, v1) -> v0.deptno < 30)
+            .toList()
+            .toString(),
+        equalTo("[Emp(10, Fred), null,"
+            + " Emp(20, Theodore), Dept(20, Sales),"
+            + " Emp(20, Sebastian), Dept(20, Sales),"
+            + " Emp(30, Greg), null,"
+            + " null, Dept(15, Marketing),"
+            + " null, Dept(30, Research),"
+            + " null, Dept(30, Development)]"));
+  }
+
   /** Employee record. */
   private static class Emp {
     final int deptno;

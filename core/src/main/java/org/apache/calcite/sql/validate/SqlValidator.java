@@ -42,6 +42,7 @@ import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
 import java.util.List;
 import java.util.Map;
@@ -768,6 +769,27 @@ public interface SqlValidator {
   void validateSequenceValue(SqlValidatorScope scope, SqlIdentifier id);
 
   SqlValidatorScope getWithScope(SqlNode withItem);
+
+  /**
+   * Set if implicit type coercion is allowed when the validator does validation.
+   * See {@link org.apache.calcite.sql.validate.implicit.TypeCoercionImpl} for the details.
+   * @param enabled default as true.
+   */
+  SqlValidator setEnableTypeCoercion(boolean enabled);
+
+  /** Get if this validator supports implicit type coercion. */
+  boolean isTypeCoercionEnabled();
+
+  /**
+   * Set an instance of type coercion, you can customize the coercion rules to
+   * override the default ones
+   * in {@link org.apache.calcite.sql.validate.implicit.TypeCoercionImpl}.
+   * @param typeCoercion instance of {@link TypeCoercion}.
+   */
+  void setTypeCoercion(TypeCoercion typeCoercion);
+
+  /** Get the type coercion instance. */
+  TypeCoercion getTypeCoercion();
 }
 
 // End SqlValidator.java

@@ -113,7 +113,7 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
    * interface, and cannot throw an error.
    */
   public boolean checkOperandTypes(
-      SqlOperatorBinding operatorBinding) {
+      SqlOperatorBinding operatorBinding, SqlCallBinding callBinding) {
     return checkOperandTypesImpl(operatorBinding, false, null);
   }
 

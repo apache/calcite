@@ -89,6 +89,8 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.sql.validate.implicit.TypeCoercion;
+import org.apache.calcite.sql.validate.implicit.TypeCoercions;
 import org.apache.calcite.util.BitString;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -284,6 +286,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private final SqlValidatorImpl.ValidationErrorFunction validationErrorFunction =
       new SqlValidatorImpl.ValidationErrorFunction();
 
+  // TypeCoercion instance used for implicit type coercion.
+  private TypeCoercion typeCoercion;
+
+  // Flag saying if we enable the implicit type coercion.
+  private boolean enableTypeCoercion;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -318,6 +326,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     groupFinder = new AggFinder(opTab, false, false, true, null, nameMatcher);
     aggOrOverOrGroupFinder = new AggFinder(opTab, true, true, true, null,
         nameMatcher);
+    this.enableTypeCoercion = catalogReader.getConfig() == null
+        || catalogReader.getConfig().typeCoercion();
+    this.typeCoercion = TypeCoercions.getTypeCoercion(this, conformance);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -1775,7 +1786,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if ((node instanceof SqlDynamicParam) || isNullLiteral) {
       if (inferredType.equals(unknownType)) {
         if (isNullLiteral) {
-          throw newValidationError(node, RESOURCE.nullIllegal());
+          if (enableTypeCoercion) {
+            // derive type of null literal
+            deriveType(scope, node);
+            return;
+          } else {
+            throw newValidationError(node, RESOURCE.nullIllegal());
+          }
         } else {
           throw newValidationError(node, RESOURCE.dynamicParamIllegal());
         }
@@ -1871,7 +1888,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       Set<String> aliases,
       List<Map.Entry<String, RelDataType>> fieldList,
       SqlNode exp,
-      SqlValidatorScope scope,
+      SelectScope scope,
       final boolean includeSystemVars) {
     String alias = SqlValidatorUtil.getAlias(exp, -1);
     String uniqueAlias =
@@ -3813,6 +3830,25 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   public SqlValidatorScope getWithScope(SqlNode withItem) {
     assert withItem.getKind() == SqlKind.WITH_ITEM;
     return scopes.get(withItem);
+  }
+
+  public SqlValidator setEnableTypeCoercion(boolean enabled) {
+    this.enableTypeCoercion = enabled;
+    return this;
+  }
+
+  public boolean isTypeCoercionEnabled() {
+    return this.enableTypeCoercion;
+  }
+
+  public void setTypeCoercion(TypeCoercion typeCoercion) {
+    Objects.requireNonNull(typeCoercion);
+    this.typeCoercion = typeCoercion;
+  }
+
+  public TypeCoercion getTypeCoercion() {
+    assert isTypeCoercionEnabled();
+    return this.typeCoercion;
   }
 
   /**
