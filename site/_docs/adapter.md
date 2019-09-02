@@ -107,14 +107,14 @@ as implemented by Avatica's
 To make a connection to a single schema based on a built-in schema type, you don't need to specify
 a model. For example,
 
-  jdbc:calcite:schemaType=JDBC; schema.jdbcUser=SCOTT; schema.jdbcPassword=TIGER; schema.jdbcUrl=jdbc:hsqldb:res:foodmart
+  `jdbc:calcite:schemaType=JDBC; schema.jdbcUser=SCOTT; schema.jdbcPassword=TIGER; schema.jdbcUrl=jdbc:hsqldb:res:foodmart`
 
 creates a connection with a schema mapped via the JDBC schema adapter to the foodmart database.
 
 Similarly, you can connect to a single schema based on a user-defined schema adapter.
 For example,
 
-  jdbc:calcite:schemaFactory=org.apache.calcite.adapter.cassandra.CassandraSchemaFactory; schema.host=localhost; schema.keyspace=twissandra
+  `jdbc:calcite:schemaFactory=org.apache.calcite.adapter.cassandra.CassandraSchemaFactory; schema.host=localhost; schema.keyspace=twissandra`
 
 makes a connection to the Cassandra adapter, equivalent to writing the following model file:
 
@@ -156,6 +156,8 @@ adding some DDL commands:
 * `CREATE` and `DROP TABLE` (including `CREATE TABLE ... AS SELECT`)
 * `CREATE` and `DROP MATERIALIZED VIEW`
 * `CREATE` and `DROP VIEW`
+* `CREATE` and `DROP FUNCTION`
+* `CREATE` and `DROP TYPE`
 
 Commands are described in the [SQL reference](reference.html#ddl-extensions).
 
