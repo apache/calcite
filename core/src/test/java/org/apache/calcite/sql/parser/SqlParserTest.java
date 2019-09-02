@@ -87,7 +87,7 @@ public class SqlParserTest {
    * the SQL:92, SQL:99, SQL:2003, SQL:2011, SQL:2014 standards and in Calcite.
    *
    * <p>The standard keywords are derived from
-   * <a href="https://developer.mimer.com/wp-content/uploads/2018/05/Standard-SQL-Reserved-Words-Summary.pdf">Mimer</a>
+   * <a href="https://developer.mimer.com/wp-content/uploads/standard-sql-reserved-words-summary.pdf">Mimer</a>
    * and from the specification.
    *
    * <p>If a new <b>reserved</b> keyword is added to the parser, include it in
