@@ -217,9 +217,8 @@ public class FilterSelectivityEstimator extends RexVisitorImpl<Double> {
     } else if (literal.isAlwaysTrue()) {
       return 1.0;
     } else {
-      assert false;
+      throw new AssertionError("Must be true or false.");
     }
-    return null;
   }
 }
 
