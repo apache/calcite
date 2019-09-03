@@ -337,10 +337,15 @@ public class RelJson {
       map.put("type", toJson(node.getType()));
       return map;
     case INPUT_REF:
+      map = jsonBuilder.map();
+      map.put("input", ((RexSlot) node).getIndex());
+      map.put("name", ((RexSlot) node).getName());
+      return map;
     case LOCAL_REF:
       map = jsonBuilder.map();
       map.put("input", ((RexSlot) node).getIndex());
       map.put("name", ((RexSlot) node).getName());
+      map.put("type", toJson(node.getType()));
       return map;
     case CORREL_VARIABLE:
       map = jsonBuilder.map();
@@ -486,6 +491,12 @@ public class RelJson {
       }
       final Integer input = (Integer) map.get("input");
       if (input != null) {
+        // Check if it is a local ref.
+        if (map.containsKey("type")) {
+          final RelDataType type = toType(typeFactory, map.get("type"));
+          return rexBuilder.makeLocalRef(type, input);
+        }
+
         List<RelNode> inputNodes = relInput.getInputs();
         int i = input;
         for (RelNode inputNode : inputNodes) {

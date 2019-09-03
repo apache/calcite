@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelDistributionTraitDef;
+import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -72,6 +73,16 @@ public final class LogicalCalc extends Calc {
       RelNode child,
       RexProgram program) {
     super(cluster, traitSet, child, program);
+  }
+
+  /**
+   * Creates a LogicalCalc by parsing serialized output.
+   */
+  public LogicalCalc(RelInput input) {
+    this(input.getCluster(),
+        input.getTraitSet(),
+        input.getInput(),
+        RexProgram.create(input));
   }
 
   @Deprecated // to be removed before 2.0
