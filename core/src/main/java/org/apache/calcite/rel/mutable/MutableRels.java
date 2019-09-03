@@ -164,6 +164,24 @@ public abstract class MutableRels {
         });
   }
 
+  /**
+   * Construct expression list of Project by the given fields of the input.
+   */
+  public static List<RexNode> createProjectExprs(final MutableRel child,
+      final List<Integer> posList) {
+    final RelDataType rowType = child.rowType;
+    return new AbstractList<RexNode>() {
+      public int size() {
+        return posList.size();
+      }
+
+      public RexNode get(int index) {
+        final int pos = posList.get(index);
+        return RexInputRef.of(pos, rowType);
+      }
+    };
+  }
+
   /** Equivalence to {@link org.apache.calcite.plan.RelOptUtil#createCastRel}
    * for {@link MutableRel}. */
   public static MutableRel createCastRel(MutableRel rel,

@@ -39,9 +39,9 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
   private static final ImmutableList<UnifyRule> EXTENDED_RULES =
       ImmutableList.<UnifyRule>builder()
           .addAll(DEFAULT_RULES)
-          .add(ProjectToProjectUnifyRule1.INSTANCE)
-          .add(FilterToFilterUnifyRule1.INSTANCE)
-          .add(FilterToProjectUnifyRule1.INSTANCE)
+//          .add(ProjectToProjectUnifyRule1.INSTANCE)
+//          .add(FilterToFilterUnifyRule1.INSTANCE)
+//          .add(FilterToProjectUnifyRule1.INSTANCE)
           .add(UnionToUnionUnifyRule.INSTANCE)
           .build();
 

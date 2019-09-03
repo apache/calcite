@@ -21,9 +21,18 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.rules.CalcMergeRule;
+import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
+import org.apache.calcite.rel.rules.FilterCalcMergeRule;
+import org.apache.calcite.rel.rules.FilterJoinRule;
+import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
+import org.apache.calcite.rel.rules.FilterToCalcRule;
+import org.apache.calcite.rel.rules.ProjectCalcMergeRule;
+import org.apache.calcite.rel.rules.ProjectJoinTransposeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
+import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
 import org.apache.calcite.util.graph.DefaultEdge;
@@ -64,6 +73,9 @@ public abstract class RelOptMaterializations {
         getApplicableMaterializations(rel, materializations);
     final List<Pair<RelNode, List<RelOptMaterialization>>> applied =
         new ArrayList<>();
+    if (SubstitutionVisitor.disabled) {
+      return applied;
+    }
     applied.add(Pair.of(rel, ImmutableList.of()));
     for (RelOptMaterialization m : applicableMaterializations) {
       int count = applied.size();
@@ -185,8 +197,18 @@ public abstract class RelOptMaterializations {
     HepProgram program =
         new HepProgramBuilder()
             .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
+            .addRuleInstance(FilterMergeRule.INSTANCE)
+            .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
+            .addRuleInstance(FilterJoinRule.JOIN)
+            .addRuleInstance(FilterAggregateTransposeRule.INSTANCE)
             .addRuleInstance(ProjectMergeRule.INSTANCE)
             .addRuleInstance(ProjectRemoveRule.INSTANCE)
+            .addRuleInstance(ProjectJoinTransposeRule.INSTANCE)
+            .addRuleInstance(FilterToCalcRule.INSTANCE)
+            .addRuleInstance(ProjectToCalcRule.INSTANCE)
+            .addRuleInstance(FilterCalcMergeRule.INSTANCE)
+            .addRuleInstance(ProjectCalcMergeRule.INSTANCE)
+            .addRuleInstance(CalcMergeRule.INSTANCE)
             .build();
 
     // We must use the same HEP planner for the two optimizations below.
