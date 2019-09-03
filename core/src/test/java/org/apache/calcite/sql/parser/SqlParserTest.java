@@ -8885,6 +8885,11 @@ public class SqlParserTest {
         "select unquotedColumn from \"doubleQuotedTable\"",
         is("SELECT \"unquotedcolumn\"\n"
             + "FROM \"doublequotedtable\""));
+    // BigQuery leaves quoted and unquoted identifers unchanged
+    checkDialect(SqlDialect.DatabaseProduct.BIG_QUERY.getDialect(),
+        "select unquotedColumn from `doubleQuotedTable`",
+        is("SELECT unquotedColumn\n"
+            + "FROM doubleQuotedTable"));
   }
 
   @Test public void testParenthesizedSubQueries() {
