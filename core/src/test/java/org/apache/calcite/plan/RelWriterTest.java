@@ -25,12 +25,16 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.externalize.RelJsonReader;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexFieldCollation;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlExplainFormat;
@@ -663,6 +667,45 @@ public class RelWriterTest {
 
     assertThat(s, isLinux(expected)
     );
+  }
+
+  @Test public void testCalc() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final LogicalTableScan scan = (LogicalTableScan) builder.scan("EMP").build();
+    final RexProgramBuilder programBuilder =
+        new RexProgramBuilder(scan.getRowType(), rexBuilder);
+    final RelDataTypeField field = scan.getRowType().getField("SAL", false, false);
+    programBuilder.addIdentity();
+    programBuilder.addCondition(
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.GREATER_THAN,
+            new RexInputRef(field.getIndex(), field.getType()),
+            builder.literal(10)
+        )
+    );
+    final LogicalCalc calc = LogicalCalc.create(scan, programBuilder.getProgram());
+    String relJson = RelOptUtil.dumpPlan("", calc,
+        SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+    String s =
+        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+          final RelJsonReader reader = new RelJsonReader(
+              cluster, getSchema(calc), rootSchema);
+          RelNode node;
+          try {
+            node = reader.read(relJson);
+          } catch (IOException e) {
+            throw TestUtil.rethrow(e);
+          }
+          return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
+              SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+        });
+    final String expected =
+        "LogicalCalc(expr#0..7=[{inputs}], expr#8=[10], expr#9=[>($t5, $t8)],"
+            + " proj#0..7=[{exprs}], $condition=[$t9])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(s, isLinux(expected));
   }
 
   /** Returns the schema of a {@link org.apache.calcite.rel.core.TableScan}

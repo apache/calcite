@@ -873,6 +873,18 @@ public class RexBuilder {
   }
 
   /**
+   * Create a reference to local variable.
+   *
+   * @param type Type of variable
+   * @param i    Ordinal of variable
+   * @return  Reference to local variable
+   */
+  public RexLocalRef makeLocalRef(RelDataType type, int i) {
+    type = SqlTypeUtil.addCharsetAndCollation(type, typeFactory);
+    return new RexLocalRef(i, type);
+  }
+
+  /**
    * Creates a literal representing a flag.
    *
    * @param flag Flag value

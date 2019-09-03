@@ -21,8 +21,10 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -224,6 +226,23 @@ public class RexProgram {
     return programBuilder.getProgram();
   }
 
+  /**
+   * Create a program from serialized output.
+   * In this case, the input is mainly from the output json string of {@link RelJsonWriter}
+   */
+  public static RexProgram create(RelInput input) {
+    final List<RexNode> exprs = input.getExpressionList("exprs");
+    final List<RexNode> projectRexNodes = input.getExpressionList("projects");
+    final List<RexLocalRef> projects = new ArrayList<>(projectRexNodes.size());
+    for (RexNode rexNode: projectRexNodes) {
+      projects.add((RexLocalRef) rexNode);
+    }
+    final RelDataType inputType = input.getRowType("inputRowType");
+    final RelDataType outputType = input.getRowType("outputRowType");
+    final RexLocalRef condition = (RexLocalRef) input.getExpression("condition");
+    return new RexProgram(inputType, exprs, projects, condition, outputType);
+  }
+
   // description of this calc, chiefly intended for debugging
   public String toString() {
     // Intended to produce similar output to explainCalc,
@@ -241,7 +260,16 @@ public class RexProgram {
    * @param pw Plan writer
    */
   public RelWriter explainCalc(RelWriter pw) {
-    return collectExplainTerms("", pw, pw.getDetailLevel());
+    if (pw instanceof RelJsonWriter) {
+      return pw
+          .item("exprs", exprs)
+          .item("projects", projects)
+          .item("condition", condition)
+          .item("inputRowType", inputRowType)
+          .item("outputRowType", outputRowType);
+    } else {
+      return collectExplainTerms("", pw, pw.getDetailLevel());
+    }
   }
 
   public RelWriter collectExplainTerms(
