@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.dialect;
 
+import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
@@ -45,7 +46,10 @@ public class BigQuerySqlDialect extends SqlDialect {
               .withLiteralQuoteString("'")
               .withLiteralEscapedQuoteString("\\'")
               .withIdentifierQuoteString("`")
-              .withNullCollation(NullCollation.LOW));
+              .withNullCollation(NullCollation.LOW)
+              .withUnquotedCasing(Casing.UNCHANGED)
+              .withQuotedCasing(Casing.UNCHANGED)
+              .withCaseSensitive(false));
 
   private static final List<String> RESERVED_KEYWORDS =
       ImmutableList.copyOf(
