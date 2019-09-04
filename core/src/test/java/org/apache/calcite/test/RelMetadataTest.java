@@ -644,8 +644,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   @Test public void testRowCountSortLimit0() {
-    final String sql = "select * from emp order by ename limit 10";
-    checkRowCount(sql, 10d, 0D, 10d);
+    final String sql = "select * from emp order by ename limit 0";
+    checkRowCount(sql, 1d, 0D, 0d);
   }
 
   @Test public void testRowCountSortLimitOffset() {
