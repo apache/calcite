@@ -883,10 +883,21 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
               subset.getDescription(), set);
         }
 
-        // Make sure best RelNode is valid
-        if (subset.best != null && !subset.set.rels.contains(subset.best)) {
-          return litmus.fail("RelSubset [{}] does not contain its best RelNode [{}]",
-                  subset.getDescription(), subset.best.getDescription());
+        if (subset.best != null) {
+
+          // Make sure best RelNode is valid
+          if (!subset.set.rels.contains(subset.best)) {
+            return litmus.fail("RelSubset [{}] does not contain its best RelNode [{}]",
+                    subset.getDescription(), subset.best.getDescription());
+          }
+
+          // Make sure bsetCost is accurate
+          RelOptCost bestCost = getCost(subset.best, subset.best.getCluster().getMetadataQuery());
+          if (!subset.bestCost.equals(bestCost)) {
+            return litmus.fail("RelSubset [" + subset.getDescription()
+                            + "] has wrong best cost "
+                            + subset.bestCost + ". Correct cost is " + bestCost);
+          }
         }
 
         for (RelNode rel : subset.getRels()) {
