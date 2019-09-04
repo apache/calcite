@@ -2208,7 +2208,7 @@ public class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`";
     final String expectedHive = "SELECT SUBSTR(brand_name, 2)\n"
         + "FROM foodmart.product";
-    final String expectedSpark = "SELECT SUBSTR(brand_name, 2)\n"
+    final String expectedSpark = "SELECT SUBSTRING(brand_name, 2)\n"
         + "FROM foodmart.product";
     final String expectedBiqQuery = "SELECT SUBSTR(brand_name, 2)\n"
         + "FROM foodmart.product";
@@ -2249,7 +2249,7 @@ public class RelToSqlConverterTest {
         + "FROM [foodmart].[product]";
     final String expectedHive = "SELECT SUBSTR(brand_name, 2, 3)\n"
         + "FROM foodmart.product";
-    final String expectedSpark = "SELECT SUBSTR(brand_name, 2, 3)\n"
+    final String expectedSpark = "SELECT SUBSTRING(brand_name, 2, 3)\n"
         + "FROM foodmart.product";
     sql(query)
         .withOracle()
@@ -3726,7 +3726,7 @@ public class RelToSqlConverterTest {
   @Test public void testSubstringInSpark() {
     final String query = "select substring(\"brand_name\" from 2) "
         + "from \"product\"\n";
-    final String expected = "SELECT SUBSTR(brand_name, 2)\n"
+    final String expected = "SELECT SUBSTRING(brand_name, 2)\n"
         + "FROM foodmart.product";
     sql(query).withSpark().ok(expected);
   }
@@ -3734,7 +3734,7 @@ public class RelToSqlConverterTest {
   @Test public void testSubstringWithForInSpark() {
     final String query = "select substring(\"brand_name\" from 2 for 3) "
         + "from \"product\"\n";
-    final String expected = "SELECT SUBSTR(brand_name, 2, 3)\n"
+    final String expected = "SELECT SUBSTRING(brand_name, 2, 3)\n"
         + "FROM foodmart.product";
     sql(query).withSpark().ok(expected);
   }
