@@ -268,11 +268,11 @@ public class ScannableTableTest {
         + "group by \"k\"";
     final Table table = new BeatlesProjectableFilterableTable(buf, false);
     final String explain = "PLAN="
-        + "EnumerableAggregate(group=[{0}], C=[COUNT()])\n"
+        + "EnumerableAggregate(group=[{1}], C=[COUNT()])\n"
         + "  EnumerableAggregate(group=[{0, 1}])\n"
         + "    EnumerableInterpreter\n"
         + "      BindableTableScan(table=[[s, beatles]], "
-        + "filters=[[=($2, 1940)]], projects=[[2, 0]])";
+        + "filters=[[=($2, 1940)]], projects=[[0, 2]])";
     CalciteAssert.that()
         .with(newSchema("s", "beatles", table))
         .query(sql)
