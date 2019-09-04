@@ -20,6 +20,7 @@ import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -28,6 +29,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
@@ -70,9 +72,13 @@ public class PigRelFactories {
 
     public static final PigFilterFactory INSTANCE = new PigFilterFactory();
 
-    @Override public RelNode createFilter(RelNode input, RexNode condition) {
-      return new PigFilter(input.getCluster(), input.getTraitSet().replace(PigRel.CONVENTION),
-          input, condition);
+    @Override public RelNode createFilter(RelNode input, RexNode condition,
+        Set<CorrelationId> variablesSet) {
+      Preconditions.checkArgument(variablesSet.isEmpty(),
+          "PigFilter does not allow variables");
+      final RelTraitSet traitSet =
+          input.getTraitSet().replace(PigRel.CONVENTION);
+      return new PigFilter(input.getCluster(), traitSet, input, condition);
     }
   }
 
@@ -85,11 +91,11 @@ public class PigRelFactories {
 
     public static final PigAggregateFactory INSTANCE = new PigAggregateFactory();
 
-    @Override public RelNode createAggregate(RelNode input, boolean indicator,
+    @Override public RelNode createAggregate(RelNode input,
         ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls) {
-      return new PigAggregate(input.getCluster(), input.getTraitSet(), input, indicator, groupSet,
-          groupSets, aggCalls);
+      return new PigAggregate(input.getCluster(), input.getTraitSet(), input,
+          groupSet, groupSets, aggCalls);
     }
   }
 

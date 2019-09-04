@@ -18,14 +18,16 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.ArrayList;
@@ -74,9 +76,24 @@ public class ProjectJoinTransposeRule extends RelOptRule {
     Project origProj = call.rel(0);
     final Join join = call.rel(1);
 
-    if (join instanceof SemiJoin) {
-      return; // TODO: support SemiJoin
+    if (!join.getJoinType().projectsRight()) {
+      return; // TODO: support SemiJoin / AntiJoin
     }
+
+    // Normalize the join condition so we don't end up misidentified expanded
+    // form of IS NOT DISTINCT FROM as PushProject also visit the filter condition
+    // and push down expressions.
+    RexNode joinFilter = join.getCondition().accept(new RexShuttle() {
+      @Override public RexNode visitCall(RexCall rexCall) {
+        final RexNode node = super.visitCall(rexCall);
+        if (!(node instanceof RexCall)) {
+          return node;
+        }
+        return RelOptUtil.collapseExpandedIsNotDistinctFromExpr((RexCall) node,
+            call.builder().getRexBuilder());
+      }
+    });
+
     // locate all fields referenced in the projection and join condition;
     // determine which inputs are referenced in the projection and
     // join condition; if all fields are being referenced and there are no
@@ -84,7 +101,7 @@ public class ProjectJoinTransposeRule extends RelOptRule {
     PushProjector pushProject =
         new PushProjector(
             origProj,
-            join.getCondition(),
+            joinFilter,
             join,
             preserveExprCondition,
             call.builder());
@@ -108,7 +125,7 @@ public class ProjectJoinTransposeRule extends RelOptRule {
     // convert the join condition to reference the projected columns
     RexNode newJoinFilter = null;
     int[] adjustments = pushProject.getAdjustments();
-    if (join.getCondition() != null) {
+    if (joinFilter != null) {
       List<RelDataTypeField> projJoinFieldList = new ArrayList<>();
       projJoinFieldList.addAll(
           join.getSystemFieldList());
@@ -118,7 +135,7 @@ public class ProjectJoinTransposeRule extends RelOptRule {
           rightProjRel.getRowType().getFieldList());
       newJoinFilter =
           pushProject.convertRefsAndExprs(
-              join.getCondition(),
+              joinFilter,
               projJoinFieldList,
               adjustments);
     }

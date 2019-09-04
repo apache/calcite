@@ -52,7 +52,7 @@ public class JdbcAdapterTest {
     final String sql = "select * from \"days\", (values 1, 2) as t(c)";
     final String explain = "PLAN="
         + "EnumerableCalc(expr#0..2=[{inputs}], day=[$t1], week_day=[$t2], C=[$t0])\n"
-        + "  EnumerableJoin(condition=[true], joinType=[inner])\n"
+        + "  EnumerableHashJoin(condition=[true], joinType=[inner])\n"
         + "    EnumerableValues(tuples=[[{ 1 }, { 2 }]])\n"
         + "    JdbcToEnumerableConverter\n"
         + "      JdbcTableScan(table=[[foodmart, days]])";
@@ -83,6 +83,35 @@ public class JdbcAdapterTest {
             + "UNION ALL\n"
             + "SELECT *\n"
             + "FROM \"foodmart\".\"sales_fact_1998\"");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3115">[CALCITE-3115]
+   * Cannot add JdbcRules which have different JdbcConvention
+   * to same VolcanoPlanner's RuleSet.</a>*/
+  @Test public void testUnionPlan2() {
+    CalciteAssert.model(JdbcTest.FOODMART_SCOTT_MODEL)
+        .query("select \"store_name\" from \"foodmart\".\"store\" where \"store_id\" < 10\n"
+            + "union all\n"
+            + "select ename from SCOTT.emp where empno > 10")
+        .explainContains("PLAN=EnumerableUnion(all=[true])\n"
+                    + "  JdbcToEnumerableConverter\n"
+                    + "    JdbcProject(store_name=[$3])\n"
+                    + "      JdbcFilter(condition=[<($0, 10)])\n"
+                    + "        JdbcTableScan(table=[[foodmart, store]])\n"
+                    + "  JdbcToEnumerableConverter\n"
+                    + "    JdbcProject(ENAME=[$1])\n"
+                    + "      JdbcFilter(condition=[>($0, 10)])\n"
+                    + "        JdbcTableScan(table=[[SCOTT, EMP]])")
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT \"store_name\"\n"
+                + "FROM \"foodmart\".\"store\"\n"
+                + "WHERE \"store_id\" < 10")
+        .planHasSql("SELECT \"ENAME\"\n"
+                + "FROM \"SCOTT\".\"EMP\"\n"
+                + "WHERE \"EMPNO\" > 10");
   }
 
   @Test public void testFilterUnionPlan() {
@@ -291,7 +320,7 @@ public class JdbcAdapterTest {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select empno, ename, d.deptno, dname \n"
             + "from scott.emp e,scott.dept d")
-        .explainContains("PLAN=EnumerableJoin(condition=[true], "
+        .explainContains("PLAN=EnumerableHashJoin(condition=[true], "
             + "joinType=[inner])\n"
             + "  JdbcToEnumerableConverter\n"
             + "    JdbcProject(EMPNO=[$0], ENAME=[$1])\n"

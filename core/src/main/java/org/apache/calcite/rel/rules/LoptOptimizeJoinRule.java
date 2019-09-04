@@ -26,7 +26,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.metadata.RelColumnOrigin;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -1567,9 +1567,9 @@ public class LoptOptimizeJoinRule extends RelOptRule {
         multiJoin.getJoinFactor(dimIdx).getRowType().getFieldList();
     int nDimFields = dimFields.size();
     Integer [] replacementKeys = new Integer[nDimFields];
-    SemiJoin semiJoin = multiJoin.getJoinRemovalSemiJoin(dimIdx);
-    ImmutableIntList dimKeys = semiJoin.getRightKeys();
-    ImmutableIntList factKeys = semiJoin.getLeftKeys();
+    LogicalJoin semiJoin = multiJoin.getJoinRemovalSemiJoin(dimIdx);
+    ImmutableIntList dimKeys = semiJoin.analyzeCondition().leftKeys;
+    ImmutableIntList factKeys = semiJoin.analyzeCondition().rightKeys;
     for (int i = 0; i < dimKeys.size(); i++) {
       replacementKeys[dimKeys.get(i)] = factKeys.get(i) + adjustment;
     }
@@ -1651,8 +1651,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
           newType =
               typeFactory.createTypeWithNullability(newType, true);
         }
-        projExpr =
-            rexBuilder.makeCast(newType, rexBuilder.constantNull());
+        projExpr = rexBuilder.makeNullLiteral(newType);
       } else {
         RelDataTypeField mappedField = currFields.get(replacementKeys[i]);
         RexNode mappedInput =
@@ -2002,7 +2001,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     final RelNode left = joinRel.getLeft();
     final RelNode right = joinRel.getRight();
 
-    if (joinRel.getJoinType() != JoinRelType.INNER) {
+    if (joinRel.getJoinType().isOuterJoin()) {
       return false;
     }
 

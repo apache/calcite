@@ -54,6 +54,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import static org.apache.calcite.rex.RexUnknownAs.FALSE;
+import static org.apache.calcite.rex.RexUnknownAs.TRUE;
 import static org.apache.calcite.rex.RexUnknownAs.UNKNOWN;
 
 /**
@@ -502,7 +503,7 @@ public class RexSimplify {
     RexSimplify simplify = this;
     for (int i = 0; i < terms.size(); i++) {
       final RexNode t = terms.get(i);
-      if (Predicate.of(t) == null) {
+      if (!allowedAsPredicateDuringOrSimplification(t)) {
         continue;
       }
       final RexNode t2 = simplify.simplify(t, unknownAs);
@@ -516,10 +517,35 @@ public class RexSimplify {
     }
     for (int i = 0; i < terms.size(); i++) {
       final RexNode t = terms.get(i);
-      if (Predicate.of(t) != null) {
+      if (allowedAsPredicateDuringOrSimplification(t)) {
         continue;
       }
       terms.set(i, simplify.simplify(t, unknownAs));
+    }
+  }
+
+  /**
+   * Decides whether the given node could be used as a predicate during the simplification
+   * of other OR operands.
+   */
+  private boolean allowedAsPredicateDuringOrSimplification(final RexNode t) {
+    Predicate predicate = Predicate.of(t);
+    if (predicate == null) {
+      return false;
+    }
+    /** Inequalities are not supported. */
+    SqlKind kind = t.getKind();
+    if (!SqlKind.COMPARISON.contains(kind)) {
+      return true;
+    }
+    switch (kind) {
+    case LESS_THAN:
+    case GREATER_THAN:
+    case GREATER_THAN_OR_EQUAL:
+    case LESS_THAN_OR_EQUAL:
+      return false;
+    default:
+      return true;
     }
   }
 
@@ -655,14 +681,14 @@ public class RexSimplify {
       // x IS NULL ==> FALSE (if x is not nullable)
       simplified = simplifyIsNull(a);
       if (simplified != null) {
-        return simplify(simplified, unknownAs);
+        return simplified;
       }
       break;
     case IS_NOT_NULL:
       // x IS NOT NULL ==> TRUE (if x is not nullable)
       simplified = simplifyIsNotNull(a);
       if (simplified != null) {
-        return simplify(simplified, unknownAs);
+        return simplified;
       }
       break;
     case IS_TRUE:
@@ -700,7 +726,7 @@ public class RexSimplify {
       final RexNode arg = ((RexCall) a).operands.get(0);
       return simplify(rexBuilder.makeCall(notKind, arg), UNKNOWN);
     }
-    RexNode a2 = simplify(a, UNKNOWN);
+    final RexNode a2 = simplify(a, UNKNOWN);
     if (a != a2) {
       return rexBuilder.makeCall(RexUtil.op(kind), ImmutableList.of(a2));
     }
@@ -708,6 +734,12 @@ public class RexSimplify {
   }
 
   private RexNode simplifyIsNotNull(RexNode a) {
+    // Simplify the argument first,
+    // call ourselves recursively to see whether we can make more progress.
+    // For example, given
+    // "(CASE WHEN FALSE THEN 1 ELSE 2) IS NOT NULL" we first simplify the
+    // argument to "2", and only then we can simplify "2 IS NOT NULL" to "TRUE".
+    a = simplify(a, UNKNOWN);
     if (!a.getType().isNullable() && isSafeExpression(a)) {
       return rexBuilder.makeLiteral(true);
     }
@@ -751,6 +783,12 @@ public class RexSimplify {
   }
 
   private RexNode simplifyIsNull(RexNode a) {
+    // Simplify the argument first,
+    // call ourselves recursively to see whether we can make more progress.
+    // For example, given
+    // "(CASE WHEN FALSE THEN 1 ELSE 2) IS NULL" we first simplify the
+    // argument to "2", and only then we can simplify "2 IS NULL" to "FALSE".
+    a = simplify(a, UNKNOWN);
     if (!a.getType().isNullable() && isSafeExpression(a)) {
       return rexBuilder.makeLiteral(false);
     }
@@ -986,6 +1024,8 @@ public class RexSimplify {
       Set<SqlKind> safeOps = EnumSet.noneOf(SqlKind.class);
 
       safeOps.addAll(SqlKind.COMPARISON);
+      safeOps.add(SqlKind.PLUS_PREFIX);
+      safeOps.add(SqlKind.MINUS_PREFIX);
       safeOps.add(SqlKind.PLUS);
       safeOps.add(SqlKind.MINUS);
       safeOps.add(SqlKind.TIMES);
@@ -995,6 +1035,8 @@ public class RexSimplify {
       safeOps.add(SqlKind.IS_NOT_TRUE);
       safeOps.add(SqlKind.IS_NULL);
       safeOps.add(SqlKind.IS_NOT_NULL);
+      safeOps.add(SqlKind.IS_DISTINCT_FROM);
+      safeOps.add(SqlKind.IS_NOT_DISTINCT_FROM);
       safeOps.add(SqlKind.IN);
       safeOps.add(SqlKind.NOT_IN);
       safeOps.add(SqlKind.OR);
@@ -1003,6 +1045,16 @@ public class RexSimplify {
       safeOps.add(SqlKind.CASE);
       safeOps.add(SqlKind.LIKE);
       safeOps.add(SqlKind.COALESCE);
+      safeOps.add(SqlKind.TRIM);
+      safeOps.add(SqlKind.LTRIM);
+      safeOps.add(SqlKind.RTRIM);
+      safeOps.add(SqlKind.BETWEEN);
+      safeOps.add(SqlKind.CEIL);
+      safeOps.add(SqlKind.FLOOR);
+      safeOps.add(SqlKind.REVERSE);
+      safeOps.add(SqlKind.TIMESTAMP_ADD);
+      safeOps.add(SqlKind.TIMESTAMP_DIFF);
+      safeOps.add(SqlKind.LIKE);
       this.safeOps = Sets.immutableEnumSet(safeOps);
     }
 
@@ -1593,6 +1645,12 @@ public class RexSimplify {
   /** Simplifies a list of terms and combines them into an OR.
    * Modifies the list in place. */
   private RexNode simplifyOrs(List<RexNode> terms, RexUnknownAs unknownAs) {
+    // CALCITE-3198 Auxiliary map to simplify cases like:
+    //   X <> A OR X <> B => X IS NOT NULL or NULL
+    // The map key will be the 'X'; and the value the first call 'X<>A' that is found,
+    // or 'X IS NOT NULL' if a simplification takes place (because another 'X<>B' is found)
+    final Map<RexNode, RexNode> notEqualsComparisonMap = new HashMap<>();
+    final RexLiteral trueLiteral = rexBuilder.makeLiteral(true);
     for (int i = 0; i < terms.size(); i++) {
       final RexNode term = terms.get(i);
       switch (term.getKind()) {
@@ -1602,6 +1660,8 @@ public class RexSimplify {
             terms.remove(i);
             --i;
             continue;
+          } else if (unknownAs == TRUE) {
+            return trueLiteral;
           }
         } else {
           if (RexLiteral.booleanValue(term)) {
@@ -1612,6 +1672,47 @@ public class RexSimplify {
             continue;
           }
         }
+        break;
+      case NOT_EQUALS:
+        final Comparison notEqualsComparison = Comparison.of(term);
+        if (notEqualsComparison != null) {
+          // We are dealing with a X<>A term, check if we saw before another NOT_EQUALS involving X
+          final RexNode prevNotEquals = notEqualsComparisonMap.get(notEqualsComparison.ref);
+          if (prevNotEquals == null) {
+            // This is the first NOT_EQUALS involving X, put it in the map
+            notEqualsComparisonMap.put(notEqualsComparison.ref, term);
+          } else {
+            // There is already in the map another NOT_EQUALS involving X:
+            //   - if it is already an IS_NOT_NULL: it was already simplified, ignore this term
+            //   - if it is not an IS_NOT_NULL (i.e. it is a NOT_EQUALS): check comparison values
+            if (prevNotEquals.getKind() != SqlKind.IS_NOT_NULL) {
+              final Comparable comparable1 = notEqualsComparison.literal.getValue();
+              //noinspection ConstantConditions
+              final Comparable comparable2 = Comparison.of(prevNotEquals).literal.getValue();
+              //noinspection unchecked
+              if (comparable1.compareTo(comparable2) != 0) {
+                // X <> A OR X <> B => X IS NOT NULL OR NULL
+                final RexNode isNotNull =
+                    rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, notEqualsComparison.ref);
+                final RexNode constantNull =
+                    rexBuilder.makeNullLiteral(trueLiteral.getType());
+                final RexNode newCondition = simplify(
+                    rexBuilder.makeCall(SqlStdOperatorTable.OR, isNotNull, constantNull),
+                    unknownAs);
+                if (newCondition.isAlwaysTrue()) {
+                  return trueLiteral;
+                }
+                notEqualsComparisonMap.put(notEqualsComparison.ref, isNotNull);
+                final int pos = terms.indexOf(prevNotEquals);
+                terms.set(pos, newCondition);
+              }
+            }
+            terms.remove(i);
+            --i;
+            continue;
+          }
+        }
+        break;
       }
       terms.set(i, term);
     }

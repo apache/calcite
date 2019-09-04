@@ -28,7 +28,6 @@ import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptAbstractTable;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
@@ -40,6 +39,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rel.rules.ProjectTableScanRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -57,7 +57,6 @@ import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
-import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlNode;
@@ -173,23 +172,19 @@ public class FrameworksTest {
   }
 
   private void checkTypeSystem(final int expected, FrameworkConfig config) {
-    Frameworks.withPrepare(
-        new Frameworks.PrepareAction<Void>(config) {
-          @Override public Void apply(RelOptCluster cluster,
-              RelOptSchema relOptSchema, SchemaPlus rootSchema,
-              CalciteServerStatement statement) {
-            final RelDataType type =
-                cluster.getTypeFactory()
-                    .createSqlType(SqlTypeName.DECIMAL, 30, 2);
-            final RexLiteral literal =
-                cluster.getRexBuilder().makeExactLiteral(BigDecimal.ONE, type);
-            final RexNode call =
-                cluster.getRexBuilder().makeCall(SqlStdOperatorTable.PLUS,
-                    literal,
-                    literal);
-            assertEquals(expected, call.getType().getPrecision());
-            return null;
-          }
+    Frameworks.withPrepare(config,
+        (cluster, relOptSchema, rootSchema, statement) -> {
+          final RelDataType type =
+              cluster.getTypeFactory()
+                  .createSqlType(SqlTypeName.DECIMAL, 30, 2);
+          final RexLiteral literal =
+              cluster.getRexBuilder().makeExactLiteral(BigDecimal.ONE, type);
+          final RexNode call =
+              cluster.getRexBuilder().makeCall(SqlStdOperatorTable.PLUS,
+                  literal,
+                  literal);
+          assertEquals(expected, call.getType().getPrecision());
+          return null;
         });
   }
 
@@ -296,6 +291,43 @@ public class FrameworksTest {
             throw TestUtil.rethrow(e);
           }
         });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3228">[CALCITE-3228]
+   * Error while applying rule ProjectScanRule:interpreter</a>
+   *
+   * <p>This bug appears under the following conditions:
+   * 1) have an aggregate with group by and multi aggregate calls.
+   * 2) the aggregate can be removed during optimization.
+   * 3) all aggregate calls are simplified to the same reference.
+   * */
+  @Test public void testPushProjectToScan() throws Exception {
+    Table table = new TableImpl();
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    SchemaPlus schema = rootSchema.add("x", new AbstractSchema());
+    schema.add("MYTABLE", table);
+    List<RelTraitDef> traitDefs = new ArrayList<>();
+    traitDefs.add(ConventionTraitDef.INSTANCE);
+    traitDefs.add(RelDistributionTraitDef.INSTANCE);
+    SqlParser.Config parserConfig =
+            SqlParser.configBuilder(SqlParser.Config.DEFAULT)
+                    .setCaseSensitive(false)
+                    .build();
+
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+            .parserConfig(parserConfig)
+            .defaultSchema(schema)
+            .traitDefs(traitDefs)
+            // define the rules you want to apply
+            .ruleSets(
+                    RuleSets.ofList(AbstractConverter.ExpandConversionRule.INSTANCE,
+                            ProjectTableScanRule.INSTANCE))
+            .programs(Programs.ofRules(Programs.RULE_SET))
+            .build();
+
+    executeQuery(config, "select min(id) as mi, max(id) as ma from mytable where id=1 group by id",
+            CalciteSystemProperty.DEBUG.value());
   }
 
   /** Test case for

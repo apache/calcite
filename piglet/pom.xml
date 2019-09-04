@@ -20,12 +20,12 @@ limitations under the License.
   <parent>
     <groupId>org.apache.calcite</groupId>
     <artifactId>calcite</artifactId>
-    <version>1.20.0-SNAPSHOT</version>
+    <version>1.21.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>calcite-piglet</artifactId>
   <packaging>jar</packaging>
-  <version>1.20.0-SNAPSHOT</version>
+  <version>1.21.0-SNAPSHOT</version>
   <name>Calcite Piglet</name>
   <description>Pig-like language built on top of Calcite algebra</description>
 
@@ -55,6 +55,11 @@ limitations under the License.
       <artifactId>calcite-linq4j</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>com.google.code.findbugs</groupId>
+      <artifactId>jsr305</artifactId>
+      <optional>true</optional>
+    </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
@@ -88,6 +93,20 @@ limitations under the License.
       <artifactId>slf4j-log4j12</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.apache.pig</groupId>
+      <artifactId>pig</artifactId>
+      <classifier>h2</classifier>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-client</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -116,6 +135,9 @@ limitations under the License.
         <configuration>
           <includes>
             <include>org/apache/calcite/test/PigletTest.java</include>
+            <include>org/apache/calcite/test/PigRelExTest.java</include>
+            <include>org/apache/calcite/test/PigRelOpTest.java</include>
+            <include>org/apache/calcite/test/PigScriptTest.java</include>
           </includes>
         </configuration>
       </plugin>
@@ -156,12 +178,26 @@ limitations under the License.
               <ignoredUnusedDeclaredDependencies>
                 <ignoredUnusedDeclaredDependency>net.hydromatic:scott-data-hsqldb</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.hsqldb:hsqldb</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.apache.hadoop:hadoop-core</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-api</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-log4j12</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.apache.hadoop:hadoop-common</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.apache.hadoop:hadoop-client</ignoredUnusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.owasp</groupId>
+        <artifactId>dependency-check-maven</artifactId>
+        <configuration>
+          <!-- Never fail the build for this module but still check for vulnerabilities. -->
+          <failBuildOnCVSS>11</failBuildOnCVSS>
+          <!-- Skip system dependencies; otherwise fails to find
+               jdk.tools:jdk.tools:jar:1.8:system dependency. -->
+          <skipSystemScope>true</skipSystemScope>
+        </configuration>
       </plugin>
     </plugins>
   </build>

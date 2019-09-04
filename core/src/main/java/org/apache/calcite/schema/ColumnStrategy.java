@@ -36,7 +36,15 @@ public enum ColumnStrategy {
   /** Column is computed and stored. You cannot insert into it. */
   STORED,
   /** Column is computed and not stored. You cannot insert into it. */
-  VIRTUAL
+  VIRTUAL;
+
+  /**
+   * Returns whether you can insert into the column.
+   * @return true if this column can be inserted.
+   */
+  public boolean canInsertInto() {
+    return this != STORED && this != VIRTUAL;
+  }
 }
 
 // End ColumnStrategy.java

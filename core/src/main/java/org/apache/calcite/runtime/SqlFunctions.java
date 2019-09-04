@@ -33,26 +33,18 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.runtime.FlatLists.ComparableList;
-import org.apache.calcite.sql.SqlJsonConstructorNullClause;
-import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;
-import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
-import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
-import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
+import org.apache.calcite.util.Unsafe;
+import org.apache.calcite.util.Util;
 
-import com.fasterxml.jackson.core.PrettyPrinter;
-import com.fasterxml.jackson.core.util.DefaultIndenter;
-import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.Option;
-import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
-import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
-import com.jayway.jsonpath.spi.mapper.MappingProvider;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.codec.language.Soundex;
+
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
@@ -62,27 +54,30 @@ import java.math.RoundingMode;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Queue;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.annotation.Nonnull;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Helper methods to implement SQL functions in generated code.
@@ -103,8 +98,25 @@ public class SqlFunctions {
 
   private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
+  private static final DateTimeFormatter ROOT_DAY_FORMAT =
+      DateTimeFormatter.ofPattern("EEEE", Locale.ROOT);
+
+  private static final DateTimeFormatter ROOT_MONTH_FORMAT =
+      DateTimeFormatter.ofPattern("MMMM", Locale.ROOT);
+
+  private static final Soundex SOUNDEX = new Soundex();
+
+  private static final int SOUNDEX_LENGTH = 4;
+
+  private static final Pattern FROM_BASE64_REGEXP = Pattern.compile("[\\t\\n\\r\\s]");
+
   private static final Function1<List<Object>, Enumerable<Object>> LIST_AS_ENUMERABLE =
       Linq4j::asEnumerable;
+
+  // It's important to have XDigit before Digit to match XDigit first
+  // (i.e. see the posixRegex method)
+  private static final String[] POSIX_CHARACTER_CLASSES = new String[] { "Lower", "Upper", "ASCII",
+      "Alpha", "XDigit", "Digit", "Alnum", "Punct", "Graph", "Print", "Blank", "Cntrl", "Space" };
 
   private static final Function1<Object[], Enumerable<Object[]>> ARRAY_CARTESIAN_PRODUCT =
       lists -> {
@@ -129,19 +141,113 @@ public class SqlFunctions {
   private static final ThreadLocal<Map<String, AtomicLong>> THREAD_SEQUENCES =
       ThreadLocal.withInitial(HashMap::new);
 
-  private static final Pattern JSON_PATH_BASE =
-      Pattern.compile("^\\s*(?<mode>strict|lax)\\s+(?<spec>.+)$",
-          Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);
-
-  private static final JacksonJsonProvider JSON_PATH_JSON_PROVIDER =
-      new JacksonJsonProvider();
-  private static final MappingProvider JSON_PATH_MAPPING_PROVIDER =
-      new JacksonMappingProvider();
-  private static final PrettyPrinter JSON_PRETTY_PRINTER =
-      new DefaultPrettyPrinter().withObjectIndenter(
-          DefaultIndenter.SYSTEM_LINEFEED_INSTANCE.withLinefeed("\n"));
-
   private SqlFunctions() {
+  }
+
+  /** SQL TO_BASE64(string) function. */
+  public static String toBase64(String string) {
+    return toBase64_(string.getBytes(UTF_8));
+  }
+
+  /** SQL TO_BASE64(string) function for binary string. */
+  public static String toBase64(ByteString string) {
+    return toBase64_(string.getBytes());
+  }
+
+  private static String toBase64_(byte[] bytes) {
+    String base64 = Base64.getEncoder().encodeToString(bytes);
+    StringBuilder str = new StringBuilder(base64.length() + base64.length() / 76);
+    Splitter.fixedLength(76).split(base64).iterator().forEachRemaining(s -> {
+      str.append(s);
+      str.append("\n");
+    });
+    return str.substring(0, str.length() - 1);
+  }
+
+  /** SQL FROM_BASE64(string) function. */
+  public static ByteString fromBase64(String base64) {
+    try {
+      base64 = FROM_BASE64_REGEXP.matcher(base64).replaceAll("");
+      return new ByteString(Base64.getDecoder().decode(base64));
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
+  }
+
+  /** SQL MD5(string) function. */
+  public static @Nonnull String md5(@Nonnull String string)  {
+    return DigestUtils.md5Hex(string.getBytes(UTF_8));
+  }
+
+  /** SQL MD5(string) function for binary string. */
+  public static @Nonnull String md5(@Nonnull ByteString string)  {
+    return DigestUtils.md5Hex(string.getBytes());
+  }
+
+  /** SQL SHA1(string) function. */
+  public static @Nonnull String sha1(@Nonnull String string)  {
+    return DigestUtils.sha1Hex(string.getBytes(UTF_8));
+  }
+
+  /** SQL SHA1(string) function for binary string. */
+  public static @Nonnull String sha1(@Nonnull ByteString string)  {
+    return DigestUtils.sha1Hex(string.getBytes());
+  }
+
+  /** SQL {@code REGEXP_REPLACE} function with 3 arguments. */
+  public static String regexpReplace(String s, String regex,
+      String replacement) {
+    return regexpReplace(s, regex, replacement, 1, 0, null);
+  }
+
+  /** SQL {@code REGEXP_REPLACE} function with 4 arguments. */
+  public static String regexpReplace(String s, String regex, String replacement,
+      int pos) {
+    return regexpReplace(s, regex, replacement, pos, 0, null);
+  }
+
+  /** SQL {@code REGEXP_REPLACE} function with 5 arguments. */
+  public static String regexpReplace(String s, String regex, String replacement,
+      int pos, int occurrence) {
+    return regexpReplace(s, regex, replacement, pos, occurrence, null);
+  }
+
+  /** SQL {@code REGEXP_REPLACE} function with 6 arguments. */
+  public static String regexpReplace(String s, String regex, String replacement,
+      int pos, int occurrence, String matchType) {
+    if (pos < 1 || pos > s.length()) {
+      throw RESOURCE.invalidInputForRegexpReplace(Integer.toString(pos)).ex();
+    }
+
+    final int flags = makeRegexpFlags(matchType);
+    final Pattern pattern = Pattern.compile(regex, flags);
+
+    return Unsafe.regexpReplace(s, pattern, replacement, pos, occurrence);
+  }
+
+  private static int makeRegexpFlags(String stringFlags) {
+    int flags = 0;
+    if (stringFlags != null) {
+      for (int i = 0; i < stringFlags.length(); ++i) {
+        switch (stringFlags.charAt(i)) {
+        case 'i':
+          flags |= Pattern.CASE_INSENSITIVE;
+          break;
+        case 'c':
+          flags &= ~Pattern.CASE_INSENSITIVE;
+          break;
+        case 'n':
+          flags |= Pattern.DOTALL;
+          break;
+        case 'm':
+          flags |= Pattern.MULTILINE;
+          break;
+        default:
+          throw RESOURCE.invalidInputForRegexpReplace(stringFlags).ex();
+        }
+      }
+    }
+    return flags;
   }
 
   /** SQL SUBSTRING(string FROM ... FOR ...) function. */
@@ -237,10 +343,99 @@ public class SqlFunctions {
     return newS.toString();
   }
 
+  /** SQL REVERSE(string) function. */
+  public static String reverse(String s) {
+    final StringBuilder buf = new StringBuilder(s);
+    return buf.reverse().toString();
+  }
+
   /** SQL ASCII(string) function. */
   public static int ascii(String s) {
     return s.isEmpty()
         ? 0 : s.codePointAt(0);
+  }
+
+  /** SQL REPEAT(string, int) function. */
+  public static String repeat(String s, int n) {
+    if (n < 1) {
+      return "";
+    }
+    return Strings.repeat(s, n);
+  }
+
+  /** SQL SPACE(int) function. */
+  public static String space(int n) {
+    return repeat(" ", n);
+  }
+
+  /** SQL SOUNDEX(string) function. */
+  public static String soundex(String s) {
+    return SOUNDEX.soundex(s);
+  }
+
+  /** SQL DIFFERENCE(string, string) function. */
+  public static int difference(String s0, String s1) {
+    String result0 = soundex(s0);
+    String result1 = soundex(s1);
+    for (int i = 0; i < SOUNDEX_LENGTH; i++) {
+      if (result0.charAt(i) != result1.charAt(i)) {
+        return i;
+      }
+    }
+    return SOUNDEX_LENGTH;
+  }
+
+  /** SQL LEFT(string, integer) function. */
+  public static @Nonnull String left(@Nonnull String s, int n) {
+    if (n <= 0) {
+      return "";
+    }
+    int len = s.length();
+    if (n >= len) {
+      return s;
+    }
+    return s.substring(0, n);
+  }
+
+  /** SQL LEFT(ByteString, integer) function. */
+  public static @Nonnull ByteString left(@Nonnull ByteString s, int n) {
+    if (n <= 0) {
+      return ByteString.EMPTY;
+    }
+    int len = s.length();
+    if (n >= len) {
+      return s;
+    }
+    return s.substring(0, n);
+  }
+
+  /** SQL RIGHT(string, integer) function. */
+  public static @Nonnull String right(@Nonnull String s, int n) {
+    if (n <= 0) {
+      return "";
+    }
+    int len = s.length();
+    if (n >= len) {
+      return s;
+    }
+    return s.substring(len - n);
+  }
+
+  /** SQL RIGHT(ByteString, integer) function. */
+  public static @Nonnull ByteString right(@Nonnull ByteString s, int n) {
+    if (n <= 0) {
+      return ByteString.EMPTY;
+    }
+    final int len = s.length();
+    if (n >= len) {
+      return s;
+    }
+    return s.substring(len - n);
+  }
+
+  /** SQL CHR(long) function. */
+  public static String chr(long n) {
+    return String.valueOf(Character.toChars((int) n));
   }
 
   /** SQL CHARACTER_LENGTH(string) function. */
@@ -347,9 +542,6 @@ public class SqlFunctions {
 
   /** SQL {@code OVERLAY} function. */
   public static String overlay(String s, String r, int start) {
-    if (s == null || r == null) {
-      return null;
-    }
     return s.substring(0, start - 1)
         + r
         + s.substring(start - 1 + r.length());
@@ -357,9 +549,6 @@ public class SqlFunctions {
 
   /** SQL {@code OVERLAY} function. */
   public static String overlay(String s, String r, int start, int length) {
-    if (s == null || r == null) {
-      return null;
-    }
     return s.substring(0, start - 1)
         + r
         + s.substring(start - 1 + length);
@@ -367,23 +556,17 @@ public class SqlFunctions {
 
   /** SQL {@code OVERLAY} function applied to binary strings. */
   public static ByteString overlay(ByteString s, ByteString r, int start) {
-    if (s == null || r == null) {
-      return null;
-    }
     return s.substring(0, start - 1)
-           .concat(r)
-           .concat(s.substring(start - 1 + r.length()));
+        .concat(r)
+        .concat(s.substring(start - 1 + r.length()));
   }
 
   /** SQL {@code OVERLAY} function applied to binary strings. */
   public static ByteString overlay(ByteString s, ByteString r, int start,
       int length) {
-    if (s == null || r == null) {
-      return null;
-    }
     return s.substring(0, start - 1)
-           .concat(r)
-           .concat(s.substring(start - 1 + length));
+        .concat(r)
+        .concat(s.substring(start - 1 + length));
   }
 
   /** SQL {@code LIKE} function. */
@@ -408,6 +591,19 @@ public class SqlFunctions {
   public static boolean similar(String s, String pattern, String escape) {
     final String regex = Like.sqlToRegexSimilar(pattern, escape);
     return Pattern.matches(regex, s);
+  }
+
+  public static boolean posixRegex(String s, String regex, Boolean caseSensitive) {
+    // Replace existing character classes with java equivalent ones
+    String originalRegex = regex;
+    String[] existingExpressions = Arrays.stream(POSIX_CHARACTER_CLASSES)
+        .filter(v -> originalRegex.contains(v.toLowerCase(Locale.ROOT))).toArray(String[]::new);
+    for (String v : existingExpressions) {
+      regex = regex.replaceAll(v.toLowerCase(Locale.ROOT), "\\\\p{" + v + "}");
+    }
+
+    int flags = caseSensitive ? 0 : Pattern.CASE_INSENSITIVE;
+    return Pattern.compile(regex, flags).matcher(s).find();
   }
 
   // =
@@ -1650,8 +1846,8 @@ public class SqlFunctions {
   public static float toFloat(Object o) {
     return o instanceof Float ? (Float) o
         : o instanceof Number ? toFloat((Number) o)
-            : o instanceof String ? toFloat((String) o)
-                : (Float) cannotConvert(o, float.class);
+        : o instanceof String ? toFloat((String) o)
+        : (Float) cannotConvert(o, float.class);
   }
 
   public static double toDouble(String s) {
@@ -1957,6 +2153,78 @@ public class SqlFunctions {
     return DateTimeUtils.ymdToUnixDate(y0, m0, last);
   }
 
+  /**
+   * SQL {@code DAYNAME} function, applied to a TIMESTAMP argument.
+   *
+   * @param timestamp Milliseconds from epoch
+   * @param locale Locale
+   * @return Name of the weekday in the given locale
+   */
+  public static String dayNameWithTimestamp(long timestamp, Locale locale) {
+    return timeStampToLocalDate(timestamp)
+        .format(ROOT_DAY_FORMAT.withLocale(locale));
+  }
+
+  /**
+   * SQL {@code DAYNAME} function, applied to a DATE argument.
+   *
+   * @param date Days since epoch
+   * @param locale Locale
+   * @return Name of the weekday in the given locale
+   */
+  public static String dayNameWithDate(int date, Locale locale) {
+    return dateToLocalDate(date)
+        .format(ROOT_DAY_FORMAT.withLocale(locale));
+  }
+
+  /**
+   * SQL {@code MONTHNAME} function, applied to a TIMESTAMP argument.
+   *
+   * @param timestamp Milliseconds from epoch
+   * @param locale Locale
+   * @return Name of the month in the given locale
+   */
+  public static String monthNameWithTimestamp(long timestamp, Locale locale) {
+    return timeStampToLocalDate(timestamp)
+        .format(ROOT_MONTH_FORMAT.withLocale(locale));
+  }
+
+  /**
+   * SQL {@code MONTHNAME} function, applied to a DATE argument.
+   *
+   * @param date Days from epoch
+   * @param locale Locale
+   * @return Name of the month in the given locale
+   */
+  public static String monthNameWithDate(int date, Locale locale) {
+    return dateToLocalDate(date)
+        .format(ROOT_MONTH_FORMAT.withLocale(locale));
+  }
+
+  /**
+   * Converts a date (days since epoch) to a {@link LocalDate}.
+   *
+   * @param date days since epoch
+   * @return localDate
+   */
+  private static LocalDate dateToLocalDate(int date) {
+    int y0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.YEAR, date);
+    int m0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.MONTH, date);
+    int d0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.DAY, date);
+    return LocalDate.of(y0, m0, d0);
+  }
+
+  /**
+   * Converts a timestamp (milliseconds since epoch) to a {@link LocalDate}.
+   *
+   * @param timestamp milliseconds from epoch
+   * @return localDate
+   */
+  private static LocalDate timeStampToLocalDate(long timestamp) {
+    int date = (int) (timestamp / DateTimeUtils.MILLIS_PER_DAY);
+    return dateToLocalDate(date);
+  }
+
   /** SQL {@code CURRENT_TIMESTAMP} function. */
   @NonDeterministic
   public static long currentTimestamp(DataContext root) {
@@ -2002,6 +2270,23 @@ public class SqlFunctions {
   @NonDeterministic
   public static TimeZone timeZone(DataContext root) {
     return (TimeZone) DataContext.Variable.TIME_ZONE.get(root);
+  }
+
+  /** SQL {@code USER} function. */
+  @Deterministic
+  public static String user(DataContext root) {
+    return Objects.requireNonNull(DataContext.Variable.USER.get(root));
+  }
+
+  /** SQL {@code SYSTEM_USER} function. */
+  @Deterministic
+  public static String systemUser(DataContext root) {
+    return Objects.requireNonNull(DataContext.Variable.SYSTEM_USER.get(root));
+  }
+
+  @NonDeterministic
+  public static Locale locale(DataContext root) {
+    return (Locale) DataContext.Variable.LOCALE.get(root);
   }
 
   /** SQL {@code TRANSLATE(string, search_chars, replacement_chars)}
@@ -2101,7 +2386,7 @@ public class SqlFunctions {
     try {
       return Primitive.asList(a.getArray());
     } catch (SQLException e) {
-      throw toUnchecked(e);
+      throw Util.toUnchecked(e);
     }
   }
 
@@ -2252,7 +2537,7 @@ public class SqlFunctions {
         return (Function1) LIST_AS_ENUMERABLE;
       } else {
         return row -> p2(new Object[] { row }, fieldCounts, withOrdinality,
-              inputTypes);
+            inputTypes);
       }
     }
     return lists -> p2((Object[]) lists, fieldCounts, withOrdinality,
@@ -2437,551 +2722,6 @@ public class SqlFunctions {
     }
   }
 
-
-  private static boolean isScalarObject(Object obj) {
-    if (obj instanceof Collection) {
-      return false;
-    }
-    if (obj instanceof Map) {
-      return false;
-    }
-    return true;
-  }
-
-  public static Object jsonValueExpression(String input) {
-    try {
-      return dejsonize(input);
-    } catch (Exception e) {
-      return e;
-    }
-  }
-
-  public static PathContext jsonApiCommonSyntax(Object input) {
-    return jsonApiCommonSyntax(input, "strict $");
-  }
-
-  public static PathContext jsonApiCommonSyntax(Object input, String pathSpec) {
-    try {
-      Matcher matcher = JSON_PATH_BASE.matcher(pathSpec);
-      if (!matcher.matches()) {
-        throw RESOURCE.illegalJsonPathSpec(pathSpec).ex();
-      }
-      PathMode mode = PathMode.valueOf(matcher.group(1).toUpperCase(Locale.ROOT));
-      String pathWff = matcher.group(2);
-      DocumentContext ctx;
-      switch (mode) {
-      case STRICT:
-        if (input instanceof Exception) {
-          return PathContext.withStrictException((Exception) input);
-        }
-        ctx = JsonPath.parse(input,
-            Configuration
-                .builder()
-                .jsonProvider(JSON_PATH_JSON_PROVIDER)
-                .mappingProvider(JSON_PATH_MAPPING_PROVIDER)
-                .build());
-        break;
-      case LAX:
-        if (input instanceof Exception) {
-          return PathContext.withReturned(PathMode.LAX, null);
-        }
-        ctx = JsonPath.parse(input,
-            Configuration
-                .builder()
-                .options(Option.SUPPRESS_EXCEPTIONS)
-                .jsonProvider(JSON_PATH_JSON_PROVIDER)
-                .mappingProvider(JSON_PATH_MAPPING_PROVIDER)
-                .build());
-        break;
-      default:
-        throw RESOURCE.illegalJsonPathModeInPathSpec(mode.toString(), pathSpec).ex();
-      }
-      try {
-        return PathContext.withReturned(mode, ctx.read(pathWff));
-      } catch (Exception e) {
-        return PathContext.withStrictException(e);
-      }
-    } catch (Exception e) {
-      return PathContext.withUnknownException(e);
-    }
-  }
-
-  public static Boolean jsonExists(Object input) {
-    return jsonExists(input, SqlJsonExistsErrorBehavior.FALSE);
-  }
-
-  public static Boolean jsonExists(Object input,
-      SqlJsonExistsErrorBehavior errorBehavior) {
-    PathContext context = (PathContext) input;
-    if (context.exc != null) {
-      switch (errorBehavior) {
-      case TRUE:
-        return Boolean.TRUE;
-      case FALSE:
-        return Boolean.FALSE;
-      case ERROR:
-        throw toUnchecked(context.exc);
-      case UNKNOWN:
-        return null;
-      default:
-        throw RESOURCE.illegalErrorBehaviorInJsonExistsFunc(
-            errorBehavior.toString()).ex();
-      }
-    } else {
-      return context.pathReturned != null;
-    }
-  }
-
-  public static Object jsonValueAny(Object input,
-      SqlJsonValueEmptyOrErrorBehavior emptyBehavior,
-      Object defaultValueOnEmpty,
-      SqlJsonValueEmptyOrErrorBehavior errorBehavior,
-      Object defaultValueOnError) {
-    final PathContext context = (PathContext) input;
-    final Exception exc;
-    if (context.exc != null) {
-      exc = context.exc;
-    } else {
-      Object value = context.pathReturned;
-      if (value == null || context.mode == PathMode.LAX
-          && !isScalarObject(value)) {
-        switch (emptyBehavior) {
-        case ERROR:
-          throw RESOURCE.emptyResultOfJsonValueFuncNotAllowed().ex();
-        case NULL:
-          return null;
-        case DEFAULT:
-          return defaultValueOnEmpty;
-        default:
-          throw RESOURCE.illegalEmptyBehaviorInJsonValueFunc(
-              emptyBehavior.toString()).ex();
-        }
-      } else if (context.mode == PathMode.STRICT
-          && !isScalarObject(value)) {
-        exc = RESOURCE.scalarValueRequiredInStrictModeOfJsonValueFunc(
-            value.toString()).ex();
-      } else {
-        return value;
-      }
-    }
-    switch (errorBehavior) {
-    case ERROR:
-      throw toUnchecked(exc);
-    case NULL:
-      return null;
-    case DEFAULT:
-      return defaultValueOnError;
-    default:
-      throw RESOURCE.illegalErrorBehaviorInJsonValueFunc(
-          errorBehavior.toString()).ex();
-    }
-  }
-
-  public static String jsonQuery(Object input,
-      SqlJsonQueryWrapperBehavior wrapperBehavior,
-      SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
-      SqlJsonQueryEmptyOrErrorBehavior errorBehavior) {
-    final PathContext context = (PathContext) input;
-    final Exception exc;
-    if (context.exc != null) {
-      exc = context.exc;
-    } else {
-      Object value;
-      if (context.pathReturned == null) {
-        value = null;
-      } else {
-        switch (wrapperBehavior) {
-        case WITHOUT_ARRAY:
-          value = context.pathReturned;
-          break;
-        case WITH_UNCONDITIONAL_ARRAY:
-          value = Collections.singletonList(context.pathReturned);
-          break;
-        case WITH_CONDITIONAL_ARRAY:
-          if (context.pathReturned instanceof Collection) {
-            value = context.pathReturned;
-          } else {
-            value = Collections.singletonList(context.pathReturned);
-          }
-          break;
-        default:
-          throw RESOURCE.illegalWrapperBehaviorInJsonQueryFunc(
-              wrapperBehavior.toString()).ex();
-        }
-      }
-      if (value == null || context.mode == PathMode.LAX
-          && isScalarObject(value)) {
-        switch (emptyBehavior) {
-        case ERROR:
-          throw RESOURCE.emptyResultOfJsonQueryFuncNotAllowed().ex();
-        case NULL:
-          return null;
-        case EMPTY_ARRAY:
-          return "[]";
-        case EMPTY_OBJECT:
-          return "{}";
-        default:
-          throw RESOURCE.illegalEmptyBehaviorInJsonQueryFunc(
-              emptyBehavior.toString()).ex();
-        }
-      } else if (context.mode == PathMode.STRICT && isScalarObject(value)) {
-        exc = RESOURCE.arrayOrObjectValueRequiredInStrictModeOfJsonQueryFunc(
-            value.toString()).ex();
-      } else {
-        try {
-          return jsonize(value);
-        } catch (Exception e) {
-          exc = e;
-        }
-      }
-    }
-    switch (errorBehavior) {
-    case ERROR:
-      throw toUnchecked(exc);
-    case NULL:
-      return null;
-    case EMPTY_ARRAY:
-      return "[]";
-    case EMPTY_OBJECT:
-      return "{}";
-    default:
-      throw RESOURCE.illegalErrorBehaviorInJsonQueryFunc(
-          errorBehavior.toString()).ex();
-    }
-  }
-
-  public static String jsonize(Object input) {
-    return JSON_PATH_JSON_PROVIDER.toJson(input);
-  }
-
-  public static Object dejsonize(String input) {
-    return JSON_PATH_JSON_PROVIDER.parse(input);
-  }
-
-  public static String jsonObject(SqlJsonConstructorNullClause nullClause,
-      Object... kvs) {
-    assert kvs.length % 2 == 0;
-    Map<String, Object> map = new HashMap<>();
-    for (int i = 0; i < kvs.length; i += 2) {
-      String k = (String) kvs[i];
-      Object v = kvs[i + 1];
-      if (k == null) {
-        throw RESOURCE.nullKeyOfJsonObjectNotAllowed().ex();
-      }
-      if (v == null) {
-        if (nullClause == SqlJsonConstructorNullClause.NULL_ON_NULL) {
-          map.put(k, null);
-        }
-      } else {
-        map.put(k, v);
-      }
-    }
-    return jsonize(map);
-  }
-
-  public static void jsonObjectAggAdd(Map map, String k, Object v,
-      SqlJsonConstructorNullClause nullClause) {
-    if (k == null) {
-      throw RESOURCE.nullKeyOfJsonObjectNotAllowed().ex();
-    }
-    if (v == null) {
-      if (nullClause == SqlJsonConstructorNullClause.NULL_ON_NULL) {
-        map.put(k, null);
-      }
-    } else {
-      map.put(k, v);
-    }
-  }
-
-  public static String jsonArray(SqlJsonConstructorNullClause nullClause,
-      Object... elements) {
-    List<Object> list = new ArrayList<>();
-    for (Object element : elements) {
-      if (element == null) {
-        if (nullClause == SqlJsonConstructorNullClause.NULL_ON_NULL) {
-          list.add(null);
-        }
-      } else {
-        list.add(element);
-      }
-    }
-    return jsonize(list);
-  }
-
-  public static void jsonArrayAggAdd(List list, Object element,
-      SqlJsonConstructorNullClause nullClause) {
-    if (element == null) {
-      if (nullClause == SqlJsonConstructorNullClause.NULL_ON_NULL) {
-        list.add(null);
-      }
-    } else {
-      list.add(element);
-    }
-  }
-
-  public static String jsonPretty(Object input) {
-    try {
-      return JSON_PATH_JSON_PROVIDER.getObjectMapper().writer(JSON_PRETTY_PRINTER)
-          .writeValueAsString(input);
-    } catch (Exception e) {
-      throw RESOURCE.exceptionWhileSerializingToJson(input.toString()).ex();
-    }
-  }
-
-  public static String jsonType(Object o) {
-    final String result;
-    try {
-      if (o instanceof Integer) {
-        result = "INTEGER";
-      } else if (o instanceof String) {
-        result = "STRING";
-      } else if (o instanceof Float) {
-        result = "FLOAT";
-      } else if (o instanceof Double) {
-        result = "DOUBLE";
-      } else if (o instanceof Long) {
-        result = "LONG";
-      } else if (o instanceof Boolean) {
-        result = "BOOLEAN";
-      } else if (o instanceof Date) {
-        result = "DATE";
-      } else if (o instanceof Map) {
-        result = "OBJECT";
-      } else if (o instanceof Collection) {
-        result = "ARRAY";
-      } else if (o == null) {
-        result = "NULL";
-      } else {
-        throw RESOURCE.invalidInputForJsonType(o.toString()).ex();
-      }
-      return result;
-    } catch (Exception ex) {
-      throw RESOURCE.invalidInputForJsonType(o.toString()).ex();
-    }
-  }
-
-  public static Integer jsonDepth(Object o) {
-    final Integer result;
-    try {
-      if (o == null) {
-        result = null;
-      } else {
-        result = getJsonDepth(o);
-      }
-      return result;
-    } catch (Exception ex) {
-      throw RESOURCE.invalidInputForJsonDepth(o.toString()).ex();
-    }
-  }
-
-  private static Integer getJsonDepth(Object o) {
-    if (isScalarObject(o)) {
-      return 1;
-    }
-    Queue<Object> q = new LinkedList<>();
-    int depth = 0;
-    q.add(o);
-
-    while (!q.isEmpty()) {
-      int size = q.size();
-      for (int i = 0; i < size; ++i) {
-        Object obj = q.poll();
-        if (obj instanceof Map) {
-          for (Object value : ((LinkedHashMap) obj).values()) {
-            q.add(value);
-          }
-        } else if (obj instanceof Collection) {
-          for (Object value : (Collection) obj) {
-            q.add(value);
-          }
-        }
-      }
-      ++depth;
-    }
-
-    return depth;
-  }
-
-  public static Integer jsonLength(Object input) {
-    return jsonLength(jsonApiCommonSyntax(input));
-  }
-
-  public static Integer jsonLength(Object input, String pathSpec) {
-    return jsonLength(jsonApiCommonSyntax(input, pathSpec));
-  }
-
-  public static Integer jsonLength(PathContext context) {
-    final Integer result;
-    final Object value;
-    try {
-      if (context.exc != null) {
-        throw toUnchecked(context.exc);
-      }
-      value = context.pathReturned;
-
-      if (value == null) {
-        result = null;
-      } else {
-        if (value instanceof Collection) {
-          result = ((Collection) value).size();
-        } else if (value instanceof Map) {
-          result = ((LinkedHashMap) value).size();
-        } else if (isScalarObject(value)) {
-          result = 1;
-        } else {
-          result = 0;
-        }
-      }
-    } catch (Exception ex) {
-      throw RESOURCE.invalidInputForJsonLength(
-          context.toString()).ex();
-    }
-    return result;
-  }
-
-  public static String jsonKeys(Object input) {
-    return jsonKeys(jsonApiCommonSyntax(input));
-  }
-
-  public static String jsonKeys(Object input, String pathSpec) {
-    return jsonKeys(jsonApiCommonSyntax(input, pathSpec));
-  }
-
-  public static String jsonKeys(PathContext context) {
-    List<String> list = new ArrayList<>();
-    final Object value;
-    try {
-      if (context.exc != null) {
-        throw toUnchecked(context.exc);
-      }
-      value = context.pathReturned;
-
-      if ((value == null) || (value instanceof Collection)
-             || isScalarObject(value)) {
-        list = null;
-      } else if (value instanceof Map) {
-        for (Object key : ((LinkedHashMap) value).keySet()) {
-          list.add(key.toString());
-        }
-      }
-    } catch (Exception ex) {
-      throw RESOURCE.invalidInputForJsonKeys(
-              context.toString()).ex();
-    }
-    return jsonize(list);
-  }
-
-  public static boolean isJsonPathContext(Object input) {
-    try {
-      PathContext context = (PathContext) input;
-      return context != null;
-    } catch (Exception e) {
-      return false;
-    }
-  }
-
-  public static boolean isJsonValue(String input) {
-    try {
-      dejsonize(input);
-      return true;
-    } catch (Exception e) {
-      return false;
-    }
-  }
-
-  public static boolean isJsonObject(String input) {
-    try {
-      Object o = dejsonize(input);
-      return o instanceof Map;
-    } catch (Exception e) {
-      return false;
-    }
-  }
-
-  public static boolean isJsonArray(String input) {
-    try {
-      Object o = dejsonize(input);
-      return o instanceof Collection;
-    } catch (Exception e) {
-      return false;
-    }
-  }
-
-  public static boolean isJsonScalar(String input) {
-    try {
-      Object o = dejsonize(input);
-      return !(o instanceof Map) && !(o instanceof Collection);
-    } catch (Exception e) {
-      return false;
-    }
-  }
-
-  private static RuntimeException toUnchecked(Exception e) {
-    if (e instanceof RuntimeException) {
-      return (RuntimeException) e;
-    }
-    return new RuntimeException(e);
-  }
-
-  /**
-   * Returned path context of JsonApiCommonSyntax, public for testing.
-   */
-  public static class PathContext {
-    public final PathMode mode;
-    public final Object pathReturned;
-    public final Exception exc;
-
-    private PathContext(Object pathReturned, Exception exc) {
-      this.mode = PathMode.NONE;
-      this.pathReturned = pathReturned;
-      this.exc = exc;
-    }
-
-    private PathContext(PathMode mode, Object pathReturned, Exception exc) {
-      this.mode = mode;
-      this.pathReturned = pathReturned;
-      this.exc = exc;
-    }
-
-    public static PathContext withUnknownException(Exception exc) {
-      return new PathContext(PathMode.UNKNOWN, null, exc);
-    }
-
-    public static PathContext withStrictException(Exception exc) {
-      return new PathContext(PathMode.STRICT, null, exc);
-    }
-
-    public static PathContext withReturned(PathMode mode, Object pathReturned) {
-      if (mode == PathMode.UNKNOWN) {
-        throw RESOURCE.illegalJsonPathMode(mode.toString()).ex();
-      }
-      if (mode == PathMode.STRICT && pathReturned == null) {
-        throw RESOURCE.strictPathModeRequiresNonEmptyValue().ex();
-      }
-      return new PathContext(mode, pathReturned, null);
-    }
-
-    @Override public String toString() {
-      return "PathContext{"
-          + "mode=" + mode
-          + ", pathReturned=" + pathReturned
-          + ", exc=" + exc
-          + '}';
-    }
-  }
-
-  /**
-   * Path spec has two different modes: lax mode and strict mode.
-   * Lax mode suppresses any thrown exception and returns null,
-   * whereas strict mode throws exceptions.
-   */
-  public enum PathMode {
-    LAX,
-    STRICT,
-    UNKNOWN,
-    NONE
-  }
-
   /** Enumerates over the cartesian product of the given lists, returning
    * a comparable list for each row.
    *
@@ -3004,8 +2744,13 @@ public class SqlFunctions {
     public FlatLists.ComparableList<E> current() {
       int i = 0;
       for (Object element : (Object[]) elements) {
-        final List list2 = (List) element;
-        Object[] a = list2.toArray();
+        Object[] a;
+        if (element.getClass().isArray()) {
+          a = (Object[]) element;
+        } else {
+          final List list2 = (List) element;
+          a = list2.toArray();
+        }
         System.arraycopy(a, 0, flatElements, i, a.length);
         i += a.length;
       }

@@ -33,8 +33,6 @@ import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.util.BuiltInMethod;
 
-import com.google.common.collect.ImmutableSet;
-
 import java.util.HashSet;
 import java.util.Set;
 
@@ -65,17 +63,10 @@ public class RelMdColumnOrigins
       return mq.getColumnOrigins(rel.getInput(), iOutputColumn);
     }
 
-    if (rel.indicator) {
-      if (iOutputColumn < rel.getGroupCount() + rel.getIndicatorCount()) {
-        // The indicator column is originated here.
-        return ImmutableSet.of();
-      }
-    }
-
     // Aggregate columns are derived from input columns
     AggregateCall call =
         rel.getAggCallList().get(iOutputColumn
-                - rel.getGroupCount() - rel.getIndicatorCount());
+                - rel.getGroupCount());
 
     final Set<RelColumnOrigin> set = new HashSet<>();
     for (Integer iInput : call.getArgList()) {

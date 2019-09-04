@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.core;
 
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -90,14 +91,19 @@ public abstract class Aggregate extends SingleRel {
   public static final com.google.common.base.Predicate<Aggregate>
       IS_NOT_GRAND_TOTAL = Aggregate::isNotGrandTotal;
 
+  /** Used internally; will removed when {@link #indicator} is removed,
+   * before 2.0. */
+  @Experimental
+  public static void checkIndicator(boolean indicator) {
+    Preconditions.checkArgument(!indicator,
+        "indicator is no longer supported; use GROUPING function instead");
+  }
+
   //~ Instance fields --------------------------------------------------------
 
-  /** Whether there are indicator fields.
-   *
-   * <p>We strongly discourage the use indicator fields, because they cause the
-   * output row type of GROUPING SETS queries to be different from regular GROUP
-   * BY queries, and recommend that you set this field to {@code false}. */
-  public final boolean indicator;
+  @Deprecated // unused field, to be removed before 2.0
+  public final boolean indicator = false;
+
   protected final List<AggregateCall> aggCalls;
   protected final ImmutableBitSet groupSet;
   public final ImmutableList<ImmutableBitSet> groupSets;
@@ -123,24 +129,20 @@ public abstract class Aggregate extends SingleRel {
    * {@code (0, 1, 2), (1), (0, 2), (0), ()}.
    *
    * @param cluster  Cluster
-   * @param traits   Traits
-   * @param child    Child
-   * @param indicator Whether row type should include indicator fields to
-   *                 indicate which grouping set is active; true is deprecated
+   * @param traitSet Trait set
+   * @param input    Input relational expression
    * @param groupSet Bit set of grouping fields
    * @param groupSets List of all grouping sets; null for just {@code groupSet}
    * @param aggCalls Collection of calls to aggregate functions
    */
   protected Aggregate(
       RelOptCluster cluster,
-      RelTraitSet traits,
-      RelNode child,
-      boolean indicator,
+      RelTraitSet traitSet,
+      RelNode input,
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
-    super(cluster, traits, child);
-    this.indicator = indicator; // true is allowed, but discouraged
+    super(cluster, traitSet, input);
     this.aggCalls = ImmutableList.copyOf(aggCalls);
     this.groupSet = Objects.requireNonNull(groupSet);
     if (groupSets == null) {
@@ -152,21 +154,38 @@ public abstract class Aggregate extends SingleRel {
         assert groupSet.contains(set);
       }
     }
-    assert groupSet.length() <= child.getRowType().getFieldCount();
+    assert groupSet.length() <= input.getRowType().getFieldCount();
     for (AggregateCall aggCall : aggCalls) {
       assert typeMatchesInferred(aggCall, Litmus.THROW);
       Preconditions.checkArgument(aggCall.filterArg < 0
-          || isPredicate(child, aggCall.filterArg),
+          || isPredicate(input, aggCall.filterArg),
           "filter must be BOOLEAN NOT NULL");
     }
+  }
+
+  /**
+   * Creates an Aggregate.
+   */
+  @Deprecated // to be removed before 2.0
+  protected Aggregate(
+      RelOptCluster cluster,
+      RelTraitSet traits,
+      RelNode child,
+      boolean indicator,
+      ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets,
+      List<AggregateCall> aggCalls) {
+    this(cluster, traits, child, groupSet, groupSets, aggCalls);
+    checkIndicator(indicator);
   }
 
   public static boolean isNotGrandTotal(Aggregate aggregate) {
     return aggregate.getGroupCount() > 0;
   }
 
+  @Deprecated // to be removed before 2.0
   public static boolean noIndicator(Aggregate aggregate) {
-    return !aggregate.indicator;
+    return true;
   }
 
   private boolean isPredicate(RelNode input, int index) {
@@ -181,7 +200,6 @@ public abstract class Aggregate extends SingleRel {
    */
   protected Aggregate(RelInput input) {
     this(input.getCluster(), input.getTraitSet(), input.getInput(),
-        input.getBoolean("indicator", false),
         input.getBitSet("group"), input.getBitSetList("groups"),
         input.getAggregateCalls("aggs"));
   }
@@ -190,17 +208,13 @@ public abstract class Aggregate extends SingleRel {
 
   @Override public final RelNode copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs), indicator, groupSet, groupSets,
-        aggCalls);
+    return copy(traitSet, sole(inputs), groupSet, groupSets, aggCalls);
   }
 
   /** Creates a copy of this aggregate.
    *
    * @param traitSet Traits
    * @param input Input
-   * @param indicator Whether row type should include indicator fields to
-   *                 indicate which grouping set is active; must be true if
-   *                 aggregate is not simple
    * @param groupSet Bit set of grouping fields
    * @param groupSets List of all grouping sets; null for just {@code groupSet}
    * @param aggCalls Collection of calls to aggregate functions
@@ -211,8 +225,16 @@ public abstract class Aggregate extends SingleRel {
    * @see #copy(org.apache.calcite.plan.RelTraitSet, java.util.List)
    */
   public abstract Aggregate copy(RelTraitSet traitSet, RelNode input,
-      boolean indicator, ImmutableBitSet groupSet,
+      ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls);
+
+  @Deprecated // to be removed before 2.0
+  public Aggregate copy(RelTraitSet traitSet, RelNode input,
+      boolean indicator, ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+    checkIndicator(indicator);
+    return copy(traitSet, input, groupSet, groupSets, aggCalls);
+  }
 
   /**
    * Returns a list of calls to aggregate functions.
@@ -230,7 +252,7 @@ public abstract class Aggregate extends SingleRel {
    * @return list of calls to aggregate functions and their output field names
    */
   public List<Pair<AggregateCall, String>> getNamedAggCalls() {
-    final int offset = getGroupCount() + getIndicatorCount();
+    final int offset = getGroupCount();
     return Pair.zip(aggCalls, Util.skip(getRowType().getFieldNames(), offset));
   }
 
@@ -253,16 +275,13 @@ public abstract class Aggregate extends SingleRel {
   /**
    * Returns the number of indicator fields.
    *
-   * <p>This is the same as {@link #getGroupCount()} if {@link #indicator} is
-   * true, zero if {@code indicator} is false.
+   * <p>Always zero.
    *
-   * <p>The offset of the first aggregate call in the output record is always
-   * <i>groupCount + indicatorCount</i>.
-   *
-   * @return number of indicator fields
+   * @return number of indicator fields, always zero
    */
+  @Deprecated // to be removed before 2.0
   public int getIndicatorCount() {
-    return indicator ? getGroupCount() : 0;
+    return 0;
   }
 
   /**
@@ -288,7 +307,6 @@ public abstract class Aggregate extends SingleRel {
     super.explainTerms(pw)
         .item("group", groupSet)
         .itemIf("groups", groupSets, getGroupType() != Group.SIMPLE)
-        .itemIf("indicator", indicator, indicator)
         .itemIf("aggs", aggCalls, pw.nest());
     if (!pw.nest()) {
       for (Ord<AggregateCall> ord : Ord.zip(aggCalls)) {
@@ -332,7 +350,7 @@ public abstract class Aggregate extends SingleRel {
 
   protected RelDataType deriveRowType() {
     return deriveRowType(getCluster().getTypeFactory(), getInput().getRowType(),
-        indicator, groupSet, groupSets, aggCalls);
+        false, groupSet, groupSets, aggCalls);
   }
 
   /**
@@ -340,9 +358,7 @@ public abstract class Aggregate extends SingleRel {
    *
    * @param typeFactory Type factory
    * @param inputRowType Input row type
-   * @param indicator Whether row type should include indicator fields to
-   *                 indicate which grouping set is active; must be true if
-   *                 aggregate is not simple
+   * @param indicator Deprecated, always false
    * @param groupSet Bit set of grouping fields
    * @param groupSets List of all grouping sets; null for just {@code groupSet}
    * @param aggCalls Collection of calls to aggregate functions
@@ -365,21 +381,7 @@ public abstract class Aggregate extends SingleRel {
         builder.nullable(true);
       }
     }
-    if (indicator) {
-      for (int groupKey : groupList) {
-        final RelDataType booleanType =
-            typeFactory.createTypeWithNullability(
-                typeFactory.createSqlType(SqlTypeName.BOOLEAN), false);
-        final String base = "i$" + fieldList.get(groupKey).getName();
-        String name = base;
-        int i = 0;
-        while (containedNames.contains(name)) {
-          name = base + "_" + i++;
-        }
-        containedNames.add(name);
-        builder.add(name, booleanType);
-      }
-    }
+    checkIndicator(indicator);
     for (Ord<AggregateCall> aggCall : Ord.zip(aggCalls)) {
       final String base;
       if (aggCall.e.name != null) {

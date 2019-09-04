@@ -20,6 +20,8 @@ import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 
+import com.google.common.base.Preconditions;
+
 /**
  * A relational expression of one of the
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention} calling
@@ -27,7 +29,12 @@ import org.apache.calcite.rel.core.RelFactories;
  */
 public interface EnumerableRel
     extends RelNode {
-  RelFactories.FilterFactory FILTER_FACTORY = EnumerableFilter::create;
+  RelFactories.FilterFactory FILTER_FACTORY =
+      (input, condition, variablesSet) -> {
+        Preconditions.checkArgument(variablesSet.isEmpty(),
+            "EnumerableFilter does not allow variables");
+        return EnumerableFilter.create(input, condition);
+      };
 
   RelFactories.ProjectFactory PROJECT_FACTORY = EnumerableProject::create;
 

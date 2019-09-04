@@ -22,12 +22,14 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.CatchBlock;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.Statement;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
@@ -67,7 +69,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static org.apache.calcite.sql.fun.OracleSqlOperatorTable.TRANSLATE3;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBSTRING;
@@ -96,7 +98,7 @@ public class RexToLixTranslator {
   private final RexProgram program;
   final SqlConformance conformance;
   private final Expression root;
-  private final RexToLixTranslator.InputGetter inputGetter;
+  final RexToLixTranslator.InputGetter inputGetter;
   private final BlockBuilder list;
   private final Map<? extends RexNode, Boolean> exprNullableMap;
   private final RexToLixTranslator parent;
@@ -622,6 +624,32 @@ public class RexToLixTranslator {
     return unboxed;
   }
 
+  /**
+   * Handle checked Exceptions declared in Method. In such case,
+   * method call should be wrapped in a try...catch block.
+   * "
+   *      final Type method_call;
+   *      try {
+   *        method_call = callExpr
+   *      } catch (Exception e) {
+   *        throw new RuntimeException(e);
+   *      }
+   * "
+   */
+  Expression handleMethodCheckedExceptions(Expression callExpr) {
+    // Try statement
+    ParameterExpression methodCall = Expressions.parameter(
+        callExpr.getType(), list.newName("method_call"));
+    list.add(Expressions.declare(Modifier.FINAL, methodCall, null));
+    Statement st = Expressions.statement(Expressions.assign(methodCall, callExpr));
+    // Catch Block, wrap checked exception in unchecked exception
+    ParameterExpression e = Expressions.parameter(0, Exception.class, "e");
+    Expression uncheckedException = Expressions.new_(RuntimeException.class, e);
+    CatchBlock cb = Expressions.catch_(e, Expressions.throw_(uncheckedException));
+    list.add(Expressions.tryCatch(st, cb));
+    return methodCall;
+  }
+
   /** Translates an expression that is not in the cache.
    *
    * @param expr Expression
@@ -636,7 +664,16 @@ public class RexToLixTranslator {
       nullAs = RexImpTable.NullAs.NOT_POSSIBLE;
     }
     switch (expr.getKind()) {
-    case INPUT_REF: {
+    case INPUT_REF:
+    {
+      final int index = ((RexInputRef) expr).getIndex();
+      Expression x = inputGetter.field(list, index, storageType);
+
+      Expression input = list.append("inp" + index + "_", x); // safe to share
+      return handleNullUnboxingIfNecessary(input, nullAs, storageType);
+    }
+    case PATTERN_INPUT_REF:
+    {
       final int index = ((RexInputRef) expr).getIndex();
       Expression x = inputGetter.field(list, index, storageType);
 
@@ -1059,8 +1096,13 @@ public class RexToLixTranslator {
       if (fromPrimitive != null) {
         // E.g. from "int" to "BigDecimal".
         // Generate "new BigDecimal(x)"
-        return Expressions.new_(
-            BigDecimal.class, operand);
+        // Fix CALCITE-2325, we should decide null here for int type.
+        return Expressions.condition(
+            Expressions.equal(operand, RexImpTable.NULL_EXPR),
+            RexImpTable.NULL_EXPR,
+            Expressions.new_(
+                BigDecimal.class,
+                operand));
       }
       // E.g. from "Object" to "BigDecimal".
       // Generate "x == null ? null : SqlFunctions.toBigDecimal(x)"

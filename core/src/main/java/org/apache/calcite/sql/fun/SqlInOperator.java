@@ -114,6 +114,10 @@ public class SqlInOperator extends SqlBinaryOperator {
       // First check that the expressions in the IN list are compatible
       // with each other. Same rules as the VALUES operator (per
       // SQL:2003 Part 2 Section 8.4, <in predicate>).
+      if (null == rightType && validator.isTypeCoercionEnabled()) {
+        // Do implicit type cast if it is allowed to.
+        rightType = validator.getTypeCoercion().getWiderTypeFor(rightTypeList, true);
+      }
       if (null == rightType) {
         throw validator.newValidationError(right,
             RESOURCE.incompatibleTypesInList());
@@ -124,6 +128,17 @@ public class SqlInOperator extends SqlBinaryOperator {
     } else {
       // Handle the 'IN (query)' form.
       rightType = validator.deriveType(scope, right);
+    }
+    SqlCallBinding callBinding = new SqlCallBinding(validator, scope, call);
+    // Coerce type first.
+    if (callBinding.getValidator().isTypeCoercionEnabled()) {
+      boolean coerced = callBinding.getValidator().getTypeCoercion()
+          .inOperationCoercion(callBinding);
+      if (coerced) {
+        // Update the node data type if we coerced any type.
+        leftType = validator.deriveType(scope, call.operand(0));
+        rightType = validator.deriveType(scope, call.operand(1));
+      }
     }
 
     // Now check that the left expression is compatible with the
@@ -146,11 +161,8 @@ public class SqlInOperator extends SqlBinaryOperator {
             OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED;
     if (!checker.checkOperandTypes(
         new ExplicitOperatorBinding(
-            new SqlCallBinding(
-                validator,
-                scope,
-                call),
-            ImmutableList.of(leftRowType, rightRowType)))) {
+            callBinding,
+            ImmutableList.of(leftRowType, rightRowType)), callBinding)) {
       throw validator.newValidationError(call,
           RESOURCE.incompatibleValueType(SqlStdOperatorTable.IN.getName()));
     }

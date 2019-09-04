@@ -17,6 +17,7 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -220,6 +221,10 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <td>The characters of string with no trailing blanks</td>
  * </tr>
  * <tr>
+ * <td>REVERSE(string)</td>
+ * <td>The string with the order of the characters reversed</td>
+ * </tr>
+ * <tr>
  * <td>SOUNDEX(string)</td>
  * <td>A character string, which is data source-dependent, representing the
  * sound of the words in string; this could be a four-digit SOUNDEX code, a
@@ -377,9 +382,9 @@ public class SqlJdbcFunctionCall extends SqlFunction {
 
   /** List of all time/date function names defined by JDBC. */
   private static final String TIME_DATE_FUNCTIONS = constructFuncList(
-      "CURDATE", "CURTIME", "DAYNAME", "DAYOFMONTH", "DAYOFWEEK",
+      "CONVERT_TIMEZONE", "CURDATE", "CURTIME", "DAYNAME", "DAYOFMONTH", "DAYOFWEEK",
       "DAYOFYEAR", "HOUR", "MINUTE", "MONTH", "MONTHNAME", "NOW",
-      "QUARTER", "SECOND", "TIMESTAMPADD", "TIMESTAMPDIFF",
+      "QUARTER", "SECOND", "TIMESTAMPADD", "TIMESTAMPDIFF", "TO_DATE", "TO_TIMESTAMP",
       "WEEK", "YEAR");
 
   /** List of all system function names defined by JDBC. */
@@ -691,23 +696,26 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put("TAN", simple(SqlStdOperatorTable.TAN));
       map.put("TRUNCATE", simple(SqlStdOperatorTable.TRUNCATE));
 
+      map.put("ASCII", simple(SqlStdOperatorTable.ASCII));
       map.put("CONCAT", simple(SqlStdOperatorTable.CONCAT));
+      map.put("DIFFERENCE", simple(SqlLibraryOperators.DIFFERENCE));
       map.put("INSERT",
           new PermutingMakeCall(SqlStdOperatorTable.OVERLAY, new int[]{0, 2, 3, 1}));
       map.put("LCASE", simple(SqlStdOperatorTable.LOWER));
       map.put("LENGTH", simple(SqlStdOperatorTable.CHARACTER_LENGTH));
       map.put("LOCATE", simple(SqlStdOperatorTable.POSITION));
-      map.put("LTRIM",
-          new SimpleMakeCall(SqlStdOperatorTable.TRIM) {
-            @Override public SqlCall createCall(SqlParserPos pos,
-                SqlNode... operands) {
-              assert 1 == operands.length;
-              return super.createCall(pos,
-                  SqlTrimFunction.Flag.LEADING.symbol(SqlParserPos.ZERO),
-                  SqlLiteral.createCharString(" ", SqlParserPos.ZERO),
-                  operands[0]);
-            }
-          });
+      map.put("LEFT", simple(SqlLibraryOperators.LEFT));
+      map.put("LTRIM", trim(SqlTrimFunction.Flag.LEADING));
+      map.put("REPEAT", simple(SqlLibraryOperators.REPEAT));
+      map.put("REPLACE", simple(SqlStdOperatorTable.REPLACE));
+      map.put("REVERSE", simple(SqlLibraryOperators.REVERSE));
+      map.put("RIGHT", simple(SqlLibraryOperators.RIGHT));
+      map.put("RTRIM", trim(SqlTrimFunction.Flag.TRAILING));
+      map.put("SOUNDEX", simple(SqlLibraryOperators.SOUNDEX));
+      map.put("SPACE", simple(SqlLibraryOperators.SPACE));
+      map.put("SUBSTRING", simple(SqlStdOperatorTable.SUBSTRING));
+      map.put("UCASE", simple(SqlStdOperatorTable.UPPER));
+
       map.put("YEAR", simple(SqlStdOperatorTable.YEAR));
       map.put("QUARTER", simple(SqlStdOperatorTable.QUARTER));
       map.put("MONTH", simple(SqlStdOperatorTable.MONTH));
@@ -715,29 +723,20 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put("DAYOFYEAR", simple(SqlStdOperatorTable.DAYOFYEAR));
       map.put("DAYOFMONTH", simple(SqlStdOperatorTable.DAYOFMONTH));
       map.put("DAYOFWEEK", simple(SqlStdOperatorTable.DAYOFWEEK));
+      map.put("DAYNAME", simple(SqlLibraryOperators.DAYNAME));
       map.put("HOUR", simple(SqlStdOperatorTable.HOUR));
       map.put("MINUTE", simple(SqlStdOperatorTable.MINUTE));
+      map.put("MONTHNAME", simple(SqlLibraryOperators.MONTHNAME));
       map.put("SECOND", simple(SqlStdOperatorTable.SECOND));
 
-      map.put("RTRIM",
-          new SimpleMakeCall(SqlStdOperatorTable.TRIM) {
-            @Override public SqlCall createCall(SqlParserPos pos,
-                SqlNode... operands) {
-              assert 1 == operands.length;
-              return super.createCall(pos,
-                  SqlTrimFunction.Flag.TRAILING.symbol(SqlParserPos.ZERO),
-                  SqlLiteral.createCharString(" ", SqlParserPos.ZERO),
-                  operands[0]);
-            }
-          });
-      map.put("SUBSTRING", simple(SqlStdOperatorTable.SUBSTRING));
-      map.put("REPLACE", simple(SqlStdOperatorTable.REPLACE));
-      map.put("UCASE", simple(SqlStdOperatorTable.UPPER));
+      map.put("CONVERT_TIMEZONE", simple(SqlLibraryOperators.CONVERT_TIMEZONE));
       map.put("CURDATE", simple(SqlStdOperatorTable.CURRENT_DATE));
       map.put("CURTIME", simple(SqlStdOperatorTable.LOCALTIME));
       map.put("NOW", simple(SqlStdOperatorTable.CURRENT_TIMESTAMP));
       map.put("TIMESTAMPADD", simple(SqlStdOperatorTable.TIMESTAMP_ADD));
       map.put("TIMESTAMPDIFF", simple(SqlStdOperatorTable.TIMESTAMP_DIFF));
+      map.put("TO_DATE", simple(SqlLibraryOperators.TO_DATE));
+      map.put("TO_TIMESTAMP", simple(SqlLibraryOperators.TO_TIMESTAMP));
 
       map.put("DATABASE", simple(SqlStdOperatorTable.CURRENT_CATALOG));
       map.put("IFNULL",
@@ -764,6 +763,18 @@ public class SqlJdbcFunctionCall extends SqlFunction {
             }
           });
       this.map = map.build();
+    }
+
+    private MakeCall trim(SqlTrimFunction.Flag flag) {
+      return new SimpleMakeCall(SqlStdOperatorTable.TRIM) {
+        @Override public SqlCall createCall(SqlParserPos pos,
+            SqlNode... operands) {
+          assert 1 == operands.length;
+          return super.createCall(pos, flag.symbol(pos),
+              SqlLiteral.createCharString(" ", SqlParserPos.ZERO),
+              operands[0]);
+        }
+      };
     }
 
     private MakeCall simple(SqlOperator operator) {

@@ -22,7 +22,6 @@ import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.Util;
 
 import com.google.common.cache.CacheBuilder;
@@ -30,6 +29,8 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Interner;
+import com.google.common.collect.Interners;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -50,19 +51,20 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   //~ Instance fields --------------------------------------------------------
 
   /**
-   * Global cache. Uses soft values to allow GC.
+   * Global cache for Key to RelDataType. Uses soft values to allow GC.
    */
-  private static final LoadingCache<Object, RelDataType> CACHE =
+  private static final LoadingCache<Key, RelDataType> KEY2TYPE_CACHE =
       CacheBuilder.newBuilder()
           .softValues()
           .build(CacheLoader.from(RelDataTypeFactoryImpl::keyToType));
 
-  private static RelDataType keyToType(@Nonnull Object k) {
-    if (k instanceof RelDataType) {
-      return (RelDataType) k;
-    }
-    @SuppressWarnings("unchecked")
-    final Key key = (Key) k;
+  /**
+   * Global cache for RelDataType.
+   */
+  private static final Interner<RelDataType> DATATYPE_CACHE =
+      Interners.newWeakInterner();
+
+  private static RelDataType keyToType(@Nonnull Key key) {
     final ImmutableList.Builder<RelDataTypeField> list =
         ImmutableList.builder();
     for (int i = 0; i < key.names.size(); i++) {
@@ -347,7 +349,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
    * @throws NullPointerException if type is null
    */
   protected RelDataType canonize(final RelDataType type) {
-    return CACHE.getUnchecked(type);
+    return DATATYPE_CACHE.intern(type);
   }
 
   /**
@@ -362,13 +364,14 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       final List<String> names,
       final List<RelDataType> types,
       final boolean nullable) {
-    final RelDataType type = CACHE.getIfPresent(new Key(kind, names, types, nullable));
+    final RelDataType type = KEY2TYPE_CACHE.getIfPresent(
+        new Key(kind, names, types, nullable));
     if (type != null) {
       return type;
     }
     final ImmutableList<String> names2 = ImmutableList.copyOf(names);
     final ImmutableList<RelDataType> types2 = ImmutableList.copyOf(types);
-    return CACHE.getUnchecked(new Key(kind, names2, types2, nullable));
+    return KEY2TYPE_CACHE.getUnchecked(new Key(kind, names2, types2, nullable));
   }
 
   protected RelDataType canonize(final StructKind kind,
@@ -453,125 +456,76 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   }
 
   /**
-   * {@inheritDoc}
-   *
-   * <p>Implement RelDataTypeFactory with SQL 2003 compliant behavior. Let p1,
-   * s1 be the precision and scale of the first operand Let p2, s2 be the
-   * precision and scale of the second operand Let p, s be the precision and
-   * scale of the result, Then the result type is a decimal with:
-   *
-   * <ul>
-   * <li>p = p1 + p2</li>
-   * <li>s = s1 + s2</li>
-   * </ul>
-   *
-   * <p>p and s are capped at their maximum values
-   *
-   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
+   * Delegates to
+   * {@link RelDataTypeSystem#deriveDecimalMultiplyType(RelDataTypeFactory, RelDataType, RelDataType)}
+   * to get the return type for the operation.
    */
+  @Deprecated
   public RelDataType createDecimalProduct(
       RelDataType type1,
       RelDataType type2) {
-    if (SqlTypeUtil.isExactNumeric(type1)
-        && SqlTypeUtil.isExactNumeric(type2)) {
-      if (SqlTypeUtil.isDecimal(type1)
-          || SqlTypeUtil.isDecimal(type2)) {
-        int p1 = type1.getPrecision();
-        int p2 = type2.getPrecision();
-        int s1 = type1.getScale();
-        int s2 = type2.getScale();
-
-        int scale = s1 + s2;
-        scale = Math.min(scale, typeSystem.getMaxNumericScale());
-        int precision = p1 + p2;
-        precision =
-            Math.min(
-                precision,
-                typeSystem.getMaxNumericPrecision());
-
-        RelDataType ret;
-        ret =
-            createSqlType(
-                SqlTypeName.DECIMAL,
-                precision,
-                scale);
-
-        return ret;
-      }
-    }
-
-    return null;
-  }
-
-  // implement RelDataTypeFactory
-  public boolean useDoubleMultiplication(
-      RelDataType type1,
-      RelDataType type2) {
-    assert createDecimalProduct(type1, type2) != null;
-    return false;
+    return typeSystem.deriveDecimalMultiplyType(this, type1, type2);
   }
 
   /**
-   * Rules:
-   *
-   * <ul>
-   * <li>Let p1, s1 be the precision and scale of the first operand
-   * <li>Let p2, s2 be the precision and scale of the second operand
-   * <li>Let p, s be the precision and scale of the result
-   * <li>Let d be the number of whole digits in the result
-   * <li>Then the result type is a decimal with:
-   *   <ul>
-   *   <li>d = p1 - s1 + s2</li>
-   *   <li>s &lt; max(6, s1 + p2 + 1)</li>
-   *   <li>p = d + s</li>
-   *   </ul>
-   * </li>
-   * <li>p and s are capped at their maximum values</li>
-   * </ul>
-   *
-   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
+   * Delegates to
+   * {@link RelDataTypeSystem#shouldUseDoubleMultiplication(RelDataTypeFactory, RelDataType, RelDataType)}
+   * to get if double should be used for multiplication.
    */
+  @Deprecated
+  public boolean useDoubleMultiplication(
+      RelDataType type1,
+      RelDataType type2) {
+    return typeSystem.shouldUseDoubleMultiplication(this, type1, type2);
+  }
+
+  /**
+   * Delegates to
+   * {@link RelDataTypeSystem#deriveDecimalDivideType(RelDataTypeFactory, RelDataType, RelDataType)}
+   * to get the return type for the operation.
+   */
+  @Deprecated
   public RelDataType createDecimalQuotient(
       RelDataType type1,
       RelDataType type2) {
-    if (SqlTypeUtil.isExactNumeric(type1)
-        && SqlTypeUtil.isExactNumeric(type2)) {
-      if (SqlTypeUtil.isDecimal(type1)
-          || SqlTypeUtil.isDecimal(type2)) {
-        int p1 = type1.getPrecision();
-        int p2 = type2.getPrecision();
-        int s1 = type1.getScale();
-        int s2 = type2.getScale();
+    return typeSystem.deriveDecimalDivideType(this, type1, type2);
+  }
 
-        final int maxNumericPrecision = typeSystem.getMaxNumericPrecision();
-        int dout =
-            Math.min(
-                p1 - s1 + s2,
-                maxNumericPrecision);
+  public RelDataType decimalOf(RelDataType type) {
+    // create decimal type and sync nullability
+    return createTypeWithNullability(decimalOf2(type), type.isNullable());
+  }
 
-        int scale = Math.max(6, s1 + p2 + 1);
-        scale =
-            Math.min(
-                scale,
-                maxNumericPrecision - dout);
-        scale = Math.min(scale, getTypeSystem().getMaxNumericScale());
-
-        int precision = dout + scale;
-        assert precision <= maxNumericPrecision;
-        assert precision > 0;
-
-        RelDataType ret;
-        ret =
-            createSqlType(
-                SqlTypeName.DECIMAL,
-                precision,
-                scale);
-
-        return ret;
-      }
+  /** Create decimal type equivalent with the given {@code type} while sans nullability. */
+  private RelDataType decimalOf2(RelDataType type) {
+    assert SqlTypeUtil.isNumeric(type) || SqlTypeUtil.isNull(type);
+    SqlTypeName typeName = type.getSqlTypeName();
+    assert typeName != null;
+    switch (typeName) {
+    case DECIMAL:
+      return type;
+    case TINYINT:
+      return createSqlType(SqlTypeName.DECIMAL, 3, 0);
+    case SMALLINT:
+      return createSqlType(SqlTypeName.DECIMAL, 5, 0);
+    case INTEGER:
+      return createSqlType(SqlTypeName.DECIMAL, 10, 0);
+    case BIGINT:
+      // the default max precision is 19, so this is actually DECIMAL(19, 0)
+      // but derived system can override the max precision/scale.
+      return createSqlType(SqlTypeName.DECIMAL, 38, 0);
+    case REAL:
+      return createSqlType(SqlTypeName.DECIMAL, 14, 7);
+    case FLOAT:
+      return createSqlType(SqlTypeName.DECIMAL, 14, 7);
+    case DOUBLE:
+      // the default max precision is 19, so this is actually DECIMAL(19, 15)
+      // but derived system can override the max precision/scale.
+      return createSqlType(SqlTypeName.DECIMAL, 30, 15);
+    default:
+      // default precision and scale.
+      return createSqlType(SqlTypeName.DECIMAL);
     }
-
-    return null;
   }
 
   public Charset getDefaultCharset() {

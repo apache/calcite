@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.TestKtTest;
 import org.apache.calcite.adapter.clone.ArrayTableTest;
+import org.apache.calcite.adapter.enumerable.TypeFinderTest;
 import org.apache.calcite.jdbc.CalciteRemoteDriverTest;
 import org.apache.calcite.materialize.LatticeSuggesterTest;
 import org.apache.calcite.plan.RelOptPlanReaderTest;
@@ -41,12 +42,14 @@ import org.apache.calcite.rel.rules.SortRemoveRuleTest;
 import org.apache.calcite.rex.RexBuilderTest;
 import org.apache.calcite.rex.RexExecutorTest;
 import org.apache.calcite.rex.RexSqlStandardConvertletTableTest;
+import org.apache.calcite.runtime.AutomatonTest;
 import org.apache.calcite.runtime.BinarySearchTest;
 import org.apache.calcite.runtime.EnumerablesTest;
 import org.apache.calcite.sql.SqlSetOptionOperatorTest;
 import org.apache.calcite.sql.parser.SqlParserTest;
 import org.apache.calcite.sql.parser.SqlUnParserTest;
 import org.apache.calcite.sql.parser.parserextensiontesting.ExtensionSqlParserTest;
+import org.apache.calcite.sql.test.DocumentationTest;
 import org.apache.calcite.sql.test.SqlAdvisorTest;
 import org.apache.calcite.sql.test.SqlOperatorTest;
 import org.apache.calcite.sql.test.SqlPrettyWriterTest;
@@ -57,6 +60,8 @@ import org.apache.calcite.sql.validate.LexCaseSensitiveTest;
 import org.apache.calcite.sql.validate.LexEscapeTest;
 import org.apache.calcite.sql.validate.SqlValidatorUtilTest;
 import org.apache.calcite.test.enumerable.EnumerableCorrelateTest;
+import org.apache.calcite.test.enumerable.EnumerableRepeatUnionHierarchyTest;
+import org.apache.calcite.test.enumerable.EnumerableRepeatUnionTest;
 import org.apache.calcite.test.fuzzer.RexProgramFuzzyTest;
 import org.apache.calcite.tools.FrameworksTest;
 import org.apache.calcite.tools.PlannerTest;
@@ -107,6 +112,8 @@ import org.junit.runners.Suite;
     SqlJsonFunctionsTest.class,
     SqlTypeNameTest.class,
     ModelTest.class,
+    TypeCoercionTest.class,
+    TypeCoercionConverterTest.class,
     SqlValidatorFeatureTest.class,
     VolcanoPlannerTraitTest.class,
     InterpreterTest.class,
@@ -120,6 +127,7 @@ import org.junit.runners.Suite;
     RexProgramTest.class,
     SqlOperatorBindingTest.class,
     RexTransformerTest.class,
+    AutomatonTest.class,
     BinarySearchTest.class,
     EnumerablesTest.class,
     ExceptionMessageTest.class,
@@ -130,6 +138,8 @@ import org.junit.runners.Suite;
     SqlTypeFactoryTest.class,
     SqlTypeUtilTest.class,
     SqlValidatorUtilTest.class,
+    TypeFinderTest.class,
+    RexShuttleTest.class,
 
     // medium tests (above 0.1s)
     SqlParserTest.class,
@@ -162,6 +172,7 @@ import org.junit.runners.Suite;
     MutableRelTest.class,
 
     // slow tests (above 1s)
+    DocumentationTest.class,
     UdfTest.class,
     UdtTest.class,
     TableFunctionTest.class,
@@ -184,7 +195,8 @@ import org.junit.runners.Suite;
 
     // above 10sec
     JdbcFrontJdbcBackTest.class,
-
+    EnumerableRepeatUnionTest.class,
+    EnumerableRepeatUnionHierarchyTest.class,
     // above 20sec
     JdbcTest.class,
     CalciteSqlOperatorTest.class,

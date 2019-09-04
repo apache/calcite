@@ -27,9 +27,9 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -46,7 +46,7 @@ public class EnumerableCorrelate extends Correlate
   public EnumerableCorrelate(RelOptCluster cluster, RelTraitSet traits,
       RelNode left, RelNode right,
       CorrelationId correlationId,
-      ImmutableBitSet requiredColumns, SemiJoinType joinType) {
+      ImmutableBitSet requiredColumns, JoinRelType joinType) {
     super(cluster, traits, left, right, correlationId, requiredColumns,
         joinType);
   }
@@ -57,7 +57,7 @@ public class EnumerableCorrelate extends Correlate
       RelNode right,
       CorrelationId correlationId,
       ImmutableBitSet requiredColumns,
-      SemiJoinType joinType) {
+      JoinRelType joinType) {
     final RelOptCluster cluster = left.getCluster();
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet =
@@ -76,7 +76,7 @@ public class EnumerableCorrelate extends Correlate
 
   @Override public EnumerableCorrelate copy(RelTraitSet traitSet,
       RelNode left, RelNode right, CorrelationId correlationId,
-      ImmutableBitSet requiredColumns, SemiJoinType joinType) {
+      ImmutableBitSet requiredColumns, JoinRelType joinType) {
     return new EnumerableCorrelate(getCluster(),
         traitSet, left, right, correlationId, requiredColumns, joinType);
   }
@@ -130,9 +130,9 @@ public class EnumerableCorrelate extends Correlate
 
     builder.append(
         Expressions.call(leftExpression, BuiltInMethod.CORRELATE_JOIN.method,
-            Expressions.constant(joinType.toLinq4j()),
-        Expressions.lambda(corrBlock.toBlock(), corrArg),
-        selector));
+            Expressions.constant(EnumUtils.toLinq4jJoinType(joinType)),
+            Expressions.lambda(corrBlock.toBlock(), corrArg),
+            selector));
 
     return implementor.result(physType, builder.toBlock());
   }

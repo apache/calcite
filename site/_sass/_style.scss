@@ -45,7 +45,7 @@ footer {
 /* Header */
 
 header {
-
+  margin-bottom: 40px;
   h1,
   nav { display: inline-block; }
 
@@ -62,8 +62,7 @@ nav {
 }
 
 .main-nav {
-  margin-top: 52px;
-
+  margin-left: 20px;
   li {
     margin-right: 10px;
 
@@ -154,7 +153,7 @@ h6:hover .header-link {
 
 @media (max-width: 768px) {
   .main-nav ul {
-    text-align: right;
+    text-align: center;
   }
 }
 @media (max-width: 830px) {

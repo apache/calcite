@@ -21,18 +21,21 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableIntList;
 
+import com.google.common.collect.ImmutableSet;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Planner rule that pushes a {@link org.apache.calcite.rel.core.SemiJoin}
+ * Planner rule that pushes a {@code SemiJoin}
  * down in a tree past a {@link org.apache.calcite.rel.core.Join}
  * in order to trigger other rules that will convert {@code SemiJoin}s.
  *
@@ -56,7 +59,7 @@ public class SemiJoinJoinTransposeRule extends RelOptRule {
    */
   public SemiJoinJoinTransposeRule(RelBuilderFactory relBuilderFactory) {
     super(
-        operand(SemiJoin.class,
+        operandJ(LogicalJoin.class, null, Join::isSemiJoin,
             some(operand(Join.class, any()))),
         relBuilderFactory, null);
   }
@@ -65,13 +68,12 @@ public class SemiJoinJoinTransposeRule extends RelOptRule {
 
   // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
-    SemiJoin semiJoin = call.rel(0);
+    LogicalJoin semiJoin = call.rel(0);
     final Join join = call.rel(1);
-    if (join instanceof SemiJoin) {
+    if (join.isSemiJoin()) {
       return;
     }
-    final ImmutableIntList leftKeys = semiJoin.getLeftKeys();
-    final ImmutableIntList rightKeys = semiJoin.getRightKeys();
+    final ImmutableIntList leftKeys = semiJoin.analyzeCondition().leftKeys;
 
     // X is the left child of the join below the semi-join
     // Y is the right child of the join below the semi-join
@@ -110,7 +112,6 @@ public class SemiJoinJoinTransposeRule extends RelOptRule {
 
     // need to convert the semi-join condition and possibly the keys
     RexNode newSemiJoinFilter;
-    List<Integer> newLeftKeys;
     int[] adjustments = new int[nTotalFields];
     if (nKeysFromX > 0) {
       // (X, Y, Z) --> (X, Z, Y)
@@ -130,7 +131,6 @@ public class SemiJoinJoinTransposeRule extends RelOptRule {
                   semiJoin.getCluster().getRexBuilder(),
                   fields,
                   adjustments));
-      newLeftKeys = leftKeys;
     } else {
       // (X, Y, Z) --> (X, Y, Z)
       // semiJoin(Y, Z)
@@ -147,7 +147,6 @@ public class SemiJoinJoinTransposeRule extends RelOptRule {
                   semiJoin.getCluster().getRexBuilder(),
                   fields,
                   adjustments));
-      newLeftKeys = RelOptUtil.adjustKeys(leftKeys, -nFieldsX);
     }
 
     // create the new join
@@ -157,12 +156,12 @@ public class SemiJoinJoinTransposeRule extends RelOptRule {
     } else {
       leftSemiJoinOp = join.getRight();
     }
-    SemiJoin newSemiJoin =
-        SemiJoin.create(leftSemiJoinOp,
+    LogicalJoin newSemiJoin =
+        LogicalJoin.create(leftSemiJoinOp,
             semiJoin.getRight(),
             newSemiJoinFilter,
-            ImmutableIntList.copyOf(newLeftKeys),
-            rightKeys);
+            ImmutableSet.of(),
+            JoinRelType.SEMI);
 
     RelNode leftJoinRel;
     RelNode rightJoinRel;

@@ -50,10 +50,6 @@ public class ServerParserTest extends SqlParserTest {
     return SqlDdlParserImpl.FACTORY;
   }
 
-  @Override public void testGenerateKeyWords() {
-    // by design, method only works in base class; no-ops in this sub-class
-  }
-
   @Test public void testCreateSchema() {
     sql("create schema x")
         .ok("CREATE SCHEMA `X`");
@@ -162,6 +158,18 @@ public class ServerParserTest extends SqlParserTest {
         + " `J` INTEGER AS (`I` + 1) STORED,"
         + " `K` INTEGER AS (`J` + 1) VIRTUAL,"
         + " `M` INTEGER AS (`K` + 1) VIRTUAL)";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testCreateTableWithUDT() {
+    final String sql = "create table if not exists t (\n"
+        + "  f0 MyType0 not null,\n"
+        + "  f1 db_name.MyType1,\n"
+        + "  f2 catalog_name.db_name.MyType2)";
+    final String expected = "CREATE TABLE IF NOT EXISTS `T` ("
+        + "`F0` `MYTYPE0` NOT NULL,"
+        + " `F1` `DB_NAME`.`MYTYPE1`,"
+        + " `F2` `CATALOG_NAME`.`DB_NAME`.`MYTYPE2`)";
     sql(sql).ok(expected);
   }
 

@@ -90,11 +90,11 @@ public class AggregateFilterTransposeRule extends RelOptRule {
       // the rule fires forever: A-F => A-F-A => A-A-F-A => A-A-A-F-A => ...
       return;
     }
-    boolean allColumnsInAggregate = aggregate.getGroupSet().
-        contains(filterColumns);
+    final boolean allColumnsInAggregate =
+        aggregate.getGroupSet().contains(filterColumns);
     final Aggregate newAggregate =
         aggregate.copy(aggregate.getTraitSet(), input,
-                false, newGroupSet, null, aggregate.getAggCallList());
+            newGroupSet, null, aggregate.getAggCallList());
     final Mappings.TargetMapping mapping = Mappings.target(
         newGroupSet::indexOf,
         input.getRowType().getFieldCount(),
@@ -150,8 +150,7 @@ public class AggregateFilterTransposeRule extends RelOptRule {
       }
       final Aggregate topAggregate =
           aggregate.copy(aggregate.getTraitSet(), newFilter,
-              aggregate.indicator, topGroupSet.build(),
-              newGroupingSets, topAggCallList);
+              topGroupSet.build(), newGroupingSets, topAggCallList);
       call.transformTo(topAggregate);
     }
   }

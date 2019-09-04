@@ -19,8 +19,13 @@ package org.apache.calcite.materialize;
 import org.apache.calcite.prepare.PlannerImpl;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.statistic.MapSqlStatisticProvider;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.FoodMartQuerySet;
@@ -44,7 +49,9 @@ import org.junit.experimental.categories.Category;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.allOf;
@@ -499,8 +506,66 @@ public class LatticeSuggesterTest {
         .collect(Collectors.toList());
     assertThat(derivedColumns.size(), is(2));
     final List<String> tables = ImmutableList.of("customer");
-    assertThat(derivedColumns.get(0).tables, is(tables));
-    assertThat(derivedColumns.get(1).tables, is(tables));
+    checkDerivedColumn(lattice, tables, derivedColumns, 0, "$f2", true);
+    checkDerivedColumn(lattice, tables, derivedColumns, 1, "full_name", false);
+  }
+
+  /** As {@link #testExpression()} but with multiple queries.
+   * Some expressions are measures in one query and dimensions in another. */
+  @Test public void testExpressionEvolution() throws Exception {
+    final Tester t = new Tester().foodmart().withEvolve(true);
+
+    // q0 uses n10 as a measure, n11 as a measure, n12 as a dimension
+    final String q0 = "select\n"
+        + "  \"num_children_at_home\" + 12 as \"n12\",\n"
+        + "  sum(\"num_children_at_home\" + 10) as \"n10\",\n"
+        + "  sum(\"num_children_at_home\" + 11) as \"n11\",\n"
+        + "  count(*) as c\n"
+        + "from \"customer\"\n"
+        + "group by \"num_children_at_home\" + 12";
+    // q1 uses n10 as a dimension, n12 as a measure
+    final String q1 = "select\n"
+        + "  \"num_children_at_home\" + 10 as \"n10\",\n"
+        + "  \"num_children_at_home\" + 14 as \"n14\",\n"
+        + "  sum(\"num_children_at_home\" + 12) as \"n12\",\n"
+        + "  sum(\"num_children_at_home\" + 13) as \"n13\"\n"
+        + "from \"customer\"\n"
+        + "group by \"num_children_at_home\" + 10,"
+        + "   \"num_children_at_home\" + 14";
+    // n10 = [measure, dimension] -> not always measure
+    // n11 = [measure, _] -> always measure
+    // n12 = [dimension, measure] -> not always measure
+    // n13 = [_, measure] -> always measure
+    // n14 = [_, dimension] -> not always measure
+    t.addQuery(q0);
+    t.addQuery(q1);
+    assertThat(t.s.latticeMap.size(), is(1));
+    final String l0 =
+        "customer:[COUNT(), SUM(n10), SUM(n11), SUM(n12), SUM(n13)]";
+    assertThat(Iterables.getOnlyElement(t.s.latticeMap.keySet()),
+        is(l0));
+    final Lattice lattice = Iterables.getOnlyElement(t.s.latticeMap.values());
+    final List<Lattice.DerivedColumn> derivedColumns = lattice.columns.stream()
+        .filter(c -> c instanceof Lattice.DerivedColumn)
+        .map(c -> (Lattice.DerivedColumn) c)
+        .collect(Collectors.toList());
+    assertThat(derivedColumns.size(), is(5));
+    final List<String> tables = ImmutableList.of("customer");
+
+    checkDerivedColumn(lattice, tables, derivedColumns, 0, "n10", false);
+    checkDerivedColumn(lattice, tables, derivedColumns, 1, "n11", true);
+    checkDerivedColumn(lattice, tables, derivedColumns, 2, "n12", false);
+    checkDerivedColumn(lattice, tables, derivedColumns, 3, "n13", true);
+    checkDerivedColumn(lattice, tables, derivedColumns, 4, "n14", false);
+  }
+
+  private void checkDerivedColumn(Lattice lattice, List<String> tables,
+      List<Lattice.DerivedColumn> derivedColumns,
+      int index, String name, boolean alwaysMeasure) {
+    final Lattice.DerivedColumn dc0 = derivedColumns.get(index);
+    assertThat(dc0.tables, is(tables));
+    assertThat(dc0.alias, is(name));
+    assertThat(lattice.isAlwaysMeasure(dc0), is(alwaysMeasure));
   }
 
   @Test public void testExpressionInJoin() throws Exception {
@@ -527,6 +592,26 @@ public class LatticeSuggesterTest {
     final List<String> tables = ImmutableList.of("customer");
     assertThat(derivedColumns.get(0).tables, is(tables));
     assertThat(derivedColumns.get(1).tables, is(tables));
+  }
+
+  @Test public void testRedshiftDialect() throws Exception {
+    final Tester t = new Tester().foodmart().withEvolve(true)
+        .withDialect(SqlDialect.DatabaseProduct.REDSHIFT.getDialect())
+        .withLibrary(SqlLibrary.POSTGRESQL);
+
+    final String q0 = "select\n"
+        + "  CONCAT(\"fname\", ' ', \"lname\") as \"full_name\",\n"
+        + "  convert_timezone('UTC', 'America/Los_Angeles',\n"
+        + "    cast('2019-01-01 01:00:00' as timestamp)),\n"
+        + "  left(\"fname\", 1) as \"initial\",\n"
+        + "  to_date('2019-01-01', 'YYYY-MM-DD'),\n"
+        + "  to_timestamp('2019-01-01 01:00:00', 'YYYY-MM-DD HH:MM:SS'),\n"
+        + "  count(*) as c,\n"
+        + "  avg(\"total_children\" - \"num_children_at_home\")\n"
+        + "from \"customer\" join \"sales_fact_1997\" using (\"customer_id\")\n"
+        + "group by \"fname\", \"lname\"";
+    t.addQuery(q0);
+    assertThat(t.s.latticeMap.size(), is(1));
   }
 
   /** Creates a matcher that matches query graphs to strings. */
@@ -623,6 +708,25 @@ public class LatticeSuggesterTest {
 
     Tester withEvolve(boolean evolve) {
       return withConfig(builder().evolveLattice(evolve).build());
+    }
+
+    private Tester withParser(
+        Function<SqlParser.ConfigBuilder, SqlParser.ConfigBuilder> transform) {
+      return withConfig(builder()
+          .parserConfig(
+              transform.apply(SqlParser.configBuilder(config.getParserConfig()))
+                  .build())
+          .build());
+    }
+
+    Tester withDialect(SqlDialect dialect) {
+      return withParser(dialect::configureParser);
+    }
+
+    Tester withLibrary(SqlLibrary library) {
+      SqlOperatorTable opTab = SqlLibraryOperatorTableFactory.INSTANCE
+          .getOperatorTable(EnumSet.of(SqlLibrary.STANDARD, library));
+      return withConfig(builder().operatorTable(opTab).build());
     }
   }
 }

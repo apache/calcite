@@ -150,8 +150,7 @@ public class AggregateJoinTransposeRule extends RelOptRule {
   // FULL OUTER JOIN is not supported since it could produce wrong result
   // due to bug (CALCITE-3012)
   private boolean isJoinSupported(final Join join, final Aggregate aggregate) {
-    return join.getJoinType() != JoinRelType.FULL
-        && (join.getJoinType() == JoinRelType.INNER || aggregate.getAggCallList().isEmpty());
+    return join.getJoinType() == JoinRelType.INNER || aggregate.getAggCallList().isEmpty();
   }
 
   public void onMatch(RelOptRuleCall call) {
@@ -258,8 +257,10 @@ public class AggregateJoinTransposeRule extends RelOptRule {
               final int index = ((RexInputRef) singleton).getIndex();
               if (!belowAggregateKey.get(index)) {
                 projects.add(singleton);
+                side.split.put(aggCall.i, projects.size() - 1);
+              } else {
+                side.split.put(aggCall.i, index);
               }
-              side.split.put(aggCall.i, index);
             } else {
               projects.add(singleton);
               side.split.put(aggCall.i, projects.size() - 1);
@@ -325,8 +326,7 @@ public class AggregateJoinTransposeRule extends RelOptRule {
 
     // Aggregate above to sum up the sub-totals
     final List<AggregateCall> newAggCalls = new ArrayList<>();
-    final int groupIndicatorCount =
-        aggregate.getGroupCount() + aggregate.getIndicatorCount();
+    final int groupCount = aggregate.getGroupCount();
     final int newLeftWidth = sides.get(0).newInput.getRowType().getFieldCount();
     final List<RexNode> projects =
         new ArrayList<>(
@@ -340,7 +340,7 @@ public class AggregateJoinTransposeRule extends RelOptRule {
       final Integer rightSubTotal = sides.get(1).split.get(aggCall.i);
       newAggCalls.add(
           splitter.topSplit(rexBuilder, registry(projects),
-              groupIndicatorCount, relBuilder.peek().getRowType(), aggCall.e,
+              groupCount, relBuilder.peek().getRowType(), aggCall.e,
               leftSubTotal == null ? -1 : leftSubTotal,
               rightSubTotal == null ? -1 : rightSubTotal + newLeftWidth));
     }
@@ -348,7 +348,7 @@ public class AggregateJoinTransposeRule extends RelOptRule {
     relBuilder.project(projects);
 
     boolean aggConvertedToProjects = false;
-    if (allColumnsInAggregate) {
+    if (allColumnsInAggregate && join.getJoinType() != JoinRelType.FULL) {
       // let's see if we can convert aggregate into projects
       // This shouldn't be done for FULL OUTER JOIN, aggregate on top is always required
       List<RexNode> projects2 = new ArrayList<>();

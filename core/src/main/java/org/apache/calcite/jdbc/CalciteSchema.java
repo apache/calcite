@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.jdbc;
 
+import org.apache.calcite.adapter.jdbc.JdbcCatalogSchema;
+import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.materialize.Lattice;
@@ -47,6 +49,7 @@ import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Set;
+import javax.sql.DataSource;
 
 /**
  * Schema.
@@ -500,8 +503,14 @@ public abstract class CalciteSchema {
    */
   public static CalciteSchema createRootSchema(boolean addMetadataSchema,
       boolean cache, String name) {
+    final Schema rootSchema = new CalciteConnectionImpl.RootSchema();
+    return createRootSchema(addMetadataSchema, cache, name, rootSchema);
+  }
+
+  @Experimental
+  public static CalciteSchema createRootSchema(boolean addMetadataSchema,
+      boolean cache, String name, Schema schema) {
     CalciteSchema rootSchema;
-    final Schema schema = new CalciteConnectionImpl.RootSchema();
     if (cache) {
       rootSchema = new CachingCalciteSchema(null, schema, name);
     } else {
@@ -694,6 +703,14 @@ public abstract class CalciteSchema {
       }
       if (clazz.isInstance(CalciteSchema.this.schema)) {
         return clazz.cast(CalciteSchema.this.schema);
+      }
+      if (clazz == DataSource.class) {
+        if (schema instanceof JdbcSchema) {
+          return clazz.cast(((JdbcSchema) schema).getDataSource());
+        }
+        if (schema instanceof JdbcCatalogSchema) {
+          return clazz.cast(((JdbcCatalogSchema) schema).getDataSource());
+        }
       }
       throw new ClassCastException("not a " + clazz);
     }

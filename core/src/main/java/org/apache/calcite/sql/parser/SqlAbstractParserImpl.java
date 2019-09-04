@@ -24,11 +24,8 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
-import org.apache.calcite.sql.validate.SqlNameMatchers;
 import org.apache.calcite.util.Glossary;
 
 import com.google.common.collect.ImmutableList;
@@ -39,7 +36,6 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -330,11 +326,6 @@ public abstract class SqlAbstractParserImpl {
 
   //~ Instance fields --------------------------------------------------------
 
-  /**
-   * Operator table containing the standard SQL operators and functions.
-   */
-  protected final SqlStdOperatorTable opTab = SqlStdOperatorTable.instance();
-
   protected int nDynamicParams;
 
   protected String originalSql;
@@ -386,27 +377,10 @@ public abstract class SqlAbstractParserImpl {
       SqlFunctionCategory funcType,
       SqlLiteral functionQualifier,
       SqlNode[] operands) {
-    SqlOperator fun = null;
-
-    // First, try a half-hearted resolution as a builtin function.
-    // If we find one, use it; this will guarantee that we
-    // preserve the correct syntax (i.e. don't quote builtin function
-    /// name when regenerating SQL).
-    if (funName.isSimple()) {
-      final List<SqlOperator> list = new ArrayList<>();
-      opTab.lookupOperatorOverloads(funName, funcType, SqlSyntax.FUNCTION, list,
-          SqlNameMatchers.withCaseSensitive(funName.isComponentQuoted(0)));
-      if (list.size() == 1) {
-        fun = list.get(0);
-      }
-    }
-
-    // Otherwise, just create a placeholder function.  Later, during
+    // Create a placeholder function.  Later, during
     // validation, it will be resolved into a real function reference.
-    if (fun == null) {
-      fun = new SqlUnresolvedFunction(funName, null, null, null, null,
-          funcType);
-    }
+    SqlOperator fun = new SqlUnresolvedFunction(funName, null, null, null, null,
+        funcType);
 
     return fun.createCall(functionQualifier, pos, operands);
   }

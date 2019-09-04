@@ -18,22 +18,25 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
-import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
-import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 
@@ -49,14 +52,28 @@ public class SqlJsonValueFunction extends SqlFunction {
   private final boolean returnAny;
 
   public SqlJsonValueFunction(String name, boolean returnAny) {
-    super(name, SqlKind.OTHER_FUNCTION, null,
+    super(name, SqlKind.OTHER_FUNCTION,
+        ReturnTypes.cascade(
+            opBinding -> {
+              assert opBinding.getOperandCount() == 6
+                  || opBinding.getOperandCount() == 7;
+              RelDataType ret;
+              if (opBinding.getOperandCount() == 7) {
+                ret = opBinding.getOperandType(6);
+              } else {
+                ret = opBinding.getTypeFactory().createSqlType(SqlTypeName.ANY);
+              }
+              return opBinding.getTypeFactory().createTypeWithNullability(ret, true);
+            }, SqlTypeTransforms.FORCE_NULLABLE),
         (callBinding, returnType, operandTypes) -> {
           RelDataTypeFactory typeFactory = callBinding.getTypeFactory();
-          for (int i = 0; i < operandTypes.length; ++i) {
-            operandTypes[i] = typeFactory.createSqlType(SqlTypeName.ANY);
-          }
+          operandTypes[3] = typeFactory.createSqlType(SqlTypeName.ANY);
+          operandTypes[5] = typeFactory.createSqlType(SqlTypeName.ANY);
         },
-        null, SqlFunctionCategory.SYSTEM);
+        OperandTypes.family(SqlTypeFamily.ANY,
+            SqlTypeFamily.CHARACTER, SqlTypeFamily.ANY, SqlTypeFamily.ANY, SqlTypeFamily.ANY,
+            SqlTypeFamily.ANY, SqlTypeFamily.ANY),
+        SqlFunctionCategory.SYSTEM);
     this.returnAny = returnAny;
   }
 
@@ -64,32 +81,36 @@ public class SqlJsonValueFunction extends SqlFunction {
       SqlParserPos pos, SqlNode... operands) {
     List<SqlNode> operandList = new ArrayList<>();
     operandList.add(operands[0]);
-    if (operands[1] == null) {
+    operandList.add(operands[1]);
+    if (operands[2] == null) {
+      // empty behavior
       operandList.add(
           SqlLiteral.createSymbol(SqlJsonValueEmptyOrErrorBehavior.NULL, pos));
       operandList.add(SqlLiteral.createNull(pos));
     } else {
-      operandList.add(operands[1]);
       operandList.add(operands[2]);
+      operandList.add(operands[3]);
     }
-    if (operands[3] == null) {
+    if (operands[4] == null) {
+      // error behavior
       operandList.add(
           SqlLiteral.createSymbol(SqlJsonValueEmptyOrErrorBehavior.NULL, pos));
       operandList.add(SqlLiteral.createNull(pos));
     } else {
-      operandList.add(operands[3]);
       operandList.add(operands[4]);
+      operandList.add(operands[5]);
     }
-    if (operands.length == 6 && operands[5] != null) {
+    if (operands.length == 7 && operands[6] != null) {
       if (returnAny) {
         throw new IllegalArgumentException(
             "illegal returning clause in json_value_any function");
       }
-      operandList.add(operands[5]);
+      operandList.add(operands[6]);
     } else if (!returnAny) {
       SqlDataTypeSpec defaultTypeSpec =
-          new SqlDataTypeSpec(new SqlIdentifier("VARCHAR", pos), 2000, -1,
-              null, null, pos);
+          new SqlDataTypeSpec(
+              new SqlBasicTypeNameSpec(SqlTypeName.VARCHAR, 2000, pos),
+              pos);
       operandList.add(defaultTypeSpec);
     }
     return super.createCall(functionQualifier, pos,
@@ -97,18 +118,18 @@ public class SqlJsonValueFunction extends SqlFunction {
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.between(5, 6);
+    return SqlOperandCountRanges.between(6, 7);
   }
 
   @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
       boolean throwOnFailure) {
     final SqlValidator validator = callBinding.getValidator();
     RelDataType defaultValueOnEmptyType =
-        validator.getValidatedNodeType(callBinding.operand(2));
+        validator.getValidatedNodeType(callBinding.operand(3));
     RelDataType defaultValueOnErrorType =
-        validator.getValidatedNodeType(callBinding.operand(4));
+        validator.getValidatedNodeType(callBinding.operand(5));
     RelDataType returnType =
-        validator.deriveType(callBinding.getScope(), callBinding.operand(5));
+        validator.deriveType(callBinding.getScope(), callBinding.operand(6));
     if (!canCastFrom(callBinding, throwOnFailure, defaultValueOnEmptyType,
         returnType)) {
       return false;
@@ -117,46 +138,36 @@ public class SqlJsonValueFunction extends SqlFunction {
         returnType)) {
       return false;
     }
-    return true;
-  }
-
-  @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-    assert opBinding.getOperandCount() == 5
-        || opBinding.getOperandCount() == 6;
-    RelDataType ret;
-    if (opBinding.getOperandCount() == 6) {
-      ret = opBinding.getOperandType(5);
-    } else {
-      ret = opBinding.getTypeFactory().createSqlType(SqlTypeName.ANY);
-    }
-    return opBinding.getTypeFactory().createTypeWithNullability(ret, true);
+    return super.checkOperandTypes(callBinding, throwOnFailure);
   }
 
   @Override public String getSignatureTemplate(int operandsCount) {
-    assert operandsCount == 5 || operandsCount == 6;
-    if (operandsCount == 6) {
+    assert operandsCount == 6 || operandsCount == 7;
+    if (operandsCount == 7) {
       return "{0}({1} RETURNING {6} {2} {3} ON EMPTY {4} {5} ON ERROR)";
     }
     return "{0}({1} {2} {3} ON EMPTY {4} {5} ON ERROR)";
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    assert call.operandCount() == 5 || call.operandCount() == 6;
+    assert call.operandCount() == 6 || call.operandCount() == 7;
     final SqlWriter.Frame frame = writer.startFunCall(getName());
     call.operand(0).unparse(writer, 0, 0);
+    writer.sep(",", true);
+    call.operand(1).unparse(writer, 0, 0);
     if (!returnAny) {
       writer.keyword("RETURNING");
-      call.operand(5).unparse(writer, 0, 0);
+      call.operand(6).unparse(writer, 0, 0);
     }
-    unparseEnum(writer, call.operand(1));
-    if (isDefaultLiteral(call.operand(1))) {
-      call.operand(2).unparse(writer, 0, 0);
+    unparseEnum(writer, call.operand(2));
+    if (isDefaultLiteral(call.operand(2))) {
+      call.operand(3).unparse(writer, 0, 0);
     }
     writer.keyword("ON");
     writer.keyword("EMPTY");
-    unparseEnum(writer, call.operand(3));
-    if (isDefaultLiteral(call.operand(3))) {
-      call.operand(4).unparse(writer, 0, 0);
+    unparseEnum(writer, call.operand(4));
+    if (isDefaultLiteral(call.operand(4))) {
+      call.operand(5).unparse(writer, 0, 0);
     }
     writer.keyword("ON");
     writer.keyword("ERROR");

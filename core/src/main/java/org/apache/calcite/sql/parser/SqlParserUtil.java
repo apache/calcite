@@ -171,9 +171,18 @@ public final class SqlParserUtil {
   public static SqlTimestampLiteral parseTimestampLiteral(String s,
       SqlParserPos pos) {
     final String dateStr = parseString(s);
-    final DateTimeUtils.PrecisionTime pt =
-        DateTimeUtils.parsePrecisionDateTimeLiteral(dateStr,
-            Format.PER_THREAD.get().timestamp, DateTimeUtils.UTC_ZONE, -1);
+    final Format format = Format.PER_THREAD.get();
+    DateTimeUtils.PrecisionTime pt = null;
+    // Allow timestamp literals with and without time fields (as does
+    // PostgreSQL); TODO: require time fields except in Babel's lenient mode
+    final DateFormat[] dateFormats = {format.timestamp, format.date};
+    for (DateFormat dateFormat : dateFormats) {
+      pt = DateTimeUtils.parsePrecisionDateTimeLiteral(dateStr,
+          dateFormat, DateTimeUtils.UTC_ZONE, -1);
+      if (pt != null) {
+        break;
+      }
+    }
     if (pt == null) {
       throw SqlUtil.newContextException(pos,
           RESOURCE.illegalLiteral("TIMESTAMP", s,

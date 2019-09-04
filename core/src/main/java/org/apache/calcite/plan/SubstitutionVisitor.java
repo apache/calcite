@@ -103,12 +103,12 @@ import static org.apache.calcite.rex.RexUtil.removeAll;
  * At each level, returns the residue.</p>
  *
  * <p>The inputs must only include the core relational operators:
- * {@link org.apache.calcite.rel.logical.LogicalTableScan},
- * {@link org.apache.calcite.rel.logical.LogicalFilter},
- * {@link org.apache.calcite.rel.logical.LogicalProject},
- * {@link org.apache.calcite.rel.logical.LogicalJoin},
- * {@link org.apache.calcite.rel.logical.LogicalUnion},
- * {@link org.apache.calcite.rel.logical.LogicalAggregate}.</p>
+ * {@link org.apache.calcite.rel.core.TableScan},
+ * {@link org.apache.calcite.rel.core.Filter},
+ * {@link org.apache.calcite.rel.core.Project},
+ * {@link org.apache.calcite.rel.core.Join},
+ * {@link org.apache.calcite.rel.core.Union},
+ * {@link org.apache.calcite.rel.core.Aggregate}.</p>
  */
 public class SubstitutionVisitor {
   private static final boolean DEBUG = CalciteSystemProperty.DEBUG.value();
@@ -495,7 +495,8 @@ public class SubstitutionVisitor {
     for (MutableRel targetDescendant : targetDescendants) {
       MutableRel queryDescendant = map.get(targetDescendant);
       if (queryDescendant != null) {
-        assert queryDescendant.rowType.equals(targetDescendant.rowType);
+        assert rowTypesAreEquivalent(
+            queryDescendant, targetDescendant, Litmus.THROW);
         equivalents.put(queryDescendant, targetDescendant);
       }
     }
@@ -532,7 +533,7 @@ public class SubstitutionVisitor {
               if (result != null) {
                 ++count;
                 attempted.add(new Replacement(result.call.query, result.result));
-                MutableRel parent = result.call.query.replaceInParent(result.result);
+                result.call.query.replaceInParent(result.result);
 
                 // Replace previous equivalents with new equivalents, higher up
                 // the tree.
@@ -542,8 +543,7 @@ public class SubstitutionVisitor {
                     equivalents.remove(slots[i], equi.iterator().next());
                   }
                 }
-                assert result.result.rowType.equals(result.call.query.rowType)
-                    : Pair.of(result.result, result.call.query);
+                assert rowTypesAreEquivalent(result.result, result.call.query, Litmus.THROW);
                 equivalents.put(result.result, result.call.query);
                 if (targetDescendant == target) {
                   // A real substitution happens. We purge the attempted
@@ -591,6 +591,23 @@ public class SubstitutionVisitor {
       undoReplacement(attempted);
     }
     return substitutions;
+  }
+
+  /**
+   * Equivalence checking for row types, but except for the field names.
+   */
+  private boolean rowTypesAreEquivalent(
+      MutableRel rel0, MutableRel rel1, Litmus litmus) {
+    if (rel0.rowType.getFieldCount() != rel1.rowType.getFieldCount()) {
+      return litmus.fail("Mismatch for column count: [{}]", Pair.of(rel0, rel1));
+    }
+    for (Pair<RelDataTypeField, RelDataTypeField> pair
+        : Pair.zip(rel0.rowType.getFieldList(), rel0.rowType.getFieldList())) {
+      if (!pair.left.getType().equals(pair.right.getType())) {
+        return litmus.fail("Mismatch for column type: [{}]", Pair.of(rel0, rel1));
+      }
+    }
+    return litmus.succeed();
   }
 
   /**
@@ -740,7 +757,8 @@ public class SubstitutionVisitor {
 
   private UnifyResult apply(UnifyRule rule, MutableRel query,
       MutableRel target) {
-    final UnifyRuleCall call = new UnifyRuleCall(rule, query, target, null);
+    final UnifyRuleCall call =
+        new UnifyRuleCall(rule, query, target, ImmutableList.of());
     return rule.apply(call);
   }
 
@@ -962,7 +980,7 @@ public class SubstitutionVisitor {
    *
    * <p>Matches scans to the same table, because these will be
    * {@link MutableScan}s with the same
-   * {@link org.apache.calcite.rel.logical.LogicalTableScan} instance.</p>
+   * {@link org.apache.calcite.rel.core.TableScan} instance.</p>
    */
   private static class TrivialRule extends AbstractUnifyRule {
     private static final TrivialRule INSTANCE = new TrivialRule();
@@ -973,14 +991,14 @@ public class SubstitutionVisitor {
 
     public UnifyResult apply(UnifyRuleCall call) {
       if (call.query.equals(call.target)) {
-        return call.result(call.query);
+        return call.result(call.target);
       }
       return null;
     }
   }
 
   /** Implementation of {@link UnifyRule} that matches
-   * {@link org.apache.calcite.rel.logical.LogicalTableScan}. */
+   * {@link org.apache.calcite.rel.core.TableScan}. */
   private static class ScanToProjectUnifyRule extends AbstractUnifyRule {
     public static final ScanToProjectUnifyRule INSTANCE =
         new ScanToProjectUnifyRule();
@@ -1016,7 +1034,7 @@ public class SubstitutionVisitor {
   }
 
   /** Implementation of {@link UnifyRule} that matches
-   * {@link org.apache.calcite.rel.logical.LogicalProject}. */
+   * {@link org.apache.calcite.rel.core.Project}. */
   private static class ProjectToProjectUnifyRule extends AbstractUnifyRule {
     public static final ProjectToProjectUnifyRule INSTANCE =
         new ProjectToProjectUnifyRule();
@@ -1113,19 +1131,22 @@ public class SubstitutionVisitor {
       }
       final List<RexNode> exprList = new ArrayList<>();
       final RexBuilder rexBuilder = model.cluster.getRexBuilder();
-      for (RelDataTypeField field : model.rowType.getFieldList()) {
-        exprList.add(rexBuilder.makeZeroLiteral(field.getType()));
+      for (int i = 0; i < model.rowType.getFieldCount(); i++) {
+        exprList.add(null);
       }
       for (Ord<RexNode> expr : Ord.zip(project.projects)) {
         if (expr.e instanceof RexInputRef) {
           final int target = ((RexInputRef) expr.e).getIndex();
-          exprList.set(target,
-              rexBuilder.ensureType(expr.e.getType(),
-                  RexInputRef.of(expr.i, input.rowType),
-                  false));
-        } else {
-          throw MatchFailed.INSTANCE;
+          if (exprList.get(target) == null) {
+            exprList.set(target,
+                rexBuilder.ensureType(expr.e.getType(),
+                    RexInputRef.of(expr.i, input.rowType),
+                    false));
+          }
         }
+      }
+      if (exprList.indexOf(null) != -1) {
+        throw MatchFailed.INSTANCE;
       }
       return MutableProject.of(model.rowType, input, exprList);
     }
@@ -1203,8 +1224,8 @@ public class SubstitutionVisitor {
   }
 
   /** Implementation of {@link UnifyRule} that matches a
-   * {@link org.apache.calcite.rel.logical.LogicalAggregate} to a
-   * {@link org.apache.calcite.rel.logical.LogicalAggregate}, provided
+   * {@link org.apache.calcite.rel.core.Aggregate} to a
+   * {@link org.apache.calcite.rel.core.Aggregate}, provided
    * that they have the same child. */
   private static class AggregateToAggregateUnifyRule extends AbstractUnifyRule {
     public static final AggregateToAggregateUnifyRule INSTANCE =
@@ -1340,10 +1361,29 @@ public class SubstitutionVisitor {
       if (mapping == null) {
         return null;
       }
+      Mapping inverseMapping = mapping.inverse();
       final MutableAggregate aggregate2 =
-          permute(query, project.getInput(), mapping.inverse());
-      final MutableRel result = unifyAggregates(aggregate2, target);
-      return result == null ? null : call.result(result);
+          permute(query, project.getInput(), inverseMapping);
+      final MutableRel unifiedAggregate = unifyAggregates(aggregate2, target);
+      if (unifiedAggregate == null) {
+        return null;
+      }
+      MutableRel result = unifiedAggregate;
+      // Add Project if the mapping breaks order of fields in GroupSet
+      if (!Mappings.keepsOrdering(mapping)) {
+        final List<Integer> posList = new ArrayList<>();
+        final int fieldCount = aggregate2.rowType.getFieldCount();
+        for (int group: aggregate2.groupSet) {
+          if (inverseMapping.getTargetOpt(group) != -1) {
+            posList.add(inverseMapping.getTarget(group));
+          }
+        }
+        for (int i = posList.size(); i < fieldCount; i++) {
+          posList.add(i);
+        }
+        result = MutableRels.createProject(unifiedAggregate, posList);
+      }
+      return call.result(result);
     }
   }
 
@@ -1383,6 +1423,14 @@ public class SubstitutionVisitor {
           return new RexInputRef(integer, call.getType());
         }
         return super.visitCall(call);
+      }
+
+      @Override public RexNode visitLiteral(RexLiteral literal) {
+        final Integer integer = map.get(literal);
+        if (integer != null) {
+          return new RexInputRef(integer, literal.getType());
+        }
+        return super.visitLiteral(literal);
       }
     };
   }

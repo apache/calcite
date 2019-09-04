@@ -16,24 +16,29 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.adapter.enumerable.EnumerableBindable;
+import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.avatica.AvaticaConnection;
+import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.interpreter.Bindables;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
-import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
@@ -45,15 +50,10 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
-import org.apache.calcite.rel.rules.DateRangeRules;
-import org.apache.calcite.rel.rules.FilterMergeRule;
-import org.apache.calcite.rel.rules.IntersectToDistinctRule;
+import org.apache.calcite.rel.rules.JoinAssociateRule;
 import org.apache.calcite.rel.rules.MultiJoin;
-import org.apache.calcite.rel.rules.ProjectToWindowRule;
-import org.apache.calcite.rel.rules.PruneEmptyRules;
-import org.apache.calcite.rel.rules.UnionMergeRule;
-import org.apache.calcite.rel.rules.UnionPullUpConstantsRule;
+import org.apache.calcite.rel.rules.ProjectTableScanRule;
+import org.apache.calcite.rel.stream.StreamRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -103,6 +103,7 @@ import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
@@ -452,7 +453,7 @@ public abstract class RelOptUtil {
 
       final RelFactories.FilterFactory factory =
           RelFactories.DEFAULT_FILTER_FACTORY;
-      ret = factory.createFilter(ret, conditionExp);
+      ret = factory.createFilter(ret, conditionExp, ImmutableSet.of());
     }
 
     if (extraExpr != null) {
@@ -601,13 +602,13 @@ public abstract class RelOptUtil {
   public static RelNode createFilter(RelNode child, RexNode condition) {
     final RelFactories.FilterFactory factory =
         RelFactories.DEFAULT_FILTER_FACTORY;
-    return factory.createFilter(child, condition);
+    return factory.createFilter(child, condition, ImmutableSet.of());
   }
 
   @Deprecated // to be removed before 2.0
   public static RelNode createFilter(RelNode child, RexNode condition,
       RelFactories.FilterFactory filterFactory) {
-    return filterFactory.createFilter(child, condition);
+    return filterFactory.createFilter(child, condition, ImmutableSet.of());
   }
 
   /** Creates a filter, using the default filter factory,
@@ -630,7 +631,7 @@ public abstract class RelOptUtil {
     if (condition == null) {
       return child;
     } else {
-      return filterFactory.createFilter(child, condition);
+      return filterFactory.createFilter(child, condition, ImmutableSet.of());
     }
   }
 
@@ -680,7 +681,7 @@ public abstract class RelOptUtil {
 
     final RelFactories.FilterFactory factory =
         RelFactories.DEFAULT_FILTER_FACTORY;
-    return factory.createFilter(rel, condition);
+    return factory.createFilter(rel, condition, ImmutableSet.of());
   }
 
   /**
@@ -733,6 +734,20 @@ public abstract class RelOptUtil {
       return projectFactory.createProject(rel, castExps,
           rowType.getFieldNames());
     }
+  }
+
+  /** Gets all fields in an aggregate. */
+  public static Set<Integer> getAllFields(Aggregate aggregate) {
+    final Set<Integer> allFields = new TreeSet<>();
+    allFields.addAll(aggregate.getGroupSet().asList());
+    for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
+      allFields.addAll(aggregateCall.getArgList());
+      if (aggregateCall.filterArg >= 0) {
+        allFields.add(aggregateCall.filterArg);
+      }
+      allFields.addAll(RelCollations.ordinals(aggregateCall.collation));
+    }
+    return allFields;
   }
 
   /**
@@ -846,6 +861,24 @@ public abstract class RelOptUtil {
       List<Boolean> filterNulls) {
     final List<RexNode> nonEquiList = new ArrayList<>();
 
+    splitJoinCondition(left, right, condition, leftKeys, rightKeys,
+        filterNulls, nonEquiList);
+
+    return RexUtil.composeConjunction(
+        left.getCluster().getRexBuilder(), nonEquiList);
+  }
+
+  /** As
+   * {@link #splitJoinCondition(RelNode, RelNode, RexNode, List, List, List)},
+   * but writes non-equi conditions to a conjunctive list. */
+  public static void splitJoinCondition(
+      RelNode left,
+      RelNode right,
+      RexNode condition,
+      List<Integer> leftKeys,
+      List<Integer> rightKeys,
+      List<Boolean> filterNulls,
+      List<RexNode> nonEquiList) {
     splitJoinCondition(
         left.getCluster().getRexBuilder(),
         left.getRowType().getFieldCount(),
@@ -854,9 +887,6 @@ public abstract class RelOptUtil {
         rightKeys,
         filterNulls,
         nonEquiList);
-
-    return RexUtil.composeConjunction(
-        left.getCluster().getRexBuilder(), nonEquiList);
   }
 
   @Deprecated // to be removed before 2.0
@@ -986,6 +1016,18 @@ public abstract class RelOptUtil {
 
   public static RexNode splitCorrelatedFilterCondition(
       LogicalFilter filter,
+      List<RexNode> joinKeys,
+      List<RexNode> correlatedJoinKeys,
+      boolean extractCorrelatedFieldAccess) {
+    return splitCorrelatedFilterCondition(
+        (Filter) filter,
+        joinKeys,
+        correlatedJoinKeys,
+        extractCorrelatedFieldAccess);
+  }
+
+  public static RexNode splitCorrelatedFilterCondition(
+      Filter filter,
       List<RexNode> joinKeys,
       List<RexNode> correlatedJoinKeys,
       boolean extractCorrelatedFieldAccess) {
@@ -1341,6 +1383,22 @@ public abstract class RelOptUtil {
       List<RexNode> correlatedJoinKeys,
       List<RexNode> nonEquiList,
       boolean extractCorrelatedFieldAccess) {
+    splitCorrelatedFilterCondition(
+        (Filter) filter,
+        condition,
+        joinKeys,
+        correlatedJoinKeys,
+        nonEquiList,
+        extractCorrelatedFieldAccess);
+  }
+
+  private static void splitCorrelatedFilterCondition(
+      Filter filter,
+      RexNode condition,
+      List<RexNode> joinKeys,
+      List<RexNode> correlatedJoinKeys,
+      List<RexNode> nonEquiList,
+      boolean extractCorrelatedFieldAccess) {
     if (condition instanceof RexCall) {
       RexCall call = (RexCall) condition;
       if (call.getOperator().getKind() == SqlKind.AND) {
@@ -1474,26 +1532,43 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Helper method for
-   * {@link #splitJoinCondition(RexBuilder, int, RexNode, List, List, List, List)} and
+   * Collapses an expanded version of {@code IS NOT DISTINCT FROM} expression.
+   *
+   * <p>Helper method for
+   * {@link #splitJoinCondition(RexBuilder, int, RexNode, List, List, List, List)}
+   * and
    * {@link #splitJoinCondition(List, List, RexNode, List, List, List, List)}.
    *
    * <p>If the given expr <code>call</code> is an expanded version of
-   * IS NOT DISTINCT FROM function call, collapse it and return a
-   * IS NOT DISTINCT FROM function call.
+   * {@code IS NOT DISTINCT FROM} function call, collapses it and return a
+   * {@code IS NOT DISTINCT FROM} function call.
    *
    * <p>For example: {@code t1.key IS NOT DISTINCT FROM t2.key}
    * can rewritten in expanded form as
    * {@code t1.key = t2.key OR (t1.key IS NULL AND t2.key IS NULL)}.
    *
-   * @param call       Function expression to try collapsing.
+   * @param call       Function expression to try collapsing
    * @param rexBuilder {@link RexBuilder} instance to create new {@link RexCall} instances.
    * @return If the given function is an expanded IS NOT DISTINCT FROM function call,
    *         return a IS NOT DISTINCT FROM function call. Otherwise return the input
    *         function call as it is.
    */
-  private static RexCall collapseExpandedIsNotDistinctFromExpr(final RexCall call,
+  public static RexCall collapseExpandedIsNotDistinctFromExpr(final RexCall call,
       final RexBuilder rexBuilder) {
+    switch (call.getKind()) {
+    case OR:
+      return doCollapseExpandedIsNotDistinctFromOrExpr(call, rexBuilder);
+
+    case CASE:
+      return doCollapseExpandedIsNotDistinctFromCaseExpr(call, rexBuilder);
+
+    default:
+      return call;
+    }
+  }
+
+  private static RexCall doCollapseExpandedIsNotDistinctFromOrExpr(final RexCall call,
+        final RexBuilder rexBuilder) {
     if (call.getKind() != SqlKind.OR || call.getOperands().size() != 2) {
       return call;
     }
@@ -1508,11 +1583,22 @@ public abstract class RelOptUtil {
     RexCall opEqCall = (RexCall) op0;
     RexCall opNullEqCall = (RexCall) op1;
 
+    // Swapping the operands if necessary
     if (opEqCall.getKind() == SqlKind.AND
-        && opNullEqCall.getKind() == SqlKind.EQUALS) {
+        && (opNullEqCall.getKind() == SqlKind.EQUALS
+        || opNullEqCall.getKind() == SqlKind.IS_TRUE)) {
       RexCall temp = opEqCall;
       opEqCall = opNullEqCall;
       opNullEqCall = temp;
+    }
+
+    // Check if EQUALS is actually wrapped in IS TRUE expression
+    if (opEqCall.getKind() == SqlKind.IS_TRUE) {
+      RexNode tmp = opEqCall.getOperands().get(0);
+      if (!(tmp instanceof RexCall)) {
+        return call;
+      }
+      opEqCall = (RexCall) tmp;
     }
 
     if (opNullEqCall.getKind() != SqlKind.AND
@@ -1527,18 +1613,62 @@ public abstract class RelOptUtil {
         || op11.getKind() != SqlKind.IS_NULL) {
       return call;
     }
-    final RexNode isNullInput0 = ((RexCall) op10).getOperands().get(0);
-    final RexNode isNullInput1 = ((RexCall) op11).getOperands().get(0);
 
-    final String isNullInput0Digest = isNullInput0.toString();
-    final String isNullInput1Digest = isNullInput1.toString();
-    final String equalsInput0Digest = opEqCall.getOperands().get(0).toString();
-    final String equalsInput1Digest = opEqCall.getOperands().get(1).toString();
+    return doCollapseExpandedIsNotDistinctFrom(rexBuilder, call, (RexCall) op10, (RexCall) op11,
+        opEqCall);
+  }
 
-    if ((isNullInput0Digest.equals(equalsInput0Digest)
-            && isNullInput1Digest.equals(equalsInput1Digest))
-        || (isNullInput1Digest.equals(equalsInput0Digest)
-            && isNullInput0Digest.equals(equalsInput1Digest))) {
+  private static RexCall doCollapseExpandedIsNotDistinctFromCaseExpr(final RexCall call,
+      final RexBuilder rexBuilder) {
+    if (call.getKind() != SqlKind.CASE || call.getOperands().size() != 5) {
+      return call;
+    }
+
+    final RexNode op0 = call.getOperands().get(0);
+    final RexNode op1 = call.getOperands().get(1);
+    final RexNode op2 = call.getOperands().get(2);
+    final RexNode op3 = call.getOperands().get(3);
+    final RexNode op4 = call.getOperands().get(4);
+
+    if (!(op0 instanceof RexCall) || !(op1 instanceof RexCall) || !(op2 instanceof RexCall)
+        || !(op3 instanceof RexCall) || !(op4 instanceof RexCall)) {
+      return call;
+    }
+
+    RexCall ifCall = (RexCall) op0;
+    RexCall thenCall = (RexCall) op1;
+    RexCall elseIfCall = (RexCall) op2;
+    RexCall elseIfThenCall = (RexCall) op3;
+    RexCall elseCall = (RexCall) op4;
+
+    if (ifCall.getKind() != SqlKind.IS_NULL
+        || thenCall.getKind() != SqlKind.IS_NULL
+        || elseIfCall.getKind() != SqlKind.IS_NULL
+        || elseIfThenCall.getKind() != SqlKind.IS_NULL
+        || elseCall.getKind() != SqlKind.EQUALS) {
+      return call;
+    }
+
+    if (!ifCall.equals(elseIfThenCall)
+        || !thenCall.equals(elseIfCall)) {
+      return call;
+    }
+
+    return doCollapseExpandedIsNotDistinctFrom(rexBuilder, call, ifCall, elseIfCall, elseCall);
+  }
+
+  private static RexCall doCollapseExpandedIsNotDistinctFrom(final RexBuilder rexBuilder,
+      final RexCall call, RexCall ifNull0Call, RexCall ifNull1Call, RexCall equalsCall) {
+    final RexNode isNullInput0 = ifNull0Call.getOperands().get(0);
+    final RexNode isNullInput1 = ifNull1Call.getOperands().get(0);
+
+    final RexNode equalsInput0 = RexUtil
+        .removeNullabilityCast(rexBuilder.getTypeFactory(), equalsCall.getOperands().get(0));
+    final RexNode equalsInput1 = RexUtil
+        .removeNullabilityCast(rexBuilder.getTypeFactory(), equalsCall.getOperands().get(1));
+
+    if ((isNullInput0.equals(equalsInput0) && isNullInput1.equals(equalsInput1))
+        || (isNullInput1.equals(equalsInput0) && isNullInput0.equals(equalsInput1))) {
       return (RexCall) rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
           ImmutableList.of(isNullInput0, isNullInput1));
     }
@@ -1682,26 +1812,87 @@ public abstract class RelOptUtil {
     return joinRel;
   }
 
+  @Deprecated // to be removed before 2.0
   public static void registerAbstractRels(RelOptPlanner planner) {
-    planner.addRule(AggregateProjectPullUpConstantsRule.INSTANCE2);
-    planner.addRule(UnionPullUpConstantsRule.INSTANCE);
-    planner.addRule(PruneEmptyRules.UNION_INSTANCE);
-    planner.addRule(PruneEmptyRules.INTERSECT_INSTANCE);
-    planner.addRule(PruneEmptyRules.MINUS_INSTANCE);
-    planner.addRule(PruneEmptyRules.PROJECT_INSTANCE);
-    planner.addRule(PruneEmptyRules.FILTER_INSTANCE);
-    planner.addRule(PruneEmptyRules.SORT_INSTANCE);
-    planner.addRule(PruneEmptyRules.AGGREGATE_INSTANCE);
-    planner.addRule(PruneEmptyRules.JOIN_LEFT_INSTANCE);
-    planner.addRule(PruneEmptyRules.JOIN_RIGHT_INSTANCE);
-    planner.addRule(PruneEmptyRules.SORT_FETCH_ZERO_INSTANCE);
-    planner.addRule(UnionMergeRule.INSTANCE);
-    planner.addRule(UnionMergeRule.INTERSECT_INSTANCE);
-    planner.addRule(UnionMergeRule.MINUS_INSTANCE);
-    planner.addRule(ProjectToWindowRule.PROJECT);
-    planner.addRule(FilterMergeRule.INSTANCE);
-    planner.addRule(DateRangeRules.FILTER_INSTANCE);
-    planner.addRule(IntersectToDistinctRule.INSTANCE);
+    registerAbstractRules(planner);
+  }
+
+  @Experimental
+  public static void registerAbstractRules(RelOptPlanner planner) {
+    RelOptRules.ABSTRACT_RULES.forEach(planner::addRule);
+  }
+
+  @Experimental
+  public static void registerAbstractRelationalRules(RelOptPlanner planner) {
+    RelOptRules.ABSTRACT_RELATIONAL_RULES.forEach(planner::addRule);
+    if (CalciteSystemProperty.COMMUTE.value()) {
+      planner.addRule(JoinAssociateRule.INSTANCE);
+    }
+    // todo: rule which makes Project({OrdinalRef}) disappear
+  }
+
+  private static void registerEnumerableRules(RelOptPlanner planner) {
+    EnumerableRules.ENUMERABLE_RULES.forEach(planner::addRule);
+  }
+
+  private static void registerBaseRules(RelOptPlanner planner) {
+    RelOptRules.BASE_RULES.forEach(planner::addRule);
+  }
+
+  private static void registerReductionRules(RelOptPlanner planner) {
+    RelOptRules.CONSTANT_REDUCTION_RULES.forEach(planner::addRule);
+  }
+
+  private static void registerMaterializationRules(RelOptPlanner planner) {
+    RelOptRules.MATERIALIZATION_RULES.forEach(planner::addRule);
+  }
+
+  private static void registerCalcRules(RelOptPlanner planner) {
+    RelOptRules.CALC_RULES.forEach(planner::addRule);
+  }
+
+  @Experimental
+  public static void registerDefaultRules(RelOptPlanner planner,
+      boolean enableMaterialziations, boolean enableBindable) {
+    if (CalciteSystemProperty.ENABLE_COLLATION_TRAIT.value()) {
+      registerAbstractRelationalRules(planner);
+    }
+    registerAbstractRules(planner);
+    registerBaseRules(planner);
+
+    if (enableMaterialziations) {
+      registerMaterializationRules(planner);
+    }
+    if (enableBindable) {
+      for (RelOptRule rule : Bindables.RULES) {
+        planner.addRule(rule);
+      }
+    }
+    planner.addRule(Bindables.BINDABLE_TABLE_SCAN_RULE);
+    planner.addRule(ProjectTableScanRule.INSTANCE);
+    planner.addRule(ProjectTableScanRule.INTERPRETER);
+
+    if (CalciteSystemProperty.ENABLE_ENUMERABLE.value()) {
+      registerEnumerableRules(planner);
+      planner.addRule(EnumerableInterpreterRule.INSTANCE);
+    }
+
+    if (enableBindable && CalciteSystemProperty.ENABLE_ENUMERABLE.value()) {
+      planner.addRule(
+          EnumerableBindable.EnumerableToBindableConverterRule.INSTANCE);
+    }
+
+    if (CalciteSystemProperty.ENABLE_STREAM.value()) {
+      for (RelOptRule rule : StreamRules.RULES) {
+        planner.addRule(rule);
+      }
+    }
+
+    // Change the below to enable constant-reduction.
+    if (false) {
+      registerReductionRules(planner);
+    }
+
   }
 
   /**
@@ -2289,6 +2480,10 @@ public abstract class RelOptUtil {
   public static JoinRelType simplifyJoin(RelNode joinRel,
       ImmutableList<RexNode> aboveFilters,
       JoinRelType joinType) {
+    // No need to simplify if the join only outputs left side.
+    if (!joinType.projectsRight()) {
+      return joinType;
+    }
     final int nTotalFields = joinRel.getRowType().getFieldCount();
     final int nSysFields = 0;
     final int nFieldsLeft =
@@ -2312,7 +2507,7 @@ public abstract class RelOptUtil {
           && Strong.isNotTrue(filter, rightBitmap)) {
         joinType = joinType.cancelNullsOnRight();
       }
-      if (joinType == JoinRelType.INNER) {
+      if (!joinType.isOuterJoin()) {
         break;
       }
     }
@@ -2357,7 +2552,8 @@ public abstract class RelOptUtil {
         joinRel.getInputs().get(1).getRowType().getFieldList();
     final int nFieldsRight = rightFields.size();
 
-    assert nTotalFields == (returnsJustFirstInput(joinRel)
+    // SemiJoin, CorrelateSemiJoin, CorrelateAntiJoin: right fields are not returned
+    assert nTotalFields == (!joinType.projectsRight()
             ? nSysFields + nFieldsLeft
             : nSysFields + nFieldsLeft + nFieldsRight);
 
@@ -2428,7 +2624,7 @@ public abstract class RelOptUtil {
         // If the filter can't be pushed to either child and the join
         // is an inner join, push them to the join if they originated
         // from above the join
-        if (joinType == JoinRelType.INNER && pushInto) {
+        if (!joinType.isOuterJoin() && pushInto) {
           if (!joinFilters.contains(filter)) {
             joinFilters.add(filter);
           }
@@ -2444,13 +2640,6 @@ public abstract class RelOptUtil {
 
     // Did anything change?
     return !filtersToRemove.isEmpty();
-  }
-
-  private static boolean returnsJustFirstInput(RelNode joinRel) {
-    // SemiJoin, CorrelateSemiJoin, CorrelateAntiJoin: right fields are not returned
-    return joinRel instanceof SemiJoin
-            || (joinRel instanceof Correlate
-                && ((Correlate) joinRel).getJoinType().returnsJustFirstInput());
   }
 
   private static RexNode shiftFilter(
@@ -2616,16 +2805,16 @@ public abstract class RelOptUtil {
   /**
    * Creates a new {@link org.apache.calcite.rel.rules.MultiJoin} to reflect
    * projection references from a
-   * {@link org.apache.calcite.rel.logical.LogicalProject} that is on top of the
+   * {@link Project} that is on top of the
    * {@link org.apache.calcite.rel.rules.MultiJoin}.
    *
    * @param multiJoin the original MultiJoin
-   * @param project   the LogicalProject on top of the MultiJoin
+   * @param project   the Project on top of the MultiJoin
    * @return the new MultiJoin
    */
   public static MultiJoin projectMultiJoin(
       MultiJoin multiJoin,
-      LogicalProject project) {
+      Project project) {
     // Locate all input references in the projection expressions as well
     // the post-join filter.  Since the filter effectively sits in
     // between the LogicalProject and the MultiJoin, the projection needs
@@ -3152,8 +3341,8 @@ public abstract class RelOptUtil {
     // yet.
     if (!containsGet(joinCond)
         && RexUtil.SubQueryFinder.find(joinCond) == null) {
-      joinCond = pushDownEqualJoinConditions(
-          joinCond, leftCount, rightCount, extraLeftExprs, extraRightExprs);
+      joinCond = pushDownEqualJoinConditions(joinCond, leftCount, rightCount, extraLeftExprs,
+          extraRightExprs, relBuilder.getRexBuilder());
     }
 
     relBuilder.push(originalJoin.getLeft());
@@ -3213,14 +3402,17 @@ public abstract class RelOptUtil {
     relBuilder.push(
         originalJoin.copy(originalJoin.getTraitSet(),
             joinCond, left, right, joinType, originalJoin.isSemiJoinDone()));
-
     if (!extraLeftExprs.isEmpty() || !extraRightExprs.isEmpty()) {
+      final int totalFields = joinType.projectsRight()
+          ? leftCount + extraLeftExprs.size() + rightCount + extraRightExprs.size()
+          : leftCount + extraLeftExprs.size();
+      final int[] mappingRanges = joinType.projectsRight()
+          ? new int[] { 0, 0, leftCount, leftCount, leftCount + extraLeftExprs.size(), rightCount }
+          : new int[] { 0, 0, leftCount };
       Mappings.TargetMapping mapping =
           Mappings.createShiftMapping(
-              leftCount + extraLeftExprs.size()
-                  + rightCount + extraRightExprs.size(),
-              0, 0, leftCount,
-              leftCount, leftCount + extraLeftExprs.size(), rightCount);
+              totalFields,
+              mappingRanges);
       relBuilder.project(relBuilder.fields(mapping.inverse()));
     }
     return relBuilder.build();
@@ -3271,33 +3463,65 @@ public abstract class RelOptUtil {
    * of AND, equals, and input fields.
    */
   private static RexNode pushDownEqualJoinConditions(
-      RexNode node,
+      RexNode condition,
       int leftCount,
       int rightCount,
       List<RexNode> extraLeftExprs,
-      List<RexNode> extraRightExprs) {
+      List<RexNode> extraRightExprs,
+      RexBuilder builder) {
+    // Normalize the condition first
+    RexNode node = (condition instanceof RexCall)
+        ? collapseExpandedIsNotDistinctFromExpr((RexCall) condition, builder)
+        : condition;
+
     switch (node.getKind()) {
-    case AND:
     case EQUALS:
+    case IS_NOT_DISTINCT_FROM:
+      final RexCall call0 = (RexCall) node;
+      final RexNode leftRex = call0.getOperands().get(0);
+      final RexNode rightRex = call0.getOperands().get(1);
+      final ImmutableBitSet leftBits = RelOptUtil.InputFinder.bits(leftRex);
+      final ImmutableBitSet rightBits = RelOptUtil.InputFinder.bits(rightRex);
+      final int pivot = leftCount + extraLeftExprs.size();
+      Side lside = Side.of(leftBits, pivot);
+      Side rside = Side.of(rightBits, pivot);
+      if (!lside.opposite(rside)) {
+        return call0;
+      }
+      // fall through
+    case AND:
       final RexCall call = (RexCall) node;
       final List<RexNode> list = new ArrayList<>();
       List<RexNode> operands = Lists.newArrayList(call.getOperands());
       for (int i = 0; i < operands.size(); i++) {
         RexNode operand = operands.get(i);
-        final int left2 = leftCount + extraLeftExprs.size();
-        final int right2 = rightCount + extraRightExprs.size();
-        final RexNode e =
-            pushDownEqualJoinConditions(
-                operand,
-                leftCount,
-                rightCount,
-                extraLeftExprs,
-                extraRightExprs);
-        final List<RexNode> remainingOperands = Util.skip(operands, i + 1);
-        final int left3 = leftCount + extraLeftExprs.size();
-        fix(remainingOperands, left2, left3);
-        fix(list, left2, left3);
-        list.add(e);
+        if (operand instanceof RexCall) {
+          operand = collapseExpandedIsNotDistinctFromExpr(
+              (RexCall) operand, builder);
+        }
+        if (node.getKind() == SqlKind.AND
+            && operand.getKind() != SqlKind.EQUALS
+            && operand.getKind() != SqlKind.IS_NOT_DISTINCT_FROM) {
+          // one of the join condition is neither EQ nor INDF
+          list.add(operand);
+        } else {
+          final int left2 = leftCount + extraLeftExprs.size();
+          final RexNode e =
+              pushDownEqualJoinConditions(
+                  operand,
+                  leftCount,
+                  rightCount,
+                  extraLeftExprs,
+                  extraRightExprs,
+                  builder);
+          if (!e.equals(operand)) {
+            final List<RexNode> remainingOperands = Util.skip(operands, i + 1);
+            final int left3 = leftCount + extraLeftExprs.size();
+            fix(remainingOperands, left2, left3);
+            fix(list, left2, left3);
+          }
+          list.add(e);
+        }
       }
       if (!list.equals(call.getOperands())) {
         return call.clone(call.getType(), list);
@@ -3701,6 +3925,11 @@ public abstract class RelOptUtil {
         return LEFT;
       }
       return BOTH;
+    }
+
+    public boolean opposite(Side side) {
+      return (this == LEFT && side == RIGHT)
+          || (this == RIGHT && side == LEFT);
     }
   }
 

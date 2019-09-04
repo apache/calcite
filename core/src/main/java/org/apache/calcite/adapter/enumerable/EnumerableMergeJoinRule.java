@@ -20,7 +20,6 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -29,6 +28,8 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +38,7 @@ import java.util.List;
  * {@link org.apache.calcite.rel.logical.LogicalJoin} relational expression
  * {@link EnumerableConvention enumerable calling convention}.
  *
- * @see org.apache.calcite.adapter.enumerable.EnumerableJoinRule
+ * @see EnumerableJoinRule
  */
 class EnumerableMergeJoinRule extends ConverterRule {
   EnumerableMergeJoinRule() {
@@ -49,8 +50,7 @@ class EnumerableMergeJoinRule extends ConverterRule {
 
   @Override public RelNode convert(RelNode rel) {
     LogicalJoin join = (LogicalJoin) rel;
-    final JoinInfo info =
-        JoinInfo.of(join.getLeft(), join.getRight(), join.getCondition());
+    final JoinInfo info = join.analyzeCondition();
     if (join.getJoinType() != JoinRelType.INNER) {
       // EnumerableMergeJoin only supports inner join.
       // (It supports non-equi join, using a post-filter; see below.)
@@ -84,28 +84,24 @@ class EnumerableMergeJoinRule extends ConverterRule {
     final RelNode right = newInputs.get(1);
     final RelOptCluster cluster = join.getCluster();
     RelNode newRel;
-    try {
-      RelTraitSet traits = join.getTraitSet()
-          .replace(EnumerableConvention.INSTANCE);
-      if (!collations.isEmpty()) {
-        traits = traits.replace(collations);
-      }
-      newRel = new EnumerableMergeJoin(cluster,
-          traits,
-          left,
-          right,
-          info.getEquiCondition(left, right, cluster.getRexBuilder()),
-          info.leftKeys,
-          info.rightKeys,
-          join.getVariablesSet(),
-          join.getJoinType());
-    } catch (InvalidRelException e) {
-      EnumerableRules.LOGGER.debug(e.toString());
-      return null;
+
+    RelTraitSet traitSet = join.getTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    if (!collations.isEmpty()) {
+      traitSet = traitSet.replace(collations);
     }
+    newRel = new EnumerableMergeJoin(cluster,
+        traitSet,
+        left,
+        right,
+        info.getEquiCondition(left, right, cluster.getRexBuilder()),
+        join.getVariablesSet(),
+        join.getJoinType());
     if (!info.isEqui()) {
+      RexNode nonEqui = RexUtil.composeConjunction(cluster.getRexBuilder(),
+          info.nonEquiConditions);
       newRel = new EnumerableFilter(cluster, newRel.getTraitSet(),
-          newRel, info.getRemaining(cluster.getRexBuilder()));
+          newRel, nonEqui);
     }
     return newRel;
   }

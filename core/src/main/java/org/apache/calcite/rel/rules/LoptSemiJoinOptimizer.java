@@ -22,7 +22,8 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinInfo;
-import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.metadata.RelColumnOrigin;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -34,9 +35,9 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 
@@ -76,7 +77,7 @@ public class LoptSemiJoinOptimizer {
    * corresponds to the dimension table and a SemiJoin that captures all
    * the necessary semijoin data between that fact and dimension table
    */
-  private Map<Integer, Map<Integer, SemiJoin>> possibleSemiJoins;
+  private Map<Integer, Map<Integer, LogicalJoin>> possibleSemiJoins;
 
   private final Ordering<Integer> factorCostOrdering =
       Ordering.from(new FactorCostComparator());
@@ -120,7 +121,7 @@ public class LoptSemiJoinOptimizer {
     int nJoinFactors = multiJoin.getNumJoinFactors();
     for (int factIdx = 0; factIdx < nJoinFactors; factIdx++) {
       final Map<Integer, List<RexNode>> dimFilters = new HashMap<>();
-      final Map<Integer, SemiJoin> semiJoinMap = new HashMap<>();
+      final Map<Integer, LogicalJoin> semiJoinMap = new HashMap<>();
 
       // loop over all filters and find equality filters that reference
       // this factor and one other factor
@@ -154,7 +155,7 @@ public class LoptSemiJoinOptimizer {
       for (Integer dimIdx : dimIdxes) {
         List<RexNode> joinFilters = dimFilters.get(dimIdx);
         if (joinFilters != null) {
-          SemiJoin semiJoin =
+          LogicalJoin semiJoin =
               findSemiJoinIndexByCost(
                   multiJoin,
                   joinFilters,
@@ -234,7 +235,7 @@ public class LoptSemiJoinOptimizer {
    * @return SemiJoin containing information regarding the semijoin that
    * can be used to filter the fact table
    */
-  private SemiJoin findSemiJoinIndexByCost(
+  private LogicalJoin findSemiJoinIndexByCost(
       LoptMultiJoin multiJoin,
       List<RexNode> joinFilters,
       int factIdx,
@@ -319,9 +320,8 @@ public class LoptSemiJoinOptimizer {
               multiJoin.getNumFieldsInJoinFactor(factIdx),
               semiJoinCondition);
     }
-    return SemiJoin.create(factRel, dimRel, semiJoinCondition,
-        ImmutableIntList.copyOf(truncatedLeftKeys),
-        ImmutableIntList.copyOf(truncatedRightKeys));
+    return LogicalJoin.create(factRel, dimRel, semiJoinCondition,
+        ImmutableSet.of(), JoinRelType.SEMI);
   }
 
   /**
@@ -539,7 +539,7 @@ public class LoptSemiJoinOptimizer {
     for (int i = 0; i < nJoinFactors; i++) {
       Integer factIdx = sortedFactors.get(i);
       RelNode factRel = chosenSemiJoins[factIdx];
-      Map<Integer, SemiJoin> possibleDimensions =
+      Map<Integer, LogicalJoin> possibleDimensions =
           possibleSemiJoins.get(factIdx);
       if (possibleDimensions == null) {
         continue;
@@ -552,7 +552,7 @@ public class LoptSemiJoinOptimizer {
       // fact table
       Set<Integer> dimIdxes = possibleDimensions.keySet();
       for (Integer dimIdx : dimIdxes) {
-        SemiJoin semiJoin = possibleDimensions.get(dimIdx);
+        LogicalJoin semiJoin = possibleDimensions.get(dimIdx);
         if (semiJoin == null) {
           continue;
         }
@@ -577,13 +577,13 @@ public class LoptSemiJoinOptimizer {
       // already created for each factor so any chaining of filters will
       // be accounted for
       if (bestDimIdx != -1) {
-        SemiJoin semiJoin = possibleDimensions.get(bestDimIdx);
-        SemiJoin chosenSemiJoin =
-            SemiJoin.create(factRel,
+        LogicalJoin semiJoin = possibleDimensions.get(bestDimIdx);
+        LogicalJoin chosenSemiJoin =
+            LogicalJoin.create(factRel,
                 chosenSemiJoins[bestDimIdx],
                 semiJoin.getCondition(),
-                semiJoin.getLeftKeys(),
-                semiJoin.getRightKeys());
+                ImmutableSet.of(),
+                JoinRelType.SEMI);
         chosenSemiJoins[factIdx] = chosenSemiJoin;
 
         // determine if the dimension table doesn't need to be joined
@@ -626,7 +626,7 @@ public class LoptSemiJoinOptimizer {
   private double computeScore(
       RelNode factRel,
       RelNode dimRel,
-      SemiJoin semiJoin) {
+      LogicalJoin semiJoin) {
     // Estimate savings as a result of applying semijoin filter on fact
     // table.  As a heuristic, the selectivity of the semijoin needs to
     // be less than half.  There may be instances where an even smaller
@@ -634,7 +634,7 @@ public class LoptSemiJoinOptimizer {
     // index lookups on a very large fact table.  Half was chosen as
     // a middle ground based on testing that was done with a large
     // data set.
-    final ImmutableBitSet dimCols = ImmutableBitSet.of(semiJoin.getRightKeys());
+    final ImmutableBitSet dimCols = ImmutableBitSet.of(semiJoin.analyzeCondition().rightKeys);
     final double selectivity =
         RelMdUtil.computeSemiJoinSelectivity(mq, factRel, dimRel, semiJoin);
     if (selectivity > .5) {
@@ -695,7 +695,7 @@ public class LoptSemiJoinOptimizer {
    */
   private void removeJoin(
       LoptMultiJoin multiJoin,
-      SemiJoin semiJoin,
+      LogicalJoin semiJoin,
       int factIdx,
       int dimIdx) {
     // if the dimension can be removed because of another semijoin, then
@@ -706,7 +706,7 @@ public class LoptSemiJoinOptimizer {
 
     // Check if the semijoin keys corresponding to the dimension table
     // are unique.  The semijoin will filter out the nulls.
-    final ImmutableBitSet dimKeys = ImmutableBitSet.of(semiJoin.getRightKeys());
+    final ImmutableBitSet dimKeys = ImmutableBitSet.of(semiJoin.analyzeCondition().rightKeys);
     final RelNode dimRel = multiJoin.getJoinFactor(dimIdx);
     if (!RelMdUtil.areColumnsDefinitelyUniqueWhenNullsFiltered(mq, dimRel,
         dimKeys)) {
@@ -756,7 +756,7 @@ public class LoptSemiJoinOptimizer {
       }
     }
     int [] factJoinRefCounts = multiJoin.getJoinFieldRefCounts(factIdx);
-    for (Integer key : semiJoin.getLeftKeys()) {
+    for (Integer key : semiJoin.analyzeCondition().leftKeys) {
       factJoinRefCounts[key]--;
     }
   }
@@ -770,7 +770,7 @@ public class LoptSemiJoinOptimizer {
    * @param dimIdx index corresponding to dimension table
    */
   private void removePossibleSemiJoin(
-      Map<Integer, SemiJoin> possibleDimensions,
+      Map<Integer, LogicalJoin> possibleDimensions,
       Integer factIdx,
       Integer dimIdx) {
     // dimension table may not have a corresponding semijoin if it

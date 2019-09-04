@@ -50,6 +50,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -370,11 +371,12 @@ public class Smalls {
   /** Example of a UDF with a non-static {@code eval} method,
    * and named parameters. */
   public static class MyPlusFunction {
-    public static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(0);
+    public static final ThreadLocal<AtomicInteger> INSTANCE_COUNT
+        = new ThreadLocal<>().withInitial(() -> new AtomicInteger(0));
 
     // Note: Not marked @Deterministic
     public MyPlusFunction() {
-      INSTANCE_COUNT.incrementAndGet();
+      INSTANCE_COUNT.get().incrementAndGet();
     }
 
     public int eval(@Parameter(name = "x") int x,
@@ -385,14 +387,18 @@ public class Smalls {
 
   /** As {@link MyPlusFunction} but declared to be deterministic. */
   public static class MyDeterministicPlusFunction {
-    public static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(0);
+    public static final ThreadLocal<AtomicInteger> INSTANCE_COUNT
+        = new ThreadLocal<>().withInitial(() -> new AtomicInteger(0));
 
     @Deterministic public MyDeterministicPlusFunction() {
-      INSTANCE_COUNT.incrementAndGet();
+      INSTANCE_COUNT.get().incrementAndGet();
     }
 
-    public int eval(@Parameter(name = "x") int x,
-        @Parameter(name = "y") int y) {
+    public Integer eval(@Parameter(name = "x") Integer x,
+        @Parameter(name = "y") Integer y) {
+      if (x == null || y == null) {
+        return null;
+      }
       return x + y;
     }
   }
@@ -465,6 +471,20 @@ public class Smalls {
   public static class MyIncrement {
     public float eval(int x, int y) {
       return x + x * y / 100;
+    }
+  }
+
+  /** User-defined function that declares exceptions. */
+  public static class MyExceptionFunction {
+    public MyExceptionFunction() {}
+
+    public static int eval(int x) throws IllegalArgumentException, IOException {
+      if (x < 0) {
+        throw new IllegalArgumentException("Illegal argument: " + x);
+      } else if (x > 100) {
+        throw new IOException("IOException when argument > 100");
+      }
+      return x + 10;
     }
   }
 

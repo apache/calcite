@@ -38,6 +38,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -592,7 +593,7 @@ public abstract class Expressions {
    * Creates a GotoExpression representing a continue statement.
    */
   public static GotoStatement continue_(LabelTarget labelTarget) {
-    throw Extensions.todo();
+    return new GotoStatement(GotoExpressionKind.Continue, null, null);
   }
 
   /**
@@ -1395,6 +1396,14 @@ public abstract class Expressions {
       Expression condition, Expression post, Statement body) {
     return new ForStatement(Collections.singletonList(declaration), condition,
         post, body);
+  }
+
+  /**
+   * Creates a ForEachExpression with the given body.
+   */
+  public static ForEachStatement forEach(
+      ParameterExpression parameter, Expression iterable, Statement body) {
+    return new ForEachStatement(parameter, iterable, body);
   }
 
   /**
@@ -3041,6 +3050,15 @@ public abstract class Expressions {
    */
   public static <T> FluentList<T> list(Iterable<T> ts) {
     return new FluentArrayList<>(toList(ts));
+  }
+
+  /**
+   * Evaluates an expression and returns the result.
+   */
+  public static Object evaluate(Node node) {
+    Objects.requireNonNull(node);
+    final Evaluator evaluator = new Evaluator();
+    return ((AbstractNode) node).evaluate(evaluator);
   }
 
   // ~ Private helper methods ------------------------------------------------

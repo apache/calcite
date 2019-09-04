@@ -95,7 +95,6 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
-import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -988,9 +987,10 @@ public class SqlToRelConverter {
       return;
     }
 
-    final RelFactories.FilterFactory factory =
+    final RelFactories.FilterFactory filterFactory =
         RelFactories.DEFAULT_FILTER_FACTORY;
-    final RelNode filter = factory.createFilter(bb.root, convertedWhere2);
+    final RelNode filter =
+        filterFactory.createFilter(bb.root, convertedWhere2, ImmutableSet.of());
     final RelNode r;
     final CorrelationUse p = getCorrelationUse(bb, filter);
     if (p != null) {
@@ -1102,6 +1102,16 @@ public class SqlToRelConverter {
       //   where emp.deptno <> null
       //         and q.indicator <> TRUE"
       //
+      // Note:
+      // Subquery can be used as SqlUpdate#condition like below:
+      // "update emp
+      //  set empno = 1 where emp.empno in (
+      //   select emp.empno from emp where emp.empno=2)"
+      // In such case, when converting SqlUpdate#condition, bb.root is null
+      // and it makes no sense to do the subquery substituion.
+      if (bb.root == null) {
+        return;
+      }
       final RelDataType targetRowType =
           SqlTypeUtil.promoteToRowType(typeFactory,
               validator.getValidatedNodeType(leftKeyNode), null);
@@ -1166,8 +1176,23 @@ public class SqlToRelConverter {
       if (!config.isExpand()) {
         return;
       }
-      converted = convertExists(query, RelOptUtil.SubQueryType.EXISTS,
-          subQuery.logic, true, null);
+      final SqlValidatorScope seekScope =
+          (query instanceof SqlSelect)
+              ? validator.getSelectScope((SqlSelect) query)
+              : null;
+      final Blackboard seekBb = createBlackboard(seekScope, null, false);
+      final RelNode seekRel = convertQueryOrInList(seekBb, query, null);
+      // An EXIST sub-query whose inner child has at least 1 tuple
+      // (e.g. an Aggregate with no grouping columns or non-empty Values
+      // node) should be simplified to a Boolean constant expression.
+      final RelMetadataQuery mq = seekRel.getCluster().getMetadataQuery();
+      final Double minRowCount = mq.getMinRowCount(seekRel);
+      if (minRowCount != null && minRowCount >= 1D) {
+        subQuery.expr = rexBuilder.makeLiteral(true);
+        return;
+      }
+      converted = RelOptUtil.createExistsPlan(seekRel,
+          RelOptUtil.SubQueryType.EXISTS, subQuery.logic, true, relBuilder);
       assert !converted.indicator;
       if (convertNonCorrelatedSubQuery(subQuery, bb, converted.r, true)) {
         return;
@@ -1785,9 +1810,12 @@ public class SqlToRelConverter {
     case ALL:
       switch (logic) {
       case TRUE_FALSE_UNKNOWN:
-        if (validator.getValidatedNodeType(node).isNullable()) {
-          break;
-        } else if (true) {
+        RelDataType type = validator.getValidatedNodeTypeIfKnown(node);
+        if (type == null) {
+          // The node might not be validated if we still don't know type of the node.
+          // Therefore return directly.
+          return;
+        } else {
           break;
         }
         // fall through
@@ -2151,10 +2179,10 @@ public class SqlToRelConverter {
 
     // PARTITION BY
     final SqlNodeList partitionList = matchRecognize.getPartitionList();
-    final List<RexNode> partitionKeys = new ArrayList<>();
+    final ImmutableBitSet.Builder partitionKeys = ImmutableBitSet.builder();
     for (SqlNode partition : partitionList) {
       RexNode e = matchBb.convertExpression(partition);
-      partitionKeys.add(e);
+      partitionKeys.set(((RexInputRef) e).getIndex());
     }
 
     // ORDER BY
@@ -2295,8 +2323,8 @@ public class SqlToRelConverter {
         factory.createMatch(input, patternNode,
             rowType, matchRecognize.getStrictStart().booleanValue(),
             matchRecognize.getStrictEnd().booleanValue(),
-            definitionNodes.build(), measureNodes.build(), after,
-            subsetMap, allRows, partitionKeys, orders, intervalNode);
+            definitionNodes.build(), measureNodes.build(), after, subsetMap,
+            allRows, partitionKeys.build(), orders, intervalNode);
     bb.setRoot(rel, false);
   }
 
@@ -2319,7 +2347,7 @@ public class SqlToRelConverter {
       final SqlValidatorTable validatorTable =
           table.unwrap(SqlValidatorTable.class);
       final List<RelDataTypeField> extendedFields =
-          SqlValidatorUtil.getExtendedColumns(validator.getTypeFactory(), validatorTable,
+          SqlValidatorUtil.getExtendedColumns(validator, validatorTable,
               extendedColumns);
       table = table.extend(extendedFields);
     }
@@ -2476,14 +2504,14 @@ public class SqlToRelConverter {
         // Replace outer RexInputRef with RexFieldAccess,
         // and push lateral join predicate into inner child
         final RexNode newCond = joinCond.accept(shuttle);
-        innerRel = factory.createFilter(p.r, newCond);
+        innerRel = factory.createFilter(p.r, newCond, ImmutableSet.of());
         requiredCols = ImmutableBitSet
             .fromBitSet(shuttle.varCols)
             .union(p.requiredColumns);
       }
 
       LogicalCorrelate corr = LogicalCorrelate.create(leftRel, innerRel,
-          p.id, requiredCols, SemiJoinType.of(joinType));
+          p.id, requiredCols, joinType);
       return corr;
     }
 
@@ -5171,7 +5199,6 @@ public class SqlToRelConverter {
           rexBuilder.addAggCall(
               aggCall,
               groupExprs.size(),
-              false,
               aggCalls,
               aggCallMapping,
               argTypes);

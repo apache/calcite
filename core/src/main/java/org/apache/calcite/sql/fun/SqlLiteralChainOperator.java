@@ -171,10 +171,10 @@ public class SqlLiteralChainOperator extends SqlSpecialOperator {
           collation = nls.getCollation();
 
           // print with prefix
-          writer.literal(nls.asSql(true, false));
+          writer.literal(nls.asSql(true, false, writer.getDialect()));
         } else {
           // print without prefix
-          writer.literal(nls.asSql(false, false));
+          writer.literal(nls.asSql(false, false, writer.getDialect()));
         }
       } else if (operand.i == 0) {
         // print with prefix
@@ -190,7 +190,7 @@ public class SqlLiteralChainOperator extends SqlSpecialOperator {
       }
     }
     if (collation != null) {
-      collation.unparse(writer, 0, 0);
+      collation.unparse(writer);
     }
     writer.endList(frame);
   }

@@ -38,21 +38,13 @@ import java.util.List;
 import java.util.function.Predicate;
 
 /**
- * Planner rule that creates a {@code SemiJoinRule} from a
+ * Planner rule that creates a {@code SemiJoin} from a
  * {@link org.apache.calcite.rel.core.Join} on top of a
  * {@link org.apache.calcite.rel.logical.LogicalAggregate}.
  */
 public abstract class SemiJoinRule extends RelOptRule {
-  private static final Predicate<Join> IS_LEFT_OR_INNER =
-      join -> {
-        switch (join.getJoinType()) {
-        case LEFT:
-        case INNER:
-          return true;
-        default:
-          return false;
-        }
-      };
+  private static final Predicate<Join> NOT_GENERATE_NULLS_ON_LEFT =
+      join -> !join.getJoinType().generatesNullsOnLeft();
 
   /* Tests if an Aggregate always produces 1 row and 0 columns. */
   private static final Predicate<Aggregate> IS_EMPTY_AGGREGATE =
@@ -72,7 +64,7 @@ public abstract class SemiJoinRule extends RelOptRule {
     super(
         operand(projectClass,
             some(
-                operandJ(joinClass, null, IS_LEFT_OR_INNER,
+                operandJ(joinClass, null, NOT_GENERATE_NULLS_ON_LEFT,
                     some(operand(RelNode.class, any()),
                         operand(aggregateClass, any()))))),
         relBuilderFactory, description);
@@ -81,9 +73,9 @@ public abstract class SemiJoinRule extends RelOptRule {
   protected SemiJoinRule(Class<Join> joinClass, Class<Aggregate> aggregateClass,
       RelBuilderFactory relBuilderFactory, String description) {
     super(
-        operandJ(joinClass, null, IS_LEFT_OR_INNER,
+        operandJ(joinClass, null, NOT_GENERATE_NULLS_ON_LEFT,
             some(operand(RelNode.class, any()),
-                operandJ(aggregateClass, null, IS_EMPTY_AGGREGATE, any()))),
+                operand(aggregateClass, any()))),
         relBuilderFactory, description);
   }
 
@@ -100,6 +92,11 @@ public abstract class SemiJoinRule extends RelOptRule {
       if (bits.intersects(rightBits)) {
         return;
       }
+    } else {
+      if (join.getJoinType().projectsRight()
+          && !IS_EMPTY_AGGREGATE.test(aggregate)) {
+        return;
+      }
     }
     final JoinInfo joinInfo = join.analyzeCondition();
     if (!joinInfo.rightSet().equals(
@@ -114,6 +111,7 @@ public abstract class SemiJoinRule extends RelOptRule {
     final RelBuilder relBuilder = call.builder();
     relBuilder.push(left);
     switch (join.getJoinType()) {
+    case SEMI:
     case INNER:
       final List<Integer> newRightKeyBuilder = new ArrayList<>();
       final List<Integer> aggregateKeys = aggregate.getGroupSet().asList();
@@ -141,7 +139,8 @@ public abstract class SemiJoinRule extends RelOptRule {
     if (project != null) {
       relBuilder.project(project.getProjects(), project.getRowType().getFieldNames());
     }
-    call.transformTo(relBuilder.build());
+    final RelNode relNode = relBuilder.build();
+    call.transformTo(relNode);
   }
 
   /** SemiJoinRule that matches a Project on top of a Join with an Aggregate

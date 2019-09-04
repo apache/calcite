@@ -108,7 +108,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
 
     List<AggregateCall> transformedAggCalls =
         transformAggCalls(
-            aggRel.copy(aggRel.getTraitSet(), aggRel.getInput(), false,
+            aggRel.copy(aggRel.getTraitSet(), aggRel.getInput(),
                 aggRel.getGroupSet(), null, aggRel.getAggCallList()),
             groupCount, aggRel.getAggCallList());
     if (transformedAggCalls == null) {

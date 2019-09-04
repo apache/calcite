@@ -27,7 +27,9 @@ import org.apache.calcite.linq4j.tree.ClassDeclaration;
 import org.apache.calcite.linq4j.tree.ConditionalStatement;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.FunctionExpression;
 import org.apache.calcite.linq4j.tree.GotoStatement;
 import org.apache.calcite.linq4j.tree.MemberDeclaration;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
@@ -37,6 +39,7 @@ import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Statement;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.linq4j.tree.UnaryExpression;
 import org.apache.calcite.linq4j.tree.VisitorImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.runtime.Bindable;
@@ -44,6 +47,7 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.BuiltInMethod;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -464,7 +468,8 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
   }
 
   /** Visitor that finds types in an {@link Expression} tree. */
-  private static class TypeFinder extends VisitorImpl<Void> {
+  @VisibleForTesting
+  static class TypeFinder extends VisitorImpl<Void> {
     private final Collection<Type> types;
 
     TypeFinder(Collection<Type> types) {
@@ -490,10 +495,35 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     }
 
     @Override public Void visit(ConstantExpression constantExpression) {
-      if (constantExpression.value instanceof Type) {
-        types.add((Type) constantExpression.value);
+      final Object value = constantExpression.value;
+      if (value instanceof Type) {
+        types.add((Type) value);
+      }
+      if (value == null) {
+        // null literal
+        Type type = constantExpression.getType();
+        types.add(type);
       }
       return super.visit(constantExpression);
+    }
+
+    @Override public Void visit(FunctionExpression functionExpression) {
+      final List<ParameterExpression> list = functionExpression.parameterList;
+      for (ParameterExpression pe : list) {
+        types.add(pe.getType());
+      }
+      if (functionExpression.body == null) {
+        return super.visit(functionExpression);
+      }
+      types.add(functionExpression.body.getType());
+      return super.visit(functionExpression);
+    }
+
+    @Override public Void visit(UnaryExpression unaryExpression) {
+      if (unaryExpression.nodeType == ExpressionType.Convert) {
+        types.add(unaryExpression.getType());
+      }
+      return super.visit(unaryExpression);
     }
   }
 

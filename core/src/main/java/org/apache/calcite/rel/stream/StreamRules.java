@@ -130,7 +130,7 @@ public class StreamRules {
     public DeltaAggregateTransposeRule(RelBuilderFactory relBuilderFactory) {
       super(
           operand(Delta.class,
-              operandJ(Aggregate.class, null, Aggregate::noIndicator,
+              operandJ(Aggregate.class, null, Aggregate::isSimple,
                   any())),
           relBuilderFactory, null);
     }

@@ -31,7 +31,6 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
@@ -288,7 +287,7 @@ public class RelMdPredicates
 
   /**
    * Infers predicates for a {@link org.apache.calcite.rel.core.Join} (including
-   * {@link org.apache.calcite.rel.core.SemiJoin}).
+   * {@code SemiJoin}).
    */
   public RelOptPredicateList getPredicates(Join join, RelMetadataQuery mq) {
     RelOptCluster cluster = join.getCluster();
@@ -470,7 +469,6 @@ public class RelMdPredicates
    */
   static class JoinConditionBasedPredicateInference {
     final Join joinRel;
-    final boolean isSemiJoin;
     final int nSysFields;
     final int nFieldsLeft;
     final int nFieldsRight;
@@ -485,16 +483,10 @@ public class RelMdPredicates
     final RexNode rightChildPredicates;
     final RexSimplify simplify;
 
-    JoinConditionBasedPredicateInference(Join joinRel,
-        RexNode leftPredicates, RexNode rightPredicates, RexSimplify simplify) {
-      this(joinRel, joinRel instanceof SemiJoin, leftPredicates, rightPredicates, simplify);
-    }
-
-    private JoinConditionBasedPredicateInference(Join joinRel, boolean isSemiJoin,
-        RexNode leftPredicates, RexNode rightPredicates, RexSimplify simplify) {
+    JoinConditionBasedPredicateInference(Join joinRel, RexNode leftPredicates,
+        RexNode rightPredicates, RexSimplify simplify) {
       super();
       this.joinRel = joinRel;
-      this.isSemiJoin = isSemiJoin;
       this.simplify = simplify;
       nFieldsLeft = joinRel.getLeft().getRowType().getFieldList().size();
       nFieldsRight = joinRel.getRight().getRowType().getFieldList().size();
@@ -578,6 +570,7 @@ public class RelMdPredicates
       final Set<RexNode> allExprs = new HashSet<>(this.allExprs);
       final JoinRelType joinType = joinRel.getJoinType();
       switch (joinType) {
+      case SEMI:
       case INNER:
       case LEFT:
         infer(leftChildPredicates, allExprs, inferredPredicates,
@@ -587,6 +580,7 @@ public class RelMdPredicates
         break;
       }
       switch (joinType) {
+      case SEMI:
       case INNER:
       case RIGHT:
         infer(rightChildPredicates, allExprs, inferredPredicates,
@@ -619,20 +613,20 @@ public class RelMdPredicates
 
       final RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
       switch (joinType) {
-      case INNER:
+      case SEMI:
         Iterable<RexNode> pulledUpPredicates;
-        if (isSemiJoin) {
-          pulledUpPredicates = Iterables.concat(
-                RelOptUtil.conjunctions(leftChildPredicates),
-                leftInferredPredicates);
-        } else {
-          pulledUpPredicates = Iterables.concat(
-                RelOptUtil.conjunctions(leftChildPredicates),
-                RelOptUtil.conjunctions(rightChildPredicates),
-                RexUtil.retainDeterministic(
-                  RelOptUtil.conjunctions(joinRel.getCondition())),
-                inferredPredicates);
-        }
+        pulledUpPredicates = Iterables.concat(
+            RelOptUtil.conjunctions(leftChildPredicates),
+            leftInferredPredicates);
+        return RelOptPredicateList.of(rexBuilder, pulledUpPredicates,
+            leftInferredPredicates, rightInferredPredicates);
+      case INNER:
+        pulledUpPredicates = Iterables.concat(
+            RelOptUtil.conjunctions(leftChildPredicates),
+            RelOptUtil.conjunctions(rightChildPredicates),
+            RexUtil.retainDeterministic(
+                RelOptUtil.conjunctions(joinRel.getCondition())),
+            inferredPredicates);
         return RelOptPredicateList.of(rexBuilder, pulledUpPredicates,
           leftInferredPredicates, rightInferredPredicates);
       case LEFT:

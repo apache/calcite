@@ -65,7 +65,7 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
 
   private static final Duration TEST_DURATION =
       Duration.of(Integer.getInteger("rex.fuzzing.duration", 5), ChronoUnit.SECONDS);
-  private static final long TEST_ITERATIONS = Long.getLong("rex.fuzzing.iterations", 18);
+  private static final long TEST_ITERATIONS = Long.getLong("rex.fuzzing.iterations", 2000);
   // Stop fuzzing after detecting MAX_FAILURES errors
   private static final int MAX_FAILURES =
       Integer.getInteger("rex.fuzzing.max.failures", 1);
@@ -76,6 +76,15 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
   // 42 is used to make sure tests pass in CI
   private static final long SEED =
       Long.getLong("rex.fuzzing.seed", 44);
+
+  private static final long DEFAULT_FUZZ_TEST_SEED =
+      Long.getLong("rex.fuzzing.default.seed", 0);
+  private static final Duration DEFAULT_FUZZ_TEST_DURATION =
+      Duration.of(Integer.getInteger("rex.fuzzing.default.duration", 5), ChronoUnit.SECONDS);
+  private static final long DEFAULT_FUZZ_TEST_ITERATIONS =
+      Long.getLong("rex.fuzzing.default.iterations", 0);
+  private static final boolean DEFAULT_FUZZ_TEST_FAIL =
+      Boolean.getBoolean("rex.fuzzing.default.fail");
 
   private PriorityQueue<SimplifyTask> slowestTasks;
 
@@ -303,10 +312,14 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
 
   @Test public void defaultFuzzTest() {
     try {
-      runRexFuzzer(0, Duration.of(5, ChronoUnit.SECONDS), 1, 0, 0);
+      runRexFuzzer(DEFAULT_FUZZ_TEST_SEED, DEFAULT_FUZZ_TEST_DURATION, 1,
+          DEFAULT_FUZZ_TEST_ITERATIONS, 0);
     } catch (Throwable e) {
       for (Throwable t = e; t != null; t = t.getCause()) {
-        trimStackTrace(t, 4);
+        trimStackTrace(t, DEFAULT_FUZZ_TEST_FAIL ? 8 : 4);
+      }
+      if (DEFAULT_FUZZ_TEST_FAIL) {
+        throw e;
       }
       LOGGER.info("Randomized test identified a potential defect. Feel free to fix that issue", e);
     }

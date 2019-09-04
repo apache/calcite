@@ -53,11 +53,13 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -92,7 +94,7 @@ public class MongoAdapterTest implements SchemaFactory {
     // Manually insert data for data-time test.
     MongoCollection<BsonDocument> datatypes =  database.getCollection("datatypes")
         .withDocumentClass(BsonDocument.class);
-    if (datatypes.count() > 0) {
+    if (datatypes.countDocuments() > 0) {
       datatypes.deleteMany(new BsonDocument());
     }
 
@@ -110,7 +112,7 @@ public class MongoAdapterTest implements SchemaFactory {
       throws IOException {
     Objects.requireNonNull(collection, "collection");
 
-    if (collection.count() > 0) {
+    if (collection.countDocuments() > 0) {
       // delete any existing documents (run from a clean set)
       collection.deleteMany(new BsonDocument());
     }
@@ -391,9 +393,6 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   @Test public void testCountGroupByEmptyMultiplyBy2() {
-    // This operation is not supported by fongo: https://github.com/fakemongo/fongo/issues/152
-    MongoAssertions.assumeRealMongoInstance();
-
     assertModel(MODEL)
         .query("select count(*)*2 from zips")
         .returns(String.format(Locale.ROOT, "EXPR$0=%d\n", ZIPS_SIZE * 2))
@@ -463,8 +462,6 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   @Test public void testGroupByAvgSumCount() {
-    // This operation not supported by fongo: https://github.com/fakemongo/fongo/issues/152
-    MongoAssertions.assumeRealMongoInstance();
     assertModel(MODEL)
         .query(
             "select state, avg(pop) as a, sum(pop) as s, count(pop) as c from zips group by state order by state")
@@ -476,8 +473,8 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$project: {POP: '$pop', STATE: '$state'}}",
                 "{$group: {_id: '$STATE', _1: {$sum: '$POP'}, _2: {$sum: {$cond: [ {$eq: ['POP', null]}, 0, 1]}}}}",
                 "{$project: {STATE: '$_id', _1: '$_1', _2: '$_2'}}",
-                "{$sort: {STATE: 1}}",
-                "{$project: {STATE: 1, A: {$divide: [{$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, '$_2']}, S: {$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, C: '$_2'}}"));
+                "{$project: {STATE: 1, A: {$divide: [{$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, '$_2']}, S: {$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, C: '$_2'}}",
+                "{$sort: {STATE: 1}}"));
   }
 
   @Test public void testGroupByHaving() {
@@ -589,9 +586,6 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   @Test public void testDistinctCountOrderBy() {
-    // java.lang.ClassCastException: com.mongodb.BasicDBObject cannot be cast to java.lang.Number
-    // https://github.com/fakemongo/fongo/issues/152
-    MongoAssertions.assumeRealMongoInstance();
     assertModel(MODEL)
         .query("select state, count(distinct city) as cdc\n"
             + "from zips\n"
@@ -753,20 +747,30 @@ public class MongoAdapterTest implements SchemaFactory {
         return;
       }
 
-      final BsonDocument expectedBson = BsonDocument.parse(String.join(",", expected));
-      final BsonDocument actualBson = BsonDocument.parse(((List<?>) actual.get(0))
+      // comparing list of Bsons (expected and actual)
+      final List<BsonDocument> expectedBsons = Arrays.stream(expected).map(BsonDocument::parse)
+          .collect(Collectors.toList());
+
+      final List<BsonDocument> actualBsons =  ((List<?>) actual.get(0))
           .stream()
           .map(Objects::toString)
-          .collect(Collectors.joining("\n")));
+          .map(BsonDocument::parse)
+          .collect(Collectors.toList());
 
       // compare Bson (not string) representation
-      if (!expectedBson.equals(actualBson)) {
+      if (!expectedBsons.equals(actualBsons)) {
         final JsonWriterSettings settings = JsonWriterSettings.builder().indent(true).build();
+        // outputs Bson in pretty Json format (with new lines)
+        // so output is human friendly in IDE diff tool
+        final Function<List<BsonDocument>, String> prettyFn = bsons -> bsons.stream()
+            .map(b -> b.toJson(settings)).collect(Collectors.joining("\n"));
+
         // used to pretty print Assertion error
-        Assert.assertEquals("expected and actual Mongo queries do not match",
-            expectedBson.toJson(settings),
-            actualBson.toJson(settings));
-        Assert.fail("Should have failed previously because (expected != actual) is already known");
+        Assert.assertEquals("expected and actual Mongo queries (pipelines) do not match",
+            prettyFn.apply(expectedBsons),
+            prettyFn.apply(actualBsons));
+
+        Assert.fail("Should have failed previously because expected != actual is known to be true");
       }
     };
   }

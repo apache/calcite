@@ -956,11 +956,29 @@ public class ImmutableBitSet
      *
      * <p>After calling this method, the Builder cannot be used again. */
     public ImmutableBitSet build() {
+      if (words == null) {
+        throw new IllegalArgumentException("can only use builder once");
+      }
       if (words.length == 0) {
         return EMPTY;
       }
       long[] words = this.words;
       this.words = null; // prevent re-use of builder
+      return new ImmutableBitSet(words);
+    }
+
+    /** Builds an ImmutableBitSet from the contents of this Builder.
+     *
+     * <p>After calling this method, the Builder may be used again. */
+    public ImmutableBitSet buildAndReset() {
+      if (words == null) {
+        throw new IllegalArgumentException("can only use builder once");
+      }
+      if (words.length == 0) {
+        return EMPTY;
+      }
+      long[] words = this.words;
+      this.words = EMPTY_LONGS; // reset for next use
       return new ImmutableBitSet(words);
     }
 
@@ -994,6 +1012,18 @@ public class ImmutableBitSet
       }
       words[wordIndex] |= 1L << bit;
       return this;
+    }
+
+    public boolean get(int bitIndex) {
+      if (words == null) {
+        throw new IllegalArgumentException("can only use builder once");
+      }
+      if (bitIndex < 0) {
+        throw new IndexOutOfBoundsException("bitIndex < 0: " + bitIndex);
+      }
+      int wordIndex = wordIndex(bitIndex);
+      return (wordIndex < words.length)
+          && ((words[wordIndex] & (1L << bitIndex)) != 0);
     }
 
     private void trim(int wordCount) {

@@ -26,6 +26,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
+import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
 
@@ -39,13 +40,9 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Schema mapped onto an index of ELASTICSEARCH types.
- *
- * <p>Each table in the schema is an ELASTICSEARCH type in that index.
+ * Each table in the schema is an ELASTICSEARCH index.
  */
 public class ElasticsearchSchema extends AbstractSchema {
-
-  private final String index;
 
   private final RestClient client;
 
@@ -60,91 +57,74 @@ public class ElasticsearchSchema extends AbstractSchema {
 
   /**
    * Allows schema to be instantiated from existing elastic search client.
-   * This constructor is used in tests.
+   *
    * @param client existing client instance
    * @param mapper mapper for JSON (de)serialization
    * @param index name of ES index
    */
   public ElasticsearchSchema(RestClient client, ObjectMapper mapper, String index) {
-    this(client, mapper, index, null);
-  }
-
-  public ElasticsearchSchema(RestClient client, ObjectMapper mapper, String index, String type) {
-    this(client, mapper, index, type, ElasticsearchTransport.DEFAULT_FETCH_SIZE);
+    this(client, mapper, index, ElasticsearchTransport.DEFAULT_FETCH_SIZE);
   }
 
   @VisibleForTesting
   ElasticsearchSchema(RestClient client, ObjectMapper mapper,
-                      String index, String type,
-                      int fetchSize) {
+                      String index, int fetchSize) {
     super();
     this.client = Objects.requireNonNull(client, "client");
     this.mapper = Objects.requireNonNull(mapper, "mapper");
-    this.index = Objects.requireNonNull(index, "index");
     Preconditions.checkArgument(fetchSize > 0,
         "invalid fetch size. Expected %s > 0", fetchSize);
     this.fetchSize = fetchSize;
-    if (type == null) {
+
+    if (index == null) {
       try {
-        this.tableMap = createTables(listTypesFromElastic());
+        this.tableMap = createTables(indicesFromElastic());
       } catch (IOException e) {
-        throw new UncheckedIOException("Couldn't get types for " + index, e);
+        throw new UncheckedIOException("Couldn't get indices", e);
       }
     } else {
-      this.tableMap = createTables(Collections.singleton(type));
+      this.tableMap = createTables(Collections.singleton(index));
     }
-
   }
 
   @Override protected Map<String, Table> getTableMap() {
     return tableMap;
   }
 
-  private Map<String, Table> createTables(Iterable<String> types) {
+  private Map<String, Table> createTables(Iterable<String> indices) {
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
-    for (String type : types) {
+    for (String index : indices) {
       final ElasticsearchTransport transport = new ElasticsearchTransport(client, mapper,
-          index, type, fetchSize);
-      builder.put(type, new ElasticsearchTable(transport));
+          index, fetchSize);
+      builder.put(index, new ElasticsearchTable(transport));
     }
     return builder.build();
   }
 
   /**
-   * Queries {@code _mapping} definition to automatically detect all types for an index
+   * Queries {@code _alias} definition to automatically detect all indices
    *
-   * @return list of types associated with this index
+   * @return list of indices
    * @throws IOException for any IO related issues
    * @throws IllegalStateException if reply is not understood
    */
-  private Set<String> listTypesFromElastic() throws IOException  {
-    final String endpoint = "/" + index + "/_mapping";
-    final Response response = client.performRequest("GET", endpoint);
+  private Set<String> indicesFromElastic() throws IOException {
+    final String endpoint = "/_alias";
+    final Response response = client.performRequest(new Request("GET", endpoint));
     try (InputStream is = response.getEntity().getContent()) {
       final JsonNode root = mapper.readTree(is);
-      if (!root.isObject() || root.size() != 1) {
+      if (!(root.isObject() && root.size() > 0)) {
         final String message = String.format(Locale.ROOT, "Invalid response for %s/%s "
-            + "Expected object of size 1 got %s (of size %d)", response.getHost(),
+            + "Expected object of at least size 1 got %s (of size %d)", response.getHost(),
             response.getRequestLine(), root.getNodeType(), root.size());
         throw new IllegalStateException(message);
       }
 
-      JsonNode mappings = root.iterator().next().get("mappings");
-      if (mappings == null || mappings.size() == 0) {
-        final String message = String.format(Locale.ROOT, "Index %s does not have any types",
-            index);
-        throw new IllegalStateException(message);
-      }
-
-      Set<String> types = Sets.newHashSet(mappings.fieldNames());
-      types.remove("_default_");
-      return types;
+      Set<String> indices = Sets.newHashSet(root.fieldNames());
+      return indices;
     }
   }
 
-  public String getIndex() {
-    return index;
-  }
 }
 
 // End ElasticsearchSchema.java

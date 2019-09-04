@@ -43,10 +43,6 @@ public class BabelParserTest extends SqlParserTest {
     return SqlBabelParserImpl.FACTORY;
   }
 
-  @Override public void testGenerateKeyWords() {
-    // by design, method only works in base class; no-ops in this sub-class
-  }
-
   @Test public void testReservedWords() {
     assertThat(isReserved("escape"), is(false));
   }
@@ -159,8 +155,45 @@ public class BabelParserTest extends SqlParserTest {
         "(?s)Encountered \"when then\" at .*");
   }
 
+  /** In Redshift, DATE is a function. It requires special treatment in the
+   * parser because it is a reserved keyword.
+   * (Curiously, TIMESTAMP and TIME are not functions.) */
+  @Test public void testDateFunction() {
+    final String expected = "SELECT `DATE`(`X`)\n"
+        + "FROM `T`";
+    sql("select date(x) from t").ok(expected);
+  }
+
+  /** In Redshift, PostgreSQL the DATEADD, DATEDIFF and DATE_PART functions have
+   * ordinary function syntax except that its first argument is a time unit
+   * (e.g. DAY). We must not parse that first argument as an identifier. */
+  @Test public void testRedshiftFunctionsWithDateParts() {
+    final String sql = "SELECT DATEADD(day, 1, t),\n"
+        + " DATEDIFF(week, 2, t),\n"
+        + " DATE_PART(year, t) FROM mytable";
+    final String expected = "SELECT `DATEADD`(DAY, 1, `T`),"
+        + " `DATEDIFF`(WEEK, 2, `T`), `DATE_PART`(YEAR, `T`)\n"
+        + "FROM `MYTABLE`";
+
+    sql(sql).ok(expected);
+  }
+
+  /** PostgreSQL and Redshift allow TIMESTAMP literals that contain only a
+   * date part. */
+  @Test public void testShortTimestampLiteral() {
+    sql("select timestamp '1969-07-20'")
+        .ok("SELECT TIMESTAMP '1969-07-20 00:00:00'");
+    // PostgreSQL allows the following. We should too.
+    sql("select ^timestamp '1969-07-20 1:2'^")
+        .fails("Illegal TIMESTAMP literal '1969-07-20 1:2': not in format "
+            + "'yyyy-MM-dd HH:mm:ss'"); // PostgreSQL gives 1969-07-20 01:02:00
+    sql("select ^timestamp '1969-07-20:23:'^")
+        .fails("Illegal TIMESTAMP literal '1969-07-20:23:': not in format "
+            + "'yyyy-MM-dd HH:mm:ss'"); // PostgreSQL gives 1969-07-20 23:00:00
+  }
+
   /**
-   * Babel parser's global {@code OOKAHEAD} is larger than the core
+   * Babel parser's global {@code LOOKAHEAD} is larger than the core
    * parser's. This causes different parse error message between these two
    * parsers. Here we define a looser error checker for Babel, so that we can
    * reuse failure testing codes from {@link SqlParserTest}.
@@ -199,6 +232,29 @@ public class BabelParserTest extends SqlParserTest {
         }
       }
     };
+  }
+
+  /** Tests parsing PostgreSQL-style "::" cast operator. */
+  @Test public void testParseInfixCast()  {
+    checkParseInfixCast("integer");
+    checkParseInfixCast("varchar");
+    checkParseInfixCast("boolean");
+    checkParseInfixCast("double");
+    checkParseInfixCast("bigint");
+
+    final String sql = "select -('12' || '.34')::VARCHAR(30)::INTEGER as x\n"
+        + "from t";
+    final String expected = ""
+        + "SELECT (- ('12' || '.34') :: VARCHAR(30) :: INTEGER) AS `X`\n"
+        + "FROM `T`";
+    sql(sql).ok(expected);
+  }
+
+  private void checkParseInfixCast(String sqlType) {
+    String sql = "SELECT x::" + sqlType + " FROM (VALUES (1, 2)) as tbl(x,y)";
+    String expected = "SELECT `X` :: " + sqlType.toUpperCase(Locale.ROOT) + "\n"
+        + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)";
+    sql(sql).ok(expected);
   }
 }
 

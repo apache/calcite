@@ -26,10 +26,8 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
-import org.apache.calcite.rel.core.EquiJoin;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
-import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Window;
@@ -346,15 +344,6 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       if (!reduceExpressions(join, expList, predicates, true,
           matchNullability)) {
         return;
-      }
-      if (join instanceof EquiJoin) {
-        final JoinInfo joinInfo =
-            JoinInfo.of(join.getLeft(), join.getRight(), expList.get(0));
-        if (!joinInfo.isEqui()) {
-          // This kind of join must be an equi-join, and the condition is
-          // no longer an equi-join. SemiJoin is an example of this.
-          return;
-        }
       }
       call.transformTo(
           join.copy(

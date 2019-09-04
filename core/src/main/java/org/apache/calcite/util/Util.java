@@ -857,6 +857,18 @@ public class Util {
   }
 
   /**
+   * Wraps an exception with {@link RuntimeException} and return it.
+   * If the exception is already an instance of RuntimeException,
+   * returns it directly.
+   */
+  public static RuntimeException toUnchecked(Exception e) {
+    if (e instanceof RuntimeException) {
+      return (RuntimeException) e;
+    }
+    return new RuntimeException(e);
+  }
+
+  /**
    * Retrieves messages in a exception and writes them to a string. In the
    * string returned, each message will appear on a different line.
    *
@@ -2414,6 +2426,11 @@ public class Util {
         return list.get(ordinals.get(index));
       }
     };
+  }
+
+  /** Returns a map which ignores any write operation. */
+  public static <K, V> Map<K, V> blackholeMap() {
+    return BlackholeMap.of();
   }
 
   //~ Inner Classes ----------------------------------------------------------

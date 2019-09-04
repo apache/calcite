@@ -31,15 +31,15 @@ adapters.
 
 ## Building from a source distribution
 
-Prerequisite is Java (JDK 8, 9, 10 or 11) on your path.
+Prerequisite is Java (JDK 8, 9, 10, 11, or 12) on your path.
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
 then build using the included maven wrapper:
 
 {% highlight bash %}
-$ tar xvfz calcite-1.19.0-source.tar.gz
-$ cd calcite-1.19.0
+$ tar xvfz calcite-1.20.0-source.tar.gz
+$ cd calcite-1.20.0
 $ ./mvnw install
 {% endhighlight %}
 
@@ -49,7 +49,7 @@ tests.
 ## Building from git
 
 Prerequisites are git
-and Java (JDK 8, 9, 10 or 11) on your path.
+and Java (JDK 8, 9, 10, 11, or 12) on your path.
 
 Create a local copy of the github repository,
 `cd` to its root directory,
@@ -457,12 +457,34 @@ particular release managers.
 
 ## Merging pull requests (for Calcite committers)
 
-Ask the contributor to squash the PR into a single commit with a message starting with [CALCITE-XXX] where XXX is the associated JIRA issue number.
-You can take this step yourself if needed.
-The contributor's name should also be added in parentheses at the end of the first line of the commit message.
-Finally, after a couple new lines make sure the message contains "Close apache/calcite#YYY" where YYY is the GitHub issue number.
-This is important as it is the only way we have to close issues on GitHub without asking the originator to do so manually.
-When the PR has been merged and pushed, be sure to mark the JIRA issue as resolved (do not use closed as that is reserved for release time).
+These are instructions for a Calcite committer who has reviewed a pull request
+from a contributor, found it satisfactory, and is about to merge it to master.
+Usually the contributor is not a committer (otherwise they would be committing
+it themselves, after you gave approval in a review).
+
+If the PR has multiple commits, squash them into a single commit. The
+commit message should follow the conventions outined in
+[contribution guidelines]({{ site.baseurl }}/develop/#contributing).
+If there are conflicts it is better to ask the contributor to take this step,
+otherwise it is preferred to do this manually since it saves time and also
+avoids unnecessary notification messages to many people on GitHub.
+
+If the contributor is not a committer, add their name in parentheses at the end
+of the first line of the commit message.
+
+If the merge is performed via command line (not through the GitHub web
+interface), make sure the message contains a line "Close apache/calcite#YYY",
+where YYY is the GitHub pull request identifier.
+
+When the PR has been merged and pushed, be sure to update the JIRA case. You
+must:
+ * resolve the issue (do not close it as this will be done by the release
+manager);
+ * select "Fixed" as resolution cause;
+ * mark the appropriate version (e.g., 1.20.0) in the "Fix version" field;
+ * add a comment (e.g., "Fixed in ...") with a hyperlink pointing to the commit
+which resolves the issue (in GitHub or GitBox), and also thank the contributor
+for their contribution.
 
 ## Set up PGP signing keys (for Calcite committers)
 
@@ -884,7 +906,7 @@ Merge the release branch back into `master` (e.g. `git merge --ff-only branch-X.
 After 24 hours, announce the release by sending an email to
 [announce@apache.org](https://mail-archives.apache.org/mod_mbox/www-announce/).
 You can use
-[the 1.10.0 announcement](https://mail-archives.apache.org/mod_mbox/calcite-dev/201610.mbox/%3C11A13D1A-8364-4A34-A11B-A8E5EA57A740%40apache.org%3E)
+[the 1.20.0 announcement](https://mail-archives.apache.org/mod_mbox/www-announce/201906.mbox/%3CCA%2BEpF8tcJcZ41rVuwJODJmyRy-qAxZUQm9OxKsoDi07c2SKs_A%40mail.gmail.com%3E)
 as a template. Be sure to include a brief description of the project.
 
 ## Publishing the web site (for Calcite committers)

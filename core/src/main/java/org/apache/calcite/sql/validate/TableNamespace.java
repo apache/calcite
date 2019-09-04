@@ -93,12 +93,11 @@ class TableNamespace extends AbstractNamespace {
         ImmutableList.builder();
     builder.addAll(this.extendedFields);
     builder.addAll(
-        SqlValidatorUtil.getExtendedColumns(validator.getTypeFactory(),
+        SqlValidatorUtil.getExtendedColumns(validator,
             getTable(), extendList));
     final List<RelDataTypeField> extendedFields = builder.build();
     final Table schemaTable = table.unwrap(Table.class);
-    if (schemaTable != null
-        && table instanceof RelOptTable
+    if (table instanceof RelOptTable
         && (schemaTable instanceof ExtensibleTable
           || schemaTable instanceof ModifiableViewTable)) {
       checkExtendedColumnTypes(extendList);
@@ -132,8 +131,7 @@ class TableNamespace extends AbstractNamespace {
    */
   private void checkExtendedColumnTypes(SqlNodeList extendList) {
     final List<RelDataTypeField> extendedFields =
-        SqlValidatorUtil.getExtendedColumns(
-            validator.getTypeFactory(), table, extendList);
+        SqlValidatorUtil.getExtendedColumns(validator, table, extendList);
     final List<RelDataTypeField> baseFields =
         getBaseRowType().getFieldList();
     final Map<String, Integer> nameToIndex =

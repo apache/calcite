@@ -358,6 +358,12 @@ data: {
       dataTypeParserMethods: [
       ]
 
+      # List of methods for parsing builtin function calls.
+      # Return type of method implementation should be "SqlNode".
+      # Example: DateFunctionCall().
+      builtinFunctionCallMethods: [
+      ]
+
       # List of methods for parsing extensions to "ALTER <scope>" calls.
       # Each must accept arguments "(SqlParserPos pos, String scope)".
       alterStatementParserMethods: [
@@ -375,6 +381,14 @@ data: {
       dropStatementParserMethods: [
       ]
 
+      # Binary operators tokens
+      binaryOperatorsTokens: [
+      ]
+
+      # Binary operators initialization
+      extraBinaryExpressions: [
+      ]
+
       # List of files in @includes directory that have parser method
       # implementations for parsing custom SQL statements, literals or types
       # given as part of "statementParserMethods", "literalParserMethods" or
@@ -383,6 +397,7 @@ data: {
         "parserImpls.ftl"
       ]
 
+      includePosixOperators: false
       includeCompoundIdentifier: true
       includeBraces: true
       includeAdditionalDeclarations: false

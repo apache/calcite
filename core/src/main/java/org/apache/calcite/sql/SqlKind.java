@@ -444,6 +444,16 @@ public enum SqlKind {
   SIMILAR,
 
   /**
+   * The "~" operator.
+   */
+  POSIX_REGEX_CASE_SENSITIVE,
+
+  /**
+   * The "~*" operator.
+   */
+  POSIX_REGEX_CASE_INSENSITIVE,
+
+  /**
    * The "BETWEEN" operator.
    */
   BETWEEN,
@@ -715,7 +725,8 @@ public enum SqlKind {
   COLUMN_LIST,
 
   /**
-   * The "CAST" operator.
+   * The "CAST" operator, and also the PostgreSQL-style infix cast operator
+   * "::".
    */
   CAST,
 
@@ -760,6 +771,11 @@ public enum SqlKind {
   EXTRACT,
 
   /**
+   * The "REVERSE" function (SQL Server, MySQL).
+   */
+  REVERSE,
+
+  /**
    * Call to a function using JDBC function syntax.
    */
   JDBC_FN,
@@ -778,11 +794,6 @@ public enum SqlKind {
    * The JSON value expression.
    */
   JSON_VALUE_EXPRESSION,
-
-  /**
-   * The JSON API common syntax.
-   */
-  JSON_API_COMMON_SYNTAX,
 
   /**
    * The {@code JSON_ARRAYAGG} aggregate function.
@@ -1252,7 +1263,7 @@ public enum SqlKind {
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
                   VALUES, WITH, WITH_ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
-                  JSON_VALUE_EXPRESSION, JSON_API_COMMON_SYNTAX),
+                  JSON_VALUE_EXPRESSION),
               AGGREGATE, DML, DDL));
 
   /**
@@ -1266,11 +1277,11 @@ public enum SqlKind {
    * Category consisting of regular and special functions.
    *
    * <p>Consists of regular functions {@link #OTHER_FUNCTION} and special
-   * functions {@link #ROW}, {@link #TRIM}, {@link #CAST}, {@link #JDBC_FN}.
+   * functions {@link #ROW}, {@link #TRIM}, {@link #CAST}, {@link #REVERSE}, {@link #JDBC_FN}.
    */
   public static final Set<SqlKind> FUNCTION =
       EnumSet.of(OTHER_FUNCTION, ROW, TRIM, LTRIM, RTRIM, CAST,
-                 JDBC_FN, POSITION, CHAR_LENGTH, CHARACTER_LENGTH, SUBSTRING, TRUNCATE);
+                 JDBC_FN, POSITION, REVERSE, CHAR_LENGTH, CHARACTER_LENGTH, SUBSTRING, TRUNCATE);
 
   /**
    * Category of SqlAvgAggFunction.
@@ -1307,6 +1318,49 @@ public enum SqlKind {
           IN, EQUALS, NOT_EQUALS,
           LESS_THAN, GREATER_THAN,
           GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL);
+
+  /**
+   * Category of binary arithmetic.
+   *
+   * <p>Consists of:
+   * {@link #PLUS}
+   * {@link #MINUS}
+   * {@link #TIMES}
+   * {@link #DIVIDE}
+   * {@link #MOD}.
+   */
+  public static final Set<SqlKind> BINARY_ARITHMETIC =
+      EnumSet.of(PLUS, MINUS, TIMES, DIVIDE, MOD);
+
+  /**
+   * Category of binary equality.
+   *
+   * <p>Consists of:
+   * {@link #EQUALS}
+   * {@link #NOT_EQUALS}
+   */
+  public static final Set<SqlKind> BINARY_EQUALITY =
+      EnumSet.of(EQUALS, NOT_EQUALS);
+
+  /**
+   * Category of binary comparison.
+   *
+   * <p>Consists of:
+   * {@link #EQUALS}
+   * {@link #NOT_EQUALS}
+   * {@link #GREATER_THAN}
+   * {@link #GREATER_THAN_OR_EQUAL}
+   * {@link #LESS_THAN}
+   * {@link #LESS_THAN_OR_EQUAL}
+   * {@link #IS_DISTINCT_FROM}
+   * {@link #IS_NOT_DISTINCT_FROM}
+   */
+  public static final Set<SqlKind> BINARY_COMPARISON =
+      EnumSet.of(
+          EQUALS, NOT_EQUALS,
+          GREATER_THAN, GREATER_THAN_OR_EQUAL,
+          LESS_THAN, LESS_THAN_OR_EQUAL,
+          IS_DISTINCT_FROM, IS_NOT_DISTINCT_FROM);
 
   /** Lower-case name. */
   public final String lowerName = name().toLowerCase(Locale.ROOT);
