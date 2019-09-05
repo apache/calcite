@@ -18,7 +18,9 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
@@ -87,8 +89,35 @@ public class HiveSqlDialect extends SqlDialect {
     case TRIM:
       unparseTrim(writer, call, leftPrec, rightPrec);
       break;
+    case CAST:
+      unparseCast(writer, call);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private void unparseCast(final SqlWriter writer, final SqlCall call) {
+    assert call.operandCount() == 2;
+    final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().getName());
+    call.operand(0).unparse(writer, 0, 0);
+    writer.sep("AS");
+    if (call.operand(1) instanceof SqlIntervalQualifier) {
+      writer.sep("INTERVAL");
+    }
+    if (call.operand(1) instanceof SqlDataTypeSpec) {
+      unparseDataType(writer, (SqlDataTypeSpec) call.operand(1));
+    } else {
+      call.operand(1).unparse(writer, 0, 0);
+    }
+    writer.endFunCall(frame);
+  }
+
+  private void unparseDataType(final SqlWriter writer, final SqlDataTypeSpec sqlDataTypeSpec) {
+    if ("INTEGER".equals(sqlDataTypeSpec.getTypeName().getSimple())) {
+      writer.keyword("INT");
+    } else {
+      sqlDataTypeSpec.unparse(writer, 0, 0);
     }
   }
 

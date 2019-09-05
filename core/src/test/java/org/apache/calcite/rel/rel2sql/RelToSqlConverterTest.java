@@ -803,6 +803,14 @@ public class RelToSqlConverterTest {
     sql(query).withHive().ok(expected);
   }
 
+  @Test public void testHiveCastAs() {
+    String query = "select cast( cast(\"employee_id\" as varchar) as int) "
+        + "from \"foodmart\".\"reserve_employee\" ";
+    final String expected = "SELECT CAST(CAST(employee_id AS VARCHAR) AS INT)\n"
+        + "FROM foodmart.reserve_employee";
+    sql(query).withHive().ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3220">[CALCITE-3220]
    * HiveSqlDialect should transform the SQL-standard TRIM function to TRIM,
