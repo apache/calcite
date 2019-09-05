@@ -11645,4 +11645,23 @@ LogicalSort(sort0=[$0], dir0=[ASC])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testReduceDecimal">
+        <Resource name="sql">
+            <![CDATA[select ename from emp where sal > 100]]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(ENAME=[$1])
+  LogicalFilter(condition=[>($5, 100.0:DECIMAL(4, 1))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(ENAME=[$1])
+  LogicalCalc(expr#0..8=[{inputs}], expr#9=[10:BIGINT], expr#10=[*($t5, $t9)], expr#11=[100.0:DECIMAL(4, 1)], expr#12=[Reinterpret($t11)], expr#13=[>($t10, $t12)], proj#0..8=[{exprs}], $condition=[$t13])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
