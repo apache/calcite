@@ -111,6 +111,7 @@ import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.ProjectWindowTransposeRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.rules.PushProjector;
+import org.apache.calcite.rel.rules.ReduceDecimalsRule;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule;
 import org.apache.calcite.rel.rules.SemiJoinFilterTransposeRule;
 import org.apache.calcite.rel.rules.SemiJoinJoinTransposeRule;
@@ -6299,6 +6300,19 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "order by e1.empno";
 
     sql(sql).with(HepProgram.builder().build()).withDecorrelation(true).checkUnchanged();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3319">[CALCITE-3319]
+   * AssertionError for ReduceDecimalsRule </a>
+   */
+  @Test public void testReduceDecimal() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(FilterToCalcRule.INSTANCE)
+        .addRuleInstance(ReduceDecimalsRule.INSTANCE)
+        .build();
+    checkPlanning(program, "select ename from emp where sal > cast (100.0 as decimal(4, 1))");
   }
 }
 
