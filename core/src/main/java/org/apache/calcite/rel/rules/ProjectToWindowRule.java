@@ -22,11 +22,13 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalCalc;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalWindow;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexDynamicParam;
@@ -53,6 +55,7 @@ import com.google.common.collect.Lists;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
@@ -165,6 +168,15 @@ public abstract class ProjectToWindowRule extends RelOptRule {
       final CalcRelSplitter transform = new WindowedAggRelSplitter(calc,
           call.builder()) {
         @Override protected RelNode handle(RelNode rel) {
+          if (rel instanceof LogicalProject && rel.getInput(0) instanceof LogicalWindow) {
+            // LogicalWindow doesn't change collation
+            // so need to reset collation to that of input rel
+            final RelTraitSet traits = rel.getTraitSet().replace(
+                    input.getTraitSet().getTrait(RelCollationTraitDef.INSTANCE));
+            final RelNode window = rel.getInput(0);
+            final RelNode newInput = window.copy(traits, window.getInputs());
+            return rel.copy(traits, Collections.singletonList(newInput));
+          }
           if (!(rel instanceof LogicalCalc)) {
             return rel;
           }
