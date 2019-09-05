@@ -749,6 +749,8 @@ public class SqlDialect {
     return true;
   }
 
+ /** Returns SqlNode for type in "cast(column as type)", which might be
+  * different between databases by type name, precision etc. */
   public SqlNode getCastSpec(RelDataType type) {
     if (type instanceof BasicSqlType) {
       int maxPrecision = -1;

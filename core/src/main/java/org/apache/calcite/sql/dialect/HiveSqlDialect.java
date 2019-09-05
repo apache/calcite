@@ -17,15 +17,21 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.SqlUserDefinedTypeNameSpec;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
 
 /**
  * A <code>SqlDialect</code> implementation for the Apache Hive database.
@@ -119,6 +125,18 @@ public class HiveSqlDialect extends SqlDialect {
 
   @Override public boolean supportsCharSet() {
     return false;
+  }
+
+  @Override public SqlNode getCastSpec(final RelDataType type) {
+    if (type instanceof BasicSqlType) {
+      switch (type.getSqlTypeName()) {
+      case INTEGER:
+        SqlUserDefinedTypeNameSpec typeNameSpec = new SqlUserDefinedTypeNameSpec(
+            new SqlIdentifier("INT", SqlParserPos.ZERO), SqlParserPos.ZERO);
+        return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+      }
+    }
+    return super.getCastSpec(type);
   }
 }
 
