@@ -20,7 +20,7 @@ limitations under the License.
   <parent>
     <groupId>org.apache.calcite</groupId>
     <artifactId>calcite</artifactId>
-    <version>1.21.0</version>
+    <version>1.22.0-SNAPSHOT</version>
   </parent>
 
   <!-- The basics. -->
