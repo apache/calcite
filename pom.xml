@@ -27,7 +27,7 @@ limitations under the License.
   <groupId>org.apache.calcite</groupId>
   <artifactId>calcite</artifactId>
   <packaging>pom</packaging>
-  <version>1.21.0-SNAPSHOT</version>
+  <version>1.21.0</version>
 
   <!-- More project information. -->
   <name>Calcite</name>
@@ -169,7 +169,7 @@ limitations under the License.
     <connection>scm:git:https://gitbox.apache.org/repos/asf/calcite.git</connection>
     <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/calcite.git</developerConnection>
     <url>https://github.com/apache/calcite</url>
-    <tag>HEAD</tag>
+    <tag>calcite-1.21.0</tag>
   </scm>
 
   <modules>

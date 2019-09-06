@@ -20,12 +20,12 @@ limitations under the License.
   <parent>
     <groupId>org.apache.calcite</groupId>
     <artifactId>calcite-example</artifactId>
-    <version>1.21.0-SNAPSHOT</version>
+    <version>1.21.0</version>
   </parent>
 
   <artifactId>calcite-example-csv</artifactId>
   <packaging>jar</packaging>
-  <version>1.21.0-SNAPSHOT</version>
+  <version>1.21.0</version>
   <name>Calcite Example CSV</name>
   <description>An example Calcite provider that reads CSV files</description>
 
