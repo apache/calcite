@@ -620,8 +620,7 @@ public class RelWriterTest {
         + "    LogicalProject(JOB=[$2], SAL=[$5])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
 
-    assertThat(s, isLinux(expected)
-    );
+    assertThat(s, isLinux(expected));
   }
 
   @Test public void testAggregateWithoutAlias() {
@@ -661,8 +660,7 @@ public class RelWriterTest {
         + "    LogicalProject(JOB=[$2], SAL=[$5])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
 
-    assertThat(s, isLinux(expected)
-    );
+    assertThat(s, isLinux(expected));
   }
 
   /** Returns the schema of a {@link org.apache.calcite.rel.core.TableScan}

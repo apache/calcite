@@ -371,8 +371,8 @@ public class Smalls {
   /** Example of a UDF with a non-static {@code eval} method,
    * and named parameters. */
   public static class MyPlusFunction {
-    public static final ThreadLocal<AtomicInteger> INSTANCE_COUNT
-        = new ThreadLocal<>().withInitial(() -> new AtomicInteger(0));
+    public static final ThreadLocal<AtomicInteger> INSTANCE_COUNT =
+        new ThreadLocal<>().withInitial(() -> new AtomicInteger(0));
 
     // Note: Not marked @Deterministic
     public MyPlusFunction() {
@@ -387,8 +387,8 @@ public class Smalls {
 
   /** As {@link MyPlusFunction} but declared to be deterministic. */
   public static class MyDeterministicPlusFunction {
-    public static final ThreadLocal<AtomicInteger> INSTANCE_COUNT
-        = new ThreadLocal<>().withInitial(() -> new AtomicInteger(0));
+    public static final ThreadLocal<AtomicInteger> INSTANCE_COUNT =
+        new ThreadLocal<>().withInitial(() -> new AtomicInteger(0));
 
     @Deterministic public MyDeterministicPlusFunction() {
       INSTANCE_COUNT.get().incrementAndGet();

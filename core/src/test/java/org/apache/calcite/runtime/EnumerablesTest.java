@@ -297,8 +297,7 @@ public class EnumerablesTest {
             e -> e.deptno,
             d -> d.deptno,
             (v0, v1) -> v0 + ", " + v1, null, false, true,
-            (v0, v1) -> v0.deptno < 30
-        )
+            (v0, v1) -> v0.deptno < 30)
             .toList()
             .toString(),
         equalTo("[Emp(10, Fred), null,"
@@ -326,8 +325,7 @@ public class EnumerablesTest {
             e -> e.deptno,
             d -> d.deptno,
             (v0, v1) -> v0 + ", " + v1, null, true, false,
-            (v0, v1) -> v0.deptno < 30
-        )
+            (v0, v1) -> v0.deptno < 30)
             .toList()
             .toString(),
         equalTo("[Emp(20, Theodore), Dept(20, Sales),"

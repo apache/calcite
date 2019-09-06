@@ -1102,13 +1102,14 @@ public class SqlToRelConverter {
       //   where emp.deptno <> null
       //         and q.indicator <> TRUE"
       //
-      // Note:
-      // Subquery can be used as SqlUpdate#condition like below:
-      // "update emp
-      //  set empno = 1 where emp.empno in (
-      //   select emp.empno from emp where emp.empno=2)"
+      // Note: Sub-query can be used as SqlUpdate#condition like below:
+      //
+      //   UPDATE emp
+      //   SET empno = 1 WHERE emp.empno IN (
+      //     SELECT emp.empno FROM emp WHERE emp.empno = 2)
+      //
       // In such case, when converting SqlUpdate#condition, bb.root is null
-      // and it makes no sense to do the subquery substituion.
+      // and it makes no sense to do the sub-query substitution.
       if (bb.root == null) {
         return;
       }

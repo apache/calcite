@@ -346,21 +346,28 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   /**
    * STRATEGIES
    *
-   * <p>with/Without subquery:</p>
+   * <p>with/Without sub-query:
+   *
    * <ul>
-   * <li>With subquery: find the common type through comparing the left hand side (LHS)
-   * expression types with corresponding right hand side (RHS) expression derived
-   * from the subquery expression's row type. Wrap the fields of the
-   * LHS and RHS in CAST operators if it is needed.</li>
-   * <li>Without subquery: convert the nodes of the RHS to the
-   * common type by checking all the argument types and find out
-   * the minimum common type that all the arguments can be cast to.</li>
+   *
+   * <li>With sub-query: find the common type through comparing the left hand
+   * side (LHS) expression types with corresponding right hand side (RHS)
+   * expression derived from the sub-query expression's row type. Wrap the
+   * fields of the LHS and RHS in CAST operators if it is needed.
+   *
+   * <li>Without sub-query: convert the nodes of the RHS to the common type by
+   * checking all the argument types and find out the minimum common type that
+   * all the arguments can be cast to.
+   *
    * </ul>
    *
-   * How to find the common type:
+   * <p>How to find the common type:
+   *
    * <ul>
-   *   <li>For both struct sql types(LHS and RHS), find the common type of every LHS and RHS
-   *   fields pair:
+   *
+   * <li>For both struct sql types (LHS and RHS), find the common type of every
+   * LHS and RHS fields pair:
+   *
    *<pre>
    * (field1, field2, field3)    (field4, field5, field6)
    *    |        |       |          |       |       |
@@ -435,7 +442,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
           coerced = coerceOperandType(scope, binding.getCall(), 0, desired)
               || coerced;
         }
-        // RSH may be a row values expression or subquery.
+        // RHS may be a row values expression or sub-query.
         if (node2 instanceof SqlNodeList) {
           final SqlNodeList node3 = (SqlNodeList) node2;
           boolean listCoerced = false;
@@ -456,7 +463,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
             }
           }
         } else {
-          // Another subquery.
+          // Another sub-query.
           SqlValidatorScope scope1 = node2 instanceof SqlSelect
               ? validator.getSelectScope((SqlSelect) node2)
               : scope;

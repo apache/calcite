@@ -244,8 +244,8 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
                         Expressions.constant(joinType.generatesNullsOnLeft()))
                     .append(
                         Expressions.constant(
-                            joinType.generatesNullsOnRight())).append(predicate)
-            ))
+                            joinType.generatesNullsOnRight()))
+                    .append(predicate)))
             .toBlock());
   }
 }
