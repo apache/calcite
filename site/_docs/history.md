@@ -193,7 +193,7 @@ other software versions as specified in `pom.xml`.
 * In `RelFieldCollation`, add a `withX` copy method
 * [<a href='https://issues.apache.org/jira/browse/CALCITE-2953'>CALCITE-2953</a>] `LatticeTest.testTileAlgorithm2` and `LatticeTest.testTileAlgorithm3` fail intermittently
 * [<a href='https://issues.apache.org/jira/browse/CALCITE-574'>CALCITE-574</a>] Remove `org.apache.calcite.util.Bug.CALCITE_461_FIXED`
-* [<a href='https://issues.apache.org/jira/browse/CALCITE-2951'>CALCITE-2951</a>] Support decorrelate sub-query that has aggregate with grouping sets (Haisheng Yuan)
+* [<a href='https://issues.apache.org/jira/browse/CALCITE-2951'>CALCITE-2951</a>] Support decorrelating a sub-query that has aggregate with grouping sets (Haisheng Yuan)
 * [<a href='https://issues.apache.org/jira/browse/CALCITE-2946'>CALCITE-2946</a>] `RelBuilder` wrongly skips creation of Aggregate that prunes columns if input produces one row at most
 * [<a href='https://issues.apache.org/jira/browse/CALCITE-2942'>CALCITE-2943</a>] Materialized view rewriting logic calls `getApplicableMaterializations` each time the rule is triggered
 * [<a href='https://issues.apache.org/jira/browse/CALCITE-2942'>CALCITE-2942</a>] Materialized view rewriting logic instantiates `RelMetadataQuery` each time the rule is triggered

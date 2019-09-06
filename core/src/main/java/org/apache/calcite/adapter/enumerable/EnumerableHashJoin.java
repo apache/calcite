@@ -33,6 +33,7 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
@@ -144,7 +145,6 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
     switch (joinType) {
     case SEMI:
     case ANTI:
-      assert joinInfo.isEqui();
       return implementHashSemiJoin(implementor, pref);
     default:
       return implementHashJoin(implementor, pref);
@@ -168,6 +168,18 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
         builder.append(
             "right", rightResult.block);
     final PhysType physType = leftResult.physType;
+    final PhysType keyPhysType =
+        leftResult.physType.project(
+            joinInfo.leftKeys, JavaRowFormat.LIST);
+    Expression predicate = Expressions.constant(null);
+    if (!joinInfo.nonEquiConditions.isEmpty()) {
+      RexNode nonEquiCondition = RexUtil.composeConjunction(
+          getCluster().getRexBuilder(), joinInfo.nonEquiConditions, true);
+      if (nonEquiCondition != null) {
+        predicate = EnumUtils.generatePredicate(implementor, getCluster().getRexBuilder(),
+            left, right, leftResult.physType, rightResult.physType, nonEquiCondition);
+      }
+    }
     return implementor.result(
         physType,
         builder.append(
@@ -177,7 +189,10 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
                     leftExpression,
                     rightExpression,
                     leftResult.physType.generateAccessor(joinInfo.leftKeys),
-                    rightResult.physType.generateAccessor(joinInfo.rightKeys))))
+                    rightResult.physType.generateAccessor(joinInfo.rightKeys),
+                    Util.first(keyPhysType.comparer(),
+                        Expressions.constant(null)),
+                    predicate)))
             .toBlock());
   }
 
@@ -199,6 +214,15 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
     final PhysType keyPhysType =
         leftResult.physType.project(
             joinInfo.leftKeys, JavaRowFormat.LIST);
+    Expression predicate = Expressions.constant(null);
+    if (!joinInfo.nonEquiConditions.isEmpty()) {
+      RexNode nonEquiCondition = RexUtil.composeConjunction(
+          getCluster().getRexBuilder(), joinInfo.nonEquiConditions, true);
+      if (nonEquiCondition != null) {
+        predicate = EnumUtils.generatePredicate(implementor, getCluster().getRexBuilder(),
+            left, right, leftResult.physType, rightResult.physType, nonEquiCondition);
+      }
+    }
     return implementor.result(
         physType,
         builder.append(
@@ -220,7 +244,9 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
                         Expressions.constant(joinType.generatesNullsOnLeft()))
                     .append(
                         Expressions.constant(
-                            joinType.generatesNullsOnRight())))).toBlock());
+                            joinType.generatesNullsOnRight())).append(predicate)
+            ))
+            .toBlock());
   }
 }
 

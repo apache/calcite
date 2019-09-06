@@ -1316,11 +1316,25 @@ Not implemented:
 
 ### Type conversion
 
+Generally an expression cannot contain values of different datatypes. For example, an expression cannot multiply 5 by 10 and then add 'JULIAN'.
+However, Calcite supports both implicit and explicit conversion of values from one datatype to another.
+
+#### Implicit and Explicit Type Conversion
+Calcite recommends that you specify explicit conversions, rather than rely on implicit or automatic conversions, for these reasons:
+
+* SQL statements are easier to understand when you use explicit datatype conversion functions.
+* Implicit datatype conversion can have a negative impact on performance, especially if the datatype of a column value is converted to that of a constant rather than the other way around.
+* Implicit conversion depends on the context in which it occurs and may not work the same way in every case. For example, implicit conversion from a datetime value to a VARCHAR value may return an unexpected format.
+
+Algorithms for implicit conversion are subject to change across Calcite releases. Behavior of explicit conversions is more predictable.
+
+#### Explicit Type Conversion
+
 | Operator syntax | Description
 |:--------------- | :----------
 | CAST(value AS type) | Converts a value to a given type.
 
-Supported data types:
+Supported data types syntax:
 
 {% highlight sql %}
 type:
@@ -1392,6 +1406,49 @@ timeZone:
       WITHOUT TIME ZONE
   |   WITH LOCAL TIME ZONE
 {% endhighlight %}
+
+#### Implicit Type Conversion
+Calcite automatically converts a value from one datatype to another when such a conversion makes sense. The table below is a matrix of Calcite type conversions. The table shows all possible conversions, without regard to the context in which it is made. The rules governing these details follow the table.
+
+| FROM-TO     | NULL | BOOLEAN | TINYINT | SMALLINT | INT | BIGINT | DECIMAL | FLOAT/REAL | DOUBLE | INTERVAL | DATE | TIME | TIMESTAMP | (VAR)CHAR | (VAR)BINARY
+|:----------- |:---- |:------- |:------- |:-------- |:--- |:------ |:------- |:---------- |:------ |:-------- |:---- |:---- |:--------- |:--------- |:-----------
+| NULL        | i    | i       | i       | i        | i   | i      | i       | i          | i      | i        | i    | i    | i         | i         | i
+| BOOLEAN     | x    | i       | e       | e        | e   | e      | e       | e          | e      | x        | x    | x    | x         | i         | x
+| TINYINT     | x    | e       | i       | i        | i   | i      | i       | i          | i      | e        | x    | x    | e         | i         | x
+| SMALLINT    | x    | e       | i       | i        | i   | i      | i       | i          | i      | e        | x    | x    | e         | i         | x
+| INT         | x    | e       | i       | i        | i   | i      | i       | i          | i      | e        | x    | x    | e         | i         | x
+| BIGINT      | x    | e       | i       | i        | i   | i      | i       | i          | i      | e        | x    | x    | e         | i         | x
+| DECIMAL     | x    | e       | i       | i        | i   | i      | i       | i          | i      | e        | x    | x    | e         | i         | x
+| FLOAT/REAL  | x    | e       | i       | i        | i   | i      | i       | i          | i      | x        | x    | x    | e         | i         | x
+| DOUBLE      | x    | e       | i       | i        | i   | i      | i       | i          | i      | x        | x    | x    | e         | i         | x
+| INTERVAL    | x    | x       | e       | e        | e   | e      | e       | x          | x      | i        | x    | x    | x         | e         | x
+| DATE        | x    | x       | x       | x        | x   | x      | x       | x          | x      | x        | i    | x    | i         | i         | x
+| TIME        | x    | x       | x       | x        | x   | x      | x       | x          | x      | x        | x    | i    | e         | i         | x
+| TIMESTAMP   | x    | x       | e       | e        | e   | e      | e       | e          | e      | x        | i    | e    | i         | i         | x
+| (VAR)CHAR   | x    | e       | i       | i        | i   | i      | i       | i          | i      | i        | i    | i    | i         | i         | i
+| (VAR)BINARY | x    | x       | x       | x        | x   | x      | x       | x          | x      | x        | e    | e    | e         | i         | i
+
+i: implicit cast / e: explicit cast / x: not allowed
+
+##### Conversion Contexts and Strategies
+* Set Operation(UNION/EXCEPT/INTERSECT): Compare every branch row data type and find the common type of each fields pair;
+* Arithmetic Expression: For binary arithmetic(`+`, `-`, `&`, `^`, `/`, `%`), promote string operand to data type of the other numeric operand;
+For binary comparison(`=`, `<`, `<=`, `<>`, `>`, `>=`),  
+  - If operands are STRING and TIMESTAMP, promotes to TIMESTAMP
+  - Make `1=true` and `0=false` always evaluates true
+  - Find common type for both operands if there is NUMERIC type operand
+* IN Expression: If with subquery, compare type of LHS and RHS, find the common type, if it is struct type, find wider type for every field;
+If without subquery and RHS is a node list, compare every node to find the common type;
+* CASE WHEN Expression(or COALESCE): Find then and else operands common wider type;
+* Datetime String +/- INTERVAL: Promote string to timestamp;
+* Builtin Function: Look up the families registered in the checker, find the family default type if checker rules allow it;
+* User Defined Function: Try to coerce based on the declared argument types of the `eval()` method.
+
+##### Strategies for Finding Common Type
+- If the operator has expected data types, just take them as the desired one. (e.g. the UDF would have `eval()` method which has reflection argument types);
+- If there is no expected data type but the data type families are registered, try to coerce the arguments to the family's default data type, i.e. the String family will have a VARCHAR type;
+- If neither expected data type nor families are specified, try to find the tightest common type of the node types, i.e. INT and DOUBLE will return DOUBLE, the numeric precision does not lose for this case;
+- If no tightest common type is found, try to find a wider type, i.e. STRING and INT will return INT, we allow some precision loss when widening decimal to fractional, or promote to STRING type.
 
 ### Value constructors
 
@@ -2193,6 +2250,7 @@ semantics.
 | m p | MD5(string)                                  | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
 | m | MONTHNAME(date)                                | Returns the name, in the connection's locale, of the month in *datetime*; for example, it returns '二月' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | o | NVL(value1, value2)                            | Returns *value1* if *value1* is not null, otherwise *value2*
+| m o | REGEXP_REPLACE(string, regexp, rep, [, pos [, occurrence [, matchType]]]) | Replaces all substrings of *string* that match *regexp* with *rep* at the starting *pos* in expr (if omitted, the default is 1), *occurrence* means which occurrence of a match to search for (if omitted, the default is 1), *matchType* specifies how to perform matching
 | m p | REPEAT(string, integer)                      | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
 | m | REVERSE(string)                                | Returns *string* with the order of the characters reversed
 | m p | RIGHT(string, length)                        | Returns the rightmost *length* characters from the *string*
@@ -2200,7 +2258,7 @@ semantics.
 | m p | SHA1(string)                                 | Calculates a SHA-1 hash value of *string* and returns it as a hex string
 | m o p | SOUNDEX(string)                            | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
-| o | SUBSTR(string, position [, substring_length ]) | Returns a portion of *string*, beginning at character *position*, *substring_length* characters long. SUBSTR calculates lengths using characters as defined by the input character set
+| o | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
 | o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
 | o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced

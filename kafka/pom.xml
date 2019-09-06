@@ -26,8 +26,8 @@ limitations under the License.
   <!-- The basics. -->
   <artifactId>calcite-kafka</artifactId>
   <packaging>jar</packaging>
-  <name>calcite kafka</name>
-  <description>Kafka Adapter. Exposes kafka topic(s) as stream table(s).</description>
+  <name>Calcite Kafka</name>
+  <description>Kafka adapter for Calcite; exposes Kafka topics as stream tables</description>
 
   <properties>
     <top.dir>${project.basedir}/..</top.dir>

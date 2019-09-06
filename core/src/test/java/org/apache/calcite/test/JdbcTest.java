@@ -226,6 +226,15 @@ public class JdbcTest {
       + "   ]\n"
       + "}";
 
+  public static final String FOODMART_SCOTT_MODEL = "{\n"
+      + "  version: '1.0',\n"
+      + "   schemas: [\n"
+      + FOODMART_SCHEMA
+      + ",\n"
+      + SCOTT_SCHEMA
+      + "   ]\n"
+      + "}";
+
   public static final String START_OF_GROUP_DATA = "(values"
       + "(1,0,1),\n"
       + "(2,0,1),\n"

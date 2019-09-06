@@ -124,8 +124,8 @@ public class ExceptionMessageTest {
 
   @Test public void testSemanticError() {
     try {
+      // implicit type coercion.
       runQuery("select \"name\" - \"id\" from \"entries\"");
-      fail("Query with semantic error should fail");
     } catch (SQLException e) {
       assertThat(e.getMessage(),
           containsString("Cannot apply '-' to arguments"));

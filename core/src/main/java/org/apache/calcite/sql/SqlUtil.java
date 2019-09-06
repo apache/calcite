@@ -190,7 +190,7 @@ public abstract class SqlUtil {
   public static boolean isNull(SqlNode node) {
     return isNullLiteral(node, false)
         || node.getKind() == SqlKind.CAST
-        && isNull(((SqlCall) node).operand(0));
+            && isNull(((SqlCall) node).operand(0));
   }
 
   /**
@@ -419,6 +419,8 @@ public abstract class SqlUtil {
    * @param category      whether a function or a procedure. (If a procedure is
    *                      being invoked, the overload rules are simpler.)
    * @param nameMatcher   Whether to look up the function case-sensitively
+   * @param coerce        Whether to allow type coercion when do filter routines
+   *                      by parameter types
    * @return matching routine, or null if none found
    *
    * @see Glossary#SQL99 SQL:1999 Part 2 Section 10.4
@@ -426,7 +428,8 @@ public abstract class SqlUtil {
   public static SqlOperator lookupRoutine(SqlOperatorTable opTab,
       SqlIdentifier funcName, List<RelDataType> argTypes,
       List<String> argNames, SqlFunctionCategory category,
-      SqlSyntax syntax, SqlKind sqlKind, SqlNameMatcher nameMatcher) {
+      SqlSyntax syntax, SqlKind sqlKind, SqlNameMatcher nameMatcher,
+      boolean coerce) {
     Iterator<SqlOperator> list =
         lookupSubjectRoutines(
             opTab,
@@ -436,7 +439,8 @@ public abstract class SqlUtil {
             syntax,
             sqlKind,
             category,
-            nameMatcher);
+            nameMatcher,
+            coerce);
     if (list.hasNext()) {
       // return first on schema path
       return list.next();
@@ -453,14 +457,16 @@ public abstract class SqlUtil {
   /**
    * Looks up all subject routines matching the given name and argument types.
    *
-   * @param opTab     operator table to search
-   * @param funcName  name of function being invoked
-   * @param argTypes  argument types
-   * @param argNames  argument names, or null if call by position
-   * @param sqlSyntax the SqlSyntax of the SqlOperator being looked up
-   * @param sqlKind   the SqlKind of the SqlOperator being looked up
-   * @param category  Category of routine to look up
+   * @param opTab       operator table to search
+   * @param funcName    name of function being invoked
+   * @param argTypes    argument types
+   * @param argNames    argument names, or null if call by position
+   * @param sqlSyntax   the SqlSyntax of the SqlOperator being looked up
+   * @param sqlKind     the SqlKind of the SqlOperator being looked up
+   * @param category    Category of routine to look up
    * @param nameMatcher Whether to look up the function case-sensitively
+   * @param coerce      Whether to allow type coercion when do filter routine
+   *                    by parameter types
    * @return list of matching routines
    * @see Glossary#SQL99 SQL:1999 Part 2 Section 10.4
    */
@@ -472,7 +478,8 @@ public abstract class SqlUtil {
       SqlSyntax sqlSyntax,
       SqlKind sqlKind,
       SqlFunctionCategory category,
-      SqlNameMatcher nameMatcher) {
+      SqlNameMatcher nameMatcher,
+      boolean coerce) {
     // start with all routines matching by name
     Iterator<SqlOperator> routines =
         lookupSubjectRoutinesByName(opTab, funcName, sqlSyntax, category,
@@ -490,13 +497,14 @@ public abstract class SqlUtil {
 
     // second pass:  eliminate routines which don't accept the given
     // argument types
-    routines = filterRoutinesByParameterType(sqlSyntax, routines, argTypes, argNames);
+    routines = filterRoutinesByParameterType(sqlSyntax, routines, argTypes, argNames, coerce);
 
     // see if we can stop now; this is necessary for the case
-    // of builtin functions where we don't have param type info
+    // of builtin functions where we don't have param type info,
+    // or UDF whose operands can make type coercion.
     final List<SqlOperator> list = Lists.newArrayList(routines);
     routines = list.iterator();
-    if (list.size() < 2) {
+    if (list.size() < 2 || coerce) {
       return routines;
     }
 
@@ -572,7 +580,9 @@ public abstract class SqlUtil {
   private static Iterator<SqlOperator> filterRoutinesByParameterType(
       SqlSyntax syntax,
       final Iterator<SqlOperator> routines,
-      final List<RelDataType> argTypes, final List<String> argNames) {
+      final List<RelDataType> argTypes,
+      final List<String> argNames,
+      final boolean coerce) {
     if (syntax != SqlSyntax.FUNCTION) {
       return routines;
     }
@@ -581,20 +591,16 @@ public abstract class SqlUtil {
     return (Iterator) Iterators.filter(
         Iterators.filter(routines, SqlFunction.class),
         function -> {
-          final List<RelDataType> paramTypes =
-              Objects.requireNonNull(function).getParamTypes();
-
+          List<RelDataType> paramTypes = function.getParamTypes();
           if (paramTypes == null) {
-            // no parameter information for builtins; keep for now
+            // no parameter information for builtins; keep for now,
+            // the type coerce will not work here.
             return true;
           }
-
           // convert to mutable list.
           List<RelDataType> permutedParamTypes = Lists.newArrayList(paramTypes);
-
           final List<RelDataType> permutedArgTypes;
           boolean varArgs = function.isVarArgs();
-
           if (!varArgs) {
             if (argNames != null) {
               // Arguments passed by name. Make sure that the function has
@@ -617,30 +623,23 @@ public abstract class SqlUtil {
             } else {
               permutedArgTypes = Lists.newArrayList(argTypes);
             }
-
           } else {
-
             RelDataType varArgsType = permutedParamTypes.get(paramTypes.size() - 1);
             permutedArgTypes = Lists.newArrayList(argTypes);
-
             while (permutedParamTypes.size() < argTypes.size()) {
               permutedParamTypes.add(varArgsType);
             }
-
           }
-
           for (Pair<RelDataType, RelDataType> p
               : Pair.zip(permutedParamTypes, permutedArgTypes)) {
             final RelDataType argType = p.right;
             final RelDataType paramType = p.left;
             if (argType != null
-                && !SqlTypeUtil.canCastFrom(paramType, argType, false)) {
+                && !SqlTypeUtil.canCastFrom(paramType, argType, coerce)) {
               return false;
             }
           }
-
           return true;
-
         });
   }
 
