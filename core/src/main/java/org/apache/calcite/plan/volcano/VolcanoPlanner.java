@@ -882,6 +882,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           return litmus.fail("subset [{}] is in wrong set [{}]",
               subset.getDescription(), set);
         }
+
+        // Make sure best RelNode is valid
+        if (subset.best != null && !subset.set.rels.contains(subset.best)) {
+          return litmus.fail("RelSubset [{}] does not contain its best RelNode [{}]",
+                  subset.getDescription(), subset.best.getDescription());
+        }
+
         for (RelNode rel : subset.getRels()) {
           RelOptCost relCost = getCost(rel, rel.getCluster().getMetadataQuery());
           if (relCost.isLt(subset.bestCost)) {
@@ -1440,6 +1447,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         boolean existed = subset.set.rels.remove(rel);
         assert existed : "rel was not known to its set";
         final RelSubset equivSubset = getSubset(equivRel);
+        if (subset.best == rel) {
+          subset.best = equivRel;
+          subset.bestCost = getCost(equivRel);
+        }
+
         if (equivSubset != subset) {
           // The equivalent relational expression is in a different
           // subset, therefore the sets are equivalent.

@@ -1493,6 +1493,54 @@ public class RexProgramTest extends RexProgramBuilderBase {
         "false");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3198">[CALCITE-3198]
+   * Enhance RexSimplify to handle (x&lt;&gt;a or x&lt;&gt;b)</a>. */
+  @Test public void testSimplifyOrNotEqualsNotNullable() {
+    checkSimplify(
+        or(
+            ne(vIntNotNull(), literal(1)),
+            ne(vIntNotNull(), literal(2))),
+        "true");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3198">[CALCITE-3198]
+   * Enhance RexSimplify to handle (x&lt;&gt;a or x&lt;&gt;b)</a>. */
+  @Test public void testSimplifyOrNotEqualsNotNullable2() {
+    checkSimplify(
+        or(
+            ne(vIntNotNull(0), literal(1)),
+            eq(vIntNotNull(1), literal(10)),
+            ne(vIntNotNull(0), literal(2))),
+        "true");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3198">[CALCITE-3198]
+   * Enhance RexSimplify to handle (x&lt;&gt;a or x&lt;&gt;b)</a>. */
+  @Test public void testSimplifyOrNotEqualsNullable() {
+    checkSimplify3(
+        or(
+            ne(vInt(), literal(1)),
+            ne(vInt(), literal(2))),
+        "OR(IS NOT NULL(?0.int0), null)", "IS NOT NULL(?0.int0)", "true");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3198">[CALCITE-3198]
+   * Enhance RexSimplify to handle (x&lt;&gt;a or x&lt;&gt;b)</a>. */
+  @Test public void testSimplifyOrNotEqualsNullable2() {
+    checkSimplify3(
+        or(
+            ne(vInt(0), literal(1)),
+            eq(vInt(1), literal(10)),
+            ne(vInt(0), literal(2))),
+        "OR(IS NOT NULL(?0.int0), null, =(?0.int1, 10))",
+        "OR(IS NOT NULL(?0.int0), =(?0.int1, 10))",
+        "true");
+  }
+
   @Test public void testSimplifyAndPush() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType rowType = typeFactory.builder()
@@ -2704,6 +2752,39 @@ public class RexProgramTest extends RexProgramBuilderBase {
     assertThat(e.toString(), is("IN(?0.int0, 1, 2)"));
   }
 
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3192">[CALCITE-3192]
+   * Simplify OR incorrectly weaks condition</a>. */
+  @Test public void testOrSimplificationNotWeakensCondition() {
+    // "1 < a or (a < 3 and b = 2)" can't be simplified
+    checkSimplifyUnchanged(
+        or(
+            lt(literal(1), vIntNotNull()),
+            and(
+                lt(vIntNotNull(), literal(3)),
+                vBoolNotNull(2))));
+  }
+
+  @Test public void testIsNullSimplificationWithUnaryPlus() {
+    RexNode expr =
+        isNotNull(coalesce(unaryPlus(vInt(1)), vIntNotNull(0)));
+    RexNode s = simplify.simplifyUnknownAs(expr, RexUnknownAs.UNKNOWN);
+
+    assertThat(expr.isAlwaysTrue(), is(true));
+    assertThat(s, is(trueLiteral));
+  }
+
+  @Test public void testIsNullSimplificationWithIsDistinctFrom() {
+    RexNode expr =
+        isNotNull(
+            case_(vBool(),
+                isDistinctFrom(falseLiteral, vBoolNotNull(0)),
+                vBoolNotNull(2)));
+    RexNode s = simplify.simplifyUnknownAs(expr, RexUnknownAs.UNKNOWN);
+
+    assertThat(expr.isAlwaysTrue(), is(true));
+    assertThat(s, is(trueLiteral));
+  }
 }
 
 // End RexProgramTest.java

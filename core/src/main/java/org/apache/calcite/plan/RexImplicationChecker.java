@@ -28,7 +28,6 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.fun.SqlCastFunction;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.trace.CalciteLogger;
 
@@ -464,7 +463,7 @@ public class RexImplicationChecker {
 
     private void updateUnaryOpUsage(RexCall call) {
       final List<RexNode> operands = call.getOperands();
-      RexNode first = removeCast(operands.get(0));
+      RexNode first = RexUtil.removeCast(operands.get(0));
 
       if (first.isA(SqlKind.INPUT_REF)) {
         updateUsage(call.getOperator(), (RexInputRef) first, null);
@@ -473,8 +472,8 @@ public class RexImplicationChecker {
 
     private void updateBinaryOpUsage(RexCall call) {
       final List<RexNode> operands = call.getOperands();
-      RexNode first = removeCast(operands.get(0));
-      RexNode second = removeCast(operands.get(1));
+      RexNode first = RexUtil.removeCast(operands.get(0));
+      RexNode second = RexUtil.removeCast(operands.get(1));
 
       if (first.isA(SqlKind.INPUT_REF)
           && second.isA(SqlKind.LITERAL)) {
@@ -489,17 +488,6 @@ public class RexImplicationChecker {
 
     private SqlOperator reverse(SqlOperator op) {
       return RelOptUtil.op(op.getKind().reverse(), op);
-    }
-
-    private static RexNode removeCast(RexNode inputRef) {
-      if (inputRef instanceof RexCall) {
-        final RexCall castedRef = (RexCall) inputRef;
-        final SqlOperator operator = castedRef.getOperator();
-        if (operator instanceof SqlCastFunction) {
-          inputRef = castedRef.getOperands().get(0);
-        }
-      }
-      return inputRef;
     }
 
     private void updateUsage(SqlOperator op, RexInputRef inputRef,

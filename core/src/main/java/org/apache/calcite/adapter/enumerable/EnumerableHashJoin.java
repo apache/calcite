@@ -23,17 +23,17 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelNodes;
 import org.apache.calcite.rel.core.CorrelationId;
-import org.apache.calcite.rel.core.EquiJoin;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
@@ -45,7 +45,7 @@ import java.util.Set;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Join} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
-public class EnumerableHashJoin extends EquiJoin implements EnumerableRel {
+public class EnumerableHashJoin extends Join implements EnumerableRel {
   /** Creates an EnumerableHashJoin.
    *
    * <p>Use {@link #create} unless you know what you're doing. */
@@ -56,8 +56,7 @@ public class EnumerableHashJoin extends EquiJoin implements EnumerableRel {
       RelNode right,
       RexNode condition,
       Set<CorrelationId> variablesSet,
-      JoinRelType joinType)
-      throws InvalidRelException {
+      JoinRelType joinType) {
     super(
         cluster,
         traits,
@@ -72,7 +71,7 @@ public class EnumerableHashJoin extends EquiJoin implements EnumerableRel {
   protected EnumerableHashJoin(RelOptCluster cluster, RelTraitSet traits,
       RelNode left, RelNode right, RexNode condition, ImmutableIntList leftKeys,
       ImmutableIntList rightKeys, JoinRelType joinType,
-      Set<String> variablesStopped) throws InvalidRelException {
+      Set<String> variablesStopped) {
     this(cluster, traits, left, right, condition, CorrelationId.setOf(variablesStopped), joinType);
   }
 
@@ -82,8 +81,7 @@ public class EnumerableHashJoin extends EquiJoin implements EnumerableRel {
       RelNode right,
       RexNode condition,
       Set<CorrelationId> variablesSet,
-      JoinRelType joinType)
-      throws InvalidRelException {
+      JoinRelType joinType) {
     final RelOptCluster cluster = left.getCluster();
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet =
@@ -97,14 +95,8 @@ public class EnumerableHashJoin extends EquiJoin implements EnumerableRel {
   @Override public EnumerableHashJoin copy(RelTraitSet traitSet, RexNode condition,
       RelNode left, RelNode right, JoinRelType joinType,
       boolean semiJoinDone) {
-    try {
-      return new EnumerableHashJoin(getCluster(), traitSet, left, right,
-          condition, variablesSet, joinType);
-    } catch (InvalidRelException e) {
-      // Semantic error not possible. Must be a bug. Convert to
-      // internal error.
-      throw new AssertionError(e);
-    }
+    return new EnumerableHashJoin(getCluster(), traitSet, left, right,
+        condition, variablesSet, joinType);
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
@@ -153,7 +145,6 @@ public class EnumerableHashJoin extends EquiJoin implements EnumerableRel {
     switch (joinType) {
     case SEMI:
     case ANTI:
-      assert joinInfo.isEqui();
       return implementHashSemiJoin(implementor, pref);
     default:
       return implementHashJoin(implementor, pref);
@@ -177,6 +168,18 @@ public class EnumerableHashJoin extends EquiJoin implements EnumerableRel {
         builder.append(
             "right", rightResult.block);
     final PhysType physType = leftResult.physType;
+    final PhysType keyPhysType =
+        leftResult.physType.project(
+            joinInfo.leftKeys, JavaRowFormat.LIST);
+    Expression predicate = Expressions.constant(null);
+    if (!joinInfo.nonEquiConditions.isEmpty()) {
+      RexNode nonEquiCondition = RexUtil.composeConjunction(
+          getCluster().getRexBuilder(), joinInfo.nonEquiConditions, true);
+      if (nonEquiCondition != null) {
+        predicate = EnumUtils.generatePredicate(implementor, getCluster().getRexBuilder(),
+            left, right, leftResult.physType, rightResult.physType, nonEquiCondition);
+      }
+    }
     return implementor.result(
         physType,
         builder.append(
@@ -186,7 +189,10 @@ public class EnumerableHashJoin extends EquiJoin implements EnumerableRel {
                     leftExpression,
                     rightExpression,
                     leftResult.physType.generateAccessor(joinInfo.leftKeys),
-                    rightResult.physType.generateAccessor(joinInfo.rightKeys))))
+                    rightResult.physType.generateAccessor(joinInfo.rightKeys),
+                    Util.first(keyPhysType.comparer(),
+                        Expressions.constant(null)),
+                    predicate)))
             .toBlock());
   }
 
@@ -208,6 +214,15 @@ public class EnumerableHashJoin extends EquiJoin implements EnumerableRel {
     final PhysType keyPhysType =
         leftResult.physType.project(
             joinInfo.leftKeys, JavaRowFormat.LIST);
+    Expression predicate = Expressions.constant(null);
+    if (!joinInfo.nonEquiConditions.isEmpty()) {
+      RexNode nonEquiCondition = RexUtil.composeConjunction(
+          getCluster().getRexBuilder(), joinInfo.nonEquiConditions, true);
+      if (nonEquiCondition != null) {
+        predicate = EnumUtils.generatePredicate(implementor, getCluster().getRexBuilder(),
+            left, right, leftResult.physType, rightResult.physType, nonEquiCondition);
+      }
+    }
     return implementor.result(
         physType,
         builder.append(
@@ -229,7 +244,9 @@ public class EnumerableHashJoin extends EquiJoin implements EnumerableRel {
                         Expressions.constant(joinType.generatesNullsOnLeft()))
                     .append(
                         Expressions.constant(
-                            joinType.generatesNullsOnRight())))).toBlock());
+                            joinType.generatesNullsOnRight())).append(predicate)
+            ))
+            .toBlock());
   }
 }
 

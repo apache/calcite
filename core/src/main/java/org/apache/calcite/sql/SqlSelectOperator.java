@@ -215,7 +215,7 @@ public class SqlSelectOperator extends SqlOperator {
             writer.startList(SqlWriter.FrameTypeEnum.SIMPLE, "(", ")");
         writer.endList(frame);
       } else {
-        if (writer.getDialect().getDatabaseProduct() == SqlDialect.DatabaseProduct.BIG_QUERY) {
+        if (writer.getDialect().getConformance().isGroupByOrdinal()) {
           for (SqlNode groupKey : select.groupBy.getList()) {
             writer.sep(",");
             if (groupKey.getKind() == SqlKind.LITERAL) {

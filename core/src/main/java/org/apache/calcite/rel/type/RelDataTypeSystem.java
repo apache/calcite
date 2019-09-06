@@ -108,12 +108,7 @@ public interface RelDataTypeSystem {
    * at least one decimal operand and requires both operands to have exact
    * numeric types.
    *
-   * Default implementation is SQL 2003 compliant. Let p1, s1 be the precision
-   * and scale of the first operand Let p2, s2 be the precision and scale of the
-   * second operand Let p, s be the precision and scale of the result, Then the
-   * result type is a decimal with:
-   *
-   * Rules:
+   * <p>Rules:
    *
    * <ul>
    * <li>Let p1, s1 be the precision and scale of the first operand</li>
@@ -137,11 +132,19 @@ public interface RelDataTypeSystem {
    * @return the result type for a decimal addition.
    */
   default RelDataType deriveDecimalPlusType(RelDataTypeFactory typeFactory,
-                                            RelDataType type1, RelDataType type2) {
+      RelDataType type1, RelDataType type2) {
     if (SqlTypeUtil.isExactNumeric(type1)
             && SqlTypeUtil.isExactNumeric(type2)) {
       if (SqlTypeUtil.isDecimal(type1)
               || SqlTypeUtil.isDecimal(type2)) {
+        // Java numeric will always have invalid precision/scale,
+        // use its default decimal precision/scale instead.
+        type1 = RelDataTypeFactoryImpl.isJavaType(type1)
+            ? typeFactory.decimalOf(type1)
+            : type1;
+        type2 = RelDataTypeFactoryImpl.isJavaType(type2)
+            ? typeFactory.decimalOf(type2)
+            : type2;
         int p1 = type1.getPrecision();
         int p2 = type2.getPrecision();
         int s1 = type1.getScale();
@@ -183,9 +186,9 @@ public interface RelDataTypeSystem {
    * multiplication involves at least one decimal operand and requires both
    * operands to have exact numeric types.
    *
-   * Default implementation is SQL 2003 compliant.
+   * <p>The default implementation is SQL:2003 compliant.
    *
-   * Rules:
+   * <p>Rules:
    *
    * <ul>
    * <li>Let p1, s1 be the precision and scale of the first operand</li>
@@ -217,6 +220,14 @@ public interface RelDataTypeSystem {
             && SqlTypeUtil.isExactNumeric(type2)) {
       if (SqlTypeUtil.isDecimal(type1)
               || SqlTypeUtil.isDecimal(type2)) {
+        // Java numeric will always have invalid precision/scale,
+        // use its default decimal precision/scale instead.
+        type1 = RelDataTypeFactoryImpl.isJavaType(type1)
+            ? typeFactory.decimalOf(type1)
+            : type1;
+        type2 = RelDataTypeFactoryImpl.isJavaType(type2)
+            ? typeFactory.decimalOf(type2)
+            : type2;
         int p1 = type1.getPrecision();
         int p2 = type2.getPrecision();
         int s1 = type1.getScale();
@@ -248,9 +259,9 @@ public interface RelDataTypeSystem {
    * at least one decimal operand and requires both operands to have exact
    * numeric types.
    *
-   * Default implementation is SQL 2003 compliant.
+   * <p>The default implementation is SQL:2003 compliant.
    *
-   * Rules:
+   * <p>Rules:
    *
    * <ul>
    * <li>Let p1, s1 be the precision and scale of the first operand</li>
@@ -282,6 +293,14 @@ public interface RelDataTypeSystem {
             && SqlTypeUtil.isExactNumeric(type2)) {
       if (SqlTypeUtil.isDecimal(type1)
               || SqlTypeUtil.isDecimal(type2)) {
+        // Java numeric will always have invalid precision/scale,
+        // use its default decimal precision/scale instead.
+        type1 = RelDataTypeFactoryImpl.isJavaType(type1)
+            ? typeFactory.decimalOf(type1)
+            : type1;
+        type2 = RelDataTypeFactoryImpl.isJavaType(type2)
+            ? typeFactory.decimalOf(type2)
+            : type2;
         int p1 = type1.getPrecision();
         int p2 = type2.getPrecision();
         int s1 = type1.getScale();
@@ -323,8 +342,8 @@ public interface RelDataTypeSystem {
    * involves at least one decimal operand and requires both operands to have
    * exact numeric types.
    *
-   * Default implementation is SQL 2003 compliant: the declared type of the
-   * result is the declared type of the second operand (expression divisor).
+   * <p>The default implementation is SQL:2003 compliant: the declared type of
+   * the result is the declared type of the second operand (expression divisor).
    *
    * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.27
    *

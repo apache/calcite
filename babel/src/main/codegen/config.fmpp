@@ -840,6 +840,7 @@ data: {
       # Example: DateFunctionCall().
       builtinFunctionCallMethods: [
          "DateFunctionCall()"
+         "DateaddFunctionCall()"
       ]
 
       # List of methods for parsing extensions to "ALTER <scope>" calls.
@@ -855,6 +856,16 @@ data: {
       # List of methods for parsing extensions to "DROP" calls.
       # Each must accept arguments "(SqlParserPos pos)".
       dropStatementParserMethods: [
+      ]
+
+      # Binary operators tokens
+      binaryOperatorsTokens: [
+        "< INFIX_CAST: \"::\" >"
+      ]
+
+      # Binary operators initialization
+      extraBinaryExpressions: [
+        "InfixCast"
       ]
 
       # List of files in @includes directory that have parser method

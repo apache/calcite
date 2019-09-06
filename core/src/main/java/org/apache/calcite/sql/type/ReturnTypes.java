@@ -252,6 +252,12 @@ public abstract class ReturnTypes {
       cascade(DOUBLE, SqlTypeTransforms.TO_NULLABLE);
 
   /**
+   * Type-inference strategy whereby the result type of a call is a Char.
+   */
+  public static final SqlReturnTypeInference CHAR =
+          explicit(SqlTypeName.CHAR);
+
+  /**
    * Type-inference strategy whereby the result type of a call is an Integer.
    */
   public static final SqlReturnTypeInference INTEGER =
@@ -432,6 +438,7 @@ public abstract class ReturnTypes {
     }
     return null;
   };
+
   /**
    * Type-inference strategy whereby the result type of a call is
    * {@link #DECIMAL_SCALE0} with a fallback to {@link #ARG0} This rule
@@ -472,7 +479,7 @@ public abstract class ReturnTypes {
 
   /**
    * Type-inference strategy whereby the result type of a call is the decimal
-   * product of two exact numeric operands where at least one of the operands
+   * quotient of two exact numeric operands where at least one of the operands
    * is a decimal.
    */
   public static final SqlReturnTypeInference DECIMAL_QUOTIENT = opBinding -> {
@@ -481,6 +488,7 @@ public abstract class ReturnTypes {
     RelDataType type2 = opBinding.getOperandType(1);
     return typeFactory.getTypeSystem().deriveDecimalDivideType(typeFactory, type1, type2);
   };
+
   /**
    * Same as {@link #DECIMAL_QUOTIENT} but returns with nullability if any of
    * the operands is nullable by using
@@ -492,12 +500,13 @@ public abstract class ReturnTypes {
   /**
    * Type-inference strategy whereby the result type of a call is
    * {@link #DECIMAL_QUOTIENT_NULLABLE} with a fallback to
-   * {@link #ARG0_INTERVAL_NULLABLE} and {@link #LEAST_RESTRICTIVE} These rules
+   * {@link #ARG0_INTERVAL_NULLABLE} and {@link #LEAST_RESTRICTIVE}. These rules
    * are used for division.
    */
   public static final SqlReturnTypeInference QUOTIENT_NULLABLE =
-      chain(
-          DECIMAL_QUOTIENT_NULLABLE, ARG0_INTERVAL_NULLABLE, LEAST_RESTRICTIVE);
+      chain(DECIMAL_QUOTIENT_NULLABLE, ARG0_INTERVAL_NULLABLE,
+          LEAST_RESTRICTIVE);
+
   /**
    * Type-inference strategy whereby the result type of a call is the decimal
    * sum of two exact numeric operands where at least one of the operands is a
@@ -575,7 +584,12 @@ public abstract class ReturnTypes {
             (argType0.getSqlTypeName() == SqlTypeName.ANY)
                 || (argType1.getSqlTypeName() == SqlTypeName.ANY);
 
+        final boolean containsNullType =
+            (argType0.getSqlTypeName() == SqlTypeName.NULL)
+                || (argType1.getSqlTypeName() == SqlTypeName.NULL);
+
         if (!containsAnyType
+            && !containsNullType
             && !(SqlTypeUtil.inCharOrBinaryFamilies(argType0)
             && SqlTypeUtil.inCharOrBinaryFamilies(argType1))) {
           Preconditions.checkArgument(
@@ -583,6 +597,7 @@ public abstract class ReturnTypes {
         }
         SqlCollation pickedCollation = null;
         if (!containsAnyType
+            && !containsNullType
             && SqlTypeUtil.inCharFamily(argType0)) {
           if (!SqlTypeUtil.isCharTypeComparable(
               opBinding.collectOperandTypes().subList(0, 2))) {
@@ -632,6 +647,10 @@ public abstract class ReturnTypes {
           ret =
               typeFactory.createTypeWithCharsetAndCollation(ret,
                   pickedType.getCharset(), pickedType.getCollation());
+        }
+        if (ret.getSqlTypeName() == SqlTypeName.NULL) {
+          ret = typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
         }
         return ret;
       };

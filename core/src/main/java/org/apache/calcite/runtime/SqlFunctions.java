@@ -37,8 +37,10 @@ import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
+import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.language.Soundex;
 
 import com.google.common.base.Splitter;
@@ -170,6 +172,82 @@ public class SqlFunctions {
     } catch (IllegalArgumentException e) {
       return null;
     }
+  }
+
+  /** SQL MD5(string) function. */
+  public static @Nonnull String md5(@Nonnull String string)  {
+    return DigestUtils.md5Hex(string.getBytes(UTF_8));
+  }
+
+  /** SQL MD5(string) function for binary string. */
+  public static @Nonnull String md5(@Nonnull ByteString string)  {
+    return DigestUtils.md5Hex(string.getBytes());
+  }
+
+  /** SQL SHA1(string) function. */
+  public static @Nonnull String sha1(@Nonnull String string)  {
+    return DigestUtils.sha1Hex(string.getBytes(UTF_8));
+  }
+
+  /** SQL SHA1(string) function for binary string. */
+  public static @Nonnull String sha1(@Nonnull ByteString string)  {
+    return DigestUtils.sha1Hex(string.getBytes());
+  }
+
+  /** SQL {@code REGEXP_REPLACE} function with 3 arguments. */
+  public static String regexpReplace(String s, String regex,
+      String replacement) {
+    return regexpReplace(s, regex, replacement, 1, 0, null);
+  }
+
+  /** SQL {@code REGEXP_REPLACE} function with 4 arguments. */
+  public static String regexpReplace(String s, String regex, String replacement,
+      int pos) {
+    return regexpReplace(s, regex, replacement, pos, 0, null);
+  }
+
+  /** SQL {@code REGEXP_REPLACE} function with 5 arguments. */
+  public static String regexpReplace(String s, String regex, String replacement,
+      int pos, int occurrence) {
+    return regexpReplace(s, regex, replacement, pos, occurrence, null);
+  }
+
+  /** SQL {@code REGEXP_REPLACE} function with 6 arguments. */
+  public static String regexpReplace(String s, String regex, String replacement,
+      int pos, int occurrence, String matchType) {
+    if (pos < 1 || pos > s.length()) {
+      throw RESOURCE.invalidInputForRegexpReplace(Integer.toString(pos)).ex();
+    }
+
+    final int flags = makeRegexpFlags(matchType);
+    final Pattern pattern = Pattern.compile(regex, flags);
+
+    return Unsafe.regexpReplace(s, pattern, replacement, pos, occurrence);
+  }
+
+  private static int makeRegexpFlags(String stringFlags) {
+    int flags = 0;
+    if (stringFlags != null) {
+      for (int i = 0; i < stringFlags.length(); ++i) {
+        switch (stringFlags.charAt(i)) {
+        case 'i':
+          flags |= Pattern.CASE_INSENSITIVE;
+          break;
+        case 'c':
+          flags &= ~Pattern.CASE_INSENSITIVE;
+          break;
+        case 'n':
+          flags |= Pattern.DOTALL;
+          break;
+        case 'm':
+          flags |= Pattern.MULTILINE;
+          break;
+        default:
+          throw RESOURCE.invalidInputForRegexpReplace(stringFlags).ex();
+        }
+      }
+    }
+    return flags;
   }
 
   /** SQL SUBSTRING(string FROM ... FOR ...) function. */
@@ -353,6 +431,11 @@ public class SqlFunctions {
       return s;
     }
     return s.substring(len - n);
+  }
+
+  /** SQL CHR(long) function. */
+  public static String chr(long n) {
+    return String.valueOf(Character.toChars((int) n));
   }
 
   /** SQL CHARACTER_LENGTH(string) function. */
@@ -2661,8 +2744,13 @@ public class SqlFunctions {
     public FlatLists.ComparableList<E> current() {
       int i = 0;
       for (Object element : (Object[]) elements) {
-        final List list2 = (List) element;
-        Object[] a = list2.toArray();
+        Object[] a;
+        if (element.getClass().isArray()) {
+          a = (Object[]) element;
+        } else {
+          final List list2 = (List) element;
+          a = list2.toArray();
+        }
         System.arraycopy(a, 0, flatElements, i, a.length);
         i += a.length;
       }

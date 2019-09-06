@@ -245,8 +245,7 @@ public class TableFunctionTest {
     }
   }
 
-  private Connection getConnectionWithMultiplyFunction()
-      throws ClassNotFoundException, SQLException {
+  private Connection getConnectionWithMultiplyFunction() throws SQLException {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
     CalciteConnection calciteConnection =
@@ -363,8 +362,12 @@ public class TableFunctionTest {
     final String q = "select *\n"
         + "from table(\"s\".\"multiplication\"('2', 3, 100))\n"
         + "where c1 + 2 < c2";
-    final String e = "No match found for function signature "
-        + "multiplication(<CHARACTER>, <NUMERIC>, <NUMERIC>)";
+    // With type coercion, a cast node with null as argument would be
+    // passed to the function to infer the table row type, we use
+    // SqlUserDefinedTableMacro#convertArguments to decide the type.
+    // For this table function: multiplication,
+    // it will just throw IllegalArgumentException.
+    final String e = "java.lang.IllegalArgumentException";
     with().query(q).throws_(e);
   }
 

@@ -105,6 +105,7 @@ limitations under the License.
     <hydromatic-toolbox.version>0.3</hydromatic-toolbox.version>
     <hydromatic-tpcds.version>0.4</hydromatic-tpcds.version>
     <jackson.version>2.9.9</jackson.version>
+    <jackson-databind.version>2.9.9.3</jackson-databind.version>
     <janino.version>3.0.11</janino.version>
     <javacc-maven-plugin.version>2.4</javacc-maven-plugin.version>
     <java-diff.version>1.1.2</java-diff.version>
@@ -115,7 +116,7 @@ limitations under the License.
     <jsonpath.version>2.4.0</jsonpath.version>
     <jsoup.version>1.11.3</jsoup.version>
     <junit.version>4.12</junit.version>
-    <kafka.client.version>2.0.0</kafka.client.version>
+    <kafka.client.version>2.1.1</kafka.client.version>
     <kotlin.version>1.2.71</kotlin.version>
     <log4j2.version>2.11.0</log4j2.version>
     <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
@@ -129,7 +130,7 @@ limitations under the License.
     <natty.version>0.13</natty.version>
     <opencsv.version>2.3</opencsv.version>
     <oracle-jdbc6-driver.version>11.2.0.2.0</oracle-jdbc6-driver.version>
-    <owasp-dependency-check.version>3.3.2</owasp-dependency-check.version>
+    <owasp-dependency-check.version>5.2.1</owasp-dependency-check.version>
     <pig.version>0.16.0</pig.version>
     <postgresql.version>9.3-1102-jdbc41</postgresql.version>
     <quidem.version>0.9</quidem.version>
@@ -306,7 +307,7 @@ limitations under the License.
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>${jackson.version}</version>
+        <version>${jackson-databind.version}</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -745,7 +746,10 @@ limitations under the License.
         <!-- If you are looking to change source/target,
              change the maven.compiler.{source,target} property -->
         <configuration>
-          <compilerArgument>-Xlint:deprecation</compilerArgument>
+          <compilerArgs>
+            <arg>-Xlint:deprecation</arg>
+            <arg>-Werror</arg>
+          </compilerArgs>
         </configuration>
       </plugin>
       <plugin>

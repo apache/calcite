@@ -226,6 +226,15 @@ public class JdbcTest {
       + "   ]\n"
       + "}";
 
+  public static final String FOODMART_SCOTT_MODEL = "{\n"
+      + "  version: '1.0',\n"
+      + "   schemas: [\n"
+      + FOODMART_SCHEMA
+      + ",\n"
+      + SCOTT_SCHEMA
+      + "   ]\n"
+      + "}";
+
   public static final String START_OF_GROUP_DATA = "(values"
       + "(1,0,1),\n"
       + "(2,0,1),\n"
@@ -5547,7 +5556,8 @@ public class JdbcTest {
         .returns("PLAN=EnumerableValues(tuples=[[{ 1, 'ab' }]])\n\n");
     final String expectedXml = "PLAN=<RelNode type=\"EnumerableValues\">\n"
         + "\t<Property name=\"tuples\">\n"
-        + "\t\t[{ 1, &#39;ab&#39; }]\t</Property>\n"
+        + "\t\t[{ 1, &#39;ab&#39; }]\n"
+        + "\t</Property>\n"
         + "\t<Inputs/>\n"
         + "</RelNode>\n"
         + "\n";
@@ -6875,6 +6885,73 @@ public class JdbcTest {
         .returns("EXPR$0=[250, 500, 1000]\n");
   }
 
+  @Test public void testMatchSimple() {
+    final String sql = "select *\n"
+        + "from \"hr\".\"emps\" match_recognize (\n"
+        + "  order by \"empid\" desc\n"
+        + "  measures up.\"commission\" as c,\n"
+        + "    up.\"empid\" as empid,\n"
+        + "    2 as two\n"
+        + "  pattern (up s)\n"
+        + "  define up as up.\"empid\" = 100)";
+    final String convert = ""
+        + "LogicalProject(C=[$0], EMPID=[$1], TWO=[$2])\n"
+        + "  LogicalMatch(partition=[[]], order=[[0 DESC]], "
+        + "outputFields=[[C, EMPID, TWO]], allRows=[false], "
+        + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('UP', 'S')], "
+        + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
+        + "patternDefinitions=[[=(CAST(PREV(UP.$0, 0)):INTEGER NOT NULL, 100)]], "
+        + "inputFields=[[empid, deptno, name, salary, commission]])\n"
+        + "    EnumerableTableScan(table=[[hr, emps]])\n";
+    final String plan = "PLAN="
+        + "EnumerableMatch(partition=[[]], order=[[0 DESC]], "
+        + "outputFields=[[C, EMPID, TWO]], allRows=[false], "
+        + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('UP', 'S')], "
+        + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
+        + "patternDefinitions=[[=(CAST(PREV(UP.$0, 0)):INTEGER NOT NULL, 100)]], "
+        + "inputFields=[[empid, deptno, name, salary, commission]])\n"
+        + "  EnumerableTableScan(table=[[hr, emps]])";
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.REGULAR)
+        .query(sql)
+        .convertContains(convert)
+        .explainContains(plan)
+        .returns("C=1000; EMPID=100; TWO=2\nC=500; EMPID=200; TWO=2\n");
+  }
+
+  @Test public void testMatch() {
+    final String sql = "select *\n"
+        + "from \"hr\".\"emps\" match_recognize (\n"
+        + "  order by \"empid\" desc\n"
+        + "  measures \"commission\" as c,\n"
+        + "    \"empid\" as empid\n"
+        + "  pattern (s up)\n"
+        + "  define up as up.\"commission\" < prev(up.\"commission\"))";
+    final String convert = ""
+        + "LogicalProject(C=[$0], EMPID=[$1])\n"
+        + "  LogicalMatch(partition=[[]], order=[[0 DESC]], "
+        + "outputFields=[[C, EMPID]], allRows=[false], "
+        + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('S', 'UP')], "
+        + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
+        + "patternDefinitions=[[<(PREV(UP.$4, 0), PREV(UP.$4, 1))]], "
+        + "inputFields=[[empid, deptno, name, salary, commission]])\n"
+        + "    EnumerableTableScan(table=[[hr, emps]])\n";
+    final String plan = "PLAN="
+        + "EnumerableMatch(partition=[[]], order=[[0 DESC]], "
+        + "outputFields=[[C, EMPID]], allRows=[false], "
+        + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('S', 'UP')], "
+        + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
+        + "patternDefinitions=[[<(PREV(UP.$4, 0), PREV(UP.$4, 1))]], "
+        + "inputFields=[[empid, deptno, name, salary, commission]])\n"
+        + "  EnumerableTableScan(table=[[hr, emps]])";
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.REGULAR)
+        .query(sql)
+        .convertContains(convert)
+        .explainContains(plan)
+        .returns("C=1000; EMPID=100\nC=500; EMPID=200\n");
+  }
+
   @Test public void testJsonType() {
     CalciteAssert.that()
         .query("SELECT JSON_TYPE(v) AS c1\n"
@@ -7020,6 +7097,34 @@ public class JdbcTest {
   // Disable checkstyle, so it doesn't complain about fields like "customer_id".
   //CHECKSTYLE: OFF
 
+  /** A schema that contains two tables by reflection.
+   *
+   * <p>Here is the SQL to create equivalent tables in Oracle:
+   *
+   * <blockquote>
+   * <pre>
+   * CREATE TABLE "emps" (
+   *   "empid" INTEGER NOT NULL,
+   *   "deptno" INTEGER NOT NULL,
+   *   "name" VARCHAR2(10) NOT NULL,
+   *   "salary" NUMBER(6, 2) NOT NULL,
+   *   "commission" INTEGER);
+   * INSERT INTO "emps" VALUES (100, 10, 'Bill', 10000, 1000);
+   * INSERT INTO "emps" VALUES (200, 20, 'Eric', 8000, 500);
+   * INSERT INTO "emps" VALUES (150, 10, 'Sebastian', 7000, null);
+   * INSERT INTO "emps" VALUES (110, 10, 'Theodore', 11500, 250);
+   *
+   * CREATE TABLE "depts" (
+   *   "deptno" INTEGER NOT NULL,
+   *   "name" VARCHAR2(10) NOT NULL,
+   *   "employees" ARRAY OF "Employee",
+   *   "location" "Location");
+   * INSERT INTO "depts" VALUES (10, 'Sales', null, (-122, 38));
+   * INSERT INTO "depts" VALUES (30, 'Marketing', null, (0, 52));
+   * INSERT INTO "depts" VALUES (40, 'HR', null, null);
+   * </pre>
+   * </blockquote>
+   */
   public static class HrSchema {
     @Override public String toString() {
       return "HrSchema";
@@ -7053,6 +7158,81 @@ public class JdbcTest {
     public TranslatableTable view(String s) {
       return Smalls.view(s);
     }
+  }
+
+  public static class HrSchemaBig {
+    @Override public String toString() {
+      return "HrSchema";
+    }
+
+    public final Employee[] emps = {
+        new Employee(1, 10, "Bill", 10000, 1000),
+        new Employee(2, 20, "Eric", 8000, 500),
+        new Employee(3, 10, "Sebastian", 7000, null),
+        new Employee(4, 10, "Theodore", 11500, 250),
+        new Employee(5, 10, "Marjorie", 10000, 1000),
+        new Employee(6, 20, "Guy", 8000, 500),
+        new Employee(7, 10, "Dieudonne", 7000, null),
+        new Employee(8, 10, "Haroun", 11500, 250),
+        new Employee(9, 10, "Sarah", 10000, 1000),
+        new Employee(10, 20, "Gabriel", 8000, 500),
+        new Employee(11, 10, "Pierre", 7000, null),
+        new Employee(12, 10, "Paul", 11500, 250),
+        new Employee(13, 10, "Jacques", 100, 1000),
+        new Employee(14, 20, "Khawla", 8000, 500),
+        new Employee(15, 10, "Brielle", 7000, null),
+        new Employee(16, 10, "Hyuna", 11500, 250),
+        new Employee(17, 10, "Ahmed", 10000, 1000),
+        new Employee(18, 20, "Lara", 8000, 500),
+        new Employee(19, 10, "Capucine", 7000, null),
+        new Employee(20, 10, "Michelle", 11500, 250),
+        new Employee(21, 10, "Cerise", 10000, 1000),
+        new Employee(22, 80, "Travis", 8000, 500),
+        new Employee(23, 10, "Taylor", 7000, null),
+        new Employee(24, 10, "Seohyun", 11500, 250),
+        new Employee(25, 70, "Helen", 10000, 1000),
+        new Employee(26, 50, "Patric", 8000, 500),
+        new Employee(27, 10, "Clara", 7000, null),
+        new Employee(28, 10, "Catherine", 11500, 250),
+        new Employee(29, 10, "Anibal", 10000, 1000),
+        new Employee(30, 30, "Ursula", 8000, 500),
+        new Employee(31, 10, "Arturito", 7000, null),
+        new Employee(32, 70, "Diane", 11500, 250),
+        new Employee(33, 10, "Phoebe", 10000, 1000),
+        new Employee(34, 20, "Maria", 8000, 500),
+        new Employee(35, 10, "Edouard", 7000, null),
+        new Employee(36, 110, "Isabelle", 11500, 250),
+        new Employee(37, 120, "Olivier", 10000, 1000),
+        new Employee(38, 20, "Yann", 8000, 500),
+        new Employee(39, 60, "Ralf", 7000, null),
+        new Employee(40, 60, "Emmanuel", 11500, 250),
+        new Employee(41, 10, "Berenice", 10000, 1000),
+        new Employee(42, 20, "Kylie", 8000, 500),
+        new Employee(43, 80, "Natacha", 7000, null),
+        new Employee(44, 100, "Henri", 11500, 250),
+        new Employee(45, 90, "Pascal", 10000, 1000),
+        new Employee(46, 90, "Sabrina", 8000, 500),
+        new Employee(47, 8, "Riyad", 7000, null),
+        new Employee(48, 5, "Andy", 11500, 250),
+    };
+    public final Department[] depts = {
+        new Department(10, "Sales", Arrays.asList(emps[0], emps[2]),
+            new Location(-122, 38)),
+        new Department(20, "Marketing", ImmutableList.of(), new Location(0, 52)),
+        new Department(30, "HR", Collections.singletonList(emps[1]), null),
+        new Department(40, "Administration", Arrays.asList(emps[0], emps[2]),
+            new Location(-122, 38)),
+        new Department(50, "Design", ImmutableList.of(), new Location(0, 52)),
+        new Department(60, "IT", Collections.singletonList(emps[1]), null),
+        new Department(70, "Production", Arrays.asList(emps[0], emps[2]),
+            new Location(-122, 38)),
+        new Department(80, "Finance", ImmutableList.of(), new Location(0, 52)),
+        new Department(90, "Accounting", Collections.singletonList(emps[1]), null),
+        new Department(100, "Research", Arrays.asList(emps[0], emps[2]),
+            new Location(-122, 38)),
+        new Department(110, "Maintenance", ImmutableList.of(), new Location(0, 52)),
+        new Department(120, "Client Support", Collections.singletonList(emps[1]), null),
+    };
   }
 
   public static class Employee {

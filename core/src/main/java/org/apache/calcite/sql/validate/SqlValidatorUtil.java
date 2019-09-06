@@ -107,10 +107,9 @@ public class SqlValidatorUtil {
       if (resolvedNamespace.isWrapperFor(TableNamespace.class)) {
         final TableNamespace tableNamespace = resolvedNamespace.unwrap(TableNamespace.class);
         final SqlValidatorTable validatorTable = tableNamespace.getTable();
-        final RelDataTypeFactory typeFactory = catalogReader.getTypeFactory();
         final List<RelDataTypeField> extendedFields = dmlNamespace.extendList == null
             ? ImmutableList.of()
-            : getExtendedColumns(typeFactory, validatorTable, dmlNamespace.extendList);
+            : getExtendedColumns(namespace.getValidator(), validatorTable, dmlNamespace.extendList);
         return getRelOptTable(
             tableNamespace, catalogReader, datasetName, usedDataset, extendedFields);
       }
@@ -145,7 +144,7 @@ public class SqlValidatorUtil {
    * Gets a list of extended columns with field indices to the underlying table.
    */
   public static List<RelDataTypeField> getExtendedColumns(
-      RelDataTypeFactory typeFactory, SqlValidatorTable table, SqlNodeList extendedColumns) {
+      SqlValidator validator, SqlValidatorTable table, SqlNodeList extendedColumns) {
     final ImmutableList.Builder<RelDataTypeField> extendedFields =
         ImmutableList.builder();
     final ExtensibleTable extTable = table.unwrap(ExtensibleTable.class);
@@ -159,7 +158,7 @@ public class SqlValidatorUtil {
       extendedFields.add(
           new RelDataTypeFieldImpl(identifier.toString(),
               extendedFieldOffset++,
-              type.deriveType(typeFactory)));
+              type.deriveType(validator)));
     }
     return extendedFields.build();
   }

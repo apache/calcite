@@ -46,7 +46,7 @@ public class EnumerableTableSpoolRule extends ConverterRule {
             spool.getInput().getTraitSet().replace(EnumerableConvention.INSTANCE)),
         spool.readType,
         spool.writeType,
-        spool.getTableName());
+        spool.getTable());
   }
 }
 

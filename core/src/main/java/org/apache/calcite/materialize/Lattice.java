@@ -61,7 +61,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 
 import java.util.ArrayList;
@@ -98,13 +100,15 @@ public class Lattice {
   public final double rowCountEstimate;
   public final ImmutableList<Measure> defaultMeasures;
   public final ImmutableList<Tile> tiles;
+  public final ImmutableListMultimap<Integer, Boolean> columnUses;
   public final LatticeStatisticProvider statisticProvider;
 
   private Lattice(CalciteSchema rootSchema, LatticeRootNode rootNode,
       boolean auto, boolean algorithm, long algorithmMaxMillis,
       LatticeStatisticProvider.Factory statisticProviderFactory,
       @Nullable Double rowCountEstimate, ImmutableList<Column> columns,
-      ImmutableSortedSet<Measure> defaultMeasures, ImmutableList<Tile> tiles) {
+      ImmutableSortedSet<Measure> defaultMeasures, ImmutableList<Tile> tiles,
+      ImmutableListMultimap<Integer, Boolean> columnUses) {
     this.rootSchema = rootSchema;
     this.rootNode = Objects.requireNonNull(rootNode);
     this.columns = Objects.requireNonNull(columns);
@@ -113,6 +117,7 @@ public class Lattice {
     this.algorithmMaxMillis = algorithmMaxMillis;
     this.defaultMeasures = defaultMeasures.asList(); // unique and sorted
     this.tiles = Objects.requireNonNull(tiles);
+    this.columnUses = columnUses;
 
     assert isValid(Litmus.THROW);
 
@@ -478,6 +483,24 @@ public class Lattice {
     return -1;
   }
 
+  /** Returns whether every use of a column is as an argument to a measure.
+   *
+   * <p>For example, in the query
+   * {@code select sum(x + y), sum(a + b) from t group by x + y}
+   * the expression "x + y" is used once as an argument to a measure,
+   * and once as a dimension.
+   *
+   * <p>Therefore, in a lattice created from that one query,
+   * {@code isAlwaysMeasure} for the derived column corresponding to "x + y"
+   * returns false, and for "a + b" returns true.
+   *
+   * @param column Column or derived column
+   * @return Whether all uses are as arguments to aggregate functions
+   */
+  public boolean isAlwaysMeasure(Column column) {
+    return !columnUses.get(column.ordinal).contains(false);
+  }
+
   /** Edge in the temporary graph. */
   private static class Edge extends DefaultEdge {
     public static final DirectedGraph.EdgeFactory<Vertex, Edge> FACTORY =
@@ -750,6 +773,8 @@ public class Lattice {
         new TreeSet<>();
     private final ImmutableList.Builder<Tile> tileListBuilder =
         ImmutableList.builder();
+    private final Multimap<Integer, Boolean> columnUses =
+        LinkedHashMultimap.create();
     private final CalciteSchema rootSchema;
     private boolean algorithm = false;
     private long algorithmMaxMillis = -1;
@@ -903,7 +928,7 @@ public class Lattice {
       return new Lattice(rootSchema, rootNode, auto,
           algorithm, algorithmMaxMillis, statisticProvider, rowCountEstimate,
           columnBuilder.build(), ImmutableSortedSet.copyOf(defaultMeasureSet),
-          tileListBuilder.build());
+          tileListBuilder.build(), ImmutableListMultimap.copyOf(columnUses));
     }
 
     /** Resolves the arguments of a
@@ -1045,6 +1070,17 @@ public class Lattice {
         return new DerivedColumn(ordinal,
             Util.first(alias, "e$" + derivedOrdinal), e, tableAliases);
       });
+    }
+
+    /** Records a use of a column.
+     *
+     * @param column Column
+     * @param measure Whether this use is as an argument to a measure;
+     *                e.g. "sum(x + y)" is a measure use of the expression
+     *                "x + y"; "group by x + y" is not
+     */
+    public void use(Column column, boolean measure) {
+      columnUses.put(column.ordinal, measure);
     }
 
     /** Work space for fixing up a tree of mutable nodes. */

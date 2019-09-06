@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.tpcds;
 
 import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -41,6 +40,10 @@ import org.junit.Test;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Consumer;
+
+import static org.apache.calcite.test.Matchers.hasTree;
+
+import static org.junit.Assert.assertThat;
 
 /** Unit test for {@link org.apache.calcite.adapter.tpcds.TpcdsSchema}.
  *
@@ -164,30 +167,30 @@ public class TpcdsTest {
 
   @Test public void testTableCount() {
     final CalciteAssert.AssertThat with = with();
-//    foo(with, "CALL_CENTER", 6);
-//    foo(with, "CATALOG_PAGE", 11_718);
-//    foo(with, "CATALOG_RETURNS", 144_067);
-//    foo(with, "CATALOG_SALES", 1_441_548);
-//    foo(with, "CUSTOMER", 100_000);
-//    foo(with, "CUSTOMER_ADDRESS", 50_000);
-//    foo(with, "CUSTOMER_DEMOGRAPHICS", 1_920_800);
-//    foo(with, "DATE_DIM", 73_049);
-//    foo(with, "HOUSEHOLD_DEMOGRAPHICS", 7_200);
-//    foo(with, "INCOME_BAND", 20);
-//    foo(with, "INVENTORY", 11_745_000);
-//    foo(with, "ITEM", 18_000);
-//    foo(with, "PROMOTION", 300);
-//    foo(with, "REASON", 35);
-//    foo(with, "SHIP_MODE", 20);
-//    foo(with, "STORE", 12);
-//    foo(with, "STORE_RETURNS", 287_514);
-//    foo(with, "STORE_SALES", 2_880_404);
-//    foo(with, "TIME_DIM", 86_400);
-//    foo(with, "WAREHOUSE", 5);
-//    foo(with, "WEB_PAGE", 60);
-//    foo(with, "WEB_RETURNS", 71_763);
-//    foo(with, "WEB_SALES", 719_384);
-//    foo(with, "WEB_SITE", 30);
+    foo(with, "CALL_CENTER", 6);
+    foo(with, "CATALOG_PAGE", 11_718);
+    foo(with, "CATALOG_RETURNS", 144_067);
+    foo(with, "CATALOG_SALES", 1_441_548);
+    foo(with, "CUSTOMER", 100_000);
+    foo(with, "CUSTOMER_ADDRESS", 50_000);
+    foo(with, "CUSTOMER_DEMOGRAPHICS", 1_920_800);
+    foo(with, "DATE_DIM", 73_049);
+    foo(with, "HOUSEHOLD_DEMOGRAPHICS", 7_200);
+    foo(with, "INCOME_BAND", 20);
+    foo(with, "INVENTORY", 11_745_000);
+    foo(with, "ITEM", 18_000);
+    foo(with, "PROMOTION", 300);
+    foo(with, "REASON", 35);
+    foo(with, "SHIP_MODE", 20);
+    foo(with, "STORE", 12);
+    foo(with, "STORE_RETURNS", 287_514);
+    foo(with, "STORE_SALES", 2_880_404);
+    foo(with, "TIME_DIM", 86_400);
+    foo(with, "WAREHOUSE", 5);
+    foo(with, "WEB_PAGE", 60);
+    foo(with, "WEB_RETURNS", 71_763);
+    foo(with, "WEB_SALES", 719_384);
+    foo(with, "WEB_SITE", 30);
     foo(with, "DBGEN_VERSION", 1);
   }
 
@@ -379,7 +382,20 @@ public class TpcdsTest {
                 builder.avg(false, "AGG4", builder.field("SS_SALES_PRICE")))
             .sortLimit(0, 100, builder.field("I_ITEM_ID"), builder.field("S_STATE"))
             .build();
-    System.out.println(RelOptUtil.toString(root));
+    String expectResult = ""
+        + "LogicalSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC], fetch=[100])\n"
+        + "  LogicalAggregate(group=[{84, 90}], AGG1=[AVG($10)], AGG2=[AVG($12)], AGG3=[AVG($19)], AGG4=[AVG($13)])\n"
+        + "    LogicalFilter(condition=[AND(=($0, $32), =($2, $89), =($7, $60), =($4, $23), =($24, 'M'), =($25, 'S'), =($26, 'HIGH SCHOOL'), =($38, 1998), IN($84, ARRAY('CA', 'OR', 'WA', 'TX', 'OK', 'MD')))])\n"
+        + "      LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "        LogicalTableScan(table=[[TPCDS, STORE_SALES]])\n"
+        + "        LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "          LogicalTableScan(table=[[TPCDS, CUSTOMER_DEMOGRAPHICS]])\n"
+        + "          LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "            LogicalTableScan(table=[[TPCDS, DATE_DIM]])\n"
+        + "            LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "              LogicalTableScan(table=[[TPCDS, STORE]])\n"
+        + "              LogicalTableScan(table=[[TPCDS, ITEM]])\n";
+    assertThat(root, hasTree(expectResult));
   }
 }
 

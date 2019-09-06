@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -106,80 +107,81 @@ public class SparkSqlDialect extends SqlDialect {
 
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call,
       final int leftPrec, final int rightPrec) {
-    switch (call.getKind()) {
+    if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
+      SqlUtil.unparseFunctionSyntax(SPARKSQL_SUBSTRING, writer, call);
+    } else {
+      switch (call.getKind()) {
 
-    case POSITION:
-      final SqlWriter.Frame frame = writer.startFunCall("INSTR");
-      writer.sep(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      if (3 == call.operandCount()) {
-        throw new RuntimeException("3rd operand Not Supported for Function INSTR in Hive");
-      }
-      writer.endFunCall(frame);
-      break;
-    case MOD:
-      SqlOperator op = SqlStdOperatorTable.PERCENT_REMAINDER;
-      SqlSyntax.BINARY.unparse(writer, op, call, leftPrec, rightPrec);
-      break;
-    case CHAR_LENGTH:
-    case CHARACTER_LENGTH:
-      final SqlWriter.Frame lengthFrame = writer.startFunCall("LENGTH");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(lengthFrame);
-      break;
-    case SUBSTRING:
-      final SqlWriter.Frame substringFrame = writer.startFunCall("SUBSTR");
-      for (SqlNode operand : call.getOperandList()) {
+      case POSITION:
+        final SqlWriter.Frame frame = writer.startFunCall("INSTR");
         writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endFunCall(substringFrame);
-      break;
-    case EXTRACT:
-      final SqlWriter.Frame extractFrame = writer.startFunCall(call.operand(0).toString());
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(extractFrame);
-      break;
-    case ARRAY_VALUE_CONSTRUCTOR:
-      writer.keyword(call.getOperator().getName());
-      final SqlWriter.Frame arrayFrame = writer.startList("(", ")");
-      for (SqlNode operand : call.getOperandList()) {
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
         writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endList(arrayFrame);
-      break;
-    case CONCAT:
-      final SqlWriter.Frame concatFrame = writer.startFunCall("CONCAT");
-      for (SqlNode operand : call.getOperandList()) {
-        writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endFunCall(concatFrame);
-      break;
-    case DIVIDE_INTEGER:
-      unparseDivideInteger(writer, call, leftPrec, rightPrec);
-      break;
-    case FLOOR:
-      if (call.operandCount() != 2) {
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        if (3 == call.operandCount()) {
+          throw new RuntimeException("3rd operand Not Supported for Function INSTR in Hive");
+        }
+        writer.endFunCall(frame);
+        break;
+      case MOD:
+        SqlOperator op = SqlStdOperatorTable.PERCENT_REMAINDER;
+        SqlSyntax.BINARY.unparse(writer, op, call, leftPrec, rightPrec);
+        break;
+      case CHAR_LENGTH:
+      case CHARACTER_LENGTH:
+        final SqlWriter.Frame lengthFrame = writer.startFunCall("LENGTH");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.endFunCall(lengthFrame);
+        break;
+      case SUBSTRING:
+        final SqlWriter.Frame substringFrame = writer.startFunCall("SUBSTR");
+        for (SqlNode operand : call.getOperandList()) {
+          writer.sep(",");
+          operand.unparse(writer, leftPrec, rightPrec);
+        }
+        writer.endFunCall(substringFrame);
+        break;
+      case EXTRACT:
+        final SqlWriter.Frame extractFrame = writer.startFunCall(call.operand(0).toString());
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.endFunCall(extractFrame);
+        break;
+      case ARRAY_VALUE_CONSTRUCTOR:
+        writer.keyword(call.getOperator().getName());
+        final SqlWriter.Frame arrayFrame = writer.startList("(", ")");
+        for (SqlNode operand : call.getOperandList()) {
+          writer.sep(",");
+          operand.unparse(writer, leftPrec, rightPrec);
+        }
+        writer.endList(arrayFrame);
+        break;
+      case CONCAT:
+        final SqlWriter.Frame concatFrame = writer.startFunCall("CONCAT");
+        for (SqlNode operand : call.getOperandList()) {
+          writer.sep(",");
+          operand.unparse(writer, leftPrec, rightPrec);
+        }
+        writer.endFunCall(concatFrame);
+        break;
+      case DIVIDE_INTEGER:
+        unparseDivideInteger(writer, call, leftPrec, rightPrec);
+        break;
+      case FLOOR:
+        if (call.operandCount() != 2) {
+          super.unparseCall(writer, call, leftPrec, rightPrec);
+          return;
+        }
+
+        final SqlLiteral timeUnitNode = call.operand(1);
+        final TimeUnitRange timeUnit = timeUnitNode.getValueAs(TimeUnitRange.class);
+
+        SqlCall call2 = SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
+            timeUnitNode.getParserPosition());
+        SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
+        break;
+      default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
-        return;
       }
-
-      final SqlLiteral timeUnitNode = call.operand(1);
-      final TimeUnitRange timeUnit = timeUnitNode.getValueAs(TimeUnitRange.class);
-
-      SqlCall call2 = SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
-          timeUnitNode.getParserPosition());
-      SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
-      break;
-    case FORMAT:
-      unparseFormat(writer, call, leftPrec, rightPrec);
-      break;
-    default:
-      super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
 

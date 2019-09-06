@@ -590,7 +590,7 @@ public class RelFactories {
         RelDataType rowType, boolean strictStart, boolean strictEnd,
         Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
         RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-        boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+        boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
         RexNode interval);
   }
 
@@ -603,7 +603,7 @@ public class RelFactories {
         RelDataType rowType, boolean strictStart, boolean strictEnd,
         Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
         RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-        boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+        boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
         RexNode interval) {
       return LogicalMatch.create(input, rowType, pattern, strictStart,
           strictEnd, patternDefinitions, measures, after, subsets, allRows,
@@ -619,7 +619,7 @@ public class RelFactories {
   public interface SpoolFactory {
     /** Creates a {@link TableSpool}. */
     RelNode createTableSpool(RelNode input, Spool.Type readType,
-        Spool.Type writeType, String tableName);
+        Spool.Type writeType, RelOptTable table);
   }
 
   /**
@@ -628,8 +628,8 @@ public class RelFactories {
    */
   private static class SpoolFactoryImpl implements SpoolFactory {
     public RelNode createTableSpool(RelNode input, Spool.Type readType,
-        Spool.Type writeType, String tableName) {
-      return LogicalTableSpool.create(input, readType, writeType, tableName);
+        Spool.Type writeType, RelOptTable table) {
+      return LogicalTableSpool.create(input, readType, writeType, table);
     }
   }
 
@@ -641,7 +641,7 @@ public class RelFactories {
   public interface RepeatUnionFactory {
     /** Creates a {@link RepeatUnion}. */
     RelNode createRepeatUnion(RelNode seed, RelNode iterative, boolean all,
-        int maxRep);
+        int iterationLimit);
   }
 
   /**
@@ -650,8 +650,8 @@ public class RelFactories {
    */
   private static class RepeatUnionFactoryImpl implements RepeatUnionFactory {
     public RelNode createRepeatUnion(RelNode seed, RelNode iterative,
-        boolean all, int maxRep) {
-      return LogicalRepeatUnion.create(seed, iterative, all, maxRep);
+        boolean all, int iterationLimit) {
+      return LogicalRepeatUnion.create(seed, iterative, all, iterationLimit);
     }
   }
 }

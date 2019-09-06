@@ -158,6 +158,14 @@ limitations under the License.
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.owasp</groupId>
+        <artifactId>dependency-check-maven</artifactId>
+        <configuration>
+          <!-- Never fail the build for this module but still check for vulnerabilities. -->
+          <failBuildOnCVSS>11</failBuildOnCVSS>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 </project>

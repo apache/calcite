@@ -25,11 +25,11 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDateLiteral;
 import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
+import org.apache.calcite.sql.SqlUserDefinedTypeNameSpec;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
@@ -37,6 +37,10 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+
+import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 
 /**
  * A <code>SqlDialect</code> implementation for the Oracle database.
@@ -100,8 +104,9 @@ public class OracleSqlDialect extends SqlDialect {
       return super.getCastSpec(type);
     }
 
-    return new SqlDataTypeSpec(new SqlIdentifier(castSpec, SqlParserPos.ZERO),
-        -1, -1, null, null, SqlParserPos.ZERO);
+    return new SqlDataTypeSpec(
+        new SqlUserDefinedTypeNameSpec(castSpec, SqlParserPos.ZERO),
+        SqlParserPos.ZERO);
   }
 
   @Override protected boolean allowsAs() {
@@ -119,17 +124,21 @@ public class OracleSqlDialect extends SqlDialect {
   @Override public void unparseDateTimeLiteral(SqlWriter writer,
       SqlAbstractDateTimeLiteral literal, int leftPrec, int rightPrec) {
     if (literal instanceof SqlTimestampLiteral) {
-      writer.literal("TO_TIMESTAMP ('"
+      writer.literal("TO_TIMESTAMP('"
           + literal.toFormattedString() + "', 'YYYY-MM-DD HH24:MI:SS.FF')");
     } else if (literal instanceof SqlDateLiteral) {
-      writer.literal("TO_DATE ('"
+      writer.literal("TO_DATE('"
           + literal.toFormattedString() + "', 'YYYY-MM-DD')");
     } else if (literal instanceof SqlTimeLiteral) {
-      writer.literal("TO_TIME ('"
+      writer.literal("TO_TIME('"
           + literal.toFormattedString() + "', 'HH24:MI:SS.FF')");
     } else {
       super.unparseDateTimeLiteral(writer, literal, leftPrec, rightPrec);
     }
+  }
+
+  @Override public List<String> getSingleRowTableName() {
+    return ImmutableList.of("DUAL");
   }
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,

@@ -1442,9 +1442,22 @@ public class SqlParserTest {
     checkExp("cast(x as varchar(1))", "CAST(`X` AS VARCHAR(1))");
     checkExp("cast(x as date)", "CAST(`X` AS DATE)");
     checkExp("cast(x as time)", "CAST(`X` AS TIME)");
-    checkExp("cast(x as timestamp)", "CAST(`X` AS TIMESTAMP)");
+    checkExp("cast(x as time without time zone)", "CAST(`X` AS TIME)");
+    checkExp("cast(x as time with local time zone)",
+        "CAST(`X` AS TIME WITH LOCAL TIME ZONE)");
+    checkExp("cast(x as timestamp without time zone)", "CAST(`X` AS TIMESTAMP)");
+    checkExp("cast(x as timestamp with local time zone)",
+        "CAST(`X` AS TIMESTAMP WITH LOCAL TIME ZONE)");
     checkExp("cast(x as time(0))", "CAST(`X` AS TIME(0))");
+    checkExp("cast(x as time(0) without time zone)", "CAST(`X` AS TIME(0))");
+    checkExp("cast(x as time(0) with local time zone)",
+        "CAST(`X` AS TIME(0) WITH LOCAL TIME ZONE)");
     checkExp("cast(x as timestamp(0))", "CAST(`X` AS TIMESTAMP(0))");
+    checkExp("cast(x as timestamp(0) without time zone)",
+        "CAST(`X` AS TIMESTAMP(0))");
+    checkExp("cast(x as timestamp(0) with local time zone)",
+        "CAST(`X` AS TIMESTAMP(0) WITH LOCAL TIME ZONE)");
+    checkExp("cast(x as timestamp)", "CAST(`X` AS TIMESTAMP)");
     checkExp("cast(x as decimal(1,1))", "CAST(`X` AS DECIMAL(1, 1))");
     checkExp("cast(x as char(1))", "CAST(`X` AS CHAR(1))");
     checkExp("cast(x as binary(1))", "CAST(`X` AS BINARY(1))");
@@ -1462,6 +1475,18 @@ public class SqlParserTest {
   }
 
   @Test public void testCastFails() {
+    checkExpFails("cast(x as time with ^time^ zone)",
+        "(?s).*Encountered \"time\" at .*");
+    checkExpFails("cast(x as time(0) with ^time^ zone)",
+        "(?s).*Encountered \"time\" at .*");
+    checkExpFails("cast(x as timestamp with ^time^ zone)",
+        "(?s).*Encountered \"time\" at .*");
+    checkExpFails("cast(x as timestamp(0) with ^time^ zone)",
+        "(?s).*Encountered \"time\" at .*");
+    checkExpFails("cast(x as varchar(10) ^with^ local time zone)",
+        "(?s).*Encountered \"with\" at line 1, column 23.\n.*");
+    checkExpFails("cast(x as varchar(10) ^without^ time zone)",
+        "(?s).*Encountered \"without\" at line 1, column 23.\n.*");
   }
 
   @Test public void testLikeAndSimilar() {
@@ -2482,9 +2507,9 @@ public class SqlParserTest {
         + "outer apply (select * from emp where emp.deptno = dept.deptno)";
     final String expected = "SELECT *\n"
         + "FROM `DEPT`\n"
-        + "LEFT JOIN LATERAL((SELECT *\n"
+        + "LEFT JOIN LATERAL (SELECT *\n"
         + "FROM `EMP`\n"
-        + "WHERE (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`))) ON TRUE";
+        + "WHERE (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)) ON TRUE";
     sql(sql).ok(expected);
   }
 
@@ -2494,9 +2519,9 @@ public class SqlParserTest {
         + "outer apply (select * from emp where emp.deptno = dept.deptno)";
     final String expected = "SELECT *\n"
         + "FROM `DEPT`\n"
-        + "LEFT JOIN LATERAL((SELECT *\n"
+        + "LEFT JOIN LATERAL (SELECT *\n"
         + "FROM `EMP`\n"
-        + "WHERE (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`))) ON TRUE";
+        + "WHERE (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)) ON TRUE";
     sql(sql).ok(expected);
   }
 
@@ -3442,8 +3467,8 @@ public class SqlParserTest {
 
     // Good: LATERAL (subQuery)
     final String expected2 = "SELECT *\n"
-        + "FROM LATERAL((SELECT *\n"
-        + "FROM `EMP`))";
+        + "FROM LATERAL (SELECT *\n"
+        + "FROM `EMP`)";
     sql("select * from lateral (select * from emp)").ok(expected2);
     sql("select * from lateral (select * from emp) as t")
         .ok(expected2 + " AS `T`");
@@ -4699,6 +4724,51 @@ public class SqlParserTest {
     checkExp(
         "array[(1, 'a'), (2, 'b')]",
         "(ARRAY[(ROW(1, 'a')), (ROW(2, 'b'))])");
+  }
+
+  @Test public void testCastAsCollectionType() {
+    // test array type.
+    checkExp("cast(a as int array)", "CAST(`A` AS INTEGER ARRAY)");
+    checkExp("cast(a as varchar(5) array)", "CAST(`A` AS VARCHAR(5) ARRAY)");
+    checkExp("cast(a as int array array)", "CAST(`A` AS INTEGER ARRAY ARRAY)");
+    checkExp("cast(a as varchar(5) array array)",
+        "CAST(`A` AS VARCHAR(5) ARRAY ARRAY)");
+    checkExpFails("cast(a as int array^<^10>)",
+        "(?s).*Encountered \"<\" at line 1, column 20.\n.*");
+    // test multiset type.
+    checkExp("cast(a as int multiset)", "CAST(`A` AS INTEGER MULTISET)");
+    checkExp("cast(a as varchar(5) multiset)", "CAST(`A` AS VARCHAR(5) MULTISET)");
+    checkExp("cast(a as int multiset array)", "CAST(`A` AS INTEGER MULTISET ARRAY)");
+    checkExp("cast(a as varchar(5) multiset array)",
+        "CAST(`A` AS VARCHAR(5) MULTISET ARRAY)");
+    // test row type nested in collection type.
+    checkExp("cast(a as row(f0 int array multiset, f1 varchar(5) array) array multiset)",
+        "CAST(`A` AS "
+            + "ROW(`F0` INTEGER ARRAY MULTISET, "
+            + "`F1` VARCHAR(5) ARRAY) "
+            + "ARRAY MULTISET)");
+    // test UDT collection type.
+    checkExp("cast(a as MyUDT array multiset)",
+        "CAST(`A` AS `MYUDT` ARRAY MULTISET)");
+  }
+
+  @Test public void testCastAsRowType() {
+    checkExp("cast(a as row(f0 int, f1 varchar))",
+        "CAST(`A` AS ROW(`F0` INTEGER, `F1` VARCHAR))");
+    checkExp("cast(a as row(f0 int not null, f1 varchar null))",
+        "CAST(`A` AS ROW(`F0` INTEGER, `F1` VARCHAR NULL))");
+    // test nested row type.
+    checkExp("cast(a as row("
+        + "f0 row(ff0 int not null, ff1 varchar null) null, "
+        + "f1 timestamp not null))",
+        "CAST(`A` AS ROW("
+            + "`F0` ROW(`FF0` INTEGER, `FF1` VARCHAR NULL) NULL, "
+            + "`F1` TIMESTAMP))");
+    // test row type in collection data types.
+    checkExp("cast(a as row(f0 bigint not null, f1 decimal null) array)",
+        "CAST(`A` AS ROW(`F0` BIGINT, `F1` DECIMAL NULL) ARRAY)");
+    checkExp("cast(a as row(f0 varchar not null, f1 timestamp null) multiset)",
+        "CAST(`A` AS ROW(`F0` VARCHAR, `F1` TIMESTAMP NULL) MULTISET)");
   }
 
   @Test public void testMapValueConstructor() {

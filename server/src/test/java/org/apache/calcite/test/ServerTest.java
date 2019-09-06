@@ -151,6 +151,18 @@ public class ServerTest {
       assertThat(b, is(false));
       x = s.executeUpdate("insert into w values (1, NULL)");
       assertThat(x, is(1));
+
+      // Test user defined type name as component identifier.
+      b = s.execute("create schema a");
+      assertThat(b, is(false));
+      b = s.execute("create schema a.b");
+      assertThat(b, is(false));
+      b = s.execute("create type a.b.mytype as (i varchar(5))");
+      assertThat(b, is(false));
+      b = s.execute("create table t2 (i int not null, j a.b.mytype)");
+      assertThat(b, is(false));
+      x = s.executeUpdate("insert into t2 values (1, NULL)");
+      assertThat(x, is(1));
     }
   }
 
@@ -207,7 +219,6 @@ public class ServerTest {
       // No target column list; too few values provided
       try {
         x = s.executeUpdate("insert into t values (2, 3)");
-        fail("expected error, got " + x);
       } catch (SQLException e) {
         assertThat(e.getMessage(),
             containsString("Number of INSERT target columns (3) does not equal "
@@ -278,8 +289,8 @@ public class ServerTest {
       assertThat(x, is(2));
       try (ResultSet r = s.executeQuery("select sum(i), count(*) from t")) {
         assertThat(r.next(), is(true));
-        assertThat(r.getInt(1), is(19));
-        assertThat(r.getInt(2), is(9));
+        assertThat(r.getInt(1), is(22));
+        assertThat(r.getInt(2), is(10));
         assertThat(r.next(), is(false));
       }
     }

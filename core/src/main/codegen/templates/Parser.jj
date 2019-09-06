@@ -41,10 +41,12 @@ import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAlter;
+import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlCollectionTypeNameSpec;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDateLiteral;
 import org.apache.calcite.sql.SqlDelete;
@@ -82,6 +84,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlPostfixOperator;
 import org.apache.calcite.sql.SqlPrefixOperator;
+import org.apache.calcite.sql.SqlRowTypeNameSpec;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
@@ -89,8 +92,10 @@ import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
+import org.apache.calcite.sql.SqlTypeNameSpec;
 import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.SqlUpdate;
+import org.apache.calcite.sql.SqlUserDefinedTypeNameSpec;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
@@ -3226,6 +3231,10 @@ List<Object> Expression2(ExprContext exprContext) :
                     }
                 ]
             |
+            <#list parser.extraBinaryExpressions as extra >
+                ${extra}(list, exprContext, s)
+            |
+            </#list>
                 LOOKAHEAD(3) op = BinaryRowOperator() {
                     checkNonQueryExpression(exprContext);
                     list.add(new SqlParserUtil.ToTreeListItem(op, getPos()));
@@ -4208,12 +4217,12 @@ SqlIntervalQualifier IntervalQualifier() :
 
 /**
  * Parses time unit for EXTRACT, CEIL and FLOOR functions.
+ * Note that it does't include NANOSECOND and MICROSECOND.
  */
 TimeUnit TimeUnit() :
 {}
 {
-    <MICROSECOND> { return TimeUnit.MICROSECOND; }
-|   <MILLISECOND> { return TimeUnit.MILLISECOND; }
+    <MILLISECOND> { return TimeUnit.MILLISECOND; }
 |   <SECOND> { return TimeUnit.SECOND; }
 |   <MINUTE> { return TimeUnit.MINUTE; }
 |   <HOUR> { return TimeUnit.HOUR; }
@@ -4536,20 +4545,152 @@ int IntLiteral() :
     }
 }
 
-// Type name with optional scale and precision
+// Type name with optional scale and precision.
 SqlDataTypeSpec DataType() :
 {
-    final SqlIdentifier typeName;
-    SqlIdentifier collectionTypeName = null;
-    int scale = -1;
-    int precision = -1;
-    String charSetName = null;
+    SqlTypeNameSpec typeName;
     final Span s;
 }
 {
     typeName = TypeName() {
         s = span();
     }
+    (
+        typeName = CollectionsTypeName(typeName)
+    )*
+    {
+        return new SqlDataTypeSpec(
+            typeName,
+            s.end(this));
+    }
+}
+
+// Some SQL type names need special handling due to the fact that they have
+// spaces in them but are not quoted.
+SqlTypeNameSpec TypeName() :
+{
+    final SqlTypeNameSpec typeNameSpec;
+    final SqlIdentifier typeName;
+    final Span s = Span.of();
+}
+{
+    (
+<#-- additional types are included here -->
+<#-- put custom data types in front of Calcite core data types -->
+<#list parser.dataTypeParserMethods as method>
+        LOOKAHEAD(2)
+        typeNameSpec = ${method}
+    |
+</#list>
+        LOOKAHEAD(2)
+        typeNameSpec = SqlTypeName(s)
+    |
+        typeNameSpec = RowTypeName()
+    |
+        typeName = CompoundIdentifier() {
+            typeNameSpec = new SqlUserDefinedTypeNameSpec(typeName, s.end(this));
+        }
+    )
+    {
+        return typeNameSpec;
+    }
+}
+
+// Types used for JDBC and ODBC scalar conversion function
+SqlTypeNameSpec SqlTypeName(Span s) :
+{
+    final SqlTypeNameSpec sqlTypeNameSpec;
+}
+{
+    (
+        sqlTypeNameSpec = SqlTypeName1(s)
+    |
+        sqlTypeNameSpec = SqlTypeName2(s)
+    |
+        sqlTypeNameSpec = SqlTypeName3(s)
+    |
+        sqlTypeNameSpec = CharacterTypeName(s)
+    |
+        sqlTypeNameSpec = DateTimeTypeName()
+    )
+    {
+        return sqlTypeNameSpec;
+    }
+}
+
+// Parse sql type name that don't allow any extra specifications except the type name.
+// For extra specification, we mean precision, scale, charSet, etc.
+SqlTypeNameSpec SqlTypeName1(Span s) :
+{
+    final SqlTypeName sqlTypeName;
+}
+{
+    (
+        <GEOMETRY> {
+            if (!this.conformance.allowGeometry()) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.geometryDisabled());
+            }
+            sqlTypeName = SqlTypeName.GEOMETRY;
+        }
+    |
+        <BOOLEAN> { sqlTypeName = SqlTypeName.BOOLEAN; }
+    |
+        ( <INTEGER> | <INT> ) { sqlTypeName = SqlTypeName.INTEGER; }
+    |
+        <TINYINT> { sqlTypeName = SqlTypeName.TINYINT; }
+    |
+        <SMALLINT> { sqlTypeName = SqlTypeName.SMALLINT; }
+    |
+        <BIGINT> { sqlTypeName = SqlTypeName.BIGINT; }
+    |
+        <REAL> { sqlTypeName = SqlTypeName.REAL; }
+    |
+        <DOUBLE> { s.add(this); }
+        [ <PRECISION> ] { sqlTypeName = SqlTypeName.DOUBLE; }
+    |
+        <FLOAT> { sqlTypeName = SqlTypeName.FLOAT; }
+    )
+    {
+        return new SqlBasicTypeNameSpec(sqlTypeName, s.end(this));
+    }
+}
+
+// Parse sql type name that allows precision specification.
+SqlTypeNameSpec SqlTypeName2(Span s) :
+{
+    final SqlTypeName sqlTypeName;
+    int precision = -1;
+}
+{
+    (
+        <BINARY> { s.add(this); }
+        (
+            <VARYING> { sqlTypeName = SqlTypeName.VARBINARY; }
+        |
+            { sqlTypeName = SqlTypeName.BINARY; }
+        )
+    |
+        <VARBINARY> { sqlTypeName = SqlTypeName.VARBINARY; }
+    )
+    precision = PrecisionOpt()
+    {
+        return new SqlBasicTypeNameSpec(sqlTypeName, precision, s.end(this));
+    }
+}
+
+// Parse sql type name that allows precision and scale specifications.
+SqlTypeNameSpec SqlTypeName3(Span s) :
+{
+    final SqlTypeName sqlTypeName;
+    int precision = -1;
+    int scale = -1;
+}
+{
+    (
+        (<DECIMAL> | <DEC> | <NUMERIC>) { sqlTypeName = SqlTypeName.DECIMAL; }
+    |
+        <ANY> { sqlTypeName = SqlTypeName.ANY; }
+    )
     [
         <LPAREN>
         precision = UnsignedIntLiteral()
@@ -4559,118 +4700,9 @@ SqlDataTypeSpec DataType() :
         ]
         <RPAREN>
     ]
-    [
-        <CHARACTER> <SET>
-        charSetName = Identifier()
-    ]
-    [
-        collectionTypeName = CollectionsTypeName()
-    ]
     {
-        if (null != collectionTypeName) {
-            return new SqlDataTypeSpec(
-                collectionTypeName,
-                typeName,
-                precision,
-                scale,
-                charSetName,
-                s.end(collectionTypeName));
-        }
-        return new SqlDataTypeSpec(
-            typeName,
-            precision,
-            scale,
-            charSetName,
-            null,
-            s.end(this));
+        return new SqlBasicTypeNameSpec(sqlTypeName, precision, scale, s.end(this));
     }
-}
-
-// Some SQL type names need special handling due to the fact that they have
-// spaces in them but are not quoted.
-SqlIdentifier TypeName() :
-{
-    final SqlTypeName sqlTypeName;
-    final SqlIdentifier typeName;
-    final Span s = Span.of();
-}
-{
-    (
-        LOOKAHEAD(2)
-        sqlTypeName = SqlTypeName(s) {
-            typeName = new SqlIdentifier(sqlTypeName.name(), s.end(this));
-        }
-<#-- additional types are included here -->
-<#list parser.dataTypeParserMethods as method>
-    |
-        typeName = ${method}
-</#list>
-    |
-        typeName = CollectionsTypeName()
-    |
-        typeName = CompoundIdentifier()
-    )
-    {
-        return typeName;
-    }
-}
-
-// Types used for JDBC and ODBC scalar conversion function
-SqlTypeName SqlTypeName(Span s) :
-{
-}
-{
-    (<CHARACTER> | <CHAR>) { s.add(this); }
-    (
-        <VARYING> { return SqlTypeName.VARCHAR; }
-    |
-        { return SqlTypeName.CHAR; }
-    )
-|
-    <VARCHAR> { return SqlTypeName.VARCHAR; }
-|
-    <DATE> { return SqlTypeName.DATE; }
-|
-    <TIME> { return SqlTypeName.TIME; }
-|
-    <TIMESTAMP> { return SqlTypeName.TIMESTAMP; }
-|
-    <GEOMETRY> {
-        if (!this.conformance.allowGeometry()) {
-            throw SqlUtil.newContextException(getPos(), RESOURCE.geometryDisabled());
-        }
-        return SqlTypeName.GEOMETRY;
-    }
-|
-    (<DECIMAL> | <DEC> | <NUMERIC>) { return SqlTypeName.DECIMAL; }
-|
-    <BOOLEAN> { return SqlTypeName.BOOLEAN; }
-|
-    ( <INTEGER> | <INT> ) { return SqlTypeName.INTEGER; }
-|
-    <BINARY> { s.add(this); }
-    (
-        <VARYING> { return SqlTypeName.VARBINARY; }
-    |
-        { return SqlTypeName.BINARY; }
-    )
-|
-    <VARBINARY> { return SqlTypeName.VARBINARY; }
-|
-    <TINYINT> { return SqlTypeName.TINYINT; }
-|
-    <SMALLINT> { return SqlTypeName.SMALLINT; }
-|
-    <BIGINT> { return SqlTypeName.BIGINT; }
-|
-    <REAL> { return SqlTypeName.REAL; }
-|
-    <DOUBLE> { s.add(this); }
-    [ <PRECISION> ] { return SqlTypeName.DOUBLE; }
-|
-    <FLOAT> { return SqlTypeName.FLOAT; }
-|
-    <ANY> { return SqlTypeName.ANY; }
 }
 
 // Types used for for JDBC and ODBC scalar conversion function
@@ -4720,14 +4752,209 @@ SqlLiteral JdbcOdbcDataType() :
     }
 }
 
-SqlIdentifier CollectionsTypeName() :
+/**
+* Parse a collection type name, the input element type name may
+* also be a collection type.
+*/
+SqlTypeNameSpec CollectionsTypeName(SqlTypeNameSpec elementTypeName) :
+{
+    final SqlTypeName collectionTypeName;
+}
+{
+    (
+        <MULTISET> { collectionTypeName = SqlTypeName.MULTISET; }
+    |
+        <ARRAY> { collectionTypeName = SqlTypeName.ARRAY; }
+    )
+    {
+        return new SqlCollectionTypeNameSpec(elementTypeName,
+                collectionTypeName, getPos());
+    }
+}
+
+/**
+* Parse a nullable option, default is true.
+*/
+boolean NullableOptDefaultTrue() :
 {
 }
 {
-    <MULTISET> {
-        return new SqlIdentifier(
-            SqlTypeName.MULTISET.name(), getPos());
+    <NULL> { return true; }
+|
+    <NOT> <NULL> { return false; }
+|
+    { return true; }
+}
+
+/**
+* Parse a nullable option, default is false.
+*/
+boolean NullableOptDefaultFalse() :
+{
+}
+{
+    <NULL> { return true; }
+|
+    <NOT> <NULL> { return false; }
+|
+    { return false; }
+}
+
+/**
+* Parse a "name1 type1 [NULL | NOT NULL], name2 type2 [NULL | NOT NULL] ..." list,
+* the field type default is not nullable.
+*/
+void FieldNameTypeCommaList(
+        List<SqlIdentifier> fieldNames,
+        List<SqlDataTypeSpec> fieldTypes) :
+{
+    SqlIdentifier fName;
+    SqlDataTypeSpec fType;
+    boolean nullable;
+}
+{
+    fName = SimpleIdentifier()
+    fType = DataType()
+    nullable = NullableOptDefaultFalse()
+    {
+        fieldNames.add(fName);
+        fieldTypes.add(fType.withNullable(nullable));
     }
+    (
+        <COMMA>
+        fName = SimpleIdentifier()
+        fType = DataType()
+        nullable = NullableOptDefaultFalse()
+        {
+            fieldNames.add(fName);
+            fieldTypes.add(fType.withNullable(nullable));
+        }
+    )*
+}
+
+/**
+* Parse Row type with format: Row(name1 type1, name2 type2).
+* Every field type can have suffix of `NULL` or `NOT NULL` to indicate if this type is nullable.
+* i.e. Row(f0 int not null, f1 varchar null).
+*/
+SqlTypeNameSpec RowTypeName() :
+{
+    List<SqlIdentifier> fieldNames = new ArrayList<SqlIdentifier>();
+    List<SqlDataTypeSpec> fieldTypes = new ArrayList<SqlDataTypeSpec>();
+}
+{
+    <ROW>
+    <LPAREN> FieldNameTypeCommaList(fieldNames, fieldTypes) <RPAREN>
+    {
+        return new SqlRowTypeNameSpec(getPos(), fieldNames, fieldTypes);
+    }
+}
+
+/**
+* Parse character types: char, varchar.
+*/
+SqlTypeNameSpec CharacterTypeName(Span s) :
+{
+    int precision = -1;
+    final SqlTypeName sqlTypeName;
+    String charSetName = null;
+}
+{
+    (
+        (<CHARACTER> | <CHAR>) { s.add(this); }
+        (
+            <VARYING> { sqlTypeName = SqlTypeName.VARCHAR; }
+        |
+            { sqlTypeName = SqlTypeName.CHAR; }
+        )
+    |
+        <VARCHAR> { sqlTypeName = SqlTypeName.VARCHAR; }
+    )
+    precision = PrecisionOpt()
+    [
+        <CHARACTER> <SET>
+        charSetName = Identifier()
+    ]
+    {
+        return new SqlBasicTypeNameSpec(sqlTypeName, precision, charSetName, s.end(this));
+    }
+}
+
+/**
+* Parse datetime types: date, time, timestamp.
+*/
+SqlTypeNameSpec DateTimeTypeName() :
+{
+    int precision = -1;
+    SqlTypeName typeName;
+    boolean withLocalTimeZone = false;
+}
+{
+    <DATE> {
+        typeName = SqlTypeName.DATE;
+        return new SqlBasicTypeNameSpec(typeName, getPos());
+    }
+|
+    LOOKAHEAD(2)
+    <TIME>
+    precision = PrecisionOpt()
+    withLocalTimeZone = TimeZoneOpt()
+    {
+        if (withLocalTimeZone) {
+            typeName = SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE;
+        } else {
+            typeName = SqlTypeName.TIME;
+        }
+        return new SqlBasicTypeNameSpec(typeName, precision, getPos());
+    }
+|
+    <TIMESTAMP>
+    precision = PrecisionOpt()
+    withLocalTimeZone = TimeZoneOpt()
+    {
+        if (withLocalTimeZone) {
+            typeName = SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE;
+        } else {
+            typeName = SqlTypeName.TIMESTAMP;
+        }
+        return new SqlBasicTypeNameSpec(typeName, precision, getPos());
+    }
+}
+
+// Parse an optional data type precision, default is -1.
+int PrecisionOpt() :
+{
+    int precision = -1;
+}
+{
+    LOOKAHEAD(2)
+    <LPAREN>
+    precision = UnsignedIntLiteral()
+    <RPAREN>
+    { return precision; }
+|
+    { return -1; }
+}
+
+/**
+* Parse a time zone suffix for DateTime types. According to SQL-2011,
+* "with time zone" and "without time zone" belong to standard SQL but we
+* only implement the "without time zone".
+*
+* <p>We also support "with local time zone".
+*
+* @return true if this is "with local time zone".
+*/
+boolean TimeZoneOpt() :
+{
+}
+{
+    LOOKAHEAD(3)
+    <WITHOUT> <TIME> <ZONE> { return false; }
+|
+    <WITH> <LOCAL> <TIME> <ZONE> { return true; }
+|
+    { return false; }
 }
 
 /**
@@ -4765,6 +4992,7 @@ SqlNode BuiltinFunctionCall() :
     final Span s;
     SqlDataTypeSpec dt;
     TimeUnit interval;
+    final TimeUnit unit;
     final SqlNode node;
 }
 {
@@ -4784,10 +5012,13 @@ SqlNode BuiltinFunctionCall() :
     |
         <EXTRACT> {
             s = span();
-            TimeUnit unit;
         }
         <LPAREN>
-        unit = TimeUnit()
+        (
+            <NANOSECOND> { unit = TimeUnit.NANOSECOND; }
+        |   <MICROSECOND> { unit = TimeUnit.MICROSECOND; }
+        |   unit = TimeUnit()
+        )
         { args = startList(new SqlIntervalQualifier(unit, null, getPos())); }
         <FROM>
         e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args.add(e); }
@@ -7052,6 +7283,9 @@ void NonReservedKeyWord2of3() :
 |   < VERTICAL_BAR: "|" >
 |   < CARET: "^" >
 |   < DOLLAR: "$" >
+<#list parser.binaryOperatorsTokens as operator>
+|   ${operator}
+</#list>
 }
 
 

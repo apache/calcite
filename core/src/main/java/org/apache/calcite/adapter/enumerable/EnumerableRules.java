@@ -47,6 +47,9 @@ public class EnumerableRules {
   public static final RelOptRule ENUMERABLE_CORRELATE_RULE =
       new EnumerableCorrelateRule(RelFactories.LOGICAL_BUILDER);
 
+  public static final RelOptRule ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE =
+      new EnumerableBatchNestedLoopJoinRule(RelFactories.LOGICAL_BUILDER);
+
   public static final EnumerableProjectRule ENUMERABLE_PROJECT_RULE =
       new EnumerableProjectRule();
 
@@ -107,6 +110,9 @@ public class EnumerableRules {
   public static final EnumerableTableFunctionScanRule ENUMERABLE_TABLE_FUNCTION_SCAN_RULE =
       new EnumerableTableFunctionScanRule(RelFactories.LOGICAL_BUILDER);
 
+  public static final EnumerableMatchRule ENUMERABLE_MATCH_RULE =
+      new EnumerableMatchRule();
+
   public static final List<RelOptRule> ENUMERABLE_RULES = ImmutableList.of(
       EnumerableRules.ENUMERABLE_JOIN_RULE,
       EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
@@ -127,7 +133,8 @@ public class EnumerableRules {
       EnumerableRules.ENUMERABLE_VALUES_RULE,
       EnumerableRules.ENUMERABLE_WINDOW_RULE,
       EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
-      EnumerableRules.ENUMERABLE_TABLE_FUNCTION_SCAN_RULE);
+      EnumerableRules.ENUMERABLE_TABLE_FUNCTION_SCAN_RULE,
+      EnumerableRules.ENUMERABLE_MATCH_RULE);
 
   public static List<RelOptRule> rules() {
     return ENUMERABLE_RULES;

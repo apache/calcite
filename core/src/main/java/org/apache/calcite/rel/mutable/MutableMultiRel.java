@@ -20,9 +20,9 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.type.RelDataType;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /** Base Class for relations with three or more inputs */
@@ -32,7 +32,7 @@ abstract class MutableMultiRel extends MutableRel {
   protected MutableMultiRel(RelOptCluster cluster,
       RelDataType rowType, MutableRelType type, List<MutableRel> inputs) {
     super(cluster, rowType, type);
-    this.inputs = ImmutableList.copyOf(inputs);
+    this.inputs = new ArrayList<>(inputs);
     for (Ord<MutableRel> input : Ord.zip(inputs)) {
       input.e.parent = this;
       input.e.ordinalInParent = input.i;

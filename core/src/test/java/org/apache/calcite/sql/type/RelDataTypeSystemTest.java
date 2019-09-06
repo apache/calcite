@@ -199,4 +199,5 @@ public class RelDataTypeSystemTest {
     Assert.assertEquals(10, dataType.getScale());
   }
 }
+
 // End RelDataTypeSystemTest.java

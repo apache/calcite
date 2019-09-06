@@ -273,6 +273,57 @@ sqlline> select distinct deptno from depts;
 3 rows selected (0.985 seconds)
 {% endhighlight %}
 
+## JSON files and model-free browsing
+
+Some files are describe their own schema, and for these files, we do not need a model. For example, `DEPTS.json` has an integer `DEPTNO` column and a string `NAME` column:
+
+{% highlight json %}
+[
+  {
+    "DEPTNO": 10,
+    "NAME": "Sales"
+  },
+  {
+    "DEPTNO": 20,
+    "NAME": "Marketing"
+  },
+  {
+    "DEPTNO": 30,
+    "NAME": "Accounts"
+  }
+]
+{% endhighlight %}
+
+You can launch `sqlline`, and pointing the file adapter that directory,
+and every JSON file becomes a table:
+
+{% highlight bash %}
+$ ls file/src/test/resources/sales-json
+ -rw-r--r-- 1 jhyde jhyde  62 Mar 15 10:16 DEPTS.json
+
+$ ./sqlline -u "jdbc:calcite:schemaFactory=org.apache.calcite.adapter.file.FileSchemaFactory;schema.directory=file/src/test/resources/sales-json"
+sqlline> !tables
++-----------+-------------+------------+------------+
+| TABLE_CAT | TABLE_SCHEM | TABLE_NAME | TABLE_TYPE |
++-----------+-------------+------------+------------+
+|           | adhoc       | DATE       | TABLE      |
+|           | adhoc       | DEPTS      | TABLE      |
+|           | adhoc       | EMPS       | TABLE      |
+|           | adhoc       | EMPTY      | TABLE      |
+|           | adhoc       | SDEPTS     | TABLE      |
++-----------+-------------+------------+------------+
+
+sqlline> select distinct deptno from depts;
++--------+
+| DEPTNO |
++--------+
+| 20     |
+| 10     |
+| 30     |
++--------+
+3 rows selected (0.985 seconds)
+{% endhighlight %}
+
 ## Future improvements
 
 We are continuing to enhance the adapter, and would welcome

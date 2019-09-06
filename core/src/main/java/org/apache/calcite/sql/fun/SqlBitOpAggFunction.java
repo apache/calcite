@@ -59,6 +59,10 @@ public class SqlBitOpAggFunction extends SqlAggFunction {
     }
     return super.unwrap(clazz);
   }
+
+  @Override public Optionality getDistinctOptionality() {
+    return Optionality.IGNORED;
+  }
 }
 
 // End SqlBitOpAggFunction.java

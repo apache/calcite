@@ -315,6 +315,10 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     }
   }
 
+  public SqlTester enableTypeCoercion(boolean enabled) {
+    return with("enableTypeCoercion", enabled);
+  }
+
   public SqlTester withOperatorTable(SqlOperatorTable operatorTable) {
     return with("operatorTable", operatorTable);
   }

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -27,6 +28,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
@@ -51,21 +53,28 @@ public abstract class FilterJoinRule extends RelOptRule {
    * will be pushed into the ON clause. */
   public static final Predicate TRUE_PREDICATE = (join, joinType, exp) -> true;
 
+  /** Predicate that returns true if the join is not Enumerable convention,
+   * will be replaced by {@link #TRUE_PREDICATE} once enumerable join supports
+   * non-equi join. */
+  // to be removed before 1.22.0
+  private static final Predicate NOT_ENUMERABLE = (join, joinType, exp) ->
+      join.getConvention() != EnumerableConvention.INSTANCE;
+
   /** Rule that pushes predicates from a Filter into the Join below them. */
   public static final FilterJoinRule FILTER_ON_JOIN =
       new FilterIntoJoinRule(true, RelFactories.LOGICAL_BUILDER,
-          TRUE_PREDICATE);
+          NOT_ENUMERABLE);
 
   /** Dumber version of {@link #FILTER_ON_JOIN}. Not intended for production
    * use, but keeps some tests working for which {@code FILTER_ON_JOIN} is too
    * smart. */
   public static final FilterJoinRule DUMB_FILTER_ON_JOIN =
       new FilterIntoJoinRule(false, RelFactories.LOGICAL_BUILDER,
-          TRUE_PREDICATE);
+          NOT_ENUMERABLE);
 
   /** Rule that pushes predicates in a Join into the inputs to the join. */
   public static final FilterJoinRule JOIN =
-      new JoinConditionPushRule(RelFactories.LOGICAL_BUILDER, TRUE_PREDICATE);
+      new JoinConditionPushRule(RelFactories.LOGICAL_BUILDER, NOT_ENUMERABLE);
 
   /** Whether to try to strengthen join-type. */
   private final boolean smart;
@@ -97,7 +106,7 @@ public abstract class FilterJoinRule extends RelOptRule {
       boolean smart, RelFactories.FilterFactory filterFactory,
       RelFactories.ProjectFactory projectFactory) {
     this(operand, id, smart, RelBuilder.proto(filterFactory, projectFactory),
-        TRUE_PREDICATE);
+        NOT_ENUMERABLE);
   }
 
   /**
@@ -115,15 +124,6 @@ public abstract class FilterJoinRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
-  /** Returns if it is needed to push the filter condition above join
-   * into the join condition.
-   */
-  private boolean needsPushInto(Join join) {
-    // If the join force the join info to be based on column equality,
-    // or it is a non-correlated semijoin, returns false.
-    return !RelOptUtil.forceEquiJoin(join);
-  }
-
   protected void perform(RelOptRuleCall call, Filter filter,
       Join join) {
     final List<RexNode> joinFilters =
@@ -140,7 +140,7 @@ public abstract class FilterJoinRule extends RelOptRule {
 
     final List<RexNode> aboveFilters =
         filter != null
-            ? conjunctions(filter.getCondition())
+            ? getConjunctions(filter)
             : new ArrayList<>();
     final ImmutableList<RexNode> origAboveFilters =
         ImmutableList.copyOf(aboveFilters);
@@ -170,7 +170,7 @@ public abstract class FilterJoinRule extends RelOptRule {
         join,
         aboveFilters,
         joinType,
-        needsPushInto(join),
+        true,
         !joinType.generatesNullsOnLeft(),
         !joinType.generatesNullsOnRight(),
         joinFilters,
@@ -284,6 +284,28 @@ public abstract class FilterJoinRule extends RelOptRule {
         RexUtil.fixUp(rexBuilder, aboveFilters,
             RelOptUtil.getFieldTypeList(relBuilder.peek().getRowType())));
     call.transformTo(relBuilder.build());
+  }
+
+  /**
+   * Get conjunctions of filter's condition but with collapsed
+   * {@code IS NOT DISTINCT FROM} expressions if needed.
+   *
+   * @param filter filter containing condition
+   * @return condition conjunctions with collapsed {@code IS NOT DISTINCT FROM}
+   * expressions if any
+   * @see RelOptUtil#conjunctions(RexNode)
+   */
+  private List<RexNode> getConjunctions(Filter filter) {
+    List<RexNode> conjunctions = conjunctions(filter.getCondition());
+    RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
+    for (int i = 0; i < conjunctions.size(); i++) {
+      RexNode node = conjunctions.get(i);
+      if (node instanceof RexCall) {
+        conjunctions.set(i,
+            RelOptUtil.collapseExpandedIsNotDistinctFromExpr((RexCall) node, rexBuilder));
+      }
+    }
+    return conjunctions;
   }
 
   /**
