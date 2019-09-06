@@ -81,6 +81,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -8984,7 +8985,7 @@ public abstract class SqlOperatorBaseTest {
    */
   protected static class TesterImpl extends SqlRuntimeTester {
     public TesterImpl(SqlTestFactory testFactory) {
-      super(testFactory);
+      super(testFactory, UnaryOperator.identity());
     }
 
     @Override public void check(String query, TypeChecker typeChecker,

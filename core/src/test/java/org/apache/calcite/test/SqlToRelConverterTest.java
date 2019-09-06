@@ -85,6 +85,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         SqlToRelConverter.Config.DEFAULT, tester.getConformance());
   }
 
+  @Deprecated // to be removed before 1.23
   protected final void check(
       String sql,
       String plan) {

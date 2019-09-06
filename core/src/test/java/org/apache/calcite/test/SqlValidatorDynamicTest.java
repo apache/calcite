@@ -94,7 +94,7 @@ public class SqlValidatorDynamicTest extends SqlValidatorTestCase {
   }
 
   @Override public SqlTester getTester() {
-    // Dymamic schema should not be reused since it is mutable, so
+    // Dynamic schema should not be reused since it is mutable, so
     // we create new SqlTestFactory for each test
     return new SqlValidatorTester(SqlTestFactory.INSTANCE
         .withCatalogReader(MockCatalogReaderDynamic::new));

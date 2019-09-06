@@ -493,11 +493,11 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
   /** Test arithmetic expressions with string type arguments. */
   @Test public void testArithmeticExpressionsWithStrings() {
     // for null type in binary arithmetic.
-    checkExp("1 + null");
-    checkExp("1 - null");
-    checkExp("1 / null");
-    checkExp("1 * null");
-    checkExp("MOD(1, null)");
+    expr("1 + null").ok();
+    expr("1 - null").ok();
+    expr("1 / null").ok();
+    expr("1 * null").ok();
+    expr("MOD(1, null)").ok();
 
     sql("select 1+'2', 2-'3', 2*'3', 2/'3', MOD(4,'3') "
         + "from (values (true, true, true, true, true))")
@@ -507,53 +507,63 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
             + "INTEGER NOT NULL EXPR$3, "
             + "DECIMAL(19, 19) "
             + "NOT NULL EXPR$4) NOT NULL");
-    checkExp("select abs(t1_varchar20) from t1");
-    checkExp("select sum(t1_varchar20) from t1");
-    checkExp("select avg(t1_varchar20) from t1");
+    expr("select abs(t1_varchar20) from t1").ok();
+    expr("select sum(t1_varchar20) from t1").ok();
+    expr("select avg(t1_varchar20) from t1").ok();
     tester.setFor(SqlStdOperatorTable.STDDEV_POP);
     tester.setFor(SqlStdOperatorTable.STDDEV_SAMP);
-    checkExp("select STDDEV_POP(t1_varchar20) from t1");
-    checkExp("select STDDEV_SAMP(t1_varchar20) from t1");
-    checkExp("select -(t1_varchar20) from t1");
-    checkExp("select +(t1_varchar20) from t1");
+    expr("select STDDEV_POP(t1_varchar20) from t1").ok();
+    expr("select STDDEV_SAMP(t1_varchar20) from t1").ok();
+    expr("select -(t1_varchar20) from t1").ok();
+    expr("select +(t1_varchar20) from t1").ok();
     tester.setFor(SqlStdOperatorTable.VAR_POP);
     tester.setFor(SqlStdOperatorTable.VAR_SAMP);
-    checkExp("select VAR_POP(t1_varchar20) from t1");
-    checkExp("select VAR_SAMP(t1_varchar20) from t1");
+    expr("select VAR_POP(t1_varchar20) from t1").ok();
+    expr("select VAR_SAMP(t1_varchar20) from t1").ok();
     // test divide with strings
-    checkExpType("'12.3'/5", "INTEGER NOT NULL");
-    checkExpType("'12.3'/cast(5 as bigint)", "BIGINT NOT NULL");
-    checkExpType("'12.3'/cast(5 as float)", "FLOAT NOT NULL");
-    checkExpType("'12.3'/cast(5 as double)", "DOUBLE NOT NULL");
-    checkExpType("'12.3'/5.1", "DECIMAL(19, 18) NOT NULL");
-    checkExpType("12.3/'5.1'", "DECIMAL(19, 0) NOT NULL");
+    expr("'12.3'/5")
+        .columnType("INTEGER NOT NULL");
+    expr("'12.3'/cast(5 as bigint)")
+        .columnType("BIGINT NOT NULL");
+    expr("'12.3'/cast(5 as float)")
+        .columnType("FLOAT NOT NULL");
+    expr("'12.3'/cast(5 as double)")
+        .columnType("DOUBLE NOT NULL");
+    expr("'12.3'/5.1")
+        .columnType("DECIMAL(19, 18) NOT NULL");
+    expr("12.3/'5.1'")
+        .columnType("DECIMAL(19, 0) NOT NULL");
     // test binary arithmetic with two strings.
-    checkExpType("'12.3' + '5'", "DECIMAL(19, 19) NOT NULL");
-    checkExpType("'12.3' - '5'", "DECIMAL(19, 19) NOT NULL");
-    checkExpType("'12.3' * '5'", "DECIMAL(19, 19) NOT NULL");
-    checkExpType("'12.3' / '5'", "DECIMAL(19, 0) NOT NULL");
+    expr("'12.3' + '5'")
+        .columnType("DECIMAL(19, 19) NOT NULL");
+    expr("'12.3' - '5'")
+        .columnType("DECIMAL(19, 19) NOT NULL");
+    expr("'12.3' * '5'")
+        .columnType("DECIMAL(19, 19) NOT NULL");
+    expr("'12.3' / '5'")
+        .columnType("DECIMAL(19, 0) NOT NULL");
   }
 
   /** Test cases for binary comparison expressions. */
   @Test public void testBinaryComparisonCoercion() {
-    checkExpType("'2' = 3", "BOOLEAN NOT NULL");
-    checkExpType("'2' > 3", "BOOLEAN NOT NULL");
-    checkExpType("'2' >= 3", "BOOLEAN NOT NULL");
-    checkExpType("'2' < 3", "BOOLEAN NOT NULL");
-    checkExpType("'2' <= 3", "BOOLEAN NOT NULL");
-    checkExpType("'2' is distinct from 3", "BOOLEAN NOT NULL");
-    checkExpType("'2' is not distinct from 3", "BOOLEAN NOT NULL");
+    expr("'2' = 3").columnType("BOOLEAN NOT NULL");
+    expr("'2' > 3").columnType("BOOLEAN NOT NULL");
+    expr("'2' >= 3").columnType("BOOLEAN NOT NULL");
+    expr("'2' < 3").columnType("BOOLEAN NOT NULL");
+    expr("'2' <= 3").columnType("BOOLEAN NOT NULL");
+    expr("'2' is distinct from 3").columnType("BOOLEAN NOT NULL");
+    expr("'2' is not distinct from 3").columnType("BOOLEAN NOT NULL");
     // NULL operand
-    checkExpType("'2' = null", "BOOLEAN");
-    checkExpType("'2' > null", "BOOLEAN");
-    checkExpType("'2' >= null", "BOOLEAN");
-    checkExpType("'2' < null", "BOOLEAN");
-    checkExpType("'2' <= null", "BOOLEAN");
-    checkExpType("'2' is distinct from null", "BOOLEAN NOT NULL");
-    checkExpType("'2' is not distinct from null", "BOOLEAN NOT NULL");
+    expr("'2' = null").columnType("BOOLEAN");
+    expr("'2' > null").columnType("BOOLEAN");
+    expr("'2' >= null").columnType("BOOLEAN");
+    expr("'2' < null").columnType("BOOLEAN");
+    expr("'2' <= null").columnType("BOOLEAN");
+    expr("'2' is distinct from null").columnType("BOOLEAN NOT NULL");
+    expr("'2' is not distinct from null").columnType("BOOLEAN NOT NULL");
     // BETWEEN operator
-    checkExpType("'2' between 1 and 3", "BOOLEAN NOT NULL");
-    checkExpType("NULL between 1 and 3", "BOOLEAN");
+    expr("'2' between 1 and 3").columnType("BOOLEAN NOT NULL");
+    expr("NULL between 1 and 3").columnType("BOOLEAN");
     sql("select '2019-09-23' between t1_date and t1_timestamp from t1")
         .columnType("BOOLEAN NOT NULL");
     sql("select t1_date between '2019-09-23' and t1_timestamp from t1")
@@ -763,19 +773,26 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
   /** Test case for {@link AbstractTypeCoercion#implicitCast}. */
   @Test  public void testBuiltinFunctionCoercion() {
     // concat
-    checkExpType("'ab'||'cde'", "CHAR(5) NOT NULL");
-    checkExpType("null||'cde'", "VARCHAR");
-    checkExpType("1||'234'", "VARCHAR NOT NULL");
-    checkExpFails("select ^'a'||t1_binary^ from t1",
-        "(?s).*Cannot apply.*");
+    expr("'ab'||'cde'")
+        .columnType("CHAR(5) NOT NULL");
+    expr("null||'cde'")
+        .columnType("VARCHAR");
+    expr("1||'234'")
+        .columnType("VARCHAR NOT NULL");
+    expr("select ^'a'||t1_binary^ from t1")
+        .fails("(?s).*Cannot apply.*");
     // smallint int double
-    checkExpType("select t1_smallint||t1_int||t1_double from t1", "VARCHAR");
+    expr("select t1_smallint||t1_int||t1_double from t1")
+        .columnType("VARCHAR");
     // boolean float smallint
-    checkExpType("select t1_boolean||t1_float||t1_smallint from t1", "VARCHAR");
+    expr("select t1_boolean||t1_float||t1_smallint from t1")
+        .columnType("VARCHAR");
     // decimal
-    checkExpType("select t1_decimal||t1_varchar20 from t1", "VARCHAR");
+    expr("select t1_decimal||t1_varchar20 from t1")
+        .columnType("VARCHAR");
     // date timestamp
-    checkExpType("select t1_timestamp||t1_date from t1", "VARCHAR");
+    expr("select t1_timestamp||t1_date from t1")
+        .columnType("VARCHAR");
   }
 
   //~ Inner Class ------------------------------------------------------------
