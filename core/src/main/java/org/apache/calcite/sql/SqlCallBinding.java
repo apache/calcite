@@ -37,6 +37,7 @@ import com.google.common.collect.Lists;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -170,8 +171,8 @@ public class SqlCallBinding extends SqlOperatorBinding {
         if (id.getSimple().equalsIgnoreCase(paramName)) {
           operands.add(call2.operand(0));
         } else if (StringUtils.equalsIgnoreCase(paramName, varArgParamName)
-            && StringUtils.upperCase(id.getSimple())
-            .startsWith(StringUtils.upperCase(paramName))) {
+            && id.getSimple().toUpperCase(Locale.ROOT)
+            .startsWith(paramName.toUpperCase(Locale.ROOT))) {
           operands.add(call2.operand(0));
         }
       }

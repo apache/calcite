@@ -45,6 +45,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
+
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
@@ -603,7 +604,7 @@ public abstract class SqlUtil {
           boolean varArgs = function.isVarArgs();
           List<String> paramNames = function.getParamNames()
               .stream()
-              .map(p -> p.toUpperCase())
+              .map(p -> p.toUpperCase(Locale.ROOT))
               .collect(Collectors.toList());
           final int varArgIndex = varArgs ? paramNames.size() - 1 : -1;
           String varArgParamName = varArgs ? paramNames.get(varArgIndex) : "";
@@ -613,12 +614,12 @@ public abstract class SqlUtil {
             // parameters of all of these names.
             final Map<Integer, List<Integer>> map = new HashMap<>();
             for (Ord<String> argName : Ord.zip(argNames)) {
-              final int i = paramNames.indexOf(argName.e.toUpperCase());
+              final int i = paramNames.indexOf(argName.e.toUpperCase(Locale.ROOT));
               if (i < 0) {
                 if (varArgs) {
-                  if (argName.e.toUpperCase().startsWith(varArgParamName)) {
+                  if (argName.e.toUpperCase(Locale.ROOT).startsWith(varArgParamName)) {
                     List<Integer> argIndexes = map.computeIfAbsent(varArgIndex,
-                        integer -> Lists.newArrayList());
+                        integer -> new ArrayList<>());
                     argIndexes.add(argName.i);
                   }
                 } else {
