@@ -62,6 +62,7 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -634,7 +635,7 @@ public abstract class SqlUtil {
                 List<Integer> argIndexes = map.get(idx);
                 return argIndexes.stream().map(i -> argTypes.get(i));
               } else {
-                return null;
+                return Stream.generate(() -> (RelDataType) null).limit(1);
               }
             }).collect(Collectors.toList());
           } else {
