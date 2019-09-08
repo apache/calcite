@@ -39,6 +39,7 @@ import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
+import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.Predicates;
 import com.google.common.base.Utf8;
@@ -61,6 +62,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -190,7 +192,7 @@ public abstract class SqlUtil {
   public static boolean isNull(SqlNode node) {
     return isNullLiteral(node, false)
         || node.getKind() == SqlKind.CAST
-            && isNull(((SqlCall) node).operand(0));
+        && isNull(((SqlCall) node).operand(0));
   }
 
   /**
@@ -601,34 +603,43 @@ public abstract class SqlUtil {
           List<RelDataType> permutedParamTypes = Lists.newArrayList(paramTypes);
           final List<RelDataType> permutedArgTypes;
           boolean varArgs = function.isVarArgs();
-          if (!varArgs) {
-            if (argNames != null) {
-              // Arguments passed by name. Make sure that the function has
-              // parameters of all of these names.
-              final Map<Integer, Integer> map = new HashMap<>();
-              for (Ord<String> argName : Ord.zip(argNames)) {
-                final int i = function.getParamNames().indexOf(argName.e);
-                if (i < 0) {
+          List<String> paramNames = function.getParamNames()
+              .stream()
+              .map(p -> p.toUpperCase())
+              .collect(Collectors.toList());
+          final int varArgIndex = varArgs ? paramNames.size() - 1 : -1;
+          String varArgParamName = varArgs ? paramNames.get(varArgIndex) : "";
+
+          if (argNames != null) {
+            // Arguments passed by name. Make sure that the function has
+            // parameters of all of these names.
+            final Map<Integer, List<Integer>> map = new HashMap<>();
+            for (Ord<String> argName : Ord.zip(argNames)) {
+              final int i = paramNames.indexOf(argName.e.toUpperCase());
+              if (i < 0) {
+                if (varArgs) {
+                  if (argName.e.toUpperCase().startsWith(varArgParamName)) {
+                    List<Integer> argIndexes = map.computeIfAbsent(varArgIndex,
+                        integer -> Lists.newArrayList());
+                    argIndexes.add(argName.i);
+                  }
+                } else {
                   return false;
                 }
-                map.put(i, argName.i);
               }
-              permutedArgTypes = Functions.generate(paramTypes.size(), a0 -> {
-                if (map.containsKey(a0)) {
-                  return argTypes.get(map.get(a0));
-                } else {
-                  return null;
-                }
-              });
-            } else {
-              permutedArgTypes = Lists.newArrayList(argTypes);
+              map.put(i, Lists.newArrayList(argName.i));
             }
+
+            permutedArgTypes = IntStream.range(0, paramTypes.size()).boxed().flatMap(idx -> {
+              if (map.containsKey(idx)) {
+                List<Integer> argIndexes = map.get(idx);
+                return argIndexes.stream().map(i -> argTypes.get(i));
+              } else {
+                return null;
+              }
+            }).collect(Collectors.toList());
           } else {
-            RelDataType varArgsType = permutedParamTypes.get(paramTypes.size() - 1);
             permutedArgTypes = Lists.newArrayList(argTypes);
-            while (permutedParamTypes.size() < argTypes.size()) {
-              permutedParamTypes.add(varArgsType);
-            }
           }
           for (Pair<RelDataType, RelDataType> p
               : Pair.zip(permutedParamTypes, permutedArgTypes)) {

@@ -29,11 +29,13 @@ import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.NlsString;
+import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -153,17 +155,31 @@ public class SqlCallBinding extends SqlOperatorBinding {
    * formal parameters of the function. */
   private List<SqlNode> permutedOperands(final SqlCall call) {
     final SqlFunction operator = (SqlFunction) call.getOperator();
-    return Lists.transform(operator.getParamNames(), paramName -> {
+    boolean varArgs = operator.isVarArgs();
+    final int varArgIndex = varArgs ? operator.getParamNames().size() - 1 : -1;
+    String varArgParamName = varArgs ? operator.getParamNames().get(varArgIndex) : "";
+
+    List<SqlNode> nodes = operator.getParamNames().stream().flatMap(paramName -> {
+      List<SqlNode> operands = Lists.newArrayList();
       for (SqlNode operand2 : call.getOperandList()) {
         final SqlCall call2 = (SqlCall) operand2;
         assert operand2.getKind() == SqlKind.ARGUMENT_ASSIGNMENT;
         final SqlIdentifier id = call2.operand(1);
-        if (id.getSimple().equals(paramName)) {
-          return call2.operand(0);
+        if (id.getSimple().equalsIgnoreCase(paramName)) {
+          operands.add(call2.operand(0));
+        } else if (StringUtils.equalsIgnoreCase(paramName, varArgParamName) && id.getSimple().toUpperCase()
+            .startsWith(paramName.toUpperCase())) {
+          operands.add(call2.operand(0));
         }
       }
-      return DEFAULT_CALL;
-    });
+      if (operands.size() == 0) {
+        operands.add(DEFAULT_CALL);
+      }
+      return operands.stream();
+
+    }).collect(Collectors.toList());
+
+    return nodes;
   }
 
   /**

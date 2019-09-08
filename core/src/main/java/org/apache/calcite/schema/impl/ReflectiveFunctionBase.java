@@ -41,7 +41,6 @@ public abstract class ReflectiveFunctionBase implements Function {
   /** Types of parameter for the function call. */
   public final List<FunctionParameter> parameters;
 
-
   /**
    * {@code ReflectiveFunctionBase} constructor
    * @param method method that is used to get type information from

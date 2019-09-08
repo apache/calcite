@@ -167,7 +167,7 @@ public class SqlFunction extends SqlOperator {
    * <p>The default implementation returns {@code [arg0, arg1, ..., argN]}.
    */
   public List<String> getParamNames() {
-    return Functions.generate(paramTypes.size(), i -> "arg" + i);
+    return Functions.generate(getParamTypes().size(), i -> "arg" + i);
   }
 
   public void unparse(
@@ -264,9 +264,9 @@ public class SqlFunction extends SqlOperator {
       if (convertRowArgToColumnList && containsRowArg(args)) {
         if (function == null
             && SqlUtil.matchRoutinesByParameterCount(
-            validator.getOperatorTable(), getNameAsId(), argTypes,
-            getFunctionType(),
-            validator.getCatalogReader().nameMatcher())) {
+                validator.getOperatorTable(), getNameAsId(), argTypes,
+                getFunctionType(),
+                validator.getCatalogReader().nameMatcher())) {
           // remove the already validated node types corresponding to
           // row arguments before re-validating
           for (SqlNode operand : args) {
@@ -325,8 +325,6 @@ public class SqlFunction extends SqlOperator {
     }
     return false;
   }
-
-
 }
 
 // End SqlFunction.java

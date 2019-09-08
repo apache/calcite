@@ -192,7 +192,7 @@ public class UdfTest {
   /** Tests a user-defined function that is defined in terms of a class with
    * non-static methods. */
   @Test public void testVarArgsUserDefinedFunction() throws Exception {
-    final String sql = "select \"adhoc\".var_args(\"deptno\", 100) as p\n"
+    final String sql = "select \"adhoc\".var_args(x=>\"deptno\", y_1=>100) as p\n"
         + "from \"adhoc\".EMPLOYEES";
     final AtomicInteger c = Smalls.VarArgsFunction.INSTANCE_COUNT;
     final int before = c.get();
@@ -209,6 +209,19 @@ public class UdfTest {
   @Ignore("[CALCITE-1561] Intermittent test failures")
   @Test public void testUserDefinedFunction() throws Exception {
     final String sql = "select \"adhoc\".my_plus(\"deptno\", 100) as p\n"
+        + "from \"adhoc\".EMPLOYEES";
+    final AtomicInteger c = Smalls.MyPlusFunction.INSTANCE_COUNT.get();
+    final int before = c.get();
+    withUdf().query(sql).returnsUnordered("P=110",
+        "P=120",
+        "P=110",
+        "P=110");
+    final int after = c.get();
+    assertThat(after, is(before + 4));
+  }
+
+  @Test public void testUserDefinedFunctionWithArgumentAssignment() throws Exception {
+    final String sql = "select \"adhoc\".my_plus(x=>\"deptno\", y=>100) as p\n"
         + "from \"adhoc\".EMPLOYEES";
     final AtomicInteger c = Smalls.MyPlusFunction.INSTANCE_COUNT.get();
     final int before = c.get();

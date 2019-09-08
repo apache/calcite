@@ -40,7 +40,10 @@ public interface Function {
    */
   List<FunctionParameter> getParameters();
 
-
+  /**
+   * Returns the function is var args or not.
+   * @return Boolean
+   */
   default boolean isVarArgs() {
     return getParameters().stream().anyMatch(fp -> fp.isVarArgs());
   }

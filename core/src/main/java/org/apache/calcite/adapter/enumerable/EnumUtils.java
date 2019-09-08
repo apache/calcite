@@ -40,6 +40,7 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Method;
@@ -201,7 +202,11 @@ public class EnumUtils {
     final List<Expression> list = new ArrayList<>();
 
     if (varArgs) {
-      Class<?> varArgsType = targetTypes[targetTypes.length - 1].getComponentType();
+      Class<?> varTargetType = targetTypes[targetTypes.length - 1];
+      Preconditions.checkArgument(varTargetType != null && varTargetType.isArray(),
+          "the var target type should not null and it must be an array.");
+
+      Class<?> varArgsType = varTargetType.getComponentType();
       for (int i = 0; i < expressions.size(); i++) {
         list.add(
             fromInternal(expressions.get(i),
@@ -226,8 +231,6 @@ public class EnumUtils {
         }
       }
     }
-
-
     return list;
   }
 

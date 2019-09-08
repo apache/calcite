@@ -380,8 +380,8 @@ public class Smalls {
       INSTANCE_COUNT.incrementAndGet();
     }
 
-    public int eval(int... numerics) {
-      return IntStream.of(numerics).sum();
+    public int eval(@Parameter(name = "x")int x, @Parameter(name = "y") int... numerics) {
+      return IntStream.concat(IntStream.of(x), IntStream.of(numerics)).sum();
     }
   }
 
