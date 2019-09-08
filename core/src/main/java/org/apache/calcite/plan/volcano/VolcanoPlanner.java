@@ -891,7 +891,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
                     subset.getDescription(), subset.best.getDescription());
           }
 
-          // Make sure bsetCost is accurate
+          // Make sure bestCost is accurate
           RelOptCost bestCost = getCost(subset.best, subset.best.getCluster().getMetadataQuery());
           if (!subset.bestCost.equals(bestCost)) {
             return litmus.fail("RelSubset [" + subset.getDescription()
