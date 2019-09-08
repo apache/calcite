@@ -18,7 +18,6 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
@@ -39,7 +38,6 @@ import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
-import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.Predicates;
 import com.google.common.base.Utf8;

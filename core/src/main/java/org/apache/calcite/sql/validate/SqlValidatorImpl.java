@@ -3467,7 +3467,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
       List<SqlNode> children = ((SqlCall) stripDot(current)).getOperandList();
       for (SqlNode child : children) {
-        if(child == null || child.getKind() !=  SqlKind.ARGUMENT_ASSIGNMENT) {
+        if (child == null || child.getKind() !=  SqlKind.ARGUMENT_ASSIGNMENT) {
           checkRollUp(parent, current, child, scope, optionalClause);
         }
       }

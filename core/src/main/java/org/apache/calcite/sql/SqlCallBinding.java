@@ -29,6 +29,7 @@ import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.NlsString;
+
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.collect.Lists;
@@ -167,7 +168,8 @@ public class SqlCallBinding extends SqlOperatorBinding {
         final SqlIdentifier id = call2.operand(1);
         if (id.getSimple().equalsIgnoreCase(paramName)) {
           operands.add(call2.operand(0));
-        } else if (StringUtils.equalsIgnoreCase(paramName, varArgParamName) && id.getSimple().toUpperCase()
+        } else if (StringUtils.equalsIgnoreCase(paramName, varArgParamName) && id.getSimple()
+            .toUpperCase()
             .startsWith(paramName.toUpperCase())) {
           operands.add(call2.operand(0));
         }
