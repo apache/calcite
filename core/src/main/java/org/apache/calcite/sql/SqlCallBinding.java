@@ -35,6 +35,7 @@ import org.apache.commons.lang3.StringUtils;
 import com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -161,16 +162,16 @@ public class SqlCallBinding extends SqlOperatorBinding {
     String varArgParamName = varArgs ? operator.getParamNames().get(varArgIndex) : "";
 
     List<SqlNode> nodes = operator.getParamNames().stream().flatMap(paramName -> {
-      List<SqlNode> operands = Lists.newArrayList();
+      List<SqlNode> operands = new ArrayList<>();
       for (SqlNode operand2 : call.getOperandList()) {
         final SqlCall call2 = (SqlCall) operand2;
         assert operand2.getKind() == SqlKind.ARGUMENT_ASSIGNMENT;
         final SqlIdentifier id = call2.operand(1);
         if (id.getSimple().equalsIgnoreCase(paramName)) {
           operands.add(call2.operand(0));
-        } else if (StringUtils.equalsIgnoreCase(paramName, varArgParamName) && id.getSimple()
-            .toUpperCase()
-            .startsWith(paramName.toUpperCase())) {
+        } else if (StringUtils.equalsIgnoreCase(paramName, varArgParamName)
+            && StringUtils.upperCase(id.getSimple())
+            .startsWith(StringUtils.upperCase(paramName))) {
           operands.add(call2.operand(0));
         }
       }
