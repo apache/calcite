@@ -28,12 +28,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 
 import org.elasticsearch.client.RestClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
+import java.util.stream.Collectors;
+
 
 /**
  * Factory that creates an {@link ElasticsearchSchema}.
@@ -42,6 +45,8 @@ import java.util.Set;
  */
 @SuppressWarnings("UnusedDeclaration")
 public class ElasticsearchSchemaFactory implements SchemaFactory {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ElasticsearchSchemaFactory.class);
 
   public ElasticsearchSchemaFactory() {
   }
@@ -55,16 +60,35 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
     mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
 
     try {
-      final String coordinatesString = (String) map.get("coordinates");
-      Preconditions.checkState(coordinatesString != null,
-          "'coordinates' is missing in configuration");
 
-      final Map<String, Integer> coordinates = mapper.readValue(coordinatesString,
-          new TypeReference<Map<String, Integer>>() { });
+      List<HttpHost> hosts;
+
+      if (map.containsKey("hosts")) {
+        final List<String> configHosts = mapper.readValue((String) map.get("hosts"),
+                new TypeReference<List<String>>() { });
+
+        hosts = configHosts
+                .stream()
+                .map(host -> HttpHost.create(host))
+                .collect(Collectors.toList());
+      } else if (map.containsKey("coordinates")) {
+        final Map<String, Integer> coordinates = mapper.readValue((String) map.get("coordinates"),
+                new TypeReference<Map<String, Integer>>() { });
+
+        hosts =  coordinates
+                .entrySet()
+                .stream()
+                .map(entry -> new HttpHost(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList());
+
+        LOGGER.warn("Prefer using hosts, coordinates is deprecated.");
+      } else {
+        throw new IllegalArgumentException
+        ("Both 'coordinates' and 'hosts' is missing in configuration. Provide one of them.");
+      }
 
       // create client
-      final RestClient client = connect(coordinates);
-
+      final RestClient client = connect(hosts);
       final String index = (String) map.get("index");
 
       return new ElasticsearchSchema(client, new ObjectMapper(), index);
@@ -75,18 +99,15 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
 
   /**
    * Builds elastic rest client from user configuration
-   * @param coordinates list of {@code hostname/port} to connect to
+   * @param hosts list of ES HTTP Hosts to connect to
    * @return newly initialized low-level rest http client for ES
    */
-  private static RestClient connect(Map<String, Integer> coordinates) {
-    Objects.requireNonNull(coordinates, "coordinates");
-    Preconditions.checkArgument(!coordinates.isEmpty(), "no ES coordinates specified");
-    final Set<HttpHost> set = new LinkedHashSet<>();
-    for (Map.Entry<String, Integer> entry: coordinates.entrySet()) {
-      set.add(new HttpHost(entry.getKey(), entry.getValue()));
-    }
+  private static RestClient connect(List<HttpHost> hosts) {
 
-    return RestClient.builder(set.toArray(new HttpHost[0])).build();
+    Objects.requireNonNull(hosts, "hosts or coordinates");
+    Preconditions.checkArgument(!hosts.isEmpty(), "no ES hosts specified");
+
+    return RestClient.builder(hosts.toArray(new HttpHost[hosts.size()])).build();
   }
 
 }
