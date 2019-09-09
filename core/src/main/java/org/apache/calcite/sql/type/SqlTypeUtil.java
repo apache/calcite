@@ -1009,6 +1009,7 @@ public abstract class SqlTypeUtil {
     return nested;
   }
 
+
   /**
    * Converts an instance of RelDataType to an instance of SqlDataTypeSpec.
    *
@@ -1054,7 +1055,7 @@ public abstract class SqlTypeUtil {
    * @param type type descriptor
    * @return corresponding parse representation
    */
-  public static SqlDataTypeSpec convertTypeToSpec(RelDataType type) {
+  public static SqlDataTypeSpec  convertTypeToSpec(RelDataType type) {
     // TODO jvs 28-Dec-2004:  collation
     String charSetName = inCharFamily(type) ? type.getCharset().name() : null;
     return convertTypeToSpec(type, charSetName, -1);

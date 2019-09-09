@@ -17,10 +17,11 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
@@ -28,6 +29,10 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
+
+import static org.apache.calcite.sql.type.SqlTypeName.INT;
 
 /**
  * A <code>SqlDialect</code> implementation for the Apache Hive database.
@@ -89,35 +94,8 @@ public class HiveSqlDialect extends SqlDialect {
     case TRIM:
       unparseTrim(writer, call, leftPrec, rightPrec);
       break;
-    case CAST:
-      unparseCast(writer, call);
-      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
-    }
-  }
-
-  private void unparseCast(final SqlWriter writer, final SqlCall call) {
-    assert call.operandCount() == 2;
-    final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().getName());
-    call.operand(0).unparse(writer, 0, 0);
-    writer.sep("AS");
-    if (call.operand(1) instanceof SqlIntervalQualifier) {
-      writer.sep("INTERVAL");
-    }
-    if (call.operand(1) instanceof SqlDataTypeSpec) {
-      unparseDataType(writer, (SqlDataTypeSpec) call.operand(1));
-    } else {
-      call.operand(1).unparse(writer, 0, 0);
-    }
-    writer.endFunCall(frame);
-  }
-
-  private void unparseDataType(final SqlWriter writer, final SqlDataTypeSpec sqlDataTypeSpec) {
-    if ("INTEGER".equals(sqlDataTypeSpec.getTypeName().getSimple())) {
-      writer.keyword("INT");
-    } else {
-      sqlDataTypeSpec.unparse(writer, 0, 0);
     }
   }
 
@@ -148,6 +126,22 @@ public class HiveSqlDialect extends SqlDialect {
 
   @Override public boolean supportsCharSet() {
     return false;
+  }
+
+  @Override public SqlNode getCastSpec(final RelDataType type) {
+    if (type instanceof BasicSqlType) {
+      switch (type.getSqlTypeName()) {
+      case INTEGER:
+        final SqlBasicTypeNameSpec typeNameSpec = new SqlBasicTypeNameSpec(
+            INT,
+            type.getPrecision(),
+            type.getScale(),
+            null,
+            SqlParserPos.ZERO);
+        return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+      }
+    }
+    return super.getCastSpec(type);
   }
 }
 
