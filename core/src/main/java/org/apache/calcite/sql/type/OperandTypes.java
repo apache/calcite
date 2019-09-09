@@ -510,6 +510,53 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker NUMERIC_OR_STRING =
       OperandTypes.or(NUMERIC, STRING);
 
+  /**
+   * Used when a table function's parameter is a TABLE parameter, which has type
+   * as ROW.
+   */
+  public static final SqlSingleOperandTypeChecker ROW =
+      new SqlSingleOperandTypeChecker() {
+        public boolean checkSingleOperandType(
+            SqlCallBinding callBinding,
+            SqlNode node,
+            int iFormalOperand,
+            boolean throwOnFailure) {
+          assert 0 == iFormalOperand;
+          RelDataType type =
+              callBinding.getValidator().deriveType(
+                  callBinding.getScope(),
+                  node);
+          return type.getSqlTypeName() == SqlTypeName.ROW;
+        }
+
+        public boolean checkOperandTypes(
+            SqlCallBinding callBinding,
+            boolean throwOnFailure) {
+          return checkSingleOperandType(
+              callBinding,
+              callBinding.operand(0),
+              0,
+              throwOnFailure);
+        }
+
+        public SqlOperandCountRange getOperandCountRange() {
+          return SqlOperandCountRanges.of(1);
+        }
+
+        public String getAllowedSignatures(SqlOperator op, String opName) {
+          return "ROW";
+        }
+
+        public boolean isOptional(int i) {
+          return false;
+        }
+
+        public Consistency getConsistency() {
+          return Consistency.NONE;
+
+        }
+      };
+
   /** Checker that returns whether a value is a multiset of records or an
    * array of records.
    *

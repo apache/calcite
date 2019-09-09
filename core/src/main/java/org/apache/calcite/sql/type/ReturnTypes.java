@@ -90,6 +90,17 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference ARG0 =
       new OrdinalReturnTypeInference(0);
+
+  /**
+   * Type-inference strategy whereby the result type of a table function call is a ROW,
+   * which is combined from the operand #0(TABLE parameter)'s schema and two
+   * additional fields:
+   *  1. wstart. TIMESTAMP type to indicate a window's start.
+   *  2. wend. TIMESTAMP type to indicate a window's end.
+   */
+  public static final SqlReturnTypeInference ARG0_TABLE_FUNCTION_WINDOWING =
+      new TableFunctionWindowingOrdinalReturnTypeInference(0);
+
   /**
    * Type-inference strategy whereby the result type of a call is VARYING the
    * type of the first argument. The length returned is the same as length of

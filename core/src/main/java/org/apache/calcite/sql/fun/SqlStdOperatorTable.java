@@ -45,6 +45,7 @@ import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.SqlTableValueFunctionWindowingOperator;
 import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlValuesOperator;
@@ -2250,6 +2251,19 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           call.operand(1).unparse(writer, 0, rightPrec);
         }
       };
+
+  /** TUMBLE as a table-value function. */
+  public static final SqlFunction TUMBLE_TABLE_FUNCTION =
+      new SqlTableValueFunctionWindowingOperator(
+          SqlKind.TUMBLE.name(),
+          SqlKind.TUMBLE,
+          ReturnTypes.ARG0_TABLE_FUNCTION_WINDOWING, null,
+          OperandTypes.or(
+              OperandTypes.ROW,
+              OperandTypes.DATETIME_INTERVAL,
+              OperandTypes.DATETIME_INTERVAL_TIME),
+          SqlFunctionCategory.SYSTEM
+      );
 
   /** The {@code TUMBLE} group function. */
   public static final SqlGroupedWindowFunction TUMBLE =

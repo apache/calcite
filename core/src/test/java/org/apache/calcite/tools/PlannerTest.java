@@ -132,6 +132,18 @@ public class PlannerTest {
         + "    EnumerableTableScan(table=[[hr, emps]])\n");
   }
 
+  @Test public void testParseAndConvertTableFunctionWindowing() throws Exception {
+    checkParseAndConvert(
+            "select * FROM TABLE(TUMBLE(TABLE ORDERS, INTERVAL '1' MINUTE))",
+
+            "SELECT *\nFROM TABLE(TUMBLE(TABLE `ORDERS`, INTERVAL '1' MINUTE))",
+
+            "LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], wstart=[$4], wend=[$5])\n"
+                + "  LogicalTableFunctionScan(invocation=[TUMBLE($3, 60000:INTERVAL MINUTE)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER ID, VARCHAR(10) PRODUCT, INTEGER UNITS, TIMESTAMP(0) wstart, TIMESTAMP(0) wend)])\n"
+                + "    LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3])\n"
+                + "      LogicalTableScan(table=[[ORINOCO, ORDERS]])\n");
+  }
+
   @Test(expected = SqlParseException.class)
   public void testParseIdentiferMaxLengthWithDefault() throws Exception {
     Planner planner = getPlanner(null, SqlParser.configBuilder().build());
@@ -252,7 +264,7 @@ public class PlannerTest {
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
         .defaultSchema(
-            CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.HR))
+            CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.ORINOCO))
         .traitDefs(traitDefs)
         .programs(programs)
         .build();
