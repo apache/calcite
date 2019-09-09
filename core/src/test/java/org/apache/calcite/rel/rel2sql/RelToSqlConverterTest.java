@@ -553,6 +553,15 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testGroupByAliasReplacementWithGroupByExpression() {
+    String query = "select (\"product_id\" + 1) as product_id, count(1) as num_records"
+        + " from \"product\" group by (\"product_id\" + 1)";
+    final String expected = "SELECT \"product_id\" + 1 AS \"PRODUCT_ID\", COUNT(*) AS \"NUM_RECORDS\"\n" +
+        "FROM \"foodmart\".\"product\"\n" +
+        "GROUP BY \"product_id\" + 1";
+    sql(query).withBigQuery().ok(expected);
+  }
+
   @Test public void testCastDecimal1() {
     final String query = "select -0.0000000123\n"
         + " from \"expense_fact\"";
