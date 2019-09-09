@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
@@ -134,6 +135,19 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
+  @Override public SqlOperator getTargetFunc(RexCall call) {
+    switch (call.type.getSqlTypeName()) {
+    case DATE:
+      switch (call.getOperands().get(1).getType().getSqlTypeName()) {
+      case INTERVAL_DAY:
+      case INTERVAL_MONTH:
+        return SqlLibraryOperators.DATE_ADD;
+      }
+    default:
+      return super.getTargetFunc(call);
+    }
+  }
+
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,
       final int rightPrec) {
     switch (call.getKind()) {
@@ -230,14 +244,6 @@ public class BigQuerySqlDialect extends SqlDialect {
   @Override public void unparseSqlDatetimeArithmetic(SqlWriter writer,
       SqlCall call, SqlKind sqlKind, int leftPrec, int rightPrec) {
     switch (sqlKind) {
-    case PLUS:
-      final SqlWriter.Frame dateAddFrame = writer.startFunCall("DATE_ADD");
-      writer.sep(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(dateAddFrame);
-      break;
     case MINUS:
       final SqlWriter.Frame dateDiffFrame = writer.startFunCall("DATE_DIFF");
       writer.sep(",");
@@ -249,6 +255,11 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.endFunCall(dateDiffFrame);
       break;
     }
+  }
+
+  @Override public void unparseIntervalOperandsBasedFunctions(SqlWriter writer,
+      SqlCall call, int leftPrec, int rightPrec) {
+    super.unparseIntervalOperandsBasedFunctions(writer, call, leftPrec, rightPrec);
   }
 }
 
