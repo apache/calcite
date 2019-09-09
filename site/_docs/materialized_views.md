@@ -67,7 +67,7 @@ views, e.g., views with an arbitrary number of join operators.
 
 In turn, an alternative rule that attempts to match queries to views by extracting some structural information about the expression to replace has been proposed.
 
-`AbstractMaterializedViewRule` builds on the ideas presented in [<a href="#ref-gl01">GL01</a>] and introduces some additional extensions.
+`MaterializedViewRule` builds on the ideas presented in [<a href="#ref-gl01">GL01</a>] and introduces some additional extensions.
 The rule can rewrite expressions containing arbitrary chains of Join, Filter, and Project operators.
 Additionally, the rule can rewrite expressions rooted at an Aggregate operator, rolling aggregations up if necessary. In turn, it can also produce rewritings using Union operators if the query can be partially answered from a view.
 
@@ -75,7 +75,7 @@ To produce a larger number of rewritings, the rule relies on information exposed
 
 ##### Rewriting coverage
 
-Let us illustrate with some examples the coverage of the view rewriting algorithm implemented in `AbstractMaterializedViewRule`. The examples are based on the following database schema.
+Let us illustrate with some examples the coverage of the view rewriting algorithm implemented in `MaterializedViewRule`. The examples are based on the following database schema.
 
 ```
 CREATE TABLE depts(
