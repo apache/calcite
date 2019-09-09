@@ -256,11 +256,6 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     }
   }
-
-  @Override public void unparseIntervalOperandsBasedFunctions(SqlWriter writer,
-      SqlCall call, int leftPrec, int rightPrec) {
-    super.unparseIntervalOperandsBasedFunctions(writer, call, leftPrec, rightPrec);
-  }
 }
 
 // End BigQuerySqlDialect.java
