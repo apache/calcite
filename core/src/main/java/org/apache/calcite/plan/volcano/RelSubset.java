@@ -41,6 +41,7 @@ import org.slf4j.Logger;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -316,7 +317,7 @@ public class RelSubset extends AbstractRelNode {
 
   /**
    * Checks whether a relexp has made its subset cheaper, and if it so,
-   * recursively checks whether that subset's parents have gotten cheaper.
+   * propagate new cost to parent rel nodes using breath first manner.
    *
    * @param planner   Planner
    * @param mq        Metadata query
@@ -325,15 +326,22 @@ public class RelSubset extends AbstractRelNode {
    */
   void propagateCostImprovements(VolcanoPlanner planner, RelMetadataQuery mq,
       RelNode rel, Set<RelSubset> activeSet) {
+    ArrayDeque<Pair<RelSubset, RelNode>> propagationQueue = new ArrayDeque<>();
     for (RelSubset subset : set.subsets) {
       if (rel.getTraitSet().satisfies(subset.traitSet)) {
-        subset.propagateCostImprovements0(planner, mq, rel, activeSet);
+        propagationQueue.add(new Pair<>(subset, rel));
       }
+    }
+
+    while (!propagationQueue.isEmpty()) {
+      Pair<RelSubset, RelNode> p = propagationQueue.pop();
+      p.left.propagateCostImprovements0(planner, mq, p.right, activeSet, propagationQueue);
     }
   }
 
   void propagateCostImprovements0(VolcanoPlanner planner, RelMetadataQuery mq,
-      RelNode rel, Set<RelSubset> activeSet) {
+                                  RelNode rel, Set<RelSubset> activeSet,
+                                  ArrayDeque<Pair<RelSubset, RelNode>> propagationQueue) {
     ++timestamp;
 
     if (!activeSet.add(this)) {
@@ -356,8 +364,11 @@ public class RelSubset extends AbstractRelNode {
         planner.ruleQueue.recompute(this);
         for (RelNode parent : getParents()) {
           final RelSubset parentSubset = planner.getSubset(parent);
-          parentSubset.propagateCostImprovements(planner, mq, parent,
-              activeSet);
+          for (RelSubset subset : parentSubset.set.subsets) {
+            if (parent.getTraitSet().satisfies(subset.traitSet)) {
+              propagationQueue.add(Pair.of(subset, parent));
+            }
+          }
         }
         planner.checkForSatisfiedConverters(set, rel);
       }
