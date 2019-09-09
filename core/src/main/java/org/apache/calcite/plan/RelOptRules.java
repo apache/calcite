@@ -21,7 +21,6 @@ import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.NoneToBindableConverterRule;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.volcano.AbstractConverter;
-import org.apache.calcite.rel.rules.AbstractMaterializedViewRule;
 import org.apache.calcite.rel.rules.AggregateCaseToFilterRule;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
@@ -69,6 +68,12 @@ import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.rules.UnionPullUpConstantsRule;
 import org.apache.calcite.rel.rules.UnionToDistinctRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
+import org.apache.calcite.rel.rules.materialize.MaterializedViewOnlyAggregateRule;
+import org.apache.calcite.rel.rules.materialize.MaterializedViewOnlyFilterRule;
+import org.apache.calcite.rel.rules.materialize.MaterializedViewOnlyJoinRule;
+import org.apache.calcite.rel.rules.materialize.MaterializedViewProjectAggregateRule;
+import org.apache.calcite.rel.rules.materialize.MaterializedViewProjectFilterRule;
+import org.apache.calcite.rel.rules.materialize.MaterializedViewProjectJoinRule;
 
 import com.google.common.collect.ImmutableList;
 
@@ -186,10 +191,10 @@ public class RelOptRules {
 
   public static final List<RelOptRule> MATERIALIZATION_RULES = ImmutableList.of(
       MaterializedViewFilterScanRule.INSTANCE,
-      AbstractMaterializedViewRule.INSTANCE_PROJECT_FILTER,
-      AbstractMaterializedViewRule.INSTANCE_FILTER,
-      AbstractMaterializedViewRule.INSTANCE_PROJECT_JOIN,
-      AbstractMaterializedViewRule.INSTANCE_JOIN,
-      AbstractMaterializedViewRule.INSTANCE_PROJECT_AGGREGATE,
-      AbstractMaterializedViewRule.INSTANCE_AGGREGATE);
+      MaterializedViewProjectFilterRule.INSTANCE,
+      MaterializedViewOnlyFilterRule.INSTANCE,
+      MaterializedViewProjectJoinRule.INSTANCE,
+      MaterializedViewOnlyJoinRule.INSTANCE,
+      MaterializedViewProjectAggregateRule.INSTANCE,
+      MaterializedViewOnlyAggregateRule.INSTANCE);
 }
