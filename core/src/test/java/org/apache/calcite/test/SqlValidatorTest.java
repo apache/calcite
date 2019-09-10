@@ -10289,6 +10289,39 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .monotonic(SqlMonotonicity.INCREASING);
   }
 
+  /** Tests that various expressions with null operands are monotonic. */
+  @Test public void testNullOperandMonotonic() {
+    // SqlBinaryOperator
+    sql("select deptno / null from emp")
+        .monotonic(SqlMonotonicity.CONSTANT);
+    sql("select null / deptno from emp")
+        .monotonic(SqlMonotonicity.CONSTANT);
+    sql("select null / null from emp")
+        .monotonic(SqlMonotonicity.CONSTANT);
+    // SqlMonotonicBinaryOperator
+    sql("select deptno + null from emp")
+        .monotonic(SqlMonotonicity.CONSTANT);
+    sql("select null + deptno from emp")
+        .monotonic(SqlMonotonicity.CONSTANT);
+    sql("select null + null from emp")
+        .monotonic(SqlMonotonicity.CONSTANT);
+    sql("select deptno - null from emp")
+        .monotonic(SqlMonotonicity.CONSTANT);
+    sql("select null - deptno from emp")
+        .monotonic(SqlMonotonicity.CONSTANT);
+    sql("select null - null from emp")
+        .monotonic(SqlMonotonicity.CONSTANT);
+    sql("select deptno * null from emp")
+        .monotonic(SqlMonotonicity.CONSTANT);
+    sql("select null * deptno from emp")
+        .monotonic(SqlMonotonicity.CONSTANT);
+    sql("select null * null from emp")
+        .monotonic(SqlMonotonicity.CONSTANT);
+    // SqlFunction
+    sql("select substring('abcdef' from cast(null as int) for 4) from emp")
+        .monotonic(SqlMonotonicity.CONSTANT);
+  }
+
   @Test public void testStreamUnionAll() {
     sql("select orderId\n"
         + "from ^orders^\n"

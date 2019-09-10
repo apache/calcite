@@ -181,7 +181,24 @@ public class SqlBinaryOperator extends SqlOperator {
     return type;
   }
 
+  protected boolean hasNullOperand(final SqlOperatorBinding call) {
+    for (int i = 0; i < call.getOperandCount(); i++) {
+      if (call.isOperandNull(i, true)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
+    // specially handle cases with null operands
+    if (hasNullOperand(call)) {
+      switch (this.kind) {
+      case DIVIDE:
+        return SqlMonotonicity.CONSTANT;
+      }
+    }
+
     if (getName().equals("/")) {
       final SqlMonotonicity mono0 = call.getOperandMonotonicity(0);
       final SqlMonotonicity mono1 = call.getOperandMonotonicity(1);

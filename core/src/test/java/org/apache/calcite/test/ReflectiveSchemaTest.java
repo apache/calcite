@@ -641,6 +641,25 @@ public class ReflectiveSchemaTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3332">[CALCITE-3332]
+   * Query failed with AssertionError: cannot cast null as class java.math.BigDecimal</a>. */
+  @Test public void testNullLiteral() {
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that().withSchema("s", CATCHALL);
+    with.query("select \"wrapperLong\" * null as c\n"
+        + " from \"s\".\"everyTypes\"")
+        .returns("C=null\n"
+            + "C=null\n");
+    with.query("select \"wrapperLong\" / null as c\n"
+        + " from \"s\".\"everyTypes\"")
+        .returns("C=null\n"
+            + "C=null\n");
+    with.query("select substring('abcdef' from "
+        + "cast(null as int) for 4) as c\n")
+        .returns("C=null\n");
+  }
+
   @Test public void testCastFromString() {
     CalciteAssert.that().withSchema("s", CATCHALL)
         .query("select cast(\"string\" as int) as c from \"s\".\"everyTypes\"")

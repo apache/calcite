@@ -55,12 +55,22 @@ public class SqlMonotonicBinaryOperator extends SqlBinaryOperator {
   //~ Methods ----------------------------------------------------------------
 
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
+    // specially handle cases with null operands
+    if (hasNullOperand(call)) {
+      switch (this.kind) {
+      case PLUS:
+      case MINUS:
+      case TIMES:
+        return SqlMonotonicity.CONSTANT;
+      }
+    }
+
     final SqlMonotonicity mono0 = call.getOperandMonotonicity(0);
     final SqlMonotonicity mono1 = call.getOperandMonotonicity(1);
 
     // constant <op> constant --> constant
-    if ((mono1 == SqlMonotonicity.CONSTANT)
-        && (mono0 == SqlMonotonicity.CONSTANT)) {
+    if (mono1 == SqlMonotonicity.CONSTANT
+        && mono0 == SqlMonotonicity.CONSTANT) {
       return SqlMonotonicity.CONSTANT;
     }
 
@@ -100,21 +110,19 @@ public class SqlMonotonicBinaryOperator extends SqlBinaryOperator {
         return mono1;
       }
       assert getName().equals("*");
-      if (!call.isOperandNull(0, true)) {
-        BigDecimal value = call.getOperandLiteralValue(0, BigDecimal.class);
-        switch (value == null ? 1 : value.signum()) {
-        case -1:
-          // negative constant * mono1 --> reverse mono1
-          return mono1.reverse();
+      BigDecimal value = call.getOperandLiteralValue(0, BigDecimal.class);
+      switch (value == null ? 1 : value.signum()) {
+      case -1:
+        // negative constant * mono1 --> reverse mono1
+        return mono1.reverse();
 
-        case 0:
-          // 0 * mono1 --> constant (zero)
-          return SqlMonotonicity.CONSTANT;
+      case 0:
+        // 0 * mono1 --> constant (zero)
+        return SqlMonotonicity.CONSTANT;
 
-        default:
-          // positive constant * mono1 --> mono1
-          return mono1;
-        }
+      default:
+        // positive constant * mono1 --> mono1
+        return mono1;
       }
     }
 

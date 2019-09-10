@@ -195,10 +195,14 @@ public class SqlSubstringFunction extends SqlFunction {
       final SqlMonotonicity mono0 = call.getOperandMonotonicity(0);
       if ((mono0 != SqlMonotonicity.NOT_MONOTONIC)
           && call.getOperandMonotonicity(1) == SqlMonotonicity.CONSTANT
-          && call.getOperandLiteralValue(1, BigDecimal.class)
-              .equals(BigDecimal.ZERO)
           && call.getOperandMonotonicity(2) == SqlMonotonicity.CONSTANT) {
-        return mono0.unstrict();
+        if (call.isOperandNull(1, true)) {
+          return SqlMonotonicity.CONSTANT;
+        }
+        if (call.getOperandLiteralValue(1, BigDecimal.class)
+            .equals(BigDecimal.ZERO)) {
+          return mono0.unstrict();
+        }
       }
     }
     return super.getMonotonicity(call);
