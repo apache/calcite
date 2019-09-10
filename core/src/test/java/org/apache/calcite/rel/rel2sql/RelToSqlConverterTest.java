@@ -560,7 +560,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT \"product_id\" + 1 AS \"PRODUCT_ID\", COUNT(*) AS \"NUM_RECORDS\"\n" +
         "FROM \"foodmart\".\"product\"\n" +
         "GROUP BY \"product_id\" + 1";
-    sql(query).withBigQuery().ok(expected);
+    sql(query).ok(expected);
   }
 
   @Test public void testCastDecimal1() {

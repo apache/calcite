@@ -356,7 +356,7 @@ public class RelToSqlConverter extends SqlImplementor
           && dialect.getConformance().isGroupByOrdinal()) {
         isGroupByAlias = false;
       }
-      if (builder.context.field(key).getKind() == SqlKind.IDENTIFIER
+      if (builder.context.field(key).getKind() != SqlKind.IDENTIFIER
           && dialect.getConformance().isGroupByOrdinal()) {
         isGroupByAlias = false;
       }
