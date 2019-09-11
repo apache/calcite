@@ -536,6 +536,17 @@ public class SqlJsonFunctionsTest {
     assertJsonStorageSize(JsonFunctions.JsonValueContext.withJavaObj(null), is(4));
   }
 
+  @Test public void testJsonExtract() {
+    assertJsonExtract(
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new String[]{"$.a"},
+        is("1"));
+    assertJsonExtract(
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new String[]{"$.a", "$.b"},
+        is("[1,[2]]"));
+  }
+
   @Test public void testJsonObjectAggAdd() {
     Map<String, Object> map = new HashMap<>();
     Map<String, Object> expected = new HashMap<>();
@@ -741,6 +752,13 @@ public class SqlJsonFunctionsTest {
       Matcher<? super String> matcher) {
     assertThat(invocationDesc(BuiltInMethod.JSON_REMOVE.getMethodName(), input, pathSpecs),
         JsonFunctions.jsonRemove(input, pathSpecs),
+        matcher);
+  }
+
+  private void assertJsonExtract(JsonFunctions.JsonValueContext input, String[] pathSpecs,
+      Matcher<? super String> matcher) {
+    assertThat(invocationDesc(BuiltInMethod.JSON_EXTRACT.getMethodName(), input, pathSpecs),
+        JsonFunctions.jsonExtract(input, pathSpecs),
         matcher);
   }
 

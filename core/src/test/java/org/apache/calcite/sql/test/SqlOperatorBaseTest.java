@@ -5021,13 +5021,31 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("json_remove('[\"a\", [\"b\", \"c\"], \"d\"]', '$[0]', '$[0]')",
         "[\"d\"]", "VARCHAR(2000)");
     tester.checkFails("json_remove('[\"a\", [\"b\", \"c\"], \"d\"]', '$')",
-        "(?s).*Invalid input for.*", true);
+        "(?s).*Not a valid input for.*", true);
 
     // nulls
     strictTester.checkFails("json_remove(^null^, '$')",
         "(?s).*Illegal use of 'NULL'.*", false);
     tester.checkString("json_remove(null, '$')", null, "VARCHAR(2000)");
     tester.checkNull("json_remove(cast(null as varchar), '$')");
+  }
+
+  @Test public void testJsonExtract() {
+    tester.checkString("json_extract('{\"foo\":100}', '$')",
+        "{\"foo\":100}", "VARCHAR(2000)");
+    tester.checkString("json_extract('{\"foo\":100}', '$.foo')",
+        "100", "VARCHAR(2000)");
+    tester.checkString("json_extract('{\"foo\":100}', '$.foo', '$.foo1')",
+        "[100]", "VARCHAR(2000)");
+    tester.checkString("json_extract('[10, 20, [30, 40]]', '$[1]')",
+        "20", "VARCHAR(2000)");
+    tester.checkString("json_extract('[10, 20, [30, 40]]', '$[1]', '$[0]')",
+        "[20,10]", "VARCHAR(2000)");
+    tester.checkString("json_extract('[10, 20, [30, 40]]', '$[2][*]')",
+        "[30,40]", "VARCHAR(2000)");
+
+    // nulls
+    tester.checkNull("json_extract(cast(null as varchar), '$')");
   }
 
   @Test public void testJsonObject() {

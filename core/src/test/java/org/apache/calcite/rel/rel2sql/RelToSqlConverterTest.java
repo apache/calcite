@@ -3874,6 +3874,15 @@ public class RelToSqlConverterTest {
     });
   }
 
+  @Test public void testJsonExtract() {
+    String query = "select json_extract(\"product_name\", '$[0]') from \"product\"";
+    final String expected = "SELECT JSON_EXTRACT(\"product_name\", '$[0]')\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+    // validate
+    sql(expected).exec();
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;

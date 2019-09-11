@@ -97,6 +97,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DIFFERENCE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_DEPTH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_EXTRACT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_KEYS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_LENGTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_PRETTY;
@@ -529,6 +530,7 @@ public class RexImpTable {
     defineMethod(JSON_QUERY, BuiltInMethod.JSON_QUERY.method, NullPolicy.ARG0);
     defineMethod(JSON_TYPE, BuiltInMethod.JSON_TYPE.method, NullPolicy.ARG0);
     defineMethod(JSON_DEPTH, BuiltInMethod.JSON_DEPTH.method, NullPolicy.ARG0);
+    defineMethod(JSON_EXTRACT, BuiltInMethod.JSON_EXTRACT.method, NullPolicy.ARG0);
     defineMethod(JSON_KEYS, BuiltInMethod.JSON_KEYS.method, NullPolicy.ARG0);
     defineMethod(JSON_PRETTY, BuiltInMethod.JSON_PRETTY.method, NullPolicy.ARG0);
     defineMethod(JSON_LENGTH, BuiltInMethod.JSON_LENGTH.method, NullPolicy.ARG0);

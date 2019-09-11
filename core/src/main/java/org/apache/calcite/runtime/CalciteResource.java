@@ -886,7 +886,7 @@ public interface CalciteResource {
   @BaseMessage("Not a valid input for JSON_KEYS: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonKeys(String value);
 
-  @BaseMessage("Invalid input for JSON_REMOVE: document: ''{0}'', jsonpath expressions: ''{1}''")
+  @BaseMessage("Not a valid input for JSON_REMOVE: document: ''{0}'', jsonpath expressions: ''{1}''")
   ExInst<CalciteException> invalidInputForJsonRemove(String value, String pathSpecs);
 
   @BaseMessage("Not a valid input for JSON_STORAGE_SIZE: ''{0}''")
@@ -894,6 +894,9 @@ public interface CalciteResource {
 
   @BaseMessage("Not a valid input for REGEXP_REPLACE: ''{0}''")
   ExInst<CalciteException> invalidInputForRegexpReplace(String value);
+
+  @BaseMessage("Not a valid input for JSON_EXTRACT: document: ''{0}'', jsonpath expressions: ''{1}''")
+  ExInst<CalciteException> invalidInputForJsonExtract(String jsonDoc, String pathSpecs);
 }
 
 // End CalciteResource.java

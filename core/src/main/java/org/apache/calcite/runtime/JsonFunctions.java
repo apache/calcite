@@ -644,6 +644,35 @@ public class JsonFunctions {
     }
   }
 
+  public static String jsonExtract(String input, String... pathSpecs) {
+    return jsonExtract(jsonValueExpression(input), pathSpecs);
+  }
+
+  public static String jsonExtract(JsonValueContext input, String... pathSpecs) {
+    try {
+      DocumentContext ctx = JsonPath.parse(input.obj,
+          Configuration
+              .builder()
+              .options(Option.SUPPRESS_EXCEPTIONS)
+              .jsonProvider(JSON_PATH_JSON_PROVIDER)
+              .mappingProvider(JSON_PATH_MAPPING_PROVIDER)
+              .build());
+      List<Object> arrayList = new ArrayList<Object>();
+      Object value;
+      for (String pathSpec : pathSpecs) {
+        value = ctx.read(pathSpec);
+        if (pathSpec != null && value != null) {
+          arrayList.add(value);
+        }
+      }
+      return arrayList.size() > 0
+          ? pathSpecs.length == 1 ? jsonize(arrayList.get(0)) : jsonize(arrayList) : null;
+    } catch (Exception ex) {
+      throw RESOURCE.invalidInputForJsonExtract(
+          input.toString(), Arrays.toString(pathSpecs)).ex();
+    }
+  }
+
   public static boolean isJsonValue(String input) {
     try {
       dejsonize(input);

@@ -1333,6 +1333,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   @Deprecated // to be removed before 2.0
   public static final SqlFunction JSON_STORAGE_SIZE = SqlLibraryOperators.JSON_STORAGE_SIZE;
 
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_EXTRACT = SqlLibraryOperators.JSON_EXTRACT;
+
   public static final SqlJsonArrayAggAggFunction JSON_ARRAYAGG =
       new SqlJsonArrayAggAggFunction(SqlKind.JSON_ARRAYAGG,
           SqlJsonConstructorNullClause.ABSENT_ON_NULL);
