@@ -20,7 +20,6 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
-import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.BinaryExpression;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
@@ -649,21 +648,6 @@ public class RexImpTable {
     };
   }
 
-  private static RexCall call2(
-      boolean harmonize,
-      RexToLixTranslator translator,
-      RexCall call) {
-    if (!harmonize) {
-      return call;
-    }
-    final List<RexNode> operands2 =
-        harmonize(translator, call.getOperands());
-    if (operands2.equals(call.getOperands())) {
-      return call;
-    }
-    return call.clone(call.getType(), operands2);
-  }
-
   public static CallImplementor createImplementor(
       final NotNullImplementor implementor,
       final NullPolicy nullPolicy,
@@ -813,14 +797,6 @@ public class RexImpTable {
     }
   }
 
-  static Expression maybeNegate(boolean negate, Expression expression) {
-    if (!negate) {
-      return expression;
-    } else {
-      return Expressions.not(expression);
-    }
-  }
-
   static Expression optimize(Expression expression) {
     return expression.accept(new OptimizeShuttle());
   }
@@ -838,48 +814,6 @@ public class RexImpTable {
               NULL_EXPR,
               expression));
     }
-  }
-
-  private static boolean nullable(RexCall call, int i) {
-    return call.getOperands().get(i).getType().isNullable();
-  }
-
-  /** Ensures that operands have identical type. */
-  private static List<RexNode> harmonize(
-      final RexToLixTranslator translator, final List<RexNode> operands) {
-    int nullCount = 0;
-    final List<RelDataType> types = new ArrayList<>();
-    final RelDataTypeFactory typeFactory =
-        translator.builder.getTypeFactory();
-    for (RexNode operand : operands) {
-      RelDataType type = operand.getType();
-      type = toSql(typeFactory, type);
-      if (translator.isNullable(operand)) {
-        ++nullCount;
-      } else {
-        type = typeFactory.createTypeWithNullability(type, false);
-      }
-      types.add(type);
-    }
-    if (allSame(types)) {
-      // Operands have the same nullability and type. Return them
-      // unchanged.
-      return operands;
-    }
-    final RelDataType type = typeFactory.leastRestrictive(types);
-    if (type == null) {
-      // There is no common type. Presumably this is a binary operator with
-      // asymmetric arguments (e.g. interval / integer) which is not intended
-      // to be harmonized.
-      return operands;
-    }
-    assert (nullCount > 0) == type.isNullable();
-    final List<RexNode> list = new ArrayList<>();
-    for (RexNode operand : operands) {
-      list.add(
-          translator.builder.ensureType(type, operand, false));
-    }
-    return list;
   }
 
   private static RelDataType toSql(RelDataTypeFactory typeFactory,
@@ -904,181 +838,6 @@ public class RexImpTable {
       prev = e;
     }
     return true;
-  }
-
-  private static Expression implementNullSemantics0(
-      RexToLixTranslator translator,
-      RexCall call,
-      NullAs nullAs,
-      NullPolicy nullPolicy,
-      boolean harmonize,
-      NotNullImplementor implementor) {
-    switch (nullAs) {
-    case IS_NOT_NULL:
-      // If "f" is strict, then "f(a0, a1) IS NOT NULL" is
-      // equivalent to "a0 IS NOT NULL AND a1 IS NOT NULL".
-      switch (nullPolicy) {
-      case STRICT:
-        return Expressions.foldAnd(
-            translator.translateList(
-                call.getOperands(), nullAs));
-      }
-      break;
-    case IS_NULL:
-      // If "f" is strict, then "f(a0, a1) IS NULL" is
-      // equivalent to "a0 IS NULL OR a1 IS NULL".
-      switch (nullPolicy) {
-      case STRICT:
-        return Expressions.foldOr(
-            translator.translateList(
-                call.getOperands(), nullAs));
-      }
-      break;
-    }
-    final RexCall call2 = call2(harmonize, translator, call);
-    try {
-      return implementNullSemantics(
-          translator, call2, nullAs, nullPolicy, implementor);
-    } catch (RexToLixTranslator.AlwaysNull e) {
-      switch (nullAs) {
-      case NOT_POSSIBLE:
-        throw e;
-      case FALSE:
-      case IS_NOT_NULL:
-        return FALSE_EXPR;
-      case TRUE:
-      case IS_NULL:
-        return TRUE_EXPR;
-      default:
-        return NULL_EXPR;
-      }
-    }
-  }
-
-  private static Expression implementNullSemantics(
-      RexToLixTranslator translator,
-      RexCall call,
-      NullAs nullAs,
-      NullPolicy nullPolicy,
-      NotNullImplementor implementor) {
-    final List<Expression> list = new ArrayList<>();
-    final List<RexNode> conditionalOps =
-        nullPolicy == NullPolicy.ARG0
-            ? Collections.singletonList(call.getOperands().get(0))
-            : call.getOperands();
-    switch (nullAs) {
-    case NULL:
-    case IS_NULL:
-    case IS_NOT_NULL:
-      // v0 == null || v1 == null ? null : f(v0, v1)
-      for (Ord<RexNode> operand : Ord.zip(conditionalOps)) {
-        if (translator.isNullable(operand.e)) {
-          list.add(
-              translator.translate(
-                  operand.e, NullAs.IS_NULL));
-          translator = translator.setNullable(operand.e, false);
-        }
-      }
-      final Expression box =
-          Expressions.box(
-              implementCall(translator, call, implementor, nullAs));
-      final Expression ifTrue;
-      switch (nullAs) {
-      case NULL:
-        ifTrue = EnumUtils.convert(NULL_EXPR, box.getType());
-        break;
-      case IS_NULL:
-        ifTrue = TRUE_EXPR;
-        break;
-      case IS_NOT_NULL:
-        ifTrue = FALSE_EXPR;
-        break;
-      default:
-        throw new AssertionError();
-      }
-      return optimize(
-          Expressions.condition(
-              Expressions.foldOr(list),
-              ifTrue,
-              box));
-    case FALSE:
-      // v0 != null && v1 != null && f(v0, v1)
-      for (Ord<RexNode> operand : Ord.zip(conditionalOps)) {
-        if (translator.isNullable(operand.e)) {
-          list.add(
-              translator.translate(
-                  operand.e, NullAs.IS_NOT_NULL));
-          translator = translator.setNullable(operand.e, false);
-        }
-      }
-      list.add(implementCall(translator, call, implementor, nullAs));
-      return Expressions.foldAnd(list);
-    case TRUE:
-      // v0 == null || v1 == null || f(v0, v1)
-      for (Ord<RexNode> operand : Ord.zip(conditionalOps)) {
-        if (translator.isNullable(operand.e)) {
-          list.add(
-              translator.translate(
-                  operand.e, NullAs.IS_NULL));
-          translator = translator.setNullable(operand.e, false);
-        }
-      }
-      list.add(implementCall(translator, call, implementor, nullAs));
-      return Expressions.foldOr(list);
-    case NOT_POSSIBLE:
-      // Need to transmit to the implementor the fact that call cannot
-      // return null. In particular, it should return a primitive (e.g.
-      // int) rather than a box type (Integer).
-      // The cases with setNullable above might not help since the same
-      // RexNode can be referred via multiple ways: RexNode itself, RexLocalRef,
-      // and may be others.
-      final Map<RexNode, Boolean> nullable = new HashMap<>();
-      switch (nullPolicy) {
-      case STRICT:
-        // The arguments should be not nullable if STRICT operator is computed
-        // in nulls NOT_POSSIBLE mode
-        for (RexNode arg : call.getOperands()) {
-          if (translator.isNullable(arg) && !nullable.containsKey(arg)) {
-            nullable.put(arg, false);
-          }
-        }
-      }
-      nullable.put(call, false);
-      translator = translator.setNullable(nullable);
-      // fall through
-    default:
-      return implementCall(translator, call, implementor, nullAs);
-    }
-  }
-
-  private static Expression implementCall(
-      final RexToLixTranslator translator,
-      RexCall call,
-      NotNullImplementor implementor,
-      final NullAs nullAs) {
-    List<Expression> translatedOperands =
-        translator.translateList(call.getOperands());
-    // Make sure the operands marked not null in the translator have all been
-    // handled for nulls before being passed to the NotNullImplementor.
-    if (nullAs == NullAs.NOT_POSSIBLE) {
-      List<Expression> nullHandled = translatedOperands;
-      for (int i = 0; i < translatedOperands.size(); i++) {
-        RexNode arg = call.getOperands().get(i);
-        Expression e = translatedOperands.get(i);
-        if (!translator.isNullable(arg)) {
-          if (nullHandled == translatedOperands) {
-            nullHandled = new ArrayList<>(translatedOperands.subList(0, i));
-          }
-          nullHandled.add(translator.handleNull(e, nullAs));
-        } else if (nullHandled != translatedOperands) {
-          nullHandled.add(e);
-        }
-      }
-      translatedOperands = nullHandled;
-    }
-    Expression result =
-        implementor.implement(translator, call, translatedOperands);
-    return translator.handleNull(result, nullAs);
   }
 
   /** Strategy what an operator should return if one of its
@@ -2784,45 +2543,6 @@ public class RexImpTable {
     }
   }
 
-  /** Implements "IS XXX" operations such as "IS NULL"
-   * or "IS NOT TRUE".
-   *
-   * <p>What these operators have in common:</p>
-   * 1. They return TRUE or FALSE, never NULL.
-   * 2. Of the 3 input values (TRUE, FALSE, NULL) they return TRUE for 1 or 2,
-   *    FALSE for the other 2 or 1.
-   */
-  private static class IsXxxImplementor
-      implements CallImplementor {
-    private final Boolean seek;
-    private final boolean negate;
-
-    IsXxxImplementor(Boolean seek, boolean negate) {
-      this.seek = seek;
-      this.negate = negate;
-    }
-
-    public Expression implement(
-        RexToLixTranslator translator, RexCall call, NullAs nullAs) {
-      List<RexNode> operands = call.getOperands();
-      assert operands.size() == 1;
-      switch (nullAs) {
-      case IS_NOT_NULL:
-        return BOXED_TRUE_EXPR;
-      case IS_NULL:
-        return BOXED_FALSE_EXPR;
-      }
-      if (seek == null) {
-        return translator.translate(operands.get(0),
-            negate ? NullAs.IS_NOT_NULL : NullAs.IS_NULL);
-      } else {
-        return maybeNegate(negate == seek,
-            translator.translate(operands.get(0),
-                seek ? NullAs.FALSE : NullAs.TRUE));
-      }
-    }
-  }
-
   /** Implementor for the {@code NOT} operator. */
   private static class NotImplementor extends AbstractRexCallImplementor {
     private AbstractRexCallImplementor implementor;
@@ -3373,7 +3093,6 @@ public class RexImpTable {
       }
     }
   }
-
 
   /** Implementor for the {@code RAND} function. */
   private static class RandImplementor extends AbstractRexCallImplementor {

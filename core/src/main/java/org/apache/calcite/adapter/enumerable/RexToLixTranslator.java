@@ -24,14 +24,12 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.CatchBlock;
-import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Statement;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -50,7 +48,6 @@ import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlIntervalQualifier;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -71,7 +68,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -599,57 +595,6 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     return scaleIntervalToNumber(sourceType, targetType, convert);
   }
 
-  private Expression handleNullUnboxingIfNecessary(
-      Expression input,
-      RexImpTable.NullAs nullAs,
-      Type storageType) {
-    if (RexImpTable.NullAs.NOT_POSSIBLE == nullAs && input.type.equals(storageType)) {
-      // When we asked for not null input that would be stored as box, avoid
-      // unboxing which may occur in the handleNull method below.
-      return input;
-    }
-    return handleNull(input, nullAs);
-  }
-
-  /** Adapts an expression with "normal" result to one that adheres to
-   * this particular policy. Wraps the result expression into a new
-   * parameter if need be.
-   *
-   * @param input Expression
-   * @param nullAs If false, if expression is definitely not null at
-   *   runtime. Therefore we can optimize. For example, we can cast to int
-   *   using x.intValue().
-   * @return Translated expression
-   */
-  public Expression handleNull(Expression input, RexImpTable.NullAs nullAs) {
-    final Expression nullHandled = nullAs.handle(input);
-
-    // If we get ConstantExpression, just return it (i.e. primitive false)
-    if (nullHandled instanceof ConstantExpression) {
-      return nullHandled;
-    }
-
-    // if nullHandled expression is the same as "input",
-    // then we can just reuse it
-    if (nullHandled == input) {
-      return input;
-    }
-
-    // If nullHandled is different, then it might be unsafe to compute
-    // early (i.e. unbox of null value should not happen _before_ ternary).
-    // Thus we wrap it into brand-new ParameterExpression,
-    // and we are guaranteed that ParameterExpression will not be shared
-    String unboxVarName = "v_unboxed";
-    if (input instanceof ParameterExpression) {
-      unboxVarName = ((ParameterExpression) input).name + "_unboxed";
-    }
-    ParameterExpression unboxed = Expressions.parameter(nullHandled.getType(),
-        list.newName(unboxVarName));
-    list.add(Expressions.declare(Modifier.FINAL, unboxed, nullHandled));
-
-    return unboxed;
-  }
-
   /**
    * Handle checked Exceptions declared in Method. In such case,
    * method call should be wrapped in a try...catch block.
@@ -676,88 +621,6 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     return methodCall;
   }
 
-  /** Translates an expression that is not in the cache.
-   *
-   * @param expr Expression
-   * @param nullAs If false, if expression is definitely not null at
-   *   runtime. Therefore we can optimize. For example, we can cast to int
-   *   using x.intValue().
-   * @return Translated expression
-   */
-  private Expression translate0(RexNode expr, RexImpTable.NullAs nullAs,
-      Type storageType) {
-    if (nullAs == RexImpTable.NullAs.NULL && !expr.getType().isNullable()) {
-      nullAs = RexImpTable.NullAs.NOT_POSSIBLE;
-    }
-    switch (expr.getKind()) {
-    case INPUT_REF: {
-      final int index = ((RexInputRef) expr).getIndex();
-      Expression x = inputGetter.field(list, index, storageType);
-
-      Expression input = list.append("inp" + index + "_", x); // safe to share
-      return handleNullUnboxingIfNecessary(input, nullAs, storageType);
-    }
-    case PATTERN_INPUT_REF: {
-      final int index = ((RexInputRef) expr).getIndex();
-      Expression x = inputGetter.field(list, index, storageType);
-
-      Expression input = list.append("inp" + index + "_", x); // safe to share
-      return handleNullUnboxingIfNecessary(input, nullAs, storageType);
-    }
-    case LOCAL_REF:
-      return translate(
-          deref(expr),
-          nullAs,
-          storageType);
-    case LITERAL:
-      return translateLiteral(
-          (RexLiteral) expr,
-          nullifyType(
-              expr.getType(),
-              isNullable(expr)
-                  && nullAs != RexImpTable.NullAs.NOT_POSSIBLE),
-          typeFactory,
-          nullAs);
-    case DYNAMIC_PARAM:
-      return translateParameter((RexDynamicParam) expr, nullAs, storageType);
-    case CORREL_VARIABLE:
-      throw new RuntimeException("Cannot translate " + expr + ". Correlated"
-          + " variables should always be referenced by field access");
-    case FIELD_ACCESS: {
-      RexFieldAccess fieldAccess = (RexFieldAccess) expr;
-      RexNode target = deref(fieldAccess.getReferenceExpr());
-      int fieldIndex = fieldAccess.getField().getIndex();
-      String fieldName = fieldAccess.getField().getName();
-      switch (target.getKind()) {
-      case CORREL_VARIABLE:
-        if (correlates == null) {
-          throw new RuntimeException("Cannot translate " + expr + " since "
-              + "correlate variables resolver is not defined");
-        }
-        InputGetter getter =
-            correlates.apply(((RexCorrelVariable) target).getName());
-        Expression y = getter.field(list, fieldIndex, storageType);
-        Expression input = list.append("corInp" + fieldIndex + "_", y); // safe to share
-        return handleNullUnboxingIfNecessary(input, nullAs, storageType);
-      default:
-        RexNode rxIndex = builder.makeLiteral(fieldIndex, typeFactory.createType(int.class), true);
-        RexNode rxName = builder.makeLiteral(fieldName, typeFactory.createType(String.class), true);
-        RexCall accessCall = (RexCall) builder.makeCall(
-            fieldAccess.getType(),
-            SqlStdOperatorTable.STRUCT_ACCESS,
-            ImmutableList.of(target, rxIndex, rxName));
-        return translateCall(accessCall, nullAs);
-      }
-    }
-    default:
-      if (expr instanceof RexCall) {
-        return translateCall((RexCall) expr, nullAs);
-      }
-      throw new RuntimeException(
-          "cannot translate expression " + expr);
-    }
-  }
-
   /** Dereferences an expression if it is a
    * {@link org.apache.calcite.rex.RexLocalRef}. */
   public RexNode deref(RexNode expr) {
@@ -769,30 +632,6 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     } else {
       return expr;
     }
-  }
-
-  /** Translates a call to an operator or function. */
-  private Expression translateCall(RexCall call, RexImpTable.NullAs nullAs) {
-    final SqlOperator operator = call.getOperator();
-    CallImplementor implementor = null;
-//        RexImpTable.INSTANCE.get(operator);
-    if (implementor == null) {
-      throw new RuntimeException("cannot translate call " + call);
-    }
-    return implementor.implement(this, call, nullAs);
-  }
-
-  /** Translates a parameter. */
-  private Expression translateParameter(RexDynamicParam expr,
-      RexImpTable.NullAs nullAs, Type storageType) {
-    if (storageType == null) {
-      storageType = typeFactory.getJavaClass(expr.getType());
-    }
-    return nullAs.handle(
-        EnumUtils.convert(
-            Expressions.call(root, BuiltInMethod.DATA_CONTEXT_GET.method,
-                Expressions.constant("?" + expr.getIndex())),
-            storageType));
   }
 
   /** Translates a literal.
@@ -992,47 +831,6 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         RexImpTable.NullAs.FALSE);
   }
 
-  public Expression translateConstructor(
-      List<RexNode> operandList, SqlKind kind) {
-    switch (kind) {
-    case MAP_VALUE_CONSTRUCTOR:
-      Expression map =
-          list.append(
-              "map",
-              Expressions.new_(LinkedHashMap.class),
-              false);
-      for (int i = 0; i < operandList.size(); i++) {
-        RexNode key = operandList.get(i++);
-        RexNode value = operandList.get(i);
-        list.add(
-            Expressions.statement(
-                Expressions.call(
-                    map,
-                    BuiltInMethod.MAP_PUT.method,
-                    Expressions.box(translate(key)),
-                    Expressions.box(translate(value)))));
-      }
-      return map;
-    case ARRAY_VALUE_CONSTRUCTOR:
-      Expression lyst =
-          list.append(
-              "list",
-              Expressions.new_(ArrayList.class),
-              false);
-      for (RexNode value : operandList) {
-        list.add(
-            Expressions.statement(
-                Expressions.call(
-                    lyst,
-                    BuiltInMethod.COLLECTION_ADD.method,
-                    Expressions.box(translate(value)))));
-      }
-      return lyst;
-    default:
-      throw new AssertionError("unexpected: " + kind);
-    }
-  }
-
   /** Returns whether an expression is nullable. Even if its type says it is
    * nullable, if we have previously generated a check to make sure that it is
    * not null, we will say so.
@@ -1070,12 +868,6 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
 
   /** Creates a read-only copy of this translator that records that a given
    * expression is nullable. */
-  public RexToLixTranslator setNullable(RexNode e, boolean nullable) {
-    return setNullable(Collections.singletonMap(e, nullable));
-  }
-
-  /** Creates a read-only copy of this translator that records that a given
-   * expression is nullable. */
   public RexToLixTranslator setNullable(
       Map<? extends RexNode, Boolean> nullable) {
     if (nullable == null || nullable.isEmpty()) {
@@ -1100,32 +892,6 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     }
     return new RexToLixTranslator(program, typeFactory, root, inputGetter, list,
         Collections.emptyMap(), builder, conformance, this, correlates);
-  }
-
-  private RexToLixTranslator withConformance(SqlConformance conformance) {
-    if (conformance == this.conformance) {
-      return this;
-    }
-    return new RexToLixTranslator(program, typeFactory, root, inputGetter, list,
-        Collections.emptyMap(), builder, conformance, this, correlates);
-  }
-
-  public RelDataType nullifyType(RelDataType type, boolean nullable) {
-    if (!nullable) {
-      final Primitive primitive = javaPrimitive(type);
-      if (primitive != null) {
-        return typeFactory.createJavaType(primitive.primitiveClass);
-      }
-    }
-    return typeFactory.createTypeWithNullability(type, nullable);
-  }
-
-  private Primitive javaPrimitive(RelDataType type) {
-    if (type instanceof RelDataTypeFactoryImpl.JavaType) {
-      return Primitive.ofBox(
-          ((RelDataTypeFactoryImpl.JavaType) type).getJavaClass());
-    }
-    return null;
   }
 
   public Expression getRoot() {
