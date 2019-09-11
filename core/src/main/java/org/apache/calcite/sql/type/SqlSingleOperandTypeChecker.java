@@ -46,6 +46,13 @@ public interface SqlSingleOperandTypeChecker extends SqlOperandTypeChecker {
    * <code>iFormalOperand</code> would be zero, even though the position of Z
    * within call C is two.
    *
+   * <p>Caution that we could not(shouldn't) implement implicit type coercion for this checker,
+   * implicit type coercion has side effect(modify the AST), if this single operand checker is
+   * subsumed in a composite rule(OR or AND), we can not make any side effect if we
+   * can not make sure that all the single operands type check are passed(with type coercion).
+   * But there is an exception: only if the call has just one operand, for this case,
+   * use {@link SqlOperandTypeChecker#checkOperandTypes} instead.
+   *
    * @param callBinding    description of the call being checked; this is only
    *                       provided for context when throwing an exception; the
    *                       implementation should <em>NOT</em> examine the

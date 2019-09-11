@@ -58,14 +58,14 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    * <pre>
    *
    *       type1, type2  type3       select a, b, c from t1
-   *         |      |      |
-   *       type4  type5  type6              union
-   *         |      |      |
+   *          \      \      \
+   *         type4  type5  type6              UNION
+   *          /      /      /
    *       type7  type8  type9       select d, e, f from t2
    * </pre>
    * For struct type (type1, type2, type3) union type (type4, type5, type6),
    * infer the first result column type type7 as the wider type of type1 and type4,
-   * the second column type as the wider type of type2 and type5 and so forth.
+   * the second column type as the wider type of type2 and type5 and so on.
    *
    * @param scope       validator scope
    * @param query       query node to update the field type for
@@ -111,7 +111,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
-   * Coerce operands in binary arithmetic expressions to Numeric types.
+   * Coerce operands in binary arithmetic expressions to NUMERIC types.
    *
    * <p>Rules:</p>
    * <ul>
@@ -192,7 +192,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
-   * For numeric and string operands, cast string to data type of the other operand.
+   * For NUMERIC and STRING operands, cast STRING to data type of the other operand.
    **/
   protected boolean binaryArithmeticWithStrings(
       SqlCallBinding binding,
@@ -224,7 +224,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
-   * Datetime and string equality: cast string type to datetime type, SqlToRelConverter already
+   * Datetime and STRING equality: cast STRING type to datetime type, SqlToRelConverter already
    * make the conversion but we still keep this interface overridable
    * so user can have their custom implementation.
    */
@@ -346,7 +346,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   /**
    * STRATEGIES
    *
-   * <p>with/Without sub-query:
+   * <p>With(Without) sub-query:
    *
    * <ul>
    *

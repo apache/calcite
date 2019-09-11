@@ -921,11 +921,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkCharset(
         "substring(_UTF16'10' FROM 1  FOR 2)",
         Charset.forName("UTF-16LE"));
+    checkExp("substring('a', 1)");
+    checkExp("substring('a', 1, 3)");
+    // Implicit type coercion.
+    checkExpType("substring(12345, '1')", "VARCHAR NOT NULL");
+    checkExpType("substring('a', '1')", "VARCHAR(1) NOT NULL");
+    checkExpType("substring('a', 1, '3')", "VARCHAR(1) NOT NULL");
   }
 
   @Test public void testSubstringFails() {
     checkWholeExpFails("substring('a' from 1 for 'b')",
-        "(?s).*Cannot apply 'SUBSTRING' to arguments of type.*");
+        "(?s).*Cannot apply 'SUBSTRING' to arguments of type.*", false);
+    checkExpType("substring('a' from 1 for 'b')", "VARCHAR(1) NOT NULL");
     checkWholeExpFails("substring(_UTF16'10' FROM '0' FOR '\\')",
         "(?s).* not comparable to each other.*");
     checkWholeExpFails("substring('10' FROM _UTF16'0' FOR '\\')",
@@ -11452,6 +11459,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testJsonRemove() {
     checkExp("json_remove('{\"foo\":\"bar\"}', '$')");
     checkExpType("json_remove('{\"foo\":\"bar\"}', '$')", "VARCHAR(2000)");
+    checkExpType("json_remove('{\"foo\":\"bar\"}', 1, '2', 3)", "VARCHAR(2000)");
+    checkExpType("json_remove('{\"foo\":\"bar\"}', 1, 2, 3)", "VARCHAR(2000)");
     checkFails("select ^json_remove('{\"foo\":\"bar\"}')^",
             "(?s).*Invalid number of arguments.*");
   }
@@ -11477,6 +11486,31 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpType("'100' is not json scalar", "BOOLEAN NOT NULL");
     checkExpType("100 is json value", "BOOLEAN NOT NULL");
     checkExpFails("^100 is json value^", "(?s).*Cannot apply.*", false);
+  }
+
+  @Test public void testRegexpReplace() {
+    tester = tester.withOperatorTable(
+        SqlLibraryOperatorTableFactory.INSTANCE
+            .getOperatorTable(SqlLibrary.STANDARD, SqlLibrary.ORACLE));
+    checkExpType("REGEXP_REPLACE('a b c', 'a', 'X')", "VARCHAR NOT NULL");
+    checkExpType("REGEXP_REPLACE('abc def ghi', '[a-z]+', 'X', 2)",
+        "VARCHAR NOT NULL");
+    checkExpType("REGEXP_REPLACE('abc def ghi', '[a-z]+', 'X', 1, 3)",
+        "VARCHAR NOT NULL");
+    checkExpType("REGEXP_REPLACE('abc def GHI', '[a-z]+', 'X', 1, 3, 'c')",
+        "VARCHAR NOT NULL");
+    // Implicit type coercion.
+    checkExpType("REGEXP_REPLACE(null, '(-)', '###')", "VARCHAR");
+    checkExpType("REGEXP_REPLACE('100-200', null, '###')", "VARCHAR");
+    checkExpType("REGEXP_REPLACE('100-200', '(-)', null)", "VARCHAR");
+    checkExpType("REGEXP_REPLACE('abc def ghi', '[a-z]+', 'X', '2')",
+        "VARCHAR NOT NULL");
+    checkExpType("REGEXP_REPLACE('abc def ghi', '[a-z]+', 'X', '1', '3')",
+        "VARCHAR NOT NULL");
+    // The last argument to REGEXP_REPLACE should be specific character, but with
+    // implicit type coercion, the validation still passes.
+    checkExpType("REGEXP_REPLACE('abc def ghi', '[a-z]+', 'X', '1', '3', '1')",
+        "VARCHAR NOT NULL");
   }
 
   @Test public void testValidatorReportsOriginalQueryUsingReader()
