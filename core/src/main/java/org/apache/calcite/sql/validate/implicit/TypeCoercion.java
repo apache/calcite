@@ -27,7 +27,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import java.util.List;
 
 /**
- * Default Strategies to coerce differing types that participate in
+ * Default strategies to coerce differing types that participate in
  * operations into compatible ones.
  *
  * <p>Notes about type widening / tightest common types: Broadly, there are two cases that need
@@ -65,19 +65,19 @@ public interface TypeCoercion {
   /**
    * Similar to {@link #getWiderTypeForTwo}, but can handle
    * sequence types. {@link #getWiderTypeForTwo} doesn't satisfy the associative law,
-   * i.e. (a op b) op c may not equal to a op (b op c). This is only a problem for StringType or
-   * nested StringType in collection type like Array. Excluding these types,
+   * i.e. (a op b) op c may not equal to a op (b op c). This is only a problem for STRING or
+   * nested STRING in collection type like ARRAY. Excluding these types,
    * {@link #getWiderTypeForTwo} satisfies the associative law. For instance,
    * (DATE, INTEGER, VARCHAR) should have VARCHAR as the wider common type.
    */
   RelDataType getWiderTypeFor(List<RelDataType> typeList, boolean stringPromotion);
 
   /**
-   * Finds a wider type when one or both types are decimal type.
+   * Finds a wider type when one or both types are DECIMAL type.
    * If the wider decimal type's precision/scale exceeds system limitation,
    * this rule will truncate the decimal type to the max precision/scale.
-   * For decimal and fractional types, returns a decimal type
-   * which has the higher precision of the two.
+   * For DECIMAL and fractional types, returns a DECIMAL
+   * that has the higher precision of the two.
    *
    * <p>The default implementation depends on the max precision/scale of the type system,
    * you can override it based on the specific system requirement in
@@ -86,8 +86,8 @@ public interface TypeCoercion {
   RelDataType getWiderTypeForDecimal(RelDataType type1, RelDataType type2);
 
   /**
-   * Determines common type for a comparison operator whose operands are String type and the
-   * other(non String type) type.
+   * Determines common type for a comparison operator whose operands are STRING type and the
+   * other(non STRING type) type.
    */
   RelDataType commonTypeForBinaryComparison(RelDataType type1, RelDataType type2);
 
@@ -128,22 +128,23 @@ public interface TypeCoercion {
    * Type coercion with inferred type from passed in arguments and the {@link SqlTypeFamily}
    * defined in the checkers, e.g. the {@link org.apache.calcite.sql.type.FamilyOperandTypeChecker}.
    *
-   * <p>Caution that We do not cast from numeric if desired type family is also
+   * <p>Caution that we do not cast from NUMERIC if desired type family is also
    * {@link SqlTypeFamily#NUMERIC}.
    *
    * <p>If the {@link org.apache.calcite.sql.type.FamilyOperandTypeChecker}s are subsumed in a
    * {@link org.apache.calcite.sql.type.CompositeOperandTypeChecker}, check them based on
-   * their combination order. i.e. If we allows a (numeric, numeric) OR (string, numeric) family
-   * but with arguments (op1, op2) of types (varchar(20), boolean), try to coerce op1
-   * to numeric and op2 to numeric if the type coercion rules allow it, or else try to coerce
-   * op2 to numeric and keep op1 the type as it is.
+   * their combination order. i.e. If we allow a NUMERIC_NUMERIC OR STRING_NUMERIC family
+   * composition and are with arguments (op1: VARCHAR(20), op2: BOOLEAN), try to coerce both op1
+   * and op2 to NUMERIC if the type coercion rules allow it, or else try to coerce
+   * op2 to NUMERIC and keep op1 the type as it is.
    *
    * <p>This is also very interrelated to the
    * composition predicate for the checkers, if the predicate is AND, we would fail fast
    * if the first family type coercion fails.
-   * @param binding          call binding.
-   * @param operandTypes     Types of the operands passed in.
-   * @param expectedFamilies Expected SqlTypeFamily list by user specified.
+   *
+   * @param binding          Call binding
+   * @param operandTypes     Types of the operands passed in
+   * @param expectedFamilies Expected SqlTypeFamily list by user specified
    * @return true if we successfully do any implicit cast.
    */
   boolean builtinFunctionCoercion(
