@@ -5021,7 +5021,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("json_remove('[\"a\", [\"b\", \"c\"], \"d\"]', '$[0]', '$[0]')",
         "[\"d\"]", "VARCHAR(2000)");
     tester.checkFails("json_remove('[\"a\", [\"b\", \"c\"], \"d\"]', '$')",
-        "(?s).*Invalid input for.*", true);
+        "(?s).*Not a valid input for.*", true);
 
     // nulls
     strictTester.checkFails("json_remove(^null^, '$')",
@@ -5045,8 +5045,6 @@ public abstract class SqlOperatorBaseTest {
         "[30,40]", "VARCHAR(2000)");
 
     // nulls
-    tester.checkFails("json_extract(^null^, '$')",
-        "(?s).*Illegal use of 'NULL'.*", false);
     tester.checkNull("json_extract(cast(null as varchar), '$')");
   }
 
