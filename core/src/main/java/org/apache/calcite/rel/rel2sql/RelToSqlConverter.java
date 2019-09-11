@@ -72,6 +72,7 @@ import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
@@ -228,8 +229,10 @@ public class RelToSqlConverter extends SqlImplementor
     final List<SqlNode> selectList = new ArrayList<>();
     for (RexNode ref : e.getChildExps()) {
       SqlNode sqlExpr = builder.context.toSql(null, ref);
-      if (SqlUtil.isNullLiteral(sqlExpr, false)) {
-        sqlExpr = castNullType(sqlExpr, e.getRowType().getFieldList().get(selectList.size()));
+      RelDataTypeField targetField = e.getRowType().getFieldList().get(selectList.size());
+      if (SqlUtil.isNullLiteral(sqlExpr, false)
+          && targetField.getType().getSqlTypeName() != SqlTypeName.NULL) {
+        sqlExpr = castNullType(sqlExpr, targetField);
       }
       addSelect(selectList, sqlExpr, e.getRowType());
     }
