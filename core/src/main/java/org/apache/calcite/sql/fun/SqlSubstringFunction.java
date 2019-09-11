@@ -28,14 +28,15 @@ import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.collect.ImmutableList;
 
@@ -95,68 +96,36 @@ public class SqlSubstringFunction extends SqlFunction {
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    SqlValidator validator = callBinding.getValidator();
-    SqlValidatorScope scope = callBinding.getScope();
-
-    final List<SqlNode> operands = callBinding.operands();
+    List<SqlNode> operands = callBinding.operands();
     int n = operands.size();
     assert (3 == n) || (2 == n);
-    if (!OperandTypes.STRING.checkSingleOperandType(
-        callBinding,
-        operands.get(0),
-        0,
-        throwOnFailure)) {
-      return false;
-    }
     if (2 == n) {
-      if (!OperandTypes.NUMERIC.checkSingleOperandType(
-          callBinding,
-          operands.get(1),
-          0,
-          throwOnFailure)) {
+      return OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC)
+          .checkOperandTypes(callBinding, throwOnFailure);
+    } else {
+      final FamilyOperandTypeChecker checker1 = OperandTypes.STRING_STRING_STRING;
+      final FamilyOperandTypeChecker checker2 = OperandTypes.family(
+          SqlTypeFamily.STRING,
+          SqlTypeFamily.NUMERIC,
+          SqlTypeFamily.NUMERIC);
+      // Put the STRING_NUMERIC_NUMERIC checker first because almost every other type
+      // can be coerced to STRING.
+      if (!OperandTypes.or(checker2, checker1)
+          .checkOperandTypes(callBinding, throwOnFailure)) {
         return false;
       }
-    } else {
-      RelDataType t1 = validator.deriveType(scope, operands.get(1));
-      RelDataType t2 = validator.deriveType(scope, operands.get(2));
-
+      // Reset the operands because they may be coerced during
+      // implicit type coercion.
+      operands = callBinding.getCall().getOperandList();
+      final SqlValidator validator = callBinding.getValidator();
+      final RelDataType t1 = validator.deriveType(callBinding.getScope(), operands.get(1));
+      final RelDataType t2 = validator.deriveType(callBinding.getScope(), operands.get(2));
       if (SqlTypeUtil.inCharFamily(t1)) {
-        if (!OperandTypes.STRING.checkSingleOperandType(
-            callBinding,
-            operands.get(1),
-            0,
-            throwOnFailure)) {
-          return false;
-        }
-        if (!OperandTypes.STRING.checkSingleOperandType(
-            callBinding,
-            operands.get(2),
-            0,
-            throwOnFailure)) {
-          return false;
-        }
-
         if (!SqlTypeUtil.isCharTypeComparable(callBinding, operands,
             throwOnFailure)) {
           return false;
         }
-      } else {
-        if (!OperandTypes.NUMERIC.checkSingleOperandType(
-            callBinding,
-            operands.get(1),
-            0,
-            throwOnFailure)) {
-          return false;
-        }
-        if (!OperandTypes.NUMERIC.checkSingleOperandType(
-            callBinding,
-            operands.get(2),
-            0,
-            throwOnFailure)) {
-          return false;
-        }
       }
-
       if (!SqlTypeUtil.inSameFamily(t1, t2)) {
         if (throwOnFailure) {
           throw callBinding.newValidationSignatureError();

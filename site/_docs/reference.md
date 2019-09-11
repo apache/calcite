@@ -1432,7 +1432,7 @@ i: implicit cast / e: explicit cast / x: not allowed
 
 ##### Conversion Contexts and Strategies
 * Set Operation(UNION/EXCEPT/INTERSECT): Compare every branch row data type and find the common type of each fields pair;
-* Arithmetic Expression: For binary arithmetic(`+`, `-`, `&`, `^`, `/`, `%`), promote string operand to data type of the other numeric operand;
+* Arithmetic Expression: For binary arithmetic(`+`, `-`, `&`, `^`, `/`, `%`), promote STRING operand to data type of the other numeric operand;
 For binary comparison(`=`, `<`, `<=`, `<>`, `>`, `>=`),  
   - If operands are STRING and TIMESTAMP, promotes to TIMESTAMP
   - Make `1=true` and `0=false` always evaluates true
@@ -1440,7 +1440,7 @@ For binary comparison(`=`, `<`, `<=`, `<>`, `>`, `>=`),
 * IN Expression: If with subquery, compare type of LHS and RHS, find the common type, if it is struct type, find wider type for every field;
 If without subquery and RHS is a node list, compare every node to find the common type;
 * CASE WHEN Expression(or COALESCE): Find then and else operands common wider type;
-* Datetime String +/- INTERVAL: Promote string to timestamp;
+* Datetime String +/- INTERVAL: Promote STRING to TIMESTAMP;
 * Builtin Function: Look up the families registered in the checker, find the family default type if checker rules allow it;
 * User Defined Function: Try to coerce based on the declared argument types of the `eval()` method.
 
