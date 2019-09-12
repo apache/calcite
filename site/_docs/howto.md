@@ -651,6 +651,11 @@ Now, remove the `-DdryRun` flag and run the release for real.
 For this step you'll have to add the [Apache servers](https://maven.apache.org/developers/committer-settings.html) to `~/.m2/settings.xml`.
 
 {% highlight bash %}
+# Make sure that there are no junk files in the sandbox; performing a dry run may have generated
+# redundant files that do not need to be present in the release artifacts.
+git clean -xn
+./mvnw clean
+
 # Prepare sets the version numbers, creates a tag, and pushes it to git
 # Note X.Y.Z is the current version we're trying to release, and X.Y+1.Z is the next development version.
 # For example, if I am currently building a release for 1.16.0, X.Y.Z would be 1.16.0 and X.Y+1.Z would be 1.17.0.
@@ -843,14 +848,6 @@ This is based on the time when you expect to announce the release.
 This is usually a day after the vote closes.
 Remember that UTC date changes at 4pm Pacific time.
 
-In JIRA, search for
-[all issues resolved in this release](https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20and%20fixVersion%20%3D%201.5.0%20and%20status%20%3D%20Resolved%20and%20resolution%20%3D%20Fixed),
-and do a bulk update changing their status to "Closed",
-with a change comment
-"Resolved in release X.Y.Z (YYYY-MM-DD)"
-(fill in release number and date appropriately).
-Uncheck "Send mail for this update".
-
 Promote the staged nexus artifacts.
 
 * Go to [https://repository.apache.org/](https://repository.apache.org/) and login
@@ -896,17 +893,33 @@ The old releases will remain available in the
 You should receive an email from the [Apache Reporter Service](https://reporter.apache.org/).
 Make sure to add the version number and date of the latest release at the site linked to in the email.
 
-Add a release note by copying
-[site/_posts/2016-10-12-release-1.10.0.md]({{ site.sourceRoot }}/site/_posts/2016-10-12-release-1.10.0.md),
-generate the javadoc using `./mvnw site`, [publish the site](#publish-the-web-site),
-and check that it appears in the contents in [news](http://localhost:4000/news/).
+Update the site with the release note, the release announcement, and the javadoc of the new version.
+The javadoc can be generated only from a final version (not a SNAPSHOT) so checkout the most recent
+tag and start working there (`git checkout calcite-X.Y.Z`). Add a release announcement by copying
+[site/_posts/2016-10-12-release-1.10.0.md]({{ site.sourceRoot }}/site/_posts/2016-10-12-release-1.10.0.md).
+Generate the javadoc, and [preview](http://localhost:4000/news/) the site by following the
+instructions in [site/README.md]({{ site.sourceRoot }}/site/README.md). Check that the announcement,
+javadoc, and release note appear correctly and then publish the site following the instructions
+in the same file. Now checkout again the release branch (`git checkout branch-X.Y`) and commit
+the release announcement.
 
-Merge the release branch back into `master` (e.g. `git merge --ff-only branch-X.Y`).
+Merge the release branch back into `master` (e.g., `git merge --ff-only branch-X.Y`) and align
+the `master` with the `site` branch (e.g., `git merge --ff-only site`).
+
+In JIRA, search for
+[all issues resolved in this release](https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20and%20fixVersion%20%3D%201.5.0%20and%20status%20%3D%20Resolved%20and%20resolution%20%3D%20Fixed),
+and do a bulk update changing their status to "Closed",
+with a change comment
+"Resolved in release X.Y.Z (YYYY-MM-DD)"
+(fill in release number and date appropriately).
+Uncheck "Send mail for this update". Under the [releases tab](https://issues.apache.org/jira/projects/CALCITE?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page&status=released-unreleased)
+of the Calcite project mark the release X.Y.Z as released. If it does not already exist create also
+a new version (e.g., X.Y+1.Z) for the next release.
 
 After 24 hours, announce the release by sending an email to
 [announce@apache.org](https://mail-archives.apache.org/mod_mbox/www-announce/).
 You can use
-[the 1.21.0 announcement](https://mail-archives.apache.org/mod_mbox/www-announce/201906.mbox/%3CCA%2BEpF8tcJcZ41rVuwJODJmyRy-qAxZUQm9OxKsoDi07c2SKs_A%40mail.gmail.com%3E)
+[the 1.20.0 announcement](https://mail-archives.apache.org/mod_mbox/www-announce/201906.mbox/%3CCA%2BEpF8tcJcZ41rVuwJODJmyRy-qAxZUQm9OxKsoDi07c2SKs_A%40mail.gmail.com%3E)
 as a template. Be sure to include a brief description of the project.
 
 ## Publishing the web site (for Calcite committers)
