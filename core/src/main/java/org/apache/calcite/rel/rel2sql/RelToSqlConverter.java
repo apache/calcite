@@ -395,35 +395,35 @@ public class RelToSqlConverter extends SqlImplementor
     }
   }
 
-    private void isGroupByAliasUsedInExpression(AtomicBoolean isGroupByAlias,
-                                                SqlNode node, String alias) {
-        if (node instanceof SqlIdentifier && node.toString().equalsIgnoreCase(alias)) {
-            isGroupByAlias.set(false);
-        } else if (node instanceof SqlCase) {
-            SqlNode exprNode = ((SqlCase) node).getValueOperand();
-            SqlNodeList whenList = ((SqlCase) node).getWhenOperands();
-            SqlNodeList thenList = ((SqlCase) node).getThenOperands();
-            SqlNode elseNode = ((SqlCase) node).getElseOperand();
-            if (null != exprNode) {
-                isGroupByAliasUsedInExpression(isGroupByAlias, exprNode, alias);
-            }
-            if (null != elseNode) {
-                isGroupByAliasUsedInExpression(isGroupByAlias, elseNode, alias);
-            }
-            if (null != whenList) {
-                whenList.forEach(whenNode ->
-                    isGroupByAliasUsedInExpression(isGroupByAlias, whenNode, alias));
-            }
-            if (null != thenList) {
-                thenList.forEach(thenNode ->
-                    isGroupByAliasUsedInExpression(isGroupByAlias, thenNode, alias));
-            }
-        } else if (node instanceof SqlBasicCall) {
-            List<SqlNode> nodeList = Arrays.asList(((SqlBasicCall) node).operands);
-            nodeList.forEach(sqlNode ->
-                isGroupByAliasUsedInExpression(isGroupByAlias, sqlNode, alias));
-        }
+  private void isGroupByAliasUsedInExpression(AtomicBoolean isGroupByAlias,
+                                              SqlNode node, String alias) {
+    if (node instanceof SqlIdentifier && node.toString().equalsIgnoreCase(alias)) {
+      isGroupByAlias.set(false);
+    } else if (node instanceof SqlCase) {
+      SqlNode exprNode = ((SqlCase) node).getValueOperand();
+      SqlNodeList whenList = ((SqlCase) node).getWhenOperands();
+      SqlNodeList thenList = ((SqlCase) node).getThenOperands();
+      SqlNode elseNode = ((SqlCase) node).getElseOperand();
+      if (null != exprNode) {
+        isGroupByAliasUsedInExpression(isGroupByAlias, exprNode, alias);
+      }
+      if (null != elseNode) {
+        isGroupByAliasUsedInExpression(isGroupByAlias, elseNode, alias);
+      }
+      if (null != whenList) {
+        whenList.forEach(whenNode ->
+            isGroupByAliasUsedInExpression(isGroupByAlias, whenNode, alias));
+      }
+      if (null != thenList) {
+        thenList.forEach(thenNode ->
+            isGroupByAliasUsedInExpression(isGroupByAlias, thenNode, alias));
+      }
+    } else if (node instanceof SqlBasicCall) {
+      List<SqlNode> nodeList = Arrays.asList(((SqlBasicCall) node).operands);
+      nodeList.forEach(sqlNode ->
+          isGroupByAliasUsedInExpression(isGroupByAlias, sqlNode, alias));
     }
+  }
 
   private SqlNode groupItem(List<SqlNode> groupKeys,
       ImmutableBitSet groupSet, ImmutableBitSet wholeGroupSet) {
