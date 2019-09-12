@@ -574,9 +574,9 @@ public class RelToSqlConverterTest {
         + " group by (case when \"product_id\" = 1 then \"product_id\" else 1234 end)";
     final String expected = "SELECT "
         + "CASE WHEN product_id = 1 THEN product_id ELSE 1234 END AS PRODUCT_ID,"
-        + " COUNT(*) AS NUM_RECORDS\n" +
-        "FROM foodmart.product\n" +
-        "GROUP BY CASE WHEN product_id = 1 THEN product_id ELSE 1234 END";
+        + " COUNT(*) AS NUM_RECORDS\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY CASE WHEN product_id = 1 THEN product_id ELSE 1234 END";
     sql(query).withBigQuery().ok(expected);
   }
 
