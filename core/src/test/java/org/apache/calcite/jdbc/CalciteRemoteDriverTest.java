@@ -881,6 +881,40 @@ public class CalciteRemoteDriverTest {
    */
   @Test public void testRemotePreparedStatementInsert2() throws Exception {
   }
+
+  @Test public void testInsertBatchWithPreparedStatement() throws Exception {
+    final Connection connection = DriverManager.getConnection(
+        "jdbc:avatica:remote:factory="
+            + LocalServiceModifiableFactory.class.getName());
+    assertThat(connection.getMetaData().supportsBatchUpdates(), is(true));
+    assertThat(connection.isClosed(), is(false));
+
+    PreparedStatement pst = connection.prepareStatement(
+        "insert into \"foo\".\"bar\" values (?, ?, ?, ?, ?)");
+    pst.setInt(1, 1);
+    pst.setInt(2, 1);
+    pst.setString(3, "second");
+    pst.setInt(4, 1);
+    pst.setInt(5, 1);
+    pst.addBatch();
+    pst.addBatch();
+
+    int[] updateCounts = pst.executeBatch();
+    assertThat(updateCounts.length, is(2));
+    assertThat(updateCounts[0], is(1));
+    assertThat(updateCounts[1], is(1));
+    ResultSet resultSet = pst.getResultSet();
+    assertThat(resultSet, nullValue());
+
+    // Now empty batch
+    pst.clearBatch();
+    updateCounts = pst.executeBatch();
+    assertThat(updateCounts.length, is(0));
+    resultSet = pst.getResultSet();
+    assertThat(resultSet, nullValue());
+
+    connection.close();
+  }
 }
 
 // End CalciteRemoteDriverTest.java

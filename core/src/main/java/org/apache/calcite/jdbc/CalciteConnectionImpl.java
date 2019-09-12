@@ -279,18 +279,25 @@ abstract class CalciteConnectionImpl
       CalciteStatement statement = (CalciteStatement) createStatement();
       CalcitePrepare.CalciteSignature<T> signature =
           statement.prepare(queryable);
-      return enumerable(statement.handle, signature).enumerator();
+      return enumerable(statement.handle, signature, null).enumerator();
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
   }
 
   public <T> Enumerable<T> enumerable(Meta.StatementHandle handle,
-      CalcitePrepare.CalciteSignature<T> signature) throws SQLException {
+      CalcitePrepare.CalciteSignature<T> signature,
+      List<TypedValue> parameterValues0) throws SQLException {
     Map<String, Object> map = new LinkedHashMap<>();
     AvaticaStatement statement = lookupStatement(handle);
-    final List<TypedValue> parameterValues =
-        TROJAN.getParameterValues(statement);
+
+    final List<TypedValue> parameterValues;
+    if (parameterValues0 == null || parameterValues0.isEmpty()) {
+      parameterValues =
+          TROJAN.getParameterValues(statement);
+    } else {
+      parameterValues = parameterValues0;
+    }
 
     if (MetaImpl.checkParameterValueHasNull(parameterValues)) {
       throw new SQLException("exception while executing query: unbound parameter");
