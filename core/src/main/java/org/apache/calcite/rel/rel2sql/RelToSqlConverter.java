@@ -53,6 +53,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDialect;
@@ -68,6 +69,7 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -87,6 +89,7 @@ import com.google.common.collect.Ordering;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -94,6 +97,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -351,16 +355,16 @@ public class RelToSqlConverter extends SqlImplementor
 
     final List<SqlNode> groupKeys = new ArrayList<>();
     for (int key : groupList) {
-      boolean isGroupByAlias = dialect.getConformance().isGroupByAlias();
+      AtomicBoolean isGroupByAlias = new AtomicBoolean(dialect.getConformance().isGroupByAlias());
       if (builder.context.field(key).getKind() == SqlKind.LITERAL
           && dialect.getConformance().isGroupByOrdinal()) {
-        isGroupByAlias = false;
+        isGroupByAlias.set(false);
+      } else {
+        SqlNode node = builder.context.field(key);
+        String alias = builder.context.field(key, true).toString();
+        isGroupByAliasUsedInExpression(isGroupByAlias, node, alias);
       }
-      if (builder.context.field(key).getKind() != SqlKind.IDENTIFIER
-          && dialect.getConformance().isGroupByOrdinal()) {
-        isGroupByAlias = false;
-      }
-      SqlNode field = builder.context.field(key, isGroupByAlias);
+      SqlNode field = builder.context.field(key, isGroupByAlias.get());
       groupKeys.add(field);
     }
     for (int key : sortedGroupList) {
@@ -388,6 +392,29 @@ public class RelToSqlConverter extends SqlImplementor
                   .map(groupSet ->
                       groupItem(groupKeys, groupSet, aggregate.getGroupSet()))
                   .collect(Collectors.toList())));
+    }
+  }
+
+  private void isGroupByAliasUsedInExpression(AtomicBoolean isGroupByAlias, SqlNode node, String alias) {
+    if (node instanceof SqlIdentifier && node.toString().equalsIgnoreCase(alias)) {
+      isGroupByAlias.set(false);
+    } else if (node instanceof SqlCase) {
+      SqlNode exprNode = ((SqlCase) node).getValueOperand();
+      SqlNodeList whenList = ((SqlCase) node).getWhenOperands();
+      SqlNodeList thenList = ((SqlCase) node).getThenOperands();
+      SqlNode elseNode = ((SqlCase) node).getElseOperand();
+      if (null != exprNode) {
+         isGroupByAliasUsedInExpression(isGroupByAlias, exprNode, alias);
+      } else if (null != elseNode) {
+        isGroupByAliasUsedInExpression(isGroupByAlias, elseNode, alias);
+      } else if (null != whenList) {
+        whenList.forEach(whenNode -> isGroupByAliasUsedInExpression(isGroupByAlias, whenNode, alias));
+      } else if (null != thenList) {
+        thenList.forEach(thenNode -> isGroupByAliasUsedInExpression(isGroupByAlias, thenNode, alias));
+      }
+    } else if (node instanceof SqlBasicCall) {
+      List<SqlNode> nodeList = Arrays.asList(((SqlBasicCall) node).operands);
+      nodeList.forEach(sqlNode -> isGroupByAliasUsedInExpression(isGroupByAlias, sqlNode, alias));
     }
   }
 

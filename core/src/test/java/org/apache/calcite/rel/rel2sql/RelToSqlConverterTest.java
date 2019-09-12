@@ -564,6 +564,16 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testGroupByAliasReplacementWithGroupByExpression2() {
+    String query = "select (case when \"product_id\" = 1 then \"product_id\" else 1234 end) as product_id,"
+        + " count(1) as num_records from \"product\""
+        + " group by (case when \"product_id\" = 1 then \"product_id\" else 1234 end)";
+    final String expected = "SELECT CASE WHEN \"product_id\" = 1 THEN \"product_id\" ELSE 1234 END AS \"PRODUCT_ID\", COUNT(*) AS \"NUM_RECORDS\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY CASE WHEN \"product_id\" = 1 THEN \"product_id\" ELSE 1234 END";
+    sql(query).ok(expected);
+  }
+
   @Test public void testCastDecimal1() {
     final String query = "select -0.0000000123\n"
         + " from \"expense_fact\"";
