@@ -555,23 +555,29 @@ public class RelToSqlConverterTest {
   }
 
   @Test public void testGroupByAliasReplacementWithGroupByExpression() {
-    String query = "select (\"product_id\" + 1) as product_id, count(1) as num_records"
-        + " from \"product\" group by (\"product_id\" + 1)";
-    final String expected = "SELECT \"product_id\" + 1 AS \"PRODUCT_ID\","
-        + " COUNT(*) AS \"NUM_RECORDS\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_id\" + 1";
-    sql(query).ok(expected);
+    String query = "select (\"product_id\" + 1) as product_id, "
+        + "(\"product_id\" + 2) as prod_id, count(1) as num_records"
+        + " from \"product\""
+        + " group by (\"product_id\" + 1), (\"product_id\" + 2)";
+    final String expected = "SELECT product_id + 1 AS PRODUCT_ID,"
+        + " product_id + 2 AS PROD_ID,"
+        + " COUNT(*) AS NUM_RECORDS\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY product_id + 1, PROD_ID";
+    sql(query).withBigQuery().ok(expected);
   }
 
   @Test public void testGroupByAliasReplacementWithGroupByExpression2() {
-    String query = "select (case when \"product_id\" = 1 then \"product_id\" else 1234 end) as product_id,"
-        + " count(1) as num_records from \"product\""
+    String query = "select "
+        + "(case when \"product_id\" = 1 then \"product_id\" else 1234 end)"
+        + " as product_id, count(1) as num_records from \"product\""
         + " group by (case when \"product_id\" = 1 then \"product_id\" else 1234 end)";
-    final String expected = "SELECT CASE WHEN \"product_id\" = 1 THEN \"product_id\" ELSE 1234 END AS \"PRODUCT_ID\", COUNT(*) AS \"NUM_RECORDS\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY CASE WHEN \"product_id\" = 1 THEN \"product_id\" ELSE 1234 END";
-    sql(query).ok(expected);
+    final String expected = "SELECT "
+        + "CASE WHEN product_id = 1 THEN product_id ELSE 1234 END AS PRODUCT_ID,"
+        + " COUNT(*) AS NUM_RECORDS\n" +
+        "FROM foodmart.product\n" +
+        "GROUP BY CASE WHEN product_id = 1 THEN product_id ELSE 1234 END";
+    sql(query).withBigQuery().ok(expected);
   }
 
   @Test public void testCastDecimal1() {
