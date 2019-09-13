@@ -1473,13 +1473,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final List<RelDataTypeField> fieldList =
         input.getRowType().getFieldList();
     List<Pair<RexNode, String>> projects = new ArrayList<>();
-    for (Ord<RelDataTypeField> field : Ord.zip(fieldList)) {
-      projects.add(
-          Pair.of(
-              (RexNode) relBuilder.getRexBuilder().makeInputRef(
-                  field.e.getType(), field.i),
-              field.e.getName()));
-    }
+    Ord.forEach(fieldList, (field, i) ->
+        projects.add(
+            Pair.of(relBuilder.getRexBuilder().makeInputRef(field.getType(), i),
+                field.getName())));
     projects.addAll(additionalExprs);
     return relBuilder.push(input)
         .projectNamed(Pair.left(projects), Pair.right(projects), true)

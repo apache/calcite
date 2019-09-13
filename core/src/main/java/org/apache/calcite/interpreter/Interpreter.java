@@ -435,9 +435,9 @@ public class Interpreter extends AbstractEnumerable<Object[]>
 
       // rewrite children first (from left to right)
       final List<RelNode> inputs = relInputs.get(p);
-      for (Ord<RelNode> input : Ord.zip(Util.first(inputs, p.getInputs()))) {
-        outEdges.put(input.e, new Edge(p, input.i));
-      }
+      RelNode finalP = p;
+      Ord.forEach(Util.first(inputs, p.getInputs()),
+          (r, i) -> outEdges.put(r, new Edge(finalP, i)));
       if (inputs != null) {
         for (int i = 0; i < inputs.size(); i++) {
           RelNode input = inputs.get(i);
