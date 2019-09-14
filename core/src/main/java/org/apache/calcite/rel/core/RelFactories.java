@@ -33,6 +33,7 @@ import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
+import org.apache.calcite.rel.logical.LogicalNullify;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalRepeatUnion;
 import org.apache.calcite.rel.logical.LogicalSnapshot;
@@ -73,6 +74,9 @@ public class RelFactories {
 
   public static final FilterFactory DEFAULT_FILTER_FACTORY =
       new FilterFactoryImpl();
+
+  public static final NullifyFactory DEFAULT_NULLIFY_FACTORY =
+      new NullifyFactoryImpl();
 
   public static final JoinFactory DEFAULT_JOIN_FACTORY = new JoinFactoryImpl();
 
@@ -121,6 +125,7 @@ public class RelFactories {
       RelBuilder.proto(
           Contexts.of(DEFAULT_PROJECT_FACTORY,
               DEFAULT_FILTER_FACTORY,
+              DEFAULT_NULLIFY_FACTORY,
               DEFAULT_JOIN_FACTORY,
               DEFAULT_SORT_FACTORY,
               DEFAULT_EXCHANGE_FACTORY,
@@ -332,6 +337,33 @@ public class RelFactories {
         Set<CorrelationId> variablesSet) {
       return LogicalFilter.create(input, condition,
           ImmutableSet.copyOf(variablesSet));
+    }
+  }
+
+  /**
+   * Can create a {@link Nullify} of the appropriate type
+   * for this rule's calling convention.
+   */
+  public interface NullifyFactory {
+    /**
+     * Creates a nullification operator.
+     */
+    RelNode createNullify(RelNode input, RexNode predicate,
+        List<? extends RexNode> attributes,
+        List<String> fieldNames,
+        Set<CorrelationId> variablesSet);
+  }
+
+  /**
+   * Implementation of {@link RelFactories.NullifyFactory} that
+   * returns a vanilla {@link Nullify}.
+   */
+  private static class NullifyFactoryImpl implements NullifyFactory {
+    public RelNode createNullify(RelNode input, RexNode predicate,
+        List<? extends RexNode> attributes,
+        List<String> fieldNames,
+        Set<CorrelationId> variablesSet) {
+      return LogicalNullify.create(input, predicate, attributes, ImmutableSet.copyOf(variablesSet));
     }
   }
 

@@ -141,6 +141,7 @@ public class RelBuilder {
   protected final RelOptCluster cluster;
   protected final RelOptSchema relOptSchema;
   private final RelFactories.FilterFactory filterFactory;
+  private final RelFactories.NullifyFactory nullifyFactory;
   private final RelFactories.ProjectFactory projectFactory;
   private final RelFactories.AggregateFactory aggregateFactory;
   private final RelFactories.SortFactory sortFactory;
@@ -174,6 +175,9 @@ public class RelBuilder {
     this.filterFactory =
         Util.first(context.unwrap(RelFactories.FilterFactory.class),
             RelFactories.DEFAULT_FILTER_FACTORY);
+    this.nullifyFactory =
+        Util.first(context.unwrap(RelFactories.NullifyFactory.class),
+            RelFactories.DEFAULT_NULLIFY_FACTORY);
     this.projectFactory =
         Util.first(context.unwrap(RelFactories.ProjectFactory.class),
             RelFactories.DEFAULT_PROJECT_FACTORY);
@@ -1221,6 +1225,46 @@ public class RelBuilder {
           simplifiedPredicates, ImmutableSet.copyOf(variablesSet));
       stack.push(new Frame(filter, frame.fields));
     }
+    return this;
+  }
+
+  /** Creates a gamma of the given list of
+   * fields. */
+  public RelBuilder gamma(RexNode... nodes) {
+    return gamma(ImmutableList.copyOf(nodes));
+  }
+
+  public RelBuilder gamma(Iterable<? extends RexNode> nodes) {
+    final List<RexNode> nodeList = Lists.newArrayList(nodes);
+    final List<RexNode> checkNullList = nodeList
+        .stream()
+        .map(node -> call(SqlStdOperatorTable.IS_NULL, node))
+        .collect(Collectors.toList());
+    return filter(and(checkNullList));
+  }
+
+  public RelBuilder nullify(RexNode predicate, RexNode... nodes) {
+    return nullify(predicate, ImmutableList.copyOf(nodes));
+  }
+
+  public RelBuilder nullify(RexNode predicate, Iterable<? extends RexNode> nodes) {
+    return nullify(predicate, nodes, ImmutableList.of());
+  }
+
+  public RelBuilder nullify(RexNode predicate, Iterable<? extends RexNode> nodes,
+      Iterable<String> fieldNames) {
+    return nullify(ImmutableSet.of(), predicate, nodes, fieldNames);
+  }
+
+  public RelBuilder nullify(Set<CorrelationId> variablesSet, RexNode predicate,
+      Iterable<? extends RexNode> nodes, Iterable<String> fieldNames) {
+    final Frame frame = stack.pop();
+    final List<? extends RexNode> nodesList = Lists.newArrayList(nodes);
+    final List<String> fieldNamesList = Lists.newArrayList(fieldNames);
+
+    final RelNode nullify = nullifyFactory.createNullify(frame.rel, predicate,
+        nodesList, fieldNamesList, variablesSet);
+    stack.push(new Frame(nullify, frame.fields));
     return this;
   }
 
