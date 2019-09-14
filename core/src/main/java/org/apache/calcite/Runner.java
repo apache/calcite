@@ -22,7 +22,8 @@ import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.rules.NullifyJoinRule;
+import org.apache.calcite.rel.rules.custom.BestMatchReduceRule;
+import org.apache.calcite.rel.rules.custom.NullifyJoinRule;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -44,6 +45,7 @@ public class Runner {
     // Creates the planner.
     final Program programs = Programs.ofRules(
         NullifyJoinRule.INSTANCE,
+        BestMatchReduceRule.INSTANCE,
         EnumerableRules.ENUMERABLE_PROJECT_RULE,
         EnumerableRules.ENUMERABLE_JOIN_RULE);
     final FrameworkConfig config = Frameworks.newConfigBuilder()

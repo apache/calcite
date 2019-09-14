@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.rel.rules;
+package org.apache.calcite.rel.rules.custom;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -22,7 +22,6 @@ import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -41,7 +40,7 @@ public class NullifyJoinRule extends RelOptRule {
 
   /** Instance of the rule that nullifies inner, left outer or right outer join. */
   public static final NullifyJoinRule INSTANCE =
-      new NullifyJoinRule(operand(LogicalJoin.class, any()), null);
+      new NullifyJoinRule(operand(Join.class, any()), null);
 
   //~ Constructors -----------------------------------------------------------
 
