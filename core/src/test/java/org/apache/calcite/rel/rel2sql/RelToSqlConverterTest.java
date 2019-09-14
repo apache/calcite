@@ -43,6 +43,7 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
+import org.apache.calcite.sql.dialect.MssqlSqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.OracleSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
@@ -1323,6 +1324,31 @@ public class RelToSqlConverterTest {
         + "OFFSET 10 ROWS\n"
         + "FETCH NEXT 100 ROWS ONLY";
     sql(query).ok(expected);
+  }
+
+  @Test public void testSelectQueryWithFetchClause() {
+    String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "order by \"product_id\" fetch next 100 rows only";
+    final String expected = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY \"product_id\"\n"
+        + "FETCH NEXT 100 ROWS ONLY";
+    final String expectedMssql10 = "SELECT TOP (100) [product_id]\n"
+        + "FROM [foodmart].[product]\n"
+        + "ORDER BY [product_id]";
+    final String expectedMssql = "SELECT [product_id]\n"
+        + "FROM [foodmart].[product]\n"
+        + "ORDER BY [product_id]\n"
+        + "FETCH NEXT 100 ROWS ONLY";
+    final String expectedSybase = "SELECT TOP (100) product_id\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY product_id";
+    sql(query).ok(expected)
+        .withMssql(10).ok(expectedMssql10)
+        .withMssql(11).ok(expectedMssql)
+        .withMssql(14).ok(expectedMssql)
+        .withSybase().ok(expectedSybase);
   }
 
   @Test public void testSelectQueryComplex() {
@@ -3932,7 +3958,18 @@ public class RelToSqlConverterTest {
     }
 
     Sql withMssql() {
-      return dialect(SqlDialect.DatabaseProduct.MSSQL.getDialect());
+      return withMssql(14); // MSSQL 2008 = 10.0, 2012 = 11.0, 2017 = 14.0
+    }
+
+    Sql withMssql(int majorVersion) {
+      final SqlDialect mssqlDialect = DatabaseProduct.MSSQL.getDialect();
+      return dialect(
+          new MssqlSqlDialect(SqlDialect.EMPTY_CONTEXT
+              .withDatabaseProduct(DatabaseProduct.MSSQL)
+              .withDatabaseMajorVersion(majorVersion)
+              .withIdentifierQuoteString(mssqlDialect.quoteIdentifier("")
+                  .substring(0, 1))
+              .withNullCollation(mssqlDialect.getNullCollation())));
     }
 
     Sql withMysql() {
@@ -3964,6 +4001,10 @@ public class RelToSqlConverterTest {
 
     Sql withSnowflake() {
       return dialect(DatabaseProduct.SNOWFLAKE.getDialect());
+    }
+
+    Sql withSybase() {
+      return dialect(DatabaseProduct.SYBASE.getDialect());
     }
 
     Sql withVertica() {

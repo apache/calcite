@@ -849,6 +849,21 @@ public class SqlDialect {
     unparseFetchUsingAnsi(writer, offset, fetch);
   }
 
+  /**
+   * Converts a fetch into a "SELECT TOP(fetch)".
+   *
+   * <p>A dialect that uses "TOP" syntax should override this method to print
+   * "TOP(fetch)", and override {@link #unparseOffsetFetch} to no-op.
+   *
+   * <p>The default implementation of this method is no-op.
+   *
+   * @param writer Writer
+   * @param offset Number of rows to skip before emitting, or null
+   * @param fetch Number of rows to fetch, or null
+   */
+  public void unparseTopN(SqlWriter writer, SqlNode offset, SqlNode fetch) {
+  }
+
   /** Unparses offset/fetch using ANSI standard "OFFSET offset ROWS FETCH NEXT
    * fetch ROWS ONLY" syntax. */
   protected final void unparseFetchUsingAnsi(SqlWriter writer, SqlNode offset,
