@@ -26,6 +26,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalBestMatch;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -78,6 +79,9 @@ public class RelFactories {
   public static final NullifyFactory DEFAULT_NULLIFY_FACTORY =
       new NullifyFactoryImpl();
 
+  public static final BestMatchFactory DEFAULT_BEST_MATCH_FACTORY =
+      new BestMatchFactoryImpl();
+
   public static final JoinFactory DEFAULT_JOIN_FACTORY = new JoinFactoryImpl();
 
   public static final CorrelateFactory DEFAULT_CORRELATE_FACTORY =
@@ -126,6 +130,7 @@ public class RelFactories {
           Contexts.of(DEFAULT_PROJECT_FACTORY,
               DEFAULT_FILTER_FACTORY,
               DEFAULT_NULLIFY_FACTORY,
+              DEFAULT_BEST_MATCH_FACTORY,
               DEFAULT_JOIN_FACTORY,
               DEFAULT_SORT_FACTORY,
               DEFAULT_EXCHANGE_FACTORY,
@@ -364,6 +369,27 @@ public class RelFactories {
         List<String> fieldNames,
         Set<CorrelationId> variablesSet) {
       return LogicalNullify.create(input, predicate, attributes, ImmutableSet.copyOf(variablesSet));
+    }
+  }
+
+  /**
+   * Can create a {@link BestMatch} of the appropriate type
+   * for this rule's calling convention.
+   */
+  public interface BestMatchFactory {
+    /**
+     * Creates a best-match operator.
+     */
+    RelNode createBestMatch(RelNode input, Set<CorrelationId> variablesSet);
+  }
+
+  /**
+   * Implementation of {@link RelFactories.BestMatchFactory} that
+   * returns a vanilla {@link BestMatch}.
+   */
+  private static class BestMatchFactoryImpl implements BestMatchFactory {
+    public RelNode createBestMatch(final RelNode input, final Set<CorrelationId> variablesSet) {
+      return LogicalBestMatch.create(input, ImmutableSet.copyOf(variablesSet));
     }
   }
 

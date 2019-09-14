@@ -142,6 +142,7 @@ public class RelBuilder {
   protected final RelOptSchema relOptSchema;
   private final RelFactories.FilterFactory filterFactory;
   private final RelFactories.NullifyFactory nullifyFactory;
+  private final RelFactories.BestMatchFactory bestMatchFactory;
   private final RelFactories.ProjectFactory projectFactory;
   private final RelFactories.AggregateFactory aggregateFactory;
   private final RelFactories.SortFactory sortFactory;
@@ -178,6 +179,9 @@ public class RelBuilder {
     this.nullifyFactory =
         Util.first(context.unwrap(RelFactories.NullifyFactory.class),
             RelFactories.DEFAULT_NULLIFY_FACTORY);
+    this.bestMatchFactory =
+        Util.first(context.unwrap(RelFactories.BestMatchFactory.class),
+            RelFactories.DEFAULT_BEST_MATCH_FACTORY);
     this.projectFactory =
         Util.first(context.unwrap(RelFactories.ProjectFactory.class),
             RelFactories.DEFAULT_PROJECT_FACTORY);
@@ -1265,6 +1269,17 @@ public class RelBuilder {
     final RelNode nullify = nullifyFactory.createNullify(frame.rel, predicate,
         nodesList, fieldNamesList, variablesSet);
     stack.push(new Frame(nullify, frame.fields));
+    return this;
+  }
+
+  public RelBuilder bestMatch() {
+    return bestMatch(ImmutableSet.of());
+  }
+
+  public RelBuilder bestMatch(Set<CorrelationId> variablesSet) {
+    final Frame frame = stack.pop();
+    final RelNode bestMatch = bestMatchFactory.createBestMatch(frame.rel, variablesSet);
+    stack.push(new Frame(bestMatch, frame.fields));
     return this;
   }
 

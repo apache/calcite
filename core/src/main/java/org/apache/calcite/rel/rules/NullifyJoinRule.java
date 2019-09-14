@@ -100,7 +100,7 @@ public class NullifyJoinRule extends RelOptRule {
             join.getRight(),
             join.getJoinType(),
             join.isSemiJoinDone());
-    builder.push(cartesianJoin).nullify(nullificationCondition, nullificationList);
+    builder.push(cartesianJoin).nullify(nullificationCondition, nullificationList).bestMatch();
     call.transformTo(builder.build());
   }
 }
