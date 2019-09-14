@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rex;
 
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
@@ -34,6 +35,8 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Permutation;
+import org.apache.calcite.util.mapping.MappingType;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
@@ -819,6 +822,31 @@ public class RexProgram {
     return normalize(rexBuilder, simplify
         ? new RexSimplify(rexBuilder, predicates, RexUtil.EXECUTOR)
         : null);
+  }
+
+  /**
+   * Returns a partial mapping of a set of project expressions.
+   *
+   * <p>The mapping is an inverse function.
+   * Every target has a source field, but
+   * a source might have 0, 1 or more targets.
+   * Project expressions that do not consist of
+   * a mapping are ignored.
+   *
+   * @param inputFieldCount Number of input fields
+   * @return Mapping of a set of project expressions, never null
+   */
+  public Mappings.TargetMapping getPartialMapping(int inputFieldCount) {
+    Mappings.TargetMapping mapping =
+        Mappings.create(MappingType.INVERSE_FUNCTION,
+            inputFieldCount, projects.size());
+    for (Ord<RexLocalRef> exp : Ord.zip(projects)) {
+      RexNode rexNode = expandLocalRef(exp.e);
+      if (rexNode instanceof RexInputRef) {
+        mapping.set(((RexInputRef) rexNode).getIndex(), exp.i);
+      }
+    }
+    return mapping;
   }
 
   //~ Inner Classes ----------------------------------------------------------

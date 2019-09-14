@@ -38,6 +38,7 @@ import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
@@ -6313,6 +6314,40 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(ReduceDecimalsRule.INSTANCE)
         .build();
     checkPlanning(program, "select ename from emp where sal > cast (100.0 as decimal(4, 1))");
+  }
+
+  @Test public void testEnumerableCalcRule() {
+    final String sql = "select FNAME, LNAME from SALES.CUSTOMER where CONTACTNO > 10";
+    VolcanoPlanner planner = new VolcanoPlanner(null, null);
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    planner.addRelTraitDef(RelDistributionTraitDef.INSTANCE);
+
+    Tester dynamicTester = createDynamicTester().withDecorrelation(true)
+        .withClusterFactory(
+            relOptCluster -> RelOptCluster.create(planner, relOptCluster.getRexBuilder()));
+
+    RelRoot root = dynamicTester.convertSqlToRel(sql);
+
+    String planBefore = NL + RelOptUtil.toString(root.rel);
+    getDiffRepos().assertEquals("planBefore", "${planBefore}", planBefore);
+
+    RuleSet ruleSet =
+        RuleSets.ofList(
+            FilterToCalcRule.INSTANCE,
+            EnumerableRules.ENUMERABLE_PROJECT_RULE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
+            EnumerableRules.ENUMERABLE_CALC_RULE);
+    Program program = Programs.of(ruleSet);
+
+    RelTraitSet toTraits =
+        root.rel.getCluster().traitSet()
+            .replace(0, EnumerableConvention.INSTANCE);
+
+    RelNode relAfter = program.run(planner, root.rel, toTraits,
+        Collections.emptyList(), Collections.emptyList());
+
+    String planAfter = NL + RelOptUtil.toString(relAfter);
+    getDiffRepos().assertEquals("planAfter", "${planAfter}", planAfter);
   }
 }
 
