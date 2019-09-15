@@ -88,6 +88,14 @@ public abstract class Nullify extends SingleRel {
         .item("predicate", predicate)
         .item("attributes", attributes);
   }
+
+  public RexNode getPredicate() {
+    return predicate;
+  }
+
+  public ImmutableList<RexNode> getAttributes() {
+    return ImmutableList.copyOf(attributes);
+  }
 }
 
 // End Nullify.java

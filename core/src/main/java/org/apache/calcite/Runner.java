@@ -40,7 +40,7 @@ public class Runner {
   public static void main(String[] args) throws Exception {
     // Builds the schema.
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
-    rootSchema.add("c", new ReflectiveSchema(new Company()));
+    rootSchema.add("p", new ReflectiveSchema(new People()));
 
     // Creates the planner.
     final Program programs = Programs.ofRules(
@@ -57,7 +57,7 @@ public class Runner {
 
     // Parses, validates and builds the query.
     String sqlQuery = "select e.\"name\", d.\"depName\" from "
-            + " \"c\".\"employees\" e left join \"c\".\"departments\" d "
+            + " \"p\".\"employees\" e left join \"p\".\"departments\" d "
             + " on e.\"depID\" = d.\"depID\" ";
     SqlNode parse = planner.parse(sqlQuery);
     SqlNode validate = planner.validate(parse);
@@ -72,7 +72,7 @@ public class Runner {
 
   /**
    *  Represents the database named company. */
-  public static class Company {
+  public static class People {
     public final Employee[] employees = {
         new Employee(10, 1, "Daniel"),
         new Employee(20, 1, "Mark"),
