@@ -7081,6 +7081,21 @@ public class JdbcTest {
     }
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3347">[CALCITE-3347]
+   * IndexOutOfBoundsException in FixNullabilityShuttle when using FilterIntoJoinRule</a>.
+   */
+  @Test public void testSemiJoin() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.JDBC_FOODMART)
+        .query("select *\n"
+            + " from \"foodmart\".\"employee\""
+            + " where \"employee_id\" = 1 and \"last_name\" in"
+            + " (select \"last_name\" from \"foodmart\".\"employee\" where \"employee_id\" = 2)")
+        .runs();
+  }
+
   private static String sums(int n, boolean c) {
     final StringBuilder b = new StringBuilder();
     for (int i = 0; i < n; i++) {
