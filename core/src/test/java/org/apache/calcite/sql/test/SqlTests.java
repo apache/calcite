@@ -16,14 +16,15 @@
  */
 package org.apache.calcite.sql.test;
 
-import org.apache.calcite.avatica.ColumnMetaData;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.runtime.CalciteContextException;
-import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.calcite.sql.parser.SqlParserUtil;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
+import static org.apache.calcite.sql.test.SqlTester.ParameterChecker;
+import static org.apache.calcite.sql.test.SqlTester.ResultChecker;
+import static org.apache.calcite.sql.test.SqlTester.TypeChecker;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.sql.ResultSet;
 import java.sql.Types;
@@ -34,16 +35,14 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.apache.calcite.sql.test.SqlTester.ParameterChecker;
-import static org.apache.calcite.sql.test.SqlTester.ResultChecker;
-import static org.apache.calcite.sql.test.SqlTester.TypeChecker;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
 
 /**
  * Utility methods.

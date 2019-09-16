@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import java.lang.reflect.Type;
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.util.ImmutableBitSet;
-
-import java.lang.reflect.Type;
-import java.util.List;
 
 /**
  * Information on the aggregate calculation context.

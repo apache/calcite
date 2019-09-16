@@ -16,14 +16,6 @@
  */
 package org.apache.calcite.materialize;
 
-import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.util.Util;
-import org.apache.calcite.util.graph.AttributedDirectedGraph;
-import org.apache.calcite.util.mapping.IntPair;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -31,6 +23,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.graph.AttributedDirectedGraph;
+import org.apache.calcite.util.mapping.IntPair;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /** Space within which lattices exist. */
 class LatticeSpace {

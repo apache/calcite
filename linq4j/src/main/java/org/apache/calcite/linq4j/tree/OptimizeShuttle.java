@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import static org.apache.calcite.linq4j.tree.ExpressionType.Equal;
+import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -24,9 +27,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.apache.calcite.linq4j.tree.ExpressionType.Equal;
-import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 
 /**
  * Shuttle that optimizes expressions.

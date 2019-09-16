@@ -16,6 +16,14 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.function.Function;
+
 import org.apache.calcite.adapter.enumerable.impl.WinAggAddContextImpl;
 import org.apache.calcite.adapter.enumerable.impl.WinAggResetContextImpl;
 import org.apache.calcite.adapter.enumerable.impl.WinAggResultContextImpl;
@@ -55,14 +63,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.function.Function;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Window} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */

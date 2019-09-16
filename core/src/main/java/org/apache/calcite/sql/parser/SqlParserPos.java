@@ -16,10 +16,7 @@
  */
 package org.apache.calcite.sql.parser;
 
-import org.apache.calcite.sql.SqlNode;
-
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 import java.io.Serializable;
 import java.util.AbstractList;
@@ -28,7 +25,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
-import static org.apache.calcite.util.Static.RESOURCE;
+import org.apache.calcite.sql.SqlNode;
+
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 /**
  * SqlParserPos represents the position of a parsed token within SQL statement

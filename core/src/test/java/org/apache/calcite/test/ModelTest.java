@@ -16,6 +16,17 @@
  */
 package org.apache.calcite.test;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.List;
+
 import org.apache.calcite.model.JsonColumn;
 import org.apache.calcite.model.JsonCustomSchema;
 import org.apache.calcite.model.JsonCustomTable;
@@ -26,22 +37,10 @@ import org.apache.calcite.model.JsonRoot;
 import org.apache.calcite.model.JsonTable;
 import org.apache.calcite.model.JsonTypeAttribute;
 import org.apache.calcite.model.JsonView;
+import org.junit.Test;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.junit.Test;
-
-import java.io.IOException;
-import java.net.URL;
-import java.util.List;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * Unit test for data models.

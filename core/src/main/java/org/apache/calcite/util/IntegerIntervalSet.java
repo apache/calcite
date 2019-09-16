@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.linq4j.Linq4j;
-
 import java.util.AbstractSet;
 import java.util.Iterator;
 import java.util.Set;
+
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
 
 /**
  * A set of non-negative integers defined by a sequence of points, intervals,

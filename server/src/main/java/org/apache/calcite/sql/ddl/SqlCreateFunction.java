@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.sql.ddl;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.sql.SqlCreate;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
@@ -30,10 +34,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
 
 /**
  * Parse tree for {@code CREATE FUNCTION} statement.

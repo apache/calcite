@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.rex;
 
+import java.util.List;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * Shuttle which applies a permutation to its input fields.

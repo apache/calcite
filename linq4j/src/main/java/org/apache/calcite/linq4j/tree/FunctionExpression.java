@@ -16,12 +16,6 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.apache.calcite.linq4j.function.Function;
-import org.apache.calcite.linq4j.function.Functions;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
@@ -29,6 +23,12 @@ import java.lang.reflect.TypeVariable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import org.apache.calcite.linq4j.function.Function;
+import org.apache.calcite.linq4j.function.Functions;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * Represents a strongly typed lambda expression as a data structure in the form

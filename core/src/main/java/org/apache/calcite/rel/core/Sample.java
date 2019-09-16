@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.core;
 
+import java.util.List;
+
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptSamplingParameters;
@@ -24,8 +26,6 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
-
-import java.util.List;
 
 /**
  * Relational expression that returns a sample of the rows from its input.

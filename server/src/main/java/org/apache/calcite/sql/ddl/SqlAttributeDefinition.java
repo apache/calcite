@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.ddl;
 
+import java.util.List;
+
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -28,8 +30,6 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * Parse tree for SqlAttributeDefinition,

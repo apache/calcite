@@ -16,11 +16,12 @@
  */
 package org.apache.calcite.plan;
 
+import java.util.List;
+
+import javax.annotation.Nonnull;
+
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataType;
-
-import java.util.List;
-import javax.annotation.Nonnull;
 
 /**
  * Utilities for {@link RelOptTable.ViewExpander} and

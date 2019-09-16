@@ -18,7 +18,6 @@ package org.apache.calcite.linq4j.test;
 
 import org.apache.calcite.linq4j.function.FunctionTest;
 import org.apache.calcite.linq4j.tree.TypeTest;
-
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.interpreter;
 
+import java.util.List;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.plan.ConventionTraitDef;
@@ -24,8 +26,6 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.runtime.ArrayBindable;
-
-import java.util.List;
 
 /**
  * Relational expression that converts any relational expression input to

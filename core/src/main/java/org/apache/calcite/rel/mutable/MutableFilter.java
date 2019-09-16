@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.rel.mutable;
 
-import org.apache.calcite.rex.RexNode;
-
 import java.util.Objects;
+
+import org.apache.calcite.rex.RexNode;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Filter}. */
 public class MutableFilter extends MutableSingleRel {

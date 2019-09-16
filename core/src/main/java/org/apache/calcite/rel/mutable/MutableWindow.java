@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.rel.mutable;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.rel.core.Window.Group;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
-
-import java.util.List;
-import java.util.Objects;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Window}. */
 public class MutableWindow extends MutableSingleRel {

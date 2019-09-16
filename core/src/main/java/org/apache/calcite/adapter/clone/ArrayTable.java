@@ -16,6 +16,14 @@
  */
 package org.apache.calcite.adapter.clone;
 
+import java.lang.reflect.Array;
+import java.lang.reflect.Type;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.linq4j.AbstractEnumerable;
@@ -40,14 +48,6 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
-
-import java.lang.reflect.Array;
-import java.lang.reflect.Type;
-import java.util.AbstractList;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Implementation of table that reads rows from column stores, one per column.

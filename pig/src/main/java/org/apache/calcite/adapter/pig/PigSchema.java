@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.adapter.pig;
 
-import org.apache.calcite.schema.Table;
-import org.apache.calcite.schema.impl.AbstractSchema;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.AbstractSchema;
 
 /**
  * Schema that contains one more or more Pig tables.

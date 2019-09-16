@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.interpreter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.rel.core.Join;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Interpreter node that implements a

@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.adapter.mongodb;
 
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
@@ -28,10 +32,6 @@ import org.apache.calcite.sql.fun.SqlSumAggFunction;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
-
-import java.util.AbstractList;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Implementation of

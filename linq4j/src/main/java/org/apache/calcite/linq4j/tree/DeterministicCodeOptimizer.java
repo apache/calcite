@@ -16,11 +16,6 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.apache.calcite.linq4j.function.Deterministic;
-import org.apache.calcite.linq4j.function.NonDeterministic;
-
-import com.google.common.collect.ImmutableSet;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -32,6 +27,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+
+import org.apache.calcite.linq4j.function.Deterministic;
+import org.apache.calcite.linq4j.function.NonDeterministic;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Factors out deterministic expressions to final static fields.

@@ -16,16 +16,15 @@
  */
 package org.apache.calcite.adapter.kafka;
 
-import org.apache.calcite.linq4j.Enumerator;
+import java.time.Duration;
+import java.util.LinkedList;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.calcite.linq4j.Enumerator;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-
-import java.time.Duration;
-import java.util.LinkedList;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Enumerator to read data from {@link Consumer},

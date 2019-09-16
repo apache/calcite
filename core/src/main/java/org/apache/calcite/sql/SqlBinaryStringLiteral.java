@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.List;
+
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.BitString;
 import org.apache.calcite.util.Util;
-
-import java.util.List;
 
 /**
  * A binary (or hexadecimal) string literal.

@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.jdbc;
 
+import java.util.Properties;
+
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaFactory;
 import org.apache.calcite.avatica.UnregisteredDriver;
-
-import java.util.Properties;
 
 /**
  * Extension of {@link org.apache.calcite.avatica.AvaticaFactory}

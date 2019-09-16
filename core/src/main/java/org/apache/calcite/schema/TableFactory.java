@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.schema;
 
-import org.apache.calcite.rel.type.RelDataType;
-
 import java.util.Map;
+
+import org.apache.calcite.rel.type.RelDataType;
 
 /**
  * Factory for {@link Table} objects.

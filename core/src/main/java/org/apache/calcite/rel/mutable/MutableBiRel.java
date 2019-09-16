@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.rel.mutable;
 
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.type.RelDataType;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.BiRel}. */
 abstract class MutableBiRel extends MutableRel {

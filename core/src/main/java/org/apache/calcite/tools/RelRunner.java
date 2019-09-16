@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.tools;
 
-import org.apache.calcite.rel.RelNode;
-
 import java.sql.PreparedStatement;
+
+import org.apache.calcite.rel.RelNode;
 
 /**
  * Runs a relational expression.

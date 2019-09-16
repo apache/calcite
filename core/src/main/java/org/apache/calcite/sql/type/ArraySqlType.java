@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.sql.type;
 
+import java.util.Objects;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
-
-import java.util.Objects;
 
 /**
  * SQL array type.

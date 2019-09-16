@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.chinook;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
@@ -25,9 +28,6 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.type.SqlTypeName;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 /**
  * Example Table Function for lateral join checks

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import java.util.TimeZone;
+
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
@@ -23,12 +25,9 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
-
-import com.google.common.collect.ImmutableList;
-
 import org.joda.time.Period;
 
-import java.util.TimeZone;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Druid cast converter operator used to translates calcite casts to Druid expression cast

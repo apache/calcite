@@ -16,6 +16,22 @@
  */
 package org.apache.calcite.adapter.elasticsearch;
 
+import static java.lang.String.format;
+import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.boolQuery;
+import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.existsQuery;
+import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.rangeQuery;
+import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.regexpQuery;
+import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.termQuery;
+
+import java.util.ArrayList;
+import java.util.GregorianCalendar;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.adapter.elasticsearch.QueryBuilders.BoolQueryBuilder;
 import org.apache.calcite.adapter.elasticsearch.QueryBuilders.QueryBuilder;
 import org.apache.calcite.adapter.elasticsearch.QueryBuilders.RangeQueryBuilder;
@@ -35,23 +51,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
-
-import java.util.ArrayList;
-import java.util.GregorianCalendar;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
-import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.boolQuery;
-import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.existsQuery;
-import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.rangeQuery;
-import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.regexpQuery;
-import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.termQuery;
-
-import static java.lang.String.format;
 
 /**
  * Query predicate analyzer. Uses visitor pattern to traverse existing expression

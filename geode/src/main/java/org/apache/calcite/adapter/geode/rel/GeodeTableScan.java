@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
@@ -24,8 +26,6 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.type.RelDataType;
-
-import java.util.List;
 
 /**
  * Relational expression representing a scan of a Geode collection.

@@ -16,6 +16,19 @@
  */
 package org.apache.calcite.schema;
 
+import static org.apache.calcite.jdbc.CalciteSchema.LatticeEntry;
+
+import java.lang.reflect.Type;
+import java.sql.Connection;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -44,19 +57,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-
-import java.lang.reflect.Type;
-import java.sql.Connection;
-import java.util.AbstractList;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import static org.apache.calcite.jdbc.CalciteSchema.LatticeEntry;
 
 /**
  * Utility functions for schemas.

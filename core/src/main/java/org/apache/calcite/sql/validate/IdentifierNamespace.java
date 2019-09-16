@@ -16,6 +16,15 @@
  */
 package org.apache.calcite.sql.validate;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlCall;
@@ -26,14 +35,6 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import javax.annotation.Nullable;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Namespace whose contents are defined by the type of an

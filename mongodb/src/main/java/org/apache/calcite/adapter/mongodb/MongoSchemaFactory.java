@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.mongodb;
 
+import java.util.Map;
+
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
@@ -23,8 +25,6 @@ import org.apache.calcite.schema.SchemaPlus;
 import com.mongodb.AuthenticationMechanism;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
-
-import java.util.Map;
 
 /**
  * Factory that creates a {@link MongoSchema}.

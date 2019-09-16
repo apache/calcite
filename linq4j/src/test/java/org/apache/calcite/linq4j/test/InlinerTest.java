@@ -16,6 +16,14 @@
  */
 package org.apache.calcite.linq4j.test;
 
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.TRUE;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
+import java.lang.reflect.Modifier;
+
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.CatchBlock;
 import org.apache.calcite.linq4j.tree.DeclarationStatement;
@@ -24,19 +32,9 @@ import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Statement;
-
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.lang.reflect.Modifier;
-
-import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
-import static org.apache.calcite.linq4j.test.BlockBuilderBase.TRUE;
-import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 /**
  * Tests expression inlining in BlockBuilder.

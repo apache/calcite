@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.plan;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.RelCollation;
@@ -30,9 +33,6 @@ import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Partial implementation of {@link RelOptTable}.

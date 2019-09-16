@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.sql.fun;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCallBinding;
@@ -24,10 +28,6 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
-
-import java.util.List;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Definition of the MAP constructor,

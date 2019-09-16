@@ -16,6 +16,12 @@
  */
 package org.apache.calcite.tools;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.util.List;
+import java.util.Objects;
+import java.util.Properties;
+
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.SqlStatisticProvider;
@@ -42,12 +48,6 @@ import org.apache.calcite.statistic.QuerySqlStatisticProvider;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.util.List;
-import java.util.Objects;
-import java.util.Properties;
 
 /**
  * Tools for invoking Calcite functionality without initializing a container /

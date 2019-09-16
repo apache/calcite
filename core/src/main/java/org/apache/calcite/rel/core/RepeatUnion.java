@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.core;
 
+import java.util.List;
+
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -27,8 +29,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.Lists;
-
-import java.util.List;
 
 /**
  * Relational expression that computes a repeat union (recursive union in SQL

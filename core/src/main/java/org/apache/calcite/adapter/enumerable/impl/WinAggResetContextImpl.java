@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.adapter.enumerable.impl;
 
+import java.util.List;
+
 import org.apache.calcite.adapter.enumerable.WinAggResetContext;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
-
-import java.util.List;
 
 /**
  * Implementation of

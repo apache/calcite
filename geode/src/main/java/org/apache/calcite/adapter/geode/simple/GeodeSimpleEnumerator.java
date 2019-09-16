@@ -16,13 +16,12 @@
  */
 package org.apache.calcite.adapter.geode.simple;
 
-import org.apache.calcite.linq4j.Enumerator;
+import java.util.Iterator;
 
+import org.apache.calcite.linq4j.Enumerator;
 import org.apache.geode.cache.client.ClientCache;
 import org.apache.geode.cache.query.QueryService;
 import org.apache.geode.cache.query.SelectResults;
-
-import java.util.Iterator;
 
 /**
  * Geode Simple Enumerator.

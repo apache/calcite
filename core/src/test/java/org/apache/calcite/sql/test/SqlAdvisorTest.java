@@ -16,24 +16,8 @@
  */
 package org.apache.calcite.sql.test;
 
-import org.apache.calcite.config.Lex;
-import org.apache.calcite.sql.advise.SqlAdvisor;
-import org.apache.calcite.sql.advise.SqlAdvisorValidator;
-import org.apache.calcite.sql.advise.SqlSimpleParser;
-import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.calcite.sql.parser.SqlParserUtil;
-import org.apache.calcite.sql.validate.SqlMoniker;
-import org.apache.calcite.sql.validate.SqlMonikerType;
-import org.apache.calcite.test.SqlValidatorTestCase;
-import org.apache.calcite.test.WithLex;
-
-import com.google.common.collect.ImmutableMap;
-
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.MethodRule;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,8 +30,23 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import org.apache.calcite.config.Lex;
+import org.apache.calcite.sql.advise.SqlAdvisor;
+import org.apache.calcite.sql.advise.SqlAdvisorValidator;
+import org.apache.calcite.sql.advise.SqlSimpleParser;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.validate.SqlMoniker;
+import org.apache.calcite.sql.validate.SqlMonikerType;
+import org.apache.calcite.test.SqlValidatorTestCase;
+import org.apache.calcite.test.WithLex;
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.MethodRule;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Concrete child class of {@link SqlValidatorTestCase}, containing unit tests

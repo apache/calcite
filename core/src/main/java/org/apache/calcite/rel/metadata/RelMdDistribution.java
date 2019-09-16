@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.BiRel;
@@ -39,8 +41,6 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * RelMdCollation supplies a default implementation of

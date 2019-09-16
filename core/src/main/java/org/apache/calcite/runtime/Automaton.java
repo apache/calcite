@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.runtime;
 
+import java.util.Objects;
+
 import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.Objects;
 
 /** A nondeterministic finite-state automaton (NFA).
  *

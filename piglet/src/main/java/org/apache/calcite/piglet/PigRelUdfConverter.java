@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.piglet;
 
+import java.lang.reflect.Method;
+import java.util.Map;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
@@ -24,16 +27,12 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
-
 import org.apache.pig.Accumulator;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
-import java.lang.reflect.Method;
-import java.util.Map;
 
 /**
  * This class maps a Pig UDF to a corresponding SQL built-in function/operator.

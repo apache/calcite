@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -42,9 +45,6 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Default implementations of the

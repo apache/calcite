@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * An operator describing a query. (Not a query itself.)

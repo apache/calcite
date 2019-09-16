@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.jdbc;
 
+import java.sql.SQLException;
+
 import org.apache.calcite.avatica.AvaticaPreparedStatement;
 import org.apache.calcite.avatica.Meta;
-
-import java.sql.SQLException;
 
 /**
  * Implementation of {@link java.sql.PreparedStatement}

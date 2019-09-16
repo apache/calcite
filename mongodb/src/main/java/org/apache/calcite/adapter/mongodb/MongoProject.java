@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.mongodb;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -28,9 +31,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Implementation of {@link org.apache.calcite.rel.core.Project}

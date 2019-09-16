@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.Objects;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -23,8 +25,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
-
-import java.util.Objects;
 
 /**
  * A sql type name specification of collection type.

@@ -16,12 +16,6 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.piglet.Handler;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.tools.PigRelBuilder;
-import org.apache.calcite.tools.RelRunners;
-import org.apache.calcite.util.TestUtil;
-
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.sql.Array;
@@ -29,6 +23,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+
+import org.apache.calcite.piglet.Handler;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.tools.PigRelBuilder;
+import org.apache.calcite.tools.RelRunners;
+import org.apache.calcite.util.TestUtil;
 
 /**
  * Extension to {@link org.apache.calcite.piglet.Handler} that can execute

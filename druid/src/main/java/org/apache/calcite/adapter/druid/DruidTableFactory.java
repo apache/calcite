@@ -16,18 +16,6 @@
  */
 package org.apache.calcite.adapter.druid;
 
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.Table;
-import org.apache.calcite.schema.TableFactory;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.Util;
-
-import com.google.common.collect.ImmutableList;
-
-import org.joda.time.Interval;
-import org.joda.time.chrono.ISOChronology;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -35,6 +23,17 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.TableFactory;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Util;
+import org.joda.time.Interval;
+import org.joda.time.chrono.ISOChronology;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Implementation of {@link TableFactory} for Druid.

@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.tools;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptCluster;
@@ -29,9 +32,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Extension to {@link RelBuilder} for Pig relational operators.

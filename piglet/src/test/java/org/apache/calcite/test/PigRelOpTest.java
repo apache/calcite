@@ -16,15 +16,9 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.dialect.CalciteSqlDialect;
-import org.apache.calcite.util.Bug;
-import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
-
-import org.hamcrest.Matcher;
-import org.junit.Test;
+import static org.apache.calcite.test.Matchers.hasTree;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -36,10 +30,14 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import static org.apache.calcite.test.Matchers.hasTree;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
+import org.hamcrest.Matcher;
+import org.junit.Test;
 
 /**
  * Tests for {@code PigRelOpVisitor}.

@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.adapter.clone;
 
+import java.lang.reflect.Type;
+import java.util.Iterator;
+import java.util.List;
+
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.linq4j.AbstractQueryable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -31,10 +35,6 @@ import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.Statistics;
 
 import com.google.common.collect.ImmutableList;
-
-import java.lang.reflect.Type;
-import java.util.Iterator;
-import java.util.List;
 
 /**
  * Implementation of table that reads rows from a read-only list and returns

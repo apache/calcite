@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.adapter.pig;
 
+import java.io.File;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TableFactory;
-
-import java.io.File;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Factory that creates a {@link PigTable}.

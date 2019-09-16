@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test;
 
+import java.io.IOException;
+
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
@@ -25,11 +27,8 @@ import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.util.TestUtil;
-
 import org.junit.After;
 import org.junit.Before;
-
-import java.io.IOException;
 
 /**
  * Runs {@link org.apache.calcite.test.SqlToRelConverterTest} with extensions.

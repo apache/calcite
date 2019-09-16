@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.sql.validate;
 
-import com.google.common.collect.ImmutableList;
-
 import java.util.List;
+
+import com.google.common.collect.ImmutableList;
 
 /** Thrown when an object, such as a view, is found to have a cylic
  * definition. */

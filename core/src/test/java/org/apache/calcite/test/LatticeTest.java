@@ -16,26 +16,14 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.jdbc.CalciteSchema;
-import org.apache.calcite.materialize.Lattice;
-import org.apache.calcite.materialize.Lattices;
-import org.apache.calcite.materialize.MaterializationService;
-import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptRule;
-import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.rules.AbstractMaterializedViewRule;
-import org.apache.calcite.runtime.Hook;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.TestUtil;
-
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
-
-import org.junit.Assume;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import static org.apache.calcite.test.Matchers.containsStringLinux;
+import static org.apache.calcite.test.Matchers.within;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -49,15 +37,25 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import static org.apache.calcite.test.Matchers.containsStringLinux;
-import static org.apache.calcite.test.Matchers.within;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.materialize.Lattices;
+import org.apache.calcite.materialize.MaterializationService;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.rules.AbstractMaterializedViewRule;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.TestUtil;
+import org.junit.Assume;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Unit test for lattices.

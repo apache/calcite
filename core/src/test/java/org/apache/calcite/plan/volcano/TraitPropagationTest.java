@@ -16,6 +16,14 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import static org.junit.Assert.assertEquals;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteSystemProperty;
@@ -70,18 +78,9 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.ImmutableBitSet;
-
-import com.google.common.collect.ImmutableList;
-
 import org.junit.Test;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
-
-import static org.junit.Assert.assertEquals;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Tests that determine whether trait propagation work in Volcano Planner.

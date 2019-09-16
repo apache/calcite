@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel.rules;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -34,9 +37,6 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Rule that pushes the right input of a join into through the left input of

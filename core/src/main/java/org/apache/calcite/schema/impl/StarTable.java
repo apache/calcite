@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.schema.impl;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
@@ -35,10 +39,6 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 
 /**
  * Virtual table that is composed of two or more tables joined together.

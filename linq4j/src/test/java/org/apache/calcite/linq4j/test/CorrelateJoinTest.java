@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.linq4j.test;
 
+import static org.junit.Assert.assertArrayEquals;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.ExtendedEnumerable;
@@ -23,15 +28,9 @@ import org.apache.calcite.linq4j.JoinType;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
-
-import com.google.common.collect.ImmutableList;
-
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.Assert.assertArrayEquals;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Tests {@link ExtendedEnumerable#correlateJoin(JoinType, Function1, Function2)}

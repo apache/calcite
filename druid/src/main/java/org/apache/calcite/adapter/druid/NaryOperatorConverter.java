@@ -16,14 +16,15 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import java.util.List;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
-
-import java.util.List;
-import java.util.Objects;
-import javax.annotation.Nullable;
 
 /**
  * Converts Calcite n-ary operators to druid expression eg (arg1 Op arg2 Op arg3)

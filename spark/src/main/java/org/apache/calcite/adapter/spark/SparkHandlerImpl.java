@@ -16,6 +16,13 @@
  */
 package org.apache.calcite.adapter.spark;
 
+import java.io.File;
+import java.io.Serializable;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Calendar;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -26,15 +33,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.javac.JaninoCompiler;
-
 import org.apache.spark.api.java.JavaSparkContext;
-
-import java.io.File;
-import java.io.Serializable;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.util.Calendar;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Implementation of

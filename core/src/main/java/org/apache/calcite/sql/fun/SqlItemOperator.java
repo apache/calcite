@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.fun;
 
+import java.util.Arrays;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -33,8 +35,6 @@ import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
-
-import java.util.Arrays;
 
 /**
  * The item operator {@code [ ... ]}, used to access a given element of an

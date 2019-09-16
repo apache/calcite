@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.rel.externalize;
 
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -23,11 +28,6 @@ import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Callback for a relational expression to dump itself as JSON.

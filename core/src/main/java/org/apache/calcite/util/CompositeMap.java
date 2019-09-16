@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.util;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 /** Unmodifiable view onto multiple backing maps. An element occurs in the map
  * if it occurs in any of the backing maps; the value is the value that occurs

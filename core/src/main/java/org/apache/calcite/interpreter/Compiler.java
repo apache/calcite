@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.interpreter;
 
+import java.util.List;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
-
-import java.util.List;
 
 /**
  * Context while converting a tree of {@link RelNode} to a program

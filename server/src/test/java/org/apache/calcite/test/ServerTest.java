@@ -16,13 +16,12 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.config.CalciteConnectionProperty;
-import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
-
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import static org.apache.calcite.test.Matchers.isLinux;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.fail;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -30,13 +29,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import static org.apache.calcite.test.Matchers.isLinux;
-
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.fail;
+import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 /**
  * Unit tests for server and DDL.

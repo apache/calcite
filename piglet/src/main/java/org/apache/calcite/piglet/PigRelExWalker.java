@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.piglet;
 
+import java.util.Collection;
+
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.Operator;
@@ -23,8 +25,6 @@ import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.PlanWalker;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
-
-import java.util.Collection;
 
 /**
  * Post-order walker for Pig expression plans. Walk the plan from

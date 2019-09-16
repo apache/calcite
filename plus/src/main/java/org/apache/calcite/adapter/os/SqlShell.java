@@ -16,13 +16,6 @@
  */
 package org.apache.calcite.adapter.os;
 
-import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.util.JsonBuilder;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
-
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -41,6 +34,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.util.JsonBuilder;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 
 /**
  * Command that executes its arguments as a SQL query

@@ -20,11 +20,10 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-
-import com.google.common.collect.Lists;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
 
 /**
  * Tests return type inference using {@code RelDataTypeSystem}

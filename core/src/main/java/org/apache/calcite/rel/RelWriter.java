@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.rel;
 
+import java.util.List;
+
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.Pair;
-
-import java.util.List;
 
 /**
  * Callback for an expression to dump itself to.

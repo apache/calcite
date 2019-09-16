@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.schema;
 
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.Pair;
-
-import java.util.List;
 
 /**
  * Extension to {@link Table} that specifies a custom way to resolve column

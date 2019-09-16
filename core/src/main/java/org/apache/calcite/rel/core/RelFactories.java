@@ -16,6 +16,14 @@
  */
 package org.apache.calcite.rel.core;
 
+import java.lang.reflect.Type;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+
+import javax.annotation.Nonnull;
+
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
@@ -55,13 +63,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-
-import java.lang.reflect.Type;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import javax.annotation.Nonnull;
 
 /**
  * Contains factory interface and default implementation for creating various

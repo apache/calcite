@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel;
 
+import java.util.List;
+import java.util.Set;
+
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptNode;
@@ -31,9 +34,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
-
-import java.util.List;
-import java.util.Set;
 
 /**
  * A <code>RelNode</code> is a relational expression.

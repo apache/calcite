@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.example.maze;
 
+import java.io.PrintWriter;
+import java.util.Random;
+import java.util.Set;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -27,10 +31,6 @@ import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
-
-import java.io.PrintWriter;
-import java.util.Random;
-import java.util.Set;
 
 /**
  * User-defined table function that generates a Maze and prints it in text

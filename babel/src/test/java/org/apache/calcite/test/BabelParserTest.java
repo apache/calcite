@@ -16,23 +16,22 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
-import org.apache.calcite.sql.parser.SqlParserImplFactory;
-import org.apache.calcite.sql.parser.SqlParserTest;
-import org.apache.calcite.sql.parser.SqlParserUtil;
-import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
-
-import com.google.common.base.Throwables;
-
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Objects;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
+import org.apache.calcite.sql.parser.SqlParserImplFactory;
+import org.apache.calcite.sql.parser.SqlParserTest;
+import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
+import org.junit.Ignore;
+import org.junit.Test;
+
+import com.google.common.base.Throwables;
 
 /**
  * Tests the "Babel" SQL parser, that understands all dialects of SQL.

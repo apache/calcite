@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import java.lang.reflect.Method;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rel.metadata.MetadataDef;
@@ -25,8 +27,6 @@ import org.apache.calcite.rel.metadata.UnboundMetadata;
 
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
-
-import java.lang.reflect.Method;
 
 /**
  * VolcanoRelMetadataProvider implements the {@link RelMetadataProvider}

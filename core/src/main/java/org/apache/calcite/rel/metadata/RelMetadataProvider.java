@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import java.lang.reflect.Method;
+
 import org.apache.calcite.rel.RelNode;
 
 import com.google.common.collect.Multimap;
-
-import java.lang.reflect.Method;
 
 /**
  * RelMetadataProvider defines an interface for obtaining metadata about

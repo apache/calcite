@@ -16,6 +16,16 @@
  */
 package org.apache.calcite.test;
 
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.materialize.SqlStatisticProvider;
 import org.apache.calcite.plan.RelOptTable;
@@ -30,21 +40,10 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Util;
+import org.junit.Test;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * Unit test for {@link org.apache.calcite.materialize.SqlStatisticProvider}

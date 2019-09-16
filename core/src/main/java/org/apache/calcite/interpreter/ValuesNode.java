@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.interpreter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Interpreter node that implements a

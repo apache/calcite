@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.sql.util;
 
+import java.lang.reflect.Field;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -30,11 +35,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
-
-import java.lang.reflect.Field;
-import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
 
 /**
  * ReflectiveSqlOperatorTable implements the {@link SqlOperatorTable} interface

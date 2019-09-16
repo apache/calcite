@@ -17,7 +17,6 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.piglet.parser.ParseException;
-
 import org.junit.Ignore;
 import org.junit.Test;
 

@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.sql;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.math.BigDecimal;
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
@@ -31,11 +36,6 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.NlsString;
 
 import com.google.common.collect.Lists;
-
-import java.math.BigDecimal;
-import java.util.List;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * <code>SqlCallBinding</code> implements {@link SqlOperatorBinding} by

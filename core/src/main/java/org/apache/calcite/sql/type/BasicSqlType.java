@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.sql.type;
 
+import java.nio.charset.Charset;
+import java.util.Objects;
+
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.util.SerializableCharset;
 
 import com.google.common.base.Preconditions;
-
-import java.nio.charset.Charset;
-import java.util.Objects;
 
 /**
  * BasicSqlType represents a standard atomic SQL type (excluding interval

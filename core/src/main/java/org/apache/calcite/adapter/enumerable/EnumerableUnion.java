@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import java.util.List;
+
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -25,8 +27,6 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.util.BuiltInMethod;
-
-import java.util.List;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Union} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */

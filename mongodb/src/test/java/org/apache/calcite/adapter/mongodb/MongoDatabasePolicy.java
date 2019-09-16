@@ -16,17 +16,16 @@
  */
 package org.apache.calcite.adapter.mongodb;
 
-import org.apache.calcite.test.MongoAssertions;
-import org.apache.calcite.util.Closer;
-
-import com.mongodb.MongoClient;
-import com.mongodb.client.MongoDatabase;
-
-import org.junit.rules.ExternalResource;
-
 import java.io.Closeable;
 import java.net.InetSocketAddress;
 import java.util.Objects;
+
+import org.apache.calcite.test.MongoAssertions;
+import org.apache.calcite.util.Closer;
+import org.junit.rules.ExternalResource;
+
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
 import de.bwaldvogel.mongo.MongoServer;
 import de.bwaldvogel.mongo.backend.memory.MemoryBackend;

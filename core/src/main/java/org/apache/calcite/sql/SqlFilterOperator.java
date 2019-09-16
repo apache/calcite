@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -23,8 +25,6 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * An operator that applies a filter before rows are included in an aggregate

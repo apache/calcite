@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel.rules;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.CalciteSchema;
@@ -48,9 +51,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.AbstractSourceMapping;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Planner rule that matches an {@link org.apache.calcite.rel.core.Aggregate} on

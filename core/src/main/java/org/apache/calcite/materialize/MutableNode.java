@@ -16,10 +16,6 @@
  */
 package org.apache.calcite.materialize;
 
-import org.apache.calcite.util.mapping.IntPair;
-
-import com.google.common.collect.Ordering;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -27,6 +23,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import org.apache.calcite.util.mapping.IntPair;
+
+import com.google.common.collect.Ordering;
 
 /** Mutable version of {@link LatticeNode}, used while a graph is being
  * built. */

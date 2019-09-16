@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.schema;
 
-import org.apache.calcite.rel.type.RelDataTypeField;
-
 import java.util.List;
+
+import org.apache.calcite.rel.type.RelDataTypeField;
 
 /**
  * Table whose row type can be extended to include extra fields.

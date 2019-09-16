@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.List;
+import java.util.Objects;
+
+import javax.annotation.Nonnull;
+
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
@@ -24,10 +29,6 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
 import com.google.common.base.Preconditions;
-
-import java.util.List;
-import java.util.Objects;
-import javax.annotation.Nonnull;
 
 /**
  * SqlNode for MATCH_RECOGNIZE clause.

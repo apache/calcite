@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import java.util.List;
+
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreter;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.rel.RelNode;
@@ -25,8 +27,6 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * RelMdPercentageOriginalRows supplies a default implementation of

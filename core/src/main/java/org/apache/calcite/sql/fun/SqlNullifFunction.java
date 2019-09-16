@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.fun;
 
+import java.util.List;
+
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -27,8 +29,6 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.validate.SqlValidator;
-
-import java.util.List;
 
 /**
  * The <code>NULLIF</code> function.

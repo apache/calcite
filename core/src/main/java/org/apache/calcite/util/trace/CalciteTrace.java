@@ -16,16 +16,15 @@
  */
 package org.apache.calcite.util.trace;
 
+import java.io.File;
+
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.plan.RelImplementor;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.prepare.Prepare;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
 
 /**
  * Contains all of the {@link org.slf4j.Logger tracers} used within

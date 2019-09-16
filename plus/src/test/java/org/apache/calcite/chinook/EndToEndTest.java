@@ -16,14 +16,13 @@
  */
 package org.apache.calcite.chinook;
 
-import org.apache.calcite.test.QuidemTest;
+import java.util.Collection;
 
 import net.hydromatic.quidem.Quidem;
 
+import org.apache.calcite.test.QuidemTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import java.util.Collection;
 
 /**
  * Entry point for all end-to-end tests based on Chinook data in HSQLDB wrapped

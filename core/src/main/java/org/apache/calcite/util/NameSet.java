@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.util;
 
-import com.google.common.collect.Maps;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Set;
+
+import com.google.common.collect.Maps;
 
 /** Set of names that can be accessed with and without case sensitivity. */
 public class NameSet {

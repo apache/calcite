@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.plan;
 
-import com.google.common.collect.ImmutableList;
-
 import java.util.List;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Children of a {@link org.apache.calcite.plan.RelOptRuleOperand} and the

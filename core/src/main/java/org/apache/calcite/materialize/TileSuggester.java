@@ -16,11 +16,10 @@
  */
 package org.apache.calcite.materialize;
 
+import java.io.PrintWriter;
+import java.util.List;
+
 import org.apache.calcite.util.Util;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-
 import org.pentaho.aggdes.algorithm.Algorithm;
 import org.pentaho.aggdes.algorithm.Progress;
 import org.pentaho.aggdes.algorithm.Result;
@@ -36,8 +35,8 @@ import org.pentaho.aggdes.model.Schema;
 import org.pentaho.aggdes.model.StatisticsProvider;
 import org.pentaho.aggdes.model.Table;
 
-import java.io.PrintWriter;
-import java.util.List;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Algorithm that suggests a set of initial tiles (materialized aggregate views)

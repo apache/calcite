@@ -16,21 +16,6 @@
  */
 package org.apache.calcite.sql.pretty;
 
-import org.apache.calcite.avatica.util.Spaces;
-import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.dialect.AnsiSqlDialect;
-import org.apache.calcite.sql.util.SqlString;
-import org.apache.calcite.util.Unsafe;
-import org.apache.calcite.util.Util;
-import org.apache.calcite.util.trace.CalciteLogger;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-
-import org.slf4j.LoggerFactory;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
@@ -44,6 +29,20 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
+
+import org.apache.calcite.avatica.util.Spaces;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.dialect.AnsiSqlDialect;
+import org.apache.calcite.sql.util.SqlString;
+import org.apache.calcite.util.Unsafe;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.trace.CalciteLogger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Pretty printer for SQL statements.

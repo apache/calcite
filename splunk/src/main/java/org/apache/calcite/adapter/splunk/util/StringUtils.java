@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.adapter.splunk.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.LinkedList;
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility methods for encoding and decoding strings for Splunk REST calls.

@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.rel.mutable;
 
+import java.util.List;
+
 import org.apache.calcite.rel.RelNode;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /** Abstract base class for implementations of {@link MutableRel} that have
  * no inputs. */

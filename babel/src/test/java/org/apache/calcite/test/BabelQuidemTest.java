@@ -16,6 +16,19 @@
  */
 package org.apache.calcite.test;
 
+import java.sql.Connection;
+import java.util.Collection;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import net.hydromatic.quidem.AbstractCommand;
+import net.hydromatic.quidem.Command;
+import net.hydromatic.quidem.CommandHandler;
+import net.hydromatic.quidem.Quidem;
+
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
@@ -32,27 +45,13 @@ import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-
-import net.hydromatic.quidem.AbstractCommand;
-import net.hydromatic.quidem.Command;
-import net.hydromatic.quidem.CommandHandler;
-import net.hydromatic.quidem.Quidem;
-
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.sql.Connection;
-import java.util.Collection;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Unit tests for the Babel SQL parser.

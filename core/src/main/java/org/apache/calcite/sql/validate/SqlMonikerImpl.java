@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.sql.validate;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  * A generic implementation of {@link SqlMoniker}.

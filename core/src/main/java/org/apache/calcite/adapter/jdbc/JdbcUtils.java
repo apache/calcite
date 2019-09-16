@@ -16,23 +16,6 @@
  */
 package org.apache.calcite.adapter.jdbc;
 
-import org.apache.calcite.avatica.ColumnMetaData;
-import org.apache.calcite.avatica.util.DateTimeUtils;
-import org.apache.calcite.linq4j.function.Function0;
-import org.apache.calcite.linq4j.function.Function1;
-import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlDialectFactory;
-import org.apache.calcite.util.ImmutableNullableList;
-import org.apache.calcite.util.Pair;
-
-import org.apache.commons.dbcp2.BasicDataSource;
-
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableList;
-import com.google.common.primitives.Ints;
-
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
@@ -46,8 +29,25 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+
 import javax.annotation.Nonnull;
 import javax.sql.DataSource;
+
+import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.linq4j.function.Function0;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlDialectFactory;
+import org.apache.calcite.util.ImmutableNullableList;
+import org.apache.calcite.util.Pair;
+import org.apache.commons.dbcp2.BasicDataSource;
+
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableList;
+import com.google.common.primitives.Ints;
 
 /**
  * Utilities for the JDBC provider.

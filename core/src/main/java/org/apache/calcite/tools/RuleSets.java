@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.tools;
 
+import java.util.Iterator;
+
 import org.apache.calcite.plan.RelOptRule;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.Iterator;
 
 /**
  * Utilities for creating and composing rule sets.

@@ -16,20 +16,19 @@
  */
 package org.apache.calcite.plan;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.trace.CalciteTrace;
+import org.slf4j.Logger;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
-import org.slf4j.Logger;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * A <code>RelOptRuleCall</code> is an invocation of a {@link RelOptRule} with a

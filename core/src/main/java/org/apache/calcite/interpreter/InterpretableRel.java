@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.interpreter;
 
-import org.apache.calcite.DataContext;
-import org.apache.calcite.jdbc.CalcitePrepare;
-import org.apache.calcite.rel.RelNode;
-
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.calcite.DataContext;
+import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.rel.RelNode;
 
 /**
  * Relational expression that can implement itself using an interpreter.

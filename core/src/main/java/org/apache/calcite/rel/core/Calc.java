@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.core;
 
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -33,8 +35,6 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
-
-import java.util.List;
 
 /**
  * <code>Calc</code> is an abstract base class for implementations of

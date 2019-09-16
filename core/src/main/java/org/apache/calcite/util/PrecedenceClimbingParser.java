@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.linq4j.Ord;
-
-import com.google.common.collect.ImmutableList;
-
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
+
+import org.apache.calcite.linq4j.Ord;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Parser that takes a collection of tokens (atoms and operators)

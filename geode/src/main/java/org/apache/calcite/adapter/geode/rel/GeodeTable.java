@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 import org.apache.calcite.adapter.geode.util.GeodeUtils;
 import org.apache.calcite.adapter.geode.util.JavaTypeFactoryExtImpl;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
@@ -37,22 +41,16 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
-
 import org.apache.geode.cache.GemFireCache;
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.query.QueryService;
 import org.apache.geode.cache.query.SelectResults;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
 /**
  * Table based on a Geode Region

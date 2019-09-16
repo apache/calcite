@@ -16,6 +16,19 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import static org.apache.calcite.adapter.enumerable.EnumUtils.NO_EXPRS;
+
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.MemoryFactory;
 import org.apache.calcite.linq4j.Ord;
@@ -46,19 +59,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
-
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-
-import static org.apache.calcite.adapter.enumerable.EnumUtils.NO_EXPRS;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Match} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */

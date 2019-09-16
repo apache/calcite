@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.util;
 
-import com.google.common.collect.ImmutableList;
-
 import java.util.AbstractList;
 import java.util.List;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Read-only list that is the concatenation of sub-lists.

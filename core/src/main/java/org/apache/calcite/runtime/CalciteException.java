@@ -17,7 +17,6 @@
 package org.apache.calcite.runtime;
 
 import org.apache.calcite.config.CalciteSystemProperty;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

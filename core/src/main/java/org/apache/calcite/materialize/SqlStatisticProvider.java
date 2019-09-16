@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.materialize;
 
-import org.apache.calcite.plan.RelOptTable;
-
 import java.util.List;
+
+import org.apache.calcite.plan.RelOptTable;
 
 /**
  * Estimates row counts for tables and columns, and whether combinations of

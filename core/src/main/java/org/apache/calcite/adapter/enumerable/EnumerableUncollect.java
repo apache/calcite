@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -30,9 +33,6 @@ import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.primitives.Ints;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Uncollect} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */

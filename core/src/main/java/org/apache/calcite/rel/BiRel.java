@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.rel;
 
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.runtime.FlatLists;
-
-import java.util.List;
 
 /**
  * Abstract base class for relational expressions with a two inputs.

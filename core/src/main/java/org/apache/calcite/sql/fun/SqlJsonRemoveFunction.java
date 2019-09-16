@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.fun;
 
+import java.util.Locale;
+
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -26,8 +28,6 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
-
-import java.util.Locale;
 
 /**
  * The <code>JSON_REMOVE</code> function.

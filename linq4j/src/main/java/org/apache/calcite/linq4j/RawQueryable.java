@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.apache.calcite.linq4j.tree.Expression;
-
 import java.lang.reflect.Type;
+
+import org.apache.calcite.linq4j.tree.Expression;
 
 /**
  * Core methods that define a {@link Queryable}.

@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.rel.type;
 
-import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.sql.type.SqlTypeName;
-
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
+
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 /**
  * RelRecordType represents a structured type having named fields.

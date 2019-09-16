@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.sql;
 
+import java.nio.charset.Charset;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -23,10 +28,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
-
-import java.nio.charset.Charset;
-import java.util.Objects;
-import javax.annotation.Nullable;
 
 /**
  * A sql type name specification of basic sql type.

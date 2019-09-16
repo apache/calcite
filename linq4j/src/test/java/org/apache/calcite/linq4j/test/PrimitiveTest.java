@@ -16,13 +16,6 @@
  */
 package org.apache.calcite.linq4j.test;
 
-import org.apache.calcite.linq4j.tree.Primitive;
-
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -30,6 +23,12 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.junit.Test;
 
 /**
  * Unit test for {@link Primitive}.

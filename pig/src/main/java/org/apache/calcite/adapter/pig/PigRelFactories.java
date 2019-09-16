@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.pig;
 
+import java.util.List;
+import java.util.Set;
+
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
@@ -31,9 +34,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
-import java.util.Set;
 
 /** Implementations of factories in {@link RelFactories}
  * for the Pig adapter. */

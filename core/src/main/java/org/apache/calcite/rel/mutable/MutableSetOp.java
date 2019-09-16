@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.rel.mutable;
 
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.rel.type.RelDataType;
-
 import java.util.List;
 import java.util.Objects;
+
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.rel.type.RelDataType;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.SetOp}. */
 abstract class MutableSetOp extends MutableMultiRel {

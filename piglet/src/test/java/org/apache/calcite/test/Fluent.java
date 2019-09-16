@@ -16,6 +16,16 @@
  */
 package org.apache.calcite.test;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Function;
+
 import org.apache.calcite.piglet.Ast;
 import org.apache.calcite.piglet.Handler;
 import org.apache.calcite.piglet.parser.ParseException;
@@ -25,16 +35,6 @@ import org.apache.calcite.tools.PigRelBuilder;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.Ordering;
-
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Function;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
 
 /** Fluent API to perform Piglet test actions. */
 class Fluent {

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.geode.simple;
 
+import static org.apache.calcite.adapter.geode.util.GeodeUtils.convertToRowValues;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -24,10 +26,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
-
 import org.apache.geode.cache.client.ClientCache;
-
-import static org.apache.calcite.adapter.geode.util.GeodeUtils.convertToRowValues;
 
 /**
  * Geode Simple Scannable Table Abstraction

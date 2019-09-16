@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.rel.mutable;
 
+import java.util.Map;
+import java.util.Objects;
+import java.util.SortedSet;
+
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableBitSet;
-
-import java.util.Map;
-import java.util.Objects;
-import java.util.SortedSet;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Match}. */
 public class MutableMatch extends MutableSingleRel {

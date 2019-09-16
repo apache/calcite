@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.sql.validate;
 
+import java.util.List;
+
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
-
-import java.util.List;
 
 /**
  * The name-resolution scope of a OVER clause. The objects visible are those in

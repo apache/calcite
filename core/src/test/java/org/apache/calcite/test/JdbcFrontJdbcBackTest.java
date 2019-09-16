@@ -16,21 +16,19 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.util.TestUtil;
-
-import org.hamcrest.Matcher;
-import org.junit.Ignore;
-import org.junit.Test;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 import static org.apache.calcite.test.CalciteAssert.that;
-
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import org.apache.calcite.util.TestUtil;
+import org.hamcrest.Matcher;
+import org.junit.Ignore;
+import org.junit.Test;
 
 /**
  * Tests for a JDBC front-end and JDBC back-end.

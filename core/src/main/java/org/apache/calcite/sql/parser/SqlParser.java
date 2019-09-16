@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.sql.parser;
 
+import java.io.Reader;
+import java.io.StringReader;
+import java.util.Objects;
+
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.config.Lex;
@@ -27,10 +31,6 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 import org.apache.calcite.util.SourceStringReader;
-
-import java.io.Reader;
-import java.io.StringReader;
-import java.util.Objects;
 
 /**
  * A <code>SqlParser</code> parses a SQL statement.

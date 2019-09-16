@@ -16,18 +16,18 @@
  */
 package org.apache.calcite.jdbc;
 
+import static org.apache.calcite.jdbc.CalciteMetaImpl.MetaColumn;
+import static org.apache.calcite.jdbc.CalciteMetaImpl.MetaTable;
+
+import java.sql.SQLException;
+import java.util.Map;
+
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 
 import com.google.common.collect.ImmutableMap;
-
-import java.sql.SQLException;
-import java.util.Map;
-
-import static org.apache.calcite.jdbc.CalciteMetaImpl.MetaColumn;
-import static org.apache.calcite.jdbc.CalciteMetaImpl.MetaTable;
 
 /** Schema that contains metadata tables such as "TABLES" and "COLUMNS". */
 class MetadataSchema extends AbstractSchema {

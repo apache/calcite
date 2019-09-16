@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.mongodb;
 
+import java.util.AbstractList;
+import java.util.List;
+
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
@@ -40,9 +43,6 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.Lists;
-
-import java.util.AbstractList;
-import java.util.List;
 
 /**
  * Relational expression representing a scan of a table in a Mongo data source.

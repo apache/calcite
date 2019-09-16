@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.schema;
 
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-
 import java.lang.reflect.Type;
 import java.util.List;
+
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 
 /**
  * Function that returns a table during execution time.

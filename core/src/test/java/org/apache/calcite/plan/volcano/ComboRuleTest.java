@@ -16,6 +16,18 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import static org.apache.calcite.plan.volcano.PlannerTests.GoodSingleRule;
+import static org.apache.calcite.plan.volcano.PlannerTests.NoneLeafRel;
+import static org.apache.calcite.plan.volcano.PlannerTests.NoneSingleRel;
+import static org.apache.calcite.plan.volcano.PlannerTests.PHYS_CALLING_CONVENTION;
+import static org.apache.calcite.plan.volcano.PlannerTests.PhysLeafRel;
+import static org.apache.calcite.plan.volcano.PlannerTests.PhysSingleRel;
+import static org.apache.calcite.plan.volcano.PlannerTests.TestSingleRel;
+import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
+import static org.junit.Assert.assertTrue;
+
+import java.util.List;
+
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
@@ -27,23 +39,9 @@ import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-
-import com.google.common.collect.ImmutableList;
-
 import org.junit.Test;
 
-import java.util.List;
-
-import static org.apache.calcite.plan.volcano.PlannerTests.GoodSingleRule;
-import static org.apache.calcite.plan.volcano.PlannerTests.NoneLeafRel;
-import static org.apache.calcite.plan.volcano.PlannerTests.NoneSingleRel;
-import static org.apache.calcite.plan.volcano.PlannerTests.PHYS_CALLING_CONVENTION;
-import static org.apache.calcite.plan.volcano.PlannerTests.PhysLeafRel;
-import static org.apache.calcite.plan.volcano.PlannerTests.PhysSingleRel;
-import static org.apache.calcite.plan.volcano.PlannerTests.TestSingleRel;
-import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
-
-import static org.junit.Assert.assertTrue;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Unit test for {@link VolcanoPlanner}

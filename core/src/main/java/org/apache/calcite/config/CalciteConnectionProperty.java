@@ -16,12 +16,7 @@
  */
 package org.apache.calcite.config;
 
-import org.apache.calcite.avatica.ConnectionProperty;
-import org.apache.calcite.avatica.util.Casing;
-import org.apache.calcite.avatica.util.Quoting;
-import org.apache.calcite.model.JsonSchema;
-import org.apache.calcite.sql.validate.SqlConformanceEnum;
-import org.apache.calcite.util.Bug;
+import static org.apache.calcite.avatica.ConnectionConfigImpl.PropEnv;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -30,7 +25,12 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
 
-import static org.apache.calcite.avatica.ConnectionConfigImpl.PropEnv;
+import org.apache.calcite.avatica.ConnectionProperty;
+import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.model.JsonSchema;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.util.Bug;
 
 /**
  * Properties that may be specified on the JDBC connect string.

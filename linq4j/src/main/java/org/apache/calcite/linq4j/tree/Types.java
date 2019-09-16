@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.apache.calcite.linq4j.Enumerator;
-
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -32,6 +30,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+
+import org.apache.calcite.linq4j.Enumerator;
 
 /**
  * Utilities for converting between {@link Expression}, {@link Type} and

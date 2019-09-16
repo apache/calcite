@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import java.util.List;
+import java.util.function.Predicate;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.interpreter.BindableConvention;
 import org.apache.calcite.interpreter.BindableRel;
@@ -36,9 +39,6 @@ import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.collect.ImmutableMap;
-
-import java.util.List;
-import java.util.function.Predicate;
 
 /**
  * Relational expression that converts an enumerable input to interpretable

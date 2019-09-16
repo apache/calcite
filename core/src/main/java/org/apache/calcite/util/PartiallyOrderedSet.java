@@ -16,10 +16,6 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.config.CalciteSystemProperty;
-
-import com.google.common.collect.ImmutableList;
-
 import java.util.AbstractSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -34,6 +30,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+
+import org.apache.calcite.config.CalciteSystemProperty;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Partially-ordered set.

@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.rex;
 
-import com.google.common.collect.ImmutableList;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Specification of the window of rows over which a {@link RexOver} windowed

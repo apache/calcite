@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.runtime;
 
-import org.apache.calcite.sql.validate.SqlValidatorException;
-
 import static org.apache.calcite.runtime.Resources.BaseMessage;
 import static org.apache.calcite.runtime.Resources.ExInst;
 import static org.apache.calcite.runtime.Resources.ExInstWithCause;
 import static org.apache.calcite.runtime.Resources.Inst;
 import static org.apache.calcite.runtime.Resources.Property;
+
+import org.apache.calcite.sql.validate.SqlValidatorException;
 
 /**
  * Compiler-checked resources for the Calcite project.

@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.plan;
 
+import java.math.BigDecimal;
+import java.util.List;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.QueryProvider;
@@ -31,11 +34,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.trace.CalciteLogger;
-
 import org.slf4j.LoggerFactory;
-
-import java.math.BigDecimal;
-import java.util.List;
 
 /**
  * DataContext for evaluating an RexExpression

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.fun;
 
+import java.util.Arrays;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -41,8 +43,6 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Static;
-
-import java.util.Arrays;
 
 /**
  * The dot operator {@code .}, used to access a field of a

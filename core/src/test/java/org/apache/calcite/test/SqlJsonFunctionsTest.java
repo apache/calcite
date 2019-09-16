@@ -16,24 +16,10 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.runtime.CalciteException;
-import org.apache.calcite.runtime.JsonFunctions;
-import org.apache.calcite.runtime.SqlFunctions;
-import org.apache.calcite.sql.SqlJsonConstructorNullClause;
-import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;
-import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
-import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
-import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
-import org.apache.calcite.util.BuiltInMethod;
-
-import com.google.common.primitives.Longs;
-import com.jayway.jsonpath.InvalidJsonException;
-import com.jayway.jsonpath.PathNotFoundException;
-
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,12 +30,26 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
 import javax.annotation.Nonnull;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.runtime.JsonFunctions;
+import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.sql.SqlJsonConstructorNullClause;
+import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;
+import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
+import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
+import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
+import org.apache.calcite.util.BuiltInMethod;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.junit.Test;
+
+import com.google.common.primitives.Longs;
+import com.jayway.jsonpath.InvalidJsonException;
+import com.jayway.jsonpath.PathNotFoundException;
 
 /**
  * Unit test for the methods in {@link SqlFunctions} that implement JSON processing functions.

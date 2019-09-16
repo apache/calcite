@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.adapter.druid;
 
-import com.fasterxml.jackson.core.JsonGenerator;
+import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
 
 import java.io.IOException;
 import java.util.Locale;
 import java.util.Objects;
 
-import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
+import com.fasterxml.jackson.core.JsonGenerator;
 
 /**
  * Druid Json Expression based Virtual Column.

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.fun;
 
+import java.util.List;
+
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlAsOperator;
@@ -65,8 +67,6 @@ import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * Implementation of {@link org.apache.calcite.sql.SqlOperatorTable} containing

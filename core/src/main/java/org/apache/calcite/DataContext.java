@@ -16,6 +16,13 @@
  */
 package org.apache.calcite;
 
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.reflect.Modifier;
+import java.util.Locale;
+import java.util.TimeZone;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -24,13 +31,6 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.advise.SqlAdvisor;
 
 import com.google.common.base.CaseFormat;
-
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.lang.reflect.Modifier;
-import java.util.Locale;
-import java.util.TimeZone;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Runtime context allowing access to the tables in a database.

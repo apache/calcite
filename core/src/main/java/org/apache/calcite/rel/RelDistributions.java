@@ -16,6 +16,12 @@
  */
 package org.apache.calcite.rel;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+
+import javax.annotation.Nonnull;
+
 import org.apache.calcite.plan.RelMultipleTrait;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTrait;
@@ -25,11 +31,6 @@ import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.Ordering;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-import javax.annotation.Nonnull;
 
 /**
  * Utilities concerning {@link org.apache.calcite.rel.RelDistribution}.

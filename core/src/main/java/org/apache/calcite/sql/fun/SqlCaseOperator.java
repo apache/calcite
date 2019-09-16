@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.sql.fun;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCall;
@@ -40,11 +45,6 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.Iterables;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * An operator describing a <code>CASE</code>, <code>NULLIF</code> or <code>

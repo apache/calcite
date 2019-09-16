@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.schema;
 
+import java.util.List;
+
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
@@ -23,8 +25,6 @@ import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * Utility functions regarding {@link Statistic}.

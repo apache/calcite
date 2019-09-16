@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.materialize;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.util.graph.AttributedDirectedGraph;
 import org.apache.calcite.util.graph.DefaultEdge;
@@ -23,9 +26,6 @@ import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
-
-import java.util.List;
-import java.util.Objects;
 
 /** Edge in the join graph.
  *

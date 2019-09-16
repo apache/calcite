@@ -16,16 +16,7 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.avatica.util.ByteString;
-import org.apache.calcite.runtime.SqlFunctions;
-import org.apache.calcite.sql.SqlCollation;
-import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.dialect.AnsiSqlDialect;
-
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
@@ -36,9 +27,19 @@ import java.nio.charset.UnsupportedCharsetException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+
 import javax.annotation.Nonnull;
 
-import static org.apache.calcite.util.Static.RESOURCE;
+import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.dialect.AnsiSqlDialect;
+
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 /**
  * A string, optionally with {@link Charset character set} and

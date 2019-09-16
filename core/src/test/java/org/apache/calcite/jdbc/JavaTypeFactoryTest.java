@@ -16,19 +16,18 @@
  */
 package org.apache.calcite.jdbc;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.lang.reflect.Type;
+
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.test.SqlTests;
 import org.apache.calcite.sql.type.SqlTypeName;
-
-import com.google.common.collect.ImmutableList;
-
 import org.junit.Test;
 
-import java.lang.reflect.Type;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Test for {@link org.apache.calcite.jdbc.JavaTypeFactoryImpl}.

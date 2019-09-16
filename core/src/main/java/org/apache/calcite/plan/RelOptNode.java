@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.plan;
 
-import org.apache.calcite.rel.type.RelDataType;
-
 import java.util.List;
+
+import org.apache.calcite.rel.type.RelDataType;
 
 /**
  * Node in a planner.

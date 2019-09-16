@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rex;
 
+import java.util.List;
+
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.type.RelDataType;
@@ -30,8 +32,6 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * <code>RexCallBinding</code> implements {@link SqlOperatorBinding} by

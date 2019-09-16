@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql.validate;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.type.RelDataType;
@@ -35,9 +38,6 @@ import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.Lists;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * User-defined aggregate function.

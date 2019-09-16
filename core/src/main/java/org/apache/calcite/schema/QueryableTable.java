@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.schema;
 
+import java.lang.reflect.Type;
+
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
-
-import java.lang.reflect.Type;
 
 /**
  * Extension to {@link Table} that can translate itself to a {@link Queryable}.

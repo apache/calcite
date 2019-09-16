@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.rex;
 
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.Pair;
-
-import java.util.List;
 
 /**
  * Variable which references a field of an input relational expression.

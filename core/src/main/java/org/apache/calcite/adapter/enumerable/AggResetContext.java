@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
-import org.apache.calcite.linq4j.tree.Expression;
-
 import java.util.List;
+
+import org.apache.calcite.linq4j.tree.Expression;
 
 /**
  * Information for a call to

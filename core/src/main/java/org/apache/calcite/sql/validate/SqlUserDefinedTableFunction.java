@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql.validate;
 
+import java.lang.reflect.Type;
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.TableFunction;
@@ -25,9 +28,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-
-import java.lang.reflect.Type;
-import java.util.List;
 
 /**
  * User-defined table function.

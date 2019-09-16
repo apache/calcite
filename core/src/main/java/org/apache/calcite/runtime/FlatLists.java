@@ -16,11 +16,6 @@
  */
 package org.apache.calcite.runtime;
 
-import org.apache.calcite.util.ImmutableNullableList;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,6 +25,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.RandomAccess;
+
+import org.apache.calcite.util.ImmutableNullableList;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Space-efficient, comparable, immutable lists.

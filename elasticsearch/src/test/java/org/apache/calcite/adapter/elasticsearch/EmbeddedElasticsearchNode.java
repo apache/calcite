@@ -16,11 +16,14 @@
  */
 package org.apache.calcite.adapter.elasticsearch;
 
+import static java.util.Collections.emptyMap;
+
+import java.io.File;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Objects;
+
 import org.apache.calcite.util.TestUtil;
-
-import com.google.common.base.Preconditions;
-import com.google.common.io.Files;
-
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.client.Client;
@@ -33,12 +36,8 @@ import org.elasticsearch.painless.PainlessPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.transport.Netty4Plugin;
 
-import java.io.File;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Objects;
-
-import static java.util.Collections.emptyMap;
+import com.google.common.base.Preconditions;
+import com.google.common.io.Files;
 
 /**
  * Represents a single elastic search node which can run embedded in a java application.

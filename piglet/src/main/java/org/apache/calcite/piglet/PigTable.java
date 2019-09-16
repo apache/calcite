@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.piglet;
 
+import java.util.List;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -30,8 +32,6 @@ import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.impl.AbstractTable;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * A non-queriable table that contains only row type to represent a Pig Table. This table is used

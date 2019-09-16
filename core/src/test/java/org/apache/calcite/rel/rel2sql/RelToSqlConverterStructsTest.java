@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -36,15 +40,10 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-
-import org.junit.Test;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Tests for {@link RelToSqlConverter} on a schema that has nested structures of multiple

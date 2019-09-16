@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql.fun;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
@@ -35,9 +38,6 @@ import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Definition of the "TRIM" builtin SQL function.

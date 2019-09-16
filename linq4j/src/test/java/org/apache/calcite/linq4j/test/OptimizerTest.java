@@ -16,17 +16,6 @@
  */
 package org.apache.calcite.linq4j.test;
 
-import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.linq4j.tree.ConstantExpression;
-import org.apache.calcite.linq4j.tree.Expression;
-import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.linq4j.tree.ParameterExpression;
-
-import org.junit.Test;
-
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.FALSE;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.FOUR;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.NULL;
@@ -38,10 +27,19 @@ import static org.apache.calcite.linq4j.test.BlockBuilderBase.TRUE_B;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.bool;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.optimize;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.tree.ConstantExpression;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.junit.Test;
 
 /**
  * Unit test for {@link org.apache.calcite.linq4j.tree.BlockBuilder}

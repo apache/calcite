@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.linq4j;
 
-import com.google.common.collect.ImmutableList;
-
 import java.util.AbstractList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Pair of an element and an ordinal.

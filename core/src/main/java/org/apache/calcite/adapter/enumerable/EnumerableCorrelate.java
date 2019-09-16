@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
+
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -34,9 +37,6 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
-
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Correlate} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */

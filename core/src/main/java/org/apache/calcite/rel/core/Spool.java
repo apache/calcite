@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.rel.core;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  * Relational expression that iterates over its input and, in addition to

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.pig;
 
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
@@ -23,8 +25,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
-
-import java.util.List;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Project} in
  * {@link PigRel#CONVENTION Pig calling convention}. */

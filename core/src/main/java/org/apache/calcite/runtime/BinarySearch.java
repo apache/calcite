@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.runtime;
 
+import java.util.Comparator;
+
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Functions;
-
-import java.util.Comparator;
 
 /**
  * Binary search for the implementation of

@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.chinook;
 
-import org.junit.Test;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+
+import org.junit.Test;
 
 /**
  * Tests against parameters in prepared statement when using underlying jdbc subschema

@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.rel;
 
-import org.apache.calcite.plan.RelMultipleTrait;
-
 import java.util.List;
+
+import org.apache.calcite.plan.RelMultipleTrait;
 
 /**
  * Description of the physical ordering of a relational expression.

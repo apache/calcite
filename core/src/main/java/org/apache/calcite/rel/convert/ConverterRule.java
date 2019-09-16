@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel.convert;
 
+import java.util.Objects;
+import java.util.function.Predicate;
+
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -24,9 +27,6 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
-
-import java.util.Objects;
-import java.util.function.Predicate;
 
 /**
  * Abstract base class for a rule which converts from one calling convention to

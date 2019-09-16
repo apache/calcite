@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.plan.hep;
 
-import org.apache.calcite.plan.CommonRelSubExprRule;
-import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptRule;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
+import org.apache.calcite.plan.CommonRelSubExprRule;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 
 /**
  * HepProgramBuilder creates instances of {@link HepProgram}.

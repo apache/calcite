@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.sql.validate;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Namespace for a table constructor <code>VALUES (expr, expr, ...)</code>.

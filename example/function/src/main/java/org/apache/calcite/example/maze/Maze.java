@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.example.maze;
 
-import org.apache.calcite.linq4j.Enumerator;
-
 import java.io.PrintWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -26,6 +24,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+
+import org.apache.calcite.linq4j.Enumerator;
 
 /** Maze generator. */
 class Maze {

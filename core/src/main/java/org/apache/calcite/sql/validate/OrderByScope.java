@@ -16,16 +16,16 @@
  */
 package org.apache.calcite.sql.validate;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
-
-import java.util.List;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Represents the name-resolution context for expressions in an ORDER BY clause.

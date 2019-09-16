@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.plan.hep;
 
-import com.google.common.collect.ImmutableList;
-
 import java.util.List;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * HepProgram specifies the order in which rules should be attempted by

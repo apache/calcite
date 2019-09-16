@@ -19,7 +19,6 @@ package org.apache.calcite.test;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.parser.SqlParserTest;
 import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
-
 import org.junit.Test;
 
 /**

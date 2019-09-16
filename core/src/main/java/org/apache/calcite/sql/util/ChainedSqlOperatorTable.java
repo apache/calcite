@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql.util;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlOperator;
@@ -24,9 +27,6 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * ChainedSqlOperatorTable implements the {@link SqlOperatorTable} interface by

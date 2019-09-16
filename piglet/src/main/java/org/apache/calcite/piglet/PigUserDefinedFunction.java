@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.piglet;
 
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -25,12 +27,9 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
-
 import org.apache.pig.FuncSpec;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * Class to represent Pig UDF objects

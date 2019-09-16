@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.runtime;
 
-import com.google.common.collect.Ordering;
+import java.util.Arrays;
 
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Arrays;
+import com.google.common.collect.Ordering;
 
 /**
  * Tests {@link org.apache.calcite.runtime.BinarySearch}.

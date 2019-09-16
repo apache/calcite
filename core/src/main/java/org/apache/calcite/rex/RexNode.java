@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.rex;
 
+import java.util.Collection;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
-
-import java.util.Collection;
 
 /**
  * Row expression.

@@ -16,17 +16,16 @@
  */
 package org.apache.calcite.test;
 
+import java.util.Locale;
+
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.test.SqlValidatorTester;
 import org.apache.calcite.test.catalog.MockCatalogReaderDynamic;
-
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Locale;
 
 /**
  * Concrete child class of {@link SqlValidatorTestCase}, containing lots of unit

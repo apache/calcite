@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.rex;
 
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.Litmus;
-
-import java.util.List;
 
 /**
  * Visitor which checks the validity of a {@link RexNode} expression.

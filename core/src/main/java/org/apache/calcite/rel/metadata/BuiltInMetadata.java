@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import java.util.List;
+import java.util.Set;
+
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rel.RelCollation;
@@ -30,9 +33,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
-
-import java.util.List;
-import java.util.Set;
 
 /**
  * Contains the interfaces for several common forms of metadata.

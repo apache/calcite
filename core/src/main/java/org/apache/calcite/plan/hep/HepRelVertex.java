@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.plan.hep;
 
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
@@ -24,8 +26,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
-
-import java.util.List;
 
 /**
  * HepRelVertex wraps a real {@link RelNode} as a vertex in a DAG representing

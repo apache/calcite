@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test.catalog;
 
+import java.math.BigDecimal;
+
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
@@ -24,8 +26,6 @@ import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql2rel.InitializerContext;
 import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
-
-import java.math.BigDecimal;
 
 /** Default values for the "EMPDEFAULTS" table. */
 class EmpInitializerExpressionFactory

@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.util;
 
-import com.google.common.collect.Lists;
-
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
+
+import com.google.common.collect.Lists;
 
 /**
  * Streaming XML output.

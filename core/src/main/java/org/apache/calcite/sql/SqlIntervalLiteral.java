@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.Objects;
+
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Litmus;
-
-import java.util.Objects;
 
 /**
  * A SQL literal representing a time interval.

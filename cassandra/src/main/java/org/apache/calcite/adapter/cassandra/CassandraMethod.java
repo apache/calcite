@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.adapter.cassandra;
 
+import java.lang.reflect.Method;
+import java.util.List;
+
 import org.apache.calcite.linq4j.tree.Types;
 
 import com.google.common.collect.ImmutableMap;
-
-import java.lang.reflect.Method;
-import java.util.List;
 
 /**
  * Builtin methods in the Cassandra adapter.

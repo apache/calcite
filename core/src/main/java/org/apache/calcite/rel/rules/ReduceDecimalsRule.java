@@ -16,6 +16,14 @@
  */
 package org.apache.calcite.rel.rules;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
@@ -42,14 +50,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * ReduceDecimalsRule is a rule which reduces decimal operations (such as casts

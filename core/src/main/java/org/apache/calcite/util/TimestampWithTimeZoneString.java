@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.avatica.util.DateTimeUtils;
-
-import com.google.common.base.Preconditions;
-
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
+
+import org.apache.calcite.avatica.util.DateTimeUtils;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Timestamp with time-zone literal.

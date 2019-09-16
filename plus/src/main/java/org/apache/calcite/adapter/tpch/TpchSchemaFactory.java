@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.adapter.tpch;
 
+import java.util.Map;
+
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.util.Util;
-
-import java.util.Map;
 
 /**
  * Factory that creates a {@link TpchSchema}.

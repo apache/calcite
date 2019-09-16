@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.plan;
 
-import org.apache.calcite.rel.RelNode;
-
-import com.google.common.collect.ImmutableList;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
+
+import org.apache.calcite.rel.RelNode;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Operand that determines whether a {@link RelOptRule}

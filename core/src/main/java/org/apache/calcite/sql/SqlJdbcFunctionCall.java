@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.sql;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.util.Map;
+import java.util.Objects;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -27,11 +32,6 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.collect.ImmutableMap;
-
-import java.util.Map;
-import java.util.Objects;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * A <code>SqlJdbcFunctionCall</code> is a node of a parse tree which represents

@@ -16,6 +16,15 @@
  */
 package org.apache.calcite.sql.validate;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.type.DynamicRecordType;
 import org.apache.calcite.rel.type.RelDataType;
@@ -34,15 +43,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * A scope which delegates all requests to its parent scope. Use this as a base

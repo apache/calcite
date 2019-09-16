@@ -16,6 +16,15 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import static org.apache.calcite.adapter.enumerable.EnumUtils.BRIDGE_METHODS;
+import static org.apache.calcite.adapter.enumerable.EnumUtils.NO_EXPRS;
+import static org.apache.calcite.adapter.enumerable.EnumUtils.NO_PARAMS;
+
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.Enumerator;
@@ -49,15 +58,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
-import java.util.Collections;
-import java.util.List;
-
-import static org.apache.calcite.adapter.enumerable.EnumUtils.BRIDGE_METHODS;
-import static org.apache.calcite.adapter.enumerable.EnumUtils.NO_EXPRS;
-import static org.apache.calcite.adapter.enumerable.EnumUtils.NO_PARAMS;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Calc} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */

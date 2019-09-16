@@ -16,14 +16,13 @@
  */
 package org.apache.calcite.sql.test;
 
-import org.apache.calcite.sql.type.ExtraSqlTypes;
-import org.apache.calcite.sql.type.SqlTypeName;
-
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.sql.Types;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.calcite.sql.type.ExtraSqlTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.junit.Test;
 
 /**
  * Tests types supported by {@link SqlTypeName}.

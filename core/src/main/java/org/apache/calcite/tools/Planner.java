@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.tools;
 
+import java.io.Reader;
+
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
@@ -25,8 +27,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.SourceStringReader;
-
-import java.io.Reader;
 
 /**
  * A fa&ccedil;ade that covers Calcite's query planning process: parse SQL,

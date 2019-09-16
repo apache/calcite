@@ -16,6 +16,30 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import static org.apache.calcite.plan.volcano.PlannerTests.AssertOperandsDifferentRule;
+import static org.apache.calcite.plan.volcano.PlannerTests.GoodSingleRule;
+import static org.apache.calcite.plan.volcano.PlannerTests.NoneLeafRel;
+import static org.apache.calcite.plan.volcano.PlannerTests.NoneSingleRel;
+import static org.apache.calcite.plan.volcano.PlannerTests.PHYS_CALLING_CONVENTION;
+import static org.apache.calcite.plan.volcano.PlannerTests.PHYS_CALLING_CONVENTION_2;
+import static org.apache.calcite.plan.volcano.PlannerTests.PhysBiRel;
+import static org.apache.calcite.plan.volcano.PlannerTests.PhysLeafRel;
+import static org.apache.calcite.plan.volcano.PlannerTests.PhysLeafRule;
+import static org.apache.calcite.plan.volcano.PlannerTests.PhysSingleRel;
+import static org.apache.calcite.plan.volcano.PlannerTests.TestSingleRel;
+import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
+import static org.apache.calcite.test.Matchers.isLinux;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.enumerable.EnumerableUnion;
@@ -36,34 +60,8 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.tools.RelBuilder;
-
 import org.junit.Ignore;
 import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import static org.apache.calcite.plan.volcano.PlannerTests.AssertOperandsDifferentRule;
-import static org.apache.calcite.plan.volcano.PlannerTests.GoodSingleRule;
-import static org.apache.calcite.plan.volcano.PlannerTests.NoneLeafRel;
-import static org.apache.calcite.plan.volcano.PlannerTests.NoneSingleRel;
-import static org.apache.calcite.plan.volcano.PlannerTests.PHYS_CALLING_CONVENTION;
-import static org.apache.calcite.plan.volcano.PlannerTests.PHYS_CALLING_CONVENTION_2;
-import static org.apache.calcite.plan.volcano.PlannerTests.PhysBiRel;
-import static org.apache.calcite.plan.volcano.PlannerTests.PhysLeafRel;
-import static org.apache.calcite.plan.volcano.PlannerTests.PhysLeafRule;
-import static org.apache.calcite.plan.volcano.PlannerTests.PhysSingleRel;
-import static org.apache.calcite.plan.volcano.PlannerTests.TestSingleRel;
-import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
-import static org.apache.calcite.test.Matchers.isLinux;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Unit test for {@link VolcanoPlanner the optimizer}.

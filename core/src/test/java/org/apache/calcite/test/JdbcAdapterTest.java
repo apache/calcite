@@ -16,13 +16,10 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.config.Lex;
-import org.apache.calcite.test.CalciteAssert.AssertThat;
-import org.apache.calcite.test.CalciteAssert.DatabaseInstance;
-import org.apache.calcite.util.TestUtil;
-
-import org.hsqldb.jdbcDriver;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -33,10 +30,12 @@ import java.util.Properties;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
+import org.apache.calcite.config.Lex;
+import org.apache.calcite.test.CalciteAssert.AssertThat;
+import org.apache.calcite.test.CalciteAssert.DatabaseInstance;
+import org.apache.calcite.util.TestUtil;
+import org.hsqldb.jdbcDriver;
+import org.junit.Test;
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.jdbc} package.

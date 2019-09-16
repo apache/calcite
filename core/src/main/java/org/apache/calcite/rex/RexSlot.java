@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.rex;
 
-import org.apache.calcite.rel.type.RelDataType;
-
 import java.util.AbstractList;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.apache.calcite.rel.type.RelDataType;
 
 /**
  * Abstract base class for {@link RexInputRef} and {@link RexLocalRef}.

@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.Litmus;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * A match of a rule to a particular set of target relational expressions,

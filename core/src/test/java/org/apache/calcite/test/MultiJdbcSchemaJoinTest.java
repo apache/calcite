@@ -16,21 +16,10 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.adapter.java.ReflectiveSchema;
-import org.apache.calcite.adapter.jdbc.JdbcCatalogSchema;
-import org.apache.calcite.adapter.jdbc.JdbcSchema;
-import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.jdbc.CalciteJdbc41Factory;
-import org.apache.calcite.jdbc.CalciteSchema;
-import org.apache.calcite.jdbc.Driver;
-import org.apache.calcite.schema.SchemaPlus;
-
-import org.apache.commons.dbcp2.BasicDataSource;
-
-import com.google.common.collect.Sets;
-
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -42,12 +31,22 @@ import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.sql.DataSource;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.adapter.jdbc.JdbcCatalogSchema;
+import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.CalciteJdbc41Factory;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.jdbc.Driver;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.commons.dbcp2.BasicDataSource;
+import org.junit.Test;
+
+import com.google.common.collect.Sets;
 
 /** Test case for joining tables from two different JDBC databases. */
 public class MultiJdbcSchemaJoinTest {

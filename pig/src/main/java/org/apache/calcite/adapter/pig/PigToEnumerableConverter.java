@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.pig;
 
+import java.util.List;
+
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
@@ -30,8 +32,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.util.BuiltInMethod;
-
-import java.util.List;
 
 /**
  * Relational expression representing a scan of a table in a Pig data source.

@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.sql.validate;
 
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.StructKind;
-import org.apache.calcite.sql.SqlMatchRecognize;
-import org.apache.calcite.sql.SqlNode;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.StructKind;
+import org.apache.calcite.sql.SqlMatchRecognize;
+import org.apache.calcite.sql.SqlNode;
 
 /**
  * Scope for expressions in a {@code MATCH_RECOGNIZE} clause.

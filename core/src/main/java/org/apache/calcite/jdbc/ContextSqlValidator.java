@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.jdbc;
 
+import java.util.Properties;
+
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -23,8 +25,6 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.Properties;
 
 /**
  * A SqlValidator with schema and type factory of the given

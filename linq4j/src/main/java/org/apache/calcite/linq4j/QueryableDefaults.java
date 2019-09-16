@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.linq4j;
 
+import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.util.Comparator;
+import java.util.Iterator;
+
 import org.apache.calcite.linq4j.function.BigDecimalFunction1;
 import org.apache.calcite.linq4j.function.DoubleFunction1;
 import org.apache.calcite.linq4j.function.EqualityComparer;
@@ -35,11 +40,6 @@ import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
-
-import java.lang.reflect.Type;
-import java.math.BigDecimal;
-import java.util.Comparator;
-import java.util.Iterator;
 
 /**
  * Default implementations for methods in the {@link Queryable} interface.

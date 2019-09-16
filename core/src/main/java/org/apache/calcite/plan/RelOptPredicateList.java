@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.plan;
 
+import java.util.Objects;
+
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
-import java.util.Objects;
 
 /**
  * Predicates that are known to hold in the output of a particular relational

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rex;
 
+import java.util.Set;
+
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.Pair;
@@ -23,8 +25,6 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-
-import java.util.Set;
 
 /**
  * Expression combined with sort flags (DESCENDING, NULLS LAST).

@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.rel;
 
-import org.apache.calcite.util.mapping.IntPair;
-
 import java.util.List;
+
+import org.apache.calcite.util.mapping.IntPair;
 
 /**
  * Interface for a referential constraint, i.e., Foreign-Key - Unique-Key relationship,

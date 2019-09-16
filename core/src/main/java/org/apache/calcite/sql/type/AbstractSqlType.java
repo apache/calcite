@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.sql.type;
 
+import java.io.Serializable;
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
-
-import java.io.Serializable;
-import java.util.List;
-import java.util.Objects;
 
 /**
  * Abstract base class for SQL implementations of {@link RelDataType}.

@@ -16,17 +16,17 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.sql.parser.SqlParserUtil;
-import org.apache.calcite.util.Glossary;
-import org.apache.calcite.util.SerializableCharset;
-import org.apache.calcite.util.Util;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Locale;
 
-import static org.apache.calcite.util.Static.RESOURCE;
+import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.util.Glossary;
+import org.apache.calcite.util.SerializableCharset;
+import org.apache.calcite.util.Util;
 
 /**
  * A <code>SqlCollation</code> is an object representing a <code>Collate</code>

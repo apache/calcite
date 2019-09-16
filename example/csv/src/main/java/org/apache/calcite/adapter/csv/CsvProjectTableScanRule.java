@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.csv;
 
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.core.RelFactories;
@@ -23,8 +25,6 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilderFactory;
-
-import java.util.List;
 
 /**
  * Planner rule that projects from a {@link CsvTableScan} scan just the columns

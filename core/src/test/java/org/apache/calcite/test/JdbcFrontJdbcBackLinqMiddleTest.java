@@ -16,12 +16,11 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.util.Bug;
+import static org.apache.calcite.test.CalciteAssert.that;
 
+import org.apache.calcite.util.Bug;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.apache.calcite.test.CalciteAssert.that;
 
 /**
  * Tests for a JDBC front-end and JDBC back-end where the processing is not

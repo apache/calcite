@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.sql.validate;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
-
-import java.util.ArrayDeque;
-import java.util.Deque;
 
 /**
  * Refinement to {@link SqlShuttle} which maintains a stack of scopes.

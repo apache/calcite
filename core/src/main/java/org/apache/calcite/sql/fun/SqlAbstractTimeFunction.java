@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.fun;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -27,8 +29,6 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Base class for time functions such as "LOCALTIME", "LOCALTIME(n)".

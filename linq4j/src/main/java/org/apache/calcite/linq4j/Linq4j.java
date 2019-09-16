@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.apache.calcite.linq4j.function.Function1;
-
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,6 +25,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.RandomAccess;
+
+import org.apache.calcite.linq4j.function.Function1;
 
 /**
  * Utility and factory methods for Linq4j.

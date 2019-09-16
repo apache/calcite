@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.adapter.csv;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.RelDataType;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Type of a field in a CSV file.

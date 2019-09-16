@@ -16,19 +16,18 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 import org.apache.calcite.adapter.geode.util.GeodeUtils;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
-
 import org.apache.geode.cache.GemFireCache;
 import org.apache.geode.cache.Region;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 /**
  * Schema mapped onto a Geode Region.

@@ -16,13 +16,12 @@
  */
 package org.apache.calcite.test.enumerable;
 
+import java.util.Arrays;
+
 import org.apache.calcite.adapter.enumerable.EnumerableRepeatUnion;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
-
 import org.junit.Test;
-
-import java.util.Arrays;
 
 /**
  * Unit tests for {@link EnumerableRepeatUnion}.

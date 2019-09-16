@@ -16,14 +16,15 @@
  */
 package org.apache.calcite.runtime;
 
-import com.google.common.collect.ImmutableList;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+
 import javax.annotation.Nonnull;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * List that consists of a head element and an immutable non-empty list.

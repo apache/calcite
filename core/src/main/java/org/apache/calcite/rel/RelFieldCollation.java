@@ -16,10 +16,11 @@
  */
 package org.apache.calcite.rel;
 
-import org.apache.calcite.sql.validate.SqlMonotonicity;
-
 import java.util.Objects;
+
 import javax.annotation.Nonnull;
+
+import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 /**
  * Definition of the ordering of one field of a {@link RelNode} whose

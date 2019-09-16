@@ -16,6 +16,12 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.util.List;
+
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
@@ -40,19 +46,11 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.util.Pair;
-
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.util.List;
-
-import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 /**
  * Unit test for handling of traits by {@link VolcanoPlanner}.

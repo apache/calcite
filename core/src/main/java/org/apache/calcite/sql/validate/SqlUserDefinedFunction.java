@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.validate;
 
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.FunctionParameter;
@@ -29,8 +31,6 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.Lists;
-
-import java.util.List;
 
 /**
 * User-defined scalar function.

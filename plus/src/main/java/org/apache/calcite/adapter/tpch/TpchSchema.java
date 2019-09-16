@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.adapter.tpch;
 
+import java.sql.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
@@ -33,11 +38,6 @@ import com.google.common.collect.ImmutableMap;
 import io.airlift.tpch.TpchColumn;
 import io.airlift.tpch.TpchEntity;
 import io.airlift.tpch.TpchTable;
-
-import java.sql.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
 /** Schema that provides TPC-H tables, populated according to a
  * particular scale factor. */

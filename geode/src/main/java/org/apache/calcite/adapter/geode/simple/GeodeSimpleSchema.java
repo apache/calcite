@@ -16,18 +16,17 @@
  */
 package org.apache.calcite.adapter.geode.simple;
 
+import static org.apache.calcite.adapter.geode.util.GeodeUtils.autodetectRelTypeFromRegion;
+
+import java.util.Map;
+
 import org.apache.calcite.adapter.geode.util.GeodeUtils;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
-
 import org.apache.geode.cache.Region;
 import org.apache.geode.cache.client.ClientCache;
 
 import com.google.common.collect.ImmutableMap;
-
-import java.util.Map;
-
-import static org.apache.calcite.adapter.geode.util.GeodeUtils.autodetectRelTypeFromRegion;
 
 /**
  * Geode Simple Schema.

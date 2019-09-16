@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.prepare;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.BindableConvention;
@@ -52,9 +55,6 @@ import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Context for populating a {@link Prepare.Materialization}.

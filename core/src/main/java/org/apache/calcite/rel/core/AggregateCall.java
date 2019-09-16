@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel.core;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
@@ -29,9 +32,6 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  * Call to an aggregate function within an

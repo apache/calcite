@@ -16,16 +16,15 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.materialize.MaterializationService;
+import java.sql.Connection;
+import java.util.Collection;
 
 import net.hydromatic.quidem.Quidem;
 
+import org.apache.calcite.materialize.MaterializationService;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import java.sql.Connection;
-import java.util.Collection;
 
 /**
  * Unit tests for server and DDL.

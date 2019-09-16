@@ -16,12 +16,6 @@
  */
 package org.apache.calcite.test.concurrent;
 
-import org.apache.calcite.jdbc.SqlTimeoutException;
-import org.apache.calcite.util.Unsafe;
-import org.apache.calcite.util.Util;
-
-import org.slf4j.Logger;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -58,6 +52,11 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.calcite.jdbc.SqlTimeoutException;
+import org.apache.calcite.util.Unsafe;
+import org.apache.calcite.util.Util;
+import org.slf4j.Logger;
 
 /**
  * ConcurrentTestCommandScript creates instances of

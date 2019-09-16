@@ -16,16 +16,16 @@
  */
 package org.apache.calcite.interpreter;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rex.RexLiteral;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
-
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 
 /**
  * Interpreter node that implements a

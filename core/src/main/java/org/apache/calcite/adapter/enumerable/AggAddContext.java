@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import java.util.List;
+
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rex.RexNode;
-
-import java.util.List;
 
 /**
  * Information for a call to

@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.materialize;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
-import java.util.Objects;
 
 /** Non-root node in a {@link Lattice}. */
 public class LatticeChildNode extends LatticeNode {

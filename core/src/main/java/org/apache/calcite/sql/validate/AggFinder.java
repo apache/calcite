@@ -16,15 +16,16 @@
  */
 package org.apache.calcite.sql.validate;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import javax.annotation.Nonnull;
+
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.util.Util;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import javax.annotation.Nonnull;
 
 /** Visitor that looks for an aggregate function inside a tree of
  * {@link SqlNode} objects and throws {@link Util.FoundOne} when it finds

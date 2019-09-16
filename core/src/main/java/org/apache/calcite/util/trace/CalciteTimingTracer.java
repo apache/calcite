@@ -16,11 +16,10 @@
  */
 package org.apache.calcite.util.trace;
 
-import org.apache.calcite.util.NumberUtil;
-
-import org.slf4j.Logger;
-
 import java.text.DecimalFormat;
+
+import org.apache.calcite.util.NumberUtil;
+import org.slf4j.Logger;
 
 /**
  * CalciteTimingTracer provides a mechanism for tracing the timing of a call

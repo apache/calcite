@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.sql.validate;
 
+import java.util.Map;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
-
-import java.util.Map;
 
 /**
  * A scope which contains nothing besides a few parameters. Like

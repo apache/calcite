@@ -16,38 +16,21 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.avatica.AvaticaUtils;
-import org.apache.calcite.avatica.util.Spaces;
-import org.apache.calcite.examples.RelBuilderExample;
-import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.function.Parameter;
-import org.apache.calcite.runtime.ConsList;
-import org.apache.calcite.runtime.FlatLists;
-import org.apache.calcite.runtime.Resources;
-import org.apache.calcite.runtime.SqlFunctions;
-import org.apache.calcite.runtime.Utilities;
-import org.apache.calcite.sql.SqlCollation;
-import org.apache.calcite.sql.dialect.CalciteSqlDialect;
-import org.apache.calcite.sql.util.SqlBuilder;
-import org.apache.calcite.sql.util.SqlString;
-import org.apache.calcite.test.DiffTestCase;
-import org.apache.calcite.test.Matchers;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMultiset;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.primitives.Ints;
-
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.hamcrest.StringDescription;
-import org.hamcrest.TypeSafeMatcher;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.apache.calcite.test.Matchers.isLinux;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.isA;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.sameInstance;
+import static org.hamcrest.CoreMatchers.startsWith;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -88,22 +71,37 @@ import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.function.Function;
 
-import static org.apache.calcite.test.Matchers.isLinux;
+import org.apache.calcite.avatica.AvaticaUtils;
+import org.apache.calcite.avatica.util.Spaces;
+import org.apache.calcite.examples.RelBuilderExample;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.function.Parameter;
+import org.apache.calcite.runtime.ConsList;
+import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.runtime.Utilities;
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.sql.util.SqlBuilder;
+import org.apache.calcite.sql.util.SqlString;
+import org.apache.calcite.test.DiffTestCase;
+import org.apache.calcite.test.Matchers;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.StringDescription;
+import org.hamcrest.TypeSafeMatcher;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.isA;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.CoreMatchers.sameInstance;
-import static org.hamcrest.CoreMatchers.startsWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.primitives.Ints;
 
 /**
  * Unit test for {@link Util} and other classes in this package.

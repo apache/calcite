@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.adapter.mongodb;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.Pair;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Relational expression that uses Mongo calling convention.

@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.sql2rel;
 
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.sql.SqlFunction;
-
-import java.util.List;
 
 /**
  * InitializerExpressionFactory supplies default values for INSERT, UPDATE, and NEW.

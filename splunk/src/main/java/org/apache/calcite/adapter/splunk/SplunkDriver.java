@@ -16,6 +16,13 @@
  */
 package org.apache.calcite.adapter.splunk;
 
+import java.net.URL;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
 import org.apache.calcite.adapter.splunk.search.SearchResultListener;
 import org.apache.calcite.adapter.splunk.search.SplunkConnection;
 import org.apache.calcite.adapter.splunk.search.SplunkConnectionImpl;
@@ -23,13 +30,6 @@ import org.apache.calcite.avatica.DriverVersion;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.schema.SchemaPlus;
-
-import java.net.URL;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 
 /**
  * JDBC driver for Splunk.

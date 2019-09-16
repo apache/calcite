@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.schema.impl;
 
+import java.lang.reflect.Type;
+import java.util.Iterator;
+
 import org.apache.calcite.linq4j.AbstractQueryable;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
@@ -23,9 +26,6 @@ import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.SchemaPlus;
-
-import java.lang.reflect.Type;
-import java.util.Iterator;
 
 /**
  * Abstract implementation of {@link org.apache.calcite.linq4j.Queryable} for

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.rules;
 
+import java.util.List;
+
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -36,8 +38,6 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * Planner rule that permutes the inputs to a

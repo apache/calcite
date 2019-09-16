@@ -16,13 +16,12 @@
  */
 package org.apache.calcite.test;
 
+import java.util.Collection;
+
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.util.TryThreadLocal;
-
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import java.util.Collection;
 
 /**
  * Test that runs every Quidem file in the "core" module as a test.

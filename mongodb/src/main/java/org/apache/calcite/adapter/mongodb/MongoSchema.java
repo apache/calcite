@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.mongodb;
 
+import java.util.Map;
+import java.util.Objects;
+
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 
@@ -26,9 +29,6 @@ import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoDatabase;
-
-import java.util.Map;
-import java.util.Objects;
 
 /**
  * Schema mapped onto a directory of MONGO files. Each table in the schema

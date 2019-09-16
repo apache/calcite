@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.jdbc;
 
-import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rel.type.RelRecordType;
-
 import java.util.List;
 import java.util.Objects;
+
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelRecordType;
 
 /**
  * Record type based on a Java class. The fields of the type are the fields

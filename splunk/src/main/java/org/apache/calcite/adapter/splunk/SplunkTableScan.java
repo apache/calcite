@@ -16,6 +16,12 @@
  */
 package org.apache.calcite.adapter.splunk;
 
+import java.lang.reflect.Method;
+import java.util.AbstractList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
@@ -37,12 +43,6 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
-
-import java.lang.reflect.Method;
-import java.util.AbstractList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Relational expression representing a scan of Splunk.

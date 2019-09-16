@@ -16,6 +16,13 @@
  */
 package org.apache.calcite.sql.validate;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.prepare.Prepare;
@@ -37,13 +44,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Deviant implementation of {@link SqlValidatorScope} for the top of the scope

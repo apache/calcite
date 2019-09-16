@@ -16,6 +16,15 @@
  */
 package org.apache.calcite.sql.type;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.nio.charset.Charset;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
@@ -39,15 +48,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-
-import java.nio.charset.Charset;
-import java.util.AbstractList;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Contains utility methods used during SQL validation or type derivation.

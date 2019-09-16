@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.adapter.pig;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
@@ -26,10 +30,6 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Join} in
  * {@link PigRel#CONVENTION Pig calling convention}. */

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -30,8 +32,6 @@ import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilderFactory;
-
-import java.util.List;
 
 /**
  * Converts a relational expression to any given output convention.

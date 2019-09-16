@@ -16,6 +16,13 @@
  */
 package org.apache.calcite.interpreter;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.function.Predicate;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.AggImplementor;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
@@ -75,13 +82,6 @@ import org.apache.calcite.util.ImmutableIntList;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.function.Predicate;
 
 /**
  * Utilities pertaining to {@link BindableRel} and {@link BindableConvention}.

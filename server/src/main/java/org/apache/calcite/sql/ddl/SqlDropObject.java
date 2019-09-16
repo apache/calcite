@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.sql.ddl;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.util.List;
+
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.sql.SqlDrop;
@@ -28,10 +32,6 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Base class for parse trees of {@code DROP TABLE}, {@code DROP VIEW},

@@ -16,6 +16,13 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import java.io.IOException;
+import java.io.StringReader;
+import java.lang.reflect.Modifier;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.avatica.Helper;
 import org.apache.calcite.config.CalciteSystemProperty;
@@ -44,21 +51,13 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.Typed;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.util.Util;
-
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IClassBodyEvaluator;
 import org.codehaus.commons.compiler.ICompilerFactory;
 
-import java.io.IOException;
-import java.io.StringReader;
-import java.lang.reflect.Modifier;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 /**
  * Relational expression that converts an enumerable input to interpretable

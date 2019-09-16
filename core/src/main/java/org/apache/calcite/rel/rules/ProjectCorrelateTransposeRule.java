@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.rel.rules;
 
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.hep.HepRelVertex;
@@ -36,10 +40,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
-
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Push Project under Correlate to apply on Correlate's left and right child

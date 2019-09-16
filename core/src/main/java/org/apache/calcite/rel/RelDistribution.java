@@ -16,11 +16,12 @@
  */
 package org.apache.calcite.rel;
 
+import java.util.List;
+
+import javax.annotation.Nonnull;
+
 import org.apache.calcite.plan.RelMultipleTrait;
 import org.apache.calcite.util.mapping.Mappings;
-
-import java.util.List;
-import javax.annotation.Nonnull;
 
 /**
  * Description of the physical distribution of a relational expression.

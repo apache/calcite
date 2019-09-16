@@ -16,9 +16,7 @@
  */
 package org.apache.calcite.util.graph;
 
-import org.apache.calcite.util.Pair;
-
-import com.google.common.collect.ImmutableList;
+import static org.apache.calcite.util.Static.cons;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -28,7 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.calcite.util.Static.cons;
+import org.apache.calcite.util.Pair;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Miscellaneous graph utilities.

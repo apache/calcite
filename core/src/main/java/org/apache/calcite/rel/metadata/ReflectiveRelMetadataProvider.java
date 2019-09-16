@@ -16,19 +16,6 @@
  */
 package org.apache.calcite.rel.metadata;
 
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.runtime.FlatLists;
-import org.apache.calcite.util.BuiltInMethod;
-import org.apache.calcite.util.ImmutableNullableList;
-import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.ReflectiveVisitor;
-import org.apache.calcite.util.Util;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Multimap;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -44,6 +31,19 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.ImmutableNullableList;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.ReflectiveVisitor;
+import org.apache.calcite.util.Util;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 
 /**
  * Implementation of the {@link RelMetadataProvider} interface that dispatches

@@ -16,20 +16,19 @@
  */
 package org.apache.calcite.adapter.csv;
 
-import org.apache.calcite.util.Source;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.ArrayDeque;
+import java.util.Queue;
 
+import org.apache.calcite.util.Source;
 import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListener;
 import org.apache.commons.io.input.TailerListenerAdapter;
 
 import au.com.bytecode.opencsv.CSVParser;
 import au.com.bytecode.opencsv.CSVReader;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.StringReader;
-import java.util.ArrayDeque;
-import java.util.Queue;
 
 /**
  * Extension to {@link CSVReader} that can read newly appended file content.

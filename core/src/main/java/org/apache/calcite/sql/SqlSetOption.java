@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * SQL parse tree node to represent {@code SET} and {@code RESET} statements,

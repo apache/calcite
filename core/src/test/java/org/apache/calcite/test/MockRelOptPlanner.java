@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.test;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.plan.AbstractRelOptPlanner;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptCostImpl;
@@ -30,11 +35,6 @@ import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 /**
  * MockRelOptPlanner is a mock implementation of the {@link RelOptPlanner}

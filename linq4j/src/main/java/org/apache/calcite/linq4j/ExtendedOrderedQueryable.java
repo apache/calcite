@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.linq4j;
 
+import java.util.Comparator;
+
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
-
-import java.util.Comparator;
 
 /**
  * Extension methods for {@link OrderedQueryable}.

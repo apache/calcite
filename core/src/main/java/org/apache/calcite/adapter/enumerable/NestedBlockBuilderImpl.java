@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
-import org.apache.calcite.linq4j.tree.BlockBuilder;
-import org.apache.calcite.rex.RexNode;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.rex.RexNode;
 
 /**
  * Allows to build nested code blocks with tracking of current context and the

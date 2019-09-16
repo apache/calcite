@@ -16,8 +16,7 @@
  */
 package org.apache.calcite.schema.impl;
 
-import org.apache.calcite.schema.TableMacro;
-import org.apache.calcite.schema.TranslatableTable;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -26,7 +25,8 @@ import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.apache.calcite.util.Static.RESOURCE;
+import org.apache.calcite.schema.TableMacro;
+import org.apache.calcite.schema.TranslatableTable;
 
 /**
  * Implementation of {@link org.apache.calcite.schema.TableMacro} based on a

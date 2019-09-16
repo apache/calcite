@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.rel.mutable;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.core.TableModify.Operation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
-
-import java.util.List;
-import java.util.Objects;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.TableModify}. */
 public class MutableTableModify extends MutableSingleRel {

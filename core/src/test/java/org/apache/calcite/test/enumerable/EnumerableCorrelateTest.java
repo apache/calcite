@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test.enumerable;
 
+import java.util.function.Consumer;
+
 import org.apache.calcite.adapter.enumerable.EnumerableCorrelate;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
@@ -28,10 +30,7 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.JdbcTest;
-
 import org.junit.Test;
-
-import java.util.function.Consumer;
 
 /**
  * Unit test for

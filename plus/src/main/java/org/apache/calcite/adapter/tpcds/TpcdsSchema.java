@@ -16,6 +16,12 @@
  */
 package org.apache.calcite.adapter.tpcds;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerable;
@@ -42,12 +48,6 @@ import com.teradata.tpcds.Results;
 import com.teradata.tpcds.Session;
 import com.teradata.tpcds.column.Column;
 import com.teradata.tpcds.column.ColumnType;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
 /** Schema that provides TPC-DS tables, populated according to a
  * particular scale factor. */

@@ -16,6 +16,21 @@
  */
 package org.apache.calcite.sql.parser;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.StringTokenizer;
+import java.util.function.Predicate;
+
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteSystemProperty;
@@ -44,25 +59,9 @@ import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
-
-import com.google.common.base.Preconditions;
-
 import org.slf4j.Logger;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.nio.charset.Charset;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.StringTokenizer;
-import java.util.function.Predicate;
-
-import static org.apache.calcite.util.Static.RESOURCE;
+import com.google.common.base.Preconditions;
 
 /**
  * Utility methods relating to parsing SQL.

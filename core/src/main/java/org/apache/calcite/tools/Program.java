@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.tools;
 
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptLattice;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
-
-import java.util.List;
 
 /**
  * Program that transforms a relational expression into another relational

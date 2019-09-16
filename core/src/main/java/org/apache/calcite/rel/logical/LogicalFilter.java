@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel.logical;
 
+import java.util.Objects;
+import java.util.Set;
+
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -34,9 +37,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableSet;
-
-import java.util.Objects;
-import java.util.Set;
 
 /**
  * Sub-class of {@link org.apache.calcite.rel.core.Filter}

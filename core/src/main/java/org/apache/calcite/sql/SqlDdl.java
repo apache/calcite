@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.sql.parser.SqlParserPos;
-
 import java.util.Objects;
+
+import org.apache.calcite.sql.parser.SqlParserPos;
 
 /** Base class for CREATE, DROP and other DDL statements. */
 public abstract class SqlDdl extends SqlCall {

@@ -16,6 +16,12 @@
  */
 package org.apache.calcite.sql.validate;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -30,12 +36,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /** Namespace based on a table from the catalog. */
 class TableNamespace extends AbstractNamespace {

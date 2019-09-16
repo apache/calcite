@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.test.enumerable;
 
+import java.util.Arrays;
+import java.util.function.Function;
+
+import net.jcip.annotations.NotThreadSafe;
+
 import org.apache.calcite.adapter.enumerable.EnumerableRepeatUnion;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.rel.RelNode;
@@ -24,15 +29,9 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.HierarchySchema;
 import org.apache.calcite.tools.RelBuilder;
-
-import net.jcip.annotations.NotThreadSafe;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import java.util.Arrays;
-import java.util.function.Function;
 
 /**
  * Unit tests for

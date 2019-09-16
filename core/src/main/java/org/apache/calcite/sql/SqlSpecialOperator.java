@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.function.Predicate;
+
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.util.PrecedenceClimbingParser;
 import org.apache.calcite.util.Util;
-
-import java.util.function.Predicate;
 
 /**
  * Generic operator for nodes with special syntax.

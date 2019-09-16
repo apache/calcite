@@ -16,14 +16,6 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.runtime.Utilities;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Ordering;
-
 import java.io.Serializable;
 import java.nio.LongBuffer;
 import java.util.AbstractList;
@@ -38,7 +30,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+
 import javax.annotation.Nonnull;
+
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.runtime.Utilities;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Ordering;
 
 /**
  * An immutable list of bits.

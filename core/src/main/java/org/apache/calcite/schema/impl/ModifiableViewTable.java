@@ -16,6 +16,14 @@
  */
 package org.apache.calcite.schema.impl;
 
+import static org.apache.calcite.sql.validate.SqlValidatorUtil.mapNameToIndex;
+
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.type.RelDataType;
@@ -39,14 +47,6 @@ import org.apache.calcite.util.ImmutableIntList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.apache.calcite.sql.validate.SqlValidatorUtil.mapNameToIndex;
 
 /** Extension to {@link ViewTable} that is modifiable. */
 public class ModifiableViewTable extends ViewTable

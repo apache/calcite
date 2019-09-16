@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.config.CalciteConnectionProperty;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+
+import org.apache.calcite.config.CalciteConnectionProperty;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * A library is a collection of SQL functions and operators.

@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.plan.hep;
 
-import org.apache.calcite.plan.RelOptRule;
-
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+
+import org.apache.calcite.plan.RelOptRule;
 
 /**
  * HepInstruction represents one instruction in a HepProgram. The actual

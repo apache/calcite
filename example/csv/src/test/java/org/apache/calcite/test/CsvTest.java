@@ -16,21 +16,13 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.adapter.csv.CsvSchemaFactory;
-import org.apache.calcite.adapter.csv.CsvStreamTableFactory;
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.schema.Schema;
-import org.apache.calcite.sql2rel.SqlToRelConverter;
-import org.apache.calcite.util.Sources;
-import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Ordering;
-
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.isA;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -54,13 +46,20 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.isA;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import org.apache.calcite.adapter.csv.CsvSchemaFactory;
+import org.apache.calcite.adapter.csv.CsvStreamTableFactory;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.util.Sources;
+import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Test;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Ordering;
 
 /**
  * Unit test of the Calcite adapter for CSV.

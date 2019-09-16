@@ -16,6 +16,12 @@
  */
 package org.apache.calcite.piglet;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
@@ -40,7 +46,6 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Static;
 import org.apache.calcite.util.Util;
-
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
@@ -50,12 +55,6 @@ import org.apache.pig.scripting.jython.JythonFunction;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Extension to {@link RelBuilder} for Pig logical operators.

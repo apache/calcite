@@ -16,6 +16,15 @@
  */
 package org.apache.calcite.jdbc;
 
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.avatica.AvaticaConnection;
@@ -34,15 +43,6 @@ import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Util;
-
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 
 /**
  * Calcite JDBC driver.

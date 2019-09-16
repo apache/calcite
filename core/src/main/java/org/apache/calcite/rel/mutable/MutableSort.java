@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.rel.mutable;
 
+import java.util.Objects;
+
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rex.RexNode;
-
-import java.util.Objects;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Sort}. */
 public class MutableSort extends MutableSingleRel {

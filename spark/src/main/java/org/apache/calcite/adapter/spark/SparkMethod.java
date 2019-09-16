@@ -16,16 +16,15 @@
  */
 package org.apache.calcite.adapter.spark;
 
+import java.lang.reflect.Method;
+import java.util.HashMap;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.tree.Types;
-
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
-
-import java.lang.reflect.Method;
-import java.util.HashMap;
 
 /**
  * Built-in methods in the Spark adapter.

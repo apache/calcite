@@ -16,22 +16,21 @@
  */
 package org.apache.calcite.adapter.tpch;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
-
-import com.google.common.collect.ImmutableList;
-
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.util.List;
-
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertThat;
+import com.google.common.collect.ImmutableList;
 
 /** Unit test for {@link org.apache.calcite.adapter.tpch.TpchSchema}.
  *

@@ -19,7 +19,6 @@ package org.apache.calcite.test;
 import org.apache.calcite.piglet.PigConverter;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.tools.FrameworkConfig;
-
 import org.junit.Before;
 
 /**

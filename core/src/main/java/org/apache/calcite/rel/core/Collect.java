@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.core;
 
+import java.util.List;
+
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -26,8 +28,6 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-
-import java.util.List;
 
 /**
  * A relational expression that collapses multiple rows into one.

@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
+
+import org.junit.Test;
 
 /**
  * Test for {@link Types#gcd}.

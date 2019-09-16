@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.adapter.druid;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-
 import java.io.IOException;
 import java.util.Objects;
+
+import com.fasterxml.jackson.core.JsonGenerator;
 
 /**
  * Default implementation of DimensionSpec.

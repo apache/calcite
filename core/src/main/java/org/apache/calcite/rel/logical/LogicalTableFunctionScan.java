@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.rel.logical;
 
+import java.lang.reflect.Type;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -28,10 +32,6 @@ import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
-
-import java.lang.reflect.Type;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Sub-class of {@link org.apache.calcite.rel.core.TableFunctionScan}

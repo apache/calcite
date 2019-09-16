@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test;
 
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
@@ -35,14 +37,11 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Litmus;
-
-import com.google.common.collect.ImmutableList;
-
 import org.hamcrest.MatcherAssert;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Tests for {@link MutableRel} sub-classes.

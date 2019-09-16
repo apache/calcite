@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.sql.ddl;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.MaterializationKey;
@@ -44,11 +49,6 @@ import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
-import java.util.Objects;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Parse tree for {@code CREATE MATERIALIZED VIEW} statement.

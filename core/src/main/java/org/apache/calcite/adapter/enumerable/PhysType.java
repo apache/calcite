@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import java.lang.reflect.Type;
+import java.util.List;
+
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.Pair;
-
-import java.lang.reflect.Type;
-import java.util.List;
 
 /**
  * Physical type of a row.

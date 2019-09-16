@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -31,9 +34,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Implementation of

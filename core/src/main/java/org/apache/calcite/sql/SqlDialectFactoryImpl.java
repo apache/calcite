@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.sql;
 
+import java.sql.DatabaseMetaData;
+import java.sql.SQLException;
+import java.util.Locale;
+
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.dialect.AccessSqlDialect;
@@ -48,13 +52,8 @@ import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.dialect.SybaseSqlDialect;
 import org.apache.calcite.sql.dialect.TeradataSqlDialect;
 import org.apache.calcite.sql.dialect.VerticaSqlDialect;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.sql.DatabaseMetaData;
-import java.sql.SQLException;
-import java.util.Locale;
 
 /**
  * The default implementation of a <code>SqlDialectFactory</code>.

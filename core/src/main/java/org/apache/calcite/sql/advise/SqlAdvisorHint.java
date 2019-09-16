@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.sql.advise;
 
-import org.apache.calcite.sql.validate.SqlMoniker;
-
 import java.util.List;
+
+import org.apache.calcite.sql.validate.SqlMoniker;
 
 /**
  * This class is used to return values for

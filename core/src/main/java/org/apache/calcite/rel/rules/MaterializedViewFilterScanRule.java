@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel.rules;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.calcite.plan.MaterializedViewSubstitutionVisitor;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptMaterializations;
@@ -31,9 +34,6 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.tools.RelBuilderFactory;
-
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Planner rule that converts

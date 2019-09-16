@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.sql.fun;
 
+import java.lang.reflect.Field;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.sql.SqlOperator;
@@ -29,10 +33,6 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-
-import java.lang.reflect.Field;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Factory that creates operator tables that consist of functions and operators

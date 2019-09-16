@@ -16,16 +16,16 @@
  */
 package org.apache.calcite.util;
 
-import com.google.common.annotations.VisibleForTesting;
-
-import org.junit.ComparisonFailure;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.junit.ComparisonFailure;
+
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Static utilities for JUnit tests.

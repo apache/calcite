@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -27,9 +30,6 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Implementation of

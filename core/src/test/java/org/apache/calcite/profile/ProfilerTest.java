@@ -16,27 +16,8 @@
  */
 package org.apache.calcite.profile;
 
-import org.apache.calcite.linq4j.AbstractEnumerable;
-import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.rel.metadata.NullSentinel;
-import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.Matchers;
-import org.apache.calcite.test.SlowTests;
-import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.JsonBuilder;
-import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
-
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Ordering;
-
-import org.hamcrest.Matcher;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -54,8 +35,26 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.rel.metadata.NullSentinel;
+import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.Matchers;
+import org.apache.calcite.test.SlowTests;
+import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.JsonBuilder;
+import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
+import org.hamcrest.Matcher;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Ordering;
 
 /**
  * Unit tests for {@link Profiler}.

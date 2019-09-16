@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.dialect;
 
+import java.util.List;
+
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -39,8 +41,6 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * A <code>SqlDialect</code> implementation for the Oracle database.

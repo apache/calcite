@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.fun;
 
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCall;
@@ -27,8 +29,6 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
-
-import java.util.List;
 
 /** Operator that returns the current or next value of a sequence. */
 public class SqlSequenceValueOperator extends SqlSpecialOperator {

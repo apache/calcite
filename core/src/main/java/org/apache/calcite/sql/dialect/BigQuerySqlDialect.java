@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.sql.dialect;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.regex.Pattern;
+
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
@@ -27,11 +32,6 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.regex.Pattern;
 
 /**
  * A <code>SqlDialect</code> implementation for Google BigQuery's "Standard SQL"

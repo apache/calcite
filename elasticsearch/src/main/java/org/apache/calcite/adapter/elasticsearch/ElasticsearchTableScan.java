@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.elasticsearch;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -27,9 +30,6 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.type.RelDataType;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  * Relational expression representing a scan of an Elasticsearch type.

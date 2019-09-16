@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.sql.validate;
 
-import org.apache.calcite.sql.SqlIdentifier;
-
 import java.util.List;
 import java.util.Objects;
+
+import org.apache.calcite.sql.SqlIdentifier;
 
 /**
  * An implementation of {@link SqlMoniker} that encapsulates the normalized name

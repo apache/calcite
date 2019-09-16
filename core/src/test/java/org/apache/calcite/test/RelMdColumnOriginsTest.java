@@ -16,11 +16,9 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.jdbc.CalciteConnection;
-
-import com.google.common.collect.ImmutableMultiset;
-
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -28,9 +26,10 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.junit.Test;
+
+import com.google.common.collect.ImmutableMultiset;
 
 /** Test case for CALCITE-542. */
 public class RelMdColumnOriginsTest {

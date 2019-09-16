@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.logical;
 
+import java.util.List;
+
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -25,8 +27,6 @@ import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.util.ImmutableBitSet;
-
-import java.util.List;
 
 /**
  * <code>LogicalAggregate</code> is a relational operator which eliminates

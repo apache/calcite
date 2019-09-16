@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.server;
 
+import java.util.Iterator;
+
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalcitePrepare;
-
-import java.util.Iterator;
 
 /**
  * Statement within a Calcite server.

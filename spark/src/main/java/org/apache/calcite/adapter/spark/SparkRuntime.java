@@ -16,16 +16,15 @@
  */
 package org.apache.calcite.adapter.spark;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Linq4j;
-
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
-
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Runtime utilities for Calcite's Spark adapter. Generated code calls these

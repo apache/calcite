@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
-import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.rel.RelNode;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelNode;
 
 /**
  * Relational expression that uses Geode calling convention.

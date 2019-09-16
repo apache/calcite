@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.rel.mutable;
 
-import org.apache.calcite.plan.RelOptSamplingParameters;
-
 import java.util.Objects;
+
+import org.apache.calcite.plan.RelOptSamplingParameters;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Sample}. */
 public class MutableSample extends MutableSingleRel {

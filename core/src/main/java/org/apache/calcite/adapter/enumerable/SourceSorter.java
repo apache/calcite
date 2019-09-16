@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import java.util.Comparator;
+import java.util.List;
+
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
-
-import java.util.Comparator;
-import java.util.List;
 
 /**
  * Helper that combines the sorting process and accumulating process against the

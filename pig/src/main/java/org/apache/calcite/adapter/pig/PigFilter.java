@@ -16,6 +16,12 @@
  */
 package org.apache.calcite.adapter.pig;
 
+import static org.apache.calcite.sql.SqlKind.INPUT_REF;
+import static org.apache.calcite.sql.SqlKind.LITERAL;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
@@ -28,12 +34,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 
 import com.google.common.base.Preconditions;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.apache.calcite.sql.SqlKind.INPUT_REF;
-import static org.apache.calcite.sql.SqlKind.LITERAL;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Filter} in
  * {@link PigRel#CONVENTION Pig calling convention}. */

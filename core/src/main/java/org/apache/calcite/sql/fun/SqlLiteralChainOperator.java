@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.sql.fun;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.util.List;
+
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
@@ -40,10 +44,6 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.BitString;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Util;
-
-import java.util.List;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Internal operator, by which the parser represents a continued string literal.

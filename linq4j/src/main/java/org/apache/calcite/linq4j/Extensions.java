@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.apache.calcite.linq4j.function.Function2;
-
 import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.Map;
+
+import org.apache.calcite.linq4j.function.Function2;
 
 /**
  * Contains what, in LINQ.NET, would be extension methods.

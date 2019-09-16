@@ -16,16 +16,6 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.util.ReflectUtil;
-import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
-
-import org.incava.diff.Diff;
-import org.incava.diff.Difference;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -42,6 +32,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.calcite.util.ReflectUtil;
+import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
+import org.incava.diff.Diff;
+import org.incava.diff.Difference;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
 
 /**
  * DiffTestCase is an abstract base for JUnit tests which produce multi-line

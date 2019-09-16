@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.util;
 
-import com.google.common.collect.ImmutableList;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Unit test for {@link PrecedenceClimbingParser}.

@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.plan;
 
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-
 import java.util.List;
+
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 
 /**
  * A <code>RelOptSchema</code> is a set of {@link RelOptTable} objects.

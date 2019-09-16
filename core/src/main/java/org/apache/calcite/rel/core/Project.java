@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.rel.core;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -43,10 +47,6 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Relational expression that computes a set of

@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.config;
 
+import java.util.List;
+import java.util.Properties;
+
 import org.apache.calcite.avatica.ConnectionConfigImpl;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
@@ -26,9 +29,6 @@ import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
-
-import java.util.List;
-import java.util.Properties;
 
 /** Implementation of {@link CalciteConnectionConfig}. */
 public class CalciteConnectionConfigImpl extends ConnectionConfigImpl

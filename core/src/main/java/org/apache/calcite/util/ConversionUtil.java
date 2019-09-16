@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.util;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 import java.nio.ByteOrder;
 import java.text.NumberFormat;
 import java.util.Locale;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Utility functions for converting from one type to another

@@ -16,15 +16,8 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.example.maze.MazeTable;
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.linq4j.tree.Types;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.TableFunction;
-import org.apache.calcite.schema.impl.AbstractSchema;
-import org.apache.calcite.schema.impl.TableFunctionImpl;
-
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.lang.reflect.Method;
 import java.sql.Connection;
@@ -32,8 +25,14 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import org.apache.calcite.example.maze.MazeTable;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.TableFunction;
+import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.TableFunctionImpl;
+import org.junit.Test;
 
 /**
  * Unit tests for example user-defined functions.

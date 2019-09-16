@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.apache.calcite.linq4j.function.Function2;
-
 import java.util.Map;
+
+import org.apache.calcite.linq4j.function.Function2;
 
 /**
  * Represents a collection of keys each mapped to one or more values.

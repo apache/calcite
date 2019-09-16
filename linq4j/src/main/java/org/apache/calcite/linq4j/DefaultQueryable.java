@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.linq4j;
 
+import java.math.BigDecimal;
+import java.util.Comparator;
+
 import org.apache.calcite.linq4j.function.BigDecimalFunction1;
 import org.apache.calcite.linq4j.function.DoubleFunction1;
 import org.apache.calcite.linq4j.function.EqualityComparer;
@@ -32,9 +35,6 @@ import org.apache.calcite.linq4j.function.NullableLongFunction1;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
-
-import java.math.BigDecimal;
-import java.util.Comparator;
 
 /**
  * Implementation of the {@link Queryable} interface that

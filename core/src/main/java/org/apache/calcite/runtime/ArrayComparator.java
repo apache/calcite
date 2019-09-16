@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.runtime;
 
-import com.google.common.collect.Ordering;
-
 import java.util.Collections;
 import java.util.Comparator;
+
+import com.google.common.collect.Ordering;
 
 /**
  * Compares arrays.

@@ -16,15 +16,14 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.util.trace.CalciteTrace;
-
-import com.google.common.collect.ImmutableList;
-
 import org.slf4j.Logger;
 
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Rules and relational operators for the

@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.sql.validate;
 
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAccessType;
-
-import java.util.List;
 
 /**
  * Implements {@link org.apache.calcite.sql.validate.SqlValidatorTable} by

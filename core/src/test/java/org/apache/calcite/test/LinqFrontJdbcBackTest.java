@@ -16,17 +16,16 @@
  */
 package org.apache.calcite.test;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.util.Util;
-
 import org.junit.Test;
-
-import java.sql.Connection;
-import java.sql.SQLException;
 
 /**
  * Tests for a linq4j front-end and JDBC back-end.

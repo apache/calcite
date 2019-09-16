@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.Objects;
+import java.util.TimeZone;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -24,9 +27,6 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
-
-import java.util.Objects;
-import java.util.TimeZone;
 
 /**
  * Represents a SQL data type specification in a parse tree.

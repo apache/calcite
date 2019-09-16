@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.validate;
 
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlNode;
@@ -24,8 +26,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * Abstract implementation of {@link SqlValidatorNamespace}.

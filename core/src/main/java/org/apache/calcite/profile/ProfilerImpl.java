@@ -16,23 +16,7 @@
  */
 package org.apache.calcite.profile;
 
-import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.tree.Primitive;
-import org.apache.calcite.materialize.Lattice;
-import org.apache.calcite.rel.metadata.NullSentinel;
-import org.apache.calcite.runtime.FlatLists;
-import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.PartiallyOrderedSet;
-import org.apache.calcite.util.Util;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Ordering;
-import com.yahoo.sketches.hll.HllSketch;
+import static org.apache.calcite.profile.ProfilerImpl.CompositeCollector.OF;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -54,7 +38,23 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 
-import static org.apache.calcite.profile.ProfilerImpl.CompositeCollector.OF;
+import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.rel.metadata.NullSentinel;
+import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.PartiallyOrderedSet;
+import org.apache.calcite.util.Util;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Ordering;
+import com.yahoo.sketches.hll.HllSketch;
 
 /**
  * Implementation of {@link Profiler} that only investigates "interesting"

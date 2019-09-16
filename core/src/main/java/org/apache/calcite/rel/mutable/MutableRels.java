@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.rel.mutable;
 
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
@@ -60,11 +65,6 @@ import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.Lists;
-
-import java.util.AbstractList;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /** Utilities for dealing with {@link MutableRel}s. */
 public abstract class MutableRels {

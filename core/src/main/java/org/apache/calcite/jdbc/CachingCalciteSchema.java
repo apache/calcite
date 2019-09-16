@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.jdbc;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.Schema;
@@ -32,10 +36,6 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Concrete implementation of {@link CalciteSchema} that caches tables,

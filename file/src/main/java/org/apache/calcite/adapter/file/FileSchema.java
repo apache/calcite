@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.adapter.file;
 
+import java.io.File;
+import java.net.MalformedURLException;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.adapter.csv.CsvFilterableTable;
 import org.apache.calcite.adapter.csv.JsonScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
@@ -27,11 +32,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
-import java.io.File;
-import java.net.MalformedURLException;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Schema mapped onto a set of URLs / HTML tables. Each table in the schema

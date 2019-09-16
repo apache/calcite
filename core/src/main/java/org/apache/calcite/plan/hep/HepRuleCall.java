@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.plan.hep;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 /**
  * HepRuleCall implements {@link RelOptRuleCall} for a {@link HepPlanner}. It

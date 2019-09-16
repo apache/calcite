@@ -16,6 +16,14 @@
  */
 package org.apache.calcite.interpreter;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Queryable;
@@ -44,14 +52,6 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
-import java.util.List;
-import java.util.Objects;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Interpreter node that implements a

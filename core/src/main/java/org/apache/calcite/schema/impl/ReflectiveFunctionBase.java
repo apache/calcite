@@ -16,6 +16,12 @@
  */
 package org.apache.calcite.schema.impl;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.Function;
@@ -23,12 +29,6 @@ import org.apache.calcite.schema.FunctionParameter;
 import org.apache.calcite.util.ReflectUtil;
 
 import com.google.common.collect.ImmutableList;
-
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Implementation of a function that is based on a method.

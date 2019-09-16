@@ -16,14 +16,15 @@
  */
 package org.apache.calcite.adapter.druid;
 
-import com.fasterxml.jackson.core.JsonGenerator;
+import static org.apache.calcite.adapter.druid.DruidQuery.writeField;
+import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
 
 import java.io.IOException;
 import java.util.Objects;
+
 import javax.annotation.Nullable;
 
-import static org.apache.calcite.adapter.druid.DruidQuery.writeField;
-import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
+import com.fasterxml.jackson.core.JsonGenerator;
 
 /**
  * Implementation of extraction function DimensionSpec.

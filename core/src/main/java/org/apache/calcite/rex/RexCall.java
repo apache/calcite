@@ -16,6 +16,13 @@
  */
 package org.apache.calcite.rex;
 
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
+import javax.annotation.Nonnull;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -27,12 +34,6 @@ import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import javax.annotation.Nonnull;
 
 /**
  * An expression formed by a call to an operator with zero or more expressions

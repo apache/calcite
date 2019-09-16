@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.adapter.elasticsearch;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import com.fasterxml.jackson.core.JsonGenerator;
 
 /**
  * Utility class to generate elastic search queries. Most query builders have

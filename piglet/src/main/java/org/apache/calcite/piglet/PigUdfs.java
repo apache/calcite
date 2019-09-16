@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.piglet;
 
+import java.io.IOException;
+import java.math.BigDecimal;
+
 import org.apache.pig.builtin.BigDecimalMax;
 import org.apache.pig.builtin.BigDecimalSum;
 import org.apache.pig.data.Tuple;
-
-import java.io.IOException;
-import java.math.BigDecimal;
 
 /**
  * Implementation methods.

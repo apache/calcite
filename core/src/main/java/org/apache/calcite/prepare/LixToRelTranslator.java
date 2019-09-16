@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.prepare;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Blocks;
@@ -37,10 +41,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Translates a tree of linq4j {@link Queryable} nodes to a tree of

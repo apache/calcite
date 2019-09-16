@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
-
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Definition of metadata.

@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.rel.core;
 
+import java.util.Objects;
+
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
-
-import java.util.Objects;
 
 /**
  * Spool that writes into a table.

@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.apache.calcite.linq4j.tree.Expression;
-
 import java.lang.reflect.Type;
+
+import org.apache.calcite.linq4j.tree.Expression;
 
 /**
  * Defines methods to create and execute queries that are described by a

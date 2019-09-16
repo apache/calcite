@@ -16,17 +16,15 @@
  */
 package org.apache.calcite.sql.type;
 
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-
 import static org.apache.calcite.sql.type.SqlTypeUtil.areSameFamily;
-
-import com.google.common.collect.ImmutableList;
-
-import org.junit.Test;
-
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Test of {@link org.apache.calcite.sql.type.SqlTypeUtil}.

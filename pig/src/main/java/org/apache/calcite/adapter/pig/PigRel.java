@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.adapter.pig;
 
-import org.apache.calcite.plan.Convention;
-import org.apache.calcite.rel.RelNode;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.rel.RelNode;
 
 /**
  * Relational expression that uses the Pig calling convention.

@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.sql.fun;
 
+import java.util.Objects;
+
 import org.apache.calcite.sql.SqlKind;
 
 import com.google.common.base.Preconditions;
-
-import java.util.Objects;
 
 /**
  * Definition of the SQL <code>ALL</code> and <code>SOME</code>operators.

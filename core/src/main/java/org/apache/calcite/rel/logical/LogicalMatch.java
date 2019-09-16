@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.rel.logical;
 
+import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
+
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -26,10 +30,6 @@ import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableBitSet;
-
-import java.util.List;
-import java.util.Map;
-import java.util.SortedSet;
 
 /**
  * Sub-class of {@link Match}

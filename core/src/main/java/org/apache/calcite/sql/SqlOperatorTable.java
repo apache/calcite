@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.sql.validate.SqlNameMatcher;
-
 import java.util.List;
+
+import org.apache.calcite.sql.validate.SqlNameMatcher;
 
 /**
  * SqlOperatorTable defines a directory interface for enumerating and looking up

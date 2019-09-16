@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.materialize;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+
 import org.apache.calcite.util.Util;
 
 import com.google.common.cache.CacheBuilder;
@@ -23,10 +27,6 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Implementation of {@link LatticeStatisticProvider} that caches single-column

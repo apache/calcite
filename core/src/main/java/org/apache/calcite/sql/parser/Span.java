@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.sql.parser;
 
-import org.apache.calcite.sql.SqlNode;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
+import org.apache.calcite.sql.SqlNode;
 
 /**
  * Builder for {@link SqlParserPos}.

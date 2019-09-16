@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.adapter.file;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-
 import java.io.IOException;
 import java.net.Socket;
+
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
 /**
  * Unit test suite for Calcite File adapter.

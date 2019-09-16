@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.logical;
 
+import java.util.List;
+
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
@@ -27,8 +29,6 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.schema.Table;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * A <code>LogicalTableScan</code> reads all the rows from a

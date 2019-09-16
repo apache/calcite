@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.runtime;
 
+import java.math.BigDecimal;
+import java.util.Objects;
+
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.function.SemiStrict;
@@ -37,9 +40,6 @@ import com.esri.core.geometry.Polyline;
 import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.WktExportFlags;
 import com.esri.core.geometry.WktImportFlags;
-
-import java.math.BigDecimal;
-import java.util.Objects;
 
 /**
  * Helper methods to implement Geo-spatial functions in generated code.

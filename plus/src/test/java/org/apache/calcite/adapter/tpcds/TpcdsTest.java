@@ -16,6 +16,15 @@
  */
 package org.apache.calcite.adapter.tpcds;
 
+import static org.apache.calcite.test.Matchers.hasTree;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+import java.util.Random;
+import java.util.function.Consumer;
+
+import net.hydromatic.tpcds.query.Query;
+
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
@@ -31,19 +40,8 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Holder;
-
-import net.hydromatic.tpcds.query.Query;
-
 import org.junit.Ignore;
 import org.junit.Test;
-
-import java.util.List;
-import java.util.Random;
-import java.util.function.Consumer;
-
-import static org.apache.calcite.test.Matchers.hasTree;
-
-import static org.junit.Assert.assertThat;
 
 /** Unit test for {@link org.apache.calcite.adapter.tpcds.TpcdsSchema}.
  *

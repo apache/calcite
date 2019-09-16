@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.rel.mutable;
 
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.rel.metadata.RelColumnMapping;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexNode;
-
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.rel.metadata.RelColumnMapping;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
 
 /** Mutable equivalent of
  * {@link org.apache.calcite.rel.core.TableFunctionScan}. */

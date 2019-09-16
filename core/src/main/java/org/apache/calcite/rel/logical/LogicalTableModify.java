@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.logical;
 
+import java.util.List;
+
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
@@ -24,8 +26,6 @@ import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rex.RexNode;
-
-import java.util.List;
 
 /**
  * Sub-class of {@link org.apache.calcite.rel.core.TableModify}

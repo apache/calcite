@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.rules;
 
+import java.util.Set;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
@@ -23,8 +25,6 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableIntList;
-
-import java.util.Set;
 
 /**
  * Base class for any join whose condition is based on column equality.

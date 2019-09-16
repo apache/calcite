@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.rel.type;
 
+import java.nio.charset.Charset;
+import java.util.List;
+
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.type.SqlTypeName;
-
-import java.nio.charset.Charset;
-import java.util.List;
 
 /**
  * RelDataType represents the type of a scalar expression or entire row returned

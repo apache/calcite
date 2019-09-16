@@ -16,19 +16,17 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.util.TestUtil;
-
-import org.hamcrest.Matcher;
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.apache.calcite.test.Matchers.inTree;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 
-import static org.apache.calcite.test.Matchers.inTree;
-
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThat;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.TestUtil;
+import org.hamcrest.Matcher;
+import org.junit.Ignore;
+import org.junit.Test;
 
 /**
  * Tests for {@code PigRelExVisitor}.

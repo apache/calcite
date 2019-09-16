@@ -16,8 +16,10 @@
  */
 package org.apache.calcite.benchmarks;
 
-import org.apache.calcite.rel.AbstractRelNode;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.calcite.rel.AbstractRelNode;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -35,9 +37,6 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
-
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
 /**
  * A benchmark of alternative implementations for {@link AbstractRelNode#getRelTypeName()}

@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.util.ImmutableNullableList;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  * Parse tree node for "{@code FOR SYSTEM_TIME AS OF}" temporal clause.

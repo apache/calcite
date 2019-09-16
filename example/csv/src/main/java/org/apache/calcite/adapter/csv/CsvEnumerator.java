@@ -16,18 +16,6 @@
  */
 package org.apache.calcite.adapter.csv;
 
-import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.avatica.util.DateTimeUtils;
-import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Source;
-
-import org.apache.commons.lang3.time.FastDateFormat;
-
-import au.com.bytecode.opencsv.CSVReader;
-
 import java.io.IOException;
 import java.io.Reader;
 import java.text.ParseException;
@@ -36,6 +24,17 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Source;
+import org.apache.commons.lang3.time.FastDateFormat;
+
+import au.com.bytecode.opencsv.CSVReader;
 
 /** Enumerator that reads from a CSV file.
  *

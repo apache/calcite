@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.sql.validate;
 
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.sql2rel.InitializerContext;
-
-import java.util.List;
 
 /**
  * Supplies a {@link SqlValidator} with the metadata for a table.

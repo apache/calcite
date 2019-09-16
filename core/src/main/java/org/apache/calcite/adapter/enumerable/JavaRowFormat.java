@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import java.lang.reflect.Type;
+import java.util.List;
+
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -28,9 +31,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Unit;
 import org.apache.calcite.util.BuiltInMethod;
-
-import java.lang.reflect.Type;
-import java.util.List;
 
 /**
  * How a row is represented as a Java value.

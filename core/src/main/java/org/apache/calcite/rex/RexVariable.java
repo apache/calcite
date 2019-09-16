@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.rex;
 
-import org.apache.calcite.rel.type.RelDataType;
-
 import java.util.Objects;
+
+import org.apache.calcite.rel.type.RelDataType;
 
 /**
  * A row-expression which references a field.

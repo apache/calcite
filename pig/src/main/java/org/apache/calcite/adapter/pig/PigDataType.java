@@ -16,11 +16,10 @@
  */
 package org.apache.calcite.adapter.pig;
 
-import org.apache.calcite.sql.type.SqlTypeName;
-
-import org.apache.pig.data.DataType;
-
 import static org.apache.calcite.sql.type.SqlTypeName.VARCHAR;
+
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.pig.data.DataType;
 
 /**
  * Supported Pig data types and their Calcite counterparts.

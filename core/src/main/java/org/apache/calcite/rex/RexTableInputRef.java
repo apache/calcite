@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.rex;
 
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
-
-import java.util.List;
 
 /**
  * Variable which references a column of a table occurrence in a relational plan.

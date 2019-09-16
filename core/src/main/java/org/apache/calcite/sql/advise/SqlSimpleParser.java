@@ -16,9 +16,6 @@
  */
 package org.apache.calcite.sql.advise;
 
-import org.apache.calcite.avatica.util.Quoting;
-import org.apache.calcite.sql.parser.SqlParser;
-
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -26,6 +23,9 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
+
+import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.sql.parser.SqlParser;
 
 /**
  * A simple parser that takes an incomplete and turn it into a syntactically

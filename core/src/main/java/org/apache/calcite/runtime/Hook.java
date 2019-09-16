@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.runtime;
 
-import org.apache.calcite.util.Holder;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import org.apache.calcite.util.Holder;
 
 /**
  * Collection of hooks that can be set by observers and are executed at various

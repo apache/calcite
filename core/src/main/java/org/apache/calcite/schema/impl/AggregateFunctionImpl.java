@@ -16,6 +16,13 @@
  */
 package org.apache.calcite.schema.impl;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.adapter.enumerable.AggImplementor;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.rel.type.RelDataType;
@@ -26,13 +33,6 @@ import org.apache.calcite.schema.ImplementableAggFunction;
 import org.apache.calcite.util.ReflectUtil;
 
 import com.google.common.collect.ImmutableList;
-
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.List;
-import java.util.Objects;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Implementation of {@link AggregateFunction} via user-defined class.

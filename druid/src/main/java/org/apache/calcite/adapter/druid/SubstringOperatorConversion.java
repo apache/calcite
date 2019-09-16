@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import javax.annotation.Nullable;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
@@ -23,8 +25,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-
-import javax.annotation.Nullable;
 
 /**
  * Converts Calcite SUBSTRING call to Druid Expression when possible

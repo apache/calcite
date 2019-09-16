@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.AbstractList;
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidatorException;
-
-import java.util.AbstractList;
-import java.util.List;
 
 /**
  * <code>SqlOperatorBinding</code> represents the binding of an

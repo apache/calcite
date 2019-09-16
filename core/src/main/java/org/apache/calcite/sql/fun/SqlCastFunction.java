@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.fun;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.sql.SqlCall;
@@ -41,8 +43,6 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * SqlCastFunction. Note that the std functions are really singleton objects,

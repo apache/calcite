@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.sql.validate;
 
+import java.util.List;
+
 import org.apache.calcite.sql.SqlNode;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * Implementation of {@link SqlValidatorScope} that can see all schemas in the

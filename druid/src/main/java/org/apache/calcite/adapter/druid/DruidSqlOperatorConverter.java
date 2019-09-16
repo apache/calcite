@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import javax.annotation.Nullable;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
-
-import javax.annotation.Nullable;
 
 /**
  * Defines how to convert RexNode with a given calcite SQL operator to Druid expressions

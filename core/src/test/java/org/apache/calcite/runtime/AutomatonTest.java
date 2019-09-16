@@ -16,16 +16,15 @@
  */
 package org.apache.calcite.runtime;
 
-import org.apache.calcite.linq4j.MemoryFactory;
-
-import com.google.common.collect.ImmutableList;
-
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.AbstractList;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import org.apache.calcite.linq4j.MemoryFactory;
+import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
 
 /** Unit tests for {@link Automaton}. */
 public class AutomatonTest {

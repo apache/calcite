@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.pig;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelOptCluster;
@@ -26,11 +29,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.type.RelDataTypeField;
-
 import org.apache.pig.data.DataType;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /** Implementation of {@link org.apache.calcite.rel.core.TableScan} in
  * {@link PigRel#CONVENTION Pig calling convention}. */

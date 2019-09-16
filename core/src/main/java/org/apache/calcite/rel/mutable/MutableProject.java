@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel.mutable;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
@@ -24,9 +27,6 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.Mappings;
-
-import java.util.List;
-import java.util.Objects;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Project}. */
 public class MutableProject extends MutableSingleRel {

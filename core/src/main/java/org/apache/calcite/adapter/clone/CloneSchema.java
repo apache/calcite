@@ -16,6 +16,13 @@
  */
 package org.apache.calcite.adapter.clone;
 
+import static org.apache.calcite.schema.impl.MaterializedViewTable.MATERIALIZATION_CONNECTION;
+
+import java.lang.reflect.Type;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.avatica.ColumnMetaData;
@@ -36,13 +43,6 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-
-import java.lang.reflect.Type;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.apache.calcite.schema.impl.MaterializedViewTable.MATERIALIZATION_CONNECTION;
 
 /**
  * Schema that contains in-memory copies of tables from a JDBC schema.

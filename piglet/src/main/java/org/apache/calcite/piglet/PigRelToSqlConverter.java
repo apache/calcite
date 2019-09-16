@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.piglet;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreter;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -31,9 +34,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * An extension of {@link RelToSqlConverter} to convert a relation algebra tree,

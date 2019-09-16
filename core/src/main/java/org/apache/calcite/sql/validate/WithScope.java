@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.sql.validate;
 
+import java.util.List;
+
 import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWithItem;
-
-import java.util.List;
 
 /** Scope providing the objects that are available after evaluating an item
  * in a WITH clause.

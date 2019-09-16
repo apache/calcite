@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.apache.calcite.avatica.util.Spacer;
-
 import java.lang.reflect.Type;
 import java.util.Iterator;
+
+import org.apache.calcite.avatica.util.Spacer;
 
 /**
  * Converts an expression to Java code.

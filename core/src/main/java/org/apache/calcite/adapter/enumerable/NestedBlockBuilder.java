@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import java.util.Map;
+
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.rex.RexNode;
-
-import java.util.Map;
 
 /**
  * Allows to build nested code blocks with tracking of current context and the

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.rules;
 
+import java.math.BigDecimal;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -28,8 +30,6 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
-
-import java.math.BigDecimal;
 
 /**
  * Planner rule that translates a distinct

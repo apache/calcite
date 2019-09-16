@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.test.catalog;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -26,9 +29,6 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ObjectSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
-
-import java.util.Arrays;
-import java.util.stream.Collectors;
 
 /** Types used during initialization. */
 final class Fixture {

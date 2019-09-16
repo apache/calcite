@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.test.catalog;
 
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -33,10 +37,6 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-
-import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Simple catalog reader for testing.

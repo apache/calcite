@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.spark;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
 import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
@@ -39,9 +42,6 @@ import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.util.BuiltInMethod;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Relational expression representing a scan of a table in a JDBC data source

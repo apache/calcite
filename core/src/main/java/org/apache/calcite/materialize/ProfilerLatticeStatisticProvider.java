@@ -16,6 +16,12 @@
  */
 package org.apache.calcite.materialize;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Supplier;
+
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.profile.Profiler;
 import org.apache.calcite.profile.ProfilerImpl;
@@ -26,12 +32,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.function.Supplier;
 
 /**
  * Implementation of {@link LatticeStatisticProvider} that uses a

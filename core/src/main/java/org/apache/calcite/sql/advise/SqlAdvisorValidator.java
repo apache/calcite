@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql.advise;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.CalciteException;
@@ -34,9 +37,6 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
-
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * <code>SqlAdvisorValidator</code> is used by {@link SqlAdvisor} to traverse

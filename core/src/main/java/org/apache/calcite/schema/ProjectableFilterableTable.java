@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.schema;
 
+import java.util.List;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.rex.RexNode;
-
-import java.util.List;
 
 /**
  * Table that can be scanned, optionally applying supplied filter expressions,

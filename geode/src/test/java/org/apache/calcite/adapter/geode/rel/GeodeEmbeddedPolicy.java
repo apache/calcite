@@ -16,15 +16,6 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
-import org.apache.geode.cache.Cache;
-import org.apache.geode.cache.CacheFactory;
-import org.apache.geode.distributed.AbstractLauncher;
-import org.apache.geode.distributed.ServerLauncher;
-
-import com.google.common.base.Preconditions;
-
-import org.junit.rules.ExternalResource;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -32,6 +23,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.geode.cache.Cache;
+import org.apache.geode.cache.CacheFactory;
+import org.apache.geode.distributed.AbstractLauncher;
+import org.apache.geode.distributed.ServerLauncher;
+import org.junit.rules.ExternalResource;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Manages embedded Geode instance using native {@link ServerLauncher}.

@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql.test;
 
+import java.util.Map;
+import java.util.Objects;
+
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
@@ -42,9 +45,6 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
-
-import java.util.Map;
-import java.util.Objects;
 
 /**
  * Default implementation of {@link SqlTestFactory}.

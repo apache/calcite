@@ -16,24 +16,6 @@
  */
 package org.apache.calcite.adapter.elasticsearch;
 
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.rel.RelFieldCollation;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.impl.ViewTable;
-import org.apache.calcite.schema.impl.ViewTableMacro;
-import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.ElasticsearchChecker;
-import org.apache.calcite.util.TestUtil;
-
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.io.LineProcessor;
-import com.google.common.io.Resources;
-
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
@@ -48,6 +30,23 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.schema.impl.ViewTableMacro;
+import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.ElasticsearchChecker;
+import org.apache.calcite.util.TestUtil;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.io.LineProcessor;
+import com.google.common.io.Resources;
 
 /**
  * Set of tests for ES adapter. Uses real instance via {@link EmbeddedElasticsearchPolicy}. Document

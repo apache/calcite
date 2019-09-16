@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.runtime;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-
 import java.util.Objects;
 import java.util.Stack;
 import java.util.stream.Collectors;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 /** Regular expression, to be compiled into an {@link Automaton}. */
 public interface Pattern {

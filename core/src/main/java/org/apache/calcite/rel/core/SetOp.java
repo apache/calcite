@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel.core;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
@@ -31,9 +34,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * <code>SetOp</code> is an abstract base for relational set operators such

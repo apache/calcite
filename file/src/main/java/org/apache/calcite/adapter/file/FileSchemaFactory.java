@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.adapter.file;
 
+import java.io.File;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
-
-import java.io.File;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Factory that creates a {@link FileSchema}.

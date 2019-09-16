@@ -16,6 +16,16 @@
  */
 package org.apache.calcite.rel.rules;
 
+import static org.apache.calcite.rel.rules.LoptMultiJoin.Edge;
+import static org.apache.calcite.util.mapping.Mappings.TargetMapping;
+
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -37,16 +47,6 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
-
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
-
-import static org.apache.calcite.rel.rules.LoptMultiJoin.Edge;
-import static org.apache.calcite.util.mapping.Mappings.TargetMapping;
 
 /**
  * Planner rule that finds an approximately optimal ordering for join operators

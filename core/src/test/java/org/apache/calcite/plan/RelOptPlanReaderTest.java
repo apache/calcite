@@ -16,18 +16,17 @@
  */
 package org.apache.calcite.plan;
 
-import org.apache.calcite.adapter.jdbc.JdbcRules;
-import org.apache.calcite.rel.AbstractRelNode;
-import org.apache.calcite.rel.externalize.RelJson;
-import org.apache.calcite.rel.logical.LogicalProject;
-
-import org.junit.Test;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+
+import org.apache.calcite.adapter.jdbc.JdbcRules;
+import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.externalize.RelJson;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.junit.Test;
 
 /**
  * Unit test for {@link org.apache.calcite.rel.externalize.RelJson}.

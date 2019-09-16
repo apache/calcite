@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
@@ -34,9 +37,6 @@ import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NumberUtil;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * RelMdDistinctRowCount supplies a default implementation of

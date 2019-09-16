@@ -16,12 +16,13 @@
  */
 package org.apache.calcite.materialize;
 
+import java.util.Objects;
+
+import javax.annotation.Nonnull;
+
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.Util;
-
-import java.util.Objects;
-import javax.annotation.Nonnull;
 
 /** Table registered in the graph. */
 public class LatticeTable {

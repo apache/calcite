@@ -16,15 +16,7 @@
  */
 package org.apache.calcite.plan;
 
-import org.apache.calcite.plan.volcano.RelSubset;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.metadata.RelMetadataProvider;
-import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rex.RexExecutor;
-import org.apache.calcite.util.CancelFlag;
-import org.apache.calcite.util.Util;
-
-import com.google.common.collect.ImmutableList;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -35,7 +27,15 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
-import static org.apache.calcite.util.Static.RESOURCE;
+import org.apache.calcite.plan.volcano.RelSubset;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.metadata.RelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexExecutor;
+import org.apache.calcite.util.CancelFlag;
+import org.apache.calcite.util.Util;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Abstract base for implementations of the {@link RelOptPlanner} interface.

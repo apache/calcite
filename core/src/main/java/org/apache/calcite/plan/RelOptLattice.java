@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.plan;
 
+import java.util.List;
+
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
@@ -24,8 +26,6 @@ import org.apache.calcite.materialize.TileKey;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
-
-import java.util.List;
 
 /**
  * Use of a lattice by the query optimizer.

@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql.type;
 
+import java.nio.charset.Charset;
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
@@ -24,9 +27,6 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.util.Util;
-
-import java.nio.charset.Charset;
-import java.util.List;
 
 /**
  * SqlTypeFactoryImpl provides a default implementation of

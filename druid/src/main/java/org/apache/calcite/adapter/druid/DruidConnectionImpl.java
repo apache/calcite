@@ -16,31 +16,7 @@
  */
 package org.apache.calcite.adapter.druid;
 
-import org.apache.calcite.avatica.AvaticaUtils;
-import org.apache.calcite.avatica.ColumnMetaData;
-import org.apache.calcite.avatica.util.DateTimeUtils;
-import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.interpreter.Row;
-import org.apache.calcite.interpreter.Sink;
-import org.apache.calcite.linq4j.AbstractEnumerable;
-import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.Holder;
-import org.apache.calcite.util.Util;
-
 import static org.apache.calcite.runtime.HttpUtils.post;
-
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.type.CollectionType;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-
-import org.joda.time.Interval;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -62,6 +38,29 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.calcite.avatica.AvaticaUtils;
+import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.interpreter.Row;
+import org.apache.calcite.interpreter.Sink;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Util;
+import org.joda.time.Interval;
+
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.CollectionType;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Implementation of {@link DruidConnection}.

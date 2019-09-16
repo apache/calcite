@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.rel.mutable;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
-import java.util.Objects;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Aggregate}. */
 public class MutableAggregate extends MutableSingleRel {

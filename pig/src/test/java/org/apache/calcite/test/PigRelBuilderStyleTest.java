@@ -16,6 +16,14 @@
  */
 package org.apache.calcite.test;
 
+import static org.apache.calcite.rel.rules.FilterJoinRule.TRUE_PREDICATE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+
+import java.io.File;
+
 import org.apache.calcite.adapter.pig.PigAggregate;
 import org.apache.calcite.adapter.pig.PigFilter;
 import org.apache.calcite.adapter.pig.PigRel;
@@ -36,27 +44,16 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.TestUtil;
-
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.pigunit.Cluster;
 import org.apache.pig.pigunit.PigTest;
 import org.apache.pig.pigunit.pig.PigServer;
 import org.apache.pig.test.Util;
-
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import java.io.File;
-
-import static org.apache.calcite.rel.rules.FilterJoinRule.TRUE_PREDICATE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
-
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.pig} package that tests the

@@ -16,6 +16,14 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
+
+import java.io.IOException;
+import java.util.Locale;
+import java.util.TimeZone;
+
+import javax.annotation.Nullable;
+
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rex.RexCall;
@@ -27,13 +35,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-
-import java.io.IOException;
-import java.util.Locale;
-import java.util.TimeZone;
-import javax.annotation.Nullable;
-
-import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
 
 /**
  * Implementation of Druid time format extraction function.

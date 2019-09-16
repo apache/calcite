@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.rel.type;
 
-import org.apache.calcite.sql.type.SqlTypeName;
-
 import java.io.Serializable;
+
+import org.apache.calcite.sql.type.SqlTypeName;
 
 /**
  * Default implementation of {@link RelDataTypeField}.

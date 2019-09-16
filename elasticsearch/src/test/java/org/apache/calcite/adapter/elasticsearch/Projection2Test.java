@@ -16,20 +16,8 @@
  */
 package org.apache.calcite.adapter.elasticsearch;
 
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.impl.ViewTable;
-import org.apache.calcite.schema.impl.ViewTableMacro;
-import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.ElasticsearchChecker;
-import org.apache.calcite.util.TestUtil;
-
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.ImmutableMap;
-
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -42,8 +30,19 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.regex.PatternSyntaxException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.schema.impl.ViewTableMacro;
+import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.ElasticsearchChecker;
+import org.apache.calcite.util.TestUtil;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Checks renaming of fields (also upper, lower cases) during projections

@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.apache.calcite.linq4j.function.Function1;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.calcite.linq4j.function.Function1;
 
 /**
  * Entry point for optimizers that factor ou deterministic expressions to

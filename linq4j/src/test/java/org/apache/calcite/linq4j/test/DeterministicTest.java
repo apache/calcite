@@ -16,6 +16,21 @@
  */
 package org.apache.calcite.linq4j.test;
 
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.FOUR;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.THREE;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.optimize;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.optimizeExpression;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.lang.reflect.Method;
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.concurrent.Callable;
+
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.tree.Blocks;
@@ -24,24 +39,7 @@ import org.apache.calcite.linq4j.tree.DeterministicCodeOptimizer;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Types;
-
 import org.junit.Test;
-
-import java.lang.reflect.Method;
-import java.math.BigInteger;
-import java.util.Collections;
-import java.util.concurrent.Callable;
-
-import static org.apache.calcite.linq4j.test.BlockBuilderBase.FOUR;
-import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
-import static org.apache.calcite.linq4j.test.BlockBuilderBase.THREE;
-import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
-import static org.apache.calcite.linq4j.test.BlockBuilderBase.optimize;
-import static org.apache.calcite.linq4j.test.BlockBuilderBase.optimizeExpression;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * Tests factoring out deterministic expressions.

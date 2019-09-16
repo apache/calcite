@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.jdbc;
 
+import java.util.Collection;
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.Schema;
@@ -29,9 +32,6 @@ import org.apache.calcite.util.NameSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
-
-import java.util.Collection;
-import java.util.List;
 
 /**
  * A concrete implementation of {@link org.apache.calcite.jdbc.CalciteSchema}

@@ -16,20 +16,18 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.test.CalciteAssert;
-
-import org.apache.geode.cache.Cache;
-import org.apache.geode.cache.Region;
-
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Arrays;
+
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.test.CalciteAssert;
+import org.apache.geode.cache.Cache;
+import org.apache.geode.cache.Region;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 /**
  * Tests using {@code Bookshop} schema.

@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.generate;
 
+import java.util.Map;
+import java.util.NoSuchElementException;
+
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.QueryProvider;
@@ -26,9 +29,6 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TableFactory;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeName;
-
-import java.util.Map;
-import java.util.NoSuchElementException;
 
 /**
  * Table that returns a range of integers.

@@ -16,18 +16,17 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.rel.core.Aggregate;
-import org.apache.calcite.util.ImmutableBitSet;
-
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.util.ImmutableBitSet;
+import org.junit.Test;
 
 /**
  * Unit test for

@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.adapter.java;
 
+import java.lang.reflect.Type;
+
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.impl.AbstractTable;
-
-import java.lang.reflect.Type;
 
 /**
  * Abstract base class for implementing {@link org.apache.calcite.schema.Table}.

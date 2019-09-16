@@ -77,7 +77,6 @@ import org.apache.calcite.util.TestUtilTest;
 import org.apache.calcite.util.UtilTest;
 import org.apache.calcite.util.graph.DirectedGraphTest;
 import org.apache.calcite.util.mapping.MappingTest;
-
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 

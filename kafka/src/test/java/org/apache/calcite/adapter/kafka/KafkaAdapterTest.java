@@ -16,17 +16,16 @@
  */
 package org.apache.calcite.adapter.kafka;
 
-import org.apache.calcite.test.CalciteAssert;
-
-import com.google.common.io.Resources;
-
-import org.junit.Test;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+
+import org.apache.calcite.test.CalciteAssert;
+import org.junit.Test;
+
+import com.google.common.io.Resources;
 
 /**
  * Unit test cases for Kafka adapter.

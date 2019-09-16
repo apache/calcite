@@ -16,16 +16,15 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.util.Sources;
-
-import com.google.common.collect.ImmutableMap;
-
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.util.List;
 import java.util.function.Consumer;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.calcite.util.Sources;
+import org.junit.Test;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.pig} package.

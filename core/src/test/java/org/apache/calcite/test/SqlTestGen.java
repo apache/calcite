@@ -16,15 +16,6 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.sql.SqlCollation;
-import org.apache.calcite.sql.test.SqlTestFactory;
-import org.apache.calcite.sql.test.SqlTester;
-import org.apache.calcite.sql.test.SqlValidatorTester;
-import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.util.BarfingInvocationHandler;
-import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
-
 import java.io.File;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
@@ -33,6 +24,15 @@ import java.lang.reflect.Proxy;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.test.SqlTestFactory;
+import org.apache.calcite.sql.test.SqlTester;
+import org.apache.calcite.sql.test.SqlValidatorTester;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.util.BarfingInvocationHandler;
+import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
 
 /**
  * Utility to generate a SQL script from validator test.

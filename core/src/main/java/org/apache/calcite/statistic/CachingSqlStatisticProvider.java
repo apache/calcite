@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.statistic;
 
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+
 import org.apache.calcite.materialize.SqlStatisticProvider;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.util.ImmutableIntList;
@@ -24,9 +27,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.cache.Cache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-
-import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Implementation of {@link SqlStatisticProvider} that reads and writes a

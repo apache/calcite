@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test;
 
+import static org.junit.Assert.assertSame;
+
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
@@ -33,13 +35,10 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-
-import com.google.common.collect.Lists;
-
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertSame;
+import com.google.common.collect.Lists;
 
 /**
  * Unit tests for {@link RexProgram} and

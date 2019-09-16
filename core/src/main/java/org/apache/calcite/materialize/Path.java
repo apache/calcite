@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.materialize;
 
-import com.google.common.collect.ImmutableList;
-
 import java.util.List;
+
+import com.google.common.collect.ImmutableList;
 
 /** A sequence of {@link Step}s from a root node (fact table) to another node
  * (dimension table), possibly via intermediate dimension tables. */

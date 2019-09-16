@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.rel.mutable;
 
-import org.apache.calcite.rel.type.RelDataType;
-
 import java.util.Objects;
+
+import org.apache.calcite.rel.type.RelDataType;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Collect}. */
 public class MutableCollect extends MutableSingleRel {

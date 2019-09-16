@@ -16,18 +16,18 @@
  */
 package org.apache.calcite.chinook;
 
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.List;
+
+import net.hydromatic.chinook.data.hsqldb.ChinookHsqldb;
+
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.jdbc.JdbcMeta;
 import org.apache.calcite.avatica.remote.Driver;
 import org.apache.calcite.avatica.server.AvaticaProtobufHandler;
 import org.apache.calcite.avatica.server.HttpServer;
 import org.apache.calcite.avatica.server.Main;
-
-import net.hydromatic.chinook.data.hsqldb.ChinookHsqldb;
-
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.List;
 
 /**
  * Wrapping Calcite engine with Avatica tansport for testing JDBC capabilities

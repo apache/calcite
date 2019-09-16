@@ -16,6 +16,25 @@
  */
 package org.apache.calcite.test;
 
+import static org.junit.Assert.fail;
+
+import java.io.File;
+import java.io.FilenameFilter;
+import java.io.Reader;
+import java.io.Writer;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.function.Function;
+
+import net.hydromatic.quidem.CommandHandler;
+import net.hydromatic.quidem.Quidem;
+
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
@@ -32,32 +51,12 @@ import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Closer;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
-
-import com.google.common.collect.Lists;
-import com.google.common.io.PatternFilenameFilter;
-
-import net.hydromatic.quidem.CommandHandler;
-import net.hydromatic.quidem.Quidem;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.io.File;
-import java.io.FilenameFilter;
-import java.io.Reader;
-import java.io.Writer;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.URL;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.function.Function;
-
-import static org.junit.Assert.fail;
+import com.google.common.collect.Lists;
+import com.google.common.io.PatternFilenameFilter;
 
 /**
  * Test that runs every Quidem file as a test.

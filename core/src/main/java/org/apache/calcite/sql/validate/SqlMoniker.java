@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.sql.validate;
 
+import java.util.Comparator;
+import java.util.List;
+
 import org.apache.calcite.sql.SqlIdentifier;
 
 import com.google.common.collect.Ordering;
-
-import java.util.Comparator;
-import java.util.List;
 
 /**
  * An interface of an object identifier that represents a SqlIdentifier

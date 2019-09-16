@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.rex;
 
+import java.util.List;
+import java.util.Set;
+
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableSet;
-
-import java.util.List;
-import java.util.Set;
 
 /**
  * Utility class for various methods related to multisets.

@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.sql.type;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.util.Util;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Parameter type-checking strategy type must be a literal (whether null is

@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import java.util.Objects;
+
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptUtil;
-
-import java.util.Objects;
 
 /**
  * <code>VolcanoCost</code> represents the cost of a plan node.

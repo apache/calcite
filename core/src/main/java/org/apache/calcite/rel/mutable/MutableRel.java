@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel.mutable;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelNode;
@@ -23,9 +26,6 @@ import org.apache.calcite.rel.type.RelDataType;
 
 import com.google.common.base.Equivalence;
 import com.google.common.collect.Lists;
-
-import java.util.List;
-import java.util.Objects;
 
 /** Mutable equivalent of {@link RelNode}.
  *

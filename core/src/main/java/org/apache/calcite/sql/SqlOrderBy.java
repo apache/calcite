@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.List;
+
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
-
-import java.util.List;
 
 /**
  * Parse tree node that represents an {@code ORDER BY} on a query other than a

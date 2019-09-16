@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.piglet;
 
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.avatica.util.Spacer;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -24,10 +28,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Objects;
 
 /** Abstract syntax tree.
  *

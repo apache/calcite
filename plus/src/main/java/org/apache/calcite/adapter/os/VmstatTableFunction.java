@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.os;
 
+import java.util.List;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.Enumerable;
@@ -33,8 +35,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * Table function that executes the OS "vmstat" command

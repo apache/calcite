@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import java.util.concurrent.ExecutionException;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -24,8 +26,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-
-import java.util.concurrent.ExecutionException;
 
 /** Implementation of {@link MetadataFactory} that gets providers from a
  * {@link RelMetadataProvider} and stores them in a cache.

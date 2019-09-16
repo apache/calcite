@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.plan;
 
-import org.apache.calcite.rel.RelNode;
-
 import java.util.EventListener;
 import java.util.EventObject;
+
+import org.apache.calcite.rel.RelNode;
 
 /**
  * RelOptListener defines an interface for listening to events which occur

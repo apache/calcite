@@ -18,6 +18,7 @@ package org.apache.calcite.util;
 
 import java.io.StringReader;
 import java.util.Objects;
+
 import javax.annotation.Nonnull;
 
 /**

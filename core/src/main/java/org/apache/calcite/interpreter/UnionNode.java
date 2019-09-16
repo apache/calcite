@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.interpreter;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.calcite.rel.core.Union;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Interpreter node that implements a

@@ -16,16 +16,16 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.linq4j.function.Experimental;
-
-import com.google.common.collect.ImmutableSortedMap;
+import static org.apache.calcite.util.CaseInsensitiveComparator.COMPARATOR;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
-import static org.apache.calcite.util.CaseInsensitiveComparator.COMPARATOR;
+import org.apache.calcite.linq4j.function.Experimental;
+
+import com.google.common.collect.ImmutableSortedMap;
 
 /** Map whose keys are names and can be accessed with and without case
  * sensitivity.

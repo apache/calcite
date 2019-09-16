@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel.logical;
 
+import java.math.BigDecimal;
+import java.util.List;
+
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -31,9 +34,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
-
-import java.math.BigDecimal;
-import java.util.List;
 
 /**
  * Sub-class of {@link org.apache.calcite.rel.core.Values}

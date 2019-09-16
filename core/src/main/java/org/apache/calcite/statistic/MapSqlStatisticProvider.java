@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.statistic;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.adapter.jdbc.JdbcTable;
 import org.apache.calcite.materialize.SqlStatisticProvider;
 import org.apache.calcite.plan.RelOptTable;
@@ -23,11 +28,6 @@ import org.apache.calcite.plan.RelOptTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Implementation of {@link SqlStatisticProvider} that looks up values in a

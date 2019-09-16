@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.cassandra;
 
+import java.util.Iterator;
+import java.util.List;
+
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -27,9 +30,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
-
-import java.util.Iterator;
-import java.util.List;
 
 /** Enumerator that reads from a Cassandra column family. */
 class CassandraEnumerator implements Enumerator<Object> {

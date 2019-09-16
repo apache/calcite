@@ -16,16 +16,6 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.apache.calcite.linq4j.Extensions;
-import org.apache.calcite.linq4j.function.Function;
-import org.apache.calcite.linq4j.function.Function0;
-import org.apache.calcite.linq4j.function.Function1;
-import org.apache.calcite.linq4j.function.Function2;
-import org.apache.calcite.linq4j.function.Predicate1;
-import org.apache.calcite.linq4j.function.Predicate2;
-
-import com.google.common.collect.ImmutableList;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
@@ -40,6 +30,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+
+import org.apache.calcite.linq4j.Extensions;
+import org.apache.calcite.linq4j.function.Function;
+import org.apache.calcite.linq4j.function.Function0;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Function2;
+import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.linq4j.function.Predicate2;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Utility methods for expressions, including a lot of factory methods.

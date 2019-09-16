@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.rel;
 
+import java.util.List;
+
 import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /** RelOptReferentialConstraint base implementation. */
 public class RelReferentialConstraintImpl implements RelReferentialConstraint {

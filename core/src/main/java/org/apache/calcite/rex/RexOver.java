@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.rex;
 
+import java.util.List;
+import java.util.Objects;
+
+import javax.annotation.Nonnull;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlWindow;
@@ -23,10 +28,6 @@ import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
-
-import java.util.List;
-import java.util.Objects;
-import javax.annotation.Nonnull;
 
 /**
  * Call to an aggregate function over a window.

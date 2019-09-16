@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.sql.validate;
 
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeField;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 
 /**
  * Checks whether two names are the same according to a case-sensitivity policy.

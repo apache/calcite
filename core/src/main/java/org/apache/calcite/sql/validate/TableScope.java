@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.sql.validate;
 
+import java.util.Objects;
+
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
-
-import java.util.Objects;
 
 /**
  * The name-resolution scope of a LATERAL TABLE clause.

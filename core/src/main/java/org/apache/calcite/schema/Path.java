@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.schema;
 
-import org.apache.calcite.util.Pair;
-
 import java.util.List;
 import java.util.RandomAccess;
+
+import org.apache.calcite.util.Pair;
 
 /**
  * Path from a root schema to a particular object (schema, table, function).

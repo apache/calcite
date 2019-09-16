@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.sql.util;
 
-import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.util.UnmodifiableArrayList;
-
 import java.sql.Timestamp;
 import java.util.List;
+
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.util.UnmodifiableArrayList;
 
 /**
  * Extension to {@link StringBuilder} for the purposes of creating SQL queries

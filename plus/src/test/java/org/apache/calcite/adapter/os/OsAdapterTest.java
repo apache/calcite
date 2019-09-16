@@ -16,20 +16,10 @@
  */
 package org.apache.calcite.adapter.os;
 
-import org.apache.calcite.config.CalciteConnectionProperty;
-import org.apache.calcite.config.Lex;
-import org.apache.calcite.runtime.Hook;
-import org.apache.calcite.sql.validate.SqlConformanceEnum;
-import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.util.Holder;
-import org.apache.calcite.util.Sources;
-import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
-
-import org.hamcrest.CoreMatchers;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -43,10 +33,19 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.function.Consumer;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.Lex;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Sources;
+import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
+import org.hamcrest.CoreMatchers;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Test;
 
 /**
  * Unit tests for the OS (operating system) adapter.

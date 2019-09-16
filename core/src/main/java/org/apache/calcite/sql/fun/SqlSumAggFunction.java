@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.fun;
 
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -27,8 +29,6 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * <code>Sum</code> is an aggregator which returns the sum of the values which

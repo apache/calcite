@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.test.catalog;
 
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -28,10 +32,6 @@ import org.apache.calcite.sql2rel.InitializerExpressionFactory;
 import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
 
 import com.google.common.collect.ImmutableList;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /** To check whether
  * {@link InitializerExpressionFactory#newColumnDefaultValue} is called.

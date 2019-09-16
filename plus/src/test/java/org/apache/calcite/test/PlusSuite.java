@@ -21,7 +21,6 @@ import org.apache.calcite.adapter.tpcds.TpcdsTest;
 import org.apache.calcite.adapter.tpch.TpchTest;
 import org.apache.calcite.chinook.EndToEndTest;
 import org.apache.calcite.chinook.RemotePreparedStatementParametersTest;
-
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 

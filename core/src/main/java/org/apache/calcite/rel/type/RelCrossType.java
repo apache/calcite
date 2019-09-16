@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.rel.type;
 
+import java.util.List;
+
 import org.apache.calcite.linq4j.Ord;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * Type of the cartesian product of two or more sets of records.

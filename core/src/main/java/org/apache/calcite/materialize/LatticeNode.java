@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.materialize;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
-import java.util.Objects;
 
 /** Source relation of a lattice.
  *

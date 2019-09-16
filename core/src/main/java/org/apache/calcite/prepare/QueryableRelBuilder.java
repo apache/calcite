@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.prepare;
 
+import java.math.BigDecimal;
+import java.util.Comparator;
+import java.util.List;
+
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Grouping;
@@ -47,10 +51,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
-
-import java.math.BigDecimal;
-import java.util.Comparator;
-import java.util.List;
 
 /**
  * Implementation of {@link QueryableFactory}

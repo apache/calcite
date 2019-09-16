@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.List;
+
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
-
-import java.util.List;
 
 /**
  * A <code>SqlMerge</code> is a node of a parse tree which represents a MERGE

@@ -16,6 +16,16 @@
  */
 package org.apache.calcite.jdbc;
 
+import java.io.InputStream;
+import java.io.Reader;
+import java.sql.NClob;
+import java.sql.ResultSetMetaData;
+import java.sql.RowId;
+import java.sql.SQLException;
+import java.sql.SQLXML;
+import java.util.Properties;
+import java.util.TimeZone;
+
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaDatabaseMetaData;
@@ -26,16 +36,6 @@ import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.QueryState;
 import org.apache.calcite.avatica.UnregisteredDriver;
-
-import java.io.InputStream;
-import java.io.Reader;
-import java.sql.NClob;
-import java.sql.ResultSetMetaData;
-import java.sql.RowId;
-import java.sql.SQLException;
-import java.sql.SQLXML;
-import java.util.Properties;
-import java.util.TimeZone;
 
 /**
  * Implementation of {@link org.apache.calcite.avatica.AvaticaFactory}

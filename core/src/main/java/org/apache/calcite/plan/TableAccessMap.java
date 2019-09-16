@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.plan;
 
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelVisitor;
-import org.apache.calcite.rel.core.TableModify;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelVisitor;
+import org.apache.calcite.rel.core.TableModify;
 
 // TODO jvs 9-Mar-2006:  move this class to another package; it
 // doesn't really belong here.  Also, use a proper class for table

@@ -16,11 +16,6 @@
  */
 package org.apache.calcite.sql.type;
 
-import org.apache.calcite.avatica.util.ArrayImpl;
-import org.apache.calcite.runtime.GeoFunctions;
-
-import com.google.common.collect.ImmutableMap;
-
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.ResultSet;
@@ -28,6 +23,11 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.calcite.avatica.util.ArrayImpl;
+import org.apache.calcite.runtime.GeoFunctions;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * JavaToSqlTypeConversionRules defines mappings from common Java types to

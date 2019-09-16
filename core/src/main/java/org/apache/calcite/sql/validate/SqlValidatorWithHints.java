@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.sql.validate;
 
+import java.util.List;
+
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParserPos;
-
-import java.util.List;
 
 /**
  * Extends {@link SqlValidator} to allow discovery of useful data such as fully

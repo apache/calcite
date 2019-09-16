@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.plan;
 
+import java.util.List;
+
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
@@ -28,8 +30,6 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.util.ImmutableBitSet;
-
-import java.util.List;
 
 /**
  * Represents a relational dataset in a {@link RelOptSchema}. It has methods to

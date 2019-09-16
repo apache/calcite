@@ -16,15 +16,6 @@
  */
 package org.apache.calcite.adapter.file;
 
-import org.apache.calcite.util.Source;
-import org.apache.calcite.util.Sources;
-import org.apache.calcite.util.TestUtil;
-
-import org.jsoup.select.Elements;
-import org.junit.Assume;
-import org.junit.Ignore;
-import org.junit.Test;
-
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
@@ -40,6 +31,14 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Iterator;
 import java.util.Properties;
+
+import org.apache.calcite.util.Source;
+import org.apache.calcite.util.Sources;
+import org.apache.calcite.util.TestUtil;
+import org.jsoup.select.Elements;
+import org.junit.Assume;
+import org.junit.Ignore;
+import org.junit.Test;
 
 /**
  * Unit tests for FileReader.

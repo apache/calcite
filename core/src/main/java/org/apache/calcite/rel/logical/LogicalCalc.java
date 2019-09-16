@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel.logical;
 
+import java.util.List;
+import java.util.Set;
+
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
@@ -34,9 +37,6 @@ import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.util.Util;
-
-import java.util.List;
-import java.util.Set;
 
 /**
  * A relational expression which computes project expressions and also filters.

@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.rel.core;
 
+import java.util.AbstractList;
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -44,10 +48,6 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.AbstractList;
-import java.util.List;
-import java.util.Objects;
 
 /**
  * A relational expression representing a set of window aggregates.

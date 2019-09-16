@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.apache.calcite.linq4j.function.Function2;
-
 import java.util.AbstractCollection;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
@@ -26,6 +24,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.calcite.linq4j.function.Function2;
 
 /**
  * Implementation of {@link Lookup} that uses an underlying map.

@@ -16,30 +16,12 @@
  */
 package org.apache.calcite.jdbc;
 
-import org.apache.calcite.avatica.AvaticaConnection;
-import org.apache.calcite.avatica.Meta;
-import org.apache.calcite.avatica.SqlType;
-import org.apache.calcite.avatica.remote.LocalJsonService;
-import org.apache.calcite.avatica.remote.LocalService;
-import org.apache.calcite.avatica.remote.Service;
-import org.apache.calcite.avatica.server.AvaticaJsonHandler;
-import org.apache.calcite.avatica.server.HttpServer;
-import org.apache.calcite.avatica.server.Main;
-import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.JdbcFrontLinqBackTest;
-import org.apache.calcite.test.JdbcTest;
-import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
-
-import com.google.common.collect.ImmutableList;
-
-import net.jcip.annotations.NotThreadSafe;
-
-import org.hamcrest.CoreMatchers;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -75,12 +57,29 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import net.jcip.annotations.NotThreadSafe;
+
+import org.apache.calcite.avatica.AvaticaConnection;
+import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.avatica.SqlType;
+import org.apache.calcite.avatica.remote.LocalJsonService;
+import org.apache.calcite.avatica.remote.LocalService;
+import org.apache.calcite.avatica.remote.Service;
+import org.apache.calcite.avatica.server.AvaticaJsonHandler;
+import org.apache.calcite.avatica.server.HttpServer;
+import org.apache.calcite.avatica.server.Main;
+import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.JdbcFrontLinqBackTest;
+import org.apache.calcite.test.JdbcTest;
+import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
+import org.hamcrest.CoreMatchers;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Test for Calcite's remote JDBC driver.

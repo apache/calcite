@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
+import static org.apache.calcite.adapter.geode.util.GeodeUtils.createClientCache;
+
+import java.util.Arrays;
+import java.util.Map;
+
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.schema.Schema;
@@ -23,11 +28,6 @@ import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.Arrays;
-import java.util.Map;
-
-import static org.apache.calcite.adapter.geode.util.GeodeUtils.createClientCache;
 
 /**
  * Factory that creates a {@link GeodeSchema}.

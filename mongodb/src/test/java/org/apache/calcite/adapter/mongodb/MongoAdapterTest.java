@@ -16,35 +16,6 @@
  */
 package org.apache.calcite.adapter.mongodb;
 
-import org.apache.calcite.schema.Schema;
-import org.apache.calcite.schema.SchemaFactory;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.MongoAssertions;
-import org.apache.calcite.util.Bug;
-import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
-
-import com.google.common.io.LineProcessor;
-import com.google.common.io.Resources;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-
-import net.hydromatic.foodmart.data.json.FoodmartJson;
-
-import org.bson.BsonDateTime;
-import org.bson.BsonDocument;
-import org.bson.BsonInt32;
-import org.bson.BsonString;
-import org.bson.Document;
-import org.bson.json.JsonWriterSettings;
-import org.hamcrest.CoreMatchers;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Test;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URL;
@@ -61,6 +32,34 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import net.hydromatic.foodmart.data.json.FoodmartJson;
+
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaFactory;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.MongoAssertions;
+import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
+import org.bson.BsonDateTime;
+import org.bson.BsonDocument;
+import org.bson.BsonInt32;
+import org.bson.BsonString;
+import org.bson.Document;
+import org.bson.json.JsonWriterSettings;
+import org.hamcrest.CoreMatchers;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Test;
+
+import com.google.common.io.LineProcessor;
+import com.google.common.io.Resources;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 
 /**
  * Testing mongo adapter functionality. By default runs with

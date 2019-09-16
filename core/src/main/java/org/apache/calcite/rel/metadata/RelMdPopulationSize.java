@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import java.util.List;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Exchange;
@@ -28,8 +30,6 @@ import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
-
-import java.util.List;
 
 /**
  * RelMdPopulationSize supplies a default implementation of

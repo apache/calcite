@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.type;
 
+import java.util.List;
+
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCallBinding;
@@ -25,8 +27,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * AssignableOperandTypeChecker implements {@link SqlOperandTypeChecker} by

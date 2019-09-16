@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.ddl;
 
+import java.util.List;
+
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
@@ -26,8 +28,6 @@ import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
-
-import java.util.List;
 
 /**
  * Parse tree for {@code UNIQUE}, {@code PRIMARY KEY} constraints.

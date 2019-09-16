@@ -16,15 +16,16 @@
  */
 package org.apache.calcite.adapter.druid;
 
-import org.apache.calcite.avatica.util.TimeUnitRange;
-
-import com.fasterxml.jackson.core.JsonGenerator;
+import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
 
 import java.io.IOException;
 import java.util.Objects;
+
 import javax.annotation.Nonnull;
 
-import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
+import org.apache.calcite.avatica.util.TimeUnitRange;
+
+import com.fasterxml.jackson.core.JsonGenerator;
 
 /**
  * Factory methods and helpers for {@link Granularity}.

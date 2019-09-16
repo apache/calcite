@@ -16,6 +16,14 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import static org.apache.calcite.plan.volcano.PlannerTests.PHYS_CALLING_CONVENTION;
+import static org.apache.calcite.plan.volcano.PlannerTests.TestLeafRel;
+import static org.apache.calcite.plan.volcano.PlannerTests.TestSingleRel;
+import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
+import static org.junit.Assert.assertTrue;
+
+import java.util.List;
+
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
@@ -34,19 +42,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
-
-import com.google.common.collect.ImmutableList;
-
 import org.junit.Test;
 
-import java.util.List;
-
-import static org.apache.calcite.plan.volcano.PlannerTests.PHYS_CALLING_CONVENTION;
-import static org.apache.calcite.plan.volcano.PlannerTests.TestLeafRel;
-import static org.apache.calcite.plan.volcano.PlannerTests.TestSingleRel;
-import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
-
-import static org.junit.Assert.assertTrue;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Unit test for {@link org.apache.calcite.rel.RelCollationTraitDef}.

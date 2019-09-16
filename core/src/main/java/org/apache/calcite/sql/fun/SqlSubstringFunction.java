@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql.fun;
 
+import java.math.BigDecimal;
+import java.util.List;
+
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
@@ -38,9 +41,6 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.collect.ImmutableList;
-
-import java.math.BigDecimal;
-import java.util.List;
 
 /**
  * Definition of the "SUBSTRING" builtin SQL function.

@@ -16,16 +16,15 @@
  */
 package org.apache.calcite.util;
 
-import org.junit.Test;
-
-import java.io.File;
-
 import static org.apache.calcite.util.Sources.file;
 import static org.apache.calcite.util.Sources.url;
-
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+
+import java.io.File;
+
+import org.junit.Test;
 
 /**
  * Tests for {@link Source}.

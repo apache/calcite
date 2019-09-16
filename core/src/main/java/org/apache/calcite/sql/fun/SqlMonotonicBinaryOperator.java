@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.fun;
 
+import java.math.BigDecimal;
+
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
@@ -23,8 +25,6 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
-
-import java.math.BigDecimal;
 
 /**
  * Base class for binary operators such as addition, subtraction, and

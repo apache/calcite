@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import java.util.Map;
+import java.util.TimeZone;
+
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
@@ -27,9 +30,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableMap;
-
-import java.util.Map;
-import java.util.TimeZone;
 
 /**
  * Time extract operator conversion for expressions like EXTRACT(timeUnit FROM arg)

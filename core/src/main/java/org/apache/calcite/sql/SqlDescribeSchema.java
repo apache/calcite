@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.List;
+
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
-
-import java.util.List;
 
 /**
  * A <code>SqlDescribeSchema</code> is a node of a parse tree that represents a

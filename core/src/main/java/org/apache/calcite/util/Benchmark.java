@@ -16,14 +16,13 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.linq4j.function.Function1;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import org.apache.calcite.linq4j.function.Function1;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Helps to run benchmarks by running the same task repeatedly and averaging

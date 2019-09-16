@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.sql.type;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlNode;
@@ -26,11 +31,6 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.Collections;
-import java.util.List;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Parameter type-checking strategy where all operand types must be the same.

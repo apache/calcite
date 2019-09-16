@@ -16,6 +16,12 @@
  */
 package org.apache.calcite.sql.validate;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableProject;
 import org.apache.calcite.config.Lex;
@@ -40,16 +46,9 @@ import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
-
-import com.google.common.collect.ImmutableList;
-
 import org.junit.Test;
 
-import java.util.List;
-
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Testing {@link SqlValidator} and {@link Lex} quoting.

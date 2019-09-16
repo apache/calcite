@@ -16,12 +16,9 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.util.Bug;
-import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Util;
-
-import org.hamcrest.Matcher;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -32,11 +29,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import sqlline.SqlLine;
+import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
+import org.hamcrest.Matcher;
+import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import sqlline.SqlLine;
 
 /**
  * Tests that we can invoke SqlLine on a Calcite connection.

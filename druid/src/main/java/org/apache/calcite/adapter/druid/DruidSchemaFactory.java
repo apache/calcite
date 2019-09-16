@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * Schema factory that creates Druid schemas.

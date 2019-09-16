@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.sql.type;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.util.Util;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  * SqlTypeTransforms defines a number of reusable instances of

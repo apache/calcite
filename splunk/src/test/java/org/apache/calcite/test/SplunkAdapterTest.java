@@ -16,13 +16,9 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.util.TestUtil;
-
-import com.google.common.collect.ImmutableSet;
-
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -35,9 +31,12 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.function.Function;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.util.TestUtil;
+import org.junit.Ignore;
+import org.junit.Test;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Unit test of the Calcite adapter for Splunk.

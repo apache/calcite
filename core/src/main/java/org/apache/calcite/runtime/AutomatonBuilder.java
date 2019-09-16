@@ -16,6 +16,13 @@
  */
 package org.apache.calcite.runtime;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 import org.apache.calcite.runtime.Automaton.EpsilonTransition;
 import org.apache.calcite.runtime.Automaton.State;
 import org.apache.calcite.runtime.Automaton.SymbolTransition;
@@ -24,13 +31,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 /** Builds a state-transition graph for deterministic finite automaton. */
 public class AutomatonBuilder {

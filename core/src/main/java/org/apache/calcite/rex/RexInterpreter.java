@@ -16,6 +16,14 @@
  */
 package org.apache.calcite.rex;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.function.IntPredicate;
+
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
@@ -24,14 +32,6 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.function.IntPredicate;
 
 /**
  * Evaluates {@link RexNode} expressions.

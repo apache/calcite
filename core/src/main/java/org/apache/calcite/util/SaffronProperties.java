@@ -16,18 +16,18 @@
  */
 package org.apache.calcite.util;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.AccessControlException;
+import java.util.Enumeration;
+import java.util.Properties;
+
 import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.runtime.Resources.BooleanProp;
 import org.apache.calcite.runtime.Resources.Default;
 import org.apache.calcite.runtime.Resources.IntProp;
 import org.apache.calcite.runtime.Resources.Resource;
 import org.apache.calcite.runtime.Resources.StringProp;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.AccessControlException;
-import java.util.Enumeration;
-import java.util.Properties;
 
 /**
  * Provides an environment for debugging information, et cetera, used by

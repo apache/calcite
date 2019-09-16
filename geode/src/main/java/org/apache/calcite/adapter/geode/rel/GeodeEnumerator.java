@@ -16,23 +16,21 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
+import static org.apache.calcite.adapter.geode.util.GeodeUtils.convertToRowValues;
+
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
-
 import org.apache.geode.cache.query.SelectResults;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-
-import static org.apache.calcite.adapter.geode.util.GeodeUtils.convertToRowValues;
 
 /**
  * Enumerator that reads from a Geode Regions.

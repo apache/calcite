@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.core;
 
+import java.util.List;
+
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -35,8 +37,6 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * Relational expression that iterates over its input

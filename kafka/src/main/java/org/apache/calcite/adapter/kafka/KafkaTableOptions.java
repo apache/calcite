@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.adapter.kafka;
 
-import org.apache.kafka.clients.consumer.Consumer;
-
 import java.util.Map;
+
+import org.apache.kafka.clients.consumer.Consumer;
 
 /**
  * Available options for {@link KafkaStreamTable}.

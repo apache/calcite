@@ -16,17 +16,17 @@
  */
 package org.apache.calcite.test;
 
+import static org.junit.Assume.assumeTrue;
+
+import java.util.concurrent.TimeUnit;
+
+import net.jcip.annotations.NotThreadSafe;
+
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
-
 import org.apache.cassandra.config.DatabaseDescriptor;
-
-import com.google.common.collect.ImmutableMap;
-
-import net.jcip.annotations.NotThreadSafe;
-
 import org.cassandraunit.CassandraCQLUnit;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
 import org.junit.BeforeClass;
@@ -36,9 +36,7 @@ import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assume.assumeTrue;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.cassandra} package.

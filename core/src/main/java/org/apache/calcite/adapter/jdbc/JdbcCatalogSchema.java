@@ -16,6 +16,14 @@
  */
 package org.apache.calcite.adapter.jdbc;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Map;
+import java.util.Objects;
+
+import javax.sql.DataSource;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -31,13 +39,6 @@ import org.apache.calcite.util.BuiltInMethod;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
-
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Map;
-import java.util.Objects;
-import javax.sql.DataSource;
 
 /**
  * Schema based upon a JDBC catalog (database).

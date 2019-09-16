@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import java.util.function.Predicate;
+
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.tools.RelBuilderFactory;
-
-import java.util.function.Predicate;
 
 /** Planner rule that converts a
  * {@link org.apache.calcite.rel.logical.LogicalValues}

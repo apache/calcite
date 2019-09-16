@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.plan.Context;
-import org.apache.calcite.plan.RelOptPlanner;
-
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.calcite.plan.Context;
+import org.apache.calcite.plan.RelOptPlanner;
 
 /**
  * CancelFlag is used to post and check cancellation requests.

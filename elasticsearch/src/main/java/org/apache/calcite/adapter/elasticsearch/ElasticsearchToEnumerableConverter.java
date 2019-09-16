@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.adapter.elasticsearch;
 
+import java.util.AbstractList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
@@ -36,10 +40,6 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
-
-import java.util.AbstractList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Relational expression representing a scan of a table in an Elasticsearch data source.

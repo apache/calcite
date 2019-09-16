@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.schema.impl;
 
+import java.lang.reflect.Type;
+import java.util.List;
+
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.QueryProvider;
@@ -34,9 +37,6 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TranslatableTable;
 
 import com.google.common.collect.ImmutableList;
-
-import java.lang.reflect.Type;
-import java.util.List;
 
 /**
  * Table whose contents are defined using an SQL statement.

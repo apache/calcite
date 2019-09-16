@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.sql.test;
 
+import static org.junit.Assert.assertNotNull;
+
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
-
-import static org.junit.Assert.assertNotNull;
 
 /**
  * Tester of {@link SqlValidator} and runtime execution of the input SQL.

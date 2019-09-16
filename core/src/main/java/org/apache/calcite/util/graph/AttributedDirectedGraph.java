@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.util.graph;
 
-import org.apache.calcite.util.Util;
-
 import java.util.List;
+
+import org.apache.calcite.util.Util;
 
 /**
  * Directed graph where edges have attributes and allows multiple edges between

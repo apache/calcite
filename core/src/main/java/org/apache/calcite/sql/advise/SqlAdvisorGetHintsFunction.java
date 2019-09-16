@@ -16,6 +16,12 @@
  */
 package org.apache.calcite.sql.advise;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.CallImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -35,12 +41,6 @@ import org.apache.calcite.sql.validate.SqlMoniker;
 import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.Iterables;
-
-import java.lang.reflect.Method;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Table function that returns completion hints for a given SQL statement.

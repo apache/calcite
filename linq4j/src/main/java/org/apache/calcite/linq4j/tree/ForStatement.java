@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.apache.calcite.linq4j.Ord;
-
 import java.util.List;
 import java.util.Objects;
+
+import org.apache.calcite.linq4j.Ord;
 
 /**
  * Represents an infinite loop. It can be exited with "break".

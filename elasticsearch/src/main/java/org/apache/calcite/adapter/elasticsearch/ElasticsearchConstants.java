@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.adapter.elasticsearch;
 
-import com.google.common.collect.ImmutableSet;
-
 import java.util.Set;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Internal constants referenced in this package.

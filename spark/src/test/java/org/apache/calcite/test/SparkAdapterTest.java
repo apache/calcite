@@ -18,7 +18,6 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.spark.SparkRel;
 import org.apache.calcite.util.Util;
-
 import org.junit.Ignore;
 import org.junit.Test;
 

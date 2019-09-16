@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Join;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
 
 /**
  * Utility class used to store a {@link org.apache.calcite.rel.core.Join} tree

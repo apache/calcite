@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.rel.type;
 
+import java.util.List;
+
 import org.apache.calcite.sql.type.SqlTypeExplicitPrecedenceList;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * Implementation of {@link RelDataType} for a dynamic table.

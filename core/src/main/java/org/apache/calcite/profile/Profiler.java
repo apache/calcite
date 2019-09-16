@@ -16,15 +16,6 @@
  */
 package org.apache.calcite.profile;
 
-import org.apache.calcite.materialize.Lattice;
-import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.JsonBuilder;
-import org.apache.calcite.util.Util;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedSet;
-
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
@@ -34,7 +25,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.SortedSet;
+
 import javax.annotation.Nonnull;
+
+import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.JsonBuilder;
+import org.apache.calcite.util.Util;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedSet;
 
 /**
  * Analyzes data sets.

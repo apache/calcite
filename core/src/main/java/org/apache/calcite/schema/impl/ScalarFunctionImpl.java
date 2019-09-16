@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.schema.impl;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+
 import org.apache.calcite.adapter.enumerable.CallImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.ReflectiveCallNotNullImplementor;
@@ -29,11 +34,6 @@ import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.sql.SqlOperatorBinding;
 
 import com.google.common.collect.ImmutableMultimap;
-
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
 * Implementation of {@link org.apache.calcite.schema.ScalarFunction}.

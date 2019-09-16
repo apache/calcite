@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.util;
 
+import java.util.Arrays;
+import java.util.Iterator;
+
 import org.apache.calcite.util.mapping.IntPair;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
-
-import java.util.Arrays;
-import java.util.Iterator;
 
 /**
  * Represents a mapping which reorders elements in an array.

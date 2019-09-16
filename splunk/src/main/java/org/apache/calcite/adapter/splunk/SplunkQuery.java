@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.adapter.splunk;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.adapter.splunk.search.SplunkConnection;
 import org.apache.calcite.adapter.splunk.util.StringUtils;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerator;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Query against Splunk.

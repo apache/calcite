@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.List;
+
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
-
-import java.util.List;
 
 /**
  * A <code>SqlInsert</code> is a node of a parse tree which represents an INSERT

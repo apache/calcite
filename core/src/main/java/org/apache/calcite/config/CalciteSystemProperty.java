@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.config;
 
-import com.google.common.collect.ImmutableSet;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,6 +26,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.stream.Stream;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * A Calcite specific system property that is used to configure various aspects of the framework.

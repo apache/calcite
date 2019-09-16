@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.schema;
 
+import java.util.List;
+
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.util.ImmutableBitSet;
-
-import java.util.List;
 
 /**
  * Statistics about a {@link Table}.

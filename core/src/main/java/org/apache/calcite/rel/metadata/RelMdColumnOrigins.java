@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -32,9 +35,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.util.BuiltInMethod;
-
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * RelMdColumnOrigins supplies a default implementation of

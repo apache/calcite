@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  * Parse tree node representing a {@code JOIN} clause.

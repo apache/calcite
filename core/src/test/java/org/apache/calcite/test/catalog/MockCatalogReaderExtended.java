@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.test.catalog;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.schema.TranslatableTable;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 /** Adds some extra tables to the mock catalog. These increase the time and
  * complexity of initializing the catalog (because they contain views whose

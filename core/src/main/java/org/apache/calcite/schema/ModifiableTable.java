@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.schema;
 
+import java.util.Collection;
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rex.RexNode;
-
-import java.util.Collection;
-import java.util.List;
 
 /**
  * A table that can be modified.

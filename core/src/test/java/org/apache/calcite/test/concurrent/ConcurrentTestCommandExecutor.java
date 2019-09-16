@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.test.concurrent;
 
-import org.apache.calcite.util.Unsafe;
-
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
 import java.util.Properties;
+
+import org.apache.calcite.util.Unsafe;
 
 /**
  * ConcurrentTestCommandExecutor is a thread that executes a sequence of

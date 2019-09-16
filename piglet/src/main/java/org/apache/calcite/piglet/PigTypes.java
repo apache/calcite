@@ -16,17 +16,16 @@
  */
 package org.apache.calcite.piglet;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.type.SqlTypeName;
-
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Utility methods for converting Pig data types to SQL types.

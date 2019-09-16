@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.schema.impl;
 
+import java.util.Collection;
+import java.util.Set;
+
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Function;
@@ -23,9 +26,6 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Table;
-
-import java.util.Collection;
-import java.util.Set;
 
 /**
  * Implementation of {@link org.apache.calcite.schema.Schema} that delegates to

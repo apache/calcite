@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.schema.impl;
 
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Function;
@@ -29,10 +33,6 @@ import org.apache.calcite.schema.Table;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
-
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Abstract implementation of {@link Schema}.

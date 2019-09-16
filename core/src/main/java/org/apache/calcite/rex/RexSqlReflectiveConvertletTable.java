@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.rex;
 
-import org.apache.calcite.sql.SqlOperator;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.calcite.sql.SqlOperator;
 
 /**
  * Implementation of {@link RexSqlConvertletTable}.

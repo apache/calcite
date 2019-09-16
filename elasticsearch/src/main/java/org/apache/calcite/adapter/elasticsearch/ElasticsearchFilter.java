@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.adapter.elasticsearch;
 
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.UncheckedIOException;
+import java.util.Objects;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -27,11 +32,6 @@ import org.apache.calcite.rex.RexNode;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.IOException;
-import java.io.StringWriter;
-import java.io.UncheckedIOException;
-import java.util.Objects;
 
 /**
  * Implementation of a {@link org.apache.calcite.rel.core.Filter}

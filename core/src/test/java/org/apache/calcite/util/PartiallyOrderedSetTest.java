@@ -16,12 +16,11 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.test.SlowTests;
-
-import org.junit.Assume;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -34,11 +33,11 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
 
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.test.SlowTests;
+import org.junit.Assume;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 /**
  * Unit test for {@link PartiallyOrderedSet}.

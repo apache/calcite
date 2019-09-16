@@ -16,17 +16,6 @@
  */
 package org.apache.calcite.adapter.file;
 
-import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.avatica.util.DateTimeUtils;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.util.Pair;
-
-import com.joestelmach.natty.DateGroup;
-import com.joestelmach.natty.Parser;
-
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
-
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -38,6 +27,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.util.Pair;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+import com.joestelmach.natty.DateGroup;
+import com.joestelmach.natty.Parser;
 
 /**
  * FileRowConverter.

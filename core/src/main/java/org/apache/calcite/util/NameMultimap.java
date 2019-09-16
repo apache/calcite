@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.linq4j.function.Experimental;
+import static org.apache.calcite.util.CaseInsensitiveComparator.COMPARATOR;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.stream.Collectors;
 
-import static org.apache.calcite.util.CaseInsensitiveComparator.COMPARATOR;
+import org.apache.calcite.linq4j.function.Experimental;
 
 /** Multimap whose keys are names and can be accessed with and without case
  * sensitivity.

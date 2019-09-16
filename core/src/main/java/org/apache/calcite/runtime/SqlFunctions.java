@@ -16,35 +16,8 @@
  */
 package org.apache.calcite.runtime;
 
-import org.apache.calcite.DataContext;
-import org.apache.calcite.avatica.util.ByteString;
-import org.apache.calcite.avatica.util.DateTimeUtils;
-import org.apache.calcite.avatica.util.Spaces;
-import org.apache.calcite.avatica.util.TimeUnitRange;
-import org.apache.calcite.interpreter.Row;
-import org.apache.calcite.linq4j.AbstractEnumerable;
-import org.apache.calcite.linq4j.CartesianProductEnumerator;
-import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.linq4j.function.Deterministic;
-import org.apache.calcite.linq4j.function.Experimental;
-import org.apache.calcite.linq4j.function.Function1;
-import org.apache.calcite.linq4j.function.NonDeterministic;
-import org.apache.calcite.linq4j.tree.Primitive;
-import org.apache.calcite.runtime.FlatLists.ComparableList;
-import org.apache.calcite.util.Bug;
-import org.apache.calcite.util.NumberUtil;
-import org.apache.calcite.util.TimeWithTimeZoneString;
-import org.apache.calcite.util.TimestampWithTimeZoneString;
-import org.apache.calcite.util.Unsafe;
-import org.apache.calcite.util.Util;
-
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.codec.language.Soundex;
-
-import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
@@ -73,11 +46,37 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
+
 import javax.annotation.Nonnull;
 
-import static org.apache.calcite.util.Static.RESOURCE;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.avatica.util.Spaces;
+import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.interpreter.Row;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.CartesianProductEnumerator;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.function.Deterministic;
+import org.apache.calcite.linq4j.function.Experimental;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.NonDeterministic;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.runtime.FlatLists.ComparableList;
+import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.NumberUtil;
+import org.apache.calcite.util.TimeWithTimeZoneString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
+import org.apache.calcite.util.Unsafe;
+import org.apache.calcite.util.Util;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.codec.language.Soundex;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 
 /**
  * Helper methods to implement SQL functions in generated code.

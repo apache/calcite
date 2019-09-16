@@ -16,6 +16,15 @@
  */
 package org.apache.calcite.piglet;
 
+import static org.apache.calcite.piglet.PigTypes.TYPE_FACTORY;
+
+import java.lang.reflect.Method;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -35,7 +44,6 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
-
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -43,15 +51,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 
 import com.google.common.collect.ImmutableList;
-
-import java.lang.reflect.Method;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import static org.apache.calcite.piglet.PigTypes.TYPE_FACTORY;
 
 /**
  * User-defined functions ({@link SqlUserDefinedFunction UDFs})

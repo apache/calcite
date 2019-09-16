@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.rel.mutable;
 
-import org.apache.calcite.rex.RexProgram;
-
 import java.util.Objects;
+
+import org.apache.calcite.rex.RexProgram;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Calc}. */
 public class MutableCalc extends MutableSingleRel {

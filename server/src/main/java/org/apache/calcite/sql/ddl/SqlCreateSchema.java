@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.sql.ddl;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.schema.Schema;
@@ -33,11 +38,6 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
-
-import java.util.List;
-import java.util.Objects;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Parse tree for {@code CREATE SCHEMA} statement.

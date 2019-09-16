@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.util;
 
-import com.google.common.primitives.Ints;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import com.google.common.primitives.Ints;
 
 /**
  * Extension to {@link ArrayList} to help build an array of <code>int</code>

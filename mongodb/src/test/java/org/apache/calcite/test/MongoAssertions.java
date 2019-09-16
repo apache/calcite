@@ -16,10 +16,9 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.util.TestUtil;
-
-import com.google.common.collect.Ordering;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assume.assumeTrue;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,9 +28,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assume.assumeTrue;
+import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.util.TestUtil;
+
+import com.google.common.collect.Ordering;
 
 /**
  * Util class which needs to be in the same package as {@link CalciteAssert}

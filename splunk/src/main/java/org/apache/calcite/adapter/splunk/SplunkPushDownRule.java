@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.adapter.splunk;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.calcite.adapter.splunk.util.StringUtils;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
@@ -40,15 +45,9 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
-
-import com.google.common.collect.ImmutableSet;
-
 import org.slf4j.Logger;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Planner rule to push filters and projections to Splunk.

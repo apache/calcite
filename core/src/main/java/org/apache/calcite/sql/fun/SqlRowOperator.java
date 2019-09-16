@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql.fun;
 
+import java.util.AbstractList;
+import java.util.Map;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
@@ -27,9 +30,6 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.util.Pair;
-
-import java.util.AbstractList;
-import java.util.Map;
 
 /**
  * SqlRowOperator represents the special ROW constructor.

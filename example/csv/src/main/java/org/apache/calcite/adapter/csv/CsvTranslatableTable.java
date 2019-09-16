@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.csv;
 
+import java.lang.reflect.Type;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -31,9 +34,6 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.util.Source;
-
-import java.lang.reflect.Type;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Table based on a CSV file.

@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel.core;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -29,9 +32,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  * Relational expression that returns the contents of a relation expression as

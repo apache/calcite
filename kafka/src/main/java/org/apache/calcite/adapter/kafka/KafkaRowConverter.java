@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.kafka;
 
 import org.apache.calcite.rel.type.RelDataType;
-
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 

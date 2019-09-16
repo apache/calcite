@@ -16,14 +16,13 @@
  */
 package org.apache.calcite.test;
 
-import org.hamcrest.CoreMatchers;
-import org.junit.Test;
+import static org.apache.calcite.util.Static.RESOURCE;
+import static org.junit.Assert.assertThat;
 
 import java.util.Map;
 
-import static org.apache.calcite.util.Static.RESOURCE;
-
-import static org.junit.Assert.assertThat;
+import org.hamcrest.CoreMatchers;
+import org.junit.Test;
 
 /**
  * Tests the generated implementation of

@@ -16,16 +16,8 @@
  */
 package org.apache.calcite.adapter.splunk.search;
 
-import org.apache.calcite.adapter.splunk.util.StringUtils;
-import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.util.Unsafe;
-import org.apache.calcite.util.Util;
-
-import au.com.bytecode.opencsv.CSVReader;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.apache.calcite.runtime.HttpUtils.appendURLEncodedArgs;
+import static org.apache.calcite.runtime.HttpUtils.post;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -46,8 +38,15 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.apache.calcite.runtime.HttpUtils.appendURLEncodedArgs;
-import static org.apache.calcite.runtime.HttpUtils.post;
+import org.apache.calcite.adapter.splunk.util.StringUtils;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.util.Unsafe;
+import org.apache.calcite.util.Util;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import au.com.bytecode.opencsv.CSVReader;
 
 /**
  * Implementation of {@link SplunkConnection} based on Splunk's REST API.

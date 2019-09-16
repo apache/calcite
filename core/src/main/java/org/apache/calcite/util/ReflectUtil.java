@@ -16,10 +16,6 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.linq4j.function.Parameter;
-
-import com.google.common.collect.ImmutableList;
-
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -29,6 +25,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.calcite.linq4j.function.Parameter;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Static utilities for Java reflection.

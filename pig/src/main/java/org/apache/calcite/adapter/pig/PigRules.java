@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.pig;
 
+import java.util.List;
+
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitSet;
@@ -28,8 +30,6 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * Various {@link RelOptRule}s using the Pig convention.

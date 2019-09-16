@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.prepare;
 
+import java.io.Reader;
+import java.util.List;
+import java.util.Properties;
+
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
@@ -60,10 +64,6 @@ import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
-
-import java.io.Reader;
-import java.util.List;
-import java.util.Properties;
 
 /** Implementation of {@link org.apache.calcite.tools.Planner}. */
 public class PlannerImpl implements Planner, ViewExpander {

@@ -16,16 +16,15 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import static org.junit.Assert.assertEquals;
+
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlTypeName;
-
-import com.google.common.collect.ImmutableList;
-
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Test for {@link org.apache.calcite.adapter.enumerable.PhysTypeImpl}.

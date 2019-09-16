@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.chinook;
 
-import net.hydromatic.chinook.data.hsqldb.ChinookHsqldb;
-import net.hydromatic.quidem.Quidem;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
+
+import net.hydromatic.chinook.data.hsqldb.ChinookHsqldb;
+import net.hydromatic.quidem.Quidem;
 
 /**
  * Wrapping connection factory for quidem

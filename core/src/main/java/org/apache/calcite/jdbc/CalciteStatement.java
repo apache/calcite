@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.jdbc;
 
+import java.sql.SQLException;
+
 import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.NoSuchStatementException;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.server.CalciteServerStatement;
-
-import java.sql.SQLException;
 
 /**
  * Implementation of {@link java.sql.Statement}

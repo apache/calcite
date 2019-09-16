@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.plan;
 
-import org.apache.calcite.config.CalciteConnectionConfig;
-
-import com.google.common.collect.ImmutableList;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import org.apache.calcite.config.CalciteConnectionConfig;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Utilities for {@link Context}.

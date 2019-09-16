@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.materialize;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /** Root node in a {@link Lattice}. It has no parent. */
 public class LatticeRootNode extends LatticeNode {

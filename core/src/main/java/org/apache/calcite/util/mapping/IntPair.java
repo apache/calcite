@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.util.mapping;
 
+import java.util.AbstractList;
+import java.util.Comparator;
+import java.util.List;
+
 import org.apache.calcite.runtime.Utilities;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-
-import java.util.AbstractList;
-import java.util.Comparator;
-import java.util.List;
 
 /**
  * An immutable pair of integers.

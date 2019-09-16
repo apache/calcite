@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel.core;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -34,9 +37,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import com.google.common.base.Preconditions;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  * Relational expression that modifies a table.

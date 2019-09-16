@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql.ddl;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.rel.type.RelDataType;
@@ -34,9 +37,6 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  * Parse tree for {@code CREATE TYPE} statement.

@@ -16,16 +16,15 @@
  */
 package org.apache.calcite.test;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.PigRelBuilder;
 import org.apache.calcite.util.Util;
-
 import org.junit.Test;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * Unit test for {@link PigRelBuilder}.

@@ -16,6 +16,13 @@
  */
 package org.apache.calcite.sql;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.util.List;
+import java.util.Objects;
+
+import javax.annotation.Nonnull;
+
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
@@ -26,12 +33,6 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
-import java.util.Objects;
-import javax.annotation.Nonnull;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * A <code>SqlFunction</code> is a type of operator which has conventional

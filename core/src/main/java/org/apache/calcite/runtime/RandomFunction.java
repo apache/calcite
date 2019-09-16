@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.runtime;
 
+import java.util.Random;
+
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Parameter;
-
-import java.util.Random;
 
 /**
  * Function object for {@code RAND} and {@code RAND_INTEGER}, with and without

@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.rex;
 
-import org.apache.calcite.plan.RelOptUtil.Logic;
-
-import com.google.common.collect.Iterables;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+
+import org.apache.calcite.plan.RelOptUtil.Logic;
+
+import com.google.common.collect.Iterables;
 
 /**
  * Visitor pattern for traversing a tree of {@link RexNode} objects.

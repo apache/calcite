@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
-import org.apache.calcite.linq4j.tree.Expression;
-
 import java.lang.reflect.Type;
 import java.util.List;
+
+import org.apache.calcite.linq4j.tree.Expression;
 
 /**
  * The base implementation of strict window aggregate function.

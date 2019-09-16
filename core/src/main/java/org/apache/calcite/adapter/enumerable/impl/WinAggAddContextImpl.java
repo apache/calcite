@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.enumerable.impl;
 
+import java.util.List;
+import java.util.function.Function;
+
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.adapter.enumerable.WinAggAddContext;
 import org.apache.calcite.adapter.enumerable.WinAggFrameResultContext;
@@ -23,9 +26,6 @@ import org.apache.calcite.adapter.enumerable.WinAggImplementor;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-
-import java.util.List;
-import java.util.function.Function;
 
 /**
  * Implementation of

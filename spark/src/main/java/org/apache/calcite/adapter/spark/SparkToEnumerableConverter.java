@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.spark;
 
+import java.util.List;
+
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
@@ -35,8 +37,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.validate.SqlConformance;
-
-import java.util.List;
 
 /**
  * Relational expression that converts input of

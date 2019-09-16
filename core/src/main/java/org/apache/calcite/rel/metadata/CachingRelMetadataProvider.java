@@ -16,12 +16,6 @@
  */
 package org.apache.calcite.rel.metadata;
 
-import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.rel.RelNode;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Multimap;
-
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -30,6 +24,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.rel.RelNode;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multimap;
 
 /**
  * Implementation of the {@link RelMetadataProvider}

@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql.util;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -23,9 +26,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Implementation of the {@link SqlOperatorTable} interface by using a list of

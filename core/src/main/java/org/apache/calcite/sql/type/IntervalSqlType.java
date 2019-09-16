@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.type;
 
+import java.util.Objects;
+
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
@@ -26,8 +28,6 @@ import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.util.SqlString;
-
-import java.util.Objects;
 
 /**
  * IntervalSqlType represents a standard SQL datetime interval type.

@@ -16,11 +16,13 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.linq4j.function.Function0;
-
-import com.google.common.collect.ImmutableList;
-
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,13 +33,10 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Random;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.apache.calcite.linq4j.function.Function0;
+import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Unit and performance test for {@link ChunkList}.

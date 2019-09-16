@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
@@ -28,10 +30,7 @@ import org.apache.calcite.sql.test.SqlValidatorTester;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
-
 import org.junit.Test;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * SqlValidatorFeatureTest verifies that features can be independently enabled

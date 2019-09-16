@@ -16,6 +16,13 @@
  */
 package org.apache.calcite.test;
 
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNull.notNullValue;
+import static org.junit.Assert.assertThat;
+
+import java.util.Calendar;
+import java.util.List;
+
 import org.apache.calcite.adapter.druid.DruidDateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.rules.DateRangeRules;
@@ -24,19 +31,11 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.RexImplicationCheckerTest.Fixture;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
-
-import com.google.common.collect.ImmutableList;
-
 import org.hamcrest.Matcher;
 import org.joda.time.Interval;
 import org.junit.Test;
 
-import java.util.Calendar;
-import java.util.List;
-
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNull.notNullValue;
-import static org.junit.Assert.assertThat;
+import com.google.common.collect.ImmutableList;
 
 /** Unit tests for {@link DateRangeRules} algorithms. */
 public class DruidDateRangeRulesTest {

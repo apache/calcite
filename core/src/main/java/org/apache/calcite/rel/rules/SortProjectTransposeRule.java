@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.rules;
 
+import java.util.Map;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -41,8 +43,6 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
-import java.util.Map;
 
 /**
  * Planner rule that pushes

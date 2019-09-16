@@ -16,11 +16,10 @@
  */
 package org.apache.calcite.adapter.file;
 
-import org.apache.calcite.linq4j.Enumerator;
-
-import org.jsoup.select.Elements;
-
 import java.util.Iterator;
+
+import org.apache.calcite.linq4j.Enumerator;
+import org.jsoup.select.Elements;
 
 /**
  * Wraps {@link FileReader} and {@link FileRowConverter}, enumerates tr DOM

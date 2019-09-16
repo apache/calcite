@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.druid;
 
 import java.util.Locale;
+
 import javax.annotation.Nonnull;
 
 /**

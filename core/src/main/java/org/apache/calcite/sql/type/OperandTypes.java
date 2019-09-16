@@ -16,6 +16,12 @@
  */
 package org.apache.calcite.sql.type;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.function.Predicate;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.sql.SqlCallBinding;
@@ -26,12 +32,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
 
 import com.google.common.collect.ImmutableList;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.function.Predicate;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Strategies for checking operand types.

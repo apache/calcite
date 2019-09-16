@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.jdbc;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
@@ -23,9 +26,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  * Relational expression representing a scan of a table in a JDBC data source.

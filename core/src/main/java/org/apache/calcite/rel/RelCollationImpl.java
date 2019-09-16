@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.rel;
 
+import java.util.Iterator;
+import java.util.List;
+
+import javax.annotation.Nonnull;
+
 import org.apache.calcite.plan.RelMultipleTrait;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTrait;
@@ -27,10 +32,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.UnmodifiableIterator;
-
-import java.util.Iterator;
-import java.util.List;
-import javax.annotation.Nonnull;
 
 /**
  * Simple implementation of {@link RelCollation}.

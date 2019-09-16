@@ -16,11 +16,8 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.rel.RelNode;
-
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.apache.calcite.test.Matchers.hasTree;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -31,9 +28,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.calcite.test.Matchers.hasTree;
-
-import static org.hamcrest.MatcherAssert.assertThat;
+import org.apache.calcite.rel.RelNode;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 /**
  * Test for converting a Pig script file.

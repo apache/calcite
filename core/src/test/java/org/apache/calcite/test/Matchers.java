@@ -16,14 +16,19 @@
  */
 package org.apache.calcite.test;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.StreamSupport;
+
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.CustomTypeSafeMatcher;
@@ -34,14 +39,8 @@ import org.hamcrest.TypeSafeMatcher;
 import org.hamcrest.core.Is;
 import org.hamcrest.core.StringContains;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Function;
-import java.util.stream.StreamSupport;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 /**
  * Matchers for testing SQL queries.

@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.util.Util;
-
 import static org.apache.calcite.sql.SqlFunctionCategory.Property.FUNCTION;
 import static org.apache.calcite.sql.SqlFunctionCategory.Property.SPECIFIC;
 import static org.apache.calcite.sql.SqlFunctionCategory.Property.TABLE_FUNCTION;
@@ -25,6 +23,8 @@ import static org.apache.calcite.sql.SqlFunctionCategory.Property.USER_DEFINED;
 
 import java.util.Arrays;
 import java.util.EnumSet;
+
+import org.apache.calcite.util.Util;
 
 /**
  * Enumeration of the categories of

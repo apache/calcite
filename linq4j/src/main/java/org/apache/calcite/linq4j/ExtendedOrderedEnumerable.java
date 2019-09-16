@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.apache.calcite.linq4j.function.Function1;
-
 import java.util.Comparator;
+
+import org.apache.calcite.linq4j.function.Function1;
 
 /**
  * Extension methods for {@link OrderedEnumerable}.

@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.sql.type;
 
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlIdentifier;
-
-import java.util.List;
 
 /**
  * ObjectSqlType represents an SQL structured user-defined type.

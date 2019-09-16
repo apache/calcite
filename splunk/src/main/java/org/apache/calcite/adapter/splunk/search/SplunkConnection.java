@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.adapter.splunk.search;
 
-import org.apache.calcite.linq4j.Enumerator;
-
 import java.util.List;
 import java.util.Map;
+
+import org.apache.calcite.linq4j.Enumerator;
 
 /**
  * Connection to Splunk.

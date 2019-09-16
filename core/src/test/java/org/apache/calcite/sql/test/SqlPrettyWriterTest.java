@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.sql.test;
 
+import static org.junit.Assert.assertTrue;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
@@ -25,14 +30,8 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.test.DiffRepository;
 import org.apache.calcite.util.Litmus;
-
 import org.junit.Ignore;
 import org.junit.Test;
-
-import java.io.PrintWriter;
-import java.io.StringWriter;
-
-import static org.junit.Assert.assertTrue;
 
 /**
  * Unit test for {@link SqlPrettyWriter}.

@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.sql.type;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
 import org.apache.calcite.util.Glossary;
@@ -24,11 +29,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 /**
  * SqlTypeExplicitPrecedenceList implements the

@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.List;
+
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
-
-import java.util.List;
 
 /**
  * Abstract base for character and binary string literals.

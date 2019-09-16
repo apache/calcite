@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.file;
 
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
@@ -36,9 +39,6 @@ import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.util.Source;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * Table implementation wrapping a URL / HTML table.

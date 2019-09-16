@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.rel.mutable;
 
+import java.util.Objects;
+import java.util.Set;
+
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
-
-import java.util.Objects;
-import java.util.Set;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Join}. */
 public class MutableJoin extends MutableBiRel {

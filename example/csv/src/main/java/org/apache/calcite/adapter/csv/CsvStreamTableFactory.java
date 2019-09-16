@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.csv;
 
+import java.io.File;
+import java.util.Map;
+
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
@@ -24,9 +27,6 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TableFactory;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
-
-import java.io.File;
-import java.util.Map;
 
 /**
  * Factory that creates a {@link CsvTranslatableTable}.

@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.plan;
 
+import java.util.List;
+import java.util.regex.Pattern;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
@@ -23,11 +26,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.util.CancelFlag;
 import org.apache.calcite.util.trace.CalciteTrace;
-
 import org.slf4j.Logger;
-
-import java.util.List;
-import java.util.regex.Pattern;
 
 /**
  * A <code>RelOptPlanner</code> is a query optimizer: it transforms a relational

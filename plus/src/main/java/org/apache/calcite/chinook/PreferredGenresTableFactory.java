@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.chinook;
 
+import java.util.Map;
+
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
@@ -29,8 +31,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
 import com.google.common.collect.Range;
-
-import java.util.Map;
 
 /**
  * Factory for the table of genres preferred by the current user.

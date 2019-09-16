@@ -22,7 +22,6 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.JdbcTest;
-
 import org.junit.Test;
 
 /**

@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.sql.parser;
 
-import org.apache.calcite.util.CalciteParserException;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
+
+import org.apache.calcite.util.CalciteParserException;
 
 /**
  * SqlParseException defines a checked exception corresponding to

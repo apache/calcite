@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.plan;
 
+import java.util.List;
+
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.NoneToBindableConverterRule;
@@ -72,8 +74,6 @@ import org.apache.calcite.rel.rules.UnionToDistinctRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * A utility class for organizing built-in rules and rule related

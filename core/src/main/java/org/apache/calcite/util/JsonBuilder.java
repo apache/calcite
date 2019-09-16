@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.avatica.util.Spaces;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.calcite.avatica.util.Spaces;
 
 /**
  * Builder for JSON documents (represented as {@link List}, {@link Map},

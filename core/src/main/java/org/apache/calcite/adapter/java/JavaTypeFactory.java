@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.adapter.java;
 
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-
 import java.lang.reflect.Type;
 import java.util.List;
+
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 
 /**
  * Type factory that can register Java classes as record types.

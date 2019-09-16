@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.rel.mutable;
 
-import org.apache.calcite.rel.RelDistribution;
-
 import java.util.Objects;
+
+import org.apache.calcite.rel.RelDistribution;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Exchange}. */
 public class MutableExchange extends MutableSingleRel {

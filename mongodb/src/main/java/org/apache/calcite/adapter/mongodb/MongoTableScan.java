@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.mongodb;
 
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -26,8 +28,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
-
-import java.util.List;
 
 /**
  * Relational expression representing a scan of a MongoDB collection.

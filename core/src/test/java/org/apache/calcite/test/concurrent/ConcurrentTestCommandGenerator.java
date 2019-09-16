@@ -16,11 +16,6 @@
  */
 package org.apache.calcite.test.concurrent;
 
-import org.apache.calcite.jdbc.SqlTimeoutException;
-import org.apache.calcite.util.Util;
-
-import com.google.common.collect.ImmutableList;
-
 import java.io.PrintStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -38,6 +33,11 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
+
+import org.apache.calcite.jdbc.SqlTimeoutException;
+import org.apache.calcite.util.Util;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * ConcurrentTestCommandGenerator creates instances of

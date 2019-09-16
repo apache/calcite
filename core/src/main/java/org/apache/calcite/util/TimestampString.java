@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.util;
 
+import java.util.Calendar;
+import java.util.regex.Pattern;
+
 import org.apache.calcite.avatica.util.DateTimeUtils;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-
-import java.util.Calendar;
-import java.util.regex.Pattern;
 
 /**
  * Timestamp literal.

@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel.logical;
 
+import static org.apache.calcite.test.Matchers.hasTree;
+import static org.junit.Assert.assertThat;
+
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
@@ -41,15 +44,10 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.TestUtil;
+import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-
-import org.junit.Test;
-
-import static org.apache.calcite.test.Matchers.hasTree;
-
-import static org.junit.Assert.assertThat;
 
 /**
  * Tests for {@link ToLogicalConverter}.

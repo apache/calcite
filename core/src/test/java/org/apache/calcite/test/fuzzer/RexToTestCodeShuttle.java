@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.test.fuzzer;
 
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexFieldAccess;
@@ -27,9 +30,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableMap;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * Converts {@link RexNode} into a string form usable for inclusion into

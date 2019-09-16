@@ -16,6 +16,14 @@
  */
 package org.apache.calcite.sql.validate;
 
+import static org.apache.calcite.sql.SqlUtil.stripAs;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
+
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
@@ -31,14 +39,6 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Supplier;
-
-import static org.apache.calcite.sql.SqlUtil.stripAs;
 
 /**
  * Scope for resolving identifiers within a SELECT statement that has a

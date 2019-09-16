@@ -16,6 +16,14 @@
  */
 package org.apache.calcite.piglet;
 
+import static org.apache.calcite.piglet.PigTypes.TYPE_FACTORY;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.core.Aggregate;
@@ -36,14 +44,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.apache.calcite.piglet.PigTypes.TYPE_FACTORY;
 
 /**
  * Planner rule that converts Pig aggregate UDF calls to built-in SQL

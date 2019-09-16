@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.sql;
 
+import java.math.BigDecimal;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
-
-import java.math.BigDecimal;
 
 /**
  * A numeric SQL literal.

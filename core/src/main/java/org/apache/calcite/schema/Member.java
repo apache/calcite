@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.schema;
 
+import java.util.List;
+
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.rel.type.RelDataType;
-
-import java.util.List;
 
 /**
  * A named expression in a schema.

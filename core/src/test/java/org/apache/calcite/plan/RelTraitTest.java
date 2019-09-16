@@ -16,17 +16,16 @@
  */
 package org.apache.calcite.plan;
 
+import java.util.List;
+import java.util.function.Supplier;
+
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
-
-import com.google.common.collect.ImmutableList;
-
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.List;
-import java.util.function.Supplier;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Test to verify {@link RelCompositeTrait}.

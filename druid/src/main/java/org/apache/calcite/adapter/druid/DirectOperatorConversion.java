@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
-
-import java.util.List;
 
 /**
  * Direct operator conversion for expression like Function(exp_1,...exp_n)

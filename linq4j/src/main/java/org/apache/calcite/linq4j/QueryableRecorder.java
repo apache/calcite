@@ -16,6 +16,12 @@
  */
 package org.apache.calcite.linq4j;
 
+import static org.apache.calcite.linq4j.QueryableDefaults.NonLeafReplayableQueryable;
+
+import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.util.Comparator;
+
 import org.apache.calcite.linq4j.function.BigDecimalFunction1;
 import org.apache.calcite.linq4j.function.DoubleFunction1;
 import org.apache.calcite.linq4j.function.EqualityComparer;
@@ -32,12 +38,6 @@ import org.apache.calcite.linq4j.function.NullableLongFunction1;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
-
-import java.lang.reflect.Type;
-import java.math.BigDecimal;
-import java.util.Comparator;
-
-import static org.apache.calcite.linq4j.QueryableDefaults.NonLeafReplayableQueryable;
 
 /**
  * Implementation of {@link QueryableFactory} that records each event

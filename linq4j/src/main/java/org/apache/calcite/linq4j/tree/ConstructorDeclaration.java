@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import com.google.common.collect.Lists;
-
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Objects;
+
+import com.google.common.collect.Lists;
 
 /**
  * Declaration of a constructor.

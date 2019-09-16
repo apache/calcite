@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.adapter.cassandra;
 
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -43,10 +47,6 @@ import org.apache.calcite.util.Util;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableList;
-
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Table based on a Cassandra column family

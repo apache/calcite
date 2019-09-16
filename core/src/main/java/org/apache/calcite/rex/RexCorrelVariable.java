@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.rex;
 
+import java.util.Objects;
+
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
-
-import java.util.Objects;
 
 /**
  * Reference to the current row of a correlating relational expression.

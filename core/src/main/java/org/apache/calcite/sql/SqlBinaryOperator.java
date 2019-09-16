@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.sql;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.math.BigDecimal;
+import java.nio.charset.Charset;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
@@ -27,11 +32,6 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
-
-import java.math.BigDecimal;
-import java.nio.charset.Charset;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * <code>SqlBinaryOperator</code> is a binary operator.

@@ -16,6 +16,12 @@
  */
 package org.apache.calcite.linq4j;
 
+import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.linq4j.function.BigDecimalFunction1;
 import org.apache.calcite.linq4j.function.DoubleFunction1;
 import org.apache.calcite.linq4j.function.EqualityComparer;
@@ -32,12 +38,6 @@ import org.apache.calcite.linq4j.function.NullableIntegerFunction1;
 import org.apache.calcite.linq4j.function.NullableLongFunction1;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
-
-import java.math.BigDecimal;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Implementation of the {@link org.apache.calcite.linq4j.Enumerable} interface

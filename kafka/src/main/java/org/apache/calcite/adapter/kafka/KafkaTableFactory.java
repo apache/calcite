@@ -16,16 +16,15 @@
  */
 package org.apache.calcite.adapter.kafka;
 
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.TableFactory;
-
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.OffsetResetStrategy;
-
 import java.lang.reflect.InvocationTargetException;
 import java.util.Locale;
 import java.util.Map;
+
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.TableFactory;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 
 /**
  * Implementation of {@link TableFactory} for Apache Kafka. Currently an Apache Kafka

@@ -16,19 +16,19 @@
  */
 package org.apache.calcite.sql.type;
 
-import org.apache.calcite.rel.metadata.RelColumnMapping;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rel.type.RelProtoDataType;
-import org.apache.calcite.sql.SqlCallBinding;
-import org.apache.calcite.sql.SqlOperatorBinding;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.apache.calcite.util.Static.RESOURCE;
+import org.apache.calcite.rel.metadata.RelColumnMapping;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlOperatorBinding;
 
 /**
  * TableFunctionReturnTypeInference implements rules for deriving table function

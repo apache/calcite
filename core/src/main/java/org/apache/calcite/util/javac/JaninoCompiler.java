@@ -16,19 +16,18 @@
  */
 package org.apache.calcite.util.javac;
 
-import org.apache.calcite.config.CalciteSystemProperty;
-
-import org.codehaus.janino.JavaSourceClassLoader;
-import org.codehaus.janino.util.ClassFile;
-import org.codehaus.janino.util.resource.MapResourceFinder;
-import org.codehaus.janino.util.resource.ResourceFinder;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.calcite.config.CalciteSystemProperty;
+import org.codehaus.janino.JavaSourceClassLoader;
+import org.codehaus.janino.util.ClassFile;
+import org.codehaus.janino.util.resource.MapResourceFinder;
+import org.codehaus.janino.util.resource.ResourceFinder;
 
 /**
  * <code>JaninoCompiler</code> implements the {@link JavaCompiler} interface by

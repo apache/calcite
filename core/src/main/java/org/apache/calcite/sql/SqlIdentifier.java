@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.rel.type.DynamicRecordType;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.util.SqlVisitor;
@@ -28,9 +31,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * A <code>SqlIdentifier</code> is an identifier, possibly compound.

@@ -16,6 +16,16 @@
  */
 package org.apache.calcite.rel.rules;
 
+import static org.apache.calcite.plan.RelOptRule.any;
+import static org.apache.calcite.plan.RelOptRule.none;
+import static org.apache.calcite.plan.RelOptRule.operand;
+import static org.apache.calcite.plan.RelOptRule.operandJ;
+import static org.apache.calcite.plan.RelOptRule.some;
+import static org.apache.calcite.plan.RelOptRule.unordered;
+
+import java.util.List;
+import java.util.function.Predicate;
+
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
@@ -38,16 +48,6 @@ import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-
-import java.util.List;
-import java.util.function.Predicate;
-
-import static org.apache.calcite.plan.RelOptRule.any;
-import static org.apache.calcite.plan.RelOptRule.none;
-import static org.apache.calcite.plan.RelOptRule.operand;
-import static org.apache.calcite.plan.RelOptRule.operandJ;
-import static org.apache.calcite.plan.RelOptRule.some;
-import static org.apache.calcite.plan.RelOptRule.unordered;
 
 /**
  * Collection of rules which remove sections of a query plan known never to

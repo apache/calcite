@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.List;
+
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
@@ -24,8 +26,6 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * SQL function that computes keys by which rows can be partitioned and

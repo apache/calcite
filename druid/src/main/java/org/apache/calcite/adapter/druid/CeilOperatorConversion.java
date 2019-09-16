@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import java.util.TimeZone;
+
+import javax.annotation.Nullable;
+
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
@@ -25,9 +29,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
-
-import java.util.TimeZone;
-import javax.annotation.Nullable;
 
 /**
  * DruidSqlOperatorConverter implementation that handles Ceil operations conversions

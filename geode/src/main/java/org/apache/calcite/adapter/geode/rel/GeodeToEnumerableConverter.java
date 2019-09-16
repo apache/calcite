@@ -16,6 +16,14 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
+import static org.apache.calcite.adapter.geode.rel.GeodeRules.geodeFieldNames;
+
+import java.lang.reflect.Method;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
@@ -40,14 +48,6 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.Lists;
-
-import java.lang.reflect.Method;
-import java.util.AbstractList;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import static org.apache.calcite.adapter.geode.rel.GeodeRules.geodeFieldNames;
 
 /**
  * Relational expression representing a scan of a table in a Geode data source.

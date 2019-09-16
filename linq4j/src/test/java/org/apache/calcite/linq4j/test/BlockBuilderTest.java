@@ -16,6 +16,14 @@
  */
 package org.apache.calcite.linq4j.test;
 
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.FOUR;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
+import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
+import static org.junit.Assert.assertEquals;
+
+import java.lang.reflect.Method;
+import java.util.function.Function;
+
 import org.apache.calcite.linq4j.tree.BinaryExpression;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -24,18 +32,8 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.OptimizeShuttle;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Shuttle;
-
 import org.junit.Before;
 import org.junit.Test;
-
-import java.lang.reflect.Method;
-import java.util.function.Function;
-
-import static org.apache.calcite.linq4j.test.BlockBuilderBase.FOUR;
-import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
-import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
-
-import static org.junit.Assert.assertEquals;
 
 /**
  * Tests BlockBuilder.

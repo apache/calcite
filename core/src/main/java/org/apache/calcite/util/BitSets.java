@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.util;
 
-import com.google.common.collect.ImmutableSortedMap;
-
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
+
+import com.google.common.collect.ImmutableSortedMap;
 
 /**
  * Utility functions for {@link BitSet}.

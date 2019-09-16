@@ -16,11 +16,10 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.adapter.mongodb.MongoAdapterTest;
-
-import org.junit.BeforeClass;
-
 import static org.junit.Assume.assumeTrue;
+
+import org.apache.calcite.adapter.mongodb.MongoAdapterTest;
+import org.junit.BeforeClass;
 
 /**
  * Used to trigger integration tests from maven (thus class name is suffixed with {@code IT}).

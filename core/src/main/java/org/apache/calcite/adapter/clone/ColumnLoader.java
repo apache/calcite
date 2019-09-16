@@ -16,18 +16,6 @@
  */
 package org.apache.calcite.adapter.clone;
 
-import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.avatica.ColumnMetaData;
-import org.apache.calcite.avatica.util.DateTimeUtils;
-import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.tree.Primitive;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rel.type.RelProtoDataType;
-
-import com.google.common.collect.Lists;
-
 import java.lang.reflect.Type;
 import java.sql.Date;
 import java.sql.Time;
@@ -39,6 +27,18 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelProtoDataType;
+
+import com.google.common.collect.Lists;
 
 /**
  * Column loader.

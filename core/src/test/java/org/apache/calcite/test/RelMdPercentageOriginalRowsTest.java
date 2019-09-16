@@ -19,7 +19,6 @@ package org.apache.calcite.test;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
-
 import org.junit.Test;
 
 /** Test case for CALCITE-2894 */

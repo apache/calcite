@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.schema.impl;
 
+import java.lang.reflect.Type;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -27,10 +31,6 @@ import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.schema.TranslatableTable;
 
 import com.google.common.collect.ImmutableList;
-
-import java.lang.reflect.Type;
-import java.util.Collections;
-import java.util.List;
 
 /** Table function that implements a view. It returns the operator
  * tree of the view's SQL query. */

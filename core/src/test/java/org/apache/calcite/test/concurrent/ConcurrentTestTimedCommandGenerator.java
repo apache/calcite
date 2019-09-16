@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.test.concurrent;
 
-import com.google.common.collect.ImmutableList;
-
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * ConcurrentTestTimedCommandGenerator extends

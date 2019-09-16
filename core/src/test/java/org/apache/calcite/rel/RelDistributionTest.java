@@ -16,14 +16,13 @@
  */
 package org.apache.calcite.rel;
 
-import org.apache.calcite.plan.RelTraitSet;
-
-import com.google.common.collect.ImmutableList;
-
-import org.junit.Test;
-
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+
+import org.apache.calcite.plan.RelTraitSet;
+import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Tests for {@link RelDistribution}.

@@ -16,12 +16,8 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.config.CalciteConnectionProperty;
-import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
-
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -32,8 +28,11 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.function.UnaryOperator;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 /**
  * Unit tests for Babel framework.

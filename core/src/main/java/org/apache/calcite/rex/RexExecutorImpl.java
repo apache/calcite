@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.rex;
 
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
+import java.util.List;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator.InputGetter;
@@ -37,10 +41,6 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
-import java.util.List;
 
 /**
 * Evaluates a {@link RexNode} expression.

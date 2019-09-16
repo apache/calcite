@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.csv;
 
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -28,9 +31,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.Source;
-
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Table based on a CSV file that can implement simple filtering.

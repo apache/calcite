@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.schema;
 
-import org.apache.calcite.linq4j.tree.Expression;
-import org.apache.calcite.rel.type.RelProtoDataType;
-
 import java.util.Collection;
 import java.util.Set;
+
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.rel.type.RelProtoDataType;
 
 /**
  * A namespace for tables and functions.

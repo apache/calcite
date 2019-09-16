@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.file;
 
+import java.util.List;
+
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
@@ -33,8 +35,6 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
-
-import java.util.List;
 
 /**
  * Relational expression representing a scan of an HTML table.

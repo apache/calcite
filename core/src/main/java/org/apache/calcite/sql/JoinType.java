@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.sql.parser.SqlParserPos;
-
 import java.util.Locale;
+
+import org.apache.calcite.sql.parser.SqlParserPos;
 
 /**
  * Enumerates the types of join.

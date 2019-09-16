@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.rel.type;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Holding the expandable list of fields for dynamic table.

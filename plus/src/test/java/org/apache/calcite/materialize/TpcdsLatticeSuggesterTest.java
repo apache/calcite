@@ -16,6 +16,15 @@
  */
 package org.apache.calcite.materialize;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+import java.util.Properties;
+import java.util.Random;
+
+import net.hydromatic.tpcds.query.Query;
+
 import org.apache.calcite.adapter.tpcds.TpcdsSchema;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
@@ -34,17 +43,7 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
-
-import net.hydromatic.tpcds.query.Query;
-
 import org.junit.Test;
-
-import java.util.List;
-import java.util.Properties;
-import java.util.Random;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * Unit tests for {@link LatticeSuggester}.

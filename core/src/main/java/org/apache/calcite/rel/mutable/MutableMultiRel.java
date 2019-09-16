@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.rel.mutable;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.type.RelDataType;
 
 import com.google.common.collect.Lists;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /** Base Class for relations with three or more inputs */
 abstract class MutableMultiRel extends MutableRel {

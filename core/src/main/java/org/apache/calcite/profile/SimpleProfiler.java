@@ -16,17 +16,6 @@
  */
 package org.apache.calcite.profile;
 
-import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.materialize.Lattice;
-import org.apache.calcite.rel.metadata.NullSentinel;
-import org.apache.calcite.runtime.FlatLists;
-import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.PartiallyOrderedSet;
-import org.apache.calcite.util.Util;
-
-import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Iterables;
-
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
@@ -38,7 +27,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+
 import javax.annotation.Nonnull;
+
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.rel.metadata.NullSentinel;
+import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.PartiallyOrderedSet;
+import org.apache.calcite.util.Util;
+
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Iterables;
 
 /**
  * Basic implementation of {@link Profiler}.

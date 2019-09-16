@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.util;
 
+import java.util.List;
+
 import org.apache.calcite.runtime.CalciteResource;
 import org.apache.calcite.runtime.ConsList;
 import org.apache.calcite.runtime.Resources;
-
-import java.util.List;
 
 /**
  * Definitions of objects to be statically imported.

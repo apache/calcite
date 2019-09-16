@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.piglet;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.apache.calcite.rel.type.DynamicRecordTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Represents Pig Tuples with unknown fields. The tuple field

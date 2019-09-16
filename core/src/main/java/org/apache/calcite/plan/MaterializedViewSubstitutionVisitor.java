@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.plan;
 
+import java.util.List;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.mutable.MutableFilter;
 import org.apache.calcite.rel.mutable.MutableProject;
@@ -29,8 +31,6 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * Extension to {@link SubstitutionVisitor}.

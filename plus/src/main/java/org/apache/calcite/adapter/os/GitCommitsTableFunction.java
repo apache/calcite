@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.os;
 
+import java.util.NoSuchElementException;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.AbstractEnumerable;
@@ -33,8 +35,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.NoSuchElementException;
 
 /**
  * Table function that executes the OS "git log" command
