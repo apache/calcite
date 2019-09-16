@@ -17,6 +17,9 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.schema.Function;
+import org.apache.calcite.schema.FunctionParameter;
 import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
 
 import org.junit.Ignore;
@@ -29,6 +32,8 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
@@ -163,6 +168,68 @@ public class ServerTest {
       assertThat(b, is(false));
       x = s.executeUpdate("insert into t2 values (1, NULL)");
       assertThat(x, is(1));
+    }
+  }
+
+  @Test public void testCreateFunction() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      boolean b = s.execute("create schema s");
+      assertThat(b, is(false));
+      try {
+        boolean f = s.execute("create function if not exists s.t \n"
+                + "as 'org.apache.calcite.udf.TableFun.demoUdf'\n"
+                + "using jar 'file:/path/udf/udf-0.0.1-SNAPSHOT.jar'");
+      } catch (SQLException e) {
+        assertThat(e.getMessage(),
+                containsString("CREATE FUNCTION is not supported yet"));
+      }
+    }
+  }
+
+  @Test public void testDropFunction() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      boolean b = s.execute("create schema s");
+      assertThat(b, is(false));
+
+      boolean f = s.execute("drop function if exists t");
+      assertThat(f, is(false));
+
+      try {
+        boolean f2 = s.execute("drop function t");
+        assertThat(f2, is(false));
+      } catch (SQLException e) {
+        assertThat(e.getMessage(),
+                containsString("Error while executing SQL \"drop function t\":"
+                        + " At line 1, column 15: Function 'T' not found"));
+      }
+
+      CalciteConnection calciteConnection = (CalciteConnection) c;
+      calciteConnection.getRootSchema().add("T", new Function() {
+        @Override public List<FunctionParameter> getParameters() {
+          return new ArrayList<>();
+        }
+      });
+
+      boolean f3 = s.execute("drop function t");
+      assertThat(f3, is(false));
+
+      // case sensitive function name
+      calciteConnection.getRootSchema().add("t", new Function() {
+        @Override public List<FunctionParameter> getParameters() {
+          return new ArrayList<>();
+        }
+      });
+
+      try {
+        boolean f4 = s.execute("drop function t");
+        assertThat(f4, is(false));
+      } catch (SQLException e) {
+        assertThat(e.getMessage(),
+                containsString("Error while executing SQL \"drop function t\":"
+                        + " At line 1, column 15: Function 'T' not found"));
+      }
     }
   }
 
