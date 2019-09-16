@@ -538,7 +538,7 @@ public class RelWriterTest {
     rel.explain(jsonWriter);
     String relJson = jsonWriter.asString();
     final RelOptSchema schema = getSchema(rel);
-    final String s = deserializeAndDumpToTextFormat(schema, relJson);
+    final String s = deserializeAndDump(schema, relJson, SqlExplainFormat.TEXT);
     final String expected = ""
         + "LogicalProject(trimmed_ename=[TRIM(FLAG(BOTH), ' ', $1)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
@@ -558,7 +558,7 @@ public class RelWriterTest {
     RelJsonWriter jsonWriter = new RelJsonWriter();
     rel.explain(jsonWriter);
     String relJson = jsonWriter.asString();
-    String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
+    String s = deserializeAndDump(getSchema(rel), relJson, SqlExplainFormat.TEXT);
     final String expected = ""
         + "LogicalProject($f0=[+($5, 10)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
@@ -583,7 +583,7 @@ public class RelWriterTest {
     final RelJsonWriter jsonWriter = new RelJsonWriter();
     rel.explain(jsonWriter);
     final String relJson = jsonWriter.asString();
-    String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
+    String s = deserializeAndDump(getSchema(rel), relJson, SqlExplainFormat.TEXT);
     final String expected = ""
         + "LogicalProject(max_sal=[$1])\n"
         + "  LogicalAggregate(group=[{0}], max_sal=[MAX($1)])\n"
@@ -611,7 +611,7 @@ public class RelWriterTest {
     final RelJsonWriter jsonWriter = new RelJsonWriter();
     rel.explain(jsonWriter);
     final String relJson = jsonWriter.asString();
-    String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
+    String s = deserializeAndDump(getSchema(rel), relJson, SqlExplainFormat.TEXT);
     final String expected = ""
         + "LogicalProject($f1=[$1])\n"
         + "  LogicalAggregate(group=[{0}], agg#0=[MAX($1)])\n"
@@ -637,19 +637,7 @@ public class RelWriterTest {
     final LogicalCalc calc = LogicalCalc.create(scan, programBuilder.getProgram());
     String relJson = RelOptUtil.dumpPlan("", calc,
         SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
-    String s =
-        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
-          final RelJsonReader reader = new RelJsonReader(
-              cluster, getSchema(calc), rootSchema);
-          RelNode node;
-          try {
-            node = reader.read(relJson);
-          } catch (IOException e) {
-            throw TestUtil.rethrow(e);
-          }
-          return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
-              SqlExplainLevel.EXPPLAN_ATTRIBUTES);
-        });
+    String s = deserializeAndDump(getSchema(calc), relJson, SqlExplainFormat.TEXT);
     final String expected =
         "LogicalCalc(expr#0..7=[{inputs}], expr#8=[10], expr#9=[>($t5, $t8)],"
             + " proj#0..7=[{exprs}], $condition=[$t9])\n"
@@ -672,7 +660,7 @@ public class RelWriterTest {
     RelJsonWriter jsonWriter = new RelJsonWriter();
     relNode.explain(jsonWriter);
     final String relJson = jsonWriter.asString();
-    String s = deserializeAndDumpToTextFormat(getSchema(relNode), relJson);
+    String s = deserializeAndDump(getSchema(relNode), relJson, SqlExplainFormat.TEXT);
     final String expected = ""
         + "LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
@@ -680,6 +668,49 @@ public class RelWriterTest {
         + "    LogicalTableScan(table=[[scott, DEPT]])\n";
 
     assertThat(s, isLinux(expected));
+  }
+
+  @Test public void testVarcharRexLiteral() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final RelDataType varcharType = rexBuilder.getTypeFactory()
+        .createSqlType(SqlTypeName.VARCHAR, 10);
+    // The rel node stands for sql: select ename from emp where job = "abd";
+    RelNode rel = builder.scan("EMP")
+        .filter(
+            builder.call(
+                SqlStdOperatorTable.EQUALS,
+                builder.field("JOB"),
+                rexBuilder.makeLiteral("abd", varcharType, true)))
+        .project(builder.field("ENAME"))
+        .build();
+    RelJsonWriter jsonWriter = new RelJsonWriter();
+    rel.explain(jsonWriter);
+    final String relJson = jsonWriter.asString();
+    String s = deserializeAndDump(getSchema(rel), relJson, SqlExplainFormat.JSON);
+    assertThat(s, isLinux(relJson));
+  }
+
+  @Test public void testCharRexLiteral() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final RelDataType varcharType = rexBuilder.getTypeFactory()
+        .createSqlType(SqlTypeName.CHAR, 3);
+    RelNode rel = builder.scan("EMP")
+        .filter(
+            builder.call(
+                SqlStdOperatorTable.EQUALS,
+                builder.field("JOB"),
+                rexBuilder.makeLiteral("abd", varcharType, true)))
+        .project(builder.field("ENAME"))
+        .build();
+    RelJsonWriter jsonWriter = new RelJsonWriter();
+    rel.explain(jsonWriter);
+    final String relJson = jsonWriter.asString();
+    String s = deserializeAndDump(getSchema(rel), relJson, SqlExplainFormat.JSON);
+    assertThat(s, isLinux(relJson));
   }
 
   /** Returns the schema of a {@link org.apache.calcite.rel.core.TableScan}
@@ -698,9 +729,11 @@ public class RelWriterTest {
 
   /**
    * Deserialize a relnode from the json string by {@link RelJsonReader},
-   * and dump it to text format.
+   * and dump it.
    */
-  private String deserializeAndDumpToTextFormat(RelOptSchema schema, String relJson) {
+  private String deserializeAndDump(RelOptSchema schema,
+      String relJson,
+      SqlExplainFormat format) {
     String s =
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           final RelJsonReader reader = new RelJsonReader(
@@ -711,8 +744,7 @@ public class RelWriterTest {
           } catch (IOException e) {
             throw TestUtil.rethrow(e);
           }
-          return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
-              SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+          return RelOptUtil.dumpPlan("", node, format, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
         });
     return s;
   }
