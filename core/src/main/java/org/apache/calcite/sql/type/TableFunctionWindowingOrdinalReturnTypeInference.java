@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.sql.type;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.sql.SqlOperatorBinding;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Type-inference strategy whereby the result type of a table function call is a ROW,
