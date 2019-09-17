@@ -108,8 +108,7 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
       return;
     }
     for (SqlOperator op : list) {
-      if (opName.toString().toUpperCase().equals("TUMBLE") &&
-      op.isGroup()) {
+      if (opName.toString().toUpperCase().equals("TUMBLE") && op.isGroup()) {
         continue;
       }
 
