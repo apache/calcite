@@ -2256,9 +2256,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction TUMBLE_TABLE_FUNCTION =
       new SqlTableValueFunctionWindowingOperator(
           SqlKind.TUMBLE.name(),
+          // "TUMBLE_TVF",
           SqlKind.TUMBLE,
           ReturnTypes.ARG0_TABLE_FUNCTION_WINDOWING, null,
-          OperandTypes.or(
+          OperandTypes.and(
               OperandTypes.ROW,
               OperandTypes.DATETIME_INTERVAL,
               OperandTypes.DATETIME_INTERVAL_TIME),
