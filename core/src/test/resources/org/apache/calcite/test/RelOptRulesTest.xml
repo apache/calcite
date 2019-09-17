@@ -11664,4 +11664,48 @@ LogicalProject(ENAME=[$1])
 ]]>
         </Resource>
     </TestCase>
+  <TestCase name="testWindowOnSortedInput">
+    <Resource name="sql">
+      <![CDATA[select mgr, deptno, sum(sal) over (partition by deptno)
+from emp
+order by mgr, deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(MGR=[$3], DEPTNO=[$7], EXPR$2=[SUM($5) OVER (PARTITION BY $7 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+  LogicalSort(sort0=[$3], sort1=[$7], dir0=[ASC], dir1=[ASC])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(MGR=[$3], DEPTNO=[$7], $2=[$9])
+  LogicalWindow(window#0=[window(partition {7} order by [] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [SUM($5)])])
+    LogicalSort(sort0=[$3], sort1=[$7], dir0=[ASC], dir1=[ASC])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testWindowOnSortedInput1">
+    <Resource name="sql">
+      <![CDATA[select mgr, deptno, sum(sal) over (partition by deptno)
+from emp
+order by mgr, deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(MGR=[$3], DEPTNO=[$7], EXPR$2=[SUM($5) OVER (PARTITION BY $7 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+  LogicalSort(sort0=[$3], sort1=[$7], dir0=[ASC], dir1=[ASC])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(MGR=[$3], DEPTNO=[$7], $2=[$9])
+  LogicalWindow(window#0=[window(partition {7} order by [] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [SUM($5)])])
+    LogicalSort(sort0=[$3], sort1=[$7], dir0=[ASC], dir1=[ASC])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
 </Root>

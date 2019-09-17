@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
@@ -171,11 +172,14 @@ public abstract class ProjectToWindowRule extends RelOptRule {
           if (rel instanceof LogicalProject && rel.getInput(0) instanceof LogicalWindow) {
             // LogicalWindow doesn't change collation
             // so need to reset collation to that of input rel
-            final RelTraitSet traits = rel.getTraitSet().replace(
-                    input.getTraitSet().getTrait(RelCollationTraitDef.INSTANCE));
-            final RelNode window = rel.getInput(0);
-            final RelNode newInput = window.copy(traits, window.getInputs());
-            return rel.copy(traits, Collections.singletonList(newInput));
+            RelCollation inputCollation =
+                input.getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
+            if (inputCollation != null) {
+              final RelTraitSet traits = rel.getTraitSet().replace(inputCollation);
+              final RelNode window = rel.getInput(0);
+              final RelNode newWindow = window.copy(traits, window.getInputs());
+              return rel.copy(traits, Collections.singletonList(newWindow));
+            }
           }
           if (!(rel instanceof LogicalCalc)) {
             return rel;
