@@ -718,31 +718,88 @@ public class LatticeTest {
   /** A tile with no measures should inherit default measure list from the
    * lattice. */
   @Test public void testTileWithNoMeasures() {
-    // TODO
+    foodmartModel(" auto: false,\n"
+        + "  defaultMeasures: [ {\n"
+        + "    agg: 'count'\n"
+        + "  } ],\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
+        + "    measures: [ ]\n"
+        + "  } ]\n")
+        .query("select count(t.\"the_year\", t.\"quarter\")\n"
+            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n")
+        .enableMaterializations(true)
+        .explainContains("EnumerableAggregate(group=[{}], EXPR$0=[COUNT($0, $1)])\n"
+            + "  EnumerableTableScan(table=[[adhoc, m{32, 36}")
+        .returnsCount(1);
   }
 
   /** A lattice with no default measure list should get "count(*)" is its
    * default measure. */
   @Test public void testLatticeWithNoMeasures() {
-    // TODO
+    foodmartModel(" auto: false,\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
+        + "    measures: [ ]\n"
+        + "  } ]\n")
+        .query("select count(*)\n"
+            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n")
+        .enableMaterializations(true)
+        .explainContains("EnumerableAggregate(group=[{}], EXPR$0=[COUNT()])\n"
+            + "  EnumerableTableScan(table=[[adhoc, m{32, 36}")
+        .returnsCount(1);
   }
 
   @Test public void testDimensionIsInvalidColumn() {
-    // TODO
+    foodmartModel(" auto: false,\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'invalid_column'],\n"
+        + "    measures: [ ]\n"
+        + "  } ]\n")
+        .connectThrows("Unknown lattice column 'invalid_column'");
   }
 
   @Test public void testMeasureArgIsInvalidColumn() {
-    // TODO
+    foodmartModel(" auto: false,\n"
+        + "  defaultMeasures: [ {\n"
+        + "   agg: 'sum',\n"
+        + "   args: 'invalid_column'\n"
+        + "  } ],\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
+        + "    measures: [ ]\n"
+        + "  } ]\n")
+        .connectThrows("Unknown lattice column 'invalid_column'");
   }
 
-  /** It is an error for "customer_id" to be a measure arg, because is not a
-   * unique alias. Both "c" and "t" have "customer_id". */
+  /** It is an error for "time_id" to be a measure arg, because is not a
+   * unique alias. Both "s" and "t" have "time_id". */
   @Test public void testMeasureArgIsNotUniqueAlias() {
-    // TODO
+    foodmartModel(" auto: false,\n"
+        + "  defaultMeasures: [ {\n"
+        + "    agg: 'count',\n"
+        + "    args: 'time_id'\n"
+        + "  } ],\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
+        + "    measures: [ ]\n"
+        + "  } ]\n")
+        .connectThrows("Lattice column alias 'time_id' is not unique");
   }
 
   @Test public void testMeasureAggIsInvalid() {
-    // TODO
+    foodmartModel(" auto: false,\n"
+        + "  defaultMeasures: [ {\n"
+        + "    agg: 'invalid_count',\n"
+        + "    args: 'customer_id'\n"
+        + "  } ],\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
+        + "    measures: [ ]\n"
+        + "  } ]\n")
+        .connectThrows("Unknown lattice aggregate function invalid_count");
   }
 
   @Test public void testTwoLattices() {
