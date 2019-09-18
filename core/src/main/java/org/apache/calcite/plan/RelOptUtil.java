@@ -462,6 +462,29 @@ public abstract class RelOptUtil {
     return mapping;
   }
 
+  /**
+   * Returns a permutation describing where the Project's fields come from
+   * after the Project is pushed down.
+   */
+  public static Mappings.TargetMapping permutationPushDownProject(
+      List<RexNode> nodes,
+      RelDataType inputRowType,
+      int sourceOffset,
+      int targetOffset) {
+    final Mappings.TargetMapping mapping =
+        Mappings.create(MappingType.PARTIAL_FUNCTION,
+            inputRowType.getFieldCount() + sourceOffset,
+            nodes.size() + targetOffset);
+    for (Ord<RexNode> node : Ord.zip(nodes)) {
+      if (node.e instanceof RexInputRef) {
+        mapping.set(
+            ((RexInputRef) node.e).getIndex() + sourceOffset,
+            node.i + targetOffset);
+      }
+    }
+    return mapping;
+  }
+
   @Deprecated // to be removed before 2.0
   public static RelNode createExistsPlan(
       RelOptCluster cluster,
