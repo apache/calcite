@@ -177,12 +177,12 @@ class RelSet {
         RelTraitDef traitDef = curOtherTrait.getTraitDef();
         RelTrait curRelTrait = subset.getTraitSet().getTrait(traitDef);
 
-        assert curRelTrait.getTraitDef() == traitDef;
-
         if (curRelTrait == null) {
           addAbstractConverter = false;
           break;
         }
+
+        assert curRelTrait.getTraitDef() == traitDef;
 
         boolean canConvert = false;
         boolean needConvert = false;
