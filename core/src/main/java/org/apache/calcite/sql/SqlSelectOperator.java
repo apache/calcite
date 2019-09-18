@@ -225,7 +225,7 @@ public class SqlSelectOperator extends SqlOperator {
                       SqlNode literalNode = selectSqlNode;
                       if (literalNode.getKind() == SqlKind.AS) {
                         literalNode = ((SqlBasicCall) selectSqlNode).getOperandList().get(0);
-                        if (literalNode.getKind() == SqlKind.CAST) {
+                        if (SqlKind.CAST == literalNode.getKind()) {
                           literalNode = ((SqlBasicCall) literalNode).getOperandList().get(0);
                         }
                       }
