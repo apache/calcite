@@ -234,6 +234,11 @@ public class RelToSqlConverter extends SqlImplementor
     for (RexNode ref : e.getChildExps()) {
       SqlNode sqlExpr = builder.context.toSql(null, ref);
       RelDataTypeField targetField = e.getRowType().getFieldList().get(selectList.size());
+
+      if (sqlExpr.getKind() == SqlKind.SINGLE_VALUE) {
+        sqlExpr = dialect.rewriteSingleValueExpr(sqlExpr);
+      }
+
       if (SqlUtil.isNullLiteral(sqlExpr, false)
           && targetField.getType().getSqlTypeName() != SqlTypeName.NULL) {
         sqlExpr = castNullType(sqlExpr, targetField);
