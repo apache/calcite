@@ -33,6 +33,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.util.BuiltInMethod;
 
 import java.util.List;
@@ -41,6 +42,9 @@ import java.util.List;
 public class EnumerableLimit extends SingleRel implements EnumerableRel {
   public final RexNode offset;
   public final RexNode fetch;
+
+  private Integer fetchIndex;
+  private Integer offsetIndex;
 
   /** Creates an EnumerableLimit.
    *
@@ -90,10 +94,26 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
         .itemIf("fetch", fetch, fetch != null);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public void hoistedVariables(HoistedVariables variables) {
+    getInputs()
+        .stream()
+        .forEach(rel -> {
+          final EnumerableRel enumerable = (EnumerableRel) rel;
+          enumerable.hoistedVariables(variables);
+        });
+    if (fetchIndex != null) {
+      variables.setVariable(fetchIndex, RexLiteral.intValue(fetch));
+    }
+    if (offsetIndex != null) {
+      variables.setVariable(offsetIndex, RexLiteral.intValue(offset));
+    }
+  }
+
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel child = (EnumerableRel) getInput();
-    final Result result = implementor.visitChild(this, 0, child, pref);
+    final Result result = implementor.visitChild(this, 0, child, pref, variables);
     final PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(),
@@ -102,20 +122,30 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
 
     Expression v = builder.append("child", result.block);
     if (offset != null) {
-      v = builder.append(
-          "offset",
-          Expressions.call(
-              v,
-              BuiltInMethod.SKIP.method,
-              getExpression(offset)));
+      if (offset instanceof RexDynamicParam) {
+        v = getDynamicExpression((RexDynamicParam) offset);
+      } else {
+        offsetIndex = variables.registerVariable("offset");
+        v = builder.append(
+            "offset",
+            Expressions.call(
+                v,
+                BuiltInMethod.SKIP.method,
+                EnumerableRel.lookupValue(offsetIndex, Integer.class)));
+      }
     }
     if (fetch != null) {
-      v = builder.append(
-          "fetch",
-          Expressions.call(
-              v,
-              BuiltInMethod.TAKE.method,
-              getExpression(fetch)));
+      if (fetch instanceof RexDynamicParam) {
+        v = getDynamicExpression((RexDynamicParam) fetch);
+      } else {
+        this.fetchIndex = variables.registerVariable("fetch");
+        v = builder.append(
+            "fetch",
+            Expressions.call(
+                v,
+                BuiltInMethod.TAKE.method,
+                EnumerableRel.lookupValue(fetchIndex, Integer.class)));
+      }
     }
 
     builder.add(
@@ -125,17 +155,13 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     return implementor.result(physType, builder.toBlock());
   }
 
-  private static Expression getExpression(RexNode offset) {
-    if (offset instanceof RexDynamicParam) {
-      final RexDynamicParam param = (RexDynamicParam) offset;
-      return Expressions.convert_(
-          Expressions.call(DataContext.ROOT,
-              BuiltInMethod.DATA_CONTEXT_GET.method,
-              Expressions.constant("?" + param.getIndex())),
-          Integer.class);
-    } else {
-      return Expressions.constant(RexLiteral.intValue(offset));
-    }
+  private static Expression getDynamicExpression(RexDynamicParam offset) {
+    final RexDynamicParam param = (RexDynamicParam) offset;
+    return Expressions.convert_(
+        Expressions.call(DataContext.ROOT,
+            BuiltInMethod.DATA_CONTEXT_GET.method,
+            Expressions.constant("?" + param.getIndex())),
+        Integer.class);
   }
 }
 

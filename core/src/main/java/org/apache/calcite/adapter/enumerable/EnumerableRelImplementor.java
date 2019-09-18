@@ -43,6 +43,7 @@ import org.apache.calcite.linq4j.tree.UnaryExpression;
 import org.apache.calcite.linq4j.tree.VisitorImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.BuiltInMethod;
@@ -92,16 +93,17 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
       EnumerableRel parent,
       int ordinal,
       EnumerableRel child,
-      EnumerableRel.Prefer prefer) {
+      EnumerableRel.Prefer prefer,
+      HoistedVariables variables) {
     if (parent != null) {
       assert child == parent.getInputs().get(ordinal);
     }
-    return child.implement(this, prefer);
+    return child.implement(this, prefer, variables);
   }
 
   public ClassDeclaration implementRoot(EnumerableRel rootRel,
-      EnumerableRel.Prefer prefer) {
-    EnumerableRel.Result result = rootRel.implement(this, prefer);
+      EnumerableRel.Prefer prefer, HoistedVariables variables) {
+    EnumerableRel.Result result = rootRel.implement(this, prefer, variables);
     switch (prefer) {
     case ARRAY:
       if (result.physType.getFormat() == JavaRowFormat.ARRAY
@@ -149,7 +151,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
             Modifier.PUBLIC,
             Enumerable.class,
             BuiltInMethod.BINDABLE_BIND.method.getName(),
-            Expressions.list(DataContext.ROOT),
+            Expressions.list(DataContext.ROOT, HoistedVariables.VARIABLES),
             block));
     memberDeclarations.add(
         Expressions.methodDecl(Modifier.PUBLIC, Class.class,

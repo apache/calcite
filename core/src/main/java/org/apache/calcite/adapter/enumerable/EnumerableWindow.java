@@ -46,6 +46,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -159,11 +160,12 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     // source = Linq4j.asEnumerable(list);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     final JavaTypeFactory typeFactory = implementor.getTypeFactory();
     final EnumerableRel child = (EnumerableRel) getInput();
     final BlockBuilder builder = new BlockBuilder();
-    final Result result = implementor.visitChild(this, 0, child, pref);
+    final Result result = implementor.visitChild(this, 0, child, pref, variables);
     Expression source_ = builder.append("source", result.block);
 
     final List<Expression> translatedConstants =

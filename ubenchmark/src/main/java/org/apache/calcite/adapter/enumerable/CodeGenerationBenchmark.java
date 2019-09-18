@@ -33,6 +33,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.runtime.Typed;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.tools.RelBuilder;
@@ -180,7 +181,8 @@ public class CodeGenerationBenchmark {
 
         EnumerableRelImplementor relImplementor =
             new EnumerableRelImplementor(plan.getCluster().getRexBuilder(), new HashMap<>());
-        info.classExpr = relImplementor.implementRoot(plan, EnumerableRel.Prefer.ARRAY);
+        info.classExpr = relImplementor.implementRoot(plan, EnumerableRel.Prefer.ARRAY,
+            new HoistedVariables());
         info.javaCode =
             Expressions.toString(info.classExpr.memberDeclarations, "\n", false);
 

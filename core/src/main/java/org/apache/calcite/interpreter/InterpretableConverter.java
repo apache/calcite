@@ -24,6 +24,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.runtime.ArrayBindable;
+import org.apache.calcite.runtime.HoistedVariables;
 
 import java.util.List;
 
@@ -47,7 +48,7 @@ public class InterpretableConverter extends ConverterImpl
     return Object[].class;
   }
 
-  public Enumerable<Object[]> bind(DataContext dataContext) {
+  public Enumerable<Object[]> bind(DataContext dataContext, HoistedVariables v) {
     return new Interpreter(dataContext, getInput());
   }
 }

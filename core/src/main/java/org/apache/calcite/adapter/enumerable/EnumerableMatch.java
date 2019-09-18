@@ -41,6 +41,7 @@ import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.runtime.Enumerables;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.sql.SqlMatchFunction;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -103,10 +104,11 @@ public class EnumerableMatch extends Match implements EnumerableRel {
   }
 
   public EnumerableRel.Result implement(EnumerableRelImplementor implementor,
-      EnumerableRel.Prefer pref) {
+      EnumerableRel.Prefer pref,
+      HoistedVariables variables) {
     final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel input = (EnumerableRel) getInput();
-    final Result result = implementor.visitChild(this, 0, input, pref);
+    final Result result = implementor.visitChild(this, 0, input, pref, variables);
     final PhysType physType =
         PhysTypeImpl.of(implementor.getTypeFactory(), input.getRowType(),
             result.format);

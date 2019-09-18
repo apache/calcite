@@ -34,6 +34,7 @@ import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
@@ -141,29 +142,31 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
     }
   }
 
-  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     switch (joinType) {
     case SEMI:
     case ANTI:
-      return implementHashSemiJoin(implementor, pref);
+      return implementHashSemiJoin(implementor, pref, variables);
     default:
-      return implementHashJoin(implementor, pref);
+      return implementHashJoin(implementor, pref, variables);
     }
   }
 
-  private Result implementHashSemiJoin(EnumerableRelImplementor implementor, Prefer pref) {
+  private Result implementHashSemiJoin(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     assert joinType == JoinRelType.SEMI || joinType == JoinRelType.ANTI;
     final Method method = joinType == JoinRelType.SEMI
         ? BuiltInMethod.SEMI_JOIN.method
         : BuiltInMethod.ANTI_JOIN.method;
     BlockBuilder builder = new BlockBuilder();
     final Result leftResult =
-        implementor.visitChild(this, 0, (EnumerableRel) left, pref);
+        implementor.visitChild(this, 0, (EnumerableRel) left, pref, variables);
     Expression leftExpression =
         builder.append(
             "left", leftResult.block);
     final Result rightResult =
-        implementor.visitChild(this, 1, (EnumerableRel) right, pref);
+        implementor.visitChild(this, 1, (EnumerableRel) right, pref, variables);
     Expression rightExpression =
         builder.append(
             "right", rightResult.block);
@@ -196,15 +199,16 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
             .toBlock());
   }
 
-  private Result implementHashJoin(EnumerableRelImplementor implementor, Prefer pref) {
+  private Result implementHashJoin(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     BlockBuilder builder = new BlockBuilder();
     final Result leftResult =
-        implementor.visitChild(this, 0, (EnumerableRel) left, pref);
+        implementor.visitChild(this, 0, (EnumerableRel) left, pref, variables);
     Expression leftExpression =
         builder.append(
             "left", leftResult.block);
     final Result rightResult =
-        implementor.visitChild(this, 1, (EnumerableRel) right, pref);
+        implementor.visitChild(this, 1, (EnumerableRel) right, pref, variables);
     Expression rightExpression =
         builder.append(
             "right", rightResult.block);

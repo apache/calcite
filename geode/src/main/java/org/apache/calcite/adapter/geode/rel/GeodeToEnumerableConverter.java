@@ -36,6 +36,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 
@@ -83,7 +84,8 @@ public class GeodeToEnumerableConverter extends ConverterImpl implements Enumera
    *
    * @param implementor GeodeImplementContext
    */
-  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
 
     // travers all relations form this to the scan leaf
     final GeodeImplementContext geodeImplementContext = new GeodeImplementContext();

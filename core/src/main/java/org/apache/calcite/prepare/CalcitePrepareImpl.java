@@ -77,6 +77,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.Typed;
 import org.apache.calcite.schema.Schemas;
@@ -525,7 +526,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         getColumnMetaDataList(typeFactory, x, x, origins);
     final Meta.CursorFactory cursorFactory =
         Meta.CursorFactory.deduce(columns, null);
-    return new CalciteSignature<>(
+    return new CalciteSignature<T>(
         sql,
         ImmutableList.of(),
         ImmutableMap.of(),
@@ -534,8 +535,10 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         cursorFactory,
         context.getRootSchema(),
         ImmutableList.of(),
-        -1, dataContext -> Linq4j.asEnumerable(list),
-        Meta.StatementType.SELECT);
+        -1, (dataContext, variables) -> Linq4j.asEnumerable(list),
+        Meta.StatementType.SELECT,
+        // @TODO no variables.
+        new HoistedVariables());
   }
 
   /**
@@ -627,7 +630,9 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             ImmutableMap.of(), null,
             ImmutableList.of(), Meta.CursorFactory.OBJECT,
             null, ImmutableList.of(), -1, null,
-            Meta.StatementType.OTHER_DDL);
+            Meta.StatementType.OTHER_DDL,
+            // No HoistedVariables
+            new HoistedVariables());
       }
 
       final SqlValidator validator =
@@ -702,7 +707,10 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             : ImmutableList.of(),
         maxRowCount,
         bindable,
-        statementType);
+        statementType,
+        preparedResult instanceof Prepare.PreparedResultImpl
+        ? ((Prepare.PreparedResultImpl) preparedResult).getVariables()
+        : new HoistedVariables());
   }
 
   private SqlValidator createSqlValidator(Context context,
@@ -930,6 +938,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         new LinkedHashMap<>();
     private int expansionDepth;
     private SqlValidator sqlValidator;
+    private final HoistedVariables variables;
 
     CalcitePreparingStmt(CalcitePrepareImpl prepare,
         Context context,
@@ -948,6 +957,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       this.typeFactory = typeFactory;
       this.convertletTable = convertletTable;
       this.rexBuilder = new RexBuilder(typeFactory);
+      this.variables = new HoistedVariables();
     }
 
     @Override protected void init(Class runtimeContextClass) {
@@ -1108,7 +1118,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           final SqlConformance conformance = context.config().conformance();
           internalParameters.put("_conformance", conformance);
           bindable = EnumerableInterpretable.toBindable(internalParameters,
-              context.spark(), enumerable, prefer);
+              context.spark(), enumerable, prefer, variables);
+          enumerable.hoistedVariables(variables);
         } finally {
           CatalogReader.THREAD_LOCAL.remove();
         }
@@ -1138,6 +1149,10 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
         public Bindable getBindable(Meta.CursorFactory cursorFactory) {
           return bindable;
+        }
+
+        public HoistedVariables getVariables() {
+          return variables;
         }
 
         public Type getElementType() {
@@ -1175,7 +1190,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
     public Bindable getBindable(final Meta.CursorFactory cursorFactory) {
       final String explanation = getCode();
-      return dataContext -> {
+      return (dataContext, variables) -> {
         switch (cursorFactory.style) {
         case ARRAY:
           return Linq4j.singletonEnumerable(new String[] {explanation});

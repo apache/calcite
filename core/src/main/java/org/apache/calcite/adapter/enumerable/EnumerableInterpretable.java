@@ -40,6 +40,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.Typed;
 import org.apache.calcite.runtime.Utilities;
@@ -80,12 +81,15 @@ public class EnumerableInterpretable extends ConverterImpl
   }
 
   public Node implement(final InterpreterImplementor implementor) {
+    final HoistedVariables variables = new HoistedVariables();
     final Bindable bindable = toBindable(implementor.internalParameters,
             implementor.spark, (EnumerableRel) getInput(),
-        EnumerableRel.Prefer.ARRAY);
+        EnumerableRel.Prefer.ARRAY, variables);
     final ArrayBindable arrayBindable = box(bindable);
+
+    ((EnumerableRel) getInput()).hoistedVariables(variables);
     final Enumerable<Object[]> enumerable =
-        arrayBindable.bind(implementor.dataContext);
+        arrayBindable.bind(implementor.dataContext, variables);
     return new EnumerableNode(enumerable, implementor.compiler, this);
   }
 
@@ -104,12 +108,13 @@ public class EnumerableInterpretable extends ConverterImpl
 
   public static Bindable toBindable(Map<String, Object> parameters,
       CalcitePrepare.SparkHandler spark, EnumerableRel rel,
-      EnumerableRel.Prefer prefer) {
+      EnumerableRel.Prefer prefer, HoistedVariables variables) {
     EnumerableRelImplementor relImplementor =
         new EnumerableRelImplementor(rel.getCluster().getRexBuilder(),
             parameters);
 
-    final ClassDeclaration expr = relImplementor.implementRoot(rel, prefer);
+    final ClassDeclaration expr = relImplementor.implementRoot(rel, prefer,
+        variables);
     String s = Expressions.toString(expr.memberDeclarations, "\n", false);
 
     if (CalciteSystemProperty.DEBUG.value()) {
@@ -156,7 +161,9 @@ public class EnumerableInterpretable extends ConverterImpl
       StaticFieldDetector detector = new StaticFieldDetector();
       expr.accept(detector);
       if (!detector.containsStaticField) {
-        return BINDABLE_CACHE.get(s, () -> (Bindable) cbe.createInstance(new StringReader(s)));
+        return BINDABLE_CACHE.get(s, () -> {
+          return (Bindable) cbe.createInstance(new StringReader(s));
+        });
       }
     }
     return (Bindable) cbe.createInstance(new StringReader(s));
@@ -185,8 +192,8 @@ public class EnumerableInterpretable extends ConverterImpl
         return Object[].class;
       }
 
-      public Enumerable<Object[]> bind(DataContext dataContext) {
-        final Enumerable<?> enumerable = bindable.bind(dataContext);
+      public Enumerable<Object[]> bind(DataContext dataContext, HoistedVariables v) {
+        final Enumerable<?> enumerable = bindable.bind(dataContext, v);
         return new AbstractEnumerable<Object[]>() {
           public Enumerator<Object[]> enumerator() {
             final Enumerator<?> enumerator = enumerable.enumerator();

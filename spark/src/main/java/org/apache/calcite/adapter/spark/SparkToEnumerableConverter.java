@@ -34,6 +34,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.sql.validate.SqlConformance;
 
 import java.util.List;
@@ -66,7 +67,8 @@ public class SparkToEnumerableConverter
     return super.computeSelfCost(planner, mq).multiplyBy(.01);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     // Generate:
     //   RDD rdd = ...;
     //   return SparkRuntime.asEnumerable(rdd);

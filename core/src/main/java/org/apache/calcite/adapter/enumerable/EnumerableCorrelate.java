@@ -30,6 +30,7 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -81,11 +82,11 @@ public class EnumerableCorrelate extends Correlate
         traitSet, left, right, correlationId, requiredColumns, joinType);
   }
 
-  public Result implement(EnumerableRelImplementor implementor,
-      Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     final BlockBuilder builder = new BlockBuilder();
     final Result leftResult =
-        implementor.visitChild(this, 0, (EnumerableRel) left, pref);
+        implementor.visitChild(this, 0, (EnumerableRel) left, pref, variables);
     Expression leftExpression =
         builder.append(
             "left", leftResult.block);
@@ -111,7 +112,7 @@ public class EnumerableCorrelate extends Correlate
         corrBlock, leftResult.physType);
 
     final Result rightResult =
-        implementor.visitChild(this, 1, (EnumerableRel) right, pref);
+        implementor.visitChild(this, 1, (EnumerableRel) right, pref, variables);
 
     implementor.clearCorrelVariable(getCorrelVariable());
 

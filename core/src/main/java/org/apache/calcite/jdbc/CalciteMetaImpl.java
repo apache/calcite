@@ -41,6 +41,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
@@ -202,7 +203,7 @@ public class CalciteMetaImpl extends MetaImpl {
           new CalcitePrepare.CalciteSignature<Object>("",
               ImmutableList.of(), internalParameters, null,
               columns, cursorFactory, null, ImmutableList.of(), -1,
-              null, Meta.StatementType.SELECT) {
+              null, Meta.StatementType.SELECT, new HoistedVariables()) {
             @Override public Enumerable<Object> enumerable(
                 DataContext dataContext) {
               return Linq4j.asEnumerable(firstFrame.rows);

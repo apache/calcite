@@ -42,6 +42,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.Typed;
 import org.apache.calcite.schema.ColumnStrategy;
@@ -572,6 +573,13 @@ public abstract class Prepare {
      * @return producer of rows resulting from execution
      */
     Bindable getBindable(Meta.CursorFactory cursorFactory);
+
+    /**
+     * Returns the variables to used on {@link Bindable#bind(DataContext, HoistedVariables) bind}
+     */
+    default HoistedVariables getVariables() {
+      return new HoistedVariables();
+    }
   }
 
   /**

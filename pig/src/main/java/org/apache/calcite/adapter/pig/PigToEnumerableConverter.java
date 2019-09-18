@@ -28,6 +28,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.util.BuiltInMethod;
 
@@ -65,7 +66,8 @@ public class PigToEnumerableConverter
    * store results in a predefined file so they can be read here and returned as
    * a {@code Result} object.
    */
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     final BlockBuilder list = new BlockBuilder();
     final PhysType physType =
         PhysTypeImpl.of(implementor.getTypeFactory(), rowType,

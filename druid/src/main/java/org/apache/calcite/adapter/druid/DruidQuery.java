@@ -52,6 +52,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.sql.SqlKind;
@@ -622,7 +623,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     return Object[].class;
   }
 
-  @Override public Enumerable<Object[]> bind(DataContext dataContext) {
+  @Override public Enumerable<Object[]> bind(DataContext dataContext, HoistedVariables variables) {
     return table.unwrap(ScannableTable.class).scan(dataContext);
   }
 

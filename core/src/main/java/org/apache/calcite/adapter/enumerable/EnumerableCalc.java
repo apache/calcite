@@ -42,6 +42,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.BuiltInMethod;
@@ -107,13 +108,14 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
     return new EnumerableCalc(getCluster(), traitSet, child, program);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     final JavaTypeFactory typeFactory = implementor.getTypeFactory();
     final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel child = (EnumerableRel) getInput();
 
     final Result result =
-        implementor.visitChild(this, 0, child, pref);
+        implementor.visitChild(this, 0, child, pref, variables);
 
     final PhysType physType =
         PhysTypeImpl.of(

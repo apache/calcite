@@ -38,6 +38,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
@@ -119,16 +120,17 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
     return planner.getCostFactory().makeCost(d, 0, 0);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     BlockBuilder builder = new BlockBuilder();
     final Result leftResult =
-        implementor.visitChild(this, 0, (EnumerableRel) left, pref);
+        implementor.visitChild(this, 0, (EnumerableRel) left, pref, variables);
     final Expression leftExpression =
         builder.append("left", leftResult.block);
     final ParameterExpression left_ =
         Expressions.parameter(leftResult.physType.getJavaRowType(), "left");
     final Result rightResult =
-        implementor.visitChild(this, 1, (EnumerableRel) right, pref);
+        implementor.visitChild(this, 1, (EnumerableRel) right, pref, variables);
     final Expression rightExpression =
         builder.append("right", rightResult.block);
     final ParameterExpression right_ =

@@ -26,6 +26,7 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.HoistedVariables;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Filter} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -64,7 +65,8 @@ public class EnumerableFilter
     return new EnumerableFilter(getCluster(), traitSet, input, condition);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     // EnumerableCalc is always better
     throw new UnsupportedOperationException();
   }

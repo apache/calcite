@@ -27,6 +27,7 @@ import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
@@ -60,7 +61,8 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
         elementType, rowType, rexCall, columnMappings);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     BlockBuilder bb = new BlockBuilder();
      // Non-array user-specified types are not supported yet
     final JavaRowFormat format;

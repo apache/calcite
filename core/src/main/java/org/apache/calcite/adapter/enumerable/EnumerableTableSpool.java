@@ -29,6 +29,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Spool;
 import org.apache.calcite.rel.core.TableSpool;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.util.BuiltInMethod;
 
@@ -62,7 +63,8 @@ public class EnumerableTableSpool extends TableSpool implements EnumerableRel {
     return new EnumerableTableSpool(cluster, traitSet, input, readType, writeType, table);
   }
 
-  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     // TODO for the moment only LAZY read & write is supported
     if (readType != Type.LAZY || writeType != Type.LAZY) {
       throw new UnsupportedOperationException(
@@ -75,7 +77,7 @@ public class EnumerableTableSpool extends TableSpool implements EnumerableRel {
     BlockBuilder builder = new BlockBuilder();
 
     RelNode input = getInput();
-    Result inputResult = implementor.visitChild(this, 0, (EnumerableRel) input, pref);
+    Result inputResult = implementor.visitChild(this, 0, (EnumerableRel) input, pref, variables);
 
     String tableName = table.getQualifiedName().get(table.getQualifiedName().size() - 1);
     Expression tableExp = Expressions.convert_(

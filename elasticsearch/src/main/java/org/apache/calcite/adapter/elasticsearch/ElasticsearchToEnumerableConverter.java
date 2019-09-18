@@ -34,6 +34,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 
@@ -58,7 +59,8 @@ public class ElasticsearchToEnumerableConverter extends ConverterImpl implements
     return super.computeSelfCost(planner, mq).multiplyBy(.1);
   }
 
-  @Override public Result implement(EnumerableRelImplementor relImplementor, Prefer prefer) {
+  @Override public Result implement(EnumerableRelImplementor relImplementor, Prefer prefer,
+      HoistedVariables variables) {
     final BlockBuilder block = new BlockBuilder();
     final ElasticsearchRel.Implementor implementor = new ElasticsearchRel.Implementor();
     implementor.visitChild(0, getInput());

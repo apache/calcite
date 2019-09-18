@@ -24,6 +24,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RepeatUnion;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.util.BuiltInMethod;
 
 import java.util.List;
@@ -52,7 +53,8 @@ public class EnumerableRepeatUnion extends RepeatUnion implements EnumerableRel 
         inputs.get(0), inputs.get(1), all, iterationLimit);
   }
 
-  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     if (!all) {
       throw new UnsupportedOperationException(
           "Only EnumerableRepeatUnion ALL is supported");
@@ -64,8 +66,9 @@ public class EnumerableRepeatUnion extends RepeatUnion implements EnumerableRel 
     RelNode seed = getSeedRel();
     RelNode iteration = getIterativeRel();
 
-    Result seedResult = implementor.visitChild(this, 0, (EnumerableRel) seed, pref);
-    Result iterationResult = implementor.visitChild(this, 1, (EnumerableRel) iteration, pref);
+    Result seedResult = implementor.visitChild(this, 0, (EnumerableRel) seed, pref, variables);
+    Result iterationResult = implementor.visitChild(this, 1, (EnumerableRel) iteration, pref,
+        variables);
 
     Expression seedExp = builder.append("seed", seedResult.block);
     Expression iterativeExp = builder.append("iteration", iterationResult.block);

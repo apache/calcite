@@ -17,8 +17,12 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.linq4j.tree.BlockStatement;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.runtime.HoistedVariables;
+import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.base.Preconditions;
 
@@ -45,9 +49,26 @@ public interface EnumerableRel
    *
    * @param implementor Implementor
    * @param pref Preferred representation for rows in result expression
+   * @param v hoistedVariables instance that can be used to register slots
    * @return Plan for this expression according to a calling convention
    */
-  Result implement(EnumerableRelImplementor implementor, Prefer pref);
+  Result implement(EnumerableRelImplementor implementor, Prefer pref, HoistedVariables v);
+
+  /**
+   * Creates {@link HoistedVariables} to be used within the {@link Result}
+   * objects.
+   *
+   * @param variables to hoisted into compiled code.
+   *
+   */
+  default void hoistedVariables(HoistedVariables variables) {
+    getInputs()
+        .stream()
+        .forEach(rel -> {
+          final EnumerableRel enumerable = (EnumerableRel) rel;
+          enumerable.hoistedVariables(variables);
+        });
+  }
 
   /** Preferred physical type. */
   enum Prefer {
@@ -111,6 +132,23 @@ public interface EnumerableRel
       this.physType = physType;
       this.format = format;
     }
+  }
+
+  /**
+   * Returns an {@link Expression} that pulls the variable at variableIndex out of
+   * {@link HoistedVariables}.
+   *
+   * @param variableIndex the allocated index within the {@code HoistedVariables}
+   * @param type the desired class to cast the Object into.
+   *
+   * @return an Expression to use within java code to fetch a hoisted variable and cast it.
+   */
+  static Expression lookupValue(int variableIndex, Class<?> type) {
+    return Expressions.convert_(
+        Expressions.call(HoistedVariables.VARIABLES,
+            BuiltInMethod.HOISTED_VARIABLE_GET.method,
+            Expressions.constant(variableIndex)),
+        type);
   }
 }
 

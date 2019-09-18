@@ -39,6 +39,7 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.HashMultimap;
@@ -542,7 +543,7 @@ public class VolcanoPlannerTraitTest {
     }
 
     @Override public Result implement(EnumerableRelImplementor implementor,
-        Prefer pref) {
+        Prefer pref, HoistedVariables variables) {
       return null;
     }
   }
@@ -786,7 +787,7 @@ public class VolcanoPlannerTraitTest {
     }
 
     @Override public Result implement(EnumerableRelImplementor implementor,
-        Prefer pref) {
+        Prefer pref, HoistedVariables variables) {
       return null;
     }
   }

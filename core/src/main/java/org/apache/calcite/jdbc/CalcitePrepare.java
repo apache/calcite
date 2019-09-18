@@ -38,6 +38,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -319,6 +320,7 @@ public interface CalcitePrepare {
     @JsonIgnore private final List<RelCollation> collationList;
     private final long maxRowCount;
     private final Bindable<T> bindable;
+    private final HoistedVariables variables;
 
     @Deprecated // to be removed before 2.0
     public CalciteSignature(String sql, List<AvaticaParameter> parameterList,
@@ -328,7 +330,7 @@ public interface CalcitePrepare {
         long maxRowCount, Bindable<T> bindable) {
       this(sql, parameterList, internalParameters, rowType, columns,
           cursorFactory, rootSchema, collationList, maxRowCount, bindable,
-          null);
+          null, new HoistedVariables());
     }
 
     public CalciteSignature(String sql,
@@ -341,7 +343,8 @@ public interface CalcitePrepare {
         List<RelCollation> collationList,
         long maxRowCount,
         Bindable<T> bindable,
-        Meta.StatementType statementType) {
+        Meta.StatementType statementType,
+        HoistedVariables variables) {
       super(columns, sql, parameterList, internalParameters, cursorFactory,
           statementType);
       this.rowType = rowType;
@@ -349,10 +352,11 @@ public interface CalcitePrepare {
       this.collationList = collationList;
       this.maxRowCount = maxRowCount;
       this.bindable = bindable;
+      this.variables = variables;
     }
 
     public Enumerable<T> enumerable(DataContext dataContext) {
-      Enumerable<T> enumerable = bindable.bind(dataContext);
+      Enumerable<T> enumerable = bindable.bind(dataContext, variables);
       if (maxRowCount >= 0) {
         // Apply limit. In JDBC 0 means "no limit". But for us, -1 means
         // "no limit", and 0 is a valid limit.

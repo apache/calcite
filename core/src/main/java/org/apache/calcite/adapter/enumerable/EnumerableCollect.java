@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Collect;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.util.BuiltInMethod;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Collect} in
@@ -40,12 +41,13 @@ public class EnumerableCollect extends Collect implements EnumerableRel {
     return new EnumerableCollect(getCluster(), traitSet, newInput, fieldName);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel child = (EnumerableRel) getInput();
     // REVIEW zabetak January 7, 2019: Even if we ask the implementor to provide a result
     // where records are represented as arrays (Prefer.ARRAY) this may not be respected.
-    final Result result = implementor.visitChild(this, 0, child, Prefer.ARRAY);
+    final Result result = implementor.visitChild(this, 0, child, Prefer.ARRAY, variables);
     final PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(),

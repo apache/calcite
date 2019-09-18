@@ -33,6 +33,7 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.runtime.HoistedVariables;
 
 import java.util.List;
 
@@ -76,7 +77,8 @@ class FileTableScan extends TableScan implements EnumerableRel {
     return builder.build();
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(),

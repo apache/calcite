@@ -29,6 +29,7 @@ import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.util.BuiltInMethod;
 
@@ -70,10 +71,11 @@ public class EnumerableTableModify extends TableModify
         isFlattened());
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     final BlockBuilder builder = new BlockBuilder();
     final Result result = implementor.visitChild(
-        this, 0, (EnumerableRel) getInput(), pref);
+        this, 0, (EnumerableRel) getInput(), pref, variables);
     Expression childExp =
         builder.append(
             "child", result.block);

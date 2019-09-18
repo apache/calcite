@@ -20,7 +20,8 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 
 /**
- * Statement that can be bound to a {@link DataContext} and then executed.
+ * Statement that can be bound to a {@link DataContext} and a set of {@link HoistedVariables} and
+ * then executed.
  *
  * @param <T> Element type of the resulting enumerable
  */
@@ -31,9 +32,10 @@ public interface Bindable<T> {
    * environment (usually schemas).
    *
    * @param dataContext Environment that provides tables
+   * @param hoisted The variables hoisted from the EnumerableRels
    * @return Enumerable over rows
    */
-  Enumerable<T> bind(DataContext dataContext);
+  Enumerable<T> bind(DataContext dataContext, HoistedVariables hoisted);
 }
 
 // End Bindable.java

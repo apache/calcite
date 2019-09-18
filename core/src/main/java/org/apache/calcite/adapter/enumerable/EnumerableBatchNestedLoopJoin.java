@@ -35,6 +35,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -122,10 +123,11 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
     return pw.item("batchSize", variablesSet.size());
   }
 
-  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     final BlockBuilder builder = new BlockBuilder();
     final Result leftResult =
-        implementor.visitChild(this, 0, (EnumerableRel) left, pref);
+        implementor.visitChild(this, 0, (EnumerableRel) left, pref, variables);
     final Expression leftExpression =
         builder.append(
             "left", leftResult.block);
@@ -182,7 +184,7 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
       }
     }
     final Result rightResult =
-        implementor.visitChild(this, 1, (EnumerableRel) right, pref);
+        implementor.visitChild(this, 1, (EnumerableRel) right, pref, variables);
 
     corrBlock.add(rightResult.block);
     for (String c : corrVar) {

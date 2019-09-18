@@ -26,6 +26,7 @@ import org.apache.calcite.avatica.util.Cursor;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.runtime.ArrayEnumeratorCursor;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.runtime.ObjectEnumeratorCursor;
 
 import com.google.common.collect.ImmutableList;
@@ -81,7 +82,8 @@ public class CalciteResultSet extends AvaticaResultSet {
             signature.parameters, signature.internalParameters,
             signature.rowType, columnMetaDataList, Meta.CursorFactory.ARRAY,
             signature.rootSchema, ImmutableList.of(), -1, null,
-            statement.getStatementType());
+            // @TODO wrong variables.
+            statement.getStatementType(), new HoistedVariables());
     ResultSetMetaData subResultSetMetaData =
         new AvaticaResultSetMetaData(statement, null, newSignature);
     final CalciteResultSet resultSet =

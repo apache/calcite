@@ -65,6 +65,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.schema.ScannableTable;
@@ -254,7 +255,7 @@ public class Bindables {
           || table.unwrap(ProjectableFilterableTable.class) != null;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    public Enumerable<Object[]> bind(DataContext dataContext, HoistedVariables v) {
       if (table.unwrap(ProjectableFilterableTable.class) != null) {
         return table.unwrap(ProjectableFilterableTable.class).scan(dataContext,
                 filters, projects.toIntArray());
@@ -325,7 +326,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    public Enumerable<Object[]> bind(DataContext dataContext, HoistedVariables v) {
       return help(dataContext, this);
     }
 
@@ -383,7 +384,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    public Enumerable<Object[]> bind(DataContext dataContext, HoistedVariables v) {
       return help(dataContext, this);
     }
 
@@ -439,7 +440,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    public Enumerable<Object[]> bind(DataContext dataContext, HoistedVariables v) {
       return help(dataContext, this);
     }
 
@@ -509,7 +510,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    public Enumerable<Object[]> bind(DataContext dataContext, HoistedVariables v) {
       return help(dataContext, this);
     }
 
@@ -561,7 +562,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    public Enumerable<Object[]> bind(DataContext dataContext, HoistedVariables v) {
       return help(dataContext, this);
     }
 
@@ -587,7 +588,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    public Enumerable<Object[]> bind(DataContext dataContext, HoistedVariables v) {
       return help(dataContext, this);
     }
 
@@ -673,7 +674,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    public Enumerable<Object[]> bind(DataContext dataContext, HoistedVariables v) {
       return help(dataContext, this);
     }
 
@@ -735,7 +736,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    public Enumerable<Object[]> bind(DataContext dataContext, HoistedVariables v) {
       return help(dataContext, this);
     }
 
@@ -800,7 +801,7 @@ public class Bindables {
       return Object[].class;
     }
 
-    public Enumerable<Object[]> bind(DataContext dataContext) {
+    public Enumerable<Object[]> bind(DataContext dataContext, HoistedVariables v) {
       return help(dataContext, this);
     }
 

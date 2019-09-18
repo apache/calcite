@@ -33,6 +33,7 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.collect.ImmutableMap;
@@ -48,9 +49,14 @@ import java.util.function.Predicate;
  * @see org.apache.calcite.interpreter.BindableConvention
  */
 public class EnumerableBindable extends ConverterImpl implements BindableRel {
+  protected final HoistedVariables variables;
+
   protected EnumerableBindable(RelOptCluster cluster, RelNode input) {
     super(cluster, ConventionTraitDef.INSTANCE,
         cluster.traitSetOf(BindableConvention.INSTANCE), input);
+    this.variables = new HoistedVariables();
+    // Gather variables
+    ((EnumerableRel) getInput()).hoistedVariables(variables);
   }
 
   @Override public EnumerableBindable copy(RelTraitSet traitSet,
@@ -62,19 +68,20 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
     return Object[].class;
   }
 
-  public Enumerable<Object[]> bind(DataContext dataContext) {
+  public Enumerable<Object[]> bind(DataContext dataContext, HoistedVariables v) {
     final ImmutableMap<String, Object> map = ImmutableMap.of();
     final Bindable bindable = EnumerableInterpretable.toBindable(map, null,
-        (EnumerableRel) getInput(), EnumerableRel.Prefer.ARRAY);
+        (EnumerableRel) getInput(), EnumerableRel.Prefer.ARRAY, v);
     final ArrayBindable arrayBindable = EnumerableInterpretable.box(bindable);
-    return arrayBindable.bind(dataContext);
+
+    return arrayBindable.bind(dataContext, v);
   }
 
   public Node implement(final InterpreterImplementor implementor) {
     return () -> {
       final Sink sink =
           implementor.relSinks.get(EnumerableBindable.this).get(0);
-      final Enumerable<Object[]> enumerable = bind(implementor.dataContext);
+      final Enumerable<Object[]> enumerable = bind(implementor.dataContext, variables);
       final Enumerator<Object[]> enumerator = enumerable.enumerator();
       while (enumerator.moveNext()) {
         sink.send(Row.asCopy(enumerator.current()));

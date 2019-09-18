@@ -81,6 +81,7 @@ import org.apache.calcite.runtime.BinarySearch;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Enumerables;
 import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.runtime.JsonFunctions;
 import org.apache.calcite.runtime.Matcher;
 import org.apache.calcite.runtime.Pattern;
@@ -269,7 +270,7 @@ public enum BuiltInMethod {
   BI_PREDICATE_TEST(BiPredicate.class, "test", Object.class, Object.class),
   CONSUMER_ACCEPT(Consumer.class, "accept", Object.class),
   TYPED_GET_ELEMENT_TYPE(ArrayBindable.class, "getElementType"),
-  BINDABLE_BIND(Bindable.class, "bind", DataContext.class),
+  BINDABLE_BIND(Bindable.class, "bind", DataContext.class, HoistedVariables.class),
   RESULT_SET_GET_DATE2(ResultSet.class, "getDate", int.class, Calendar.class),
   RESULT_SET_GET_TIME2(ResultSet.class, "getTime", int.class, Calendar.class),
   RESULT_SET_GET_TIMESTAMP2(ResultSet.class, "getTimestamp", int.class,
@@ -577,7 +578,8 @@ public enum BuiltInMethod {
   AGG_LAMBDA_FACTORY_ACC_RESULT_SELECTOR(AggregateLambdaFactory.class,
       "resultSelector", Function2.class),
   AGG_LAMBDA_FACTORY_ACC_SINGLE_GROUP_RESULT_SELECTOR(AggregateLambdaFactory.class,
-      "singleGroupResultSelector", Function1.class);
+      "singleGroupResultSelector", Function1.class),
+  HOISTED_VARIABLE_GET(HoistedVariables.class, "getVariable", Integer.class);
 
   public final Method method;
   public final Constructor constructor;

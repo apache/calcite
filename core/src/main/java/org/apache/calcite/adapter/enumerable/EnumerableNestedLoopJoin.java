@@ -32,6 +32,7 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
@@ -109,14 +110,15 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
     return planner.getCostFactory().makeCost(rowCount, 0, 0);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     final BlockBuilder builder = new BlockBuilder();
     final Result leftResult =
-        implementor.visitChild(this, 0, (EnumerableRel) left, pref);
+        implementor.visitChild(this, 0, (EnumerableRel) left, pref, variables);
     Expression leftExpression =
         builder.append("left", leftResult.block);
     final Result rightResult =
-        implementor.visitChild(this, 1, (EnumerableRel) right, pref);
+        implementor.visitChild(this, 1, (EnumerableRel) right, pref, variables);
     Expression rightExpression =
         builder.append("right", rightResult.block);
     final PhysType physType =

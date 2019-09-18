@@ -24,6 +24,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Intersect;
+import org.apache.calcite.runtime.HoistedVariables;
 import org.apache.calcite.util.BuiltInMethod;
 
 import java.util.List;
@@ -42,12 +43,13 @@ public class EnumerableIntersect extends Intersect implements EnumerableRel {
     return new EnumerableIntersect(getCluster(), traitSet, inputs, all);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref,
+      HoistedVariables variables) {
     final BlockBuilder builder = new BlockBuilder();
     Expression intersectExp = null;
     for (Ord<RelNode> ord : Ord.zip(inputs)) {
       EnumerableRel input = (EnumerableRel) ord.e;
-      final Result result = implementor.visitChild(this, ord.i, input, pref);
+      final Result result = implementor.visitChild(this, ord.i, input, pref, variables);
       Expression childExp =
           builder.append(
               "child" + ord.i,
