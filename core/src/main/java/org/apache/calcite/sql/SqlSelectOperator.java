@@ -225,8 +225,9 @@ public class SqlSelectOperator extends SqlOperator {
                       SqlNode literalNode = selectSqlNode;
                       if (literalNode.getKind() == SqlKind.AS) {
                         literalNode = ((SqlBasicCall) selectSqlNode).getOperandList().get(0);
-                      } else if (literalNode.getKind() == SqlKind.CAST) {
-                        literalNode = ((SqlBasicCall) selectSqlNode).getOperandList().get(0);
+                        if (literalNode.getKind() == SqlKind.CAST) {
+                          literalNode = ((SqlBasicCall) literalNode).getOperandList().get(0);
+                        }
                       }
                       if (literalNode == groupKey) {
                         String ordinal = String.valueOf(
