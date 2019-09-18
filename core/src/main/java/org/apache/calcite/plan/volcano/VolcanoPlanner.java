@@ -1833,7 +1833,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // improve and the subset doesn't hear about it. You can end up with
     // a subset with a single rel of cost 99 which thinks its best cost is
     // 100. We think this happens because the back-links to parents are
-    // not established. So, give the subset another change to figure out
+    // not established. So, give the subset another chance to figure out
     // its cost.
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     subset.propagateCostImprovements(this, mq, rel, new HashSet<>());
