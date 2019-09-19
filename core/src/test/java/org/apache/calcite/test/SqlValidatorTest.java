@@ -11513,6 +11513,48 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "VARCHAR NOT NULL");
   }
 
+  @Test public void testInvalidFunctionCall() {
+    final SqlTester tester1 = tester
+        .withCaseSensitive(true);
+    final MockSqlOperatorTable operatorTable =
+        new MockSqlOperatorTable(SqlStdOperatorTable.instance());
+    MockSqlOperatorTable.addRamp(operatorTable);
+    tester1.withOperatorTable(operatorTable);
+    // With implicit type coercion.
+    checkExpFails("^unknown_udf(1, 2)^",
+        "(?s).*No match found for function signature "
+            + "UNKNOWN_UDF\\(<NUMERIC>, <NUMERIC>\\).*");
+    checkExpFails("^power(cast(1 as timestamp), cast(2 as timestamp))^",
+        "(?s).*Cannot apply 'POWER' to arguments of type "
+            + "'POWER\\(<TIMESTAMP\\(0\\)>, <TIMESTAMP\\(0\\)>\\)'.*");
+    tester1.checkFails("^myFUN(cast('124' as timestamp))^",
+            "(?s).*Cannot apply 'MYFUN' to arguments of type "
+                + "'MYFUN\\(<TIMESTAMP\\(0\\)>\\)'.*",
+            false);
+    tester1.checkFails("^myFUN(1, 2)^",
+        "(?s).*No match found for function signature "
+            + "MYFUN\\(<NUMERIC>, <NUMERIC>\\).*",
+        false);
+    // Without implicit type coercion.
+    checkExpFails("^unknown_udf(1, 2)^",
+        "(?s).*No match found for function signature "
+            + "UNKNOWN_UDF\\(<NUMERIC>, <NUMERIC>\\).*",
+        false);
+    checkExpFails("^power(cast(1 as timestamp), cast(2 as timestamp))^",
+        "(?s).*Cannot apply 'POWER' to arguments of type "
+            + "'POWER\\(<TIMESTAMP\\(0\\)>, <TIMESTAMP\\(0\\)>\\)'.*", false);
+    tester1.enableTypeCoercion(false)
+        .checkFails("^myFUN(cast('124' as timestamp))^",
+            "(?s).*Cannot apply 'MYFUN' to arguments of type "
+                + "'MYFUN\\(<TIMESTAMP\\(0\\)>\\)'.*",
+            false);
+    tester1.enableTypeCoercion(false)
+        .checkFails("^myFUN(1, 2)^",
+        "(?s).*No match found for function signature "
+            + "MYFUN\\(<NUMERIC>, <NUMERIC>\\).*",
+        false);
+  }
+
   @Test public void testValidatorReportsOriginalQueryUsingReader()
       throws Exception {
     final String sql = "select a from b";
