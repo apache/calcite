@@ -100,6 +100,16 @@ public class JdbcTable extends AbstractQueryableTable
     return jdbcTableType;
   }
 
+  @Override public <C> C unwrap(Class<C> aClass) {
+    if (aClass.isInstance(jdbcSchema.getDataSource())) {
+      return aClass.cast(jdbcSchema.getDataSource());
+    } else if (aClass.isInstance(jdbcSchema.dialect)) {
+      return aClass.cast(jdbcSchema.dialect);
+    } else {
+      return super.unwrap(aClass);
+    }
+  }
+
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (protoRowType == null) {
       try {

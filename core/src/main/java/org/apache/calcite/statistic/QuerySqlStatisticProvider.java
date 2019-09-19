@@ -16,10 +16,8 @@
  */
 package org.apache.calcite.statistic;
 
-import org.apache.calcite.adapter.jdbc.JdbcRules;
-import org.apache.calcite.adapter.jdbc.JdbcSchema;
-import org.apache.calcite.adapter.jdbc.JdbcTable;
 import org.apache.calcite.materialize.SqlStatisticProvider;
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
@@ -82,16 +80,16 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
   }
 
   public double tableCardinality(RelOptTable table) {
-    final JdbcTable jdbcTable = table.unwrap(JdbcTable.class);
-    return withBuilder(jdbcTable.jdbcSchema,
-        (cluster, relOptSchema, jdbcSchema, relBuilder) -> {
+    final SqlDialect dialect = table.unwrap(SqlDialect.class);
+    final DataSource dataSource = table.unwrap(DataSource.class);
+    return withBuilder(
+        (cluster, relOptSchema, relBuilder) -> {
           // Generate:
           //   SELECT COUNT(*) FROM `EMP`
           relBuilder.push(table.toRel(ViewExpanders.simpleContext(cluster)))
               .aggregate(relBuilder.groupKey(), relBuilder.count());
 
-          final String sql = toSql(relBuilder.build(), jdbcSchema.dialect);
-          final DataSource dataSource = jdbcSchema.getDataSource();
+          final String sql = toSql(relBuilder.build(), dialect);
           try (Connection connection = dataSource.getConnection();
                Statement statement = connection.createStatement();
                ResultSet resultSet = statement.executeQuery(sql)) {
@@ -111,9 +109,10 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
 
   public boolean isForeignKey(RelOptTable fromTable, List<Integer> fromColumns,
       RelOptTable toTable, List<Integer> toColumns) {
-    final JdbcTable jdbcTable = fromTable.unwrap(JdbcTable.class);
-    return withBuilder(jdbcTable.jdbcSchema,
-        (cluster, relOptSchema, jdbcSchema, relBuilder) -> {
+    final SqlDialect dialect = fromTable.unwrap(SqlDialect.class);
+    final DataSource dataSource = fromTable.unwrap(DataSource.class);
+    return withBuilder(
+        (cluster, relOptSchema, relBuilder) -> {
           // EMP(DEPTNO) is a foreign key to DEPT(DEPTNO) if the following
           // query returns 0:
           //
@@ -135,8 +134,7 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
               .minus(false, 2)
               .aggregate(relBuilder.groupKey(), relBuilder.count());
 
-          final String sql = toSql(relBuilder.build(), jdbcSchema.dialect);
-          final DataSource dataSource = jdbcTable.jdbcSchema.getDataSource();
+          final String sql = toSql(relBuilder.build(), dialect);
           try (Connection connection = dataSource.getConnection();
                Statement statement = connection.createStatement();
                ResultSet resultSet = statement.executeQuery(sql)) {
@@ -155,9 +153,10 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
   }
 
   public boolean isKey(RelOptTable table, List<Integer> columns) {
-    final JdbcTable jdbcTable = table.unwrap(JdbcTable.class);
-    return withBuilder(jdbcTable.jdbcSchema,
-        (cluster, relOptSchema, jdbcSchema, relBuilder) -> {
+    final SqlDialect dialect = table.unwrap(SqlDialect.class);
+    final DataSource dataSource = table.unwrap(DataSource.class);
+    return withBuilder(
+        (cluster, relOptSchema, relBuilder) -> {
           // The collection of columns ['DEPTNO'] is a key for 'EMP' if the
           // following query returns no rows:
           //
@@ -174,9 +173,8 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
               .filter(
                   relBuilder.call(SqlStdOperatorTable.GREATER_THAN,
                       Util.last(relBuilder.fields()), relBuilder.literal(1)));
-          final String sql = toSql(relBuilder.build(), jdbcSchema.dialect);
+          final String sql = toSql(relBuilder.build(), dialect);
 
-          final DataSource dataSource = jdbcSchema.getDataSource();
           try (Connection connection = dataSource.getConnection();
                Statement statement = connection.createStatement();
                ResultSet resultSet = statement.executeQuery(sql)) {
@@ -201,12 +199,12 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
     return sql;
   }
 
-  private <R> R withBuilder(JdbcSchema jdbcSchema, BuilderAction<R> action) {
+  private <R> R withBuilder(BuilderAction<R> action) {
     return Frameworks.withPlanner(
         (cluster, relOptSchema, rootSchema) -> {
           final RelBuilder relBuilder =
-              JdbcRules.JDBC_BUILDER.create(cluster, relOptSchema);
-          return action.apply(cluster, relOptSchema, jdbcSchema, relBuilder);
+              new RelBuilder(Contexts.of(), cluster, relOptSchema);
+          return action.apply(cluster, relOptSchema, relBuilder);
         });
   }
 
@@ -214,8 +212,7 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
    *
    * @param <R> Result type */
   private interface BuilderAction<R> {
-    R apply(RelOptCluster cluster, RelOptSchema relOptSchema,
-        JdbcSchema jdbcSchema, RelBuilder relBuilder);
+    R apply(RelOptCluster cluster, RelOptSchema relOptSchema, RelBuilder relBuilder);
   }
 }
 
