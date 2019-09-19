@@ -90,15 +90,26 @@ public class BestMatchOverNullifyRule extends RelOptRule {
    * @return true if null tolerant; false otherwise.
    */
   private boolean isNullTolerant(RexNode predicate) {
-    // An OR connective is null-tolerant if any of its child expressions is null-tolerant.
     if (predicate.isA(SqlKind.OR)) {
       RexCall call = (RexCall) predicate;
+
+      // An OR connective is null-tolerant if any of its child expressions is null-tolerant.
       for (RexNode operand: call.getOperands()) {
         if (isNullTolerant(operand)) {
           return true;
         }
       }
       return false;
+    } else if (predicate.isA(SqlKind.AND)) {
+      RexCall call = (RexCall) predicate;
+
+      // An AND connective is null-tolerant if all of its child expressions are null-tolerant.
+      for (RexNode operand: call.getOperands()) {
+        if (!isNullTolerant(operand)) {
+          return false;
+        }
+      }
+      return true;
     }
 
     // IS NULL and TRUE are both null-tolerant.
