@@ -19,10 +19,10 @@ package org.apache.calcite;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.rules.custom.BestMatchReduceRule;
 import org.apache.calcite.rel.rules.custom.NullifyJoinRule;
 import org.apache.calcite.schema.SchemaPlus;
@@ -33,7 +33,6 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
-import org.apache.calcite.tools.RelBuilder;
 
 /**
  * A runner class for manual testing.
@@ -45,23 +44,41 @@ public class Runner {
     final SchemaPlus defaultSchema = rootSchema.add("p", new ReflectiveSchema(new People()));
 
     // Creates the planner.
+    final SqlParser.Config parserConfig = SqlParser.configBuilder().setLex(Lex.MYSQL).build();
     final Program programs = Programs.ofRules(
         NullifyJoinRule.INSTANCE,
         BestMatchReduceRule.INSTANCE,
         EnumerableRules.ENUMERABLE_PROJECT_RULE,
         EnumerableRules.ENUMERABLE_JOIN_RULE);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
-        .parserConfig(SqlParser.Config.DEFAULT)
+        .parserConfig(parserConfig)
         .defaultSchema(defaultSchema)
         .programs(programs)
         .build();
     final Planner planner = Frameworks.getPlanner(config);
-    final RelBuilder builder = RelBuilder.create(config);
 
+    // A single left outer join.
+    String sqlQuery = "select e.name, d.depName "
+        + "from p.employees e left join p.departments d on e.depID = d.depID";
+    buildAndTransformQuery(planner, sqlQuery);
+
+    // Two joins (left outer join + inner join).
+    sqlQuery = "select e.name, d.depName, c.cmpName "
+        + "from p.employees e left join p.departments d on e.depID = d.depID "
+        + "join p.companies c on d.cmpID = c.cmpID";
+    buildAndTransformQuery(planner, sqlQuery);
+  }
+
+  /**
+   * This method emulates the whole life cycle of a given SQL query: parse, validate build and
+   * transform. It will close & reset the planner after usage.
+   *
+   * @param planner is the planner to be used during the life cycle.
+   * @param sqlQuery is the original SQL query in its string representation.
+   * @throws Exception when there is error during any step.
+   */
+  private static void buildAndTransformQuery(Planner planner, String sqlQuery) throws Exception {
     // Parses, validates and builds the query.
-    String sqlQuery = "select e.\"name\", d.\"depName\" from "
-            + " \"p\".\"employees\" e left join \"p\".\"departments\" d "
-            + " on e.\"depID\" = d.\"depID\" ";
     SqlNode parse = planner.parse(sqlQuery);
     SqlNode validate = planner.validate(parse);
     RelNode relNode = planner.rel(validate).rel;
@@ -72,25 +89,9 @@ public class Runner {
     RelNode transformedNode = planner.transform(0, traitSet, relNode);
     System.out.println(RelOptUtil.toString(transformedNode));
 
-    // Alternatively, build the relational nodes directly.
-    final RelBuilder firstScan = builder.scan("employees").as("e").scan("departments").as("d");
-    final RelBuilder firstJoin = firstScan.join(JoinRelType.LEFT,
-        firstScan.equals(
-            firstScan.field(2, 0, "depID"),
-            firstScan.field(2, 1, "depID")
-        ));
-    final RelBuilder secondScan = firstJoin.scan("companies").as("c");
-    final RelBuilder secondJoin = secondScan.join(JoinRelType.INNER,
-        secondScan.equals(
-            secondScan.field(2, 0, "cmpID"),
-            secondScan.field(2, 1, "cmpID")
-        ));
-    final RelBuilder afterProject = secondJoin.project(
-        secondJoin.field("e", "name"),
-        secondJoin.field("d", "depName"),
-        secondJoin.field("c", "cmpName"));
-    final RelNode finalNode = afterProject.build();
-    System.out.println(RelOptUtil.toString(finalNode));
+    // Closes and resets the planner.
+    planner.close();
+    planner.reset();
   }
 
   /**
