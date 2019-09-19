@@ -174,6 +174,11 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     return CalciteConnectionProperty.TYPE_COERCION.wrap(properties)
         .getBoolean();
   }
+
+  public boolean lenientOperatorLookup() {
+    return CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP.wrap(properties)
+        .getBoolean();
+  }
 }
 
 // End CalciteConnectionConfigImpl.java

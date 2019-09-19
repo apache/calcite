@@ -290,17 +290,17 @@ public class SqlFunction extends SqlOperator {
               break validCoercionType;
             }
           }
-          // if function doesn't exist within operator table and known function
-          // handling is turned off then create a more permissive function
-          if (function == null && validator.isLenientOperatorLookup()) {
-            final SqlFunction x = (SqlFunction) call.getOperator();
-            final SqlIdentifier identifier =
-                Util.first(x.getSqlIdentifier(),
-                    new SqlIdentifier(x.getName(), SqlParserPos.ZERO));
-            function = new SqlUnresolvedFunction(identifier, null,
-                null, OperandTypes.VARIADIC, null, x.getFunctionType());
-            break validCoercionType;
-          }
+        }
+        // if function doesn't exist within operator table and known function
+        // handling is turned off then create a more permissive function
+        if (function == null && validator.isLenientOperatorLookup()) {
+          final SqlFunction x = (SqlFunction) call.getOperator();
+          final SqlIdentifier identifier =
+              Util.first(x.getSqlIdentifier(),
+                  new SqlIdentifier(x.getName(), SqlParserPos.ZERO));
+          function = new SqlUnresolvedFunction(identifier, null,
+              null, OperandTypes.VARIADIC, null, x.getFunctionType());
+          break validCoercionType;
         }
         throw validator.handleUnresolvedFunction(call, this, argTypes,
             argNames);

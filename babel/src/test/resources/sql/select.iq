@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-!use scott
+!use scott-babel
 !set outputformat mysql
 
 # ORDER BY column not in SELECT clause

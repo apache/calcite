@@ -328,7 +328,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     groupFinder = new AggFinder(opTab, false, false, true, null, nameMatcher);
     aggOrOverOrGroupFinder = new AggFinder(opTab, true, true, true, null,
         nameMatcher);
-    this.lenientOperatorLookup = false;
+    this.lenientOperatorLookup = catalogReader.getConfig() != null
+        && catalogReader.getConfig().lenientOperatorLookup();
     this.enableTypeCoercion = catalogReader.getConfig() == null
         || catalogReader.getConfig().typeCoercion();
     this.typeCoercion = TypeCoercions.getTypeCoercion(this, conformance);

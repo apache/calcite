@@ -1626,6 +1626,11 @@ SqlLiteral JoinType() :
 }
 {
     (
+    LOOKAHEAD(3) // required for "LEFT SEMI JOIN" in Babel
+<#list parser.joinTypes as method>
+        joinType = ${method}()
+    |
+</#list>
         <JOIN> { joinType = JoinType.INNER; }
     |
         <INNER> <JOIN> { joinType = JoinType.INNER; }
@@ -1637,10 +1642,6 @@ SqlLiteral JoinType() :
         <FULL> [ <OUTER> ] <JOIN> { joinType = JoinType.FULL; }
     |
         <CROSS> <JOIN> { joinType = JoinType.CROSS; }
-<#list parser.joinTypes as method>
-    |
-        joinType = ${method}()
-</#list>
     )
     {
         return joinType.symbol(getPos());
