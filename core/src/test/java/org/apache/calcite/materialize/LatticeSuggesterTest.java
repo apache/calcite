@@ -676,6 +676,37 @@ public class LatticeSuggesterTest {
             + " [foodmart, customer], +($2, 2):+($0, 1))])"));
   }
 
+  /** Tests that we can run the suggester against non-JDBC schemas.
+   *
+   * <p>{@link org.apache.calcite.test.CalciteAssert.SchemaSpec#FAKE_FOODMART}
+   * is not based on {@link org.apache.calcite.adapter.jdbc.JdbcSchema} or
+   * {@link org.apache.calcite.adapter.jdbc.JdbcTable} but can provide a
+   * {@link javax.sql.DataSource}
+   * and {@link SqlDialect} for executing statistics queries.
+   *
+   * <p>The query has a join, and so we have to execute statistics queries
+   * to deduce the direction of the foreign key.
+   */
+  @Test public void testFoodmartSimpleJoin() throws Exception {
+    checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec.JDBC_FOODMART);
+    checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec.FAKE_FOODMART);
+  }
+
+  private void checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec schemaSpec)
+      throws Exception {
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(Tester.schemaFrom(schemaSpec))
+        .statisticProvider(QuerySqlStatisticProvider.SILENT_CACHING_INSTANCE)
+        .build();
+    final Tester t = new Tester(config);
+    final String q = "select *\n"
+        + "from \"time_by_day\" as \"t\",\n"
+        + " \"sales_fact_1997\" as \"s\"\n"
+        + "where \"s\".\"time_id\" = \"t\".\"time_id\"\n";
+    final String g = "sales_fact_1997 (time_by_day:time_id)";
+    assertThat(t.addQuery(q), isGraphs(g, "[]"));
+  }
+
   /** Creates a matcher that matches query graphs to strings. */
   private BaseMatcher<List<Lattice>> isGraphs(
       String... strings) {
