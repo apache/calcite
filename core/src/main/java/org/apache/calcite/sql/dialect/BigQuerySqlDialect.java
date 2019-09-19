@@ -220,6 +220,20 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.literal("INT64");
       writer.endFunCall(castFrame);
       break;
+    case CAST:
+      if (SqlKind.SINGLE_VALUE == call.operand(0).getKind()) {
+        SqlNode singleValueNode = call.operand(0);
+        SqlNode castValueNode = call.operand(1);
+        SqlNode scalarQueryNode = ((SqlBasicCall) singleValueNode).getOperandList().get(0);
+        final SqlWriter.Frame scalarCastFrame = writer.startFunCall("CAST");
+        scalarQueryNode.unparse(writer, leftPrec, rightPrec);
+        writer.sep("AS");
+        writer.literal(castValueNode.toString());
+        writer.endFunCall(scalarCastFrame);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
