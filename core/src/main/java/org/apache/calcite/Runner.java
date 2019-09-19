@@ -78,20 +78,26 @@ public class Runner {
    * @throws Exception when there is error during any step.
    */
   private static void buildAndTransformQuery(Planner planner, String sqlQuery) throws Exception {
+    System.out.println("============================ Start ============================");
+
     // Parses, validates and builds the query.
     SqlNode parse = planner.parse(sqlQuery);
     SqlNode validate = planner.validate(parse);
     RelNode relNode = planner.rel(validate).rel;
+    System.out.println("Before transformation:\n");
     System.out.println(RelOptUtil.toString(relNode));
 
     // Transforms the query.
     RelTraitSet traitSet = relNode.getTraitSet().replace(EnumerableConvention.INSTANCE);
     RelNode transformedNode = planner.transform(0, traitSet, relNode);
+    System.out.println("After transformation:\n");
     System.out.println(RelOptUtil.toString(transformedNode));
 
     // Closes and resets the planner.
     planner.close();
     planner.reset();
+
+    System.out.println("============================= End =============================\n");
   }
 
   /**
