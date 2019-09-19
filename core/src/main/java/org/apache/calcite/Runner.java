@@ -67,6 +67,9 @@ public class Runner {
         + "from p.employees e left join p.departments d on e.depID = d.depID "
         + "join p.companies c on d.cmpID = c.cmpID";
     buildAndTransformQuery(planner, sqlQuery);
+
+    // Closes the planner eventually.
+    planner.close();
   }
 
   /**
