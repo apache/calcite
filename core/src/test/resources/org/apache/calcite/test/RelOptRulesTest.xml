@@ -2076,6 +2076,39 @@ LogicalProject(SAL=[$5])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushJoinThroughUnionOnRightDoesNotMatchAntiJoin">
+        <Resource name="sql">
+            <![CDATA[select r1.sal from emp r1 where r1.deptno not in (select deptno from dept d1 where deptno < 10 union all select deptno from dept d2 where deptno > 20)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(SAL=[$5])
+  LogicalJoin(condition=[=($7, $8)], joinType=[anti])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalUnion(all=[true])
+      LogicalProject(DEPTNO=[$0])
+        LogicalFilter(condition=[<($0, 10)])
+          LogicalTableScan(table=[[scott, DEPT]])
+      LogicalProject(DEPTNO=[$0])
+        LogicalFilter(condition=[>($0, 20)])
+          LogicalTableScan(table=[[scott, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(SAL=[$5])
+  LogicalJoin(condition=[=($7, $8)], joinType=[anti])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalUnion(all=[true])
+      LogicalProject(DEPTNO=[$0])
+        LogicalFilter(condition=[<($0, 10)])
+          LogicalTableScan(table=[[scott, DEPT]])
+      LogicalProject(DEPTNO=[$0])
+        LogicalFilter(condition=[>($0, 20)])
+          LogicalTableScan(table=[[scott, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testReduceConstants">
         <Resource name="sql">
             <![CDATA[select 1+2, d.deptno+(3+4), (5+6)+d.deptno, cast(null as integer), coalesce(2,null), row(7+8) from dept d inner join emp e on d.deptno = e.deptno + (5-5) where d.deptno=(7+8) and d.deptno=(8+7) and d.deptno=coalesce(2,null)]]>

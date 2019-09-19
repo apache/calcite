@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Union;
@@ -92,7 +93,8 @@ public class JoinUnionTransposeRule extends RelOptRule {
         return;
       }
     } else {
-      if (join.getJoinType().generatesNullsOnRight()) {
+      if (join.getJoinType().generatesNullsOnRight()
+          || join.getJoinType() == JoinRelType.ANTI) {
         return;
       }
     }
