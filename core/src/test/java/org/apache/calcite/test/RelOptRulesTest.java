@@ -6151,8 +6151,10 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "order by mgr, deptno";
 
     RelNode r = checkPlanning(tester, preProgram, new HepPlanner(program), sql);
-    RelCollation c = r.getInput(0).getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
-    assertEquals("Collation is incorrect", "[3, 7]", c.toString());
+    RelCollation ci = r.getInput(0).getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
+    assertEquals("Window collation is incorrect", "[3, 7]", ci.toString());
+    RelCollation co = r.getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
+    assertEquals("Project collation is incorrect", "[0, 1]", co.toString());
   }
 
   @Test public void testWindowOnSortedInput1() {

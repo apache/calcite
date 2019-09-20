@@ -178,7 +178,7 @@ public abstract class ProjectToWindowRule extends RelOptRule {
               final RelTraitSet traits = rel.getTraitSet().replace(inputCollation);
               final RelNode window = rel.getInput(0);
               final RelNode newWindow = window.copy(traits, window.getInputs());
-              return rel.copy(traits, Collections.singletonList(newWindow));
+              return rel.copy(rel.getTraitSet(), Collections.singletonList(newWindow));
             }
           }
           if (!(rel instanceof LogicalCalc)) {
