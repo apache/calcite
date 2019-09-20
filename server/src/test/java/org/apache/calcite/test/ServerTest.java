@@ -172,9 +172,9 @@ public class ServerTest {
       boolean b = s.execute("create schema s");
       assertThat(b, is(false));
       try {
-        boolean f = s.execute("create function if not exists s.t \n" +
-                "as 'org.apache.calcite.udf.TableFun.demoUdf'\n" +
-                "using jar 'file:/path/udf/udf-0.0.1-SNAPSHOT.jar'");
+        boolean f = s.execute("create function if not exists s.t \n"
+                + "as 'org.apache.calcite.udf.TableFun.demoUdf'\n"
+                + "using jar 'file:/path/udf/udf-0.0.1-SNAPSHOT.jar'");
       } catch (SQLException e) {
         assertThat(e.getMessage(),
                 containsString("Sql create function ddl is not support yet"));
@@ -196,8 +196,7 @@ public class ServerTest {
         assertThat(f2, is(false));
       } catch (SQLException e) {
         assertThat(e.getMessage(),
-                containsString("Error while executing SQL \"drop function t\":" +
-                        " At line 1, column 15: Type 'T' not found"));
+                containsString("Sql drop function ddl is not support yet"));
       }
     }
   }

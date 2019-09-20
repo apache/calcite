@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.ddl;
 
+import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -33,6 +34,10 @@ public class SqlDropFunction extends SqlDropObject {
   public SqlDropFunction(SqlParserPos pos, boolean ifExists,
       SqlIdentifier name) {
     super(OPERATOR, pos, ifExists, name);
+  }
+
+  @Override public void execute(CalcitePrepare.Context context) {
+    throw new UnsupportedOperationException("Sql drop function ddl is not support yet.");
   }
 }
 
