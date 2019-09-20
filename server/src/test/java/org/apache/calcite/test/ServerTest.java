@@ -166,6 +166,42 @@ public class ServerTest {
     }
   }
 
+  @Test public void testCreateFunction() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      boolean b = s.execute("create schema s");
+      assertThat(b, is(false));
+      try {
+        boolean f = s.execute("create function if not exists s.t \n" +
+                "as 'org.apache.calcite.udf.TableFun.demoUdf'\n" +
+                "using jar 'file:/path/udf/udf-0.0.1-SNAPSHOT.jar'");
+      } catch (SQLException e) {
+        assertThat(e.getMessage(),
+                containsString("Sql create function ddl is not support yet"));
+      }
+    }
+  }
+
+  @Test public void testDropFunction() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      boolean b = s.execute("create schema s");
+      assertThat(b, is(false));
+
+      boolean f = s.execute("drop function if exists t");
+      assertThat(f, is(false));
+
+      try {
+        boolean f2 = s.execute("drop function t");
+        assertThat(f2, is(false));
+      } catch (SQLException e) {
+        assertThat(e.getMessage(),
+                containsString("Error while executing SQL \"drop function t\":" +
+                        " At line 1, column 15: Type 'T' not found"));
+      }
+    }
+  }
+
   @Test public void testInsertCastedValueOfCompositeUdt() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
