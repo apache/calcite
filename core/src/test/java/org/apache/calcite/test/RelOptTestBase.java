@@ -167,10 +167,11 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
    * @param preProgram Program to execute before comparing before state
    * @param planner    Planner
    * @param sql        SQL query
+   * @return           Rel tree after planning to do additional checks
    */
-  protected void checkPlanning(Tester tester, HepProgram preProgram,
+  protected RelNode checkPlanning(Tester tester, HepProgram preProgram,
       RelOptPlanner planner, String sql) {
-    checkPlanning(tester, preProgram, planner, sql, false);
+    return checkPlanning(tester, preProgram, planner, sql, false);
   }
 
   /**
@@ -182,8 +183,9 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
    * @param planner    Planner
    * @param sql        SQL query
    * @param unchanged  Whether the rule is to have no effect
+   * @return           Rel tree after planning to do additional checks
    */
-  protected void checkPlanning(Tester tester, HepProgram preProgram,
+  protected RelNode checkPlanning(Tester tester, HepProgram preProgram,
       RelOptPlanner planner, String sql, boolean unchanged) {
     final DiffRepository diffRepos = getDiffRepos();
     String sql2 = diffRepos.expand("sql", sql);
@@ -236,6 +238,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
       }
     }
     SqlToRelTestBase.assertValid(r);
+    return r;
   }
 
   /** Sets the SQL statement for a test. */
