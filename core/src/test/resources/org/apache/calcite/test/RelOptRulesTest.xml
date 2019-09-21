@@ -9073,6 +9073,139 @@ LogicalJoin(condition=[=($0, $2)], joinType=[semi])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAntiJoinRule0">
+        <Resource name="sql">
+            <![CDATA[select emp.sal from emp where not exists (
+  select * from dept
+  where emp.deptno = dept.deptno
+  and dept.deptno < 10)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(SAL=[$0])
+  LogicalFilter(condition=[IS NULL($3)])
+    LogicalJoin(condition=[=($1, $2)], joinType=[left])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+        LogicalProject(DEPTNO=[$0], $f0=[true])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(SAL=[$0])
+  LogicalJoin(condition=[=($1, $2)], joinType=[anti])
+    LogicalProject(SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], $f0=[true])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAntiJoinRule1">
+        <Resource name="sql">
+            <![CDATA[select emp.sal from
+emp left join
+(select deptno, min(p) q from
+  (select deptno, true p from dept)
+group by deptno) X
+on emp.deptno = X.deptno
+where X.q is null and emp.sal>100]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(SAL=[$0])
+  LogicalFilter(condition=[IS NULL($3)])
+    LogicalJoin(condition=[=($1, $2)], joinType=[left])
+      LogicalFilter(condition=[>($0, 100)])
+        LogicalProject(SAL=[$5], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}], Q=[MIN($1)])
+        LogicalProject(DEPTNO=[$0], P=[true])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(SAL=[$0])
+  LogicalJoin(condition=[=($1, $2)], joinType=[anti])
+    LogicalFilter(condition=[>($0, 100)])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], P=[true])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAntiJoinRule2">
+        <Resource name="sql">
+            <![CDATA[select emp.sal from
+emp full join
+(select deptno, min(p) q from
+  (select deptno, true p from dept)
+group by deptno) X
+on emp.deptno = X.deptno
+where X.q is null]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(SAL=[$0])
+  LogicalFilter(condition=[IS NULL($3)])
+    LogicalJoin(condition=[=($1, $2)], joinType=[full])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}], Q=[MIN($1)])
+        LogicalProject(DEPTNO=[$0], P=[true])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(SAL=[$0])
+  LogicalFilter(condition=[IS NULL($3)])
+    LogicalJoin(condition=[=($1, $2)], joinType=[full])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}], Q=[MIN($1)])
+        LogicalProject(DEPTNO=[$0], P=[true])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAntiJoinRule3">
+        <Resource name="sql">
+            <![CDATA[select dept.name from
+dept left join
+(select deptno, min(mgr) p
+from emp
+group by deptno) X
+on dept.deptno = X.deptno
+where X.p is null]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(NAME=[$1])
+  LogicalFilter(condition=[IS NULL($3)])
+    LogicalJoin(condition=[=($0, $2)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalAggregate(group=[{0}], P=[MIN($1)])
+        LogicalProject(DEPTNO=[$7], MGR=[$3])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(NAME=[$1])
+  LogicalFilter(condition=[IS NULL($3)])
+    LogicalJoin(condition=[=($0, $2)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalAggregate(group=[{0}], P=[MIN($1)])
+        LogicalProject(DEPTNO=[$7], MGR=[$3])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSemiJoinRuleFull">
         <Resource name="sql">
             <![CDATA[select dept.* from dept full join (

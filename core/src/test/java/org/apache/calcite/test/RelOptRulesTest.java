@@ -77,6 +77,7 @@ import org.apache.calcite.rel.rules.AggregateRemoveRule;
 import org.apache.calcite.rel.rules.AggregateUnionAggregateRule;
 import org.apache.calcite.rel.rules.AggregateUnionTransposeRule;
 import org.apache.calcite.rel.rules.AggregateValuesRule;
+import org.apache.calcite.rel.rules.AntiJoinRule;
 import org.apache.calcite.rel.rules.CalcMergeRule;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
 import org.apache.calcite.rel.rules.DateRangeRules;
@@ -1152,6 +1153,110 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(AggregateReduceFunctionsRule.INSTANCE,
         "select name, max(name), avg(deptno), min(name)"
             + " from sales.dept group by name");
+  }
+
+  @Test public void testAntiJoinRule0() {
+    final HepProgram preProgram =
+        HepProgram.builder()
+            .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
+            .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
+            .addRuleInstance(ProjectMergeRule.INSTANCE)
+            .build();
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(AntiJoinRule.INSTANCE)
+            .build();
+    final String sql = ""
+        + "select emp.sal from emp where not exists (\n"
+        + "  select * from dept\n"
+        + "  where emp.deptno = dept.deptno)";
+    sql(sql)
+        .withDecorrelation(true)
+        .withTrim(true)
+        .withPre(preProgram)
+        .with(program)
+        .check();
+  }
+
+  @Test public void testAntiJoinRule1() {
+    final HepProgram preProgram =
+        HepProgram.builder()
+            .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
+            .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
+            .addRuleInstance(ProjectMergeRule.INSTANCE)
+            .build();
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(AntiJoinRule.INSTANCE)
+            .build();
+    final String sql = ""
+        + "select emp.sal from\n"
+        + "emp left join\n"
+        + "(select deptno, min(p) q from\n"
+        + "  (select deptno, true p from dept)\n"
+        + "group by deptno) X\n"
+        + "on emp.deptno = X.deptno\n"
+        + "where X.q is null and emp.sal>100";
+    sql(sql)
+        .withDecorrelation(true)
+        .withTrim(true)
+        .withPre(preProgram)
+        .with(program)
+        .check();
+  }
+
+  @Test public void testAntiJoinRule2() {
+    final HepProgram preProgram =
+        HepProgram.builder()
+            .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
+            .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
+            .addRuleInstance(ProjectMergeRule.INSTANCE)
+            .build();
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(AntiJoinRule.INSTANCE)
+            .build();
+    final String sql = ""
+        + "select emp.sal from\n"
+        + "emp full join\n"
+        + "(select deptno, min(p) q from\n"
+        + "  (select deptno, true p from dept)\n"
+        + "group by deptno) X\n"
+        + "on emp.deptno = X.deptno\n"
+        + "where X.q is null";
+    sql(sql)
+        .withDecorrelation(true)
+        .withTrim(true)
+        .withPre(preProgram)
+        .with(program)
+        .checkUnchanged();
+  }
+
+  @Test public void testAntiJoinRule3() {
+    final HepProgram preProgram =
+        HepProgram.builder()
+            .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
+            .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
+            .addRuleInstance(ProjectMergeRule.INSTANCE)
+            .build();
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(AntiJoinRule.INSTANCE)
+            .build();
+    final String sql = ""
+        + "select dept.name from\n"
+        + "dept left join\n"
+        + "(select deptno, min(mgr) p\n"
+        + "from emp\n"
+        + "group by deptno) X\n"
+        + "on dept.deptno = X.deptno\n"
+        + "where X.p is null";
+    sql(sql)
+        .withDecorrelation(true)
+        .withTrim(true)
+        .withPre(preProgram)
+        .with(program)
+        .checkUnchanged();
   }
 
   /** Test case for
