@@ -23,8 +23,11 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.rules.custom.BestMatchOverNullifyRule;
+import org.apache.calcite.rel.rules.custom.BestMatchPullUpRule;
 import org.apache.calcite.rel.rules.custom.BestMatchReduceRule;
 import org.apache.calcite.rel.rules.custom.NullifyJoinRule;
+import org.apache.calcite.rel.rules.custom.NullifyPullUpRule;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -46,8 +49,11 @@ public class Runner {
     // Creates the planner.
     final SqlParser.Config parserConfig = SqlParser.configBuilder().setLex(Lex.MYSQL).build();
     final Program programs = Programs.ofRules(
-        NullifyJoinRule.INSTANCE,
+        BestMatchOverNullifyRule.INSTANCE,
+        BestMatchPullUpRule.INSTANCE,
         BestMatchReduceRule.INSTANCE,
+        NullifyJoinRule.INSTANCE,
+        NullifyPullUpRule.INSTANCE,
         EnumerableRules.ENUMERABLE_PROJECT_RULE,
         EnumerableRules.ENUMERABLE_JOIN_RULE);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
@@ -74,7 +80,7 @@ public class Runner {
 
   /**
    * This method emulates the whole life cycle of a given SQL query: parse, validate build and
-   * transform. It will close & reset the planner after usage.
+   * transform. It will close and reset the planner after usage.
    *
    * @param planner is the planner to be used during the life cycle.
    * @param sqlQuery is the original SQL query in its string representation.
