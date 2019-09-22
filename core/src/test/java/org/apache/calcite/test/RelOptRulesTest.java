@@ -6349,6 +6349,67 @@ public class RelOptRulesTest extends RelOptTestBase {
     String planAfter = NL + RelOptUtil.toString(relAfter);
     getDiffRepos().assertEquals("planAfter", "${planAfter}", planAfter);
   }
+
+  @Test public void testDecorrelateUnion0() {
+    final String sql = ""
+        + "SELECT deptno FROM dept where exists\n"
+        + "(SELECT 1 FROM emp where sal < 100 and emp.deptno=dept.deptno\n"
+        + "UNION ALL\n"
+        + "SELECT 1 FROM bonus where bonus.comm=dept.deptno)";
+    sql(sql)
+        .withLateDecorrelation(true)
+        .withTrim(true)
+        .with(HepProgram.builder().build())
+        .check();
+  }
+
+  /**
+   * Input frames with the same correlated variables and old-new output mappings,
+   * but correlated variables referenced by different columns.
+   */
+  @Test public void testDecorrelateUnion1() {
+    final String sql = "SELECT * FROM emp where exists \n"
+        + "(SELECT 1 FROM dept where deptno = emp.deptno\n"
+        + "UNION ALL\n"
+        + "SELECT 1 FROM dept where deptno + 1 = emp.deptno)";
+    sql(sql)
+        .withLateDecorrelation(true)
+        .withTrim(true)
+        .with(HepProgram.builder().build())
+        .check();
+  }
+
+  /**
+   * Input frames with different correlated variables
+   * and referenced by different columns;
+   */
+  @Test public void testDecorrelateUnion2() {
+    final String sql = "SELECT * FROM emp where exists \n"
+        + "(SELECT 1 FROM dept where deptno = emp.deptno\n"
+        + "UNION ALL\n"
+        + "SELECT 1 FROM dept where name = emp.ename)";
+    sql(sql)
+        .withLateDecorrelation(true)
+        .withTrim(true)
+        .with(HepProgram.builder().build())
+        .check();
+  }
+
+  /**
+   * Input frames with the same correlated variables,
+   * but different old-new output mappings.
+   */
+  @Test public void testDecorrelateUnion3() {
+    final String sql = "SELECT * FROM emp A where (deptno, sal) in \n"
+        + "(SELECT deptno, max(sal) FROM emp B where A.mgr = B.empno group by deptno\n"
+        + "UNION ALL\n"
+        + "SELECT deptno, sal FROM emp B where A.mgr = B.empno)";
+    sql(sql)
+        .withLateDecorrelation(true)
+        .withTrim(true)
+        .with(HepProgram.builder().build())
+        .check();
+  }
 }
 
 // End RelOptRulesTest.java

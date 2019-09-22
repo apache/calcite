@@ -41,6 +41,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
@@ -1240,6 +1241,131 @@ public class RelDecorrelator implements ReflectiveVisitor {
           entry.getValue() + newLeftFieldCount);
     }
     return register(rel, newJoin, mapOldToNewOutputs, corDefOutputs);
+  }
+
+  public Frame decorrelateRel(Union rel) {
+    assert !cm.mapRefRelToCorRef.containsKey(rel);
+
+    final List<RelNode> oldInputs = rel.getInputs();
+
+    final List<Frame> inputFrames = new ArrayList<>();
+    final Set<CorDef> corDefSet = new HashSet<>();
+
+    // Decorrelate to collect input frames and collect all
+    // the corDefOutputs from the frames. Note that the
+    // corDefOutputs might be different among the frames.
+    for (RelNode oldInput: oldInputs) {
+      final Frame frame = getInvoke(oldInput, rel);
+      if (frame == null) {
+        return null;
+      }
+      inputFrames.add(frame);
+      corDefSet.addAll(frame.corDefOutputs.keySet());
+    }
+
+    // Note that the corDefOutputs might be different among the
+    // input frames. Align the correlated variables here.
+    for (int i = 0; i < inputFrames.size(); i++) {
+      final Frame newFrame =
+          maybeAppendCorDefs(oldInputs.get(i), inputFrames.get(i), corDefSet);
+      inputFrames.set(i, newFrame);
+    }
+
+    final Frame frame0 = inputFrames.get(0);
+
+    boolean inputMappingConflict = false;
+
+    // Check whether there's mapping conflict from the inputs
+    for (Frame frame: inputFrames) {
+      assert frame.corDefOutputs.keySet().equals(frame0.corDefOutputs.keySet());
+      for (RelDecorrelator.CorDef corDef: frame0.corDefOutputs.keySet()) {
+        if (frame0.corDefOutputs.get(corDef) != frame.corDefOutputs.get(corDef)) {
+          inputMappingConflict = true;
+        }
+      }
+      if (!frame.oldToNewOutputs.equals(frame0.oldToNewOutputs)) {
+        inputMappingConflict = true;
+      }
+    }
+
+    if (inputMappingConflict) {
+      // If there's mapping conflict, permute the inputs.
+      final SortedMap<CorDef, Integer> newCorDefOutputs = new TreeMap<>();
+      for (int i = 0; i < inputFrames.size(); i++) {
+        final Frame frame = inputFrames.get(i);
+        final List<Integer> projects = permuteMapping(frame, frame0.corDefOutputs.keySet());
+
+        RelNode input;
+        if (Mappings.isIdentity(projects, projects.size())) {
+          input = frame.r;
+        } else {
+          input = relBuilder.push(frame.r)
+              .project(relBuilder.fields(projects))
+              .build();
+        }
+        relBuilder.push(input);
+
+        if (i == 0) {
+          for (CorDef corDef: frame0.corDefOutputs.keySet()) {
+            final int newIdx = projects.indexOf(frame0.corDefOutputs.get(corDef));
+            assert newIdx != -1;
+            newCorDefOutputs.put(corDef, newIdx);
+          }
+        }
+      }
+      final RelNode newUnion = relBuilder.union(rel.all).build();
+      return register(
+          rel, newUnion, identityMap(frame0.oldToNewOutputs.size()), newCorDefOutputs);
+    } else {
+      for (Frame frame: inputFrames) {
+        relBuilder.push(frame.r);
+      }
+      final RelNode newUnion = relBuilder.union(rel.all).build();
+      return register(rel, newUnion, frame0.oldToNewOutputs, frame0.corDefOutputs);
+    }
+  }
+
+  private Frame maybeAppendCorDefs(RelNode rel, Frame frame, Set<CorDef> needs) {
+    final List<CorRef> corRefsNeedToAppend = new ArrayList<>();
+    needs.forEach(corDef -> {
+      if (!frame.corDefOutputs.containsKey(corDef)) {
+        corRefsNeedToAppend.add(new CorRef(corDef.corr, corDef.field, 0));
+      }
+    });
+    // If all needs are satisfied, just return the original frame.
+    if (corRefsNeedToAppend.isEmpty()) {
+      return frame;
+    }
+
+    final SortedMap<CorDef, Integer> corDefOutputs =
+        new TreeMap<>(frame.corDefOutputs);
+    final int leftInputOutputCount = frame.r.getRowType().getFieldCount();
+
+    // Create value generator, which provides column(s) for needed correlated variable(s).
+    final RelNode valueGen =
+        createValueGenerator(corRefsNeedToAppend, leftInputOutputCount, corDefOutputs);
+
+    final RelNode join = relBuilder.push(frame.r).push(valueGen)
+        .join(JoinRelType.INNER, relBuilder.literal(true),
+            ImmutableSet.of()).build();
+
+    return register(rel, join, frame.oldToNewOutputs, corDefOutputs);
+  }
+
+  // Generate mapping for permutation, which provides identity mapping
+  // for original corresponding relnode of the frame, and followed by
+  // columns for correlated variables specified in corDefs.
+  private List<Integer> permuteMapping(
+      Frame frame, ImmutableSortedSet<RelDecorrelator.CorDef> corDefs) {
+    List<Integer> projects = new ArrayList<>();
+    while (projects.size() < frame.oldToNewOutputs.size()) {
+      projects.add(frame.oldToNewOutputs.get(projects.size()));
+    }
+    for (RelDecorrelator.CorDef corDef: corDefs) {
+      assert frame.corDefOutputs.containsKey(corDef);
+      projects.add(frame.corDefOutputs.get(corDef));
+    }
+    return projects;
   }
 
   private static RexInputRef getNewForOldInputRef(RelNode currentRel,
