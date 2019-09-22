@@ -21,22 +21,29 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.trace.CalciteTrace;
 
-import java.util.ArrayList;
+import org.slf4j.Logger;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * NullifyJoinRule
+ * NullifyJoinRule nullifies a 1-sided outer join or inner join operator in the
+ * following way:
+ * 1) 1-sided outer join: nullify the null-producing side;
+ * 2) inner join: nullify both sides;
  */
 public class NullifyJoinRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
+  private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   /** Instance of the rule that nullifies inner, left outer or right outer join. */
   public static final NullifyJoinRule INSTANCE =
@@ -59,48 +66,55 @@ public class NullifyJoinRule extends RelOptRule {
     RelBuilder builder = call.builder();
 
     // The join operator at the current node.
-    Join join = call.rel(0);
+    final Join join = call.rel(0);
+    final JoinRelType joinType = join.getJoinType();
+    if (join.getCondition().equals(builder.literal(true))) {
+      LOGGER.debug("No need to nullify cartesian product");
+      return;
+    } else if (!joinType.canApplyNullify()) {
+      LOGGER.debug("Invalid join relation type");
+      return;
+    }
+
+    // The new join operator (as outer-cartesian product).
+    final RelNode outerCartesianJoin = join.copy(
+        join.getTraitSet(),
+        builder.literal(true),  // Uses a literal condition which is always true.
+        join.getLeft(),
+        join.getRight(),
+        JoinRelType.OUTER_CARTESIAN,
+        join.isSemiJoinDone());
 
     // Determines the nullification attribute list based on the join type.
-    List<RexNode> nullificationList = new ArrayList<>();
-    List<RelDataTypeField> leftFieldList = join.getLeft().getRowType().getFieldList();
-    List<RelDataTypeField> rightFieldList = join.getRight().getRowType().getFieldList();
-    List<RexNode> leftList = leftFieldList.stream()
-        .map(field -> new RexInputRef(field.getIndex(), field.getType()))
-        .collect(Collectors.toList());
-    List<RexNode> rightList = rightFieldList.stream()
-        .map(field -> new RexInputRef(field.getIndex(), field.getType()))
-        .collect(Collectors.toList());
-
-    switch (join.getJoinType()) {
+    List<RelDataTypeField> joinFieldList = outerCartesianJoin.getRowType().getFieldList();
+    List<RelDataTypeField> nullifyFieldList;
+    int leftFieldCount = join.getLeft().getRowType().getFieldCount();
+    switch (joinType) {
     case LEFT:
-      nullificationList.addAll(rightList);
+      nullifyFieldList = joinFieldList.subList(leftFieldCount, joinFieldList.size());
       break;
     case RIGHT:
-      nullificationList.addAll(leftList);
+      nullifyFieldList = joinFieldList.subList(0, leftFieldCount);
       break;
     case INNER:
-      nullificationList.addAll(leftList);
-      nullificationList.addAll(rightList);
+      nullifyFieldList = joinFieldList;
       break;
     default:
-      throw new AssertionError(join.getJoinType());
+      throw new AssertionError(joinType);
     }
+    List<RexNode> nullificationList = nullifyFieldList.stream()
+        .map(field -> new RexInputRef(field.getIndex(), field.getType()))
+        .collect(Collectors.toList());
 
     // Determines the nullification condition.
     RexNode nullificationCondition = join.getCondition();
 
     // Builds the transformed relational tree.
-    final RelNode cartesianJoin =
-        join.copy(
-            join.getTraitSet(),
-            builder.literal(true),  // Uses a literal condition which is always true.
-            join.getLeft(),
-            join.getRight(),
-            join.getJoinType(),
-            join.isSemiJoinDone());
-    builder.push(cartesianJoin).nullify(nullificationCondition, nullificationList).bestMatch();
-    call.transformTo(builder.build());
+    final RelNode transformedNode = builder.push(outerCartesianJoin)
+        .nullify(nullificationCondition, nullificationList)
+        .bestMatch()
+        .build();
+    call.transformTo(transformedNode);
   }
 }
 

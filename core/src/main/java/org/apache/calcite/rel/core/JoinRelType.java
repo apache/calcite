@@ -43,6 +43,11 @@ public enum JoinRelType {
   FULL,
 
   /**
+   * Outer-cartesian join.
+   */
+  OUTER_CARTESIAN,
+
+  /**
    * Semi-join.
    *
    * <p>For example, {@code EMP semi-join DEPT} finds all {@code EMP} records
@@ -78,7 +83,7 @@ public enum JoinRelType {
    * right-hand side.
    */
   public boolean generatesNullsOnRight() {
-    return (this == LEFT) || (this == FULL);
+    return (this == LEFT) || (this == FULL) || (this == OUTER_CARTESIAN);
   }
 
   /**
@@ -86,7 +91,7 @@ public enum JoinRelType {
    * left-hand side.
    */
   public boolean generatesNullsOnLeft() {
-    return (this == RIGHT) || (this == FULL);
+    return (this == RIGHT) || (this == FULL) || (this == OUTER_CARTESIAN);
   }
 
   /**
@@ -94,7 +99,7 @@ public enum JoinRelType {
    * generate NULL values, either on the left-hand side or right-hand side.
    */
   public boolean isOuterJoin() {
-    return (this == LEFT) || (this == RIGHT) || (this == FULL);
+    return (this == LEFT) || (this == RIGHT) || (this == FULL) || (this == OUTER_CARTESIAN);
   }
 
   /**
@@ -127,6 +132,7 @@ public enum JoinRelType {
    * the left. */
   public JoinRelType cancelNullsOnLeft() {
     switch (this) {
+    case OUTER_CARTESIAN:
     case RIGHT:
       return INNER;
     case FULL:
@@ -140,6 +146,7 @@ public enum JoinRelType {
    * the right. */
   public JoinRelType cancelNullsOnRight() {
     switch (this) {
+    case OUTER_CARTESIAN:
     case LEFT:
       return INNER;
     case FULL:
@@ -151,6 +158,14 @@ public enum JoinRelType {
 
   public boolean projectsRight() {
     return this != SEMI && this != ANTI;
+  }
+
+  public boolean isCommutativeAndAssociative() {
+    return this == INNER || this == OUTER_CARTESIAN;
+  }
+
+  public boolean canApplyNullify() {
+    return this == INNER || this == LEFT || this == RIGHT;
   }
 }
 

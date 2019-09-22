@@ -23,6 +23,8 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.rules.JoinAssociateRule;
+import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.custom.BestMatchOverNullifyRule;
 import org.apache.calcite.rel.rules.custom.BestMatchPullUpRule;
 import org.apache.calcite.rel.rules.custom.BestMatchReduceRule;
@@ -49,11 +51,13 @@ public class Runner {
     // Creates the planner.
     final SqlParser.Config parserConfig = SqlParser.configBuilder().setLex(Lex.MYSQL).build();
     final Program programs = Programs.ofRules(
-        BestMatchOverNullifyRule.INSTANCE,
-        BestMatchPullUpRule.INSTANCE,
-        BestMatchReduceRule.INSTANCE,
         NullifyJoinRule.INSTANCE,
         NullifyPullUpRule.INSTANCE,
+        BestMatchReduceRule.INSTANCE,
+        BestMatchPullUpRule.INSTANCE,
+        BestMatchOverNullifyRule.INSTANCE,
+        JoinCommuteRule.INSTANCE,
+        JoinAssociateRule.INSTANCE,
         EnumerableRules.ENUMERABLE_PROJECT_RULE,
         EnumerableRules.ENUMERABLE_JOIN_RULE);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
@@ -71,7 +75,7 @@ public class Runner {
     // Two joins (left outer join + inner join).
     sqlQuery = "select e.name, d.depName, c.cmpName "
         + "from p.employees e left join p.departments d on e.depID = d.depID "
-        + "join p.companies c on d.cmpID = c.cmpID";
+        + "left join p.companies c on d.cmpID = c.cmpID";
     buildAndTransformQuery(planner, sqlQuery);
 
     // Closes the planner eventually.

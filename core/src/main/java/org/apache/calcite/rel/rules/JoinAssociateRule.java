@@ -31,6 +31,9 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
+import org.apache.calcite.util.trace.CalciteTrace;
+
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +51,7 @@ import java.util.List;
  */
 public class JoinAssociateRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
+  private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   /** The singleton. */
   public static final JoinAssociateRule INSTANCE =
@@ -101,10 +105,18 @@ public class JoinAssociateRule extends RelOptRule {
       return;
     }
 
-    // If either join is not inner, we cannot proceed.
-    // (Is this too strict?)
-    if (topJoin.getJoinType() != JoinRelType.INNER
-        || bottomJoin.getJoinType() != JoinRelType.INNER) {
+    // Only proceeds if the 2 joins are both inner or both outer-cartesian product.
+    boolean isBothInner = topJoin.getJoinType() == JoinRelType.INNER
+        && bottomJoin.getJoinType() == JoinRelType.INNER;
+    boolean isBothOuterCartesian = topJoin.getJoinType() == JoinRelType.OUTER_CARTESIAN
+        && bottomJoin.getJoinType() == JoinRelType.OUTER_CARTESIAN;
+    JoinRelType newJoinType = null;
+    if (isBothInner) {
+      newJoinType = JoinRelType.INNER;
+    } else if (isBothOuterCartesian) {
+      newJoinType = JoinRelType.OUTER_CARTESIAN;
+    } else {
+      LOGGER.debug("Will not proceed since the 2 join types are not associative.");
       return;
     }
 
@@ -141,7 +153,7 @@ public class JoinAssociateRule extends RelOptRule {
 
     final Join newBottomJoin =
         bottomJoin.copy(bottomJoin.getTraitSet(), newBottomCondition, relB,
-            relC, JoinRelType.INNER, false);
+            relC, newJoinType, false);
 
     // Condition for newTopJoin consists of pieces from bottomJoin and topJoin.
     // Field ordinals do not need to be changed.
@@ -149,7 +161,7 @@ public class JoinAssociateRule extends RelOptRule {
     @SuppressWarnings("SuspiciousNameCombination")
     final Join newTopJoin =
         topJoin.copy(topJoin.getTraitSet(), newTopCondition, relA,
-            newBottomJoin, JoinRelType.INNER, false);
+            newBottomJoin, newJoinType, false);
 
     call.transformTo(newTopJoin);
   }

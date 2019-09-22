@@ -77,7 +77,9 @@ public class BestMatchOverNullifyRule extends RelOptRule {
     RelNode base = innerBestMatch.getInput();
 
     // Constructs the new expression.
-    RelNode newNode = builder.push(base).nullify(oldPredicate, oldAttributes).bestMatch().build();
+    RelNode newNode = builder.push(base)
+        .nullify(oldPredicate, oldAttributes)
+        .bestMatch().build();
     call.transformTo(newNode);
   }
 

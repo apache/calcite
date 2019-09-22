@@ -31,6 +31,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.CustomColumnResolvingTable;
 import org.apache.calcite.schema.ExtensibleTable;
 import org.apache.calcite.schema.Table;
@@ -65,6 +66,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import java.nio.charset.Charset;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -462,6 +464,34 @@ public class SqlValidatorUtil {
     return changeCount == 0
         ? nameList
         : newNameList;
+  }
+
+  /**
+   * Derives the type of a nullification operator.
+   *
+   * @param inputType is the row type of its input.
+   * @param attributes is the list of nullification attributes.
+   * @param typeFactory is the type factory.
+   * @return the row type.
+   */
+  public static RelDataType deriveNullifyRowType(
+      RelDataType inputType,
+      List<RexNode> attributes,
+      RelDataTypeFactory typeFactory) {
+    return typeFactory.createStructType(inputType.getStructKind(), new AbstractList<RelDataType>() {
+      @Override public RelDataType get(final int index) {
+        RelDataType fieldType = inputType.getFieldList().get(index).getType();
+        boolean isNullable = attributes.stream().anyMatch(attr -> attr.hashCode() == index);
+        if (isNullable) {
+          return typeFactory.createTypeWithNullability(fieldType, true);
+        }
+        return fieldType;
+      }
+
+      @Override public int size() {
+        return inputType.getFieldCount();
+      }
+    }, inputType.getFieldNames());
   }
 
   /**

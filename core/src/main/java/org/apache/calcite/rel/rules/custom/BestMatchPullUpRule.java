@@ -27,6 +27,9 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.trace.CalciteTrace;
+
+import org.slf4j.Logger;
 
 /**
  * BestMatchPullUpRule pulls up a best-match operator. Basically, the
@@ -34,6 +37,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  */
 public class BestMatchPullUpRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
+  private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   /** Instance of the current rule. */
   public static final BestMatchPullUpRule INSTANCE = new BestMatchPullUpRule(
@@ -61,12 +65,13 @@ public class BestMatchPullUpRule extends RelOptRule {
     final Join join = call.rel(0);
     final RexNode condition = join.getCondition();
     if (!condition.equals(builder.literal(true))) {
-      throw new AssertionError(condition);
+      LOGGER.debug("The condition is not true");
+      return;
     }
 
     // Constructs the new cartesian product.
     final BestMatch bestMatch = call.rel(1);
-    final RelNode cartesianJoin =
+    final RelNode outerCartesianJoin =
         join.copy(
             join.getTraitSet(),
             builder.literal(true),  // Uses a literal condition which is always true.
@@ -76,7 +81,7 @@ public class BestMatchPullUpRule extends RelOptRule {
             join.isSemiJoinDone());
 
     // Builds the new expression.
-    RelNode reducedNode = builder.push(cartesianJoin).bestMatch().build();
+    RelNode reducedNode = builder.push(outerCartesianJoin).bestMatch().build();
     call.transformTo(reducedNode);
   }
 }

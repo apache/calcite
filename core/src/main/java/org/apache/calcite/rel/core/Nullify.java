@@ -22,7 +22,9 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 import com.google.common.collect.ImmutableList;
 
@@ -95,6 +97,11 @@ public abstract class Nullify extends SingleRel {
 
   public ImmutableList<RexNode> getAttributes() {
     return ImmutableList.copyOf(attributes);
+  }
+
+  @Override protected RelDataType deriveRowType() {
+    return SqlValidatorUtil.deriveNullifyRowType(input.getRowType(), attributes,
+        getCluster().getTypeFactory());
   }
 }
 

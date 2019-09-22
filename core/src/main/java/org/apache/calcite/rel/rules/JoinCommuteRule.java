@@ -114,7 +114,8 @@ public class JoinCommuteRule extends RelOptRule {
   public static RelNode swap(Join join, boolean swapOuterJoins,
       RelBuilder relBuilder) {
     final JoinRelType joinType = join.getJoinType();
-    if (!swapOuterJoins && joinType != JoinRelType.INNER) {
+    if (!swapOuterJoins && !joinType.isCommutativeAndAssociative()) {
+      // Notice: outer cartesian product is commutative.
       return null;
     }
     final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
