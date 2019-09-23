@@ -2076,6 +2076,39 @@ LogicalProject(SAL=[$5])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushJoinThroughUnionOnRightDoesNotMatchSemiJoin">
+        <Resource name="sql">
+            <![CDATA[select r1.sal from emp r1 where r1.deptno in (select deptno from dept d1 where deptno > 100 union all select deptno from dept d2 where deptno > 20)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(SAL=[$5])
+  LogicalJoin(condition=[=($7, $8)], joinType=[semi])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalUnion(all=[true])
+      LogicalProject(DEPTNO=[$0])
+        LogicalFilter(condition=[>($0, 100)])
+          LogicalTableScan(table=[[scott, DEPT]])
+      LogicalProject(DEPTNO=[$0])
+        LogicalFilter(condition=[>($0, 20)])
+          LogicalTableScan(table=[[scott, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(SAL=[$5])
+  LogicalJoin(condition=[=($7, $8)], joinType=[semi])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalUnion(all=[true])
+      LogicalProject(DEPTNO=[$0])
+        LogicalFilter(condition=[>($0, 100)])
+          LogicalTableScan(table=[[scott, DEPT]])
+      LogicalProject(DEPTNO=[$0])
+        LogicalFilter(condition=[>($0, 20)])
+          LogicalTableScan(table=[[scott, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testPushJoinThroughUnionOnRightDoesNotMatchAntiJoin">
         <Resource name="sql">
             <![CDATA[select r1.sal from emp r1 where r1.deptno not in (select deptno from dept d1 where deptno < 10 union all select deptno from dept d2 where deptno > 20)]]>

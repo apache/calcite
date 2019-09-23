@@ -1778,6 +1778,53 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "(select * from emp e1 union all select * from emp e2) r2");
   }
 
+  @Test public void testPushJoinThroughUnionOnRightDoesNotMatchSemiJoin() {
+    final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
+
+    // build a rel equivalent to sql:
+    // select r1.sal from
+    // emp r1 where r1.deptno in
+    //  (select deptno from dept d1 where deptno > 100
+    //  union all
+    //  select deptno from dept d2 where deptno > 20)
+    RelNode left = builder.scan("EMP").build();
+    RelNode right = builder
+        .scan("DEPT")
+        .filter(
+            builder.call(SqlStdOperatorTable.GREATER_THAN,
+                builder.field("DEPTNO"),
+                builder.literal(100)))
+        .project(builder.field("DEPTNO"))
+        .scan("DEPT")
+        .filter(
+            builder.call(SqlStdOperatorTable.GREATER_THAN,
+                builder.field("DEPTNO"),
+                builder.literal(20)))
+        .project(builder.field("DEPTNO"))
+        .union(true)
+        .build();
+    RelNode relNode = builder.push(left).push(right)
+        .semiJoin(
+            builder.call(SqlStdOperatorTable.EQUALS,
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "DEPTNO")))
+        .project(builder.field("SAL"))
+        .build();
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(JoinUnionTransposeRule.RIGHT_UNION)
+        .build();
+
+    HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    RelNode output = hepPlanner.findBestExp();
+
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    SqlToRelTestBase.assertValid(output);
+  }
+
   @Test public void testPushJoinThroughUnionOnRightDoesNotMatchAntiJoin() {
     final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
 
