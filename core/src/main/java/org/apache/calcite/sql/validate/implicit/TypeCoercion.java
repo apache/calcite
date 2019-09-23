@@ -118,6 +118,9 @@ public interface TypeCoercion {
   /** Coerce operand of binary arithmetic expressions to Numeric type.*/
   boolean binaryArithmeticCoercion(SqlCallBinding binding);
 
+  /** Coerce operands in binary comparison expressions. */
+  boolean binaryComparisonCoercion(SqlCallBinding binding);
+
   /**
    * Coerce CASE WHEN statement branches to one common type.
    *
