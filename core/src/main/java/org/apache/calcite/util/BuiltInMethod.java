@@ -359,6 +359,7 @@ public enum BuiltInMethod {
   INITCAP(SqlFunctions.class, "initcap", String.class),
   SUBSTRING(SqlFunctions.class, "substring", String.class, int.class,
       int.class),
+  REGEXP_SPLIT_TO_ARRAY(SqlFunctions.class, "regexpSplitToArray", String.class, String.class),
   CHAR_LENGTH(SqlFunctions.class, "charLength", String.class),
   STRING_CONCAT(SqlFunctions.class, "concat", String.class, String.class),
   FLOOR_DIV(DateTimeUtils.class, "floorDiv", long.class, long.class),

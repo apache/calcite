@@ -175,6 +175,13 @@ public abstract class SqlTypeTransforms {
         assert fields.size() == 1;
         return fields.get(0).getType();
       };
+
+  /**
+   * Parameter type-inference transform strategy that wraps a given type in an array.
+   */
+  public static final SqlTypeTransform TO_ARRAY =
+      (opBinding, typeToTransform) ->
+          opBinding.getTypeFactory().createArrayType(typeToTransform, -1);
 }
 
 // End SqlTypeTransforms.java

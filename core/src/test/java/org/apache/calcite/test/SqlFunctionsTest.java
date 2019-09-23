@@ -43,6 +43,7 @@ import static org.apache.calcite.runtime.SqlFunctions.ltrim;
 import static org.apache.calcite.runtime.SqlFunctions.md5;
 import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
 import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
+import static org.apache.calcite.runtime.SqlFunctions.regexpSplitToArray;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
 import static org.apache.calcite.runtime.SqlFunctions.subtractMonths;
@@ -942,6 +943,23 @@ public class SqlFunctionsTest {
     } catch (NullPointerException e) {
       // ok
     }
+  }
+
+  @Test public void testRegexpSplitToArray() {
+    assertThat(regexpSplitToArray("", "a"), is(Arrays.asList("")));
+    assertThat(regexpSplitToArray("badac", "a"), is(Arrays.asList("b", "d", "c")));
+    assertThat(regexpSplitToArray("badac", "ad"), is(Arrays.asList("b", "ac")));
+    assertThat(regexpSplitToArray("badac", "[bd]"), is(Arrays.asList("", "a", "ac")));
+    assertThat(regexpSplitToArray("badac", "[a-c]"), is(Arrays.asList("", "", "d")));
+    assertThat(regexpSplitToArray("100+200-300", "0(\\+|-)"),
+        is(Arrays.asList("10", "20", "300")));
+    assertThat(regexpSplitToArray("100+200-300", "0+"), is(Arrays.asList("1", "+2", "-3")));
+    assertThat(regexpSplitToArray("100 + 200 - 300", " "),
+        is(Arrays.asList("100", "+", "200", "-", "300")));
+    assertThat(regexpSplitToArray("100 + 200 - 300", "\\d+"), is(Arrays.asList("", " + ", " - ")));
+    assertThat(regexpSplitToArray("hello\tworld", "\t"), is(Arrays.asList("hello", "world")));
+    assertThat(regexpSplitToArray("hello\nworld", "\n"), is(Arrays.asList("hello", "world")));
+    assertThat(regexpSplitToArray("hello\tworld\n", "\n"), is(Arrays.asList("hello\tworld")));
   }
 }
 

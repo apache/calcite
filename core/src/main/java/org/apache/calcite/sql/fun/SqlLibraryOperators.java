@@ -120,6 +120,18 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
           SqlFunctionCategory.STRING);
 
+  /** The "REGEXP_SPLIT_TO_ARRAY(string, regexp) function" */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction REGEXP_SPLIT_TO_ARRAY =
+      new SqlFunction("REGEXP_SPLIT_TO_ARRAY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.cascade(ReturnTypes.ARG0_NULLABLE_VARYING,
+              SqlTypeTransforms.TO_ARRAY,
+              SqlTypeTransforms.TO_NULLABLE),
+          null,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
+
   /** The "GREATEST(value, value)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction GREATEST =

@@ -296,6 +296,11 @@ public class SqlFunctions {
     return substring(c, s, c.length() + 1);
   }
 
+  /** SQL REGEXP_SPLIT_TO_ARRAY(string, string) function. */
+  public static List<String> regexpSplitToArray(String s, String r) {
+    return Arrays.asList(s.split(r));
+  }
+
   /** SQL UPPER(string) function. */
   public static String upper(String s) {
     return s.toUpperCase(Locale.ROOT);

@@ -6274,6 +6274,81 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("substring(cast(null as varchar(1)),1,2)");
   }
 
+  @Test public void testRegexpSplitToArrayFunction() {
+    final SqlTester t = tester(SqlLibrary.POSTGRESQL);
+    t.setFor(SqlLibraryOperators.REGEXP_SPLIT_TO_ARRAY);
+    t.checkString(
+        "regexp_split_to_array('','a')",
+        "[]",
+        "VARCHAR(0) NOT NULL ARRAY NOT NULL");
+    t.checkString(
+        "regexp_split_to_array('badac','a')",
+        "[b, d, c]",
+        "VARCHAR(5) NOT NULL ARRAY NOT NULL");
+    t.checkString(
+        "regexp_split_to_array('badac','ad')",
+        "[b, ac]",
+        "VARCHAR(5) NOT NULL ARRAY NOT NULL");
+    t.checkString(
+        "regexp_split_to_array('badac','[bd]')",
+        "[, a, ac]",
+        "VARCHAR(5) NOT NULL ARRAY NOT NULL");
+    t.checkString(
+        "regexp_split_to_array('badac','[a-c]')",
+        "[, , d]",
+        "VARCHAR(5) NOT NULL ARRAY NOT NULL");
+    t.checkString(
+        "regexp_split_to_array('100+200-300','0(\\+|-)')",
+        "[10, 20, 300]",
+        "VARCHAR(11) NOT NULL ARRAY NOT NULL");
+    t.checkString(
+        "regexp_split_to_array('100+200-300','0+')",
+        "[1, +2, -3]",
+        "VARCHAR(11) NOT NULL ARRAY NOT NULL");
+    t.checkString(
+        "regexp_split_to_array('100 + 200 - 300',' ')",
+        "[100, +, 200, -, 300]",
+        "VARCHAR(15) NOT NULL ARRAY NOT NULL");
+    t.checkString(
+        "regexp_split_to_array('100 + 200 - 300','\\d+')",
+        "[,  + ,  - ]",
+        "VARCHAR(15) NOT NULL ARRAY NOT NULL");
+    t.checkString(
+        "regexp_split_to_array('hello\tworld','\t')",
+        "[hello, world]",
+        "VARCHAR(11) NOT NULL ARRAY NOT NULL");
+    t.checkString(
+        "regexp_split_to_array('hello\nworld','\n')",
+        "[hello, world]",
+        "VARCHAR(11) NOT NULL ARRAY NOT NULL");
+    t.checkString(
+        "regexp_split_to_array('hello\tworld\n','\n')",
+        "[hello\tworld]",
+        "VARCHAR(12) NOT NULL ARRAY NOT NULL");
+    // test for implicit type coercion
+    t.checkString(
+        "regexp_split_to_array('1234', 2)",
+        "[1, 34]",
+        "VARCHAR(4) NOT NULL ARRAY NOT NULL");
+    t.checkString(
+        "regexp_split_to_array(1234, 2)",
+        "[1, 34]",
+        "VARCHAR NOT NULL ARRAY NOT NULL");
+    t.checkString(
+        "regexp_split_to_array(1234, '2')",
+        "[1, 34]",
+        "VARCHAR NOT NULL ARRAY NOT NULL");
+    t.checkQuery("select regexp_split_to_array('hello world', ' ')");
+    t.checkQuery("select regexp_split_to_array('hello\tworld', '\t')");
+    t.checkQuery("select regexp_split_to_array('hello\nworld', '\n')");
+    t.checkQuery("select regexp_split_to_array('hello###world', '###')");
+    t.checkNull("regexp_split_to_array(cast(NULL as varchar(1)), 'abc')");
+    t.checkNull("regexp_split_to_array('abc', cast(NULL as varchar(1)))");
+    t.checkFails("select ^regexp_split_to_array('hello###world', '###', 'adb')^",
+        "Invalid number of arguments to function 'REGEXP_SPLIT_TO_ARRAY'"
+            + ". Was expecting 2 arguments", false);
+  }
+
   @Test public void testTrimFunc() {
     tester.setFor(SqlStdOperatorTable.TRIM);
 
