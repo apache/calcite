@@ -115,6 +115,25 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
   }
 
   /**
+   * Coerce all the operands to {@code commonType}.
+   *
+   * @param scope      Validator scope
+   * @param call       the call
+   * @param commonType common type to coerce to
+   * @return true if any operand is coerced
+   */
+  protected boolean coerceOperandsType(
+      SqlValidatorScope scope,
+      SqlCall call,
+      RelDataType commonType) {
+    boolean coerced = false;
+    for (int i = 0; i < call.operandCount(); i++) {
+      coerced = coerceOperandType(scope, call, i, commonType) || coerced;
+    }
+    return coerced;
+  }
+
+  /**
    * Cast column at index {@code index} to target type.
    *
    * @param scope      validator scope for the node list
@@ -419,11 +438,15 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return null;
     }
 
-    if (SqlTypeUtil.isString(type1) && SqlTypeUtil.isDatetime(type2)
-        || SqlTypeUtil.isDatetime(type1) && SqlTypeUtil.isString(type2)) {
-      // Returns null instead of VARCHAR,
-      // because calcite will do the cast in SqlToRelConverter.
-      return null;
+    // DATETIME + CHARACTER -> DATETIME
+    // REVIEW Danny 2019-09-23: There is some legacy redundant code in SqlToRelConverter
+    // that coerce Datetime and CHARACTER comparison.
+    if (SqlTypeUtil.isCharacter(type1) && SqlTypeUtil.isDatetime(type2)) {
+      return type2;
+    }
+
+    if (SqlTypeUtil.isDatetime(type1) && SqlTypeUtil.isCharacter(type2)) {
+      return type1;
     }
 
     // DATE + TIMESTAMP -> TIMESTAMP

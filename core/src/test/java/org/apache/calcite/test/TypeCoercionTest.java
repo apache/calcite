@@ -536,21 +536,31 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
 
   /** Test cases for binary comparison expressions. */
   @Test public void testBinaryComparisonCoercion() {
-    sql("select '2' = 3 from (values true)")
+    checkExpType("'2' = 3", "BOOLEAN NOT NULL");
+    checkExpType("'2' > 3", "BOOLEAN NOT NULL");
+    checkExpType("'2' >= 3", "BOOLEAN NOT NULL");
+    checkExpType("'2' < 3", "BOOLEAN NOT NULL");
+    checkExpType("'2' <= 3", "BOOLEAN NOT NULL");
+    checkExpType("'2' is distinct from 3", "BOOLEAN NOT NULL");
+    checkExpType("'2' is not distinct from 3", "BOOLEAN NOT NULL");
+    // NULL operand
+    checkExpType("'2' = null", "BOOLEAN");
+    checkExpType("'2' > null", "BOOLEAN");
+    checkExpType("'2' >= null", "BOOLEAN");
+    checkExpType("'2' < null", "BOOLEAN");
+    checkExpType("'2' <= null", "BOOLEAN");
+    checkExpType("'2' is distinct from null", "BOOLEAN NOT NULL");
+    checkExpType("'2' is not distinct from null", "BOOLEAN NOT NULL");
+    // BETWEEN operator
+    checkExpType("'2' between 1 and 3", "BOOLEAN NOT NULL");
+    checkExpType("NULL between 1 and 3", "BOOLEAN");
+    sql("select '2019-09-23' between t1_date and t1_timestamp from t1")
         .columnType("BOOLEAN NOT NULL");
-    sql("select '2' > 3 from (values true)")
+    sql("select t1_date between '2019-09-23' and t1_timestamp from t1")
         .columnType("BOOLEAN NOT NULL");
-    sql("select '2' >= 3 from (values true)")
+    sql("select cast('2019-09-23' as date) between t1_date and t1_timestamp from t1")
         .columnType("BOOLEAN NOT NULL");
-    sql("select '2' < 3 from (values true)")
-        .columnType("BOOLEAN NOT NULL");
-    sql("select '2' <= 3 from (values true)")
-        .columnType("BOOLEAN NOT NULL");
-    sql("select '2' is distinct from 3 from (values true)")
-        .columnType("BOOLEAN NOT NULL");
-    sql("select '2' is not distinct from 3 from (values true)")
-        .columnType("BOOLEAN NOT NULL");
-    sql("select '2' is not distinct from 3 from (values true)")
+    sql("select t1_date between cast('2019-09-23' as date) and t1_timestamp from t1")
         .columnType("BOOLEAN NOT NULL");
   }
 
