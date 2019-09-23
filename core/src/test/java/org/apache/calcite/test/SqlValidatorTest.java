@@ -1480,6 +1480,23 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("No match found for function signature FOO..");
   }
 
+  @Test public void testUnknownFunctionHandling() {
+    tester = tester.withKnownFunctions(false);
+    checkExp("concat('a', 2)");
+    checkExp("foo('2001-12-21')");
+    checkExp("\"foo\"('b')");
+    checkExp("foo()");
+    checkExp("'a' || foo(bar('2001-12-21'))");
+    checkExp("cast(foo(5, 2) as DECIMAL)");
+    checkExp("select ascii('xyz')");
+    checkExp("select get_bit(CAST('FFFF' as BINARY), 1)");
+    checkExp("select now()");
+    checkExpFails("^TIMESTAMP_CMP_TIMESTAMPTZ^", "(?s).*");
+    checkExp("atan(0)");
+    checkExp("select row_number() over () from emp");
+    checkExp("select coalesce(1, 2, 3)");
+  }
+
   @Test public void testJdbcFunctionCall() {
     expr("{fn log10(1)}").ok();
     expr("{fn locate('','')}").ok();

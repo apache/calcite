@@ -273,6 +273,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   protected boolean expandColumnReferences;
 
+  protected boolean expandKnownFunction;
+
   private boolean rewriteCalls;
 
   private NullCollation nullCollation = NullCollation.HIGH;
@@ -326,6 +328,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     groupFinder = new AggFinder(opTab, false, false, true, null, nameMatcher);
     aggOrOverOrGroupFinder = new AggFinder(opTab, true, true, true, null,
         nameMatcher);
+    this.expandKnownFunction = true;
     this.enableTypeCoercion = catalogReader.getConfig() == null
         || catalogReader.getConfig().typeCoercion();
     this.typeCoercion = TypeCoercions.getTypeCoercion(this, conformance);
@@ -3830,6 +3833,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   public SqlValidatorScope getWithScope(SqlNode withItem) {
     assert withItem.getKind() == SqlKind.WITH_ITEM;
     return scopes.get(withItem);
+  }
+
+  // implement SqlValidator
+  public SqlValidator setKnownFunctionExpansion(boolean expandKnownFunction) {
+    this.expandKnownFunction = expandKnownFunction;
+    return this;
+  }
+
+  public boolean isKnownFunction() {
+    return this.expandKnownFunction;
   }
 
   public SqlValidator setEnableTypeCoercion(boolean enabled) {

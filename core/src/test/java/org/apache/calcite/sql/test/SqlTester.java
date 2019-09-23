@@ -73,6 +73,9 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
    * case-insensitive. */
   SqlTester withCaseSensitive(boolean sensitive);
 
+  /** Returns a tester that handles unknown functions */
+  SqlTester withKnownFunctions(boolean known);
+
   /** Returns a tester that follows a lex policy. */
   SqlTester withLex(Lex lex);
 

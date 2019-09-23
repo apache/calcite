@@ -771,6 +771,16 @@ public interface SqlValidator {
   SqlValidatorScope getWithScope(SqlNode withItem);
 
   /**
+   * Enables or disables expansion of known function handling
+   *
+   * @param expandKnownFunction new setting
+   */
+  SqlValidator setKnownFunctionExpansion(boolean expandKnownFunction);
+
+  /** Get if this validator supports known function handling */
+  boolean isKnownFunction();
+
+  /**
    * Set if implicit type coercion is allowed when the validator does validation.
    * See {@link org.apache.calcite.sql.validate.implicit.TypeCoercionImpl} for the details.
    * @param enabled default as true.
