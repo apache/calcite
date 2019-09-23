@@ -1480,6 +1480,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("No match found for function signature FOO..");
   }
 
+  @Test public void testUnknownFunctionHandling() {
+    final Sql s = sql("?").withTester(t -> t.withLenientOperatorLookup(true));
+    s.expr("concat('a', 2)").ok();
+    s.expr("foo('2001-12-21')").ok();
+    s.expr("\"foo\"('b')").ok();
+    s.expr("foo()").ok();
+    s.expr("'a' || foo(bar('2001-12-21'))").ok();
+    s.expr("cast(foo(5, 2) as DECIMAL)").ok();
+    s.expr("select ascii('xyz')").ok();
+    s.expr("select get_bit(CAST('FFFF' as BINARY), 1)").ok();
+    s.expr("select now()").ok();
+    s.expr("^TIMESTAMP_CMP_TIMESTAMPTZ^").fails("(?s).*");
+    s.expr("atan(0)").ok();
+    s.expr("select row_number() over () from emp").ok();
+    s.expr("select coalesce(1, 2, 3)").ok();
+    s.sql("select count() from emp").ok(); // too few args
+    s.sql("select sum(1, 2) from emp").ok(); // too many args
+  }
+
   @Test public void testJdbcFunctionCall() {
     expr("{fn log10(1)}").ok();
     expr("{fn locate('','')}").ok();
@@ -9893,6 +9912,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testDummy() {
     // (To debug individual statements, paste them into this method.)
+    final Sql s = sql("?").withTester(t -> t.withLenientOperatorLookup(true));
+    s.sql("select count() from emp").ok();
   }
 
   @Test public void testCustomColumnResolving() {

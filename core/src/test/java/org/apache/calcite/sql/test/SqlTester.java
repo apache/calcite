@@ -83,6 +83,10 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
   /** Returns a tester that tests with implicit type coercion on/off. */
   SqlTester enableTypeCoercion(boolean enabled);
 
+  /** Returns a tester that does not fail validation if it encounters an
+   * unknown function. */
+  SqlTester withLenientOperatorLookup(boolean lenient);
+
   /** Returns a tester that gets connections from a given factory. */
   SqlTester withConnectionFactory(
       CalciteAssert.ConnectionFactory connectionFactory);

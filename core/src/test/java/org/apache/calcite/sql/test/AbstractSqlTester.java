@@ -294,6 +294,10 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     return with("caseSensitive", sensitive);
   }
 
+  public SqlTester withLenientOperatorLookup(boolean lenient) {
+    return with("lenientOperatorLookup", lenient);
+  }
+
   public SqlTester withLex(Lex lex) {
     return withQuoting(lex.quoting)
         .withCaseSensitive(lex.caseSensitive)

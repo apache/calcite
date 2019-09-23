@@ -25,6 +25,7 @@ settings.xml
 .project
 .buildpath
 .classpath
+.factorypath
 .settings
 .checkstyle
 
