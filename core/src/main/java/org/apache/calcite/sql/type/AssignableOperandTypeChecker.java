@@ -77,6 +77,7 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
               callBinding.getScope(),
               pair.right);
       if (!SqlTypeUtil.canAssignFrom(pair.left, argType)) {
+        // TODO: add in unresolved function type cast.
         if (throwOnFailure) {
           throw callBinding.newValidationSignatureError();
         } else {

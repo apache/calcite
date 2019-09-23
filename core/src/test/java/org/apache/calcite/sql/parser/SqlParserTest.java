@@ -2507,9 +2507,9 @@ public class SqlParserTest {
         + "outer apply (select * from emp where emp.deptno = dept.deptno)";
     final String expected = "SELECT *\n"
         + "FROM `DEPT`\n"
-        + "LEFT JOIN LATERAL((SELECT *\n"
+        + "LEFT JOIN LATERAL (SELECT *\n"
         + "FROM `EMP`\n"
-        + "WHERE (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`))) ON TRUE";
+        + "WHERE (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)) ON TRUE";
     sql(sql).ok(expected);
   }
 
@@ -2519,9 +2519,9 @@ public class SqlParserTest {
         + "outer apply (select * from emp where emp.deptno = dept.deptno)";
     final String expected = "SELECT *\n"
         + "FROM `DEPT`\n"
-        + "LEFT JOIN LATERAL((SELECT *\n"
+        + "LEFT JOIN LATERAL (SELECT *\n"
         + "FROM `EMP`\n"
-        + "WHERE (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`))) ON TRUE";
+        + "WHERE (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)) ON TRUE";
     sql(sql).ok(expected);
   }
 
@@ -3467,8 +3467,8 @@ public class SqlParserTest {
 
     // Good: LATERAL (subQuery)
     final String expected2 = "SELECT *\n"
-        + "FROM LATERAL((SELECT *\n"
-        + "FROM `EMP`))";
+        + "FROM LATERAL (SELECT *\n"
+        + "FROM `EMP`)";
     sql("select * from lateral (select * from emp)").ok(expected2);
     sql("select * from lateral (select * from emp) as t")
         .ok(expected2 + " AS `T`");
@@ -8885,6 +8885,11 @@ public class SqlParserTest {
         "select unquotedColumn from \"doubleQuotedTable\"",
         is("SELECT \"unquotedcolumn\"\n"
             + "FROM \"doublequotedtable\""));
+    // BigQuery leaves quoted and unquoted identifers unchanged
+    checkDialect(SqlDialect.DatabaseProduct.BIG_QUERY.getDialect(),
+        "select unquotedColumn from `doubleQuotedTable`",
+        is("SELECT unquotedColumn\n"
+            + "FROM doubleQuotedTable"));
   }
 
   @Test public void testParenthesizedSubQueries() {

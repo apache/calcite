@@ -507,10 +507,12 @@ public abstract class SqlOperator {
     final List<RelDataType> argTypes = constructArgTypeList(validator, scope,
         call, args, false);
 
+    // Always disable type coercion for builtin operator operands,
+    // they are handled by the TypeCoercion specifically.
     final SqlOperator sqlOperator =
         SqlUtil.lookupRoutine(validator.getOperatorTable(), getNameAsId(),
             argTypes, null, null, getSyntax(), getKind(),
-            validator.getCatalogReader().nameMatcher());
+            validator.getCatalogReader().nameMatcher(), false);
 
     ((SqlBasicCall) call).setOperator(sqlOperator);
     RelDataType type = call.getOperator().validateOperands(validator, scope, call);

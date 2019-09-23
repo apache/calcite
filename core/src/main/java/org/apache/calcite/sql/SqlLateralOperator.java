@@ -36,7 +36,10 @@ public class SqlLateralOperator extends SqlSpecialOperator {
       int rightPrec) {
     if (call.operandCount() == 1
         && (call.getOperandList().get(0).getKind() == SqlKind.COLLECTION_TABLE
-            || call.getOperandList().get(0).getKind() == SqlKind.SNAPSHOT)) {
+            || call.getOperandList().get(0).getKind() == SqlKind.SNAPSHOT
+            || call.getOperandList().get(0).getKind() == SqlKind.SELECT
+            || call.getOperandList().get(0).getKind() == SqlKind.AS)) {
+
       // do not create ( ) around the following TABLE clause
       writer.keyword(getName());
       call.operand(0).unparse(writer, 0, 0);

@@ -92,10 +92,10 @@ public class BinaryExpression extends Expression {
             .evaluate(evaluator);
       case DOUBLE:
         return (Double) expression0.evaluate(evaluator)
-               / (Double) expression1.evaluate(evaluator);
+            / (Double) expression1.evaluate(evaluator);
       case LONG:
         return (Long) expression0.evaluate(evaluator)
-               / (Long) expression1.evaluate(evaluator);
+            / (Long) expression1.evaluate(evaluator);
       default:
         throw cannotEvaluate();
       }

@@ -63,7 +63,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     assertBasic(typeName);
     assert (precision >= 0)
         || (precision == RelDataType.PRECISION_NOT_SPECIFIED);
-    RelDataType newType = new BasicSqlType(typeSystem, typeName, precision);
+    // Does not check precision when typeName is SqlTypeName#NULL.
+    RelDataType newType = precision == RelDataType.PRECISION_NOT_SPECIFIED
+        ? new BasicSqlType(typeSystem, typeName)
+        : new BasicSqlType(typeSystem, typeName, precision);
     newType = SqlTypeUtil.addCharsetAndCollation(newType, this);
     return canonize(newType);
   }

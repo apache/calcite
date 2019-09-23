@@ -169,6 +169,11 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     return CalciteConnectionProperty.LOCALE.wrap(properties)
         .getString();
   }
+
+  public boolean typeCoercion() {
+    return CalciteConnectionProperty.TYPE_COERCION.wrap(properties)
+        .getBoolean();
+  }
 }
 
 // End CalciteConnectionConfigImpl.java

@@ -180,7 +180,7 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
 
     if (charSetName != null) {
       writer.keyword("CHARACTER SET");
-      writer.identifier(charSetName, false);
+      writer.identifier(charSetName, true);
     }
   }
 

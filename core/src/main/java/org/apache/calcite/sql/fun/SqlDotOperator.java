@@ -143,6 +143,8 @@ public class SqlDotOperator extends SqlSpecialOperator {
     }
     final RelDataType operandType = callBinding.getOperandType(0);
     final SqlSingleOperandTypeChecker checker = getChecker(operandType);
+    // Actually operand0 always comes from parsing the SqlIdentifier, so there
+    // is no need to make implicit type coercion.
     return checker.checkSingleOperandType(callBinding, right, 0,
         throwOnFailure);
   }

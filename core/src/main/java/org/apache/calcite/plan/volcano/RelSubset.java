@@ -344,15 +344,31 @@ public class RelSubset extends AbstractRelNode {
       return;
     }
     try {
-      final RelOptCost cost = planner.getCost(rel, mq);
-      if (cost.isLt(bestCost)) {
-        LOGGER.trace("Subset cost improved: subset [{}] cost was {} now {}", this, bestCost, cost);
+      RelOptCost cost = planner.getCost(rel, mq);
+      boolean updateBest = cost.isLt(bestCost);
+
+      // Best rel's cost is increased, we need to search for new best rel
+      if (rel == best && bestCost.isLt(cost)) {
+        updateBest = true;
+        for (RelNode node : getRels()) {
+          RelOptCost relCost = planner.getCost(node, mq);
+          if (relCost.isLt(cost)) {
+            cost = relCost;
+            rel = node;
+          }
+        }
+      }
+
+      // Update subset best cost when we find a cheaper rel or the current
+      // best's cost is changed
+      if (updateBest) {
+        LOGGER.trace("Subset cost changed: subset [{}] cost was {} now {}",
+            this, bestCost, cost);
 
         bestCost = cost;
         best = rel;
 
-        // Lower cost means lower importance. Other nodes will change
-        // too, but we'll get to them later.
+        // Recompute subset's importance and propagate cost change to parents
         planner.ruleQueue.recompute(this);
         for (RelNode parent : getParents()) {
           final RelSubset parentSubset = planner.getSubset(parent);

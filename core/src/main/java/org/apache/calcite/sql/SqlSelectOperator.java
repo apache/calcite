@@ -143,6 +143,7 @@ public class SqlSelectOperator extends SqlOperator {
       final SqlNode keyword = select.keywordList.get(i);
       keyword.unparse(writer, 0, 0);
     }
+    writer.topN(select.fetch, select.offset);
     SqlNode selectClause = select.selectList;
     if (selectClause == null) {
       selectClause = SqlIdentifier.star(SqlParserPos.ZERO);

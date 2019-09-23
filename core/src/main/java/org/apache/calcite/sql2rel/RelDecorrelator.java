@@ -420,8 +420,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
     RelCollation oldCollation = rel.getCollation();
     RelCollation newCollation = RexUtil.apply(mapping, oldCollation);
 
-    final int offset = rel.offset == null ? 0 : RexLiteral.intValue(rel.offset);
-    final int fetch = rel.fetch == null ? 0 : RexLiteral.intValue(rel.fetch);
+    final int offset = rel.offset == null ? -1 : RexLiteral.intValue(rel.offset);
+    final int fetch = rel.fetch == null ? -1 : RexLiteral.intValue(rel.fetch);
 
     final RelNode newSort = relBuilder
             .push(newInput)
@@ -1473,13 +1473,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final List<RelDataTypeField> fieldList =
         input.getRowType().getFieldList();
     List<Pair<RexNode, String>> projects = new ArrayList<>();
-    for (Ord<RelDataTypeField> field : Ord.zip(fieldList)) {
-      projects.add(
-          Pair.of(
-              (RexNode) relBuilder.getRexBuilder().makeInputRef(
-                  field.e.getType(), field.i),
-              field.e.getName()));
-    }
+    Ord.forEach(fieldList, (field, i) ->
+        projects.add(
+            Pair.of(relBuilder.getRexBuilder().makeInputRef(field.getType(), i),
+                field.getName())));
     projects.addAll(additionalExprs);
     return relBuilder.push(input)
         .projectNamed(Pair.left(projects), Pair.right(projects), true)

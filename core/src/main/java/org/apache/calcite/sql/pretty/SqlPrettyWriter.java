@@ -925,6 +925,13 @@ public class SqlPrettyWriter implements SqlWriter {
     dialect.unparseOffsetFetch(this, offset, fetch);
   }
 
+  public void topN(SqlNode fetch, SqlNode offset) {
+    if (fetch == null && offset == null) {
+      return;
+    }
+    dialect.unparseTopN(this, offset, fetch);
+  }
+
   public Frame startFunCall(String funName) {
     keyword(funName);
     setNeedWhitespace(false);

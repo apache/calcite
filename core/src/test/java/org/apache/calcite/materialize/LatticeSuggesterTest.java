@@ -27,6 +27,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.statistic.MapSqlStatisticProvider;
+import org.apache.calcite.statistic.QuerySqlStatisticProvider;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.FoodMartQuerySet;
 import org.apache.calcite.test.SlowTests;
@@ -612,6 +613,67 @@ public class LatticeSuggesterTest {
         + "group by \"fname\", \"lname\"";
     t.addQuery(q0);
     assertThat(t.s.latticeMap.size(), is(1));
+  }
+
+  /** A tricky case involving a CTE (WITH), a join condition that references an
+   * expression, a complex WHERE clause, and some other queries. */
+  @Test public void testJoinUsingExpression() throws Exception {
+    final Tester t = new Tester().foodmart().withEvolve(true);
+
+    final String q0 = "with c as (select\n"
+        + "    \"customer_id\" + 1 as \"customer_id\",\n"
+        + "    \"fname\"\n"
+        + "  from \"customer\")\n"
+        + "select\n"
+        + "  COUNT(distinct c.\"customer_id\") as \"customer.count\"\n"
+        + "from c\n"
+        + "left join \"sales_fact_1997\" using (\"customer_id\")\n"
+        + "where case\n"
+        + "  when lower(substring(\"fname\", 11, 1)) in (0, 1)\n"
+        + "    then 'Amy Adams'\n"
+        + "  when lower(substring(\"fname\", 11, 1)) in (2, 3)\n"
+        + "    then 'Barry Manilow'\n"
+        + "  when lower(substring(\"fname\", 11, 1)) in ('y', 'z')\n"
+        + "   then 'Yvonne Zane'\n"
+        + "  end = 'Barry Manilow'\n"
+        + "LIMIT 500";
+    final String q1 = "select * from \"customer\"";
+    final String q2 = "select sum(\"product_id\") from \"product\"";
+    // similar to q0, but "c" is a sub-select rather than CTE
+    final String q4 = "select\n"
+        + "  COUNT(distinct c.\"customer_id\") as \"customer.count\"\n"
+        + "from (select \"customer_id\" + 1 as \"customer_id\", \"fname\"\n"
+        + "  from \"customer\") as c\n"
+        + "left join \"sales_fact_1997\" using (\"customer_id\")\n";
+    t.addQuery(q1);
+    t.addQuery(q0);
+    t.addQuery(q1);
+    t.addQuery(q4);
+    t.addQuery(q2);
+    assertThat(t.s.latticeMap.size(), is(3));
+  }
+
+  @Test public void testDerivedColRef() throws Exception {
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(Tester.schemaFrom(CalciteAssert.SchemaSpec.SCOTT))
+        .statisticProvider(QuerySqlStatisticProvider.SILENT_CACHING_INSTANCE)
+        .build();
+    final Tester t = new Tester(config).foodmart().withEvolve(true);
+
+    final String q0 = "select\n"
+        + "  min(c.\"fname\") as \"customer.count\"\n"
+        + "from \"customer\" as c\n"
+        + "left join \"sales_fact_1997\" as s\n"
+        + "on c.\"customer_id\" + 1 = s.\"customer_id\" + 2";
+    t.addQuery(q0);
+    assertThat(t.s.latticeMap.size(), is(1));
+    assertThat(t.s.latticeMap.keySet().iterator().next(),
+        is("sales_fact_1997 (customer:+($2, 2)):[MIN(customer.fname)]"));
+    assertThat(t.s.space.g.toString(),
+        is("graph(vertices: [[foodmart, customer],"
+            + " [foodmart, sales_fact_1997]], "
+            + "edges: [Step([foodmart, sales_fact_1997],"
+            + " [foodmart, customer], +($2, 2):+($0, 1))])"));
   }
 
   /** Creates a matcher that matches query graphs to strings. */

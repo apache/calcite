@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.tree.BinaryExpression;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
@@ -39,6 +40,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.ImplementableAggFunction;
 import org.apache.calcite.schema.ImplementableFunction;
@@ -46,6 +48,7 @@ import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
+import org.apache.calcite.sql.SqlMatchFunction;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlJsonArrayAggAggFunction;
 import org.apache.calcite.sql.fun.SqlJsonObjectAggAggFunction;
@@ -106,6 +109,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_TYPE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LEFT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MD5;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RIGHT;
@@ -131,6 +135,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CLASSIFIER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COALESCE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COLLECT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CONCAT;
@@ -155,7 +160,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ELEMENT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FINAL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FIRST_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FUSION;
@@ -193,6 +197,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_QUERY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_VALUE_ANY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_VALUE_EXPRESSION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAG;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST_DAY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LEAD;
@@ -285,6 +290,8 @@ public class RexImpTable {
   private final Map<SqlAggFunction, Supplier<? extends AggImplementor>> aggMap =
       new HashMap<>();
   private final Map<SqlAggFunction, Supplier<? extends WinAggImplementor>> winAggMap =
+      new HashMap<>();
+  private final Map<SqlMatchFunction, Supplier<? extends MatchImplementor>> matchMap =
       new HashMap<>();
 
   RexImpTable() {
@@ -450,6 +457,24 @@ public class RexImpTable {
         NotImplementor.of(posixRegexImplementor), false);
     defineImplementor(SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_SENSITIVE, NullPolicy.STRICT,
         NotImplementor.of(posixRegexImplementor), false);
+    defineImplementor(REGEXP_REPLACE, NullPolicy.STRICT,
+        new NotNullImplementor() {
+          final NotNullImplementor[] implementors = {
+              new ReflectiveCallNotNullImplementor(
+                  BuiltInMethod.REGEXP_REPLACE3.method),
+              new ReflectiveCallNotNullImplementor(
+                  BuiltInMethod.REGEXP_REPLACE4.method),
+              new ReflectiveCallNotNullImplementor(
+                  BuiltInMethod.REGEXP_REPLACE5.method),
+              new ReflectiveCallNotNullImplementor(
+                  BuiltInMethod.REGEXP_REPLACE6.method)
+          };
+          public Expression implement(RexToLixTranslator translator, RexCall call,
+              List<Expression> translatedOperands) {
+            return implementors[call.getOperands().size() - 3]
+                .implement(translator, call, translatedOperands);
+          }
+        }, false);
 
     // Multisets & arrays
     defineMethod(CARDINALITY, BuiltInMethod.COLLECTION_SIZE.method,
@@ -603,16 +628,9 @@ public class RexImpTable {
     winAggMap.put(REGR_COUNT, constructorSupplier(CountWinImplementor.class));
 
     // Functions for MATCH_RECOGNIZE
-    defineMethod(FINAL, "abs", NullPolicy.ANY);
-
-    map.put(PREV, (translator, call, nullAs) -> {
-      final RexNode node = call.getOperands().get(0);
-      final RexNode offset = call.getOperands().get(1);
-      final Expression offs = Expressions.multiply(translator.translate(offset),
-          Expressions.constant(-1));
-      ((EnumerableMatch.PrevInputGetter) translator.inputGetter).setOffset(offs);
-      return translator.translate(node, nullAs);
-    });
+    matchMap.put(CLASSIFIER, ClassifierImplementor::new);
+    matchMap.put(LAST, LastImplementor::new);
+    map.put(PREV, new PrevImplementor());
   }
 
   private <T> Supplier<T> constructorSupplier(Class<T> klass) {
@@ -895,6 +913,16 @@ public class RexImpTable {
     }
 
     return aggSupplier.get();
+  }
+
+  public MatchImplementor get(final SqlMatchFunction function) {
+    final Supplier<? extends MatchImplementor> supplier =
+        matchMap.get(function);
+    if (supplier != null) {
+      return supplier.get();
+    } else {
+      throw new IllegalStateException("Supplier should not be null");
+    }
   }
 
   static Expression maybeNegate(boolean negate, Expression expression) {
@@ -2904,6 +2932,75 @@ public class RexImpTable {
       default:
         return e;
       }
+    }
+  }
+
+  /** Implements CLASSIFIER match-recognize function. */
+  private static class ClassifierImplementor implements MatchImplementor {
+    @Override public Expression implement(RexToLixTranslator translator, RexCall call,
+        ParameterExpression row, ParameterExpression rows,
+        ParameterExpression symbols, ParameterExpression i) {
+      return Types.castIfNecessary(String.class,
+          Expressions.call(symbols, BuiltInMethod.LIST_GET.method, i));
+    }
+  }
+
+  /** Implements the LAST match-recognize function. */
+  private static class LastImplementor implements MatchImplementor {
+    @Override public Expression implement(RexToLixTranslator translator, RexCall call,
+        ParameterExpression row, ParameterExpression rows,
+        ParameterExpression symbols, ParameterExpression i) {
+      final RexNode node = call.getOperands().get(0);
+
+      final String alpha = ((RexPatternFieldRef) call.getOperands().get(0)).getAlpha();
+
+      final BinaryExpression lastIndex = Expressions.subtract(
+          Expressions.call(rows, BuiltInMethod.COLLECTION_SIZE.method),
+          Expressions.constant(1));
+
+      // Just take the last one, if exists
+      if ("*".equals(alpha)) {
+        ((EnumerableMatch.PassedRowsInputGetter) translator.inputGetter).setIndex(i);
+        // Important, unbox the node / expression to avoid NullAs.NOT_POSSIBLE
+        final RexPatternFieldRef ref = (RexPatternFieldRef) node;
+        final RexPatternFieldRef newRef =
+            new RexPatternFieldRef(ref.getAlpha(),
+                ref.getIndex(),
+                translator.typeFactory.createTypeWithNullability(ref.getType(),
+                    true));
+        final Expression expression = translator.translate(newRef, NullAs.NULL);
+        ((EnumerableMatch.PassedRowsInputGetter) translator.inputGetter).setIndex(null);
+        return expression;
+      } else {
+        // Alpha != "*" so we have to search for a specific one to find and use that, if found
+        ((EnumerableMatch.PassedRowsInputGetter) translator.inputGetter).setIndex(
+            Expressions.call(BuiltInMethod.MATCH_UTILS_LAST_WITH_SYMBOL.method,
+                Expressions.constant(alpha), rows, symbols, i));
+
+        // Important, unbox the node / expression to avoid NullAs.NOT_POSSIBLE
+        final RexPatternFieldRef ref = (RexPatternFieldRef) node;
+        final RexPatternFieldRef newRef =
+            new RexPatternFieldRef(ref.getAlpha(),
+                ref.getIndex(),
+                translator.typeFactory.createTypeWithNullability(ref.getType(),
+                    true));
+        final Expression expression = translator.translate(newRef, NullAs.NULL);
+        ((EnumerableMatch.PassedRowsInputGetter) translator.inputGetter).setIndex(null);
+        return expression;
+      }
+    }
+  }
+
+  /** Implements PREV match-recognize function. */
+  private static class PrevImplementor implements CallImplementor {
+    @Override public Expression implement(RexToLixTranslator translator, RexCall call,
+        NullAs nullAs) {
+      final RexNode node = call.getOperands().get(0);
+      final RexNode offset = call.getOperands().get(1);
+      final Expression offs = Expressions.multiply(translator.translate(offset),
+          Expressions.constant(-1));
+      ((EnumerableMatch.PrevInputGetter) translator.inputGetter).setOffset(offs);
+      return translator.translate(node, nullAs);
     }
   }
 }
