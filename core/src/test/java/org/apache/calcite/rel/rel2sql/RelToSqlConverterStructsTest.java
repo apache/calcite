@@ -115,9 +115,10 @@ public class RelToSqlConverterStructsTest {
       RelDataType bigint = tf.createSqlType(SqlTypeName.BIGINT);
       RelDataType n1Type = tf.createStructType(
           ImmutableList.of(
-              tf.createStructType(ImmutableList.of(bigint), ImmutableList.of("b")),
-              tf.createStructType(ImmutableList.of(bigint), ImmutableList.of("c"))
-          ),
+              tf.createStructType(ImmutableList.of(bigint),
+                  ImmutableList.of("b")),
+              tf.createStructType(ImmutableList.of(bigint),
+                  ImmutableList.of("c"))),
           ImmutableList.of("n11", "n12"));
       RelDataType n2Type = tf.createStructType(
           ImmutableList.of(bigint),

@@ -59,15 +59,35 @@ class EnumerableJoinRule extends ConverterRule {
     final RelNode right = newInputs.get(1);
     final JoinInfo info = join.analyzeCondition();
     if (!info.isEqui() && join.getJoinType() != JoinRelType.INNER) {
-      // EnumerableHashJoin only supports equi-join. We can put a filter on top
-      // if it is an inner join.
-      return EnumerableNestedLoopJoin.create(
-          left,
-          right,
-          join.getCondition(),
-          join.getVariablesSet(),
-          join.getJoinType());
+      RelNode newRel;
+      /**
+       *  if it has equiKeys ,we can create an EnumerableHashJoin with
+       *  nonEquiConditions, EnumerableHashJoin now supports INNER/ANTI/SEMI
+       *  EnumerableHashJoin with equiKeys and nonEquiConditions
+       */
+      boolean hasEquiKeys = !info.leftKeys.isEmpty()
+          && !info.rightKeys.isEmpty();
+
+      if (hasEquiKeys) {
+        newRel = EnumerableHashJoin.create(
+            left,
+            right,
+            join.getCondition(),
+            join.getVariablesSet(),
+            join.getJoinType());
+      } else {
+        newRel = EnumerableNestedLoopJoin.create(
+            left,
+            right,
+            join.getCondition(),
+            join.getVariablesSet(),
+            join.getJoinType());
+      }
+      return newRel;
+
     } else {
+      // TODO:EnumerableHashJoin + Filter should be supported with just a
+      // (new version of) EnumerableHashJoin, which can take the full condition.
       RelNode newRel;
       newRel = EnumerableHashJoin.create(
           left,

@@ -20,6 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
 import java.util.Objects;
 
@@ -61,6 +62,12 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
       }
     }
     if (b) {
+      // Coerce type first.
+      if (callBinding.getValidator().isTypeCoercionEnabled()) {
+        TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
+        // For comparable operators, e.g. >, <, =, >=, <=.
+        typeCoercion.binaryArithmeticCoercion(callBinding);
+      }
       b = super.checkOperandTypes(callBinding, false);
       if (!b && throwOnFailure) {
         throw callBinding.newValidationSignatureError();
@@ -91,7 +98,7 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
    * interface, and cannot throw an error.
    */
   public boolean checkOperandTypes(
-      SqlOperatorBinding callBinding) {
+      SqlOperatorBinding operatorBinding, SqlCallBinding callBinding) {
     boolean b = true;
     for (int i = 0; i < nOperands; ++i) {
       RelDataType type = callBinding.getOperandType(i);
@@ -100,7 +107,7 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
       }
     }
     if (b) {
-      b = super.checkOperandTypes(callBinding);
+      b = super.checkOperandTypes(operatorBinding, callBinding);
     }
     return b;
   }

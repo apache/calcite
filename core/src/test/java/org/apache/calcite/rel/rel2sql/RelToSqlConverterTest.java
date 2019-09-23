@@ -43,6 +43,7 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
+import org.apache.calcite.sql.dialect.MssqlSqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.OracleSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
@@ -804,6 +805,18 @@ public class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3282">[CALCITE-3282]
+   * HiveSqlDialect unparse Interger type as Int in order
+   * to be compatible with Hive1.x</a>. */
+  @Test public void testHiveCastAsInt() {
+    String query = "select cast( cast(\"employee_id\" as varchar) as int) "
+        + "from \"foodmart\".\"reserve_employee\" ";
+    final String expected = "SELECT CAST(CAST(employee_id AS VARCHAR) AS INT)\n"
+        + "FROM foodmart.reserve_employee";
+    sql(query).withHive().ok(expected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3220">[CALCITE-3220]
    * HiveSqlDialect should transform the SQL-standard TRIM function to TRIM,
    * LTRIM or RTRIM</a>. */
@@ -1311,6 +1324,31 @@ public class RelToSqlConverterTest {
         + "OFFSET 10 ROWS\n"
         + "FETCH NEXT 100 ROWS ONLY";
     sql(query).ok(expected);
+  }
+
+  @Test public void testSelectQueryWithFetchClause() {
+    String query = "select \"product_id\"\n"
+        + "from \"product\"\n"
+        + "order by \"product_id\" fetch next 100 rows only";
+    final String expected = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY \"product_id\"\n"
+        + "FETCH NEXT 100 ROWS ONLY";
+    final String expectedMssql10 = "SELECT TOP (100) [product_id]\n"
+        + "FROM [foodmart].[product]\n"
+        + "ORDER BY [product_id]";
+    final String expectedMssql = "SELECT [product_id]\n"
+        + "FROM [foodmart].[product]\n"
+        + "ORDER BY [product_id]\n"
+        + "FETCH NEXT 100 ROWS ONLY";
+    final String expectedSybase = "SELECT TOP (100) product_id\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY product_id";
+    sql(query).ok(expected)
+        .withMssql(10).ok(expectedMssql10)
+        .withMssql(11).ok(expectedMssql)
+        .withMssql(14).ok(expectedMssql)
+        .withSybase().ok(expectedSybase);
   }
 
   @Test public void testSelectQueryComplex() {
@@ -3363,6 +3401,42 @@ public class RelToSqlConverterTest {
         callsUnparseCallOnSqlSelect[0], is(true));
   }
 
+  @Test public void testCorrelate() {
+    final String sql = "select d.\"department_id\", d_plusOne "
+        + "from \"department\" as d, "
+        + "       lateral (select d.\"department_id\" + 1 as d_plusOne"
+        + "                from (values(true)))";
+
+    final String expected = "SELECT \"$cor0\".\"department_id\", \"$cor0\".\"D_PLUSONE\"\n"
+        + "FROM \"foodmart\".\"department\" AS \"$cor0\",\n"
+        + "LATERAL (SELECT \"$cor0\".\"department_id\" + 1 AS \"D_PLUSONE\"\n"
+        + "FROM (VALUES  (TRUE)) AS \"t\" (\"EXPR$0\")) AS \"t0\"";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testUncollectExplicitAlias() {
+    final String sql = "select did + 1 \n"
+        + "from unnest(select collect(\"department_id\") as deptid"
+        + "            from \"department\") as t(did)";
+
+    final String expected = "SELECT \"DEPTID\" + 1\n"
+        + "FROM UNNEST (SELECT COLLECT(\"department_id\") AS \"DEPTID\"\n"
+        + "FROM \"foodmart\".\"department\") AS \"t0\" (\"DEPTID\")";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testUncollectImplicitAlias() {
+    final String sql = "select did + 1 \n"
+        + "from unnest(select collect(\"department_id\") "
+        + "            from \"department\") as t(did)";
+
+    final String expected = "SELECT \"col_0\" + 1\n"
+        + "FROM UNNEST (SELECT COLLECT(\"department_id\")\n"
+        + "FROM \"foodmart\".\"department\") AS \"t0\" (\"col_0\")";
+    sql(sql).ok(expected);
+  }
+
+
   @Test public void testWithinGroup1() {
     final String query = "select \"product_class_id\", collect(\"net_weight\") "
         + "within group (order by \"net_weight\" desc) "
@@ -3730,6 +3804,95 @@ public class RelToSqlConverterTest {
     assertTrue(postgresqlDialect.supportsDataType(integerDataType));
   }
 
+  @Test public void testSelectNull() {
+    String query = "SELECT CAST(NULL AS INT)";
+    final String expected = "SELECT CAST(NULL AS INTEGER)\n"
+            + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+    sql(query).ok(expected);
+    // validate
+    sql(expected).exec();
+  }
+
+  @Test public void testSelectNullWithCount() {
+    String query = "SELECT COUNT(CAST(NULL AS INT))";
+    final String expected = "SELECT COUNT(CAST(NULL AS INTEGER))\n"
+            + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+    sql(query).ok(expected);
+    // validate
+    sql(expected).exec();
+  }
+
+  @Test public void testSelectNullWithGroupByNull() {
+    String query = "SELECT COUNT(CAST(NULL AS INT)) FROM (VALUES  (0))\n"
+            + "AS \"t\" GROUP BY CAST(NULL AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
+    final String expected = "SELECT COUNT(CAST(NULL AS INTEGER))\n"
+            + "FROM (VALUES  (0)) AS \"t\" (\"EXPR$0\")\nGROUP BY CAST(NULL "
+            + "AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
+    sql(query).ok(expected);
+    // validate
+    sql(expected).exec();
+  }
+
+  @Test public void testSelectNullWithGroupByVar() {
+    String query = "SELECT COUNT(CAST(NULL AS INT)) FROM \"account\"\n"
+            + "AS \"t\" GROUP BY \"account_type\"";
+    final String expected = "SELECT COUNT(CAST(NULL AS INTEGER))\n"
+            + "FROM \"foodmart\".\"account\"\n"
+            + "GROUP BY \"account_type\"";
+    sql(query).ok(expected);
+    // validate
+    sql(expected).exec();
+  }
+
+  @Test public void testSelectNullWithInsert() {
+    String query = "insert into\n"
+            + "\"account\"(\"account_id\",\"account_parent\",\"account_type\",\"account_rollup\")\n"
+            + "select 1, cast(NULL AS INT), cast(123 as varchar), cast(123 as varchar)";
+    final String expected = "INSERT INTO \"foodmart\".\"account\" ("
+            + "\"account_id\", \"account_parent\", \"account_description\", "
+            + "\"account_type\", \"account_rollup\", \"Custom_Members\")\n"
+            + "(SELECT 1 AS \"account_id\", CAST(NULL AS INTEGER) AS \"account_parent\","
+            + " CAST(NULL AS VARCHAR(30) CHARACTER SET "
+            + "\"ISO-8859-1\") AS \"account_description\", '123' AS \"account_type\", "
+            + "'123' AS \"account_rollup\", CAST(NULL AS VARCHAR"
+            + "(255) CHARACTER SET \"ISO-8859-1\") AS \"Custom_Members\"\n"
+            + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\"))";
+    sql(query).ok(expected);
+    // validate
+    sql(expected).exec();
+  }
+
+  @Test public void testSelectNullWithInsertFromJoin() {
+    String query = "insert into \n"
+            + "\"account\"(\"account_id\",\"account_parent\",\n"
+            + "\"account_type\",\"account_rollup\")\n"
+            + "select \"product\".\"product_id\", \n"
+            + "cast(NULL AS INT),\n"
+            + "cast(\"product\".\"product_id\" as varchar),\n"
+            + "cast(\"sales_fact_1997\".\"store_id\" as varchar)\n"
+            + "from \"product\"\n"
+            + "inner join \"sales_fact_1997\"\n"
+            + "on \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"";
+    final String expected = "INSERT INTO \"foodmart\".\"account\" "
+            + "(\"account_id\", \"account_parent\", \"account_description\", "
+            + "\"account_type\", \"account_rollup\", \"Custom_Members\")\n"
+            + "(SELECT \"product\".\"product_id\" AS \"account_id\", "
+            + "CAST(NULL AS INTEGER) AS \"account_parent\", CAST(NULL AS VARCHAR"
+            + "(30) CHARACTER SET \"ISO-8859-1\") AS \"account_description\", "
+            + "CAST(\"product\".\"product_id\" AS VARCHAR CHARACTER SET "
+            + "\"ISO-8859-1\") AS \"account_type\", "
+            + "CAST(\"sales_fact_1997\".\"store_id\" AS VARCHAR CHARACTER SET \"ISO-8859-1\") AS "
+            + "\"account_rollup\", "
+            + "CAST(NULL AS VARCHAR(255) CHARACTER SET \"ISO-8859-1\") AS \"Custom_Members\"\n"
+            + "FROM \"foodmart\".\"product\"\n"
+            + "INNER JOIN \"foodmart\".\"sales_fact_1997\" "
+            + "ON \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\")";
+    sql(query).ok(expected);
+    // validate
+    sql(expected).exec();
+  }
+
+
   @Test public void testDialectQuoteStringLiteral() {
     dialects().forEach((dialect, databaseProduct) -> {
       assertThat(dialect.quoteStringLiteral(""), is("''"));
@@ -3795,7 +3958,18 @@ public class RelToSqlConverterTest {
     }
 
     Sql withMssql() {
-      return dialect(SqlDialect.DatabaseProduct.MSSQL.getDialect());
+      return withMssql(14); // MSSQL 2008 = 10.0, 2012 = 11.0, 2017 = 14.0
+    }
+
+    Sql withMssql(int majorVersion) {
+      final SqlDialect mssqlDialect = DatabaseProduct.MSSQL.getDialect();
+      return dialect(
+          new MssqlSqlDialect(SqlDialect.EMPTY_CONTEXT
+              .withDatabaseProduct(DatabaseProduct.MSSQL)
+              .withDatabaseMajorVersion(majorVersion)
+              .withIdentifierQuoteString(mssqlDialect.quoteIdentifier("")
+                  .substring(0, 1))
+              .withNullCollation(mssqlDialect.getNullCollation())));
     }
 
     Sql withMysql() {
@@ -3827,6 +4001,10 @@ public class RelToSqlConverterTest {
 
     Sql withSnowflake() {
       return dialect(DatabaseProduct.SNOWFLAKE.getDialect());
+    }
+
+    Sql withSybase() {
+      return dialect(DatabaseProduct.SYBASE.getDialect());
     }
 
     Sql withVertica() {

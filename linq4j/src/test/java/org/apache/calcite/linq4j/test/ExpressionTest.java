@@ -1521,6 +1521,12 @@ public class ExpressionTest {
         Expressions.toString(Expressions.constant(map)));
   }
 
+  @Test public void testEvaluate() {
+    Expression x = Expressions.add(ONE, TWO);
+    Object value = Expressions.evaluate(x);
+    assertThat(value, is(3));
+  }
+
   /** An enum. */
   enum MyEnum {
     X,

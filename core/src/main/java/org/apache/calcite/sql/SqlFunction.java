@@ -23,6 +23,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -233,11 +234,12 @@ public class SqlFunction extends SqlOperator {
     final List<RelDataType> argTypes = constructArgTypeList(validator, scope,
         call, args, convertRowArgToColumnList);
 
-    final SqlFunction function =
+    SqlFunction function =
         (SqlFunction) SqlUtil.lookupRoutine(validator.getOperatorTable(),
             getNameAsId(), argTypes, argNames, getFunctionType(),
             SqlSyntax.FUNCTION, getKind(),
-            validator.getCatalogReader().nameMatcher());
+            validator.getCatalogReader().nameMatcher(),
+            false);
     try {
       // if we have a match on function name and parameter count, but
       // couldn't find a function with  a COLUMN_LIST type, retry, but
@@ -270,8 +272,24 @@ public class SqlFunction extends SqlOperator {
             argTypes);
       }
       if (function == null) {
-        throw validator.handleUnresolvedFunction(call, this, argTypes,
-            argNames);
+        boolean changed = false;
+        if (validator.isTypeCoercionEnabled()) {
+          // try again if implicit type coercion is allowed.
+          function = (SqlFunction) SqlUtil.lookupRoutine(validator.getOperatorTable(),
+              getNameAsId(), argTypes, argNames, getFunctionType(), SqlSyntax.FUNCTION, getKind(),
+              validator.getCatalogReader().nameMatcher(),
+              true);
+          // try to coerce the function arguments to the declared sql type name.
+          // if we succeed, the arguments would be wrapped with CAST operator.
+          if (function != null) {
+            TypeCoercion typeCoercion = validator.getTypeCoercion();
+            changed = typeCoercion.userDefinedFunctionCoercion(scope, call, function);
+          }
+        }
+        if (!changed) {
+          throw validator.handleUnresolvedFunction(call, this, argTypes,
+              argNames);
+        }
       }
 
       // REVIEW jvs 25-Mar-2005:  This is, in a sense, expanding

@@ -118,6 +118,11 @@
   githubId: joshelser
   org: Hortonworks
   role: PMC
+- name: Julian Feinauer
+  apacheId: jfeinauer
+  githubId: JulianFeinauer
+  org: Pragmatic Minds
+  role: Committer
 - name: Julian Hyde
   apacheId: jhyde
   githubId: julianhyde
@@ -160,6 +165,11 @@
   apacheId: minji
   githubId: minji-kim
   org: Oracle
+  role: Committer
+- name: Muhammad Gelbana
+  apacheId: mgelbana
+  githubId: MGelbana
+  org: Incorta
   role: Committer
 - name: Nick Dimiduk
   apacheId: ndimiduk
