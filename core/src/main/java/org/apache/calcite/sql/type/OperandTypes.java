@@ -540,7 +540,7 @@ public abstract class OperandTypes {
         }
 
         public SqlOperandCountRange getOperandCountRange() {
-          return SqlOperandCountRanges.of(1);
+          return SqlOperandCountRanges.of(3);
         }
 
         public String getAllowedSignatures(SqlOperator op, String opName) {
@@ -553,7 +553,6 @@ public abstract class OperandTypes {
 
         public Consistency getConsistency() {
           return Consistency.NONE;
-
         }
       };
 

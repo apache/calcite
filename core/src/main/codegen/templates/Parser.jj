@@ -2081,15 +2081,34 @@ SqlNode TableFunctionCall(SqlParserPos pos) :
 {
     SqlNode call;
     SqlFunctionCategory funcType = SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION;
+    final Span s;
+    SqlNode collection_table;
+    SqlNode column_string;
+    SqlNode interval;
 }
 {
-    [
-        <SPECIFIC>
+    (
+        <TUMBLE> { s = span(); }
+        <LPAREN>
+        collection_table = ExplicitTable(s.pos())
+        <COMMA>
+        column_string = StringLiteral()
+        <COMMA>
+        interval = IntervalLiteral()
+        <RPAREN>
         {
-            funcType = SqlFunctionCategory.USER_DEFINED_TABLE_SPECIFIC_FUNCTION;
+            call = SqlStdOperatorTable.TUMBLE_TABLE_FUNCTION.createCall(
+                        s.end(this), collection_table, column_string, interval);
         }
-    ]
-    call = NamedRoutineCall(funcType, ExprContext.ACCEPT_CURSOR)
+    |
+        [
+            <SPECIFIC>
+            {
+                funcType = SqlFunctionCategory.USER_DEFINED_TABLE_SPECIFIC_FUNCTION;
+            }
+        ]
+        call = NamedRoutineCall(funcType, ExprContext.ACCEPT_CURSOR)
+    )
     {
         return SqlStdOperatorTable.COLLECTION_TABLE.createCall(pos, call);
     }
@@ -7106,6 +7125,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < XML: "XML" >
 |   < YEAR: "YEAR" >
 |   < ZONE: "ZONE" >
+|   < TUMBLE: "TUMBLE" >
 <#-- additional parser keywords are included here -->
 <#list parser.keywords as keyword>
 |   < ${keyword}: "${keyword}" >

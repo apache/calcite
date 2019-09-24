@@ -16,9 +16,15 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 /**
  * Base class for table-value function windowing operator (TUMBLE, HOP and SESSION).
@@ -35,6 +41,23 @@ public class SqlTableValueFunctionWindowingOperator extends SqlFunction {
     super(name, kind, returnTypeInference, operandTypeInference, operandTypeChecker, category);
   }
 
+  public RelDataType deriveType(
+      SqlValidator validator,
+      SqlValidatorScope scope,
+      SqlCall call) {
+    for (SqlNode operand : call.getOperandList()) {
+      RelDataType nodeType = validator.deriveType(scope, operand);
+      assert nodeType != null;
+    }
+
+    RelDataType type = call.getOperator().validateOperands(validator, scope, call);
+
+    // Validate and determine coercibility and resulting collation
+    // name of binary operator if needed.
+    type = adjustType(validator, call, type);
+    SqlValidatorUtil.checkCharsetAndCollateConsistentIfCharType(type);
+    return type;
+  }
 
   /**
    * The first parameter of table-value function windowing is a TABLE parameter,

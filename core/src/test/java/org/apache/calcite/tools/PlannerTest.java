@@ -79,6 +79,7 @@ import org.apache.calcite.sql.util.ListSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.CalciteAssert.SchemaSpec;
 import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Util;
@@ -132,12 +133,12 @@ public class PlannerTest {
         + "    EnumerableTableScan(table=[[hr, emps]])\n");
   }
 
-  @Ignore("")
+  // @Ignore("")
   @Test public void testParseAndConvertTableFunctionWindowing() throws Exception {
     checkParseAndConvert(
-            "select * FROM TABLE(TUMBLE(TABLE ORDERS, INTERVAL '1' MINUTE))",
+            "select * FROM TABLE(TUMBLE(TABLE ORDERS, 'ROWTIME', INTERVAL '1' MINUTE))",
 
-            "SELECT *\nFROM TABLE(TUMBLE(TABLE `ORDERS`, INTERVAL '1' MINUTE))",
+            "SELECT *\nFROM TABLE(TUMBLE(TABLE `ORDERS`, 'ROWTIME', INTERVAL '1' MINUTE))",
 
             "LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], wstart=[$4], wend=[$5])\n"
                 + "  LogicalTableFunctionScan(invocation=[TUMBLE($3, 60000:INTERVAL MINUTE)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER ID, VARCHAR(10) PRODUCT, INTEGER UNITS, TIMESTAMP(0) wstart, TIMESTAMP(0) wend)])\n"
@@ -265,7 +266,7 @@ public class PlannerTest {
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
         .defaultSchema(
-            CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.HR))
+            CalciteAssert.addSchema(rootSchema, SchemaSpec.ORINOCO))
         .traitDefs(traitDefs)
         .programs(programs)
         .build();
