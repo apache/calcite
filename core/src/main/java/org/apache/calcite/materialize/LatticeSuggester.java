@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.rules.FilterJoinRule;
@@ -133,10 +134,14 @@ public class LatticeSuggester {
     final RelNode r2 = planner.findBestExp();
 
     final Query q = new Query(space);
-    final Frame frame = frame(q, r2);
-    if (frame == null) {
-      return ImmutableList.of();
-    }
+    final List<Frame> frameList = new ArrayList<>();
+    frames(frameList, q, r2);
+    final List<Lattice> lattices = new ArrayList<>();
+    frameList.forEach(frame -> addFrame(q, frame, lattices));
+    return ImmutableList.copyOf(lattices);
+  }
+
+  private void addFrame(Query q, Frame frame, List<Lattice> lattices) {
     final AttributedDirectedGraph<TableRef, StepRef> g =
         AttributedDirectedGraph.create(new StepRef.Factory());
     final Multimap<Pair<TableRef, TableRef>, IntPair> map =
@@ -163,7 +168,7 @@ public class LatticeSuggester {
     // If the join graph is cyclic, we can't use it.
     final Set<TableRef> cycles = new CycleDetector<>(g).findCycles();
     if (!cycles.isEmpty()) {
-      return ImmutableList.of();
+      return;
     }
 
     // Translate the query graph to mutable nodes
@@ -205,7 +210,6 @@ public class LatticeSuggester {
     }
 
     // Transcribe the hierarchy of mutable nodes to immutable nodes
-    final List<Lattice> lattices = new ArrayList<>();
     for (MutableNode rootNode : rootNodes) {
       if (rootNode.isCyclic()) {
         continue;
@@ -221,7 +225,7 @@ public class LatticeSuggester {
         for (ColRef arg : measure.arguments) {
           if (arg == null) {
             // Cannot handle expressions, e.g. "sum(x + 1)" yet
-            return ImmutableList.of();
+            return;
           }
         }
         latticeBuilder.addMeasure(
@@ -263,7 +267,6 @@ public class LatticeSuggester {
       final Lattice lattice1 = findMatch(lattice0, rootNode);
       lattices.add(lattice1);
     }
-    return ImmutableList.copyOf(lattices);
   }
 
   /** Derives the alias of an expression that is the argument to a measure.
@@ -397,6 +400,17 @@ public class LatticeSuggester {
     final LinkedHashSet<E> c3 = new LinkedHashSet<>(c);
     c3.removeAll(c2);
     return c3;
+  }
+
+  private void frames(List<Frame> frames, final Query q, RelNode r) {
+    if (r instanceof SetOp) {
+      r.getInputs().forEach(input -> frames(frames, q, input));
+    } else {
+      final Frame frame = frame(q, r);
+      if (frame != null) {
+        frames.add(frame);
+      }
+    }
   }
 
   private Frame frame(final Query q, RelNode r) {

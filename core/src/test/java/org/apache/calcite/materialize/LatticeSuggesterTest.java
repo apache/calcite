@@ -49,6 +49,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
@@ -707,16 +708,46 @@ public class LatticeSuggesterTest {
     assertThat(t.addQuery(q), isGraphs(g, "[]"));
   }
 
+  @Test public void testUnion() throws Exception {
+    checkUnion("union");
+    checkUnion("union all");
+    checkUnion("intersect");
+    checkUnion("except");
+  }
+
+  private void checkUnion(String setOp) throws Exception {
+    final Tester t = new Tester().foodmart().withEvolve(true);
+    final String q = "select \"t\".\"time_id\"\n"
+        + "from \"time_by_day\" as \"t\",\n"
+        + " \"sales_fact_1997\" as \"s\"\n"
+        + "where \"s\".\"time_id\" = \"t\".\"time_id\"\n"
+        + setOp + "\n"
+        + "select min(\"unit_sales\")\n"
+        + "from \"sales_fact_1997\" as \"s\" join \"product\" as \"p\"\n"
+        + " using (\"product_id\")\n"
+        + "group by \"s\".\"customer_id\"";
+
+    // Adding a query generates two lattices
+    final List<Lattice> latticeList = t.addQuery(q);
+    assertThat(latticeList.size(), is(2));
+
+    // But because of 'evolve' flag, the lattices are merged into a single
+    // lattice
+    final String g = "sales_fact_1997 (product:product_id time_by_day:time_id)";
+    final String measures = "[MIN(sales_fact_1997.unit_sales)]";
+    assertThat(t.s.getLatticeSet(), isGraphs(g, measures));
+  }
+
   /** Creates a matcher that matches query graphs to strings. */
-  private BaseMatcher<List<Lattice>> isGraphs(
+  private BaseMatcher<Collection<Lattice>> isGraphs(
       String... strings) {
     final List<String> expectedList = Arrays.asList(strings);
-    return new BaseMatcher<List<Lattice>>() {
+    return new BaseMatcher<Collection<Lattice>>() {
       public boolean matches(Object item) {
         //noinspection unchecked
-        return item instanceof List
-            && ((List) item).size() * 2 == expectedList.size()
-            && allEqual((List) item, expectedList);
+        return item instanceof Collection
+            && ((Collection<Object>) item).size() * 2 == expectedList.size()
+            && allEqual(ImmutableList.copyOf((Collection) item), expectedList);
       }
 
       private boolean allEqual(List<Lattice> items,
